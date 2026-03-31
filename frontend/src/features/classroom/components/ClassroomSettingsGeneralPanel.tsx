@@ -3,8 +3,9 @@ import { useTranslation } from "react-i18next";
 import { TextInput, TextArea } from "@carbon/react";
 import type { ClassroomDetail } from "@/core/entities/classroom.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
-import { SettingsSection, SettingsField } from "@/features/auth/components/SettingsSection";
+import { Section, FieldRow, ActionRow } from "@/shared/layout/SettingsPanel";
 import { ImageEditDialog } from "@/shared/ui/image";
+import { PRESET_COVER_IMAGES } from "@/shared/ui/image/presetCoverImages";
 import {
   updateClassroom,
   uploadClassroomCover,
@@ -160,9 +161,9 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
   };
 
   return (
-    <div className="settings-panel">
-      <SettingsSection title={t("basicInfo")}>
-        <SettingsField label={t("name")}>
+    <>
+      <Section title={t("basicInfo")}>
+        <FieldRow label={t("name")}>
           <TextInput
             id="classroom-settings-name"
             hideLabel
@@ -170,8 +171,8 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
             value={settingName}
             onChange={handleNameChange}
           />
-        </SettingsField>
-        <SettingsField label={t("description")} vertical>
+        </FieldRow>
+        <FieldRow label={t("description")}>
           <TextArea
             id="classroom-settings-description"
             hideLabel
@@ -180,8 +181,8 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
             onChange={handleDescriptionChange}
             rows={4}
           />
-        </SettingsField>
-        <SettingsField label={t("icon")} vertical>
+        </FieldRow>
+        <FieldRow label={t("icon")}>
           <div className="classroom-icon-picker">
             {CLASSROOM_ICON_OPTIONS.map((opt) => {
               const isSelected = settingIcon === opt.key;
@@ -198,8 +199,8 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
               );
             })}
           </div>
-        </SettingsField>
-        <SettingsField label={t("coverImage")} vertical>
+        </FieldRow>
+        <FieldRow label={t("coverImage")}>
           <ImageEditDialog
             variant="cover"
             previewUrl={coverPreview || undefined}
@@ -213,24 +214,25 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
             dropzoneLabel={t("coverDropzoneTitle")}
             dropzoneHint={t("coverDropzoneHint")}
             disabled={uploadingCover}
+            galleryImages={PRESET_COVER_IMAGES}
             onUpload={handleCoverUpload}
             onApplyUrl={handleCoverUrlSubmit}
             onRemove={coverPreview ? handleRemoveCover : undefined}
           />
-        </SettingsField>
-      </SettingsSection>
+        </FieldRow>
+      </Section>
 
-      <SettingsSection title={t("otherInfo")}>
-        <SettingsField label={t("owner")}>
+      <Section title={t("otherInfo")}>
+        <ActionRow label={t("owner")}>
           <span>{classroom.ownerUsername}</span>
-        </SettingsField>
-        <SettingsField label={t("createdAt")}>
+        </ActionRow>
+        <ActionRow label={t("createdAt")}>
           <span>{new Date(classroom.createdAt).toLocaleString()}</span>
-        </SettingsField>
-        <SettingsField label={t("updatedAt")}>
+        </ActionRow>
+        <ActionRow label={t("updatedAt")}>
           <span>{new Date(classroom.updatedAt).toLocaleString()}</span>
-        </SettingsField>
-      </SettingsSection>
-    </div>
+        </ActionRow>
+      </Section>
+    </>
   );
 };

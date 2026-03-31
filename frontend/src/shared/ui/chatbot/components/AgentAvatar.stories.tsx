@@ -1,13 +1,11 @@
-import type { StoryModule } from "@/shared/types/story.types";
-import { AgentAvatar, type AgentAvatarProps } from "./AgentAvatar";
+import type { Meta, StoryObj } from "@storybook/react";
+import { AgentAvatar } from "./AgentAvatar";
 
-const storyModule: StoryModule<AgentAvatarProps> = {
-  meta: {
+const meta: Meta<typeof AgentAvatar> = {
     title: "shared/ui/chatbot/AgentAvatar",
     component: AgentAvatar,
-    category: "features",
-    description: "AI Agent 頭像組件，支援三種尺寸。",
-    defaultArgs: {
+    
+    args: {
       size: "md",
     },
     argTypes: {
@@ -17,12 +15,22 @@ const storyModule: StoryModule<AgentAvatarProps> = {
         description: "頭像尺寸 - sm: 24px, md: 32px, lg: 48px",
       },
     },
+  
+  parameters: {
+    docs: { description: { component: 'AI Agent 頭像組件，支援三種尺寸。' } },
   },
-  stories: [
-    {
-      name: "Sizes",
-      description: "展示三種不同尺寸的 Agent 頭像。",
-      render: () => (
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: { story: '展示三種不同尺寸的 Agent 頭像。' },
+    },
+  },
+  render: () => (
         <div style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
           <div style={{ textAlign: "center" }}>
             <p style={{ fontSize: "12px", marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>
@@ -44,13 +52,13 @@ const storyModule: StoryModule<AgentAvatarProps> = {
           </div>
         </div>
       ),
-    },
-    {
-      name: "Default",
-      description: "默認尺寸（Medium）",
-      render: (args) => <AgentAvatar size={args.size as "sm" | "md" | "lg"} />,
-    },
-  ],
 };
 
-export default storyModule;
+export const Default: Story = {
+  parameters: {
+    docs: {
+      description: { story: '默認尺寸（Medium）' },
+    },
+  },
+  render: (args) => <AgentAvatar size={args.size as "sm" | "md" | "lg"} />,
+};

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { InlineNotification, Modal, Button } from "@carbon/react";
-import { Code, Edit } from "@carbon/icons-react";
+import { Code } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
 import type {
   ProblemDetail as Problem,
   LanguageConfig,
@@ -54,7 +53,6 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
   initialLanguage = "",
   onSubmit,
 }) => {
-  const { user } = useAuth();
   const { theme } = useTheme();
   const { t } = useTranslation("problem");
   const { t: tc } = useTranslation("common");
@@ -258,7 +256,6 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
 
   if (!problem) return null;
 
-  const isAdmin = user && (user.role === "admin" || user.role === "teacher");
   const contentMaxWidth = "66rem";
 
   return (
@@ -269,15 +266,6 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
         maxWidth={contentMaxWidth}
         actions={
           <>
-            {isAdmin && (
-              <Button
-                kind="tertiary"
-                renderIcon={Edit}
-                onClick={() => navigate(`/problems/${problem.id}/edit`)}
-              >
-                編輯
-              </Button>
-            )}
             <Button
               kind="primary"
               renderIcon={Code}

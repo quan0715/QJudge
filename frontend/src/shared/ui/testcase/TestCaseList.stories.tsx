@@ -98,6 +98,7 @@ export const Playground: Story = {
   render: (args) => (
     <div style={{ maxWidth: 350 }}>
       <TestCaseList
+        testCases={args.testCases ?? mockTestCases}
         {...args}
         onSelect={(tc) => console.log("Selected:", tc.id)}
         onAdd={() => console.log("Add clicked")}

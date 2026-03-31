@@ -1,22 +1,29 @@
 @use "@carbon/layout";
 @use "@carbon/type";
 
-.classroom-invite-code {
-  padding: layout.$spacing-05;
-  background: var(--cds-layer);
+.classroom-invite-link {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.classroom-invite-link__row {
   display: flex;
   align-items: center;
-  gap: layout.$spacing-05;
-  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-04;
+  background: var(--cds-field);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  min-width: 0;
 }
 
-.classroom-invite-code__label {
-  @include type.type-style("body-compact-01");
+.classroom-invite-link__url {
+  @include type.type-style("code-01");
   color: var(--cds-text-secondary);
-}
-
-.classroom-invite-code__value {
-  @include type.type-style("code-02");
-  font-weight: 600;
-  letter-spacing: 0.2em;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

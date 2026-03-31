@@ -99,10 +99,10 @@ const ContestParticipantsScreen = () => {
 
   const sortOptions = useMemo(
     () => [
-      { id: "score_desc", label: t("participantsDashboard.sort.scoreDesc", "分數高到低") },
-      { id: "joined_desc", label: t("participantsDashboard.sort.joinedDesc", "加入時間新到舊") },
-      { id: "violations_desc", label: t("participantsDashboard.sort.violationsDesc", "違規次數高到低") },
-      { id: "name_asc", label: t("participantsDashboard.sort.nameAsc", "姓名 A-Z") },
+      { id: "score_desc", label: t("dashboard.sort.scoreDesc", "分數高到低") },
+      { id: "joined_desc", label: t("dashboard.sort.joinedDesc", "加入時間新到舊") },
+      { id: "violations_desc", label: t("dashboard.sort.violationsDesc", "違規次數高到低") },
+      { id: "name_asc", label: t("dashboard.sort.nameAsc", "姓名 A-Z") },
     ],
     [t],
   );
@@ -320,8 +320,8 @@ const ContestParticipantsScreen = () => {
   const handleApproveTakeover = async () => {
     if (!contestId || !selectedUserId) return;
     const confirmed = await confirm({
-      title: t("participantsDashboard.confirmTakeover", "確定要核可此學生的裝置接管嗎？"),
-      confirmLabel: t("participantsDashboard.approveTakeover", "核可裝置接管"),
+      title: t("dashboard.confirmTakeover", "確定要核可此學生的裝置接管嗎？"),
+      confirmLabel: t("dashboard.approveTakeover", "核可裝置接管"),
       cancelLabel: t("button.cancel", "取消"),
       danger: true,
     });
@@ -329,9 +329,9 @@ const ContestParticipantsScreen = () => {
     try {
       await approveTakeover(contestId, Number(selectedUserId));
       await refreshBoth();
-      setNotification({ kind: "success", message: t("participantsDashboard.takeoverApproved", "已核可裝置接管") });
+      setNotification({ kind: "success", message: t("dashboard.takeoverApproved", "已核可裝置接管") });
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("participantsDashboard.takeoverApproveFailed", "核可裝置接管失敗");
+      const message = error instanceof Error ? error.message : t("dashboard.takeoverApproveFailed", "核可裝置接管失敗");
       setNotification({ kind: "error", message });
     }
   };
@@ -479,8 +479,8 @@ const ContestParticipantsScreen = () => {
                     />
                     <FluidDropdown
                       id="participants-toolbar-sort"
-                      titleText={t("participantsDashboard.sortLabel", "排序")}
-                      label={t("participantsDashboard.sortLabel", "排序")}
+                      titleText={t("dashboard.sortLabel", "排序")}
+                      label={t("dashboard.sortLabel", "排序")}
                       items={sortOptions}
                       itemToString={(item) => (item as Option | null)?.label ?? ""}
                       selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}

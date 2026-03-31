@@ -1,13 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DifficultyBadge } from "./DifficultyBadge";
 
-interface DifficultyBadgeProps {
-  difficulty: "easy" | "medium" | "hard" | string;
-  size?: "sm" | "md";
-  className?: string;
-  variant?: "tag" | "text";
-}
-
 const meta: Meta<typeof DifficultyBadge> = {
     title: "shared/ui/tag/DifficultyBadge",
     component: DifficultyBadge,
@@ -53,8 +46,7 @@ export const Playground: Story = {
       source: { code: `<DifficultyBadge difficulty="medium" size="md" variant="tag" />` },
     },
   },
-  render: (args) => <DifficultyBadge {...args} />,
-      code: `<DifficultyBadge difficulty="medium" size="md" variant="tag" />`,
+  render: (args) => <DifficultyBadge difficulty={args.difficulty ?? "medium"} {...args} />,
 };
 
 export const AllDifficulties: Story = {

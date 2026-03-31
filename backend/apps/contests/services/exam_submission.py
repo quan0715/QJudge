@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from django.utils import timezone
 
 from apps.contests.models import (
+    AssignmentState,
     ContestActivity,
     ExamEvent,
     ExamEvidenceJob,
@@ -190,6 +191,13 @@ def finalize_submission(
     if submit_reason and participant.submit_reason != submit_reason:
         participant.submit_reason = submit_reason
         update_fields.append("submit_reason")
+    if participant.contest.delivery_mode == "practice":
+        if participant.assignment_state != AssignmentState.SUBMITTED:
+            participant.assignment_state = AssignmentState.SUBMITTED
+            update_fields.append("assignment_state")
+        if participant.submitted_at is None:
+            participant.submitted_at = now
+            update_fields.append("submitted_at")
     if update_fields:
         participant.save(update_fields=update_fields)
 

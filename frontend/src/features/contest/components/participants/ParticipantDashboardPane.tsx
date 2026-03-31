@@ -191,8 +191,8 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
     if (!dashboard || dashboard.contestType !== "coding") return [];
     const trend = (dashboard.report as CodingReportPayload).trend;
     return trend.cumulativeProgress.flatMap((point) => [
-      { group: t("participantsDashboard.score", "分數"), date: point.createdAt, value: point.score },
-      { group: t("participantsDashboard.solved", "解題"), date: point.createdAt, value: point.solved ?? 0 },
+      { group: t("dashboard.score", "分數"), date: point.createdAt, value: point.score },
+      { group: t("dashboard.solved", "解題"), date: point.createdAt, value: point.solved ?? 0 },
     ]);
   }, [dashboard, t]);
 
@@ -200,7 +200,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
     return (
       <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} withLayer={false}>
         <div className={styles.detailEmpty}>
-          {t("participantsDashboard.selectPrompt", "選擇一位參賽者以查看個人作答、報告、事件與監控資訊")}
+          {t("dashboard.selectPrompt", "選擇一位參賽者以查看個人作答、報告、事件與監控資訊")}
         </div>
       </ContainerCard>
     );
@@ -232,7 +232,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
         <InlineNotification
           kind="error"
           lowContrast
-          title={t("participantsDashboard.loadFailed", "載入參賽者 dashboard 失敗")}
+          title={t("dashboard.loadFailed", "載入參賽者 dashboard 失敗")}
           subtitle={error}
         />
       </ContainerCard>
@@ -253,51 +253,51 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
       ? [
           {
             key: "score",
-            label: t("participantsDashboard.totalScore", "總分"),
+            label: t("dashboard.totalScore", "總分"),
             value: `${dashboard.overview.totalScore} / ${dashboard.overview.maxScore}`,
-            unit: t("participantsDashboard.pointsUnit", "分"),
+            unit: t("dashboard.pointsUnit", "分"),
             icon: ChartBar,
           },
           {
             key: "correctRate",
-            label: t("participantsDashboard.correctRate", "正確率"),
+            label: t("dashboard.correctRate", "正確率"),
             value: String(dashboard.overview.correctRate ?? 0),
             unit: "%",
             icon: UserMultiple,
           },
           {
             key: "gradedCount",
-            label: t("participantsDashboard.gradedQuestions", "已批改題數"),
+            label: t("dashboard.gradedQuestions", "已批改題數"),
             value: `${dashboard.overview.gradedCount ?? 0} / ${dashboard.overview.totalQuestions ?? 0}`,
-            unit: t("participantsDashboard.questionUnit", "題"),
+            unit: t("dashboard.questionUnit", "題"),
             icon: DocumentTasks,
           },
           {
             key: "violations",
-            label: t("participantsDashboard.violations", "違規"),
+            label: t("dashboard.violations", "違規"),
             value: String(participant.violationCount),
-            unit: t("participantsDashboard.countUnit", "次"),
+            unit: t("dashboard.countUnit", "次"),
             icon: WarningAlt,
           },
         ]
       : [
           {
             key: "score",
-            label: t("participantsDashboard.totalScore", "總分"),
+            label: t("dashboard.totalScore", "總分"),
             value: `${dashboard.overview.totalScore} / ${dashboard.overview.maxScore}`,
-            unit: t("participantsDashboard.pointsUnit", "分"),
+            unit: t("dashboard.pointsUnit", "分"),
             icon: ChartBar,
           },
           {
             key: "solved",
-            label: t("participantsDashboard.solved", "解題"),
+            label: t("dashboard.solved", "解題"),
             value: `${dashboard.overview.solved ?? 0} / ${dashboard.overview.totalProblems ?? 0}`,
-            unit: t("participantsDashboard.questionUnit", "題"),
+            unit: t("dashboard.questionUnit", "題"),
             icon: DocumentTasks,
           },
           {
             key: "rank",
-            label: t("participantsDashboard.rank", "排名"),
+            label: t("dashboard.rank", "排名"),
             value:
               dashboard.overview.rank != null
                 ? `#${dashboard.overview.rank} / ${dashboard.overview.totalParticipants ?? "-"}`
@@ -306,7 +306,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
           },
           {
             key: "submissionRate",
-            label: t("participantsDashboard.acceptedRate", "AC 比率"),
+            label: t("dashboard.acceptedRate", "AC 比率"),
             value: `${dashboard.overview.acceptedSubmissions ?? 0} / ${dashboard.overview.effectiveSubmissions ?? 0}`,
             subtext: `${dashboard.overview.acceptedRate ?? 0}%`,
             icon: UserMultiple,
@@ -319,7 +319,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
         <InlineNotification
           kind="warning"
           lowContrast
-          title={t("participantsDashboard.partialLoadWarning", "部分資料可能不是最新")}
+          title={t("dashboard.partialLoadWarning", "部分資料可能不是最新")}
           subtitle={error}
         />
       ) : null}
@@ -337,14 +337,14 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
             onDetailChange(nextDetail);
           }}
         >
-          <TabList className={styles.tabsList} aria-label={t("participantsDashboard.detailTabs", "參賽者資料分頁")}>
+          <TabList className={styles.tabsList} aria-label={t("dashboard.detailTabs", "參賽者資料分頁")}>
             {availableDetails.map((detail) => {
               const Icon = TAB_ICON_BY_DETAIL[detail];
               return (
                 <Tab key={detail}>
                   <span className={styles.tabLabel}>
                     {Icon ? <Icon size={16} className={styles.tabLabelIcon} /> : null}
-                    <span>{t(`participantsDashboard.tabs.${detail}`, detail)}</span>
+                    <span>{t(`dashboard.tabs.${detail}`, detail)}</span>
                   </span>
                 </Tab>
               );
@@ -374,7 +374,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           <div className={styles.profileStatusNotice}>
                             {participant.submitReason ? (
                               <span className={styles.profileStatusNoticeItem}>
-                                {t("participantsDashboard.submitReason", "交卷原因")}：{participant.submitReason}
+                                {t("dashboard.submitReason", "交卷原因")}：{participant.submitReason}
                               </span>
                             ) : null}
                             {participant.lockReason ? (
@@ -399,7 +399,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                         <MenuButton
                           kind="tertiary"
                           size="sm"
-                          label={t("participantsDashboard.moreActions", "更多操作")}
+                          label={t("dashboard.moreActions", "更多操作")}
                           menuAlignment="bottom-end"
                         >
                           <MenuItem
@@ -415,7 +415,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           />
                           {dashboard.actions.canViewEvidence ? (
                             <MenuItem
-                              label={t("participantsDashboard.openEvidence", "查看監控影片")}
+                              label={t("dashboard.openEvidence", "查看監控影片")}
                               renderIcon={View}
                               onClick={() => {
                                 if (activeDetail !== "evidence") {
@@ -426,7 +426,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           ) : null}
                           {dashboard.actions.canOpenGrading ? (
                             <MenuItem
-                              label={t("participantsDashboard.openGrading", "前往批改")}
+                              label={t("dashboard.openGrading", "前往批改")}
                               renderIcon={Launch}
                               onClick={onOpenGrading}
                             />
@@ -440,7 +440,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           ) : null}
                           {dashboard.actions.canApproveTakeover ? (
                             <MenuItem
-                              label={t("participantsDashboard.approveTakeover", "核可裝置接管")}
+                              label={t("dashboard.approveTakeover", "核可裝置接管")}
                               renderIcon={View}
                               onClick={onApproveTakeover}
                             />
@@ -478,24 +478,24 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                     {/* Summary details */}
                     <div className={styles.sectionStack}>
-                      <h5 className={styles.sectionTitle}>{t("participantsDashboard.participantSummary", "參賽者摘要")}</h5>
+                      <h5 className={styles.sectionTitle}>{t("dashboard.participantSummary", "參賽者摘要")}</h5>
                       <div className={styles.summaryList}>
                         {[
-                          { icon: UserMultiple, label: t("participantsDashboard.username", "使用者"), value: participant.username || "-" },
-                          { icon: UserMultiple, label: t("participantsDashboard.displayName", "顯示名稱"), value: participant.userDisplayName || "-" },
-                          { icon: UserMultiple, label: t("participantsDashboard.accountRole", "身份"), value: participant.accountRole ? t(`user.role.${participant.accountRole}`, participant.accountRole) : "-" },
+                          { icon: UserMultiple, label: t("dashboard.username", "使用者"), value: participant.username || "-" },
+                          { icon: UserMultiple, label: t("dashboard.displayName", "顯示名稱"), value: participant.userDisplayName || "-" },
+                          { icon: UserMultiple, label: t("dashboard.accountRole", "身份"), value: participant.accountRole ? t(`user.role.${participant.accountRole}`, participant.accountRole) : "-" },
                           {
                             icon: Login,
-                            label: t("participantsDashboard.registrationIdentity", "註冊身份"),
+                            label: t("dashboard.registrationIdentity", "註冊身份"),
                             value:
                               participant.authProvider && participant.authProvider !== "email"
-                                ? t("participantsDashboard.registrationIdentitySso", "SSO")
-                                : t("participantsDashboard.registrationIdentityOther", "其他"),
+                                ? t("dashboard.registrationIdentitySso", "SSO")
+                                : t("dashboard.registrationIdentityOther", "其他"),
                           },
                           { icon: Calendar, label: t("participants.headers.joinedAt", "加入時間"), value: participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-" },
-                          { icon: Login, label: t("participantsDashboard.startedAt", "開始作答"), value: participant.startedAt ? new Date(participant.startedAt).toLocaleString() : "-" },
-                          { icon: Logout, label: t("participantsDashboard.leftAt", "最後離開"), value: participant.leftAt ? new Date(participant.leftAt).toLocaleString() : "-" },
-                          { icon: SendAlt, label: t("participantsDashboard.submitReason", "交卷原因"), value: participant.submitReason || "-" },
+                          { icon: Login, label: t("dashboard.startedAt", "開始作答"), value: participant.startedAt ? new Date(participant.startedAt).toLocaleString() : "-" },
+                          { icon: Logout, label: t("dashboard.leftAt", "最後離開"), value: participant.leftAt ? new Date(participant.leftAt).toLocaleString() : "-" },
+                          { icon: SendAlt, label: t("dashboard.submitReason", "交卷原因"), value: participant.submitReason || "-" },
                           { icon: Locked, label: t("participants.headers.lockReason", "鎖定原因"), value: participant.lockReason || "-" },
                         ].map(({ icon: Icon, label, value }) => (
                           <div key={label} className={styles.summaryDataRow}>
@@ -513,7 +513,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                 {detail === "report" && paperReport ? (
                   <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.questionOverview", "題目總覽")}</h5>
+                    <h5 className={styles.sectionTitle}>{t("dashboard.questionOverview", "題目總覽")}</h5>
                     <PaperQuestionOverviewTable
                       rows={paperReport.overviewRows.map((row) => {
                         const questionDetail = paperReport.questionDetails.find(
@@ -536,7 +536,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                       showScore
                     />
 
-                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.questionDetails", "逐題詳情")}</h5>
+                    <h5 className={styles.sectionTitle}>{t("dashboard.questionDetails", "逐題詳情")}</h5>
                     <div className={styles.questionList}>
                       {paperReport.questionDetails.map((row) => (
                         <div key={row.questionId} className={styles.questionItem}>
@@ -567,7 +567,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                             {row.feedback ? (
                               <div>
                                 <div className={styles.secondaryText}>
-                                  {t("participantsDashboard.feedback", "批改評語")}
+                                  {t("dashboard.feedback", "批改評語")}
                                 </div>
                                 <div className={styles.markdownBlock}>
                                   <MarkdownRenderer enableMath enableHighlight>
@@ -585,7 +585,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                 {detail === "report" && codingReport ? (
                   <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.problemGrid", "題目成績摘要")}</h5>
+                    <h5 className={styles.sectionTitle}>{t("dashboard.problemGrid", "題目成績摘要")}</h5>
                     <div className={styles.problemList}>
                       {codingReport.problemGrid.map((row: ParticipantCodingProblemRow) => (
                         <div key={row.problemId} className={styles.problemItem}>
@@ -593,7 +593,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                             <div>
                               <div className={styles.primaryText}>{row.label} · {row.title}</div>
                               <div className={styles.secondaryText}>
-                                {row.difficulty || "-"} • {t("participantsDashboard.tries", "提交次數")} {row.tries}
+                                {row.difficulty || "-"} • {t("dashboard.tries", "提交次數")} {row.tries}
                               </div>
                             </div>
                             <div className={styles.inlineMeta}>
@@ -605,7 +605,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                       ))}
                     </div>
 
-                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.problemDetails", "題目詳情")}</h5>
+                    <h5 className={styles.sectionTitle}>{t("dashboard.problemDetails", "題目詳情")}</h5>
                     <div className={styles.problemList}>
                       {codingReport.problemDetails.map((row: ParticipantCodingProblemDetail) => (
                         <div key={row.problemId} className={styles.problemItem}>
@@ -613,8 +613,8 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                             <div>
                               <div className={styles.primaryText}>{row.label} · {row.title}</div>
                               <div className={styles.secondaryText}>
-                                {t("participantsDashboard.tries", "提交次數")} {row.tries}
-                                {row.time != null ? ` • ${t("participantsDashboard.solveTime", "通過時間")} ${row.time}m` : ""}
+                                {t("dashboard.tries", "提交次數")} {row.tries}
+                                {row.time != null ? ` • ${t("dashboard.solveTime", "通過時間")} ${row.time}m` : ""}
                               </div>
                             </div>
                             <div className={styles.inlineMeta}>
@@ -626,7 +626,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                             <div className={styles.problemBody}>
                               <div className={styles.inlineMeta}>
                                 <span>
-                                  {t("participantsDashboard.bestSubmission", "最佳提交")} #{row.bestSubmission.id}
+                                  {t("dashboard.bestSubmission", "最佳提交")} #{row.bestSubmission.id}
                                 </span>
                                 <Tag type="green">{row.bestSubmission.status}</Tag>
                                 <span>{row.bestSubmission.language}</span>
@@ -638,7 +638,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                       ))}
                     </div>
 
-                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.trendCharts", "提交趨勢")}</h5>
+                    <h5 className={styles.sectionTitle}>{t("dashboard.trendCharts", "提交趨勢")}</h5>
                     <div className={styles.chartGrid}>
                       <div className={styles.chartWrap}>
                         {donutData.length > 0 ? (
@@ -648,7 +648,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                               title: "",
                               donut: {
                                 center: {
-                                  label: t("participantsDashboard.statusDistribution", "結果分佈"),
+                                  label: t("dashboard.statusDistribution", "結果分佈"),
                                 },
                               },
                               height: "320px",
@@ -658,7 +658,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           />
                         ) : (
                           <div className={styles.emptyState}>
-                            {t("participantsDashboard.noSubmissionData", "尚無提交資料")}
+                            {t("dashboard.noSubmissionData", "尚無提交資料")}
                           </div>
                         )}
                       </div>
@@ -686,7 +686,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           />
                         ) : (
                           <div className={styles.emptyState}>
-                            {t("participantsDashboard.noTrendData", "尚無可視化趨勢資料")}
+                            {t("dashboard.noTrendData", "尚無可視化趨勢資料")}
                           </div>
                         )}
                       </div>
@@ -705,7 +705,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                 {detail === "evidence" && dashboard.contestType === "paper_exam" ? (
                   <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.evidenceSessions", "監控影片與轉檔狀態")}</h5>
+                    <h5 className={styles.sectionTitle}>{t("dashboard.evidenceSessions", "監控影片與轉檔狀態")}</h5>
                     <ExamVideoReviewModal
                       contestId={contestId}
                       open={activeDetail === "evidence"}
@@ -717,7 +717,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                 {detail === "submissions" && dashboard.contestType === "coding" ? (
                   <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>{t("participantsDashboard.submissionRecords", "提交紀錄")}</h5>
+                    <h5 className={styles.sectionTitle}>{t("dashboard.submissionRecords", "提交紀錄")}</h5>
                     <div className={styles.submissionList}>
                       {codingSubmissions.isLoading ? (
                         <div className={styles.skeletonStack}>
@@ -730,7 +730,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                         </div>
                       ) : (codingSubmissions.data?.results || []).length === 0 ? (
                         <div className={styles.emptyState}>
-                          {t("participantsDashboard.noSubmissionData", "尚無提交資料")}
+                          {t("dashboard.noSubmissionData", "尚無提交資料")}
                         </div>
                       ) : (
                         (codingSubmissions.data?.results || []).map((submission) => (

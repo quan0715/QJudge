@@ -13,167 +13,41 @@
 .headerLeft {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.brand {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  height: 100%;
-  min-height: 3rem;
-  padding: 0 0.75rem !important;
-  line-height: 1;
-  box-sizing: border-box;
-}
-
-.classroomTriggerName {
-  color: var(--cds-text-primary);
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  max-width: 17rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.classroomTriggerLabel {
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  flex-shrink: 0;
-}
-
-.switcherHost {
-  position: relative;
-  z-index: 9600;
-}
-
-.classroomTriggerButton {
-  height: 3rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  border: 0;
-  background: transparent;
-  color: var(--cds-text-primary);
-  padding: 0 0.625rem;
-  cursor: pointer;
-  max-width: 21rem;
-  min-width: 0;
-
-  &:hover {
-    background: var(--cds-layer-hover);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--cds-focus);
-    outline-offset: -2px;
-  }
-}
-
-.classroomTriggerIcon {
-  color: var(--cds-icon-secondary);
-  flex-shrink: 0;
-}
-
-.switcherMenu {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 0.25rem);
-  min-width: 18rem;
-  max-width: 24rem;
-  padding: 0.25rem;
-  border: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
-  z-index: 9700;
-  opacity: 0;
-  transform: translateY(-6px) scale(0.985);
-  transform-origin: top left;
-  pointer-events: none;
-  transition: opacity 150ms ease, transform 180ms cubic-bezier(0.2, 0, 0.38, 0.9);
-}
-
-.switcherMenuOpen {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
-}
-
-.switcherCardList {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.switcherCard {
-  width: 100%;
-  border: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer);
-  padding: 0.625rem 0.75rem;
-  text-align: left;
-  display: grid;
   gap: 0.25rem;
-  cursor: pointer;
-  opacity: 0;
-  transform: translateY(-6px);
-  transition:
-    border-color 120ms ease,
-    background-color 120ms ease,
-    opacity 170ms ease,
-    transform 170ms ease;
+  min-width: 0;
+}
 
-  &:hover {
-    border-color: var(--cds-border-interactive);
-    background: var(--cds-layer-hover);
+// ── Breadcrumb ──
+
+.breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  height: 3rem;
+  padding: 0 0.25rem;
+  margin: 0;
+
+  :global(.cds--breadcrumb-item) {
+    margin-right: 0;
+  }
+
+  :global(.cds--link) {
+    color: var(--cds-text-secondary);
+    font-size: 0.875rem;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--cds-link-primary-hover);
+    }
+  }
+
+  :global(.cds--breadcrumb-item--current) {
+    color: var(--cds-text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
   }
 }
 
-.switcherMenuOpen .switcherCard {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.switcherMenuOpen .switcherCard:nth-child(1) {
-  transition-delay: 20ms;
-}
-
-.switcherMenuOpen .switcherCard:nth-child(2) {
-  transition-delay: 40ms;
-}
-
-.switcherMenuOpen .switcherCard:nth-child(3) {
-  transition-delay: 60ms;
-}
-
-.switcherMenuOpen .switcherCard:nth-child(4) {
-  transition-delay: 80ms;
-}
-
-.switcherMenuOpen .switcherCard:nth-child(n + 5) {
-  transition-delay: 100ms;
-}
-
-.switcherCardActive {
-  border-color: var(--cds-border-interactive);
-  background: var(--cds-layer-selected);
-}
-
-.switcherCardTitle {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: var(--cds-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.switcherCardMeta {
-  font-size: 0.75rem;
-  line-height: 1rem;
-  color: var(--cds-text-secondary);
-}
+// ── Content area ──
 
 .content {
   flex: 1;
@@ -182,15 +56,4 @@
 
 .shell :global(.cds--header__global) {
   margin-left: 0;
-}
-
-@media (max-width: 1056px) {
-  .classroomTriggerButton {
-    max-width: 10.25rem;
-    padding: 0 0.5rem;
-  }
-
-  .classroomTriggerName {
-    max-width: 8rem;
-  }
 }

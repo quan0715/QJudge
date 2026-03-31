@@ -15,6 +15,7 @@ import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import { LanguageSwitch, ThemeSwitch } from "@/shared/ui/config";
 import { updateUserPreferences } from "@/infrastructure/api/repositories/auth.repository";
+import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
 import type { SupportedLanguage } from "@/i18n";
 
 const OnboardingScreen = () => {
@@ -73,7 +74,7 @@ const OnboardingScreen = () => {
       setUser(nextUser);
       localStorage.setItem("user", JSON.stringify(nextUser));
       window.dispatchEvent(new Event("storage"));
-      navigate("/dashboard", { replace: true });
+      navigate(getAuthedLandingPath(nextUser), { replace: true });
     } catch (err: any) {
       setError(
         err?.response?.data?.error?.message ||

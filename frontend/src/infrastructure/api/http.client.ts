@@ -46,12 +46,20 @@ const ensureDeviceId = (): string => {
 };
 
 const redirectToLogin = () => {
+  if (typeof window === "undefined") return;
+  const path = window.location.pathname;
+  // Skip redirect for pages that handle their own auth flow
   if (
-    typeof window !== "undefined" &&
-    !window.location.pathname.startsWith("/login")
+    path.startsWith("/login") ||
+    path.startsWith("/register") ||
+    path.startsWith("/auth/") ||
+    path.startsWith("/teacher-activation") ||
+    path.startsWith("/onboarding") ||
+    path.startsWith("/classrooms/join")
   ) {
-    window.location.href = "/login";
+    return;
   }
+  window.location.href = "/login";
 };
 
 const handleUnauthorized = (response: Response): boolean => {

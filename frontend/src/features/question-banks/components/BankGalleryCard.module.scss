@@ -26,7 +26,7 @@
   position: relative;
   color: #fff;
   background-image:
-    linear-gradient(150deg, rgba(9, 30, 66, 0.18) 0%, rgba(6, 16, 36, 0.78) 72%, rgba(6, 16, 36, 0.92) 100%),
+    linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 65%),
     url("../screens/community-cover.jpg");
   background-size: cover;
   background-position: center 40%;
@@ -91,4 +91,61 @@
   gap: 0.25rem;
   font-size: 0.75rem;
   color: var(--cds-text-secondary);
+}
+
+// ── Mini view (mobile) ── hidden by default
+.miniBody {
+  display: none;
+}
+
+@media (max-width: 672px) {
+  .banner,
+  .body {
+    display: none;
+  }
+
+  .miniBody {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .miniIcon {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 4px;
+    background: var(--cds-layer-accent-01);
+    color: var(--cds-icon-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    svg { fill: currentColor; }
+  }
+
+  .miniInfo {
+    min-width: 0;
+    flex: 1;
+
+    h4 {
+      margin: 0;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--cds-text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.75rem;
+      color: var(--cds-text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+  }
 }

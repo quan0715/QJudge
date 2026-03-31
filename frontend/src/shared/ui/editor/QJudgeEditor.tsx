@@ -23,6 +23,8 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = ({
   const { theme } = useTheme();
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const onChangeRef = useRef(onChange);
+  const disposedRef = useRef(false);
+  const layoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -31,19 +33,22 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = ({
   const handleMount: OnMount = useCallback(
     (editor, monaco) => {
       editorRef.current = editor;
+      disposedRef.current = false;
       monaco.editor.setTheme(theme === "white" ? "vs" : "my-dark");
 
-      setTimeout(() => {
-        editor.layout();
+      layoutTimerRef.current = setTimeout(() => {
+        if (!disposedRef.current) editor.layout();
       }, 100);
 
       document.fonts.ready.then(() => {
+        if (disposedRef.current) return;
         monaco.editor.remeasureFonts();
         editor.layout();
       });
 
       if (typeof document.fonts?.addEventListener === "function") {
         const handleFontLoad = () => {
+          if (disposedRef.current) return;
           monaco.editor.remeasureFonts();
           editor.layout();
         };
@@ -63,12 +68,23 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = ({
 
   useEffect(() => {
     return () => {
+      disposedRef.current = true;
+      if (layoutTimerRef.current) {
+        clearTimeout(layoutTimerRef.current);
+        layoutTimerRef.current = null;
+      }
       const editor = editorRef.current as any;
       if (editor) {
-        editor.__contentChangeDisposable?.dispose?.();
+        try {
+          editor.__contentChangeDisposable?.dispose?.();
+        } catch {
+          // Ignore disposal errors
+        }
         if (editor.__fontLoadHandler && typeof document.fonts?.removeEventListener === "function") {
           document.fonts.removeEventListener("loadingdone", editor.__fontLoadHandler);
         }
+        // Do NOT call editor.dispose() or setModel(null) — @monaco-editor/react handles disposal
+        editorRef.current = null;
       }
     };
   }, []);

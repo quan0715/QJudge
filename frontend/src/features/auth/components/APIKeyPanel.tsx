@@ -21,7 +21,7 @@ import {
 } from "@carbon/react";
 import { Add, TrashCan, Renew, Checkmark, WarningAlt } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { SettingsSection } from "@/features/auth/components/SettingsSection";
+import { Section } from "@/shared/layout/SettingsPanel";
 import {
   getAPIKeyInfo,
   setAPIKey,
@@ -38,14 +38,14 @@ interface APIKeyPanelProps {
 }
 
 export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = false }) => {
-  useTranslation();
+  const { t } = useTranslation();
 
   // ── API Key state ──
   const [apiKeyInfo, setAPIKeyInfo] = useState<APIKeyInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [keyInput, setKeyInput] = useState("");
-  const [keyName, setKeyName] = useState("My API Key");
+  const [keyName, setKeyName] = useState(t("settings.apiKey.modal.nameInput", "My API Key"));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -69,7 +69,7 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
       const result = await getAPIKeyInfo();
       if (result.success && result.data) setAPIKeyInfo(result.data);
     } catch (err: any) {
-      setError(err.message || "Failed to load API key info");
+      setError(err.message || t("settings.apiKey.error.loadFailed", "載入 API Key 資訊失敗"));
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +86,7 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
       });
       if (result.success && result.data) setUsageData(result.data);
     } catch (err: any) {
-      setUsageError(err.message || "Failed to load usage data");
+      setUsageError(err.message || t("settings.apiKey.error.usageLoadFailed", "載入用量資料失敗"));
     } finally {
       setUsageLoading(false);
     }
@@ -94,7 +94,7 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
 
   const handleOpenModal = () => {
     setKeyInput("");
-    setKeyName(apiKeyInfo?.key_name || "My API Key");
+    setKeyName(apiKeyInfo?.key_name || t("settings.apiKey.modal.nameInput", "My API Key"));
     setError(null);
     setSuccess(null);
     setIsModalOpen(true);
@@ -103,50 +103,50 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
   const handleSaveKey = async () => {
     setError(null);
     setSuccess(null);
-    if (!keyInput.trim()) { setError("請輸入 API Key"); return; }
+    if (!keyInput.trim()) { setError(t("settings.apiKey.error.inputRequired", "請輸入 API Key")); return; }
     if (!keyInput.startsWith("sk-ant-")) {
-      setError("無效的 API Key 格式，應以 'sk-ant-' 開頭");
+      setError(t("settings.apiKey.error.invalidFormat", "無效的 API Key 格式，應以 'sk-ant-' 開頭"));
       return;
     }
     setIsSaving(true);
     try {
-      await setAPIKey({ api_key: keyInput, key_name: keyName || "My API Key" });
-      setSuccess("API Key 已成功儲存！");
+      await setAPIKey({ api_key: keyInput, key_name: keyName || t("settings.apiKey.modal.nameInput", "My API Key") });
+      setSuccess(t("settings.apiKey.modal.saveSuccess", "API Key 已成功儲存！"));
       await loadAPIKeyInfo();
       setTimeout(() => { setIsModalOpen(false); setSuccess(null); }, 1500);
     } catch (err: any) {
       const raw = err.response?.data?.error;
-      setError(typeof raw === "string" ? raw : raw?.message || err.message || "儲存失敗");
+      setError(typeof raw === "string" ? raw : raw?.message || err.message || t("settings.apiKey.error.saveFailed", "儲存失敗"));
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteKey = async () => {
-    if (!window.confirm("確定要刪除 API Key 嗎？刪除後將無法使用 AI 功能。")) return;
+    if (!window.confirm(t("settings.apiKey.deleteConfirm", "確定要刪除 API Key 嗎？刪除後將無法使用 AI 功能。"))) return;
     setError(null);
     try {
       await deleteAPIKey();
-      setSuccess("API Key 已刪除");
+      setSuccess(t("settings.apiKey.modal.deleteSuccess", "API Key 已刪除"));
       await loadAPIKeyInfo();
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      setError(err.message || "刪除失敗");
+      setError(err.message || t("settings.apiKey.error.deleteFailed", "刪除失敗"));
     }
   };
 
   // Usage table
   const tableHeaders = [
-    { key: "period", header: "日期" },
-    { key: "requests", header: "請求數" },
-    { key: "input_tokens", header: "輸入 Tokens" },
-    { key: "output_tokens", header: "輸出 Tokens" },
-    { key: "cost_usd", header: "費用 (USD)" },
+    { key: "period", header: t("settings.apiKey.usage.table.date", "日期") },
+    { key: "requests", header: t("settings.apiKey.usage.table.requests", "請求數") },
+    { key: "input_tokens", header: t("settings.apiKey.usage.table.inputTokens", "輸入 Tokens") },
+    { key: "output_tokens", header: t("settings.apiKey.usage.table.outputTokens", "輸出 Tokens") },
+    { key: "cost_usd", header: t("settings.apiKey.usage.table.cost", "費用 (USD)") },
   ];
 
   const tableRows = (usageData?.breakdown ?? []).map((item, i) => ({
     id: String(i),
-    period: new Date(item.period).toLocaleDateString("zh-TW"),
+    period: new Date(item.period).toLocaleDateString(t("common.locale", "zh-TW")),
     requests: item.requests.toLocaleString(),
     input_tokens: item.input_tokens.toLocaleString(),
     output_tokens: item.output_tokens.toLocaleString(),
@@ -154,9 +154,9 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
   }));
 
   return (
-    <div className="settings-panel">
+    <>
       {/* ── Section: API Key ── */}
-      <SettingsSection title="API Key" description="管理您的 Anthropic API Key，用於 AI 功能">
+      <Section title={t("settings.apiKey.title", "API Key")} description={t("settings.apiKey.description", "管理您的 Anthropic API Key，用於 AI 功能")}>
         {isLoading ? (
           <SkeletonText paragraph lineCount={3} />
         ) : (
@@ -171,38 +171,50 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
             {!apiKeyInfo?.has_key ? (
               <div className="api-key-panel__empty">
                 <WarningAlt size={24} />
-                <p>尚未設定 API Key。前往 <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">Anthropic Console</a> 建立。</p>
-                <Button renderIcon={Add} size="sm" onClick={handleOpenModal}>新增 API Key</Button>
+                <p>
+                  {t("settings.apiKey.empty", "尚未設定 API Key。")}前往{" "}
+                  <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">Anthropic Console</a>{" "}
+                  建立。
+                </p>
+                <Button renderIcon={Add} size="sm" onClick={handleOpenModal}>{t("settings.apiKey.addKey", "新增 API Key")}</Button>
               </div>
             ) : (
               <>
                 <div className="api-key-panel__info-row">
-                  <span className="api-key-panel__info-label">名稱</span>
+                  <span className="api-key-panel__info-label">{t("settings.apiKey.nameLabel", "名稱")}</span>
                   <span>{apiKeyInfo.key_name}</span>
                 </div>
                 <div className="api-key-panel__info-row">
-                  <span className="api-key-panel__info-label">狀態</span>
+                  <span className="api-key-panel__info-label">{t("settings.apiKey.statusLabel", "狀態")}</span>
                   <span className="api-key-panel__tags">
-                    {apiKeyInfo.is_validated ? <Tag type="green" size="sm" renderIcon={Checkmark}>已驗證</Tag> : <Tag type="red" size="sm">未驗證</Tag>}
-                    {apiKeyInfo.is_active ? <Tag type="blue" size="sm">啟用中</Tag> : <Tag type="gray" size="sm">已停用</Tag>}
+                    {apiKeyInfo.is_validated ? (
+                      <Tag type="green" size="sm" renderIcon={Checkmark}>{t("settings.apiKey.validated", "已驗證")}</Tag>
+                    ) : (
+                      <Tag type="red" size="sm">{t("settings.apiKey.invalid", "未驗證")}</Tag>
+                    )}
+                    {apiKeyInfo.is_active ? (
+                      <Tag type="blue" size="sm">{t("settings.apiKey.active", "啟用中")}</Tag>
+                    ) : (
+                      <Tag type="gray" size="sm">{t("settings.apiKey.inactive", "已停用")}</Tag>
+                    )}
                   </span>
                 </div>
                 <div className="api-key-panel__info-row">
-                  <span className="api-key-panel__info-label">建立時間</span>
-                  <span>{apiKeyInfo.created_at ? new Date(apiKeyInfo.created_at).toLocaleDateString("zh-TW") : "-"}</span>
+                  <span className="api-key-panel__info-label">{t("settings.apiKey.createdAtLabel", "建立時間")}</span>
+                  <span>{apiKeyInfo.created_at ? new Date(apiKeyInfo.created_at).toLocaleDateString(t("common.locale", "zh-TW")) : "-"}</span>
                 </div>
                 <div className="api-key-panel__actions">
-                  <Button kind="tertiary" size="sm" renderIcon={Renew} onClick={handleOpenModal}>更新 Key</Button>
-                  <Button kind="danger--tertiary" size="sm" renderIcon={TrashCan} onClick={handleDeleteKey}>刪除 Key</Button>
+                  <Button kind="tertiary" size="sm" renderIcon={Renew} onClick={handleOpenModal}>{t("settings.apiKey.updateKey", "更新 Key")}</Button>
+                  <Button kind="danger--tertiary" size="sm" renderIcon={TrashCan} onClick={handleDeleteKey}>{t("settings.apiKey.deleteKey", "刪除 Key")}</Button>
                 </div>
               </>
             )}
           </>
         )}
-      </SettingsSection>
+      </Section>
 
       {/* ── Section: Usage ── */}
-      <SettingsSection title="用量統計" description="AI API 使用量摘要與明細">
+      <Section title={t("settings.apiKey.usage.title", "用量統計")} description={t("settings.apiKey.usage.description", "AI API 使用量摘要與明細")}>
         {usageLoading ? (
           <SkeletonText paragraph lineCount={3} />
         ) : usageError ? (
@@ -211,17 +223,17 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
           <>
             <div className="api-key-panel__stats-grid">
               <Tile className="api-key-panel__stat-card">
-                <span className="api-key-panel__stat-label">總 Tokens</span>
+                <span className="api-key-panel__stat-label">{t("settings.apiKey.usage.totalTokens", "總 Tokens")}</span>
                 <span className="api-key-panel__stat-value">
                   {(usageData.total.input_tokens + usageData.total.output_tokens).toLocaleString()}
                 </span>
               </Tile>
               <Tile className="api-key-panel__stat-card">
-                <span className="api-key-panel__stat-label">總請求數</span>
+                <span className="api-key-panel__stat-label">{t("settings.apiKey.usage.totalRequests", "總請求數")}</span>
                 <span className="api-key-panel__stat-value">{usageData.total.requests.toLocaleString()}</span>
               </Tile>
               <Tile className="api-key-panel__stat-card">
-                <span className="api-key-panel__stat-label">總費用</span>
+                <span className="api-key-panel__stat-label">{t("settings.apiKey.usage.totalCost", "總費用")}</span>
                 <span className="api-key-panel__stat-value">${usageData.total.cost_usd.toFixed(4)}</span>
               </Tile>
             </div>
@@ -234,18 +246,24 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
                     value={[startDate, endDate]}
                     onChange={(dates: Date[]) => { if (dates.length === 2) { setStartDate(dates[0]); setEndDate(dates[1]); } }}
                   >
-                    <DatePickerInput id="start-date" placeholder="yyyy-mm-dd" labelText="開始日期" size="sm" />
-                    <DatePickerInput id="end-date" placeholder="yyyy-mm-dd" labelText="結束日期" size="sm" />
+                    <DatePickerInput id="start-date" placeholder="yyyy-mm-dd" labelText={t("settings.apiKey.usage.startDate", "開始日期")} size="sm" />
+                    <DatePickerInput id="end-date" placeholder="yyyy-mm-dd" labelText={t("settings.apiKey.usage.endDate", "結束日期")} size="sm" />
                   </DatePicker>
-                  <Select id="granularity" labelText="粒度" value={granularity} onChange={(e) => setGranularity(e.target.value as Granularity)} size="sm">
-                    <SelectItem value="day" text="每日" />
-                    <SelectItem value="week" text="每週" />
-                    <SelectItem value="month" text="每月" />
+                  <Select
+                    id="granularity"
+                    labelText={t("settings.apiKey.usage.granularity", "粒度")}
+                    value={granularity}
+                    onChange={(e) => setGranularity(e.target.value as Granularity)}
+                    size="sm"
+                  >
+                    <SelectItem value="day" text={t("settings.apiKey.usage.daily", "每日")} />
+                    <SelectItem value="week" text={t("settings.apiKey.usage.weekly", "每週")} />
+                    <SelectItem value="month" text={t("settings.apiKey.usage.monthly", "每月")} />
                   </Select>
                 </div>
 
                 {tableRows.length === 0 ? (
-                  <p className="api-key-panel__no-data">所選日期範圍內無用量資料</p>
+                  <p className="api-key-panel__no-data">{t("settings.apiKey.usage.noData", "所選日期範圍內無用量資料")}</p>
                 ) : (
                   <DataTable rows={tableRows} headers={tableHeaders}>
                     {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
@@ -278,37 +296,43 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
             )}
           </>
         ) : (
-          <p className="api-key-panel__no-data">無用量資料</p>
+          <p className="api-key-panel__no-data">{t("settings.apiKey.usage.noData", "所選日期範圍內無用量資料")}</p>
         )}
-      </SettingsSection>
+      </Section>
 
       {/* Modal */}
       <Modal
         open={isModalOpen}
         onRequestClose={() => setIsModalOpen(false)}
-        modalHeading={apiKeyInfo?.has_key ? "更新 API Key" : "新增 API Key"}
-        primaryButtonText={isSaving ? "儲存中..." : "儲存"}
-        secondaryButtonText="取消"
+        modalHeading={apiKeyInfo?.has_key ? t("settings.apiKey.modal.updateTitle", "更新 API Key") : t("settings.apiKey.modal.addTitle", "新增 API Key")}
+        primaryButtonText={isSaving ? t("action.processing", "處理中...") : t("button.save", "儲存")}
+        secondaryButtonText={t("button.cancel", "取消")}
         onRequestSubmit={handleSaveKey}
         primaryButtonDisabled={isSaving}
       >
         <div style={{ marginBottom: "1rem" }}>
-          <TextInput id="key-name-input" labelText="名稱（選填）" value={keyName} onChange={(e) => setKeyName(e.target.value)} placeholder="My API Key" />
+          <TextInput
+            id="key-name-input"
+            labelText={t("settings.apiKey.modal.nameInput", "名稱（選填）")}
+            value={keyName}
+            onChange={(e) => setKeyName(e.target.value)}
+            placeholder="My API Key"
+          />
         </div>
         <TextInput
           id="api-key-input"
-          labelText="Anthropic API Key"
+          labelText={t("settings.apiKey.modal.keyInput", "Anthropic API Key")}
           type="password"
           value={keyInput}
           onChange={(e) => setKeyInput(e.target.value)}
-          placeholder="sk-ant-api03-..."
-          helperText="您的 API Key 將被加密儲存"
+          placeholder={t("settings.apiKey.modal.keyPlaceholder", "sk-ant-api03-...")}
+          helperText={t("settings.apiKey.modal.helperText", "您的 API Key 將被加密儲存")}
           invalid={!!error && !success}
           invalidText={error || ""}
         />
         {success && <InlineNotification kind="success" title={success} hideCloseButton lowContrast style={{ marginTop: "1rem" }} />}
       </Modal>
-    </div>
+    </>
   );
 };
 

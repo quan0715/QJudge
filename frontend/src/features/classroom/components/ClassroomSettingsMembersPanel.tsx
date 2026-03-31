@@ -25,18 +25,19 @@ import type {
   ClassroomMember,
 } from "@/core/entities/classroom.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
-import { SettingsSection } from "@/features/auth/components/SettingsSection";
+import { Section } from "@/shared/layout/SettingsPanel";
 import {
   removeMember,
   updateMemberRole,
   regenerateCode,
 } from "@/infrastructure/api/repositories/classroom.repository";
 import { InviteCodeDisplay } from "./InviteCodeDisplay";
-import { AddMembersModal } from "./AddMembersModal";
 
 interface ClassroomSettingsMembersPanelProps {
   classroom: ClassroomDetail;
   onRefresh: () => Promise<void>;
+  /** Called when the user clicks "Add Members" — caller is responsible for rendering the modal */
+  onOpenAddMembers: () => void;
 }
 
 const ROLE_ITEMS = [
@@ -47,6 +48,7 @@ const ROLE_ITEMS = [
 export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPanelProps> = ({
   classroom,
   onRefresh,
+  onOpenAddMembers,
 }) => {
   const { t } = useTranslation("classroom");
   const { t: tc } = useTranslation("common");
@@ -67,7 +69,6 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
 
   const { showToast } = useToast();
 
-  const [addMembersOpen, setAddMembersOpen] = useState(false);
   const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState<"all" | "student" | "ta">("all");
 
@@ -106,9 +107,9 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
       username: m.username,
       email: m.email,
       role: m.role as RowRole,
-    }));
+    })).filter((row) => row.numericId !== undefined && !adminIds.has(row.numericId) && row.username !== classroom.ownerUsername);
     return [...adminRows, ...memberRows];
-  }, [classroom.admins, classroom.members]);
+  }, [adminIds, classroom.admins, classroom.members, classroom.ownerUsername]);
 
   const filteredRows = useMemo(() => {
     if (roleFilter === "all") return allRows;
@@ -207,18 +208,18 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
   };
 
   return (
-    <div className="settings-panel">
+    <>
       {classroom.inviteCode && (
-        <SettingsSection title={t("inviteCodeSection")}>
+        <Section title={t("inviteLinkSection")}>
           <InviteCodeDisplay
             code={classroom.inviteCode}
             enabled={classroom.inviteCodeEnabled}
             onRegenerate={() => setRegenerateConfirmOpen(true)}
           />
-        </SettingsSection>
+        </Section>
       )}
 
-      <SettingsSection title={t("membersTitle")}>
+      <Section title={t("membersTitle")}>
         <DataTable rows={rows} headers={headers} isSortable>
           {({ rows: tableRows, headers: tableHeaders, getTableProps, getHeaderProps, getRowProps, onInputChange }) => (
             <TableContainer>
@@ -247,7 +248,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
                     size="lg"
                     style={{ minWidth: "8rem" }}
                   />
-                  <Button kind="primary" size="lg" renderIcon={Add} onClick={() => setAddMembersOpen(true)}>
+                  <Button kind="primary" size="lg" renderIcon={Add} onClick={onOpenAddMembers}>
                     {t("addMembers")}
                   </Button>
                 </TableToolbarContent>
@@ -324,17 +325,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
             </TableContainer>
           )}
         </DataTable>
-      </SettingsSection>
-
-      {/* Add members modal */}
-      <AddMembersModal
-        open={addMembersOpen}
-        classroomId={classroom.id}
-        onClose={() => setAddMembersOpen(false)}
-        onAdded={() => {
-          void onRefresh();
-        }}
-      />
+      </Section>
 
       {/* Edit member modal */}
       {ReactDOM.createPortal(
@@ -388,7 +379,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
           open={regenerateConfirmOpen}
           size="sm"
           danger
-          modalHeading={t("confirmRegenerateCodeTitle")}
+          modalHeading={t("confirmRegenerateLinkTitle")}
           primaryButtonText={tc("button.confirm")}
           secondaryButtonText={tc("button.cancel")}
           onRequestClose={() => setRegenerateConfirmOpen(false)}
@@ -397,9 +388,7 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
           }}
         >
           <p>
-            {t(
-              "confirmRegenerateCodeBody",
-            )}
+            {t("confirmRegenerateLinkBody")}
           </p>
         </Modal>,
         getModalPortalRoot(),
@@ -428,6 +417,6 @@ export const ClassroomSettingsMembersPanel: React.FC<ClassroomSettingsMembersPan
         </Modal>,
         getModalPortalRoot(),
       )}
-    </div>
+    </>
   );
 };

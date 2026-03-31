@@ -13,14 +13,18 @@ This guide explains how to set up the QJudge local development environment.
 git clone https://github.com/quan0715/QJudge.git
 cd QJudge
 cp example.env .env   # Edit .env with your settings
-docker compose -f docker-compose.dev.yml up -d --build
+bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
+bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
+./scripts/dev/check-dev-services.sh
 ```
 
 Services will start at:
 
 - Frontend: `http://localhost:5173`
+- Storybook: `http://localhost:6006`
 - Backend: `http://localhost:8000`
 - AI Service: `http://localhost:8001`
+- Storybook via frontend proxy: `http://localhost:5173/dev/storybook/`
 
 ## Manual Setup
 
@@ -30,6 +34,7 @@ Services will start at:
 cd frontend
 npm install
 npm run dev
+npm run storybook
 ```
 
 ### 2. Backend
@@ -81,6 +86,7 @@ QJudge/
 | Command           | Description              |
 | ----------------- | ------------------------ |
 | `npm run dev`     | Start development server |
+| `npm run storybook` | Start Storybook dev server |
 | `npm run build`   | Build for production     |
 | `npm run lint`    | Check code style         |
 | `npm run test`    | Run unit tests           |
@@ -131,4 +137,11 @@ Ensure backend is running and check `CORS_ALLOWED_ORIGINS` in `.env`.
 ```bash
 docker ps
 docker compose logs <service-name>
+```
+
+For the compose-based dev workflow, prefer:
+
+```bash
+bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f frontend
+bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f storybook
 ```

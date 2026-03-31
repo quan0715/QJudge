@@ -7,7 +7,7 @@ const ContestSolveScreen = () => {
   const params = useParams();
   const [query] = useSearchParams();
   const { contest } = useContest();
-  const contestId = params.contestId;
+  const contestId = params.contestId || params.labId;
 
   const contestModule = useMemo(
     () => getContestTypeModule(contest?.contestType),

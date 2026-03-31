@@ -24,7 +24,7 @@ urlpatterns = [
     # Discussion endpoints
     # GET/POST /api/v1/problems/{problem_id}/discussions/
     path(
-        '<int:problem_id>/discussions/',
+        '<uuid:problem_id>/discussions/',
         ProblemDiscussionListCreateView.as_view(),
         name='problem-discussion-list',
     ),

@@ -6,25 +6,11 @@
   gap: layout.$spacing-06;
 }
 
-// Row layout for side-by-side fields
+// Row layout for side-by-side controls (e.g. tags multi-select + add button)
 .row {
   display: flex;
   gap: layout.$spacing-05;
   flex-wrap: wrap;
-}
-
-.field {
-  flex: 1;
-  min-width: layout.rem(200px);
-}
-
-// Toggle field alignment
-.toggleField {
-  flex: 1;
-  min-width: layout.rem(200px);
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: layout.$spacing-03;
 }
 
 // Tags section

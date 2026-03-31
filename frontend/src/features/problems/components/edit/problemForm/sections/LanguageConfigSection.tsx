@@ -8,9 +8,8 @@ import {
   Layer,
   Accordion,
   AccordionItem,
-  Stack,
 } from "@carbon/react";
-import { Add, Code, Warning } from "@carbon/icons-react";
+import { Add } from "@carbon/icons-react";
 import Editor from "@monaco-editor/react";
 import {
   DEFAULT_TEMPLATES,
@@ -18,6 +17,7 @@ import {
 } from "@/features/problems/constants/codeTemplates";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
+import { Section, FieldRow } from "@/shared/layout/SettingsPanel";
 import styles from "./LanguageConfigSection.module.scss";
 
 /**
@@ -94,22 +94,16 @@ const LanguageConfigSection: React.FC = () => {
   const enabledCount = languageConfigs.filter((lc) => lc?.isEnabled !== false).length;
 
   return (
-    <Stack gap={7}>
-      {/* Language Settings */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <div className={styles.sectionTitle}>
-            <Code size={20} />
-            <h3>程式語言設定</h3>
-          </div>
+    <>
+      <Section
+        title="程式語言設定"
+        description="設定此題目可使用的程式語言，以及每種語言的範本程式碼"
+        action={
           <Tag type="blue" size="sm">
             {enabledCount} / {LANGUAGE_OPTIONS.length} 已啟用
           </Tag>
-        </div>
-        <p className={styles.sectionDesc}>
-          設定此題目可使用的程式語言，以及每種語言的範本程式碼
-        </p>
-
+        }
+      >
         <Accordion align="start" className={styles.languageAccordion}>
           {LANGUAGE_OPTIONS.map((lang, langIndex) => {
             const config = languageConfigs?.[langIndex];
@@ -166,7 +160,6 @@ const LanguageConfigSection: React.FC = () => {
                                 field.onChange(value || "");
                               }}
                               onMount={(editor) => {
-                                // Trigger save on blur
                                 editor.onDidBlurEditorWidget(() => {
                                   triggerLanguageConfigSave();
                                 });
@@ -193,26 +186,14 @@ const LanguageConfigSection: React.FC = () => {
             );
           })}
         </Accordion>
-      </section>
+      </Section>
 
-      {/* Keyword Restrictions */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <div className={styles.sectionTitle}>
-            <Warning size={20} />
-            <h3>關鍵字限制</h3>
-          </div>
-        </div>
-        <p className={styles.sectionDesc}>
-          設定學生提交的程式碼中必須包含或禁止使用的關鍵字
-        </p>
-
-        <div className={styles.keywordsGrid}>
-          {/* Required Keywords */}
-          <Layer className={styles.keywordCard}>
-            <h4 className={styles.keywordCardTitle}>
-              <Tag type="green" size="sm">必須使用</Tag>
-            </h4>
+      <Section
+        title="關鍵字限制"
+        description="設定學生提交的程式碼中必須包含或禁止使用的關鍵字"
+      >
+        <FieldRow label="必須使用" description="提交程式碼必須包含這些關鍵字才能通過">
+          <div className={styles.keywordField}>
             <div className={styles.keywordInput}>
               <TextInput
                 id="new-required-keyword"
@@ -228,7 +209,7 @@ const LanguageConfigSection: React.FC = () => {
                 }}
               />
               <Button
-                kind="tertiary"
+                kind="ghost"
                 size="md"
                 hasIconOnly
                 renderIcon={Add}
@@ -241,25 +222,17 @@ const LanguageConfigSection: React.FC = () => {
                 <span className={styles.keywordEmpty}>尚無限制</span>
               ) : (
                 requiredKeywords.map((kw, index) => (
-                  <Tag
-                    key={index}
-                    type="green"
-                    size="sm"
-                    onClose={() => removeRequiredKeyword(index)}
-                    filter
-                  >
+                  <Tag key={index} type="green" size="sm" onClose={() => removeRequiredKeyword(index)} filter>
                     {kw}
                   </Tag>
                 ))
               )}
             </div>
-          </Layer>
+          </div>
+        </FieldRow>
 
-          {/* Forbidden Keywords */}
-          <Layer className={styles.keywordCard}>
-            <h4 className={styles.keywordCardTitle}>
-              <Tag type="red" size="sm">禁止使用</Tag>
-            </h4>
+        <FieldRow label="禁止使用" description="提交程式碼不可包含這些關鍵字，否則判定為違規">
+          <div className={styles.keywordField}>
             <div className={styles.keywordInput}>
               <TextInput
                 id="new-forbidden-keyword"
@@ -275,7 +248,7 @@ const LanguageConfigSection: React.FC = () => {
                 }}
               />
               <Button
-                kind="tertiary"
+                kind="ghost"
                 size="md"
                 hasIconOnly
                 renderIcon={Add}
@@ -288,22 +261,16 @@ const LanguageConfigSection: React.FC = () => {
                 <span className={styles.keywordEmpty}>尚無限制</span>
               ) : (
                 forbiddenKeywords.map((kw, index) => (
-                  <Tag
-                    key={index}
-                    type="red"
-                    size="sm"
-                    onClose={() => removeForbiddenKeyword(index)}
-                    filter
-                  >
+                  <Tag key={index} type="red" size="sm" onClose={() => removeForbiddenKeyword(index)} filter>
                     {kw}
                   </Tag>
                 ))
               )}
             </div>
-          </Layer>
-        </div>
-      </section>
-    </Stack>
+          </div>
+        </FieldRow>
+      </Section>
+    </>
   );
 };
 

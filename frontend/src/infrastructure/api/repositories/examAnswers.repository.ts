@@ -4,7 +4,7 @@ import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 
 export interface ExamAnswerDto {
   id: number;
-  question_id: number;
+  question_id: string;
   answer: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -169,7 +169,7 @@ export const submitExamAnswer = async (
     try {
       const response = await httpClient.post(
         `/api/v1/contests/${contestId}/exam-answers/submit/`,
-        { question_id: Number(questionId), answer }
+        { question_id: questionId, answer }
       );
 
       if (response.ok) {

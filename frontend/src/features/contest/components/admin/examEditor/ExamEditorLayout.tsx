@@ -31,6 +31,7 @@ import ExamQuestionJsonImportModal from "./ExamQuestionJsonImportModal";
 import { type ExamQuestionJsonNormalizedQuestion } from "./examQuestionJson";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import QuestionBankImportModal, { type BankImportSelectionItem } from "./QuestionBankImportModal";
+import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import styles from "./ExamEditorLayout.module.scss";
 
 // --- Question type picker config ---
@@ -79,8 +80,10 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   const [insertAtOrder, setInsertAtOrder] = useState<number | null>(null);
   const [jsonImportOpen, setJsonImportOpen] = useState(false);
   const [bankImportOpen, setBankImportOpen] = useState(false);
+  const [saveToBankQuestion, setSaveToBankQuestion] = useState<ExamQuestion | null>(null);
 
-  const frozen = !!contest.isExamQuestionsFrozen;
+  const frozen = !!contest.questionEditLocked;
+  const lockedReason = "已有學生正式作答，競賽題目已鎖定";
 
   const toUpsertPayload = useCallback(
     (
@@ -137,7 +140,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   const handleJsonImport = useCallback(
     async (normalizedQuestions: ExamQuestionJsonNormalizedQuestion[]) => {
       if (frozen) {
-        throw new Error("目前題目已凍結，無法匯入。");
+        throw new Error(lockedReason);
       }
 
       const payloads = normalizedQuestions.map((q, index) =>
@@ -153,7 +156,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         subtitle: t("examEditor.importSuccessDetail", { count: normalizedQuestions.length }),
       });
     },
-    [contestId, frozen, loadQuestions, showToast, toUpsertPayload],
+    [contestId, frozen, loadQuestions, lockedReason, showToast, toUpsertPayload],
   );
 
   useImperativeHandle(
@@ -165,10 +168,13 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   );
 
   const handleImportFromBank = useCallback(
-    async (items: BankImportSelectionItem[], importMode: "copy" | "reference") => {
-      if (frozen || items.length === 0) return;
+    async (items: BankImportSelectionItem[]) => {
+      if (items.length === 0) return;
+      if (frozen) {
+        showToast({ kind: "warning", title: lockedReason });
+        return;
+      }
       await importExamQuestionsFromBank(contestId, {
-        import_mode: importMode,
         items: items.map((item) => ({
           question_bank_id: item.questionBankId,
           question_id: item.questionId,
@@ -181,7 +187,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         subtitle: t("examEditor.importSuccessDetail", { count: items.length }),
       });
     },
-    [contestId, frozen, loadQuestions, showToast, t],
+    [contestId, frozen, loadQuestions, lockedReason, showToast, t],
   );
 
   // Pre-select first question once loaded
@@ -390,6 +396,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       questions={questions}
       selectedId={selectedId}
       frozen={frozen}
+      lockedReason={lockedReason}
       loading={loading && questions.length === 0}
       onSelect={handleSelect}
       onAdd={() => openTypePicker()}
@@ -423,6 +430,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
               onSave={handleSave}
               onDelete={handleDelete}
               onDuplicate={handleDuplicate}
+              onSaveToBank={(q) => setSaveToBankQuestion(q)}
               onInsertBefore={i > 0 ? () => openTypePicker(i) : undefined}
               cardRefCallback={(el) => {
                 if (el) cardRefs.current.set(q.id, el);
@@ -488,12 +496,20 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         open={bankImportOpen}
         category="exam"
         onClose={() => setBankImportOpen(false)}
-        onConfirm={async (items, importMode) => {
-          await handleImportFromBank(items, importMode);
+        onConfirm={async (items) => {
+          await handleImportFromBank(items);
         }}
       />
 
       <ConfirmModal {...modalProps} />
+
+      <SaveToBankModal
+        open={saveToBankQuestion !== null}
+        onClose={() => setSaveToBankQuestion(null)}
+        sourceType="exam_question"
+        sourceId={saveToBankQuestion?.id || ""}
+        sourceTitle={saveToBankQuestion?.prompt?.slice(0, 60) || ""}
+      />
     </>
   );
 });
@@ -507,9 +523,10 @@ const CardReorderItem: React.FC<{
   onSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
+  onSaveToBank?: (question: ExamQuestion) => void;
   onInsertBefore?: () => void;
   cardRefCallback: (el: HTMLDivElement | null) => void;
-}> = ({ question, index, frozen, onSave, onDelete, onDuplicate, onInsertBefore, cardRefCallback }) => {
+}> = ({ question, index, frozen, onSave, onDelete, onDuplicate, onSaveToBank, onInsertBefore, cardRefCallback }) => {
   const dragControls = useDragControls();
 
   return (
@@ -532,6 +549,7 @@ const CardReorderItem: React.FC<{
           onSave={onSave}
           onDelete={onDelete}
           onDuplicate={onDuplicate}
+          onSaveToBank={onSaveToBank}
           onPointerDownDrag={!frozen ? (e) => dragControls.start(e) : undefined}
         />
       </div>

@@ -1,6 +1,4 @@
 import type {
-  CodingProblem,
-  CodingProblemDetail,
   Problem,
   ProblemDetail,
   Tag,

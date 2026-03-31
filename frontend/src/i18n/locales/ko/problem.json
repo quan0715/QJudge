@@ -1,158 +1,158 @@
 {
-  "management": {
-    "description": "문제를 관리합니다",
-    "problemCount": "총 {{count}}문제"
-  },
   "button": {
     "create": "생성"
   },
-  "form": {
-    "title": "제목",
-    "slug": "URL 슬러그",
-    "placeholder": {
-      "title": "請輸入題目名稱"
-    }
-  },
-  "section": {
-    "description": "문제 설명",
-    "inputDescription": "입력 형식",
-    "outputDescription": "출력 형식",
-    "sampleTestCases": "샘플 테스트",
-    "hint": "힌트",
-    "codeRestrictions": "코드 제한",
-    "requiredKeywords": "필수 키워드:",
-    "forbiddenKeywords": "금지 키워드:"
-  },
-  "sample": {
-    "example": "예제 {{index}}",
-    "input": "입력",
-    "output": "출력",
-    "empty": "(비어있음)"
-  },
-  "list": {
-    "title": "문제 해결 / Problem Solving",
-    "subtitle": "다양한 난이도의 알고리즘 도전에 참여하여 프로그래밍 능력을 향상시키세요.",
-    "searchPlaceholder": "문제 검색...",
-    "noResults": "조건에 맞는 문제를 찾을 수 없습니다",
-    "tryAdjustFilters": "필터를 조정해 보세요",
-    "totalLoaded": "총 {{count}}개의 문제를 모두 불러왔습니다",
-    "acrRate": "정답률"
-  },
-  "filter": {
-    "status": "상태",
-    "solved": "해결됨",
-    "unsolved": "미해결",
-    "difficulty": "난이도",
-    "tags": "태그",
-    "noTags": "사용 가능한 태그가 없습니다"
-  },
-  "tabs": {
-    "description": "문제 설명",
-    "code": "코드",
-    "submissions": "제출 기록",
-    "stats": "통계"
-  },
-  "modal": {
-    "confirmSubmit": "제출 확인",
-    "submitting": "제출 중...",
-    "submitConfirmTitle": "답안을 제출하시겠습니까?",
-    "submitConfirmMessage": "이 작업은 모든 숨겨진 테스트 케이스를 평가합니다.",
-    "createTitle": "문제 생성",
-    "createSuccess": "문제가 생성되었습니다!",
-    "createError": "생성 실패. 나중에 다시 시도해 주세요",
-    "confirmDelete": "삭제 확인",
-    "deleteConfirmMessage": "문제 \"{{title}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다."
-  },
-  "import": {
-    "modalTitle": "YAML에서 문제 가져오기",
-    "populateFormTitle": "YAML 가져와서 양식 덮어쓰기",
-    "applyToForm": "양식에 적용",
-    "importProblem": "문제 가져오기",
-    "close": "닫기",
-    "cancel": "취소",
-    "uploadDesc": "YAML 파일을 업로드하거나 붙여넣으면 현재 양식 내용을 덮어씁니다.",
-    "uploadDescCreate": "문제 정의, 테스트 케이스 및 메타데이터가 포함된 YAML 문서를 업로드합니다.",
-    "viewFormat": "형식 사양 보기 →",
-    "uploadYAML": "YAML 파일 업로드",
-    "uploadHelperText": "최대 파일 크기는 5MB입니다. .yaml 또는 .yml 파일만 지원됩니다.",
-    "chooseFile": "파일 선택",
-    "pasteYAML": "YAML 내용 직접 붙여넣기",
-    "pastePlaceholder": "YAML 내용을 여기에 붙여넣으세요...",
-    "parsing": "구문 분석 중...",
-    "parsingDesc": "잠시만 기다려주세요. 파일을 검증하고 있습니다",
-    "validationError": "검증 오류",
-    "validationErrorDesc": "YAML 파일에서 {{count}}개의 오류를 발견했습니다",
-    "importSuccess": "가져오기 성공",
-    "importSuccessDesc": "문제가 성공적으로 생성되었습니다. 문제 미리보기로 리디렉션 중...",
-    "importFailed": "가져오기 실패",
-    "preview": "미리보기",
-    "timeLimit": "시간 제한",
-    "memoryLimit": "메모리 제한",
-    "testCases": "테스트 케이스",
-    "translations": "번역",
-    "codeTemplates": "코드 템플릿",
-    "cases": "개",
-    "samples": "샘플",
-    "languages": "개 언어"
-  },
   "difficulty": {
     "easy": "쉬움",
-    "medium": "보통",
-    "hard": "어려움"
+    "hard": "어려움",
+    "medium": "보통"
   },
   "edit": {
-    "sections": {
-      "basicInfo": "기본 정보",
-      "content": "문제 내용",
-      "testCases": "테스트 케이스",
-      "languageSettings": "언어 설정"
-    },
     "actions": {
-      "import": "가져오기",
-      "export": "내보내기",
-      "preview": "미리보기",
-      "save": "저장",
+      "back": "뒤로",
       "delete": "삭제",
-      "back": "뒤로"
+      "export": "내보내기",
+      "import": "가져오기",
+      "preview": "미리보기",
+      "save": "저장"
+    },
+    "exportModal": {
+      "cancel": "취소",
+      "description": "백업이나 다른 시스템으로 가져오기 위해 문제 데이터를 YAML 형식으로 내보냅니다.",
+      "scaleLabel": "비율",
+      "scalePlaceholder": "비율 선택",
+      "submit": "내보내기",
+      "title": "문제 내보내기"
     },
     "messages": {
+      "deleteFailed": "삭제 실패",
+      "deleteSuccess": "삭제 성공",
+      "deleteSuccessDetail": "리다이렉트 중...",
+      "exportSuccess": "YAML 내보내기 성공",
+      "exportSuccessDetail": "파일이 다운로드되었습니다",
       "importSuccess": "가져오기 성공",
       "importSuccessDetail": "YAML 데이터를 가져와 저장했습니다",
       "importSuccessSaveFailed": "가져오기는 성공했지만 자동 저장에 실패했습니다",
-      "deleteSuccess": "삭제 성공",
-      "deleteSuccessDetail": "리다이렉트 중...",
-      "deleteFailed": "삭제 실패",
-      "exportSuccess": "YAML 내보내기 성공",
-      "exportSuccessDetail": "파일이 다운로드되었습니다",
       "loadFailed": "문제 데이터를 불러오는 데 실패했습니다",
-      "notFound": "문제를 찾을 수 없습니다",
       "noPermission": "이 문제를 편집할 권한이 없습니다",
-      "noPermissionTitle": "권한 없음"
+      "noPermissionTitle": "권한 없음",
+      "notFound": "문제를 찾을 수 없습니다"
+    },
+    "sections": {
+      "basicInfo": "기본 정보",
+      "content": "문제 내용",
+      "languageSettings": "언어 설정",
+      "testCases": "테스트 케이스"
     },
     "status": {
-      "public": "문제가 공개되었습니다",
+      "hidden": "문제가 숨김 처리되었습니다",
       "private": "문제가 비공개로 설정되었습니다",
-      "hidden": "문제가 숨김 처리되었습니다"
-    },
-    "exportModal": {
-      "title": "문제 내보내기",
-      "submit": "내보내기",
-      "cancel": "취소",
-      "scaleLabel": "비율",
-      "scalePlaceholder": "비율 선택",
-      "description": "백업이나 다른 시스템으로 가져오기 위해 문제 데이터를 YAML 형식으로 내보냅니다."
+      "public": "문제가 공개되었습니다"
     }
-  },
-  "hero": {
-    "timeLimit": "時間限制",
-    "memoryLimit": "記憶體限制",
-    "acRate": "通過率",
-    "submissions": "提交次數",
-    "accepted": "通過次數",
-    "score": "配分"
   },
   "editor": {
     "header": "題目編輯器",
     "selectLanguage": "選擇語言"
+  },
+  "filter": {
+    "difficulty": "난이도",
+    "noTags": "사용 가능한 태그가 없습니다",
+    "solved": "해결됨",
+    "status": "상태",
+    "tags": "태그",
+    "unsolved": "미해결"
+  },
+  "form": {
+    "placeholder": {
+      "title": "請輸入題目名稱"
+    },
+    "slug": "URL 슬러그",
+    "title": "제목"
+  },
+  "hero": {
+    "acRate": "通過率",
+    "accepted": "通過次數",
+    "memoryLimit": "記憶體限制",
+    "score": "配分",
+    "submissions": "提交次數",
+    "timeLimit": "時間限制"
+  },
+  "import": {
+    "applyToForm": "양식에 적용",
+    "cancel": "취소",
+    "cases": "개",
+    "chooseFile": "파일 선택",
+    "close": "닫기",
+    "codeTemplates": "코드 템플릿",
+    "importFailed": "가져오기 실패",
+    "importProblem": "문제 가져오기",
+    "importSuccess": "가져오기 성공",
+    "importSuccessDesc": "문제가 성공적으로 생성되었습니다. 문제 미리보기로 리디렉션 중...",
+    "languages": "개 언어",
+    "memoryLimit": "메모리 제한",
+    "modalTitle": "YAML에서 문제 가져오기",
+    "parsing": "구문 분석 중...",
+    "parsingDesc": "잠시만 기다려주세요. 파일을 검증하고 있습니다",
+    "pastePlaceholder": "YAML 내용을 여기에 붙여넣으세요...",
+    "pasteYAML": "YAML 내용 직접 붙여넣기",
+    "populateFormTitle": "YAML 가져와서 양식 덮어쓰기",
+    "preview": "미리보기",
+    "samples": "샘플",
+    "testCases": "테스트 케이스",
+    "timeLimit": "시간 제한",
+    "translations": "번역",
+    "uploadDesc": "YAML 파일을 업로드하거나 붙여넣으면 현재 양식 내용을 덮어씁니다.",
+    "uploadDescCreate": "문제 정의, 테스트 케이스 및 메타데이터가 포함된 YAML 문서를 업로드합니다.",
+    "uploadHelperText": "최대 파일 크기는 5MB입니다. .yaml 또는 .yml 파일만 지원됩니다.",
+    "uploadYAML": "YAML 파일 업로드",
+    "validationError": "검증 오류",
+    "validationErrorDesc": "YAML 파일에서 {{count}}개의 오류를 발견했습니다",
+    "viewFormat": "형식 사양 보기 →"
+  },
+  "list": {
+    "acrRate": "정답률",
+    "noResults": "조건에 맞는 문제를 찾을 수 없습니다",
+    "searchPlaceholder": "문제 검색...",
+    "subtitle": "다양한 난이도의 알고리즘 도전에 참여하여 프로그래밍 능력을 향상시키세요.",
+    "title": "문제 해결 / Problem Solving",
+    "totalLoaded": "총 {{count}}개의 문제를 모두 불러왔습니다",
+    "tryAdjustFilters": "필터를 조정해 보세요"
+  },
+  "management": {
+    "description": "문제를 관리합니다",
+    "problemCount": "총 {{count}}문제"
+  },
+  "modal": {
+    "confirmDelete": "삭제 확인",
+    "confirmSubmit": "제출 확인",
+    "createError": "생성 실패. 나중에 다시 시도해 주세요",
+    "createSuccess": "문제가 생성되었습니다!",
+    "createTitle": "문제 생성",
+    "deleteConfirmMessage": "문제 \"{{title}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+    "submitConfirmMessage": "이 작업은 모든 숨겨진 테스트 케이스를 평가합니다.",
+    "submitConfirmTitle": "답안을 제출하시겠습니까?",
+    "submitting": "제출 중..."
+  },
+  "sample": {
+    "empty": "(비어있음)",
+    "example": "예제 {{index}}",
+    "input": "입력",
+    "output": "출력"
+  },
+  "section": {
+    "codeRestrictions": "코드 제한",
+    "description": "문제 설명",
+    "forbiddenKeywords": "금지 키워드:",
+    "hint": "힌트",
+    "inputDescription": "입력 형식",
+    "outputDescription": "출력 형식",
+    "requiredKeywords": "필수 키워드:",
+    "sampleTestCases": "샘플 테스트"
+  },
+  "tabs": {
+    "code": "코드",
+    "description": "문제 설명",
+    "stats": "통계",
+    "submissions": "제출 기록"
   }
 }

@@ -1,6 +1,5 @@
 import { useState } from "react";
-import type { StoryModule } from "@/shared/types/story.types";
-import type { ChatbotWidgetProps } from "./ChatbotWidget";
+import type { Meta, StoryObj } from "@storybook/react";
 import { ChatbotWidget } from "./ChatbotWidget";
 
 /**
@@ -8,13 +7,11 @@ import { ChatbotWidget } from "./ChatbotWidget";
  * 展示 Chatbot Widget 的各種狀態和配置
  */
 
-const storyModule: StoryModule<ChatbotWidgetProps> = {
-  meta: {
+const meta: Meta<typeof ChatbotWidget> = {
     title: "features/chatbot/ChatbotWidget",
     component: ChatbotWidget,
-    category: "features",
-    description: "AI Chatbot 聊天面板 - 支援會話管理、流式輸出、工具執行等功能。",
-    defaultArgs: {
+    
+    args: {
       defaultExpanded: false,
       problemContext: null,
       backgroundInfo: null,
@@ -25,12 +22,22 @@ const storyModule: StoryModule<ChatbotWidgetProps> = {
         description: "初始是否展開面板",
       },
     },
+  
+  parameters: {
+    docs: { description: { component: 'AI Chatbot 聊天面板 - 支援會話管理、流式輸出、工具執行等功能。' } },
   },
-  stories: [
-    {
-      name: "Default (Collapsed)",
-      description: "默認狀態 - 浮動按鈕（未展開）",
-      render: (args) => (
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const DefaultCollapsed: Story = {
+  parameters: {
+    docs: {
+      description: { story: '默認狀態 - 浮動按鈕（未展開）' },
+    },
+  },
+  render: (args) => (
         <div
           style={{
             position: "relative",
@@ -47,11 +54,15 @@ const storyModule: StoryModule<ChatbotWidgetProps> = {
           />
         </div>
       ),
+};
+
+export const ExpandedPanel: Story = {
+  parameters: {
+    docs: {
+      description: { story: '展開狀態 - 聊天面板' },
     },
-    {
-      name: "Expanded Panel",
-      description: "展開狀態 - 聊天面板",
-      render: (args) => (
+  },
+  render: (args) => (
         <div
           style={{
             position: "relative",
@@ -68,11 +79,15 @@ const storyModule: StoryModule<ChatbotWidgetProps> = {
           />
         </div>
       ),
+};
+
+export const WithProblemContext: Story = {
+  parameters: {
+    docs: {
+      description: { story: '帶有題目上下文 - 在輸入框上方顯示題目 chip' },
     },
-    {
-      name: "With Problem Context",
-      description: "帶有題目上下文 - 在輸入框上方顯示題目 chip",
-      render: () => (
+  },
+  render: () => (
         <div
           style={{
             position: "relative",
@@ -91,11 +106,15 @@ const storyModule: StoryModule<ChatbotWidgetProps> = {
           />
         </div>
       ),
+};
+
+export const WithBackgroundInfo: Story = {
+  parameters: {
+    docs: {
+      description: { story: '帶背景資訊 - 第一條訊息會包含上下文' },
     },
-    {
-      name: "With Background Info",
-      description: "帶背景資訊 - 第一條訊息會包含上下文",
-      render: () => (
+  },
+  render: () => (
         <div
           style={{
             position: "relative",
@@ -116,11 +135,15 @@ const storyModule: StoryModule<ChatbotWidgetProps> = {
           />
         </div>
       ),
+};
+
+export const FullConfiguration: Story = {
+  parameters: {
+    docs: {
+      description: { story: '完整配置 - 帶題目和背景資訊' },
     },
-    {
-      name: "Full Configuration",
-      description: "完整配置 - 帶題目和背景資訊",
-      render: () => (
+  },
+  render: () => (
         <div
           style={{
             position: "relative",
@@ -147,11 +170,15 @@ const storyModule: StoryModule<ChatbotWidgetProps> = {
           />
         </div>
       ),
+};
+
+export const FloatingButtonStates: Story = {
+  parameters: {
+    docs: {
+      description: { story: '浮動按鈕的各種狀態展示' },
     },
-    {
-      name: "Floating Button States",
-      description: "浮動按鈕的各種狀態展示",
-      render: () => {
+  },
+  render: () => {
         const FloatingButtonDemo = () => {
           const [expanded, _setExpanded] = useState(false);
 
@@ -186,8 +213,4 @@ const storyModule: StoryModule<ChatbotWidgetProps> = {
 
         return <FloatingButtonDemo />;
       },
-    },
-  ],
 };
-
-export default storyModule;

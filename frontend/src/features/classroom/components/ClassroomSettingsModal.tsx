@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Settings, UserMultiple } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ClassroomDetail } from "@/core/entities/classroom.entity";
 import { SettingsModal, type SettingsModalNavItem } from "@/shared/ui/modal";
 import { ClassroomSettingsGeneralPanel } from "./ClassroomSettingsGeneralPanel";
 import { ClassroomSettingsMembersPanel } from "./ClassroomSettingsMembersPanel";
+import { AddMembersModal } from "./AddMembersModal";
 
 interface ClassroomSettingsModalProps {
   open: boolean;
@@ -20,6 +21,9 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
   onRefresh,
 }) => {
   const { t } = useTranslation("classroom");
+  // Rendered as a sibling of SettingsModal (not inside it) to avoid nested
+  // Carbon focus-trap conflicts that prevent typing in the inner modal.
+  const [addMembersOpen, setAddMembersOpen] = useState(false);
 
   const navItems: SettingsModalNavItem[] = [
     {
@@ -48,6 +52,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
           <ClassroomSettingsMembersPanel
             classroom={classroom}
             onRefresh={onRefresh}
+            onOpenAddMembers={() => setAddMembersOpen(true)}
           />
         );
       default:
@@ -56,12 +61,21 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
   };
 
   return (
-    <SettingsModal
-      open={open}
-      onRequestClose={onClose}
-      modalHeading={t("tab.settings", "教室設定")}
-      navItems={navItems}
-      renderPanel={renderPanel}
-    />
+    <>
+      <SettingsModal
+        open={open}
+        onRequestClose={onClose}
+        modalHeading={t("tab.settings", "教室設定")}
+        navItems={navItems}
+        renderPanel={renderPanel}
+      />
+      {/* Rendered outside SettingsModal to prevent nested focus-trap conflicts */}
+      <AddMembersModal
+        open={addMembersOpen}
+        classroomId={classroom.id}
+        onClose={() => setAddMembersOpen(false)}
+        onAdded={() => void onRefresh()}
+      />
+    </>
   );
 };

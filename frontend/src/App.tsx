@@ -1,7 +1,6 @@
 import {
   BrowserRouter,
   Navigate,
-  useParams,
 } from "react-router-dom";
 import { Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -19,7 +18,6 @@ import {
   teacherActivationRoute,
   AuthLayout,
   AuthProvider,
-  useAuth,
   RequireAuth,
   RequireGuest,
   RequireAdmin,
@@ -29,21 +27,21 @@ import {
   SettingsDialogProvider,
   SettingsDialog,
 } from "@/features/auth";
-import { problemDetailRoutes, problemSolveRoutes, problemEditRoutes } from "@/features/problems";
-import { contestListRoute, contestDetailRoutes, contestAdminRoute, examPreviewRoute, examPrecheckRoute } from "@/features/contest";
+import { problemDetailRoutes, problemSolveRoutes } from "@/features/problems";
+import { contestListRoute, contestDetailRoutes, contestAdminRoute, examPreviewRoute, examPrecheckRoute, classroomContestDetailRoutes, classroomContestAdminRoute, classroomExamPreviewRoute, classroomExamPrecheckRoute } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
-import { storybookRoute } from "@/features/storybook";
 import { adminRoutes } from "@/features/admin";
 import { landingRoute } from "@/features/landing";
 import { checkoutSuccessRoute } from "@/features/pricing";
 import RecurProviderBridge from "@/features/pricing/components/RecurProviderBridge";
-import { classroomDetailRoute } from "@/features/classroom";
+import { classroomDetailRoute, classroomJoinRoute } from "@/features/classroom";
 import { questionBankListRoute, questionBankDetailRoute } from "@/features/question-banks";
 
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
+import { PageHeaderActionsProvider } from "@/features/app/contexts/PageHeaderActionsContext";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 import {
   MarkdownImageUploadProvider,
@@ -63,21 +61,8 @@ const queryClient = new QueryClient({
   },
 });
 
-type AdminPanelParam = "settings" | "participants" | "logs" | "exam";
-
-function LegacyContestAdminRedirect({ panel }: { panel?: AdminPanelParam }) {
-  const { contestId } = useParams<{ contestId: string }>();
-  if (!contestId) {
-    return <Navigate to="/contests" replace />;
-  }
-  const query = panel ? `?panel=${panel}` : "";
-  return <Navigate to={`/contests/${contestId}/admin${query}`} replace />;
-}
-
 function LegacyProblemListRedirect() {
-  const { user } = useAuth();
-  const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
-  return <Navigate to={isTeacherOrAdmin ? "/question-banks" : "/dashboard"} replace />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 function App() {
@@ -104,6 +89,7 @@ function App() {
                     <SettingsDialogProvider>
                     <RecurProviderBridge>
                     <BrowserRouter>
+                      <PageHeaderActionsProvider>
                       <ApiErrorProvider>
                       <Routes>
                         {/* Auth Routes - shared AuthLayout for login/register/callback */}
@@ -129,6 +115,9 @@ function App() {
                         {/* Public Checkout Success */}
                         {checkoutSuccessRoute}
 
+                        {/* Classroom Join - public route, handles own auth redirect */}
+                        {classroomJoinRoute}
+
                         {/* Protected Routes (Dashboard, Problems, etc.) */}
                         <Route element={<RequireAuth />}>
                           <Route element={<RequireCompletedOnboarding />}>
@@ -152,17 +141,20 @@ function App() {
                             {/* Problem Solve - Full-screen IDE-style solver */}
                             {problemSolveRoutes}
 
-                            {/* Problem Edit - Full-screen editor (admin/teacher only) */}
-                            {problemEditRoutes}
-
                             {/* Contest Routes - Outside MainLayout with Custom Header */}
                             {contestDetailRoutes}
+
+                            {/* Classroom-scoped Contest Routes */}
+                            {classroomContestDetailRoutes}
 
                             {/* Classroom Detail - Standalone classroom admin shell */}
                             {classroomDetailRoute}
 
                             {/* Exam Precheck - Standalone, shared by coding & paper_exam */}
                             {examPrecheckRoute}
+
+                            {/* Classroom Exam Precheck - Classroom-scoped */}
+                            {classroomExamPrecheckRoute}
                           </Route>
 
                         </Route>
@@ -172,35 +164,22 @@ function App() {
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
                               {questionBankListRoute}
-                              {/* Redirect old management paths to unified contest view */}
-                              <Route
-                                path="/management/contests/:contestId"
-                                element={<LegacyContestAdminRedirect panel="settings" />}
-                              />
-                              <Route
-                                path="/management/contests/:contestId/settings"
-                                element={<LegacyContestAdminRedirect panel="settings" />}
-                              />
-                              <Route
-                                path="/management/contests/:contestId/problems"
-                                element={<LegacyContestAdminRedirect panel="exam" />}
-                              />
-                              <Route
-                                path="/management/contests/:contestId/participants"
-                                element={<LegacyContestAdminRedirect panel="participants" />}
-                              />
-                              <Route
-                                path="/management/contests/:contestId/logs"
-                                element={<LegacyContestAdminRedirect panel="logs" />}
-                              />
                             </Route>
+
+                            {/* Question Bank Detail - Standalone with breadcrumb header */}
+                            {questionBankDetailRoute}
 
                             {/* Contest Admin Dashboard - Standalone full page */}
                             {contestAdminRoute}
-                            {questionBankDetailRoute}
+
+                            {/* Classroom Contest Admin - Classroom-scoped */}
+                            {classroomContestAdminRoute}
 
                             {/* Exam Preview - Standalone full page (Demo mode) */}
                             {examPreviewRoute}
+
+                            {/* Classroom Exam Preview - Classroom-scoped */}
+                            {classroomExamPreviewRoute}
                           </Route>
                         </Route>
 
@@ -211,9 +190,6 @@ function App() {
                           </Route>
                         </Route>
 
-                        {/* Dev-only Storybook Route */}
-                        {import.meta.env.DEV && storybookRoute}
-
                         {/* Error Pages - accessible without auth */}
                         {errorRoutes}
 
@@ -221,6 +197,7 @@ function App() {
                         {fallbackRoute}
                       </Routes>
                       </ApiErrorProvider>
+                      </PageHeaderActionsProvider>
                     </BrowserRouter>
                     <SettingsDialog />
                     </RecurProviderBridge>

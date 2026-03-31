@@ -17,7 +17,7 @@ class SampleCaseDTO:
 @dataclass
 class ProblemDTO:
     """Problem data for export."""
-    id: int
+    id: str
     label: str
     title: str
     description: str = ''
@@ -39,7 +39,7 @@ class ProblemDTO:
 class ContestProblemDTO:
     """Contest problem with order and score info."""
     id: int  # ContestProblem ID
-    problem_id: int
+    problem_id: str
     order: int
     label: str
     problem: ProblemDTO
@@ -57,7 +57,7 @@ class ContestProblemDTO:
 @dataclass
 class ContestDTO:
     """Contest data for export."""
-    id: int
+    id: str
     name: str
     description: str = ''
     rules: str = ''
@@ -85,7 +85,7 @@ class SubmissionDTO:
     """Submission data for reporting."""
     id: int
     user_id: int
-    problem_id: int
+    problem_id: str
     status: str
     score: int = 0
     language: str = ''
@@ -97,7 +97,7 @@ class SubmissionDTO:
 @dataclass
 class ProblemStatsDTO:
     """Per-problem statistics for a user."""
-    problem_id: int
+    problem_id: str
     status: Optional[str] = None
     score: int = 0
     max_score: int = 0
@@ -115,7 +115,7 @@ class UserStandingDTO:
     total_score: int = 0
     penalty: int = 0
     rank: int = 0
-    problems: Dict[int, ProblemStatsDTO] = field(default_factory=dict)
+    problems: Dict[str, ProblemStatsDTO] = field(default_factory=dict)
 
 
 @dataclass

@@ -1,25 +1,16 @@
-import React, { useEffect, useMemo, useCallback } from "react";
-// import { useNavigate } from "react-router-dom";
-import { useForm, FormProvider, useFormContext } from "react-hook-form";
+import React, { useEffect, useCallback, useMemo } from "react";
+import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, SkeletonText, SkeletonPlaceholder } from "@carbon/react";
-import { Upload, Download, View } from "@carbon/icons-react";
-import type { ProblemDetail, ProblemVisibility } from "@/core/entities/problem.entity";
+import { useQuery } from "@tanstack/react-query";
+import { SkeletonText, SkeletonPlaceholder } from "@carbon/react";
 import {
   patchProblem,
   deleteProblem,
 } from "@/infrastructure/api/repositories/problem.repository";
-// useAuth reserved for future permission checks
-// import { useAuth } from "@/features/auth/contexts/AuthContext";
-import {
-  ProblemEditProvider,
-  useProblemEdit,
-} from "@/features/problems/contexts/ProblemEditContext";
+import { getContestProblem } from "@/infrastructure/api/repositories/contestProblems.repository";
+import { ProblemEditProvider } from "@/features/problems/contexts/ProblemEditContext";
 import { MarkdownEditorProvider } from "@/shared/ui/markdown/markdownEditor";
-import { TriggerModal, type TriggerModalHandle } from "@/shared/ui/modal";
-import { ProblemImportModal } from "@/features/problems/components/modals";
-import { GlobalSaveStatus } from "@/features/problems/components/edit/common";
-import { useProblemDetail } from "@/features/problems/hooks";
+import { CodingProblemEditorShell } from "@/features/problems/components";
 import { useToast } from "@/shared/contexts";
 import {
   DEFAULT_PROBLEM_FORM_VALUES,
@@ -29,144 +20,23 @@ import { problemFormSchema } from "@/features/problems/forms/problemFormValidati
 import {
   yamlToFormSchema,
   formSchemaToApiPayload,
+  problemDetailToFormSchema,
 } from "@/features/problems/forms/problemFormAdapters";
 import type { ProblemYAML } from "@/shared/utils/problemYamlParser";
-import ProblemEditHeader from "@/features/problems/screens/problemsIdEdit/components/ProblemEditHeader";
-import ProblemEditSections from "@/features/problems/screens/problemsIdEdit/components/ProblemEditSections";
-import ProblemEditPreviewModal from "@/features/problems/screens/problemsIdEdit/components/ProblemEditPreviewModal";
-import ProblemEditExportModal from "@/features/problems/screens/problemsIdEdit/components/ProblemEditExportModal";
-import {
-  ProblemEditUIProvider,
-  useProblemEditUI,
-} from "@/features/problems/screens/problemsIdEdit/contexts/ProblemEditUIContext";
-import {
-  BASE_SECTIONS,
-  getSectionValidationState,
-} from "@/features/problems/screens/problemsIdEdit/utils/sectionConfig";
-import { formSchemaToPreview } from "@/features/problems/screens/problemsIdEdit/utils/previewAdapter";
-import type { NavSection } from "@/features/problems/screens/problemsIdEdit/section/layout";
-import "@/features/problems/screens/problemsIdEdit/screen.scss";
 import styles from "./EmbeddedProblemEditor.module.scss";
 
-/* ── Inner content (mirrors ProblemEditScreenContent) ───────── */
-
-const EditorContent: React.FC<{
-  problem: ProblemDetail;
-  sectionsWithValidation: NavSection[];
-  handleYAMLImport: (yamlData: ProblemYAML) => void;
-  handleVisibilityChange: (visibility: ProblemVisibility) => Promise<void>;
-  handleDelete: () => Promise<void>;
-  handleExportConfirm: (onClose: () => void) => void;
-  onProblemUpdated: () => void;
-}> = ({
-  problem,
-  sectionsWithValidation,
-  handleYAMLImport,
-  handleVisibilityChange,
-  handleDelete,
-  handleExportConfirm,
-  onProblemUpdated: _onProblemUpdated,
-}) => {
-  const { autoSave } = useProblemEdit();
-  const { exportFormat, setExportFormat, pdfScale, setPdfScale } =
-    useProblemEditUI();
-  const { watch } = useFormContext<ProblemFormSchema>();
-  const previewModalRef = React.useRef<TriggerModalHandle>(null);
-
-  const watchedValues = watch();
-  const previewData = useMemo(
-    () => formSchemaToPreview(watchedValues),
-    [watchedValues],
-  );
-
-  return (
-    <div className={styles.editorRoot}>
-      <ProblemEditHeader
-        title={problem.title || "Loading..."}
-        onBack={() => {/* no-op in embedded mode */}}
-        globalSaveStatus={<GlobalSaveStatus status={autoSave.globalStatus} />}
-        actions={
-          <>
-            <TriggerModal
-              trigger={
-                <Button kind="ghost" renderIcon={Upload} size="sm">
-                  Import
-                </Button>
-              }
-              renderModal={({ open, onClose }) => (
-                <ProblemImportModal
-                  open={open}
-                  onClose={onClose}
-                  onPopulate={handleYAMLImport}
-                  mode="populateForm"
-                />
-              )}
-            />
-            <TriggerModal
-              trigger={
-                <Button kind="ghost" renderIcon={Download} size="sm">
-                  Export
-                </Button>
-              }
-              renderModal={({ open, onClose }) => (
-                <ProblemEditExportModal
-                  open={open}
-                  onClose={onClose}
-                  onConfirm={() => handleExportConfirm(onClose)}
-                  exportFormat={exportFormat}
-                  onExportFormatChange={setExportFormat}
-                  pdfScale={pdfScale}
-                  onPdfScaleChange={setPdfScale}
-                />
-              )}
-            />
-            <Button
-              kind="secondary"
-              size="sm"
-              renderIcon={View}
-              onClick={() => previewModalRef.current?.open()}
-            >
-              Preview
-            </Button>
-          </>
-        }
-      />
-
-      <div className={styles.editorContent}>
-        <ProblemEditSections
-          sections={sectionsWithValidation}
-          onPreviewClick={() => previewModalRef.current?.open()}
-          problemTitle={problem.title}
-          visibility={watchedValues.visibility || "private"}
-          onVisibilityChange={handleVisibilityChange}
-          onDelete={handleDelete}
-          hideSidebar={true}
-        />
-      </div>
-
-      <TriggerModal
-        ref={previewModalRef}
-        renderModal={({ open, onClose }) => (
-          <ProblemEditPreviewModal
-            open={open}
-            onClose={onClose}
-            previewData={previewData}
-          />
-        )}
-      />
-    </div>
-  );
-};
-
-/* ── Provider wrapper (mirrors ProblemEditPageInner) ────────── */
-
-const EmbeddedEditorInner: React.FC<{
-  problemId: string;
+interface EmbeddedEditorInnerProps {
+  contestProblemId: string;
   contestId: string;
   onRemoved?: () => void;
-}> = ({ problemId, onRemoved }) => {
+}
+
+const EmbeddedEditorInner: React.FC<EmbeddedEditorInnerProps> = ({
+  contestProblemId,
+  contestId,
+  onRemoved,
+}) => {
   const { showToast } = useToast();
-  const { exportFormat, pdfScale } = useProblemEditUI();
 
   const methods = useForm<ProblemFormSchema>({
     defaultValues: DEFAULT_PROBLEM_FORM_VALUES,
@@ -175,30 +45,27 @@ const EmbeddedEditorInner: React.FC<{
     mode: "onBlur",
   });
 
+  const { reset } = methods;
+  const formValues = useWatch({ control: methods.control });
+
   const {
-    reset,
-    formState: { errors, touchedFields },
-  } = methods;
+    data: problem,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["contestProblemEditor", contestId, contestProblemId],
+    queryFn: async () => {
+      const data = await getContestProblem(contestId, contestProblemId);
+      return data || null;
+    },
+    enabled: !!contestId && !!contestProblemId,
+    staleTime: 1000 * 60,
+  });
 
-  const { problem, formSchema, isLoading, error, refetch } = useProblemDetail(
-    problemId,
-    { scope: "manage" },
+  const formSchema = useMemo(
+    () => problemDetailToFormSchema(problem),
+    [problem]
   );
-
-  const handleProblemUpdated = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  const sectionsWithValidation: NavSection[] = useMemo(() => {
-    return BASE_SECTIONS.map((section) => {
-      const { state, errorCount } = getSectionValidationState(
-        section.id,
-        errors as Record<string, unknown>,
-        touchedFields as Record<string, unknown>,
-      );
-      return { ...section, validationState: state, errorCount };
-    });
-  }, [errors, touchedFields]);
 
   useEffect(() => {
     if (!formSchema) return;
@@ -210,8 +77,11 @@ const EmbeddedEditorInner: React.FC<{
       const formData = yamlToFormSchema(yamlData);
       reset(formData, { keepDefaultValues: false });
       try {
+        if (!problem?.id) {
+          throw new Error("Problem adapter not found");
+        }
         const apiPayload = formSchemaToApiPayload(formData);
-        await patchProblem(problemId, apiPayload);
+        await patchProblem(problem.id, apiPayload);
         showToast({ kind: "success", title: "Import Success" });
       } catch (err) {
         showToast({
@@ -221,24 +91,8 @@ const EmbeddedEditorInner: React.FC<{
         });
       }
     },
-    [problemId, reset, showToast],
+    [problem?.id, reset, showToast],
   );
-
-  const handleVisibilityChange = async (newVisibility: ProblemVisibility) => {
-    if (!problem) return;
-    try {
-      await patchProblem(problem.id, { visibility: newVisibility });
-      methods.setValue("visibility", newVisibility);
-      showToast({ kind: "success", title: "Visibility updated" });
-    } catch (err) {
-      showToast({
-        kind: "error",
-        title: "Failed",
-        subtitle: err instanceof Error ? err.message : "Please try again",
-      });
-      throw err;
-    }
-  };
 
   const handleDelete = async () => {
     if (!problem) return;
@@ -257,7 +111,15 @@ const EmbeddedEditorInner: React.FC<{
   };
 
   const handleExportConfirm = useCallback(
-    (onClose: () => void) => {
+    ({
+      exportFormat,
+      pdfScale,
+      close,
+    }: {
+      exportFormat: "pdf" | "yaml";
+      pdfScale: number;
+      close: () => void;
+    }) => {
       if (!problem) return;
       if (exportFormat === "yaml") {
         const yamlContent = `# Problem: ${problem.title}\n# Export not yet implemented`;
@@ -268,10 +130,10 @@ const EmbeddedEditorInner: React.FC<{
         a.download = `${problem.title.replace(/[^a-zA-Z0-9]/g, "_")}.yaml`;
         a.click();
         URL.revokeObjectURL(url);
-        onClose();
+        close();
         showToast({ kind: "success", title: "YAML exported" });
       } else {
-        onClose();
+        close();
         showToast({
           kind: "success",
           title: "PDF export",
@@ -279,7 +141,7 @@ const EmbeddedEditorInner: React.FC<{
         });
       }
     },
-    [problem, exportFormat, pdfScale, showToast],
+    [problem, showToast],
   );
 
   if (isLoading) {
@@ -310,15 +172,13 @@ const EmbeddedEditorInner: React.FC<{
   return (
     <MarkdownEditorProvider>
       <FormProvider {...methods}>
-        <ProblemEditProvider problemId={problemId}>
-          <EditorContent
-            problem={problem}
-            sectionsWithValidation={sectionsWithValidation}
-            handleYAMLImport={handleYAMLImport}
-            handleVisibilityChange={handleVisibilityChange}
-            handleDelete={handleDelete}
-            handleExportConfirm={handleExportConfirm}
-            onProblemUpdated={handleProblemUpdated}
+        <ProblemEditProvider problemId={problem.id}>
+          <CodingProblemEditorShell
+            title={problem.title || "Untitled"}
+            formValues={formValues as ProblemFormSchema}
+            onDelete={handleDelete}
+            onImportYaml={handleYAMLImport}
+            onExportConfirm={handleExportConfirm}
           />
         </ProblemEditProvider>
       </FormProvider>
@@ -326,18 +186,14 @@ const EmbeddedEditorInner: React.FC<{
   );
 };
 
-/* ── Public API ─────────────────────────────────────────────── */
-
 interface EmbeddedProblemEditorProps {
-  problemId: string;
+  contestProblemId: string;
   contestId: string;
   onRemoved?: () => void;
 }
 
 const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = (props) => (
-  <ProblemEditUIProvider>
-    <EmbeddedEditorInner {...props} />
-  </ProblemEditUIProvider>
+  <EmbeddedEditorInner {...props} />
 );
 
 export default EmbeddedProblemEditor;

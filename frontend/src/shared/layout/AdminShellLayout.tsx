@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import { useEffect, type ComponentType, type ReactNode } from "react";
 import {
   Header,
   HeaderGlobalBar,
@@ -49,6 +49,17 @@ const AdminShellLayout = ({
   const sidenavWidth = isRail
     ? "3rem"
     : sideNavMode.width ?? "16rem";
+
+  // Prevent document-level scrolling while this fixed-position shell is mounted.
+  // Without this, Carbon Toggle's focus() call can scroll window (via scrollIntoView),
+  // causing visual glitches in the clipped flex layout.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   const cssVars = {
     "--admin-shell-sidenav-width": sidenavWidth,

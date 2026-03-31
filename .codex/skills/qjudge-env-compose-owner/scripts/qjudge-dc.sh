@@ -26,6 +26,19 @@ shift
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 
+for dir in /usr/local/bin /opt/homebrew/bin /Applications/Docker.app/Contents/Resources/bin; do
+  if [[ -d "$dir" && ":$PATH:" != *":$dir:"* ]]; then
+    PATH="$dir:$PATH"
+  fi
+done
+
+DOCKER_BIN="${DOCKER_BIN:-$(command -v docker || true)}"
+
+if [[ -z "$DOCKER_BIN" ]]; then
+  echo "docker binary not found in PATH: $PATH" >&2
+  exit 127
+fi
+
 case "$ENV_NAME" in
   main)
     COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
@@ -43,4 +56,4 @@ case "$ENV_NAME" in
     ;;
 esac
 
-exec docker compose -f "$COMPOSE_FILE" "$@"
+exec "$DOCKER_BIN" compose -f "$COMPOSE_FILE" "$@"

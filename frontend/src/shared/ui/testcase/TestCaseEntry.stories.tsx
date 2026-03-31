@@ -55,6 +55,8 @@ export const Playground: Story = {
   render: (args) => (
     <div style={{ maxWidth: 300 }}>
       <TestCaseEntry
+        index={args.index ?? 1}
+        source={args.source ?? "sample"}
         {...args}
         onClick={() => console.log(`Clicked test case ${args.index}`)}
       />

@@ -1,122 +1,122 @@
 {
-  "user": {
-    "role": {
-      "student": "学生",
-      "teacher": "教員",
-      "admin": "管理者",
-      "adminTA": "管理者（TA）"
-    },
-    "management": {
-      "title": "ユーザー管理",
-      "description": "すべてのユーザーを表示し、役割を管理（検索機能でフィルタリング可能）",
-      "searchLabel": "ユーザー検索（任意）",
-      "searchPlaceholder": "ユーザー名またはメールアドレスでフィルタリング...",
-      "minSearchLength": "検索には2文字以上入力してください",
-      "noUsersFound": "該当するユーザーが見つかりません",
-      "searchFailed": "検索に失敗しました",
-      "searchFailedRetry": "検索に失敗しました。後でもう一度お試しください",
-      "loadFailed": "ユーザーを読み込めません",
-      "updateFailed": "更新に失敗しました",
-      "updateFailedRetry": "更新に失敗しました。後でもう一度お試しください",
-      "searchResults": "検索結果（{{count}}件）",
-      "columns": {
-        "username": "ユーザー名",
-        "email": "メールアドレス",
-        "currentRole": "現在の役割",
-        "loginMethod": "ログイン方法",
-        "emailVerified": "メール認証",
-        "actions": "操作"
-      },
-      "loginMethods": {
-        "email": "メール/パスワード",
-        "sso": "SSO",
-        "google": "Google",
-        "github": "GitHub",
-        "unknown": "不明"
-      },
-      "notVerified": "未認証",
-      "deleteUser": "ユーザー削除",
-      "confirmRoleChange": "役割変更の確認",
-      "confirmRoleChangeMessage": "{{username}}の役割を{{oldRole}}から{{newRole}}に変更してもよろしいですか？",
-      "adminPermissionNote": "管理者に設定すると、そのユーザーには完全なシステム管理権限が付与されます。",
-      "confirmDeleteUser": "ユーザー削除の確認",
-      "confirmDeleteMessage": "ユーザー{{email}}を削除してもよろしいですか？",
-      "deleteWarning": "この操作は取り消せません！ユーザーのすべてのデータが完全に削除されます。",
-      "userDeleted": "ユーザー{{email}}を削除しました",
-      "deleteError": "ユーザーの削除中にエラーが発生しました"
-    }
-  },
   "announcement": {
-    "management": "お知らせ管理",
-    "list": "システムお知らせ一覧",
-    "create": "お知らせ作成",
-    "edit": "お知らせ編集",
-    "delete": "お知らせ削除",
-    "search": "お知らせ検索",
     "columns": {
-      "title": "タイトル",
+      "actions": "操作",
       "author": "作成者",
-      "status": "状態",
       "createdAt": "作成日時",
-      "actions": "操作"
+      "status": "状態",
+      "title": "タイトル"
     },
+    "confirmDelete": "お知らせ「{{title}}」を削除してもよろしいですか？この操作は取り消せません。",
+    "create": "お知らせ作成",
+    "delete": "お知らせ削除",
+    "edit": "お知らせ編集",
     "form": {
-      "title": "タイトル",
-      "titlePlaceholder": "お知らせのタイトルを入力",
       "content": "内容",
       "contentPlaceholder": "お知らせの内容を入力",
-      "publishLabel": "公開するか",
       "hidden": "非公開",
-      "published": "公開"
+      "publishLabel": "公開するか",
+      "published": "公開",
+      "title": "タイトル",
+      "titlePlaceholder": "お知らせのタイトルを入力"
     },
+    "list": "システムお知らせ一覧",
+    "management": "お知らせ管理",
+    "search": "お知らせ検索",
     "status": {
-      "published": "公開中",
-      "hidden": "非公開"
-    },
-    "confirmDelete": "お知らせ「{{title}}」を削除してもよろしいですか？この操作は取り消せません。"
+      "hidden": "非公開",
+      "published": "公開中"
+    }
   },
   "environment": {
-    "title": "環境管理",
-    "subtitle": "データベース接続と同期操作を管理",
-    "currentDatabase": "現在のデータベース",
+    "cannotSync": "同期できません",
+    "cloud": "クラウド",
     "cloudDatabase": "クラウドデータベース",
-    "localDatabase": "ローカルデータベース",
-    "operations": "操作",
-    "refreshStatus": "ステータスを更新",
+    "confirmSwitch": "切り替え前に{{source}}から{{target}}にデータを同期します。\n\n（データベースマイグレーションが自動的に実行されます）\n\n続行しますか？",
+    "confirmSync": "{{source}}から{{target}}にデータを同期してもよろしいですか？\n\n（データベースマイグレーションが自動的に実行されます）\n\nこれによりターゲットデータベースが上書きされます。",
     "connectionLatency": "接続遅延",
+    "currentDatabase": "現在のデータベース",
+    "databaseSwitch": "データベース切り替え（切り替え前に自動同期）",
+    "databaseSync": "データベース同期",
+    "inUse": "使用中",
     "latency": "遅延",
     "latencyLevel": {
-      "unknown": "不明",
       "excellent": "優秀",
       "good": "良好",
       "normal": "普通",
       "slow": "遅い",
+      "unknown": "不明",
       "verySlow": "とても遅い"
     },
-    "inUse": "使用中",
-    "databaseSwitch": "データベース切り替え（切り替え前に自動同期）",
     "local": "ローカル",
-    "cloud": "クラウド",
-    "databaseSync": "データベース同期",
+    "localDatabase": "ローカルデータベース",
+    "needBothConnected": "同期するには両方のデータベースが接続されている必要があります",
+    "operations": "操作",
+    "refreshStatus": "ステータスを更新",
+    "subtitle": "データベース接続と同期操作を管理",
+    "switchProgress": "マイグレーションと同期を実行中...",
+    "switchSuccess": "{{target}}データベースに切り替えました",
+    "switchSuccessWithMigration": "{{target}}データベースに切り替えました（マイグレーションが実行されました）",
+    "switching": "データベースを切り替え中...",
+    "syncCloudToLocal": "クラウド → ローカル",
     "syncDescription": "あるデータベースから別のデータベースにデータを同期します。マイグレーションは自動的に適用されます。注意：これによりターゲットデータベースが上書きされます。",
     "syncLocalToCloud": "ローカル → クラウド",
-    "syncCloudToLocal": "クラウド → ローカル",
     "syncingPleaseWait": "同期中、お待ちください...",
-    "cannotSync": "同期できません",
-    "needBothConnected": "同期するには両方のデータベースが接続されている必要があります",
-    "confirmSwitch": "切り替え前に{{source}}から{{target}}にデータを同期します。\n\n（データベースマイグレーションが自動的に実行されます）\n\n続行しますか？",
-    "confirmSync": "{{source}}から{{target}}にデータを同期してもよろしいですか？\n\n（データベースマイグレーションが自動的に実行されます）\n\nこれによりターゲットデータベースが上書きされます。",
-    "switchProgress": "マイグレーションと同期を実行中...",
-    "switching": "データベースを切り替え中...",
-    "switchSuccess": "{{target}}データベースに切り替えました",
-    "switchSuccessWithMigration": "{{target}}データベースに切り替えました（マイグレーションが実行されました）"
+    "title": "環境管理"
   },
   "problem": {
     "management": {
-      "title": "問題管理",
       "allProblems": "すべての問題",
+      "contestProblems": "コンテスト問題",
       "practiceProblems": "練習問題",
-      "contestProblems": "コンテスト問題"
+      "title": "問題管理"
+    }
+  },
+  "user": {
+    "management": {
+      "adminPermissionNote": "管理者に設定すると、そのユーザーには完全なシステム管理権限が付与されます。",
+      "columns": {
+        "actions": "操作",
+        "currentRole": "現在の役割",
+        "email": "メールアドレス",
+        "emailVerified": "メール認証",
+        "loginMethod": "ログイン方法",
+        "username": "ユーザー名"
+      },
+      "confirmDeleteMessage": "ユーザー{{email}}を削除してもよろしいですか？",
+      "confirmDeleteUser": "ユーザー削除の確認",
+      "confirmRoleChange": "役割変更の確認",
+      "confirmRoleChangeMessage": "{{username}}の役割を{{oldRole}}から{{newRole}}に変更してもよろしいですか？",
+      "deleteError": "ユーザーの削除中にエラーが発生しました",
+      "deleteUser": "ユーザー削除",
+      "deleteWarning": "この操作は取り消せません！ユーザーのすべてのデータが完全に削除されます。",
+      "description": "すべてのユーザーを表示し、役割を管理（検索機能でフィルタリング可能）",
+      "loadFailed": "ユーザーを読み込めません",
+      "loginMethods": {
+        "email": "メール/パスワード",
+        "github": "GitHub",
+        "google": "Google",
+        "sso": "SSO",
+        "unknown": "不明"
+      },
+      "minSearchLength": "検索には2文字以上入力してください",
+      "noUsersFound": "該当するユーザーが見つかりません",
+      "notVerified": "未認証",
+      "searchFailed": "検索に失敗しました",
+      "searchFailedRetry": "検索に失敗しました。後でもう一度お試しください",
+      "searchLabel": "ユーザー検索（任意）",
+      "searchPlaceholder": "ユーザー名またはメールアドレスでフィルタリング...",
+      "searchResults": "検索結果（{{count}}件）",
+      "title": "ユーザー管理",
+      "updateFailed": "更新に失敗しました",
+      "updateFailedRetry": "更新に失敗しました。後でもう一度お試しください",
+      "userDeleted": "ユーザー{{email}}を削除しました"
+    },
+    "role": {
+      "admin": "管理者",
+      "adminTA": "管理者（TA）",
+      "student": "学生",
+      "teacher": "教員"
     }
   }
 }

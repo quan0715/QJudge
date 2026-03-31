@@ -13,7 +13,7 @@ import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
 
 export default function AdminOverviewScreen() {
   const { contest, refreshContest } = useContest();
-  const { participants, examEvents, overviewMetrics, refreshAllAdminData } =
+  const { participants, examEvents, overviewMetrics, initialLoading, refreshAllAdminData } =
     useContestAdmin();
   const { registerPanelRefresh } = useAdminPanelRefresh();
   
@@ -32,14 +32,14 @@ export default function AdminOverviewScreen() {
 
   return (
     <EntityOverviewFrame
-      hero={<KpiCards contest={contest} overviewMetrics={overviewMetrics} />}
+      hero={<KpiCards contest={contest} overviewMetrics={overviewMetrics} loading={initialLoading} />}
       main={
         <>
-          <StudentStatusBreakdown kpi={kpi} />
-          <OverviewEventSummaryPanel examEvents={examEvents} />
+          <StudentStatusBreakdown kpi={kpi} loading={initialLoading} />
+          <OverviewEventSummaryPanel examEvents={examEvents} loading={initialLoading} />
         </>
       }
-      side={<OverviewInsightsPanel contest={contest} overviewMetrics={overviewMetrics} />}
+      side={<OverviewInsightsPanel contest={contest} overviewMetrics={overviewMetrics} loading={initialLoading} />}
     />
   );
 }

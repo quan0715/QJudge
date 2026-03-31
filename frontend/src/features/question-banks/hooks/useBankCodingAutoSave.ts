@@ -8,7 +8,7 @@ import { buildBankCodingPatchPayload } from "@/features/question-banks/adapters/
 export type { FieldSaveState, FieldSaveStatus, GlobalSaveStatus };
 
 export interface UseBankCodingAutoSaveOptions {
-  questionId: string;
+  bankItemId: string;
   debounceMs?: number;
   getFormValues?: () => Record<string, unknown>;
   onSaveSuccess?: (fieldPath: string, value: unknown) => void;
@@ -20,7 +20,7 @@ export interface UseBankCodingAutoSaveOptions {
  * Same interface as useAutoSave but calls updateQuestion instead of patchProblem.
  */
 export function useBankCodingAutoSave({
-  questionId,
+  bankItemId,
   debounceMs = 1500,
   getFormValues,
   onSaveSuccess,
@@ -30,13 +30,13 @@ export function useBankCodingAutoSave({
   const pendingValuesRef = useRef<Record<string, unknown>>({});
   const debouncedFunctionsRef = useRef<Record<string, ReturnType<typeof debounce>>>({});
 
-  // Reset states when questionId changes
+  // Reset states when bank item target changes
   useEffect(() => {
     setFieldStates({});
     pendingValuesRef.current = {};
     Object.values(debouncedFunctionsRef.current).forEach((fn) => fn.cancel());
     debouncedFunctionsRef.current = {};
-  }, [questionId]);
+  }, [bankItemId]);
 
   useEffect(() => {
     return () => {
@@ -49,7 +49,7 @@ export function useBankCodingAutoSave({
       const formValues = getFormValues?.();
       const payload = buildBankCodingPatchPayload(fieldPath, value, formValues);
       if (!payload) return;
-      return updateQuestion(questionId, payload);
+      return updateQuestion(bankItemId, payload);
     },
   });
 

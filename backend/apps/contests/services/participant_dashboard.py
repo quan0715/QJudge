@@ -233,7 +233,7 @@ def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) 
 
         overview_rows.append(
             {
-                "question_id": question.id,
+                "question_id": str(question.id),
                 "index": index,
                 "question_type": question.question_type,
                 "status": status,
@@ -244,7 +244,7 @@ def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) 
 
         details.append(
             {
-                "question_id": question.id,
+                "question_id": str(question.id),
                 "index": index,
                 "question_type": question.question_type,
                 "prompt": question.prompt,
@@ -285,18 +285,19 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
     problem_stats = user_stats.problems if user_stats else {}
     start_time = contest.start_time or contest.created_at or timezone.now()
 
-    accepted_problem_ids: set[int] = set()
+    accepted_problem_ids: set[str] = set()
     effective_submissions = 0
     effective_ac_count = 0
     for sub in submissions:
-        if sub.problem_id in accepted_problem_ids:
+        sub_problem_id = str(sub.problem_id)
+        if sub_problem_id in accepted_problem_ids:
             continue
         if sub.status not in ACTIVE_SUBMISSION_STATUSES:
             continue
         effective_submissions += 1
         if sub.status == "AC":
             effective_ac_count += 1
-            accepted_problem_ids.add(sub.problem_id)
+            accepted_problem_ids.add(sub_problem_id)
 
     max_score = sum(cp.max_score for cp in contest_problems)
     total_problems = len(contest_problems)
@@ -308,19 +309,20 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
     timeline_rows: list[dict[str, Any]] = []
     cumulative_rows: list[dict[str, Any]] = [{"created_at": start_time.isoformat(), "minutes_from_start": 0, "score": 0, "solved": 0}]
 
-    solved_problem_ids: set[int] = set()
+    solved_problem_ids: set[str] = set()
     cumulative_score = 0
     cumulative_solved = 0
 
     for sub in submissions:
         status_counts[sub.status] += 1
         minutes_from_start = max(int((sub.created_at - start_time).total_seconds() / 60), 0)
-        problem = next((cp for cp in contest_problems if cp.problem_id == sub.problem_id), None)
+        sub_problem_id = str(sub.problem_id)
+        problem = next((cp for cp in contest_problems if str(cp.problem_id) == sub_problem_id), None)
         timeline_rows.append(
             {
                 "submission_id": sub.id,
-                "problem_id": sub.problem_id,
-                "problem_label": problem.label if problem else str(sub.problem_id),
+                "problem_id": sub_problem_id,
+                "problem_label": problem.label if problem else sub_problem_id,
                 "problem_title": problem.problem.title if problem else "",
                 "status": sub.status,
                 "score": sub.score,
@@ -330,8 +332,8 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
             }
         )
 
-        if sub.status == "AC" and sub.problem_id not in solved_problem_ids:
-            solved_problem_ids.add(sub.problem_id)
+        if sub.status == "AC" and sub_problem_id not in solved_problem_ids:
+            solved_problem_ids.add(sub_problem_id)
             cumulative_solved += 1
             cumulative_score += problem.max_score if problem else sub.score
             cumulative_rows.append(
@@ -355,9 +357,9 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
         )
 
     # Pre-compute best submission per problem from already-fetched submissions (avoids N+1)
-    best_by_problem: dict[int, Any] = {}
+    best_by_problem: dict[str, Any] = {}
     for sub in submissions:
-        pid = sub.problem_id
+        pid = str(sub.problem_id)
         prev = best_by_problem.get(pid)
         if prev is None:
             best_by_problem[pid] = sub
@@ -371,10 +373,11 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
     grid_rows: list[dict[str, Any]] = []
     detail_rows: list[dict[str, Any]] = []
     for cp in contest_problems:
-        stat = problem_stats.get(cp.problem_id) if user_stats else None
-        best_submission = best_by_problem.get(cp.problem_id)
+        problem_key = str(cp.problem_id)
+        stat = problem_stats.get(problem_key) if user_stats else None
+        best_submission = best_by_problem.get(problem_key)
         row = {
-            "problem_id": cp.problem_id,
+            "problem_id": problem_key,
             "label": cp.label,
             "title": cp.problem.title,
             "difficulty": cp.problem.difficulty,

@@ -6,6 +6,8 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from .models import Problem, Tag, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
+from apps.contests.models import Contest, ContestProblem
+from apps.question_bank.models import QuestionBank
 
 
 
@@ -59,7 +61,7 @@ class ProblemPermissionTests(TestCase):
         self.client.force_authenticate(user=self.teacher1)
         data = {'title': 'Hacked Title'}
         response = self.client.patch(f'/api/v1/problems/{self.problem2.id}/', data)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.problem2.refresh_from_db()
         self.assertNotEqual(self.problem2.title, 'Hacked Title')
 
@@ -88,8 +90,8 @@ class ProblemPermissionTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data['results']
         # Should see problem1 (own) but not problem2 (teacher2's)
-        self.assertTrue(any(p['id'] == self.problem1.id for p in results))
-        self.assertFalse(any(p['id'] == self.problem2.id for p in results))
+        self.assertTrue(any(p['id'] == str(self.problem1.id) for p in results))
+        self.assertFalse(any(p['id'] == str(self.problem2.id) for p in results))
 
     def test_admin_scope_manage_filtering(self):
         """Test that admin sees all problems with scope=manage"""
@@ -98,8 +100,15 @@ class ProblemPermissionTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data['results']
         # Should see both
-        self.assertTrue(any(p['id'] == self.problem1.id for p in results))
-        self.assertTrue(any(p['id'] == self.problem2.id for p in results))
+        self.assertTrue(any(p['id'] == str(self.problem1.id) for p in results))
+        self.assertTrue(any(p['id'] == str(self.problem2.id) for p in results))
+
+    def test_management_alias_lists_problems(self):
+        self.client.force_authenticate(user=self.teacher1)
+        response = self.client.get('/api/v1/management/problems/?scope=manage')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data['results']
+        self.assertTrue(any(p['id'] == str(self.problem1.id) for p in results))
 
 
 class ProblemCRUDTests(TestCase):
@@ -122,7 +131,6 @@ class ProblemCRUDTests(TestCase):
             slug='crud-p1',
             created_by=self.teacher,
             difficulty='medium',
-            visibility='public'
         )
         self.problem.tags.add(self.tag1)
 
@@ -177,35 +185,25 @@ class ProblemCRUDTests(TestCase):
         self.assertIn('title', response.data['error']['details'])
 
     def test_list_problems_anonymous(self):
-        """Test anonymous users see only visible practice problems"""
-        # Create a hidden problem
+        """Anonymous users are blocked from the retired problems management surface."""
         Problem.objects.create(
             title='Hidden',
             slug='hidden',
             created_by=self.teacher,
-            visibility='hidden'
         )
-        
+
         response = self.client.get('/api/v1/problems/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data['results']
-        
-        # Should see the visible problem
-        self.assertTrue(any(p['id'] == self.problem.id for p in results))
-        # Should NOT see the hidden problem
-        self.assertFalse(any(p['slug'] == 'hidden' for p in results))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_retrieve_problem_detail(self):
-        """Test retrieving a single problem detail"""
+        """Anonymous users are blocked from the retired problems management surface."""
         response = self.client.get(f'/api/v1/problems/{self.problem.id}/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['title'], self.problem.title)
-        self.assertEqual(response.data['tags'][0]['slug'], self.tag1.slug)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_retrieve_problem_not_found(self):
-        """Test retrieving a non-existent problem"""
+        """Anonymous access is rejected before malformed lookups are resolved."""
         response = self.client.get('/api/v1/problems/99999/')
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_update_problem_full(self):
         """Test full update (PUT) of a problem"""
@@ -261,7 +259,7 @@ class ProblemCRUDTests(TestCase):
         
         self.client.force_authenticate(user=self.teacher)
         response = self.client.delete(f'/api/v1/problems/{other_problem.id}/')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Problem.objects.filter(id=other_problem.id).exists())
 
     def test_delete_problem_admin(self):
@@ -297,7 +295,6 @@ class ProblemFilterTests(TestCase):
             title='Easy Array',
             slug='easy-array',
             difficulty='easy',
-            visibility='public',
             created_by=self.teacher,
         )
         self.p1_easy_array.tags.add(self.tag_array)
@@ -306,7 +303,6 @@ class ProblemFilterTests(TestCase):
             title='Medium DP',
             slug='medium-dp',
             difficulty='medium',
-            visibility='public',
             created_by=self.teacher,
         )
         self.p2_medium_dp.tags.add(self.tag_dp)
@@ -315,7 +311,6 @@ class ProblemFilterTests(TestCase):
             title='Hard Graph',
             slug='hard-graph',
             difficulty='hard',
-            visibility='public',
             created_by=self.teacher,
         )
         self.p3_hard_graph.tags.add(self.tag_graph)
@@ -324,10 +319,10 @@ class ProblemFilterTests(TestCase):
             title='Medium Array DP',
             slug='medium-array-dp',
             difficulty='medium',
-            visibility='public',
             created_by=self.teacher,
         )
         self.p4_medium_array_dp.tags.add(self.tag_array, self.tag_dp)
+        self.client.force_authenticate(user=self.teacher)
 
     def test_filter_single_difficulty(self):
         """Filter by single difficulty returns matching problems."""
@@ -408,6 +403,52 @@ class ProblemFilterTests(TestCase):
         self.assertEqual(len(results), 4)
 
 
+class ProblemContestLockGuardTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.client = APIClient()
+        self.owner = User.objects.create_user(
+            username="lock_owner",
+            email="lock_owner@example.com",
+            password="password",
+            role="teacher",
+        )
+        self.contest = Contest.objects.create(
+            name="Locked Contest",
+            owner=self.owner,
+            status="published",
+            question_edit_locked=True,
+            question_edit_lock_trigger=Contest.QuestionEditLockTrigger.CODING_SUBMISSION,
+        )
+        self.problem = Problem.objects.create(
+            title="Locked Contest Problem",
+            slug="locked-contest-problem",
+            created_by=self.owner,
+        )
+        ContestProblem.objects.create(
+            contest=self.contest,
+            problem=self.problem,
+            order=0,
+            max_score=10,
+        )
+
+    def test_patch_problem_blocked_when_linked_contest_locked(self):
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.patch(
+            f"/api/v1/problems/{self.problem.id}/",
+            {"title": "Should Not Update"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn("CONTEST_QUESTION_EDIT_LOCKED", str(response.data))
+
+    def test_delete_problem_blocked_when_linked_contest_locked(self):
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.delete(f"/api/v1/problems/{self.problem.id}/")
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn("CONTEST_QUESTION_EDIT_LOCKED", str(response.data))
+
+
 class ProblemTestRunTests(TestCase):
     """Tests for the problem test-run endpoint."""
 
@@ -418,7 +459,7 @@ class ProblemTestRunTests(TestCase):
             username='runner',
             email='runner@example.com',
             password='password',
-            role='student',
+            role='teacher',
         )
         self.client.force_authenticate(user=self.user)
 
@@ -428,7 +469,7 @@ class ProblemTestRunTests(TestCase):
             difficulty='easy',
             time_limit=1000,
             memory_limit=128,
-            visibility='public',
+            created_by=self.user,
         )
         ProblemTestCase.objects.create(
             problem=self.problem,
@@ -545,3 +586,71 @@ class ProblemTestRunTests(TestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['status'], 'CE')
         self.assertEqual(mock_judge.execute.call_count, 1)
+
+
+class ProblemOrphanQueueTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.client = APIClient()
+        self.admin = User.objects.create_user(
+            username='orphan_admin',
+            email='orphan_admin@example.com',
+            password='password',
+            role='admin',
+            is_staff=True,
+        )
+        self.teacher = User.objects.create_user(
+            username='orphan_teacher',
+            email='orphan_teacher@example.com',
+            password='password',
+            role='teacher',
+        )
+        self.orphan_problem = Problem.objects.create(
+            title='Orphan Problem',
+            slug='orphan-problem',
+            difficulty='easy',
+            created_by=None,
+        )
+        self.teacher_problem = Problem.objects.create(
+            title='Teacher Problem',
+            slug='teacher-problem',
+            difficulty='medium',
+            created_by=self.teacher,
+        )
+        self.bank = QuestionBank.objects.create(
+            owner=self.teacher,
+            name='Teacher Coding Bank',
+            category=QuestionBank.Category.CODING,
+            visibility=QuestionBank.Visibility.PRIVATE,
+        )
+
+    def test_admin_can_list_unresolved_orphans(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get('/api/v1/problems/orphan-queue/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [item['id'] for item in response.data]
+        self.assertIn(str(self.orphan_problem.id), ids)
+        self.assertNotIn(str(self.teacher_problem.id), ids)
+
+    def test_teacher_cannot_access_orphan_queue(self):
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get('/api/v1/problems/orphan-queue/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_resolve_orphan_and_ingest_to_bank(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(
+            f'/api/v1/problems/{self.orphan_problem.id}/resolve-orphan/',
+            {
+                'owner_id': self.teacher.id,
+                'question_bank_uuid': str(self.bank.uuid),
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.orphan_problem.refresh_from_db()
+        self.assertEqual(self.orphan_problem.created_by_id, self.teacher.id)
+        self.assertIsNotNone(self.orphan_problem.question_asset_id)
+        self.assertIsNotNone(self.orphan_problem.question_version_id)
+        self.assertIsNotNone(response.data['bank_question_id'])

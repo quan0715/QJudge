@@ -86,9 +86,9 @@ class SubmissionListSerializer(serializers.ModelSerializer):
     # Use direct field access instead of nested serializers
     username = serializers.SerializerMethodField()
     user_id = serializers.IntegerField(source='user.id', read_only=True)
-    problem_id = serializers.IntegerField(source='problem.id', read_only=True)
+    problem_id = serializers.UUIDField(source='problem.id', read_only=True)
     problem_title = serializers.CharField(source='problem.title', read_only=True)
-    contest_id = serializers.IntegerField(source='contest.id', read_only=True, allow_null=True)
+    contest_id = serializers.UUIDField(source='contest.id', read_only=True, allow_null=True)
     
     def get_username(self, obj):
         """Handle anonymous mode for contests."""

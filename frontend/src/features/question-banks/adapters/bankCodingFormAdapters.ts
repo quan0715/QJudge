@@ -19,7 +19,6 @@ export function bankQuestionToFormSchema(question: BankQuestion): ProblemFormSch
     difficulty: (question.difficulty as Difficulty) || "medium",
     timeLimit: question.timeLimit || 1000,
     memoryLimit: question.memoryLimit || 128,
-    visibility: "private",
     existingTagIds: [],
     newTagNames: [],
     translationZh: {

@@ -21,9 +21,10 @@ import { resolveOverviewSnapshot } from "./overviewMetrics.utils";
 interface KpiCardsProps {
   contest: ContestDetail;
   overviewMetrics: ContestOverviewMetrics | null;
+  loading?: boolean;
 }
 
-export default function KpiCards({ contest, overviewMetrics }: KpiCardsProps) {
+export default function KpiCards({ contest, overviewMetrics, loading = false }: KpiCardsProps) {
   const { t } = useTranslation("contest");
   const state = getContestState(contest);
   const startDate = new Date(contest.startTime).toLocaleDateString();
@@ -32,6 +33,7 @@ export default function KpiCards({ contest, overviewMetrics }: KpiCardsProps) {
 
   return (
     <QJudgeHeroWidget
+      loading={loading}
       title={contest.name}
       badges={
         <Tag type={getContestStateColor(state)} size="sm">

@@ -1,16 +1,54 @@
 from django.db import migrations, models
-from django.db.models import Sum
 
 
 def backfill_contest_problem_max_score(apps, schema_editor):
-    ContestProblem = apps.get_model("contests", "ContestProblem")
-    for cp in ContestProblem.objects.select_related("problem").all():
-        score_sum = (
-            cp.problem.test_cases.aggregate(total=Sum("score")).get("total")
-            or 0
+    cursor = schema_editor.connection.cursor()
+    cursor.execute(
+        """
+        SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'problems'
+              AND column_name = 'legacy_int_id'
         )
-        cp.max_score = max(1, int(score_sum or 100))
-        cp.save(update_fields=["max_score"])
+        """
+    )
+    has_legacy_int_id = bool(cursor.fetchone()[0])
+
+    if has_legacy_int_id:
+        cursor.execute(
+            """
+            UPDATE contest_problems cp
+            SET max_score = GREATEST(1, COALESCE(src.total_score, 100)::int)
+            FROM (
+                SELECT cp_inner.id AS contest_problem_id, COALESCE(SUM(tc.score), 0) AS total_score
+                FROM contest_problems cp_inner
+                LEFT JOIN problems p
+                    ON p.legacy_int_id = cp_inner.problem_id
+                LEFT JOIN test_cases tc
+                    ON tc.problem_id = p.id
+                GROUP BY cp_inner.id
+            ) src
+            WHERE cp.id = src.contest_problem_id
+            """
+        )
+        return
+
+    cursor.execute(
+        """
+        UPDATE contest_problems cp
+        SET max_score = GREATEST(1, COALESCE(src.total_score, 100)::int)
+        FROM (
+            SELECT cp_inner.id AS contest_problem_id, COALESCE(SUM(tc.score), 0) AS total_score
+            FROM contest_problems cp_inner
+            LEFT JOIN test_cases tc
+                ON tc.problem_id = cp_inner.problem_id
+            GROUP BY cp_inner.id
+        ) src
+        WHERE cp.id = src.contest_problem_id
+        """
+    )
 
 
 class Migration(migrations.Migration):

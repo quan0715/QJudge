@@ -240,25 +240,21 @@ export default function GradingByStudentTabScreen({
               >
                 <div className={styles.cardPrimary}>
                   <span className={styles.cardLabelRow}>
-                    <span>{s.nickname}</span>
+                    <span>{s.nickname || s.username}</span>
                   </span>
-                  <span>
-                    <span style={{ fontWeight: 600 }}>{s.totalScore}</span>
-                    <span style={{ color: "var(--cds-text-secondary)", fontSize: "0.8125rem" }}>
-                      {" "}/ {s.maxPossible}
-                    </span>
-                  </span>
-                </div>
-                <div className={styles.cardSecondary}>
-                  <span>{s.username}</span>
                   {s.totalCount === 0 ? (
                     <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
-                  ) : s.gradedCount === s.totalCount ? (
-                    <Tag type="green" size="sm">{t("grading.complete", "完成")}</Tag>
                   ) : (
-                    <span>{s.gradedCount}/{s.totalCount} {t("grading.complete", "完成")}</span>
+                    <span style={{ color: s.gradedCount === s.totalCount ? "var(--cds-support-success)" : "var(--cds-text-secondary)", fontWeight: 600, fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                      {s.gradedCount}/{s.totalCount}
+                    </span>
                   )}
                 </div>
+                {s.nickname && s.nickname !== s.username && (
+                  <div className={styles.cardSecondary}>
+                    <span>{s.username}</span>
+                  </div>
+                )}
               </div>
             );
           })

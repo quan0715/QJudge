@@ -70,8 +70,8 @@ const QuestionBanksScreen = () => {
   });
   const [loading, setLoading] = useState(true);
   const [ingesting, setIngesting] = useState<"coding" | "exam" | null>(null);
-  const [selectedCoding, setSelectedCoding] = useState<number[]>([]);
-  const [selectedExam, setSelectedExam] = useState<number[]>([]);
+  const [selectedCoding, setSelectedCoding] = useState<string[]>([]);
+  const [selectedExam, setSelectedExam] = useState<string[]>([]);
   const [targetCodingBankId, setTargetCodingBankId] = useState("");
   const [targetExamBankId, setTargetExamBankId] = useState("");
   const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -197,7 +197,7 @@ const QuestionBanksScreen = () => {
   );
 
   const toggleSelected = (
-    sourceId: number,
+    sourceId: string,
     category: "coding" | "exam",
   ) => {
     const setState = category === "coding" ? setSelectedCoding : setSelectedExam;
@@ -374,6 +374,8 @@ const QuestionBanksScreen = () => {
                           provider={bank.ownerUsername || t("questionBank.mockOwnerTeacherA", "陳老師")}
                           providerVerified={bank.verified}
                           downloads={buildMetric(Math.max(120, bank.questionCount * 68))}
+                          coverUrl={bank.coverUrl || undefined}
+                          icon={bank.icon || undefined}
                           onClick={() => navigate(`/question-banks/${bank.id}`)}
                         />
                       </Column>
@@ -511,6 +513,8 @@ const QuestionBanksScreen = () => {
                           provider={bank.ownerUsername || "-"}
                           providerVerified={bank.verified}
                           downloads={buildMetric(Math.max(1, bank.questionCount))}
+                          coverUrl={bank.coverUrl || undefined}
+                          icon={bank.icon || undefined}
                           onClick={() => navigate(`/question-banks/${bank.id}?panel=settings`)}
                         />
                       </Column>

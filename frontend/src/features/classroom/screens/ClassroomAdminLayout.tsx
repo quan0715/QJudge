@@ -1,16 +1,17 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import {
+  Breadcrumb,
+  BreadcrumbItem,
   Header,
   HeaderGlobalBar,
   HeaderGlobalAction,
-  HeaderName,
 } from "@carbon/react";
-import {
-  ChevronDown,
-  Settings,
-} from "@carbon/icons-react";
+import { Settings } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { UserMenu } from "@/features/app/components/UserMenu";
+import { SideMenu } from "@/features/app/components/SideMenu";
+import { SideMenuToggle } from "@/features/app/components/SideMenuToggle";
 import styles from "./ClassroomAdminLayout.module.scss";
 
 export type ClassroomAdminPanelId =
@@ -20,14 +21,9 @@ export type ClassroomAdminPanelId =
   | "members"
   | "settings";
 
-interface ClassroomSwitcherItem {
-  id: string;
-  name: string;
-}
-
 interface ClassroomAdminLayoutProps {
   classroomName: string;
-  classroomOptions: ClassroomSwitcherItem[];
+  classroomOptions: { id: string; name: string; icon?: string }[];
   selectedClassroomId: string;
   onClassroomSwitch: (classroomId: string) => void;
   onGoHome: () => void;
@@ -37,42 +33,12 @@ interface ClassroomAdminLayoutProps {
 
 const ClassroomAdminLayout = ({
   classroomName,
-  classroomOptions,
-  selectedClassroomId,
-  onClassroomSwitch,
-  onGoHome,
   onOpenSettings,
   children,
 }: ClassroomAdminLayoutProps) => {
   const { t } = useTranslation("classroom");
-  const [switcherOpen, setSwitcherOpen] = useState(false);
-  const switcherHostRef = useRef<HTMLDivElement | null>(null);
-
-  const selectedClassroom =
-    classroomOptions.find((option) => option.id === selectedClassroomId) || null;
-
-  useEffect(() => {
-    if (!switcherOpen) return;
-
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (switcherHostRef.current?.contains(target)) return;
-      setSwitcherOpen(false);
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setSwitcherOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [switcherOpen]);
+  const { t: tc } = useTranslation("common");
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
 
   return (
     <div className={styles.shell}>
@@ -81,65 +47,19 @@ const ClassroomAdminLayout = ({
         className={styles.header}
       >
         <div className={styles.headerLeft}>
-          <HeaderName
-            href="#"
-            prefix=""
-            onClick={(event: React.MouseEvent) => {
-              event.preventDefault();
-              onGoHome();
-            }}
-            className={styles.brand}
-          >
-            QJudge
-          </HeaderName>
+          <SideMenuToggle
+            isOpen={sideMenuOpen}
+            onClick={() => setSideMenuOpen((o) => !o)}
+          />
 
-          <div className={styles.switcherHost} ref={switcherHostRef}>
-            <button
-              type="button"
-              className={styles.classroomTriggerButton}
-              aria-haspopup="menu"
-              aria-expanded={switcherOpen}
-              aria-label={t("switchClassroom", "Switch classroom")}
-              onClick={() => setSwitcherOpen((open) => !open)}
-            >
-              <span className={styles.classroomTriggerLabel}>
-                {t("current", "目前教室")}
-              </span>
-              <span className={styles.classroomTriggerName}>
-                {selectedClassroom?.name ?? classroomName}
-              </span>
-              <ChevronDown size={16} className={styles.classroomTriggerIcon} />
-            </button>
-
-            <div
-              className={`${styles.switcherMenu}${switcherOpen ? ` ${styles.switcherMenuOpen}` : ""}`}
-              role="menu"
-              aria-label={t("classroomList", "Classroom list")}
-            >
-              <div className={styles.switcherCardList}>
-                {classroomOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className={`${styles.switcherCard}${
-                      option.id === selectedClassroomId ? ` ${styles.switcherCardActive}` : ""
-                    }`}
-                    onClick={() => {
-                      setSwitcherOpen(false);
-                      onClassroomSwitch(option.id);
-                    }}
-                  >
-                    <span className={styles.switcherCardTitle}>{option.name}</span>
-                    <span className={styles.switcherCardMeta}>
-                      {option.id === selectedClassroomId
-                        ? t("current", "目前教室")
-                        : t("switchTo", "切換至此教室")}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
+            <BreadcrumbItem>
+              <Link to="/dashboard">{tc("nav.dashboard")}</Link>
+            </BreadcrumbItem>
+            <BreadcrumbItem isCurrentPage>
+              {classroomName}
+            </BreadcrumbItem>
+          </Breadcrumb>
         </div>
 
         <HeaderGlobalBar>
@@ -154,6 +74,11 @@ const ClassroomAdminLayout = ({
           )}
           <UserMenu />
         </HeaderGlobalBar>
+
+        <SideMenu
+          isOpen={sideMenuOpen}
+          onClose={() => setSideMenuOpen(false)}
+        />
       </Header>
 
       <main className={styles.content}>{children}</main>

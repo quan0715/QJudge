@@ -1,6 +1,6 @@
-import type { StoryModule } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react";
 import type { ChatMessage } from "@/core/types/chatbot.types";
-import { MessageBubble, type MessageBubbleProps } from "./MessageBubble";
+import { MessageBubble } from "./MessageBubble";
 
 // Mock chat messages for different scenarios
 const mockUserMessage: ChatMessage = {
@@ -72,48 +72,80 @@ const mockAIMessageWithToolExecution: ChatMessage = {
   ],
 };
 
-const storyModule: StoryModule<MessageBubbleProps> = {
-  meta: {
+const meta: Meta<typeof MessageBubble> = {
     title: "shared/ui/chatbot/MessageBubble",
     component: MessageBubble,
-    category: "features",
-    description: "聊天訊息氣泡組件，支援用戶/AI 訊息、思考過程、工具執行等狀態。",
+    
+  
+  parameters: {
+    docs: { description: { component: '聊天訊息氣泡組件，支援用戶/AI 訊息、思考過程、工具執行等狀態。' } },
   },
-  stories: [
-    {
-      name: "User Message",
-      description: "用戶訊息 - 右對齊，藍色背景",
-      render: () => <MessageBubble message={mockUserMessage} />,
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const UserMessage: Story = {
+  parameters: {
+    docs: {
+      description: { story: '用戶訊息 - 右對齊，藍色背景' },
     },
-    {
-      name: "AI Message",
-      description: "AI 回覆訊息 - 左對齊，文件風格，含左邊短線指示",
-      render: () => <MessageBubble message={mockAIMessage} />,
+  },
+  render: () => <MessageBubble message={mockUserMessage} />,
+};
+
+export const AiMessage: Story = {
+  parameters: {
+    docs: {
+      description: { story: 'AI 回覆訊息 - 左對齊，文件風格，含左邊短線指示' },
     },
-    {
-      name: "Thinking Status",
-      description: "思考中狀態 - 呼吸燈動畫加文字",
-      render: () => <MessageBubble message={mockThinkingMessage} />,
+  },
+  render: () => <MessageBubble message={mockAIMessage} />,
+};
+
+export const ThinkingStatus: Story = {
+  parameters: {
+    docs: {
+      description: { story: '思考中狀態 - 呼吸燈動畫加文字' },
     },
-    {
-      name: "AI Message with Thinking",
-      description: "包含思考過程的 AI 訊息 - 可折疊的思考過程",
-      render: () => <MessageBubble message={mockAIMessageWithThinking} />,
+  },
+  render: () => <MessageBubble message={mockThinkingMessage} />,
+};
+
+export const AiMessageWithThinking: Story = {
+  parameters: {
+    docs: {
+      description: { story: '包含思考過程的 AI 訊息 - 可折疊的思考過程' },
     },
-    {
-      name: "AI Message with Tool Execution",
-      description: "包含工具執行記錄的 AI 訊息 - 展示代碼運行結果",
-      render: () => <MessageBubble message={mockAIMessageWithToolExecution} />,
+  },
+  render: () => <MessageBubble message={mockAIMessageWithThinking} />,
+};
+
+export const AiMessageWithToolExecution: Story = {
+  parameters: {
+    docs: {
+      description: { story: '包含工具執行記錄的 AI 訊息 - 展示代碼運行結果' },
     },
-    {
-      name: "Typing Effect",
-      description: "訊息流式傳輸中 - 帶有閃爍游標",
-      render: () => <MessageBubble message={{ ...mockAIMessage, id: "typing" }} isTyping />,
+  },
+  render: () => <MessageBubble message={mockAIMessageWithToolExecution} />,
+};
+
+export const TypingEffect: Story = {
+  parameters: {
+    docs: {
+      description: { story: '訊息流式傳輸中 - 帶有閃爍游標' },
     },
-    {
-      name: "Conversation Flow",
-      description: "完整的對話流程",
-      render: () => (
+  },
+  render: () => <MessageBubble message={{ ...mockAIMessage, id: "typing" }} isTyping />,
+};
+
+export const ConversationFlow: Story = {
+  parameters: {
+    docs: {
+      description: { story: '完整的對話流程' },
+    },
+  },
+  render: () => (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <MessageBubble message={mockUserMessage} />
           <MessageBubble message={mockThinkingMessage} />
@@ -122,8 +154,4 @@ const storyModule: StoryModule<MessageBubbleProps> = {
           <MessageBubble message={mockAIMessage} />
         </div>
       ),
-    },
-  ],
 };
-
-export default storyModule;

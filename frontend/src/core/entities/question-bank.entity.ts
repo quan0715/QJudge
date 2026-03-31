@@ -1,5 +1,6 @@
 export type BankCategory = "coding" | "exam";
 export type BankVisibility = "private" | "public";
+export type BankReviewStatus = "draft" | "pending" | "approved" | "rejected";
 
 export interface CodingQuestionExt {
   translations: Array<{
@@ -30,6 +31,8 @@ export interface CodingQuestionExt {
 
 export interface BankQuestion {
   id: string;
+  bankItemId: string;
+  adapterQuestionId?: string | null;
   bankId: string;
   questionType: "coding" | "exam";
   title: string;
@@ -42,9 +45,10 @@ export interface BankQuestion {
   timeLimit: number;
   memoryLimit: number;
   metadata?: Record<string, unknown>;
-  sourceQuestionId?: number | null;
+  sourceQuestionId?: string | null;
   sourceBankId?: string | null;
   sourceBankName?: string | null;
+  contestUsages?: Array<{ contestId: string; contestName: string }>;
   codingExt?: CodingQuestionExt;
   createdAt?: string;
   updatedAt?: string;
@@ -54,9 +58,16 @@ export interface QuestionBank {
   id: string;
   name: string;
   description: string;
+  icon: string;
+  coverUrl: string;
   category: BankCategory;
   visibility: BankVisibility;
   verified: boolean;
+  reviewStatus: BankReviewStatus;
+  reviewNote?: string;
+  submittedAt?: string;
+  reviewedAt?: string;
+  reviewedByUsername?: string;
   ownerUsername?: string;
   questionCount: number;
   createdAt?: string;
@@ -71,9 +82,9 @@ export type QuestionInboxSourceType = "problem" | "exam_question";
 
 export interface QuestionInboxItem {
   sourceType: QuestionInboxSourceType;
-  sourceId: number;
+  sourceId: string;
   title: string;
-  contestId?: number;
+  contestId?: string;
   contestName?: string;
   questionType?: string;
   score?: number;

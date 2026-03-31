@@ -1,8 +1,12 @@
-@use "@carbon/layout" as layout;
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/theme" as *;
 
+// ── Root shell ──────────────────────────────────────────────────
 .root {
+  flex: 1 1 auto;  /* fill available height in flex parent */
+  min-height: 0;   /* allow shrinking below content — required for overflow-y scroll in flex */
   width: 100%;
-  height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -10,10 +14,10 @@
 .inner {
   max-width: 800px;
   margin: 0 auto;
-  padding: layout.$spacing-06 layout.$spacing-07 layout.$spacing-09;
+  padding: $spacing-06 $spacing-07 $spacing-09;
 
   @media (max-width: 671px) {
-    padding: layout.$spacing-05 layout.$spacing-03 layout.$spacing-09;
+    padding: $spacing-05 $spacing-03 $spacing-09;
   }
 }
 
@@ -21,36 +25,63 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: layout.$spacing-03;
+  margin-bottom: $spacing-03;
 }
 
+// ── Section ─────────────────────────────────────────────────────
 .section {
-  margin-top: layout.$spacing-06;
+  padding: $spacing-05 0;
+  border-bottom: 1px solid $border-subtle-01;
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-04;
 }
 
 .sectionTitle {
-  margin: 0 0 layout.$spacing-04;
+  @include type-style("heading-compact-01");
+  margin: 0 0 $spacing-01;
 }
 
-.sectionCard {
-  padding: layout.$spacing-04 layout.$spacing-05;
-  background-color: var(--cds-layer);
+.sectionDesc {
+  @include type-style("helper-text-01");
+  color: $text-helper;
+  margin: 0;
 }
 
+.sectionAction {
+  flex-shrink: 0;
+}
+
+// ── ActionRow (label + desc ↔ inline control) ───────────────────
 .actionRow {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: layout.$spacing-05;
-  padding: layout.$spacing-04 0;
+  padding: $spacing-04 0;
 
   @media (max-width: 671px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: layout.$spacing-03;
+    gap: $spacing-03;
   }
 }
 
 .actionRowContent {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-01;
   flex: 1;
   min-width: 0;
 }
@@ -59,25 +90,27 @@
   flex-shrink: 0;
 }
 
+// ── FieldRow (label → desc → full-width control) ────────────────
 .fieldRow {
-  padding: layout.$spacing-04 0;
+  padding: $spacing-04 0;
 }
 
 .fieldRowHeader {
   display: flex;
   align-items: center;
-  gap: layout.$spacing-03;
+  gap: $spacing-03;
 }
 
+// ── DangerRow ───────────────────────────────────────────────────
 .dangerRow {
   display: flex;
   align-items: center;
-  gap: layout.$spacing-06;
-  padding: layout.$spacing-04 0;
+  gap: $spacing-06;
+  padding: $spacing-04 0;
 
   @media (max-width: 671px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: layout.$spacing-03;
+    gap: $spacing-03;
   }
 }

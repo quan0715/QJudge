@@ -1,53 +1,72 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button, Column, Grid, Loading, Modal, Select, SelectItem, Stack, Tag, TextArea, TextInput, Tile } from "@carbon/react";
-import { ArrowLeft, Document, Settings, Tag as TagIcon, View, ViewOff, Microscope } from "@carbon/icons-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  ExpandableSearch,
+  FluidDropdown,
+  Header,
+  HeaderGlobalBar,
+  Layer,
+  Loading,
+  Popover,
+  PopoverContent,
+  Stack,
+  Tag,
+  Tile,
+} from "@carbon/react";
+import {
+  Add,
+  ArrowLeft,
+  Document,
+  Download,
+  Filter,
+  Microscope,
+  Settings,
+  Tag as TagIcon,
+} from "@carbon/icons-react";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { SettingsModal } from "@/shared/ui/modal/SettingsModal";
 import { Section, FieldRow } from "@/shared/layout/SettingsPanel";
 import { useToast } from "@/shared/contexts";
-import type { BankQuestion, BankVisibility, QuestionBank } from "@/core/entities/question-bank.entity";
+import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
+import type { UpsertBankQuestionPayload } from "@/core/ports/questionBank.repository";
 import {
-  clone,
+  createQuestion,
+  deleteQuestion,
   getBank,
   listMine,
-  review as reviewQuestionBank,
   listQuestions,
+  review as reviewQuestionBank,
   submitForReview,
-  uploadCover,
-  update as updateQuestionBank,
 } from "@/infrastructure/api/repositories/questionBank.repository";
-import { ImageEditDialog } from "@/shared/ui/image";
-import { CLASSROOM_ICON_OPTIONS, getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
+import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import { useAuth } from "@/features/auth";
-import QuestionBankAdminLayout, {
-  type QuestionBankAdminPanelId,
-} from "./QuestionBankAdminLayout";
+import { SideMenu } from "@/features/app/components/SideMenu";
+import { SideMenuToggle } from "@/features/app/components/SideMenuToggle";
+import { UserMenu } from "@/features/app/components/UserMenu";
+import { QuestionBankSettingsGeneralPanel } from "@/features/question-banks/components/QuestionBankSettingsGeneralPanel";
+import { ImportInboxModal } from "@/features/question-banks/components/ImportInboxModal";
 import QuestionBankProblemManagementPanel from "./QuestionBankProblemManagementPanel";
+import QuestionEditModal from "./QuestionEditModal";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
-import type { ProblemManagementViewState } from "./questionBankProblemManagement.utils";
+import {
+  resolveExamQuestionType,
+  toExamBankPayload,
+  type QuestionFilterState,
+  type QuestionSortKey,
+} from "./questionBankProblemManagement.utils";
 import styles from "./QuestionBankDetailScreen.module.scss";
-
-const PANEL_ALIAS: Record<string, QuestionBankAdminPanelId> = {
-  overview: "overview",
-  problems: "problem_management",
-  problem_management: "problem_management",
-};
-
-const normalizePanel = (value: string | null): QuestionBankAdminPanelId =>
-  value && PANEL_ALIAS[value] ? PANEL_ALIAS[value] : "overview";
-
-const normalizeViewMode = (value: string | null): ProblemManagementViewState["mode"] =>
-  value === "split" ? "split" : "gallery";
 
 const getErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error ? error.message : fallback;
 
 const QuestionBankDetailScreen = () => {
   const { bankId } = useParams<{ bankId: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation("common");
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -56,26 +75,53 @@ const QuestionBankDetailScreen = () => {
   const [bank, setBank] = useState<QuestionBank | null>(null);
   const [questions, setQuestions] = useState<BankQuestion[]>([]);
   const [isExplore, setIsExplore] = useState(false);
-  const [myBanks, setMyBanks] = useState<QuestionBank[]>([]);
 
-  const [settingName, setSettingName] = useState("");
-  const [settingDescription, setSettingDescription] = useState("");
-  const [settingIcon, setSettingIcon] = useState("");
-  const [settingCoverUrl, setSettingCoverUrl] = useState("");
-  const [settingVisibility, setSettingVisibility] = useState<BankVisibility>("private");
-  const [savingSettings, setSavingSettings] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewing, setReviewing] = useState<"approve" | "reject" | null>(null);
-  const [uploadingCover, setUploadingCover] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
-  const panelParam = searchParams.get("panel");
-  const activePanel = useMemo(() => normalizePanel(panelParam), [panelParam]);
-  const viewMode = useMemo(
-    () => normalizeViewMode(searchParams.get("viewMode")),
-    [searchParams]
+  const [filterState, setFilterState] = useState<QuestionFilterState>({
+    keyword: "",
+    difficulty: [],
+    tags: [],
+    questionTypes: [],
+  });
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<BankQuestion | null>(null);
+  const [importInboxOpen, setImportInboxOpen] = useState(false);
+  const [examTypePickerOpen, setExamTypePickerOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  // Sync editingQuestion ↔ ?q= URL param
+  const openQuestionFromUrl = useCallback(
+    (qs: BankQuestion[]) => {
+      const qId = searchParams.get("q");
+      if (qId) {
+        const found = qs.find((q) => q.bankItemId === qId);
+        if (found) setEditingQuestion(found);
+      }
+    },
+    [searchParams],
   );
-  const selectedQuestionId = searchParams.get("selectedQuestionId");
+
+  const setEditingQuestionWithUrl = useCallback(
+    (question: BankQuestion | null) => {
+      setEditingQuestion(question);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (question) {
+            next.set("q", question.bankItemId);
+          } else {
+            next.delete("q");
+          }
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   const questionCountLabel = useMemo(
     () => t("examEditor.questionList", "題目列表"),
@@ -84,49 +130,19 @@ const QuestionBankDetailScreen = () => {
   const isAdmin = user?.role === "admin";
   const canEditSettings = !isExplore || isAdmin;
 
-  const syncProblemViewState = (next: Partial<ProblemManagementViewState>) => {
-    setSearchParams((prev) => {
-      const params = new URLSearchParams(prev);
-      const mode = next.mode ?? viewMode;
-      const selectedId =
-        next.selectedId !== undefined ? next.selectedId : selectedQuestionId;
-
-      if (mode === "gallery") {
-        params.delete("viewMode");
-      } else {
-        params.set("viewMode", mode);
-      }
-
-      if (selectedId) {
-        params.set("selectedQuestionId", selectedId);
-      } else {
-        params.delete("selectedQuestionId");
-      }
-      return params;
-    });
-  };
-
   const loadData = useCallback(async () => {
     if (!bankId) return;
     try {
       setLoading(true);
       const [target, mine] = await Promise.all([getBank(bankId), listMine()]);
       setBank(target);
-      setMyBanks(mine);
 
       const owned = mine.some((item) => item.id === bankId);
       setIsExplore(!owned);
 
-      if (owned) {
-        setSettingName(target.name);
-        setSettingDescription(target.description || "");
-        setSettingIcon(target.icon || "");
-        setSettingCoverUrl(target.coverUrl || "");
-        setSettingVisibility(target.visibility);
-      }
-
       const rows = await listQuestions(target.id);
       setQuestions(rows);
+      openQuestionFromUrl(rows);
     } catch (error: unknown) {
       showToast({
         kind: "error",
@@ -136,101 +152,139 @@ const QuestionBankDetailScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [bankId, showToast, t]);
+  }, [bankId, openQuestionFromUrl, showToast, t]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
 
-  useEffect(() => {
-    const normalized = normalizePanel(panelParam);
-    if (panelParam === normalized || (panelParam == null && normalized === "overview")) return;
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (normalized === "overview") next.delete("panel");
-      else next.set("panel", normalized);
-      return next;
-    });
-  }, [panelParam, setSearchParams]);
+  const questionTypeFilterOptions = useMemo(
+    () => [
+      { id: "all", label: t("questionBank.allTypes", "全部題型") },
+      { id: "coding", label: t("questionType.label.coding", "程式題") },
+      { id: "exam:single_choice", label: t("questionType.label.single_choice", "單選題") },
+      { id: "exam:multiple_choice", label: t("questionType.label.multiple_choice", "多選題") },
+      { id: "exam:true_false", label: t("questionType.label.true_false", "是非題") },
+      { id: "exam:short_answer", label: t("questionType.label.short_answer", "簡答題") },
+      { id: "exam:essay", label: t("questionType.label.essay", "問答題") },
+    ],
+    [t]
+  );
 
-  const handlePanelChange = (panel: QuestionBankAdminPanelId) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (panel === "overview") next.delete("panel");
-      else next.set("panel", panel);
-      return next;
-    });
-  };
+  const sortOptions = useMemo(
+    () => [
+      { id: "order", label: t("questionBank.sortOrder", "預設排序") },
+      { id: "type", label: t("questionBank.sortType", "依題型") },
+      { id: "newest", label: t("questionBank.sortNewest", "最新更新") },
+      { id: "oldest", label: t("questionBank.sortOldest", "最早更新") },
+    ],
+    [t]
+  );
 
-  const handleSaveSettings = async () => {
-    if (!bank || !settingName.trim()) return;
-    try {
-      setSavingSettings(true);
-      const updated = await updateQuestionBank(bank.id, {
-        name: settingName.trim(),
-        description: settingDescription.trim(),
-        icon: settingIcon,
-        cover_url: settingCoverUrl,
-        visibility: settingVisibility,
-      });
-      setBank(updated);
-      showToast({
-        kind: "success",
-        title: t("message.success"),
-        subtitle: t("questionBank.bankUpdated", "題庫已更新"),
-      });
-    } catch (error: unknown) {
-      showToast({
-        kind: "error",
-        title: t("message.error"),
-        subtitle: getErrorMessage(error, t("message.error")),
-      });
-    } finally {
-      setSavingSettings(false);
-    }
-  };
+  const hasActiveFilters = useMemo(
+    () =>
+      filterState.questionTypes.length > 0 ||
+      (filterState.sort !== undefined && filterState.sort !== "order"),
+    [filterState]
+  );
 
-  const handleUploadCover = async (file: File) => {
+  const handleCreateCodingQuestionFromHeader = async () => {
     if (!bank) return;
-    setUploadingCover(true);
+    const maxOrder =
+      questions.length === 0
+        ? 0
+        : Math.max(...questions.map((row) => Number(row.order || 0))) + 1;
+    const payload: UpsertBankQuestionPayload = {
+      questionType: "coding",
+      title: "Untitled",
+      order: maxOrder,
+    };
     try {
-      const url = await uploadCover(bank.id, file);
-      setSettingCoverUrl(url);
-      const updated = await updateQuestionBank(bank.id, { cover_url: url });
-      setBank(updated);
+      const created = await createQuestion(bank.id, payload);
       showToast({
         kind: "success",
         title: t("message.success"),
-        subtitle: t("questionBank.coverUpdated", "封面已更新"),
+        subtitle: t("questionBank.questionCreated", "題目已建立"),
       });
+      await loadData();
+      setEditingQuestionWithUrl(created);
     } catch (error: unknown) {
       showToast({
         kind: "error",
         title: t("message.error"),
         subtitle: getErrorMessage(error, t("message.error")),
       });
-    } finally {
-      setUploadingCover(false);
     }
   };
 
-  const handleSetCoverUrl = async (value: string) => {
-    const url = value.trim();
-    if (!url) return;
-    setSettingCoverUrl(url);
+  const handleDeleteQuestion = async (question: BankQuestion) => {
+    try {
+      await deleteQuestion(question.bankItemId);
+      showToast({
+        kind: "success",
+        title: t("message.success"),
+        subtitle: t("questionBank.questionDeleted", "題目已刪除"),
+      });
+      setEditingQuestionWithUrl(null);
+      await loadData();
+    } catch (error: unknown) {
+      showToast({
+        kind: "error",
+        title: t("message.error"),
+        subtitle: getErrorMessage(error, t("message.error")),
+      });
+    }
   };
 
-  const handleRemoveCover = async () => {
-    setSettingCoverUrl("");
+  const handleDuplicateQuestion = async (question: BankQuestion) => {
     if (!bank) return;
+    const nextOrder =
+      questions.length === 0
+        ? 0
+        : Math.max(...questions.map((row) => Number(row.order || 0))) + 1;
+    const metadata =
+      question.metadata && typeof question.metadata === "object"
+        ? (question.metadata as Record<string, unknown>)
+        : {};
+
+    const payload: UpsertBankQuestionPayload =
+      question.questionType === "exam"
+        ? {
+            ...toExamBankPayload(
+              {
+                question_type: resolveExamQuestionType(question),
+                prompt: question.prompt || "",
+                score: Number(question.score || 5),
+                options: question.options as string[],
+                correct_answer: question.correctAnswer,
+                order: nextOrder,
+              },
+              question,
+              nextOrder
+            ),
+            title: `${question.title} (copy)`,
+          }
+        : {
+            questionType: "coding",
+            title: `${question.title} (copy)`,
+            prompt: question.prompt || "",
+            order: nextOrder,
+            difficulty: question.difficulty || "medium",
+            timeLimit: Number(question.timeLimit || 1000),
+            memoryLimit: Number(question.memoryLimit || 128),
+            metadata,
+            codingExt: question.codingExt,
+          };
+
     try {
-      const updated = await updateQuestionBank(bank.id, { cover_url: "" });
-      setBank(updated);
+      const created = await createQuestion(bank.id, payload);
       showToast({
         kind: "success",
         title: t("message.success"),
-        subtitle: t("questionBank.coverRemoved", "封面已移除"),
+        subtitle: t("questionBank.questionCloned", "題目已複製"),
       });
+      await loadData();
+      setEditingQuestionWithUrl(created);
     } catch (error: unknown) {
       showToast({
         kind: "error",
@@ -240,22 +294,15 @@ const QuestionBankDetailScreen = () => {
     }
   };
 
-  const handleClone = async (questionId: string, targetBankId: string) => {
+  const handleRefreshBank = useCallback(async () => {
+    if (!bankId) return;
     try {
-      await clone(questionId, targetBankId);
-      showToast({
-        kind: "success",
-        title: t("message.success"),
-        subtitle: t("questionBank.questionCloned", "題目已複製到我的題庫"),
-      });
-    } catch (error: unknown) {
-      showToast({
-        kind: "error",
-        title: t("message.error"),
-        subtitle: getErrorMessage(error, t("message.error")),
-      });
+      const freshBank = await getBank(bankId);
+      setBank(freshBank);
+    } catch {
+      // Settings panel shows its own error toast
     }
-  };
+  }, [bankId]);
 
   const handleSubmitForReview = async () => {
     if (!bank) return;
@@ -322,7 +369,7 @@ const QuestionBankDetailScreen = () => {
               {t("questionBank.bankNotFoundDesc", "請回題庫列表重新選擇。")}
             </p>
             <div>
-              <Button kind="ghost" renderIcon={ArrowLeft} onClick={() => navigate("/question-banks")}>
+              <Button kind="ghost" renderIcon={ArrowLeft} onClick={() => navigate("/dashboard")}>
                 {t("button.back", "返回")}
               </Button>
             </div>
@@ -333,96 +380,242 @@ const QuestionBankDetailScreen = () => {
   }
 
   const HeroIcon = getClassroomIcon(bank.icon);
-  const heroStyle = bank.coverUrl
-    ? { backgroundImage: `url(${bank.coverUrl})` }
-    : undefined;
+  const HeroWidgetIcon = ({
+    size,
+  }: {
+    size: number;
+    className?: string;
+  }) => <HeroIcon size={size} />;
 
   return (
-    <QuestionBankAdminLayout
-      bankName={bank.name}
-      activePanel={activePanel}
-      onPanelChange={handlePanelChange}
-      onBack={() => navigate(isExplore ? "/marketplace" : "/question-banks")}
-      onOpenSettings={() => {
-        setSettingsModalOpen(true);
-      }}
-      readOnly={!canEditSettings}
-    >
-      <div className={styles.pageScroll}>
-        {activePanel === "overview" && (
-          <>
-            <QJudgeHeroWidget
-              title={bank.name}
-              description={bank.description || t("message.noData", "暫無資料")}
-              icon={HeroIcon}
-              coverUrl={bank.coverUrl || undefined}
-              badges={
-                isExplore ? (
-                  <Tag type="blue">{t("questionBank.tabs.explore", "探索題庫")}</Tag>
-                ) : undefined
-              }
-              kpiCards={
-                <KpiCard
-                  icon={Document}
-                  value={String(questions.length)}
-                  label={questionCountLabel}
-                  showBorder={true}
-                />
+    <div className={styles.shell}>
+      {/* Breadcrumb Header */}
+      <Header
+        aria-label={t("questionBank.adminTitle", "題庫管理")}
+        className={styles.header}
+      >
+        <div className={styles.headerLeft}>
+          <SideMenuToggle
+            isOpen={sideMenuOpen}
+            onClick={() => setSideMenuOpen((o) => !o)}
+          />
+          <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
+            <BreadcrumbItem>
+              <Link to="/question-banks">{t("questionBank.title", "題庫")}</Link>
+            </BreadcrumbItem>
+            <BreadcrumbItem isCurrentPage>
+              {bank.name}
+            </BreadcrumbItem>
+          </Breadcrumb>
+        </div>
+        <HeaderGlobalBar>
+          <UserMenu />
+        </HeaderGlobalBar>
+        <SideMenu
+          isOpen={sideMenuOpen}
+          onClose={() => setSideMenuOpen(false)}
+        />
+      </Header>
+
+      {/* Toolbar (below header, above hero) */}
+      <div className={styles.localToolbar}>
+          <div className={styles.localToolbarLeft}>
+            <h4 className={styles.localToolbarTitle}>
+              {t("page.problemManagement", "題目管理")}
+            </h4>
+            <span className={styles.localToolbarMeta}>
+              {t("questionBank.questionCount", "共 {{count}} 題", { count: questions.length })}
+            </span>
+          </div>
+          <div className={styles.localToolbarRight}>
+            <ExpandableSearch
+              id="qb-toolbar-search"
+              size="md"
+              className={styles.localToolbarSearch}
+              labelText={t("questionBank.searchQuestion", "搜尋題目")}
+              placeholder={t("questionBank.searchQuestion", "搜尋題目") + "..."}
+              value={filterState.keyword}
+              onChange={(e) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  keyword: (e.target as HTMLInputElement).value || "",
+                }))
               }
             />
+            <Layer>
+              <Popover
+                open={filterOpen}
+                align="bottom-right"
+                isTabTip
+                onRequestClose={() => setFilterOpen(false)}
+              >
+                <Button
+                  kind="ghost"
+                  size="md"
+                  hasIconOnly
+                  renderIcon={Filter}
+                  iconDescription={t("questionBank.showFilters", "篩選")}
+                  tooltipPosition="bottom"
+                  tooltipAlignment="center"
+                  onClick={() => setFilterOpen((v) => !v)}
+                  className={`${styles.localToolbarIconButton} ${
+                    hasActiveFilters ? styles.localToolbarIconActive : ""
+                  }`}
+                />
+                <PopoverContent className={styles.filterPopoverContent}>
+                  <div className={styles.filterPopoverFields}>
+                    <FluidDropdown
+                      id="qb-filter-type"
+                      titleText={t("questionBank.questionType", "題型")}
+                      label={t("questionBank.questionType", "題型")}
+                      items={questionTypeFilterOptions}
+                      itemToString={(item: { label: string } | null) => item?.label ?? ""}
+                      selectedItem={
+                        filterState.questionTypes.length === 1
+                          ? questionTypeFilterOptions.find((o) => o.id === filterState.questionTypes[0]) ??
+                            questionTypeFilterOptions[0]
+                          : questionTypeFilterOptions[0]
+                      }
+                      onChange={({ selectedItem }: { selectedItem: { id: string } | null }) =>
+                        setFilterState((prev) => ({
+                          ...prev,
+                          questionTypes: selectedItem && selectedItem.id !== "all" ? [selectedItem.id] : [],
+                        }))
+                      }
+                    />
+                    <FluidDropdown
+                      id="qb-filter-sort"
+                      titleText={t("dashboard.sortLabel", "排序")}
+                      label={t("dashboard.sortLabel", "排序")}
+                      items={sortOptions}
+                      itemToString={(item: { label: string } | null) => item?.label ?? ""}
+                      selectedItem={
+                        sortOptions.find((o) => o.id === (filterState.sort || "order")) ??
+                        sortOptions[0]
+                      }
+                      onChange={({ selectedItem }: { selectedItem: { id: string } | null }) =>
+                        setFilterState((prev) => ({
+                          ...prev,
+                          sort: (selectedItem?.id as QuestionSortKey) || "order",
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className={styles.filterPopoverActions}>
+                    <Button
+                      kind="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setFilterState((prev) => ({
+                          keyword: prev.keyword,
+                          difficulty: [],
+                          tags: [],
+                          questionTypes: [],
+                          sort: "order",
+                        }));
+                      }}
+                    >
+                      {t("common.reset", "重設")}
+                    </Button>
+                    <Button kind="primary" size="sm" onClick={() => setFilterOpen(false)}>
+                      {t("common.done", "完成")}
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </Layer>
+            {canEditSettings && (
+              <Button
+                kind="ghost"
+                size="md"
+                hasIconOnly
+                renderIcon={Download}
+                iconDescription={t("questionBank.importFromInbox", "匯入草稿")}
+                tooltipPosition="bottom"
+                tooltipAlignment="center"
+                onClick={() => setImportInboxOpen(true)}
+                className={styles.localToolbarIconButton}
+              />
+            )}
+            {canEditSettings && (
+              <Button
+                kind="ghost"
+                size="md"
+                hasIconOnly
+                renderIcon={Add}
+                iconDescription={t("questionBank.addQuestion", "新增題目")}
+                tooltipPosition="bottom"
+                tooltipAlignment="center"
+                onClick={() => {
+                  if (bank.category === "exam") {
+                    setExamTypePickerOpen(true);
+                  } else {
+                    void handleCreateCodingQuestionFromHeader();
+                  }
+                }}
+                className={styles.localToolbarIconButton}
+              />
+            )}
+            {canEditSettings && (
+              <Button
+                kind="ghost"
+                size="md"
+                hasIconOnly
+                renderIcon={Settings}
+                iconDescription={t("tab.settings", "設定")}
+                tooltipPosition="bottom"
+                tooltipAlignment="center"
+                onClick={() => setSettingsModalOpen(true)}
+                className={styles.localToolbarIconButton}
+              />
+            )}
+          </div>
+        </div>
 
-            <section className={styles.panelSection}>
-              <Grid fullWidth className={styles.overviewGrid}>
-                <Column lg={8} md={8} sm={4}>
-                  <Tile>
-                    <Stack gap={3}>
-                      <h4 className={styles.panelTitle}>{t("tab.overview", "總覽")}</h4>
-                      <p className={styles.panelDesc}>
-                        {t("questionBank.overviewDescription", "快速檢視題庫題量與題型分佈。")}
-                      </p>
-                    </Stack>
-                  </Tile>
-                </Column>
-                <Column lg={8} md={8} sm={4}>
-                  <Tile>
-                    <Stack gap={3}>
-                      <h4 className={styles.panelTitle}>{t("questionBank.recentQuestions", "近期題目")}</h4>
-                      {questions.length === 0 ? (
-                        <p className={styles.emptyText}>{t("message.noData", "暫無資料")}</p>
-                      ) : (
-                        <div className={styles.recentList}>
-                          {questions.slice(0, 5).map((question) => (
-                            <div key={question.id} className={styles.recentItem}>
-                              <p className={styles.recentTitle}>{question.title}</p>
-                              <p className={styles.recentMeta}>{question.questionType}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </Stack>
-                  </Tile>
-                </Column>
-              </Grid>
-            </section>
-          </>
-        )}
+      <main className={styles.content}>
+        <QJudgeHeroWidget
+          title={bank.name}
+          description={bank.description || t("message.noData", "暫無資料")}
+          icon={HeroWidgetIcon}
+          coverUrl={bank.coverUrl || undefined}
+          badges={
+            isExplore ? (
+              <Tag type="blue">{t("questionBank.tabs.explore", "探索題庫")}</Tag>
+            ) : undefined
+          }
+          kpiCards={
+            <>
+              <KpiCard
+                icon={Document}
+                value={String(questions.length)}
+                label={questionCountLabel}
+                showBorder={true}
+              />
+              <KpiCard
+                icon={TagIcon}
+                value={
+                  bank.category === "coding"
+                    ? t("questionBank.categoryCoding", "程式題")
+                    : t("questionBank.categoryExam", "考卷題")
+                }
+                label={t("questionBank.category", "分類")}
+                showBorder={true}
+              />
+            </>
+          }
+        />
 
-        {activePanel === "problem_management" && (
-          <QuestionBankProblemManagementPanel
-            bank={bank}
-            questions={questions}
-            loading={loading}
-            onReload={loadData}
-            viewState={{
-              mode: viewMode,
-              selectedId: selectedQuestionId,
-            }}
-            onViewStateChange={syncProblemViewState}
-            readOnly={isExplore}
-            myBanks={isExplore ? myBanks : undefined}
-            onClone={isExplore ? handleClone : undefined}
-          />
-        )}
+        <QuestionBankProblemManagementPanel
+          bank={bank}
+          questions={questions}
+          loading={loading}
+          onReload={loadData}
+          onCardClick={(q) => setEditingQuestionWithUrl(q)}
+          onQuestionCreated={(q) => setEditingQuestionWithUrl(q)}
+          filterState={filterState}
+          examTypePickerOpen={examTypePickerOpen}
+          onExamTypePickerClose={() => setExamTypePickerOpen(false)}
+        />
 
         {/* Settings Modal */}
         {canEditSettings && (
@@ -437,103 +630,10 @@ const QuestionBankDetailScreen = () => {
             renderPanel={(activeId) => {
               if (activeId === "general") {
                 return (
-                  <>
-                    <Section title={t("questionBank.basicInfo", "基本資訊")}>
-                      <FieldRow
-                        label={t("questionBank.bankName", "題庫名稱")}
-                        description={t("questionBank.bankNameDesc", "顯示在題庫列表和頁首的名稱")}
-                      >
-                        <TextInput
-                          id="bank-name-setting"
-                          labelText=""
-                          hideLabel
-                          value={settingName}
-                          onChange={(event) => setSettingName(event.currentTarget.value)}
-                        />
-                      </FieldRow>
-                      <FieldRow
-                        label={t("questionBank.description", "題庫描述")}
-                        description={t("questionBank.descriptionDesc", "簡短描述，出現在題庫概覽頁面")}
-                      >
-                        <TextArea
-                          id="bank-description-setting"
-                          labelText=""
-                          hideLabel
-                          value={settingDescription}
-                          onChange={(event) => setSettingDescription(event.currentTarget.value)}
-                        />
-                      </FieldRow>
-                      <FieldRow
-                        label={t("questionBank.icon", "題庫圖示")}
-                        description={t("questionBank.iconDesc", "顯示在題庫概覽頁首")}
-                      >
-                        <div className={styles.iconPicker}>
-                          {CLASSROOM_ICON_OPTIONS.map((option) => {
-                            const selected = settingIcon === option.key;
-                            return (
-                              <button
-                                key={option.key}
-                                type="button"
-                                className={`${styles.iconButton}${selected ? ` ${styles.iconButtonActive}` : ""}`}
-                                onClick={() => setSettingIcon(option.key)}
-                                title={option.label}
-                              >
-                                <option.Icon size={18} />
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </FieldRow>
-                      <FieldRow
-                        label={t("questionBank.coverImage", "封面圖片")}
-                        description={t("questionBank.coverImageDesc", "顯示於題庫概覽頁首背景")}
-                      >
-                        <ImageEditDialog
-                          variant="cover"
-                          previewUrl={settingCoverUrl || undefined}
-                          alt="question bank cover"
-                          emptyLabel={t("questionBank.addCover", "新增封面")}
-                          modalHeading={t("questionBank.editCover", "編輯封面")}
-                          urlPlaceholder="https://images.unsplash.com/..."
-                          uploadLabel={t("questionBank.uploadFile", "上傳檔案")}
-                          removeLabel={t("questionBank.removeCover", "移除封面")}
-                          applyLabel={t("button.apply", "套用")}
-                          dropzoneLabel={t("questionBank.coverDropzoneTitle", "拖曳圖片到此處")}
-                          dropzoneHint={t("questionBank.coverDropzoneHint", "支援 png / jpg / webp")}
-                          disabled={uploadingCover}
-                          onUpload={handleUploadCover}
-                          onApplyUrl={handleSetCoverUrl}
-                          onRemove={settingCoverUrl ? handleRemoveCover : undefined}
-                        />
-                      </FieldRow>
-                      <FieldRow
-                        label={t("questionBank.visibility", "可見性")}
-                        description={t("questionBank.visibilityDesc", "公開題庫可被所有人瀏覽")}
-                      >
-                        <Select
-                          id="bank-visibility-setting"
-                          labelText=""
-                          hideLabel
-                          value={settingVisibility}
-                          onChange={(event) => setSettingVisibility(event.currentTarget.value as BankVisibility)}
-                        >
-                          <SelectItem value="private" text={t("questionBank.tagPrivate", "私人")} />
-                          <SelectItem value="public" text={t("questionBank.tagPublic", "公開")} />
-                        </Select>
-                      </FieldRow>
-                    </Section>
-                    <div style={{ marginTop: "1.5rem" }}>
-                      <Button
-                        kind="primary"
-                        disabled={!settingName.trim() || savingSettings}
-                        onClick={() => {
-                          void handleSaveSettings();
-                        }}
-                      >
-                        {savingSettings ? t("button.updating", "更新中...") : t("button.save", "儲存")}
-                      </Button>
-                    </div>
-                  </>
+                  <QuestionBankSettingsGeneralPanel
+                    bank={bank}
+                    onRefresh={handleRefreshBank}
+                  />
                 );
               }
               if (activeId === "review") {
@@ -543,14 +643,22 @@ const QuestionBankDetailScreen = () => {
                       label={t("questionBank.currentReviewStatus", "目前狀態")}
                       description={t("questionBank.reviewHint", "教師送審後由 Admin 核准上架 Marketplace")}
                     >
-                      <Tag type={bank.reviewStatus === "approved" ? "green" : bank.reviewStatus === "pending" ? "purple" : "gray"}>
+                      <Tag
+                        type={
+                          bank.reviewStatus === "approved"
+                            ? "green"
+                            : bank.reviewStatus === "pending"
+                            ? "purple"
+                            : "gray"
+                        }
+                      >
                         {bank.reviewStatus === "approved"
                           ? t("questionBank.reviewStatus.approved", "已核准")
                           : bank.reviewStatus === "pending"
-                            ? t("questionBank.reviewStatus.pending", "審核中")
-                            : bank.reviewStatus === "rejected"
-                              ? t("questionBank.reviewStatus.rejected", "已退回")
-                              : t("questionBank.reviewStatus.draft", "草稿")}
+                          ? t("questionBank.reviewStatus.pending", "審核中")
+                          : bank.reviewStatus === "rejected"
+                          ? t("questionBank.reviewStatus.rejected", "已退回")
+                          : t("questionBank.reviewStatus.draft", "草稿")}
                       </Tag>
                     </FieldRow>
                     {!isAdmin && (
@@ -599,8 +707,30 @@ const QuestionBankDetailScreen = () => {
             }}
           />
         )}
-      </div>
-    </QuestionBankAdminLayout>
+
+        {/* Import Inbox Modal (controlled from header) */}
+        {canEditSettings && (
+          <ImportInboxModal
+            open={importInboxOpen}
+            onClose={() => setImportInboxOpen(false)}
+            bankId={bank.id}
+            bankCategory={bank.category}
+            onIngested={() => void loadData()}
+          />
+        )}
+      </main>
+
+      {/* Question Edit Modal */}
+      <QuestionEditModal
+        open={editingQuestion !== null}
+        question={editingQuestion}
+        bank={bank}
+        onRequestClose={() => setEditingQuestionWithUrl(null)}
+        onDelete={handleDeleteQuestion}
+        onDuplicate={handleDuplicateQuestion}
+        onSaved={() => void loadData()}
+      />
+    </div>
   );
 };
 

@@ -1,13 +1,11 @@
-import type { StoryModule } from "@/shared/types/story.types";
-import { QJudgeEditor, type QJudgeEditorProps } from "./QJudgeEditor";
+import type { Meta, StoryObj } from "@storybook/react";
+import { QJudgeEditor } from "./QJudgeEditor";
 
-const storyModule: StoryModule<QJudgeEditorProps> = {
-  meta: {
+const meta: Meta<typeof QJudgeEditor> = {
     title: "shared/ui/editor/QJudgeEditor",
     component: QJudgeEditor,
-    category: "shared",
-    description: "Monaco Editor 包裝器（非受控模式）。",
-    defaultArgs: {
+    
+    args: {
       language: "javascript",
       value: `function hello() {
   console.log('Hello QJudge');
@@ -24,12 +22,27 @@ hello();`,
       },
       value: { control: "text", description: "初始程式碼" },
     },
+  
+  parameters: {
+    docs: { description: { component: 'Monaco Editor 包裝器（非受控模式）。' } },
   },
-  stories: [
-    {
-      name: "Playground",
-      description: "互動式程式碼編輯器。",
-      render: (args) => (
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: { story: '互動式程式碼編輯器。' },
+      source: { code: `<QJudgeEditor
+  language="javascript"
+  value="console.log('Hello');"
+  onChange={(code) => console.log(code)}
+/>` },
+    },
+  },
+  render: (args) => (
         <div style={{ width: "100%", height: "400px", border: "1px solid var(--cds-border-subtle)" }}>
           <QJudgeEditor
             language={args.language as string}
@@ -38,16 +51,16 @@ hello();`,
           />
         </div>
       ),
-      code: `<QJudgeEditor
-  language="javascript"
-  value="console.log('Hello');"
-  onChange={(code) => console.log(code)}
-/>`,
+};
+
+export const AllLanguages: Story = {
+  parameters: {
+    docs: {
+      description: { story: '展示不同程式語言的語法高亮。' },
+      source: { code: `def hello():\\n    print("Hello QJudge")\\n\\nhello()` },
     },
-    {
-      name: "All Languages",
-      description: "展示不同程式語言的語法高亮。",
-      render: () => (
+  },
+  render: () => (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {[
             { lang: "python", code: `def hello():\n    print("Hello QJudge")\n\nhello()` },
@@ -65,8 +78,4 @@ hello();`,
           ))}
         </div>
       ),
-    },
-  ],
 };
-
-export default storyModule;

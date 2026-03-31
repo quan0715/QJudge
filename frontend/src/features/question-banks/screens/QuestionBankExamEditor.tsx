@@ -99,7 +99,7 @@ const resolveExamQuestionType = (question: BankQuestion): ExamQuestionType => {
 };
 
 const toExamQuestion = (bankId: string, question: BankQuestion): ExamQuestion => ({
-  id: question.id,
+  id: question.bankItemId,
   contestId: bankId,
   questionType: resolveExamQuestionType(question),
   prompt: question.prompt || "",
@@ -134,7 +134,7 @@ const QuestionBankExamEditor: React.FC<QuestionBankExamEditorProps> = ({
   );
 
   const bankQuestionById = useMemo(() => {
-    const pairs = examBankQuestions.map((question) => [question.id, question] as const);
+    const pairs = examBankQuestions.map((question) => [question.bankItemId, question] as const);
     return new Map<string, BankQuestion>(pairs);
   }, [examBankQuestions]);
 
@@ -340,8 +340,8 @@ const QuestionBankExamEditor: React.FC<QuestionBankExamEditorProps> = ({
           title: t("examEditor.questionAdded", "題目已新增"),
         });
         await onReload();
-        if (created?.id) {
-          setSelectedId(created.id);
+        if (created?.bankItemId) {
+          setSelectedId(created.bankItemId);
         }
       } catch (error) {
         console.error("Failed to create bank exam question", error);
@@ -424,7 +424,7 @@ const QuestionBankExamEditor: React.FC<QuestionBankExamEditorProps> = ({
           title: t("examEditor.questionCopied", "題目已複製"),
         });
         await onReload();
-        if (created?.id) setSelectedId(created.id);
+        if (created?.bankItemId) setSelectedId(created.bankItemId);
       } catch (error) {
         console.error("Failed to duplicate bank exam question", error);
         const message =

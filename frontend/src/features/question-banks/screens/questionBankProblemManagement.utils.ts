@@ -1,14 +1,18 @@
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
+import type { ProblemDetail } from "@/core/entities/problem.entity";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
 import type { UpsertBankQuestionPayload } from "@/core/ports/questionBank.repository";
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { resolveExamQuestionTypeFromBankQuestion } from "@/shared/ui/questionVisual";
+
+export type QuestionSortKey = "order" | "type" | "newest" | "oldest";
 
 export interface QuestionFilterState {
   keyword: string;
   difficulty: string[];
   tags: string[];
   questionTypes: string[];
+  sort?: QuestionSortKey;
 }
 
 export interface QuestionPreviewMeta {
@@ -64,20 +68,14 @@ const normalizePromptAsTitle = (prompt: string): string => {
 
 export const getQuestionDisplayTitle = (question: Pick<BankQuestion, "title" | "prompt" | "questionType">): string => {
   const rawTitle = (question.title || "").trim();
-
-  // Exam questions: always prefer prompt content as display title
-  if (question.questionType === "exam") {
-    const promptTitle = normalizePromptAsTitle(question.prompt || "");
-    return promptTitle || rawTitle || "Untitled question";
-  }
-
-  // Coding questions: use title (it's meaningful, e.g. "A+B Problem")
   if (rawTitle && !GENERATED_TITLE_PATTERN.test(rawTitle)) {
     return rawTitle;
   }
 
   const promptTitle = normalizePromptAsTitle(question.prompt || "");
-  return promptTitle || rawTitle || "Untitled question";
+  if (promptTitle) return promptTitle;
+  if (rawTitle) return rawTitle;
+  return "Untitled question";
 };
 
 export const buildQuestionPreviewMeta = (
@@ -134,12 +132,12 @@ export const buildQuestionPreviewMeta = (
   };
 };
 
-export const filterQuestions = (
+export const filterAndSortQuestions = (
   questions: BankQuestion[],
   filterState: QuestionFilterState
 ): BankQuestion[] => {
   const keyword = filterState.keyword.trim().toLowerCase();
-  return questions.filter((question) => {
+  const filtered = questions.filter((question) => {
     if (keyword) {
       const haystack = `${question.title} ${question.prompt || ""}`.toLowerCase();
       if (!haystack.includes(keyword)) return false;
@@ -164,7 +162,28 @@ export const filterQuestions = (
 
     return true;
   });
+
+  const sort = filterState.sort || "order";
+  return [...filtered].sort((a, b) => {
+    switch (sort) {
+      case "type":
+        return getQuestionTypeToken(a).localeCompare(getQuestionTypeToken(b));
+      case "newest":
+        return (b.updatedAt || b.createdAt || "").localeCompare(a.updatedAt || a.createdAt || "");
+      case "oldest":
+        return (a.updatedAt || a.createdAt || "").localeCompare(b.updatedAt || b.createdAt || "");
+      case "order":
+      default:
+        return Number(a.order || 0) - Number(b.order || 0);
+    }
+  });
 };
+
+/** @deprecated Use filterAndSortQuestions instead */
+export const filterQuestions = (
+  questions: BankQuestion[],
+  filterState: QuestionFilterState
+): BankQuestion[] => filterAndSortQuestions(questions, filterState);
 
 export const formatDownloadCount = (value: number): string => {
   if (!Number.isFinite(value) || value <= 0) return "0";
@@ -176,7 +195,7 @@ export const formatDownloadCount = (value: number): string => {
 };
 
 export const toExamQuestion = (bankId: string, question: BankQuestion): ExamQuestion => ({
-  id: question.id,
+  id: question.bankItemId,
   contestId: bankId,
   questionType: resolveExamQuestionType(question),
   prompt: question.prompt || "",
@@ -213,5 +232,55 @@ export const toExamBankPayload = (
       ...existingMetadata,
       exam_question_type: payload.question_type,
     },
+  };
+};
+
+/**
+ * Convert a coding BankQuestion into ProblemDetail for ProblemPreview.
+ */
+export const toBankProblemDetail = (q: BankQuestion): ProblemDetail => {
+  const ext = q.codingExt;
+  return {
+    id: q.bankItemId,
+    title: q.title,
+    difficulty: (q.difficulty as ProblemDetail["difficulty"]) || "medium",
+    description: "",
+    acceptanceRate: 0,
+    submissionCount: 0,
+    acceptedCount: 0,
+    waCount: 0,
+    tleCount: 0,
+    mleCount: 0,
+    reCount: 0,
+    ceCount: 0,
+    tags: [],
+    isSolved: false,
+    timeLimit: q.timeLimit,
+    memoryLimit: q.memoryLimit,
+    translations: ext?.translations?.map((tr) => ({
+      language: tr.language,
+      title: tr.title,
+      description: tr.description,
+      inputDescription: tr.inputDescription ?? "",
+      outputDescription: tr.outputDescription ?? "",
+      hint: tr.hint ?? "",
+    })) ?? [],
+    testCases: ext?.testCases?.map((tc) => ({
+      input: tc.inputData,
+      output: tc.outputData,
+      isSample: tc.isSample,
+      score: tc.score,
+      order: tc.order,
+      isHidden: tc.isHidden,
+    })) ?? [],
+    languageConfigs:
+      ext?.languageConfigs?.map((config) => ({
+        language: config.language,
+        templateCode: config.templateCode,
+        isEnabled: config.isEnabled ?? true,
+        order: config.order,
+      })) ?? [],
+    forbiddenKeywords: ext?.forbiddenKeywords ?? [],
+    requiredKeywords: ext?.requiredKeywords ?? [],
   };
 };

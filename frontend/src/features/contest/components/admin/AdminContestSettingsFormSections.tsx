@@ -531,6 +531,32 @@ const AdminContestSettingsFormSections = ({
               />
             </ActionRow>
 
+            <ActionRow
+              label="螢幕共享恢復時限"
+              description="螢幕共享中斷後，學生可重新分享的寬限秒數；前端 runtime 會直接依後端儲存值執行"
+              saveState={getState("screenShareRecoveryGraceMs")}
+              onRetry={() => onRetry("screenShareRecoveryGraceMs")}
+            >
+              <NumberInput
+                id="settings-screen-share-recovery-grace-seconds"
+                label=""
+                hideLabel
+                min={1}
+                max={300}
+                value={Math.max(
+                  1,
+                  Math.round(((form.screenShareRecoveryGraceMs as number) ?? 30_000) / 1000)
+                )}
+                onChange={(_event, { value }) =>
+                  onChange(
+                    "screenShareRecoveryGraceMs",
+                    Math.max(1, Number(value || 30)) * 1000
+                  )
+                }
+                style={{ maxWidth: 140 }}
+              />
+            </ActionRow>
+
             {(["desktop", "tablet"] as const).map((deviceKey) => {
               const deviceLabel = deviceKey === "desktop" ? "Desktop / Laptop" : "Tablet / iPad";
               const devicePolicy = anticheatPolicy[deviceKey];

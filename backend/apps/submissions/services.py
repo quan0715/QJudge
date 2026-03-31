@@ -6,7 +6,10 @@ from typing import Any, Dict, Optional
 
 from django.db import transaction
 
-from apps.contests.models import Contest
+from django.utils import timezone
+
+from apps.contests.models import AssignmentState, Contest, ContestParticipant
+from apps.contests.services.question_edit_lock import maybe_lock_from_coding_submission
 from apps.problems.models import Problem
 from apps.submissions.access_policy import SubmissionAccessError, SubmissionAccessPolicy
 from apps.submissions.models import Submission
@@ -55,6 +58,7 @@ class SubmissionService:
 
         if result.source_type == "contest" and result.should_judge:
             cls._log_contest_activity(result, user)
+            cls._mark_practice_assignment_submitted(result.submission, user)
 
         return result.submission
 
@@ -103,6 +107,7 @@ class SubmissionService:
                     error_message=violation_message,
                     **create_payload,
                 )
+                maybe_lock_from_coding_submission(submission=submission)
                 return SubmissionCreateResult(
                     submission=submission,
                     should_judge=False,
@@ -114,6 +119,7 @@ class SubmissionService:
                 source_type=source_type,
                 **create_payload,
             )
+            maybe_lock_from_coding_submission(submission=submission)
 
         return SubmissionCreateResult(
             submission=submission,
@@ -152,6 +158,19 @@ class SubmissionService:
             )
         except Exception:
             logger.debug("Failed to log contest activity", exc_info=True)
+
+    @staticmethod
+    def _mark_practice_assignment_submitted(submission: Submission, user: User) -> None:
+        contest = submission.contest
+        if not contest or contest.delivery_mode != "practice":
+            return
+        ContestParticipant.objects.filter(
+            contest=contest,
+            user=user,
+        ).update(
+            assignment_state=AssignmentState.SUBMITTED,
+            submitted_at=timezone.now(),
+        )
 
     @staticmethod
     def _check_keywords(

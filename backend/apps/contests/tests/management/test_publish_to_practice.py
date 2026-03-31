@@ -24,8 +24,6 @@ class ContestPublishToPracticeTests(APITestCase):
         self.problem = Problem.objects.create(
             title="Contest Problem",
             slug="contest-problem",
-            visibility='hidden',
-            created_in_contest=self.contest,
             created_by=self.teacher,
         )
         ProblemTranslation.objects.create(
@@ -65,7 +63,7 @@ class ContestPublishToPracticeTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_publish_creates_practice_copy(self):
+    def test_publish_creates_private_bank_seed_copy(self):
         url = reverse("contests:contest-publish-problems-to-practice", args=[self.contest.id])
 
         self.client.force_authenticate(user=self.teacher)
@@ -74,12 +72,10 @@ class ContestPublishToPracticeTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         created_ids = response.data.get("created_problem_ids", [])
         self.assertEqual(len(created_ids), 1)
+        self.problem.refresh_from_db(fields=["question_asset", "question_version"])
 
         cloned = Problem.objects.get(id=created_ids[0])
-        self.assertEqual(cloned.visibility, "public")
-        self.assertEqual(cloned.created_in_contest_id, self.contest.id)
-        self.assertEqual(cloned.origin_problem_id, self.problem.id)
-        self.assertTrue(cloned.display_id.startswith("P"))
+        self.assertEqual(cloned.question_asset_id, self.problem.question_asset_id)
         self.assertTrue(
             cloned.translations.filter(language="zh-TW", title="競賽題目").exists()
         )
@@ -95,14 +91,12 @@ class ContestPublishToPracticeTests(APITestCase):
         second = self.client.post(url, {}, format="json")
         self.assertEqual(second.status_code, status.HTTP_200_OK)
         self.assertEqual(second.data.get("created_problem_ids"), [])
-        self.assertEqual(second.data.get("skipped_problem_ids"), [self.problem.id])
+        self.assertEqual(second.data.get("skipped_problem_ids"), [str(self.problem.id)])
 
     def test_publish_with_problem_ids_filter(self):
         second_problem = Problem.objects.create(
             title="Contest Problem 2",
             slug="contest-problem-2",
-            visibility='hidden',
-            created_in_contest=self.contest,
             created_by=self.teacher,
         )
         ContestProblem.objects.create(
@@ -112,7 +106,7 @@ class ContestPublishToPracticeTests(APITestCase):
         )
 
         url = reverse("contests:contest-publish-problems-to-practice", args=[self.contest.id])
-        payload = {"problem_ids": [self.problem.id]}
+        payload = {"problem_ids": [str(self.problem.id)]}
 
         self.client.force_authenticate(user=self.teacher)
         response = self.client.post(url, payload, format="json")
@@ -120,7 +114,14 @@ class ContestPublishToPracticeTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         created_ids = response.data.get("created_problem_ids", [])
         self.assertEqual(len(created_ids), 1)
-        self.assertTrue(Problem.objects.filter(id=created_ids[0], origin_problem=self.problem).exists())
+        self.problem.refresh_from_db(fields=["question_asset", "question_version"])
+        self.assertTrue(
+            Problem.objects.filter(
+                id=created_ids[0],
+                question_asset=self.problem.question_asset,
+                contests__isnull=True,
+            ).exists()
+        )
 
     def test_single_problem_publish_endpoint_clones_only_when_archived(self):
         live_contest = Contest.objects.create(
@@ -146,6 +147,11 @@ class ContestPublishToPracticeTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         created_id = resp.data.get("created_problem_id")
         self.assertIsNotNone(created_id)
+        self.problem.refresh_from_db(fields=["question_asset", "question_version"])
         self.assertTrue(
-            Problem.objects.filter(id=created_id, origin_problem=self.problem, visibility='public').exists()
+            Problem.objects.filter(
+                id=created_id,
+                question_asset=self.problem.question_asset,
+                contests__isnull=True,
+            ).exists()
         )

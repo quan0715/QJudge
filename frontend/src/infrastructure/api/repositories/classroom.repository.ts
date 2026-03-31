@@ -7,12 +7,18 @@ import type {
   Classroom,
   ClassroomDetail,
   ClassroomAnnouncement,
+  ClassroomLabDetail,
+  ClassroomLabSummary,
+  BoundContest,
 } from "@/core/entities/classroom.entity";
 import {
   mapClassroomDto,
   mapClassroomDetailDto,
   mapClassroomAnnouncementDto,
+  mapClassroomLabSummaryDto,
+  mapBoundContestDto,
 } from "@/infrastructure/mappers/classroom.mapper";
+import { mapContestDetailDto } from "@/infrastructure/mappers/contest.mapper";
 
 export const getClassrooms = async (
   scope?: "manage" | "enrolled" | "all"
@@ -175,6 +181,110 @@ export const unbindContest = async (
     }),
     "Failed to unbind contest"
   );
+};
+
+export const getClassroomLabs = async (
+  classroomId: string
+): Promise<ClassroomLabSummary[]> => {
+  const data = await requestJson<any[]>(
+    httpClient.get(`/api/v1/classrooms/${classroomId}/labs/`),
+    "Failed to fetch labs"
+  );
+  return data.map(mapClassroomLabSummaryDto);
+};
+
+export const getClassroomContests = async (
+  classroomId: string
+): Promise<BoundContest[]> => {
+  const data = await requestJson<any[]>(
+    httpClient.get(`/api/v1/classrooms/${classroomId}/contests/`),
+    "Failed to fetch classroom contests"
+  );
+  return data.map(mapBoundContestDto);
+};
+
+export const createClassroomContest = async (
+  classroomId: string,
+  data: {
+    name: string;
+    description?: string;
+    contest_type: "coding" | "paper_exam";
+    start_time?: string | null;
+    end_time?: string | null;
+    visibility?: "public" | "private";
+    password?: string;
+    cheat_detection_enabled?: boolean;
+    results_published?: boolean;
+  }
+): Promise<BoundContest> => {
+  const res = await requestJson<any>(
+    httpClient.post(`/api/v1/classrooms/${classroomId}/contests/`, data),
+    "Failed to create classroom contest"
+  );
+  return mapBoundContestDto(res);
+};
+
+export const createClassroomLab = async (
+  classroomId: string,
+  data: {
+    name: string;
+    description?: string;
+    contest_type: "coding" | "paper_exam";
+    start_time?: string | null;
+    end_time?: string | null;
+    results_published?: boolean;
+  }
+): Promise<ClassroomLabDetail> => {
+  const res = await requestJson<any>(
+    httpClient.post(`/api/v1/classrooms/${classroomId}/labs/`, data),
+    "Failed to create lab"
+  );
+  return {
+    ...mapClassroomLabSummaryDto(res),
+    contest: mapContestDetailDto(res.contest),
+  };
+};
+
+export const getClassroomLab = async (
+  classroomId: string,
+  labId: string
+): Promise<ClassroomLabDetail> => {
+  const res = await requestJson<any>(
+    httpClient.get(`/api/v1/classrooms/${classroomId}/labs/${labId}/`),
+    "Failed to fetch lab"
+  );
+  return {
+    ...mapClassroomLabSummaryDto(res),
+    contest: mapContestDetailDto(res.contest),
+  };
+};
+
+export const acceptClassroomLab = async (
+  classroomId: string,
+  labId: string
+): Promise<ClassroomLabDetail> => {
+  const res = await requestJson<any>(
+    httpClient.post(`/api/v1/classrooms/${classroomId}/labs/${labId}/accept/`),
+    "Failed to accept lab"
+  );
+  return {
+    ...mapClassroomLabSummaryDto(res),
+    contest: mapContestDetailDto(res.contest),
+  };
+};
+
+export const getClassroomLabSolve = async (
+  classroomId: string,
+  labId: string
+): Promise<ClassroomLabDetail> => {
+  const res = await requestJson<any>(
+    httpClient.get(`/api/v1/classrooms/${classroomId}/labs/${labId}/solve/`),
+    "Failed to load lab solving data"
+  );
+  return {
+    ...mapClassroomLabSummaryDto(res),
+    contest: mapContestDetailDto(res.contest),
+  };
 };
 
 // ── Announcements ───────────────────────────────────────

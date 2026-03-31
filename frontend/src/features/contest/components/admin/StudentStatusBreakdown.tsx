@@ -1,4 +1,4 @@
-import { Tile, Layer } from "@carbon/react";
+import { Tile, Layer, SkeletonText } from "@carbon/react";
 import {
   CircleDash,
   InProgress,
@@ -11,6 +11,7 @@ import styles from "./StudentStatusBreakdown.module.scss";
 
 interface StudentStatusBreakdownProps {
   kpi: ParticipantStatusKpi;
+  loading?: boolean;
 }
 
 const STATUS_DEFS = [
@@ -22,6 +23,7 @@ const STATUS_DEFS = [
 
 export default function StudentStatusBreakdown({
   kpi,
+  loading = false,
 }: StudentStatusBreakdownProps) {
   const { t } = useTranslation("contest");
   const total = kpi.totalParticipants || 1;
@@ -40,35 +42,52 @@ export default function StudentStatusBreakdown({
           return (
             <Layer key={key} level={2} className={styles.tileWrap}>
               <Tile className={styles.tile}>
-                <div className={styles.tileBadge} style={{ color }}>
-                  <Icon size={16} />
-                  <span>
-                    {statusKey === "paused_or_locked"
-                      ? t("studentStatus.pausedLocked", "已暫停 / 已鎖定")
-                      : t(`examStatus.${statusKey}`, statusKey)}
-                  </span>
-                </div>
-                <span className={styles.tileCount}>
-                  {t("studentStatus.personCount", { count })}
-                </span>
-                <span className={styles.tilePercent}>{percent}%</span>
+                {loading ? (
+                  <>
+                    <SkeletonText width="60%" />
+                    <SkeletonText heading width="40%" />
+                    <SkeletonText width="30%" />
+                  </>
+                ) : (
+                  <>
+                    <div className={styles.tileBadge} style={{ color }}>
+                      <Icon size={16} />
+                      <span>
+                        {statusKey === "paused_or_locked"
+                          ? t("studentStatus.pausedLocked", "已暫停 / 已鎖定")
+                          : t(`examStatus.${statusKey}`, statusKey)}
+                      </span>
+                    </div>
+                    <span className={styles.tileCount}>
+                      {t("studentStatus.personCount", { count })}
+                    </span>
+                    <span className={styles.tilePercent}>{percent}%</span>
+                  </>
+                )}
               </Tile>
             </Layer>
           );
         })}
       </div>
 
-      <div className={styles.progressFooter}>
-        <div className={styles.progressWrap}>
-          <div
-            className={styles.progressFill}
-            style={{ width: `${submittedPercent}%` }}
-          />
+      {loading ? (
+        <div className={styles.progressFooter}>
+          <SkeletonText width="100%" />
+          <SkeletonText width="40%" />
         </div>
-        <span className={styles.progressLabel}>
-          {t("studentStatus.submittedProgress", { submitted: kpi.submittedCount, total: kpi.totalParticipants, percent: submittedPercent })}
-        </span>
-      </div>
+      ) : (
+        <div className={styles.progressFooter}>
+          <div className={styles.progressWrap}>
+            <div
+              className={styles.progressFill}
+              style={{ width: `${submittedPercent}%` }}
+            />
+          </div>
+          <span className={styles.progressLabel}>
+            {t("studentStatus.submittedProgress", { submitted: kpi.submittedCount, total: kpi.totalParticipants, percent: submittedPercent })}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

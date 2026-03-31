@@ -4,6 +4,7 @@ import {
   buildQuestionPreviewMeta,
   filterQuestions,
   formatDownloadCount,
+  getQuestionDisplayTitle,
   getQuestionTypeToken,
 } from "./questionBankProblemManagement.utils";
 
@@ -14,6 +15,7 @@ const bank: QuestionBank = {
   category: "exam",
   visibility: "private",
   verified: true,
+  reviewStatus: "approved",
   ownerUsername: "QJudge Community",
   questionCount: 2,
 };
@@ -80,5 +82,23 @@ describe("questionBankProblemManagement.utils", () => {
     expect(meta.downloadCount).toBe(3200);
     expect(meta.isVerified).toBe(true);
     expect(formatDownloadCount(meta.downloadCount)).toBe("3.2k");
+  });
+
+  it("prefers non-generated title over prompt", () => {
+    const title = getQuestionDisplayTitle({
+      title: "陣列索引查詢",
+      prompt: "這段 prompt 不應該覆蓋 title",
+      questionType: "exam",
+    });
+    expect(title).toBe("陣列索引查詢");
+  });
+
+  it("falls back from generated title to prompt", () => {
+    const title = getQuestionDisplayTitle({
+      title: "Test - Q12",
+      prompt: "請說明堆疊與佇列差異",
+      questionType: "exam",
+    });
+    expect(title).toContain("請說明堆疊與佇列差異");
   });
 });

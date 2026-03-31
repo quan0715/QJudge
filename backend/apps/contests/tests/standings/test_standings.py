@@ -7,6 +7,7 @@ This test file ensures the standings API correctly:
 3. Shows full problem details to admins/teachers
 4. Matches standings problem keys with problems_data IDs
 """
+import uuid
 from datetime import timedelta
 from django.utils import timezone
 from rest_framework.test import APITestCase, APIClient
@@ -144,8 +145,8 @@ class StandingsAPITests(APITestCase):
 
         # Verify correct IDs are returned
         problem_ids = [p['id'] for p in problems]
-        self.assertIn(self.problem_a.id, problem_ids)
-        self.assertIn(self.problem_b.id, problem_ids)
+        self.assertIn(str(self.problem_a.id), problem_ids)
+        self.assertIn(str(self.problem_b.id), problem_ids)
 
     def test_student_cannot_see_problem_titles(self):
         """Students should NOT see problem titles (security)."""
@@ -215,9 +216,8 @@ class StandingsAPITests(APITestCase):
 
             # All keys in standings should be valid problem IDs
             for key in standing_problem_keys:
-                key_int = int(key) if isinstance(key, str) else key
                 self.assertIn(
-                    key_int,
+                    str(key),
                     problem_ids_from_data,
                     f"Standings key {key} not in problems_data IDs"
                 )
@@ -319,8 +319,8 @@ class StandingsDataIntegrityTests(APITestCase):
             started_at=now
         )
 
-    def test_problem_id_is_integer_not_null(self):
-        """Problem ID should be a valid integer, never null or undefined."""
+    def test_problem_id_is_uuid_string_not_null(self):
+        """Problem ID should be a valid UUID string, never null or undefined."""
         self.client.force_authenticate(user=self.student)
         url = f'/api/v1/contests/{self.contest.id}/standings/'
         response = self.client.get(url)
@@ -333,12 +333,8 @@ class StandingsDataIntegrityTests(APITestCase):
         for problem in problems:
             problem_id = problem.get('id')
             self.assertIsNotNone(problem_id, "Problem ID should not be None")
-            self.assertIsInstance(
-                problem_id, int, "Problem ID should be an integer"
-            )
-            self.assertGreater(
-                problem_id, 0, "Problem ID should be positive"
-            )
+            self.assertIsInstance(problem_id, str, "Problem ID should be a UUID string")
+            uuid.UUID(problem_id)
 
     def test_standings_response_structure(self):
         """Verify the standings response has correct structure."""

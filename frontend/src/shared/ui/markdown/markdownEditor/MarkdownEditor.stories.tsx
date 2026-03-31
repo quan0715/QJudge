@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { StoryModule } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react";
 import {
   MarkdownEditor,
   MarkdownField,
@@ -19,8 +19,8 @@ int main() { return 0; }
 \`\`\`
 `;
 
-const Playground = (args: MarkdownEditorProps) => {
-  const [value, setValue] = useState(args.value);
+const PlaygroundComponent = (args: Partial<MarkdownEditorProps>) => {
+  const [value, setValue] = useState(args.value ?? "");
   return <MarkdownEditor {...args} value={value} onChange={setValue} />;
 };
 
@@ -56,14 +56,11 @@ const MarkdownFieldStory = () => {
   );
 };
 
-const storyModule: StoryModule<MarkdownEditorProps> = {
-  meta: {
+const meta: Meta<typeof MarkdownEditor> = {
     title: "shared/ui/markdown/markdownEditor",
     component: MarkdownEditor,
-    description:
-      "Monaco 為基底的 Markdown 編輯器，內建工具列、預覽、KaTeX 與 Syntax Highlight。提供 Inline/Field/Modal 多種使用方式。",
-    category: "shared",
-    defaultArgs: {
+    
+    args: {
       value: SAMPLE_MD,
       minHeight: "280px",
       showPreview: true,
@@ -73,71 +70,82 @@ const storyModule: StoryModule<MarkdownEditorProps> = {
     argTypes: {
       value: {
         control: "text",
-        label: "內容",
-        description: "Markdown 文字",
+                description: "Markdown 文字",
       },
       minHeight: {
         control: "text",
-        label: "最小高度",
-        description: "例如 280px",
+                description: "例如 280px",
       },
       height: {
         control: "text",
-        label: "固定高度",
-        description: "指定固定高度，會覆蓋 minHeight",
+                description: "指定固定高度，會覆蓋 minHeight",
       },
       showPreview: {
         control: "boolean",
-        label: "顯示預覽",
+        description: "顯示預覽",
       },
       showToolbar: {
         control: "boolean",
-        label: "顯示工具列",
+        description: "顯示工具列",
       },
       inline: {
         control: "boolean",
-        label: "Inline 模式",
+        description: "Inline 模式",
       },
     },
+  
+  parameters: {
+    docs: { description: { component: 'Monaco 為基底的 Markdown 編輯器，內建工具列、預覽、KaTeX 與 Syntax Highlight。提供 Inline/Field/Modal 多種使用方式。' } },
   },
-  stories: [
-    {
-      name: "Playground",
-      description: "使用 Controls 調整 Monaco Markdown 編輯器各種選項",
-      render: (args) => <Playground {...args} />,
-      code: `<MarkdownEditor
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: { story: '使用 Controls 調整 Monaco Markdown 編輯器各種選項' },
+      source: { code: `<MarkdownEditor
   value={content}
   onChange={setContent}
   minHeight="280px"
   showPreview
   showToolbar
-/>`,
+/>` },
     },
-    {
-      name: "Inline Editor",
-      description: "直接在頁面內編輯的 Inline 版本，適合雙欄表單",
-      render: () => <InlineEditorStory />,
-      code: `<InlineMarkdownEditor
+  },
+  render: (args) => <PlaygroundComponent {...args} />,
+};
+
+export const InlineEditor: Story = {
+  parameters: {
+    docs: {
+      description: { story: '直接在頁面內編輯的 Inline 版本，適合雙欄表單' },
+      source: { code: `<InlineMarkdownEditor
   id="inline-md"
   labelText="內容"
   value={content}
   onChange={setContent}
   minHeight="260px"
-/>`,
+/>` },
     },
-    {
-      name: "Form Field",
-      description: "Carbon 風格的表單欄位，顯示工具列與預覽",
-      render: () => <MarkdownFieldStory />,
-      code: `<MarkdownField
+  },
+  render: () => <InlineEditorStory />,
+};
+
+export const FormField: Story = {
+  parameters: {
+    docs: {
+      description: { story: 'Carbon 風格的表單欄位，顯示工具列與預覽' },
+      source: { code: `<MarkdownField
   id="md-field"
   labelText="描述"
   value={value}
   onChange={setValue}
   showPreview
-/>`,
+/>` },
     },
-  ],
+  },
+  render: () => <MarkdownFieldStory />,
 };
-
-export default storyModule;

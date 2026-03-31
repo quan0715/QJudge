@@ -1,10 +1,11 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Button, IconButton, Tag } from "@carbon/react";
-import { Add, Draggable, TrashCan } from "@carbon/icons-react";
+import { Add, Catalog, Draggable, TrashCan } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import { EXAM_QUESTION_TYPE_TAG_COLOR } from "@/shared/ui/examQuestionTypeVisual";
+import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import AddQuestionMenuButton from "./AddQuestionMenuButton";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
@@ -13,6 +14,7 @@ interface WorkTreeProps {
   questions: ExamQuestion[];
   selectedId: string | null;
   frozen?: boolean;
+  lockedReason?: string;
   loading?: boolean;
   onSelect: (id: string) => void;
   onAdd: () => void;
@@ -32,6 +34,17 @@ const TreeItem: React.FC<{
 }> = ({ question, index, isActive, frozen, onSelect, onDelete }) => {
   const { t } = useTranslation("contest");
   const dragControls = useDragControls();
+  const [saveToBankOpen, setSaveToBankOpen] = useState(false);
+  const saveToBankDisabled =
+    !!frozen ||
+    !!question.sourceBank ||
+    question.sourceMode === "copy" ||
+    question.sourceMode === "reference";
+  const saveToBankLabel = frozen
+    ? t("questionEditLocked", "已有學生正式作答，競賽題目已鎖定")
+    : saveToBankDisabled
+      ? t("common:questionBank.saveToBank.alreadySaved", "此題已收錄至題庫")
+      : t("common:questionBank.saveToBank.title", "收錄到題庫");
 
   return (
     <Reorder.Item
@@ -74,8 +87,21 @@ const TreeItem: React.FC<{
           </div>
         </div>
       </button>
-      {!frozen && (
-        <div className={styles.deleteBtn}>
+      <div className={styles.deleteBtn}>
+        <IconButton
+          kind="ghost"
+          size="sm"
+          label={saveToBankLabel}
+          disabled={saveToBankDisabled}
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            if (saveToBankDisabled) return;
+            setSaveToBankOpen(true);
+          }}
+        >
+          <Catalog size={14} />
+        </IconButton>
+        {!frozen && (
           <IconButton
             kind="ghost"
             size="sm"
@@ -87,8 +113,15 @@ const TreeItem: React.FC<{
           >
             <TrashCan size={14} />
           </IconButton>
-        </div>
-      )}
+        )}
+      </div>
+      <SaveToBankModal
+        open={saveToBankOpen}
+        onClose={() => setSaveToBankOpen(false)}
+        sourceType="exam_question"
+        sourceId={question.id}
+        sourceTitle={question.prompt?.replace(/[#*_`>\n]/g, "").slice(0, 40) || `Question ${index + 1}`}
+      />
     </Reorder.Item>
   );
 };
@@ -97,6 +130,7 @@ const WorkTree: React.FC<WorkTreeProps> = ({
   questions,
   selectedId,
   frozen,
+  lockedReason,
   loading,
   onSelect,
   onAdd,
@@ -124,12 +158,11 @@ const WorkTree: React.FC<WorkTreeProps> = ({
       title={t("examEditor.questionList", "題目列表")}
       actions={(
         <>
-          {!frozen && (
-            <AddQuestionMenuButton
-              onCreate={onAdd}
-              onImportFromBank={onImportFromBank}
-            />
-          )}
+          <AddQuestionMenuButton
+            onCreate={onAdd}
+            onImportFromBank={onImportFromBank}
+            disabled={!!frozen}
+          />
         </>
       )}
       hasItems={questions.length > 0}
@@ -137,17 +170,22 @@ const WorkTree: React.FC<WorkTreeProps> = ({
       emptyState={(
         <>
           <p>{t("examEditor.noQuestions", "尚無題目")}</p>
-          {!frozen && (
-            <Button kind="tertiary" size="sm" renderIcon={Add} onClick={onAdd}>
-              {t("examEditor.addFirstQuestion", "新增第一道題")}
-            </Button>
-          )}
+          <Button
+            kind="tertiary"
+            size="sm"
+            renderIcon={Add}
+            onClick={onAdd}
+            disabled={!!frozen}
+          >
+            {t("examEditor.addFirstQuestion", "新增第一道題")}
+          </Button>
         </>
       )}
       footer={(
         <>
           <span>{t("examEditor.questionCount", { count: questions.length })}</span>
           <span>{t("examEditor.totalScore", { score: totalScore })}</span>
+          {frozen && lockedReason && <span>{lockedReason}</span>}
         </>
       )}
     >

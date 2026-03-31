@@ -427,6 +427,7 @@ const AdminContestSettingsScreen = () => {
       cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
       anticheatDevicePolicy: sanitizeAnticheatPolicy(contest.anticheatDevicePolicy),
       warningTimeoutSeconds: contest.warningTimeoutSeconds ?? 20,
+      screenShareRecoveryGraceMs: contest.screenShareRecoveryGraceMs ?? 30_000,
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       anonymousModeEnabled: contest.anonymousModeEnabled ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,

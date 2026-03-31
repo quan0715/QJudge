@@ -8,11 +8,10 @@ import {
   consumeTeacherActivationInvite,
   previewTeacherActivationInvite,
 } from "@/infrastructure/api/repositories/auth.repository";
-import {
-  clearPendingTeacherActivationToken,
-  getAuthedLandingPath,
-  storePendingTeacherActivationToken,
-} from "@/features/auth/utils/onboarding";
+import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
+import { PENDING_ACTIONS, storePendingAction, clearPendingAction } from "@/features/auth/pending-actions";
+
+const TA = PENDING_ACTIONS.find((a) => a.key === "teacher_activation")!;
 
 const TeacherActivationScreen = () => {
   const navigate = useNavigate();
@@ -52,12 +51,12 @@ const TeacherActivationScreen = () => {
 
   useEffect(() => {
     if (!token) {
-      clearPendingTeacherActivationToken();
+      clearPendingAction(TA.storageKey);
       setLoading(false);
       setPreview(null);
       return;
     }
-    storePendingTeacherActivationToken(token);
+    storePendingAction(TA.storageKey, token);
 
     let mounted = true;
     const loadPreview = async () => {
@@ -68,11 +67,13 @@ const TeacherActivationScreen = () => {
         if (!mounted) return;
         setPreview(response.data);
         if (response.data.status !== "pending") {
-          clearPendingTeacherActivationToken();
+          clearPendingAction(TA.storageKey);
         }
       } catch (err: any) {
         if (!mounted) return;
-        clearPendingTeacherActivationToken();
+        // Do NOT clear the pending action here — the token may still be valid.
+        // It is only cleared when preview returns a non-pending status (expired/consumed)
+        // or after successful consume.
         setPreview(null);
         setError(
           err?.message ||
@@ -93,12 +94,12 @@ const TeacherActivationScreen = () => {
   }, [token]);
 
   useEffect(() => {
-    if (!user && preview?.status === "pending") {
+    if (!user && token && !loading && (preview?.status === "pending" || (!preview && error))) {
       navigate(`/login?teacher_activation_token=${encodeURIComponent(token)}`, {
         replace: true,
       });
     }
-  }, [navigate, preview?.status, token, user]);
+  }, [navigate, preview?.status, token, user, loading, preview, error]);
 
   useEffect(() => {
     if (!user || !token || !preview || preview.status !== "pending" || !preview.can_consume) {
@@ -117,7 +118,7 @@ const TeacherActivationScreen = () => {
     try {
       const response = await consumeTeacherActivationInvite(token);
       const nextUser: User = response.data.user;
-      clearPendingTeacherActivationToken();
+      clearPendingAction(TA.storageKey);
       setUser(nextUser);
       localStorage.setItem("user", JSON.stringify(nextUser));
       window.dispatchEvent(new Event("storage"));

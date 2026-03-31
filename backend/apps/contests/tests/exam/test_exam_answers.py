@@ -4,6 +4,7 @@ from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
+from uuid import uuid4
 from apps.contests.models import (
     Contest, ContestParticipant, ExamQuestion, ExamAnswer,
     ExamStatus, ExamQuestionType,
@@ -148,7 +149,7 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
     def test_submit_nonexistent_question(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self._url(), {
-            'question_id': 99999,
+            'question_id': str(uuid4()),
             'answer': {'selected': 'A'},
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
@@ -159,6 +160,31 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
             'answer': {'selected': 'A'},
         }, format='json')
         self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_student_non_empty_answer_locks_contest_question_edit(self):
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post(self._url(), {
+            'question_id': self.q_essay.id,
+            'answer': {'text': 'hello'},
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.contest.refresh_from_db()
+        self.assertTrue(self.contest.question_edit_locked)
+        self.assertEqual(
+            self.contest.question_edit_lock_trigger,
+            Contest.QuestionEditLockTrigger.EXAM_ANSWER,
+        )
+        self.assertIsNotNone(self.contest.question_edit_locked_at)
+
+    def test_empty_answer_does_not_lock_contest_question_edit(self):
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post(self._url(), {
+            'question_id': self.q_essay.id,
+            'answer': {'text': ''},
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.contest.refresh_from_db()
+        self.assertFalse(self.contest.question_edit_locked)
 
 
 class ExamAnswerMyAnswersTests(ExamAnswerTestBase):
@@ -180,7 +206,7 @@ class ExamAnswerMyAnswersTests(ExamAnswerTestBase):
         resp = self.client.get(self._url())
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(len(resp.data), 1)
-        self.assertEqual(resp.data[0]['question_id'], self.q_single.id)
+        self.assertEqual(resp.data[0]['question_id'], str(self.q_single.id))
 
     def test_empty_answers(self):
         self.client.force_authenticate(user=self.student)

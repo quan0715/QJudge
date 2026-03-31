@@ -15,6 +15,7 @@ import {
   Settings,
   UserMultiple,
   Bullhorn,
+  Microscope,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -32,7 +33,6 @@ interface UserMenuProps {
   contestMode?: boolean;
   contest?: ContestDetail | null;
   onContestRefresh?: () => void;
-  compact?: boolean;
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({
@@ -41,7 +41,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   contestMode = false,
   contest,
   onContestRefresh,
-  compact = false,
 }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -52,6 +51,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   const { open: openSettings } = useSettingsDialog();
 
   const [isExpandedInternal, setIsExpandedInternal] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
   const [nickname, setNickname] = useState(contest?.myNickname || "");
   const [nicknameLoading, setNicknameLoading] = useState(false);
@@ -99,6 +99,17 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     onExpandedChange?.(false);
   };
 
+  const handleLogoutRequest = () => {
+    setIsLogoutModalOpen(true);
+    setIsExpandedInternal(false);
+    onExpandedChange?.(false);
+  };
+
+  const handleOpenStorybook = () => {
+    setIsExpandedInternal(false);
+    onExpandedChange?.(false);
+    window.location.assign("/dev/storybook/");
+  };
 
   const handleNicknameUpdate = async () => {
     if (!contest) return;
@@ -152,16 +163,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           url={avatarUrl || undefined}
           size="sm"
         />
-        {!compact && (
-          <span className="user-menu-trigger__text">
-            <span className="user-menu-trigger__name">
-              {displayName?.trim() || user.username || user.email}
-            </span>
-            <span className="user-menu-trigger__role">
-              {getRoleLabel(user.role)}
-            </span>
-          </span>
-        )}
       </button>
 
       <HeaderPanel aria-label={t("header.userMenu")} expanded={isExpanded}>
@@ -239,6 +240,30 @@ export const UserMenu: React.FC<UserMenuProps> = ({
                 type="button"
                 className="user-menu-link"
                 onClick={() => {
+                  navigate("/admin/contest-bindings");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <Book size={16} />
+                {t("header.legacyContestBinding", "舊競賽綁定")}
+              </button>
+              <button
+                type="button"
+                className="user-menu-link"
+                onClick={() => {
+                  navigate("/admin/review-queue");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <Microscope size={16} />
+                {t("header.reviewQueue", "送審佇列")}
+              </button>
+              <button
+                type="button"
+                className="user-menu-link"
+                onClick={() => {
                   navigate("/management/announcements");
                   setIsExpandedInternal(false);
                   onExpandedChange?.(false);
@@ -255,11 +280,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             <button
               type="button"
               className="user-menu-link"
-              onClick={() => {
-                navigate("/dev/storybook");
-                setIsExpandedInternal(false);
-                onExpandedChange?.(false);
-              }}
+              onClick={handleOpenStorybook}
             >
               <Code size={16} />
               Storybook
@@ -269,13 +290,26 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           <button
             type="button"
             className="user-menu-link user-menu-link--danger"
-            onClick={handleLogout}
+            onClick={handleLogoutRequest}
           >
             <Logout size={16} />
             {t("button.logout")}
           </button>
         </div>
       </HeaderPanel>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        open={isLogoutModalOpen}
+        danger
+        modalHeading={t("auth.logout.confirmTitle")}
+        primaryButtonText={t("auth.logout.confirmButton")}
+        secondaryButtonText={t("button.cancel")}
+        onRequestClose={() => setIsLogoutModalOpen(false)}
+        onRequestSubmit={handleLogout}
+      >
+        <p>{t("auth.logout.confirmMessage")}</p>
+      </Modal>
 
       {/* Nickname Modal */}
       <Modal

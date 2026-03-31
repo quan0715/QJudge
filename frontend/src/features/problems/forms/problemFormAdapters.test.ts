@@ -28,8 +28,6 @@ describe("problemFormAdapters", () => {
         reCount: 0,
         ceCount: 0,
         tags: [{ id: "10", name: "Math", slug: "math" }],
-        isPracticeVisible: false,
-        isVisible: true,
         isSolved: false,
         description: "Desc",
         timeLimit: 500,
@@ -199,7 +197,6 @@ describe("problemFormAdapters", () => {
 
       const payload = yamlToApiPayload(yaml);
 
-      expect(payload.visibility).toBe("private");
       expect(payload.test_cases).toEqual([]);
       expect(payload.language_configs).toEqual([]);
       expect(payload.required_keywords).toEqual([]);

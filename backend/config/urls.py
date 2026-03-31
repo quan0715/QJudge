@@ -12,12 +12,16 @@ urlpatterns = [
     path('django-admin/', admin.site.urls),  # Django backend admin (use only when frontend cannot handle it)
     path('api/v1/auth/', include('apps.users.urls')),
     path('api/v1/markdown/', include('apps.core.urls')),
+    path(
+        'api/v1/management/problems/',
+        include(('apps.problems.urls', 'problems'), namespace='management-problems'),
+    ),
     path('api/v1/problems/', include('apps.problems.urls')),
     path('api/v1/submissions/', include('apps.submissions.urls')),
     path('api/v1/contests/', include('apps.contests.urls')),
     path('api/v1/classrooms/', include('apps.classrooms.urls')),
     path('api/v1/question-banks/', include('apps.question_bank.urls')),
-    path('api/v1/questions/', include('apps.question_bank.question_urls')),
+    path('api/v1/question-bank-items/', include('apps.question_bank.item_urls')),
     path('api/v1/management/announcements/', include('apps.announcements.urls')),
     path('api/v1/ai/', include('apps.ai.urls')),
     path('api/v1/subscriptions/', include('apps.subscriptions.urls')),

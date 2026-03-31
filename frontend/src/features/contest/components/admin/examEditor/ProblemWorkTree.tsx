@@ -1,8 +1,10 @@
 import React from "react";
+import { useState } from "react";
 import { Button, IconButton, Tag, TextInput } from "@carbon/react";
-import { Add, Draggable, TrashCan } from "@carbon/icons-react";
+import { Add, Catalog, Draggable, TrashCan } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
+import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import AddQuestionMenuButton from "./AddQuestionMenuButton";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
@@ -29,9 +31,14 @@ const getSourceModeLabel = (mode?: ContestProblemSummary["sourceMode"]): string 
   return null;
 };
 
+const isAlreadyInQuestionBank = (problem: ContestProblemSummary): boolean =>
+  !!problem.sourceBank || problem.sourceMode === "copy" || problem.sourceMode === "reference";
+
 interface ProblemWorkTreeProps {
   problems: ContestProblemSummary[];
   selectedId: string | null;
+  questionEditLocked?: boolean;
+  lockedReason?: string;
   loading?: boolean;
   onSelect: (id: string) => void;
   onAdd: () => void;
@@ -44,13 +51,21 @@ interface ProblemWorkTreeProps {
 const ProblemTreeItem: React.FC<{
   problem: ContestProblemSummary;
   isActive: boolean;
+  locked?: boolean;
   onSelect: () => void;
   onRemove: () => void;
   onUpdateScore?: (id: string, maxScore: number) => Promise<void> | void;
-}> = ({ problem, isActive, onSelect, onRemove, onUpdateScore }) => {
+}> = ({ problem, isActive, locked, onSelect, onRemove, onUpdateScore }) => {
   const dragControls = useDragControls();
   const initialScore = Math.max(1, Number(problem.maxScore ?? problem.score ?? 100));
   const [scoreDraft, setScoreDraft] = React.useState<string>(String(initialScore));
+  const [saveToBankOpen, setSaveToBankOpen] = useState(false);
+  const saveToBankDisabled = !!locked || isAlreadyInQuestionBank(problem);
+  const saveToBankLabel = locked
+    ? "已有學生正式作答，題目已鎖定"
+    : isAlreadyInQuestionBank(problem)
+      ? "此題已收錄至題庫"
+      : "收錄到題庫";
 
   React.useEffect(() => {
     setScoreDraft(String(Math.max(1, Number(problem.maxScore ?? problem.score ?? 100))));
@@ -72,15 +87,18 @@ const ProblemTreeItem: React.FC<{
       value={problem}
       dragListener={false}
       dragControls={dragControls}
+      drag={!locked}
       as="div"
       className={`${styles.treeItem} ${isActive ? styles.treeItemActive : ""}`}
     >
-      <div
-        className={styles.dragHandle}
-        onPointerDown={(e) => dragControls.start(e)}
-      >
-        <Draggable size={14} />
-      </div>
+      {!locked && (
+        <div
+          className={styles.dragHandle}
+          onPointerDown={(e) => dragControls.start(e)}
+        >
+          <Draggable size={14} />
+        </div>
+      )}
       <button
         type="button"
         className={styles.itemButton}
@@ -124,6 +142,7 @@ const ProblemTreeItem: React.FC<{
           type="number"
           min={1}
           size="sm"
+          disabled={locked}
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setScoreDraft(e.target.value)}
           onBlur={() => {
@@ -140,7 +159,21 @@ const ProblemTreeItem: React.FC<{
         <IconButton
           kind="ghost"
           size="sm"
+          label={saveToBankLabel}
+          disabled={saveToBankDisabled}
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            if (saveToBankDisabled) return;
+            setSaveToBankOpen(true);
+          }}
+        >
+          <Catalog size={14} />
+        </IconButton>
+        <IconButton
+          kind="ghost"
+          size="sm"
           label="移除"
+          disabled={locked}
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
             onRemove();
@@ -149,6 +182,13 @@ const ProblemTreeItem: React.FC<{
           <TrashCan size={14} />
         </IconButton>
       </div>
+      <SaveToBankModal
+        open={saveToBankOpen}
+        onClose={() => setSaveToBankOpen(false)}
+        sourceType="problem"
+        sourceId={problem.problemId}
+        sourceTitle={getProblemDisplayTitle(problem)}
+      />
     </Reorder.Item>
   );
 };
@@ -156,6 +196,8 @@ const ProblemTreeItem: React.FC<{
 const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
   problems,
   selectedId,
+  questionEditLocked,
+  lockedReason,
   loading,
   onSelect,
   onAdd,
@@ -174,6 +216,7 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
           <AddQuestionMenuButton
             onCreate={onAdd}
             onImportFromBank={onImportFromBank}
+            disabled={!!questionEditLocked}
           />
         </>
       }
@@ -182,7 +225,13 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
       emptyState={(
         <>
           <p>No problems yet</p>
-          <Button kind="tertiary" size="sm" renderIcon={Add} onClick={onAdd}>
+          <Button
+            kind="tertiary"
+            size="sm"
+            renderIcon={Add}
+            onClick={onAdd}
+            disabled={!!questionEditLocked}
+          >
             Add First Problem
           </Button>
         </>
@@ -191,6 +240,7 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
         <>
           <span>{problems.length} problems</span>
           <span>Total {totalScore}pt</span>
+          {questionEditLocked && lockedReason && <span>{lockedReason}</span>}
         </>
       )}
     >
@@ -206,6 +256,7 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
             key={p.id}
             problem={p}
             isActive={selectedId === p.id}
+            locked={questionEditLocked}
             onSelect={() => onSelect(p.id)}
             onRemove={() => onRemove(p.id)}
             onUpdateScore={onUpdateScore}

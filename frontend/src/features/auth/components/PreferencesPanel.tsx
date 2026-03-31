@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { ThemeSwitch } from "@/shared/ui/config/ThemeSwitch";
 import { LanguageSwitch } from "@/shared/ui/config/LanguageSwitch";
-import { SettingsSection } from "@/features/auth/components/SettingsSection";
+import { Section } from "@/shared/layout/SettingsPanel";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import type { ThemePreference } from "@/core/entities/auth.entity";
 import "./PreferencesPanel.scss";
@@ -12,8 +12,8 @@ export const PreferencesPanel: React.FC = () => {
   const { themePreference, updateTheme, language, updateLanguage } = useUserPreferences();
 
   return (
-    <div className="settings-panel">
-      <SettingsSection title={t("preferences.title", "偏好設定")}>
+    <>
+      <Section title={t("preferences.title", "偏好設定")}>
         <div className="preferences-panel__row">
           <div className="preferences-panel__row-label">
             <span className="preferences-panel__row-title">
@@ -51,8 +51,8 @@ export const PreferencesPanel: React.FC = () => {
             />
           </div>
         </div>
-      </SettingsSection>
-    </div>
+      </Section>
+    </>
   );
 };
 

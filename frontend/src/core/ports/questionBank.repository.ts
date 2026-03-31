@@ -19,6 +19,8 @@ export interface CreateQuestionBankPayload {
 export interface UpdateQuestionBankPayload {
   name?: string;
   description?: string;
+  icon?: string;
+  cover_url?: string;
   visibility?: BankVisibility;
 }
 
@@ -49,21 +51,28 @@ export interface IQuestionBankRepository {
   listExplore(): Promise<ExploreBankItem[]>;
   create(payload: CreateQuestionBankPayload): Promise<QuestionBank>;
   update(id: string, payload: UpdateQuestionBankPayload): Promise<QuestionBank>;
+  uploadCover(id: string, file: File): Promise<string>;
+  submitForReview(id: string): Promise<QuestionBank>;
+  review(
+    id: string,
+    payload: { decision: "approve" | "reject"; note?: string }
+  ): Promise<QuestionBank>;
+  listReviewQueue(): Promise<QuestionBank[]>;
   delete(id: string): Promise<void>;
   listQuestions(bankId: string): Promise<BankQuestion[]>;
   createQuestion(bankId: string, payload: UpsertBankQuestionPayload): Promise<BankQuestion>;
-  updateQuestion(id: string, payload: UpsertBankQuestionPayload): Promise<BankQuestion>;
-  deleteQuestion(id: string): Promise<void>;
-  clone(questionId: string, targetBankId?: string): Promise<BankQuestion>;
+  updateQuestion(bankItemId: string, payload: UpsertBankQuestionPayload): Promise<BankQuestion>;
+  deleteQuestion(bankItemId: string): Promise<void>;
+  clone(bankItemId: string, targetBankId?: string): Promise<BankQuestion>;
   listInbox(category?: BankCategory): Promise<QuestionInboxSummary>;
   ingestInbox(params: {
     targetBankId: string;
-    items: Array<{ sourceType: QuestionInboxSourceType; sourceId: number }>;
+    items: Array<{ sourceType: QuestionInboxSourceType; sourceId: string }>;
   }): Promise<{
     targetBankId: string;
     requestedCount: number;
     ingestedCount: number;
     movedCount: number;
-    questionIds: number[];
+    questionIds: string[];
   }>;
 }

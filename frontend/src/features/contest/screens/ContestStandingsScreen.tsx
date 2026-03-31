@@ -33,9 +33,9 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
   const problems: ProblemInfo[] = useMemo(() => {
     if (!scoreboardData?.problems) return [];
     return scoreboardData.problems.map((p, index) => {
-      const problemId = p.id ?? (p.problemId ? Number(p.problemId) : null);
+      const problemId = p.id?.toString() || p.problemId?.toString() || null;
       return {
-        id: problemId ?? index,
+        id: problemId ?? `problem-${index}`,
         title: p.title || p.label,
         order: p.order ?? index,
         label: p.label,

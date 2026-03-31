@@ -89,7 +89,6 @@ const ProblemTable: React.FC<ProblemTableProps> = ({
       { key: "title", header: "題目" },
       { key: "difficulty", header: "難度" },
       { key: "tags", header: "標籤" },
-      { key: "visibility", header: "狀態" },
       { key: "actions", header: "" },
     ];
   };

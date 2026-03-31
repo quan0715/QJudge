@@ -19,7 +19,6 @@ def test_problem_admin_serializer_accepts_weight_percent_total_100():
         "difficulty": "easy",
         "time_limit": 1000,
         "memory_limit": 128,
-        "visibility": "private",
         "translations": [
             {
                 "language": "zh-TW",
@@ -59,7 +58,6 @@ def test_problem_admin_serializer_rejects_weight_percent_total_not_100():
         "difficulty": "easy",
         "time_limit": 1000,
         "memory_limit": 128,
-        "visibility": "private",
         "translations": [
             {
                 "language": "zh-TW",

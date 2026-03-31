@@ -1,158 +1,158 @@
 {
-  "management": {
-    "description": "Manage your problems",
-    "problemCount": "{{count}} problems in total"
-  },
   "button": {
     "create": "Create"
   },
-  "form": {
-    "title": "Title",
-    "slug": "URL Slug",
-    "placeholder": {
-      "title": "Enter problem title"
-    }
-  },
-  "section": {
-    "description": "Description",
-    "inputDescription": "Input Description",
-    "outputDescription": "Output Description",
-    "sampleTestCases": "Sample Test Cases",
-    "hint": "Hint",
-    "codeRestrictions": "Code Restrictions",
-    "requiredKeywords": "Required Keywords:",
-    "forbiddenKeywords": "Forbidden Keywords:"
-  },
-  "sample": {
-    "example": "Example {{index}}",
-    "input": "Input",
-    "output": "Output",
-    "empty": "(empty)"
-  },
-  "list": {
-    "title": "Problem Solving",
-    "subtitle": "Explore various algorithmic challenges across different difficulties.",
-    "searchPlaceholder": "Search problems...",
-    "noResults": "No problems found matching your criteria",
-    "tryAdjustFilters": "Please try adjusting your filters",
-    "totalLoaded": "Loaded all {{count}} problems",
-    "acrRate": "AC Rate"
-  },
-  "filter": {
-    "status": "Status",
-    "solved": "Solved",
-    "unsolved": "Unsolved",
-    "difficulty": "Difficulty",
-    "tags": "Tags",
-    "noTags": "No tags available"
-  },
-  "tabs": {
-    "description": "Description",
-    "code": "Code",
-    "submissions": "Submissions",
-    "stats": "Statistics"
-  },
-  "modal": {
-    "confirmSubmit": "Confirm Submission",
-    "submitting": "Submitting...",
-    "submitConfirmTitle": "Are you sure you want to submit?",
-    "submitConfirmMessage": "This will be evaluated against all hidden test cases.",
-    "createTitle": "Create Problem",
-    "createSuccess": "Problem created successfully!",
-    "createError": "Failed to create. Please try again later.",
-    "confirmDelete": "Confirm Delete",
-    "deleteConfirmMessage": "Are you sure you want to delete problem \"{{title}}\"? This action cannot be undone."
-  },
-  "import": {
-    "modalTitle": "Import Problem from YAML",
-    "populateFormTitle": "Import YAML to Overwrite Form",
-    "applyToForm": "Apply to Form",
-    "importProblem": "Import Problem",
-    "close": "Close",
-    "cancel": "Cancel",
-    "uploadDesc": "Upload or paste YAML file, which will overwrite the current form content.",
-    "uploadDescCreate": "Upload a YAML document containing problem definition, test cases, and metadata.",
-    "viewFormat": "View Format Specification →",
-    "uploadYAML": "Upload YAML File",
-    "uploadHelperText": "Maximum file size is 5MB. Only .yaml or .yml files are supported.",
-    "chooseFile": "Choose File",
-    "pasteYAML": "Paste YAML Content Directly",
-    "pastePlaceholder": "Paste your YAML content here...",
-    "parsing": "Parsing...",
-    "parsingDesc": "Please wait, validating your file",
-    "validationError": "Validation Error",
-    "validationErrorDesc": "Found {{count}} error(s) in YAML file",
-    "importSuccess": "Import Successful",
-    "importSuccessDesc": "Problem created successfully, redirecting to problem preview...",
-    "importFailed": "Import Failed",
-    "preview": "Preview",
-    "timeLimit": "Time Limit",
-    "memoryLimit": "Memory Limit",
-    "testCases": "Test Cases",
-    "translations": "Translations",
-    "codeTemplates": "Code Templates",
-    "cases": "",
-    "samples": "samples",
-    "languages": "languages"
-  },
   "difficulty": {
     "easy": "Easy",
-    "medium": "Medium",
-    "hard": "Hard"
+    "hard": "Hard",
+    "medium": "Medium"
   },
   "edit": {
-    "sections": {
-      "basicInfo": "Basic Information",
-      "content": "Problem Content",
-      "testCases": "Test Cases",
-      "languageSettings": "Language Settings"
-    },
     "actions": {
-      "import": "Import",
-      "export": "Export",
-      "preview": "Preview",
-      "save": "Save",
+      "back": "Back",
       "delete": "Delete",
-      "back": "Back"
+      "export": "Export",
+      "import": "Import",
+      "preview": "Preview",
+      "save": "Save"
+    },
+    "exportModal": {
+      "cancel": "Cancel",
+      "description": "Export problem data as YAML for backup or import to other systems.",
+      "scaleLabel": "Scale",
+      "scalePlaceholder": "Select scale",
+      "submit": "Export",
+      "title": "Export Problem"
     },
     "messages": {
+      "deleteFailed": "Delete Failed",
+      "deleteSuccess": "Delete Successful",
+      "deleteSuccessDetail": "Redirecting...",
+      "exportSuccess": "YAML Export Successful",
+      "exportSuccessDetail": "File downloaded",
       "importSuccess": "Import Successful",
       "importSuccessDetail": "YAML data imported and saved",
       "importSuccessSaveFailed": "Import successful, but auto-save failed",
-      "deleteSuccess": "Delete Successful",
-      "deleteSuccessDetail": "Redirecting...",
-      "deleteFailed": "Delete Failed",
-      "exportSuccess": "YAML Export Successful",
-      "exportSuccessDetail": "File downloaded",
       "loadFailed": "Failed to load problem data",
-      "notFound": "Problem not found",
       "noPermission": "You do not have permission to edit this problem",
-      "noPermissionTitle": "Permission Denied"
+      "noPermissionTitle": "Permission Denied",
+      "notFound": "Problem not found"
+    },
+    "sections": {
+      "basicInfo": "Basic Information",
+      "content": "Problem Content",
+      "languageSettings": "Language Settings",
+      "testCases": "Test Cases"
     },
     "status": {
-      "public": "Problem is now public",
+      "hidden": "Problem hidden",
       "private": "Problem set to private",
-      "hidden": "Problem hidden"
-    },
-    "exportModal": {
-      "title": "Export Problem",
-      "submit": "Export",
-      "cancel": "Cancel",
-      "scaleLabel": "Scale",
-      "scalePlaceholder": "Select scale",
-      "description": "Export problem data as YAML for backup or import to other systems."
+      "public": "Problem is now public"
     }
-  },
-  "hero": {
-    "timeLimit": "Time Limit",
-    "memoryLimit": "Memory Limit",
-    "acRate": "AC Rate",
-    "submissions": "Submissions",
-    "accepted": "Accepted",
-    "score": "Score"
   },
   "editor": {
     "header": "Problem Editor",
     "selectLanguage": "Select Language"
+  },
+  "filter": {
+    "difficulty": "Difficulty",
+    "noTags": "No tags available",
+    "solved": "Solved",
+    "status": "Status",
+    "tags": "Tags",
+    "unsolved": "Unsolved"
+  },
+  "form": {
+    "placeholder": {
+      "title": "Enter problem title"
+    },
+    "slug": "URL Slug",
+    "title": "Title"
+  },
+  "hero": {
+    "acRate": "AC Rate",
+    "accepted": "Accepted",
+    "memoryLimit": "Memory Limit",
+    "score": "Score",
+    "submissions": "Submissions",
+    "timeLimit": "Time Limit"
+  },
+  "import": {
+    "applyToForm": "Apply to Form",
+    "cancel": "Cancel",
+    "cases": "",
+    "chooseFile": "Choose File",
+    "close": "Close",
+    "codeTemplates": "Code Templates",
+    "importFailed": "Import Failed",
+    "importProblem": "Import Problem",
+    "importSuccess": "Import Successful",
+    "importSuccessDesc": "Problem created successfully, redirecting to problem preview...",
+    "languages": "languages",
+    "memoryLimit": "Memory Limit",
+    "modalTitle": "Import Problem from YAML",
+    "parsing": "Parsing...",
+    "parsingDesc": "Please wait, validating your file",
+    "pastePlaceholder": "Paste your YAML content here...",
+    "pasteYAML": "Paste YAML Content Directly",
+    "populateFormTitle": "Import YAML to Overwrite Form",
+    "preview": "Preview",
+    "samples": "samples",
+    "testCases": "Test Cases",
+    "timeLimit": "Time Limit",
+    "translations": "Translations",
+    "uploadDesc": "Upload or paste YAML file, which will overwrite the current form content.",
+    "uploadDescCreate": "Upload a YAML document containing problem definition, test cases, and metadata.",
+    "uploadHelperText": "Maximum file size is 5MB. Only .yaml or .yml files are supported.",
+    "uploadYAML": "Upload YAML File",
+    "validationError": "Validation Error",
+    "validationErrorDesc": "Found {{count}} error(s) in YAML file",
+    "viewFormat": "View Format Specification →"
+  },
+  "list": {
+    "acrRate": "AC Rate",
+    "noResults": "No problems found matching your criteria",
+    "searchPlaceholder": "Search problems...",
+    "subtitle": "Explore various algorithmic challenges across different difficulties.",
+    "title": "Problem Solving",
+    "totalLoaded": "Loaded all {{count}} problems",
+    "tryAdjustFilters": "Please try adjusting your filters"
+  },
+  "management": {
+    "description": "Manage your problems",
+    "problemCount": "{{count}} problems in total"
+  },
+  "modal": {
+    "confirmDelete": "Confirm Delete",
+    "confirmSubmit": "Confirm Submission",
+    "createError": "Failed to create. Please try again later.",
+    "createSuccess": "Problem created successfully!",
+    "createTitle": "Create Problem",
+    "deleteConfirmMessage": "Are you sure you want to delete problem \"{{title}}\"? This action cannot be undone.",
+    "submitConfirmMessage": "This will be evaluated against all hidden test cases.",
+    "submitConfirmTitle": "Are you sure you want to submit?",
+    "submitting": "Submitting..."
+  },
+  "sample": {
+    "empty": "(empty)",
+    "example": "Example {{index}}",
+    "input": "Input",
+    "output": "Output"
+  },
+  "section": {
+    "codeRestrictions": "Code Restrictions",
+    "description": "Description",
+    "forbiddenKeywords": "Forbidden Keywords:",
+    "hint": "Hint",
+    "inputDescription": "Input Description",
+    "outputDescription": "Output Description",
+    "requiredKeywords": "Required Keywords:",
+    "sampleTestCases": "Sample Test Cases"
+  },
+  "tabs": {
+    "code": "Code",
+    "description": "Description",
+    "stats": "Statistics",
+    "submissions": "Submissions"
   }
 }

@@ -13,19 +13,24 @@ vi.mock("@/shared/contexts", () => ({
     showToast: vi.fn(),
   }),
 }));
+vi.mock("@/features/auth", () => ({
+  useAuth: () => ({
+    user: { role: "teacher" },
+  }),
+}));
 
 const listMineMock = vi.fn();
-const listExploreMock = vi.fn();
 const listInboxMock = vi.fn();
 const ingestInboxMock = vi.fn();
 const createMock = vi.fn();
+const listReviewQueueMock = vi.fn();
 
 vi.mock("@/infrastructure/api/repositories/questionBank.repository", () => ({
   listMine: (...args: unknown[]) => listMineMock(...args),
-  listExplore: (...args: unknown[]) => listExploreMock(...args),
   listInbox: (...args: unknown[]) => listInboxMock(...args),
   ingestInbox: (...args: unknown[]) => ingestInboxMock(...args),
   create: (...args: unknown[]) => createMock(...args),
+  listReviewQueue: (...args: unknown[]) => listReviewQueueMock(...args),
 }));
 
 import QuestionBanksScreen from "./QuestionBanksScreen";
@@ -33,10 +38,10 @@ import QuestionBanksScreen from "./QuestionBanksScreen";
 describe("QuestionBanksScreen", () => {
   beforeEach(() => {
     listMineMock.mockReset();
-    listExploreMock.mockReset();
     listInboxMock.mockReset();
     ingestInboxMock.mockReset();
     createMock.mockReset();
+    listReviewQueueMock.mockReset();
 
     listMineMock.mockResolvedValue([
       {
@@ -46,19 +51,8 @@ describe("QuestionBanksScreen", () => {
         category: "coding",
         visibility: "private",
         verified: false,
+        reviewStatus: "draft",
         questionCount: 0,
-      },
-    ]);
-    listExploreMock.mockResolvedValue([
-      {
-        id: "22222222-2222-4222-8222-222222222222",
-        name: "QJudge Community 程式題庫",
-        description: "platform",
-        category: "coding",
-        visibility: "public",
-        verified: true,
-        questionCount: 1,
-        source: "platform",
       },
     ]);
     listInboxMock.mockResolvedValue({
@@ -75,7 +69,7 @@ describe("QuestionBanksScreen", () => {
     });
   });
 
-  it("renders my/explore tabs with card gallery style", async () => {
+  it("renders mine/inbox tabs", async () => {
     render(
       <MemoryRouter>
         <QuestionBanksScreen />
@@ -84,16 +78,8 @@ describe("QuestionBanksScreen", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "我的題庫" })).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: "探索題庫" })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: "收編題目" })).toBeInTheDocument();
       expect(screen.getAllByText("我的程式題庫").length).toBeGreaterThan(0);
-    });
-
-    fireEvent.click(screen.getByRole("tab", { name: "探索題庫" }));
-
-    await waitFor(() => {
-      expect(screen.getByText("Mock Card Gallery")).toBeInTheDocument();
-      expect(screen.getByText("QJudge Community 程式題庫")).toBeInTheDocument();
     });
   });
 
@@ -102,7 +88,7 @@ describe("QuestionBanksScreen", () => {
       coding: [
         {
           sourceType: "problem",
-          sourceId: 101,
+          sourceId: "11111111-1111-4111-8111-111111111101",
           title: "Draft coding question",
         },
       ],
@@ -133,6 +119,7 @@ describe("QuestionBanksScreen", () => {
         category: "coding",
         visibility: "private",
         verified: false,
+        reviewStatus: "draft",
         questionCount: 0,
       },
       {
@@ -142,12 +129,25 @@ describe("QuestionBanksScreen", () => {
         category: "exam",
         visibility: "private",
         verified: false,
+        reviewStatus: "draft",
         questionCount: 0,
       },
     ]);
     listInboxMock.mockResolvedValue({
-      coding: [{ sourceType: "problem", sourceId: 1, title: "coding item" }],
-      exam: [{ sourceType: "exam_question", sourceId: 2, title: "exam item" }],
+      coding: [
+        {
+          sourceType: "problem",
+          sourceId: "11111111-1111-4111-8111-111111111001",
+          title: "coding item",
+        },
+      ],
+      exam: [
+        {
+          sourceType: "exam_question",
+          sourceId: "22222222-2222-4222-8222-222222222002",
+          title: "exam item",
+        },
+      ],
       counts: { coding: 1, exam: 1 },
     });
 

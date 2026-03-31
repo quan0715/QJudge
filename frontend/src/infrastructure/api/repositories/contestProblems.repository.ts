@@ -11,10 +11,10 @@ import {
 
 export const getContestProblem = async (
   contestId: string,
-  problemId: string
+  contestProblemId: string
 ): Promise<ProblemDetail | undefined> => {
   const res = await httpClient.get(
-    `/api/v1/contests/${contestId}/problems/${problemId}/`
+    `/api/v1/contests/${contestId}/problems/${contestProblemId}/`
   );
   if (!res.ok) return undefined;
   const data = await res.json();
@@ -27,7 +27,7 @@ export const addContestProblem = async (
     title?: string;
     problem_id?: string;
     question_bank_id?: string;
-    question_id?: string | number;
+    question_id?: string;
     import_mode?: "copy" | "reference";
     max_score?: number;
   }
@@ -89,7 +89,7 @@ export const updateContestProblemScore = async (
 
 export const publishContestProblemsToPractice = async (
   contestId: string,
-  problemIds?: Array<string | number>
+  problemIds?: string[]
 ): Promise<{ created_problem_ids: string[]; skipped_problem_ids: string[] }> => {
   const payload: any = {};
   if (problemIds && problemIds.length > 0) {

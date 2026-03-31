@@ -1,5 +1,6 @@
 @use "@carbon/layout";
 @use "@carbon/type";
+@use "../../../styles/card-tile" as card;
 
 .classroom-admin-page {
   display: flex;
@@ -8,6 +9,19 @@
   padding: 0;
   min-height: 0;
   align-content: start;
+
+  // Force Carbon Tile backgrounds to follow the current theme.
+  .cds--tile {
+    background-color: var(--cds-layer) !important;
+  }
+
+  .cds--tile:hover {
+    background-color: var(--cds-layer-hover) !important;
+  }
+
+  .cds--tile:active {
+    background-color: var(--cds-layer-active) !important;
+  }
 }
 
 .classroom-admin-loading,
@@ -99,6 +113,18 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+// KpiCard on dark hero — override default theme colors
+.classroom-hero-kpi {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  flex-shrink: 0;
+
+  [class*="kpiIcon"] { color: rgba(255, 255, 255, 0.5); }
+  [class*="kpiValue"] { color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
+  [class*="kpiLabel"] { color: rgba(255, 255, 255, 0.55); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
+}
+
 // ── Hero + Tabs wrapper ──
 // The tabs sit at the bottom of the hero visually, sharing the same
 // background. When the user scrolls, the tab bar sticks below the navbar.
@@ -107,7 +133,7 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-color: var(--cds-background-brand);
+  background-color: var(--cds-background);
 
   // Soft shadow at the bottom edge to ease the transition into content
   &::after {
@@ -212,10 +238,6 @@
 .classroom-admin-overview-layout__main > .classroom-admin-section,
 .classroom-admin-overview-layout__side > .classroom-admin-section {
   margin-bottom: 0;
-
-  &:first-child {
-    padding-top: 0;
-  }
 }
 
 .classroom-admin-section {
@@ -235,23 +257,13 @@
   align-items: center;
   justify-content: space-between;
   gap: layout.$spacing-03;
-  margin-bottom: layout.$spacing-03;
-  padding-bottom: layout.$spacing-03;
-  border-bottom: 1px solid var(--cds-border-subtle);
+  margin-bottom: layout.$spacing-04;
 }
 
 .classroom-admin-section__title {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-
-  svg {
-    color: var(--cds-icon-brand, var(--cds-interactive));
-  }
-
   h3 {
-    @include type.type-style("productive-heading-02");
-    font-weight: 600;
+    @include type.type-style("productive-heading-03");
+    font-weight: 300;
     margin: 0;
     color: var(--cds-text-primary);
   }
@@ -313,20 +325,15 @@
 }
 
 .classroom-admin-announcement-card {
-  width: 100%;
+  @include card.interactive($override-tile: true);
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-03;
-  text-align: left;
   border: 1px solid var(--cds-border-subtle);
   border-left: 3px solid var(--cds-border-interactive);
-  background: var(--cds-layer);
-  padding: layout.$spacing-04 layout.$spacing-05;
-  cursor: pointer;
-  transition: background-color 120ms ease, border-color 120ms ease;
+  transition: background-color 110ms ease, border-color 110ms ease;
 
   &:hover {
-    background: var(--cds-layer-hover);
     border-color: var(--cds-border-interactive);
   }
 }
@@ -515,33 +522,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: layout.rem(40px);
-  height: layout.rem(40px);
+  width: 2.25rem;
+  height: 2.25rem;
   border: 1px solid var(--cds-border-subtle);
+  border-radius: 999px;
   background: var(--cds-layer-01);
-  color: var(--cds-text-secondary);
+  color: var(--cds-icon-secondary);
   cursor: pointer;
   transition: all 100ms ease;
 
   &:hover {
-    background: var(--cds-layer-hover);
-    color: var(--cds-text-primary);
     border-color: var(--cds-border-interactive);
   }
 
   &--active {
-    background: var(--cds-background-brand);
-    color: #fff;
-    border-color: var(--cds-background-brand);
-
-    svg {
-      fill: #fff;
-    }
-
-    &:hover {
-      background: var(--cds-background-brand);
-      color: #fff;
-    }
+    border-color: var(--cds-border-interactive);
+    background: var(--cds-layer-selected-01);
+    color: var(--cds-icon-primary);
   }
 }
 

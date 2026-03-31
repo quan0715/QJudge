@@ -69,8 +69,8 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
       showToast({
         kind: "error",
         title: isEdit
-          ? t("announcement.updateFailed", "更新公告失敗")
-          : t("announcement.createFailed", "建立公告失敗"),
+          ? t("announcement.updateFailed")
+          : t("announcement.createFailed"),
         subtitle: err instanceof Error ? err.message : t("loadFailedHint", "請稍後再試"),
       });
     } finally {

@@ -18,6 +18,9 @@ $dashboard-padding-inline: layout.$spacing-10;
 // ── Main content area ──
 .dashboard-classroom__main {
   min-width: 0;
+  max-width: 84rem;
+  margin: 0 auto;
+  width: 100%;
   padding: layout.$spacing-05 $dashboard-padding-inline 0;
   display: flex;
   flex-direction: column;
@@ -275,9 +278,32 @@ $dashboard-padding-inline: layout.$spacing-10;
     gap: 0;
   }
 
+  // Bank grid: single column, no gap (mini rows)
+  .dashboard-classroom__bank-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
   .dashboard-classroom__empty {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  // Hero action buttons: full-width vertical stack
+  .dashboard-hero__actions {
+    flex-direction: column;
+
+    :global(.cds--btn) {
+      width: 100%;
+      max-width: none;
+    }
+  }
+}
+
+// Match QJudgeHeroWidget .inner padding at ≤1056px breakpoint
+@media (max-width: 1056px) {
+  .dashboard-classroom__main {
+    padding-inline: layout.$spacing-07;
   }
 }
 

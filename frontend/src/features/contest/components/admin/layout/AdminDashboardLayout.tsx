@@ -1,4 +1,5 @@
-import { HeaderGlobalAction, HeaderName } from "@carbon/react";
+import { Link } from "react-router-dom";
+import { Breadcrumb, BreadcrumbItem, HeaderGlobalAction } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import {
   Dashboard,
@@ -19,7 +20,10 @@ import type { AdminPanelId } from "@/features/contest/modules/types";
 import AdminShellLayout, { type NavItem } from "@/shared/layout/AdminShellLayout";
 
 interface AdminDashboardLayoutProps {
+  contestId: string;
   contestName: string;
+  classroomId?: string;
+  classroomName?: string;
   activePanel: AdminPanelId;
   availablePanels: AdminPanelId[];
   examMode?: boolean;
@@ -60,7 +64,10 @@ const NAV_ITEMS: Record<
 };
 
 export default function AdminDashboardLayout({
+  contestId,
   contestName,
+  classroomId,
+  classroomName,
   activePanel,
   availablePanels,
   examMode,
@@ -74,6 +81,7 @@ export default function AdminDashboardLayout({
   children,
 }: AdminDashboardLayoutProps) {
   const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
 
   const navItems: NavItem[] = availablePanels.flatMap((id) => {
     const item = NAV_ITEMS[id];
@@ -98,9 +106,54 @@ export default function AdminDashboardLayout({
     <AdminShellLayout
       headerAriaLabel={t("adminLayout.title")}
       headerLeft={
-        <HeaderName href="#" prefix={t("common:header.prefix", "QJudge")}>
-          {contestName}
-        </HeaderName>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+          <Link
+            to="/dashboard"
+            style={{
+              color: "var(--cds-text-primary)",
+              textDecoration: "none",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {t("common:header.prefix", "QJudge")}
+          </Link>
+          <Breadcrumb noTrailingSlash style={{ display: "inline-flex", alignItems: "center", margin: 0 }}>
+            {classroomId ? (
+              <>
+                <BreadcrumbItem>
+                  <Link to="/dashboard">{tc("nav.dashboard")}</Link>
+                </BreadcrumbItem>
+                <BreadcrumbItem>
+                  <Link to={`/classrooms/${classroomId}`}>
+                    {classroomName || tc("nav.classrooms", "教室")}
+                  </Link>
+                </BreadcrumbItem>
+                <BreadcrumbItem>
+                  <Link to={`/classrooms/${classroomId}/contest/${contestId}`}>
+                    {contestName}
+                  </Link>
+                </BreadcrumbItem>
+                <BreadcrumbItem isCurrentPage>
+                  {t("adminLayout.title", "管理")}
+                </BreadcrumbItem>
+              </>
+            ) : (
+              <>
+                <BreadcrumbItem>
+                  <Link to="/contests">{tc("nav.contests")}</Link>
+                </BreadcrumbItem>
+                <BreadcrumbItem>
+                  <Link to={`/contests/${contestId}`}>{contestName}</Link>
+                </BreadcrumbItem>
+                <BreadcrumbItem isCurrentPage>
+                  {t("adminLayout.title", "管理")}
+                </BreadcrumbItem>
+              </>
+            )}
+          </Breadcrumb>
+        </div>
       }
       headerActions={
         <>

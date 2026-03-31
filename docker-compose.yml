@@ -61,6 +61,9 @@ services:
       # Never forcibly disconnect idle clients (Django manages its own lifecycle).
       CLIENT_IDLE_TIMEOUT: "0"
       SERVER_RESET_QUERY: "DISCARD ALL"
+      LOG_CONNECTIONS: "0"
+      LOG_DISCONNECTIONS: "0"
+      LOG_STATS: "0"
     ports:
       - "6432:5432"
     depends_on:

@@ -1,4 +1,4 @@
-import { Tile } from "@carbon/react";
+import { Tile, SkeletonText } from "@carbon/react";
 import {
   Chat,
   Time,
@@ -13,6 +13,7 @@ import styles from "./OverviewEventSummaryPanel.module.scss";
 
 interface OverviewEventSummaryPanelProps {
   examEvents: ExamEvent[];
+  loading?: boolean;
 }
 
 const RECENT_LIST_SIZE = 6;
@@ -22,6 +23,7 @@ const EVENT_UNIT_FALLBACK = "件";
 
 export default function OverviewEventSummaryPanel({
   examEvents,
+  loading = false,
 }: OverviewEventSummaryPanelProps) {
   const { t } = useTranslation("contest");
 
@@ -65,6 +67,30 @@ export default function OverviewEventSummaryPanel({
       recentEvents: events.slice(0, RECENT_LIST_SIZE),
     };
   }, [examEvents]);
+
+  if (loading) {
+    return (
+      <section className={styles.section}>
+        <h3 className={styles.title}>
+          {t("adminOverview.events.title", "事件摘要")}
+        </h3>
+        <div className={styles.statsGrid}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Tile key={i} className={styles.statTile}>
+              <SkeletonText width="60%" />
+              <SkeletonText heading width="40%" />
+            </Tile>
+          ))}
+        </div>
+        <Tile className={styles.listTile}>
+          <SkeletonText heading width="30%" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonText key={i} width="100%" />
+          ))}
+        </Tile>
+      </section>
+    );
+  }
 
   return (
     <section className={styles.section}>

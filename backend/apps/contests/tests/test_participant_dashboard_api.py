@@ -154,7 +154,7 @@ class ParticipantDashboardApiTests(APITestCase):
             {
                 "problem_grid": [
                     {
-                        "problem_id": 1,
+                        "problem_id": "00000000-0000-4000-8000-000000000001",
                         "label": "A",
                         "title": "Two Sum",
                         "difficulty": "easy",

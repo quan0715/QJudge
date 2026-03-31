@@ -49,6 +49,10 @@ class IsClassroomOwnerOrAdmin(permissions.BasePermission):
         if classroom.admins.filter(pk=request.user.pk).exists():
             return True
 
+        membership = classroom.memberships.filter(user=request.user).first()
+        if membership and membership.role == 'ta':
+            return True
+
         return False
 
 

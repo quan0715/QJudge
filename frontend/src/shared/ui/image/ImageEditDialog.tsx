@@ -1,6 +1,19 @@
-import React, { useRef, useState } from "react";
-import { Button, Modal, TextInput } from "@carbon/react";
+import React, { useId, useRef, useState } from "react";
+import ReactDOM from "react-dom";
+import {
+  Button,
+  Modal,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
+  TextInput,
+} from "@carbon/react";
 import { CloudUpload, Edit, TrashCan, UserAvatar } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
+import { getModalPortalRoot } from "@/shared/ui/theme/portalRoot";
+import type { PresetCoverImage } from "./presetCoverImages";
 import "./ImageEditDialog.scss";
 
 type ImageEditVariant = "avatar" | "cover";
@@ -19,6 +32,7 @@ interface ImageEditDialogProps {
   dropzoneHint: string;
   accept?: string;
   disabled?: boolean;
+  galleryImages?: PresetCoverImage[];
   onUpload: (file: File) => Promise<void> | void;
   onApplyUrl: (url: string) => Promise<void> | void;
   onRemove?: () => Promise<void> | void;
@@ -38,39 +52,109 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
   dropzoneHint,
   accept = "image/png,image/jpeg,image/webp,image/gif",
   disabled = false,
+  galleryImages,
   onUpload,
   onApplyUrl,
   onRemove,
 }) => {
+  const { t } = useTranslation("common");
+  const uid = useId();
   const [open, setOpen] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const hasGallery = Boolean(galleryImages && galleryImages.length > 0);
+
+  const closeModal = () => {
+    setOpen(false);
+    setUrlInput("");
+    setDragging(false);
+  };
+
   const handleFile = (file: File | null | undefined) => {
     if (!file) return;
-    void Promise.resolve(onUpload(file)).finally(() => {
-      setOpen(false);
-      setDragging(false);
-    });
+    void Promise.resolve(onUpload(file)).finally(closeModal);
   };
 
   const handleApplyUrl = () => {
     const nextUrl = urlInput.trim();
     if (!nextUrl) return;
-    void Promise.resolve(onApplyUrl(nextUrl)).finally(() => {
-      setOpen(false);
-      setUrlInput("");
-    });
+    void Promise.resolve(onApplyUrl(nextUrl)).finally(closeModal);
+  };
+
+  const handleGallerySelect = (image: PresetCoverImage) => {
+    void Promise.resolve(onApplyUrl(image.url)).finally(closeModal);
   };
 
   const handleRemove = () => {
     if (!onRemove) return;
-    void Promise.resolve(onRemove()).finally(() => {
-      setOpen(false);
-      setUrlInput("");
-    });
+    void Promise.resolve(onRemove()).finally(closeModal);
   };
+
+  const galleryPanel = (
+    <div className="image-edit-gallery">
+      {galleryImages?.map((image) => (
+        <button
+          type="button"
+          key={image.url}
+          className="cds--tile cds--tile--clickable image-edit-gallery__item"
+          onClick={() => handleGallerySelect(image)}
+          disabled={disabled}
+        >
+          <img src={image.url} alt={image.label} loading="lazy" />
+          <span className="image-edit-gallery__attribution">
+            by{" "}
+            <a
+              href={image.photographerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {image.photographer}
+            </a>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+
+  const uploadPanel = (
+    <button
+      type="button"
+      className={`image-edit-dialog__dropzone${dragging ? " is-dragging" : ""}`}
+      disabled={disabled}
+      onClick={() => fileInputRef.current?.click()}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); }}
+    >
+      <CloudUpload size={20} />
+      <strong>{dropzoneLabel}</strong>
+      <span>{dropzoneHint}</span>
+      <span className="image-edit-dialog__dropzone-action">{uploadLabel}</span>
+    </button>
+  );
+
+  const linkPanel = (
+    <div className="image-edit-dialog__url-row">
+      <TextInput
+        id={`${uid}-url`}
+        hideLabel
+        labelText="URL"
+        size="md"
+        placeholder={urlPlaceholder}
+        value={urlInput}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrlInput(e.target.value)}
+        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === "Enter") handleApplyUrl();
+        }}
+      />
+      <Button type="button" kind="primary" size="md" disabled={!urlInput.trim() || disabled} onClick={handleApplyUrl}>
+        {applyLabel}
+      </Button>
+    </div>
+  );
 
   return (
     <>
@@ -79,10 +163,7 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
         type="file"
         accept={accept}
         hidden
-        onChange={(event) => {
-          handleFile(event.target.files?.[0]);
-          event.target.value = "";
-        }}
+        onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }}
       />
 
       <button
@@ -108,79 +189,43 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
         </div>
       </button>
 
-      <Modal
-        open={open}
-        size="sm"
-        modalHeading={modalHeading}
-        passiveModal
-        onRequestClose={() => {
-          setOpen(false);
-          setUrlInput("");
-          setDragging(false);
-        }}
-      >
-        <div className="image-edit-dialog__modal-body">
-          <button
-            type="button"
-            className={`image-edit-dialog__dropzone${dragging ? " is-dragging" : ""}`}
-            disabled={disabled}
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(event) => {
-              event.preventDefault();
-              setDragging(false);
-              handleFile(event.dataTransfer.files?.[0]);
-            }}
-          >
-            <CloudUpload size={20} />
-            <strong>{dropzoneLabel}</strong>
-            <span>{dropzoneHint}</span>
-            <span className="image-edit-dialog__dropzone-action">{uploadLabel}</span>
-          </button>
-
-          <div className="image-edit-dialog__url-row">
-            <TextInput
-              id="image-edit-dialog-url-input"
-              hideLabel
-              labelText="URL"
-              size="md"
-              placeholder={urlPlaceholder}
-              value={urlInput}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setUrlInput(event.target.value)}
-              onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-                if (event.key === "Enter") {
-                  handleApplyUrl();
-                }
-              }}
-            />
-            <Button
-              kind="primary"
-              size="md"
-              disabled={!urlInput.trim() || disabled}
-              onClick={handleApplyUrl}
-            >
-              {applyLabel}
-            </Button>
+      {ReactDOM.createPortal(
+        <Modal
+          open={open}
+          size={hasGallery ? "md" : "sm"}
+          modalHeading={modalHeading}
+          passiveModal
+          onRequestClose={closeModal}
+        >
+          <div className="image-edit-dialog__modal-body">
+            {hasGallery ? (
+              <Tabs>
+                <TabList aria-label="image source tabs">
+                  <Tab>{t("image.galleryTab", "圖庫")}</Tab>
+                  <Tab>{t("image.uploadTab", "上傳")}</Tab>
+                  <Tab>{t("image.linkTab", "連結")}</Tab>
+                </TabList>
+                <TabPanels>
+                  <TabPanel>{galleryPanel}</TabPanel>
+                  <TabPanel>{uploadPanel}</TabPanel>
+                  <TabPanel>{linkPanel}</TabPanel>
+                </TabPanels>
+              </Tabs>
+            ) : (
+              <>
+                {uploadPanel}
+                {linkPanel}
+              </>
+            )}
+            {previewUrl && onRemove ? (
+              <Button type="button" kind="danger--ghost" size="md" renderIcon={TrashCan} disabled={disabled} onClick={handleRemove}>
+                {removeLabel}
+              </Button>
+            ) : null}
           </div>
-
-          {previewUrl && onRemove ? (
-            <Button
-              kind="danger--ghost"
-              size="md"
-              renderIcon={TrashCan}
-              disabled={disabled}
-              onClick={handleRemove}
-            >
-              {removeLabel}
-            </Button>
-          ) : null}
-        </div>
-      </Modal>
+        </Modal>,
+        getModalPortalRoot(),
+      )}
     </>
   );
 };
-

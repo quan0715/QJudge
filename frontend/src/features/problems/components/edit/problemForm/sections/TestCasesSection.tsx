@@ -23,6 +23,7 @@ import {
 import { Add, Edit, TrashCan, Checkmark, Warning } from "@carbon/icons-react";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
+import { Section } from "@/shared/layout/SettingsPanel";
 import styles from "./TestCasesSection.module.scss";
 
 interface TestCaseRow {
@@ -88,7 +89,7 @@ const TestCasesSection: React.FC = () => {
   const headers = [
     { key: "index", header: "#" },
     { key: "type", header: "類型" },
-    { key: "score", header: "分數" },
+    { key: "score", header: "佔比 (%)" },
     { key: "status", header: "狀態" },
     { key: "actions", header: "" },
   ];
@@ -178,7 +179,8 @@ const TestCasesSection: React.FC = () => {
   };
 
   return (
-    <div className={styles.container}>
+    <Section title="測試案例" description="定義判題輸入與預期輸出。範例測資會對學生公開，隱藏測資僅用於後台評分。各測試案例佔比加總應為 100%。">
+      <div className={styles.container}>
       <DataTable rows={rows} headers={headers} size="lg">
         {({ headers: tableHeaders, getTableProps, getHeaderProps }) => (
           <TableContainer>
@@ -217,7 +219,7 @@ const TestCasesSection: React.FC = () => {
                       <TableCell>{rowData.index + 1}</TableCell>
                       <TableCell>{renderTypeTag(rowData)}</TableCell>
                       <TableCell>
-                        <Tag type="purple" size="sm">{rowData.score}</Tag>
+                        <Tag type="purple" size="sm">{rowData.score}%</Tag>
                       </TableCell>
                       <TableCell>{renderStatus(rowData)}</TableCell>
                       <TableCell>
@@ -288,7 +290,8 @@ const TestCasesSection: React.FC = () => {
           <div className={styles.optionsRow}>
             <NumberInput
               id="tc-score"
-              label="分數"
+              label="佔比 (%)"
+              helperText="此測試案例佔題目總分的百分比"
               value={editForm.score}
               min={0}
               step={10}
@@ -330,7 +333,8 @@ const TestCasesSection: React.FC = () => {
           </div>
         </Layer>
       </Modal>
-    </div>
+      </div>
+    </Section>
   );
 };
 

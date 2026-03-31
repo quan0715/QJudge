@@ -8,6 +8,7 @@ import {
   Modal,
   ClickableTile,
   SkeletonPlaceholder,
+  SkeletonText,
   Tabs,
   TabList,
   Tab,
@@ -31,13 +32,13 @@ import type {
   BoundContest,
 } from "@/core/entities/classroom.entity";
 import type { Contest } from "@/core/entities/contest.entity";
+import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import { useToast } from "@/shared/contexts/ToastContext";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { KpiCard } from "@/shared/ui/dataCard";
 import {
   getClassroom,
   getClassrooms,
-  bindContest,
   deleteAnnouncement,
 } from "@/infrastructure/api/repositories/classroom.repository";
 import { MemberGrid, type MemberCardData } from "../components/MemberTable";
@@ -68,7 +69,6 @@ const resolveActivePanel = (
 
 const ClassroomDetailScreen: React.FC = () => {
   const { t } = useTranslation("classroom");
-  const { t: tc } = useTranslation("common");
   const { showToast } = useToast();
   const navigate = useNavigate();
   const { classroomId } = useParams<{ classroomId: string }>();
@@ -87,7 +87,6 @@ const ClassroomDetailScreen: React.FC = () => {
     classroom?.currentUserRole === "platform_admin" ||
     classroom?.currentUserRole === "owner" ||
     classroom?.currentUserRole === "manager";
-  const canBindContests = classroom?.currentUserRole === "platform_admin";
   const isMember = Boolean(classroom?.currentUserRole);
 
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -195,31 +194,16 @@ const ClassroomDetailScreen: React.FC = () => {
   };
 
   const handleCreateContest = async (contestId?: string) => {
-    if (!classroomId || !contestId) return;
-    if (!canBindContests) {
-      showToast({
-        kind: "error",
-        title: t("bindContestNoPermission", "你沒有綁定競賽的權限"),
-      });
-      return;
-    }
-    try {
-      await bindContest(classroomId, contestId);
-      showToast({
-        kind: "success",
-        title: t("createContestSuccess", "已建立競賽並加入教室"),
-      });
-      setCreateContestOpen(false);
-      await fetchClassroomData();
-    } catch (error) {
-      showToast({
-        kind: "error",
-        title: t("createContestFailed", "建立競賽成功但加入教室失敗"),
-        subtitle:
-          error instanceof Error
-            ? error.message
-            : t("loadFailedHint", "請稍後再試"),
-      });
+    if (!contestId) return;
+    showToast({
+      kind: "success",
+      title: t("createContestSuccess", "已建立考試"),
+    });
+    setCreateContestOpen(false);
+    await fetchClassroomData();
+    const targetClassroomId = classroomId || classroom?.id;
+    if (targetClassroomId) {
+      navigate(getClassroomContestDashboardPath(targetClassroomId, contestId));
     }
   };
 
@@ -230,14 +214,14 @@ const ClassroomDetailScreen: React.FC = () => {
       await deleteAnnouncement(classroomId, viewingAnnouncement.id);
       showToast({
         kind: "success",
-        title: t("announcementDeleted", "公告已刪除"),
+        title: t("announcementDeleted"),
       });
       setViewingAnnouncement(null);
       await fetchClassroomData();
     } catch (error) {
       showToast({
         kind: "error",
-        title: t("announcementDeleteFailed", "刪除公告失敗"),
+        title: t("announcementDeleteFailed"),
         subtitle:
           error instanceof Error
             ? error.message
@@ -254,7 +238,7 @@ const ClassroomDetailScreen: React.FC = () => {
         <Education size={48} className="classroom-admin-empty__icon" />
         <p>{t("notFound", "找不到教室")}</p>
         <Button kind="tertiary" size="sm" onClick={() => navigate("/dashboard")}>
-          {tc("backToClassrooms", "返回教室列表")}
+          {t("backToClassrooms")}
         </Button>
       </div>
     );
@@ -262,7 +246,10 @@ const ClassroomDetailScreen: React.FC = () => {
 
   const selectedTabIndex = availablePanels.indexOf(activePanel);
 
-  const HeroIcon = getClassroomIcon(classroom.icon);
+  const HeroIcon = getClassroomIcon(classroom.icon) as React.ComponentType<{
+    size: number;
+    className?: string;
+  }>;
   const normalizedDescription = classroom.description?.trim() ?? "";
   const shouldShowDescription =
     normalizedDescription.length > 0 && normalizedDescription !== classroom.name.trim();
@@ -271,7 +258,7 @@ const ClassroomDetailScreen: React.FC = () => {
     <>
       <ClassroomAdminLayout
         classroomName={classroom.name}
-        classroomOptions={classroomOptions.map((row) => ({ id: row.id, name: row.name }))}
+        classroomOptions={classroomOptions.map((row) => ({ id: row.id, name: row.name, icon: row.icon }))}
         selectedClassroomId={classroomId || classroom.id}
         onClassroomSwitch={handleClassroomSwitch}
         onGoHome={() => navigate("/dashboard")}
@@ -292,7 +279,7 @@ const ClassroomDetailScreen: React.FC = () => {
             description={shouldShowDescription ? normalizedDescription : undefined}
             icon={HeroIcon}
             coverUrl={classroom.coverUrl || undefined}
-            backgroundGradient={DEFAULT_COVER_GRADIENT}
+
             kpiCards={
               <KpiCard
                 icon={UserMultiple}
@@ -322,14 +309,15 @@ const ClassroomDetailScreen: React.FC = () => {
               <OverviewPanel
                 classroom={classroom}
                 isPrivileged={Boolean(isPrivileged)}
-                canBindContests={Boolean(canBindContests)}
                 onCreateAnnouncement={() => {
                   setEditingAnnouncement(null);
                   setAnnouncementModalOpen(true);
                 }}
                 onViewAnnouncement={setViewingAnnouncement}
-                onCreateContest={() => setCreateContestOpen(true)}
-                onNavigateContest={(contestId) => navigate(`/contests/${contestId}`)}
+                onCreateExam={() => setCreateContestOpen(true)}
+                onNavigateExam={(contestId) =>
+                  navigate(getClassroomContestDashboardPath(classroom.id, contestId))
+                }
                 onJumpToPanel={handlePanelChange}
               />
             )}
@@ -348,10 +336,12 @@ const ClassroomDetailScreen: React.FC = () => {
 
             {activePanel === "contests" && (
               <ContestPanel
-                contests={classroom.contests}
-                canBindContests={Boolean(canBindContests)}
-                onCreateContest={() => setCreateContestOpen(true)}
-                onNavigateContest={(contestId) => navigate(`/contests/${contestId}`)}
+                exams={classroom.contests}
+                canBindContests={Boolean(isPrivileged)}
+                onCreateExam={() => setCreateContestOpen(true)}
+                onNavigateExam={(contestId) =>
+                  navigate(getClassroomContestDashboardPath(classroom.id, contestId))
+                }
               />
             )}
 
@@ -365,15 +355,14 @@ const ClassroomDetailScreen: React.FC = () => {
 
       {isPrivileged && (
         <>
-          {canBindContests && (
-            <CreateContestModal
-              open={createContestOpen}
-              onClose={() => setCreateContestOpen(false)}
-              onCreated={(contestId) => {
-                void handleCreateContest(contestId);
-              }}
-            />
-          )}
+          <CreateContestModal
+            open={createContestOpen}
+            onClose={() => setCreateContestOpen(false)}
+            classroomId={classroom.id}
+            onCreated={(contestId) => {
+              void handleCreateContest(contestId);
+            }}
+          />
           <ClassroomSettingsModal
             open={settingsModalOpen}
             onClose={() => setSettingsModalOpen(false)}
@@ -415,39 +404,44 @@ const ClassroomDetailScreen: React.FC = () => {
 
 type TFn = ReturnType<typeof useTranslation>["t"];
 
-const TAB_CONFIG: Record<ClassroomAdminPanelId, { label: (t: TFn) => string; icon: React.ComponentType }> = {
+const TAB_CONFIG: Record<ClassroomAdminPanelId, { label: (t: TFn) => string; icon: any }> = {
   overview:      { label: (t) => t("tab.overview", "總覽"),      icon: Dashboard },
-  announcements: { label: (t) => t("tab.announcements", "公告"), icon: Bullhorn },
-  contests:      { label: (t) => t("tab.contests", "競賽"),      icon: Trophy },
+  announcements: { label: (t) => t("tab.announcements"), icon: Bullhorn },
+  contests:      { label: (t) => t("tab.contests", "活動"),      icon: Trophy },
   members:       { label: (t) => t("tab.members", "成員"),       icon: UserMultiple },
   settings:      { label: (t) => t("tab.settings", "設定"),      icon: Settings },
 };
 
-const DEFAULT_COVER_GRADIENT =
-  "linear-gradient(135deg, #1a3a5c 0%, #0f62fe 50%, #4589ff 100%)";
+
 
 // ── Overview ──
 
 const OverviewPanel: React.FC<{
   classroom: ClassroomDetail;
   isPrivileged: boolean;
-  canBindContests: boolean;
   onCreateAnnouncement: () => void;
   onViewAnnouncement: (announcement: ClassroomAnnouncement) => void;
-  onCreateContest: () => void;
-  onNavigateContest: (contestId: string) => void;
+  onCreateExam: () => void;
+  onNavigateExam: (contestId: string) => void;
   onJumpToPanel: (panel: ClassroomAdminPanelId) => void;
 }> = ({
   classroom,
   isPrivileged,
-  canBindContests,
   onCreateAnnouncement,
   onViewAnnouncement,
-  onCreateContest,
-  onNavigateContest,
+  onCreateExam,
+  onNavigateExam,
   onJumpToPanel,
 }) => {
   const { t } = useTranslation("classroom");
+  const activeExams = classroom.contests.filter((row) => row.contestStatus === "published");
+  const recentActivities = [...activeExams]
+    .sort((left, right) => {
+      const leftTime = getActivityTimestamp(left);
+      const rightTime = getActivityTimestamp(right);
+      return rightTime.localeCompare(leftTime);
+    })
+    .slice(0, 3);
 
   return (
     <div className="classroom-admin-overview-layout">
@@ -458,7 +452,7 @@ const OverviewPanel: React.FC<{
           onCreateClick={onCreateAnnouncement}
           onView={onViewAnnouncement}
           compactEmpty
-          title={t("latestAnnouncements", "最新公告")}
+          title={t("latestAnnouncements")}
         />
         {classroom.announcements.length > 4 && (
           <Button
@@ -467,7 +461,7 @@ const OverviewPanel: React.FC<{
             renderIcon={ArrowRight}
             onClick={() => onJumpToPanel("announcements")}
           >
-            {t("viewAllAnnouncements", "查看全部公告")}
+            {t("viewAllAnnouncements")}
           </Button>
         )}
       </div>
@@ -482,11 +476,11 @@ const OverviewPanel: React.FC<{
             </div>
             <div className="classroom-admin-todo-list">
               <button type="button" onClick={() => onJumpToPanel("announcements")}>
-                <span>{t("announcements", "公告")}</span>
+                <span>{t("announcements")}</span>
                 <strong>{classroom.announcements.length}</strong>
               </button>
               <button type="button" onClick={() => onJumpToPanel("contests")}>
-                <span>{t("contests", "競賽")}</span>
+                <span>{t("contests", "考試")}</span>
                 <strong>{classroom.contests.length}</strong>
               </button>
             </div>
@@ -498,33 +492,32 @@ const OverviewPanel: React.FC<{
             <div className="classroom-admin-section__title">
               <h3>{t("recentActivities", "近期活動")}</h3>
             </div>
-            {canBindContests && (
-              <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateContest}>
-                {t("createContest", "建立競賽")}
-              </Button>
+            {isPrivileged && (
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateExam}>
+                  {t("createContest", "建立考試")}
+                </Button>
+              </div>
             )}
           </div>
 
-          {(() => {
-            const active = classroom.contests.filter((c) => c.contestStatus === "published");
-            return active.length === 0 ? (
-              <EmptyBlock
-                icon={Trophy}
-                message={t("noActiveContests", "目前沒有進行中或即將開始的競賽")}
-                compact
-              />
-            ) : (
-              <div className="classroom-admin-card-grid">
-                {active.slice(0, 3).map((contest) => (
-                  <ContestCard
-                    key={contest.contestId}
-                    contest={contest}
-                    onNavigate={() => onNavigateContest(contest.contestId)}
-                  />
-                ))}
-              </div>
-            );
-          })()}
+          {recentActivities.length === 0 ? (
+            <EmptyBlock
+              icon={Trophy}
+              message={t("noActiveContests", "目前沒有進行中或即將開始的活動")}
+              compact
+            />
+          ) : (
+            <div className="classroom-admin-card-grid">
+              {recentActivities.map((activity) => (
+                <ContestCard
+                  key={activity.contestId}
+                  contest={activity}
+                  onNavigate={() => onNavigateExam(activity.contestId)}
+                />
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>
@@ -534,45 +527,47 @@ const OverviewPanel: React.FC<{
 // ── Contests panel ──
 
 const ContestPanel: React.FC<{
-  contests: BoundContest[];
+  exams: BoundContest[];
   canBindContests: boolean;
-  onCreateContest: () => void;
-  onNavigateContest: (contestId: string) => void;
+  onCreateExam: () => void;
+  onNavigateExam: (contestId: string) => void;
 }> = ({
-  contests,
+  exams,
   canBindContests,
-  onCreateContest,
-  onNavigateContest,
+  onCreateExam,
+  onNavigateExam,
 }) => {
   const { t } = useTranslation("classroom");
 
   return (
-    <section className="classroom-admin-section">
-      <div className="classroom-admin-section__header">
-        <div className="classroom-admin-section__title">
-          <h3>{t("contests", "競賽列表")}</h3>
+    <div className="classroom-admin-overview-layout">
+      <section className="classroom-admin-section">
+        <div className="classroom-admin-section__header">
+          <div className="classroom-admin-section__title">
+            <h3>{t("contests", "考試與競賽")}</h3>
+          </div>
+          {canBindContests && (
+            <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateExam}>
+              {t("createContest", "建立考試")}
+            </Button>
+          )}
         </div>
-        {canBindContests && (
-          <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateContest}>
-            {t("createContest", "建立競賽")}
-          </Button>
-        )}
-      </div>
 
-      {contests.length === 0 ? (
-        <EmptyBlock icon={Trophy} message={t("noContests", "尚未建立競賽")} />
-      ) : (
-        <div className="classroom-admin-card-grid">
-          {contests.map((contest) => (
-            <ContestCard
-              key={contest.contestId}
-              contest={contest}
-              onNavigate={() => onNavigateContest(contest.contestId)}
-            />
-          ))}
-        </div>
-      )}
-    </section>
+        {exams.length === 0 ? (
+          <EmptyBlock icon={Trophy} message={t("noExamContests", "尚未建立考試或競賽")} />
+        ) : (
+          <div className="classroom-admin-card-grid">
+            {exams.map((contest) => (
+              <ContestCard
+                key={contest.contestId}
+                contest={contest}
+                onNavigate={() => onNavigateExam(contest.contestId)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   );
 };
 
@@ -595,12 +590,22 @@ const MembersPanel: React.FC<{
     return [owner, ...adminCards, ...taCards];
   }, [classroom.ownerUsername, classroom.admins, classroom.members]);
 
+  const reservedUserIds = useMemo(
+    () => new Set(classroom.admins.map((a) => a.id)),
+    [classroom.admins],
+  );
+
   const members: MemberCardData[] = useMemo(
     () =>
       classroom.members
-        .filter((m) => m.role === "student")
+        .filter(
+          (m) =>
+            m.role === "student" &&
+            !reservedUserIds.has(m.userId) &&
+            m.username !== classroom.ownerUsername,
+        )
         .map((m) => ({ key: `student-${m.userId}`, username: m.username, email: m.email, avatarUrl: m.avatarUrl, role: "member" as const })),
-    [classroom.members],
+    [classroom.members, classroom.ownerUsername, reservedUserIds],
   );
 
   const filterList = useCallback(
@@ -671,18 +676,18 @@ const AnnouncementSection: React.FC<{
     <section className="classroom-admin-section">
       <div className="classroom-admin-section__header">
         <div className="classroom-admin-section__title">
-          <h3>{title ?? t("announcements", "課程公告")}</h3>
+          <h3>{title ?? t("announcements")}</h3>
         </div>
         {isPrivileged && (
           <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateClick}>
-            {t("createAnnouncement", "發佈公告")}
+            {t("createAnnouncement")}
           </Button>
         )}
       </div>
       {announcements.length === 0 ? (
         <EmptyBlock
           icon={Bullhorn}
-          message={t("noAnnouncements", "尚無公告")}
+          message={t("noAnnouncements")}
           compact={compactEmpty}
         />
       ) : (
@@ -707,12 +712,13 @@ const ContestCard: React.FC<{
   const contestCardData: Contest = {
     id: contest.contestId,
     name: contest.contestName,
-    description: "",
+    description: contest.contestDescription,
     startTime: contest.contestStartTime || contest.boundAt,
     endTime: contest.contestEndTime || contest.boundAt,
     status: contest.contestStatus,
     visibility: contest.contestVisibility,
-    organizer: contest.contestOwnerUsername || undefined,
+    deliveryMode: contest.deliveryMode,
+    organizer: undefined,
     hasJoined: true,
     isRegistered: true,
     participantCount: contest.participantCount,
@@ -720,6 +726,9 @@ const ContestCard: React.FC<{
 
   return <ContestPreviewCard contest={contestCardData} onSelect={onNavigate} />;
 };
+
+const getActivityTimestamp = (contest: BoundContest): string =>
+  contest.contestStartTime || contest.boundAt;
 
 
 const stripMarkdown = (md: string, maxLen = 120): string => {
@@ -778,8 +787,8 @@ const AnnouncementViewModal: React.FC<{
       onRequestClose={onClose}
       onRequestSubmit={onEdit}
       modalHeading={announcement.title}
-      primaryButtonText={canEdit ? tc("edit", "Edit") : undefined}
-      secondaryButtonText={canEdit ? tc("delete", "Delete") : undefined}
+      primaryButtonText={canEdit ? tc("button.edit") : undefined}
+      secondaryButtonText={canEdit ? tc("button.delete") : undefined}
       onSecondarySubmit={() => setConfirmDeleteOpen(true)}
       size="lg"
       danger={false}
@@ -811,9 +820,9 @@ const AnnouncementViewModal: React.FC<{
       open={confirmDeleteOpen}
       size="sm"
       danger
-      modalHeading={t("confirmDeleteAnnouncementTitle", "Confirm delete announcement")}
-      primaryButtonText={tc("delete", "Delete")}
-      secondaryButtonText={tc("cancel", "Cancel")}
+      modalHeading={t("confirmDeleteAnnouncementTitle")}
+      primaryButtonText={tc("button.delete")}
+      secondaryButtonText={tc("button.cancel")}
       onRequestClose={() => setConfirmDeleteOpen(false)}
       onRequestSubmit={() => {
         setConfirmDeleteOpen(false);
@@ -821,10 +830,7 @@ const AnnouncementViewModal: React.FC<{
       }}
     >
       <p>
-        {t(
-          "confirmDeleteAnnouncementBody",
-          "Are you sure to delete this announcement? This action cannot be undone.",
-        )}
+        {t("confirmDeleteAnnouncementBody")}
       </p>
       <p><strong>{announcement.title}</strong></p>
     </Modal>
@@ -844,9 +850,21 @@ const EmptyBlock: React.FC<{
 );
 
 const ClassroomSkeleton = () => (
-  <div className="classroom-admin-page">
-    <div className="classroom-hero-and-tabs" style={{ minHeight: "12.5rem", background: DEFAULT_COVER_GRADIENT }}>
-      <SkeletonPlaceholder style={{ width: "100%", height: "100%", position: "absolute" }} />
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "100vh",
+      backgroundColor: "var(--cds-background)",
+    }}
+  >
+    <div style={{ minHeight: "12.5rem", position: "relative", overflow: "hidden" }}>
+      <SkeletonPlaceholder style={{ width: "100%", height: "12.5rem" }} />
+    </div>
+    <div style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <SkeletonText heading width="40%" />
+      <SkeletonText width="70%" />
+      <SkeletonText width="55%" />
     </div>
   </div>
 );

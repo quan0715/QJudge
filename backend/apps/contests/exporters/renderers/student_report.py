@@ -82,11 +82,11 @@ class StudentReportRenderer(BaseRenderer):
             'hard': stats.hard,
         }
 
-    def get_last_ac_submission(self, problem_id: int):
+    def get_last_ac_submission(self, problem_id: str):
         """Proxy to data_service for backward compatibility."""
         return self.data_service.get_user_last_ac_submission(self.user.id, problem_id)
 
-    def get_best_submission(self, problem_id: int):
+    def get_best_submission(self, problem_id: str):
         """Proxy to data_service for backward compatibility."""
         return self.data_service.get_user_best_submission(self.user.id, problem_id)
 

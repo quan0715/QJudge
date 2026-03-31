@@ -93,7 +93,7 @@ export const importExamQuestionsFromBank = async (
   contestId: string,
   payload: {
     items: ExamQuestionBankImportItem[];
-    import_mode: "copy" | "reference";
+    import_mode?: "copy" | "reference";
   }
 ): Promise<ExamQuestion[]> => {
   const data = await requestJson<unknown>(

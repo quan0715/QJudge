@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from "react";
-import { Layer } from "@carbon/react";
 import s from "./SettingsPanel.module.scss";
 
 export const TITLE_STYLE: CSSProperties = {
@@ -38,34 +37,32 @@ export const SettingsPanelRoot = ({
   </div>
 );
 
-/* ── Section (title + card) ─────────────────────────────────── */
+/* ── Section (title + description + action + body) ─────────── */
 
 export const Section = ({
   title,
+  description,
+  action,
   children,
 }: {
   title: string;
+  description?: string;
+  action?: ReactNode;
   children: ReactNode;
 }) => (
   <div className={s.section}>
-    <h4
-      className={s.sectionTitle}
-      style={{
-        fontSize: "var(--cds-heading-compact-01-font-size, 0.875rem)",
-        fontWeight: 600,
-        lineHeight: "1.125rem",
-        color: "var(--cds-text-primary)",
-      }}
-    >
-      {title}
-    </h4>
-    <Layer>
-      <div className={s.sectionCard}>{children}</div>
-    </Layer>
+    <div className={s.sectionHeader}>
+      <div>
+        <h4 className={s.sectionTitle}>{title}</h4>
+        {description && <p className={s.sectionDesc}>{description}</p>}
+      </div>
+      {action && <div className={s.sectionAction}>{action}</div>}
+    </div>
+    <div>{children}</div>
   </div>
 );
 
-/* ── FieldRow (label + description + control) ───────────────── */
+/* ── FieldRow (label + description + full-width control) ───── */
 
 export const FieldRow = ({
   label,
@@ -85,7 +82,7 @@ export const FieldRow = ({
   </div>
 );
 
-/* ── ActionRow (label + description + inline control) ──────── */
+/* ── ActionRow (label + desc ↔ inline control) ────────────── */
 
 export const ActionRow = ({
   label,

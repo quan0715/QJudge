@@ -49,9 +49,16 @@ export const mapQuestionBankDto = (dto: any): QuestionBank => ({
   id: toStringId(dto.id),
   name: dto.name,
   description: dto.description || "",
+  icon: dto.icon || "",
+  coverUrl: dto.cover_url || "",
   category: dto.category,
   visibility: dto.visibility,
   verified: Boolean(dto.verified),
+  reviewStatus: dto.review_status || "draft",
+  reviewNote: dto.review_note || "",
+  submittedAt: dto.submitted_at || undefined,
+  reviewedAt: dto.reviewed_at || undefined,
+  reviewedByUsername: dto.reviewed_by_username || undefined,
   ownerUsername: dto.owner_username,
   questionCount: Number(dto.question_count || 0),
   createdAt: dto.created_at,
@@ -64,7 +71,9 @@ export const mapExploreBankItemDto = (dto: any): ExploreBankItem => ({
 });
 
 export const mapBankQuestionDto = (dto: any): BankQuestion => ({
-  id: toStringId(dto.id),
+  id: toStringId(dto.bank_item_id),
+  bankItemId: toStringId(dto.bank_item_id),
+  adapterQuestionId: dto.adapter_question_id ? toStringId(dto.adapter_question_id) : null,
   bankId: toStringId(dto.bank),
   questionType: dto.question_type,
   title: dto.title,
@@ -77,9 +86,15 @@ export const mapBankQuestionDto = (dto: any): BankQuestion => ({
   timeLimit: Number(dto.time_limit || 1000),
   memoryLimit: Number(dto.memory_limit || 128),
   metadata: dto.metadata && typeof dto.metadata === "object" ? dto.metadata : undefined,
-  sourceQuestionId: dto.source_question_id ?? null,
+  sourceQuestionId: dto.source_question_id ? toStringId(dto.source_question_id) : null,
   sourceBankId: dto.source_bank_id ?? null,
   sourceBankName: dto.source_bank_name ?? null,
+  contestUsages: Array.isArray(dto.contest_usages)
+    ? dto.contest_usages.map((u: any) => ({
+        contestId: toStringId(u.contest_id),
+        contestName: u.contest_name || "",
+      }))
+    : [],
   codingExt: dto.coding_ext ? mapCodingExtDto(dto.coding_ext) : undefined,
   createdAt: dto.created_at,
   updatedAt: dto.updated_at,
@@ -87,9 +102,9 @@ export const mapBankQuestionDto = (dto: any): BankQuestion => ({
 
 export const mapQuestionInboxItemDto = (dto: any): QuestionInboxItem => ({
   sourceType: dto.source_type,
-  sourceId: Number(dto.source_id),
+  sourceId: toStringId(dto.source_id),
   title: dto.title || "",
-  contestId: dto.contest_id ? Number(dto.contest_id) : undefined,
+  contestId: dto.contest_id ? toStringId(dto.contest_id) : undefined,
   contestName: dto.contest_name || undefined,
   questionType: dto.question_type || undefined,
   score: typeof dto.score === "number" ? dto.score : undefined,

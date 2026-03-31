@@ -3,6 +3,7 @@ import type {
   ClassroomDetail,
   ClassroomMember,
   BoundContest,
+  ClassroomLabSummary,
   ClassroomAnnouncement,
 } from "@/core/entities/classroom.entity";
 
@@ -36,8 +37,11 @@ export function mapBoundContestDto(dto: any): BoundContest {
   return {
     contestId: dto.contest_id?.toString() || "",
     contestName: dto.contest_name || "",
+    contestDescription: dto.contest_description || "",
     contestStatus: dto.contest_status || "draft",
     contestVisibility: dto.contest_visibility || "public",
+    contestType: dto.contest_type || "coding",
+    deliveryMode: dto.delivery_mode || "exam",
     contestStartTime: dto.contest_start_time || dto.bound_at || "",
     contestEndTime: dto.contest_end_time || dto.bound_at || "",
     contestOwnerUsername: dto.contest_owner_username || "",
@@ -58,6 +62,31 @@ export function mapClassroomAnnouncementDto(dto: any): ClassroomAnnouncement {
   };
 }
 
+export function mapClassroomLabSummaryDto(dto: any): ClassroomLabSummary {
+  return {
+    labId: dto.lab_id?.toString() || "",
+    name: dto.name || "",
+    description: dto.description || "",
+    status: dto.status || "draft",
+    visibility: dto.visibility || "private",
+    contestType: dto.contest_type || "coding",
+    deliveryMode: dto.delivery_mode || "practice",
+    startTime: dto.start_time || "",
+    endTime: dto.end_time || "",
+    resultsPublished: !!dto.results_published,
+    assignmentState: dto.assignment_state ?? null,
+    acceptedAt: dto.accepted_at ?? null,
+    submittedAt: dto.submitted_at ?? null,
+    participantCount: Number(dto.participant_count ?? 0),
+    assignmentCounts: {
+      unaccepted: Number(dto.assignment_counts?.unaccepted ?? 0),
+      accepted: Number(dto.assignment_counts?.accepted ?? 0),
+      submitted: Number(dto.assignment_counts?.submitted ?? 0),
+    },
+    boundAt: dto.bound_at || "",
+  };
+}
+
 export function mapClassroomDetailDto(dto: any): ClassroomDetail {
   const base = mapClassroomDto(dto);
   return {
@@ -69,6 +98,9 @@ export function mapClassroomDetailDto(dto: any): ClassroomDetail {
       : [],
     contests: Array.isArray(dto.contests)
       ? dto.contests.map(mapBoundContestDto)
+      : [],
+    labs: Array.isArray(dto.labs)
+      ? dto.labs.map(mapClassroomLabSummaryDto)
       : [],
     admins: Array.isArray(dto.admins)
       ? dto.admins.map((a: any) => ({ id: a.id, username: a.username }))

@@ -1,7 +1,29 @@
 @use "@carbon/layout";
 
+.editorLayout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.workTreePane {
+  flex: 0 0 22rem;
+  min-width: 18rem;
+  max-width: 24rem;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--cds-background);
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
 // ─── Right pane overrides (passed via contentClassName) ───
 .editorPane {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
   padding: layout.$spacing-06 layout.$spacing-05 layout.$spacing-09;
   background: var(--cds-background);
 }
@@ -23,6 +45,21 @@
   align-items: center;
   justify-content: center;
   color: var(--cds-text-secondary);
+}
+
+@media (max-width: 1056px) {
+  .editorLayout {
+    flex-direction: column;
+  }
+
+  .workTreePane {
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: none;
+    max-height: 18rem;
+    border-right: none;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
 }
 
 .cardItem {

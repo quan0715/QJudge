@@ -17,6 +17,7 @@ import {
   TrashCan,
   Checkmark,
   Close,
+  DataBase,
   Draggable,
   Edit,
   Copy,
@@ -235,6 +236,7 @@ interface ExamQuestionEditCardProps {
   onSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
+  onSaveToBank?: (question: ExamQuestion) => void;
   onPointerDownDrag?: (e: React.PointerEvent) => void;
 }
 
@@ -247,6 +249,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   onSave,
   onDelete,
   onDuplicate,
+  onSaveToBank,
   onPointerDownDrag,
 }) => {
   const { showToast } = useToast();
@@ -411,6 +414,21 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     {t(`common:questionType.label.${question.questionType}`, question.questionType)}
                   </span>
                 </Tag>
+                {question.sourceBank ? (
+                  <Tag size="sm" type="blue" className={styles.sourceBankTag}>
+                    <DataBase size={12} />
+                    {question.sourceBank.name}
+                  </Tag>
+                ) : !frozen && onSaveToBank ? (
+                  <button
+                    type="button"
+                    className={styles.saveToBankButton}
+                    onClick={() => onSaveToBank(question)}
+                  >
+                    <DataBase size={12} />
+                    {t("examEditor.saveToBank", { defaultValue: "收錄到題庫" })}
+                  </button>
+                ) : null}
               </span>
               <div className={styles.headerRight}>
                 {showScoreField ? (

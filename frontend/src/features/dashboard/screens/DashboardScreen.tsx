@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button, ClickableTile, SkeletonPlaceholder, Stack, Tile } from "@carbon/react";
-import { Add, Education, UserMultiple, Catalog, Link as LinkIcon } from "@carbon/icons-react";
+import { Button, ClickableTile, MenuButton, MenuItem, SkeletonPlaceholder, Tile } from "@carbon/react";
+import { Education, UserMultiple, Catalog } from "@carbon/icons-react";
 import { KpiCard } from "@/shared/ui/dataCard/KpiCard";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import { createClassroom, getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
@@ -10,9 +10,9 @@ import { listMine } from "@/infrastructure/api/repositories/questionBank.reposit
 import type { Classroom } from "@/core/entities/classroom.entity";
 import type { QuestionBank } from "@/core/entities/question-bank.entity";
 import { BankGalleryCard } from "@/features/question-banks/components/BankGalleryCard";
+import { CreateBankModal } from "@/features/question-banks/components/CreateBankModal";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useToast } from "@/shared/contexts/ToastContext";
-import { JoinClassroomModal } from "@/features/classroom/components/JoinClassroomModal";
 import { CreateClassroomModal } from "@/features/classroom/components/CreateClassroomModal";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import "./DashboardScreen.scss";
@@ -38,7 +38,7 @@ const hashValue = (value: string) => {
 const getClassroomBannerImage = (id: string) =>
   CLASSROOM_BANNER_IMAGES[hashValue(id) % CLASSROOM_BANNER_IMAGES.length];
 
-const MAX_BANK_CARDS = 4;
+const DEFAULT_BANK_CARDS = 8;
 
 const DashboardScreen = () => {
   const navigate = useNavigate();
@@ -50,8 +50,9 @@ const DashboardScreen = () => {
   const [questionBanks, setQuestionBanks] = useState<QuestionBank[]>([]);
   const [loading, setLoading] = useState(true);
   const [banksLoading, setBanksLoading] = useState(true);
-  const [joinOpen, setJoinOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [bankCreateOpen, setBankCreateOpen] = useState(false);
+  const [showAllBanks, setShowAllBanks] = useState(false);
 
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
   const welcomeName = user?.profile?.display_name?.trim() || user?.username || t("common.user", "使用者");
@@ -170,18 +171,8 @@ const DashboardScreen = () => {
             <Education size={32} />
             <div>
               <h4>{t("dashboard.classroomHub.emptyTitle", "尚未加入任何教室")}</h4>
-              <p>{t("dashboard.classroomHub.emptyDesc", "先建立教室或透過邀請碼加入教室。")}</p>
+              <p>{t("dashboard.classroomHub.emptyDesc", "先建立教室或透過邀請連結加入教室。")}</p>
             </div>
-            <Stack orientation="horizontal" gap={3}>
-              <Button kind="tertiary" onClick={() => setJoinOpen(true)}>
-                {t("classroom.join", "加入教室")}
-              </Button>
-              {isTeacherOrAdmin ? (
-                <Button kind="primary" renderIcon={Add} onClick={() => setCreateOpen(true)}>
-                  {t("classroom.create", "建立教室")}
-                </Button>
-              ) : null}
-            </Stack>
           </div>
         </Tile>
       );
@@ -201,7 +192,7 @@ const DashboardScreen = () => {
               <div
                 className="dashboard-classroom__card-banner"
                 style={{
-                  backgroundImage: `linear-gradient(150deg, rgba(9, 30, 66, 0.18) 0%, rgba(6, 16, 36, 0.78) 72%, rgba(6, 16, 36, 0.92) 100%), url(${bannerImage})`,
+                  backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 65%), url(${bannerImage})`,
                 }}
               >
                 <h4 className="dashboard-classroom__card-title">{classroom.name}</h4>
@@ -239,6 +230,19 @@ const DashboardScreen = () => {
     );
   };
 
+  const refreshBanks = async () => {
+    setBanksLoading(true);
+    try {
+      const rows = await listMine();
+      setQuestionBanks(rows);
+    } finally {
+      setBanksLoading(false);
+    }
+  };
+
+  const visibleBanks = showAllBanks ? questionBanks : questionBanks.slice(0, DEFAULT_BANK_CARDS);
+  const hasMoreBanks = questionBanks.length > DEFAULT_BANK_CARDS;
+
   const renderBankSection = () => {
     if (!isTeacherOrAdmin) return null;
 
@@ -246,13 +250,15 @@ const DashboardScreen = () => {
       <section className="dashboard-classroom__section">
         <header className="dashboard-classroom__section-header">
           <h4>{t("dashboard.questionBanksSection.title", "我的題庫")}</h4>
-          <button
-            type="button"
-            className="dashboard-classroom__section-header-link"
-            onClick={() => navigate("/question-banks")}
-          >
-            {t("dashboard.questionBanksSection.viewAll", "查看全部")} →
-          </button>
+          {questionBanks.length > 0 && (
+            <button
+              type="button"
+              className="dashboard-classroom__section-header-link"
+              onClick={() => setBankCreateOpen(true)}
+            >
+              {t("questionBank.createBank", "建立題庫")} +
+            </button>
+          )}
         </header>
 
         {banksLoading ? (
@@ -269,25 +275,38 @@ const DashboardScreen = () => {
                 <h4>{t("dashboard.questionBanksSection.empty", "尚無題庫")}</h4>
                 <p>{t("dashboard.questionBanksSection.emptyHint", "建立題庫以開始整理題目。")}</p>
               </div>
-              <Button kind="primary" renderIcon={Add} onClick={() => navigate("/question-banks")}>
-                {t("questionBank.createBank", "建立題庫")}
-              </Button>
             </div>
           </Tile>
         ) : (
-          <div className="dashboard-classroom__bank-grid">
-            {questionBanks.slice(0, MAX_BANK_CARDS).map((bank) => (
-              <BankGalleryCard
-                key={bank.id}
-                title={bank.name}
-                category={bank.category}
-                provider={bank.ownerUsername || welcomeName}
-                providerVerified={bank.verified}
-                downloads={String(bank.questionCount)}
-                onClick={() => navigate(`/question-banks/${bank.id}`)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="dashboard-classroom__bank-grid">
+              {visibleBanks.map((bank) => (
+                <BankGalleryCard
+                  key={bank.id}
+                  title={bank.name}
+                  category={bank.category}
+                  provider={bank.ownerUsername || welcomeName}
+                  providerVerified={bank.verified}
+                  downloads={String(bank.questionCount)}
+                  coverUrl={bank.coverUrl || undefined}
+                  icon={bank.icon || undefined}
+                  onClick={() => navigate(`/question-banks/${bank.id}`)}
+                />
+              ))}
+            </div>
+            {hasMoreBanks && (
+              <Button
+                kind="ghost"
+                size="sm"
+                className="dashboard-classroom__show-more"
+                onClick={() => setShowAllBanks((prev) => !prev)}
+              >
+                {showAllBanks
+                  ? t("dashboard.questionBanksSection.showLess", "收起")
+                  : t("dashboard.questionBanksSection.showMore", "顯示更多")}
+              </Button>
+            )}
+          </>
         )}
       </section>
     );
@@ -297,23 +316,13 @@ const DashboardScreen = () => {
     <div className="dashboard-classroom">
       <QJudgeHeroWidget
         title={`${welcomeName} ${t("dashboard.classroomHub.welcomeBack", "歡迎回來")}`}
-        description={t("dashboard.classroomHub.selectSubtitle", "選一個教室，直接進入教室主頁")}
         actions={
-          <div className="dashboard-hero__actions">
-            {isTeacherOrAdmin && (
-              <Button kind="primary" renderIcon={Add} onClick={() => setCreateOpen(true)}>
-                {t("classroom.create", "建立教室")}
-              </Button>
-            )}
-            <Button kind="tertiary" renderIcon={LinkIcon} onClick={() => setJoinOpen(true)}>
-              {t("classroom.join", "加入教室")}
-            </Button>
-            {isTeacherOrAdmin && (
-              <Button kind="tertiary" renderIcon={Add} onClick={() => navigate("/question-banks")}>
-                {t("questionBank.createBank", "建立題庫")}
-              </Button>
-            )}
-          </div>
+          isTeacherOrAdmin ? (
+            <MenuButton label={t("common:button.create", "新增")} kind="primary" size="md">
+              <MenuItem label={t("classroom.create", "建立教室")} onClick={() => setCreateOpen(true)} />
+              <MenuItem label={t("questionBank.createBank", "建立題庫")} onClick={() => setBankCreateOpen(true)} />
+            </MenuButton>
+          ) : undefined
         }
         kpiCards={
           <>
@@ -329,7 +338,6 @@ const DashboardScreen = () => {
                 value={banksLoading ? "–" : questionBanks.length}
                 label={t("dashboard.kpi.questionBanks", "題庫")}
                 showBorder
-                onClick={() => navigate("/question-banks")}
               />
             )}
           </>
@@ -349,21 +357,23 @@ const DashboardScreen = () => {
         {renderBankSection()}
       </div>
 
-      <JoinClassroomModal
-        open={joinOpen}
-        onClose={() => setJoinOpen(false)}
-        onJoined={() => {
-          setJoinOpen(false);
-          void refreshClassrooms();
-        }}
-      />
-
       {isTeacherOrAdmin ? (
-        <CreateClassroomModal
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-          onSubmit={handleCreateClassroom}
-        />
+        <>
+          <CreateClassroomModal
+            open={createOpen}
+            onClose={() => setCreateOpen(false)}
+            onSubmit={handleCreateClassroom}
+          />
+          <CreateBankModal
+            open={bankCreateOpen}
+            onClose={() => setBankCreateOpen(false)}
+            onCreated={(bank) => {
+              setBankCreateOpen(false);
+              void refreshBanks();
+              navigate(`/question-banks/${bank.id}`);
+            }}
+          />
+        </>
       ) : null}
     </div>
   );

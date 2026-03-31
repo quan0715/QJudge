@@ -48,6 +48,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const uploadImage = useMarkdownImageUpload();
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
+  const disposedRef = useRef(false);
+  const disposablesRef = useRef<Monaco.IDisposable[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
   type EditorTab = "edit" | "preview";
@@ -71,12 +73,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const handleMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    disposedRef.current = false;
+    disposablesRef.current = [];
 
     // Configure markdown language
     monaco.editor.setTheme(theme === "white" ? "markdown-light" : "markdown-dark");
 
     // Auto-resize: grow editor height with content, min 10 lines
     const updateHeight = () => {
+      if (disposedRef.current) return;
       const contentHeight = editor.getContentHeight();
       const newHeight = Math.max(contentHeight, minEditorHeight);
       const domNode = editor.getDomNode();
@@ -85,17 +90,31 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       }
       editor.layout();
     };
-    editor.onDidContentSizeChange(updateHeight);
+    disposablesRef.current.push(editor.onDidContentSizeChange(updateHeight));
     updateHeight();
 
     // Font loading handling
     if (document.fonts && "ready" in document.fonts) {
       document.fonts.ready.then(() => {
+        if (disposedRef.current) return;
         monaco.editor.remeasureFonts();
         updateHeight();
       });
     }
   }, [theme, minEditorHeight]);
+
+  // Cleanup on unmount: dispose listeners so they don't fire after editor is gone
+  useEffect(() => {
+    return () => {
+      disposedRef.current = true;
+      for (const d of disposablesRef.current) {
+        try { d.dispose(); } catch { /* ignore */ }
+      }
+      disposablesRef.current = [];
+      editorRef.current = null;
+      monacoRef.current = null;
+    };
+  }, []);
 
   // Sync theme when toggled after mount
   useEffect(() => {

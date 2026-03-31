@@ -85,6 +85,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       size="lg"
       className={`settings-modal${className ? ` ${className}` : ""}`}
       preventCloseOnClickOutside
+      selectorsFloatingMenus={['.cds--modal']}
     >
       <div
         className="settings-modal__layout"

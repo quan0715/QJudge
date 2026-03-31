@@ -34,7 +34,7 @@ services:
     environment:
       DB_HOST: postgres-test
       DB_PORT: "5432"
-      DB_NAME: test_oj_e2e
+      DB_NAME: "*"
       DB_USER: oj_user
       DB_PASSWORD: oj_password
       AUTH_TYPE: plain
@@ -49,6 +49,9 @@ services:
       CLIENT_IDLE_TIMEOUT: "0"
       SERVER_RESET_QUERY: "DISCARD ALL"
       IGNORE_STARTUP_PARAMETERS: "extra_float_digits,options"
+      LOG_CONNECTIONS: "0"
+      LOG_DISCONNECTIONS: "0"
+      LOG_STATS: "0"
     ports:
       - "6433:5432"
     networks:
@@ -93,7 +96,7 @@ services:
       - POSTGRES_DB=test_oj_e2e
       - POSTGRES_USER=oj_user
       - POSTGRES_PASSWORD=oj_password
-      - POSTGRES_HOST=pgbouncer-test
+      - POSTGRES_HOST=postgres-test
       - POSTGRES_PORT=5432
       - DB_CONN_MAX_AGE=0
       - REDIS_HOST=redis-test
@@ -132,7 +135,7 @@ services:
       - POSTGRES_DB=test_oj_e2e
       - POSTGRES_USER=oj_user
       - POSTGRES_PASSWORD=oj_password
-      - POSTGRES_HOST=pgbouncer-test
+      - POSTGRES_HOST=postgres-test
       - POSTGRES_PORT=5432
       - DB_CONN_MAX_AGE=0
       - REDIS_HOST=redis-test

@@ -132,7 +132,7 @@ const ProblemTableRow: React.FC<ProblemTableRowProps> = ({
                 </div>
               )}
               <Link
-                to={`/problems/${problem.displayId || problem.id}`}
+                to={`/problems/${problem.id}`}
                 style={{
                   textDecoration: "none",
                   color: "var(--cds-link-primary)",
@@ -176,9 +176,6 @@ const ProblemTableRow: React.FC<ProblemTableRowProps> = ({
           </TableCell>
           <TableCell>
             <ProblemTagList tags={problem.tags} />
-          </TableCell>
-          <TableCell>
-            {problem.isVisible ? <Tag type="green">可見</Tag> : <Tag type="gray">隱藏</Tag>}
           </TableCell>
           <TableCell>
             <Button

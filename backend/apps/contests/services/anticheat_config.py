@@ -143,6 +143,10 @@ def build_contest_anticheat_config(contest) -> dict:
         "auto_unlock_minutes": int(contest.auto_unlock_minutes or 0),
         "contest_type": str(contest.contest_type or "coding"),
         "warning_timeout_seconds": max(1, int(contest.warning_timeout_seconds or 20)),
+        "screen_share_recovery_grace_ms": max(
+            1,
+            int(getattr(contest, "screen_share_recovery_grace_ms", 0) or SCREEN_SHARE_RECOVERY_GRACE_MS),
+        ),
         "anticheat_device_policy": device_policy,
     }
 
@@ -241,6 +245,10 @@ def build_contest_anticheat_config(contest) -> dict:
             {
                 "key": "warning_timeout_seconds",
                 "description": "Seconds before warning modal close action becomes available",
+            },
+            {
+                "key": "screen_share_recovery_grace_ms",
+                "description": "Screen-share reauth grace before force submit",
             },
             {
                 "key": "anticheat_device_policy",

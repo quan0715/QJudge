@@ -3,14 +3,17 @@ import type { ReactNode } from "react";
 import type { ExamStatusType } from "@/core/entities/contest.entity";
 import { endExam as serviceEndExam, recordExamEvent } from "@/infrastructure/api/repositories";
 import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { ExamOverlays } from "@/features/contest/components/exam/ExamOverlays";
 import { ExamModals } from "@/features/contest/components/exam/ExamModals";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useExamState } from "@/features/contest/hooks/useExamState";
 import { useExamMonitoring } from "@/features/contest/hooks/useExamMonitoring";
 import { useExamHeartbeat } from "@/features/contest/hooks/useExamHeartbeat";
-import { getContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import {
+  getClassroomContestDashboardPath,
+  getContestDashboardPath,
+} from "@/features/contest/domain/contestRoutePolicy";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { createFullscreenAdapter } from "@/features/contest/anticheat/fullscreenAdapter";
 import { syncAnticheatPhaseWithExamStatus } from "@/features/contest/anticheat/orchestrator";
@@ -76,6 +79,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { classroomId } = useParams<{ classroomId?: string }>();
   const containerRef = useRef<HTMLDivElement>(null);
   const lastBlockedActionToastAt = useRef<number>(0);
   const fullscreenAdapterRef = useRef(createFullscreenAdapter());
@@ -188,7 +192,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       },
     }).catch(() => {});
   }, [contestId, webcamModuleRole]);
-  const streamMonitorEnabled = policyRequired && !policyUnavailable;
+  const streamMonitorEnabled = effectiveMonitoringEnabled;
   const screenStreamMonitorEnabled = streamMonitorEnabled && monitoringPlan.runtime.monitorScreenShareStream;
   const webcamStreamMonitorEnabled = streamMonitorEnabled && monitoringPlan.runtime.monitorWebcamStream;
   const lockedFullscreenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -594,7 +598,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   }, [effectiveRequiresFullscreen]);
 
   const isAnsweringPath = () => {
-    const contestBasePath = getContestDashboardPath(contestId);
+    const contestBasePath = classroomId
+      ? getClassroomContestDashboardPath(classroomId, contestId)
+      : getContestDashboardPath(contestId);
     const normalizedPath = location.pathname.replace(/\/+$/, "");
     return (
       normalizedPath === `${contestBasePath}/solve` ||
@@ -625,7 +631,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   const handleBackToContest = async () => {
     await refreshAnticheatConfig();
-    navigate(`/contests/${contestId}`);
+    navigate(
+      classroomId
+        ? getClassroomContestDashboardPath(classroomId, contestId)
+        : getContestDashboardPath(contestId),
+    );
     if (onRefresh) onRefresh();
   };
 
@@ -683,7 +693,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           showAutoSubmitNotice={showAutoSubmitNotice}
           onAutoSubmitReturnToDashboard={() => {
             setShowAutoSubmitNotice(false);
-            navigate(getContestDashboardPath(contestId));
+            navigate(
+              classroomId
+                ? getClassroomContestDashboardPath(classroomId, contestId)
+                : getContestDashboardPath(contestId),
+            );
           }}
         />
         <ExamSubmissionProgressModal

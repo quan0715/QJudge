@@ -61,7 +61,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
           {text ? (
             <MarkdownContent.Simple>{text}</MarkdownContent.Simple>
           ) : (
-            <span className={styles.noAnswer}>{t("participantsDashboard.noAnswer", "未作答")}</span>
+            <span className={styles.noAnswer}>{t("dashboard.noAnswer", "未作答")}</span>
           )}
         </div>
         {correctAnswer != null && typeof correctAnswer === "string" && (
@@ -79,7 +79,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
   if (!hasOptions) {
     return (
       <div className={styles.root}>
-        <span className={styles.noAnswer}>{t("participantsDashboard.noAnswer", "未作答")}</span>
+        <span className={styles.noAnswer}>{t("dashboard.noAnswer", "未作答")}</span>
       </div>
     );
   }

@@ -1,6 +1,5 @@
 import { Idea, Code, Rocket } from "@carbon/icons-react";
-import type { StoryModule } from "@/shared/types/story.types";
-import type { WelcomeScreenProps } from "./WelcomeScreen";
+import type { Meta, StoryObj } from "@storybook/react";
 import { WelcomeScreen } from "./WelcomeScreen";
 
 const mockSuggestedPrompts = [
@@ -21,23 +20,31 @@ const mockSuggestedPrompts = [
   },
 ];
 
-const storyModule: StoryModule<WelcomeScreenProps> = {
-  meta: {
+const meta: Meta<typeof WelcomeScreen> = {
     title: "shared/ui/chatbot/WelcomeScreen",
     component: WelcomeScreen,
-    category: "features",
-    description: "Chatbot 歡迎屏幕 - 初次開啟時展示，帶有 Agent 頭像和建議提示。",
-    defaultArgs: {
+    
+    args: {
       title: "我能為您做什麼？",
       subtitle: "我是 Qgent TA，可以幫助您解決程式問題、優化代碼和學習演算法。",
       suggestedPrompts: mockSuggestedPrompts,
     },
+  
+  parameters: {
+    docs: { description: { component: 'Chatbot 歡迎屏幕 - 初次開啟時展示，帶有 Agent 頭像和建議提示。' } },
   },
-  stories: [
-    {
-      name: "Default",
-      description: "默認歡迎屏幕 - 含頭像、標題、副標題和建議提示",
-      render: (args) => (
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  parameters: {
+    docs: {
+      description: { story: '默認歡迎屏幕 - 含頭像、標題、副標題和建議提示' },
+    },
+  },
+  render: (args) => (
         <div
           style={{
             width: "100%",
@@ -55,11 +62,15 @@ const storyModule: StoryModule<WelcomeScreenProps> = {
           />
         </div>
       ),
+};
+
+export const Minimal: Story = {
+  parameters: {
+    docs: {
+      description: { story: '最簡版本 - 只有標題，沒有副標題和建議' },
     },
-    {
-      name: "Minimal",
-      description: "最簡版本 - 只有標題，沒有副標題和建議",
-      render: () => (
+  },
+  render: () => (
         <div
           style={{
             width: "100%",
@@ -73,11 +84,15 @@ const storyModule: StoryModule<WelcomeScreenProps> = {
           <WelcomeScreen title="開始聊天吧" />
         </div>
       ),
+};
+
+export const CustomContent: Story = {
+  parameters: {
+    docs: {
+      description: { story: '自訂內容示例 - 針對特定問題的建議' },
     },
-    {
-      name: "Custom Content",
-      description: "自訂內容示例 - 針對特定問題的建議",
-      render: () => (
+  },
+  render: () => (
         <div
           style={{
             width: "100%",
@@ -106,8 +121,4 @@ const storyModule: StoryModule<WelcomeScreenProps> = {
           />
         </div>
       ),
-    },
-  ],
 };
-
-export default storyModule;

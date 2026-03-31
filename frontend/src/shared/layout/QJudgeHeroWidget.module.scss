@@ -4,11 +4,13 @@
 // ── Base container ──
 .heroContainer {
   position: relative;
+  z-index: 0; // Create stacking context so inner z-index values stay contained
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   width: 100%;
   overflow: hidden;
+  flex-shrink: 0; // Prevent hero from being compressed in flex layouts
 }
 
 // Dark variant (with cover image or gradient)
@@ -177,21 +179,20 @@
   gap: 0;
 }
 
-// Dark hero KPI overrides
+// Override KpiCard tokens inside dark hero — text-only, no backdrop
 .heroDark .kpiGrid {
-  :global(.kpi-card) {
-    background: transparent !important;
-    border: none !important;
-    color: #fff !important;
-    padding: 0 layout.$spacing-05;
-
-    &:not(:last-child) {
-      border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
-    }
-
-    [class*="kpiIcon"] { color: rgba(255, 255, 255, 0.5); }
-    [class*="kpiValue"] { color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
-    [class*="kpiLabel"] { color: rgba(255, 255, 255, 0.55); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
+  [class*="kpiIcon"] {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  [class*="kpiValue"] {
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  [class*="kpiLabel"] {
+    color: rgba(255, 255, 255, 0.65);
+  }
+  [class*="kpiBorder"] {
+    border-left-color: rgba(255, 255, 255, 0.15);
   }
 }
 
@@ -205,17 +206,21 @@
   position: sticky;
   top: 3rem;
   z-index: 10;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--cds-border-subtle);
 
   .tabsInner {
     max-width: 100%;
     margin: 0 auto;
     padding: 0 layout.$spacing-10;
   }
+}
 
+// Dark variant: glass overlay on top of cover image/gradient
+.heroDark .tabsBar {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
   :global(.cds--tabs__nav-item) {
     background-color: transparent !important;
@@ -230,7 +235,27 @@
 
   :global(.cds--tabs__nav-item--selected) {
     border-block-end: 2px solid var(--cds-link-inverse, #78a9ff) !important;
-    .cds--tabs__nav-link { color: #fff !important; }
+    :global(.cds--tabs__nav-link) { color: #fff !important; }
+  }
+}
+
+// Plain variant: standard Carbon tab styling
+.heroPlain .tabsBar {
+  background: var(--cds-background);
+
+  :global(.cds--tabs__nav-item) {
+    background-color: transparent !important;
+  }
+
+  :global(.cds--tabs__nav-link) {
+    color: var(--cds-text-secondary) !important;
+    background-color: transparent !important;
+    &:hover { color: var(--cds-text-primary) !important; }
+  }
+
+  :global(.cds--tabs__nav-item--selected) {
+    border-block-end: 2px solid var(--cds-border-interactive) !important;
+    :global(.cds--tabs__nav-link) { color: var(--cds-text-primary) !important; }
   }
 }
 

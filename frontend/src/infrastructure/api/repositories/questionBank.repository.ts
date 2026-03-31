@@ -28,6 +28,10 @@ const makeUuid = (): string => {
   return `00000000-0000-4000-8000-${seed.padEnd(12, "0")}`;
 };
 
+const getBankQuestionOperationId = (
+  question: Pick<BankQuestion, "bankItemId">
+): string => question.bankItemId;
+
 type MockState = {
   mineBanks: QuestionBank[];
   exploreBanks: ExploreBankItem[];
@@ -40,9 +44,12 @@ const createMockState = (): MockState => ({
       id: "11111111-1111-4111-8111-111111111111",
       name: "我的程式題庫",
       description: "教學用與自建題目",
+      icon: "code",
+      coverUrl: "",
       category: "coding",
       visibility: "private",
       verified: false,
+      reviewStatus: "draft",
       ownerUsername: "me",
       questionCount: 1,
     },
@@ -52,9 +59,12 @@ const createMockState = (): MockState => ({
       id: "22222222-2222-4222-8222-222222222222",
       name: "平台官方程式題庫",
       description: "目前僅平台提供 public 題庫",
+      icon: "education",
+      coverUrl: "",
       category: "coding",
       visibility: "public",
       verified: true,
+      reviewStatus: "approved",
       ownerUsername: "platform",
       questionCount: 2,
       source: "platform",
@@ -63,7 +73,8 @@ const createMockState = (): MockState => ({
   questionsByBank: {
     "11111111-1111-4111-8111-111111111111": [
       {
-        id: "mq-1",
+        id: "33333333-3333-4333-8333-333333333331",
+        bankItemId: "33333333-3333-4333-8333-333333333331",
         bankId: "11111111-1111-4111-8111-111111111111",
         questionType: "coding",
         title: "A + B",
@@ -79,7 +90,8 @@ const createMockState = (): MockState => ({
     ],
     "22222222-2222-4222-8222-222222222222": [
       {
-        id: "eq-1",
+        id: "33333333-3333-4333-8333-333333333332",
+        bankItemId: "33333333-3333-4333-8333-333333333332",
         bankId: "22222222-2222-4222-8222-222222222222",
         questionType: "coding",
         title: "Two Sum",
@@ -93,7 +105,8 @@ const createMockState = (): MockState => ({
         memoryLimit: 128,
       },
       {
-        id: "eq-2",
+        id: "33333333-3333-4333-8333-333333333333",
+        bankItemId: "33333333-3333-4333-8333-333333333333",
         bankId: "22222222-2222-4222-8222-222222222222",
         questionType: "coding",
         title: "Binary Search",
@@ -150,13 +163,13 @@ const syncMockBankCount = (bankId: string): void => {
   }
 };
 
-const findMockQuestion = (questionId: string) => {
+const findMockQuestion = (bankItemId: string) => {
   const entry = Object.entries(mockState.questionsByBank).find(([, questions]) =>
-    questions.some((q) => q.id === questionId)
+    questions.some((q) => getBankQuestionOperationId(q) === bankItemId)
   );
   if (!entry) return null;
   const [bankId, questions] = entry;
-  const questionIndex = questions.findIndex((q) => q.id === questionId);
+  const questionIndex = questions.findIndex((q) => getBankQuestionOperationId(q) === bankItemId);
   if (questionIndex < 0) return null;
   return { bankId, questionIndex, question: questions[questionIndex] };
 };
@@ -203,9 +216,12 @@ const create = async (
       id: makeUuid(),
       name: payload.name,
       description: payload.description || "",
+      icon: "",
+      coverUrl: "",
       category: payload.category,
       visibility: payload.visibility || "private",
       verified: Boolean(payload.verified),
+      reviewStatus: "draft",
       questionCount: 0,
       ownerUsername: "me",
     };
@@ -242,6 +258,87 @@ const update = async (
   return mapQuestionBankDto(data);
 };
 
+const uploadCover = async (id: string, file: File): Promise<string> => {
+  if (USE_MOCK) {
+    const idx = mockState.mineBanks.findIndex((bank) => bank.id === id);
+    if (idx === -1) throw new Error("Bank not found");
+    const mockUrl = `https://example.com/mock-question-bank-cover/${id}.png`;
+    mockState.mineBanks[idx] = {
+      ...mockState.mineBanks[idx],
+      coverUrl: mockUrl,
+    };
+    return mockUrl;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  const data = await requestJson<{ cover_url: string }>(
+    httpClient.request(`/api/v1/question-banks/${id}/upload_cover/`, {
+      method: "POST",
+      body: formData,
+    }),
+    "Failed to upload question bank cover"
+  );
+  return data.cover_url;
+};
+
+const submitForReview = async (id: string): Promise<QuestionBank> => {
+  if (USE_MOCK) {
+    const idx = mockState.mineBanks.findIndex((bank) => bank.id === id);
+    if (idx === -1) throw new Error("Bank not found");
+    mockState.mineBanks[idx] = {
+      ...mockState.mineBanks[idx],
+      reviewStatus: "pending",
+      visibility: "public",
+      verified: false,
+    };
+    return mockState.mineBanks[idx];
+  }
+
+  const data = await requestJson<any>(
+    httpClient.post(`/api/v1/question-banks/${id}/submit-for-review/`, {}),
+    "Failed to submit question bank for review"
+  );
+  return mapQuestionBankDto(data);
+};
+
+const review = async (
+  id: string,
+  payload: { decision: "approve" | "reject"; note?: string }
+): Promise<QuestionBank> => {
+  if (USE_MOCK) {
+    const idx = mockState.mineBanks.findIndex((bank) => bank.id === id);
+    if (idx === -1) throw new Error("Bank not found");
+    mockState.mineBanks[idx] = {
+      ...mockState.mineBanks[idx],
+      reviewStatus: payload.decision === "approve" ? "approved" : "rejected",
+      verified: payload.decision === "approve",
+      visibility: "public",
+      reviewNote: payload.note || "",
+    };
+    return mockState.mineBanks[idx];
+  }
+
+  const data = await requestJson<any>(
+    httpClient.post(`/api/v1/question-banks/${id}/review/`, payload),
+    "Failed to review question bank"
+  );
+  return mapQuestionBankDto(data);
+};
+
+const listReviewQueue = async (): Promise<QuestionBank[]> => {
+  if (USE_MOCK) {
+    return mockState.mineBanks.filter((bank) => bank.reviewStatus === "pending");
+  }
+
+  const data = await requestJson<any>(
+    httpClient.get("/api/v1/question-banks/review-queue/"),
+    "Failed to fetch review queue"
+  );
+  const rows = Array.isArray(data) ? data : data.results || [];
+  return rows.map(mapQuestionBankDto);
+};
+
 const remove = async (id: string): Promise<void> => {
   if (USE_MOCK) {
     mockState.mineBanks = mockState.mineBanks.filter((bank) => bank.id !== id);
@@ -272,8 +369,10 @@ const createQuestion = async (
   payload: UpsertBankQuestionPayload
 ): Promise<BankQuestion> => {
   if (USE_MOCK) {
+    const nextId = makeUuid();
     const next: BankQuestion = {
-      id: makeUuid(),
+      id: nextId,
+      bankItemId: nextId,
       bankId,
       questionType: payload.questionType,
       title: payload.title,
@@ -303,11 +402,11 @@ const createQuestion = async (
 };
 
 const updateQuestion = async (
-  id: string,
+  bankItemId: string,
   payload: UpsertBankQuestionPayload
 ): Promise<BankQuestion> => {
   if (USE_MOCK) {
-    const found = findMockQuestion(id);
+    const found = findMockQuestion(bankItemId);
     if (!found) {
       throw new Error("Question not found");
     }
@@ -332,37 +431,37 @@ const updateQuestion = async (
   }
 
   const data = await requestJson<any>(
-    httpClient.patch(`/api/v1/questions/${id}/`, toQuestionWriteDto(payload)),
+    httpClient.patch(`/api/v1/question-bank-items/${bankItemId}/`, toQuestionWriteDto(payload)),
     "Failed to update question"
   );
   return mapBankQuestionDto(data);
 };
 
-const removeQuestion = async (id: string): Promise<void> => {
+const removeQuestion = async (bankItemId: string): Promise<void> => {
   if (USE_MOCK) {
-    const found = findMockQuestion(id);
+    const found = findMockQuestion(bankItemId);
     if (!found) return;
     mockState.questionsByBank[found.bankId] = mockState.questionsByBank[found.bankId].filter(
-      (q) => q.id !== id
+      (q) => getBankQuestionOperationId(q) !== bankItemId
     );
     syncMockBankCount(found.bankId);
     return;
   }
 
   await ensureOk(
-    httpClient.delete(`/api/v1/questions/${id}/`),
+    httpClient.delete(`/api/v1/question-bank-items/${bankItemId}/`),
     "Failed to delete question"
   );
 };
 
 const clone = async (
-  questionId: string,
+  bankItemId: string,
   targetBankId?: string
 ): Promise<BankQuestion> => {
   if (USE_MOCK) {
     const source = Object.values(mockState.questionsByBank)
       .flat()
-      .find((q) => q.id === questionId);
+      .find((q) => getBankQuestionOperationId(q) === bankItemId);
 
     if (!source) {
       throw new Error("Question not found");
@@ -373,9 +472,11 @@ const clone = async (
       throw new Error("No target bank available");
     }
 
+    const clonedId = makeUuid();
     const cloned: BankQuestion = {
       ...source,
-      id: makeUuid(),
+      id: clonedId,
+      bankItemId: clonedId,
       bankId: targetId,
       order: mockState.questionsByBank[targetId]?.length || 0,
     };
@@ -395,7 +496,7 @@ const clone = async (
 
   const data = await requestJson<any>(
     httpClient.post(
-      `/api/v1/questions/${questionId}/clone-to-my-bank/`,
+      `/api/v1/question-bank-items/${bankItemId}/clone-to-my-bank/`,
       targetBankId ? { target_bank_id: targetBankId } : {}
     ),
     "Failed to clone question"
@@ -432,13 +533,13 @@ const listInbox = async (category?: "coding" | "exam"): Promise<QuestionInboxSum
 
 const ingestInbox = async (params: {
   targetBankId: string;
-  items: Array<{ sourceType: "problem" | "exam_question"; sourceId: number }>;
+  items: Array<{ sourceType: "problem" | "exam_question"; sourceId: string }>;
 }): Promise<{
   targetBankId: string;
   requestedCount: number;
   ingestedCount: number;
   movedCount: number;
-  questionIds: number[];
+  questionIds: string[];
 }> => {
   if (USE_MOCK) {
     return {
@@ -466,7 +567,9 @@ const ingestInbox = async (params: {
     requestedCount: Number(data.requested_count ?? 0),
     ingestedCount: Number(data.ingested_count ?? 0),
     movedCount: Number(data.moved_count ?? 0),
-    questionIds: Array.isArray(data.question_ids) ? data.question_ids.map((row: unknown) => Number(row)) : [],
+    questionIds: Array.isArray(data.question_ids)
+      ? data.question_ids.map((row: unknown) => String(row))
+      : [],
   };
 };
 
@@ -476,6 +579,10 @@ export const questionBankRepository: IQuestionBankRepository = {
   listExplore,
   create,
   update,
+  uploadCover,
+  submitForReview,
+  review,
+  listReviewQueue,
   delete: remove,
   listQuestions,
   createQuestion,
@@ -492,6 +599,10 @@ export {
   listExplore,
   create,
   update,
+  uploadCover,
+  submitForReview,
+  review,
+  listReviewQueue,
   remove as delete,
   listQuestions,
   createQuestion,

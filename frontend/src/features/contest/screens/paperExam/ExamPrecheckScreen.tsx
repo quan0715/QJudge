@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Button,
@@ -34,6 +34,8 @@ import {
   setPrecheckWebcamHandoff,
 } from "@/features/contest/anticheat/webcamHandoffStore";
 import {
+  getClassroomContestDashboardPath,
+  getClassroomContestSolvePath,
   getPostPrecheckPath,
   getContestDashboardPath,
 } from "@/features/contest/domain/contestRoutePolicy";
@@ -67,6 +69,7 @@ const COUNTDOWN_SECONDS = 3;
 const ExamPrecheckScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);
   const navigate = useNavigate();
+  const { classroomId } = useParams<{ classroomId?: string }>();
   const { contestId, contest, loading, error, clearError, startSession } =
     usePaperExamFlow();
   const { config: anticheatConfig } = useContestAnticheatConfig(contestId);
@@ -99,13 +102,19 @@ const ExamPrecheckScreen: React.FC = () => {
 
   const getPostPrecheckRoute = useCallback(() => {
     if (!contestId) return "";
-    return getPostPrecheckPath(contestId, contest);
-  }, [contest, contestId]);
+    return classroomId
+      ? getClassroomContestSolvePath(classroomId, contestId)
+      : getPostPrecheckPath(contestId, contest);
+  }, [classroomId, contest, contestId]);
 
   const handleBackToDashboard = useCallback(() => {
     if (!contestId) return;
-    navigate(getContestDashboardPath(contestId));
-  }, [contestId, navigate]);
+    navigate(
+      classroomId
+        ? getClassroomContestDashboardPath(classroomId, contestId)
+        : getContestDashboardPath(contestId),
+    );
+  }, [classroomId, contestId, navigate]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [checks, setChecks] = useState<CheckItem[]>(() => createEligibilityChecks(t));

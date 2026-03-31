@@ -28,7 +28,6 @@ export function problemDetailToFormSchema(
     difficulty: problem.difficulty || "medium",
     timeLimit: problem.timeLimit || 1000,
     memoryLimit: problem.memoryLimit || 128,
-    visibility: problem.visibility || 'private',
     existingTagIds: problem.tags?.map((t) => parseInt(t.id)) || [],
     newTagNames: [],
     translationZh: {
@@ -66,7 +65,6 @@ export function yamlToFormSchema(yaml: ProblemYAML): ProblemFormSchema {
     difficulty: yaml.difficulty,
     timeLimit: yaml.time_limit,
     memoryLimit: yaml.memory_limit,
-    visibility: yaml.visibility || 'private',
     existingTagIds: [],
     newTagNames: yaml.tags || [],
     translationZh: {
@@ -140,7 +138,6 @@ export function formSchemaToApiPayload(
     difficulty: data.difficulty,
     time_limit: data.timeLimit,
     memory_limit: data.memoryLimit,
-    visibility: data.visibility,
     translations,
     test_cases: data.testCases.map((tc, index) => ({
       input_data: tc.input,
@@ -174,8 +171,6 @@ export function yamlToApiPayload(yaml: ProblemYAML): ProblemUpsertPayload {
     difficulty: yaml.difficulty,
     time_limit: yaml.time_limit,
     memory_limit: yaml.memory_limit,
-    visibility: yaml.visibility || 'private',
-    display_id: yaml.display_id,
     translations: yaml.translations.map((t) => ({
       language: t.language,
       title: t.title,

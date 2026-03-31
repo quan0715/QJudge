@@ -1,17 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Checkbox,
+  ExpandableSearch,
   InlineLoading,
   Modal,
-  RadioButton,
-  RadioButtonGroup,
   Select,
   SelectItem,
-  TextInput,
 } from "@carbon/react";
-import type { BankQuestion, ExploreBankItem, QuestionBank } from "@/core/entities/question-bank.entity";
-import { listExplore, listMine, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
+import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
+import { listMine, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
 import { getQuestionDisplayTitle } from "@/features/question-banks/screens/questionBankProblemManagement.utils";
+import QuestionBankPreviewCard from "@/features/question-banks/components/QuestionBankPreviewCard";
+import styles from "./QuestionBankImportModal.module.scss";
 
 export interface BankImportSelectionItem {
   questionBankId: string;
@@ -29,11 +29,21 @@ interface QuestionBankImportModalProps {
   open: boolean;
   category: "coding" | "exam";
   onClose: () => void;
-  onConfirm: (
-    items: BankImportSelectionItem[],
-    importMode: "copy" | "reference"
-  ) => Promise<void>;
+  onConfirm: (items: BankImportSelectionItem[]) => Promise<void>;
 }
+
+const PLACEHOLDER_BANK: QuestionBank = {
+  id: "placeholder",
+  name: "Question Bank",
+  description: "",
+  icon: "",
+  coverUrl: "",
+  category: "exam",
+  visibility: "private",
+  verified: false,
+  reviewStatus: "draft",
+  questionCount: 0,
+};
 
 const QuestionBankImportModal: React.FC<QuestionBankImportModalProps> = ({
   open,
@@ -46,19 +56,17 @@ const QuestionBankImportModal: React.FC<QuestionBankImportModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [banks, setBanks] = useState<Array<QuestionBank | ExploreBankItem>>([]);
+  const [banks, setBanks] = useState<QuestionBank[]>([]);
   const [selectedBankId, setSelectedBankId] = useState<string>("");
   const [questions, setQuestions] = useState<BankQuestion[]>([]);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [keyword, setKeyword] = useState("");
-  const [importMode, setImportMode] = useState<"copy" | "reference">("copy");
 
   const loadBanks = useCallback(async () => {
     setLoadingBanks(true);
     setError(null);
     try {
-      const [mine, explore] = await Promise.all([listMine(), listExplore()]);
-      const merged = [...mine, ...explore].filter((bank) => bank.category === category);
+      const merged = (await listMine()).filter((bank) => bank.category === category);
       setBanks(merged);
       if (merged.length > 0) {
         setSelectedBankId((prev) => prev || merged[0].id);
@@ -112,10 +120,30 @@ const QuestionBankImportModal: React.FC<QuestionBankImportModalProps> = ({
     });
   }, [keyword, questions]);
 
+  const selectedBank = useMemo(
+    () => banks.find((bank) => bank.id === selectedBankId) || null,
+    [banks, selectedBankId]
+  );
+  const allVisibleSelected =
+    filteredQuestions.length > 0 &&
+    filteredQuestions.every((question) => selectedQuestionIds.includes(question.id));
+
   const toggleQuestion = (id: string, checked: boolean) => {
     setSelectedQuestionIds((prev) =>
       checked ? [...prev, id] : prev.filter((row) => row !== id)
     );
+  };
+
+  const toggleAllVisible = (checked: boolean) => {
+    setSelectedQuestionIds((prev) => {
+      if (checked) {
+        const merged = new Set(prev);
+        filteredQuestions.forEach((row) => merged.add(row.id));
+        return [...merged];
+      }
+      const removeIds = new Set(filteredQuestions.map((row) => row.id));
+      return prev.filter((id) => !removeIds.has(id));
+    });
   };
 
   const handleConfirm = async () => {
@@ -143,7 +171,7 @@ const QuestionBankImportModal: React.FC<QuestionBankImportModalProps> = ({
               : undefined,
         });
       }
-      await onConfirm(payload, importMode);
+      await onConfirm(payload);
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to import questions");
@@ -188,62 +216,57 @@ const QuestionBankImportModal: React.FC<QuestionBankImportModalProps> = ({
             )}
           </Select>
 
-          <div style={{ marginTop: "0.75rem" }}>
-            <RadioButtonGroup
-              legendText="Import mode"
-              name="contest-import-mode"
-              valueSelected={importMode}
-              onChange={(value) => setImportMode(value as "copy" | "reference")}
-            >
-              <RadioButton labelText="Copy" value="copy" id="contest-import-mode-copy" />
-              <RadioButton labelText="Reference" value="reference" id="contest-import-mode-reference" />
-            </RadioButtonGroup>
-          </div>
-
-          <div style={{ marginTop: "0.75rem" }}>
-            <TextInput
+          <div className={styles.searchRow}>
+            <ExpandableSearch
               id="contest-import-search"
+              className={styles.search}
+              size="md"
               labelText="Search questions"
+              placeholder="Search questions"
               value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
+              onChange={(event) => setKeyword((event.target as HTMLInputElement).value || "")}
             />
           </div>
 
-          <div
-            style={{
-              marginTop: "0.75rem",
-              border: "1px solid var(--cds-border-subtle-01)",
-              maxHeight: "18rem",
-              overflow: "auto",
-              padding: "0.5rem",
-            }}
-          >
+          <div className={styles.selectionBar}>
+            <Checkbox
+              id="contest-import-select-all"
+              labelText={`Select all visible (${filteredQuestions.length})`}
+              checked={allVisibleSelected}
+              disabled={filteredQuestions.length === 0}
+              onChange={(_, meta) => toggleAllVisible(Boolean(meta.checked))}
+            />
+            <span className={styles.selectionCount}>Selected: {selectedQuestionIds.length}</span>
+          </div>
+
+          <div className={styles.galleryRegion}>
             {loadingQuestions ? (
               <InlineLoading description="Loading questions..." />
             ) : filteredQuestions.length === 0 ? (
-              <p style={{ margin: 0, color: "var(--cds-text-secondary)" }}>No question found</p>
+              <p className={styles.emptyText}>No question found</p>
             ) : (
-              filteredQuestions.map((item) => (
-                <div
-                  key={item.id}
-                  style={{
-                    padding: "0.375rem 0.25rem",
-                    borderBottom: "1px solid var(--cds-border-subtle-01)",
-                  }}
-                >
-                  <Checkbox
-                    id={`contest-import-q-${item.id}`}
-                    labelText={getQuestionDisplayTitle(item)}
-                    checked={selectedQuestionIds.includes(item.id)}
-                    onChange={(_, meta) => toggleQuestion(item.id, Boolean(meta.checked))}
-                  />
-                </div>
-              ))
+              <div className={styles.galleryGrid}>
+                {filteredQuestions.map((item) => (
+                  <div key={item.id} className={styles.galleryCell}>
+                    <QuestionBankPreviewCard
+                      question={item}
+                      bank={selectedBank || { ...PLACEHOLDER_BANK, id: selectedBankId || PLACEHOLDER_BANK.id }}
+                      selected={selectedQuestionIds.includes(item.id)}
+                      showSelection
+                      iconVariant="neutral"
+                      onClick={() => {
+                        const checked = !selectedQuestionIds.includes(item.id);
+                        toggleQuestion(item.id, checked);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
           {error && (
-            <p style={{ marginTop: "0.75rem", color: "var(--cds-support-error)" }}>{error}</p>
+            <p className={styles.errorText}>{error}</p>
           )}
         </>
       )}

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useCustomer } from "recur-tw";
 import { ImageEditDialog } from "@/shared/ui/image";
 import { ChangePasswordModal } from "@/features/auth/components/ChangePasswordModal";
-import { SettingsSection, SettingsField } from "@/features/auth/components/SettingsSection";
+import { Section, ActionRow } from "@/shared/layout/SettingsPanel";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import { useEntitlement } from "@/features/pricing/hooks/useEntitlement";
@@ -274,9 +274,9 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
   const locale = t("common.locale", "zh-TW");
 
   return (
-    <div className="settings-panel">
+    <>
       {/* ── Section: Profile ── */}
-      <SettingsSection
+      <Section
         title={t("profile.personalInfo", "個人資訊")}
         action={isEmailUser ? (
           <Button kind="tertiary" size="sm" onClick={() => setPwModalOpen(true)}>
@@ -322,28 +322,28 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
         </div>
 
         <div className="profile-panel__account-fields">
-          <SettingsField label={t("preferences.username", "使用者名稱")}>
+          <ActionRow label={t("preferences.username", "使用者名稱")}>
             <span>{user?.username}</span>
-          </SettingsField>
-          <SettingsField label={t("preferences.email", "電子郵件")}>
+          </ActionRow>
+          <ActionRow label={t("preferences.email", "電子郵件")}>
             <span>{user?.email}</span>
-          </SettingsField>
-          <SettingsField label={t("preferences.role", "角色")}>
+          </ActionRow>
+          <ActionRow label={t("preferences.role", "角色")}>
             <Tag type={ROLE_TAG_TYPE[user?.role ?? "student"] ?? "blue"} size="sm">
               {t(`user.role.${user?.role ?? "student"}`)}
             </Tag>
-          </SettingsField>
-          <SettingsField label={t("preferences.loginMethod", "登入方式")}>
+          </ActionRow>
+          <ActionRow label={t("preferences.loginMethod", "登入方式")}>
             <Tag type={isEmailUser ? "cool-gray" : "blue"} size="sm">
               {isEmailUser ? "Email" : (user?.auth_provider ?? "").toUpperCase()}
             </Tag>
-          </SettingsField>
+          </ActionRow>
         </div>
 
-      </SettingsSection>
+      </Section>
 
       {/* ── Section: Subscription ── */}
-      <SettingsSection title={t("settings.tabs.subscription", "訂閱狀態")}>
+      <Section title={t("settings.tabs.subscription", "訂閱狀態")}>
         {subLoading ? (
           <SkeletonText paragraph lineCount={2} />
         ) : (
@@ -358,35 +358,35 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
               {tier === "team" && t("settings.subscription.desc.team", "學校、科系、培訓機構")}
             </p>
             {isTrialing && subscription?.currentPeriodEnd && (
-              <SettingsField label={t("settings.subscription.trialEndDate", "試用到期日")}>
+              <ActionRow label={t("settings.subscription.trialEndDate", "試用到期日")}>
                 <span>{formatDate(subscription.currentPeriodEnd, locale)}</span>
-              </SettingsField>
+              </ActionRow>
             )}
             {!isTrialing && subscription?.currentPeriodEnd && (
-              <SettingsField label={t("settings.subscription.periodEndDate", "目前週期結束")}>
+              <ActionRow label={t("settings.subscription.periodEndDate", "目前週期結束")}>
                 <span>{formatDate(subscription.currentPeriodEnd, locale)}</span>
-              </SettingsField>
+              </ActionRow>
             )}
             {canManage && (
-              <SettingsField
+              <ActionRow
                 label={t("settings.subscription.manage", "管理訂閱")}
                 description={t("settings.subscription.manageDesc", "變更付款方式、取消訂閱或查看發票")}
               >
                 <Button kind="ghost" size="sm" onClick={handlePortal} disabled={portalLoading}>
                   {portalLoading ? t("action.processing", "處理中...") : t("settings.subscription.manage", "管理訂閱")}
                 </Button>
-              </SettingsField>
+              </ActionRow>
             )}
           </>
         )}
-      </SettingsSection>
+      </Section>
 
       {/* ── Section: Devices ── */}
-      {!hideDevices && <SettingsSection
+      {!hideDevices && <Section
         title={t("profile.devices", "裝置管理")}
         description={t("profile.devicesDesc", "最近 30 天登入的裝置")}
       >
-        <SettingsField
+        <ActionRow
           label={t("settings.loginRecords.logoutOther", "登出其他裝置")}
           description={t("settings.loginRecords.logoutOtherDesc", "登出除了此裝置以外的所有作用中工作階段")}
         >
@@ -398,7 +398,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
           >
             {loggingOut ? t("action.processing", "處理中...") : t("settings.loginRecords.logoutOther", "登出其他裝置")}
           </Button>
-        </SettingsField>
+        </ActionRow>
         {devLoading ? (
           <SkeletonText paragraph lineCount={3} />
         ) : deviceGroups.length === 0 ? (
@@ -449,10 +449,10 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
             </div>
           </>
         )}
-      </SettingsSection>}
+      </Section>}
 
       <ChangePasswordModal isOpen={pwModalOpen} onClose={() => setPwModalOpen(false)} />
-    </div>
+    </>
   );
 };
 

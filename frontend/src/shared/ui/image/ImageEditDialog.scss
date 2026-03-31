@@ -1,6 +1,7 @@
 @use "@carbon/layout";
 @use "@carbon/type";
 
+// ── Trigger button ──
 .image-edit-dialog__trigger {
   position: relative;
   border: 1px solid var(--cds-border-subtle);
@@ -71,16 +72,61 @@
   opacity: 1;
 }
 
+// ── Modal body ──
 .image-edit-dialog__modal-body {
   display: flex;
   flex-direction: column;
-  gap: layout.$spacing-04;
+  gap: layout.$spacing-05;
   padding-top: layout.$spacing-03;
 }
 
+// ── Gallery grid ──
+.image-edit-gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: layout.$spacing-03;
+
+  @media (max-width: 672px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.image-edit-gallery__item {
+  padding: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.image-edit-gallery__attribution {
+  @include type.type-style("label-01");
+  display: block;
+  padding: layout.$spacing-02 layout.$spacing-03;
+  color: var(--cds-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  a {
+    color: var(--cds-link-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// ── Upload dropzone ──
 .image-edit-dialog__dropzone {
   width: 100%;
-  min-height: layout.rem(132px);
+  min-height: layout.rem(160px);
   border: 1px dashed var(--cds-border-subtle);
   background: var(--cds-layer-01);
   color: var(--cds-text-primary);
@@ -90,7 +136,7 @@
   justify-content: center;
   gap: layout.$spacing-02;
   cursor: pointer;
-  padding: layout.$spacing-04;
+  padding: layout.$spacing-06;
   text-align: center;
 
   strong {
@@ -101,11 +147,11 @@
     @include type.type-style("body-compact-01");
     color: var(--cds-text-secondary);
   }
-}
 
-.image-edit-dialog__dropzone.is-dragging {
-  border-color: var(--cds-border-interactive);
-  background: var(--cds-layer-hover);
+  &.is-dragging {
+    border-color: var(--cds-border-interactive);
+    background: var(--cds-layer-hover);
+  }
 }
 
 .image-edit-dialog__dropzone-action {
@@ -113,9 +159,19 @@
   color: var(--cds-link-primary);
 }
 
+// ── URL row ──
 .image-edit-dialog__url-row {
   display: flex;
   gap: layout.$spacing-03;
-  align-items: flex-start;
+  align-items: flex-end;
+
+  > :first-child {
+    flex: 1;
+  }
+
+  @media (max-width: 672px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
