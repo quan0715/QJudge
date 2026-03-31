@@ -895,35 +895,29 @@ class ContestViewSet(viewsets.ModelViewSet):
         except DRFValidationError as exc:
             return None, None, Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
 
-        # Try legacy Question adapter first
-        question = Question.objects.filter(bank=bank, id=normalized_question_uuid).first()
+        # Primary lookup: QuestionBankMembership (bank_item_id from frontend)
+        from apps.question_bank.models import QuestionBankMembership
+        from apps.question_bank.write_workflows import materialize_bank_question_adapter_for_membership
 
-        # Fallback: resolve via QuestionBankMembership (new system)
-        if not question:
-            from apps.question_bank.models import QuestionBankMembership
-            from apps.question_bank.write_workflows import materialize_bank_question_adapter_for_membership
-
-            membership = (
-                QuestionBankMembership.objects.filter(
-                    bank=bank, id=normalized_question_uuid,
-                ).select_related("question_asset", "legacy_question")
-                .first()
+        membership = (
+            QuestionBankMembership.objects.filter(
+                bank=bank, id=normalized_question_uuid,
             )
-            # Also try by question_asset_id
-            if not membership:
-                membership = (
-                    QuestionBankMembership.objects.filter(
-                        bank=bank, question_asset_id=normalized_question_uuid,
-                    ).select_related("question_asset", "legacy_question")
-                    .first()
+            .select_related("question_asset", "question_asset__latest_version", "legacy_question")
+            .first()
+        )
+
+        if membership:
+            if membership.legacy_question_id:
+                question = membership.legacy_question
+            else:
+                # Materialize adapter on demand (will be eliminated when Question is fully retired)
+                question = materialize_bank_question_adapter_for_membership(
+                    membership=membership, actor=user,
                 )
-            if membership:
-                if membership.legacy_question_id:
-                    question = membership.legacy_question
-                else:
-                    question = materialize_bank_question_adapter_for_membership(
-                        membership=membership, actor=user,
-                    )
+        else:
+            # Legacy fallback: direct Question ID (old frontend may still send this)
+            question = Question.objects.filter(bank=bank, id=normalized_question_uuid).first()
 
         if not question:
             return None, None, Response({'error': 'Question not found in bank'}, status=status.HTTP_404_NOT_FOUND)
