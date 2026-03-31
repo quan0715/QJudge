@@ -5,9 +5,14 @@ import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import ProblemWorkTree from "./ProblemWorkTree";
 
 vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: () => {} },
   useTranslation: () => ({
     t: (_key: string, fallback?: string) => fallback ?? _key,
   }),
+}));
+
+vi.mock("@/shared/contexts", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
 }));
 
 vi.mock("motion/react", () => ({

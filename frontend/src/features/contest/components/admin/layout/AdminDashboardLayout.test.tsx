@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import AdminDashboardLayout from "./AdminDashboardLayout";
 
 vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: () => {} },
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
@@ -29,13 +31,15 @@ describe("AdminDashboardLayout", () => {
     const onImportExamJson = vi.fn();
 
     render(
-      <AdminDashboardLayout
-        {...baseProps}
-        showExamJsonActions
-        onImportExamJson={onImportExamJson}
-      >
-        <div>content</div>
-      </AdminDashboardLayout>,
+      <MemoryRouter>
+        <AdminDashboardLayout
+          {...baseProps}
+          showExamJsonActions
+          onImportExamJson={onImportExamJson}
+        >
+          <div>content</div>
+        </AdminDashboardLayout>
+      </MemoryRouter>,
     );
 
     const importAction = screen.getByLabelText(/匯入 JSON|Import JSON|examJson\.importAction/);
@@ -47,9 +51,11 @@ describe("AdminDashboardLayout", () => {
 
   it("hides import action when exam json actions are disabled", () => {
     render(
-      <AdminDashboardLayout {...baseProps} showExamJsonActions={false}>
-        <div>content</div>
-      </AdminDashboardLayout>,
+      <MemoryRouter>
+        <AdminDashboardLayout {...baseProps} showExamJsonActions={false}>
+          <div>content</div>
+        </AdminDashboardLayout>
+      </MemoryRouter>,
     );
 
     expect(
@@ -62,9 +68,11 @@ describe("AdminDashboardLayout", () => {
     const onRefresh = vi.fn();
 
     render(
-      <AdminDashboardLayout {...baseProps} onRefresh={onRefresh}>
-        <div>content</div>
-      </AdminDashboardLayout>,
+      <MemoryRouter>
+        <AdminDashboardLayout {...baseProps} onRefresh={onRefresh}>
+          <div>content</div>
+        </AdminDashboardLayout>
+      </MemoryRouter>,
     );
 
     const refreshAction = screen.getByLabelText("adminLayout.header.refresh");

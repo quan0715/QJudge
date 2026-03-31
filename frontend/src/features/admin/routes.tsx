@@ -3,6 +3,11 @@ import AnnouncementManagementScreen from "./screens/AnnouncementManagementScreen
 import LegacyContestBindingScreen from "./screens/LegacyContestBindingScreen";
 import ReviewQueueScreen from "./screens/ReviewQueueScreen";
 import UserManagementScreen from "./screens/UserManagementScreen";
+import DraftProblemsScreen from "./screens/DraftProblemsScreen";
+
+export const draftProblemsRoute = (
+  <Route path="/drafts" element={<DraftProblemsScreen />} />
+);
 
 export const adminRoutes = (
   <>

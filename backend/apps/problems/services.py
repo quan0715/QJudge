@@ -340,36 +340,6 @@ class ProblemService:
 
     @staticmethod
     @transaction.atomic
-    def clone_problem_to_practice(
-        source_problem: CodingProblem,
-        *,
-        created_by,
-    ) -> CodingProblem:
-        """
-        Clone a contest problem into a standalone legacy problem adapter.
-        Source problem must already have a QuestionAsset.
-        """
-        if not source_problem.question_asset_id:
-            from apps.question_bank.question_assets import sync_problem_question_asset
-            sync_problem_question_asset(problem=source_problem, actor=created_by)
-        slug = f"{source_problem.slug}-practice-{uuid.uuid4().hex[:8]}"
-
-        new_problem = CodingProblem.objects.create(
-            title=source_problem.title,
-            slug=slug,
-            difficulty=source_problem.difficulty,
-            time_limit=source_problem.time_limit,
-            memory_limit=source_problem.memory_limit,
-            created_by=created_by,
-            question_asset=source_problem.question_asset,
-            question_version=source_problem.question_version,
-        )
-
-        ProblemService._clone_related(source_problem, new_problem)
-        return new_problem
-
-    @staticmethod
-    @transaction.atomic
     def create_contest_problem(contest, created_by, title="New Problem") -> CodingProblem:
         """
         Create a new empty problem for a contest.

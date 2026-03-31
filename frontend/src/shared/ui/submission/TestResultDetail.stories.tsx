@@ -1,5 +1,5 @@
 import React from "react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { TestResultDetail } from "./TestResultDetail";
 import { TestResultList } from "./TestResultList";
 import type { TestResult } from "@/core/entities/submission.entity";

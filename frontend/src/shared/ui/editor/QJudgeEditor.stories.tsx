@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { QJudgeEditor } from "./QJudgeEditor";
 
 const meta: Meta<typeof QJudgeEditor> = {

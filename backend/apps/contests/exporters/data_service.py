@@ -333,9 +333,10 @@ class ContestDataService:
             Last AC SubmissionDTO or None
         """
         submissions = self.get_submissions(user_id)
+        pid = str(problem_id)
         ac_submissions = [
             s for s in submissions
-            if s.problem_id == problem_id and s.status == 'AC'
+            if s.problem_id == pid and s.status == 'AC'
         ]
         return ac_submissions[-1] if ac_submissions else None
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { TestResultList, type TestResultListProps } from "./TestResultList";
 import type { TestResult } from "@/core/entities/submission.entity";
 

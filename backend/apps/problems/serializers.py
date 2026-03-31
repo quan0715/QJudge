@@ -372,6 +372,7 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
 
 class OrphanProblemSerializer(serializers.ModelSerializer):
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True, default=None)
 
     class Meta:
         model = Problem
@@ -381,6 +382,7 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
             'slug',
             'difficulty',
             'created_by',
+            'created_by_username',
             'question_asset_id',
             'submission_count',
             'accepted_count',

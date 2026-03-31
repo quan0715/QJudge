@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Modal } from "@carbon/react";
+
 
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import {
@@ -15,7 +15,6 @@ import { useToast } from "@/shared/contexts/ToastContext";
 import {
   archiveContest,
   deleteContest,
-  publishContestProblemsToPractice,
   getContestAdmins,
   addContestAdmin,
   removeContestAdmin,
@@ -192,8 +191,7 @@ const AdminContestSettingsScreen = () => {
   const [endTimeInput, setEndTimeInput] = useState("");
   const [startDateInput, setStartDateInput] = useState("");
   const [endDateInput, setEndDateInput] = useState("");
-  const [publishModalOpen, setPublishModalOpen] = useState(false);
-  const [publishing, setPublishing] = useState(false);
+  // publish_to_practice removed — questions live in the bank now
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const initializedRef = useRef(false);
@@ -375,18 +373,6 @@ const AdminContestSettingsScreen = () => {
     await refreshContest();
   };
 
-  const handlePublishToPractice = async () => {
-    if (!contestId) return;
-    try {
-      setPublishing(true);
-      await publishContestProblemsToPractice(contestId);
-      setPublishModalOpen(false);
-      await refreshContest();
-    } finally {
-      setPublishing(false);
-    }
-  };
-
   const handleDelete = async () => {
     if (!contestId) return;
     const confirmed = await confirm({
@@ -479,7 +465,7 @@ const AdminContestSettingsScreen = () => {
           isClassroomBound={isClassroomBound}
           admins={admins}
           adminRows={adminRows}
-          publishing={publishing}
+
           getState={getState}
           onRetry={autoSave.retrySave}
           onChange={handleChange}
@@ -494,24 +480,8 @@ const AdminContestSettingsScreen = () => {
           onOpenAddAdmin={() => setAddModalOpen(true)}
           onRemoveAdmin={(admin) => void handleRemoveAdmin(admin)}
           onArchive={() => void handleArchive()}
-          onOpenPublishToPractice={() => setPublishModalOpen(true)}
           onDelete={() => void handleDelete()}
         />
-
-        <Modal
-          open={publishModalOpen}
-          modalHeading={t("settings.publishToPracticeConfirmTitle")}
-          primaryButtonText={t("settings.publishToPracticeConfirm")}
-          secondaryButtonText={tc("button.cancel")}
-          primaryButtonDisabled={publishing}
-          onRequestClose={() => !publishing && setPublishModalOpen(false)}
-          onRequestSubmit={() => void handlePublishToPractice()}
-        >
-          <p style={{ marginBottom: "0.5rem" }}>{t("settings.publishToPracticeConfirmDesc")}</p>
-          <p style={{ color: "var(--cds-text-secondary)" }}>
-            {t("settings.publishToPracticeIrreversible")}
-          </p>
-        </Modal>
 
         <AddAdminModal
           isOpen={addModalOpen}

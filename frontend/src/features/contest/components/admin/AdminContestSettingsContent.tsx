@@ -79,7 +79,6 @@ interface AdminContestSettingsContentProps {
   isClassroomBound: boolean;
   admins: Admin[];
   adminRows: Array<{ id: string; username: string; role: "owner" | "co-admin" }>;
-  publishing: boolean;
   getState: (field: string) => FieldSaveState | undefined;
   onRetry: (field: string) => void;
   onChange: (field: string, value: unknown) => void;
@@ -94,7 +93,6 @@ interface AdminContestSettingsContentProps {
   onOpenAddAdmin: () => void;
   onRemoveAdmin: (admin: Admin) => void;
   onArchive: () => void;
-  onOpenPublishToPractice: () => void;
   onDelete: () => void;
 }
 
@@ -112,7 +110,6 @@ const AdminContestSettingsContent = ({
   isClassroomBound,
   admins,
   adminRows,
-  publishing,
   getState,
   onRetry,
   onChange,
@@ -127,7 +124,6 @@ const AdminContestSettingsContent = ({
   onOpenAddAdmin,
   onRemoveAdmin,
   onArchive,
-  onOpenPublishToPractice,
   onDelete,
 }: AdminContestSettingsContentProps) => (
   <>
@@ -261,19 +257,6 @@ const AdminContestSettingsContent = ({
         }
         disabled={contest.status === "archived" || !contest.permissions?.canToggleStatus}
         onClick={onArchive}
-      />
-
-      <DangerAction
-        title={t("settings.publishToPractice")}
-        description={t("settings.publishToPracticeDesc")}
-        buttonLabel={
-          contest.status === "archived"
-            ? t("settings.publishToPractice")
-            : t("settings.publishToPracticeHint")
-        }
-        buttonKind="secondary"
-        disabled={contest.status !== "archived" || publishing}
-        onClick={onOpenPublishToPractice}
       />
 
       <DangerAction

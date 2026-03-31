@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import TestCaseList, { type TestCaseItem } from "./TestCaseList";
 import type { TestCaseMode } from "./TestCaseTypes";
 

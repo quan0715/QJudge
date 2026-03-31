@@ -1,6 +1,17 @@
 import "@testing-library/jest-dom/vitest";
 import { vi } from "vitest";
 
+// Global mock for react-i18next so that any import of src/i18n/index.ts
+// (which calls i18n.use(initReactI18next)) doesn't break in tests.
+vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: () => {} },
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: { language: "zh-TW", changeLanguage: vi.fn() },
+  }),
+  Trans: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // Polyfill ResizeObserver for Carbon components (Modal, etc.)
 global.ResizeObserver = class ResizeObserver {
   observe() {}

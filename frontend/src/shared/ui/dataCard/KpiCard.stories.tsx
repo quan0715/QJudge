@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { KpiCard } from "./KpiCard";
 import { CheckmarkFilled, Trophy } from "@carbon/icons-react";
 

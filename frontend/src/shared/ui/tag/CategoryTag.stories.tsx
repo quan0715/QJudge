@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { CategoryTag } from "./CategoryTag";
 
 const meta: Meta<typeof CategoryTag> = {

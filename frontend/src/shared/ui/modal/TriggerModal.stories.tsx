@@ -1,5 +1,5 @@
 import { Button, Modal } from "@carbon/react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import TriggerModal from "./TriggerModal";
 
 const TriggerModalDemo = ({ initialOpen }: { initialOpen?: boolean }) => (

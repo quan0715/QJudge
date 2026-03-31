@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ContestPreviewCard } from "./ContestPreviewCard";
 import type { Contest } from "@/core/entities/contest.entity";
 

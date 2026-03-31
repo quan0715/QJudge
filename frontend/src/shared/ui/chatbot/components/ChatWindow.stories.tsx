@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ChatWindow } from "./ChatWindow";
 import { WelcomeScreen as WelcomeScreenComponent } from "./WelcomeScreen";
 

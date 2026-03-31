@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@carbon/react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ConfirmModal, type ConfirmModalProps } from "./ConfirmModal";
 
 /** Interactive demo with useState hook */

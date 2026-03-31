@@ -32,7 +32,7 @@ import { contestListRoute, contestDetailRoutes, contestAdminRoute, examPreviewRo
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
-import { adminRoutes } from "@/features/admin";
+import { adminRoutes, draftProblemsRoute } from "@/features/admin";
 import { landingRoute } from "@/features/landing";
 import { checkoutSuccessRoute } from "@/features/pricing";
 import RecurProviderBridge from "@/features/pricing/components/RecurProviderBridge";
@@ -164,6 +164,7 @@ function App() {
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
                               {questionBankListRoute}
+                              {draftProblemsRoute}
                             </Route>
 
                             {/* Question Bank Detail - Standalone with breadcrumb header */}

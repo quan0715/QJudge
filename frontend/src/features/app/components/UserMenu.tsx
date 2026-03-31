@@ -16,6 +16,7 @@ import {
   UserMultiple,
   Bullhorn,
   Microscope,
+  DocumentBlank,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -219,6 +220,25 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             <Settings size={16} />
             {t("settings.title")}
           </button>
+
+          {/* Teacher / Admin Links */}
+          {(user.role === "teacher" || user.role === "admin") && (
+            <>
+              <div className="user-menu-divider" />
+              <button
+                type="button"
+                className="user-menu-link"
+                onClick={() => {
+                  navigate("/drafts");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <DocumentBlank size={16} />
+                {t("header.draftProblems", "草稿題目")}
+              </button>
+            </>
+          )}
 
           {/* Admin Links */}
           {user.role === "admin" && (

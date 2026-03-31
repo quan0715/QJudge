@@ -15,7 +15,7 @@ from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.users.permissions import IsTeacherOrAdmin
+from apps.users.permissions import IsTeacherOrAdmin, IsSuperAdmin
 from apps.contests.models import AssignmentState, Contest, ContestParticipant, ExamStatus
 from apps.core.services import (
     build_markdown_image_object_key,
@@ -114,6 +114,8 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             'regenerate_code',
             'create_announcement',
             'update_announcement', 'delete_announcement',
+        }
+        platform_admin_actions = {
             'bind_contest', 'unbind_contest',
         }
         member_actions = {
@@ -125,6 +127,8 @@ class ClassroomViewSet(viewsets.ModelViewSet):
 
         if self.action == 'create':
             return [permissions.IsAuthenticated(), IsTeacherOrAdmin()]
+        if self.action in platform_admin_actions:
+            return [permissions.IsAuthenticated(), IsSuperAdmin()]
         if self.action in owner_admin_actions:
             return [permissions.IsAuthenticated(), IsClassroomOwnerOrAdmin()]
         if self.action in member_actions:
@@ -330,7 +334,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], url_path='bind_contest',
-            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
+            permission_classes=[permissions.IsAuthenticated, IsSuperAdmin])
     def bind_contest(self, request, id=None):
         classroom = self.get_object()
         serializer = BindContestSerializer(data=request.data)
@@ -354,7 +358,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         return Response({'detail': 'Contest already bound.'})
 
     @action(detail=True, methods=['post'], url_path='unbind_contest',
-            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
+            permission_classes=[permissions.IsAuthenticated, IsSuperAdmin])
     def unbind_contest(self, request, id=None):
         classroom = self.get_object()
         serializer = BindContestSerializer(data=request.data)

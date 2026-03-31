@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { TestCaseSource } from "@/core/entities/testcase.entity";
 import { TestCaseEntry } from "./TestCaseEntry";
 

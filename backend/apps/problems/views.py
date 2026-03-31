@@ -218,6 +218,30 @@ class ProblemViewSet(viewsets.ModelViewSet):
         )
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'], permission_classes=[IsProblemManager], url_path='drafts')
+    def drafts(self, request):
+        """
+        List CodingProblems not in any question bank (orphan / draft).
+        Teachers see their own; admins see all.
+        """
+        from apps.question_bank.models import QuestionBankMembership
+
+        banked_asset_ids = QuestionBankMembership.objects.values_list(
+            'question_asset_id', flat=True
+        )
+        qs = Problem.objects.filter(
+            question_asset__isnull=False,
+        ).exclude(
+            question_asset_id__in=banked_asset_ids,
+        ).select_related('created_by', 'question_asset').order_by('-created_at')
+
+        user = request.user
+        if not (user.is_staff or getattr(user, 'role', '') == 'admin'):
+            qs = qs.filter(created_by=user)
+
+        serializer = OrphanProblemSerializer(qs, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOnly], url_path='resolve-orphan')
     def resolve_orphan(self, request, id=None):
         problem = Problem.objects.filter(id=id).select_related(

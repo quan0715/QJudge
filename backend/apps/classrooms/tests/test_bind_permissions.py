@@ -21,6 +21,7 @@ def platform_admin() -> User:
         username="bind_platform_admin",
         email="bind_platform_admin@example.com",
         password="pass",
+        role="admin",
     )
 
 

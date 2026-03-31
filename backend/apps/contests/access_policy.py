@@ -232,8 +232,6 @@ class ContestAccessPolicy(permissions.BasePermission):
         # Problem Management
         'add_problem': 'manage_problems',
         'reorder_problems': 'manage_problems',
-        'publish_problem_to_practice': 'manage_problems',
-        'publish_problems_to_practice': 'manage_problems',
 
         # Participant Management
         'participants': 'view_participants',

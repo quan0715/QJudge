@@ -5,9 +5,7 @@ import type { PluginOption } from "vite";
 
 const config: StorybookConfig = {
   stories: ["../src/**/*.stories.tsx"],
-  addons: [
-    "@storybook/addon-essentials",
-  ],
+  addons: ["@storybook/addon-docs"],
   framework: {
     name: "@storybook/react-vite",
     options: {},

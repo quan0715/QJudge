@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: () => {} },
   useTranslation: () => ({
     t: (_key: string, fallback?: string) => fallback || _key,
   }),
@@ -46,7 +47,7 @@ describe("QuestionBankMarketplaceScreen", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("QJudge Community 程式題庫")).toBeInTheDocument();
+      expect(screen.getAllByText("QJudge Community 程式題庫").length).toBeGreaterThan(0);
       expect(screen.getByText("Marketplace")).toBeInTheDocument();
     });
   });
