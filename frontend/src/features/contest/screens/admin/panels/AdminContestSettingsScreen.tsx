@@ -226,7 +226,7 @@ const AdminContestSettingsScreen = () => {
   );
 
   const formRef = useRef(form);
-  formRef.current = form;
+  useEffect(() => { formRef.current = form; });
 
   const handleConfirmedChange = useCallback(
     async (field: string, value: unknown, message: string) => {
