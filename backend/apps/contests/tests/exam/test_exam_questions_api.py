@@ -427,7 +427,7 @@ class TestReorder:
         )
         assert res.status_code == status.HTTP_200_OK
         ids = [item["id"] for item in res.data]
-        assert ids == [q1.id, q0.id]
+        assert ids == [str(q1.id), str(q0.id)]
 
     def test_reorder_normalizes_gaps(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)
@@ -720,18 +720,18 @@ class TestQuestionEditLockGuard:
             "score": 1,
         }, format="json")
         assert create_res.status_code == status.HTTP_409_CONFLICT
-        assert create_res.data["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert create_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
 
         q = ExamQuestion.objects.create(
             contest=contest, question_type="essay", prompt="Q", score=1, order=0,
         )
         update_res = api_client.patch(url(contest.id, q.id), {"prompt": "new"}, format="json")
         assert update_res.status_code == status.HTTP_409_CONFLICT
-        assert update_res.data["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert update_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
 
         delete_res = api_client.delete(url(contest.id, q.id))
         assert delete_res.status_code == status.HTTP_409_CONFLICT
-        assert delete_res.data["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert delete_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
 
         reorder_res = api_client.post(
             url(contest.id) + "reorder/",
@@ -739,7 +739,7 @@ class TestQuestionEditLockGuard:
             format="json",
         )
         assert reorder_res.status_code == status.HTTP_409_CONFLICT
-        assert reorder_res.data["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert reorder_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
 
         import_res = api_client.post(
             url(contest.id) + "import-from-bank/",
@@ -747,7 +747,7 @@ class TestQuestionEditLockGuard:
             format="json",
         )
         assert import_res.status_code == status.HTTP_409_CONFLICT
-        assert import_res.data["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert import_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
 
 
 # ═══════════════════════════════════════════════════════════════════

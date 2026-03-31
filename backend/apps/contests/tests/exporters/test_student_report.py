@@ -116,8 +116,7 @@ class TestStudentReportEndpoints:
             title='Test Problem',
             time_limit=1000,
             memory_limit=128,
-            difficulty='easy',
-            visibility='public'
+            difficulty='easy'
         )
         
         ProblemTranslation.objects.create(
@@ -578,8 +577,7 @@ class TestStudentReportScoreCalculation:
             title='Score Test Problem',
             time_limit=1000,
             memory_limit=128,
-            difficulty='easy',
-            visibility='public'
+            difficulty='easy'
         )
         
         ProblemTranslation.objects.create(

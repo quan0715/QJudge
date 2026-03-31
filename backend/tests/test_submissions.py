@@ -15,7 +15,6 @@ def problem(user_factory):
         title="Test Problem",
         slug="test-problem",
         created_by=owner,
-        visibility="public",
     )
 
 

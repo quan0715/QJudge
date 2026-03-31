@@ -74,8 +74,7 @@ class TestMarkdownRendererSnapshots:
             slug='snapshot-test-problem',
             time_limit=1000,
             memory_limit=128,
-            difficulty='medium',
-            visibility='public'
+            difficulty='medium'
         )
 
         ProblemTranslation.objects.create(
@@ -169,8 +168,7 @@ class TestPDFRendererSnapshots:
             slug='pdf-snapshot-test',
             time_limit=2000,
             memory_limit=256,
-            difficulty='hard',
-            visibility='public'
+            difficulty='hard'
         )
 
         ProblemTranslation.objects.create(
@@ -258,8 +256,7 @@ class TestStudentReportSnapshots:
                 slug=f'report-snapshot-{diff}',
                 time_limit=1000,
                 memory_limit=128,
-                difficulty=diff,
-                visibility='public'
+                difficulty=diff
             )
 
             ProblemTranslation.objects.create(

@@ -48,8 +48,7 @@ class TestContestExporters:
             slug='test-problem-main',
             time_limit=1000,
             memory_limit=128,
-            difficulty='medium',
-            visibility='public'
+            difficulty='medium'
         )
         
         # Add translation
@@ -104,8 +103,7 @@ class TestContestExporters:
             slug='test-second-problem',
             time_limit=2000,
             memory_limit=256,
-            difficulty='easy',
-            visibility='public'
+            difficulty='easy'
         )
 
         Translation.objects.create(
@@ -226,8 +224,7 @@ class TestStudentReportRenderer:
                 slug=f'test-problem-{i+1}-{difficulty}',
                 time_limit=1000,
                 memory_limit=128,
-                difficulty=difficulty,
-                visibility='public'
+                difficulty=difficulty
             )
             
             Translation.objects.create(
