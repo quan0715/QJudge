@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import type { StoryModule, Story } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react";
 import type { TestCaseData } from "@/core/entities/testcase.entity";
-import { TestCaseList, type TestCaseListProps } from "./TestCaseList";
+import { TestCaseList } from "./TestCaseList";
 
 const mockTestCases: TestCaseData[] = [
   { id: "1", input: "5\n1 2 3 4 5", output: "15", source: "sample" },
@@ -10,12 +10,17 @@ const mockTestCases: TestCaseData[] = [
   { id: "4", input: "2\n100 200", output: "300", source: "custom" },
 ];
 
-const meta: StoryModule<TestCaseListProps>["meta"] = {
+const meta: Meta<typeof TestCaseList> = {
   title: "shared/ui/testcase/TestCaseList",
   component: TestCaseList,
-  category: "shared",
-  description: "測試案例列表，支援分組顯示和新增功能。",
-  defaultArgs: {
+  parameters: {
+    docs: {
+      description: {
+        component: "測試案例列表，支援分組顯示和新增功能。",
+      },
+    },
+  },
+  args: {
     testCases: mockTestCases,
     size: "md",
     showPreview: false,
@@ -42,6 +47,9 @@ const meta: StoryModule<TestCaseListProps>["meta"] = {
     grouped: { control: "boolean", description: "是否分組顯示" },
   },
 };
+
+export default meta;
+type Story = StoryObj<typeof meta>;
 
 // Wrapper for interactive demo
 const InteractiveDemo: React.FC = () => {
@@ -83,60 +91,34 @@ const InteractiveDemo: React.FC = () => {
   );
 };
 
-const stories: Story<TestCaseListProps>[] = [
-  {
-    name: "Playground",
-    description: "使用右側 Controls 面板調整 Props。",
-    render: (args) => (
-      <div style={{ maxWidth: 350 }}>
-        <TestCaseList
-          {...args}
-          onSelect={(tc) => console.log("Selected:", tc.id)}
-          onAdd={() => console.log("Add clicked")}
-        />
-      </div>
-    ),
-    code: `<TestCaseList testCases={testCases} grouped />`,
+export const Playground: Story = {
+  args: {
+    testCases: mockTestCases,
   },
-  {
-    name: "Interactive",
-    description: "可互動的列表，點擊選中、新增測資。",
-    render: () => <InteractiveDemo />,
-    code: `
-const [testCases, setTestCases] = useState(mockTestCases);
-const [selected, setSelected] = useState(null);
-
-<TestCaseList
-  testCases={testCases}
-  selectedId={selected?.id}
-  onSelect={setSelected}
-  onAdd={handleAdd}
-  editable
-  copyable
-  grouped
-/>
-    `,
-  },
-  {
-    name: "Horizontal Layout",
-    description: "水平佈局，適合空間較小的場景。",
-    render: () => (
-      <div style={{ maxWidth: 500 }}>
-        <TestCaseList
-          testCases={mockTestCases}
-          layout="horizontal"
-          size="sm"
-          showPreview
-        />
-      </div>
-    ),
-    code: `<TestCaseList testCases={testCases} layout="horizontal" />`,
-  },
-];
-
-export const TestCaseListStories: StoryModule<TestCaseListProps> = {
-  meta,
-  stories,
+  render: (args) => (
+    <div style={{ maxWidth: 350 }}>
+      <TestCaseList
+        {...args}
+        onSelect={(tc) => console.log("Selected:", tc.id)}
+        onAdd={() => console.log("Add clicked")}
+      />
+    </div>
+  ),
 };
 
-export default TestCaseListStories;
+export const Interactive: Story = {
+  render: () => <InteractiveDemo />,
+};
+
+export const HorizontalLayout: Story = {
+  render: () => (
+    <div style={{ maxWidth: 500 }}>
+      <TestCaseList
+        testCases={mockTestCases}
+        layout="horizontal"
+        size="sm"
+        showPreview
+      />
+    </div>
+  ),
+};

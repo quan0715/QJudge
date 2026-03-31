@@ -118,7 +118,7 @@ export default defineConfig(({ mode }) => {
             proxy.on('proxyReq', (proxyReq) => {
               proxyReq.removeHeader('accept-encoding')
             })
-            proxy.on('proxyRes', (proxyRes, req, res) => {
+            proxy.on('proxyRes', (proxyRes, _req, res) => {
               const contentType = proxyRes.headers['content-type'] || ''
               const isText = contentType.includes('text/') ||
                 contentType.includes('javascript') ||
@@ -140,11 +140,14 @@ export default defineConfig(({ mode }) => {
                       '/@id/__x00__virtual:/@storybook/',
                       '/dev/storybook/_sb_vmod/'
                     )
-                    // Prefix Storybook source paths so they route through the proxy
-                    body = body.replaceAll('"/.storybook/', '"/dev/storybook/.storybook/')
-                    body = body.replaceAll("'/.storybook/", "'/dev/storybook/.storybook/")
-                    body = body.replaceAll('"/src/', '"/dev/storybook/src/')
-                    body = body.replaceAll("'/src/", "'/dev/storybook/src/")
+                    // Prefix ALL Storybook absolute paths so they route through the proxy.
+                    // Without this, the browser fetches them from the frontend Vite
+                    // (causing dual-React and other module resolution issues).
+                    const prefixes = ['/@vite/', '/@id/', '/@fs/', '/@react-refresh', '/.storybook/', '/src/', '/node_modules/']
+                    for (const p of prefixes) {
+                      body = body.replaceAll(`"${p}`, `"/dev/storybook${p}`)
+                      body = body.replaceAll(`'${p}`, `'/dev/storybook${p}`)
+                    }
                     const out = Buffer.from(body)
                     const headers = { ...proxyRes.headers }
                     delete headers['transfer-encoding']

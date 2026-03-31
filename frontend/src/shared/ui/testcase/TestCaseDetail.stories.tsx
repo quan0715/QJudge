@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import type { StoryModule, Story } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react";
 import type { TestCaseData } from "@/core/entities/testcase.entity";
 import { Stack } from "@carbon/react";
-import { TestCaseDetail, type TestCaseDetailProps, type TestCaseDetailMode } from "./TestCaseDetail";
+import { TestCaseDetail, type TestCaseDetailMode } from "./TestCaseDetail";
 import { TestCaseList } from "./TestCaseList";
 
 const mockSampleCase: TestCaseData = {
@@ -29,12 +29,17 @@ const mockHiddenCase: TestCaseData = {
 
 const modes: TestCaseDetailMode[] = ["readonly", "writable", "hidden"];
 
-const meta: StoryModule<TestCaseDetailProps>["meta"] = {
+const meta: Meta<typeof TestCaseDetail> = {
   title: "shared/ui/testcase/TestCaseDetail",
   component: TestCaseDetail,
-  category: "shared",
-  description: "測試案例詳情，支援 readonly / writable / hidden 三種模式。",
-  defaultArgs: {
+  parameters: {
+    docs: {
+      description: {
+        component: "測試案例詳情，支援 readonly / writable / hidden 三種模式。",
+      },
+    },
+  },
+  args: {
     testCase: mockSampleCase,
     index: 1,
     mode: "readonly",
@@ -59,6 +64,9 @@ const meta: StoryModule<TestCaseDetailProps>["meta"] = {
     },
   },
 };
+
+export default meta;
+type Story = StoryObj<typeof meta>;
 
 // Interactive Demo with List + Detail
 const InteractiveDemo: React.FC = () => {
@@ -154,60 +162,38 @@ const InteractiveDemo: React.FC = () => {
   );
 };
 
-const stories: Story<TestCaseDetailProps>[] = [
-  {
-    name: "Playground",
-    description: "使用右側 Controls 面板調整 Props。",
-    render: (args) => (
-      <div style={{ maxWidth: 500 }}>
-        <TestCaseDetail {...args} />
-      </div>
-    ),
-    code: `<TestCaseDetail testCase={testCase} mode="readonly" />`,
+export const Playground: Story = {
+  args: {
+    testCase: mockSampleCase,
+    index: 1,
+    mode: "readonly",
   },
-  {
-    name: "Interactive (List + Detail)",
-    description: "列表與詳情聯動，Sample 為 readonly，Custom 可編輯。",
-    render: () => <InteractiveDemo />,
-    code: `
-const [selected, setSelected] = useState(testCases[0]);
-const isCustom = selected?.source === "custom";
-const mode = isCustom ? "writable" : "readonly";
-
-<TestCaseList testCases={testCases} selectedId={selected?.id} onSelect={setSelected} />
-<TestCaseDetail testCase={selected} mode={mode} />
-    `,
-  },
-  {
-    name: "All Modes",
-    description: "三種模式：Readonly / Writable / Hidden。",
-    render: () => (
-      <Stack gap={5} style={{ width: "100%" }}>
-        <div>
-          <h5 style={{ marginBottom: "0.5rem" }}>Readonly (Sample)</h5>
-          <TestCaseDetail testCase={mockSampleCase} index={1} mode="readonly" />
-        </div>
-        <div>
-          <h5 style={{ marginBottom: "0.5rem" }}>Writable (Custom)</h5>
-          <TestCaseDetail testCase={mockCustomCase} index={2} mode="writable" />
-        </div>
-        <div>
-          <h5 style={{ marginBottom: "0.5rem" }}>Hidden</h5>
-          <TestCaseDetail testCase={mockHiddenCase} index={3} mode="hidden" />
-        </div>
-      </Stack>
-    ),
-    code: `
-<TestCaseDetail testCase={sampleCase} mode="readonly" />
-<TestCaseDetail testCase={customCase} mode="writable" />
-<TestCaseDetail testCase={hiddenCase} mode="hidden" />
-    `,
-  },
-];
-
-export const TestCaseDetailStories: StoryModule<TestCaseDetailProps> = {
-  meta,
-  stories,
+  render: (args) => (
+    <div style={{ maxWidth: 500 }}>
+      <TestCaseDetail {...args} />
+    </div>
+  ),
 };
 
-export default TestCaseDetailStories;
+export const InteractiveListDetail: Story = {
+  render: () => <InteractiveDemo />,
+};
+
+export const AllModes: Story = {
+  render: () => (
+    <Stack gap={5} style={{ width: "100%" }}>
+      <div>
+        <h5 style={{ marginBottom: "0.5rem" }}>Readonly (Sample)</h5>
+        <TestCaseDetail testCase={mockSampleCase} index={1} mode="readonly" />
+      </div>
+      <div>
+        <h5 style={{ marginBottom: "0.5rem" }}>Writable (Custom)</h5>
+        <TestCaseDetail testCase={mockCustomCase} index={2} mode="writable" />
+      </div>
+      <div>
+        <h5 style={{ marginBottom: "0.5rem" }}>Hidden</h5>
+        <TestCaseDetail testCase={mockHiddenCase} index={3} mode="hidden" />
+      </div>
+    </Stack>
+  ),
+};
