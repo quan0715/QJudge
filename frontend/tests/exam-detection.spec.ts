@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
+import { getContestClassroomId } from "./helpers/exam-precheck.helper";
 
 /**
  * Exam Mode Detection Tests
@@ -9,11 +10,10 @@ import { test, expect } from '@playwright/test';
  */
 
 // Fixed accounts from Test_Agent.md
-const student = { email: 'student@example.com', password: 'student123' };
-const admin = { email: 'admin@example.com', password: 'admin123' };
+const student = { email: "student@example.com", password: "student123" };
 
 // Test configuration - adjust if needed
-const TEST_CONTEST_ID = process.env.TEST_CONTEST_ID || '1';
+const TEST_CONTEST_ID = process.env.TEST_CONTEST_ID || "1";
 
 test.describe('Exam Mode Detection', () => {
   
@@ -33,7 +33,8 @@ test.describe('Exam Mode Detection', () => {
       
       // Navigate to a contest with exam mode (assuming contest ID 1 has exam mode)
       // Note: This test may need to be adjusted based on actual contest setup
-      await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
       
       // Wait for page to load
       await page.waitForLoadState('networkidle');
@@ -69,7 +70,8 @@ test.describe('Exam Mode Detection', () => {
       // This test verifies that real violations are still detected
       
       // Navigate to a contest with exam mode
-      await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
       await page.waitForLoadState('networkidle');
       
       // Check if exam mode is active
@@ -99,7 +101,8 @@ test.describe('Exam Mode Detection', () => {
     test('should track mousedown events for debouncing', async ({ page }) => {
       // This test verifies that mousedown events are tracked for blur debouncing
       
-      await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
       await page.waitForLoadState('networkidle');
       
       // Check if exam mode is available
@@ -126,7 +129,8 @@ test.describe('Exam Mode Detection', () => {
     test('should track pointerdown events for debouncing', async ({ page }) => {
       // This test verifies that pointerdown events are tracked
       
-      await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
       await page.waitForLoadState('networkidle');
       
       const examModeElements = await page.locator('[data-testid="exam-mode"], .exam-mode').count();
@@ -153,7 +157,8 @@ test.describe('Exam Mode Detection', () => {
     test('should use 500ms blur debounce', async ({ page }) => {
       // This test verifies the BLUR_DEBOUNCE_MS constant is working
       
-      await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
       await page.waitForLoadState('networkidle');
       
       const examModeElements = await page.locator('[data-testid="exam-mode"], .exam-mode').count();
@@ -182,7 +187,8 @@ test.describe('Exam Mode Detection', () => {
     test('should verify document focus before triggering warning', async ({ page }) => {
       // This test verifies that document.hasFocus() check is working
       
-      await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
       await page.waitForLoadState('networkidle');
       
       const examModeElements = await page.locator('[data-testid="exam-mode"], .exam-mode').count();
@@ -215,7 +221,8 @@ test.describe('Exam Mode Detection', () => {
     test('should not cause memory leaks with rapid clicks', async ({ page }) => {
       // This test verifies that timeout cleanup is working properly
       
-      await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
       await page.waitForLoadState('networkidle');
       
       const examModeElements = await page.locator('[data-testid="exam-mode"], .exam-mode').count();
@@ -256,7 +263,8 @@ test.describe('Exam Mode Detection', () => {
         }
       });
       
-      await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
       await page.waitForLoadState('networkidle');
       
       const examModeElements = await page.locator('[data-testid="exam-mode"], .exam-mode').count();
@@ -285,7 +293,8 @@ test.describe('Exam Mode Detection', () => {
     test('should not detect violations during grace period', async ({ page }) => {
       // This test verifies that the 3-second grace period works
       
-      await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
       await page.waitForLoadState('networkidle');
       
       const examModeElements = await page.locator('[data-testid="exam-mode"], .exam-mode').count();
@@ -321,7 +330,8 @@ test.describe('Exam Mode Detection', () => {
       await page.click('button[type="submit"]');
       await expect(page).toHaveURL(/\/dashboard/);
       
-      await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
       await page.waitForLoadState('networkidle');
       
       // For admin, detection should be bypassed
@@ -346,7 +356,8 @@ test.describe('Exam Mode Detection - Edge Cases', () => {
   });
 
   test('should handle rapid button clicks without false positives', async ({ page }) => {
-    await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
     await page.waitForLoadState('networkidle');
     
     const buttons = await page.locator('button').all();
@@ -368,7 +379,8 @@ test.describe('Exam Mode Detection - Edge Cases', () => {
   });
 
   test('should handle form submissions without triggering warnings', async ({ page }) => {
-    await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
     await page.waitForLoadState('networkidle');
     
     // Look for any forms on the page
@@ -394,7 +406,8 @@ test.describe('Exam Mode Detection - Edge Cases', () => {
   });
 
   test('should handle modal interactions without triggering warnings', async ({ page }) => {
-    await page.goto('/contests/' + TEST_CONTEST_ID);
+      const classroomId = await getContestClassroomId(page, TEST_CONTEST_ID);
+      await page.goto(`/classrooms/${classroomId}/contest/${TEST_CONTEST_ID}`);
     await page.waitForLoadState('networkidle');
     
     // Look for buttons that might open modals

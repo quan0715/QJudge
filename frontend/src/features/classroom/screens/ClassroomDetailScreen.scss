@@ -223,15 +223,15 @@
   padding: layout.$spacing-06 layout.$spacing-10;
 }
 
-.classroom-admin-overview-layout {
-  @include grid.sidebar-detail-grid;
+// Override EntityOverviewFrame defaults when embedded inside .classroom-admin-panel
+.classroom-admin-overview-frame-section {
+  padding: 0;
+  background: transparent;
 }
 
-.classroom-admin-overview-layout__main,
-.classroom-admin-overview-layout__side {
-  min-width: 0;
-  display: grid;
-  gap: 0;
+// Keep for ContestPanel which still uses this class without side column
+.classroom-admin-overview-layout {
+  @include grid.sidebar-detail-grid;
 }
 
 .classroom-admin-overview-layout__main > .classroom-admin-section,

@@ -35,10 +35,9 @@
   gap: layout.$spacing-02;
 }
 
-.classroom-add-members__preview-tags {
-  display: flex;
-  gap: layout.$spacing-02;
-  flex-wrap: wrap;
+.classroom-add-members__table-items {
+  word-break: break-word;
+  white-space: normal;
 }
 
 .classroom-add-members__result {

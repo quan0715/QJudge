@@ -12,7 +12,6 @@ import { useExamMonitoring } from "@/features/contest/hooks/useExamMonitoring";
 import { useExamHeartbeat } from "@/features/contest/hooks/useExamHeartbeat";
 import {
   getClassroomContestDashboardPath,
-  getContestDashboardPath,
 } from "@/features/contest/domain/contestRoutePolicy";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { createFullscreenAdapter } from "@/features/contest/anticheat/fullscreenAdapter";
@@ -600,7 +599,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const isAnsweringPath = () => {
     const contestBasePath = classroomId
       ? getClassroomContestDashboardPath(classroomId, contestId)
-      : getContestDashboardPath(contestId);
+      : null;
+    if (!contestBasePath) return false;
     const normalizedPath = location.pathname.replace(/\/+$/, "");
     return (
       normalizedPath === `${contestBasePath}/solve` ||
@@ -631,11 +631,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   const handleBackToContest = async () => {
     await refreshAnticheatConfig();
-    navigate(
-      classroomId
-        ? getClassroomContestDashboardPath(classroomId, contestId)
-        : getContestDashboardPath(contestId),
-    );
+    if (!classroomId) return;
+    navigate(getClassroomContestDashboardPath(classroomId, contestId));
     if (onRefresh) onRefresh();
   };
 
@@ -693,11 +690,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           showAutoSubmitNotice={showAutoSubmitNotice}
           onAutoSubmitReturnToDashboard={() => {
             setShowAutoSubmitNotice(false);
-            navigate(
-              classroomId
-                ? getClassroomContestDashboardPath(classroomId, contestId)
-                : getContestDashboardPath(contestId),
-            );
+            if (classroomId) {
+              navigate(getClassroomContestDashboardPath(classroomId, contestId));
+            }
           }}
         />
         <ExamSubmissionProgressModal

@@ -2,11 +2,6 @@
 
 // Routes
 export {
-  contestListRoute,
-  contestDetailRoutes,
-  contestAdminRoute,
-  examPreviewRoute,
-  examPrecheckRoute,
   classroomContestDetailRoutes,
   classroomContestAdminRoute,
   classroomExamPreviewRoute,

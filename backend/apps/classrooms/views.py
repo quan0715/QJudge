@@ -155,17 +155,35 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         serializer = AddMembersSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        usernames = serializer.validated_data['usernames']
+        identifiers = serializer.validated_data['usernames']
         role = serializer.validated_data['role']
 
-        users = User.objects.filter(username__in=usernames)
-        found_usernames = set(users.values_list('username', flat=True))
-        not_found = [u for u in usernames if u not in found_usernames]
+        users_by_key: dict[str, User] = {}
+        for user in User.objects.filter(
+            models.Q(username__in=identifiers)
+            | models.Q(email__in=[value.lower() for value in identifiers if "@" in value])
+        ):
+            users_by_key.setdefault(user.username, user)
+            users_by_key.setdefault(user.email.lower(), user)
+
+        resolved_users: list[User] = []
+        seen_user_ids: set[int] = set()
+        not_found: list[str] = []
+        for raw_identifier in identifiers:
+            lookup_key = raw_identifier.lower() if "@" in raw_identifier else raw_identifier
+            user = users_by_key.get(lookup_key)
+            if user is None:
+                not_found.append(raw_identifier)
+                continue
+            if user.id in seen_user_ids:
+                continue
+            seen_user_ids.add(user.id)
+            resolved_users.append(user)
 
         added = []
         already_exists = []
         reserved_user_ids = set(classroom.admins.values_list('id', flat=True)) | {classroom.owner_id}
-        for user in users:
+        for user in resolved_users:
             if user.id in reserved_user_ids:
                 already_exists.append(user.username)
                 continue

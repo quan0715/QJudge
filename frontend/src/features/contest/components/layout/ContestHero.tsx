@@ -22,6 +22,7 @@ import { HeroBase } from "@/shared/layout/HeroBase";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { updateNickname, downloadMyReport } from "@/infrastructure/api/repositories";
 import { useInterval } from "@/shared/hooks/useInterval";
+import styles from "./ContestHero.module.scss";
 import "./ContestHero.css";
 
 const MinimalProgressBar = ({
@@ -37,19 +38,8 @@ const MinimalProgressBar = ({
   const isActive = status === "running";
 
   return (
-    <div style={{ width: "100%", marginTop: "0", marginBottom: "1.25rem" }}>
-      {label && (
-        <div
-          style={{
-            marginBottom: "0.5rem",
-            fontSize: "0.875rem",
-            color: "var(--cds-text-secondary)",
-            fontFamily: "var(--cds-font-family)",
-          }}
-        >
-          {label}
-        </div>
-      )}
+    <div className={styles.progressWrapper}>
+      {label && <div className={styles.progressLabel}>{label}</div>}
       <div className="contest-progress-bar-container">
         <div
           className={`contest-progress-bar-fill ${isActive ? "active" : ""} ${
@@ -197,16 +187,12 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const metadata = (
     <>
       <div>
-        <div style={{ marginBottom: "0.25rem" }}>{t("startTime")}</div>
-        <div style={{ color: "var(--cds-text-primary)", fontWeight: 600 }}>
-          {formatDate(startTime)}
-        </div>
+        <div className={styles.timeLabel}>{t("startTime")}</div>
+        <div className={styles.timeValue}>{formatDate(startTime)}</div>
       </div>
       <div>
-        <div style={{ marginBottom: "0.25rem" }}>{t("endTime")}</div>
-        <div style={{ color: "var(--cds-text-primary)", fontWeight: 600 }}>
-          {formatDate(endTime)}
-        </div>
+        <div className={styles.timeLabel}>{t("endTime")}</div>
+        <div className={styles.timeValue}>{formatDate(endTime)}</div>
       </div>
     </>
   );
@@ -276,7 +262,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     // Contest must be published for exam actions
     if (contest.status !== "published") {
       return (
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div className={styles.actionRow}>
           <Button kind="secondary" disabled renderIcon={Flag}>
             {t("hero.contestInactive")}
           </Button>
@@ -288,7 +274,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       case "locked":
         // Step 2.5: Locked - status is now shown in Navbar
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <div className={styles.actionRow}>
             <Button kind="secondary" disabled renderIcon={WarningAltFilled}>
               {t("hero.examLocked")}
             </Button>
@@ -298,7 +284,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       case "submitted":
         // Step 3: Submitted - show download + optional restart
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div className={styles.actionRowCompact}>
             <Button
               kind="tertiary"
               renderIcon={DocumentPdf}
@@ -316,7 +302,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 
       case "paused":
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <div className={styles.actionRow}>
             <Button renderIcon={PlayFilled} onClick={handleStartClick}>
               {t("hero.resumeExam")}
             </Button>
@@ -326,7 +312,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       case "in_progress":
         // Step 2: In progress - show end exam button
         return (
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <div className={styles.actionRow}>
             {onGoToAnswering && (
               <Button
                 kind="tertiary"
@@ -367,7 +353,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         }
         // Step 1 (not started): Show start button
         return (
-          <div style={{ display: "flex", gap: "1rem" }}>
+          <div className={styles.actionRow}>
             <Button renderIcon={PlayFilled} onClick={handleStartClick}>
               {t("hero.startExam")}
             </Button>
@@ -408,8 +394,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         onRequestClose={() => setShowEndConfirm(false)}
         danger
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <p style={{ fontSize: "1rem", fontWeight: "bold", color: "#da1e28" }}>
+        <div className={styles.modalContent}>
+          <p className={styles.modalDangerText}>
             {t("hero.confirmSubmitQuestion")}
           </p>
           <p>{t("hero.noMoreAnswer")}</p>
@@ -448,8 +434,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         }}
         primaryButtonDisabled={isUpdatingNickname}
       >
-        <div style={{ marginBottom: "1rem" }}>
-          <p style={{ marginBottom: "1rem" }}>{t("hero.nicknameHint")}</p>
+        <div className={styles.modalSpacing}>
+          <p className={styles.modalSpacing}>{t("hero.nicknameHint")}</p>
           <TextInput
             id="update-nickname"
             labelText={t("hero.nicknameLabel")}
@@ -471,7 +457,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
         onRequestSubmit={handleDownloadReport}
         size="xs"
       >
-        <div style={{ marginBottom: "1rem" }}>
+        <div className={styles.modalSpacing}>
           <Select
             id="report-language"
             labelText={t("report.language")}

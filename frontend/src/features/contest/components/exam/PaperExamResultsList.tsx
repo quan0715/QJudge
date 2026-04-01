@@ -16,7 +16,7 @@ import { useToast } from "@/shared/contexts/ToastContext";
 import {
   isContestParticipant,
 } from "@/features/contest/domain/contestRuntimePolicy";
-import { getContestSolveRootPath } from "@/features/contest/domain/contestRoutePolicy";
+import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 import PaperQuestionOverviewTable from "./PaperQuestionOverviewTable";
 
 const canOpenPaperAnsweringFromDashboard = (contest: ContestDetail | null | undefined): boolean => {
@@ -222,7 +222,15 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                 onRowClick={
                   canOpenAnswering
                     ? (questionId) =>
-                        navigate(getContestSolveRootPath(contestId, questionId))
+                        contest.boundClassroomId
+                          ? navigate(
+                              getClassroomContestSolvePath(
+                                contest.boundClassroomId,
+                                contestId,
+                                questionId,
+                              ),
+                            )
+                          : navigate("/dashboard")
                     : undefined
                 }
               />

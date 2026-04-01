@@ -51,6 +51,7 @@ interface ContestScoreboardProps {
   loading?: boolean;
   className?: string;
   contestId?: string;
+  classroomId?: string;
 }
 
 const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
@@ -59,6 +60,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
   loading = false,
   className,
   contestId,
+  classroomId,
 }) => {
   const { t } = useTranslation("contest");
 
@@ -343,7 +345,11 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                         >
                           {isProblemColumn && contestId && problemId ? (
                             <Link
-                              to={`/contests/${contestId}/solve/${problemId}`}
+                              to={
+                                classroomId
+                                  ? `/classrooms/${classroomId}/contest/${contestId}/solve/${problemId}`
+                                  : "/dashboard"
+                              }
                               style={{
                                 textDecoration: "none",
                                 color: "inherit",

@@ -275,6 +275,29 @@ class DraftContestAccessTests(APITestCase):
         contest_ids = [c["id"] for c in response.data["results"]]
         self.assertIn(str(self.draft_contest.id), contest_ids)
 
+    def test_classroom_ta_gets_edit_permissions_in_contest_detail(self):
+        ta_user = User.objects.create_user(
+            username="classroom_ta_detail",
+            email="classroom_ta_detail@example.com",
+            password="password123",
+            role="student",
+        )
+        classroom = Classroom.objects.create(
+            name="OS Detail",
+            owner=self.teacher,
+            invite_code="OS5678",
+        )
+        ClassroomMember.objects.create(classroom=classroom, user=ta_user, role="ta")
+        ClassroomContest.objects.create(classroom=classroom, contest=self.draft_contest)
+
+        self.client.force_authenticate(user=ta_user)
+        url = reverse("contests:contest-detail", args=[self.draft_contest.id])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["current_user_role"], "teacher")
+        self.assertTrue(response.data["permissions"]["can_edit_contest"])
+
 
 class ContestNotStartedAccessTests(APITestCase):
     """Test access control for contests that haven't started yet."""

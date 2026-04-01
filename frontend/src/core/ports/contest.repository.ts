@@ -26,7 +26,6 @@ export interface IContestRepository {
   // Contest CRUD
   getContests(scope?: string): Promise<Contest[]>;
   getContest(id: string): Promise<ContestDetail | undefined>;
-  createContest(data: ContestCreatePayload): Promise<Contest>;
   updateContest(id: string, data: ContestUpdatePayload): Promise<Contest>;
   deleteContest(id: string): Promise<void>;
 
@@ -180,24 +179,6 @@ export interface IExamQuestionRepository {
     contestId: string,
     orders: Array<{ id: string; order: number }>
   ): Promise<ExamQuestion[]>;
-}
-
-// ============================================================================
-// Payload Types
-// ============================================================================
-
-export interface ContestCreatePayload {
-  name: string;
-  description?: string;
-  rules?: string;
-  start_time: string;
-  end_time: string;
-  visibility?: "public" | "private" | "password";
-  password?: string;
-  contest_type?: "coding" | "paper_exam";
-  cheat_detection_enabled?: boolean;
-  scoreboard_visible_during_contest?: boolean;
-  anonymous_mode_enabled?: boolean;
 }
 
 export interface ContestUpdatePayload {

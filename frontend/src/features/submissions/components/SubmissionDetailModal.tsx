@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Modal,
   Tabs,
@@ -37,6 +38,7 @@ const SubmissionDetailModal = ({
   onClose,
   contestId,
 }: SubmissionDetailModalProps) => {
+  const { t } = useTranslation();
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -264,9 +266,9 @@ const SubmissionDetailModal = ({
               }}
             >
               <KpiCard
-                label="提交狀態"
-                value={getStatusConfig(submission.status).label}
-                description="本次繳交狀態"
+                label={t("common.table.status", "提交狀態")}
+                value={t(getStatusConfig(submission.status).labelKey)}
+                description={t("common.status.active", "本次繳交狀態")}
                 valueStyle={{
                   color: getStatusConfig(submission.status).color,
                 }}
@@ -274,10 +276,10 @@ const SubmissionDetailModal = ({
                 outline
               />
               <KpiCard
-                label="得分"
+                label={t("common.table.score", "得分")}
                 value={submission.score || 0}
-                unit="分"
-                description="題目總得分"
+                unit={t("common.unit.score", "分")}
+                description={t("common.page.problemDetail", "題目總得分")}
                 showBorder={false}
                 outline
               />

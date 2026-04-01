@@ -8,3 +8,4 @@ export {
   type UseScrollSpyOptions,
   type UseScrollSpyReturn,
 } from "./useScrollSpy";
+export { useTabWithUrlParam } from "./useTabWithUrlParam";

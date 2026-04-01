@@ -14,7 +14,6 @@ import type {
 } from "@/core/entities/contest.entity";
 import type {
   IContestRepository,
-  ContestCreatePayload,
   ContestUpdatePayload,
 } from "@/core/ports/contest.repository";
 import {
@@ -47,16 +46,6 @@ export const getContest = async (
   if (!res.ok) return undefined;
   const data = await res.json();
   return mapContestDetailDto(data);
-};
-
-export const createContest = async (
-  data: ContestCreatePayload
-): Promise<Contest> => {
-  const responseData = await requestJson<any>(
-    httpClient.post("/api/v1/contests/", data),
-    "Failed to create contest"
-  );
-  return mapContestDto(responseData);
 };
 
 export const updateContest = async (
@@ -159,7 +148,6 @@ export const getContestOverviewMetrics = async (
 export const contestRepository: IContestRepository = {
   getContests,
   getContest,
-  createContest,
   updateContest,
   deleteContest,
   toggleStatus,

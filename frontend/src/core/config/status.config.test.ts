@@ -7,7 +7,7 @@ describe("Status Config", () => {
     it("should have config for AC status", () => {
       expect(SUBMISSION_STATUS_CONFIG["AC"]).toEqual({
         color: "green",
-        label: "通過",
+        labelKey: "common.status.success",
         type: "green",
       });
     });
@@ -15,7 +15,7 @@ describe("Status Config", () => {
     it("should have config for WA status", () => {
       expect(SUBMISSION_STATUS_CONFIG["WA"]).toEqual({
         color: "red",
-        label: "答案錯誤",
+        labelKey: "common.status.notPassed",
         type: "red",
       });
     });
@@ -23,7 +23,7 @@ describe("Status Config", () => {
     it("should have config for TLE status", () => {
       expect(SUBMISSION_STATUS_CONFIG["TLE"]).toEqual({
         color: "purple",
-        label: "超時",
+        labelKey: "common.status.notPassed",
         type: "purple",
       });
     });
@@ -31,7 +31,7 @@ describe("Status Config", () => {
     it("should have config for MLE status", () => {
       expect(SUBMISSION_STATUS_CONFIG["MLE"]).toEqual({
         color: "purple",
-        label: "記憶體超限",
+        labelKey: "common.status.notPassed",
         type: "purple",
       });
     });
@@ -39,7 +39,7 @@ describe("Status Config", () => {
     it("should have config for RE status", () => {
       expect(SUBMISSION_STATUS_CONFIG["RE"]).toEqual({
         color: "red",
-        label: "執行錯誤",
+        labelKey: "common.status.notPassed",
         type: "red",
       });
     });
@@ -47,7 +47,7 @@ describe("Status Config", () => {
     it("should have config for CE status", () => {
       expect(SUBMISSION_STATUS_CONFIG["CE"]).toEqual({
         color: "red",
-        label: "編譯錯誤",
+        labelKey: "common.status.failed",
         type: "red",
       });
     });
@@ -55,7 +55,7 @@ describe("Status Config", () => {
     it("should have config for KR status", () => {
       expect(SUBMISSION_STATUS_CONFIG["KR"]).toEqual({
         color: "red",
-        label: "關鍵字限制",
+        labelKey: "common.status.notPassed",
         type: "red",
       });
     });
@@ -63,7 +63,7 @@ describe("Status Config", () => {
     it("should have config for pending status", () => {
       expect(SUBMISSION_STATUS_CONFIG["pending"]).toEqual({
         color: "gray",
-        label: "等待中",
+        labelKey: "common.status.pending",
         type: "gray",
       });
     });
@@ -71,7 +71,7 @@ describe("Status Config", () => {
     it("should have config for judging status", () => {
       expect(SUBMISSION_STATUS_CONFIG["judging"]).toEqual({
         color: "blue",
-        label: "評測中",
+        labelKey: "common.status.processing",
         type: "blue",
       });
     });
@@ -79,7 +79,7 @@ describe("Status Config", () => {
     it("should have config for SE status", () => {
       expect(SUBMISSION_STATUS_CONFIG["SE"]).toEqual({
         color: "red",
-        label: "系統錯誤",
+        labelKey: "common.status.failed",
         type: "red",
       });
     });
@@ -87,7 +87,7 @@ describe("Status Config", () => {
     it("should have config for NS status", () => {
       expect(SUBMISSION_STATUS_CONFIG["NS"]).toEqual({
         color: "gray",
-        label: "未提交",
+        labelKey: "common.status.draft",
         type: "gray",
       });
     });
@@ -113,7 +113,7 @@ describe("Status Config", () => {
         const config = getStatusConfig(status);
         expect(config).toBeDefined();
         expect(config.color).toBeDefined();
-        expect(config.label).toBeDefined();
+        expect(config.labelKey).toBeDefined();
         expect(config.type).toBeDefined();
       });
     });
@@ -124,7 +124,7 @@ describe("Status Config", () => {
 
       expect(config).toEqual({
         color: "gray",
-        label: "UNKNOWN",
+        labelKey: "UNKNOWN",
         type: "gray",
       });
     });

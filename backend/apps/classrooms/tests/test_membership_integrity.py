@@ -89,6 +89,45 @@ def test_add_members_skips_owner_and_admin_membership_rows(
 
 
 @pytest.mark.django_db
+def test_add_members_accepts_email_and_unicode_or_underscore_usernames(
+    api_client: APIClient,
+    classroom_owner: User,
+    classroom: Classroom,
+) -> None:
+    unicode_user = User.objects.create_user(
+        username="王小明",
+        email="wang@example.com",
+        password="pass",
+        role="student",
+    )
+    underscored_user = User.objects.create_user(
+        username="student_one",
+        email="student_one@example.com",
+        password="pass",
+        role="student",
+    )
+
+    api_client.force_authenticate(user=classroom_owner)
+    response = api_client.post(
+        f"/api/v1/classrooms/{classroom.uuid}/add_members/",
+        {
+            "usernames": [
+                unicode_user.username,
+                underscored_user.email,
+            ],
+            "role": "student",
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert sorted(response.data["added"]) == sorted([unicode_user.username, underscored_user.username])
+    assert response.data["not_found"] == []
+    assert ClassroomMember.objects.filter(classroom=classroom, user=unicode_user).exists()
+    assert ClassroomMember.objects.filter(classroom=classroom, user=underscored_user).exists()
+
+
+@pytest.mark.django_db
 def test_join_skips_owner_membership_row(
     api_client: APIClient,
     classroom_owner: User,

@@ -36,8 +36,6 @@ import {
 import {
   getClassroomContestDashboardPath,
   getClassroomContestSolvePath,
-  getPostPrecheckPath,
-  getContestDashboardPath,
 } from "@/features/contest/domain/contestRoutePolicy";
 import { setAnticheatPhase } from "@/features/contest/anticheat/orchestrator";
 import {
@@ -105,16 +103,16 @@ const ExamPrecheckScreen: React.FC = () => {
     if (!contestId) return "";
     return effectiveClassroomId
       ? getClassroomContestSolvePath(effectiveClassroomId, contestId)
-      : getPostPrecheckPath(contestId, contest);
+      : "";
   }, [contest, contestId, effectiveClassroomId]);
 
   const handleBackToDashboard = useCallback(() => {
     if (!contestId) return;
-    navigate(
-      effectiveClassroomId
-        ? getClassroomContestDashboardPath(effectiveClassroomId, contestId)
-        : getContestDashboardPath(contestId),
-    );
+    if (!effectiveClassroomId) {
+      navigate("/dashboard");
+      return;
+    }
+    navigate(getClassroomContestDashboardPath(effectiveClassroomId, contestId));
   }, [contestId, effectiveClassroomId, navigate]);
 
   const [currentStep, setCurrentStep] = useState(0);

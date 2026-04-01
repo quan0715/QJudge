@@ -38,7 +38,7 @@ export async function enterExamUseCase(
     return {
       success: true,
       status: "started",
-      navigateTo: precheckPath ?? `/contests/${contestId}/exam-precheck`,
+      navigateTo: precheckPath ?? "/dashboard",
     };
   }
 

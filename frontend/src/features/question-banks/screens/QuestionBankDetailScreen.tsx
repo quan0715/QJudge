@@ -9,10 +9,7 @@ import {
   FluidDropdown,
   Header,
   HeaderGlobalBar,
-  Layer,
   Loading,
-  Popover,
-  PopoverContent,
   Stack,
   Tag,
   Tile,
@@ -22,11 +19,11 @@ import {
   ArrowLeft,
   Document,
   Download,
-  Filter,
   Microscope,
   Settings,
   Tag as TagIcon,
 } from "@carbon/icons-react";
+import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { SettingsModal } from "@/shared/ui/modal/SettingsModal";
 import { Section, FieldRow } from "@/shared/layout/SettingsPanel";
@@ -90,7 +87,7 @@ const QuestionBankDetailScreen = () => {
   const [editingQuestion, setEditingQuestion] = useState<BankQuestion | null>(null);
   const [importInboxOpen, setImportInboxOpen] = useState(false);
   const [examTypePickerOpen, setExamTypePickerOpen] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
+  // filterOpen removed — FilterPopover manages its own open/close
 
   // Sync editingQuestion ↔ ?q= URL param
   const openQuestionFromUrl = useCallback(
@@ -442,88 +439,57 @@ const QuestionBankDetailScreen = () => {
                 }))
               }
             />
-            <Layer>
-              <Popover
-                open={filterOpen}
-                align="bottom-right"
-                isTabTip
-                onRequestClose={() => setFilterOpen(false)}
-              >
-                <Button
-                  kind="ghost"
-                  size="md"
-                  hasIconOnly
-                  renderIcon={Filter}
-                  iconDescription={t("questionBank.showFilters", "篩選")}
-                  tooltipPosition="bottom"
-                  tooltipAlignment="center"
-                  onClick={() => setFilterOpen((v) => !v)}
-                  className={`${styles.localToolbarIconButton} ${
-                    hasActiveFilters ? styles.localToolbarIconActive : ""
-                  }`}
-                />
-                <PopoverContent className={styles.filterPopoverContent}>
-                  <div className={styles.filterPopoverFields}>
-                    <FluidDropdown
-                      id="qb-filter-type"
-                      titleText={t("questionBank.questionType", "題型")}
-                      label={t("questionBank.questionType", "題型")}
-                      items={questionTypeFilterOptions}
-                      itemToString={(item: { label: string } | null) => item?.label ?? ""}
-                      selectedItem={
-                        filterState.questionTypes.length === 1
-                          ? questionTypeFilterOptions.find((o) => o.id === filterState.questionTypes[0]) ??
-                            questionTypeFilterOptions[0]
-                          : questionTypeFilterOptions[0]
-                      }
-                      onChange={({ selectedItem }: { selectedItem: { id: string } | null }) =>
-                        setFilterState((prev) => ({
-                          ...prev,
-                          questionTypes: selectedItem && selectedItem.id !== "all" ? [selectedItem.id] : [],
-                        }))
-                      }
-                    />
-                    <FluidDropdown
-                      id="qb-filter-sort"
-                      titleText={t("dashboard.sortLabel", "排序")}
-                      label={t("dashboard.sortLabel", "排序")}
-                      items={sortOptions}
-                      itemToString={(item: { label: string } | null) => item?.label ?? ""}
-                      selectedItem={
-                        sortOptions.find((o) => o.id === (filterState.sort || "order")) ??
-                        sortOptions[0]
-                      }
-                      onChange={({ selectedItem }: { selectedItem: { id: string } | null }) =>
-                        setFilterState((prev) => ({
-                          ...prev,
-                          sort: (selectedItem?.id as QuestionSortKey) || "order",
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className={styles.filterPopoverActions}>
-                    <Button
-                      kind="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setFilterState((prev) => ({
-                          keyword: prev.keyword,
-                          difficulty: [],
-                          tags: [],
-                          questionTypes: [],
-                          sort: "order",
-                        }));
-                      }}
-                    >
-                      {t("common.reset", "重設")}
-                    </Button>
-                    <Button kind="primary" size="sm" onClick={() => setFilterOpen(false)}>
-                      {t("common.done", "完成")}
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </Layer>
+            <FilterPopover
+              hasActiveFilters={hasActiveFilters}
+              triggerLabel={t("questionBank.showFilters", "篩選")}
+              onReset={() =>
+                setFilterState((prev) => ({
+                  keyword: prev.keyword,
+                  difficulty: [],
+                  tags: [],
+                  questionTypes: [],
+                  sort: "order",
+                }))
+              }
+              className={styles.localToolbarIconButton}
+            >
+              <FluidDropdown
+                id="qb-filter-type"
+                titleText={t("questionBank.questionType", "題型")}
+                label={t("questionBank.questionType", "題型")}
+                items={questionTypeFilterOptions}
+                itemToString={(item: { label: string } | null) => item?.label ?? ""}
+                selectedItem={
+                  filterState.questionTypes.length === 1
+                    ? questionTypeFilterOptions.find((o) => o.id === filterState.questionTypes[0]) ??
+                      questionTypeFilterOptions[0]
+                    : questionTypeFilterOptions[0]
+                }
+                onChange={({ selectedItem }: { selectedItem: { id: string } | null }) =>
+                  setFilterState((prev) => ({
+                    ...prev,
+                    questionTypes: selectedItem && selectedItem.id !== "all" ? [selectedItem.id] : [],
+                  }))
+                }
+              />
+              <FluidDropdown
+                id="qb-filter-sort"
+                titleText={t("dashboard.sortLabel", "排序")}
+                label={t("dashboard.sortLabel", "排序")}
+                items={sortOptions}
+                itemToString={(item: { label: string } | null) => item?.label ?? ""}
+                selectedItem={
+                  sortOptions.find((o) => o.id === (filterState.sort || "order")) ??
+                  sortOptions[0]
+                }
+                onChange={({ selectedItem }: { selectedItem: { id: string } | null }) =>
+                  setFilterState((prev) => ({
+                    ...prev,
+                    sort: (selectedItem?.id as QuestionSortKey) || "order",
+                  }))
+                }
+              />
+            </FilterPopover>
             {canEditSettings && (
               <Button
                 kind="ghost"

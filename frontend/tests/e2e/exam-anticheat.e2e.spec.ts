@@ -10,6 +10,7 @@
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import { loginViaAPI, clearAuth } from "../helpers/auth.helper";
 import {
+  getContestClassroomId,
   gotoExamAnsweringThroughPrecheck,
   runPrecheckToAnswering,
 } from "../helpers/exam-precheck.helper";
@@ -137,6 +138,20 @@ async function ensureContestWindowActive(
     },
   });
   expect(resp.ok()).toBeTruthy();
+}
+
+async function gotoContestExamPrecheck(page: Page, contestId: string) {
+  const classroomId = await getContestClassroomId(page, contestId);
+  await page.goto(`/classrooms/${classroomId}/contest/${contestId}/exam-precheck`);
+}
+
+async function gotoContestDashboard(page: Page, contestId: string) {
+  const classroomId = await getContestClassroomId(page, contestId);
+  await page.goto(`/classrooms/${classroomId}/contest/${contestId}`);
+}
+
+function contestDashboardRegex(contestId: string): RegExp {
+  return new RegExp(`/classrooms/[^/]+/contest/${contestId}(/)?(\\?.*)?$`);
 }
 
 /** Clear active anti-cheat device session for participant (teacher/admin only). */
@@ -703,18 +718,18 @@ test.describe("Paper Exam Precheck E2E", () => {
     test.setTimeout(60_000);
 
     const contestId = await ensureStudentReady(page, "student", teacherPage);
-    await page.goto(`/contests/${contestId}/exam-precheck`);
+    await gotoContestExamPrecheck(page, contestId);
     await page.waitForLoadState("networkidle");
 
     await runPrecheckToAnswering(page);
-    expect(page.url()).toContain("/paper-exam/answering");
+    expect(page.url()).toContain("/solve");
   });
 
   test("normal flow: precheck -> answer -> submit -> back to contest dashboard", async ({ page }) => {
     test.setTimeout(75_000);
 
     const contestId = await ensureStudentReady(page, "student", teacherPage);
-    await page.goto(`/contests/${contestId}/exam-precheck`);
+    await gotoContestExamPrecheck(page, contestId);
     await page.waitForLoadState("networkidle");
 
     await runPrecheckToAnswering(page);
@@ -733,7 +748,7 @@ test.describe("Paper Exam Precheck E2E", () => {
     await expect(submitConfirmBtn).toBeVisible({ timeout: 10000 });
     await submitConfirmBtn.click();
 
-    await page.waitForURL(new RegExp(`/contests/${contestId}(/)?(\\?.*)?$`), {
+    await page.waitForURL(contestDashboardRegex(contestId), {
       timeout: 25000,
     });
     await expect(page).not.toHaveURL(/\/paper-exam\/answering/);
@@ -743,7 +758,7 @@ test.describe("Paper Exam Precheck E2E", () => {
     test.setTimeout(90_000);
 
     const contestId = await ensureStudentReady(page, "student", teacherPage);
-    await page.goto(`/contests/${contestId}/exam-precheck`);
+    await gotoContestExamPrecheck(page, contestId);
     await page.waitForLoadState("networkidle");
 
     await runPrecheckToAnswering(page);
@@ -754,7 +769,7 @@ test.describe("Paper Exam Precheck E2E", () => {
     await expect(backDashboard).toBeVisible({ timeout: 10000 });
     await backDashboard.click();
 
-    await page.waitForURL(new RegExp(`/contests/${contestId}(/)?(\\?.*)?$`), {
+    await page.waitForURL(contestDashboardRegex(contestId), {
       timeout: 20000,
     });
     await page.waitForTimeout(2000);
@@ -765,7 +780,9 @@ test.describe("Paper Exam Precheck E2E", () => {
     await expect(goToAnswering).toBeVisible({ timeout: 10000 });
     await goToAnswering.click();
 
-    await page.waitForURL(/\/paper-exam\/answering/, { timeout: 20000 });
+    await page.waitForURL(/\/classrooms\/[^/]+\/contest\/[^/]+\/solve(?:\/|$)/, {
+      timeout: 20000,
+    });
     await page.waitForTimeout(2000);
     await expect(page.getByTestId("exam-screen-share-modal")).not.toBeVisible();
     expect(await getDisplayMediaStartCount(page)).toBe(beforeNavCount);
@@ -776,7 +793,7 @@ test.describe("Paper Exam Precheck E2E", () => {
 
     const contestId = await ensureStudentReady(page, "student2", teacherPage);
     const studentUserId = await getMyUserId(page);
-    await page.goto(`/contests/${contestId}/exam-precheck`);
+    await gotoContestExamPrecheck(page, contestId);
     await page.waitForLoadState("networkidle");
 
     await runPrecheckToAnswering(page);
@@ -796,7 +813,9 @@ test.describe("Paper Exam Precheck E2E", () => {
 
     await expect(streamLossModal).not.toBeVisible({ timeout: 15000 });
     expect(await getDisplayMediaStartCount(page)).toBeGreaterThan(beforeReshareCount);
-    await expect(page).toHaveURL(/\/paper-exam\/answering/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/classrooms\/[^/]+\/contest\/[^/]+\/solve(?:\/|$)/, {
+      timeout: 10000,
+    });
     const statusAfterReshare = await getContestExamStatus(page, contestId);
     expect(statusAfterReshare).toBe("in_progress");
 
@@ -829,7 +848,7 @@ test.describe("Paper Exam Precheck E2E", () => {
     const contestId = await ensureStudentReady(page, "student", teacherPage);
     const recoveryGraceMs = await getScreenShareRecoveryGraceMs(page, contestId);
 
-    await page.goto(`/contests/${contestId}/exam-precheck`);
+    await gotoContestExamPrecheck(page, contestId);
     await page.waitForLoadState("networkidle");
     await runPrecheckToAnswering(page);
     // Ensure capture hook has acquired the handoff stream before stopping it.
@@ -847,7 +866,7 @@ test.describe("Paper Exam Precheck E2E", () => {
 
     await clickVisibleButtonBySpanTestId(page, "exam-auto-submit-return-btn");
 
-    await page.waitForURL(new RegExp(`/contests/${contestId}(/)?(\\?.*)?$`), {
+    await page.waitForURL(contestDashboardRegex(contestId), {
       timeout: 20000,
     });
     const examStatus = await getContestExamStatus(page, contestId);
@@ -861,7 +880,7 @@ test.describe("Paper Exam Precheck E2E", () => {
     const studentUserId = await getMyUserId(page);
     const monitoringRecoveryGraceMs = await getMonitoringRecoveryGraceMs(page, contestId);
 
-    await page.goto(`/contests/${contestId}/exam-precheck`);
+    await gotoContestExamPrecheck(page, contestId);
     await page.waitForLoadState("networkidle");
     await runPrecheckToAnswering(page);
     await stabilizeScreenShare(page);
@@ -898,7 +917,7 @@ test.describe("Paper Exam Precheck E2E", () => {
     const studentUserId = await getMyUserId(page);
     const monitoringRecoveryGraceMs = await getMonitoringRecoveryGraceMs(page, contestId);
 
-    await page.goto(`/contests/${contestId}/exam-precheck`);
+    await gotoContestExamPrecheck(page, contestId);
     await page.waitForLoadState("networkidle");
     await runPrecheckToAnswering(page);
     await stabilizeScreenShare(page);
@@ -934,7 +953,7 @@ test.describe("Paper Exam Precheck E2E", () => {
     const contestId = await ensureStudentReady(page, "student2", teacherPage);
     const studentUserId = await getMyUserId(page);
 
-    await page.goto(`/contests/${contestId}/exam-precheck`);
+    await gotoContestExamPrecheck(page, contestId);
     await page.waitForLoadState("networkidle");
     await runPrecheckToAnswering(page);
     await stabilizeScreenShare(page);
@@ -1203,7 +1222,7 @@ test.describe("Exam Anti-Cheat E2E", () => {
     const contestId = await findExamContestId(page);
     const monitoringRecoveryGraceMs = await getMonitoringRecoveryGraceMs(page, contestId);
 
-    await page.goto(`/contests/${contestId}`);
+    await gotoContestDashboard(page, contestId);
     await page.waitForLoadState("networkidle");
 
     // Trigger mouse-leave style event; teacher should bypass monitoring warnings.

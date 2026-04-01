@@ -231,7 +231,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return ContestListSerializer
 
-        if self.action in ['create', 'update', 'partial_update']:
+        if self.action in ['update', 'partial_update']:
             return ContestCreateUpdateSerializer
 
         return ContestDetailSerializer
@@ -246,12 +246,16 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         return super().handle_exception(exc)
 
-    def perform_create(self, serializer):
-        user = self.request.user
-        if not (user.is_staff or user.is_superuser or getattr(user, 'role', None) in ('teacher', 'admin')):
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied('Only teachers and admins can create contests.')
-        serializer.save(owner=user)
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {
+                "detail": (
+                    "Standalone contest creation is disabled. "
+                    "Create contests from a classroom."
+                )
+            },
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
     def perform_update(self, serializer):
         """

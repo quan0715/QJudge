@@ -1,0 +1,55 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+// ─── Progress bar ───────────────────────────────────────────
+.progressWrapper {
+  width: 100%;
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+}
+
+.progressLabel {
+  @include type.type-style("body-compact-01");
+  margin-bottom: layout.$spacing-02;
+  color: var(--cds-text-secondary);
+}
+
+// ─── Metadata ───────────────────────────────────────────────
+.timeLabel {
+  margin-bottom: layout.$spacing-02;
+}
+
+.timeValue {
+  color: var(--cds-text-primary);
+  font-weight: 600;
+}
+
+// ─── Action rows ────────────────────────────────────────────
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-05;
+}
+
+.actionRowCompact {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+}
+
+// ─── Modal content ──────────────────────────────────────────
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.modalDangerText {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cds-support-error);
+}
+
+.modalSpacing {
+  margin-bottom: layout.$spacing-05;
+}

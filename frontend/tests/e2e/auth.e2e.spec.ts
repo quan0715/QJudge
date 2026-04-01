@@ -284,7 +284,7 @@ test.describe("Authentication E2E Tests", () => {
       page,
     }) => {
       // Try various protected routes
-      const protectedRoutes = ["/dashboard", "/problems", "/contests"];
+      const protectedRoutes = ["/dashboard", "/problems", "/classrooms"];
 
       for (const route of protectedRoutes) {
         await page.goto(route);

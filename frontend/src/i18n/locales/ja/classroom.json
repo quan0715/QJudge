@@ -108,7 +108,7 @@
   },
   "inviteLinkSection": "招待リンク",
   "joinLink": {
-    "backToDashboard": "ダッシュボードに戻る",
+    "backToDashboard": "ダッシュボードへ",
     "errorTitle": "クラスルームに参加できません",
     "invalidLink": "無効な招待リンク",
     "joinFailed": "クラスルームへの参加に失敗しました",
