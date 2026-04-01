@@ -1,7 +1,6 @@
-import type { StoryModule } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   ProblemDiscussionThread,
-  type ProblemDiscussionThreadProps,
   type DiscussionReply,
 } from "./ProblemDiscussionThread";
 
@@ -55,14 +54,11 @@ const mockNestedReplies: DiscussionReply[] = [
   },
 ];
 
-const storyModule: StoryModule<ProblemDiscussionThreadProps> = {
-  meta: {
+const meta: Meta<typeof ProblemDiscussionThread> = {
     title: "shared/ui/discussion/ProblemDiscussionThread",
     component: ProblemDiscussionThread,
-    category: "shared",
-    description:
-      "題目討論串元件，顯示討論內容與嵌套回覆，支援按讚、回覆與刪除操作。具有連接線視覺效果。",
-    defaultArgs: {
+    
+    args: {
       id: "1",
       content:
         "題目沒有明確說明時間複雜度要求，請問 O(n^2) 的解法可以過嗎？還是需要更優化的解法？",
@@ -75,26 +71,47 @@ const storyModule: StoryModule<ProblemDiscussionThreadProps> = {
       canDelete: true,
     },
     argTypes: {
-      id: { control: "text", label: "ID" },
-      content: { control: "text", label: "討論內容" },
-      problemTitle: { control: "text", label: "相關題目" },
-      authorUsername: { control: "text", label: "作者" },
-      likeCount: { control: "number", label: "按讚數" },
-      isLiked: { control: "boolean", label: "已按讚" },
-      canReply: { control: "boolean", label: "可回覆" },
-      canDelete: { control: "boolean", label: "可刪除" },
+      id: { control: "text", description: "ID" },
+      content: { control: "text", description: "討論內容" },
+      problemTitle: { control: "text", description: "相關題目" },
+      authorUsername: { control: "text", description: "作者" },
+      likeCount: { control: "number", description: "按讚數" },
+      isLiked: { control: "boolean", description: "已按讚" },
+      canReply: { control: "boolean", description: "可回覆" },
+      canDelete: { control: "boolean", description: "可刪除" },
+    },
+  
+  parameters: {
+    docs: { description: { component: '題目討論串元件，顯示討論內容與嵌套回覆，支援按讚、回覆與刪除操作。具有連接線視覺效果。' } },
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: { story: '使用右側 Controls 面板調整 Props' },
     },
   },
-  stories: [
-    {
-      name: "Playground",
-      description: "使用右側 Controls 面板調整 Props",
-      render: (args) => <ProblemDiscussionThread {...args} />,
+  render: (args) => (
+    <ProblemDiscussionThread
+      {...args}
+      id={args.id ?? "1"}
+      content={args.content ?? ""}
+      createdAt={args.createdAt ?? new Date().toISOString()}
+    />
+  ),
+};
+
+export const AllStates: Story = {
+  parameters: {
+    docs: {
+      description: { story: '展示各種討論串狀態：無回覆、有回覆、嵌套回覆' },
     },
-    {
-      name: "All States",
-      description: "展示各種討論串狀態：無回覆、有回覆、嵌套回覆",
-      render: () => (
+  },
+  render: () => (
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
           {/* No Replies */}
           <ProblemDiscussionThread
@@ -137,11 +154,15 @@ const storyModule: StoryModule<ProblemDiscussionThreadProps> = {
           />
         </div>
       ),
+};
+
+export const Readonly: Story = {
+  parameters: {
+    docs: {
+      description: { story: '唯讀模式，無操作按鈕' },
     },
-    {
-      name: "ReadOnly",
-      description: "唯讀模式，無操作按鈕",
-      render: () => (
+  },
+  render: () => (
         <ProblemDiscussionThread
           id="1"
           content="請問輸出需要換行嗎？還是只要輸出數字即可？這個在題目說明中沒有看到相關資訊。"
@@ -164,8 +185,4 @@ const storyModule: StoryModule<ProblemDiscussionThreadProps> = {
           canDelete={false}
         />
       ),
-    },
-  ],
 };
-
-export default storyModule;

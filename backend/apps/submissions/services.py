@@ -6,9 +6,10 @@ from typing import Any, Dict, Optional
 
 from django.db import transaction
 
-from apps.contests.models import Contest
-from apps.labs.access_policy import LabAccessError, LabAccessPolicy
-from apps.labs.models import Lab
+from django.utils import timezone
+
+from apps.contests.models import AssignmentState, Contest, ContestParticipant
+from apps.contests.services.question_edit_lock import maybe_lock_from_coding_submission
 from apps.problems.models import Problem
 from apps.submissions.access_policy import SubmissionAccessError, SubmissionAccessPolicy
 from apps.submissions.models import Submission
@@ -41,7 +42,6 @@ class SubmissionService:
         user: User,
         data: Dict[str, Any],
         contest_id: Optional[int] = None,
-        lab_id: Optional[int] = None,
     ) -> Submission:
         """
         Single entry-point used by the view layer.
@@ -51,7 +51,6 @@ class SubmissionService:
             user=user,
             data=data,
             contest_id=contest_id,
-            lab_id=lab_id,
         )
 
         if result.should_judge:
@@ -59,6 +58,7 @@ class SubmissionService:
 
         if result.source_type == "contest" and result.should_judge:
             cls._log_contest_activity(result, user)
+            cls._mark_practice_assignment_submitted(result.submission, user)
 
         return result.submission
 
@@ -72,29 +72,17 @@ class SubmissionService:
         user: User,
         data: Dict[str, Any],
         contest_id: Optional[int] = None,
-        lab_id: Optional[int] = None,
     ) -> SubmissionCreateResult:
         contest = data.get("contest")
         if contest is None and contest_id:
             contest = Contest.objects.get(id=contest_id)
-
-        lab = data.get("lab")
-        if lab is None and lab_id:
-            lab = Lab.objects.get(id=lab_id)
-
-        if contest and lab:
-            raise SubmissionAccessError("Contest and lab cannot be combined")
+        if contest is not None and contest_id is None:
+            contest_id = contest.id
 
         source_type = "contest" if contest else "practice"
 
         if contest:
             SubmissionAccessPolicy.enforce_contest_submission(user, contest)
-
-        if lab:
-            try:
-                LabAccessPolicy.enforce_submission(user, lab)
-            except LabAccessError as exc:
-                raise SubmissionAccessError(exc.message) from exc
 
         problem: Problem = data["problem"]
         code: str = data.get("code", "")
@@ -111,6 +99,19 @@ class SubmissionService:
         create_payload = dict(data)
         create_payload.pop("source_type", None)
 
+        # Resolve ContestQuestionBinding for contest submissions
+        problem_id = getattr(problem, "id", None)
+        if source_type == "contest" and contest_id and problem_id is not None:
+            from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+            binding = ContestQuestionBinding.objects.filter(
+                contest_id=contest_id,
+                coding_problem_id=problem_id,
+                binding_type=QuestionAsset.AssetType.CODING,
+            ).only("id").first()
+            if binding:
+                create_payload["contest_question_binding_id"] = binding.id
+
         with transaction.atomic():
             if violation_message:
                 submission = Submission.objects.create(
@@ -121,6 +122,7 @@ class SubmissionService:
                     error_message=violation_message,
                     **create_payload,
                 )
+                maybe_lock_from_coding_submission(submission=submission)
                 return SubmissionCreateResult(
                     submission=submission,
                     should_judge=False,
@@ -132,6 +134,7 @@ class SubmissionService:
                 source_type=source_type,
                 **create_payload,
             )
+            maybe_lock_from_coding_submission(submission=submission)
 
         return SubmissionCreateResult(
             submission=submission,
@@ -170,6 +173,21 @@ class SubmissionService:
             )
         except Exception:
             logger.debug("Failed to log contest activity", exc_info=True)
+
+    @staticmethod
+    def _mark_practice_assignment_submitted(submission: Submission, user: User) -> None:
+        contest = submission.contest
+        if not contest or contest.delivery_mode != "practice":
+            return
+        ContestParticipant.objects.filter(
+            contest=contest,
+            user=user,
+        ).update(assignment_state=AssignmentState.SUBMITTED)
+        ContestParticipant.objects.filter(
+            contest=contest,
+            user=user,
+            submitted_at__isnull=True,
+        ).update(submitted_at=timezone.now())
 
     @staticmethod
     def _check_keywords(

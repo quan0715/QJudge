@@ -36,6 +36,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
             allow_auto_unlock=True,
             auto_unlock_minutes=7,
             contest_type="paper_exam",
+            screen_share_recovery_grace_ms=30_000,
         )
         ContestParticipant.objects.create(contest=self.contest, user=self.student)
 
@@ -61,7 +62,10 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertEqual(contest_settings["contest_type"], "paper_exam")
         self.assertIn("warning_timeout_seconds", contest_settings)
         self.assertEqual(contest_settings["warning_timeout_seconds"], 20)
+        self.assertIn("screen_share_recovery_grace_ms", contest_settings)
+        self.assertEqual(contest_settings["screen_share_recovery_grace_ms"], 30_000)
         self.assertIn("anticheat_device_policy", contest_settings)
+        self.assertEqual(resp.data["effective"]["screen_share_recovery_grace_ms"], 30_000)
 
         device_policy = resp.data["device_policy"]
         self.assertIn("desktop", device_policy)
@@ -83,7 +87,31 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("cheat_detection_enabled", contest_setting_keys)
         self.assertIn("max_cheat_warnings", contest_setting_keys)
         self.assertIn("warning_timeout_seconds", contest_setting_keys)
+        self.assertIn("screen_share_recovery_grace_ms", contest_setting_keys)
         self.assertIn("anticheat_device_policy", contest_setting_keys)
+
+    def test_owner_can_update_screen_share_recovery_grace_and_runtime_uses_latest_value(self):
+        self.client.force_authenticate(user=self.student)
+        first = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(first.data["effective"]["screen_share_recovery_grace_ms"], 30_000)
+
+        self.client.force_authenticate(user=self.owner)
+        patch = self.client.patch(
+            f"/api/v1/contests/{self.contest.id}/",
+            {"screen_share_recovery_grace_ms": 45_000},
+            format="json",
+        )
+        self.assertEqual(patch.status_code, status.HTTP_200_OK)
+
+        self.contest.refresh_from_db()
+        self.assertEqual(self.contest.screen_share_recovery_grace_ms, 45_000)
+
+        self.client.force_authenticate(user=self.student)
+        second = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.data["contest_settings"]["screen_share_recovery_grace_ms"], 45_000)
+        self.assertEqual(second.data["effective"]["screen_share_recovery_grace_ms"], 45_000)
 
     def test_anonymous_request_is_rejected(self):
         resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")

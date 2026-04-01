@@ -54,7 +54,27 @@ fi
 # ==================== 2. TypeScript 編譯檢查 ====================
 print_step "檢查 TypeScript 編譯..."
 
-if npx tsc -b --noEmit 2>/dev/null || npx tsc --noEmit; then
+run_typescript_check() {
+    if npx tsc -b --noEmit >/tmp/qjudge-tsc-build.log 2>&1; then
+        cat /tmp/qjudge-tsc-build.log
+        return 0
+    fi
+
+    if grep -q "Unknown build option '--noEmit'" /tmp/qjudge-tsc-build.log; then
+        print_warning "偵測到較舊的 TypeScript build 模式，改用標準 noEmit 檢查"
+        if npx tsc --noEmit >/tmp/qjudge-tsc-plain.log 2>&1; then
+            cat /tmp/qjudge-tsc-plain.log
+            return 0
+        fi
+        cat /tmp/qjudge-tsc-plain.log
+        return 1
+    fi
+
+    cat /tmp/qjudge-tsc-build.log
+    return 1
+}
+
+if run_typescript_check; then
     print_success "TypeScript 編譯檢查通過"
 else
     print_error "TypeScript 編譯失敗"

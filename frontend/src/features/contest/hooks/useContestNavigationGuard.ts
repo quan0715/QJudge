@@ -15,7 +15,8 @@ export const useContestNavigationGuard = (contestId: string | undefined, enabled
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const contestPath = `/contests/${contestId}`;
-      if (location.pathname.startsWith(contestPath)) {
+      const classroomContestPath = new RegExp(`^/classrooms/[^/]+/contest/${contestId}(?:/|$)`);
+      if (location.pathname.startsWith(contestPath) || classroomContestPath.test(location.pathname)) {
         e.preventDefault();
         e.returnValue = ''; // Modern browsers ignore custom messages
       }

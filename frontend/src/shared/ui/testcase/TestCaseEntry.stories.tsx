@@ -1,15 +1,20 @@
-import type { StoryModule, Story } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { TestCaseSource } from "@/core/entities/testcase.entity";
-import { TestCaseEntry, type TestCaseEntryProps } from "./TestCaseEntry";
+import { TestCaseEntry } from "./TestCaseEntry";
 
 const sources: TestCaseSource[] = ["sample", "custom", "hidden"];
 
-const meta: StoryModule<TestCaseEntryProps>["meta"] = {
+const meta: Meta<typeof TestCaseEntry> = {
   title: "shared/ui/testcase/TestCaseEntry",
   component: TestCaseEntry,
-  category: "shared",
-  description: "單一測試案例的顯示元件，用於「自訂測資」或「查看範例測資」。",
-  defaultArgs: {
+  parameters: {
+    docs: {
+      description: {
+        component: "單一測試案例的顯示元件，用於「自訂測資」或「查看範例測資」。",
+      },
+    },
+  },
+  args: {
     index: 1,
     source: "sample",
     isHidden: false,
@@ -39,56 +44,47 @@ const meta: StoryModule<TestCaseEntryProps>["meta"] = {
   },
 };
 
-const stories: Story<TestCaseEntryProps>[] = [
-  {
-    name: "Playground",
-    description: "使用右側 Controls 面板調整 Props。",
-    render: (args) => (
-      <div style={{ maxWidth: 300 }}>
-        <TestCaseEntry
-          {...args}
-          onClick={() => console.log(`Clicked test case ${args.index}`)}
-        />
-      </div>
-    ),
-    code: `<TestCaseEntry index={1} source="sample" />`,
-  },
-  {
-    name: "All States",
-    description: "不同來源和狀態的測試案例。",
-    render: () => (
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 300 }}>
-        {/* Sample Cases */}
-        <TestCaseEntry index={1} source="sample" />
-        <TestCaseEntry index={2} source="sample" isSelected />
-        <TestCaseEntry index={3} source="sample" copyable />
-        
-        {/* Custom Cases */}
-        <TestCaseEntry index={4} source="custom" />
-        <TestCaseEntry index={5} source="custom" isSelected editable />
-        
-        {/* Hidden Case */}
-        <TestCaseEntry index={6} source="hidden" isHidden />
-        
-        {/* With Preview */}
-        <TestCaseEntry 
-          index={7} 
-          source="sample" 
-          inputPreview="5\n1 2 3 4 5"
-        />
-      </div>
-    ),
-    code: `
-<TestCaseEntry index={1} source="sample" />
-<TestCaseEntry index={2} source="custom" editable />
-<TestCaseEntry index={3} source="hidden" isHidden />
-    `,
-  },
-];
+export default meta;
+type Story = StoryObj<typeof meta>;
 
-export const TestCaseEntryStories: StoryModule<TestCaseEntryProps> = {
-  meta,
-  stories,
+export const Playground: Story = {
+  args: {
+    index: 1,
+    source: "sample",
+  },
+  render: (args) => (
+    <div style={{ maxWidth: 300 }}>
+      <TestCaseEntry
+        {...args}
+        index={args.index ?? 1}
+        source={args.source ?? "sample"}
+        onClick={() => console.log(`Clicked test case ${args.index}`)}
+      />
+    </div>
+  ),
 };
 
-export default TestCaseEntryStories;
+export const AllStates: Story = {
+  render: () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 300 }}>
+      {/* Sample Cases */}
+      <TestCaseEntry index={1} source="sample" />
+      <TestCaseEntry index={2} source="sample" isSelected />
+      <TestCaseEntry index={3} source="sample" copyable />
+
+      {/* Custom Cases */}
+      <TestCaseEntry index={4} source="custom" />
+      <TestCaseEntry index={5} source="custom" isSelected editable />
+
+      {/* Hidden Case */}
+      <TestCaseEntry index={6} source="hidden" isHidden />
+
+      {/* With Preview */}
+      <TestCaseEntry
+        index={7}
+        source="sample"
+        inputPreview="5\n1 2 3 4 5"
+      />
+    </div>
+  ),
+};

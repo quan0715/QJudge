@@ -53,13 +53,6 @@ export const ContestPreviewCard: React.FC<ContestPreviewCardProps> = ({
             <Time size={16} />
             {t("list.duration")}: {durationHours}h
           </span>
-          {contest.organizer && (
-            <span className="contest-preview-card__meta-item">
-              <Tag type="cool-gray" size="sm">
-                {t("list.organizer")}: {contest.organizer}
-              </Tag>
-            </span>
-          )}
         </div>
 
         <div className="contest-preview-card__meta">

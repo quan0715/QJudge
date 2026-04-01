@@ -63,7 +63,7 @@ describe("leaveExam.usecase", () => {
     expect(result).toBe(false);
   });
 
-  it("ends exam then navigates to contests", async () => {
+  it("ends exam then navigates to dashboard by default", async () => {
     vi.mocked(endExam).mockResolvedValue(undefined as void);
     let fullscreenActive = true;
     Object.defineProperty(document, "fullscreenElement", {
@@ -88,7 +88,7 @@ describe("leaveExam.usecase", () => {
     });
     expect(result).toEqual({
       success: true,
-      navigateTo: "/contests",
+      navigateTo: "/dashboard",
     });
   });
 
@@ -113,8 +113,23 @@ describe("leaveExam.usecase", () => {
 
     expect(result).toEqual({
       success: false,
-      navigateTo: "/contests",
+      navigateTo: "/dashboard",
       error: "api down",
+    });
+  });
+
+  it("respects custom navigateTo", async () => {
+    vi.mocked(endExam).mockResolvedValue(undefined as void);
+
+    const result = await leaveExamUseCase({
+      contestId: "contest-1",
+      shouldEndExam: false,
+      navigateTo: "/classrooms/c-1/contest/contest-1",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      navigateTo: "/classrooms/c-1/contest/contest-1",
     });
   });
 });

@@ -20,6 +20,8 @@ import {
   mapTagDto,
 } from "@/infrastructure/mappers/problem.mapper";
 
+const MANAGEMENT_PROBLEMS_BASE = "/api/v1/management/problems";
+
 // ============================================================================
 // Problem Repository Implementation
 // ============================================================================
@@ -28,20 +30,24 @@ export const getProblems = async (
   params?: GetProblemsParams | string
 ): Promise<Problem[]> => {
   let query = "";
+  const defaultScope = "manage";
 
   if (typeof params === "string") {
-    query = params ? `?scope=${params}` : "";
+    const scope = params || defaultScope;
+    query = `?scope=${scope}`;
   } else if (params) {
     query = buildQuery({
-      scope: params.scope,
+      scope: params.scope || defaultScope,
       search: params.search,
       difficulty: params.difficulty,
       tags: params.tags?.length ? params.tags.join(",") : undefined,
     });
+  } else {
+    query = `?scope=${defaultScope}`;
   }
 
   const data = await requestJson<any>(
-    httpClient.get(`/api/v1/problems/${query}`),
+    httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${query}`),
     "Failed to fetch problems"
   );
   const results = data.results || data;
@@ -53,17 +59,17 @@ export const getPaginatedProblems = async (
 ): Promise<PaginatedProblems> => {
   const query = params
     ? buildQuery({
-        scope: params.scope,
+        scope: params.scope || "manage",
         search: params.search,
         difficulty: params.difficulty,
         tags: params.tags?.length ? params.tags.join(",") : undefined,
         page: params.page,
         page_size: params.page_size,
       })
-    : "";
+    : "?scope=manage";
 
   const data = await requestJson<any>(
-    httpClient.get(`/api/v1/problems/${query}`),
+    httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${query}`),
     "Failed to fetch problems"
   );
 
@@ -79,8 +85,8 @@ export const getProblem = async (
   id: string,
   scope?: string
 ): Promise<ProblemDetail | undefined> => {
-  const query = scope ? `?scope=${scope}` : "";
-  const res = await httpClient.get(`/api/v1/problems/${id}/${query}`);
+  const query = `?scope=${scope || "manage"}`;
+  const res = await httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${id}/${query}`);
 
   if (!res.ok) {
     return undefined;
@@ -94,7 +100,7 @@ export const createProblem = async (
   data: ProblemUpsertPayload
 ): Promise<ProblemDetail> => {
   const responseData = await requestJson<any>(
-    httpClient.post("/api/v1/problems/", data),
+    httpClient.post(`${MANAGEMENT_PROBLEMS_BASE}/`, data),
     "Failed to create problem"
   );
   return mapProblemDetailDto(responseData);
@@ -105,7 +111,7 @@ export const updateProblem = async (
   data: ProblemUpsertPayload
 ): Promise<ProblemDetail> => {
   const responseData = await requestJson<any>(
-    httpClient.put(`/api/v1/problems/${id}/?scope=manage`, data),
+    httpClient.put(`${MANAGEMENT_PROBLEMS_BASE}/${id}/?scope=manage`, data),
     "Failed to update problem"
   );
   return mapProblemDetailDto(responseData);
@@ -116,7 +122,7 @@ export const patchProblem = async (
   data: Partial<ProblemUpsertPayload>
 ): Promise<ProblemDetail> => {
   const responseData = await requestJson<any>(
-    httpClient.patch(`/api/v1/problems/${id}/?scope=manage`, data),
+    httpClient.patch(`${MANAGEMENT_PROBLEMS_BASE}/${id}/?scope=manage`, data),
     "Failed to patch problem"
   );
   return mapProblemDetailDto(responseData);
@@ -124,7 +130,7 @@ export const patchProblem = async (
 
 export const deleteProblem = async (id: string): Promise<void> => {
   await ensureOk(
-    httpClient.delete(`/api/v1/problems/${id}/`),
+    httpClient.delete(`${MANAGEMENT_PROBLEMS_BASE}/${id}/`),
     "Failed to delete problem"
   );
 };
@@ -132,7 +138,7 @@ export const deleteProblem = async (id: string): Promise<void> => {
 export const getTags = async (): Promise<Tag[]> => {
   try {
     const data = await requestJson<any>(
-      httpClient.get("/api/v1/problems/tags/"),
+      httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/tags/`),
       "Failed to fetch tags"
     );
     const tags = Array.isArray(data) ? data : data.results || data.tags || [];
@@ -147,7 +153,7 @@ export const createTag = async (
   data: { name: string; color?: string; description?: string }
 ): Promise<Tag> => {
   const responseData = await requestJson<any>(
-    httpClient.post("/api/v1/problems/tags/", data),
+    httpClient.post(`${MANAGEMENT_PROBLEMS_BASE}/tags/`, data),
     "Failed to create tag"
   );
   return mapTagDto(responseData);
@@ -158,7 +164,7 @@ export const updateTag = async (
   data: { name?: string; color?: string; description?: string }
 ): Promise<Tag> => {
   const responseData = await requestJson<any>(
-    httpClient.patch(`/api/v1/problems/tags/${slug}/`, data),
+    httpClient.patch(`${MANAGEMENT_PROBLEMS_BASE}/tags/${slug}/`, data),
     "Failed to update tag"
   );
   return mapTagDto(responseData);
@@ -166,7 +172,7 @@ export const updateTag = async (
 
 export const deleteTag = async (slug: string): Promise<void> => {
   await ensureOk(
-    httpClient.delete(`/api/v1/problems/tags/${slug}/`),
+    httpClient.delete(`${MANAGEMENT_PROBLEMS_BASE}/tags/${slug}/`),
     "Failed to delete tag"
   );
 };
@@ -177,7 +183,7 @@ export const getProblemStatistics = async (
 ): Promise<ProblemStatistics> => {
   const query = buildQuery(params as Record<string, unknown>);
   const data = await requestJson<any>(
-    httpClient.get(`/api/v1/problems/${problemId}/statistics/${query}`),
+    httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${problemId}/statistics/${query}`),
     "Failed to fetch problem statistics"
   );
   return {
@@ -194,7 +200,7 @@ export const testRun = async (
   payload: TestRunPayload
 ): Promise<TestRunResult> => {
   return requestJson<TestRunResult>(
-    httpClient.post(`/api/v1/problems/${problemId}/test_run/`, payload),
+    httpClient.post(`${MANAGEMENT_PROBLEMS_BASE}/${problemId}/test_run/`, payload),
     "Test run failed"
   );
 };

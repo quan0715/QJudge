@@ -1,9 +1,24 @@
 @use "@carbon/layout";
 @use "@carbon/type";
+@use "../../../styles/card-tile" as card;
 
 .contest-preview-card {
   min-height: layout.rem(160px);
   position: relative;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+
+  &.cds--tile--clickable {
+    background-color: var(--cds-layer-01, var(--cds-layer));
+  }
+
+  &.cds--tile--clickable:hover {
+    background-color: var(--cds-layer-hover-01, var(--cds-layer-hover));
+  }
+
+  &.cds--tile--clickable:active {
+    background-color: var(--cds-layer-active-01, var(--cds-layer-active));
+  }
 }
 
 .contest-preview-card__header {

@@ -221,6 +221,40 @@
   }
 }
 
+.auth-activation-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: $spacing-04;
+  padding: $spacing-05;
+  border: 1px solid $border-subtle;
+  background-color: $layer-01;
+
+  strong {
+    @include type.type-style("label-01");
+    color: $text-secondary;
+    display: block;
+    margin-bottom: $spacing-02;
+  }
+
+  p {
+    @include type.type-style("body-compact-01");
+    color: $text-primary;
+    margin: 0;
+    word-break: break-word;
+  }
+}
+
+.auth-subnote {
+  @include type.type-style("body-compact-01");
+  color: $text-secondary;
+  margin: 0;
+}
+
+.auth-actions--stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
 .auth-actions,
 .auth-divider,
 .auth-oauth-group,

@@ -1,51 +1,179 @@
 {
-  "members": {
-    "headers": {
-      "username": "Username",
-      "email": "Email",
-      "role": "Role",
-      "joinedAt": "Joined At"
-    },
-    "actions": {
-      "remove": "Remove"
-    }
+  "addCover": "Add Cover",
+  "addMembers": "Add Members",
+  "addMembersFailed": "Failed to add members",
+  "addMembersModal": {
+    "confirm": "Confirm Add",
+    "csvLoaded": "Loaded: ",
+    "hint": "New members default to student role. Adjust to TA in member management afterwards.",
+    "importCsv": "Import CSV",
+    "personUnit": "",
+    "preview": "Preview List",
+    "previewHint": "Only valid entries will be submitted. Results show added/existing/not-found breakdown.",
+    "processing": "Processing...",
+    "resultAdded": "Added",
+    "resultExists": "Already exists",
+    "resultNotFound": "Not found",
+    "subtitle": "Preview the list before submitting",
+    "tagDuplicated": "Duplicated",
+    "tagInvalid": "Invalid",
+    "tagValid": "Valid",
+    "title": "Add Members",
+    "usernameLabel": "Enter usernames (comma, newline, or semicolon separated)"
   },
   "announcement": {
+    "createFailed": "Failed to create announcement",
     "modal": {
-      "titleCreate": "Post Announcement",
-      "titleEdit": "Edit Announcement",
-      "submitCreate": "Post",
-      "submitEdit": "Save",
-      "submittingCreate": "Posting...",
-      "submittingEdit": "Saving...",
       "form": {
-        "title": "Title",
-        "titlePlaceholder": "Announcement Title",
-        "pinned": "Pinned",
         "content": "Content",
         "contentPlaceholder": "Enter announcement content, Markdown supported...",
-        "yes": "Yes",
-        "no": "No"
-      }
-    }
+        "no": "No",
+        "pinned": "Pinned",
+        "title": "Title",
+        "titlePlaceholder": "Announcement Title",
+        "yes": "Yes"
+      },
+      "submitCreate": "Create",
+      "submitEdit": "Save",
+      "submittingCreate": "Creating...",
+      "submittingEdit": "Saving...",
+      "titleCreate": "Create Announcement",
+      "titleEdit": "Edit Announcement"
+    },
+    "updateFailed": "Failed to update announcement"
   },
-  "inviteCode": {
-    "label": "Invite Code",
-    "disabled": "Disabled",
-    "copy": "Copy",
-    "copied": "Copied",
-    "regenerate": "Regenerate"
-  },
+  "announcementDeleteFailed": "Failed to delete announcement",
+  "announcementDeleted": "Announcement deleted",
+  "announcements": "Announcements",
+  "archived": "Archived",
+  "backToClassrooms": "Back to classrooms",
+  "basicInfo": "Basic Information",
   "bindContest": {
     "modal": {
-      "title": "Bind Contest",
+      "noContests": "No available contests",
       "submit": "Bind",
       "submitting": "Binding...",
-      "noContests": "No contests available to bind",
       "table": {
         "name": "Contest Name",
         "status": "Status"
-      }
+      },
+      "title": "Bind Contest"
     }
-  }
+  },
+  "bindContestNoPermission": "You don't have permission to bind a contest",
+  "classroomList": "Classroom list",
+  "codeRegenerateFailed": "Failed to regenerate invite link",
+  "codeRegenerated": "Invite link regenerated",
+  "confirmDeleteAnnouncementBody": "Are you sure to delete this announcement? This action cannot be undone.",
+  "confirmDeleteAnnouncementTitle": "Confirm Delete Announcement",
+  "confirmRegenerateCodeBody": "The old invite code will become invalid immediately.",
+  "confirmRegenerateCodeTitle": "Confirm Regenerate Invite Code",
+  "confirmRegenerateLinkBody": "The old invite link will become invalid immediately. Students who haven't joined will need the new link.",
+  "confirmRegenerateLinkTitle": "Confirm Regenerate Invite Link",
+  "confirmRemoveMemberBody": "You are about to remove this member:",
+  "confirmRemoveMemberTitle": "Confirm Remove Member",
+  "contests": "Contests",
+  "coverDropzoneHint": "or click here to select a file",
+  "coverDropzoneTitle": "Drop cover image here",
+  "coverImage": "Cover Image",
+  "coverRemoveFailed": "Failed to remove cover",
+  "coverRemoved": "Cover image removed",
+  "coverUploadFailed": "Failed to upload cover",
+  "coverUploaded": "Cover image updated",
+  "createAnnouncement": "Create Announcement",
+  "createContest": "Create Contest",
+  "createContestFailed": "Contest created but failed to add to classroom",
+  "createContestSuccess": "Contest created and added to classroom",
+  "createdAt": "Created At",
+  "current": "Current classroom",
+  "description": "Description",
+  "editCover": "Edit Cover Image",
+  "editMember": "Edit Member",
+  "icon": "Icon",
+  "inviteCode": {
+    "copied": "Copied",
+    "copy": "Copy",
+    "disabled": "Disabled",
+    "label": "Invite Code",
+    "regenerate": "Regenerate"
+  },
+  "inviteCodeSection": "Invite Code",
+  "inviteLink": {
+    "copied": "Copied",
+    "copy": "Copy Link",
+    "copyFailed": "Failed to copy invite link",
+    "disabled": "Disabled",
+    "label": "Invite Link",
+    "regenerate": "Regenerate"
+  },
+  "inviteLinkSection": "Invite Link",
+  "joinLink": {
+    "backToDashboard": "Back to Dashboard",
+    "errorTitle": "Unable to Join Classroom",
+    "invalidLink": "Invalid invite link",
+    "joinFailed": "Failed to join classroom",
+    "joining": "Joining classroom..."
+  },
+  "latestAnnouncements": "Latest Announcements",
+  "loadFailed": "Failed to load classroom",
+  "loadFailedHint": "Please try again later",
+  "memberEmail": "Email",
+  "memberFilteredCount": "Showing {{count}} / {{total}} members",
+  "memberGroupStudent": "Students",
+  "memberGroupTeacher": "Teachers",
+  "memberNoResult": "No members match the filters",
+  "memberRemoved": "Member removed",
+  "memberRole": "Role",
+  "memberRoleAll": "All Roles",
+  "memberRoleFilter": "Role Filter",
+  "memberRoleUpdateFailed": "Failed to update member role",
+  "memberRoleUpdated": "Member role updated",
+  "memberSearch": "Search Members",
+  "memberSearchPlaceholder": "Search username or email",
+  "memberStudent": "Students {{count}}",
+  "memberTa": "TAs {{count}}",
+  "memberTotal": "Total {{count}}",
+  "memberUsername": "Username",
+  "members": {
+    "actions": {
+      "remove": "Remove"
+    },
+    "headers": {
+      "email": "Email",
+      "joinedAt": "Joined At",
+      "role": "Role",
+      "username": "Username"
+    }
+  },
+  "membersTitle": "Members List",
+  "name": "Classroom Name",
+  "noActiveContests": "No active or upcoming contests",
+  "noAnnouncements": "No announcements yet",
+  "noContests": "No contests yet",
+  "notFound": "Classroom not found",
+  "otherInfo": "Other Information",
+  "owner": "Creator",
+  "recentActivities": "Recent Activities",
+  "removeCover": "Remove Cover",
+  "removeMember": "Remove Member",
+  "removeMemberFailed": "Failed to remove member",
+  "roleAdmin": "Admin",
+  "settingsMembers": "Assistant Management",
+  "settingsSaveFailed": "Failed to save settings",
+  "studentTodo": "My Tasks",
+  "switchClassroom": "Switch classroom",
+  "switchTo": "Switch to this classroom",
+  "switcherLoadFailed": "Failed to load classroom list",
+  "tab": {
+    "announcements": "Announcements",
+    "contests": "Contests",
+    "members": "Members",
+    "overview": "Overview",
+    "settings": "Settings"
+  },
+  "tabs": "Classroom tabs",
+  "title": "Classroom Management",
+  "updatedAt": "Last Updated",
+  "uploadFile": "Upload Image",
+  "viewAllAnnouncements": "View all announcements"
 }

@@ -1,5 +1,6 @@
 import { Modal } from "@carbon/react";
-import type { Announcement } from "@/infrastructure/api/repositories/announcement.repository";
+import { useTranslation } from "react-i18next";
+import type { Announcement } from "@/core/entities/announcement.entity";
 import styles from "./AnnouncementDetailModal.module.scss";
 
 export interface AnnouncementDetailModalProps {
@@ -11,7 +12,7 @@ export interface AnnouncementDetailModalProps {
   onClose: () => void;
   /** 日期格式化函式 */
   formatDate?: (dateStr: string) => string;
-  /** 關閉按鈕文字 */
+  /** 關閉按鈕文字，預設使用 common:button.close */
   closeButtonText?: string;
 }
 
@@ -24,8 +25,9 @@ export const AnnouncementDetailModal = ({
   open,
   onClose,
   formatDate,
-  closeButtonText = "關閉",
+  closeButtonText,
 }: AnnouncementDetailModalProps) => {
+  const { t } = useTranslation("common");
   if (!announcement) return null;
 
   const formattedDate = formatDate
@@ -39,7 +41,7 @@ export const AnnouncementDetailModal = ({
       modalHeading={announcement.title}
       passiveModal
       size="md"
-      primaryButtonText={closeButtonText}
+      primaryButtonText={closeButtonText ?? t("button.close")}
       onRequestSubmit={onClose}
     >
       <div className={styles.modal}>

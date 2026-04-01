@@ -10,12 +10,15 @@ import { ArrowRight } from "@carbon/icons-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register } from "@/infrastructure/api/repositories/auth.repository";
+import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
+import { PendingActionBanner, usePendingActions } from "@/features/auth/pending-actions";
 
 type FieldErrors = Record<string, string[]>;
 
 const RegisterPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { buildAuthLink } = usePendingActions();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -58,7 +61,7 @@ const RegisterPage = () => {
       });
       if (response.success) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
-        navigate("/dashboard");
+        navigate(getAuthedLandingPath(response.data.user), { replace: true });
       } else {
         setError(t("auth.register.failed"));
       }
@@ -80,6 +83,7 @@ const RegisterPage = () => {
   return (
     <>
       <Form onSubmit={handleRegister} className="auth-form">
+        <PendingActionBanner />
         <TextInput
           id="username"
           labelText={t("auth.register.username")}
@@ -142,7 +146,7 @@ const RegisterPage = () => {
       <div className="auth-footer">
         <p>
           {t("auth.register.hasAccount")}{" "}
-          <Link to="/login" className="auth-link">
+          <Link to={buildAuthLink("/login")} className="auth-link">
             {t("auth.register.loginNow")}
           </Link>
         </p>

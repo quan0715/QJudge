@@ -15,7 +15,7 @@ User = get_user_model()
 
 class SubmissionQuerySet(models.QuerySet):
     def optimized_for_detail(self) -> "SubmissionQuerySet":
-        return self.select_related("user", "problem", "contest", "lab")
+        return self.select_related("user", "problem", "contest")
 
     def optimized_for_list(self) -> "SubmissionQuerySet":
         return self.only(
@@ -23,7 +23,6 @@ class SubmissionQuerySet(models.QuerySet):
             "user_id",
             "problem_id",
             "contest_id",
-            "lab_id",
             "source_type",
             "language",
             "status",
@@ -37,16 +36,14 @@ class SubmissionQuerySet(models.QuerySet):
             "problem__title",
             "contest__id",
             "contest__anonymous_mode_enabled",
-            "lab__id",
-        ).select_related("user", "problem", "contest", "lab")
+        ).select_related("user", "problem", "contest")
 
     def visible_to(
         self,
         *,
         user: Optional[User],
         source_type: str,
-        contest_id: Optional[int],
-        lab_id: Optional[int],
+        contest_id: Optional[str],
         include_all: bool,
         created_after: Optional[str],
         date_range_days: int,
@@ -74,8 +71,6 @@ class SubmissionQuerySet(models.QuerySet):
 
         if source_type == "practice":
             queryset = queryset.filter(source_type="practice", is_test=False)
-            if lab_id:
-                queryset = queryset.filter(lab_id=lab_id)
             if is_privileged_user:
                 return queryset
             if user and user.is_authenticated:

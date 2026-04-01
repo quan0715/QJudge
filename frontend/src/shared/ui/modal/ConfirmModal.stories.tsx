@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@carbon/react";
-import type { StoryModule } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ConfirmModal, type ConfirmModalProps } from "./ConfirmModal";
 
 /** Interactive demo with useState hook */
@@ -35,13 +35,11 @@ const ConfirmModalDemo = ({
   );
 };
 
-const storyModule: StoryModule<ConfirmModalProps> = {
-  meta: {
+const meta: Meta<typeof ConfirmModal> = {
     title: "shared/ui/modal/ConfirmModal",
     component: ConfirmModal,
-    category: "features",
-    description: "通用確認對話框。使用 useState 控制開關狀態。",
-    defaultArgs: {
+    
+    args: {
       title: "刪除確認",
       body: "是否確認刪除這筆資料？此動作無法復原。",
       confirmLabel: "確認",
@@ -55,21 +53,20 @@ const storyModule: StoryModule<ConfirmModalProps> = {
       cancelLabel: { control: "text", description: "取消按鈕文字" },
       danger: { control: "boolean", description: "危險模式（紅色）" },
     },
+  
+  parameters: {
+    docs: { description: { component: '通用確認對話框。使用 useState 控制開關狀態。' } },
   },
-  stories: [
-    {
-      name: "Playground",
-      description: "點擊按鈕開啟對話框，展示 useState hook 的使用方式。",
-      render: (args) => (
-        <ConfirmModalDemo
-          title={args.title as string}
-          body={args.body as string}
-          confirmLabel={args.confirmLabel as string}
-          cancelLabel={args.cancelLabel as string}
-          danger={args.danger as boolean}
-        />
-      ),
-      code: `const [open, setOpen] = useState(false);
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: { story: '點擊按鈕開啟對話框，展示 useState hook 的使用方式。' },
+      source: { code: `const [open, setOpen] = useState(false);
 
 <Button onClick={() => setOpen(true)}>開啟</Button>
 <ConfirmModal
@@ -79,12 +76,27 @@ const storyModule: StoryModule<ConfirmModalProps> = {
   danger
   onConfirm={() => { setOpen(false); /* do something */ }}
   onCancel={() => setOpen(false)}
-/>`,
+/>` },
     },
-    {
-      name: "All Variants",
-      description: "展示不同類型的確認對話框。",
-      render: () => {
+  },
+  render: (args) => (
+        <ConfirmModalDemo
+          title={args.title as string}
+          body={args.body as string}
+          confirmLabel={args.confirmLabel as string}
+          cancelLabel={args.cancelLabel as string}
+          danger={args.danger as boolean}
+        />
+      ),
+};
+
+export const AllVariants: Story = {
+  parameters: {
+    docs: {
+      description: { story: '展示不同類型的確認對話框。' },
+    },
+  },
+  render: () => {
         const DemoRow = ({
           label,
           ...props
@@ -114,8 +126,4 @@ const storyModule: StoryModule<ConfirmModalProps> = {
           </div>
         );
       },
-    },
-  ],
 };
-
-export default storyModule;

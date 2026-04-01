@@ -5,6 +5,7 @@ import type { ExamQuestion } from "@/core/entities/contest.entity";
 import WorkTree from "./WorkTree";
 
 vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: () => {} },
   useTranslation: () => ({
     t: (key: string, opts?: Record<string, unknown>) => {
       if (key === "examEditor.questionCount")
@@ -14,6 +15,10 @@ vi.mock("react-i18next", () => ({
       return (typeof opts === "string" ? opts : undefined) ?? key;
     },
   }),
+}));
+
+vi.mock("@/shared/contexts", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
 }));
 
 vi.mock("motion/react", () => ({

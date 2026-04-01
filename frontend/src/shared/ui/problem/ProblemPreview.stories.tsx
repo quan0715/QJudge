@@ -1,5 +1,5 @@
-import type { StoryModule } from "@/shared/types/story.types";
-import ProblemPreview, { type ProblemPreviewProps } from "./ProblemPreview";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import ProblemPreview from "./ProblemPreview";
 import type { ProblemDetail } from "@/core/entities/problem.entity";
 
 // =====================================================
@@ -9,7 +9,7 @@ const createMockProblemDetail = (
   overrides: Partial<ProblemDetail> = {}
 ): ProblemDetail => ({
   id: "1",
-  displayId: "P001",
+
   title: "Two Sum",
   difficulty: "easy",
   acceptanceRate: 85.5,
@@ -25,7 +25,7 @@ const createMockProblemDetail = (
     { id: "2", name: "雜湊表", slug: "hash-table" },
   ],
   isSolved: false,
-  visibility: "public",
+
   description: "",
   translations: [
     {
@@ -68,7 +68,7 @@ const mockProblemDetails: Record<string, ProblemDetail> = {
 
   withKeywords: createMockProblemDetail({
     id: "2",
-    displayId: "P002",
+
     title: "Recursive Sum",
     difficulty: "medium",
     translations: [
@@ -91,7 +91,7 @@ const mockProblemDetails: Record<string, ProblemDetail> = {
 
   hardProblem: createMockProblemDetail({
     id: "3",
-    displayId: "P003",
+
     title: "Regular Expression Matching",
     difficulty: "hard",
     acceptanceRate: 18.5,
@@ -123,7 +123,7 @@ const mockProblemDetails: Record<string, ProblemDetail> = {
 
   noSamples: createMockProblemDetail({
     id: "4",
-    displayId: "P004",
+
     title: "Hidden Test Problem",
     difficulty: "medium",
     translations: [
@@ -147,82 +147,62 @@ const mockProblemDetails: Record<string, ProblemDetail> = {
 // =====================================================
 // Story Module
 // =====================================================
-export const ProblemPreviewStories: StoryModule<ProblemPreviewProps> = {
-  meta: {
-    title: "shared/ui/problem/ProblemPreview",
-    component: ProblemPreview,
-    description: "題目內容預覽組件，支援 Markdown 渲染、範例測資顯示、關鍵字限制等功能。",
-    category: "shared",
-    defaultArgs: {
-      compact: false,
-      showLanguageToggle: true,
-    },
-    argTypes: {
-      problem: {
-        control: "select",
-        options: Object.keys(mockProblemDetails),
-        mapping: mockProblemDetails,
-        description: "題目資料",
-      },
-      compact: {
-        control: "boolean",
-        description: "精簡模式（隱藏標題）",
-      },
-      showLanguageToggle: {
-        control: "boolean",
-        description: "顯示語言切換（目前未實作）",
-      },
-    },
+const meta: Meta<typeof ProblemPreview> = {
+  title: "shared/ui/problem/ProblemPreview",
+  component: ProblemPreview,
+  args: {
+    compact: false,
+    showLanguageToggle: true,
   },
-  stories: [
-    {
-      name: "Playground",
-      description: "使用控制面板調整 ProblemPreview 的顯示。",
-      args: {
-        problem: mockProblemDetails.basic,
-      },
-      render: (args) => (
-        <div style={{ maxWidth: "800px", padding: "1rem" }}>
-          <ProblemPreview {...args} />
-        </div>
-      ),
+  argTypes: {
+    problem: {
+      control: "select",
+      options: Object.keys(mockProblemDetails),
+      mapping: mockProblemDetails,
+      description: "題目資料",
     },
-    {
-      name: "All States",
-      description: "展示不同狀態的題目預覽：基本、含關鍵字限制、困難題、無範例。",
-      render: () => (
-        <div style={{ display: "flex", flexDirection: "column", gap: "2rem", maxWidth: "800px" }}>
-          <section>
-            <h4 style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>基本題目</h4>
-            <div style={{ border: "1px solid var(--cds-border-subtle)", padding: "1rem" }}>
-              <ProblemPreview problem={mockProblemDetails.basic} />
-            </div>
-          </section>
-
-          <section>
-            <h4 style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>含關鍵字限制</h4>
-            <div style={{ border: "1px solid var(--cds-border-subtle)", padding: "1rem" }}>
-              <ProblemPreview problem={mockProblemDetails.withKeywords} />
-            </div>
-          </section>
-
-          <section>
-            <h4 style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>精簡模式 (Compact)</h4>
-            <div style={{ border: "1px solid var(--cds-border-subtle)", padding: "1rem" }}>
-              <ProblemPreview problem={mockProblemDetails.basic} compact />
-            </div>
-          </section>
-
-          <section>
-            <h4 style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>空資料</h4>
-            <div style={{ border: "1px solid var(--cds-border-subtle)", padding: "1rem" }}>
-              <ProblemPreview problem={undefined} />
-            </div>
-          </section>
-        </div>
-      ),
-    },
-  ],
+    compact: { control: "boolean", description: "精簡模式（隱藏標題）" },
+    showLanguageToggle: { control: "boolean", description: "顯示語言切換" },
+  },
+  parameters: {
+    docs: { description: { component: "題目內容預覽組件，支援 Markdown 渲染、範例測資顯示、關鍵字限制等功能。" } },
+  },
 };
 
-export default ProblemPreviewStories;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+  args: { problem: mockProblemDetails.basic },
+  render: (args) => (
+    <div style={{ maxWidth: "800px", padding: "1rem" }}>
+      <ProblemPreview {...args} />
+    </div>
+  ),
+};
+
+export const AllStates: Story = {
+  parameters: { docs: { description: { story: "展示不同狀態的題目預覽：基本、含關鍵字限制、困難題、無範例。" } } },
+  render: () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "2rem", maxWidth: "800px" }}>
+      <section>
+        <h4 style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>基本題目</h4>
+        <div style={{ border: "1px solid var(--cds-border-subtle)", padding: "1rem" }}>
+          <ProblemPreview problem={mockProblemDetails.basic} />
+        </div>
+      </section>
+      <section>
+        <h4 style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>含關鍵字限制</h4>
+        <div style={{ border: "1px solid var(--cds-border-subtle)", padding: "1rem" }}>
+          <ProblemPreview problem={mockProblemDetails.withKeywords} />
+        </div>
+      </section>
+      <section>
+        <h4 style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>精簡模式 (Compact)</h4>
+        <div style={{ border: "1px solid var(--cds-border-subtle)", padding: "1rem" }}>
+          <ProblemPreview problem={mockProblemDetails.basic} compact />
+        </div>
+      </section>
+    </div>
+  ),
+};

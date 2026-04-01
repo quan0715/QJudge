@@ -11,6 +11,7 @@ from django.utils import timezone
 from .models import Submission, SubmissionResult
 from apps.problems.models import TestCase
 from apps.judge.judge_factory import get_judge
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,13 @@ class MockTestCase:
         self.is_hidden = False
         self.id = f"custom_{order}"
         self.order = order
+
+
+def _resolve_test_case_weight(tc: TestCase) -> int:
+    weight_percent = getattr(tc, "weight_percent", None)
+    if weight_percent is not None:
+        return max(0, int(weight_percent))
+    return max(0, int(getattr(tc, "score", 0) or 0))
 
 
 @shared_task
@@ -54,7 +62,13 @@ def judge_submission(submission_id):
             # For normal submissions, use all test cases
             test_cases = list(submission.problem.test_cases.all())
         
-        total_score = 0
+        legacy_total_score = 0
+        passed_weight_sum = 0
+        total_weight_sum = 0
+        has_weight_percent = any(
+            isinstance(tc, TestCase) and tc.weight_percent is not None
+            for tc in test_cases
+        )
         max_exec_time = 0
         max_memory = 0
         is_accepted = True
@@ -89,8 +103,11 @@ def judge_submission(submission_id):
             max_memory = max(max_memory, memory)
             
             # Calculate score
+            tc_weight = _resolve_test_case_weight(tc)
+            total_weight_sum += tc_weight
             if status == 'AC':
-                total_score += tc.score
+                legacy_total_score += tc.score
+                passed_weight_sum += tc_weight
             else:
                 is_accepted = False
                 if final_status == 'AC':  # First error
@@ -121,6 +138,29 @@ def judge_submission(submission_id):
                 submission.error_message = error_msg
                 break
         
+        # Calculate final score
+        total_score = legacy_total_score
+        if submission.source_type == 'contest' and submission.contest_id:
+            binding = submission.contest_question_binding
+            if binding is None and submission.problem_id:
+                binding = ContestQuestionBinding.objects.filter(
+                    contest_id=submission.contest_id,
+                    coding_problem_id=submission.problem_id,
+                    binding_type=QuestionAsset.AssetType.CODING,
+                ).only("score").first()
+            if binding:
+                if total_weight_sum > 0:
+                    total_score = round(binding.score * (passed_weight_sum / total_weight_sum))
+                elif final_status == 'AC':
+                    total_score = binding.score
+                else:
+                    total_score = 0
+        elif has_weight_percent:
+            if total_weight_sum > 0:
+                total_score = round(100 * (passed_weight_sum / total_weight_sum))
+            else:
+                total_score = 100 if final_status == 'AC' else 0
+
         # Update submission
         submission.status = final_status
         submission.score = total_score

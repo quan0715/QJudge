@@ -36,9 +36,11 @@ INSTALLED_APPS = [
     "apps.submissions",
     "apps.contests",
     "apps.announcements",
-    "apps.labs",
+    "apps.labs",  # migration stub only; runtime lab product now uses contests
     "apps.classrooms",
     "apps.ai",  # AI Chat
+    "apps.question_bank",
+    "apps.subscriptions",
     "drf_spectacular",
 ]
 
@@ -222,6 +224,7 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+    "x-device-id",
 ]
 
 # CSRF Trusted Origins (for POST/PATCH/DELETE requests)
@@ -245,6 +248,15 @@ CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 
 # Frontend URL
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+# Feature flags
+# Contest ACL role source:
+# - False: legacy contest-scoped owner/co_owner/participant resolution
+# - True: classroom-bound contest resolves role from classroom scope first
+# Default is enabled because classroom-bound contests are now authoritative.
+CONTEST_ACL_CLASSROOM_SOURCE_ENABLED = (
+    os.getenv("CONTEST_ACL_CLASSROOM_SOURCE_ENABLED", "true").lower() == "true"
+)
 
 # Redis Cache settings
 # Using Django's built-in Redis backend (Django 4.0+)
@@ -407,3 +419,10 @@ ENCRYPTION_KEY = os.getenv(
     "ENCRYPTION_KEY",
     "u1hHKL4z-3J1B_Wx_Y9c8r7K2x5nQ8P3vL6M9s0W7Z4f5A6d9eG2hJ5kM8oP1qS4"  # Default dev key (change in production!)
 )
+
+# Recur Payment settings
+RECUR_PUBLISHABLE_KEY = os.getenv("RECUR_PUBLISHABLE_KEY", "")
+RECUR_SECRET_KEY = os.getenv("RECUR_SECRET_KEY", "")
+RECUR_WEBHOOK_SECRET = os.getenv("RECUR_WEBHOOK_SECRET", "")
+RECUR_PRODUCT_PRO_ID = os.getenv("RECUR_PRODUCT_PRO_ID", "")
+RECUR_PRODUCT_TEAM_ID = os.getenv("RECUR_PRODUCT_TEAM_ID", "")

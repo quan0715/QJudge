@@ -99,7 +99,7 @@ export function usePaperExamSaveOnLeave({
         // Keep endpoint aligned with submitExamAnswer API contract.
         const url = `/api/v1/contests/${cId}/exam-answers/submit/`;
         const body = {
-          question_id: Number(questionId),
+          question_id: questionId,
           answer: payload,
         };
         navigator.sendBeacon(url, new Blob([JSON.stringify(body)], { type: "application/json" }));
@@ -121,7 +121,7 @@ export function usePaperExamSaveOnLeave({
           const payload = buildExamAnswerPayload(value, getQuestionType(questionId));
           const url = `/api/v1/contests/${cId}/exam-answers/submit/`;
           const body = {
-            question_id: Number(questionId),
+            question_id: questionId,
             answer: payload,
           };
           navigator.sendBeacon(url, new Blob([JSON.stringify(body)], { type: "application/json" }));

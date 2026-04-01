@@ -1,8 +1,19 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import ProblemWorkTree from "./ProblemWorkTree";
+
+vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: () => {} },
+  useTranslation: () => ({
+    t: (_key: string, fallback?: string) => fallback ?? _key,
+  }),
+}));
+
+vi.mock("@/shared/contexts", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
 
 vi.mock("motion/react", () => ({
   Reorder: {
@@ -39,6 +50,8 @@ const buildProblem = (partial: Partial<ContestProblemSummary>): ContestProblemSu
   title: partial.title ?? "Sample Problem",
   order: partial.order ?? 0,
   score: partial.score ?? 100,
+  maxScore: partial.maxScore ?? partial.score ?? 100,
+  sourceBank: partial.sourceBank ?? null,
   difficulty: partial.difficulty ?? "easy",
   userStatus: partial.userStatus,
 });
@@ -104,5 +117,33 @@ describe("ProblemWorkTree", () => {
     expect(screen.getByTestId("work-tree-footer")).toBeInTheDocument();
     expect(screen.getByText("2 problems")).toBeInTheDocument();
     expect(screen.getByText("Total 150pt")).toBeInTheDocument();
+  });
+
+  it("shows source bank and triggers score update callback", () => {
+    const onUpdateScore = vi.fn();
+    render(
+      <ProblemWorkTree
+        problems={[
+          buildProblem({
+            id: "cp-1",
+            score: 100,
+            maxScore: 100,
+            sourceBank: { id: "bank-1", name: "Official Coding Bank" },
+          }),
+        ]}
+        selectedId="cp-1"
+        onSelect={vi.fn()}
+        onAdd={vi.fn()}
+        onRemove={vi.fn()}
+        onReorder={vi.fn()}
+        onUpdateScore={onUpdateScore}
+      />,
+    );
+
+    expect(screen.getByText("Official Coding Bank")).toBeInTheDocument();
+    const scoreInput = screen.getByRole("spinbutton");
+    fireEvent.change(scoreInput, { target: { value: "35" } });
+    fireEvent.blur(scoreInput);
+    expect(onUpdateScore).toHaveBeenCalledWith("cp-1", 35);
   });
 });

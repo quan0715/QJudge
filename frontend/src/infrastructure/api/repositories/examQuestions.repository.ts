@@ -11,6 +11,11 @@ export interface ExamQuestionUpsertPayload {
   order?: number;
 }
 
+export interface ExamQuestionBankImportItem {
+  question_bank_id: string;
+  question_id: string;
+}
+
 export const getExamQuestions = async (contestId: string): Promise<ExamQuestion[]> => {
   const data = await requestJson<unknown>(
     httpClient.get(`/api/v1/contests/${contestId}/exam-questions/`),
@@ -79,6 +84,21 @@ export const reorderExamQuestions = async (
       orders,
     }),
     "Failed to reorder exam questions"
+  );
+
+  return Array.isArray(data) ? data.map(mapExamQuestionDto) : [];
+};
+
+export const importExamQuestionsFromBank = async (
+  contestId: string,
+  payload: {
+    items: ExamQuestionBankImportItem[];
+    import_mode?: "copy" | "reference";
+  }
+): Promise<ExamQuestion[]> => {
+  const data = await requestJson<unknown>(
+    httpClient.post(`/api/v1/contests/${contestId}/exam-questions/import-from-bank/`, payload),
+    "Failed to import exam questions from bank"
   );
 
   return Array.isArray(data) ? data.map(mapExamQuestionDto) : [];

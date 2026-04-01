@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Loading, Button, Header, HeaderName } from "@carbon/react";
 import {
   ArrowLeft,
-  Edit,
   Screen,
   Minimize,
   DocumentView,
@@ -11,7 +10,6 @@ import {
 import type { ProblemDetail as Problem } from "@/core/entities/problem.entity";
 import { getProblem } from "@/infrastructure/api/repositories/problem.repository";
 import { ProblemFullPageSolve } from "@/features/problems/components/solve/editorview/ProblemFullPageSolve";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
 import "./screen.scss";
 
 /**
@@ -25,15 +23,10 @@ import "./screen.scss";
 const ProblemSolveScreen = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-
-  // Check if user has write permission
-  const canEdit = user && (user.role === "admin" || user.role === "teacher");
 
   // Toggle browser fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -122,16 +115,6 @@ const ProblemSolveScreen = () => {
           onClick={toggleFullscreen}
         />
 
-        {/* Edit button for admin/teacher */}
-        {canEdit && problem && (
-          <Button
-            kind="ghost"
-            hasIconOnly
-            renderIcon={Edit}
-            iconDescription="編輯題目"
-            onClick={() => navigate(`/problems/${problem.id}/edit`)}
-          />
-        )}
       </div>
     </Header>
   );

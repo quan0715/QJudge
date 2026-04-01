@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
+import { useClassroomName } from "@/features/classroom/hooks/useClassroomName";
 
 import {
   ContestProvider,
@@ -16,6 +17,7 @@ import type { ExamEditorLayoutHandle } from "@/features/contest/components/admin
 
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
+import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
 
 /** Dynamic panel dispatch — registry pattern requires runtime lookup; state is stable because
@@ -49,13 +51,15 @@ const resolveActivePanel = (
 };
 
 const AdminDashboardInner = () => {
-  const { contestId } = useParams<{ contestId: string }>();
+  const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const { contest, loading, refreshContest } = useContest();
   const { refreshAllAdminData, refreshAdminData } = useContestAdmin();
   const { triggerPanelRefresh } = useAdminPanelRefresh();
+  const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
+  const classroomName = useClassroomName(effectiveClassroomId);
 
   // Redirect non-owner/co-owner users away from admin dashboard
   useEffect(() => {
@@ -65,9 +69,12 @@ const AdminDashboardInner = () => {
       contest.permissions &&
       !contest.permissions.canEditContest
     ) {
-      navigate(`/contests/${contestId}`, { replace: true });
+      const fallbackPath = effectiveClassroomId
+        ? getClassroomContestDashboardPath(effectiveClassroomId, contestId || "")
+        : "/dashboard";
+      navigate(fallbackPath, { replace: true });
     }
-  }, [loading, contest, contestId, navigate]);
+  }, [loading, contest, contestId, effectiveClassroomId, navigate]);
   const examEditorRef = useRef<ExamEditorLayoutHandle | null>(null);
   const contestModule = useMemo(
     () => getContestTypeModule(contest?.contestType),
@@ -89,11 +96,18 @@ const AdminDashboardInner = () => {
   const showExamJsonActions = contestModule.admin.shouldShowJsonActions(activePanel);
 
   const handleBack = () => {
-    navigate(`/contests/${contestId}`);
+    navigate(
+      effectiveClassroomId
+        ? `/classrooms/${effectiveClassroomId}/contest/${contestId}`
+        : "/dashboard",
+    );
   };
 
   const handlePreview = () => {
-    window.open(`/contests/${contestId}/exam-preview`, "_blank");
+    const previewPath = effectiveClassroomId
+      ? `/classrooms/${effectiveClassroomId}/contest/${contestId}/exam-preview`
+      : `/dashboard`;
+    window.open(previewPath, "_blank");
   };
 
   const handlePanelChange = (panel: AdminPanelId) => {
@@ -173,7 +187,10 @@ const AdminDashboardInner = () => {
 
   return (
     <AdminDashboardLayout
+      contestId={contestId || ""}
       contestName={contest?.name || "Loading..."}
+      classroomId={effectiveClassroomId}
+      classroomName={classroomName}
       activePanel={activePanel}
       availablePanels={availablePanels}
       examMode={isExamMode}

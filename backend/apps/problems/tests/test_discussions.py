@@ -34,7 +34,6 @@ class ProblemDiscussionAPITests(TestCase):
             title="Sample Problem",
             slug="sample-problem",
             difficulty="easy",
-            visibility='public',
             created_by=self.teacher,
         )
 
@@ -47,7 +46,7 @@ class ProblemDiscussionAPITests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_create_and_list_discussions(self):
-        self.client.force_authenticate(self.student)
+        self.client.force_authenticate(self.teacher)
         create_resp = self.client.post(
             f"/api/v1/problems/{self.problem.id}/discussions/",
             {"title": "Q1", "content": "My question"},
@@ -57,7 +56,7 @@ class ProblemDiscussionAPITests(TestCase):
         data = create_resp.data
         self.assertFalse(data["is_deleted"])
         self.assertEqual(data["comments_count"], 0)
-        self.assertEqual(data["user"]["id"], self.student.id)
+        self.assertEqual(data["user"]["id"], self.teacher.id)
 
         list_resp = self.client.get(
             f"/api/v1/problems/{self.problem.id}/discussions/"
@@ -69,7 +68,7 @@ class ProblemDiscussionAPITests(TestCase):
         self.assertFalse(results[0]["is_deleted"])
 
     def test_owner_can_soft_delete_discussion(self):
-        self.client.force_authenticate(self.student)
+        self.client.force_authenticate(self.teacher)
         create_resp = self.client.post(
             f"/api/v1/problems/{self.problem.id}/discussions/",
             {"title": "Q1", "content": "My question"},
@@ -97,7 +96,7 @@ class ProblemDiscussionAPITests(TestCase):
         self.assertTrue(results[0]["is_deleted"])
 
     def test_other_user_cannot_delete_discussion(self):
-        self.client.force_authenticate(self.student)
+        self.client.force_authenticate(self.teacher)
         create_resp = self.client.post(
             f"/api/v1/problems/{self.problem.id}/discussions/",
             {"title": "Q1", "content": "My question"},
@@ -112,7 +111,7 @@ class ProblemDiscussionAPITests(TestCase):
         self.assertEqual(delete_resp.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_comment_create_list_and_soft_delete(self):
-        self.client.force_authenticate(self.student)
+        self.client.force_authenticate(self.teacher)
         discussion_id = self.client.post(
             f"/api/v1/problems/{self.problem.id}/discussions/",
             {"title": "Q1", "content": "My question"},
@@ -147,3 +146,8 @@ class ProblemDiscussionAPITests(TestCase):
         )
         comments = list_resp.data if isinstance(list_resp.data, list) else list_resp.data.get("results", [])
         self.assertTrue(comments[0]["is_deleted"])
+
+    def test_student_cannot_access_retired_problem_discussion_surface(self):
+        self.client.force_authenticate(self.student)
+        response = self.client.get(f"/api/v1/problems/{self.problem.id}/discussions/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

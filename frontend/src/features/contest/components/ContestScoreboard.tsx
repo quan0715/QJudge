@@ -15,12 +15,12 @@ import {
 import { Link } from "react-router-dom";
 
 export interface ProblemInfo {
-  id: number;
+  id: string;
   title: string;
   order: number;
   label: string;
   score?: number;
-  problem_id?: number;
+  problem_id?: string;
 }
 
 export interface ProblemStats {
@@ -116,7 +116,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
     problems.forEach((p) => {
       // API returns problems keyed by problem ID (as string)
       // Use nullish coalescing (??) to handle id=0 correctly
-      const problemId = String(p.id ?? p.problem_id ?? "");
+      const problemId = p.id || p.problem_id || "";
       const stats = problemId && s.problems ? s.problems[problemId] : undefined;
       row[`problem_${p.id}`] = stats;
     });

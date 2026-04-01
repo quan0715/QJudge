@@ -1,0 +1,169 @@
+@use "@carbon/layout";
+@use "../../../styles/card-tile" as card;
+
+.card {
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+// Override Carbon ClickableTile hover with high specificity.
+// Carbon's --cds-layer-hover can fallback to light-theme #e8e8e8
+// if layer tokens aren't resolved yet, so we use --cds-layer-hover-01 directly.
+.card:global(.cds--tile--clickable) {
+  background-color: var(--cds-layer-01, var(--cds-layer));
+}
+
+.card:global(.cds--tile--clickable):hover {
+  background-color: var(--cds-layer-hover-01, var(--cds-layer-hover));
+  border-color: var(--cds-border-interactive);
+}
+
+.card:global(.cds--tile--clickable):active {
+  background-color: var(--cds-layer-active-01, var(--cds-layer-active));
+}
+
+.cardSelectable {
+  cursor: pointer;
+}
+
+.cardSelected {
+  border-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected-01);
+}
+
+.cardBody {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  min-height: 0;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-02;
+}
+
+.typeInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  min-width: 0;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cds-icon-secondary);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.typeLabel {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.verifiedIcon {
+  color: var(--cds-link-primary);
+  flex-shrink: 0;
+}
+
+.title {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  font-weight: 500;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  // Fixed 2-line height so all cards align regardless of title length
+  min-height: calc(0.95rem * 1.35 * 2);
+}
+
+.bottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.contestUsage {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.14rem;
+  color: var(--cds-link-primary);
+  font-size: var(--cds-label-01-font-size, 0.72rem);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.14rem;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.72rem);
+  white-space: nowrap;
+}
+
+.bankMeta {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.72rem);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iconToneCoding {
+  color: var(--cds-link-primary);
+}
+
+.iconToneSingleChoice {
+  color: var(--cds-link-primary);
+}
+
+.iconToneMultipleChoice {
+  color: var(--cds-support-success);
+}
+
+.iconToneTrueFalse {
+  color: var(--cds-support-warning);
+}
+
+.iconToneShortAnswer {
+  color: var(--cds-support-info);
+}
+
+.iconToneEssay {
+  color: var(--cds-support-error);
+}

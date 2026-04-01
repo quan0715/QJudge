@@ -1,93 +1,93 @@
 {
-  "page": {
-    "title": "문서",
-    "subtitle": "QJudge 플랫폼 사용 방법 알아보기"
-  },
   "badge": {
     "aiGenerated": "AI 생성"
   },
+  "feedback": {
+    "helpful": "도움이 됨",
+    "notHelpful": "개선 필요",
+    "thanks": "피드백 감사합니다!",
+    "title": "이 문서가 도움이 되었나요?"
+  },
+  "message": {
+    "loadError": "문서 로드 실패",
+    "loading": "문서 로딩 중...",
+    "notFound": "문서를 찾을 수 없습니다"
+  },
   "nav": {
+    "back": "뒤로",
+    "items": {
+      "admin-overview": "관리자 기능",
+      "common-errors": "자주 발생하는 오류",
+      "contest-extension-architecture": "대회 확장 아키텍처 가이드",
+      "contests": "대회 참가",
+      "contributing": "기여하기",
+      "create-exam": "시험 및 문제 만들기",
+      "dev-setup": "개발 환경 설정",
+      "e2e-testing": "E2E 테스트 가이드",
+      "exam-grading": "시험 채점 및 결과 발표",
+      "exam-json-import-export": "시험 JSON 가져오기/내보내기",
+      "exam-precheck-anticheat": "Exam Pre-check 및 부정행위 방지 시퀀스",
+      "exam-proctoring": "시험 감독 및 수동 개입",
+      "exam-statistics": "시험 통계 및 검토",
+      "judge-system": "채점 시스템",
+      "overview": "플랫폼 개요",
+      "problem-import": "YAML 문제 생성",
+      "quick-start": "빠른 시작",
+      "student-exam-guide": "학생 시험 가이드",
+      "submission": "코드 제출",
+      "supported-languages": "지원 언어",
+      "teacher-overview": "교사 기능 개요"
+    },
+    "lastUpdated": "마지막 업데이트",
+    "onThisPage": "이 페이지에서",
     "productLabel": "문서",
     "searchPlaceholder": "문서 검색...",
-    "onThisPage": "이 페이지에서",
-    "lastUpdated": "마지막 업데이트",
-    "back": "뒤로",
     "sections": {
+      "admin-guide": "관리자 가이드",
+      "developer-guide": "개발자 가이드",
       "getting-started": "시작하기",
-      "user-guide": "사용자 가이드",
       "reference": "참고 자료",
       "teacher-guide": "교사 가이드",
-      "admin-guide": "관리자 가이드",
-      "developer-guide": "개발자 가이드"
-    },
-    "items": {
-      "overview": "플랫폼 개요",
-      "quick-start": "빠른 시작",
-      "submission": "코드 제출",
-      "contests": "대회 참가",
-      "student-exam-guide": "학생 시험 가이드",
-      "judge-system": "채점 시스템",
-      "common-errors": "자주 발생하는 오류",
-      "supported-languages": "지원 언어",
-      "teacher-overview": "교사 기능 개요",
-      "create-exam": "시험 및 문제 만들기",
-      "exam-grading": "시험 채점 및 결과 발표",
-      "exam-statistics": "시험 통계 및 검토",
-      "exam-proctoring": "시험 감독 및 수동 개입",
-      "exam-json-import-export": "시험 JSON 가져오기/내보내기",
-      "problem-import": "YAML 문제 생성",
-      "admin-overview": "관리자 기능",
-      "contributing": "기여하기",
-      "contest-extension-architecture": "대회 확장 아키텍처 가이드",
-      "exam-precheck-anticheat": "Exam Pre-check 및 부정행위 방지 시퀀스",
-      "dev-setup": "개발 환경 설정",
-      "e2e-testing": "E2E 테스트 가이드"
+      "user-guide": "사용자 가이드"
     }
   },
+  "page": {
+    "subtitle": "QJudge 플랫폼 사용 방법 알아보기",
+    "title": "문서"
+  },
   "quickLinks": {
-    "student": {
-      "tag": "학생",
-      "title": "프로그래밍 문제 풀기",
-      "description": "문제를 탐색하고 코드를 작성하여 제출하는 방법을 배웁니다"
+    "admin": {
+      "description": "사용자, 권한 설정 및 시스템 구성 관리",
+      "tag": "관리자",
+      "title": "시스템 관리"
     },
     "contestant": {
+      "description": "대회 규칙, 채점 방식 및 문제 해결 방법 알아보기",
       "tag": "대회",
-      "title": "프로그래밍 대회 참가",
-      "description": "대회 규칙, 채점 방식 및 문제 해결 방법 알아보기"
-    },
-    "teacher": {
-      "tag": "교사",
-      "title": "대회 생성 및 관리",
-      "description": "대회 생성, 문제 관리, 학생 성적 및 통계 확인"
-    },
-    "admin": {
-      "tag": "관리자",
-      "title": "시스템 관리",
-      "description": "사용자, 권한 설정 및 시스템 구성 관리"
+      "title": "프로그래밍 대회 참가"
     },
     "developer": {
+      "description": "개발 환경 설정, 프로젝트 구조 이해 및 기여 절차",
       "tag": "개발자",
-      "title": "코드 기여",
-      "description": "개발 환경 설정, 프로젝트 구조 이해 및 기여 절차"
+      "title": "코드 기여"
+    },
+    "student": {
+      "description": "문제를 탐색하고 코드를 작성하여 제출하는 방법을 배웁니다",
+      "tag": "학생",
+      "title": "프로그래밍 문제 풀기"
+    },
+    "teacher": {
+      "description": "대회 생성, 문제 관리, 학생 성적 및 통계 확인",
+      "tag": "교사",
+      "title": "대회 생성 및 관리"
     }
   },
   "search": {
     "label": "문서 검색",
-    "placeholder": "문서 내용 검색...",
-    "searching": "검색 중...",
+    "matches": "개 일치",
     "noResults": "결과를 찾을 수 없습니다",
+    "placeholder": "문서 내용 검색...",
     "resultsCount": "{{count}}개의 결과",
-    "matches": "개 일치"
-  },
-  "feedback": {
-    "title": "이 문서가 도움이 되었나요?",
-    "helpful": "도움이 됨",
-    "notHelpful": "개선 필요",
-    "thanks": "피드백 감사합니다!"
-  },
-  "message": {
-    "loading": "문서 로딩 중...",
-    "notFound": "문서를 찾을 수 없습니다",
-    "loadError": "문서 로드 실패"
+    "searching": "검색 중..."
   }
 }

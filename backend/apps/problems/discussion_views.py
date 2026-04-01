@@ -21,8 +21,6 @@ from .serializers import (
 
 
 def _can_view_problem(user, problem: Problem) -> bool:
-    if problem.visibility == "public":
-        return True
     if not user or not user.is_authenticated:
         return False
     if user.is_staff or getattr(user, "role", "") in ["admin", "teacher"]:
@@ -72,13 +70,13 @@ class ProblemDiscussionListCreateView(DiscussionAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ProblemDiscussionSerializer
 
-    def get_problem(self, request, problem_id: int) -> Problem:
+    def get_problem(self, request, problem_id) -> Problem:
         problem = get_object_or_404(Problem, id=problem_id)
         if not _can_view_problem(request.user, problem):
             raise PermissionDenied("You do not have access to this problem.")
         return problem
 
-    def get(self, request, problem_id: int):
+    def get(self, request, problem_id):
         problem = self.get_problem(request, problem_id)
         discussions = ProblemDiscussion.objects.filter(problem=problem).select_related("user")
         serializer = ProblemDiscussionSerializer(
@@ -86,7 +84,7 @@ class ProblemDiscussionListCreateView(DiscussionAPIView):
         )
         return Response(serializer.data)
 
-    def post(self, request, problem_id: int):
+    def post(self, request, problem_id):
         problem = self.get_problem(request, problem_id)
         serializer = ProblemDiscussionSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)

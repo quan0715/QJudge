@@ -1,0 +1,57 @@
+@use "@carbon/layout";
+
+.searchRow {
+  margin-top: layout.$spacing-04;
+}
+
+.search :global(.cds--search) {
+  width: 100%;
+}
+
+.selectionBar {
+  margin-top: layout.$spacing-04;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+  flex-wrap: wrap;
+}
+
+.selectionCount {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+}
+
+.galleryRegion {
+  margin-top: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle-01);
+  max-height: 24rem;
+  overflow: auto;
+  padding: layout.$spacing-04;
+}
+
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: layout.$spacing-04;
+}
+
+.galleryCell {
+  min-width: 0;
+}
+
+.emptyText {
+  margin: 0;
+  color: var(--cds-text-secondary);
+}
+
+.errorText {
+  margin-top: layout.$spacing-04;
+  color: var(--cds-support-error);
+}
+
+@media (max-width: 820px) {
+  .galleryGrid {
+    grid-template-columns: 1fr;
+  }
+}

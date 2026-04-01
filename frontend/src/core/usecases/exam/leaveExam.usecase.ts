@@ -20,6 +20,7 @@ export interface LeaveExamInput {
   shouldEndExam: boolean;
   uploadSessionId?: string;
   sourceModule?: "screen_share" | "webcam";
+  navigateTo?: string;
 }
 
 export interface LeaveExamOutput {
@@ -31,7 +32,13 @@ export interface LeaveExamOutput {
 export async function leaveExamUseCase(
   input: LeaveExamInput
 ): Promise<LeaveExamOutput> {
-  const { contestId, shouldEndExam, uploadSessionId, sourceModule } = input;
+  const {
+    contestId,
+    shouldEndExam,
+    uploadSessionId,
+    sourceModule,
+    navigateTo = "/dashboard",
+  } = input;
 
   try {
     // End exam if needed
@@ -47,7 +54,7 @@ export async function leaveExamUseCase(
 
     return {
       success: true,
-      navigateTo: "/contests",
+      navigateTo,
     };
   } catch (error: unknown) {
     // Still navigate even if there's an error
@@ -55,7 +62,7 @@ export async function leaveExamUseCase(
 
     return {
       success: false,
-      navigateTo: "/contests",
+      navigateTo,
       error: error instanceof Error ? error.message : "Failed to end exam",
     };
   }

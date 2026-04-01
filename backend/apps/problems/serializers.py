@@ -3,7 +3,8 @@ Serializers for problems app.
 """
 from rest_framework import serializers
 from .models import (
-    Problem,
+    CodingProblem,
+    Problem,  # backward-compat alias for CodingProblem
     ProblemTranslation,
     TestCase,
     LanguageConfig,
@@ -11,6 +12,7 @@ from .models import (
     ProblemDiscussion,
     ProblemDiscussionComment,
 )
+from .services import ProblemService
 
 
 class ProblemTranslationSerializer(serializers.ModelSerializer):
@@ -44,6 +46,7 @@ class TestCaseSerializer(serializers.ModelSerializer):
             'output_data',
             'is_sample',
             'score',
+            'weight_percent',
             'order',
             'is_hidden',
         ]
@@ -243,13 +246,13 @@ class ProblemDiscussionCommentSerializer(serializers.ModelSerializer):
 class ProblemListSerializer(serializers.ModelSerializer):
     """Serializer for problem list (minimal info)."""
     title = serializers.SerializerMethodField()
-    display_id = serializers.CharField(read_only=True)
+    question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
+    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     
     class Meta:
         model = Problem
         fields = [
             'id',
-            'display_id',
             'title',
             'slug',
             'difficulty',
@@ -261,11 +264,10 @@ class ProblemListSerializer(serializers.ModelSerializer):
             're_count',
             'ce_count',
             'acceptance_rate',
-            'visibility',
-            'created_in_contest',
-            'origin_problem',
             'created_at',
             'created_by',
+            'question_asset_id',
+            'question_version_id',
             'language_configs',
             'is_solved',
             'tags',
@@ -279,26 +281,31 @@ class ProblemListSerializer(serializers.ModelSerializer):
     created_by = serializers.ReadOnlyField(source='created_by.username')
     
     def get_title(self, obj):
-        """Get title in requested language or default."""
+        """Get title in requested language, preferring QuestionAsset as source of truth."""
         lang = self.context.get('language', 'zh-TW')
-        # Support both zh-TW and zh-hant for backward compatibility
+
+        # Try Asset payload translations first
+        if obj.question_asset_id:
+            try:
+                translations = (obj.question_asset.payload or {}).get("translations", [])
+                if translations:
+                    match_langs = ['zh-TW', 'zh-hant'] if lang == 'zh-TW' else [lang]
+                    for t in translations:
+                        if t.get("language") in match_langs:
+                            return t.get("title") or obj.effective_title
+                    return translations[0].get("title") or obj.effective_title
+            except Exception:
+                pass
+
+        # Fallback to ProblemTranslation rows
         if lang == 'zh-TW':
             translation = obj.translations.filter(language__in=['zh-TW', 'zh-hant']).first()
         else:
             translation = obj.translations.filter(language=lang).first()
         if translation:
             return translation.title
-        # Fallback to any translation or empty string
         translation = obj.translations.first()
         return translation.title if translation else f"Problem {obj.id}"
-
-
-class ContestInfoSerializer(serializers.ModelSerializer):
-    """Minimal serializer for contest info in problem detail."""
-    class Meta:
-        model = Problem._meta.get_field('created_in_contest').remote_field.model
-        fields = ['id', 'title', 'start_time', 'end_time']
-
 
 class ProblemDetailSerializer(serializers.ModelSerializer):
     """Serializer for problem detail (full info)."""
@@ -308,14 +315,13 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
     test_cases = TestCaseSerializer(many=True, read_only=True)
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
-    display_id = serializers.CharField(read_only=True)
-    created_in_contest = serializers.SerializerMethodField()
+    question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
+    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     
     class Meta:
         model = Problem
         fields = [
             'id',
-            'display_id',
             'title',  # Original title (fallback)
             'slug',
             'difficulty',
@@ -329,9 +335,8 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             're_count',
             'ce_count',
             'acceptance_rate',
-            'visibility',
-            'created_in_contest',
-            'origin_problem',
+            'question_asset_id',
+            'question_version_id',
             'translation',
             'samples',
             'translations',
@@ -363,17 +368,63 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
         """Get sample test cases."""
         samples = obj.test_cases.filter(is_sample=True).order_by('order')
         return TestCaseSerializer(samples, many=True).data
-    
-    def get_created_in_contest(self, obj):
-        """Get contest info if this problem was created in a contest."""
-        if obj.created_in_contest:
-            return {
-                'id': obj.created_in_contest.id,
-                'title': obj.created_in_contest.name,
-                'start_time': obj.created_in_contest.start_time,
-                'end_time': obj.created_in_contest.end_time,
+
+
+class OrphanProblemSerializer(serializers.ModelSerializer):
+    question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True, default=None)
+    contests = serializers.SerializerMethodField()
+    draft_state = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Problem
+        fields = [
+            'id',
+            'title',
+            'slug',
+            'difficulty',
+            'created_by',
+            'created_by_username',
+            'question_asset_id',
+            'submission_count',
+            'accepted_count',
+            'created_at',
+            'updated_at',
+            'draft_state',
+            'contests',
+        ]
+
+    def get_draft_state(self, obj):
+        return "draft" if obj.question_asset_id else "orphan"
+
+    def get_contests(self, obj):
+        seen = {}
+
+        for binding in obj.contest_bindings.select_related("contest").all():
+            contest = binding.contest
+            seen[str(contest.id)] = {
+                "id": str(contest.id),
+                "name": contest.name,
+                "status": contest.status,
             }
-        return None
+
+        for contest_problem in obj.contestproblem_set.select_related("contest").all():
+            contest = contest_problem.contest
+            seen.setdefault(
+                str(contest.id),
+                {
+                    "id": str(contest.id),
+                    "name": contest.name,
+                    "status": contest.status,
+                },
+            )
+
+        return list(seen.values())
+
+
+class ResolveOrphanProblemSerializer(serializers.Serializer):
+    owner_id = serializers.IntegerField(required=True)
+    question_bank_uuid = serializers.UUIDField(required=False)
 
 
 class ProblemAdminSerializer(serializers.ModelSerializer):
@@ -382,6 +433,8 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     test_cases = TestCaseSerializer(many=True, required=False)
     language_configs = LanguageConfigSerializer(many=True, required=False)
     tags = TagSerializer(many=True, read_only=True)  # Read: return full tag objects
+    question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
+    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     
     # New Tag UX fields (write-only)
     existing_tag_ids = serializers.ListField(
@@ -397,132 +450,123 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Problem
-        fields = '__all__'
-        read_only_fields = ['created_by', 'created_at', 'updated_at', 'acceptance_rate', 'origin_problem']
+        fields = [
+            'id',
+            'title',
+            'slug',
+            'difficulty',
+            'time_limit',
+            'memory_limit',
+            'order',
+            'created_by',
+            'created_at',
+            'updated_at',
+            'submission_count',
+            'accepted_count',
+            'wa_count',
+            'tle_count',
+            'mle_count',
+            're_count',
+            'ce_count',
+            'acceptance_rate',
+            'question_asset_id',
+            'question_version_id',
+            'translations',
+            'test_cases',
+            'language_configs',
+            'tags',
+            'existing_tag_ids',
+            'new_tag_names',
+            'forbidden_keywords',
+            'required_keywords',
+        ]
+        read_only_fields = [
+            'created_by',
+            'created_at',
+            'updated_at',
+            'acceptance_rate',
+            'question_asset_id',
+            'question_version_id',
+        ]
     
-    def _handle_tags(self, problem, existing_tag_ids=None, new_tag_names=None):
-        """Associate tags from canonical write fields only."""
-        if existing_tag_ids is None and new_tag_names is None:
+    def _normalize_and_validate_test_case_weights(self, test_cases_data):
+        """
+        Normalize testcase weights to percentage semantics.
+        Backward-compatible: if weight_percent missing, fallback to score.
+        """
+        if not test_cases_data:
             return
 
-        all_tags = []
+        weights = []
+        for idx, tc in enumerate(test_cases_data):
+            raw_weight = tc.get('weight_percent', None)
+            if raw_weight is None:
+                raw_weight = tc.get('score', None)
 
-        if existing_tag_ids:
-            existing_tags = Tag.objects.filter(id__in=existing_tag_ids)
-            all_tags.extend(existing_tags)
+            if raw_weight is None:
+                raise serializers.ValidationError(
+                    {
+                        'test_cases': [
+                            f'test_cases[{idx}].weight_percent is required (or provide legacy score)'
+                        ]
+                    }
+                )
 
-        if new_tag_names:
-            unique_names = set()
-            for name in new_tag_names:
-                cleaned_name = name.strip()
-                if cleaned_name:
-                    unique_names.add(cleaned_name)
+            try:
+                weight = int(raw_weight)
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(
+                    {'test_cases': [f'test_cases[{idx}].weight_percent must be an integer']}
+                )
 
-            for name in unique_names:
-                from django.utils.text import slugify
-                slug = slugify(name)
-                if not slug:
-                    import uuid
-                    slug = f"tag-{uuid.uuid4().hex[:8]}"
+            if weight < 0 or weight > 100:
+                raise serializers.ValidationError(
+                    {'test_cases': [f'test_cases[{idx}].weight_percent must be between 0 and 100']}
+                )
 
-                try:
-                    tag, _ = Tag.objects.get_or_create(
-                        slug=slug,
-                        defaults={'name': name}
-                    )
-                except Exception:
-                    try:
-                        tag = Tag.objects.get(name=name)
-                    except Tag.DoesNotExist:
-                        continue
+            tc['weight_percent'] = weight
+            # Keep legacy score in sync for transition compatibility.
+            tc['score'] = weight
+            weights.append(weight)
 
-                all_tags.append(tag)
-
-        problem.tags.set(all_tags)
+        if sum(weights) != 100:
+            raise serializers.ValidationError(
+                {'test_cases': ['test_cases weight_percent total must equal 100']}
+            )
 
     def create(self, validated_data):
         translations_data = validated_data.pop('translations', [])
         test_cases_data = validated_data.pop('test_cases', [])
         language_configs_data = validated_data.pop('language_configs', [])
-        
-        # Extract tag data but don't process yet
         existing_tag_ids = validated_data.pop('existing_tag_ids', None)
         new_tag_names = validated_data.pop('new_tag_names', None)
-        
-        # Auto-generate slug if empty
-        if not validated_data.get('slug'):
-            import uuid
-            base_slug = validated_data.get('title', 'problem').lower()
-            base_slug = ''.join(c if c.isalnum() or c in '-_' else '-' for c in base_slug)
-            validated_data['slug'] = f"{base_slug}-{uuid.uuid4().hex[:8]}"
-        
-        problem = Problem.objects.create(**validated_data)
-        
-        self._handle_tags(
-            problem,
+
+        self._normalize_and_validate_test_case_weights(test_cases_data)
+
+        return ProblemService.create_problem_adapter(
+            validated_data=validated_data,
+            translations_data=translations_data,
+            test_cases_data=test_cases_data,
+            language_configs_data=language_configs_data,
             existing_tag_ids=existing_tag_ids,
             new_tag_names=new_tag_names,
         )
-        
-        for trans_data in translations_data:
-            ProblemTranslation.objects.create(problem=problem, **trans_data)
-            
-        for tc_data in test_cases_data:
-            TestCase.objects.create(problem=problem, **tc_data)
-        
-        for lc_data in language_configs_data:
-            LanguageConfig.objects.create(problem=problem, **lc_data)
-            
-        return problem
     
     def update(self, instance, validated_data):
         translations_data = validated_data.pop('translations', [])
         test_cases_data = validated_data.pop('test_cases', [])
         language_configs_data = validated_data.pop('language_configs', [])
-        
-        # Extract tag data
         existing_tag_ids = validated_data.pop('existing_tag_ids', None)
         new_tag_names = validated_data.pop('new_tag_names', None)
-        
-        
-        # Auto-generate slug if empty
-        if 'slug' in validated_data and not validated_data.get('slug'):
-            import uuid
-            # Use first translation title if available, otherwise use existing
-            title_base = instance.title
-            if translations_data:
-                title_base = translations_data[0].get('title', instance.title)
-            base_slug = title_base.lower() if title_base else 'problem'
-            base_slug = ''.join(c if c.isalnum() or c in '-_' else '-' for c in base_slug)
-            validated_data['slug'] = f"{base_slug}-{uuid.uuid4().hex[:8]}"
-        
-        # Update problem fields
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        
-        self._handle_tags(
+
+        self._normalize_and_validate_test_case_weights(test_cases_data)
+
+        return ProblemService.update_problem_adapter(
             instance,
+            validated_data=validated_data,
+            translations_data=translations_data,
+            test_cases_data=test_cases_data,
+            language_configs_data=language_configs_data,
             existing_tag_ids=existing_tag_ids,
             new_tag_names=new_tag_names,
         )
-        
-        # Update translations (simple replacement for now)
-        if translations_data:
-            instance.translations.all().delete()
-            for trans_data in translations_data:
-                ProblemTranslation.objects.create(problem=instance, **trans_data)
-        
-        # Update test cases (simple replacement for now)
-        if test_cases_data:
-            instance.test_cases.all().delete()
-            for tc_data in test_cases_data:
-                TestCase.objects.create(problem=instance, **tc_data)
-        
-        # Update language configs
-        if language_configs_data:
-            instance.language_configs.all().delete()
-            for lc_data in language_configs_data:
-                LanguageConfig.objects.create(problem=instance, **lc_data)
-        
-        return instance

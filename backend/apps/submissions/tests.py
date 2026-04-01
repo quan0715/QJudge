@@ -38,7 +38,6 @@ class SubmissionAPITestCase(TestCase):
             difficulty='easy',
             time_limit=1000,
             memory_limit=128,
-            visibility='public',
             created_by=self.teacher
         )
         

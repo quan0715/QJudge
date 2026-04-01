@@ -19,11 +19,16 @@ import type {
   ChangePasswordRequest,
   ChangePasswordResponse,
   CurrentUserResponse,
+  UserSearchResponse,
+  TeacherActivationIssueResponse,
+  TeacherActivationPreviewResponse,
+  TeacherActivationConsumeResponse,
   ForgotPasswordRequest,
   APIKeyResponse,
   ResetPasswordRequest,
   SetAPIKeyRequest,
   UpdateAccountProfileRequest,
+  UploadAvatarResponse,
   UsageStatsResponse,
 } from "@/core/entities/auth.entity";
 
@@ -109,7 +114,7 @@ export const logout = async (): Promise<void> => {
 // User Management (Admin)
 // ============================================================================
 
-export const searchUsers = async (query: string): Promise<any> => {
+export const searchUsers = async (query: string): Promise<UserSearchResponse> => {
   const res = await httpClient.get(
     `/api/v1/auth/search?q=${encodeURIComponent(query)}`
   );
@@ -134,6 +139,33 @@ export const updateUserRole = async (
     throw error;
   }
   return res.json();
+};
+
+export const issueTeacherActivationInvite = async (): Promise<TeacherActivationIssueResponse> => {
+  return requestJson<TeacherActivationIssueResponse>(
+    httpClient.post(`/api/v1/auth/teacher-activations`, {}),
+    "Failed to issue teacher activation invite"
+  );
+};
+
+export const previewTeacherActivationInvite = async (
+  token: string
+): Promise<TeacherActivationPreviewResponse> => {
+  return requestJson<TeacherActivationPreviewResponse>(
+    httpClient.get(
+      `/api/v1/auth/teacher-activations/preview?token=${encodeURIComponent(token)}`
+    ),
+    "Failed to preview teacher activation invite"
+  );
+};
+
+export const consumeTeacherActivationInvite = async (
+  token: string
+): Promise<TeacherActivationConsumeResponse> => {
+  return requestJson<TeacherActivationConsumeResponse>(
+    httpClient.post(`/api/v1/auth/teacher-activations/consume`, { token }),
+    "Failed to consume teacher activation invite"
+  );
 };
 
 export const deleteUser = async (userId: number): Promise<void> => {
@@ -187,6 +219,24 @@ export const updateCurrentUserProfile = async (
     httpClient.patch(`${API_BASE}/me`, data),
     "Failed to update profile"
   );
+};
+
+export const uploadUserAvatar = async (file: File): Promise<UploadAvatarResponse> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await httpClient.request("/api/v1/auth/me/avatar/upload", {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(
+      (errorData?.error?.message as string) ||
+        (errorData?.message as string) ||
+        "Failed to upload avatar"
+    );
+  }
+  return response.json();
 };
 
 export const requestPasswordReset = async (

@@ -1,248 +1,256 @@
 {
-  "hero": {
-    "title": "QJudge - The Most Secure and Stable Online Exam Platform",
-    "subtitle": "A high-quality testing environment built for academic settings. Integrating AI proctoring, paper-based questions, and real-time evaluation, ensuring every exam is fair, efficient, and in-depth.",
+  "contact": {
+    "description": "We welcome feedback, bug reports, and collaboration proposals.",
+    "email": {
+      "title": "Email"
+    },
+    "eyebrow": "Contact",
+    "github": {
+      "title": "GitHub"
+    },
+    "title": "Questions or ideas?",
+    "university": {
+      "title": "Partner",
+      "value": "Educational Partner"
+    }
+  },
+  "cta": {
+    "description": "Join the platform to begin your coding journey. Free to start.",
+    "docs": "Learn more",
     "signIn": "Sign in",
-    "register": "Create account",
-    "badge": {
-      "product": "QJudge",
-      "tagline": "Professional Programming Assessment Platform"
-    },
-    "signal": {
-      "realtime": "Real-time Judge",
-      "sandbox": "Sandbox Execution",
-      "report": "Detailed Report"
-    },
-    "visual": {
-      "title": "Programming Assessment Flow",
-      "desc": "Code -> Judge -> Verdict",
-      "proctoring": "Proctoring Status",
-      "fullscreen": "Full Screen Mode",
-      "detection": "Tab Detection",
-      "violations": "Violations",
-      "ai_monitoring": "AI Monitoring",
-      "proctoring_video": "Video Proctoring",
-      "remaining": "Time Remaining"
-    }
+    "title": "Ready to start?"
   },
-  "seo": {
-    "title": "QJudge | Secure & Stable Online Exam Platform",
-    "description": "QJudge is an online exam and evaluation platform designed for education, supporting 20+ programming languages, diverse question types, and strict anti-cheating monitoring."
-  },
-  "modes": {
-    "eyebrow": "Diverse Modes",
-    "title": "Supports Multiple Contest and Learning Modes",
-    "items": {
-      "coding": {
-        "label": "Coding Test",
-        "desc": "Professional coding assessment"
-      },
-      "paper": {
-        "label": "Paper-like Exam",
-        "desc": "Integrated digital testing system"
-      },
-      "lab": {
-        "label": "Lab Practice",
-        "desc": "Pure practice mode. Topic-based problem sets for students to improve at their own pace without pressure."
-      },
-      "takehome": {
-        "label": "Take-home Project",
-        "desc": "Long-term assignment mode",
-        "comingSoon": "Coming Soon"
-      },
-      "hackathon": {
-        "label": "Group Hackathon",
-        "desc": "Collaborative competition",
-        "comingSoon": "Coming Soon"
-      },
-      "adaptive": {
-        "label": "AI Adaptive Learning",
-        "desc": "Personalized study path",
-        "comingSoon": "Coming Soon"
-      }
-    }
-  },
-  "interactive": {
-    "eyebrow": "Solution Showcase",
-    "title": "Deeply Rooted in Every Detail of the Teaching Process",
-    "items": {
-      "editor": {
-        "label": "AI-Assisted Question Creation",
-        "desc": "Build and refine exam questions across subjects through AI conversations — from settings to test cases in one go."
-      },
-      "grading": {
-        "label": "Grading & Analytics",
-        "desc": "Visual grade overview to instantly track each student's answers and grading progress per question."
-      },
-      "proctor": {
-        "label": "Anti-Cheating Proctoring",
-        "desc": "Real-time detection of tab switches, window exits and anomalies with automatic warnings and violation logs."
-      },
-      "stats": {
-        "label": "Exam Interface",
-        "desc": "Clean question list and answer area that keeps students focused on the exam itself."
-      }
-    }
-  },
-  "sections": {
-    "paper": {
-      "eyebrow": "Paper-like Exam",
-      "title": "More than just code, a complete online testing system",
-      "description": "Support for single choice, multiple choice, true/false, and short answer questions. Built-in Markdown and LaTeX editors accurately render complex mathematical formulas and technical documents, meeting diverse needs from general education to science and programming."
-    },
-    "antiCheat": {
-      "eyebrow": "Strict Proctoring",
-      "title": "No Installation Needed, Industry-Leading Anti-Cheat Technology",
-      "description": "Full-range browser-based detection allows examinees to enter a strict proctoring environment without any plugins or software. We defend every effort and ensure absolute fairness in every test.",
-      "proctoring": {
-        "fullscreen": "Fullscreen Lock",
-        "tabSwitch": "Tab Switch Detection",
-        "multiScreen": "Multi-screen Block",
-        "mouseLeave": "Mouse Track",
-        "noCopy": "Copy/Paste Disabled",
-        "video": "Video Evidence",
-        "audio": "Audio Detection",
-        "face": "Face Identity",
-        "ai": "AI Analysis"
-      }
-    },
-    "teacher": {
-      "eyebrow": "Teacher Friendly",
-      "title": "Let teachers focus on teaching, leave the rest to QJudge",
-      "description": "We have redefined the digital grading experience. An intuitive three-column grading panel, real-time proctoring dashboard, and automated results statistical analysis can save over 70% of management and grading time."
-    }
+  "exam": {
+    "description": "From programming to general theory, the platform provides full support. Built-in LaTeX and Markdown editors make creating and answering questions equally smooth.",
+    "eyebrow": "Online Exam",
+    "preview_text": "Please calculate the following integral:",
+    "tag1": "LaTeX Support",
+    "tag2": "Diverse Question Types",
+    "tag3": "Auto Grading",
+    "title": "Comprehensive Assessment Experience"
   },
   "feature": {
+    "antiCheat": {
+      "description": "Full-screen lock, tab switch detection, video evidence, and AI violation analysis ensure absolute fairness in online exams.",
+      "title": "Strict Anti-Cheat Monitoring"
+    },
     "judge": {
-      "title": "Excellent Evaluation Experience",
-      "description": "Supports 20+ programming languages, returns execution time and memory info in seconds, and provides precise Diff comparison and error tracking."
+      "description": "Supports 20+ programming languages, returns execution time and memory info in seconds, and provides precise Diff comparison and error tracking.",
+      "title": "Excellent Evaluation Experience"
     },
     "paper": {
-      "title": "Paper Question Integration (Online Exam)",
-      "description": "More than just code. Integrates multiple-choice, true/false, and short answer questions, supports LaTeX formulas and Markdown, for one-stop diverse assessment."
-    },
-    "antiCheat": {
-      "title": "Strict Anti-Cheat Monitoring",
-      "description": "Full-screen lock, tab switch detection, video evidence, and AI violation analysis ensure absolute fairness in online exams."
+      "description": "More than just code. Integrates multiple-choice, true/false, and short answer questions, supports LaTeX formulas and Markdown, for one-stop diverse assessment.",
+      "title": "Paper Question Integration (Online Exam)"
     },
     "teacher": {
-      "title": "Friendlier Teacher System",
-      "description": "Intuitive grading panel, real-time proctoring dashboard, and detailed grade statistics allow teachers to focus on teaching rather than administration."
+      "description": "Intuitive grading panel, real-time proctoring dashboard, and detailed grade statistics allow teachers to focus on teaching rather than administration.",
+      "title": "Friendlier Teacher System"
     }
   },
   "features": {
     "eyebrow": "Core Value",
     "title": "Powerful Features Designed for Education"
   },
-  "exam": {
-    "eyebrow": "Online Exam",
-    "title": "Comprehensive Assessment Experience",
-    "description": "From programming to general theory, QJudge provides full support. Built-in LaTeX and Markdown editors make creating and answering questions equally smooth.",
-    "tag1": "LaTeX Support",
-    "tag2": "Diverse Question Types",
-    "tag3": "Auto Grading",
-    "preview_text": "Please calculate the following integral:"
+  "footer": {
+    "copyright": "© 2024 Online Judge. Built with a modern design system."
   },
-  "miniJudge": {
-    "eyebrow": "Interactive Demo",
-    "title": "Try QJudge in one flow: Problem, Code, Submit, Results",
-    "problem": {
-      "title": "Nth Fibonacci Number",
-      "description": "Given an integer n, return the nth Fibonacci number where F(0)=0 and F(1)=1.",
-      "input": "Input",
-      "output": "Output"
+  "hero": {
+    "badge": {
+      "product": "Online Judge",
+      "tagline": "Professional Programming Assessment Platform"
     },
-    "editor": {
-      "title": "Code Input",
-      "submit": "Run Demo"
+    "register": "Create account",
+    "signIn": "Sign in",
+    "signal": {
+      "realtime": "Real-time Judge",
+      "report": "Detailed Report",
+      "sandbox": "Sandbox Execution"
     },
-    "result": {
-      "title": "Test Results",
-      "idle": "No submission yet",
-      "running": "Running...",
-      "summary": "Passed {{passed}} / {{total}}"
-    }
-  },
-  "steps": {
-    "eyebrow": "How it works",
-    "title": "Start in four steps",
-    "browse": {
-      "title": "Browse problems",
-      "description": "Filter by difficulty and tags; review statements and samples."
-    },
-    "code": {
-      "title": "Write code",
-      "description": "Use the built-in editor with syntax highlighting and autocomplete."
-    },
-    "submit": {
-      "title": "Submit & test",
-      "description": "One-click submission with instant results and detailed report."
-    },
-    "improve": {
-      "title": "Keep improving",
-      "description": "Discuss, compare solutions, and join contests or labs."
+    "subtitle": "A high-quality testing environment built for academic settings. Integrating AI proctoring, paper-based questions, and real-time evaluation, ensuring every exam is fair, efficient, and in-depth.",
+    "title": "Secure and stable online exam platform",
+    "visual": {
+      "ai_monitoring": "AI Monitoring",
+      "desc": "Code -> Judge -> Verdict",
+      "detection": "Tab Detection",
+      "fullscreen": "Full Screen Mode",
+      "proctoring": "Proctoring Status",
+      "proctoring_video": "Video Proctoring",
+      "remaining": "Time Remaining",
+      "title": "Programming Assessment Flow",
+      "violations": "Violations"
     }
   },
   "highlights": {
-    "eyebrow": "Why QJudge",
-    "title": "Designed for teaching and competition",
+    "docs": "View docs",
+    "eyebrow": "Why choose this system",
     "item1": "Lab mode with progress tracking",
     "item2": "Live contests and rankings",
     "item3": "Detailed diff and case comparison",
     "item4": "Discussion threads and announcements",
     "item5": "Modern UI built on IBM Carbon",
-    "docs": "View docs"
+    "title": "Designed for teaching and competition"
   },
-  "testimonials": {
-    "eyebrow": "Testimonials",
-    "title": "What students say",
-    "quote1": "Realtime feedback helps me spot issues faster than traditional assignments!",
-    "quote2": "The diff view makes debugging easier. The interface is intuitive.",
-    "quote3": "Lab mode aligns perfectly with our course flow and discussions.",
-    "name1": "Student Wang",
-    "name2": "Student Lee",
-    "name3": "Student Chen",
-    "title1": "NYCU IM/Fin junior",
-    "title2": "NYCU IM/Fin sophomore",
-    "title3": "NYCU IM/Fin junior",
-    "badge": "National Yang Ming Chiao Tung University IM/Fin"
+  "interactive": {
+    "eyebrow": "Solution Showcase",
+    "items": {
+      "editor": {
+        "desc": "Build and refine exam questions across subjects through AI conversations — from settings to test cases in one go.",
+        "label": "AI-Assisted Question Creation"
+      },
+      "grading": {
+        "desc": "Visual grade overview to instantly track each student's answers and grading progress per question.",
+        "label": "Grading & Analytics"
+      },
+      "proctor": {
+        "desc": "Real-time detection of tab switches, window exits and anomalies with automatic warnings and violation logs.",
+        "label": "Anti-Cheating Proctoring"
+      },
+      "stats": {
+        "desc": "Clean question list and answer area that keeps students focused on the exam itself.",
+        "label": "Exam Interface"
+      }
+    },
+    "title": "Deeply Rooted in Every Detail of the Teaching Process"
   },
-  "contact": {
-    "eyebrow": "Contact",
-    "title": "Questions or ideas?",
-    "description": "We welcome feedback, bug reports, and collaboration proposals.",
-    "email": {
-      "title": "Email"
+  "miniJudge": {
+    "editor": {
+      "submit": "Run Demo",
+      "title": "Code Input"
     },
-    "github": {
-      "title": "GitHub"
+    "eyebrow": "Interactive Demo",
+    "problem": {
+      "description": "Given an integer n, return the nth Fibonacci number where F(0)=0 and F(1)=1.",
+      "input": "Input",
+      "output": "Output",
+      "title": "Nth Fibonacci Number"
     },
-    "university": {
-      "title": "Partner",
-      "value": "National Yang Ming Chiao Tung University"
+    "result": {
+      "idle": "No submission yet",
+      "running": "Running...",
+      "summary": "Passed {{passed}} / {{total}}",
+      "title": "Test Results"
+    },
+    "title": "Experience the evaluation process in one flow: Problem, Code, Submit, Results"
+  },
+  "modes": {
+    "eyebrow": "Diverse Modes",
+    "items": {
+      "adaptive": {
+        "comingSoon": "Coming Soon",
+        "desc": "Personalized study path",
+        "label": "AI Adaptive Learning"
+      },
+      "coding": {
+        "desc": "Professional coding assessment",
+        "label": "Coding Test"
+      },
+      "hackathon": {
+        "comingSoon": "Coming Soon",
+        "desc": "Collaborative competition",
+        "label": "Group Hackathon"
+      },
+      "lab": {
+        "desc": "Pure practice mode. Topic-based problem sets for students to improve at their own pace without pressure.",
+        "label": "Lab Practice"
+      },
+      "paper": {
+        "desc": "Integrated digital testing system",
+        "label": "Paper-like Exam"
+      },
+      "takehome": {
+        "comingSoon": "Coming Soon",
+        "desc": "Long-term assignment mode",
+        "label": "Take-home Project"
+      }
+    },
+    "title": "Supports Multiple Contest and Learning Modes"
+  },
+  "sections": {
+    "antiCheat": {
+      "description": "Full-range browser-based detection allows examinees to enter a strict proctoring environment without any plugins or software. We defend every effort and ensure absolute fairness in every test.",
+      "eyebrow": "Strict Proctoring",
+      "proctoring": {
+        "ai": "AI Proctoring",
+        "aiDesc": "Automated detection of suspicious behaviors using advanced vision models.",
+        "audio": "Audio Monitoring",
+        "face": "Identity Verification",
+        "fullscreen": "Fullscreen Enforcement",
+        "fullscreenDesc": "Mandatory fullscreen mode; exiting will trigger a warning or lock.",
+        "mouseLeave": "Mouse tracking",
+        "multiScreen": "Dual Monitor Blocking",
+        "multiScreenDesc": "Ensures the student is only using a single authorized monitor.",
+        "noCopy": "Copy/Paste Protection",
+        "noCopyDesc": "Prevents unauthorized content transfer through copy/paste actions.",
+        "screen": "Screen Monitoring",
+        "screenDesc": "Continuous screen capture to prevent unauthorized resources during the exam.",
+        "tabSwitch": "Tab Switch Detection",
+        "tabSwitchDesc": "Real-time detection and logging of browser tab switches.",
+        "video": "Video Proctoring",
+        "videoDesc": "Real-time webcam monitoring to verify student identity and environment."
+      },
+      "title": "No Installation Needed, Industry-Leading Anti-Cheat Technology"
+    },
+    "paper": {
+      "description": "Support for single choice, multiple choice, true/false, and short answer questions. Built-in Markdown and LaTeX editors accurately render complex mathematical formulas and technical documents, meeting diverse needs from general education to science and programming.",
+      "eyebrow": "Paper-like Exam",
+      "title": "More than just code, a complete online testing system"
+    },
+    "teacher": {
+      "description": "We have redefined the digital grading experience. An intuitive three-column grading panel, real-time proctoring dashboard, and automated results statistical analysis can save over 70% of management and grading time.",
+      "eyebrow": "Teacher Friendly",
+      "title": "Focus on teaching, leave the rest to us"
     }
+  },
+  "seo": {
+    "description": "An online exam and evaluation platform designed for education, supporting 20+ programming languages, diverse question types, and strict anti-cheating monitoring.",
+    "title": "Online Judge | Secure & Stable Online Exam Platform"
   },
   "stats": {
     "problems": "Problems",
     "submissions": "Submissions",
-    "users": "Active users",
-    "uptime": "Uptime"
+    "uptime": "Uptime",
+    "users": "Active users"
   },
-  "cta": {
-    "title": "Ready to start?",
-    "description": "Join QJudge and begin your coding journey. Free to start.",
-    "signIn": "Sign in",
-    "docs": "Learn more"
+  "steps": {
+    "browse": {
+      "description": "Filter by difficulty and tags; review statements and samples.",
+      "title": "Browse problems"
+    },
+    "code": {
+      "description": "Use the built-in editor with syntax highlighting and autocomplete.",
+      "title": "Write code"
+    },
+    "eyebrow": "How it works",
+    "improve": {
+      "description": "Discuss, compare solutions, and join contests or labs.",
+      "title": "Keep improving"
+    },
+    "submit": {
+      "description": "One-click submission with instant results and detailed report.",
+      "title": "Submit & test"
+    },
+    "title": "Start in four steps"
   },
-  "footer": {
-    "copyright": "© 2024 QJudge. Built with IBM Carbon Design System."
+  "testimonials": {
+    "badge": "Information Management related departments",
+    "eyebrow": "Testimonials",
+    "name1": "Student Wang",
+    "name2": "Student Lee",
+    "name3": "Student Chen",
+    "quote1": "Realtime feedback helps me spot issues faster than traditional assignments!",
+    "quote2": "The diff view makes debugging easier. The interface is intuitive.",
+    "quote3": "Lab mode aligns perfectly with our course flow and discussions.",
+    "title": "What students say",
+    "title1": "IM junior",
+    "title2": "IM sophomore",
+    "title3": "IM junior"
   },
   "visuals": {
-    "mathTitle": "Mathematics Rendering",
-    "topics": "Problem Topics",
     "continuePractice": "Continue Practice",
-    "projectMode": "Project Mode",
     "live": "LIVE",
-    "personalizedPath": "Personalized Path"
+    "mathTitle": "Mathematics Rendering",
+    "personalizedPath": "Personalized Path",
+    "projectMode": "Project Mode",
+    "topics": "Problem Topics"
   }
 }

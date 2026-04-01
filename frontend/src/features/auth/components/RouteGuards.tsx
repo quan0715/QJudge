@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Loading } from '@carbon/react';
+import { getAuthedLandingPath, hasCompletedOnboarding } from "../utils/onboarding";
 
 const PageLoading = () => (
   <div style={{ 
@@ -35,7 +36,40 @@ export const RequireGuest = () => {
   if (loading) return <PageLoading />;
 
   if (user) {
+    return <Navigate to={getAuthedLandingPath(user)} replace />;
+  }
+
+  return <Outlet />;
+};
+
+export const RequirePendingOnboarding = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) return <PageLoading />;
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (hasCompletedOnboarding(user)) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Outlet />;
+};
+
+export const RequireCompletedOnboarding = () => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) return <PageLoading />;
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!hasCompletedOnboarding(user)) {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return <Outlet />;

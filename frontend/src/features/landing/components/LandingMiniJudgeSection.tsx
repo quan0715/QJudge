@@ -56,7 +56,7 @@ const LandingMiniJudgeSection = () => {
           </p>
           <h2 className="landing__section-title">
             {t("landing.miniJudge.title", {
-              defaultValue: "簡單體驗 QJudge：題目、寫碼、提交、看結果",
+              defaultValue: "簡單體驗評測流程：題目、寫碼、提交、看結果",
             })}
           </h2>
         </div>

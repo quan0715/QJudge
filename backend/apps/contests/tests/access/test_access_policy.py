@@ -6,9 +6,12 @@ including parameterized tests for the role × action × status permission matrix
 """
 import pytest
 from unittest.mock import Mock, MagicMock, patch
+from uuid import uuid4
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.classrooms.models import Classroom, ClassroomMember, ClassroomContest
 from apps.contests.access_policy import (
     ContestAccessPolicy,
     PermissionError,
@@ -16,6 +19,7 @@ from apps.contests.access_policy import (
     BASE_ROLE_PERMISSIONS,
     check_contest_permission,
     get_all_permissions,
+    get_effective_contest_scope_role,
 )
 from apps.contests.permissions import get_user_role_in_contest
 
@@ -534,3 +538,78 @@ class TestActionPermissionMapCompleteness:
         # These actions should return 404 for unauthorized access
         expected = {'retrieve', 'participant_report'}
         assert expected.issubset(mask_actions)
+
+
+@pytest.mark.django_db
+class TestClassroomPriorityACL:
+    """Tests for classroom-priority branch in contest ACL resolver."""
+
+    @staticmethod
+    def _invite_code() -> str:
+        return uuid4().hex[:8].upper()
+
+    def test_flag_disabled_keeps_legacy_contest_role(self):
+        contest_owner = User.objects.create_user('legacy_owner', 'legacy_owner@test.com', 'pass')
+        classroom_owner = User.objects.create_user('class_owner_1', 'class_owner_1@test.com', 'pass')
+        contest = Contest.objects.create(name='ACL Contest A', owner=contest_owner, status='published')
+        classroom = Classroom.objects.create(
+            name='Class A',
+            owner=classroom_owner,
+            invite_code=self._invite_code(),
+        )
+        ClassroomContest.objects.create(classroom=classroom, contest=contest)
+
+        with override_settings(CONTEST_ACL_CLASSROOM_SOURCE_ENABLED=False):
+            role = get_effective_contest_scope_role(contest_owner, contest)
+            assert role == 'owner'
+            assert check_contest_permission(contest_owner, contest, 'manage_contest_lifecycle') is True
+
+    def test_flag_enabled_bound_classroom_prioritizes_classroom_scope(self):
+        contest_owner = User.objects.create_user('legacy_owner_2', 'legacy_owner_2@test.com', 'pass')
+        classroom_owner = User.objects.create_user('class_owner_2', 'class_owner_2@test.com', 'pass')
+        contest = Contest.objects.create(name='ACL Contest B', owner=contest_owner, status='published')
+        classroom = Classroom.objects.create(
+            name='Class B',
+            owner=classroom_owner,
+            invite_code=self._invite_code(),
+        )
+        ClassroomContest.objects.create(classroom=classroom, contest=contest)
+
+        with override_settings(CONTEST_ACL_CLASSROOM_SOURCE_ENABLED=True):
+            # Legacy contest owner is not classroom member -> outsider
+            legacy_role = get_effective_contest_scope_role(contest_owner, contest)
+            assert legacy_role == 'outsider'
+            assert check_contest_permission(contest_owner, contest, 'manage_contest_settings') is False
+
+            # Classroom owner is authoritative owner
+            scoped_role = get_effective_contest_scope_role(classroom_owner, contest)
+            assert scoped_role == 'owner'
+            assert check_contest_permission(classroom_owner, contest, 'manage_contest_lifecycle') is True
+
+    def test_flag_enabled_maps_ta_to_manager_permissions(self):
+        contest_owner = User.objects.create_user('legacy_owner_3', 'legacy_owner_3@test.com', 'pass')
+        classroom_owner = User.objects.create_user('class_owner_3', 'class_owner_3@test.com', 'pass')
+        ta_user = User.objects.create_user('ta_user_acl', 'ta_user_acl@test.com', 'pass')
+        contest = Contest.objects.create(name='ACL Contest C', owner=contest_owner, status='published')
+        classroom = Classroom.objects.create(
+            name='Class C',
+            owner=classroom_owner,
+            invite_code=self._invite_code(),
+        )
+        ClassroomMember.objects.create(classroom=classroom, user=ta_user, role='ta')
+        ClassroomContest.objects.create(classroom=classroom, contest=contest)
+
+        with override_settings(CONTEST_ACL_CLASSROOM_SOURCE_ENABLED=True):
+            role = get_effective_contest_scope_role(ta_user, contest)
+            assert role == 'co_owner'
+            assert check_contest_permission(ta_user, contest, 'manage_contest_settings') is True
+            assert check_contest_permission(ta_user, contest, 'manage_contest_lifecycle') is False
+
+    def test_flag_enabled_without_binding_falls_back_to_legacy(self):
+        contest_owner = User.objects.create_user('legacy_owner_4', 'legacy_owner_4@test.com', 'pass')
+        contest = Contest.objects.create(name='ACL Contest D', owner=contest_owner, status='published')
+
+        with override_settings(CONTEST_ACL_CLASSROOM_SOURCE_ENABLED=True):
+            role = get_effective_contest_scope_role(contest_owner, contest)
+            assert role == 'owner'
+            assert check_contest_permission(contest_owner, contest, 'manage_contest_lifecycle') is True

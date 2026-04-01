@@ -1,18 +1,22 @@
 """ContestViewSet — main CRUD + admin operations."""
 import csv
 import logging
+from uuid import UUID
 
-from django.db.models import Max
+from django.db import transaction
+from django.db.models import Max, Sum
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.core.cache import cache
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
 from ..access_policy import ContestAccessPolicy
 from ..models import (
+    AssignmentState,
     Contest,
     ContestParticipant,
     ContestProblem,
@@ -48,10 +52,22 @@ from ..services.participant_state import (
 from ..services.anti_cheat_session import get_active_session, get_last_heartbeat
 from ..services.participant_dashboard import build_participant_dashboard
 from ..services.anticheat_config import build_contest_anticheat_config
+from ..services.detail_cache import (
+    bump_contest_detail_cache_version,
+    get_contest_detail_cache_key,
+)
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
+from ..services.question_edit_lock import ensure_contest_question_editable
 from .activity import ContestActivityViewSet
 from apps.problems.services import ProblemService
 from apps.problems.models import Problem
+from apps.problems.serializers import ProblemAdminSerializer
+from apps.question_bank.models import Question, QuestionBank
+from apps.question_bank.question_assets import (
+    ensure_question_asset_for_bank_question,
+)
+from apps.question_bank.bank_workflows import is_publicly_accessible_bank
+from apps.classrooms.permissions import get_user_role_in_classroom
 
 logger = logging.getLogger(__name__)
 CONTEST_DETAIL_CACHE_TTL_SECONDS = 2
@@ -74,6 +90,25 @@ class ContestViewSet(viewsets.ModelViewSet):
     ordering_fields = ['start_time', 'end_time', 'created_at']
     ordering = ['-created_at']
 
+    @staticmethod
+    def _normalize_uuid(value, *, field_name: str) -> str:
+        try:
+            return str(UUID(str(value)))
+        except (TypeError, ValueError):
+            raise DRFValidationError({field_name: "Must be a valid UUID."})
+
+    @staticmethod
+    def _resolve_problem(identifier):
+        if identifier in (None, ""):
+            return None
+        try:
+            normalized_uuid = str(UUID(str(identifier)))
+        except (TypeError, ValueError):
+            return None
+        if normalized_uuid:
+            return Problem.objects.filter(id=normalized_uuid).first()
+        return None
+
     def _resolve_exam_window_status(self, contest: Contest, now):
         if contest.status == "archived":
             return "ended"
@@ -84,6 +119,67 @@ class ContestViewSet(viewsets.ModelViewSet):
         if contest.start_time and now < contest.start_time:
             return "upcoming"
         return "running"
+
+    @staticmethod
+    def _is_classroom_managed_contest(contest: Contest) -> bool:
+        return contest.classroom_bindings.exists()
+
+    def _classroom_managed_response(self):
+        return Response(
+            {
+                "error": {
+                    "code": "contest_managed_by_classroom",
+                    "message": "This contest is managed by a classroom. Update members in classroom.",
+                    "type": "permission_denied",
+                }
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    @staticmethod
+    def _get_primary_bound_classroom(contest: Contest):
+        binding = (
+            contest.classroom_bindings.select_related("classroom")
+            .order_by("bound_at")
+            .first()
+        )
+        return binding.classroom if binding is not None else None
+
+    def _ensure_classroom_bound_participant(self, contest: Contest, user):
+        """
+        Classroom-bound contests must source student participation from classroom
+        membership. Managers do not register separately.
+        """
+        classroom = self._get_primary_bound_classroom(contest)
+        if classroom is None:
+            return None, False, None
+
+        classroom_role = get_user_role_in_classroom(user, classroom)
+        if classroom_role is None:
+            return None, False, Response(
+                {"message": "Join the classroom before joining this contest"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if classroom_role in {"platform_admin", "owner", "manager"}:
+            return None, False, Response(
+                {"message": "Classroom managers do not register separately"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        participant, created = ContestParticipant.objects.get_or_create(
+            contest=contest,
+            user=user,
+            defaults={
+                "assignment_state": (
+                    AssignmentState.UNACCEPTED
+                    if contest.delivery_mode == "practice"
+                    else AssignmentState.ACCEPTED
+                ),
+                "nickname": user.username,
+            },
+        )
+        return participant, created, None
 
     def _build_time_progress(self, contest: Contest, now):
         start_time = contest.start_time
@@ -162,6 +258,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Override to log contest update activity.
         """
         instance = serializer.save()
+        bump_contest_detail_cache_version(instance.id)
+        cache.delete(f"contest_anticheat_config:{instance.id}")
 
         # Log activity - record what fields were changed
         changed_fields = []
@@ -182,7 +280,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         user = request.user
         user_cache_key = user.id if user.is_authenticated else "anon"
-        cache_key = f"contest_detail:{instance.id}:u:{user_cache_key}"
+        cache_key = get_contest_detail_cache_key(instance.id, str(user_cache_key))
 
         if user.is_authenticated:
             try:
@@ -275,6 +373,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Get all admins for this contest.
         """
         contest = self.get_object()
+        if self._is_classroom_managed_contest(contest):
+            return self._classroom_managed_response()
         admins = contest.admins.all()
         return Response([{'id': u.id, 'username': u.username} for u in admins])
 
@@ -285,6 +385,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Only owner (or platform admin) can add co-admins.
         """
         contest = self.get_object()
+        if self._is_classroom_managed_contest(contest):
+            return self._classroom_managed_response()
 
         username = request.data.get('username')
         if not username:
@@ -328,6 +430,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Only owner (or platform admin) can remove co-admins.
         """
         contest = self.get_object()
+        if self._is_classroom_managed_contest(contest):
+            return self._classroom_managed_response()
 
         user_id = request.data.get('user_id')
         if not user_id:
@@ -562,6 +666,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Manually add a participant to the contest.
         """
         contest = self.get_object()
+        if self._is_classroom_managed_contest(contest):
+            return self._classroom_managed_response()
         username = request.data.get('username')
 
         if not username:
@@ -595,6 +701,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Only contest owners/admins can perform this action.
         """
         contest = self.get_object()
+        if self._is_classroom_managed_contest(contest):
+            return self._classroom_managed_response()
         user_id = request.data.get('user_id')
 
         if not user_id:
@@ -653,6 +761,28 @@ class ContestViewSet(viewsets.ModelViewSet):
             return Response(
                 {'message': 'Contest has ended'},
                 status=status.HTTP_403_FORBIDDEN
+            )
+
+        if self._is_classroom_managed_contest(contest):
+            participant, created, error_response = self._ensure_classroom_bound_participant(
+                contest, user,
+            )
+            if error_response is not None:
+                return error_response
+            if participant.nickname != user.username and not participant.nickname:
+                participant.nickname = user.username
+                participant.save(update_fields=["nickname"])
+            if not created:
+                return Response({'message': 'Already registered'}, status=status.HTTP_400_BAD_REQUEST)
+            ContestActivityViewSet.log_activity(
+                contest,
+                request.user,
+                'register',
+                "Registered for contest via classroom membership"
+            )
+            return Response(
+                {'message': 'Successfully registered'},
+                status=status.HTTP_201_CREATED
             )
 
         # Check if already registered
@@ -747,6 +877,11 @@ class ContestViewSet(viewsets.ModelViewSet):
         if can_manage_contest(user, contest):
             return Response({'message': 'Entered successfully (Privileged)'})
 
+        if self._is_classroom_managed_contest(contest):
+            _, _, error_response = self._ensure_classroom_bound_participant(contest, user)
+            if error_response is not None:
+                return error_response
+
         if contest.status == 'draft':
             return Response(
                 {'message': 'Contest is not published'},
@@ -809,45 +944,315 @@ class ContestViewSet(viewsets.ModelViewSet):
 
         return Response({'message': 'Left successfully'})
 
+    def _get_default_problem_max_score(self, problem: Problem) -> int:
+        score_sum = (
+            problem.test_cases.aggregate(total=Sum('score')).get('total')
+            or 0
+        )
+        return max(1, int(score_sum or 100))
+
+    def _resolve_bank_question_for_import(self, *, user, question_bank_id, question_id):
+        try:
+            normalized_bank_uuid = self._normalize_uuid(
+                question_bank_id, field_name="question_bank_id"
+            )
+        except DRFValidationError as exc:
+            return None, None, Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        bank = QuestionBank.objects.filter(uuid=normalized_bank_uuid, is_archived=False).first()
+        if not bank:
+            return None, None, Response({'error': 'Question bank not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if bank.owner_id != user.id and not is_publicly_accessible_bank(bank):
+            return None, None, Response({'error': 'No access to this question bank'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            normalized_question_uuid = self._normalize_uuid(
+                question_id, field_name="question_id"
+            )
+        except DRFValidationError as exc:
+            return None, None, Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        # Primary lookup: QuestionBankMembership (bank_item_id from frontend)
+        from apps.question_bank.models import QuestionBankMembership
+        from apps.question_bank.write_workflows import materialize_bank_question_adapter_for_membership
+
+        membership = (
+            QuestionBankMembership.objects.filter(
+                bank=bank, id=normalized_question_uuid,
+            )
+            .select_related("question_asset", "question_asset__latest_version", "legacy_question")
+            .first()
+        )
+
+        if membership:
+            if membership.legacy_question_id:
+                question = membership.legacy_question
+            else:
+                # Materialize adapter on demand (will be eliminated when Question is fully retired)
+                question = materialize_bank_question_adapter_for_membership(
+                    membership=membership, actor=user,
+                )
+        else:
+            # Legacy fallback: direct Question ID (old frontend may still send this)
+            question = Question.objects.filter(bank=bank, id=normalized_question_uuid).first()
+
+        if not question:
+            return None, None, Response({'error': 'Question not found in bank'}, status=status.HTTP_404_NOT_FOUND)
+
+        if question.question_type != Question.QuestionType.CODING:
+            return None, None, Response({'error': 'Only coding bank questions can be imported here'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return bank, question, None
+
+    def _materialize_problem_from_bank_question(self, *, contest: Contest, question: Question, user, request):
+        def _normalize_weights(cases):
+            if not cases:
+                return
+            raw_weights = [max(0, int(case.get('weight_percent', 0) or 0)) for case in cases]
+            total = sum(raw_weights)
+            if total == 100:
+                return
+            if total <= 0:
+                base = 100 // len(cases)
+                remainder = 100 % len(cases)
+                for idx, case in enumerate(cases):
+                    weight = base + (1 if idx < remainder else 0)
+                    case['weight_percent'] = weight
+                    case['score'] = weight
+                return
+
+            scaled = []
+            for weight in raw_weights:
+                scaled.append((weight * 100) / total)
+            floor_values = [int(value) for value in scaled]
+            remainder = 100 - sum(floor_values)
+            fractions = sorted(
+                enumerate(value - int(value) for value in scaled),
+                key=lambda item: item[1],
+                reverse=True,
+            )
+            for idx in range(remainder):
+                floor_values[fractions[idx][0]] += 1
+
+            for idx, case in enumerate(cases):
+                case['weight_percent'] = floor_values[idx]
+                case['score'] = floor_values[idx]
+
+        coding_ext = getattr(question, "coding_ext", None)
+        translations = []
+        test_cases = []
+        language_configs = []
+        forbidden_keywords = []
+        required_keywords = []
+
+        if coding_ext:
+            translations = coding_ext.translations or []
+            for idx, raw_tc in enumerate(coding_ext.test_cases or []):
+                tc = dict(raw_tc or {})
+                weight_percent = tc.get('weight_percent')
+                if weight_percent is None:
+                    weight_percent = tc.get('score', 0)
+                try:
+                    normalized_weight = int(weight_percent)
+                except (TypeError, ValueError):
+                    normalized_weight = 0
+                test_cases.append(
+                    {
+                        'input_data': tc.get('input_data', ''),
+                        'output_data': tc.get('output_data', ''),
+                        'is_sample': bool(tc.get('is_sample', False)),
+                        'score': normalized_weight,
+                        'weight_percent': normalized_weight,
+                        'order': int(tc.get('order', idx)),
+                        'is_hidden': bool(tc.get('is_hidden', False)),
+                    }
+                )
+            language_configs = coding_ext.language_configs or []
+            forbidden_keywords = coding_ext.forbidden_keywords or []
+            required_keywords = coding_ext.required_keywords or []
+
+        if not translations:
+            translations = [
+                {
+                    'language': 'zh-TW',
+                    'title': question.title or 'Imported Problem',
+                    'description': question.prompt or '',
+                    'input_description': '',
+                    'output_description': '',
+                    'hint': '',
+                }
+            ]
+
+        if not test_cases:
+            # Safety fallback for bank entries without coding extension.
+            test_cases = [
+                {
+                    'input_data': '',
+                    'output_data': '',
+                    'is_sample': True,
+                    'score': 100,
+                    'weight_percent': 100,
+                    'order': 0,
+                    'is_hidden': False,
+                }
+            ]
+        else:
+            _normalize_weights(test_cases)
+
+        payload = {
+            'title': question.title or 'Imported Problem',
+            'difficulty': question.difficulty or 'medium',
+            'time_limit': question.time_limit or 1000,
+            'memory_limit': question.memory_limit or 128,
+            'translations': translations,
+            'test_cases': test_cases,
+            'language_configs': language_configs,
+            'forbidden_keywords': forbidden_keywords,
+            'required_keywords': required_keywords,
+        }
+
+        serializer = ProblemAdminSerializer(data=payload, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        problem = serializer.save(
+            created_by=user,
+        )
+        question_asset, question_version = ensure_question_asset_for_bank_question(
+            question=question,
+            actor=user,
+        )
+        problem.question_asset = question_asset
+        problem.question_version = question_version
+        problem.save(update_fields=['question_asset', 'question_version', 'updated_at'])
+        return problem
+
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin])
     def add_problem(self, request, pk=None):
         """
         Add a problem to the contest.
-        Supports adding existing problem (by ID) or creating a new one (by title).
+        Supports:
+        - legacy: existing problem (problem_id) or new blank problem (title)
+        - question bank import: question_bank_id + question_id (legacy import_mode ignored; fixed copy strategy)
         """
         contest = self.get_object()
         user = request.user
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(user, "id", None),
+            action="contest.add_problem",
+        )
 
         problem_id = request.data.get('problem_id')
         title = request.data.get('title')
+        question_bank_id = request.data.get('question_bank_id')
+        question_id = request.data.get('question_id')
+        requested_max_score = request.data.get('max_score')
 
-        if problem_id:
-            # Clone existing problem (Template)
-            from apps.problems.models import Problem
-            from apps.problems.services import ProblemService
-            try:
-                source_problem = Problem.objects.get(id=problem_id)
-                # Clone it to the contest
-                problem = ProblemService.clone_problem(source_problem, contest, user)
-            except Problem.DoesNotExist:
-                return Response({'error': 'Problem not found'}, status=status.HTTP_404_NOT_FOUND)
-        elif title:
-            # Create new problem
-            from apps.problems.services import ProblemService
-            problem = ProblemService.create_contest_problem(contest, user, title=title)
-        else:
-            return Response({'error': 'Either problem_id or title is required'}, status=status.HTTP_400_BAD_REQUEST)
+        source_bank_id = None
+        source_bank_name = ""
+        source_question_id = None
+        source_mode = "manual"
 
-        # Determine order and label
-        last_order = ContestProblem.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
-        new_order = (last_order if last_order is not None else -1) + 1
+        try:
+            with transaction.atomic():
+                if question_bank_id and question_id:
+                    bank, bank_question, error_response = self._resolve_bank_question_for_import(
+                        user=user,
+                        question_bank_id=question_bank_id,
+                        question_id=question_id,
+                    )
+                    if error_response:
+                        return error_response
 
-        # Generate label (A, B, C...)
-        ContestProblem.objects.create(
-            contest=contest,
-            problem=problem,
-            order=new_order,
-        )
+                    source_bank_id = bank.uuid
+                    source_bank_name = bank.name
+                    source_question_id = bank_question.id
+                    source_mode = "copy"
+
+                    problem = self._materialize_problem_from_bank_question(
+                        contest=contest,
+                        question=bank_question,
+                        user=user,
+                        request=request,
+                    )
+                elif problem_id:
+                    normalized_problem_id = self._normalize_uuid(
+                        problem_id, field_name="problem_id"
+                    )
+                    source_problem = self._resolve_problem(normalized_problem_id)
+                    if not source_problem:
+                        return Response({'error': 'Problem not found'}, status=status.HTTP_404_NOT_FOUND)
+                    problem = ProblemService.clone_problem(source_problem, contest, user)
+                elif title:
+                    problem = ProblemService.create_contest_problem(contest, user, title=title)
+                else:
+                    return Response(
+                        {'error': 'Either problem_id/title or question_bank_id/question_id is required'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+                # Ensure asset exists
+                if not problem.question_asset_id:
+                    from apps.question_bank.question_assets import sync_problem_question_asset
+                    sync_problem_question_asset(problem=problem, actor=user)
+                    problem.refresh_from_db(fields=["question_asset", "question_version"])
+
+                # Determine order
+                last_order = (
+                    ContestQuestionBinding.objects.filter(
+                        contest=contest, binding_type=QuestionAsset.AssetType.CODING,
+                    ).aggregate(max_order=Max('order'))['max_order']
+                )
+                new_order = (last_order if last_order is not None else -1) + 1
+
+                default_max_score = self._get_default_problem_max_score(problem)
+                max_score = default_max_score
+                if requested_max_score is not None:
+                    try:
+                        max_score = max(1, int(requested_max_score))
+                    except (TypeError, ValueError):
+                        return Response({'error': 'max_score must be a positive integer'}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Primary write: ContestQuestionBinding
+                binding = ContestQuestionBinding.objects.create(
+                    contest=contest,
+                    question_asset=problem.question_asset,
+                    question_version=problem.question_version,
+                    coding_problem=problem,
+                    binding_type=QuestionAsset.AssetType.CODING,
+                    order=new_order,
+                    score=max_score,
+                    source_bank_id=source_bank_id,
+                    source_bank_name=source_bank_name,
+                    source_question_id=source_question_id,
+                    source_mode=source_mode,
+                    created_by=user,
+                )
+
+                # Backward-compat: ContestProblem (skip auto binding sync)
+                cp = ContestProblem(
+                    contest=contest,
+                    problem=problem,
+                    order=new_order,
+                    max_score=max_score,
+                    question_asset=problem.question_asset,
+                    question_version=problem.question_version,
+                    source_bank_id=source_bank_id,
+                    source_bank_name=source_bank_name,
+                    source_question_id=source_question_id,
+                    source_mode=source_mode,
+                )
+                cp._skip_binding_sync = True
+                cp.save()
+                binding.legacy_contest_problem = cp
+                binding.save(update_fields=['legacy_contest_problem', 'updated_at'])
+        except DRFValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.exception("Failed to add contest problem from payload: %s", exc)
+            return Response({'error': 'Failed to add problem'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         from apps.problems.serializers import ProblemListSerializer
         serializer = ProblemListSerializer(problem, context={'request': request})
@@ -856,7 +1261,7 @@ class ContestViewSet(viewsets.ModelViewSet):
             contest,
             request.user,
             'add_problem',
-            f"Added problem {problem.display_id} to contest"
+            f"Added problem {problem.title or problem.id} to contest"
         )
 
         # Include contest_id for frontend navigation
@@ -871,146 +1276,60 @@ class ContestViewSet(viewsets.ModelViewSet):
         Expects: { "orders": [{ "id": 1, "order": 0 }, ...] }  where id is ContestProblem ID
         """
         contest = self.get_object()
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(request.user, "id", None),
+            action="contest.reorder_problems",
+        )
         orders = request.data.get('orders', [])
 
         if not orders:
             return Response({'error': 'No orders provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1. Update orders
-        for item in orders:
-            cp_id = item.get('id')
-            new_order = item.get('order')
-            if cp_id is not None and new_order is not None:
-                ContestProblem.objects.filter(contest=contest, id=cp_id).update(order=new_order)
+        from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
-        # 2. Regenerate labels based on sorted order
-        contest_problems = ContestProblem.objects.filter(contest=contest).order_by('order')
-        for i, cp in enumerate(contest_problems):
-            # Ensure order is sequential 0, 1, 2...
-            cp.order = i
-            cp.save()
+        import uuid as _uuid
+
+        # 1. Update orders on bindings (accepts both binding UUIDs and legacy ContestProblem int IDs)
+        for item in orders:
+            item_id = item.get('id')
+            new_order = item.get('order')
+            if item_id is None or new_order is None:
+                continue
+            item_str = str(item_id)
+            is_uuid = False
+            try:
+                _uuid.UUID(item_str)
+                is_uuid = True
+            except (ValueError, AttributeError):
+                pass
+
+            if is_uuid:
+                updated = ContestQuestionBinding.objects.filter(
+                    contest=contest, id=item_str,
+                ).update(order=new_order)
+                if not updated:
+                    ContestQuestionBinding.objects.filter(
+                        contest=contest, coding_problem_id=item_str,
+                    ).update(order=new_order)
+            elif item_str.isdigit():
+                ContestQuestionBinding.objects.filter(
+                    contest=contest, legacy_contest_problem_id=int(item_str),
+                ).update(order=new_order)
+
+        # 2. Normalize to sequential 0, 1, 2... and sync back to ContestProblem
+        bindings = ContestQuestionBinding.objects.filter(
+            contest=contest, binding_type=QuestionAsset.AssetType.CODING,
+        ).order_by('order', 'created_at')
+        for i, b in enumerate(bindings):
+            if b.order != i:
+                b.order = i
+                b.save(update_fields=['order', 'updated_at'])
+            # Always sync ContestProblem order
+            if b.legacy_contest_problem_id:
+                ContestProblem.objects.filter(pk=b.legacy_contest_problem_id).update(order=i)
 
         return Response({'status': 'reordered'})
-
-    @action(
-        detail=True,
-        methods=['post'],
-        permission_classes=[IsContestOwnerOrAdmin],
-        url_path=r'problems/(?P<problem_id>\d+)/publish'
-    )
-    def publish_problem_to_practice(self, request, pk=None, problem_id=None):
-        """
-        Publish a single contest problem to the practice library by cloning.
-        Only allowed when contest is archived.
-        """
-        contest = self.get_object()
-
-        if contest.status != 'archived':
-            return Response(
-                {'message': 'Contest must be archived before publishing problems'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        try:
-            contest_problem = ContestProblem.objects.get(
-                contest=contest,
-                problem_id=problem_id
-            )
-            problem = contest_problem.problem
-        except ContestProblem.DoesNotExist:
-            return Response(
-                {'message': 'Problem not found in this contest'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        exists = Problem.objects.filter(
-            origin_problem=problem,
-            created_in_contest=contest,
-        ).exists()
-        if exists:
-            return Response(
-                {'message': 'Problem already published to practice'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        new_problem = ProblemService.clone_problem_to_practice(
-            source_problem=problem,
-            source_contest=contest,
-            created_by=request.user,
-        )
-
-        ContestActivityViewSet.log_activity(
-            contest,
-            request.user,
-            'other',
-            f"Published problem {problem.display_id} to practice",
-        )
-
-        return Response(
-            {
-                'message': 'Problem published successfully',
-                'created_problem_id': new_problem.id,
-            },
-            status=status.HTTP_200_OK,
-        )
-
-    @action(
-        detail=True,
-        methods=['post'],
-        permission_classes=[IsContestOwnerOrAdmin],
-        url_path='publish_to_practice'
-    )
-    def publish_problems_to_practice(self, request, pk=None):
-        """
-        Clone archived contest problems into the practice library.
-        """
-        contest = self.get_object()
-
-        if contest.status != 'archived':
-            return Response(
-                {'message': 'Contest must be archived before publishing problems'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        problem_ids = request.data.get('problem_ids')
-        if isinstance(problem_ids, str):
-            problem_ids = [pid for pid in problem_ids.split(",") if pid.strip()]
-        contest_problems = ContestProblem.objects.filter(contest=contest).select_related('problem')
-        if problem_ids:
-            contest_problems = contest_problems.filter(problem_id__in=problem_ids)
-
-        created_problem_ids = []
-        skipped_problem_ids = []
-
-        for contest_problem in contest_problems:
-            problem = contest_problem.problem
-            exists = Problem.objects.filter(
-                origin_problem=problem,
-                created_in_contest=contest,
-            ).exists()
-            if exists:
-                skipped_problem_ids.append(problem.id)
-                continue
-
-            new_problem = ProblemService.clone_problem_to_practice(
-                source_problem=problem,
-                source_contest=contest,
-                created_by=request.user,
-            )
-            created_problem_ids.append(new_problem.id)
-
-        if created_problem_ids:
-            ContestActivityViewSet.log_activity(
-                contest,
-                request.user,
-                "other",
-                "Published contest problems to practice",
-            )
-
-        return Response({
-            'created_problem_ids': created_problem_ids,
-            'skipped_problem_ids': skipped_problem_ids,
-        })
 
     @action(detail=True, methods=['get'])
     def standings(self, request, pk=None):

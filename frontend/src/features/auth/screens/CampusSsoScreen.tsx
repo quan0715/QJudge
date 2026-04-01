@@ -3,6 +3,7 @@ import { InlineLoading } from "@carbon/react";
 import { ArrowRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { getOAuthUrl } from "@/infrastructure/api/repositories/auth.repository";
+import { usePendingActions, PendingActionBanner } from "@/features/auth/pending-actions";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 
 const CAMPUS_PROVIDERS = [
@@ -19,6 +20,8 @@ const CAMPUS_PROVIDERS = [
 const CampusSsoScreen = () => {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  // Auto-syncs query params (e.g. teacher_activation_token) → sessionStorage
+  usePendingActions();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -39,6 +42,7 @@ const CampusSsoScreen = () => {
   return (
     <>
       <div className="auth-form">
+        <PendingActionBanner />
         <div className="auth-school-list">
           {CAMPUS_PROVIDERS.map((provider) => (
             <button
@@ -49,10 +53,10 @@ const CampusSsoScreen = () => {
               disabled={loading !== null}
             >
               <div className="auth-school-list-item__logo-container">
-                <img 
-                  src={isDark && provider.logoDark ? provider.logoDark : provider.logo} 
-                  alt={provider.name} 
-                  className="auth-school-list-item__logo" 
+                <img
+                  src={isDark && provider.logoDark ? provider.logoDark : provider.logo}
+                  alt={provider.name}
+                  className="auth-school-list-item__logo"
                 />
               </div>
               <div className="auth-school-list-item__content">

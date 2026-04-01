@@ -58,6 +58,9 @@ services:
       SERVER_IDLE_TIMEOUT: "600"
       CLIENT_IDLE_TIMEOUT: "0"
       SERVER_RESET_QUERY: "DISCARD ALL"
+      LOG_CONNECTIONS: "0"
+      LOG_DISCONNECTIONS: "0"
+      LOG_STATS: "0"
     ports:
       - "6432:5432"
     depends_on:
@@ -79,6 +82,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: oj_redis_dev
+    command: redis-server --save "" --appendonly no
     ports:
       - "6379:6379"
     networks:
@@ -284,6 +288,29 @@ services:
       - "5173:5173"
     env_file:
       - .env
+    environment:
+      - VITE_STORYBOOK_TARGET=http://storybook:6006
+    depends_on:
+      - backend
+      - storybook
+    networks:
+      - oj_network_dev
+
+  storybook:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: oj_storybook_dev
+    command: npm run storybook -- --host 0.0.0.0 --ci
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "6006:6006"
+    env_file:
+      - .env
+    environment:
+      - VITE_API_TARGET=http://backend:8000
     depends_on:
       - backend
     networks:

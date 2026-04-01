@@ -54,15 +54,14 @@ class Submission(models.Model):
         related_name='submissions',
         verbose_name='考試'
     )
-    lab = models.ForeignKey(
-        'labs.Lab',
+    contest_question_binding = models.ForeignKey(
+        'question_bank.ContestQuestionBinding',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='submissions',
-        verbose_name='題目單'
+        verbose_name='競賽題目綁定',
     )
-    
     # Content
     SOURCE_TYPE_CHOICES = [
         ('practice', 'Practice'),
@@ -110,7 +109,6 @@ class Submission(models.Model):
             # Performance indexes for common query patterns
             models.Index(fields=['source_type', 'is_test', '-created_at'], name='sub_src_test_created_idx'),
             models.Index(fields=['contest', 'source_type', '-created_at'], name='sub_contest_src_created_idx'),
-            models.Index(fields=['lab', '-created_at'], name='sub_lab_created_idx'),
             models.Index(fields=['problem', '-created_at'], name='sub_problem_created_idx'),
             models.Index(fields=['status', '-created_at'], name='sub_status_created_idx'),
             models.Index(fields=['user', '-created_at'], name='sub_user_created_idx'),

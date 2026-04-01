@@ -1,6 +1,7 @@
 """
 Permissions and role detection for contests.
 """
+from django.conf import settings
 from rest_framework import permissions
 from django.utils import timezone
 
@@ -27,6 +28,35 @@ _SCOPE_TO_LEGACY = {
 }
 
 
+CLASSROOM_SCOPE_TO_CONTEST_SCOPE = {
+    'platform_admin': 'platform_admin',
+    'owner': 'owner',
+    'manager': 'co_owner',
+    'member': 'participant',
+    None: 'outsider',
+}
+
+
+def map_classroom_role_to_contest_scope(classroom_role: str | None) -> str:
+    return CLASSROOM_SCOPE_TO_CONTEST_SCOPE.get(classroom_role, 'outsider')
+
+
+def _is_classroom_acl_source_enabled() -> bool:
+    """
+    Classroom-bound contests should resolve permissions from the classroom scope
+    by default. The env flag remains as an escape hatch.
+    """
+    return bool(getattr(settings, 'CONTEST_ACL_CLASSROOM_SOURCE_ENABLED', True))
+
+
+def _get_primary_classroom_binding(contest):
+    return (
+        contest.classroom_bindings.select_related('classroom')
+        .order_by('bound_at')
+        .first()
+    )
+
+
 def get_contest_scope_role(user, contest) -> str:
     """
     Return the canonical scope role for *user* within *contest*.
@@ -43,6 +73,15 @@ def get_contest_scope_role(user, contest) -> str:
         return 'anonymous'
     if user.is_staff or user.is_superuser:
         return 'platform_admin'
+
+    if _is_classroom_acl_source_enabled():
+        binding = _get_primary_classroom_binding(contest)
+        if binding is not None:
+            from apps.classrooms.permissions import get_user_role_in_classroom
+
+            classroom_role = get_user_role_in_classroom(user, binding.classroom)
+            return map_classroom_role_to_contest_scope(classroom_role)
+
     if contest.owner_id == user.id:
         return 'owner'
     if contest.admins.filter(pk=user.pk).exists():

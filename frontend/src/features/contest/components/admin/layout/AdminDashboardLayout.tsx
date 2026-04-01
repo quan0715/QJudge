@@ -1,12 +1,5 @@
-import {
-  Header,
-  HeaderName,
-  HeaderGlobalBar,
-  HeaderGlobalAction,
-  SideNav,
-  SideNavItems,
-  SideNavLink,
-} from "@carbon/react";
+import { Link } from "react-router-dom";
+import { Breadcrumb, BreadcrumbItem, HeaderGlobalAction } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import {
   Dashboard,
@@ -24,10 +17,13 @@ import {
   Renew,
 } from "@carbon/icons-react";
 import type { AdminPanelId } from "@/features/contest/modules/types";
-import styles from "./AdminDashboardLayout.module.scss";
+import AdminShellLayout, { type NavItem } from "@/shared/layout/AdminShellLayout";
 
 interface AdminDashboardLayoutProps {
+  contestId: string;
   contestName: string;
+  classroomId?: string;
+  classroomName?: string;
   activePanel: AdminPanelId;
   availablePanels: AdminPanelId[];
   examMode?: boolean;
@@ -68,7 +64,10 @@ const NAV_ITEMS: Record<
 };
 
 export default function AdminDashboardLayout({
+  contestId,
   contestName,
+  classroomId,
+  classroomName,
   activePanel,
   availablePanels,
   examMode,
@@ -82,14 +81,82 @@ export default function AdminDashboardLayout({
   children,
 }: AdminDashboardLayoutProps) {
   const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
+
+  const navItems: NavItem[] = availablePanels.flatMap((id) => {
+    const item = NAV_ITEMS[id];
+    if (!item) return [];
+    const { labelKey, examLabelKey, icon } = item;
+    const label =
+      examMode && examLabelKey
+        ? t(`adminLayout.nav.${examLabelKey}`)
+        : t(`adminLayout.nav.${labelKey}`);
+    return [
+      {
+        id: id as string,
+        icon,
+        label,
+        isActive: activePanel === id,
+        onClick: () => onPanelChange(id),
+      },
+    ];
+  });
 
   return (
-    <div className={styles.layout}>
-      <Header aria-label={t("adminLayout.title")} className={styles.header}>
-        <HeaderName href="#" prefix={t("common:header.prefix", "QJudge")}>
-          {contestName}
-        </HeaderName>
-        <HeaderGlobalBar>
+    <AdminShellLayout
+      headerAriaLabel={t("adminLayout.title")}
+      headerLeft={
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+          <Link
+            to="/dashboard"
+            style={{
+              color: "var(--cds-text-primary)",
+              textDecoration: "none",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {t("common:header.prefix", "QJudge")}
+          </Link>
+          <Breadcrumb noTrailingSlash style={{ display: "inline-flex", alignItems: "center", margin: 0 }}>
+            {classroomId ? (
+              <>
+                <BreadcrumbItem>
+                  <Link to="/dashboard">{tc("nav.dashboard")}</Link>
+                </BreadcrumbItem>
+                <BreadcrumbItem>
+                  <Link to={`/classrooms/${classroomId}`}>
+                    {classroomName || tc("nav.classrooms", "教室")}
+                  </Link>
+                </BreadcrumbItem>
+                <BreadcrumbItem>
+                  <Link to={`/classrooms/${classroomId}/contest/${contestId}`}>
+                    {contestName}
+                  </Link>
+                </BreadcrumbItem>
+                <BreadcrumbItem isCurrentPage>
+                  {t("adminLayout.title", "管理")}
+                </BreadcrumbItem>
+              </>
+            ) : (
+              <>
+                <BreadcrumbItem>
+                  <Link to="/dashboard">{tc("nav.dashboard")}</Link>
+                </BreadcrumbItem>
+                <BreadcrumbItem>
+                  {contestName}
+                </BreadcrumbItem>
+                <BreadcrumbItem isCurrentPage>
+                  {t("adminLayout.title", "管理")}
+                </BreadcrumbItem>
+              </>
+            )}
+          </Breadcrumb>
+        </div>
+      }
+      headerActions={
+        <>
           {onRefresh && (
             <HeaderGlobalAction
               aria-label={t("adminLayout.header.refresh")}
@@ -133,40 +200,13 @@ export default function AdminDashboardLayout({
           >
             <Launch size={20} />
           </HeaderGlobalAction>
-        </HeaderGlobalBar>
-      </Header>
-
-      <SideNav
-        aria-label={t("common:header.adminNavigation")}
-        isRail
-        className={styles.sidenav}
-      >
-        <SideNavItems>
-          {availablePanels.map((id) => {
-            const item = NAV_ITEMS[id];
-            if (!item) return null;
-            const { labelKey, examLabelKey, icon: Icon } = item;
-            const label =
-              examMode && examLabelKey
-                ? t(`adminLayout.nav.${examLabelKey}`)
-                : t(`adminLayout.nav.${labelKey}`);
-            return (
-              <SideNavLink
-                key={id}
-                renderIcon={Icon}
-                isActive={activePanel === id}
-                onClick={() => onPanelChange(id)}
-              >
-                {label}
-              </SideNavLink>
-            );
-          })}
-        </SideNavItems>
-      </SideNav>
-
-      <main className={styles.content}>
-        <div className={styles.contentViewport}>{children}</div>
-      </main>
-    </div>
+        </>
+      }
+      sideNavAriaLabel={t("common:header.adminNavigation")}
+      sideNavMode={{ variant: "rail" }}
+      navItems={navItems}
+    >
+      {children}
+    </AdminShellLayout>
   );
 }

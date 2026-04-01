@@ -1,13 +1,11 @@
-import type { StoryModule } from "@/shared/types/story.types";
-import { AcrBadge, type AcrBadgeProps } from "./AcrBadge";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { AcrBadge } from "./AcrBadge";
 
-const storyModule: StoryModule<AcrBadgeProps> = {
-  meta: {
+const meta: Meta<typeof AcrBadge> = {
     title: "shared/ui/tag/AcrBadge",
     component: AcrBadge,
-    description: "顯示 AC Rate（通過率）的標籤組件，包含環形進度指示器",
-    category: "shared",
-    defaultArgs: {
+    
+    args: {
       value: 65,
       size: "md",
       label: "AC Rate",
@@ -15,36 +13,50 @@ const storyModule: StoryModule<AcrBadgeProps> = {
     argTypes: {
       value: {
         control: "number",
-        label: "通過率",
-        description: "0-100 或 0-1 的數值，會自動轉換為百分比",
+                description: "0-100 或 0-1 的數值，會自動轉換為百分比",
         defaultValue: 65,
       },
       size: {
         control: "select",
-        label: "尺寸",
-        description: "標籤大小",
+                description: "標籤大小",
         options: ["sm", "md"],
         defaultValue: "md",
       },
       label: {
         control: "text",
-        label: "標籤文字",
-        description: "顯示在數值前的文字",
+                description: "顯示在數值前的文字",
         defaultValue: "AC Rate",
       },
     },
+  
+  parameters: {
+    docs: { description: { component: '顯示 AC Rate（通過率）的標籤組件，包含環形進度指示器' } },
   },
-  stories: [
-    {
-      name: "Playground",
-      description: "使用右側 Controls 面板調整 Props",
-      render: (args) => <AcrBadge {...args} />,
-      code: `<AcrBadge value={65} size="md" label="AC Rate" />`,
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: { story: '使用右側 Controls 面板調整 Props' },
+      source: { code: `<AcrBadge value={65} size="md" label="AC Rate" />` },
     },
-    {
-      name: "All Ranges",
-      description: "不同通過率區間：≥60% 綠色、40-59% 藍色、<40% 紅色",
-      render: () => (
+  },
+  render: (args) => <AcrBadge {...args} />,
+};
+
+export const AllRanges: Story = {
+  parameters: {
+    docs: {
+      description: { story: '不同通過率區間：≥60% 綠色、40-59% 藍色、<40% 紅色' },
+      source: { code: `<AcrBadge value={85} />  {/* ≥60% 綠色 */}
+<AcrBadge value={50} />  {/* 40-59% 藍色 */}
+<AcrBadge value={25} />  {/* <40% 紅色 */}` },
+    },
+  },
+  render: () => (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             <AcrBadge value={85} />
@@ -63,14 +75,19 @@ const storyModule: StoryModule<AcrBadgeProps> = {
           </div>
         </div>
       ),
-      code: `<AcrBadge value={85} />  {/* ≥60% 綠色 */}
-<AcrBadge value={50} />  {/* 40-59% 藍色 */}
-<AcrBadge value={25} />  {/* <40% 紅色 */}`,
+};
+
+export const EdgeCases: Story = {
+  parameters: {
+    docs: {
+      description: { story: '邊界情況：0%、100%、小數輸入、undefined' },
+      source: { code: `<AcrBadge value={0} />
+<AcrBadge value={100} />
+<AcrBadge value={0.75} />  {/* 小數自動轉百分比 */}
+<AcrBadge value={undefined} />  {/* fallback to 0% */}` },
     },
-    {
-      name: "Edge Cases",
-      description: "邊界情況：0%、100%、小數輸入、undefined",
-      render: () => (
+  },
+  render: () => (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             <AcrBadge value={0} />
@@ -90,12 +107,4 @@ const storyModule: StoryModule<AcrBadgeProps> = {
           </div>
         </div>
       ),
-      code: `<AcrBadge value={0} />
-<AcrBadge value={100} />
-<AcrBadge value={0.75} />  {/* 小數自動轉百分比 */}
-<AcrBadge value={undefined} />  {/* fallback to 0% */}`,
-    },
-  ],
 };
-
-export default storyModule;

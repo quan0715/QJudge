@@ -15,15 +15,16 @@ import {
   getContestStateColor,
 } from "@/core/entities/contest.entity";
 import { KpiCard } from "@/shared/ui/dataCard";
+import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import { resolveOverviewSnapshot } from "./overviewMetrics.utils";
-import styles from "./KpiCards.module.scss";
 
 interface KpiCardsProps {
   contest: ContestDetail;
   overviewMetrics: ContestOverviewMetrics | null;
+  loading?: boolean;
 }
 
-export default function KpiCards({ contest, overviewMetrics }: KpiCardsProps) {
+export default function KpiCards({ contest, overviewMetrics, loading = false }: KpiCardsProps) {
   const { t } = useTranslation("contest");
   const state = getContestState(contest);
   const startDate = new Date(contest.startTime).toLocaleDateString();
@@ -31,52 +32,43 @@ export default function KpiCards({ contest, overviewMetrics }: KpiCardsProps) {
   const snapshot = resolveOverviewSnapshot(contest, overviewMetrics);
 
   return (
-    <section className={styles.hero}>
-      <div className={styles.heroInner}>
-      <div className={styles.topRow}>
-        {/* Left Column — Contest Info */}
-        <div className={styles.infoCol}>
-          <h1 className={styles.title}>{contest.name}</h1>
-
-          <div className={styles.metaRow}>
-            <Tag type={getContestStateColor(state)} size="sm">
-              {getContestStateLabel(state)}
-            </Tag>
-            <span className={styles.timeRange}>
-              {startDate} → {endDate}
-            </span>
-          </div>
-
-          {contest.description && (
-            <p className={styles.description}>{contest.description}</p>
-          )}
+    <QJudgeHeroWidget
+      loading={loading}
+      title={contest.name}
+      badges={
+        <Tag type={getContestStateColor(state)} size="sm">
+          {getContestStateLabel(state)}
+        </Tag>
+      }
+      metadata={
+        <div>
+          <span>{t("adminOverview.kpi.period", "競賽期間")}</span>
+          <span>{startDate} → {endDate}</span>
         </div>
-
-        {/* Right Column — Hero-style KPI strip */}
-        <div className={styles.kpiGrid}>
-          <div className={styles.kpiStrip}>
-            <KpiCard
-              icon={UserMultiple}
-              value={String(snapshot.onlineNow)}
-              label={t("adminOverview.kpi.onlineNow", "Online Now")}
-              showBorder={false}
-            />
-            <KpiCard
-              icon={ChartBar}
-              value={t(`adminOverview.examStatus.${snapshot.examStatus}`)}
-              label={t("adminOverview.kpi.exams", "Exams")}
-              showBorder={false}
-            />
-            <KpiCard
-              icon={Education}
-              value={t(`adminOverview.examType.${snapshot.examType}`)}
-              label={t("adminOverview.kpi.examMode", "Exam Mode")}
-              showBorder={false}
-            />
-          </div>
-        </div>
-      </div>
-      </div>
-    </section>
+      }
+      description={contest.description}
+      kpiCards={
+        <>
+          <KpiCard
+            icon={UserMultiple}
+            value={String(snapshot.onlineNow)}
+            label={t("adminOverview.kpi.onlineNow", "即時在線")}
+            showBorder={false}
+          />
+          <KpiCard
+            icon={ChartBar}
+            value={t(`adminOverview.examStatus.${snapshot.examStatus}`)}
+            label={t("adminOverview.kpi.exams", "考試進度")}
+            showBorder={false}
+          />
+          <KpiCard
+            icon={Education}
+            value={t(`adminOverview.examType.${snapshot.examType}`)}
+            label={t("adminOverview.kpi.examMode", "考試模式")}
+            showBorder={false}
+          />
+        </>
+      }
+    />
   );
 }

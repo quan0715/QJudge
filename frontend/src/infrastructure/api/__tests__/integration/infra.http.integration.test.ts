@@ -11,8 +11,8 @@ describe("infrastructure http client integration", () => {
     restoreFetch = env.restore;
 
     await loginAndSetToken({
-      email: TEST_USERS.student.email,
-      password: TEST_USERS.student.password,
+      email: TEST_USERS.teacher.email,
+      password: TEST_USERS.teacher.password,
     });
   });
 

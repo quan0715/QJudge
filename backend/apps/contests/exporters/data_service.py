@@ -4,11 +4,11 @@ Provides a clean interface for querying contest data and calculating statistics.
 """
 from typing import List, Optional, Dict, Any
 
-from django.db.models import Sum
 from django.utils import timezone
 
 from ..models import Contest, ContestProblem, ContestParticipant
 from apps.problems.models import Problem
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 
 from .dto import (
@@ -40,7 +40,7 @@ class ContestDataService:
     def get_contest_dto(self) -> ContestDTO:
         """Get contest data as DTO."""
         return ContestDTO(
-            id=self.contest.id,
+            id=str(self.contest.id),
             name=self.contest.name,
             description=self.contest.description or '',
             rules=self.contest.rules or '',
@@ -61,28 +61,35 @@ class ContestDataService:
         if self._problems_cache is not None:
             return self._problems_cache
 
-        contest_problems = ContestProblem.objects.filter(
-            contest=self.contest
-        ).select_related('problem').prefetch_related(
-            'problem__translations',
-            'problem__test_cases',
-            'problem__tags'
-        ).annotate(
-            problem_score_sum=Sum('problem__test_cases__score')
-        ).order_by('order')
+        bindings = (
+            ContestQuestionBinding.objects.filter(
+                contest=self.contest,
+                binding_type=QuestionAsset.AssetType.CODING,
+            )
+            .select_related('coding_problem')
+            .prefetch_related(
+                'coding_problem__translations',
+                'coding_problem__test_cases',
+                'coding_problem__tags',
+            )
+            .order_by('order')
+        )
 
         result = []
-        for cp in contest_problems:
-            problem_dto = self._format_problem(cp.problem, self._get_label(cp))
-            problem_dto.max_score = cp.problem_score_sum or 0
+        for b in bindings:
+            if not b.coding_problem:
+                continue
+            label = b.label or chr(65 + b.order)
+            problem_dto = self._format_problem(b.coding_problem, label)
+            problem_dto.max_score = b.score or 0
 
             result.append(ContestProblemDTO(
-                id=cp.id,
-                problem_id=cp.problem.id,
-                order=cp.order,
-                label=self._get_label(cp),
+                id=b.id,
+                problem_id=str(b.coding_problem_id),
+                order=b.order,
+                label=label,
                 problem=problem_dto,
-                score=cp.problem_score_sum or 0,
+                max_score=b.score or 0,
             ))
 
         self._problems_cache = result
@@ -133,7 +140,7 @@ class ContestDataService:
             result.append(SubmissionDTO(
                 id=sub.id,
                 user_id=sub.user.id,
-                problem_id=sub.problem.id,
+                problem_id=str(sub.problem.id),
                 status=sub.status,
                 score=sub.score or 0,
                 language=sub.language or '',
@@ -166,7 +173,7 @@ class ContestDataService:
             for cp in contest_problems:
                 problem_stats[cp.problem_id] = ProblemStatsDTO(
                     problem_id=cp.problem_id,
-                    max_score=cp.score,
+                    max_score=cp.max_score,
                 )
 
             stats[p.user_id] = UserStandingDTO(
@@ -269,7 +276,7 @@ class ContestDataService:
                 continue
 
             difficulty_data['total'] += 1
-            difficulty_data['max_score'] += cp.score
+            difficulty_data['max_score'] += cp.max_score
 
             # Check user's performance on this problem
             problem_stat = user_problems.get(cp.problem_id)
@@ -283,7 +290,7 @@ class ContestDataService:
     def get_user_best_submission(
         self,
         user_id: int,
-        problem_id: int
+        problem_id: str
     ) -> Optional[SubmissionDTO]:
         """
         Get the best submission for a user on a problem.
@@ -313,7 +320,7 @@ class ContestDataService:
     def get_user_last_ac_submission(
         self,
         user_id: int,
-        problem_id: int
+        problem_id: str
     ) -> Optional[SubmissionDTO]:
         """
         Get the last AC submission for a user on a problem.
@@ -326,15 +333,16 @@ class ContestDataService:
             Last AC SubmissionDTO or None
         """
         submissions = self.get_submissions(user_id)
+        pid = str(problem_id)
         ac_submissions = [
             s for s in submissions
-            if s.problem_id == problem_id and s.status == 'AC'
+            if s.problem_id == pid and s.status == 'AC'
         ]
         return ac_submissions[-1] if ac_submissions else None
 
-    def _get_label(self, contest_problem: ContestProblem) -> str:
-        """Return the display label for a contest problem (A, B, ...)."""
-        return contest_problem.label or chr(65 + contest_problem.order)
+    def _get_label(self, binding) -> str:
+        """Return the display label for a contest problem binding (A, B, ...)."""
+        return binding.label or chr(65 + binding.order)
 
     def _format_problem(self, problem: Problem, label: str) -> ProblemDTO:
         """Format a problem's content for export."""
@@ -349,7 +357,7 @@ class ContestDataService:
         sample_cases = problem.test_cases.filter(is_sample=True).order_by('id')
 
         return ProblemDTO(
-            id=problem.id,
+            id=str(problem.id),
             label=label,
             title=translation.title if translation else problem.title,
             description=translation.description if translation else '',

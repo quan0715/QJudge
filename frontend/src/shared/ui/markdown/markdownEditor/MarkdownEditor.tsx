@@ -48,6 +48,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const uploadImage = useMarkdownImageUpload();
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
+  const latestValueRef = useRef(value);
+  const disposedRef = useRef(false);
+  const disposablesRef = useRef<Monaco.IDisposable[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
   type EditorTab = "edit" | "preview";
@@ -56,6 +59,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const [isDragOverImage, setIsDragOverImage] = useState(false);
   const supportsPreview = initialShowPreview;
+
+  useEffect(() => {
+    latestValueRef.current = value;
+  }, [value]);
 
   useEffect(() => {
     if (!supportsPreview && selectedTab !== "edit") {
@@ -71,12 +78,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const handleMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    disposedRef.current = false;
+    disposablesRef.current = [];
 
     // Configure markdown language
     monaco.editor.setTheme(theme === "white" ? "markdown-light" : "markdown-dark");
 
     // Auto-resize: grow editor height with content, min 10 lines
     const updateHeight = () => {
+      if (disposedRef.current) return;
       const contentHeight = editor.getContentHeight();
       const newHeight = Math.max(contentHeight, minEditorHeight);
       const domNode = editor.getDomNode();
@@ -85,17 +95,31 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       }
       editor.layout();
     };
-    editor.onDidContentSizeChange(updateHeight);
+    disposablesRef.current.push(editor.onDidContentSizeChange(updateHeight));
     updateHeight();
 
     // Font loading handling
     if (document.fonts && "ready" in document.fonts) {
       document.fonts.ready.then(() => {
+        if (disposedRef.current) return;
         monaco.editor.remeasureFonts();
         updateHeight();
       });
     }
   }, [theme, minEditorHeight]);
+
+  // Cleanup on unmount: dispose listeners so they don't fire after editor is gone
+  useEffect(() => {
+    return () => {
+      disposedRef.current = true;
+      for (const d of disposablesRef.current) {
+        try { d.dispose(); } catch { /* ignore */ }
+      }
+      disposablesRef.current = [];
+      editorRef.current = null;
+      monacoRef.current = null;
+    };
+  }, []);
 
   // Sync theme when toggled after mount
   useEffect(() => {
@@ -110,11 +134,19 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // Insert text at cursor position
   const insertText = useCallback((text: string, wrapSelection?: boolean) => {
     const editor = editorRef.current;
-    if (!editor) return;
+    if (!editor) {
+      const fallbackText = wrapSelection ? `${text}文字${text}` : text;
+      onChange(`${latestValueRef.current}${fallbackText}`);
+      return;
+    }
 
     const selection = editor.getSelection();
     const model = editor.getModel();
-    if (!selection || !model) return;
+    if (!selection || !model) {
+      const fallbackText = wrapSelection ? `${text}文字${text}` : text;
+      onChange(`${latestValueRef.current}${fallbackText}`);
+      return;
+    }
 
     const selectedText = model.getValueInRange(selection);
 
@@ -152,7 +184,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     }
 
     editor.focus();
-  }, []);
+  }, [onChange]);
 
   const isImageFile = useCallback((file: File): boolean => {
     return file.type.startsWith("image/");

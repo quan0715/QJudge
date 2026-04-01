@@ -13,7 +13,7 @@ import type {
 import ExamEditorLayout from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
 import ExamStatisticsPanel from "@/features/contest/components/admin/statistics/ExamStatisticsPanel";
 import PaperExamAnsweringScreen from "@/features/contest/screens/paperExam/PaperExamAnsweringScreen";
-import { getContestSolveRootPath } from "@/features/contest/domain/contestRoutePolicy";
+import { getContestSolveRootPath, getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 
 const getPaperExamTabs = (contest?: ContestDetail | null) => {
   const keyToContentKind: Record<ContestTabKey, ContestStudentTabContentKind> = {
@@ -60,8 +60,10 @@ export const paperExamContestModule: ContestTypeModule = {
   student: {
     getTabs: (contest) => getPaperExamTabs(contest),
     getSolveRenderer: () => () => <PaperExamAnsweringScreen />,
-    getAnsweringEntryPath: (contestId) =>
-      getContestSolveRootPath(contestId),
+    getAnsweringEntryPath: (contestId, contest) =>
+      contest?.boundClassroomId
+        ? getClassroomContestSolvePath(contest.boundClassroomId, contestId)
+        : getContestSolveRootPath(contestId),
   },
   admin: {
     editorKind: "paper_exam",

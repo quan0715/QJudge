@@ -71,10 +71,10 @@ describe("useContestExamActions", () => {
       configurable: true,
     });
     vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue(null);
-    vi.spyOn(examUseCases, "leaveExamUseCase").mockResolvedValue({
+    vi.spyOn(examUseCases, "leaveExamUseCase").mockImplementation(async (input) => ({
       success: true,
-      navigateTo: "/contests",
-    });
+      navigateTo: input.navigateTo ?? "/dashboard",
+    }));
     Object.defineProperty(document.documentElement, "requestFullscreen", {
       value: vi.fn().mockResolvedValue(undefined),
       configurable: true,
@@ -194,7 +194,45 @@ describe("useContestExamActions", () => {
         source: "contest_dashboard:exit_exam",
       })
     );
-    expect(navigate).toHaveBeenCalledWith("/contests");
+    expect(navigate).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("prefers classroom dashboard when contest is classroom-bound", async () => {
+    const contest = {
+      ...baseContest,
+      examStatus: "in_progress",
+      isExamMonitored: true,
+      boundClassroomId: "classroom-1",
+    };
+    vi.mocked(endExam).mockResolvedValue(undefined as void);
+    Object.defineProperty(document, "fullscreenElement", {
+      value: document.documentElement,
+      configurable: true,
+    });
+
+    const { result } = renderHook(() =>
+      useContestExamActions({
+        contest,
+        contestId: contest.id,
+        hasEnded: false,
+        refreshContest,
+        confirmLeave: undefined,
+        navigate,
+        messages,
+        onError,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleExit();
+    });
+
+    expect(examUseCases.leaveExamUseCase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        navigateTo: "/classrooms/classroom-1/contest/1",
+      })
+    );
+    expect(navigate).toHaveBeenCalledWith("/classrooms/classroom-1/contest/1");
   });
 
   it("records submit event before ending exam from dashboard", async () => {

@@ -12,22 +12,54 @@ import { useContestProblemSelection } from "@/features/contest/hooks/useContestP
 import { ProblemMenu } from "@/shared/ui/solver/menu/ProblemMenu";
 import { ProblemFullPageSolve } from "@/features/problems/components/solve/editorview/ProblemFullPageSolve";
 import ContestProblemSubmissions from "@/features/contest/components/solver/submissions/ContestProblemSubmissions";
+import {
+  getClassroomContestDashboardPath,
+  getClassroomContestSolvePath,
+} from "@/features/contest/domain/contestRoutePolicy";
+import {
+  getClassroomLabDashboardPath,
+  getClassroomLabSolvePath,
+  isClassroomLabRouteContext,
+} from "@/features/classroom/domain/labRoutePolicy";
 import "./ContestProblemScreen.scss";
 
 const ContestProblemScreen = () => {
   const { t } = useTranslation("contest");
-  const { contestId, problemId } = useParams<{
-    contestId: string;
+  const { contestId, labId, classroomId, problemId } = useParams<{
+    contestId?: string;
+    labId?: string;
+    classroomId?: string;
     problemId: string;
   }>();
+  const resolvedContestId = contestId || labId;
+  const labContext = isClassroomLabRouteContext({ classroomId, labId })
+    ? { classroomId, labId }
+    : null;
   const navigate = useNavigate();
   const { user } = useAuth();
   const { contest, scoreboardData, loading: contestLoading } = useContest();
+  const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
+  const classroomContestContext =
+    !labContext && classroomId && contestId
+      ? { classroomId, contestId }
+      : null;
+  const fallbackLobbyPath = labContext
+    ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
+    : classroomContestContext
+      ? getClassroomContestDashboardPath(
+          classroomContestContext.classroomId!,
+          classroomContestContext.contestId!,
+        )
+      : effectiveClassroomId && resolvedContestId
+        ? getClassroomContestDashboardPath(effectiveClassroomId, resolvedContestId)
+        : resolvedContestId
+          ? `/contests/${resolvedContestId}`
+          : "/contests";
 
   const hasEnded = !!contest && isContestEnded(contest);
   useContestNavigationGuard(
-    contestId,
-    contest?.status === "published" && !hasEnded
+    resolvedContestId,
+    contest?.status === "published" && !hasEnded,
   );
 
   // Find current user's rank data for solved status
@@ -52,27 +84,51 @@ const ContestProblemScreen = () => {
   });
 
   useEffect(() => {
-    if (!contestId || contest?.contestType !== "coding") return;
+    if (!resolvedContestId || contest?.contestType !== "coding") return;
     if (problemId) return;
 
     if (problemSelection.selectedProblemId) {
-      navigate(
-        `/contests/${contestId}/solve/${problemSelection.selectedProblemId}`,
-        { replace: true },
-      );
+      const nextPath = labContext
+          ? getClassroomLabSolvePath(
+            labContext.classroomId!,
+            labContext.labId!,
+            problemSelection.selectedProblemId,
+          )
+        : classroomContestContext
+          ? getClassroomContestSolvePath(
+              classroomContestContext.classroomId!,
+              classroomContestContext.contestId!,
+              problemSelection.selectedProblemId,
+            )
+        : effectiveClassroomId
+          ? getClassroomContestSolvePath(
+              effectiveClassroomId,
+              resolvedContestId,
+              problemSelection.selectedProblemId,
+            )
+          : `/contests/${resolvedContestId}/solve/${problemSelection.selectedProblemId}`;
+      navigate(nextPath, { replace: true });
       return;
     }
 
     if ((contest.problems?.length ?? 0) === 0) {
-      navigate(`/contests/${contestId}`, { replace: true });
+      navigate(
+        fallbackLobbyPath,
+        { replace: true },
+      );
     }
   }, [
+    classroomId,
+    classroomContestContext,
     contest?.contestType,
     contest?.problems,
-    contestId,
+    fallbackLobbyPath,
+    labContext,
     navigate,
     problemId,
     problemSelection.selectedProblemId,
+    effectiveClassroomId,
+    resolvedContestId,
   ]);
 
   // Check view permissions
@@ -101,7 +157,7 @@ const ContestProblemScreen = () => {
         <p>{t("error.problemAccessDenied")}</p>
         <Button
           kind="secondary"
-          onClick={() => navigate(`/contests/${contestId}`)}
+          onClick={() => navigate(fallbackLobbyPath)}
         >
           {t("button.backToLobby")}
         </Button>
@@ -126,7 +182,7 @@ const ContestProblemScreen = () => {
         <p>{problemSelection.error}</p>
         <Button
           kind="secondary"
-          onClick={() => navigate(`/contests/${contestId}`)}
+          onClick={() => navigate(fallbackLobbyPath)}
         >
           {t("button.backToLobby")}
         </Button>
@@ -140,7 +196,7 @@ const ContestProblemScreen = () => {
         key={problemSelection.selectedProblemId} // Reset state when problem changes
         problem={problemSelection.selectedProblem}
         problemLabel={problemSelection.selectedProblemLabel}
-        contestId={contestId}
+        contestId={resolvedContestId}
         menuPanel={
           <ProblemMenu
             problems={problemSelection.problems}
@@ -152,7 +208,7 @@ const ContestProblemScreen = () => {
         submissionDisabled={isSubmissionDisabled}
         renderSubmissions={() => (
           <ContestProblemSubmissions
-            contestId={contestId!}
+            contestId={resolvedContestId!}
             problemId={problemSelection.selectedProblemId || ""}
           />
         )}

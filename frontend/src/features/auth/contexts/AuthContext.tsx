@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 import type { User } from "@/core/entities/auth.entity";
 import { logout as logoutApi } from "@/infrastructure/api/repositories/auth.repository";
 import { clearAuthStorage } from "@/infrastructure/api/http.client";
@@ -17,9 +17,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastUserStrRef = useRef<string | null>(null);
 
   const checkUser = () => {
     const userStr = localStorage.getItem('user');
+    // Skip setUser if the serialized value hasn't changed — prevents
+    // unnecessary re-renders when useUserPreferences writes back
+    // the same data to localStorage.
+    if (userStr === lastUserStrRef.current) {
+      setLoading(false);
+      return;
+    }
+    lastUserStrRef.current = userStr;
     if (userStr) {
       try {
         setUser(JSON.parse(userStr));

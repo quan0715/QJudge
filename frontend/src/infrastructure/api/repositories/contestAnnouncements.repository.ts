@@ -1,9 +1,19 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 
+/** Raw DTO returned by the API before mapping */
+interface ContestAnnouncementDto {
+  id: number | string;
+  title: string;
+  content: string;
+  created_by?: { username?: string };
+  created_at: string;
+  updated_at: string;
+}
+
 export const getContestAnnouncements = async (
   id: string
-): Promise<any[]> => {
-  return requestJson<any[]>(
+): Promise<ContestAnnouncementDto[]> => {
+  return requestJson<ContestAnnouncementDto[]>(
     httpClient.get(`/api/v1/contests/${id}/announcements/`),
     "Failed to fetch announcements"
   );
@@ -12,8 +22,8 @@ export const getContestAnnouncements = async (
 export const createContestAnnouncement = async (
   contestId: string,
   data: { title: string; content: string }
-): Promise<any> => {
-  return requestJson<any>(
+): Promise<ContestAnnouncementDto> => {
+  return requestJson<ContestAnnouncementDto>(
     httpClient.post(`/api/v1/contests/${contestId}/announcements/`, data),
     "Failed to create announcement"
   );

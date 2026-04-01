@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { StoryModule } from "@/shared/types/story.types";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import TestCaseList, { type TestCaseItem } from "./TestCaseList";
 import type { TestCaseMode } from "./TestCaseTypes";
 
@@ -114,57 +114,52 @@ const TestCaseListDemo = ({ mode, readOnly }: { mode: TestCaseMode; readOnly: bo
   );
 };
 
-const storyModule: StoryModule<{ mode: TestCaseMode; readOnly: boolean }> = {
-  meta: {
-    title: "features/problems/components/common/TestCaseList",
-    component: TestCaseListDemo,
-    category: "features",
-    description: "題目與解題流程共用的測資列表（含新增/編輯/檢視）。",
-    defaultArgs: {
-      mode: "problem",
-      readOnly: false,
+const meta: Meta<typeof TestCaseListDemo> = {
+  title: "features/problems/components/common/TestCaseList",
+  component: TestCaseListDemo,
+  args: {
+    mode: "problem",
+    readOnly: false,
+  },
+  argTypes: {
+    mode: {
+      control: "select",
+      description: "顯示模式",
+      options: ["problem", "solver", "result"],
     },
-    argTypes: {
-      mode: {
-        control: "select",
-        description: "顯示模式",
-        options: ["problem", "solver", "result"],
-        defaultValue: "problem",
-      },
-      readOnly: {
-        control: "boolean",
-        description: "是否只讀",
-        defaultValue: false,
-      },
+    readOnly: {
+      control: "boolean",
+      description: "是否只讀",
     },
   },
-  stories: [
-    {
-      name: "Playground",
-      description: "切換模式與只讀狀態。",
-      render: (args) => <TestCaseListDemo mode={args.mode} readOnly={args.readOnly} />,
-    },
-    {
-      name: "All Modes",
-      description: "Problem / Solver / Result 三種模式對照。",
-      render: () => (
-        <div style={{ display: "grid", gap: "1.5rem" }}>
-          <div>
-            <h4 style={{ margin: "0 0 0.5rem" }}>Problem Mode</h4>
-            <TestCaseListDemo mode="problem" readOnly={false} />
-          </div>
-          <div>
-            <h4 style={{ margin: "0 0 0.5rem" }}>Solver Mode</h4>
-            <TestCaseListDemo mode="solver" readOnly={false} />
-          </div>
-          <div>
-            <h4 style={{ margin: "0 0 0.5rem" }}>Result Mode</h4>
-            <TestCaseListDemo mode="result" readOnly={true} />
-          </div>
-        </div>
-      ),
-    },
-  ],
+  parameters: {
+    docs: { description: { component: "題目與解題流程共用的測資列表（含新增/編輯/檢視）。" } },
+  },
 };
 
-export default storyModule;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+  render: (args) => <TestCaseListDemo mode={args.mode} readOnly={args.readOnly} />,
+};
+
+export const AllModes: Story = {
+  parameters: { docs: { description: { story: "Problem / Solver / Result 三種模式對照。" } } },
+  render: () => (
+    <div style={{ display: "grid", gap: "1.5rem" }}>
+      <div>
+        <h4 style={{ margin: "0 0 0.5rem" }}>Problem Mode</h4>
+        <TestCaseListDemo mode="problem" readOnly={false} />
+      </div>
+      <div>
+        <h4 style={{ margin: "0 0 0.5rem" }}>Solver Mode</h4>
+        <TestCaseListDemo mode="solver" readOnly={false} />
+      </div>
+      <div>
+        <h4 style={{ margin: "0 0 0.5rem" }}>Result Mode</h4>
+        <TestCaseListDemo mode="result" readOnly={true} />
+      </div>
+    </div>
+  ),
+};

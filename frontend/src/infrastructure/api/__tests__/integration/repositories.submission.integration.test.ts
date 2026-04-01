@@ -23,20 +23,23 @@ describe("submission repository integration", () => {
     restoreFetch = env.restore;
 
     await loginAndSetToken({
-      email: TEST_USERS.student.email,
-      password: TEST_USERS.student.password,
+      email: TEST_USERS.teacher.email,
+      password: TEST_USERS.teacher.password,
     });
 
     const problems = await getProblems();
-    const target = problems.find(
-      (problem) => problem.displayId === TEST_PROBLEMS.aPlusB.displayId
-    );
+    const target = problems.find((problem) => problem.title === TEST_PROBLEMS.aPlusB.title);
 
     if (!target) {
       throw new Error("Seeded problem P001 not found in API response");
     }
 
     problemId = target.id;
+
+    await loginAndSetToken({
+      email: TEST_USERS.student.email,
+      password: TEST_USERS.student.password,
+    });
 
     submission = await submitSolution({
       problem_id: problemId,

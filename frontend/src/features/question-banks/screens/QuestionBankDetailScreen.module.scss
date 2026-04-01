@@ -1,0 +1,223 @@
+@use "@carbon/layout";
+
+/* ── Shell & Header (matches ClassroomAdminLayout) ── */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 9500;
+}
+
+.headerLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  height: 3rem;
+  padding: 0 0.25rem;
+  margin: 0;
+
+  :global(.cds--breadcrumb-item) {
+    margin-right: 0;
+  }
+
+  :global(.cds--link) {
+    color: var(--cds-text-secondary);
+    font-size: 0.875rem;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--cds-link-primary-hover);
+    }
+  }
+
+  :global(.cds--breadcrumb-item--current) {
+    color: var(--cds-text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+}
+
+.shell :global(.cds--header__global) {
+  margin-left: 0;
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+}
+
+/* ── Loading / Empty states ── */
+
+.loadingWrap,
+.emptyWrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: layout.$spacing-07;
+  background: var(--cds-layer-01);
+}
+
+/* ── Local Toolbar (below header, above hero) ── */
+
+.localToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  min-height: 2.5rem;
+  padding: 0;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  background: var(--cds-background);
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+
+.localToolbarLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding-left: 1rem;
+}
+
+.localToolbarTitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+}
+
+.localToolbarMeta {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  white-space: nowrap;
+}
+
+.localToolbarRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.localToolbarSearch :global(.cds--search) {
+  width: 14rem;
+  height: 2.5rem;
+}
+
+.localToolbarIconButton {
+  min-width: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-left: 1px solid var(--cds-border-subtle);
+}
+
+.localToolbarIconActive {
+  color: var(--cds-icon-primary);
+  background: var(--cds-layer-selected-01);
+}
+
+.localToolbarIconActive:hover {
+  background: var(--cds-layer-selected-hover);
+}
+
+.localToolbar :global(.cds--tooltip),
+.localToolbar :global(.cds--tooltip-container),
+.localToolbar :global(.cds--popover-container) {
+  z-index: 9000;
+}
+
+/* ── Filter Popover ── */
+
+.filterPopoverContent {
+  min-width: 320px;
+}
+
+.filterPopoverFields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.filterPopoverActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+/* ── Settings Modal ── */
+
+.iconPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+}
+
+.iconButton {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cds-layer-01);
+  color: var(--cds-icon-secondary);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  border-color: var(--cds-border-interactive);
+}
+
+.iconButtonActive {
+  border-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected-01);
+  color: var(--cds-icon-primary);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 1056px) {
+  .localToolbar {
+    flex-wrap: wrap;
+  }
+
+  .localToolbarLeft {
+    width: 100%;
+  }
+
+  .localToolbarRight {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .localToolbarSearch :global(.cds--search) {
+    width: 100%;
+  }
+}
+
+@media (max-width: 672px) {
+  .localToolbarMeta {
+    display: none;
+  }
+}

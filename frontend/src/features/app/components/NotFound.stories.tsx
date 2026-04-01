@@ -1,37 +1,45 @@
-import type { StoryModule } from "@/shared/types/story.types";
-import { NotFound, type NotFoundProps } from "./NotFound";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { NotFound } from "./NotFound";
 
-const storyModule: StoryModule<NotFoundProps> = {
-  meta: {
+const meta: Meta<typeof NotFound> = {
     title: "shared/ui/app/NotFound",
     component: NotFound,
-    category: "shared",
-    description: "404 Not Found 通用版：可注入返回首頁/上一頁行為。",
-    defaultArgs: {
+    
+    args: {
       title: "頁面不存在",
       description: "您要找的頁面可能已被移除、名稱已更改，或是暫時無法使用。",
       theme: "white",
     },
     argTypes: {
-      title: { control: "text", label: "標題" },
-      description: { control: "text", label: "描述" },
-      theme: { control: "select", options: ["white", "g10", "g90", "g100"], label: "Theme" },
-      homeLabel: { control: "text", label: "首頁按鈕文字" },
-      backLabel: { control: "text", label: "返回按鈕文字" },
+      title: { control: "text", description: "標題" },
+      description: { control: "text", description: "描述" },
+      theme: { control: "select", options: ["white", "g10", "g90", "g100"], description: "Theme" },
+      homeLabel: { control: "text", description: "首頁按鈕文字" },
+      backLabel: { control: "text", description: "返回按鈕文字" },
     },
+  
+  parameters: {
+    docs: { description: { component: '404 Not Found 通用版：可注入返回首頁/上一頁行為。' } },
   },
-  stories: [
-    {
-      name: "Default",
-      render: (args) => <NotFound {...args} />,
-      code: `<NotFound theme="white" onHome={...} onBack={...} />`,
-    },
-    {
-      name: "Dark Theme",
-      render: () => <NotFound theme="g100" title="Page not found" homeLabel="Home" backLabel="Back" />,
-      code: `<NotFound theme="g100" title="Page not found" />`,
-    },
-  ],
 };
 
-export default storyModule;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  parameters: {
+    docs: {
+      source: { code: `<NotFound theme="white" onHome={...} onBack={...} />` },
+    },
+  },
+  render: (args) => <NotFound {...args} />,
+};
+
+export const DarkTheme: Story = {
+  parameters: {
+    docs: {
+      source: { code: `<NotFound theme="g100" title="Page not found" />` },
+    },
+  },
+  render: () => <NotFound theme="g100" title="Page not found" homeLabel="Home" backLabel="Back" />,
+};

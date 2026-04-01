@@ -74,13 +74,14 @@ describe("enterExam.usecase", () => {
       contestId: "contest-1",
       cheatDetectionEnabled: true,
       answeringEntryPath: "/contests/contest-1/problems",
+      precheckPath: "/classrooms/classroom-1/contest/contest-1/exam-precheck",
     });
 
     expect(startExam).not.toHaveBeenCalled();
     expect(result).toEqual({
       success: true,
       status: "started",
-      navigateTo: "/contests/contest-1/exam-precheck",
+      navigateTo: "/classrooms/classroom-1/contest/contest-1/exam-precheck",
     });
   });
 

@@ -5,7 +5,6 @@ import {
   SelectItem,
   NumberInput,
   FilterableMultiSelect,
-  FormGroup,
   Stack,
   DismissibleTag,
   Button,
@@ -27,6 +26,7 @@ import {
 import type { Tag } from "@/core/entities/problem.entity";
 import { useAuth } from "@/features/auth";
 import { AutoSaveField } from "@/features/problems/components/edit/common";
+import { Section, FieldRow, ActionRow } from "@/shared/layout/SettingsPanel";
 import styles from "./BasicInfoSection.module.scss";
 
 // Tag color mapping based on tag properties or index
@@ -181,171 +181,172 @@ const BasicInfoSection: React.FC = () => {
   };
 
   return (
-    <Stack gap={6}>
-      {/* Title */}
-      <AutoSaveField name="title">
-        {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
-          <TextInput
-            id="problem-title"
-            labelText="題目名稱 (Internal Title) *"
-            placeholder="例如: Two Sum"
-            invalid={invalid}
-            invalidText={error}
-            {...field}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              field.onChange(e);
-              onAutoSaveChange(e.target.value);
-            }}
-            onBlur={() => {
-              field.onBlur();
-              onAutoSaveBlur();
-            }}
-          />
-        )}
-      </AutoSaveField>
-
-      {/* Difficulty */}
-      <AutoSaveField name="difficulty">
-        {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
-          <Select
-            id="difficulty-select"
-            labelText="難度 *"
-            invalid={invalid}
-            invalidText={error}
-            {...field}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-              field.onChange(e);
-              onAutoSaveChange(e.target.value);
-            }}
-            onBlur={() => {
-              field.onBlur();
-              onAutoSaveBlur();
-            }}
-          >
-            <SelectItem value="easy" text="Easy" />
-            <SelectItem value="medium" text="Medium" />
-            <SelectItem value="hard" text="Hard" />
-          </Select>
-        )}
-      </AutoSaveField>
-
-      {/* Time & Memory Limits Row */}
-      <FormGroup legendText="執行限制 *">
-        <div className={styles.row}>
-          <div className={styles.field}>
-            <AutoSaveField name="timeLimit">
-              {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
-                <NumberInput
-                  id="time-limit"
-                  label="時間限制 (ms)"
-                  value={field.value}
-                  invalid={invalid}
-                  invalidText={error}
-                  onChange={(
-                    _: React.SyntheticEvent,
-                    { value }: { value: number | string }
-                  ) => {
-                    const numValue = Number(value);
-                    field.onChange(numValue);
-                    onAutoSaveChange(numValue);
-                  }}
-                  onBlur={() => {
-                    field.onBlur();
-                    onAutoSaveBlur();
-                  }}
-                  min={100}
-                  step={100}
-                />
-              )}
-            </AutoSaveField>
-          </div>
-          <div className={styles.field}>
-            <AutoSaveField name="memoryLimit">
-              {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
-                <NumberInput
-                  id="memory-limit"
-                  label="記憶體限制 (MB)"
-                  value={field.value}
-                  invalid={invalid}
-                  invalidText={error}
-                  onChange={(
-                    _: React.SyntheticEvent,
-                    { value }: { value: number | string }
-                  ) => {
-                    const numValue = Number(value);
-                    field.onChange(numValue);
-                    onAutoSaveChange(numValue);
-                  }}
-                  onBlur={() => {
-                    field.onBlur();
-                    onAutoSaveBlur();
-                  }}
-                  min={16}
-                  step={16}
-                />
-              )}
-            </AutoSaveField>
-          </div>
+    <Section title="基本資訊">
+      <ActionRow label="題目名稱 (Internal Title)" description="內部管理用名稱，不會顯示於學生的題目頁面">
+        <div style={{ width: "18rem" }}>
+          <AutoSaveField name="title">
+            {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
+              <TextInput
+                id="problem-title"
+                labelText=""
+                placeholder="例如: Two Sum"
+                invalid={invalid}
+                invalidText={error}
+                {...field}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  field.onChange(e);
+                  onAutoSaveChange(e.target.value);
+                }}
+                onBlur={() => {
+                  field.onBlur();
+                  onAutoSaveBlur();
+                }}
+              />
+            )}
+          </AutoSaveField>
         </div>
-      </FormGroup>
+      </ActionRow>
 
-      {/* Tags */}
-      <AutoSaveField name="existingTagIds">
-        {({ field, onAutoSaveChange }) => {
-          const selectedTags = availableTags.filter((t) =>
-            field.value?.includes(Number(t.id))
-          );
+      <ActionRow label="難度" description="顯示於題庫與競賽列表中">
+        <div style={{ width: "10rem" }}>
+          <AutoSaveField name="difficulty">
+            {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
+              <Select
+                id="difficulty-select"
+                labelText=""
+                invalid={invalid}
+                invalidText={error}
+                {...field}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  field.onChange(e);
+                  onAutoSaveChange(e.target.value);
+                }}
+                onBlur={() => {
+                  field.onBlur();
+                  onAutoSaveBlur();
+                }}
+              >
+                <SelectItem value="easy" text="Easy" />
+                <SelectItem value="medium" text="Medium" />
+                <SelectItem value="hard" text="Hard" />
+              </Select>
+            )}
+          </AutoSaveField>
+        </div>
+      </ActionRow>
 
-          const handleRemoveTag = (tagId: number) => {
-            const newValue = field.value?.filter((id: number) => id !== tagId) || [];
-            field.onChange(newValue);
-            onAutoSaveChange(newValue);
-          };
+      <ActionRow label="時間限制 (ms)" description="每次提交的最長執行時間，超過將判定為 TLE">
+        <AutoSaveField name="timeLimit">
+          {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
+            <NumberInput
+              id="time-limit"
+              label=""
+              value={field.value}
+              invalid={invalid}
+              invalidText={error}
+              onChange={(
+                _: React.SyntheticEvent,
+                { value }: { value: number | string }
+              ) => {
+                const numValue = Number(value);
+                field.onChange(numValue);
+                onAutoSaveChange(numValue);
+              }}
+              onBlur={() => {
+                field.onBlur();
+                onAutoSaveBlur();
+              }}
+              min={100}
+              step={100}
+            />
+          )}
+        </AutoSaveField>
+      </ActionRow>
 
-          // Track when both tags and field value are ready for the first time
-          if (!tagsLoading && !tagsReady && field.value !== undefined) {
-            setTimeout(() => setTagsReady(true), 0);
-          }
+      <ActionRow label="記憶體限制 (MB)" description="每次提交可使用的最大記憶體，超過將判定為 MLE">
+        <AutoSaveField name="memoryLimit">
+          {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
+            <NumberInput
+              id="memory-limit"
+              label=""
+              value={field.value}
+              invalid={invalid}
+              invalidText={error}
+              onChange={(
+                _: React.SyntheticEvent,
+                { value }: { value: number | string }
+              ) => {
+                const numValue = Number(value);
+                field.onChange(numValue);
+                onAutoSaveChange(numValue);
+              }}
+              onBlur={() => {
+                field.onBlur();
+                onAutoSaveBlur();
+              }}
+              min={16}
+              step={16}
+            />
+          )}
+        </AutoSaveField>
+      </ActionRow>
 
-          const selectionKey = `tags-${tagsReady ? "ready" : "loading"}`;
+      <FieldRow label="標籤" description="用於分類題目，便於學生篩選與教師管理">
+        <AutoSaveField name="existingTagIds">
+          {({ field, onAutoSaveChange }) => {
+            const selectedTags = availableTags.filter((t) =>
+              field.value?.includes(Number(t.id))
+            );
 
-          return (
-            <div className={styles.tagsContainer}>
-              <div className={styles.row}>
-                <div style={{ flex: 1 }}>
-                  <FilterableMultiSelect
-                    key={selectionKey}
-                    id="tags-select"
-                    titleText="標籤"
-                    placeholder="選擇標籤"
-                    items={availableTags}
-                    itemToString={(item: Tag | null) => (item ? item.name : "")}
-                    initialSelectedItems={selectedTags}
-                    onChange={({ selectedItems }: { selectedItems: Tag[] }) => {
-                      const newValue = selectedItems.map((t) => Number(t.id));
-                      field.onChange(newValue);
-                      onAutoSaveChange(newValue);
-                    }}
-                    disabled={tagsLoading}
-                  />
-                </div>
-                {isTeacherOrAdmin && (
-                  <div style={{ alignSelf: "flex-end" }}>
-                    <Button
-                      kind="ghost"
-                      size="md"
-                      renderIcon={Add}
-                      iconDescription="新增標籤"
-                      hasIconOnly
-                      onClick={() => {
-                        setModalName("");
-                        setModalColor("#0f62fe");
-                        setModalError("");
-                        setCreateModalOpen(true);
+            const handleRemoveTag = (tagId: number) => {
+              const newValue = field.value?.filter((id: number) => id !== tagId) || [];
+              field.onChange(newValue);
+              onAutoSaveChange(newValue);
+            };
+
+            if (!tagsLoading && !tagsReady && field.value !== undefined) {
+              setTimeout(() => setTagsReady(true), 0);
+            }
+
+            const selectionKey = `tags-${tagsReady ? "ready" : "loading"}`;
+
+            return (
+              <div className={styles.tagsContainer}>
+                <div className={styles.row}>
+                  <div style={{ flex: 1 }}>
+                    <FilterableMultiSelect
+                      key={selectionKey}
+                      id="tags-select"
+                      titleText=""
+                      placeholder="選擇標籤"
+                      items={availableTags}
+                      itemToString={(item: Tag | null) => (item ? item.name : "")}
+                      initialSelectedItems={selectedTags}
+                      onChange={({ selectedItems }: { selectedItems: Tag[] }) => {
+                        const newValue = selectedItems.map((t) => Number(t.id));
+                        field.onChange(newValue);
+                        onAutoSaveChange(newValue);
                       }}
-                      tooltipPosition="left"
+                      disabled={tagsLoading}
                     />
                   </div>
+                  {isTeacherOrAdmin && (
+                    <div style={{ alignSelf: "flex-end" }}>
+                      <Button
+                        kind="ghost"
+                        size="md"
+                        renderIcon={Add}
+                        iconDescription="新增標籤"
+                        hasIconOnly
+                        onClick={() => {
+                          setModalName("");
+                          setModalColor("#0f62fe");
+                          setModalError("");
+                          setCreateModalOpen(true);
+                        }}
+                        tooltipPosition="left"
+                      />
+                    </div>
                 )}
               </div>
 
@@ -539,8 +540,9 @@ const BasicInfoSection: React.FC = () => {
             </div>
           );
         }}
-      </AutoSaveField>
-    </Stack>
+        </AutoSaveField>
+      </FieldRow>
+    </Section>
   );
 };
 

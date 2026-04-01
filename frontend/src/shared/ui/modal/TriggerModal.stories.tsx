@@ -1,6 +1,6 @@
 import { Button, Modal } from "@carbon/react";
-import type { StoryModule } from "@/shared/types/story.types";
-import TriggerModal, { type TriggerModalProps } from "./TriggerModal";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import TriggerModal from "./TriggerModal";
 
 const TriggerModalDemo = ({ initialOpen }: { initialOpen?: boolean }) => (
   <TriggerModal
@@ -42,13 +42,11 @@ const TriggerModalGhostDemo = () => (
   />
 );
 
-const storyModule: StoryModule<TriggerModalProps> = {
-  meta: {
+const meta: Meta<typeof TriggerModal> = {
     title: "shared/ui/modal/TriggerModal",
     component: TriggerModal,
-    category: "shared",
-    description: "控制 Modal 開關的小型 wrapper，可用 renderTrigger 或 trigger props。",
-    defaultArgs: {
+    
+    args: {
       initialOpen: false,
     },
     argTypes: {
@@ -58,19 +56,29 @@ const storyModule: StoryModule<TriggerModalProps> = {
         defaultValue: false,
       },
     },
+  
+  parameters: {
+    docs: { description: { component: '控制 Modal 開關的小型 wrapper，可用 renderTrigger 或 trigger props。' } },
   },
-  stories: [
-    {
-      name: "Playground",
-      description: "透過 renderTrigger 觸發 Modal。",
-      render: (args) => <TriggerModalDemo initialOpen={args.initialOpen} />,
-    },
-    {
-      name: "With trigger",
-      description: "使用 trigger props 直接傳入按鈕。",
-      render: () => <TriggerModalGhostDemo />,
-    },
-  ],
 };
 
-export default storyModule;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+  parameters: {
+    docs: {
+      description: { story: '透過 renderTrigger 觸發 Modal。' },
+    },
+  },
+  render: (args) => <TriggerModalDemo initialOpen={args.initialOpen} />,
+};
+
+export const WithTrigger: Story = {
+  parameters: {
+    docs: {
+      description: { story: '使用 trigger props 直接傳入按鈕。' },
+    },
+  },
+  render: () => <TriggerModalGhostDemo />,
+};

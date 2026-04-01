@@ -19,7 +19,7 @@ import { useInterval } from "@/shared/hooks/useInterval";
 const CONTEST_POLL_INTERVAL_MS = 15_000;
 
 export function useContestLayoutState() {
-  const { contestId } = useParams<{ contestId: string }>();
+  const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,6 +42,18 @@ export function useContestLayoutState() {
   const isAdmin = !!contest?.permissions?.canEditContest || hasManagementRole;
 
   const shouldWarnOnExit = shouldWarnOnExitByPolicy(contest, hasEnded);
+  const dashboardPath =
+    (contest?.boundClassroomId || classroomId) && contestId
+      ? `/classrooms/${classroomId || contest?.boundClassroomId}/contest/${contestId}`
+      : contestId
+        ? getContestDashboardPath(contestId)
+        : "/dashboard";
+  const precheckPath =
+    (contest?.boundClassroomId || classroomId) && contestId
+      ? `/classrooms/${classroomId || contest?.boundClassroomId}/contest/${contestId}/exam-precheck`
+      : contestId
+        ? getContestPrecheckPath(contestId)
+        : "/dashboard";
 
   const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
   const totalMaxScore = contest?.problems?.reduce((sum, p) => sum + (p.score || 0), 0) ?? 0;
@@ -151,15 +163,12 @@ export function useContestLayoutState() {
     if (!contestId || !contest?.cheatDetectionEnabled) return;
     if (contest.examStatus !== "paused") return;
 
-    const dashboardPath = getContestDashboardPath(contestId);
-    const targetPath = getContestPrecheckPath(contestId);
-
     const normalizedPath = location.pathname.replace(/\/+$/, "");
     const isDashboardHome = normalizedPath === dashboardPath;
-    if (!isDashboardHome && location.pathname !== targetPath) {
-      navigate(targetPath, { replace: true });
+    if (!isDashboardHome && location.pathname !== precheckPath) {
+      navigate(precheckPath, { replace: true });
     }
-  }, [contest?.cheatDetectionEnabled, contest?.examStatus, contestId, location.pathname, navigate]);
+  }, [contest?.cheatDetectionEnabled, contest?.examStatus, dashboardPath, precheckPath, contestId, location.pathname, navigate]);
 
   // Strict mode anti-leak: submitted before contest end can only stay on dashboard overview.
   useEffect(() => {
@@ -176,10 +185,10 @@ export function useContestLayoutState() {
       return;
     }
 
-    navigate(`${getContestDashboardPath(contestId)}?tab=overview`, {
+    navigate(`${dashboardPath}?tab=overview`, {
       replace: true,
     });
-  }, [contest, contestId, location.pathname, location.search, navigate]);
+  }, [contest, contestId, dashboardPath, location.pathname, location.search, navigate]);
 
   // Exam active beforeunload
   useEffect(() => {

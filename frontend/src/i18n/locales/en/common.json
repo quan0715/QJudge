@@ -1,341 +1,207 @@
 {
-  "nav": {
-    "dashboard": "Dashboard",
-    "problems": "Problems",
-    "contests": "Contests",
-    "classrooms": "Classrooms",
-    "submissions": "Submissions",
-    "ranking": "Ranking",
-    "documentation": "Documentation",
-    "backToProblemList": "Back to Problems",
-    "problemList": "Problem List",
-    "back": "Back"
+  "action": {
+    "adding": "Adding...",
+    "deleting": "Deleting...",
+    "downloading": "Downloading...",
+    "exporting": "Exporting...",
+    "importing": "Importing...",
+    "pleaseWait": "Please wait",
+    "processing": "Processing...",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing...",
+    "syncing": "Syncing...",
+    "uploading": "Uploading...",
+    "viewProblem": "View problem"
   },
-  "page": {
-    "dashboard": "Dashboard",
-    "problems": "Problem List",
-    "problemDetail": "Problem Detail",
-    "contests": "Contest List",
-    "contestDetail": "Contest Detail",
-    "submissions": "Submissions",
-    "login": "Login",
-    "register": "Register",
-    "userManagement": "User Management",
-    "announcements": "Announcements",
-    "environment": "Environment",
-    "createContest": "Create Contest",
-    "createProblem": "Create Problem",
-    "editProblem": "Edit Problem",
-    "teacherDashboard": "Teacher Dashboard",
-    "problemManagement": "Problem Management",
-    "contestManagement": "Contest Management"
-  },
-  "tab": {
-    "overview": "Overview",
-    "problems": "Problems",
-    "submissions": "Submissions",
-    "standings": "Standings",
-    "clarifications": "Clarifications",
-    "settings": "Settings",
-    "description": "Description",
-    "solver": "Solve"
-  },
-  "header": {
-    "platform": "QJudge Platform",
-    "prefix": "NYCU",
-    "menu": "Menu",
-    "sideNav": "Side Navigation",
-    "userMenu": "User Menu",
-    "problemManagement": "Problem Management",
-    "createContest": "Create Contest",
-    "userManagement": "User Management",
-    "announcements": "Announcements",
-    "environmentSettings": "Environment Settings",
-    "teacherDashboard": "Teacher Dashboard",
-    "systemSettings": "System Settings",
-    "contestManagement": "Contest Management",
-    "mainNavigation": "Main Navigation",
-    "contestNavigation": "Contest Navigation",
-    "adminNavigation": "Admin Navigation"
-  },
-  "dashboard": {
-    "welcomeBack": "Welcome back, {{name}}",
-    "subtitle": "NYCU Online Judge",
-    "stats": {
-      "title": "Problem Statistics",
-      "problems": "problems",
-      "solvedCount": "/ {{total}} solved",
-      "noStats": "Unable to load statistics"
+  "auth": {
+    "callback": {
+      "conflictTitle": "Exam Conflict",
+      "connecting": "Connecting...",
+      "errorTitle": "Login Failed",
+      "examConflict": "An active exam session was detected. Choose to take over.",
+      "failed": "Login failed, please try again",
+      "finalTouch": "Final confirmation...",
+      "loading": "Verifying identity",
+      "loadingDesc": "Retrieving your student information, please wait...",
+      "loadingSubtitle": "Preparing your personalized coding stage",
+      "loadingTitle": "Welcome to the Online Judge",
+      "noCode": "No authorization code received",
+      "pleaseWait": "Please wait",
+      "steps": {
+        "almost": "Almost there, please wait",
+        "assembling": "Assembling workspace...",
+        "igniting": "Igniting engines...",
+        "preparing": "Preparing your adventure...",
+        "ready": "All systems ready!",
+        "stats": "Syncing your battle stats...",
+        "verifying": "Verifying your identity..."
+      },
+      "takeover": "Take over and lock old device",
+      "takeoverFailed": "Takeover failed, please contact the proctor.",
+      "takingOver": "Processing...",
+      "verifyingSession": "Synchronizing session..."
     },
-    "difficulty": {
-      "easy": "Easy",
-      "medium": "Medium",
-      "hard": "Hard"
+    "campusSso": {
+      "backToLogin": "Back to login",
+      "providers": {
+        "nycu": {
+          "description": "Log in using your university portal account",
+          "name": "NYCU (National Yang Ming Chiao Tung University)"
+        }
+      },
+      "redirecting": "Redirecting to campus login...",
+      "subtitle": "Select your university to login",
+      "title": "Campus Authentication"
     },
-    "classrooms": {
-      "title": "My Classrooms",
-      "subtitle": "Classrooms you have joined"
+    "login": {
+      "email": "Email",
+      "emailPlaceholder": "student@example.com",
+      "failed": "Login failed",
+      "feature1Desc": "Real-time feedback",
+      "feature1Title": "Instant Grading",
+      "feature2Desc": "Flexible assessment",
+      "feature2Title": "Versatile Questions",
+      "feature3Desc": "Learning analytics",
+      "feature3Title": "Growth Tracking",
+      "githubLogin": "Login with GitHub",
+      "googleLogin": "Login with Google",
+      "heroSubtitle": "Built for online assessments - from authoring and testing to analysis, all in one place.",
+      "heroTitle": "A New Exam Experience\nfor the AI Generation",
+      "invalidCredentials": "Invalid email or password",
+      "loading": "Logging in...",
+      "noAccount": "Don't have an account?",
+      "oauthFailed": "Failed to initiate login",
+      "or": "Or login with other methods",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "registerNow": "Register now",
+      "ssoLogin": "Campus Authentication",
+      "submit": "Login",
+      "subtitle": "Welcome back, please login to your account",
+      "title": "Login"
     },
-    "contests": {
-      "title": "Upcoming Contests",
-      "noContests": "No upcoming contests",
-      "upcoming": "Upcoming",
-      "ongoing": "Ongoing contests only",
-      "ended": "Ended",
-      "participated": "Participated"
+    "logout": {
+      "confirmButton": "Log Out",
+      "confirmMessage": "Are you sure you want to log out?",
+      "confirmTitle": "Confirm Logout"
     },
-    "announcements": {
-      "title": "Announcements",
-      "subtitle": "Latest updates",
-      "noAnnouncements": "No announcements"
+    "register": {
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email",
+      "failed": "Registration failed",
+      "failedRetry": "Registration failed, please try again later",
+      "hasAccount": "Already have an account?",
+      "loading": "Registering...",
+      "loginNow": "Login",
+      "password": "Password",
+      "passwordHelper": "At least 8 characters, no pure numbers or common passwords",
+      "passwordMismatch": "Passwords do not match",
+      "passwordPlaceholder": "Create a password",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "submit": "Register",
+      "subtitle": "Join the platform, start your coding journey",
+      "title": "Create Account",
+      "username": "Username",
+      "usernamePlaceholder": "Choose a username"
+    },
+    "pendingAction": {
+      "classroomJoinSubtitle": "Please log in or register first. You'll be automatically added to the classroom afterwards.",
+      "classroomJoinTitle": "Join Classroom",
+      "teacherActivationSubtitle": "Please log in or register first. Teacher access will be activated automatically afterwards.",
+      "teacherActivationTitle": "Teacher Activation"
     }
   },
   "button": {
-    "confirm": "Confirm",
+    "archive": "Archive",
+    "back": "Back",
     "cancel": "Cancel",
-    "save": "Save",
+    "clear": "Clear",
+    "close": "Close",
+    "confirm": "Confirm",
+    "create": "Create",
     "delete": "Delete",
     "edit": "Edit",
-    "preview": "Preview",
-    "close": "Close",
-    "back": "Back",
-    "submit": "Submit",
-    "create": "Create",
-    "logout": "Log Out",
     "login": "Login",
+    "logout": "Log Out",
+    "preview": "Preview",
+    "previous": "Previous",
     "register": "Register",
-    "archive": "Archive",
-    "updating": "Updating...",
+    "save": "Save",
     "search": "Search",
     "searching": "Searching...",
-    "clear": "Clear",
-    "previous": "Previous"
+    "submit": "Submit",
+    "updating": "Updating..."
   },
-  "message": {
-    "loading": "Loading...",
-    "error": "An error occurred",
-    "success": "Action completed successfully",
-    "noData": "No data available",
-    "notFound": "Resource not found",
-    "comingSoon": "Coming Soon",
-    "saveFailed": "Save failed",
-    "deleteFailed": "Delete failed"
+  "classroom": {
+    "members": "Members"
+  },
+  "common": {
+    "locale": "en-US"
+  },
+  "dashboard": {
+    "announcements": {
+      "noAnnouncements": "No announcements",
+      "subtitle": "Latest updates",
+      "title": "Announcements"
+    },
+    "classroomHub": {
+      "emptyDesc": "Create a classroom or join one via invite link.",
+      "emptyTitle": "No classrooms joined yet",
+      "listTitle": "My Classrooms",
+      "loadFailed": "Failed to load classrooms",
+      "loadFailedHint": "Please try again later",
+      "noDescription": "No description set",
+      "selectSubtitle": "Select a classroom to enter its main page",
+      "welcomeBack": "Welcome back"
+    },
+    "classrooms": {
+      "subtitle": "Joined classrooms",
+      "title": "My Classrooms"
+    },
+    "contests": {
+      "ended": "Ended",
+      "noContests": "No upcoming contests",
+      "ongoing": "Ongoing contests only",
+      "participated": "Participated",
+      "title": "Upcoming Contests",
+      "upcoming": "Upcoming"
+    },
+    "difficulty": {
+      "easy": "Easy",
+      "hard": "Hard",
+      "medium": "Medium"
+    },
+    "kpi": {
+      "classrooms": "Classrooms",
+      "questionBanks": "Question Banks"
+    },
+    "questionBanksSection": {
+      "empty": "No question banks yet.",
+      "emptyHint": "Create a question bank to start organizing your questions.",
+      "showLess": "收起",
+      "showMore": "顯示更多",
+      "title": "My Question Banks",
+      "viewAll": "View All"
+    },
+    "stats": {
+      "noStats": "Unable to load statistics",
+      "problems": "problems",
+      "solvedCount": "/ {{total}} solved",
+      "title": "Problem Statistics"
+    },
+    "subtitle": "Online Judge",
+    "welcomeBack": "Welcome back, {{name}}"
+  },
+  "difficulty": {
+    "easy": "Easy",
+    "hard": "Hard",
+    "medium": "Medium"
   },
   "error": {
     "title": "Error",
     "validationFailed": "Validation Failed"
-  },
-  "pagination": {
-    "previous": "Previous",
-    "next": "Next",
-    "itemsPerPage": "Items per page"
-  },
-  "language": {
-    "title": "Language",
-    "switchTo": "Switch Language",
-    "switchedTitle": "Language Changed",
-    "switchedTo": "Switched to {{language}}",
-    "selectLanguage": "Select Language"
-  },
-  "theme": {
-    "title": "Theme",
-    "switchToLight": "Switch to Light Mode",
-    "switchToDark": "Switch to Dark Mode",
-    "light": "Light",
-    "dark": "Dark",
-    "system": "System"
-  },
-  "preferences": {
-    "title": "Preferences",
-    "themeSection": "Theme",
-    "languageSection": "Language",
-    "accountInfo": "Account Information",
-    "username": "Username",
-    "email": "Email",
-    "role": "Role",
-    "displayName": "Display Name",
-    "displayNameDescription": "Set your display name shown on the platform",
-    "theme": "Theme",
-    "language": "Language",
-    "editor": "Editor Settings",
-    "editorFontSize": "Font Size",
-    "editorTabSize": "Tab Size",
-    "changePassword": "Change Password",
-    "currentPassword": "Current Password",
-    "newPassword": "New Password",
-    "confirmPassword": "Confirm New Password",
-    "passwordChanged": "Password changed successfully",
-    "passwordMismatch": "New passwords do not match",
-    "wrongPassword": "Current password is incorrect",
-    "oauthUser": "OAuth users cannot change password"
-  },
-  "settings": {
-    "title": "Settings",
-    "description": "Manage your preferences, API Key and usage statistics",
-    "descriptionStudent": "Manage your preferences"
-  },
-  "table": {
-    "title": "Title",
-    "status": "Status",
-    "time": "Time",
-    "visibility": "Visibility",
-    "actions": "Actions",
-    "private": "Private (Password)",
-    "public": "Public"
-  },
-  "user": {
-    "preferences": "Preferences",
-    "changePassword": "Change Password",
-    "role": {
-      "student": "Student",
-      "teacher": "Teacher",
-      "admin": "Admin",
-      "adminTA": "Admin (TA)"
-    }
-  },
-  "auth": {
-    "login": {
-      "heroTitle": "A New Exam Experience\nfor the AI Generation",
-      "heroSubtitle": "Built for online assessments - from authoring and testing to analysis, all in one place.",
-      "feature1Title": "Instant Grading",
-      "feature1Desc": "Real-time feedback",
-      "feature2Title": "Versatile Questions",
-      "feature2Desc": "Flexible assessment",
-      "feature3Title": "Growth Tracking",
-      "feature3Desc": "Learning analytics",
-      "title": "Login",
-      "subtitle": "Welcome back, please login to your account",
-      "email": "Email",
-      "emailPlaceholder": "student@example.com",
-      "password": "Password",
-      "passwordPlaceholder": "Enter your password",
-      "submit": "Login",
-      "loading": "Logging in...",
-      "or": "Or login with other methods",
-      "ssoLogin": "Campus Authentication",
-      "googleLogin": "Login with Google",
-      "githubLogin": "Login with GitHub",
-      "noAccount": "Don't have an account?",
-      "registerNow": "Register now",
-      "failed": "Login failed",
-      "invalidCredentials": "Invalid email or password",
-      "oauthFailed": "Failed to initiate login"
-    },
-    "callback": {
-      "loading": "Verifying identity",
-      "loadingDesc": "Retrieving your student information, please wait...",
-      "noCode": "No authorization code received",
-      "failed": "Login failed, please try again",
-      "errorTitle": "Login Failed",
-      "examConflict": "An active exam session was detected. Choose to take over.",
-      "conflictTitle": "Exam Conflict",
-      "takeover": "Take over and lock old device",
-      "takingOver": "Processing...",
-      "takeoverFailed": "Takeover failed, please contact the proctor.",
-      "verifyingSession": "Synchronizing session...",
-      "connecting": "Connecting...",
-      "pleaseWait": "Please wait",
-      "loadingTitle": "Welcome to QJudge",
-      "loadingSubtitle": "Preparing your personalized coding stage",
-      "steps": {
-        "preparing": "Preparing for your coding adventure...",
-        "assembling": "Assembling the workspace...",
-        "almost": "Almost there, please wait",
-        "ready": "Everything is ready!",
-        "verifying": "Confirming it's really you (you look great!)",
-        "stats": "Synchronizing your achievements...",
-        "igniting": "Igniting engines, ready to go!"
-      },
-      "finalTouch": "Final confirmation..."
-    },
-    "campusSso": {
-      "title": "Campus Authentication",
-      "subtitle": "Select your university to login",
-      "redirecting": "Redirecting to campus login...",
-      "backToLogin": "Back to login",
-      "providers": {
-        "nycu": {
-          "name": "NYCU (National Yang Ming Chiao Tung University)",
-          "description": "Log in using your university portal account"
-        }
-      }
-    },
-    "register": {
-      "title": "Create Account",
-      "subtitle": "Join QJudge, start your coding journey",
-      "username": "Username",
-      "usernamePlaceholder": "Choose a username",
-      "email": "Email",
-      "emailPlaceholder": "Enter your email",
-      "password": "Password",
-      "passwordPlaceholder": "Create a password",
-      "confirmPassword": "Confirm Password",
-      "confirmPasswordPlaceholder": "Re-enter your password",
-      "passwordHelper": "At least 8 characters, no pure numbers or common passwords",
-      "passwordTooShort": "Password must be at least 8 characters",
-      "submit": "Register",
-      "loading": "Registering...",
-      "hasAccount": "Already have an account?",
-      "loginNow": "Login",
-      "failed": "Registration failed",
-      "failedRetry": "Registration failed, please try again later",
-      "passwordMismatch": "Passwords do not match"
-    }
-  },
-  "status": {
-    "public": "Public",
-    "private": "Private",
-    "draft": "Draft",
-    "published": "Published",
-    "archived": "Archived",
-    "hidden": "Hidden",
-    "active": "Active",
-    "inactive": "Inactive",
-    "connected": "Connected",
-    "disconnected": "Disconnected",
-    "enabled": "Enabled",
-    "disabled": "Disabled",
-    "solved": "Solved",
-    "pending": "Pending",
-    "success": "Success",
-    "failed": "Failed",
-    "notPassed": "Not Passed",
-    "missing": "Missing"
-  },
-  "action": {
-    "adding": "Adding...",
-    "deleting": "Deleting...",
-    "uploading": "Uploading...",
-    "downloading": "Downloading...",
-    "importing": "Importing...",
-    "exporting": "Exporting...",
-    "syncing": "Syncing...",
-    "processing": "Processing...",
-    "pleaseWait": "Please wait",
-    "refreshing": "Refreshing...",
-    "refresh": "Refresh",
-    "viewProblem": "View problem"
-  },
-  "difficulty": {
-    "easy": "Easy",
-    "medium": "Medium",
-    "hard": "Hard"
-  },
-  "form": {
-    "title": "Title",
-    "name": "Name",
-    "description": "Description",
-    "author": "Author",
-    "createdAt": "Created At",
-    "updatedAt": "Updated At",
-    "startTime": "Start Time",
-    "endTime": "End Time",
-    "startDate": "Start Date",
-    "endDate": "End Date",
-    "startDateTime": "Start Date & Time",
-    "endDateTime": "End Date & Time",
-    "password": "Password",
-    "visibility": "Visibility"
   },
   "filter": {
     "all": "All",
@@ -343,31 +209,466 @@
     "search": "Search",
     "searchPlaceholder": "Search..."
   },
-  "toggle": {
-    "on": "On",
-    "off": "Off",
-    "show": "Show",
-    "hide": "Hide",
-    "allow": "Allow",
-    "forbid": "Forbid"
+  "form": {
+    "author": "Author",
+    "createdAt": "Created At",
+    "description": "Description",
+    "endDate": "End Date",
+    "endDateTime": "End Date & Time",
+    "endTime": "End Time",
+    "name": "Name",
+    "password": "Password",
+    "startDate": "Start Date",
+    "startDateTime": "Start Date & Time",
+    "startTime": "Start Time",
+    "title": "Title",
+    "updatedAt": "Updated At",
+    "visibility": "Visibility"
   },
-  "classroom": {
-    "members": "members"
+  "header": {
+    "adminNavigation": "Admin Navigation",
+    "announcements": "Announcements",
+    "contestManagement": "Contest Management",
+    "contestNavigation": "Contest Navigation",
+    "createContest": "Create Contest",
+    "environmentSettings": "Environment Settings",
+    "mainNavigation": "Main Navigation",
+    "menu": "Menu",
+    "platform": "Online Judge Platform",
+    "prefix": "System",
+    "problemManagement": "Problem Management",
+    "reviewQueue": "送審佇列",
+    "sideNav": "Side Navigation",
+    "systemSettings": "System Settings",
+    "teacherDashboard": "Teacher Dashboard",
+    "userManagement": "User Management",
+    "userMenu": "User Menu"
+  },
+  "image": {
+    "galleryTab": "圖庫",
+    "linkTab": "連結",
+    "uploadTab": "上傳"
+  },
+  "language": {
+    "selectLanguage": "Select Language",
+    "switchTo": "Switch Language",
+    "switchedTitle": "Language Changed",
+    "switchedTo": "Switched to {{language}}",
+    "title": "Language"
+  },
+  "message": {
+    "comingSoon": "Coming Soon",
+    "deleteFailed": "Delete failed",
+    "error": "An error occurred",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "notFound": "Resource not found",
+    "saveFailed": "Save failed",
+    "success": "Action completed successfully"
+  },
+  "nav": {
+    "back": "Back",
+    "backToProblemList": "Back to Problems",
+    "classrooms": "Classrooms",
+    "contests": "Contests",
+    "dashboard": "Dashboard",
+    "documentation": "Docs",
+    "marketplace": "Marketplace",
+    "problemList": "Problem List",
+    "problems": "Problems",
+    "problemsLegacy": "Problems (Legacy)",
+    "questionBanks": "Question Banks",
+    "ranking": "Ranking",
+    "submissions": "Submissions"
+  },
+  "page": {
+    "announcements": "Announcements",
+    "contestDetail": "Contest Detail",
+    "contestManagement": "Contest Management",
+    "contests": "Contest List",
+    "createContest": "Create Contest",
+    "createProblem": "Create Problem",
+    "dashboard": "Dashboard",
+    "editProblem": "Edit Problem",
+    "environment": "Environment",
+    "login": "Login",
+    "problemDetail": "Problem Detail",
+    "problemManagement": "Problem Management",
+    "problemManagementLegacy": "Problem Management (Legacy)",
+    "problems": "Problem List",
+    "questionBanks": "Question Banks",
+    "register": "Register",
+    "submissions": "Submissions",
+    "teacherDashboard": "Teacher Dashboard",
+    "userManagement": "User Management"
+  },
+  "pagination": {
+    "itemsPerPage": "Items per page",
+    "next": "Next",
+    "previous": "Previous"
+  },
+  "preferences": {
+    "accountInfo": "Account Information",
+    "avatarDropzoneHint": "Or click here to select an image file",
+    "avatarDropzoneTitle": "Drag image here",
+    "avatarEmpty": "Add Avatar",
+    "avatarRemove": "Remove Avatar",
+    "avatarUpload": "Upload Avatar",
+    "changePassword": "Change Password",
+    "confirmPassword": "Confirm New Password",
+    "currentPassword": "Current Password",
+    "displayName": "Display Name",
+    "displayNameDescription": "Set your display name shown on the platform",
+    "displayNameSaveFailed": "Update failed",
+    "displayNameSaved": "Updated",
+    "editAvatar": "Edit Avatar",
+    "editor": "Editor Settings",
+    "editorFontSize": "Font Size",
+    "editorTabSize": "Tab Size",
+    "email": "Email",
+    "language": "Language",
+    "languageDescription": "Choose your preferred interface language",
+    "languageSection": "Language",
+    "loginMethod": "Login Method",
+    "newPassword": "New Password",
+    "oauthUser": "OAuth users cannot change password",
+    "passwordChanged": "Password changed successfully",
+    "passwordMismatch": "New passwords do not match",
+    "role": "Role",
+    "savingDisplayName": "Saving...",
+    "theme": "Theme",
+    "themeDescription": "Choose your preferred interface theme",
+    "themeSection": "Theme",
+    "title": "Preferences",
+    "username": "Username",
+    "wrongPassword": "Current password is incorrect"
+  },
+  "profile": {
+    "deviceName": "Device Name",
+    "devices": "Device Management",
+    "devicesDesc": "Devices logged in within the last 30 days",
+    "lastActive": "Last Active",
+    "now": "Now",
+    "personalInfo": "Personal Information"
+  },
+  "questionBank": {
+    "addQuestion": "Add Question",
+    "bankCreated": "Question bank created",
+    "bankDeleted": "Question bank deleted",
+    "bankNotFound": "Bank Not Found",
+    "bankNotFoundDesc": "Please go back to the list and re-select.",
+    "bankUpdated": "Question bank updated",
+    "category": "Category",
+    "categoryCoding": "Coding",
+    "categoryExam": "Exam",
+    "clone": "Clone to My Bank",
+    "cloneSuccess": "Question cloned to your bank",
+    "communityTag": "QJudge Community",
+    "createBank": "Create Question Bank",
+    "deleteBank": "Delete Question Bank",
+    "deleteBankConfirmBody": "Are you sure you want to delete the question bank \"{{name}}\"?",
+    "deleteQuestion": "Delete Question",
+    "deleteQuestionConfirmBody": "Are you sure you want to delete the question \"{{title}}\"?",
+    "description": "Description",
+    "difficulty": "Difficulty",
+    "editBank": "Edit Question Bank",
+    "editQuestion": "Edit Question",
+    "emptyExplore": "Explore is currently centered on QJudge Community; no content available yet.",
+    "emptyMine": "No question banks yet. Create your first one.",
+    "exploreOnlyPlatform": "Explore is currently centered on QJudge Community",
+    "exploreOnlyPlatformDesc": "Phase 1 does not include shared banks; focuses on Community validation first.",
+    "importFromInbox": "匯入草稿",
+    "inbox": {
+      "clearSelection": "Clear Selection",
+      "coding": "Coding Question Selection",
+      "currentFilter": "Current Display",
+      "description": "Questions temporarily created in contests can be imported into specific question banks here.",
+      "empty": "No questions available to import.",
+      "exam": "Exam Question Selection",
+      "filterAll": "All",
+      "filterLabel": "Filter Range",
+      "fromUnknown": "Unknown Source",
+      "ingestSelected": "Import Selected Questions",
+      "ingestSuccess": "Successfully imported to bank",
+      "ingesting": "Importing...",
+      "noCodingBank": "No coding banks found",
+      "noExamBank": "No exam banks found",
+      "selectAll": "Select All",
+      "selectedCount": "{{count}} selected",
+      "targetBank": "Target Bank",
+      "title": "Question Inbox"
+    },
+    "loadQuestions": "View Questions",
+    "memoryLimit": "Memory Limit (MB)",
+    "mockGalleryDesc": "UI mock preview demonstrating QJudge Community question bank cards.",
+    "mockGalleryTitle": "Mock Card Gallery",
+    "mockOfficialBank1Desc": "Start with recursion and basic search to build problem-solving skills.",
+    "mockOfficialBank1Name": "Intro to Algorithms - Recursion",
+    "mockOfficialBank2Desc": "Implementation problems organized by curriculum progress.",
+    "mockOfficialBank2Name": "Data Structure Implementation",
+    "mockOfficialTag": "Editor Choice",
+    "mockOwnerLabel": "Owner",
+    "mockOwnerPlatform": "QJudge Community",
+    "mockOwnerTeacherA": "Teacher A",
+    "mockOwnerTeacherB": "Teacher B",
+    "mockQuestionCount": "{{count}} questions",
+    "mockUserBank1Desc": "Classroom-oriented practice focusing on APCS concepts and common mistakes.",
+    "mockUserBank1Name": "Teacher Chen's APCS Practice Set",
+    "mockUserBank2Desc": "School exam questions with grading points and difficulty levels.",
+    "mockUserBank2Name": "Teacher Lin's Midterm Bank",
+    "mockUserPublicTag": "Public Bank",
+    "mockVerifiedTag": "verified",
+    "openBank": "Open Bank",
+    "prompt": "Prompt",
+    "questionCreated": "Question created",
+    "questionDeleted": "Question deleted",
+    "questionUpdated": "Question updated",
+    "allTypes": "All Types",
+    "sortOrder": "Default Order",
+    "sortType": "By Type",
+    "sortNewest": "Newest First",
+    "sortOldest": "Oldest First",
+    "usedInContests": "{{count}} contest(s)",
+    "saveToBank": {
+      "desc": "將「{{title}}」收錄到題庫：",
+      "success": "已收錄到題庫",
+      "title": "收錄到題庫"
+    },
+    "score": "Score",
+    "selectTargetBank": "選擇目標題庫",
+    "subtitle": "Manage and explore question banks with a focus on classrooms (QJudge Community)",
+    "tabs": {
+      "explore": "Explore",
+      "inbox": "Inbox",
+      "mine": "My Banks"
+    },
+    "tagMine": "My Bank",
+    "tagPrivate": "Private",
+    "tagPublic": "Public",
+    "tagUserPublic": "Public",
+    "timeLimit": "Time Limit (ms)"
   },
   "questionType": {
-    "label": {
-      "true_false": "True/False",
-      "single_choice": "Single Choice",
-      "multiple_choice": "Multiple Choice",
-      "short_answer": "Short Answer",
-      "essay": "Essay"
-    },
     "description": {
-      "true_false": "Judge a statement as true or false",
-      "single_choice": "Choose one correct answer from multiple options",
+      "essay": "Long-form text answer with optional reference answer",
       "multiple_choice": "Choose multiple correct answers from options",
       "short_answer": "Enter a short text answer",
-      "essay": "Long-form text answer with optional reference answer"
+      "single_choice": "Choose one correct answer from multiple options",
+      "true_false": "Judge a statement as true or false"
+    },
+    "label": {
+      "essay": "Essay",
+      "multiple_choice": "Multiple Choice",
+      "short_answer": "Short Answer",
+      "single_choice": "Single Choice",
+      "true_false": "True/False"
+    }
+  },
+  "role": {
+    "admin": "Admin",
+    "adminTA": "Admin (TA)",
+    "student": "Student",
+    "ta": "TA",
+    "teacher": "Teacher"
+  },
+  "settings": {
+    "apiKey": {
+      "active": "Active",
+      "addKey": "Add API Key",
+      "createdAtLabel": "Created At",
+      "deleteConfirm": "Are you sure you want to delete the API Key? AI features will be unavailable.",
+      "deleteKey": "Delete Key",
+      "description": "Manage your Anthropic API Key for AI features",
+      "empty": "No API Key set. Go to Anthropic Console to create one.",
+      "error": {
+        "deleteFailed": "Delete failed",
+        "inputRequired": "Please enter API Key",
+        "invalidFormat": "Invalid API Key format, should start with 'sk-ant-'",
+        "loadFailed": "Failed to load API Key info",
+        "saveFailed": "Save failed",
+        "usageLoadFailed": "Failed to load usage data"
+      },
+      "inactive": "Inactive",
+      "invalid": "Invalid",
+      "modal": {
+        "addTitle": "Add API Key",
+        "deleteSuccess": "API Key deleted",
+        "helperText": "Your API Key will be stored encrypted",
+        "keyInput": "Anthropic API Key",
+        "keyPlaceholder": "sk-ant-api03-...",
+        "nameInput": "Name (Optional)",
+        "saveSuccess": "API Key saved successfully!",
+        "updateTitle": "Update API Key"
+      },
+      "nameLabel": "Name",
+      "statusLabel": "Status",
+      "title": "API Key",
+      "updateKey": "Update Key",
+      "usage": {
+        "daily": "Daily",
+        "description": "AI API usage summary and details",
+        "endDate": "End Date",
+        "granularity": "Granularity",
+        "monthly": "Monthly",
+        "noData": "No usage data in selected range",
+        "startDate": "Start Date",
+        "table": {
+          "cost": "Cost (USD)",
+          "date": "Date",
+          "inputTokens": "Input Tokens",
+          "outputTokens": "Output Tokens",
+          "requests": "Requests"
+        },
+        "title": "Usage Statistics",
+        "totalCost": "Total Cost",
+        "totalRequests": "Total Requests",
+        "totalTokens": "Total Tokens",
+        "weekly": "Weekly"
+      },
+      "validated": "Validated"
+    },
+    "description": "Manage your preferences, API keys and usage statistics",
+    "descriptionStudent": "Manage your preferences",
+    "loginRecords": {
+      "current": "This device",
+      "description": "Devices logged in within the last 30 days",
+      "deviceName": "Device Name",
+      "empty": "No login records",
+      "lastActive": "Last Active",
+      "logoutError": "Failed to logout from other devices",
+      "logoutOther": "Logout Other Devices",
+      "logoutOtherDesc": "Logout from all active sessions except this device",
+      "logoutSuccess": "Logged out from other devices",
+      "now": "Now",
+      "title": "Device Management"
+    },
+    "plans": {
+      "contactUs": "Contact Us",
+      "description": "All plans include full features, difference is only in limits",
+      "enterpriseCustom": "for custom Enterprise plans.",
+      "enterpriseTitle": "Need more scale?",
+      "features": {
+        "pro": [
+          "Max 200 participants per exam",
+          "500 AI Credits / month",
+          "Unlimited question bank storage",
+          "1 year data retention",
+          "10 GB storage space"
+        ],
+        "team": [
+          "Max 500 participants per exam",
+          "2,000 AI Credits / month",
+          "Unlimited question bank storage",
+          "Up to 10 admins",
+          "50 GB storage space"
+        ]
+      },
+      "freeTrial": "30 Days Free",
+      "month": "mo",
+      "openCheckoutFailed": "Failed to open checkout page, please try again later",
+      "processing": "Processing...",
+      "startingTrial": "Start Free Trial",
+      "subscribeNow": "Subscribe Now",
+      "title": "Explore Plans"
+    },
+    "subscription": {
+      "desc": {
+        "free": "Currently on Free plan, upgrade for higher limits",
+        "pro": "For individuals with steady exam needs",
+        "team": "For schools, departments, and training centers"
+      },
+      "manage": "Manage Subscription",
+      "manageDesc": "Change payment method, cancel subscription or view invoices",
+      "openPortalFailed": "Failed to open subscription management page",
+      "periodEndDate": "Current Period End",
+      "status": {
+        "active": "Active",
+        "canceled": "Canceled",
+        "expired": "Expired",
+        "past_due": "Past Due",
+        "trialing": "Trialing"
+      },
+      "tier": {
+        "enterprise": "Enterprise",
+        "free": "Free Plan",
+        "pro": "Pro Plan",
+        "team": "Team Plan"
+      },
+      "trialEndDate": "Trial End Date"
+    },
+    "tabs": {
+      "apiKey": "API Key",
+      "plans": "Explore Plans",
+      "preferences": "Preferences",
+      "profile": "Profile",
+      "subscription": "Subscription",
+      "usage": "Usage Stats"
+    },
+    "title": "Settings"
+  },
+  "status": {
+    "active": "Active",
+    "archived": "Archived",
+    "connected": "Connected",
+    "disabled": "Disabled",
+    "disconnected": "Disconnected",
+    "draft": "Draft",
+    "enabled": "Enabled",
+    "failed": "Failed",
+    "hidden": "Hidden",
+    "inactive": "Inactive",
+    "missing": "Missing",
+    "notPassed": "Not Passed",
+    "pending": "Pending",
+    "private": "Private",
+    "public": "Public",
+    "published": "Published",
+    "solved": "Solved",
+    "success": "Success"
+  },
+  "tab": {
+    "clarifications": "Clarifications",
+    "description": "Description",
+    "overview": "Overview",
+    "problems": "Problems",
+    "settings": "Settings",
+    "solver": "Solve",
+    "standings": "Standings",
+    "submissions": "Submissions"
+  },
+  "table": {
+    "actions": "Actions",
+    "private": "Private (Password)",
+    "public": "Public",
+    "status": "Status",
+    "time": "Time",
+    "title": "Title",
+    "visibility": "Visibility"
+  },
+  "theme": {
+    "dark": "Dark",
+    "light": "Light",
+    "switchToDark": "Switch to Dark Mode",
+    "switchToLight": "Switch to Light Mode",
+    "system": "System",
+    "title": "Theme"
+  },
+  "toggle": {
+    "allow": "Allow",
+    "forbid": "Forbid",
+    "hide": "Hide",
+    "off": "Off",
+    "on": "On",
+    "show": "Show"
+  },
+  "user": {
+    "changePassword": "Change Password",
+    "preferences": "Preferences",
+    "role": {
+      "admin": "Admin",
+      "adminTA": "Admin (TA)",
+      "student": "Student",
+      "teacher": "Teacher"
     }
   }
 }

@@ -18,6 +18,7 @@ export interface EnterExamInput {
   contestId: string;
   cheatDetectionEnabled: boolean;
   answeringEntryPath: string;
+  precheckPath?: string;
 }
 
 export interface EnterExamOutput {
@@ -30,14 +31,14 @@ export interface EnterExamOutput {
 export async function enterExamUseCase(
   input: EnterExamInput
 ): Promise<EnterExamOutput> {
-  const { contestId, cheatDetectionEnabled, answeringEntryPath } = input;
+  const { contestId, cheatDetectionEnabled, answeringEntryPath, precheckPath } = input;
 
   // Exam mode must always go through precheck before anti-cheat activation.
   if (cheatDetectionEnabled) {
     return {
       success: true,
       status: "started",
-      navigateTo: `/contests/${contestId}/exam-precheck`,
+      navigateTo: precheckPath ?? `/contests/${contestId}/exam-precheck`,
     };
   }
 

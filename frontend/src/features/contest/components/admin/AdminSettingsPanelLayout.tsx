@@ -1,46 +1,18 @@
 import React from "react";
-import { Layer } from "@carbon/react";
 import { FieldSaveIndicator } from "@/shared/ui/autoSave/FieldSaveIndicator";
 import type { FieldSaveState } from "@/features/contest/components/admin/examEditor/hooks/useExamAutoSave";
-import s from "@/features/contest/screens/admin/panels/AdminContestSettingsPanel.module.scss";
+import {
+  TITLE_STYLE,
+  DESC_STYLE,
+  Section as SharedSection,
+  settingsPanelStyles as s,
+} from "@/shared/layout/SettingsPanel";
 
-// ── Shared text styles ──────────────────────────────────────────
+// Re-export shared primitives for backwards compatibility
+export { TITLE_STYLE, DESC_STYLE };
+export const Section = SharedSection;
 
-export const TITLE_STYLE: React.CSSProperties = {
-  fontSize: "var(--cds-body-short-01-font-size, 0.875rem)",
-  fontWeight: 400,
-  lineHeight: "1.125rem",
-  color: "var(--cds-text-primary)",
-};
-
-export const DESC_STYLE: React.CSSProperties = {
-  fontSize: "var(--cds-helper-text-01-font-size, 0.75rem)",
-  fontWeight: 400,
-  lineHeight: "1rem",
-  color: "var(--cds-text-helper)",
-  marginTop: "0.25rem",
-};
-
-// ── Layout primitives ───────────────────────────────────────────
-
-export const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
-  title,
-  children,
-}) => (
-  <div className={s.section}>
-    <h4 className={s.sectionTitle} style={{
-      fontSize: "var(--cds-heading-compact-01-font-size, 0.875rem)",
-      fontWeight: 600,
-      lineHeight: "1.125rem",
-      color: "var(--cds-text-primary)",
-    }}>
-      {title}
-    </h4>
-    <Layer>
-      <div className={s.sectionCard}>{children}</div>
-    </Layer>
-  </div>
-);
+// Contest-specific wrappers that add save-state indicators
 
 interface RowProps {
   label: string;

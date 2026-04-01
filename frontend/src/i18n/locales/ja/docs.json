@@ -1,93 +1,93 @@
 {
-  "page": {
-    "title": "ドキュメント",
-    "subtitle": "QJudgeプラットフォームの使い方を学ぶ"
-  },
   "badge": {
     "aiGenerated": "AI生成"
   },
+  "feedback": {
+    "helpful": "役に立った",
+    "notHelpful": "改善が必要",
+    "thanks": "フィードバックありがとうございます！",
+    "title": "このドキュメントは役に立ちましたか？"
+  },
+  "message": {
+    "loadError": "ドキュメントの読み込みに失敗しました",
+    "loading": "ドキュメントを読み込み中...",
+    "notFound": "ドキュメントが見つかりません"
+  },
   "nav": {
+    "back": "戻る",
+    "items": {
+      "admin-overview": "管理者機能",
+      "common-errors": "よくあるエラー",
+      "contest-extension-architecture": "コンテスト拡張アーキテクチャガイド",
+      "contests": "コンテストに参加",
+      "contributing": "コントリビュート",
+      "create-exam": "試験と問題の作成",
+      "dev-setup": "開発環境セットアップ",
+      "e2e-testing": "E2Eテストガイド",
+      "exam-grading": "試験の採点と結果公開",
+      "exam-json-import-export": "試験 JSON インポート/エクスポート",
+      "exam-precheck-anticheat": "Exam Pre-check と不正防止シーケンス",
+      "exam-proctoring": "試験監督と手動介入",
+      "exam-statistics": "試験統計と確認",
+      "judge-system": "ジャッジシステム",
+      "overview": "プラットフォーム概要",
+      "problem-import": "YAML 問題インポート",
+      "quick-start": "クイックスタート",
+      "student-exam-guide": "学生試験ガイド",
+      "submission": "コード提出",
+      "supported-languages": "対応言語",
+      "teacher-overview": "教師機能概要"
+    },
+    "lastUpdated": "最終更新日",
+    "onThisPage": "このページの内容",
     "productLabel": "ドキュメント",
     "searchPlaceholder": "ドキュメントを検索...",
-    "onThisPage": "このページの内容",
-    "lastUpdated": "最終更新日",
-    "back": "戻る",
     "sections": {
+      "admin-guide": "管理者ガイド",
+      "developer-guide": "開発者ガイド",
       "getting-started": "はじめに",
-      "user-guide": "ユーザーガイド",
       "reference": "リファレンス",
       "teacher-guide": "教師ガイド",
-      "admin-guide": "管理者ガイド",
-      "developer-guide": "開発者ガイド"
-    },
-    "items": {
-      "overview": "プラットフォーム概要",
-      "quick-start": "クイックスタート",
-      "submission": "コード提出",
-      "contests": "コンテストに参加",
-      "student-exam-guide": "学生試験ガイド",
-      "judge-system": "ジャッジシステム",
-      "common-errors": "よくあるエラー",
-      "supported-languages": "対応言語",
-      "teacher-overview": "教師機能概要",
-      "create-exam": "試験と問題の作成",
-      "exam-grading": "試験の採点と結果公開",
-      "exam-statistics": "試験統計と確認",
-      "exam-proctoring": "試験監督と手動介入",
-      "exam-json-import-export": "試験 JSON インポート/エクスポート",
-      "problem-import": "YAML 問題インポート",
-      "admin-overview": "管理者機能",
-      "contributing": "コントリビュート",
-      "contest-extension-architecture": "コンテスト拡張アーキテクチャガイド",
-      "exam-precheck-anticheat": "Exam Pre-check と不正防止シーケンス",
-      "dev-setup": "開発環境セットアップ",
-      "e2e-testing": "E2Eテストガイド"
+      "user-guide": "ユーザーガイド"
     }
   },
+  "page": {
+    "subtitle": "QJudgeプラットフォームの使い方を学ぶ",
+    "title": "ドキュメント"
+  },
   "quickLinks": {
-    "student": {
-      "tag": "学生",
-      "title": "プログラミング問題を解く",
-      "description": "問題を閲覧し、コードを書き、解答を提出する方法を学びます"
+    "admin": {
+      "description": "ユーザー、権限設定、システム構成の管理",
+      "tag": "管理者",
+      "title": "システム管理"
     },
     "contestant": {
+      "description": "コンテストのルール、スコアリング、トラブルシューティングについて",
       "tag": "コンテスト",
-      "title": "プログラミングコンテストに参加",
-      "description": "コンテストのルール、スコアリング、トラブルシューティングについて"
-    },
-    "teacher": {
-      "tag": "教師",
-      "title": "コンテストの作成・管理",
-      "description": "コンテストの作成、問題管理、学生の成績確認と統計"
-    },
-    "admin": {
-      "tag": "管理者",
-      "title": "システム管理",
-      "description": "ユーザー、権限設定、システム構成の管理"
+      "title": "プログラミングコンテストに参加"
     },
     "developer": {
+      "description": "開発環境の設定、プロジェクト構造の理解、貢献手順",
       "tag": "開発者",
-      "title": "コード貢献",
-      "description": "開発環境の設定、プロジェクト構造の理解、貢献手順"
+      "title": "コード貢献"
+    },
+    "student": {
+      "description": "問題を閲覧し、コードを書き、解答を提出する方法を学びます",
+      "tag": "学生",
+      "title": "プログラミング問題を解く"
+    },
+    "teacher": {
+      "description": "コンテストの作成、問題管理、学生の成績確認と統計",
+      "tag": "教師",
+      "title": "コンテストの作成・管理"
     }
   },
   "search": {
     "label": "ドキュメント検索",
-    "placeholder": "ドキュメントを検索...",
-    "searching": "検索中...",
+    "matches": "件一致",
     "noResults": "結果が見つかりませんでした",
+    "placeholder": "ドキュメントを検索...",
     "resultsCount": "{{count}} 件の結果",
-    "matches": "件一致"
-  },
-  "feedback": {
-    "title": "このドキュメントは役に立ちましたか？",
-    "helpful": "役に立った",
-    "notHelpful": "改善が必要",
-    "thanks": "フィードバックありがとうございます！"
-  },
-  "message": {
-    "loading": "ドキュメントを読み込み中...",
-    "notFound": "ドキュメントが見つかりません",
-    "loadError": "ドキュメントの読み込みに失敗しました"
+    "searching": "検索中..."
   }
 }

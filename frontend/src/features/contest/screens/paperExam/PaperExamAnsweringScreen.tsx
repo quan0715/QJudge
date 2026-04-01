@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Button,
@@ -33,10 +33,16 @@ import styles from "./PaperExamAnswering.module.scss";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
 import {
+  getClassroomContestDashboardPath,
+  getClassroomContestPrecheckPath,
   getContestDashboardPath,
   shouldRouteToPrecheck,
   getContestPrecheckPath,
 } from "@/features/contest/domain/contestRoutePolicy";
+import {
+  getClassroomLabDashboardPath,
+  isClassroomLabRouteContext,
+} from "@/features/classroom/domain/labRoutePolicy";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
@@ -51,8 +57,49 @@ import type { ExamQuestionType } from "@/core/entities/contest.entity";
 const PaperExamAnsweringScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);
   const navigate = useNavigate();
+  const { classroomId, contestId: routeContestId, labId } = useParams<{
+    classroomId?: string;
+    contestId?: string;
+    labId?: string;
+  }>();
   const [searchParams] = useSearchParams();
   const { contestId, contest, submitExam, refreshContest, loading } = usePaperExamFlow();
+  const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
+  const labContext = isClassroomLabRouteContext({ classroomId, labId })
+    ? { classroomId, labId }
+    : null;
+  const classroomContestContext =
+    !labContext && classroomId && routeContestId
+      ? { classroomId, contestId: routeContestId }
+      : null;
+  const dashboardPath =
+    labContext
+      ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
+      : classroomContestContext
+        ? getClassroomContestDashboardPath(
+            classroomContestContext.classroomId!,
+            classroomContestContext.contestId!,
+          )
+      : effectiveClassroomId && contestId
+        ? getClassroomContestDashboardPath(effectiveClassroomId, contestId)
+        : contestId
+        ? getContestDashboardPath(contestId)
+        : "";
+  const precheckPath =
+    !contestId
+      ? ""
+    : labContext
+        ? dashboardPath
+      : classroomContestContext
+        ? getClassroomContestPrecheckPath(
+            classroomContestContext.classroomId!,
+            classroomContestContext.contestId!,
+          )
+        : effectiveClassroomId
+          ? getClassroomContestPrecheckPath(effectiveClassroomId, contestId)
+          : getContestPrecheckPath(contestId);
+  const shouldRequirePrecheck =
+    !labContext && contest?.deliveryMode !== "practice";
   const capability = useMemo(() => detectAnticheatCapability(), []);
   const monitoringPlan = useMemo(
     () => resolveDeviceMonitoringPlan(capability, contest?.anticheatDevicePolicy),
@@ -206,12 +253,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
     syncExamPrecheckGateByStatus(contestId, contest.examStatus);
 
     if (
-      shouldRouteToPrecheck({
+      shouldRequirePrecheck && shouldRouteToPrecheck({
         contest,
         precheckPassed,
       })
     ) {
-      navigate(getContestPrecheckPath(contestId), { replace: true });
+      navigate(precheckPath, { replace: true });
       return;
     }
 
@@ -223,13 +270,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
       }
       if (isFullscreen()) exitFullscreen().catch(() => {});
     }
-  }, [contest, contestId, forceStopCapture, navigate, precheckPassed]);
+  }, [contest, contestId, forceStopCapture, navigate, precheckPassed, precheckPath, shouldRequirePrecheck]);
 
   useEffect(() => {
     if (
       !contestId ||
       !contest ||
       contest.contestType !== "paper_exam" ||
+      !contest.cheatDetectionEnabled ||
       contest.examStatus !== "in_progress" ||
       !precheckPassed ||
       hasLoggedExamEntryRef.current
@@ -302,9 +350,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
     setIsSubmittingExam(false);
     if (!success) return;
     setShowSubmitReview(false);
-    navigate(getContestDashboardPath(contestId));
+    navigate(dashboardPath);
   }, [
     contestId,
+    dashboardPath,
     isSubmittingExam,
     navigate,
     runSubmitWithProgress,
@@ -320,7 +369,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
         <Button
           kind="primary"
           data-testid="paper-exam-finish-back-dashboard-btn"
-          onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
+          onClick={() => dashboardPath && navigate(dashboardPath)}
           style={{ marginTop: "1rem" }}
         >
           {t("answering.finish.backToDashboard")}
@@ -364,7 +413,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
               hasIconOnly
               renderIcon={ChevronLeft}
               iconDescription={t("answering.finish.backToDashboard")}
-              onClick={() => contestId && navigate(getContestDashboardPath(contestId))}
+              onClick={() => dashboardPath && navigate(dashboardPath)}
             />
             <span className={styles.title}>{contest?.name ?? t("common:page.contests")}</span>
           </>

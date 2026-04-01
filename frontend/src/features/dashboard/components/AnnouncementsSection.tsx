@@ -5,7 +5,7 @@ import {
   AnnouncementCard,
   AnnouncementDetailModal,
 } from "@/shared/ui/announcement";
-import type { Announcement } from "@/infrastructure/api/repositories/announcement.repository";
+import type { Announcement } from "@/core/entities/announcement.entity";
 
 export interface AnnouncementsSectionProps {
   /** 公告列表 */

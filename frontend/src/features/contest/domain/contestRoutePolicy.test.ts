@@ -3,8 +3,11 @@ import type { ContestDetail } from "@/core/entities/contest.entity";
 import {
   getContestAnsweringEntryPath,
   getContestDashboardPath,
+  getContestDashboardPathForContext,
   getContestPrecheckPath,
+  getContestPrecheckPathForContext,
   getContestSolveRootPath,
+  getContestSolvePathForContext,
   getContestSolvePath,
   getFirstContestProblemId,
   getPostPrecheckPath,
@@ -52,10 +55,22 @@ const createContest = (
 describe("contestRoutePolicy", () => {
   it("builds contest paths", () => {
     expect(getContestDashboardPath("42")).toBe("/contests/42");
+    expect(getContestDashboardPathForContext("42", "classroom-1")).toBe(
+      "/classrooms/classroom-1/contest/42",
+    );
     expect(getContestPrecheckPath("42")).toBe("/contests/42/exam-precheck");
+    expect(getContestPrecheckPathForContext("42", "classroom-1")).toBe(
+      "/classrooms/classroom-1/contest/42/exam-precheck",
+    );
     expect(getContestSolvePath("42", "p1")).toBe("/contests/42/solve/p1");
+    expect(getContestSolvePathForContext("42", "p1", "classroom-1")).toBe(
+      "/classrooms/classroom-1/contest/42/solve/p1",
+    );
     expect(getContestSolveRootPath("42", "q 1")).toBe(
       "/contests/42/solve?q=q%201",
+    );
+    expect(getContestSolveRootPath("42", "q 1", "classroom-1")).toBe(
+      "/classrooms/classroom-1/contest/42/solve?q=q%201",
     );
   });
 
@@ -105,6 +120,8 @@ describe("contestRoutePolicy", () => {
     expect(isPathWithinContest({ contestId: "42", pathname: "/contests/42" })).toBe(true);
     expect(isPathWithinContest({ contestId: "42", pathname: "/contests/42/" })).toBe(true);
     expect(isPathWithinContest({ contestId: "42", pathname: "/contests/42/solve/p1" })).toBe(true);
+    expect(isPathWithinContest({ contestId: "42", pathname: "/classrooms/1/contest/42" })).toBe(true);
+    expect(isPathWithinContest({ contestId: "42", pathname: "/classrooms/1/contest/42/solve/p1" })).toBe(true);
     expect(isPathWithinContest({ contestId: "42", pathname: "/contests/43" })).toBe(false);
   });
 

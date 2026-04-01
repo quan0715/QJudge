@@ -70,6 +70,30 @@
   gap: 4px;
 }
 
+.sourceBankTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.saveToBankButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--cds-link-primary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--cds-link-primary-hover);
+    text-decoration: underline;
+  }
+}
+
 .score {
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   color: var(--cds-text-helper);

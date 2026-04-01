@@ -1,94 +1,258 @@
 @use "@carbon/layout";
 @use "@carbon/type";
+@use "../../../styles/card-tile" as card;
 
-.classroom-detail {
-  padding-top: layout.$spacing-05;
-  padding-bottom: layout.$spacing-09;
-}
-
-.classroom-detail__grid {
-  row-gap: layout.$spacing-05;
-}
-
-// ── Hero Banner ────────────────────────────────────────
-.classroom-detail__hero {
-  position: relative;
-  background: var(--cds-layer);
-  border-bottom: 3px solid var(--cds-border-interactive);
-  padding: layout.$spacing-07 layout.$spacing-06;
-  margin-bottom: layout.$spacing-05;
-}
-
-.classroom-detail__hero-top {
+.classroom-admin-page {
   display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  min-height: 0;
+  align-content: start;
+
+  // Force Carbon Tile backgrounds to follow the current theme.
+  .cds--tile {
+    background-color: var(--cds-layer) !important;
+  }
+
+  .cds--tile:hover {
+    background-color: var(--cds-layer-hover) !important;
+  }
+
+  .cds--tile:active {
+    background-color: var(--cds-layer-active) !important;
+  }
+}
+
+.classroom-admin-loading,
+.classroom-admin-empty {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: layout.$spacing-03;
-  margin-bottom: layout.$spacing-03;
-}
-
-.classroom-detail__hero-icon {
-  color: var(--cds-icon-interactive);
-}
-
-.classroom-detail__hero-title {
-  @include type.type-style("productive-heading-05");
-  margin: 0;
-}
-
-.classroom-detail__hero-desc {
-  @include type.type-style("body-long-01");
-  color: var(--cds-text-secondary);
-  max-width: 640px;
-  margin: 0 0 layout.$spacing-04;
-}
-
-.classroom-detail__hero-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: layout.$spacing-03;
-  align-items: center;
-}
-
-// ── Stat Chips ─────────────────────────────────────────
-.classroom-detail__stats {
-  display: flex;
+  justify-content: center;
   gap: layout.$spacing-04;
-  flex-wrap: wrap;
-  margin-bottom: layout.$spacing-05;
+  color: var(--cds-text-secondary);
 }
 
-.classroom-detail__stat-chip {
+.classroom-admin-empty__icon {
+  color: var(--cds-icon-disabled);
+}
+
+// ── Hero with cover background ──
+.classroom-hero-wrapper {
+  width: 100%;
+  position: relative;
+}
+
+// Overlay lives on .classroom-hero-and-tabs (covers hero + tabs)
+.classroom-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  pointer-events: none;
+}
+
+.classroom-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: layout.$spacing-06;
+  max-width: 84rem;
+  margin: 0 auto;
+  padding: layout.$spacing-07 layout.$spacing-10 layout.$spacing-05;
+}
+
+// Left column: icon → title → description (vertical)
+.classroom-hero-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+}
+
+.classroom-hero-icon {
+  line-height: 1;
+  color: #fff;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  user-select: none;
+
+  svg {
+    fill: #fff;
+  }
+}
+
+.classroom-hero-title {
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: #fff;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: layout.$spacing-03;
-  padding: layout.$spacing-04 layout.$spacing-05;
-  background: var(--cds-layer);
-  min-width: layout.rem(160px);
-  flex: 1;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
-.classroom-detail__stat-icon {
-  color: var(--cds-icon-secondary);
-}
-
-.classroom-detail__stat-value {
-  @include type.type-style("productive-heading-04");
+.classroom-hero-desc {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
   margin: 0;
-  line-height: 1;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 36rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.classroom-detail__stat-label {
-  @include type.type-style("label-01");
-  color: var(--cds-text-secondary);
-  margin: 0;
+// KpiCard on dark hero — override default theme colors
+.classroom-hero-kpi {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  flex-shrink: 0;
+
+  [class*="kpiIcon"] { color: rgba(255, 255, 255, 0.5); }
+  [class*="kpiValue"] { color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
+  [class*="kpiLabel"] { color: rgba(255, 255, 255, 0.55); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
 }
 
-// ── Section ────────────────────────────────────────────
-.classroom-detail__section {
-  margin-bottom: layout.$spacing-06;
+// ── Hero + Tabs wrapper ──
+// The tabs sit at the bottom of the hero visually, sharing the same
+// background. When the user scrolls, the tab bar sticks below the navbar.
+.classroom-hero-and-tabs {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--cds-background);
+
+  // Soft shadow at the bottom edge to ease the transition into content
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 4;
+  }
 }
 
-.classroom-detail__section-header {
+// ── Tab bar ──
+// Sits inside the hero cover — all backgrounds must be transparent so the
+// cover image shows through. We override every Carbon state (default,
+// hover, selected, focus, disabled) to avoid any opaque surface leaking.
+.classroom-tabs-bar {
+  position: sticky;
+  top: 3rem;
+  z-index: 3;
+  padding: 0 layout.$spacing-10;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+
+  .cds--tabs {
+    max-width: 84rem;
+    margin: 0 auto;
+  }
+
+  .cds--tab--list {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  // Reset every nav-item + link to transparent
+  .cds--tabs__nav-item,
+  .cds--tabs__nav-item:hover,
+  .cds--tabs__nav-item--selected,
+  .cds--tabs__nav-item--selected:hover {
+    background-color: transparent !important;
+    border-block-end-color: transparent !important;
+  }
+
+  .cds--tabs__nav-link {
+    color: rgba(255, 255, 255, 0.7) !important;
+    background-color: transparent !important;
+
+    svg { fill: currentColor; }
+
+    &:hover {
+      color: #fff !important;
+    }
+
+    &:focus,
+    &:active {
+      outline-color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  // Selected indicator — blue bottom border (theme-aware)
+  .cds--tabs__nav-item--selected {
+    border-block-end: 2px solid var(--cds-link-inverse, #78a9ff) !important;
+  }
+
+  .cds--tabs__nav-item--selected .cds--tabs__nav-link,
+  .cds--tabs__nav-item--selected .cds--tabs__nav-link:hover {
+    color: #fff !important;
+    background-color: transparent !important;
+  }
+
+  .cds--tab-content {
+    display: none;
+  }
+}
+
+// ── Panel content ──
+.classroom-admin-panel {
+  width: 100%;
+  max-width: 84rem;
+  margin: 0 auto;
+  min-height: 0;
+  padding: layout.$spacing-06 layout.$spacing-10;
+}
+
+.classroom-admin-overview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(layout.rem(280px), 1fr);
+  gap: layout.$spacing-05;
+  align-items: start;
+}
+
+.classroom-admin-overview-layout__main,
+.classroom-admin-overview-layout__side {
+  min-width: 0;
+  display: grid;
+  gap: 0;
+}
+
+.classroom-admin-overview-layout__main > .classroom-admin-section,
+.classroom-admin-overview-layout__side > .classroom-admin-section {
+  margin-bottom: 0;
+}
+
+.classroom-admin-section {
+  padding: layout.$spacing-05 0;
+
+  & + & {
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+}
+
+.classroom-admin-section--invite {
+  padding: layout.$spacing-04 0;
+}
+
+.classroom-admin-section__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -96,167 +260,390 @@
   margin-bottom: layout.$spacing-04;
 }
 
-.classroom-detail__section-title {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-}
-
-.classroom-detail__section-title h3 {
-  @include type.type-style("productive-heading-03");
-  margin: 0;
-}
-
-.classroom-detail__section-icon {
-  color: var(--cds-icon-secondary);
-}
-
-// ── Card Grid ──────────────────────────────────────────
-.classroom-detail__card-grid {
-  display: grid;
-  gap: layout.$spacing-04;
-  grid-template-columns: repeat(auto-fill, minmax(layout.rem(280px), 1fr));
-}
-
-// ── Contest Card ───────────────────────────────────────
-.classroom-detail__contest-card {
-  min-height: layout.rem(130px);
-  position: relative;
-  transition: background 0.15s ease;
-}
-
-.classroom-detail__contest-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: layout.$spacing-03;
-  margin-bottom: layout.$spacing-03;
-}
-
-.classroom-detail__contest-card-name {
-  @include type.type-style("heading-02");
-  margin: 0;
-}
-
-.classroom-detail__contest-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: layout.$spacing-03;
-  color: var(--cds-text-secondary);
-  @include type.type-style("body-compact-01");
-}
-
-.classroom-detail__contest-card-meta-item {
-  display: inline-flex;
-  align-items: center;
-  gap: layout.$spacing-02;
-}
-
-// ── Announcement Cards ────────────────────────────────
-.classroom-detail__announcement-list {
-  display: grid;
-  gap: layout.$spacing-03;
-}
-
-.classroom-detail__ann-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: layout.$spacing-04;
-  background: var(--cds-layer);
-  border-left: 3px solid var(--cds-border-interactive);
-  padding: layout.$spacing-04 layout.$spacing-05;
-  cursor: pointer;
-  transition: box-shadow 0.15s ease, background 0.15s ease;
-
-  &:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    background: var(--cds-layer-hover);
-  }
-}
-
-.classroom-detail__ann-card--pinned {
-  border-left-color: var(--cds-support-warning);
-}
-
-.classroom-detail__ann-card-title {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-02;
-  min-width: 0;
-
-  h4 {
-    @include type.type-style("heading-02");
+.classroom-admin-section__title {
+  h3 {
+    @include type.type-style("productive-heading-03");
+    font-weight: 300;
     margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: var(--cds-text-primary);
   }
 }
 
-.classroom-detail__ann-card-pin {
-  flex-shrink: 0;
-  color: var(--cds-support-warning);
-}
-
-.classroom-detail__ann-card-meta {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
+.classroom-admin-members-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) layout.rem(180px) auto;
+  align-items: end;
   gap: layout.$spacing-03;
-  @include type.type-style("label-01");
-  color: var(--cds-text-placeholder);
+  margin-bottom: layout.$spacing-04;
 }
 
-.classroom-detail__ann-card-date {
-  display: inline-flex;
-  align-items: center;
-  gap: layout.$spacing-02;
+.classroom-admin-member-search {
+  margin-bottom: layout.$spacing-05;
 }
 
-// ── Announcement View Modal ─────────────────────────
-.classroom-detail__ann-view {
+.classroom-admin-member-groups {
   display: grid;
   gap: layout.$spacing-05;
 }
 
-.classroom-detail__ann-view-meta {
+.classroom-admin-member-group__title {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 layout.$spacing-03;
+}
+
+.classroom-admin-members-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+  margin-bottom: layout.$spacing-03;
+}
+
+.classroom-admin-members-toolbar__search {
+  min-width: 0;
+}
+
+.classroom-admin-members-toolbar__select {
+  min-width: layout.rem(160px);
+}
+
+.classroom-admin-members-toolbar__meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: layout.$spacing-03;
+  white-space: nowrap;
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.classroom-admin-announcement-list {
+  display: grid;
+  gap: layout.$spacing-03;
+}
+
+.classroom-admin-announcement-card {
+  @include card.interactive($override-tile: true);
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  border: 1px solid var(--cds-border-subtle);
+  border-left: 3px solid var(--cds-border-interactive);
+  transition: background-color 110ms ease, border-color 110ms ease;
+
+  &:hover {
+    border-color: var(--cds-border-interactive);
+  }
+}
+
+.classroom-admin-announcement-card--pinned {
+  border-left-color: var(--cds-support-warning);
+}
+
+.classroom-admin-announcement-card__head {
   display: flex;
   align-items: center;
   gap: layout.$spacing-03;
+  min-width: 0;
+
+  h4 {
+    @include type.type-style("heading-compact-02");
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--cds-text-primary);
+  }
+}
+
+.classroom-admin-announcement-card__pin {
+  color: var(--cds-support-warning);
+  flex-shrink: 0;
+}
+
+.classroom-admin-announcement-card__date {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.classroom-admin-announcement-card__preview {
+  @include type.type-style("body-compact-01");
+  margin: 0;
+  color: var(--cds-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.classroom-admin-announcement-view {
+  display: grid;
+  gap: layout.$spacing-05;
+}
+
+.classroom-admin-announcement-view__meta {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  color: var(--cds-text-secondary);
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: layout.$spacing-02;
+  }
 }
 
-.classroom-detail__ann-view-body {
-  padding-top: layout.$spacing-03;
+.classroom-admin-announcement-view__body {
   border-top: 1px solid var(--cds-border-subtle);
+  padding-top: layout.$spacing-04;
 }
 
-// ── Empty State ────────────────────────────────────────
-.classroom-detail__empty {
+.classroom-admin-card-grid {
+  display: grid;
+  gap: layout.$spacing-03;
+  grid-template-columns: repeat(auto-fill, minmax(layout.rem(280px), 1fr));
+}
+
+.classroom-admin-mini-list {
+  display: grid;
+  gap: layout.$spacing-02;
+}
+
+.classroom-admin-section--todo {
+  padding-bottom: layout.$spacing-03;
+}
+
+.classroom-admin-todo-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: layout.$spacing-02;
+
+  button {
+    border: 1px solid var(--cds-border-subtle);
+    background: var(--cds-layer-02);
+    color: var(--cds-text-primary);
+    padding: layout.$spacing-03;
+    text-align: left;
+    display: grid;
+    gap: layout.$spacing-01;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--cds-border-interactive);
+      background: var(--cds-layer-hover);
+    }
+
+    span {
+      @include type.type-style("label-01");
+      color: var(--cds-text-secondary);
+    }
+
+    strong {
+      @include type.type-style("heading-compact-02");
+      color: var(--cds-text-primary);
+      font-weight: 500;
+    }
+  }
+}
+
+.classroom-admin-mini-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: layout.$spacing-03 layout.$spacing-04;
+  gap: layout.$spacing-03;
+}
+
+.classroom-admin-mini-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+  min-width: 0;
+}
+
+.classroom-admin-mini-card__name {
+  @include type.type-style("heading-compact-01");
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.classroom-admin-mini-card__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+}
+
+.classroom-admin-mini-card__date {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+
+
+.classroom-settings-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: layout.$spacing-05;
+}
+
+.classroom-settings-meta-value {
+  @include type.type-style("body-compact-01");
+}
+
+.classroom-settings-heading {
+  @include type.type-style("productive-heading-04");
+  margin: 0;
+}
+
+// ── Icon picker in settings ──
+.classroom-icon-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+}
+
+.classroom-icon-picker__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 999px;
+  background: var(--cds-layer-01);
+  color: var(--cds-icon-secondary);
+  cursor: pointer;
+  transition: all 100ms ease;
+
+  &:hover {
+    border-color: var(--cds-border-interactive);
+  }
+
+  &--active {
+    border-color: var(--cds-border-interactive);
+    background: var(--cds-layer-selected-01);
+    color: var(--cds-icon-primary);
+  }
+}
+
+.classroom-admin-empty-block {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: layout.$spacing-03;
-  padding: layout.$spacing-07 layout.$spacing-05;
-  color: var(--cds-text-secondary);
+  gap: layout.$spacing-02;
   text-align: center;
+  padding: layout.$spacing-05 layout.$spacing-04;
+  min-height: layout.rem(140px);
+  color: var(--cds-text-secondary);
+  background: var(--cds-layer-02);
+  border: 1px dashed var(--cds-border-subtle);
 }
 
-.classroom-detail__empty-icon {
+.classroom-admin-empty-block--compact {
+  min-height: layout.rem(96px);
+  padding: layout.$spacing-04;
+}
+
+.classroom-admin-empty-block__icon {
   color: var(--cds-icon-disabled);
 }
 
-.classroom-detail__empty p {
-  @include type.type-style("body-compact-01");
+.classroom-admin-empty-block p {
   margin: 0;
 }
 
-// ── Invite Code (inline in Members tab) ───────────────
-.classroom-detail__invite-inline {
-  margin-bottom: layout.$spacing-05;
-  padding: layout.$spacing-04 layout.$spacing-05;
-  background: var(--cds-layer);
-  border-left: 3px solid var(--cds-border-interactive);
+@media (max-width: 1056px) {
+  .classroom-hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .classroom-admin-overview-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 672px) {
+  .classroom-tabs-bar {
+    padding: 0 layout.$spacing-05;
+  }
+
+  .classroom-hero-content {
+    padding: layout.$spacing-05 layout.$spacing-05 layout.$spacing-04;
+    gap: layout.$spacing-03;
+  }
+
+  .classroom-hero-icon svg {
+    width: layout.rem(36px);
+    height: layout.rem(36px);
+  }
+
+  .classroom-hero-title {
+    font-size: 1.75rem;
+  }
+
+  .classroom-hero-desc {
+    font-size: 1rem;
+  }
+
+  .classroom-admin-page {
+    padding: 0;
+  }
+
+  .classroom-admin-panel {
+    padding: layout.$spacing-04 layout.$spacing-05;
+  }
+
+  .classroom-admin-todo-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .classroom-admin-members-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .classroom-admin-members-summary {
+    margin-bottom: layout.$spacing-02;
+  }
+
+  .classroom-admin-members-toolbar__select {
+    min-width: 0;
+  }
+
+  .classroom-admin-members-toolbar__meta {
+    justify-content: space-between;
+    white-space: normal;
+  }
+
+  .classroom-admin-section {
+    padding: layout.$spacing-04 0;
+  }
+
+  .classroom-admin-announcement-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .classroom-admin-announcement-card__meta {
+    width: 100%;
+    flex-wrap: wrap;
+  }
 }

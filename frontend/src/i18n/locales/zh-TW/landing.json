@@ -1,248 +1,256 @@
 {
-  "hero": {
-    "title": "QJudge，最安全穩定的線上考試平台",
-    "subtitle": "專為學術現場打造的高品質測驗環境。整合 AI 監考偵測、紙筆題型與即時評測，讓每一場考試都兼具公平、效率與深度。",
+  "contact": {
+    "description": "歡迎回饋、Bug 回報或合作洽談，透過以下方式與我們聯繫。",
+    "email": {
+      "title": "電子郵件"
+    },
+    "eyebrow": "聯絡我們",
+    "github": {
+      "title": "GitHub"
+    },
+    "title": "有任何問題或建議？",
+    "university": {
+      "title": "合作院校",
+      "value": "國立陽明交通大學"
+    }
+  },
+  "cta": {
+    "description": "立即加入 QJudge，展開程式學習之旅，免費使用。",
+    "docs": "了解更多",
     "signIn": "立即登入",
-    "register": "免費註冊",
-    "badge": {
-      "product": "QJudge",
-      "tagline": "專業程式測驗平台"
-    },
-    "signal": {
-      "realtime": "即時評測",
-      "sandbox": "沙盒執行",
-      "report": "詳細報告"
-    },
-    "visual": {
-      "title": "程式測驗流程",
-      "desc": "Code -> Judge -> Verdict",
-      "proctoring": "監考狀態",
-      "fullscreen": "全螢幕模式",
-      "detection": "分頁切換偵測",
-      "violations": "違規次數",
-      "ai_monitoring": "AI 違規偵測",
-      "proctoring_video": "視訊監控",
-      "remaining": "剩餘時間"
-    }
+    "title": "準備好開始了嗎？"
   },
-  "seo": {
-    "title": "QJudge | 最安全穩定的線上考試平台",
-    "description": "QJudge 是一個專為教學現場設計的線上考試與評測平台，支援 20+ 種程式語言、多元題型整合、嚴格防作弊監控與 AI 輔助出題，提供最完善的數位評量體驗。"
-  },
-  "modes": {
-    "eyebrow": "Diverse Modes",
-    "title": "支援多種競賽與學習模式",
-    "items": {
-      "coding": {
-        "label": "程式開發測驗",
-        "desc": "針對演算法與邏輯實作的專業評測。"
-      },
-      "paper": {
-        "label": "紙筆題考試",
-        "desc": "整合 Markdown 與 LaTeX 的數位化傳統考卷。"
-      },
-      "lab": {
-        "label": "實驗室練習模式",
-        "desc": "純練習使用。按主題分類的題庫，讓學生無壓力自主精進。"
-      },
-      "takehome": {
-        "label": "帶回家專案",
-        "desc": "長週期、深度的開發專案測驗模式。",
-        "comingSoon": "即將推出"
-      },
-      "hackathon": {
-        "label": "團隊黑客松",
-        "desc": "多人協作與即時排行的團隊競賽模式。",
-        "comingSoon": "即將推出"
-      },
-      "adaptive": {
-        "label": "AI 自適應學習",
-        "desc": "根據弱點自動推薦題目的個人化路徑。",
-        "comingSoon": "即將推出"
-      }
-    }
-  },
-  "interactive": {
-    "eyebrow": "Solution Showcase",
-    "title": "深植於教學流程的每一處細節",
-    "items": {
-      "editor": {
-        "label": "AI 輔助出題",
-        "desc": "透過 AI 對話快速建立與修改各科考試題目，從設定到測資一步到位。"
-      },
-      "grading": {
-        "label": "批改與分析",
-        "desc": "視覺化成績總覽，即時掌握每位學生、每道題目的作答與批改進度。"
-      },
-      "proctor": {
-        "label": "監考防弊",
-        "desc": "即時偵測離開視窗、分頁切換等異常操作，自動警告並記錄違規行為。"
-      },
-      "stats": {
-        "label": "考試作答",
-        "desc": "清晰的題目列表與作答區域，讓學生專注於考試本身。"
-      }
-    }
-  },
-  "sections": {
-    "paper": {
-      "eyebrow": "Paper-like Exam",
-      "title": "不只是程式，更是一套完整的線上測驗系統",
-      "description": "支援單選、多選、是非與簡答題型。內建 Markdown 與 LaTeX 編輯器，能精確渲染複雜的數學公式與技術文件，滿足通識、理科到程式開發的多元需求。"
-    },
-    "antiCheat": {
-      "eyebrow": "Strict Proctoring",
-      "title": "無需安裝，領先業界的防作弊技術",
-      "description": "基於瀏覽器的全方位偵測，考生無需安裝任何插件或軟體即可進入嚴格監考環境。我們捍衛每一份努力，確保測驗的絕對公平性。",
-      "proctoring": {
-        "fullscreen": "全螢幕鎖定",
-        "tabSwitch": "分頁切換偵測",
-        "multiScreen": "多螢幕封鎖",
-        "mouseLeave": "滑鼠離開軌跡",
-        "noCopy": "禁止複製貼上",
-        "video": "視訊存證錄影",
-        "audio": "音訊異常偵測",
-        "face": "人臉身分驗證",
-        "ai": "AI 違規分析"
-      }
-    },
-    "teacher": {
-      "eyebrow": "Teacher Friendly",
-      "title": "讓老師專注於教學，剩下的交給 QJudge",
-      "description": "我們重新定義了數位批改體驗。直觀的三欄式批改面板、即時監考儀表板與自動化的成績統計分析，能節省 70% 以上的管理與閱卷時間。"
-    }
+  "exam": {
+    "description": "從程式開發到通識理論，QJudge 提供完整支援。內建 LaTeX 數學公式與 Markdown 編輯器，讓出題與作答同樣流暢。",
+    "eyebrow": "線上測驗",
+    "preview_text": "請計算下列積分：",
+    "tag1": "LaTeX 支援",
+    "tag2": "多樣題型",
+    "tag3": "自動批改",
+    "title": "全方位的測驗體驗"
   },
   "feature": {
+    "antiCheat": {
+      "description": "全螢幕強制鎖定、分頁切換偵測、視訊存證與 AI 違規分析，確保線上考試的絕對公平性。",
+      "title": "嚴格的防作弊監控"
+    },
     "judge": {
-      "title": "卓越的評測體驗",
-      "description": "支援 20+ 種程式語言，秒級回傳執行時間與記憶體資訊，並提供精確的 Diff 比對與錯誤追蹤。"
+      "description": "支援 20+ 種程式語言，秒級回傳執行時間與記憶體資訊，並提供精確的 Diff 比對與錯誤追蹤。",
+      "title": "卓越的評測體驗"
     },
     "paper": {
-      "title": "紙筆題型整合 (線上測驗)",
-      "description": "不只是程式碼。整合選擇、是非、問答等紙筆題型，支援 LaTeX 數學公式與 Markdown 排版，一站式完成多元評量。"
-    },
-    "antiCheat": {
-      "title": "嚴格的防作弊監控",
-      "description": "全螢幕強制鎖定、分頁切換偵測、視訊存證與 AI 違規分析，確保線上考試的絕對公平性。"
+      "description": "不只是程式碼。整合選擇、是非、問答等紙筆題型，支援 LaTeX 數學公式與 Markdown 排版，一站式完成多元評量。",
+      "title": "紙筆題型整合 (線上測驗)"
     },
     "teacher": {
-      "title": "更友善的教師系統",
-      "description": "直觀的批改面板、即時監考儀表板與詳細的成績統計，讓教師能將時間花在教學，而非瑣碎的管理工作。"
+      "description": "直觀的批改面板、即時監考儀表板與詳細的成績統計，讓教師能將時間花在教學，而非瑣碎的管理工作。",
+      "title": "更友善的教師系統"
     }
   },
   "features": {
     "eyebrow": "核心價值",
     "title": "專為教學現場設計的強大功能"
   },
-  "exam": {
-    "eyebrow": "線上測驗",
-    "title": "全方位的測驗體驗",
-    "description": "從程式開發到通識理論，QJudge 提供完整支援。內建 LaTeX 數學公式與 Markdown 編輯器，讓出題與作答同樣流暢。",
-    "tag1": "LaTeX 支援",
-    "tag2": "多樣題型",
-    "tag3": "自動批改",
-    "preview_text": "請計算下列積分："
+  "footer": {
+    "copyright": "© 2024 QJudge. 建立於 IBM Carbon Design System。"
   },
-  "miniJudge": {
-    "eyebrow": "互動示範",
-    "title": "簡單體驗 QJudge：題目、寫碼、提交、看結果",
-    "problem": {
-      "title": "費氏數列第 n 項",
-      "description": "給定整數 n，回傳第 n 項費氏數列。費氏數列定義為 F(0)=0, F(1)=1。",
-      "input": "輸入",
-      "output": "輸出"
+  "hero": {
+    "badge": {
+      "product": "QJudge",
+      "tagline": "專業程式測驗平台"
     },
-    "editor": {
-      "title": "程式碼輸入",
-      "submit": "模擬提交"
+    "register": "免費註冊",
+    "signIn": "立即登入",
+    "signal": {
+      "realtime": "即時評測",
+      "report": "詳細報告",
+      "sandbox": "沙盒執行"
     },
-    "result": {
-      "title": "測試結果",
-      "idle": "尚未提交",
-      "running": "評測中...",
-      "summary": "Passed {{passed}} / {{total}}"
-    }
-  },
-  "steps": {
-    "eyebrow": "使用流程",
-    "title": "四步驟開始你的程式旅程",
-    "browse": {
-      "title": "瀏覽題庫",
-      "description": "依難度與標籤篩選題目，查看說明與範例測資。"
-    },
-    "code": {
-      "title": "撰寫程式",
-      "description": "使用內建編輯器撰寫程式，支援語法高亮與自動補全。"
-    },
-    "submit": {
-      "title": "提交評測",
-      "description": "一鍵提交，即時取得測試結果與詳細報告。"
-    },
-    "improve": {
-      "title": "持續精進",
-      "description": "參與討論、查看他人解法，加入競賽或 Lab。"
+    "subtitle": "專為學術現場打造的高品質測驗環境。整合 AI 監考偵測、紙筆題型與即時評測，讓每一場考試都兼具公平、效率與深度。",
+    "title": "QJudge，最安全穩定的線上考試平台",
+    "visual": {
+      "ai_monitoring": "AI 違規偵測",
+      "desc": "Code -> Judge -> Verdict",
+      "detection": "分頁切換偵測",
+      "fullscreen": "全螢幕模式",
+      "proctoring": "監考狀態",
+      "proctoring_video": "視訊監控",
+      "remaining": "剩餘時間",
+      "title": "程式測驗流程",
+      "violations": "違規次數"
     }
   },
   "highlights": {
+    "docs": "查看文件",
     "eyebrow": "為什麼選擇 QJudge",
-    "title": "專為教學與競賽設計",
     "item1": "Lab 模式與進度追蹤",
     "item2": "即時競賽與排行榜",
     "item3": "測資差異與詳細比較",
     "item4": "討論串與公告整合",
     "item5": "基於 IBM Carbon 的現代化介面",
-    "docs": "查看文件"
+    "title": "專為教學與競賽設計"
   },
-  "testimonials": {
-    "eyebrow": "用戶回饋",
-    "title": "聽聽同學們怎麼說",
-    "quote1": "即時回饋讓我能快速找出程式問題，比傳統作業效率高很多！",
-    "quote2": "差異比較功能讓 debug 輕鬆許多，介面也很直覺。",
-    "quote3": "Lab 模式與課程進度結合，加上討論功能，學習效果明顯提升。",
-    "name1": "王同學",
-    "name2": "李同學",
-    "name3": "陳同學",
-    "title1": "NYCU 資財系 大三",
-    "title2": "NYCU 資財系 大二",
-    "title3": "NYCU 資財系 大三",
-    "badge": "國立陽明交通大學 資訊管理與財務金融學系"
+  "interactive": {
+    "eyebrow": "Solution Showcase",
+    "items": {
+      "editor": {
+        "desc": "透過 AI 對話快速建立與修改各科考試題目，從設定到測資一步到位。",
+        "label": "AI 輔助出題"
+      },
+      "grading": {
+        "desc": "視覺化成績總覽，即時掌握每位學生、每道題目的作答與批改進度。",
+        "label": "批改與分析"
+      },
+      "proctor": {
+        "desc": "即時偵測離開視窗、分頁切換等異常操作，自動警告並記錄違規行為。",
+        "label": "監考防弊"
+      },
+      "stats": {
+        "desc": "清晰的題目列表與作答區域，讓學生專注於考試本身。",
+        "label": "考試作答"
+      }
+    },
+    "title": "深植於教學流程的每一處細節"
   },
-  "contact": {
-    "eyebrow": "聯絡我們",
-    "title": "有任何問題或建議？",
-    "description": "歡迎回饋、Bug 回報或合作洽談，透過以下方式與我們聯繫。",
-    "email": {
-      "title": "電子郵件"
+  "miniJudge": {
+    "editor": {
+      "submit": "模擬提交",
+      "title": "程式碼輸入"
     },
-    "github": {
-      "title": "GitHub"
+    "eyebrow": "互動示範",
+    "problem": {
+      "description": "給定整數 n，回傳第 n 項費氏數列。費氏數列定義為 F(0)=0, F(1)=1。",
+      "input": "輸入",
+      "output": "輸出",
+      "title": "費氏數列第 n 項"
     },
-    "university": {
-      "title": "合作院校",
-      "value": "國立陽明交通大學"
+    "result": {
+      "idle": "尚未提交",
+      "running": "評測中...",
+      "summary": "Passed {{passed}} / {{total}}",
+      "title": "測試結果"
+    },
+    "title": "簡單體驗 QJudge：題目、寫碼、提交、看結果"
+  },
+  "modes": {
+    "eyebrow": "Diverse Modes",
+    "items": {
+      "adaptive": {
+        "comingSoon": "即將推出",
+        "desc": "根據弱點自動推薦題目的個人化路徑。",
+        "label": "AI 自適應學習"
+      },
+      "coding": {
+        "desc": "針對演算法與邏輯實作的專業評測。",
+        "label": "程式開發測驗"
+      },
+      "hackathon": {
+        "comingSoon": "即將推出",
+        "desc": "多人協作與即時排行的團隊競賽模式。",
+        "label": "團隊黑客松"
+      },
+      "lab": {
+        "desc": "純練習使用。按主題分類的題庫，讓學生無壓力自主精進。",
+        "label": "實驗室練習模式"
+      },
+      "paper": {
+        "desc": "整合 Markdown 與 LaTeX 的數位化傳統考卷。",
+        "label": "紙筆題考試"
+      },
+      "takehome": {
+        "comingSoon": "即將推出",
+        "desc": "長週期、深度的開發專案測驗模式。",
+        "label": "帶回家專案"
+      }
+    },
+    "title": "支援多種競賽與學習模式"
+  },
+  "sections": {
+    "antiCheat": {
+      "description": "基於瀏覽器的全方位偵測，考生無需安裝任何插件或軟體即可進入嚴格監考環境。我們捍衛每一份努力，確保測驗的絕對公平性。",
+      "eyebrow": "Strict Proctoring",
+      "proctoring": {
+        "ai": "AI 違規分析",
+        "aiDesc": "透過先進視覺模型自動偵測可疑行為。",
+        "audio": "音訊異常偵測",
+        "face": "人臉身分驗證",
+        "fullscreen": "全螢幕鎖定",
+        "fullscreenDesc": "強制全螢幕模式；離開將觸發警告或鎖定。",
+        "mouseLeave": "滑鼠離開軌跡",
+        "multiScreen": "多螢幕封鎖",
+        "multiScreenDesc": "確保學生僅使用單一授權螢幕。",
+        "noCopy": "禁止複製貼上",
+        "noCopyDesc": "透過禁止複製/貼上動作防止未授權內容傳輸。",
+        "screen": "螢幕監控",
+        "screenDesc": "持續擷取螢幕以防止考試期間使用未授權資源。",
+        "tabSwitch": "分頁切換偵測",
+        "tabSwitchDesc": "即時偵測並記錄瀏覽器分頁切換。",
+        "video": "視訊存證錄影",
+        "videoDesc": "即時網路攝影機監控，以驗證學生身份與環境。"
+      },
+      "title": "無需安裝，領先業界的防作弊技術"
+    },
+    "paper": {
+      "description": "支援單選、多選、是非與簡答題型。內建 Markdown 與 LaTeX 編輯器，能精確渲染複雜的數學公式與技術文件，滿足通識、理科到程式開發的多元需求。",
+      "eyebrow": "Paper-like Exam",
+      "title": "不只是程式，更是一套完整的線上測驗系統"
+    },
+    "teacher": {
+      "description": "我們重新定義了數位批改體驗。直觀的三欄式批改面板、即時監考儀表板與自動化的成績統計分析，能節省 70% 以上的管理與閱卷時間。",
+      "eyebrow": "Teacher Friendly",
+      "title": "讓老師專注於教學，剩下的交給 QJudge"
     }
+  },
+  "seo": {
+    "description": "QJudge 是一個專為教學現場設計的線上考試與評測平台，支援 20+ 種程式語言、多元題型整合、嚴格防作弊監控與 AI 輔助出題，提供最完善的數位評量體驗。",
+    "title": "QJudge | 最安全穩定的線上考試平台"
   },
   "stats": {
     "problems": "程式題目",
     "submissions": "提交次數",
-    "users": "活躍用戶",
-    "uptime": "系統穩定度"
+    "uptime": "系統穩定度",
+    "users": "活躍用戶"
   },
-  "cta": {
-    "title": "準備好開始了嗎？",
-    "description": "立即加入 QJudge，展開程式學習之旅，免費使用。",
-    "signIn": "立即登入",
-    "docs": "了解更多"
+  "steps": {
+    "browse": {
+      "description": "依難度與標籤篩選題目，查看說明與範例測資。",
+      "title": "瀏覽題庫"
+    },
+    "code": {
+      "description": "使用內建編輯器撰寫程式，支援語法高亮與自動補全。",
+      "title": "撰寫程式"
+    },
+    "eyebrow": "使用流程",
+    "improve": {
+      "description": "參與討論、查看他人解法，加入競賽或 Lab。",
+      "title": "持續精進"
+    },
+    "submit": {
+      "description": "一鍵提交，即時取得測試結果與詳細報告。",
+      "title": "提交評測"
+    },
+    "title": "四步驟開始你的程式旅程"
   },
-  "footer": {
-    "copyright": "© 2024 QJudge. 建立於 IBM Carbon Design System。"
+  "testimonials": {
+    "badge": "國立陽明交通大學 資訊管理與財務金融學系",
+    "eyebrow": "用戶回饋",
+    "name1": "王同學",
+    "name2": "李同學",
+    "name3": "陳同學",
+    "quote1": "即時回饋讓我能快速找出程式問題，比傳統作業效率高很多！",
+    "quote2": "差異比較功能讓 debug 輕鬆許多，介面也很直覺。",
+    "quote3": "Lab 模式與課程進度結合，加上討論功能，學習效果明顯提升。",
+    "title": "聽聽同學們怎麼說",
+    "title1": "NYCU 資財系 大三",
+    "title2": "NYCU 資財系 大二",
+    "title3": "NYCU 資財系 大三"
   },
   "visuals": {
-    "mathTitle": "數學公式渲染",
-    "topics": "題目單元",
     "continuePractice": "繼續練習",
-    "projectMode": "專案模式",
     "live": "直播中",
-    "personalizedPath": "個人化學習路徑"
+    "mathTitle": "數學公式渲染",
+    "personalizedPath": "個人化學習路徑",
+    "projectMode": "專案模式",
+    "topics": "題目單元"
   }
 }

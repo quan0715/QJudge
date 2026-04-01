@@ -7,3 +7,8 @@ export {
   type TriggerModalProps,
 } from "./TriggerModal";
 export { useConfirmModal } from "./useConfirmModal";
+export {
+  SettingsModal,
+  type SettingsModalNavItem,
+  type SettingsModalProps,
+} from "./SettingsModal";

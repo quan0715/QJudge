@@ -6,3 +6,4 @@ export * from "./submission.repository";
 export * from "./contest.repository";
 export * from "./discussion.repository";
 export * from "./chatbot.repository";
+export * from "./questionBank.repository";

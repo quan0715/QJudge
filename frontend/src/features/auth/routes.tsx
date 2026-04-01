@@ -3,7 +3,8 @@ import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
 import CampusSsoScreen from "./screens/CampusSsoScreen";
 import OAuthCallbackScreen from "./screens/OAuthCallbackScreen";
-import UserSettingsScreen from "./screens/UserSettingsScreen";
+import OnboardingScreen from "./screens/OnboardingScreen";
+import TeacherActivationScreen from "./screens/TeacherActivationScreen";
 
 /**
  * Guest 路由（需在 RequireGuest + AuthLayout 內使用）
@@ -24,9 +25,10 @@ export const oauthCallbackRoute = (
   <Route path="/auth/:provider/callback" element={<OAuthCallbackScreen />} />
 );
 
-/**
- * Settings 路由（需在 RequireAuth + MainLayout 內使用）
- */
-export const settingsRoute = (
-  <Route path="/settings" element={<UserSettingsScreen />} />
+export const onboardingRoute = (
+  <Route path="/onboarding" element={<OnboardingScreen />} />
+);
+
+export const teacherActivationRoute = (
+  <Route path="/teacher-activation" element={<TeacherActivationScreen />} />
 );

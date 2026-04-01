@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ProgressBar, Tag, Tile } from "@carbon/react";
+import { ProgressBar, SkeletonText, Tag, Tile } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail, ContestOverviewMetrics } from "@/core/entities/contest.entity";
 import { getContestState, getContestStateColor, getContestStateLabel } from "@/core/entities/contest.entity";
@@ -13,11 +13,13 @@ import styles from "./OverviewInsightsPanel.module.scss";
 interface OverviewInsightsPanelProps {
   contest: ContestDetail;
   overviewMetrics: ContestOverviewMetrics | null;
+  loading?: boolean;
 }
 
 export default function OverviewInsightsPanel({
   contest,
   overviewMetrics,
+  loading = false,
 }: OverviewInsightsPanelProps) {
   const { t } = useTranslation("contest");
   const snapshot = resolveOverviewSnapshot(contest, overviewMetrics);
@@ -38,6 +40,24 @@ export default function OverviewInsightsPanel({
       window.clearInterval(timerId);
     };
   }, []);
+
+  if (loading) {
+    return (
+      <aside className={styles.panel}>
+        <h3 className={styles.title}>
+          {t("adminOverview.sidebar.title", "考試摘要")}
+        </h3>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Tile key={i} className={styles.tile}>
+            <SkeletonText width="50%" />
+            <SkeletonText heading width="70%" />
+            <SkeletonText width="100%" />
+            <SkeletonText width="80%" />
+          </Tile>
+        ))}
+      </aside>
+    );
+  }
 
   return (
     <aside className={styles.panel}>

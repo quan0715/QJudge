@@ -1,143 +1,158 @@
 {
+  "button": {
+    "create": "作成"
+  },
+  "difficulty": {
+    "easy": "簡単",
+    "hard": "難しい",
+    "medium": "普通"
+  },
+  "edit": {
+    "actions": {
+      "back": "戻る",
+      "delete": "削除",
+      "export": "エクスポート",
+      "import": "インポート",
+      "preview": "プレビュー",
+      "save": "保存"
+    },
+    "exportModal": {
+      "cancel": "キャンセル",
+      "description": "バックアップや他のシステムへのインポート用に、問題データをYAML形式でエクスポートします。",
+      "scaleLabel": "スケール",
+      "scalePlaceholder": "スケールを選択",
+      "submit": "エクスポート",
+      "title": "問題をエクスポート"
+    },
+    "messages": {
+      "deleteFailed": "削除失敗",
+      "deleteSuccess": "削除成功",
+      "deleteSuccessDetail": "リダイレクト中...",
+      "exportSuccess": "YAMLエクスポート成功",
+      "exportSuccessDetail": "ファイルがダウンロードされました",
+      "importSuccess": "インポート成功",
+      "importSuccessDetail": "YAMLデータがインポートされ保存されました",
+      "importSuccessSaveFailed": "インポートには成功しましたが、自動保存に失敗しました",
+      "loadFailed": "問題データの読み込みに失敗しました",
+      "noPermission": "この問題を編集する権限がありません",
+      "noPermissionTitle": "権限がありません",
+      "notFound": "問題が見つかりません"
+    },
+    "sections": {
+      "basicInfo": "基本情報",
+      "content": "問題内容",
+      "languageSettings": "言語設定",
+      "testCases": "テストケース"
+    },
+    "status": {
+      "hidden": "問題が非表示になりました",
+      "private": "問題が非公開に設定されました",
+      "public": "問題が公開されました"
+    }
+  },
+  "editor": {
+    "header": "題目編輯器",
+    "selectLanguage": "選擇語言"
+  },
+  "filter": {
+    "difficulty": "難易度",
+    "noTags": "利用可能なタグはありません",
+    "solved": "解決済み",
+    "status": "ステータス",
+    "tags": "タグ",
+    "unsolved": "未解決"
+  },
+  "form": {
+    "placeholder": {
+      "title": "請輸入題目名稱"
+    },
+    "slug": "URLスラッグ",
+    "title": "タイトル"
+  },
+  "hero": {
+    "acRate": "通過率",
+    "accepted": "通過次數",
+    "memoryLimit": "記憶體限制",
+    "score": "配分",
+    "submissions": "提交次數",
+    "timeLimit": "時間限制"
+  },
+  "import": {
+    "applyToForm": "フォームに適用",
+    "cancel": "キャンセル",
+    "cases": "個",
+    "chooseFile": "ファイルを選択",
+    "close": "閉じる",
+    "codeTemplates": "コードテンプレート",
+    "importFailed": "インポート失敗",
+    "importProblem": "問題をインポート",
+    "importSuccess": "インポート成功",
+    "importSuccessDesc": "問題が正常に作成されました。問題プレビューにリダイレクトしています...",
+    "languages": "言語",
+    "memoryLimit": "メモリ制限",
+    "modalTitle": "YAMLから問題をインポート",
+    "parsing": "解析中...",
+    "parsingDesc": "お待ちください、ファイルを検証しています",
+    "pastePlaceholder": "YAML内容をここに貼り付けてください...",
+    "pasteYAML": "YAML内容を直接貼り付け",
+    "populateFormTitle": "YAMLをインポートしてフォームを上書き",
+    "preview": "プレビュー",
+    "samples": "サンプル",
+    "testCases": "テストケース",
+    "timeLimit": "時間制限",
+    "translations": "翻訳",
+    "uploadDesc": "YAMLファイルをアップロードまたは貼り付けると、現在のフォーム内容が上書きされます。",
+    "uploadDescCreate": "問題定義、テストケース、メタデータを含むYAMLドキュメントをアップロードします。",
+    "uploadHelperText": "最大ファイルサイズは5MBです。.yamlまたは.ymlファイルのみがサポートされています。",
+    "uploadYAML": "YAMLファイルをアップロード",
+    "validationError": "検証エラー",
+    "validationErrorDesc": "YAMLファイルで{{count}}個のエラーが見つかりました",
+    "viewFormat": "形式仕様を表示 →"
+  },
+  "list": {
+    "acrRate": "正解率",
+    "noResults": "条件に一致する問題が見つかりませんでした",
+    "searchPlaceholder": "問題を検索...",
+    "subtitle": "様々な難易度のアルゴリズム課題に挑戦し、プログラミング能力を向上させましょう。",
+    "title": "問題解決 / Problem Solving",
+    "totalLoaded": "全 {{count}} 問を読み込みました",
+    "tryAdjustFilters": "フィルターを調整してみてください"
+  },
   "management": {
     "description": "問題を管理",
     "problemCount": "全 {{count}} 問"
   },
-  "button": {
-    "create": "作成"
-  },
-  "form": {
-    "title": "タイトル",
-    "slug": "URLスラッグ"
-  },
-  "section": {
-    "description": "問題文",
-    "inputDescription": "入力形式",
-    "outputDescription": "出力形式",
-    "sampleTestCases": "サンプルテスト",
-    "hint": "ヒント",
-    "codeRestrictions": "コード制限",
-    "requiredKeywords": "必須キーワード：",
-    "forbiddenKeywords": "禁止キーワード："
+  "modal": {
+    "confirmDelete": "削除の確認",
+    "confirmSubmit": "提出確認",
+    "createError": "作成に失敗しました。後でもう一度お試しください",
+    "createSuccess": "問題が作成されました！",
+    "createTitle": "問題作成",
+    "deleteConfirmMessage": "問題「{{title}}」を削除してもよろしいですか？この操作は取り消せません。",
+    "submitConfirmMessage": "この操作により、すべての非公開テストケースが評価されます。",
+    "submitConfirmTitle": "解答を提出しますか？",
+    "submitting": "提出中..."
   },
   "sample": {
+    "empty": "（空）",
     "example": "例 {{index}}",
     "input": "入力",
-    "output": "出力",
-    "empty": "（空）"
+    "output": "出力"
   },
-  "list": {
-    "title": "問題解決 / Problem Solving",
-    "subtitle": "様々な難易度のアルゴリズム課題に挑戦し、プログラミング能力を向上させましょう。",
-    "searchPlaceholder": "問題を検索...",
-    "noResults": "条件に一致する問題が見つかりませんでした",
-    "tryAdjustFilters": "フィルターを調整してみてください",
-    "totalLoaded": "全 {{count}} 問を読み込みました",
-    "acrRate": "正解率"
-  },
-  "filter": {
-    "status": "ステータス",
-    "solved": "解決済み",
-    "unsolved": "未解決",
-    "difficulty": "難易度",
-    "tags": "タグ",
-    "noTags": "利用可能なタグはありません"
+  "section": {
+    "codeRestrictions": "コード制限",
+    "description": "問題文",
+    "forbiddenKeywords": "禁止キーワード：",
+    "hint": "ヒント",
+    "inputDescription": "入力形式",
+    "outputDescription": "出力形式",
+    "requiredKeywords": "必須キーワード：",
+    "sampleTestCases": "サンプルテスト"
   },
   "tabs": {
-    "description": "問題文",
     "code": "コード",
-    "submissions": "提出履歴",
-    "stats": "統計"
-  },
-  "modal": {
-    "confirmSubmit": "提出確認",
-    "submitting": "提出中...",
-    "submitConfirmTitle": "解答を提出しますか？",
-    "submitConfirmMessage": "この操作により、すべての非公開テストケースが評価されます。",
-    "createTitle": "問題作成",
-    "createSuccess": "問題が作成されました！",
-    "createError": "作成に失敗しました。後でもう一度お試しください",
-    "confirmDelete": "削除の確認",
-    "deleteConfirmMessage": "問題「{{title}}」を削除してもよろしいですか？この操作は取り消せません。"
-  },
-  "import": {
-    "modalTitle": "YAMLから問題をインポート",
-    "populateFormTitle": "YAMLをインポートしてフォームを上書き",
-    "applyToForm": "フォームに適用",
-    "importProblem": "問題をインポート",
-    "close": "閉じる",
-    "cancel": "キャンセル",
-    "uploadDesc": "YAMLファイルをアップロードまたは貼り付けると、現在のフォーム内容が上書きされます。",
-    "uploadDescCreate": "問題定義、テストケース、メタデータを含むYAMLドキュメントをアップロードします。",
-    "viewFormat": "形式仕様を表示 →",
-    "uploadYAML": "YAMLファイルをアップロード",
-    "uploadHelperText": "最大ファイルサイズは5MBです。.yamlまたは.ymlファイルのみがサポートされています。",
-    "chooseFile": "ファイルを選択",
-    "pasteYAML": "YAML内容を直接貼り付け",
-    "pastePlaceholder": "YAML内容をここに貼り付けてください...",
-    "parsing": "解析中...",
-    "parsingDesc": "お待ちください、ファイルを検証しています",
-    "validationError": "検証エラー",
-    "validationErrorDesc": "YAMLファイルで{{count}}個のエラーが見つかりました",
-    "importSuccess": "インポート成功",
-    "importSuccessDesc": "問題が正常に作成されました。問題プレビューにリダイレクトしています...",
-    "importFailed": "インポート失敗",
-    "preview": "プレビュー",
-    "timeLimit": "時間制限",
-    "memoryLimit": "メモリ制限",
-    "testCases": "テストケース",
-    "translations": "翻訳",
-    "codeTemplates": "コードテンプレート",
-    "cases": "個",
-    "samples": "サンプル",
-    "languages": "言語"
-  },
-  "difficulty": {
-    "easy": "簡単",
-    "medium": "普通",
-    "hard": "難しい"
-  },
-  "edit": {
-    "sections": {
-      "basicInfo": "基本情報",
-      "content": "問題内容",
-      "testCases": "テストケース",
-      "languageSettings": "言語設定"
-    },
-    "actions": {
-      "import": "インポート",
-      "export": "エクスポート",
-      "preview": "プレビュー",
-      "save": "保存",
-      "delete": "削除",
-      "back": "戻る"
-    },
-    "messages": {
-      "importSuccess": "インポート成功",
-      "importSuccessDetail": "YAMLデータがインポートされ保存されました",
-      "importSuccessSaveFailed": "インポートには成功しましたが、自動保存に失敗しました",
-      "deleteSuccess": "削除成功",
-      "deleteSuccessDetail": "リダイレクト中...",
-      "deleteFailed": "削除失敗",
-      "exportSuccess": "YAMLエクスポート成功",
-      "exportSuccessDetail": "ファイルがダウンロードされました",
-      "loadFailed": "問題データの読み込みに失敗しました",
-      "notFound": "問題が見つかりません",
-      "noPermission": "この問題を編集する権限がありません",
-      "noPermissionTitle": "権限がありません"
-    },
-    "status": {
-      "public": "問題が公開されました",
-      "private": "問題が非公開に設定されました",
-      "hidden": "問題が非表示になりました"
-    },
-    "exportModal": {
-      "title": "問題をエクスポート",
-      "submit": "エクスポート",
-      "cancel": "キャンセル",
-      "scaleLabel": "スケール",
-      "scalePlaceholder": "スケールを選択",
-      "description": "バックアップや他のシステムへのインポート用に、問題データをYAML形式でエクスポートします。"
-    }
+    "description": "問題文",
+    "stats": "統計",
+    "submissions": "提出履歴"
   }
 }

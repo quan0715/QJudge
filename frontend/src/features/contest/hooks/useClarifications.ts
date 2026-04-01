@@ -53,7 +53,7 @@ export const useClarifications = (
         if (Array.isArray(annData)) {
           rawAnns = annData;
         }
-        setAnnouncements(rawAnns.map(mapContestAnnouncementDto));
+        setAnnouncements(rawAnns.map((item: any) => mapContestAnnouncementDto(item)));
         setError(null);
       } catch (err) {
         setError(err as Error);

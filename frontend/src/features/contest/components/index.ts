@@ -5,7 +5,6 @@ export { default as ContestTabs } from "./layout/ContestTabs";
 export { default as ContestExitModal } from "./layout/ContestExitModal";
 
 // Modal Components
-export { AddAdminModal } from "./modals/AddAdminModal";
 export { AddParticipantModal } from "./modals/AddParticipantModal";
 export { AddUserModal } from "./modals/AddUserModal";
 export { ContestDownloadModal } from "./modals/ContestDownloadModal";
@@ -27,7 +26,7 @@ export { default as ContestScoreboard } from "./ContestScoreboard";
 
 // Preview Components
 export { default as ContestPreviewCard } from "./ContestPreviewCard";
-export { AnnouncementsSection } from "./AnnouncementsSection";
+export { AnnouncementSectionLayout } from "./AnnouncementSectionLayout";
 export { DiscussionsSection } from "./DiscussionsSection";
 
 // Solver Components (contest-specific)

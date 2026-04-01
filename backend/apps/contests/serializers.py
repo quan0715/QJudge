@@ -14,6 +14,7 @@ from .models import (
     ExamEvent,
     ContestActivity,
     ExamStatus,
+    AssignmentState,
     ExamAnswer,
     ExamEvidenceVideo,
 )
@@ -34,6 +35,10 @@ class ContestListSerializer(serializers.ModelSerializer):
     owner_username = serializers.CharField(source='owner.username', read_only=True)
     participant_count = serializers.SerializerMethodField()
     is_registered = serializers.SerializerMethodField()
+    question_edit_locked = serializers.BooleanField(read_only=True)
+    question_edit_locked_at = serializers.DateTimeField(read_only=True)
+    question_edit_lock_trigger = serializers.CharField(read_only=True)
+    delivery_mode = serializers.CharField(read_only=True)
     
     class Meta:
         model = Contest
@@ -44,9 +49,13 @@ class ContestListSerializer(serializers.ModelSerializer):
             'end_time',
             'status',
             'visibility',
+            'delivery_mode',
             'owner_username',
             'participant_count',
             'is_registered',
+            'question_edit_locked',
+            'question_edit_locked_at',
+            'question_edit_lock_trigger',
             'created_at',
         ]
     
@@ -78,13 +87,21 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     lock_reason = serializers.SerializerMethodField()
     submit_reason = serializers.SerializerMethodField()
     exam_status = serializers.SerializerMethodField()
+    assignment_state = serializers.SerializerMethodField()
+    accepted_at = serializers.SerializerMethodField()
+    submitted_at = serializers.SerializerMethodField()
     auto_unlock_at = serializers.SerializerMethodField()
     my_nickname = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
     admins = serializers.SerializerMethodField()
+    is_classroom_bound = serializers.SerializerMethodField()
+    bound_classroom_id = serializers.SerializerMethodField()
     is_exam_questions_frozen = serializers.SerializerMethodField()
     exam_questions_count = serializers.SerializerMethodField()
+    question_edit_locked = serializers.BooleanField(read_only=True)
+    question_edit_locked_at = serializers.DateTimeField(read_only=True)
+    question_edit_lock_trigger = serializers.CharField(read_only=True)
 
     # SSoT computed flags — frontend should consume these instead of deriving from examStatus
     is_exam_monitored = serializers.SerializerMethodField()
@@ -106,9 +123,11 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'status',
             'visibility',
             'contest_type',
+            'delivery_mode',
             'cheat_detection_enabled',
             'anticheat_device_policy',
             'warning_timeout_seconds',
+            'screen_share_recovery_grace_ms',
             'scoreboard_visible_during_contest',
             'owner_username',
             'created_at',
@@ -125,6 +144,9 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'lock_reason',
             'submit_reason',
             'exam_status',
+            'assignment_state',
+            'accepted_at',
+            'submitted_at',
             'auto_unlock_at',
             'problems',
             'allow_multiple_joins',
@@ -134,9 +156,14 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'anonymous_mode_enabled',
             'participant_count',
             'admins',
+            'is_classroom_bound',
+            'bound_classroom_id',
             'results_published',
             'is_exam_questions_frozen',
             'exam_questions_count',
+            'question_edit_locked',
+            'question_edit_locked_at',
+            'question_edit_lock_trigger',
             'is_exam_monitored',
             'requires_fullscreen',
             'can_submit_exam',
@@ -184,6 +211,22 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         """Get submit reason for current user."""
         registration = self._get_current_registration(obj)
         return registration.submit_reason if registration else None
+
+    def get_assignment_state(self, obj):
+        registration = self._get_current_registration(obj)
+        if not registration:
+            return None
+        if obj.delivery_mode != 'practice':
+            return AssignmentState.ACCEPTED
+        return registration.assignment_state
+
+    def get_accepted_at(self, obj):
+        registration = self._get_current_registration(obj)
+        return registration.accepted_at if registration else None
+
+    def get_submitted_at(self, obj):
+        registration = self._get_current_registration(obj)
+        return registration.submitted_at if registration else None
     
     def get_auto_unlock_at(self, obj):
         """Calculate auto unlock time for current user if locked."""
@@ -238,9 +281,25 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         admins = obj.admins.all()
         return [{'id': u.id, 'username': u.username} for u in admins]
 
+    def _get_primary_classroom_binding(self, obj):
+        return (
+            obj.classroom_bindings.select_related('classroom')
+            .order_by('bound_at')
+            .first()
+        )
+
+    def get_is_classroom_bound(self, obj):
+        return self._get_primary_classroom_binding(obj) is not None
+
+    def get_bound_classroom_id(self, obj):
+        binding = self._get_primary_classroom_binding(obj)
+        if binding is None:
+            return None
+        return str(binding.classroom.uuid)
+
     def get_is_exam_questions_frozen(self, obj):
-        """考試題目是否已凍結（有學生開始作答後為 True）"""
-        return obj.has_exam_started()
+        """Backward-compat alias; use question_edit_locked as single source of truth."""
+        return bool(obj.question_edit_locked)
 
     def get_exam_questions_count(self, obj):
         """紙筆題數量"""
@@ -280,10 +339,19 @@ class ContestDetailSerializer(serializers.ModelSerializer):
 
         is_privileged = bool(user and can_manage_contest(user, obj))
 
+        from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+        def _get_coding_bindings():
+            return (
+                obj.question_bindings
+                .filter(binding_type=QuestionAsset.AssetType.CODING)
+                .select_related('coding_problem', 'question_asset', 'question_version')
+                .order_by('order')
+            )
+
         # Privileged users can always see problems
         if is_privileged:
-            contest_problems = obj.contest_problems.select_related('problem').order_by('order')
-            return ContestProblemSerializer(contest_problems, many=True, context=self.context).data
+            return ContestProblemSerializer(_get_coding_bindings(), many=True, context=self.context).data
 
         # Check if user is a registered participant
         is_participant = self._get_current_registration(obj) is not None
@@ -301,15 +369,13 @@ class ContestDetailSerializer(serializers.ModelSerializer):
 
         # Archived contests are read-only but visible to participants
         if obj.status == 'archived':
-            contest_problems = obj.contest_problems.select_related('problem').order_by('order')
-            return ContestProblemSerializer(contest_problems, many=True, context=self.context).data
+            return ContestProblemSerializer(_get_coding_bindings(), many=True, context=self.context).data
 
         # Hide problems if contest hasn't started yet
         if obj.start_time and now < obj.start_time:
             return []
 
-        contest_problems = obj.contest_problems.select_related('problem').order_by('order')
-        return ContestProblemSerializer(contest_problems, many=True, context=self.context).data
+        return ContestProblemSerializer(_get_coding_bindings(), many=True, context=self.context).data
 
 
 class ContestCreateUpdateSerializer(serializers.ModelSerializer):
@@ -329,9 +395,11 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'visibility',
             'password',
             'contest_type',
+            'delivery_mode',
             'cheat_detection_enabled',
             'anticheat_device_policy',
             'warning_timeout_seconds',
+            'screen_share_recovery_grace_ms',
             'scoreboard_visible_during_contest',
             'allow_multiple_joins',
             'max_cheat_warnings',
@@ -425,18 +493,29 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
 
 class ContestProblemSerializer(serializers.ModelSerializer):
     """
-    Serializer for problems within a contest.
-    Includes label and problem summary.
+    Serializer for coding problems within a contest.
+    Reads from ContestQuestionBinding (the unified binding model).
+    API response shape is unchanged for backward compatibility.
     """
-    problem_id = serializers.IntegerField(source='problem.id', read_only=True)
-    title = serializers.CharField(source='problem.title', read_only=True)
-    difficulty = serializers.CharField(source='problem.difficulty', read_only=True)
+    from apps.question_bank.models import ContestQuestionBinding
+
+    problem_id = serializers.SerializerMethodField()
+    title = serializers.SerializerMethodField()
+    difficulty = serializers.SerializerMethodField()
     label = serializers.CharField(read_only=True)
     score = serializers.SerializerMethodField()
+    max_score = serializers.SerializerMethodField()
+    source_bank = serializers.SerializerMethodField()
+    source_question_id = serializers.UUIDField(read_only=True)
+    source_mode = serializers.CharField(read_only=True)
     user_status = serializers.SerializerMethodField()
-    
+    question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
+    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
+    binding_id = serializers.SerializerMethodField()
+
     class Meta:
-        model = ContestProblem
+        from apps.question_bank.models import ContestQuestionBinding
+        model = ContestQuestionBinding
         fields = [
             'id',
             'problem_id',
@@ -444,49 +523,94 @@ class ContestProblemSerializer(serializers.ModelSerializer):
             'label',
             'order',
             'score',
+            'max_score',
+            'source_bank',
+            'source_question_id',
+            'source_mode',
+            'question_asset_id',
+            'question_version_id',
+            'binding_id',
             'difficulty',
             'user_status',
         ]
-    
+
+    def get_problem_id(self, obj):
+        if obj.coding_problem_id:
+            return str(obj.coding_problem_id)
+        return str(obj.question_asset_id) if obj.question_asset_id else None
+
+    def get_title(self, obj):
+        if obj.coding_problem_id:
+            try:
+                return obj.coding_problem.effective_title
+            except Exception:
+                pass
+        if obj.question_asset_id:
+            try:
+                return obj.question_asset.title
+            except Exception:
+                pass
+        return None
+
+    def get_difficulty(self, obj):
+        if obj.coding_problem_id:
+            try:
+                return obj.coding_problem.effective_difficulty
+            except Exception:
+                pass
+        if obj.question_asset_id:
+            return (obj.question_asset.payload or {}).get("difficulty", "medium")
+        return "medium"
+
     def get_user_status(self, obj):
         """Get submission status for current user."""
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return None
-        
+        if not obj.coding_problem_id:
+            return None
+
         from apps.submissions.models import Submission
-        
-        # Check for AC
+
         has_ac = Submission.objects.filter(
             contest=obj.contest,
-            problem=obj.problem,
+            problem_id=obj.coding_problem_id,
             user=request.user,
             status='AC',
             source_type='contest'
         ).exists()
-        
+
         if has_ac:
             return 'AC'
-        
-        # Check for any attempt
+
         has_attempt = Submission.objects.filter(
             contest=obj.contest,
-            problem=obj.problem,
+            problem_id=obj.coding_problem_id,
             user=request.user,
             source_type='contest'
         ).exists()
-        
+
         if has_attempt:
             return 'attempted'
-        
+
         return None
 
     def get_score(self, obj):
-        # Allow pre-calculated/annotated score to avoid N+1
-        if hasattr(obj, 'problem_score_sum'):
-            return obj.problem_score_sum or 0
-        # Fallback to aggregation
-        return obj.problem.test_cases.aggregate(Sum('score'))['score__sum'] or 0
+        return obj.score
+
+    def get_max_score(self, obj):
+        return obj.score
+
+    def get_source_bank(self, obj):
+        if not obj.source_bank_id:
+            return None
+        return {
+            'id': str(obj.source_bank_id),
+            'name': obj.source_bank_name or '',
+        }
+
+    def get_binding_id(self, obj):
+        return str(obj.id)
 
 
 
@@ -499,6 +623,10 @@ class ExamQuestionStudentSerializer(serializers.ModelSerializer):
     Read-only serializer for students — hides correct_answer.
     """
 
+    question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
+    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
+    binding_id = serializers.SerializerMethodField()
+
     class Meta:
         model = ExamQuestion
         fields = [
@@ -509,14 +637,27 @@ class ExamQuestionStudentSerializer(serializers.ModelSerializer):
             'options',
             'score',
             'order',
+            'question_asset_id',
+            'question_version_id',
+            'binding_id',
         ]
         read_only_fields = fields
+
+    def get_binding_id(self, obj):
+        binding = getattr(obj, 'question_binding', None)
+        return str(binding.id) if binding else None
 
 
 class ExamQuestionSerializer(serializers.ModelSerializer):
     """
     Serializer for paper-style exam questions (admin/teacher).
     """
+    source_bank = serializers.SerializerMethodField()
+    source_question_id = serializers.UUIDField(read_only=True)
+    source_mode = serializers.CharField(read_only=True)
+    question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
+    question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
+    binding_id = serializers.SerializerMethodField()
 
     class Meta:
         model = ExamQuestion
@@ -529,10 +670,28 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'correct_answer',
             'score',
             'order',
+            'source_bank',
+            'source_question_id',
+            'source_mode',
+            'question_asset_id',
+            'question_version_id',
+            'binding_id',
             'created_at',
             'updated_at',
         ]
         read_only_fields = ['contest', 'created_at', 'updated_at']
+
+    def get_source_bank(self, obj):
+        if not obj.source_bank_id:
+            return None
+        return {
+            'id': str(obj.source_bank_id),
+            'name': obj.source_bank_name or '',
+        }
+
+    def get_binding_id(self, obj):
+        binding = getattr(obj, 'question_binding', None)
+        return str(binding.id) if binding else None
 
     def validate_options(self, value):
         if value is None:
@@ -647,7 +806,7 @@ class ClarificationCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating a clarification.
     """
-    problem_id = serializers.IntegerField(required=False, allow_null=True)
+    problem_id = serializers.UUIDField(required=False, allow_null=True)
     
     class Meta:
         model = Clarification
@@ -915,7 +1074,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
 
 class ExamAnswerSerializer(serializers.ModelSerializer):
     """Read serializer for exam answers (student view)."""
-    question_id = serializers.IntegerField(source='question.id', read_only=True)
+    question_id = serializers.UUIDField(source='question.id', read_only=True)
 
     class Meta:
         model = ExamAnswer
@@ -930,7 +1089,7 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
     """Read serializer with grading info (for results / TA view).
     優先從 question_snapshot 讀取題目資料，fallback 到 question.*。
     """
-    question_id = serializers.IntegerField(source='question.id', read_only=True)
+    question_id = serializers.UUIDField(source='question.id', read_only=True)
     question_prompt = serializers.SerializerMethodField()
     question_type = serializers.SerializerMethodField()
     max_score = serializers.SerializerMethodField()
@@ -987,7 +1146,7 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
 
 class ExamAnswerSubmitSerializer(serializers.Serializer):
     """Serializer for submitting/updating a single answer."""
-    question_id = serializers.IntegerField()
+    question_id = serializers.UUIDField()
     answer = serializers.JSONField()
 
     def validate_answer(self, value):

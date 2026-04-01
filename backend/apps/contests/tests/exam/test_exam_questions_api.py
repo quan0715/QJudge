@@ -20,6 +20,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamQuestion
+from apps.question_bank.models import Question, QuestionBank
 from apps.contests import views as contest_views
 from apps.contests.views import exam_question as exam_question_view_module
 
@@ -426,7 +427,7 @@ class TestReorder:
         )
         assert res.status_code == status.HTTP_200_OK
         ids = [item["id"] for item in res.data]
-        assert ids == [q1.id, q0.id]
+        assert ids == [str(q1.id), str(q0.id)]
 
     def test_reorder_normalizes_gaps(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)
@@ -623,6 +624,133 @@ class TestIsolation:
         res = api_client.delete(url(contest.id, q.id))
         assert res.status_code == status.HTTP_404_NOT_FOUND
         assert ExamQuestion.objects.filter(id=q.id).exists()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Import From Question Bank
+# ═══════════════════════════════════════════════════════════════════
+
+@pytest.mark.django_db
+class TestImportFromQuestionBank:
+    def test_owner_can_import_exam_questions_from_bank(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        bank = QuestionBank.objects.create(
+            owner=teacher,
+            name="Teacher Exam Bank",
+            category=QuestionBank.Category.EXAM,
+            visibility=QuestionBank.Visibility.PRIVATE,
+            verified=False,
+        )
+        question = Question.objects.create(
+            bank=bank,
+            question_type=Question.QuestionType.EXAM,
+            title="",
+            prompt="2+2 = ?",
+            options=["3", "4"],
+            correct_answer=1,
+            score=4,
+            metadata={"legacy_question_type": "single_choice"},
+        )
+
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {
+                "items": [
+                    {
+                        "question_bank_id": str(bank.uuid),
+                        "question_id": question.id,
+                    }
+                ],
+            },
+            format="json",
+        )
+        assert res.status_code == status.HTTP_201_CREATED
+        rows = ExamQuestion.objects.filter(contest=contest).order_by("order", "id")
+        assert rows.count() == 1
+        assert rows.first().prompt == "2+2 = ?"
+        assert rows.first().question_type == "single_choice"
+        assert rows.first().score == 4
+
+    def test_student_cannot_import_from_bank(self, api_client, student, contest):
+        ContestParticipant.objects.create(contest=contest, user=student)
+        api_client.force_authenticate(user=student)
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {"items": []},
+            format="json",
+        )
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_import_from_bank_rejects_invalid_uuid_payload(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {
+                "items": [
+                    {
+                        "question_bank_id": "not-a-uuid",
+                        "question_id": "not-a-uuid",
+                    }
+                ],
+            },
+            format="json",
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+class TestQuestionEditLockGuard:
+    def test_blocks_exam_question_create_update_delete_reorder_and_import(self, api_client, teacher, contest):
+        contest.question_edit_locked = True
+        contest.question_edit_locked_at = timezone.now()
+        contest.question_edit_lock_trigger = Contest.QuestionEditLockTrigger.CODING_SUBMISSION
+        contest.save(
+            update_fields=[
+                "question_edit_locked",
+                "question_edit_locked_at",
+                "question_edit_lock_trigger",
+            ]
+        )
+
+        api_client.force_authenticate(user=teacher)
+
+        create_res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "blocked",
+            "score": 1,
+        }, format="json")
+        assert create_res.status_code == status.HTTP_409_CONFLICT
+        assert create_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert create_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
+
+        q = ExamQuestion.objects.create(
+            contest=contest, question_type="essay", prompt="Q", score=1, order=0,
+        )
+        update_res = api_client.patch(url(contest.id, q.id), {"prompt": "new"}, format="json")
+        assert update_res.status_code == status.HTTP_409_CONFLICT
+        assert update_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert update_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
+
+        delete_res = api_client.delete(url(contest.id, q.id))
+        assert delete_res.status_code == status.HTTP_409_CONFLICT
+        assert delete_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert delete_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
+
+        reorder_res = api_client.post(
+            url(contest.id) + "reorder/",
+            {"orders": [{"id": q.id, "order": 0}]},
+            format="json",
+        )
+        assert reorder_res.status_code == status.HTTP_409_CONFLICT
+        assert reorder_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+
+        import_res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {"items": [{"question_bank_id": "x", "question_id": 1}]},
+            format="json",
+        )
+        assert import_res.status_code == status.HTTP_409_CONFLICT
+        assert import_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
 
 
 # ═══════════════════════════════════════════════════════════════════

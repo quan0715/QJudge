@@ -13,6 +13,7 @@ import type {
 import CodingTestEditorLayout from "@/features/contest/components/admin/examEditor/CodingTestEditorLayout";
 import CodingStatisticsPlaceholder from "@/features/contest/components/admin/statistics/CodingStatisticsPlaceholder";
 import ContestProblemScreen from "@/features/contest/screens/ContestProblemScreen";
+import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 
 const getFirstProblemId = (contest?: ContestDetail | null): string | undefined => {
   if (!contest?.problems?.length) return undefined;
@@ -91,9 +92,14 @@ export const codingContestModule: ContestTypeModule = {
     getSolveRenderer: () => () => <ContestProblemScreen />,
     getAnsweringEntryPath: (contestId, contest) => {
       const firstProblemId = getFirstProblemId(contest);
+      const classroomId = contest?.boundClassroomId;
       return firstProblemId
-        ? `/contests/${contestId}/solve/${firstProblemId}`
-        : `/contests/${contestId}`;
+        ? classroomId
+          ? getClassroomContestSolvePath(classroomId, contestId, firstProblemId)
+          : `/contests/${contestId}/solve/${firstProblemId}`
+        : classroomId
+          ? `/classrooms/${classroomId}/contest/${contestId}`
+          : `/contests/${contestId}`;
     },
   },
   admin: {

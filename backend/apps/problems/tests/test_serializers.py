@@ -19,11 +19,9 @@ class ProblemAdminSerializerTests(TestCase):
         self.problem = Problem.objects.create(
             title="Sample Problem",
             slug="sample-problem",
-            display_id="P001",
             difficulty="medium",
             time_limit=1000,
             memory_limit=128,
-            visibility="private",
             created_by=self.user,
         )
 

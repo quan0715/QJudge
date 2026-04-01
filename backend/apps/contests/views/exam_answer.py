@@ -25,6 +25,7 @@ from ..serializers import (
 from ..permissions import can_manage_contest
 from ..services.anti_cheat_session import build_device_conflict_response
 from ..services.exam_validation import validate_exam_operation
+from ..services.question_edit_lock import maybe_lock_from_exam_answer
 
 
 class ExamAnswerViewSet(viewsets.GenericViewSet):
@@ -79,6 +80,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         # Auto-grade objective questions
         answer_obj.auto_grade()
         answer_obj.save()
+        maybe_lock_from_exam_answer(exam_answer=answer_obj)
 
         return Response(
             ExamAnswerSerializer(answer_obj).data,

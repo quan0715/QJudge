@@ -16,15 +16,13 @@ describe("problem repository integration", () => {
     restoreFetch = env.restore;
 
     await loginAndSetToken({
-      email: TEST_USERS.student.email,
-      password: TEST_USERS.student.password,
+      email: TEST_USERS.teacher.email,
+      password: TEST_USERS.teacher.password,
     });
 
     const problems = await getProblems();
     const target = problems.find(
-      (problem) =>
-        problem.displayId === TEST_PROBLEMS.aPlusB.displayId ||
-        problem.title === TEST_PROBLEMS.aPlusB.title
+      (problem) => problem.title === TEST_PROBLEMS.aPlusB.title
     );
 
     if (!target) {
@@ -41,9 +39,7 @@ describe("problem repository integration", () => {
 
   it("loads problem list with expected entries", async () => {
     const problems = await getProblems();
-    const hasSeededProblem = problems.some(
-      (problem) => problem.displayId === TEST_PROBLEMS.aPlusB.displayId
-    );
+    const hasSeededProblem = problems.some((problem) => problem.title === TEST_PROBLEMS.aPlusB.title);
 
     expect(problems.length).toBeGreaterThan(0);
     expect(hasSeededProblem).toBe(true);

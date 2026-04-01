@@ -27,7 +27,7 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         filters.OrderingFilter
     ]
     filterset_fields = [
-        'problem', 'contest', 'lab', 'status', 'language', 'source_type', 'user'
+        'problem', 'contest', 'status', 'language', 'source_type', 'user'
     ]
     ordering_fields = ['created_at', 'score', 'exec_time']
     ordering = ['-created_at']
@@ -63,7 +63,6 @@ class SubmissionViewSet(viewsets.ModelViewSet):
             return queryset.optimized_for_detail()
 
         contest_id = self.kwargs.get("contest_pk") or self.request.query_params.get("contest")
-        lab_id = self.request.query_params.get("lab")
         include_all = self.request.query_params.get("include_all", "false").lower() == "true"
         created_after = self.request.query_params.get("created_after")
         source_type = self.request.query_params.get("source_type")
@@ -76,7 +75,6 @@ class SubmissionViewSet(viewsets.ModelViewSet):
             user=self.request.user,
             source_type=source_type,
             contest_id=contest_id,
-            lab_id=lab_id,
             include_all=include_all,
             created_after=created_after,
             date_range_days=self.DEFAULT_DATE_RANGE_DAYS,
@@ -123,7 +121,6 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         contest = serializer.validated_data.get('contest')
-        lab = serializer.validated_data.get('lab')
 
         # Device guard for contest submissions with anticheat enabled
         if contest and getattr(contest, "cheat_detection_enabled", False):
@@ -145,7 +142,6 @@ class SubmissionViewSet(viewsets.ModelViewSet):
                 user=user,
                 data=serializer.validated_data,
                 contest_id=contest.id if contest else None,
-                lab_id=lab.id if lab else None,
             )
         except SubmissionAccessError as exc:
             from rest_framework.exceptions import PermissionDenied

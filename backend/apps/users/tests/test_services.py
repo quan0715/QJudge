@@ -1,11 +1,14 @@
 import asyncio
 import sys
 import types
+import base64
+import json
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
-from apps.users.models import User
+from apps.users.models import User, UserProfile
 from apps.users.services import (
     APIKeyService,
     EmailAuthService,
@@ -39,6 +42,11 @@ class JWTServiceTests(TestCase):
         self.assertIsNotNone(self.user.last_login_at)
 
     def test_get_user_response_data_formats_payload(self):
+        profile, _ = UserProfile.objects.get_or_create(user=self.user)
+        profile.onboarding_completed_at = timezone.now()
+        profile.display_name = "JWT User"
+        profile.save(update_fields=["onboarding_completed_at", "display_name", "updated_at"])
+
         tokens = {"access": "a", "refresh": "r", "expires_in": 3600}
         payload = JWTService.get_user_response_data(self.user, tokens)
 
@@ -47,6 +55,8 @@ class JWTServiceTests(TestCase):
         self.assertEqual(payload["data"]["refresh_token"], "r")
         self.assertEqual(payload["data"]["expires_in"], 3600)
         self.assertEqual(payload["data"]["user"]["email"], self.user.email)
+        self.assertEqual(payload["data"]["user"]["profile"]["display_name"], "JWT User")
+        self.assertIsNotNone(payload["data"]["user"]["profile"]["onboarding_completed_at"])
 
 
 class EmailAuthServiceTests(TestCase):
@@ -132,6 +142,7 @@ class NYCUOAuthServiceTests(TestCase):
             "username": "nycu-user",
             "email": "nycu@example.com",
             "sub": "oauth-sub-1",
+            "avatar_url": "https://id.nycu.edu.tw/avatar.png",
         }
         mock_post.return_value = token_resp
         mock_get.return_value = userinfo_resp
@@ -141,6 +152,7 @@ class NYCUOAuthServiceTests(TestCase):
         self.assertEqual(data["access_token"], "token-123")
         self.assertEqual(data["user_info"]["username"], "nycu-user")
         self.assertEqual(data["user_info"]["oauth_id"], "oauth-sub-1")
+        self.assertEqual(data["user_info"]["avatar_url"], "https://id.nycu.edu.tw/avatar.png")
 
     @override_settings(
         NYCU_OAUTH_TOKEN_URL="https://oauth.example.com/token",
@@ -254,6 +266,87 @@ class AccountLinkingTests(TestCase):
         self.assertEqual(existing.auth_provider, "google")
         self.assertEqual(existing.username, "gh-user")
 
+    def test_manual_avatar_is_not_overwritten_by_oauth(self):
+        existing = User.objects.create_user(
+            username="manual-avatar-user",
+            email="avatar-shared@example.com",
+            password="password123",
+            auth_provider="email",
+        )
+        existing.profile.avatar_url = "https://manual.example.com/avatar.png"
+        existing.profile.avatar_source = "manual"
+        existing.profile.save(update_fields=["avatar_url", "avatar_source", "updated_at"])
+
+        result = GitHubOAuthService.get_or_create_user(
+            {
+                "user_info": {
+                    "username": "gh-user",
+                    "email": "avatar-shared@example.com",
+                    "oauth_id": "12345",
+                    "avatar_url": "https://avatars.githubusercontent.com/u/12345",
+                }
+            }
+        )
+        self.assertEqual(result.id, existing.id)
+        existing.profile.refresh_from_db()
+        self.assertEqual(existing.profile.avatar_source, "manual")
+        self.assertEqual(existing.profile.avatar_url, "https://manual.example.com/avatar.png")
+
+    def test_oauth_avatar_updates_when_not_manual(self):
+        existing = User.objects.create_user(
+            username="oauth-avatar-user",
+            email="oauth-avatar@example.com",
+            password="password123",
+            auth_provider="email",
+        )
+        existing.profile.avatar_url = "https://old.example.com/avatar.png"
+        existing.profile.avatar_source = "oauth"
+        existing.profile.save(update_fields=["avatar_url", "avatar_source", "updated_at"])
+
+        result = GoogleOAuthService.get_or_create_user(
+            {
+                "user_info": {
+                    "username": "Google User",
+                    "email": "oauth-avatar@example.com",
+                    "oauth_id": "google-sub",
+                    "avatar_url": "https://lh3.googleusercontent.com/new-avatar",
+                }
+            }
+        )
+        self.assertEqual(result.id, existing.id)
+        existing.profile.refresh_from_db()
+        self.assertEqual(existing.profile.avatar_source, "oauth")
+        self.assertEqual(
+            existing.profile.avatar_url,
+            "https://lh3.googleusercontent.com/new-avatar",
+        )
+
+    def test_oauth_avatar_updates_when_manual_source_but_empty(self):
+        existing = User.objects.create_user(
+            username="manual-empty-avatar-user",
+            email="manual-empty@example.com",
+            password="password123",
+            auth_provider="email",
+        )
+        existing.profile.avatar_url = ""
+        existing.profile.avatar_source = "manual"
+        existing.profile.save(update_fields=["avatar_url", "avatar_source", "updated_at"])
+
+        result = GoogleOAuthService.get_or_create_user(
+            {
+                "user_info": {
+                    "username": "Google User",
+                    "email": "manual-empty@example.com",
+                    "oauth_id": "google-sub-empty",
+                    "avatar_url": "https://lh3.googleusercontent.com/from-oauth",
+                }
+            }
+        )
+        self.assertEqual(result.id, existing.id)
+        existing.profile.refresh_from_db()
+        self.assertEqual(existing.profile.avatar_source, "oauth")
+        self.assertEqual(existing.profile.avatar_url, "https://lh3.googleusercontent.com/from-oauth")
+
 
 class OAuthProviderRegistryTests(TestCase):
     def test_get_oauth_service_returns_known_providers(self):
@@ -300,6 +393,7 @@ class GitHubOAuthServiceTests(TestCase):
             "login": "octocat",
             "id": 1,
             "email": None,
+            "avatar_url": "https://avatars.githubusercontent.com/u/1",
         }
         emails_resp = MagicMock(status_code=200)
         emails_resp.json.return_value = [
@@ -313,9 +407,17 @@ class GitHubOAuthServiceTests(TestCase):
         self.assertEqual(data["user_info"]["username"], "octocat")
         self.assertEqual(data["user_info"]["email"], "octocat@github.com")
         self.assertEqual(data["user_info"]["oauth_id"], "1")
+        self.assertEqual(data["user_info"]["avatar_url"], "https://avatars.githubusercontent.com/u/1")
 
 
 class GoogleOAuthServiceTests(TestCase):
+    @staticmethod
+    def _make_jwt(payload: dict) -> str:
+        header = {"alg": "none", "typ": "JWT"}
+        h = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+        p = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+        return f"{h}.{p}."
+
     @override_settings(
         GOOGLE_OAUTH_CLIENT_ID="google-client-id",
         GOOGLE_OAUTH_AUTHORIZE_URL="https://accounts.google.com/o/oauth2/v2/auth",
@@ -346,6 +448,7 @@ class GoogleOAuthServiceTests(TestCase):
             "sub": "google-sub-123",
             "email": "user@gmail.com",
             "name": "Test User",
+            "picture": "https://lh3.googleusercontent.com/avatar",
         }
         mock_get.return_value = userinfo_resp
 
@@ -354,6 +457,98 @@ class GoogleOAuthServiceTests(TestCase):
         self.assertEqual(data["user_info"]["username"], "Test User")
         self.assertEqual(data["user_info"]["email"], "user@gmail.com")
         self.assertEqual(data["user_info"]["oauth_id"], "google-sub-123")
+        self.assertEqual(
+            data["user_info"]["avatar_url"],
+            "https://lh3.googleusercontent.com/avatar",
+        )
+
+    @override_settings(
+        GOOGLE_OAUTH_TOKEN_URL="https://oauth2.googleapis.com/token",
+        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
+        GOOGLE_OAUTH_CLIENT_SECRET="google-secret",
+        GOOGLE_OAUTH_USERINFO_URL="https://www.googleapis.com/oauth2/v3/userinfo",
+    )
+    @patch("apps.users.services.requests.get")
+    @patch("apps.users.services.requests.post")
+    def test_exchange_code_falls_back_to_id_token_picture(self, mock_post, mock_get):
+        id_token = self._make_jwt(
+            {
+                "sub": "google-sub-xyz",
+                "email": "fallback@gmail.com",
+                "name": "Fallback User",
+                "picture": "https://lh3.googleusercontent.com/fallback-avatar",
+            }
+        )
+        token_resp = MagicMock(status_code=200)
+        token_resp.json.return_value = {
+            "access_token": "google-token",
+            "id_token": id_token,
+        }
+        mock_post.return_value = token_resp
+
+        # userinfo without picture/name; should be filled from id_token claims.
+        userinfo_resp = MagicMock(status_code=200)
+        userinfo_resp.json.return_value = {
+            "sub": "google-sub-xyz",
+            "email": "fallback@gmail.com",
+        }
+        mock_get.return_value = userinfo_resp
+
+        data = GoogleOAuthService.exchange_code("g-code", "http://localhost/callback")
+
+        self.assertEqual(data["user_info"]["oauth_id"], "google-sub-xyz")
+        self.assertEqual(data["user_info"]["email"], "fallback@gmail.com")
+        self.assertEqual(data["user_info"]["username"], "fallback")
+        self.assertEqual(
+            data["user_info"]["avatar_url"],
+            "https://lh3.googleusercontent.com/fallback-avatar",
+        )
+
+    @override_settings(
+        GOOGLE_OAUTH_TOKEN_URL="https://oauth2.googleapis.com/token",
+        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
+        GOOGLE_OAUTH_CLIENT_SECRET="google-secret",
+        GOOGLE_OAUTH_USERINFO_URL="https://www.googleapis.com/oauth2/v3/userinfo",
+    )
+    @patch("apps.users.services.requests.get")
+    @patch("apps.users.services.requests.post")
+    def test_exchange_code_falls_back_to_tokeninfo_picture(self, mock_post, mock_get):
+        id_token = self._make_jwt(
+            {
+                "sub": "google-sub-tokeninfo",
+                "email": "tokeninfo@gmail.com",
+            }
+        )
+        token_resp = MagicMock(status_code=200)
+        token_resp.json.return_value = {
+            "access_token": "google-token",
+            "id_token": id_token,
+        }
+        mock_post.return_value = token_resp
+
+        userinfo_resp = MagicMock(status_code=200)
+        userinfo_resp.json.return_value = {
+            "sub": "google-sub-tokeninfo",
+            "email": "tokeninfo@gmail.com",
+        }
+        tokeninfo_resp = MagicMock(status_code=200)
+        tokeninfo_resp.json.return_value = {
+            "sub": "google-sub-tokeninfo",
+            "email": "tokeninfo@gmail.com",
+            "name": "Tokeninfo User",
+            "picture": "https://lh3.googleusercontent.com/tokeninfo-avatar",
+        }
+        mock_get.side_effect = [userinfo_resp, tokeninfo_resp]
+
+        data = GoogleOAuthService.exchange_code("g-code", "http://localhost/callback")
+
+        self.assertEqual(data["user_info"]["oauth_id"], "google-sub-tokeninfo")
+        self.assertEqual(data["user_info"]["email"], "tokeninfo@gmail.com")
+        self.assertEqual(data["user_info"]["username"], "tokeninfo")
+        self.assertEqual(
+            data["user_info"]["avatar_url"],
+            "https://lh3.googleusercontent.com/tokeninfo-avatar",
+        )
 
 
 class APIKeyServiceTests(TestCase):

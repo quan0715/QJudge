@@ -86,6 +86,7 @@ celerybeat.pid
 *.sql
 *.sqlite
 *.db
+artifacts/db_backups/
 
 # Migrations (optional - uncomment if you want to ignore migrations)
 # */migrations/*.py

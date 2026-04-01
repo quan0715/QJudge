@@ -19,7 +19,7 @@ import {
   deleteContestAnnouncement,
 } from "@/infrastructure/api/repositories";
 import { DiscussionsSection } from "@/features/contest/components/DiscussionsSection";
-import { AnnouncementsSection } from "@/features/contest/components/AnnouncementsSection";
+import { AnnouncementSectionLayout } from "@/features/contest/components/AnnouncementSectionLayout";
 import { AnnouncementCard } from "@/shared/ui/announcement";
 import { ProblemDiscussionThread } from "@/shared/ui/discussion";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
@@ -182,7 +182,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
   return (
     <div className="contest-clarifications">
       {/* Announcements Section */}
-      <AnnouncementsSection
+      <AnnouncementSectionLayout
         title="公告"
         action={
           !isReadOnly && isTeacherOrAdmin
@@ -227,7 +227,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
             ))}
           </div>
         )}
-      </AnnouncementsSection>
+      </AnnouncementSectionLayout>
 
       {/* Q&A Section */}
       <DiscussionsSection

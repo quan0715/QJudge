@@ -37,7 +37,9 @@ interface ApiError {
 }
 
 const isExamCriticalRoute = (pathname: string): boolean => {
-  if (!pathname.startsWith("/contests/")) return false;
+  const contestRoute = /^\/contests\/[^/]+(?:\/|$)/;
+  const classroomContestRoute = /^\/classrooms\/[^/]+\/contest\/[^/]+(?:\/|$)/;
+  if (!(contestRoute.test(pathname) || classroomContestRoute.test(pathname))) return false;
   if (pathname.includes("/solve")) return true;
   if (pathname.includes("/exam-precheck")) return true;
   return false;

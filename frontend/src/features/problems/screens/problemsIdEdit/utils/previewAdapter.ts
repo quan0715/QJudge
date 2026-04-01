@@ -33,7 +33,6 @@ export const formSchemaToPreview = (
     mleCount: 0,
     reCount: 0,
     ceCount: 0,
-    visibility: formData.visibility || "private",
     isSolved: false,
   };
 };

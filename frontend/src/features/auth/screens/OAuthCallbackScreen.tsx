@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { oauthCallback } from "@/infrastructure/api/repositories/auth.repository";
 import { useAuthLayoutMetadata } from '../contexts/AuthLayoutContext';
 import { AuthLoadingSkeleton } from '../components/AuthLoadingSkeleton';
+import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
 
 type CallbackState = 'loading' | 'error';
 
@@ -57,12 +58,13 @@ const OAuthCallbackPage = () => {
 
         if (response.success) {
           localStorage.setItem('user', JSON.stringify(response.data.user));
+          const nextPath = getAuthedLandingPath(response.data.user);
           
           const elapsedTime = Date.now() - startTime;
           const remainingTime = Math.max(0, MIN_ANIMATION_TIME - elapsedTime);
 
           setTimeout(() => {
-            window.location.href = '/dashboard';
+            window.location.href = nextPath;
           }, remainingTime);
         } else {
           setError(t("auth.callback.failed", "登入失敗"));

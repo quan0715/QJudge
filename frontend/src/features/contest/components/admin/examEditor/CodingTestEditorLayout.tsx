@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
   Modal,
   TextInput,
@@ -12,6 +12,7 @@ import {
   addContestProblem,
   removeContestProblem,
   reorderContestProblems,
+  updateContestProblemScore,
 } from "@/infrastructure/api/repositories";
 import { getProblems } from "@/infrastructure/api/repositories/problem.repository";
 import { useContest } from "@/features/contest/contexts/ContestContext";
@@ -19,6 +20,7 @@ import { useToast } from "@/shared/contexts";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import ProblemWorkTree from "./ProblemWorkTree";
 import EmbeddedProblemEditor from "./EmbeddedProblemEditor";
+import QuestionBankImportModal, { type BankImportSelectionItem } from "./QuestionBankImportModal";
 import styles from "./ExamEditorLayout.module.scss";
 
 interface CodingTestEditorLayoutProps {
@@ -36,16 +38,19 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [bankImportOpen, setBankImportOpen] = useState(false);
   const [newProblemTitle, setNewProblemTitle] = useState("");
   const [newProblemId, setNewProblemId] = useState("");
   const [adding, setAdding] = useState(false);
-  const [publicProblems, setPublicProblems] = useState<
+  const [availableProblems, setAvailableProblems] = useState<
     { id: string; label: string }[]
   >([]);
-  const [loadingPublic, setLoadingPublic] = useState(false);
+  const [loadingAvailableProblems, setLoadingAvailableProblems] = useState(false);
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const questionEditLocked = !!contest.questionEditLocked;
+  const lockedReason = "已有學生正式作答，競賽題目已鎖定";
 
-  const problems = contest.problems ?? [];
+  const problems = useMemo(() => contest.problems ?? [], [contest.problems]);
 
   // Pre-select first problem when data loads
   useEffect(() => {
@@ -59,31 +64,39 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     ? problems.find((p) => p.id === selectedId)
     : null;
 
-  // --- Load public problems for ComboBox ---
-  const loadPublicProblems = useCallback(async () => {
+  // --- Load management problems for ComboBox ---
+  const loadAvailableProblems = useCallback(async () => {
     try {
-      setLoadingPublic(true);
-      const list = await getProblems({ scope: "public" });
-      setPublicProblems(
+      setLoadingAvailableProblems(true);
+      const list = await getProblems({ scope: "manage" });
+      setAvailableProblems(
         list.map((p) => ({
           id: p.id.toString(),
-          label: `${p.displayId || p.id} - ${p.title}`,
+          label: `${p.id} - ${p.title}`,
         })),
       );
     } catch {
-      console.error("Failed to load public problems");
+      console.error("Failed to load management problems");
     } finally {
-      setLoadingPublic(false);
+      setLoadingAvailableProblems(false);
     }
   }, []);
 
   const handleOpenAdd = useCallback(() => {
+    if (questionEditLocked) {
+      showToast({ kind: "warning", title: lockedReason });
+      return;
+    }
     setAddModalOpen(true);
-    loadPublicProblems();
-  }, [loadPublicProblems]);
+    loadAvailableProblems();
+  }, [loadAvailableProblems, questionEditLocked, showToast]);
 
   const handleAdd = useCallback(async () => {
     if (!contestId) return;
+    if (questionEditLocked) {
+      showToast({ kind: "warning", title: lockedReason });
+      return;
+    }
     try {
       setAdding(true);
       if (newProblemId) {
@@ -101,11 +114,55 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     } finally {
       setAdding(false);
     }
-  }, [contestId, newProblemId, newProblemTitle, refreshContest, showToast]);
+  }, [contestId, lockedReason, newProblemId, newProblemTitle, questionEditLocked, refreshContest, showToast]);
+
+  const handleImportFromBank = useCallback(
+    async (items: BankImportSelectionItem[]) => {
+      if (!contestId || items.length === 0) return;
+      if (questionEditLocked) {
+        showToast({ kind: "warning", title: lockedReason });
+        return;
+      }
+      for (const item of items) {
+        await addContestProblem(contestId, {
+          question_bank_id: item.questionBankId,
+          question_id: item.questionId,
+        });
+      }
+      await refreshContest();
+      showToast({
+        kind: "success",
+        title: "Imported from question bank",
+        subtitle: `${items.length} question(s) imported`,
+      });
+    },
+    [contestId, lockedReason, questionEditLocked, refreshContest, showToast]
+  );
+
+  const handleUpdateScore = useCallback(
+    async (contestProblemId: string, maxScore: number) => {
+      if (questionEditLocked) {
+        showToast({ kind: "warning", title: lockedReason });
+        return;
+      }
+      try {
+        await updateContestProblemScore(contestId, contestProblemId, maxScore);
+        await refreshContest();
+      } catch {
+        showToast({ kind: "error", title: "Failed to update score" });
+        await refreshContest();
+      }
+    },
+    [contestId, lockedReason, questionEditLocked, refreshContest, showToast]
+  );
 
   // --- Remove ---
   const handleRemove = useCallback(
     async (problemId: string) => {
+      if (questionEditLocked) {
+        showToast({ kind: "warning", title: lockedReason });
+        return;
+      }
       const accepted = await confirm({
         title: "Remove this problem from the contest?",
         danger: true,
@@ -122,12 +179,16 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         showToast({ kind: "error", title: "Failed to remove problem" });
       }
     },
-    [contestId, selectedId, confirm, refreshContest, showToast],
+    [contestId, selectedId, confirm, questionEditLocked, lockedReason, refreshContest, showToast],
   );
 
   // --- Reorder (debounced) ---
   const handleReorder = useCallback(
     (newOrder: ContestProblemSummary[]) => {
+      if (questionEditLocked) {
+        showToast({ kind: "warning", title: lockedReason });
+        return;
+      }
       // Optimistic update happens in ProblemWorkTree via motion/react
       if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
       reorderTimeoutRef.current = setTimeout(async () => {
@@ -141,7 +202,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         }
       }, 600);
     },
-    [contestId, refreshContest, showToast],
+    [contestId, lockedReason, questionEditLocked, refreshContest, showToast],
   );
 
   // Cleanup timeout
@@ -164,21 +225,29 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
           <ProblemWorkTree
             problems={problems}
             selectedId={selectedId}
+            questionEditLocked={questionEditLocked}
+            lockedReason={lockedReason}
             loading={contestLoading && problems.length === 0}
             onSelect={setSelectedId}
             onAdd={handleOpenAdd}
+            onImportFromBank={() => setBankImportOpen(true)}
             onRemove={handleRemove}
             onReorder={handleReorder}
+            onUpdateScore={handleUpdateScore}
           />
         </div>
         <div className={styles.editorPane}>
-          {selectedProblem ? (
+          {selectedProblem && !questionEditLocked ? (
             <EmbeddedProblemEditor
-              key={selectedProblem.problemId}
-              problemId={selectedProblem.problemId}
+              key={selectedProblem.id}
+              contestProblemId={selectedProblem.id}
               contestId={contestId}
               onRemoved={handleProblemRemoved}
             />
+          ) : selectedProblem ? (
+            <div className={styles.editorEmptyState}>
+              <p>{lockedReason}</p>
+            </div>
           ) : (
             <div className={styles.editorEmptyState}>
               <p>Select a problem to edit</p>
@@ -195,7 +264,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         secondaryButtonText="Cancel"
         onRequestSubmit={handleAdd}
         onRequestClose={() => setAddModalOpen(false)}
-        primaryButtonDisabled={adding || (!newProblemId && !newProblemTitle)}
+        primaryButtonDisabled={questionEditLocked || adding || (!newProblemId && !newProblemTitle)}
       >
         <div style={{ marginBottom: "1rem" }}>
           <p style={{ marginBottom: "1rem", color: "var(--cds-text-secondary)" }}>
@@ -206,7 +275,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
               id="problem-select"
               titleText="Select from Problem Bank (Clone)"
               placeholder="Search by ID or title..."
-              items={publicProblems}
+              items={availableProblems}
               itemToString={(item: { id: string; label: string } | null) =>
                 item ? item.label : ""
               }
@@ -223,7 +292,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
                 if (!inputValue) return true;
                 return item.label.toLowerCase().includes(inputValue.toLowerCase());
               }}
-              disabled={loadingPublic}
+              disabled={loadingAvailableProblems}
             />
           </div>
           <div
@@ -246,6 +315,13 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       </Modal>
 
       <ConfirmModal {...modalProps} />
+
+      <QuestionBankImportModal
+        open={bankImportOpen}
+        category="coding"
+        onClose={() => setBankImportOpen(false)}
+        onConfirm={handleImportFromBank}
+      />
     </>
   );
 };

@@ -14,8 +14,9 @@
 ### Docker 開發環境（推薦）
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d --build
-docker compose -f docker-compose.dev.yml ps
+bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
+bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
+./scripts/dev/check-dev-services.sh
 ```
 
 ### Frontend
@@ -25,7 +26,20 @@ cd frontend
 npm run dev
 npm run lint
 npm run test:api
+npm run sync:i18n   # 同步多國語系 Key
+npm run check:i18n  # 檢查語系同步狀態
 ```
+
+### Storybook
+
+```bash
+bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f storybook
+```
+
+- Story 檔案使用 CSF3 格式：`Meta<typeof Component>` / `StoryObj<typeof meta>`（from `@storybook/react`）
+- Mock 資料統一放置於 `frontend/src/shared/mocks/`
+- `.storybook/main.ts`：已設定 `disableTelemetry: true` 及 `@/` alias
+- dev compose 會同時啟動 `frontend`（5173）與 `storybook`（6006）；前端選單按鈕會透過 `/dev/storybook/` proxy 開啟 Storybook
 
 ### Backend
 

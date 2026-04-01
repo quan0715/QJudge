@@ -36,6 +36,31 @@
 }
 ```
 
+**⚠️ 搭配 React useEffect 鎖定 body scroll**（必要）：
+
+```tsx
+// AdminShellLayout.tsx
+useEffect(() => {
+  const prev = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+  return () => { document.body.style.overflow = prev; };
+}, []);
+```
+
+原因：Carbon `Toggle` 等互動元件的 `focus()` 呼叫會觸發瀏覽器 `scrollIntoView()`。若 body 未鎖定，browser 會找到 `document` 並移動 `window.scrollY`，造成 fixed 版面位移。
+
+**⚠️ Panel 根元素必須用 flex scroll 模式**：
+
+```css
+/* 面板根元素 — 而非 height: 100% */
+.panelRoot {
+  flex: 1 1 auto;
+  min-height: 0;    /* ← 絕對不能省！沒有它 overflow-y: auto 失效 */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+```
+
 要點：
 - `body` 不捲，panel 自己決定是否捲。
 - 內容區用幾何定位鎖住可視範圍。
@@ -98,9 +123,10 @@
 
 1. 父層 `overflow-y: auto` + 子層 `overflow-y: auto`
 2. 只寫 `height: 100%`，但祖先沒有明確高度
-3. flex 子元素漏掉 `min-height: 0`，導致內容把父層撐爆
+3. **flex 子元素漏掉 `min-height: 0`，導致內容把父層撐爆**（最常見！flex item 預設 `min-height: auto`，忽略 `overflow-y: auto`）
 4. 用 `margin/padding` 模擬 header 高度，卻沒鎖定內容區邊界
 5. 在 `.cds--*` 內部 class 硬改 overflow，造成 Carbon 行為不可預期
+6. **`position: fixed; inset: 0` 的 shell 沒有鎖定 body scroll** → Carbon Toggle 的 `focus()` 呼叫觸發瀏覽器 `scrollIntoView()`，移動 `window.scrollY` 並造成版面位移
 
 ## DevTools 快速定位
 

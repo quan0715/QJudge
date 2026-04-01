@@ -8,5 +8,4 @@ export { NotFound, type NotFoundProps } from "./NotFound";
 export { ServerError, type ServerErrorProps } from "./ServerError";
 export { GlobalHeader } from "./GlobalHeader";
 export { default as MainLayout } from "./MainLayout";
-export { DatabaseSwitcher } from "./DatabaseSwitcher";
 export { UserAvatarDisplay } from "./UserAvatarDisplay";

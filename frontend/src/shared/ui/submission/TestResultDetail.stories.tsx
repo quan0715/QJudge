@@ -1,6 +1,6 @@
 import React from "react";
-import type { StoryModule, Story } from "@/shared/types/story.types";
-import { TestResultDetail, type TestResultDetailProps } from "./TestResultDetail";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { TestResultDetail } from "./TestResultDetail";
 import { TestResultList } from "./TestResultList";
 import type { TestResult } from "@/core/entities/submission.entity";
 
@@ -94,12 +94,10 @@ const mockResults: Record<string, TestResult> = {
   }),
 };
 
-const meta: StoryModule<TestResultDetailProps>["meta"] = {
+const meta: Meta<typeof TestResultDetail> = {
   title: "shared/ui/submission/TestResultDetail",
   component: TestResultDetail,
-  category: "shared",
-  description: "測試案例結果的完整詳情展示，包含 I/O、Diff、錯誤訊息。",
-  defaultArgs: {
+  args: {
     result: mockResults.passed,
     index: 1,
     variant: "inline",
@@ -120,67 +118,10 @@ const meta: StoryModule<TestResultDetailProps>["meta"] = {
     },
     showDiff: { control: "boolean", description: "是否顯示 Diff 比對" },
   },
+  parameters: {
+    docs: { description: { component: "測試案例結果的完整詳情展示，包含 I/O、Diff、錯誤訊息。" } },
+  },
 };
-
-const stories: Story<TestResultDetailProps>[] = [
-  {
-    name: "Playground",
-    description: "使用右側 Controls 面板調整 Props。",
-    render: (args) => (
-      <div style={{ maxWidth: 600 }}>
-        <TestResultDetail
-          {...args}
-          onClose={() => console.log("Close clicked")}
-        />
-      </div>
-    ),
-    code: `<TestResultDetail result={result} index={1} variant="inline" />`,
-  },
-  {
-    name: "All Status",
-    description: "各種狀態的測試結果。",
-    render: () => (
-      <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-        <TestResultDetail result={mockResults.passed} index={1} variant="inline" />
-        <TestResultDetail result={mockResults.failed} index={2} variant="inline" />
-        <TestResultDetail result={mockResults.tle} index={3} variant="inline" />
-        <TestResultDetail result={mockResults.re} index={4} variant="inline" />
-        <TestResultDetail result={mockResults.hidden} index={5} variant="inline" />
-      </div>
-    ),
-    code: `
-<TestResultDetail result={passedResult} index={1} variant="inline" />
-<TestResultDetail result={failedResult} index={2} variant="inline" />
-<TestResultDetail result={tleResult} index={3} variant="inline" />
-    `,
-  },
-  {
-    name: "With Diff",
-    description: "顯示輸出差異比對。",
-    render: () => (
-      <div style={{ maxWidth: 700 }}>
-        <TestResultDetail
-          result={mockResults.multilineDiff}
-          index={1}
-          variant="inline"
-          showDiff
-        />
-      </div>
-    ),
-    code: `<TestResultDetail result={failedResult} index={1} showDiff />`,
-  },
-  {
-    name: "Interactive Demo",
-    description: "點擊測試項目查看詳情。",
-    render: () => <InteractiveDemo />,
-    code: `
-// Interactive list + detail panel
-const [selected, setSelected] = useState(null);
-<TestResultList results={results} onSelect={setSelected} />
-{selected && <TestResultDetail result={selected} index={...} />}
-    `,
-  },
-];
 
 // Wrapper component to use hooks properly
 const InteractiveDemo: React.FC = () => {
@@ -224,9 +165,49 @@ const InteractiveDemo: React.FC = () => {
   );
 };
 
-export const TestResultDetailStories: StoryModule<TestResultDetailProps> = {
-  meta,
-  stories,
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+  args: {
+    result: mockResults.passed,
+    index: 1,
+  },
+  render: (args) => (
+    <div style={{ maxWidth: 600 }}>
+      <TestResultDetail
+        {...args}
+        result={args.result ?? mockResults.passed}
+        index={args.index ?? 1}
+        onClose={() => console.log("Close clicked")}
+      />
+    </div>
+  ),
 };
 
-export default TestResultDetailStories;
+export const AllStatus: Story = {
+  parameters: { docs: { description: { story: "各種狀態的測試結果。" } } },
+  render: () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+      <TestResultDetail result={mockResults.passed} index={1} variant="inline" />
+      <TestResultDetail result={mockResults.failed} index={2} variant="inline" />
+      <TestResultDetail result={mockResults.tle} index={3} variant="inline" />
+      <TestResultDetail result={mockResults.re} index={4} variant="inline" />
+      <TestResultDetail result={mockResults.hidden} index={5} variant="inline" />
+    </div>
+  ),
+};
+
+export const WithDiff: Story = {
+  parameters: { docs: { description: { story: "顯示輸出差異比對。" } } },
+  render: () => (
+    <div style={{ maxWidth: 700 }}>
+      <TestResultDetail result={mockResults.multilineDiff} index={1} variant="inline" showDiff />
+    </div>
+  ),
+};
+
+export const InteractiveDemoStory: Story = {
+  parameters: { docs: { description: { story: "點擊測試項目查看詳情。" } } },
+  render: () => <InteractiveDemo />,
+};

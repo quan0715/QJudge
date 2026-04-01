@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Stack, Tag } from "@carbon/react";
+import { Button, Tag, Tooltip } from "@carbon/react";
 import { Copy, Renew } from "@carbon/icons-react";
+import { useToast } from "@/shared/contexts/ToastContext";
+import "./InviteCodeDisplay.scss";
 
 interface InviteCodeDisplayProps {
   code: string;
@@ -15,61 +17,56 @@ export const InviteCodeDisplay: React.FC<InviteCodeDisplayProps> = ({
   onRegenerate,
 }) => {
   const { t } = useTranslation("classroom");
+  const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
 
+  const inviteLink = `${window.location.origin}/classrooms/join/${code}`;
+
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("inviteLink.copyFailed", "複製邀請連結失敗"),
+        subtitle: error instanceof Error ? error.message : undefined,
+      });
+    }
   };
 
   return (
-    <div
-      style={{
-        padding: "1rem",
-        background: "var(--cds-layer)",
-        display: "flex",
-        alignItems: "center",
-        gap: "1rem",
-        flexWrap: "wrap",
-      }}
-    >
-      <span style={{ fontSize: "0.875rem", color: "var(--cds-text-secondary)" }}>
-        {t("inviteCode.label")}
-      </span>
-      <code
-        style={{
-          fontSize: "1.25rem",
-          fontWeight: 600,
-          letterSpacing: "0.2em",
-          fontFamily: "var(--cds-code-01-font-family, monospace)",
-        }}
+    <div className="classroom-invite-link">
+      <div className="classroom-invite-link__row">
+        <code className="classroom-invite-link__url">{inviteLink}</code>
+        <Tooltip
+          label={copied ? t("inviteLink.copied", "已複製") : t("inviteLink.copy", "複製連結")}
+          align="top"
+        >
+          <Button
+            kind="ghost"
+            size="sm"
+            hasIconOnly
+            renderIcon={Copy}
+            iconDescription={t("inviteLink.copy", "複製連結")}
+            onClick={handleCopy}
+          />
+        </Tooltip>
+        {!enabled && (
+          <Tag type="red" size="sm">
+            {t("inviteLink.disabled", "已停用")}
+          </Tag>
+        )}
+      </div>
+      <Button
+        kind="ghost"
+        size="sm"
+        renderIcon={Renew}
+        onClick={onRegenerate}
       >
-        {code}
-      </code>
-      {!enabled && (
-        <Tag type="red" size="sm">
-          {t("inviteCode.disabled")}
-        </Tag>
-      )}
-      <Stack orientation="horizontal" gap={3}>
-        <Button
-          kind="ghost"
-          size="sm"
-          renderIcon={Copy}
-          onClick={handleCopy}
-        >
-          {copied ? t("inviteCode.copied") : t("inviteCode.copy")}
-        </Button>
-        <Button
-          kind="ghost"
-          size="sm"
-          renderIcon={Renew}
-          onClick={onRegenerate}
-        >
-          {t("inviteCode.regenerate")}
-        </Button>
-      </Stack>
+        {t("inviteLink.regenerate", "重新產生連結")}
+      </Button>
     </div>
   );
 };

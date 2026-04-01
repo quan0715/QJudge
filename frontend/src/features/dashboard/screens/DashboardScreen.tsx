@@ -1,192 +1,380 @@
-import { useState, useEffect } from "react";
-import { Grid, Column, Tile, SkeletonPlaceholder } from "@carbon/react";
-import { Trophy, Education } from "@carbon/icons-react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { PageHeader } from "@/shared/layout/PageHeader";
-import StatsCard from "@/features/dashboard/components/StatsCard";
-import AnnouncementsSection from "@/features/dashboard/components/AnnouncementsSection";
-import ContestPreviewCard from "@/features/contest/components/ContestPreviewCard";
-import { getUserStats } from "@/infrastructure/api/repositories/auth.repository";
-import { getAnnouncements, type Announcement } from "@/infrastructure/api/repositories/announcement.repository";
-import { getContests } from "@/infrastructure/api/repositories";
-import { getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
-import type { Contest } from "@/core/entities/contest.entity";
+import { Button, ClickableTile, MenuButton, MenuItem, SkeletonPlaceholder, Tile } from "@carbon/react";
+import { Education, UserMultiple, Catalog } from "@carbon/icons-react";
+import { KpiCard } from "@/shared/ui/dataCard/KpiCard";
+import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
+import { createClassroom, getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
+import { listMine } from "@/infrastructure/api/repositories/questionBank.repository";
 import type { Classroom } from "@/core/entities/classroom.entity";
+import type { QuestionBank } from "@/core/entities/question-bank.entity";
+import { BankGalleryCard } from "@/features/question-banks/components/BankGalleryCard";
+import { CreateBankModal } from "@/features/question-banks/components/CreateBankModal";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { formatDateTime } from "@/i18n/dateUtils";
+import { useToast } from "@/shared/contexts/ToastContext";
+import { CreateClassroomModal } from "@/features/classroom/components/CreateClassroomModal";
+import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import "./DashboardScreen.scss";
 
-interface UserStats {
-  total_solved: number;
-  easy_solved: number;
-  medium_solved: number;
-  hard_solved: number;
-  total_easy: number;
-  total_medium: number;
-  total_hard: number;
-}
+const CLASSROOM_BANNER_IMAGES = [
+  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80",
+] as const;
+
+const hashValue = (value: string) => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const getClassroomBannerImage = (id: string) =>
+  CLASSROOM_BANNER_IMAGES[hashValue(id) % CLASSROOM_BANNER_IMAGES.length];
+
+const DEFAULT_BANK_CARDS = 8;
 
 const DashboardScreen = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [stats, setStats] = useState<UserStats | null>(null);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [contests, setContests] = useState<Contest[]>([]);
+  const { showToast } = useToast();
+  const { user } = useAuth();
+
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [questionBanks, setQuestionBanks] = useState<QuestionBank[]>([]);
   const [loading, setLoading] = useState(true);
+  const [banksLoading, setBanksLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [bankCreateOpen, setBankCreateOpen] = useState(false);
+  const [showAllBanks, setShowAllBanks] = useState(false);
 
-  const isContestOngoing = (contest: Contest) => {
-    const now = new Date();
-    const startTime = new Date(contest.startTime);
-    const endTime = new Date(contest.endTime);
-
-    return contest.status === "published" && startTime <= now && endTime > now;
-  };
+  const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
+  const welcomeName = user?.profile?.display_name?.trim() || user?.username || t("common.user", "使用者");
 
   useEffect(() => {
     let cancelled = false;
 
     const fetchData = async () => {
       setLoading(true);
-      try {
-        const [statsData, announcementsData, contestsData, classroomsData] = await Promise.all([
-          getUserStats().catch(() => null),
-          getAnnouncements().catch(() => []),
-          getContests().catch(() => []),
-          getClassrooms().catch(() => []),
-        ]);
+      if (isTeacherOrAdmin) setBanksLoading(true);
 
-        if (cancelled) return;
+      const results = await Promise.allSettled([
+        getClassrooms(),
+        isTeacherOrAdmin ? listMine() : Promise.resolve([]),
+      ]);
 
-        setStats(statsData);
-        setAnnouncements(
-          (announcementsData || [])
-            .filter((a: Announcement) => a.visible)
-            .slice(0, 5)
-        );
-        const ongoingContests = (contestsData || [])
-          .filter(isContestOngoing)
-          .slice(0, 6);
-        setContests(ongoingContests);
-        setClassrooms((classroomsData || []).slice(0, 4));
-      } catch (error) {
-        if (!cancelled) {
-          console.error("Failed to fetch dashboard data:", error);
-        }
+      if (cancelled) return;
+
+      const [classroomResult, bankResult] = results;
+
+      if (classroomResult.status === "fulfilled") {
+        setClassrooms(classroomResult.value);
+      } else {
+        showToast({
+          kind: "error",
+          title: t("dashboard.classroomHub.loadFailed", "載入教室失敗"),
+          subtitle: t("dashboard.classroomHub.loadFailedHint", "請稍後再試"),
+        });
       }
-      finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+
+      if (bankResult.status === "fulfilled") {
+        setQuestionBanks(bankResult.value);
       }
+
+      setLoading(false);
+      setBanksLoading(false);
     };
 
-    fetchData();
+    void fetchData();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [showToast, t, isTeacherOrAdmin]);
 
-  return (
-    <div className="dashboard-page">
-      <Grid fullWidth className="dashboard-page__grid">
-        <Column lg={16} md={8} sm={4}>
-          <PageHeader
-            title={t("dashboard.welcomeBack", { name: user?.username || "User" })}
-            subtitle={t("dashboard.subtitle")}
-          />
-        </Column>
+  const refreshClassrooms = async () => {
+    setLoading(true);
+    try {
+      const rows = await getClassrooms();
+      setClassrooms(rows);
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("dashboard.classroomHub.loadFailed", "載入教室失敗"),
+        subtitle:
+          error instanceof Error
+            ? error.message
+            : t("dashboard.classroomHub.loadFailedHint", "請稍後再試"),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        <Column lg={8} md={8} sm={4} className="dashboard-page__column">
-          <StatsCard
-            loading={loading}
-            stats={stats}
-            title={t("dashboard.stats.title")}
-            subtitle={t("dashboard.stats.problems")}
-          />
-        </Column>
+  const handleCreateClassroom = async (name: string, description: string) => {
+    try {
+      const created = await createClassroom({ name, description });
+      setCreateOpen(false);
+      showToast({
+        kind: "success",
+        title: t("classroom.createSuccess", "教室建立成功"),
+      });
+      await refreshClassrooms();
+      navigate(`/classrooms/${created.id}`);
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("classroom.createFailed", "建立教室失敗"),
+        subtitle:
+          error instanceof Error
+            ? error.message
+            : t("dashboard.classroomHub.loadFailedHint", "請稍後再試"),
+      });
+    }
+  };
 
-        <Column lg={8} md={8} sm={4} className="dashboard-page__column">
-          <Tile className="dashboard-page__section">
-            <div className="dashboard-page__section-header">
-              <Trophy size={24} />
-              <div>
-                <h4 className="dashboard-page__section-title">
-                  {t("dashboard.contests.title")}
-                </h4>
-                <p className="dashboard-page__section-subtitle">
-                  {t("dashboard.contests.ongoing")}
+  const orderedClassrooms = useMemo(() => {
+    const rank: Record<string, number> = {
+      platform_admin: 0,
+      owner: 1,
+      manager: 2,
+      member: 3,
+    };
+    return [...classrooms].sort((a, b) => {
+      const ra = rank[a.currentUserRole ?? "member"] ?? 99;
+      const rb = rank[b.currentUserRole ?? "member"] ?? 99;
+      if (ra !== rb) return ra - rb;
+      return a.name.localeCompare(b.name);
+    });
+  }, [classrooms]);
+
+  const renderClassroomGrid = (items: Classroom[]) => {
+    if (loading) {
+      return (
+        <div className="dashboard-classroom__grid">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <SkeletonPlaceholder key={idx} className="dashboard-classroom__skeleton" />
+          ))}
+        </div>
+      );
+    }
+
+    if (items.length === 0) {
+      return (
+        <Tile className="dashboard-classroom__empty-tile">
+          <div className="dashboard-classroom__empty">
+            <Education size={32} />
+            <div>
+              <h4>{t("dashboard.classroomHub.emptyTitle", "尚未加入任何教室")}</h4>
+              <p>{t("dashboard.classroomHub.emptyDesc", "先建立教室或透過邀請連結加入教室。")}</p>
+            </div>
+          </div>
+        </Tile>
+      );
+    }
+
+    return (
+      <div className="dashboard-classroom__grid">
+        {items.map((classroom) => {
+          const bannerImage = classroom.coverUrl || getClassroomBannerImage(classroom.id);
+          const CardIcon = getClassroomIcon(classroom.icon);
+          return (
+            <ClickableTile
+              key={classroom.id}
+              className="dashboard-classroom__card"
+              onClick={() => navigate(`/classrooms/${classroom.id}`)}
+            >
+              <div
+                className="dashboard-classroom__card-banner"
+                style={{
+                  backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 65%), url(${bannerImage})`,
+                }}
+              >
+                <h4 className="dashboard-classroom__card-title">{classroom.name}</h4>
+                <div className="dashboard-classroom__card-avatar">
+                  <CardIcon size={20} />
+                </div>
+              </div>
+
+              <div className="dashboard-classroom__card-body">
+                <p className="dashboard-classroom__card-description">
+                  {classroom.description || t("dashboard.classroomHub.noDescription", "尚未設定教室描述")}
+                </p>
+                <p className="dashboard-classroom__card-meta">
+                  <UserMultiple size={14} />
+                  {classroom.memberCount} {t("classroom.members", "members")}
                 </p>
               </div>
-            </div>
-            {loading ? (
-              <div className="dashboard-page__contests-grid">
-                <SkeletonPlaceholder />
-                <SkeletonPlaceholder />
-              </div>
-            ) : contests.length > 0 ? (
-              <div className="dashboard-page__contests-grid">
-                {contests.map((contest) => (
-                  <ContestPreviewCard
-                    key={contest.id}
-                    contest={contest}
-                    onSelect={() => navigate(`/contests/${contest.id}`)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="dashboard-page__empty">
-                {t("dashboard.contests.noContests")}
-              </p>
-            )}
-          </Tile>
-        </Column>
 
-        {classrooms.length > 0 && (
-          <Column lg={16} md={8} sm={4} className="dashboard-page__column">
-            <Tile className="dashboard-page__section">
-              <div className="dashboard-page__section-header">
-                <Education size={24} />
-                <div>
-                  <h4 className="dashboard-page__section-title">
-                    {t("dashboard.classrooms.title")}
-                  </h4>
-                  <p className="dashboard-page__section-subtitle">
-                    {t("dashboard.classrooms.subtitle")}
+              {/* Mobile mini view */}
+              <div className="dashboard-classroom__card-mini-body">
+                <div className="dashboard-classroom__card-mini-icon">
+                  <CardIcon size={16} />
+                </div>
+                <div className="dashboard-classroom__card-mini-info">
+                  <h4>{classroom.name}</h4>
+                  <p>
+                    {classroom.memberCount} {t("classroom.members", "members")}
                   </p>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.75rem" }}>
-                {classrooms.map((c) => (
-                  <Tile
-                    key={c.id}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => navigate(`/classrooms/${c.id}`)}
-                  >
-                    <strong>{c.name}</strong>
-                    <p style={{ fontSize: "0.75rem", color: "var(--cds-text-secondary)", marginTop: "0.25rem" }}>
-                      {c.memberCount} {t("classroom.members")} · {c.ownerUsername}
-                    </p>
-                  </Tile>
-                ))}
-              </div>
-            </Tile>
-          </Column>
-        )}
+            </ClickableTile>
+          );
+        })}
+      </div>
+    );
+  };
 
-        <Column lg={16} md={8} sm={4}>
-          <AnnouncementsSection
-            announcements={announcements}
-            loading={loading}
-            title={t("dashboard.announcements.title")}
-            subtitle={t("dashboard.announcements.subtitle")}
-            emptyMessage={t("dashboard.announcements.noAnnouncements")}
-            formatDate={formatDateTime}
+  const refreshBanks = async () => {
+    setBanksLoading(true);
+    try {
+      const rows = await listMine();
+      setQuestionBanks(rows);
+    } finally {
+      setBanksLoading(false);
+    }
+  };
+
+  const visibleBanks = showAllBanks ? questionBanks : questionBanks.slice(0, DEFAULT_BANK_CARDS);
+  const hasMoreBanks = questionBanks.length > DEFAULT_BANK_CARDS;
+
+  const renderBankSection = () => {
+    if (!isTeacherOrAdmin) return null;
+
+    return (
+      <section className="dashboard-classroom__section">
+        <header className="dashboard-classroom__section-header">
+          <h4>{t("dashboard.questionBanksSection.title", "我的題庫")}</h4>
+          {questionBanks.length > 0 && (
+            <button
+              type="button"
+              className="dashboard-classroom__section-header-link"
+              onClick={() => setBankCreateOpen(true)}
+            >
+              {t("questionBank.createBank", "建立題庫")} +
+            </button>
+          )}
+        </header>
+
+        {banksLoading ? (
+          <div className="dashboard-classroom__bank-grid">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <SkeletonPlaceholder key={idx} className="dashboard-classroom__skeleton" />
+            ))}
+          </div>
+        ) : questionBanks.length === 0 ? (
+          <Tile className="dashboard-classroom__empty-tile">
+            <div className="dashboard-classroom__bank-empty">
+              <Catalog size={32} />
+              <div>
+                <h4>{t("dashboard.questionBanksSection.empty", "尚無題庫")}</h4>
+                <p>{t("dashboard.questionBanksSection.emptyHint", "建立題庫以開始整理題目。")}</p>
+              </div>
+            </div>
+          </Tile>
+        ) : (
+          <>
+            <div className="dashboard-classroom__bank-grid">
+              {visibleBanks.map((bank) => (
+                <BankGalleryCard
+                  key={bank.id}
+                  title={bank.name}
+                  category={bank.category}
+                  provider={bank.ownerUsername || welcomeName}
+                  providerVerified={bank.verified}
+                  downloads={String(bank.questionCount)}
+                  coverUrl={bank.coverUrl || undefined}
+                  icon={bank.icon || undefined}
+                  onClick={() => navigate(`/question-banks/${bank.id}`)}
+                />
+              ))}
+            </div>
+            {hasMoreBanks && (
+              <Button
+                kind="ghost"
+                size="sm"
+                className="dashboard-classroom__show-more"
+                onClick={() => setShowAllBanks((prev) => !prev)}
+              >
+                {showAllBanks
+                  ? t("dashboard.questionBanksSection.showLess", "收起")
+                  : t("dashboard.questionBanksSection.showMore", "顯示更多")}
+              </Button>
+            )}
+          </>
+        )}
+      </section>
+    );
+  };
+
+  return (
+    <div className="dashboard-classroom">
+      <QJudgeHeroWidget
+        title={`${welcomeName} ${t("dashboard.classroomHub.welcomeBack", "歡迎回來")}`}
+        actions={
+          isTeacherOrAdmin ? (
+            <MenuButton label={t("common:button.create", "新增")} kind="primary" size="md">
+              <MenuItem label={t("classroom.create", "建立教室")} onClick={() => setCreateOpen(true)} />
+              <MenuItem label={t("questionBank.createBank", "建立題庫")} onClick={() => setBankCreateOpen(true)} />
+            </MenuButton>
+          ) : undefined
+        }
+        kpiCards={
+          <>
+            <KpiCard
+              icon={Education}
+              value={loading ? "–" : classrooms.length}
+              label={t("dashboard.kpi.classrooms", "教室")}
+              showBorder={false}
+            />
+            {isTeacherOrAdmin && (
+              <KpiCard
+                icon={Catalog}
+                value={banksLoading ? "–" : questionBanks.length}
+                label={t("dashboard.kpi.questionBanks", "題庫")}
+                showBorder
+              />
+            )}
+          </>
+        }
+      />
+
+      {/* Content Sections */}
+      <div className="dashboard-classroom__main">
+        <section className="dashboard-classroom__section">
+          <header className="dashboard-classroom__section-header">
+            <h4>{t("dashboard.classroomHub.listTitle", "我的教室")}</h4>
+          </header>
+          {renderClassroomGrid(orderedClassrooms)}
+        </section>
+
+        {/* Question Banks (teacher/admin only) */}
+        {renderBankSection()}
+      </div>
+
+      {isTeacherOrAdmin ? (
+        <>
+          <CreateClassroomModal
+            open={createOpen}
+            onClose={() => setCreateOpen(false)}
+            onSubmit={handleCreateClassroom}
           />
-        </Column>
-      </Grid>
+          <CreateBankModal
+            open={bankCreateOpen}
+            onClose={() => setBankCreateOpen(false)}
+            onCreated={(bank) => {
+              setBankCreateOpen(false);
+              void refreshBanks();
+              navigate(`/question-banks/${bank.id}`);
+            }}
+          />
+        </>
+      ) : null}
     </div>
   );
 };

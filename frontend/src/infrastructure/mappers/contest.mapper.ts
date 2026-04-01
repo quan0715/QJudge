@@ -28,13 +28,24 @@ import type {
 import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
 
 export function mapContestProblemSummaryDto(dto: any): ContestProblemSummary {
+  const resolvedMaxScore = dto.max_score ?? dto.score;
   return {
     id: dto.id?.toString() || "",
     problemId: dto.problem_id?.toString() || "",
     label: dto.label || "",
     title: dto.title || "",
     order: dto.order,
-    score: dto.score,
+    score: resolvedMaxScore,
+    maxScore: resolvedMaxScore,
+    sourceBank: dto.source_bank
+      ? {
+          id: dto.source_bank.id?.toString() || "",
+          name: dto.source_bank.name || "",
+        }
+      : null,
+    sourceQuestionId:
+      dto.source_question_id != null ? dto.source_question_id.toString() : null,
+    sourceMode: dto.source_mode || "manual",
     userStatus: dto.user_status,
     difficulty: dto.difficulty,
   };
@@ -49,6 +60,7 @@ export function mapContestDto(dto: any): Contest {
     endTime: dto.end_time || "",
     status: dto.status || "draft",
     visibility: dto.visibility || "public",
+    deliveryMode: dto.delivery_mode || "exam",
     password: dto.password,
 
     hasJoined: !!dto.has_joined,
@@ -65,12 +77,17 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     ...contest,
     rules: dto.rules || dto.rule, // Handle alias
     ownerUsername: dto.owner_username || "",
+    isClassroomBound: !!dto.is_classroom_bound,
+    boundClassroomId: dto.bound_classroom_id?.toString?.() ?? null,
 
     contestType: dto.contest_type ?? "coding",
+    deliveryMode: dto.delivery_mode ?? "exam",
     cheatDetectionEnabled: !!dto.cheat_detection_enabled,
     anticheatDevicePolicy: mapAnticheatDevicePolicyDto(dto.anticheat_device_policy),
     warningTimeoutSeconds:
       typeof dto.warning_timeout_seconds === "number" ? dto.warning_timeout_seconds : 20,
+    screenShareRecoveryGraceMs:
+      typeof dto.screen_share_recovery_grace_ms === "number" ? dto.screen_share_recovery_grace_ms : 30_000,
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
     anonymousModeEnabled: !!dto.anonymous_mode_enabled,
 
@@ -79,7 +96,10 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     allowAutoUnlock: !!dto.allow_auto_unlock,
     autoUnlockMinutes: dto.auto_unlock_minutes || 0,
     resultsPublished: !!dto.results_published,
-    isExamQuestionsFrozen: !!dto.is_exam_questions_frozen,
+    questionEditLocked: !!dto.question_edit_locked,
+    questionEditLockedAt: dto.question_edit_locked_at ?? null,
+    questionEditLockTrigger: dto.question_edit_lock_trigger ?? null,
+    isExamQuestionsFrozen: !!(dto.question_edit_locked ?? dto.is_exam_questions_frozen),
     examQuestionsCount: dto.exam_questions_count ?? 0,
     myNickname: dto.my_nickname,
 
@@ -90,6 +110,9 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     lockReason: dto.lock_reason,
     submitReason: dto.submit_reason,
     examStatus: dto.exam_status,
+    assignmentState: dto.assignment_state ?? null,
+    acceptedAt: dto.accepted_at ?? null,
+    submittedAt: dto.submitted_at ?? null,
     autoUnlockAt: dto.auto_unlock_at,
 
     // SSoT computed flags
@@ -393,6 +416,11 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
           ? "paper_exam"
           : "coding",
       warningTimeoutSeconds: ensureNumber(contestSettings, "warning_timeout_seconds", "contest_settings"),
+      screenShareRecoveryGraceMs: ensureNumber(
+        contestSettings,
+        "screen_share_recovery_grace_ms",
+        "contest_settings"
+      ),
       anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
         contestSettings["anticheat_device_policy"]
       ),
@@ -708,7 +736,7 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
     contestName: dto.contest?.name || "",
     problems: Array.isArray(dto.problems)
       ? dto.problems.map((p: any) => ({
-          id: p.id,
+          id: p.id?.toString() || p.problem_id?.toString() || "",
           label: p.label,
           problemId: p.id?.toString() || p.problem_id?.toString(),
           title: p.title,
@@ -771,7 +799,14 @@ export function mapClarificationDto(dto: any): Clarification {
   };
 }
 
-export function mapContestAnnouncementDto(dto: any): ContestAnnouncement {
+export function mapContestAnnouncementDto(dto: {
+  id?: number | string;
+  title?: string;
+  content?: string;
+  created_by?: { username?: string };
+  created_at?: string;
+  updated_at?: string;
+}): ContestAnnouncement {
   return {
     id: dto.id?.toString() || "",
     title: dto.title || "",
@@ -806,6 +841,15 @@ export function mapExamQuestionDto(dto: any): ExamQuestion {
     correctAnswer: dto.correct_answer,
     score: Number(dto.score || 0),
     order: Number(dto.order || 0),
+    sourceBank: dto.source_bank
+      ? {
+          id: dto.source_bank.id?.toString() || "",
+          name: dto.source_bank.name || "",
+        }
+      : null,
+    sourceQuestionId:
+      dto.source_question_id != null ? dto.source_question_id.toString() : null,
+    sourceMode: dto.source_mode || "manual",
     createdAt: dto.created_at || "",
     updatedAt: dto.updated_at || "",
   };
@@ -884,6 +928,7 @@ export function mapContestUpdateRequestToDto(request: any): any {
     cheat_detection_enabled: request.cheatDetectionEnabled,
     anticheat_device_policy: anticheatDevicePolicy,
     warning_timeout_seconds: request.warningTimeoutSeconds,
+    screen_share_recovery_grace_ms: request.screenShareRecoveryGraceMs,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     anonymous_mode_enabled: request.anonymousModeEnabled,
     allow_multiple_joins: request.allowMultipleJoins,

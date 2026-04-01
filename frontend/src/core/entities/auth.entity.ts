@@ -2,16 +2,58 @@ export type ThemePreference = "light" | "dark" | "system";
 
 export interface UserPreferences {
   display_name?: string;
+  avatar_url?: string;
   preferred_language: string;
   preferred_theme: ThemePreference;
   editor_font_size: number;
   editor_tab_size: 2 | 4;
+  onboarding_completed_at?: string | null;
 }
 
 export interface UserProfile extends UserPreferences {
   solved_count: number;
   submission_count: number;
   accept_rate: number;
+}
+
+export interface UserSubscription {
+  tier: "free" | "pro" | "team" | "enterprise";
+  status: "active" | "trialing" | "past_due" | "cancelled" | "expired";
+}
+
+export interface ManagedUser {
+  id: number;
+  username: string;
+  email?: string;
+  role: "student" | "teacher" | "admin";
+  auth_provider?: string;
+  email_verified?: boolean;
+  last_login_at?: string | null;
+  is_active?: boolean;
+  display_name?: string;
+  onboarding_completed_at?: string | null;
+}
+
+export interface TeacherActivationInvite {
+  id: number;
+  email?: string;
+  expires_at: string;
+  consumed_at?: string | null;
+  created_at: string;
+  status: "pending" | "consumed" | "expired";
+  activation_url?: string;
+  existing_user?: {
+    id: number;
+    username: string;
+    role: "student" | "teacher" | "admin";
+  } | null;
+}
+
+export interface TeacherActivationPreview extends TeacherActivationInvite {
+  requires_login: boolean;
+  current_user_email?: string | null;
+  current_user_role?: string | null;
+  can_consume: boolean;
 }
 
 export interface User {
@@ -24,6 +66,7 @@ export interface User {
   last_login_at?: string | null;
   is_active?: boolean;
   profile?: UserProfile;
+  subscription?: UserSubscription;
 }
 
 export interface AuthSuccessData {
@@ -74,10 +117,12 @@ export interface ResetPasswordRequest {
 
 export interface UpdatePreferencesRequest {
   display_name?: string;
+  avatar_url?: string;
   preferred_language?: string;
   preferred_theme?: ThemePreference;
   editor_font_size?: number;
   editor_tab_size?: 2 | 4;
+  onboarding_completed_at?: string | null;
 }
 
 export interface PreferencesResponse {
@@ -94,6 +139,44 @@ export interface ChangePasswordResponse {
 export interface CurrentUserResponse {
   success: boolean;
   data: User;
+  message?: string;
+}
+
+export interface UserSearchResponse {
+  success: boolean;
+  data: ManagedUser[];
+  message?: string;
+}
+
+export interface TeacherActivationIssueResponse {
+  success: boolean;
+  data: TeacherActivationInvite;
+  message?: string;
+}
+
+export interface TeacherActivationPreviewResponse {
+  success: boolean;
+  data: TeacherActivationPreview;
+  message?: string;
+}
+
+export interface TeacherActivationConsumeResponse {
+  success: boolean;
+  data: {
+    user: User;
+    invite: TeacherActivationInvite;
+  };
+  message?: string;
+}
+
+export interface UploadAvatarResponse {
+  success: boolean;
+  data: {
+    avatar_url: string;
+    content_type: string;
+    size: number;
+    alt?: string;
+  };
   message?: string;
 }
 

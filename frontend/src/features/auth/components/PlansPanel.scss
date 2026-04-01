@@ -1,0 +1,33 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+@use "@carbon/react/scss/colors" as *;
+@use "@carbon/react/scss/theme" as *;
+
+.plans-panel {
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-05;
+    margin-bottom: $spacing-05;
+
+    @media (max-width: 672px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__enterprise {
+    @include type-style("helper-text-01");
+    color: $text-helper;
+    text-align: center;
+    margin: 0;
+
+    a {
+      color: $link-primary;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
