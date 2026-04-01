@@ -53,35 +53,6 @@ interface DraftProblem {
   contests: DraftContestRef[];
 }
 
-interface DraftTableHeader {
-  key: string;
-  header: string;
-}
-
-interface DraftTableCell {
-  id: string;
-  value: string;
-  info: {
-    header: string;
-  };
-}
-
-interface DraftTableRow {
-  id: string;
-  cells: DraftTableCell[];
-}
-
-interface DraftTableRenderProps {
-  rows: DraftTableRow[];
-  headers: DraftTableHeader[];
-  getHeaderProps: (args: { header: DraftTableHeader }) => Record<string, unknown>;
-  getRowProps: (args: { row: DraftTableRow }) => Record<string, unknown>;
-  getSelectionProps: (args?: { row?: DraftTableRow; disabled?: boolean }) => Record<string, unknown>;
-  getTableContainerProps: () => Record<string, unknown>;
-  selectedRows: Array<{ id: string }>;
-  onInputChange: (event: unknown) => void;
-}
-
 const fetchDrafts = async (): Promise<DraftProblem[]> =>
   requestJson<DraftProblem[]>(
     httpClient.get("/api/v1/problems/drafts/"),
@@ -237,12 +208,15 @@ export default function DraftProblemsScreen() {
             getTableContainerProps,
             selectedRows,
             onInputChange,
-          }: DraftTableRenderProps) => (
+          }) => (
             <TableContainer {...getTableContainerProps()}>
               <TableToolbar>
                 <TableToolbarContent>
                   <TableToolbarSearch
-                    onChange={onInputChange}
+                    onChange={(event, defaultValue) => {
+                      if (event === "") return;
+                      onInputChange(event, defaultValue);
+                    }}
                     placeholder={t("drafts.search", "Search by title...")}
                     persistent
                   />

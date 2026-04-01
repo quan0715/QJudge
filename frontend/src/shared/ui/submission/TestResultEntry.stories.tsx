@@ -73,7 +73,12 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
   args: { index: 1, status: "passed" as const },
   render: (args) => (
-    <TestResultEntry index={args.index ?? 1} status={args.status ?? "passed"} {...args} onClick={() => console.log("Clicked")} />
+    <TestResultEntry
+      {...args}
+      index={args.index ?? 1}
+      status={args.status ?? "passed"}
+      onClick={() => console.log("Clicked")}
+    />
   ),
 };
 

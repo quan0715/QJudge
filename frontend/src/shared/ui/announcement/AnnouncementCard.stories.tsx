@@ -54,8 +54,8 @@ export const WithDeleteButton: Story = {
 export const WithCustomActions: Story = {
   render: (args) => (
     <AnnouncementCard
-      announcement={mockAnnouncement}
       {...args}
+      announcement={args.announcement ?? mockAnnouncement}
       canDelete
       onDelete={(id) => console.log("Delete:", id)}
       actions={
@@ -67,7 +67,7 @@ export const WithCustomActions: Story = {
 
 export const LongContent: Story = {
   render: (args) => (
-    <AnnouncementCard {...args} announcement={longContentAnnouncement} maxContentLength={200} />
+    <AnnouncementCard {...args} announcement={longContentAnnouncement} maxContentLength={args.maxContentLength ?? 200} />
   ),
 };
 

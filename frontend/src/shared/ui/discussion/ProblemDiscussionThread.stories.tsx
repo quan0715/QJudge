@@ -95,7 +95,14 @@ export const Playground: Story = {
       description: { story: '使用右側 Controls 面板調整 Props' },
     },
   },
-  render: (args) => <ProblemDiscussionThread id={args.id ?? "1"} content={args.content ?? ""} createdAt={args.createdAt ?? new Date().toISOString()} {...args} />,
+  render: (args) => (
+    <ProblemDiscussionThread
+      {...args}
+      id={args.id ?? "1"}
+      content={args.content ?? ""}
+      createdAt={args.createdAt ?? new Date().toISOString()}
+    />
+  ),
 };
 
 export const AllStates: Story = {

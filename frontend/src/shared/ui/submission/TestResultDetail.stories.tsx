@@ -175,7 +175,12 @@ export const Playground: Story = {
   },
   render: (args) => (
     <div style={{ maxWidth: 600 }}>
-      <TestResultDetail result={args.result ?? mockResults.passed} index={args.index ?? 1} {...args} onClose={() => console.log("Close clicked")} />
+      <TestResultDetail
+        {...args}
+        result={args.result ?? mockResults.passed}
+        index={args.index ?? 1}
+        onClose={() => console.log("Close clicked")}
+      />
     </div>
   ),
 };

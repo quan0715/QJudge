@@ -170,7 +170,7 @@ export const Playground: Story = {
   },
   render: (args) => (
     <div style={{ maxWidth: 500 }}>
-      <TestCaseDetail testCase={args.testCase ?? mockSampleCase} {...args} />
+      <TestCaseDetail {...args} testCase={args.testCase ?? mockSampleCase} />
     </div>
   ),
 };

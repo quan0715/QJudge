@@ -65,7 +65,7 @@ export const Playground: Story = {
 />` },
     },
   },
-  render: (args) => <CategoryTag labels={args.labels ?? []} {...args} />,
+  render: (args) => <CategoryTag {...args} labels={args.labels ?? []} />,
 };
 
 export const AllStates: Story = {

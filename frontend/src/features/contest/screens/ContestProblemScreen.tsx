@@ -35,19 +35,31 @@ const ContestProblemScreen = () => {
   const labContext = isClassroomLabRouteContext({ classroomId, labId })
     ? { classroomId, labId }
     : null;
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { contest, scoreboardData, loading: contestLoading } = useContest();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const classroomContestContext =
     !labContext && classroomId && contestId
       ? { classroomId, contestId }
       : null;
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { contest, scoreboardData, loading: contestLoading } = useContest();
+  const fallbackLobbyPath = labContext
+    ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
+    : classroomContestContext
+      ? getClassroomContestDashboardPath(
+          classroomContestContext.classroomId!,
+          classroomContestContext.contestId!,
+        )
+      : effectiveClassroomId && resolvedContestId
+        ? getClassroomContestDashboardPath(effectiveClassroomId, resolvedContestId)
+        : resolvedContestId
+          ? `/contests/${resolvedContestId}`
+          : "/contests";
 
   const hasEnded = !!contest && isContestEnded(contest);
   useContestNavigationGuard(
     resolvedContestId,
-    contest?.status === "published" && !hasEnded
+    contest?.status === "published" && !hasEnded,
   );
 
   // Find current user's rank data for solved status
@@ -100,17 +112,8 @@ const ContestProblemScreen = () => {
     }
 
     if ((contest.problems?.length ?? 0) === 0) {
-        navigate(
-          labContext
-            ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
-            : classroomContestContext
-              ? getClassroomContestDashboardPath(
-                  classroomContestContext.classroomId!,
-                  classroomContestContext.contestId!,
-                )
-          : effectiveClassroomId
-            ? getClassroomContestDashboardPath(effectiveClassroomId, resolvedContestId)
-            : `/contests/${resolvedContestId}`,
+      navigate(
+        fallbackLobbyPath,
         { replace: true },
       );
     }
@@ -119,10 +122,12 @@ const ContestProblemScreen = () => {
     classroomContestContext,
     contest?.contestType,
     contest?.problems,
+    fallbackLobbyPath,
     labContext,
     navigate,
     problemId,
     problemSelection.selectedProblemId,
+    effectiveClassroomId,
     resolvedContestId,
   ]);
 
@@ -152,20 +157,7 @@ const ContestProblemScreen = () => {
         <p>{t("error.problemAccessDenied")}</p>
         <Button
           kind="secondary"
-          onClick={() =>
-        navigate(
-          labContext
-            ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
-            : classroomContestContext
-              ? getClassroomContestDashboardPath(
-                  classroomContestContext.classroomId!,
-                  classroomContestContext.contestId!,
-                )
-                : effectiveClassroomId
-                  ? getClassroomContestDashboardPath(effectiveClassroomId, resolvedContestId)
-                  : `/contests/${resolvedContestId}`,
-        )
-          }
+          onClick={() => navigate(fallbackLobbyPath)}
         >
           {t("button.backToLobby")}
         </Button>
@@ -190,18 +182,7 @@ const ContestProblemScreen = () => {
         <p>{problemSelection.error}</p>
         <Button
           kind="secondary"
-          onClick={() =>
-            navigate(
-              labContext
-                ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
-                : classroomContestContext
-                  ? getClassroomContestDashboardPath(
-                      classroomContestContext.classroomId!,
-                      classroomContestContext.contestId!,
-                    )
-                : `/contests/${resolvedContestId}`,
-            )
-          }
+          onClick={() => navigate(fallbackLobbyPath)}
         >
           {t("button.backToLobby")}
         </Button>

@@ -46,7 +46,7 @@ export const Playground: Story = {
       source: { code: `<DifficultyBadge difficulty="medium" size="md" variant="tag" />` },
     },
   },
-  render: (args) => <DifficultyBadge difficulty={args.difficulty ?? "medium"} {...args} />,
+  render: (args) => <DifficultyBadge {...args} difficulty={args.difficulty ?? "medium"} />,
 };
 
 export const AllDifficulties: Story = {

@@ -39,8 +39,8 @@ export const Playground: Story = {
   },
   render: (args) => (
         <ProblemPreviewSection
-          problem={args.problem ?? mockProblems.twoSum}
           {...args}
+          problem={args.problem ?? mockProblems.twoSum}
           onSelect={(p) => console.log("Selected:", p.title)}
         />
       ),

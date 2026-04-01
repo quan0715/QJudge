@@ -49,7 +49,7 @@ export const Default: Story = {
       source: { code: `<ContestPreviewCard contest={contest} onSelect={console.log} />` },
     },
   },
-  render: (args) => <ContestPreviewCard contest={args.contest ?? sampleContest()} {...args} />,
+  render: (args) => <ContestPreviewCard {...args} contest={args.contest ?? sampleContest()} />,
 };
 
 export const Registered: Story = {
