@@ -28,9 +28,9 @@ const mockGetAPIKeyInfo = vi.mocked(getAPIKeyInfo);
 const mockSetAPIKey = vi.mocked(setAPIKey);
 const mockDeleteAPIKey = vi.mocked(deleteAPIKey);
 
-/** Helper: get the "新增 API Key" CTA button (not the modal heading) */
+/** Helper: get the "新增 Key" CTA button (not the modal heading) */
 const getAddButton = () =>
-  screen.getByRole("button", { name: /新增 API Key/ });
+  screen.getByRole("button", { name: /新增 Key/ });
 
 /** Helper: open the add/update modal by clicking the CTA button */
 const openModal = async (buttonText: RegExp) => {
@@ -56,7 +56,7 @@ describe("APIKeyPanel", () => {
     render(<APIKeyPanel />);
 
     await waitFor(() => {
-      expect(screen.getByText(/尚未設定 API Key/)).toBeInTheDocument();
+      expect(screen.getByText(/未設定 Key/)).toBeInTheDocument();
     });
     expect(getAddButton()).toBeInTheDocument();
   });
@@ -104,7 +104,7 @@ describe("APIKeyPanel", () => {
     } as any);
 
     render(<APIKeyPanel />);
-    const input = await openModal(/新增 API Key/);
+    const input = await openModal(/新增 Key/);
     expect(input).toBeInTheDocument();
   });
 
@@ -115,7 +115,7 @@ describe("APIKeyPanel", () => {
     } as any);
 
     render(<APIKeyPanel />);
-    const input = await openModal(/新增 API Key/);
+    const input = await openModal(/新增 Key/);
 
     fireEvent.change(input, { target: { value: "invalid-key" } });
     fireEvent.click(screen.getByText("儲存"));
@@ -136,7 +136,7 @@ describe("APIKeyPanel", () => {
     mockSetAPIKey.mockResolvedValue({ success: true } as any);
 
     render(<APIKeyPanel />);
-    const input = await openModal(/新增 API Key/);
+    const input = await openModal(/新增 Key/);
 
     fireEvent.change(input, { target: { value: "sk-ant-api03-testkey123" } });
     fireEvent.click(screen.getByText("儲存"));
@@ -157,7 +157,7 @@ describe("APIKeyPanel", () => {
     mockSetAPIKey.mockRejectedValue(new Error("Validation failed"));
 
     render(<APIKeyPanel />);
-    const input = await openModal(/新增 API Key/);
+    const input = await openModal(/新增 Key/);
 
     fireEvent.change(input, { target: { value: "sk-ant-api03-badkey" } });
     fireEvent.click(screen.getByText("儲存"));

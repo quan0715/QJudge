@@ -172,7 +172,7 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
               <div className="api-key-panel__empty">
                 <WarningAlt size={24} />
                 <p>
-                  {t("settings.apiKey.empty", "尚未設定 API Key。")}前往{" "}
+                  {t("settings.apiKey.empty", "未設定 Key。")}前往{" "}
                   <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">Anthropic Console</a>{" "}
                   建立。
                 </p>

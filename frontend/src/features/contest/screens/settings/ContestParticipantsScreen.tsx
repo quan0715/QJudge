@@ -5,11 +5,9 @@ import {
   ExpandableSearch,
   FluidDropdown,
   InlineNotification,
-  Layer,
-  Popover,
-  PopoverContent,
 } from "@carbon/react";
-import { Add, DocumentExport, Filter } from "@carbon/icons-react";
+import { Add, DocumentExport } from "@carbon/icons-react";
+import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -68,7 +66,7 @@ const ContestParticipantsScreen = () => {
   const [editLockReason, setEditLockReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
+  // filterOpen state removed — FilterPopover manages its own open/close
   const refreshInFlightRef = useRef(false);
 
   const searchQuery = searchParams.get("q") || "";
@@ -437,85 +435,47 @@ const ContestParticipantsScreen = () => {
               value={searchQuery}
               onChange={(event) => updateParams({ q: event.target.value || null })}
             />
-            <Layer>
-              <Popover
-                open={filterOpen}
-                align="bottom-right"
-                isTabTip
-                onRequestClose={() => setFilterOpen(false)}
-              >
-                <Button
-                  kind="ghost"
-                  size="md"
-                  hasIconOnly
-                  renderIcon={Filter}
-                  iconDescription={t("participants.filters", "篩選")}
-                  tooltipPosition="bottom"
-                  tooltipAlignment="center"
-                  data-testid="participants-toolbar-filter-btn"
-                  onClick={() => setFilterOpen((prev) => !prev)}
-                  className={`${styles.localToolbarIconButton} ${
-                    hasActiveFilters ? styles.localToolbarIconActive : ""
-                  }`}
-                />
-                <PopoverContent className={styles.filterPopoverContent}>
-                  <div className={styles.filterPopoverFields}>
-                    <FluidDropdown
-                      id="participants-toolbar-status"
-                      titleText={t("participants.selectStatus", "狀態")}
-                      label={t("participants.selectStatus", "狀態")}
-                      items={statusOptions}
-                      itemToString={(item) => (item as Option | null)?.label ?? ""}
-                      selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
-                      onChange={({ selectedItem }) =>
-                        updateParams({
-                          status:
-                            (selectedItem as Option | null)?.id &&
-                            (selectedItem as Option).id !== "all"
-                              ? (selectedItem as Option).id
-                              : null,
-                        })
-                      }
-                    />
-                    <FluidDropdown
-                      id="participants-toolbar-sort"
-                      titleText={t("dashboard.sortLabel", "排序")}
-                      label={t("dashboard.sortLabel", "排序")}
-                      items={sortOptions}
-                      itemToString={(item) => (item as Option | null)?.label ?? ""}
-                      selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
-                      onChange={({ selectedItem }) =>
-                        updateParams({
-                          sort:
-                            (selectedItem as Option | null)?.id &&
-                            (selectedItem as Option).id !== "score_desc"
-                              ? (selectedItem as Option).id
-                              : null,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className={styles.filterPopoverActions}>
-                    <Button
-                      kind="ghost"
-                      size="sm"
-                      onClick={() =>
-                        updateParams({
-                          q: null,
-                          status: null,
-                          sort: null,
-                        })
-                      }
-                    >
-                      {t("common.reset", "重設")}
-                    </Button>
-                    <Button kind="primary" size="sm" onClick={() => setFilterOpen(false)}>
-                      {t("common.done", "完成")}
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </Layer>
+            <FilterPopover
+              hasActiveFilters={hasActiveFilters}
+              triggerLabel={t("participants.filters", "篩選")}
+              onReset={() => updateParams({ q: null, status: null, sort: null })}
+              className={styles.localToolbarIconButton}
+            >
+              <FluidDropdown
+                id="participants-toolbar-status"
+                titleText={t("participants.selectStatus", "狀態")}
+                label={t("participants.selectStatus", "狀態")}
+                items={statusOptions}
+                itemToString={(item) => (item as Option | null)?.label ?? ""}
+                selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
+                onChange={({ selectedItem }) =>
+                  updateParams({
+                    status:
+                      (selectedItem as Option | null)?.id &&
+                      (selectedItem as Option).id !== "all"
+                        ? (selectedItem as Option).id
+                        : null,
+                  })
+                }
+              />
+              <FluidDropdown
+                id="participants-toolbar-sort"
+                titleText={t("dashboard.sortLabel", "排序")}
+                label={t("dashboard.sortLabel", "排序")}
+                items={sortOptions}
+                itemToString={(item) => (item as Option | null)?.label ?? ""}
+                selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
+                onChange={({ selectedItem }) =>
+                  updateParams({
+                    sort:
+                      (selectedItem as Option | null)?.id &&
+                      (selectedItem as Option).id !== "score_desc"
+                        ? (selectedItem as Option).id
+                        : null,
+                  })
+                }
+              />
+            </FilterPopover>
             <Button
               kind="ghost"
               size="md"
