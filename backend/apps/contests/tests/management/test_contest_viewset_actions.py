@@ -76,22 +76,6 @@ def contest(owner: User) -> Contest:
 
 
 @pytest.mark.django_db
-def test_create_contest_sets_owner(api_client: APIClient, owner: User) -> None:
-    api_client.force_authenticate(user=owner)
-
-    response = api_client.post(
-        "/api/v1/contests/",
-        {"name": "Created By API"},
-        format="json",
-    )
-
-    assert response.status_code == status.HTTP_201_CREATED
-    created = Contest.objects.get(id=response.data["id"])
-    assert created.owner_id == owner.id
-    assert created.status == "draft"
-
-
-@pytest.mark.django_db
 def test_partial_update_logs_activity(
     api_client: APIClient,
     owner: User,

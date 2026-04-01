@@ -96,10 +96,10 @@ export const codingContestModule: ContestTypeModule = {
       return firstProblemId
         ? classroomId
           ? getClassroomContestSolvePath(classroomId, contestId, firstProblemId)
-          : `/contests/${contestId}/solve/${firstProblemId}`
+          : `/dashboard`
         : classroomId
           ? `/classrooms/${classroomId}/contest/${contestId}`
-          : `/contests/${contestId}`;
+          : `/dashboard`;
     },
   },
   admin: {

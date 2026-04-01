@@ -52,9 +52,7 @@ const ContestProblemScreen = () => {
         )
       : effectiveClassroomId && resolvedContestId
         ? getClassroomContestDashboardPath(effectiveClassroomId, resolvedContestId)
-        : resolvedContestId
-          ? `/contests/${resolvedContestId}`
-          : "/contests";
+        : "/dashboard";
 
   const hasEnded = !!contest && isContestEnded(contest);
   useContestNavigationGuard(
@@ -106,7 +104,7 @@ const ContestProblemScreen = () => {
               resolvedContestId,
               problemSelection.selectedProblemId,
             )
-          : `/contests/${resolvedContestId}/solve/${problemSelection.selectedProblemId}`;
+          : "/dashboard";
       navigate(nextPath, { replace: true });
       return;
     }

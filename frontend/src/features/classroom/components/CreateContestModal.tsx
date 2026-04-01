@@ -10,7 +10,6 @@ import {
 } from "@carbon/react";
 import { Code, Education, Time, Calendar } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { createContest } from "@/infrastructure/api/repositories/contest.repository";
 import { createClassroomContest } from "@/infrastructure/api/repositories/classroom.repository";
 import styles from "./CreateContestModal.module.scss";
 
@@ -18,7 +17,7 @@ interface CreateContestModalProps {
   open: boolean;
   onClose: () => void;
   onCreated: (contestId?: string) => void;
-  classroomId?: string;
+  classroomId: string;
 }
 
 type ContestCreationType = "coding_test" | "exam";
@@ -123,33 +122,19 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
     setLoading(true);
     setError("");
 
-    try {
-      if (classroomId) {
-        const createdContest = await createClassroomContest(classroomId, {
-          name,
-          description: "",
-          start_time: startDateTime,
-          end_time: endDateTime,
-          contest_type: creationType === "exam" ? "paper_exam" : "coding",
-          visibility: isPrivate ? "private" : "public",
-          password: isPrivate ? password : undefined,
-          cheat_detection_enabled: creationType === "exam",
-          results_published: false,
-        });
-        onCreated(createdContest.contestId);
-      } else {
-        const createdContest = await createContest({
-          name,
-          description: "",
-          start_time: startDateTime,
-          end_time: endDateTime,
-          visibility: isPrivate ? "private" : "public",
-          password: isPrivate ? password : undefined,
-          contest_type: creationType === "exam" ? "paper_exam" : "coding",
-          cheat_detection_enabled: creationType === "exam",
-        });
-        onCreated(createdContest.id);
-      }
+  try {
+      const createdContest = await createClassroomContest(classroomId, {
+        name,
+        description: "",
+        start_time: startDateTime,
+        end_time: endDateTime,
+        contest_type: creationType === "exam" ? "paper_exam" : "coding",
+        visibility: isPrivate ? "private" : "public",
+        password: isPrivate ? password : undefined,
+        cheat_detection_enabled: creationType === "exam",
+        results_published: false,
+      });
+      onCreated(createdContest.contestId);
       handleClose();
     } catch (err: unknown) {
       const message =

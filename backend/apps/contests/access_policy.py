@@ -236,13 +236,6 @@ class ContestAccessPolicy(permissions.BasePermission):
         # Allow list for everyone
         if view.action == 'list':
             return True
-        # Only teachers and admins can create contests
-        if view.action == 'create':
-            return request.user.is_authenticated and (
-                request.user.is_staff
-                or request.user.is_superuser
-                or getattr(request.user, 'role', None) in ('teacher', 'admin')
-            )
         # Defer to has_object_permission for detail actions
         return True
 

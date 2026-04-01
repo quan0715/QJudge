@@ -20,6 +20,8 @@ export interface QJudgeHeroWidgetProps {
 
   // Bottom Integration
   tabs?: React.ReactNode;
+  /** CSS top offset for sticky tab bar (default: '3rem') */
+  stickyTop?: string;
 
   // Layout & State
   maxWidth?: string; // e.g. '84rem'
@@ -45,6 +47,7 @@ export const QJudgeHeroWidget: React.FC<QJudgeHeroWidgetProps> = ({
   coverUrl,
   backgroundGradient,
   tabs,
+  stickyTop,
   maxWidth = '84rem',
   loading = false,
   className = '',
@@ -144,7 +147,7 @@ export const QJudgeHeroWidget: React.FC<QJudgeHeroWidgetProps> = ({
       </div>
 
       {tabs && (
-        <div className={styles.tabsBar}>
+        <div className={styles.tabsBar} style={stickyTop != null ? { top: stickyTop } : undefined}>
           <div className={styles.tabsInner} style={{ maxWidth }}>
             {tabs}
           </div>

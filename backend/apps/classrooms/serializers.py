@@ -298,7 +298,7 @@ class JoinClassroomSerializer(serializers.Serializer):
 
 class AddMembersSerializer(serializers.Serializer):
     usernames = serializers.ListField(
-        child=serializers.CharField(max_length=150),
+        child=serializers.CharField(max_length=254),
         allow_empty=False,
     )
     role = serializers.ChoiceField(

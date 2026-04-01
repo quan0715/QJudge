@@ -35,9 +35,7 @@ import ExamSubmissionProgressModal from "@/features/contest/components/exam/Exam
 import {
   getClassroomContestDashboardPath,
   getClassroomContestPrecheckPath,
-  getContestDashboardPath,
   shouldRouteToPrecheck,
-  getContestPrecheckPath,
 } from "@/features/contest/domain/contestRoutePolicy";
 import {
   getClassroomLabDashboardPath,
@@ -82,22 +80,20 @@ const PaperExamAnsweringScreen: React.FC = () => {
           )
       : effectiveClassroomId && contestId
         ? getClassroomContestDashboardPath(effectiveClassroomId, contestId)
-        : contestId
-        ? getContestDashboardPath(contestId)
         : "";
   const precheckPath =
     !contestId
       ? ""
     : labContext
         ? dashboardPath
-      : classroomContestContext
-        ? getClassroomContestPrecheckPath(
-            classroomContestContext.classroomId!,
-            classroomContestContext.contestId!,
-          )
-        : effectiveClassroomId
-          ? getClassroomContestPrecheckPath(effectiveClassroomId, contestId)
-          : getContestPrecheckPath(contestId);
+        : classroomContestContext
+          ? getClassroomContestPrecheckPath(
+              classroomContestContext.classroomId!,
+              classroomContestContext.contestId!,
+            )
+          : effectiveClassroomId
+            ? getClassroomContestPrecheckPath(effectiveClassroomId, contestId)
+          : "";
   const shouldRequirePrecheck =
     !labContext && contest?.deliveryMode !== "practice";
   const capability = useMemo(() => detectAnticheatCapability(), []);

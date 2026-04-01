@@ -437,11 +437,10 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
                     'password': 'Password is required for private contests.'
                 })
                 
-            # Only require password when creating or changing to private
+            # Only require password when changing to private
             changing_to_private = ('visibility' in data and data['visibility'] == 'private'
                                    and (not self.instance or self.instance.visibility != 'private'))
-            is_create = self.instance is None
-            if not password_in_data and (is_create or changing_to_private):
+            if not password_in_data and changing_to_private:
                 if not self.instance or not self.instance.password:
                      raise serializers.ValidationError({
                         'password': 'Password is required for private contests.'
@@ -464,19 +463,6 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
         
         return data
     
-    def create(self, validated_data):
-        """Create contest with current user as owner."""
-        request = self.context.get('request')
-        validated_data['owner'] = request.user
-        validated_data['status'] = 'draft'  # Always start as draft
-
-        raw_password = validated_data.pop("password", None)
-        contest = super().create(validated_data)
-        if raw_password:
-            contest.set_contest_password(raw_password)
-            contest.save(update_fields=["password"])
-        return contest
-
     def update(self, instance, validated_data):
         """Update contest and safely hash password when provided."""
         raw_password = validated_data.pop("password", None)

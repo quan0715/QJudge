@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Button,
   Search,
@@ -46,8 +46,10 @@ import { AnnouncementModal } from "../components/AnnouncementModal";
 import CreateContestModal from "@/features/classroom/components/CreateContestModal";
 import ClassroomAdminLayout, { type ClassroomAdminPanelId } from "./ClassroomAdminLayout";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
+import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
 import { ContestPreviewCard } from "@/features/contest/components/ContestPreviewCard";
 import { getClassroomIcon } from "../constants/classroomIcons";
+import { useTabWithUrlParam } from "@/shared/hooks";
 import { ClassroomSettingsModal } from "../components/ClassroomSettingsModal";
 import "./ClassroomDetailScreen.scss";
 
@@ -57,22 +59,11 @@ const PANEL_ALIAS: Record<string, ClassroomAdminPanelId> = {
   member: "members",
 };
 
-const resolveActivePanel = (
-  value: string | null,
-  availablePanels: ClassroomAdminPanelId[],
-): ClassroomAdminPanelId => {
-  const normalized = value ? (PANEL_ALIAS[value] ?? value) : "overview";
-  return availablePanels.includes(normalized as ClassroomAdminPanelId)
-    ? (normalized as ClassroomAdminPanelId)
-    : "overview";
-};
-
 const ClassroomDetailScreen: React.FC = () => {
   const { t } = useTranslation("classroom");
   const { showToast } = useToast();
   const navigate = useNavigate();
   const { classroomId } = useParams<{ classroomId: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const [classroom, setClassroom] = useState<ClassroomDetail | null>(null);
   const [classroomOptions, setClassroomOptions] = useState<Classroom[]>([]);
@@ -98,10 +89,17 @@ const ClassroomDetailScreen: React.FC = () => {
     return ["overview"];
   }, [isMember, isPrivileged]);
 
-  const activePanel = useMemo(
-    () => resolveActivePanel(searchParams.get("panel"), availablePanels),
-    [searchParams, availablePanels],
-  );
+  const {
+    activeKey: activePanel,
+    activeIndex: selectedTabIndex,
+    setActiveKey: handlePanelChange,
+    setActiveIndex: handleTabChangeIndex,
+  } = useTabWithUrlParam({
+    param: "panel",
+    keys: availablePanels,
+    defaultKey: "overview",
+    aliases: PANEL_ALIAS,
+  });
 
   const fetchClassroomData = useCallback(async () => {
     if (!classroomId) return;
@@ -154,38 +152,8 @@ const ClassroomDetailScreen: React.FC = () => {
     void refreshAll();
   }, [refreshAll]);
 
-  useEffect(() => {
-    const panelParam = searchParams.get("panel");
-    const normalized = resolveActivePanel(panelParam, availablePanels);
-    if ((panelParam === null && normalized === "overview") || panelParam === normalized) {
-      return;
-    }
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (normalized === "overview") {
-        next.delete("panel");
-      } else {
-        next.set("panel", normalized);
-      }
-      return next;
-    });
-  }, [availablePanels, searchParams, setSearchParams]);
-
-  const handlePanelChange = (panel: ClassroomAdminPanelId) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (panel === "overview") {
-        next.delete("panel");
-      } else {
-        next.set("panel", panel);
-      }
-      return next;
-    });
-  };
-
   const handleTabChange = ({ selectedIndex }: { selectedIndex: number }) => {
-    const panel = availablePanels[selectedIndex];
-    if (panel) handlePanelChange(panel);
+    handleTabChangeIndex(selectedIndex);
   };
 
   const handleClassroomSwitch = (targetId: string) => {
@@ -244,8 +212,6 @@ const ClassroomDetailScreen: React.FC = () => {
     );
   }
 
-  const selectedTabIndex = availablePanels.indexOf(activePanel);
-
   const HeroIcon = getClassroomIcon(classroom.icon) as React.ComponentType<{
     size: number;
     className?: string;
@@ -288,21 +254,27 @@ const ClassroomDetailScreen: React.FC = () => {
                 showBorder={false}
               />
             }
-            tabs={
-              <Tabs
-                selectedIndex={selectedTabIndex >= 0 ? selectedTabIndex : 0}
-                onChange={handleTabChange}
-              >
-                <TabList aria-label={t("tabs", "教室分頁")}>
-                  {availablePanels.map((panel) => (
-                    <Tab key={panel} renderIcon={TAB_CONFIG[panel]?.icon}>
-                      {TAB_CONFIG[panel]?.label(t) ?? panel}
-                    </Tab>
-                  ))}
-                </TabList>
-              </Tabs>
-            }
           />
+
+          {/* Tabs outside QJudgeHeroWidget so sticky works (sticky scope = parent).
+              Negative margin overlaps hero bottom; glass bg keeps cover image visible. */}
+          <div
+            className={`classroom-tabs-bar${classroom.coverUrl ? "" : " classroom-tabs-bar--plain"}`}
+            style={classroom.coverUrl ? { backgroundImage: `url(${classroom.coverUrl})` } : undefined}
+          >
+            <Tabs
+              selectedIndex={selectedTabIndex >= 0 ? selectedTabIndex : 0}
+              onChange={handleTabChange}
+            >
+              <TabList aria-label={t("tabs", "教室分頁")}>
+                {availablePanels.map((panel) => (
+                  <Tab key={panel} renderIcon={TAB_CONFIG[panel]?.icon}>
+                    {TAB_CONFIG[panel]?.label(t) ?? panel}
+                  </Tab>
+                ))}
+              </TabList>
+            </Tabs>
+          </div>
 
           <div className="classroom-admin-panel">
             {activePanel === "overview" && (
@@ -444,83 +416,87 @@ const OverviewPanel: React.FC<{
     .slice(0, 3);
 
   return (
-    <div className="classroom-admin-overview-layout">
-      <div className="classroom-admin-overview-layout__main">
-        <AnnouncementSection
-          announcements={classroom.announcements.slice(0, 4)}
-          isPrivileged={isPrivileged}
-          onCreateClick={onCreateAnnouncement}
-          onView={onViewAnnouncement}
-          compactEmpty
-          title={t("latestAnnouncements")}
-        />
-        {classroom.announcements.length > 4 && (
-          <Button
-            kind="ghost"
-            size="sm"
-            renderIcon={ArrowRight}
-            onClick={() => onJumpToPanel("announcements")}
-          >
-            {t("viewAllAnnouncements")}
-          </Button>
-        )}
-      </div>
+    <EntityOverviewFrame
+      sectionClassName="classroom-admin-overview-frame-section"
+      main={
+        <>
+          <AnnouncementSection
+            announcements={classroom.announcements.slice(0, 4)}
+            isPrivileged={isPrivileged}
+            onCreateClick={onCreateAnnouncement}
+            onView={onViewAnnouncement}
+            compactEmpty
+            title={t("latestAnnouncements")}
+          />
+          {classroom.announcements.length > 4 && (
+            <Button
+              kind="ghost"
+              size="sm"
+              renderIcon={ArrowRight}
+              onClick={() => onJumpToPanel("announcements")}
+            >
+              {t("viewAllAnnouncements")}
+            </Button>
+          )}
+        </>
+      }
+      side={
+        <>
+          {!isPrivileged && (
+            <section className="classroom-admin-section classroom-admin-section--todo">
+              <div className="classroom-admin-section__header">
+                <div className="classroom-admin-section__title">
+                  <h3>{t("studentTodo", "我的待辦")}</h3>
+                </div>
+              </div>
+              <div className="classroom-admin-todo-list">
+                <button type="button" onClick={() => onJumpToPanel("announcements")}>
+                  <span>{t("announcements")}</span>
+                  <strong>{classroom.announcements.length}</strong>
+                </button>
+                <button type="button" onClick={() => onJumpToPanel("contests")}>
+                  <span>{t("contests", "考試")}</span>
+                  <strong>{classroom.contests.length}</strong>
+                </button>
+              </div>
+            </section>
+          )}
 
-      <div className="classroom-admin-overview-layout__side">
-        {!isPrivileged && (
-          <section className="classroom-admin-section classroom-admin-section--todo">
+          <section className="classroom-admin-section">
             <div className="classroom-admin-section__header">
               <div className="classroom-admin-section__title">
-                <h3>{t("studentTodo", "我的待辦")}</h3>
+                <h3>{t("recentActivities", "近期活動")}</h3>
               </div>
+              {isPrivileged && (
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateExam}>
+                    {t("createContest", "建立考試")}
+                  </Button>
+                </div>
+              )}
             </div>
-            <div className="classroom-admin-todo-list">
-              <button type="button" onClick={() => onJumpToPanel("announcements")}>
-                <span>{t("announcements")}</span>
-                <strong>{classroom.announcements.length}</strong>
-              </button>
-              <button type="button" onClick={() => onJumpToPanel("contests")}>
-                <span>{t("contests", "考試")}</span>
-                <strong>{classroom.contests.length}</strong>
-              </button>
-            </div>
-          </section>
-        )}
 
-        <section className="classroom-admin-section">
-          <div className="classroom-admin-section__header">
-            <div className="classroom-admin-section__title">
-              <h3>{t("recentActivities", "近期活動")}</h3>
-            </div>
-            {isPrivileged && (
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateExam}>
-                  {t("createContest", "建立考試")}
-                </Button>
+            {recentActivities.length === 0 ? (
+              <EmptyBlock
+                icon={Trophy}
+                message={t("noActiveContests", "目前沒有進行中或即將開始的活動")}
+                compact
+              />
+            ) : (
+              <div className="classroom-admin-card-grid">
+                {recentActivities.map((activity) => (
+                  <ContestCard
+                    key={activity.contestId}
+                    contest={activity}
+                    onNavigate={() => onNavigateExam(activity.contestId)}
+                  />
+                ))}
               </div>
             )}
-          </div>
-
-          {recentActivities.length === 0 ? (
-            <EmptyBlock
-              icon={Trophy}
-              message={t("noActiveContests", "目前沒有進行中或即將開始的活動")}
-              compact
-            />
-          ) : (
-            <div className="classroom-admin-card-grid">
-              {recentActivities.map((activity) => (
-                <ContestCard
-                  key={activity.contestId}
-                  contest={activity}
-                  onNavigate={() => onNavigateExam(activity.contestId)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
+          </section>
+        </>
+      }
+    />
   );
 };
 

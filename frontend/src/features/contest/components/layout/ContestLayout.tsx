@@ -31,8 +31,6 @@ import { useContestLayoutState } from "@/features/contest/hooks/useContestLayout
 import {
   getClassroomContestDashboardPath,
   getClassroomContestSolvePath,
-  getContestAnsweringEntryPath,
-  getContestDashboardPath,
 } from "@/features/contest/domain/contestRoutePolicy";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
 import { useClassroomName } from "@/features/classroom/hooks/useClassroomName";
@@ -68,15 +66,11 @@ const ContestLayout = () => {
   const dashboardPath =
     boundClassroomId && contestId
       ? getClassroomContestDashboardPath(boundClassroomId, contestId)
-      : contestId
-        ? getContestDashboardPath(contestId)
-        : "/dashboard";
+      : "/dashboard";
   const adminPath =
     boundClassroomId && contestId
       ? `${dashboardPath}/admin`
-      : contestId
-        ? `/contests/${contestId}/admin`
-        : "/dashboard";
+      : "/dashboard";
 
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
@@ -99,7 +93,7 @@ const ContestLayout = () => {
     navigate(
       boundClassroomId
         ? getClassroomContestSolvePath(boundClassroomId, contestId)
-        : getContestAnsweringEntryPath(contestId, contest),
+        : "/dashboard",
     );
   };
 

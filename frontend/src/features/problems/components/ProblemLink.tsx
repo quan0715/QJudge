@@ -4,6 +4,7 @@ interface ProblemLinkProps {
   problemId: string;
   title?: string;
   contestId?: string;
+  classroomId?: string;
   children?: React.ReactNode;
   style?: React.CSSProperties;
   className?: string;
@@ -17,13 +18,14 @@ const ProblemLink = ({
   problemId,
   title,
   contestId,
+  classroomId,
   children,
   style,
   className
 }: ProblemLinkProps) => {
   // Determine the correct route
-  const to = contestId
-    ? `/contests/${contestId}/problems/${problemId}`
+  const to = contestId && classroomId
+    ? `/classrooms/${classroomId}/contest/${contestId}/problems/${problemId}`
     : `/problems/${problemId}`;
 
   const displayText = children || title || `Problem ${problemId}`;

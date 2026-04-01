@@ -34,7 +34,7 @@ export async function login(page: Page, role: UserRole = "student") {
         // Harmless race in CI: app/router sometimes issues a concurrent redirect to the same /login URL.
         // Treat this as success after confirming we're on login (or already redirected away as authenticated).
         if (isSameLoginRedirectInterrupt(message)) {
-          await page.waitForURL(/\/login|\/dashboard|\/problems|\/contests|\/$/, {
+          await page.waitForURL(/\/login|\/dashboard|\/problems|\/classrooms|\/$/, {
             timeout: 5000,
           }).catch(() => {});
           return;

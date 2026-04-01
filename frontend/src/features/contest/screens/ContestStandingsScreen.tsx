@@ -147,6 +147,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                     standings={standings}
                     loading={false}
                     contestId={contest?.id}
+                    classroomId={contest?.boundClassroomId || undefined}
                   />
                 )}
               </div>

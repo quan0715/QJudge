@@ -1,0 +1,55 @@
+@use "@carbon/layout";
+
+// ─── Trigger button ─────────────────────────────────────────
+.trigger {
+  position: relative;
+}
+
+.triggerActive {
+  background-color: var(--cds-layer-active);
+}
+
+.activeIndicator {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--cds-interactive);
+  pointer-events: none;
+}
+
+// ─── Popover content ────────────────────────────────────────
+.content {
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+
+  :global(.cds--dropdown) {
+    width: 100%;
+  }
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-05;
+}
+
+// ─── Action buttons ─────────────────────────────────────────
+.actions {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--cds-border-subtle);
+
+  :global(.cds--btn) {
+    flex: 1;
+    max-width: none;
+    border-radius: 0;
+    margin: 0;
+    padding-block: layout.$spacing-05;
+  }
+}

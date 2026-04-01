@@ -11,6 +11,7 @@ import {
   type ProblemRowData,
 } from "@/features/problems/components/list";
 import { hasStartedExam } from "@/features/contest/domain/contestRuntimePolicy";
+import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 
 interface ContestProblemListProps {
   contest: ContestDetail;
@@ -46,9 +47,10 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
   }));
 
   const handleRowClick = (problem: ProblemRowData) => {
-    if (!startedExam || !contestId) return;
+    const classroomId = contest.boundClassroomId;
+    if (!startedExam || !contestId || !classroomId) return;
     const targetId = problem.problemId || problem.id;
-    navigate(`/contests/${contestId}/solve/${targetId}`);
+    navigate(getClassroomContestSolvePath(classroomId, contestId, targetId));
   };
 
   return (

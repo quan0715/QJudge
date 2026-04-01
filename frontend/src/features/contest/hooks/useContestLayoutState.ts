@@ -9,8 +9,8 @@ import {
   shouldWarnOnExit as shouldWarnOnExitByPolicy,
 } from "@/features/contest/domain/contestRuntimePolicy";
 import {
-  getContestDashboardPath,
-  getContestPrecheckPath,
+  getClassroomContestDashboardPath,
+  getClassroomContestPrecheckPath,
   shouldRedirectToOverviewOnStrictSubmitted,
 } from "@/features/contest/domain/contestRoutePolicy";
 import { isFullscreen as isFullscreenMode } from "@/core/usecases/exam";
@@ -44,16 +44,18 @@ export function useContestLayoutState() {
   const shouldWarnOnExit = shouldWarnOnExitByPolicy(contest, hasEnded);
   const dashboardPath =
     (contest?.boundClassroomId || classroomId) && contestId
-      ? `/classrooms/${classroomId || contest?.boundClassroomId}/contest/${contestId}`
-      : contestId
-        ? getContestDashboardPath(contestId)
-        : "/dashboard";
+      ? getClassroomContestDashboardPath(
+          classroomId || contest?.boundClassroomId!,
+          contestId,
+        )
+      : "/dashboard";
   const precheckPath =
     (contest?.boundClassroomId || classroomId) && contestId
-      ? `/classrooms/${classroomId || contest?.boundClassroomId}/contest/${contestId}/exam-precheck`
-      : contestId
-        ? getContestPrecheckPath(contestId)
-        : "/dashboard";
+      ? getClassroomContestPrecheckPath(
+          classroomId || contest?.boundClassroomId!,
+          contestId,
+        )
+      : "/dashboard";
 
   const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
   const totalMaxScore = contest?.problems?.reduce((sum, p) => sum + (p.score || 0), 0) ?? 0;

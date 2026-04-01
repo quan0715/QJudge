@@ -1,5 +1,4 @@
 // Main Screens
-export { default as ContestListScreen } from "./ContestListScreen";
 export { default as ContestDashboardScreen } from "./ContestDashboardScreen";
 export { default as ContestPreRegistrationScreen } from "./ContestPreRegistrationScreen";
 export { default as ContestProblemScreen } from "./ContestProblemScreen";

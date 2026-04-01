@@ -13,7 +13,7 @@ import type {
 import ExamEditorLayout from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
 import ExamStatisticsPanel from "@/features/contest/components/admin/statistics/ExamStatisticsPanel";
 import PaperExamAnsweringScreen from "@/features/contest/screens/paperExam/PaperExamAnsweringScreen";
-import { getContestSolveRootPath, getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
+import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 
 const getPaperExamTabs = (contest?: ContestDetail | null) => {
   const keyToContentKind: Record<ContestTabKey, ContestStudentTabContentKind> = {
@@ -57,14 +57,14 @@ const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
 
 export const paperExamContestModule: ContestTypeModule = {
   type: "paper_exam",
-  student: {
-    getTabs: (contest) => getPaperExamTabs(contest),
-    getSolveRenderer: () => () => <PaperExamAnsweringScreen />,
-    getAnsweringEntryPath: (contestId, contest) =>
-      contest?.boundClassroomId
-        ? getClassroomContestSolvePath(contest.boundClassroomId, contestId)
-        : getContestSolveRootPath(contestId),
-  },
+    student: {
+      getTabs: (contest) => getPaperExamTabs(contest),
+      getSolveRenderer: () => () => <PaperExamAnsweringScreen />,
+      getAnsweringEntryPath: (contestId, contest) =>
+        contest?.boundClassroomId
+          ? getClassroomContestSolvePath(contest.boundClassroomId, contestId)
+        : "/dashboard",
+    },
   admin: {
     editorKind: "paper_exam",
     getAvailablePanels: () => PAPER_EXAM_ADMIN_PANELS,

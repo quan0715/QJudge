@@ -28,7 +28,7 @@ import {
   SettingsDialog,
 } from "@/features/auth";
 import { problemDetailRoutes, problemSolveRoutes } from "@/features/problems";
-import { contestListRoute, contestDetailRoutes, contestAdminRoute, examPreviewRoute, examPrecheckRoute, classroomContestDetailRoutes, classroomContestAdminRoute, classroomExamPreviewRoute, classroomExamPrecheckRoute } from "@/features/contest";
+import { classroomContestDetailRoutes, classroomContestAdminRoute, classroomExamPreviewRoute, classroomExamPrecheckRoute } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
@@ -123,7 +123,6 @@ function App() {
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
                               {dashboardRoute}
-                              {contestListRoute}
                               <Route
                                 path="/ranking"
                                 element={<div>Ranking Page (Coming Soon)</div>}
@@ -132,26 +131,17 @@ function App() {
 
                             {/* Legacy hidden routes */}
                             <Route path="/problems" element={<LegacyProblemListRedirect />} />
-                            <Route path="/teacher" element={<Navigate to="/dashboard" replace />} />
-                            <Route path="/teacher/*" element={<Navigate to="/dashboard" replace />} />
-
                             {/* Problem Detail - Outside MainLayout with Custom ProblemLayout */}
                             {problemDetailRoutes}
 
                             {/* Problem Solve - Full-screen IDE-style solver */}
                             {problemSolveRoutes}
 
-                            {/* Contest Routes - Outside MainLayout with Custom Header */}
-                            {contestDetailRoutes}
-
                             {/* Classroom-scoped Contest Routes */}
                             {classroomContestDetailRoutes}
 
                             {/* Classroom Detail - Standalone classroom admin shell */}
                             {classroomDetailRoute}
-
-                            {/* Exam Precheck - Standalone, shared by coding & paper_exam */}
-                            {examPrecheckRoute}
 
                             {/* Classroom Exam Precheck - Classroom-scoped */}
                             {classroomExamPrecheckRoute}
@@ -170,14 +160,8 @@ function App() {
                             {/* Question Bank Detail - Standalone with breadcrumb header */}
                             {questionBankDetailRoute}
 
-                            {/* Contest Admin Dashboard - Standalone full page */}
-                            {contestAdminRoute}
-
                             {/* Classroom Contest Admin - Classroom-scoped */}
                             {classroomContestAdminRoute}
-
-                            {/* Exam Preview - Standalone full page (Demo mode) */}
-                            {examPreviewRoute}
 
                             {/* Classroom Exam Preview - Classroom-scoped */}
                             {classroomExamPreviewRoute}
