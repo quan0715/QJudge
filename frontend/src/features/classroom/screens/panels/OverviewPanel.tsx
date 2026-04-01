@@ -1,7 +1,7 @@
 import { Button } from "@carbon/react";
 import { Add, ArrowRight, Trophy } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { ClassroomDetail, ClassroomAnnouncement, BoundContest } from "@/core/entities/classroom.entity";
+import type { ClassroomDetail, ClassroomAnnouncement } from "@/core/entities/classroom.entity";
 import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
 import { EmptyBlock } from "../../components/EmptyBlock";
 import { AnnouncementSection } from "../../components/AnnouncementSection";

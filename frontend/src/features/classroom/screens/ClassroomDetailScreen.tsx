@@ -3,15 +3,12 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Button,
-  Search,
   Tag,
-  Modal,
   Tabs,
   TabList,
   Tab,
 } from "@carbon/react";
 import {
-  Add,
   Bullhorn,
   Dashboard,
   Education,
@@ -23,7 +20,6 @@ import type {
   Classroom,
   ClassroomAnnouncement,
   ClassroomDetail,
-  BoundContest,
 } from "@/core/entities/classroom.entity";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import { useToast } from "@/shared/contexts/ToastContext";
