@@ -66,21 +66,22 @@ const ContestLayout = () => {
     navigate,
     } = useContestLayoutState();
 
-    const classroomName = useClassroomName(classroomId);
+    const boundClassroomId = classroomId || contest?.boundClassroomId || undefined;
+    const classroomName = useClassroomName(boundClassroomId);
     const { t } = useTranslation("contest");
     const { t: tc } = useTranslation("common");
   const dashboardPath =
-    classroomId && contestId
-      ? getClassroomContestDashboardPath(classroomId, contestId)
+    boundClassroomId && contestId
+      ? getClassroomContestDashboardPath(boundClassroomId, contestId)
       : contestId
         ? getContestDashboardPath(contestId)
-        : "/contests";
+        : "/dashboard";
   const adminPath =
-    classroomId && contestId
+    boundClassroomId && contestId
       ? `${dashboardPath}/admin`
       : contestId
         ? `/contests/${contestId}/admin`
-        : "/contests";
+        : "/dashboard";
 
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -103,8 +104,8 @@ const ContestLayout = () => {
   const handleGoToAnswering = () => {
     if (!contestId || !contest) return;
     navigate(
-      classroomId
-        ? getClassroomContestSolvePath(classroomId, contestId)
+      boundClassroomId
+        ? getClassroomContestSolvePath(boundClassroomId, contestId)
         : getContestAnsweringEntryPath(contestId, contest),
     );
   };
@@ -186,7 +187,7 @@ const ContestLayout = () => {
             onJoin={handleJoin}
             isAdmin={isAdmin}
             onOpenAdminPanel={
-              isAdmin ? () => navigate(`/contests/${contestId}/admin`) : undefined
+              isAdmin ? () => navigate(adminPath) : undefined
             }
           />
         </div>
@@ -201,7 +202,7 @@ const ContestLayout = () => {
             onJoin={handleJoin}
             isAdmin={isAdmin}
             onOpenAdminPanel={
-              isAdmin ? () => navigate(`/contests/${contestId}/admin`) : undefined
+              isAdmin ? () => navigate(adminPath) : undefined
             }
           />
         </div>
@@ -270,13 +271,13 @@ const ContestLayout = () => {
                 {tc("header.prefix")}
               </Link>
               <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
-                {classroomId ? (
+                {boundClassroomId ? (
                   <>
                     <BreadcrumbItem>
                       <Link to="/dashboard">{tc("nav.dashboard")}</Link>
                     </BreadcrumbItem>
                     <BreadcrumbItem>
-                      <Link to={`/classrooms/${classroomId}`}>
+                      <Link to={`/classrooms/${boundClassroomId}`}>
                         {classroomName || tc("nav.classrooms", "教室")}
                       </Link>
                     </BreadcrumbItem>
@@ -287,7 +288,7 @@ const ContestLayout = () => {
                 ) : (
                   <>
                     <BreadcrumbItem>
-                      <Link to="/contests">{tc("nav.contests")}</Link>
+                      <Link to="/dashboard">{tc("nav.dashboard")}</Link>
                     </BreadcrumbItem>
                     <BreadcrumbItem isCurrentPage>
                       {contest?.name || t("mode")}
@@ -298,7 +299,7 @@ const ContestLayout = () => {
             </div>
 
             <HeaderNavigation aria-label={tc("header.contestNavigation")}>
-              {showContestTimer && !classroomId && (
+              {showContestTimer && !boundClassroomId && (
                 <div className={styles.headerTimerDisplay}>
                   <Time size={16} />
                   <span>

@@ -12,6 +12,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
+from uuid import uuid4
 from django.utils import timezone
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
@@ -23,6 +24,7 @@ from apps.contests.permissions import (
     get_user_role_in_contest,
 )
 from apps.contests.access_policy import BASE_ROLE_PERMISSIONS
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.users.models import User
 
 
@@ -216,6 +218,41 @@ def test_legacy_role_owner(owner: User, contest: Contest) -> None:
 @pytest.mark.django_db
 def test_legacy_role_co_owner(co_owner: User, contest: Contest) -> None:
     assert get_user_role_in_contest(co_owner, contest) == 'teacher'
+
+
+@pytest.mark.django_db
+def test_classroom_bound_contest_uses_classroom_scope_by_default(owner: User) -> None:
+    legacy_contest_owner = User.objects.create_user(
+        username="legacy_contest_owner",
+        email="legacy_contest_owner@example.com",
+        password="pass",
+        role="teacher",
+    )
+    classroom_ta = User.objects.create_user(
+        username="classroom_ta",
+        email="classroom_ta@example.com",
+        password="pass",
+        role="teacher",
+    )
+    contest = Contest.objects.create(
+        name="Bound Contest",
+        owner=legacy_contest_owner,
+        status="published",
+        start_time=timezone.now() - timedelta(hours=1),
+        end_time=timezone.now() + timedelta(hours=1),
+    )
+    classroom = Classroom.objects.create(
+        name="Bound Classroom",
+        owner=owner,
+        invite_code=uuid4().hex[:8].upper(),
+    )
+    ClassroomMember.objects.create(classroom=classroom, user=classroom_ta, role="ta")
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+
+    assert get_contest_scope_role(owner, contest) == "owner"
+    assert get_contest_scope_role(classroom_ta, contest) == "co_owner"
+    assert get_contest_scope_role(legacy_contest_owner, contest) == "outsider"
+    assert can_manage_contest(classroom_ta, contest) is True
 
 
 @pytest.mark.django_db

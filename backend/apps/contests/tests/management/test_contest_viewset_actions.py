@@ -1158,6 +1158,40 @@ def test_classroom_bound_contest_blocks_admin_management_endpoints(
 
 
 @pytest.mark.django_db
+def test_classroom_bound_contest_blocks_participant_roster_mutation_endpoints(
+    api_client: APIClient,
+    contest: Contest,
+    owner: User,
+    other_teacher: User,
+) -> None:
+    classroom = Classroom.objects.create(
+        name="Bound Classroom",
+        description="",
+        owner=owner,
+        invite_code=uuid4().hex[:8].upper(),
+    )
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    api_client.force_authenticate(user=owner)
+
+    add_response = api_client.post(
+        f"/api/v1/contests/{contest.id}/add_participant/",
+        {"username": other_teacher.username},
+        format="json",
+    )
+    assert add_response.status_code == status.HTTP_403_FORBIDDEN
+    assert add_response.data["error"]["code"] == "contest_managed_by_classroom"
+
+    participant = ContestParticipant.objects.create(contest=contest, user=other_teacher)
+    remove_response = api_client.post(
+        f"/api/v1/contests/{contest.id}/remove_participant/",
+        {"user_id": participant.user_id},
+        format="json",
+    )
+    assert remove_response.status_code == status.HTTP_403_FORBIDDEN
+    assert remove_response.data["error"]["code"] == "contest_managed_by_classroom"
+
+
+@pytest.mark.django_db
 def test_contest_detail_includes_classroom_binding_flags(
     api_client: APIClient,
     contest: Contest,

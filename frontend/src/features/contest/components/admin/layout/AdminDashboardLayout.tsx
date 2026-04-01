@@ -142,10 +142,10 @@ export default function AdminDashboardLayout({
             ) : (
               <>
                 <BreadcrumbItem>
-                  <Link to="/contests">{tc("nav.contests")}</Link>
+                  <Link to="/dashboard">{tc("nav.dashboard")}</Link>
                 </BreadcrumbItem>
                 <BreadcrumbItem>
-                  <Link to={`/contests/${contestId}`}>{contestName}</Link>
+                  {contestName}
                 </BreadcrumbItem>
                 <BreadcrumbItem isCurrentPage>
                   {t("adminLayout.title", "管理")}

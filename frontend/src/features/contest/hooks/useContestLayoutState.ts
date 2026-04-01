@@ -43,17 +43,17 @@ export function useContestLayoutState() {
 
   const shouldWarnOnExit = shouldWarnOnExitByPolicy(contest, hasEnded);
   const dashboardPath =
-    classroomId && contestId
-      ? `/classrooms/${classroomId}/contest/${contestId}`
+    (contest?.boundClassroomId || classroomId) && contestId
+      ? `/classrooms/${classroomId || contest?.boundClassroomId}/contest/${contestId}`
       : contestId
         ? getContestDashboardPath(contestId)
-        : "";
+        : "/dashboard";
   const precheckPath =
-    classroomId && contestId
-      ? `/classrooms/${classroomId}/contest/${contestId}/exam-precheck`
+    (contest?.boundClassroomId || classroomId) && contestId
+      ? `/classrooms/${classroomId || contest?.boundClassroomId}/contest/${contestId}/exam-precheck`
       : contestId
         ? getContestPrecheckPath(contestId)
-        : "";
+        : "/dashboard";
 
   const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
   const totalMaxScore = contest?.problems?.reduce((sum, p) => sum + (p.score || 0), 0) ?? 0;

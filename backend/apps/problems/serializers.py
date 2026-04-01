@@ -373,6 +373,8 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
 class OrphanProblemSerializer(serializers.ModelSerializer):
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     created_by_username = serializers.CharField(source='created_by.username', read_only=True, default=None)
+    contests = serializers.SerializerMethodField()
+    draft_state = serializers.SerializerMethodField()
 
     class Meta:
         model = Problem
@@ -388,7 +390,36 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
             'accepted_count',
             'created_at',
             'updated_at',
+            'draft_state',
+            'contests',
         ]
+
+    def get_draft_state(self, obj):
+        return "draft" if obj.question_asset_id else "orphan"
+
+    def get_contests(self, obj):
+        seen = {}
+
+        for binding in obj.contest_bindings.select_related("contest").all():
+            contest = binding.contest
+            seen[str(contest.id)] = {
+                "id": str(contest.id),
+                "name": contest.name,
+                "status": contest.status,
+            }
+
+        for contest_problem in obj.contestproblem_set.select_related("contest").all():
+            contest = contest_problem.contest
+            seen.setdefault(
+                str(contest.id),
+                {
+                    "id": str(contest.id),
+                    "name": contest.name,
+                    "status": contest.status,
+                },
+            )
+
+        return list(seen.values())
 
 
 class ResolveOrphanProblemSerializer(serializers.Serializer):

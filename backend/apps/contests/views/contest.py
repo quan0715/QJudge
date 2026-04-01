@@ -16,6 +16,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from ..access_policy import ContestAccessPolicy
 from ..models import (
+    AssignmentState,
     Contest,
     ContestParticipant,
     ContestProblem,
@@ -66,6 +67,7 @@ from apps.question_bank.question_assets import (
     ensure_question_asset_for_bank_question,
 )
 from apps.question_bank.bank_workflows import is_publicly_accessible_bank
+from apps.classrooms.permissions import get_user_role_in_classroom
 
 logger = logging.getLogger(__name__)
 CONTEST_DETAIL_CACHE_TTL_SECONDS = 2
@@ -133,6 +135,51 @@ class ContestViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_403_FORBIDDEN,
         )
+
+    @staticmethod
+    def _get_primary_bound_classroom(contest: Contest):
+        binding = (
+            contest.classroom_bindings.select_related("classroom")
+            .order_by("bound_at")
+            .first()
+        )
+        return binding.classroom if binding is not None else None
+
+    def _ensure_classroom_bound_participant(self, contest: Contest, user):
+        """
+        Classroom-bound contests must source student participation from classroom
+        membership. Managers do not register separately.
+        """
+        classroom = self._get_primary_bound_classroom(contest)
+        if classroom is None:
+            return None, False, None
+
+        classroom_role = get_user_role_in_classroom(user, classroom)
+        if classroom_role is None:
+            return None, False, Response(
+                {"message": "Join the classroom before joining this contest"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if classroom_role in {"platform_admin", "owner", "manager"}:
+            return None, False, Response(
+                {"message": "Classroom managers do not register separately"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        participant, created = ContestParticipant.objects.get_or_create(
+            contest=contest,
+            user=user,
+            defaults={
+                "assignment_state": (
+                    AssignmentState.UNACCEPTED
+                    if contest.delivery_mode == "practice"
+                    else AssignmentState.ACCEPTED
+                ),
+                "nickname": user.username,
+            },
+        )
+        return participant, created, None
 
     def _build_time_progress(self, contest: Contest, now):
         start_time = contest.start_time
@@ -619,6 +666,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Manually add a participant to the contest.
         """
         contest = self.get_object()
+        if self._is_classroom_managed_contest(contest):
+            return self._classroom_managed_response()
         username = request.data.get('username')
 
         if not username:
@@ -652,6 +701,8 @@ class ContestViewSet(viewsets.ModelViewSet):
         Only contest owners/admins can perform this action.
         """
         contest = self.get_object()
+        if self._is_classroom_managed_contest(contest):
+            return self._classroom_managed_response()
         user_id = request.data.get('user_id')
 
         if not user_id:
@@ -710,6 +761,28 @@ class ContestViewSet(viewsets.ModelViewSet):
             return Response(
                 {'message': 'Contest has ended'},
                 status=status.HTTP_403_FORBIDDEN
+            )
+
+        if self._is_classroom_managed_contest(contest):
+            participant, created, error_response = self._ensure_classroom_bound_participant(
+                contest, user,
+            )
+            if error_response is not None:
+                return error_response
+            if participant.nickname != user.username and not participant.nickname:
+                participant.nickname = user.username
+                participant.save(update_fields=["nickname"])
+            if not created:
+                return Response({'message': 'Already registered'}, status=status.HTTP_400_BAD_REQUEST)
+            ContestActivityViewSet.log_activity(
+                contest,
+                request.user,
+                'register',
+                "Registered for contest via classroom membership"
+            )
+            return Response(
+                {'message': 'Successfully registered'},
+                status=status.HTTP_201_CREATED
             )
 
         # Check if already registered
@@ -803,6 +876,11 @@ class ContestViewSet(viewsets.ModelViewSet):
         # Managers (platform_admin / owner / co_owner) can always enter
         if can_manage_contest(user, contest):
             return Response({'message': 'Entered successfully (Privileged)'})
+
+        if self._is_classroom_managed_contest(contest):
+            _, _, error_response = self._ensure_classroom_bound_participant(contest, user)
+            if error_response is not None:
+                return error_response
 
         if contest.status == 'draft':
             return Response(

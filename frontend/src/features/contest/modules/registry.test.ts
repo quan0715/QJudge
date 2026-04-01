@@ -88,6 +88,27 @@ describe("contest type module registry", () => {
     expect(paperModule.student.getAnsweringEntryPath("42", createContest({ contestType: "paper_exam" }))).toBe(
       "/contests/42/solve",
     );
+    expect(
+      codingModule.student.getAnsweringEntryPath(
+        "42",
+        createContest({
+          contestType: "coding",
+          boundClassroomId: "classroom-1",
+          problems: [
+            { id: "2", problemId: "p2", label: "B", title: "P2", order: 2, score: 100 },
+          ],
+        }),
+      ),
+    ).toBe("/classrooms/classroom-1/contest/42/solve/p2");
+    expect(
+      paperModule.student.getAnsweringEntryPath(
+        "42",
+        createContest({
+          contestType: "paper_exam",
+          boundClassroomId: "classroom-1",
+        }),
+      ),
+    ).toBe("/classrooms/classroom-1/contest/42/solve");
   });
 
   it("keeps coding tab visibility rules", () => {

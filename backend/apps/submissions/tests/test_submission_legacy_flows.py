@@ -11,6 +11,7 @@ from django.utils import timezone
 from pytest_mock import MockerFixture
 from rest_framework.test import APIClient
 
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.problems.models import Problem
 from apps.submissions.models import Submission
@@ -411,3 +412,42 @@ def test_contest_submission_triggers_judge(
     assert response.status_code == 201
     submission = Submission.objects.get(id=response.data["id"])
     judge_mocks["judge"].assert_called_once_with(args=[submission.id], queue="high_priority")
+
+
+@pytest.mark.django_db
+def test_classroom_manager_can_view_classroom_bound_submission_detail(
+    api_client: APIClient,
+) -> None:
+    contest_owner = UserFactory(role="teacher")
+    classroom_owner = UserFactory(role="teacher")
+    classroom_ta = UserFactory(role="teacher")
+    student = UserFactory(role="student")
+
+    contest = ContestFactory(owner=contest_owner, status="published")
+    classroom = Classroom.objects.create(
+        name="Submission ACL Classroom",
+        owner=classroom_owner,
+        invite_code="SUBACL01",
+    )
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    ClassroomMember.objects.create(classroom=classroom, user=classroom_ta, role="ta")
+    ClassroomMember.objects.create(classroom=classroom, user=student, role="student")
+    ContestParticipantFactory(contest=contest, user=student, exam_status=ExamStatus.IN_PROGRESS)
+
+    problem = ProblemFactory(created_by=contest_owner)
+    submission = Submission.objects.create(
+        user=student,
+        problem=problem,
+        contest=contest,
+        source_type="contest",
+        language="python",
+        code="print('ok')",
+        status="AC",
+        score=100,
+    )
+
+    api_client.force_authenticate(user=classroom_ta)
+    response = api_client.get(reverse("submissions:submission-detail", args=[submission.id]))
+
+    assert response.status_code == 200
+    assert str(response.data["id"]) == str(submission.id)

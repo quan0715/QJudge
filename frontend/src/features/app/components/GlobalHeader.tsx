@@ -41,12 +41,6 @@ export const GlobalHeader = () => {
           onClick: () => navigate("/dashboard"),
           label: t("nav.dashboard"),
         },
-        {
-          key: "contests",
-          active: location.pathname.startsWith("/contests"),
-          onClick: () => navigate("/contests"),
-          label: t("nav.contests"),
-        },
       ]
     : [
         {

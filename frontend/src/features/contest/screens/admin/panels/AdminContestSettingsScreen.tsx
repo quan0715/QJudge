@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 
 import { useContest } from "@/features/contest/contexts/ContestContext";
+import { getContestSettingsBackPath } from "@/features/contest/domain/contestAdminPaths";
 import {
   useExamAutoSave,
   type FieldSaveState,
@@ -11,15 +12,10 @@ import {
 import AdminContestSettingsContent from "@/features/contest/components/admin/AdminContestSettingsContent";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave/GlobalSaveStatus";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
-import { useToast } from "@/shared/contexts/ToastContext";
 import {
   archiveContest,
   deleteContest,
-  getContestAdmins,
-  addContestAdmin,
-  removeContestAdmin,
 } from "@/infrastructure/api/repositories";
-import { AddAdminModal } from "@/features/contest/components/modals/AddAdminModal";
 import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
 import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
 
@@ -131,11 +127,6 @@ const sanitizeAnticheatPolicy = (
   return sanitized;
 };
 
-interface Admin {
-  id: string;
-  username: string;
-}
-
 const toTimeInput = (dateStr: string): string => {
   const date = new Date(dateStr);
   let hours = date.getHours() % 12;
@@ -179,8 +170,6 @@ const AdminContestSettingsScreen = () => {
 
   const { contest, refreshContest } = useContest();
   const { confirm, modalProps } = useConfirmModal();
-  const { showToast } = useToast();
-
   const autoSave = useExamAutoSave({
     contestId: contestId || "",
     debounceMs: 1500,
@@ -192,18 +181,8 @@ const AdminContestSettingsScreen = () => {
   const [startDateInput, setStartDateInput] = useState("");
   const [endDateInput, setEndDateInput] = useState("");
   // publish_to_practice removed — questions live in the bank now
-  const [admins, setAdmins] = useState<Admin[]>([]);
-  const [addModalOpen, setAddModalOpen] = useState(false);
   const initializedRef = useRef(false);
   const initializedContestIdRef = useRef<string | null>(null);
-
-  const adminRows = [
-    ...(contest?.ownerUsername
-      ? [{ id: "__owner__", username: contest.ownerUsername, role: "owner" as const }]
-      : []),
-    ...admins.map((admin) => ({ id: admin.id, username: admin.username, role: "co-admin" as const })),
-  ];
-  const isClassroomBound = Boolean(contest?.isClassroomBound);
 
   const getState = useCallback(
     (field: string): FieldSaveState | undefined => autoSave.fieldStates[field],
@@ -313,53 +292,6 @@ const AdminContestSettingsScreen = () => {
     [form, handleChange],
   );
 
-  const loadAdmins = useCallback(async () => {
-    if (!contestId || !contest) return;
-    if (isClassroomBound) {
-      setAdmins([]);
-      return;
-    }
-    try {
-      const data = await getContestAdmins(contestId);
-      setAdmins(data);
-    } catch {
-      showToast({ kind: "error", title: "無法載入管理員列表" });
-    }
-  }, [contestId, contest, isClassroomBound, showToast]);
-
-  const handleAddAdmin = async (username: string) => {
-    if (!contestId) return;
-    try {
-      await addContestAdmin(contestId, username);
-      showToast({ kind: "success", title: `成功新增管理員: ${username}` });
-      setAddModalOpen(false);
-      await loadAdmins();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "新增失敗";
-      showToast({ kind: "error", title: message });
-      throw error;
-    }
-  };
-
-  const handleRemoveAdmin = async (admin: Admin) => {
-    if (!contestId) return;
-    const confirmed = await confirm({
-      title: `確定要移除管理員 ${admin.username}？`,
-      confirmLabel: "移除",
-      cancelLabel: tc("button.cancel"),
-      danger: true,
-    });
-    if (!confirmed) return;
-    try {
-      await removeContestAdmin(contestId, admin.id);
-      showToast({ kind: "success", title: `已移除管理員: ${admin.username}` });
-      await loadAdmins();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "移除失敗";
-      showToast({ kind: "error", title: message });
-    }
-  };
-
   const handleArchive = async () => {
     if (!contestId) return;
     const confirmed = await confirm({
@@ -383,13 +315,8 @@ const AdminContestSettingsScreen = () => {
     });
     if (!confirmed) return;
     await deleteContest(contestId);
-    navigate("/contests");
+    navigate(getContestSettingsBackPath(contestId, contest?.boundClassroomId));
   };
-
-  useEffect(() => {
-    if (!contestId || !contest) return;
-    void loadAdmins();
-  }, [contestId, contest, loadAdmins]);
 
   useEffect(() => {
     if (contestId && initializedContestIdRef.current !== contestId) {
@@ -462,10 +389,6 @@ const AdminContestSettingsScreen = () => {
           endTimeInput={endTimeInput}
           startMeridiem={form.startTime && isPM(form.startTime as string) ? "PM" : "AM"}
           endMeridiem={form.endTime && isPM(form.endTime as string) ? "PM" : "AM"}
-          isClassroomBound={isClassroomBound}
-          admins={admins}
-          adminRows={adminRows}
-
           getState={getState}
           onRetry={autoSave.retrySave}
           onChange={handleChange}
@@ -476,17 +399,8 @@ const AdminContestSettingsScreen = () => {
           onEndTimeChange={(event) => handleTimeChange(event, "endTime", setEndTimeInput)}
           onStartMeridiemChange={(value) => handleMeridiemChange(value, "startTime")}
           onEndMeridiemChange={(value) => handleMeridiemChange(value, "endTime")}
-          onRefreshAdmins={() => void loadAdmins()}
-          onOpenAddAdmin={() => setAddModalOpen(true)}
-          onRemoveAdmin={(admin) => void handleRemoveAdmin(admin)}
           onArchive={() => void handleArchive()}
           onDelete={() => void handleDelete()}
-        />
-
-        <AddAdminModal
-          isOpen={addModalOpen}
-          onClose={() => setAddModalOpen(false)}
-          onSubmit={handleAddAdmin}
         />
         <ConfirmModal {...modalProps} />
       </div>

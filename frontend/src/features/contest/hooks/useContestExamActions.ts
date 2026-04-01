@@ -42,6 +42,10 @@ import {
   detectAnticheatCapability,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
+import {
+  getClassroomContestDashboardPath,
+  getClassroomContestPrecheckPath,
+} from "@/features/contest/domain/contestRoutePolicy";
 import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 
 type ConfirmLeaveFn = (() => Promise<boolean>) | undefined;
@@ -157,11 +161,16 @@ export const useContestExamActions = ({
 
     const module = getContestTypeModule(contest.contestType);
     const answeringEntryPath = module.student.getAnsweringEntryPath(contest.id, contest);
+    const classroomId = contest.boundClassroomId;
+    const precheckPath = classroomId
+      ? getClassroomContestPrecheckPath(classroomId, contest.id)
+      : undefined;
 
     const result = await enterExamUseCase({
       contestId: contest.id,
       cheatDetectionEnabled: contest.cheatDetectionEnabled,
       answeringEntryPath,
+      precheckPath,
     });
 
     if (result.success && result.navigateTo) {
@@ -237,7 +246,9 @@ export const useContestExamActions = ({
       const shouldEndExam = shouldForceEndExamOnExit(contest, hasEnded);
       const uploadSessionId = getExamCaptureSessionId(contest.id);
       const { primarySourceModule: sourceModule, enabledCaptureModules } = resolveMonitoringModules();
-      let navigateTo = "/contests";
+      let navigateTo = contest.boundClassroomId
+        ? getClassroomContestDashboardPath(contest.boundClassroomId, contest.id)
+        : "/dashboard";
 
       if (shouldEndExam) {
         const success = await submissionProgress.run({
@@ -265,6 +276,7 @@ export const useContestExamActions = ({
                 shouldEndExam,
                 uploadSessionId: uploadSessionId || undefined,
                 sourceModule,
+                navigateTo,
               });
               if (!result.success) {
                 throw new Error(result.error || "Failed to leave exam");
@@ -285,6 +297,7 @@ export const useContestExamActions = ({
           contestId: contest.id,
           shouldEndExam: false,
           uploadSessionId: undefined,
+          navigateTo,
         });
         if (!result.success) {
           onError(result.error || messages.exitError);

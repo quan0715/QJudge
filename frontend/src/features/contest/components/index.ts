@@ -5,7 +5,6 @@ export { default as ContestTabs } from "./layout/ContestTabs";
 export { default as ContestExitModal } from "./layout/ContestExitModal";
 
 // Modal Components
-export { AddAdminModal } from "./modals/AddAdminModal";
 export { AddParticipantModal } from "./modals/AddParticipantModal";
 export { AddUserModal } from "./modals/AddUserModal";
 export { ContestDownloadModal } from "./modals/ContestDownloadModal";

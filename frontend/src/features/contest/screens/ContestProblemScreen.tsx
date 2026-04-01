@@ -35,6 +35,7 @@ const ContestProblemScreen = () => {
   const labContext = isClassroomLabRouteContext({ classroomId, labId })
     ? { classroomId, labId }
     : null;
+  const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const classroomContestContext =
     !labContext && classroomId && contestId
       ? { classroomId, contestId }
@@ -87,21 +88,29 @@ const ContestProblemScreen = () => {
               classroomContestContext.contestId!,
               problemSelection.selectedProblemId,
             )
-        : `/contests/${resolvedContestId}/solve/${problemSelection.selectedProblemId}`;
+        : effectiveClassroomId
+          ? getClassroomContestSolvePath(
+              effectiveClassroomId,
+              resolvedContestId,
+              problemSelection.selectedProblemId,
+            )
+          : `/contests/${resolvedContestId}/solve/${problemSelection.selectedProblemId}`;
       navigate(nextPath, { replace: true });
       return;
     }
 
     if ((contest.problems?.length ?? 0) === 0) {
-      navigate(
-        labContext
-          ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
-          : classroomContestContext
-            ? getClassroomContestDashboardPath(
-                classroomContestContext.classroomId!,
-                classroomContestContext.contestId!,
-              )
-          : `/contests/${resolvedContestId}`,
+        navigate(
+          labContext
+            ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
+            : classroomContestContext
+              ? getClassroomContestDashboardPath(
+                  classroomContestContext.classroomId!,
+                  classroomContestContext.contestId!,
+                )
+          : effectiveClassroomId
+            ? getClassroomContestDashboardPath(effectiveClassroomId, resolvedContestId)
+            : `/contests/${resolvedContestId}`,
         { replace: true },
       );
     }
@@ -144,16 +153,18 @@ const ContestProblemScreen = () => {
         <Button
           kind="secondary"
           onClick={() =>
-            navigate(
-              labContext
-                ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
-                : classroomContestContext
-                  ? getClassroomContestDashboardPath(
-                      classroomContestContext.classroomId!,
-                      classroomContestContext.contestId!,
-                    )
-                : `/contests/${resolvedContestId}`,
-            )
+        navigate(
+          labContext
+            ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
+            : classroomContestContext
+              ? getClassroomContestDashboardPath(
+                  classroomContestContext.classroomId!,
+                  classroomContestContext.contestId!,
+                )
+                : effectiveClassroomId
+                  ? getClassroomContestDashboardPath(effectiveClassroomId, resolvedContestId)
+                  : `/contests/${resolvedContestId}`,
+        )
           }
         >
           {t("button.backToLobby")}

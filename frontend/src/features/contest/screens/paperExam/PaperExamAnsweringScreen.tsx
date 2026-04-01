@@ -64,6 +64,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }>();
   const [searchParams] = useSearchParams();
   const { contestId, contest, submitExam, refreshContest, loading } = usePaperExamFlow();
+  const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const labContext = isClassroomLabRouteContext({ classroomId, labId })
     ? { classroomId, labId }
     : null;
@@ -79,20 +80,24 @@ const PaperExamAnsweringScreen: React.FC = () => {
             classroomContestContext.classroomId!,
             classroomContestContext.contestId!,
           )
-      : contestId
+      : effectiveClassroomId && contestId
+        ? getClassroomContestDashboardPath(effectiveClassroomId, contestId)
+        : contestId
         ? getContestDashboardPath(contestId)
         : "";
   const precheckPath =
     !contestId
       ? ""
-      : labContext
+    : labContext
         ? dashboardPath
-        : classroomContestContext
-          ? getClassroomContestPrecheckPath(
-              classroomContestContext.classroomId!,
-              classroomContestContext.contestId!,
-            )
-        : getContestPrecheckPath(contestId);
+      : classroomContestContext
+        ? getClassroomContestPrecheckPath(
+            classroomContestContext.classroomId!,
+            classroomContestContext.contestId!,
+          )
+        : effectiveClassroomId
+          ? getClassroomContestPrecheckPath(effectiveClassroomId, contestId)
+          : getContestPrecheckPath(contestId);
   const shouldRequirePrecheck =
     !labContext && contest?.deliveryMode !== "practice";
   const capability = useMemo(() => detectAnticheatCapability(), []);

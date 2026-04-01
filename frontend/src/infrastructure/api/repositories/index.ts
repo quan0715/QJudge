@@ -45,7 +45,6 @@ export * from "./exam.repository";
 export * from "./examQuestions.repository";
 export * from "./clarification.repository";
 export * from "./contestAnnouncements.repository";
-export * from "./contestAdmins.repository";
 export * from "./contestExports.repository";
 
 // Repository Instances

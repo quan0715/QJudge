@@ -4,7 +4,6 @@ import {
   Dashboard,
   Education,
   Book,
-  Trophy,
   Checkmark,
   Globe,
 } from "@carbon/icons-react";
@@ -125,14 +124,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
 
           {isTeacherOrAdmin && (
             <>
-              <button
-                type="button"
-                className={`side-menu__link${isActive("/contests") ? " side-menu__link--active" : ""}`}
-                onClick={() => go("/contests")}
-              >
-                <Trophy size={16} />
-                <span>{t("nav.contests")}</span>
-              </button>
               <button
                 type="button"
                 className={`side-menu__link${isActive("/question-banks") ? " side-menu__link--active" : ""}`}

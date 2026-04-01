@@ -72,6 +72,7 @@ const ExamPrecheckScreen: React.FC = () => {
   const { classroomId } = useParams<{ classroomId?: string }>();
   const { contestId, contest, loading, error, clearError, startSession } =
     usePaperExamFlow();
+  const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const { config: anticheatConfig } = useContestAnticheatConfig(contestId);
 
   const capability = detectAnticheatCapability();
@@ -102,19 +103,19 @@ const ExamPrecheckScreen: React.FC = () => {
 
   const getPostPrecheckRoute = useCallback(() => {
     if (!contestId) return "";
-    return classroomId
-      ? getClassroomContestSolvePath(classroomId, contestId)
+    return effectiveClassroomId
+      ? getClassroomContestSolvePath(effectiveClassroomId, contestId)
       : getPostPrecheckPath(contestId, contest);
-  }, [classroomId, contest, contestId]);
+  }, [contest, contestId, effectiveClassroomId]);
 
   const handleBackToDashboard = useCallback(() => {
     if (!contestId) return;
     navigate(
-      classroomId
-        ? getClassroomContestDashboardPath(classroomId, contestId)
+      effectiveClassroomId
+        ? getClassroomContestDashboardPath(effectiveClassroomId, contestId)
         : getContestDashboardPath(contestId),
     );
-  }, [classroomId, contestId, navigate]);
+  }, [contestId, effectiveClassroomId, navigate]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [checks, setChecks] = useState<CheckItem[]>(() => createEligibilityChecks(t));

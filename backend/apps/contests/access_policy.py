@@ -4,8 +4,8 @@ Unified Contest Access Policy.
 This module provides a centralized permission system for contest operations,
 replacing scattered permission checks throughout views.py.
 """
-from rest_framework import permissions, status
 from django.conf import settings
+from rest_framework import permissions, status
 from django.utils import timezone
 from rest_framework.response import Response
 
@@ -122,11 +122,6 @@ STATUS_RESTRICTIONS = {
     }
 }
 
-
-# ============================================================================
-# Classroom-sourced ACL (Phase definition)
-# ============================================================================
-
 CLASSROOM_SCOPE_TO_CONTEST_SCOPE = {
     'platform_admin': 'platform_admin',
     'owner': 'owner',
@@ -138,19 +133,10 @@ CLASSROOM_SCOPE_TO_CONTEST_SCOPE = {
 
 
 def _is_classroom_acl_source_enabled() -> bool:
-    """
-    Feature flag for classroom-sourced ACL.
-    Default: disabled to keep backward compatibility while policy is being defined.
-    """
-    return bool(getattr(settings, 'CONTEST_ACL_CLASSROOM_SOURCE_ENABLED', False))
+    return bool(getattr(settings, 'CONTEST_ACL_CLASSROOM_SOURCE_ENABLED', True))
 
 
 def _get_bound_classroom(contest: Contest):
-    """
-    Return the earliest classroom bound to this contest.
-    Note: current data model allows multiple bindings; policy definition phase picks
-    deterministic first binding until ownership model is fully unified.
-    """
     return (
         contest.classroom_bindings.select_related('classroom')
         .order_by('bound_at')
@@ -159,11 +145,6 @@ def _get_bound_classroom(contest: Contest):
 
 
 def _get_classroom_scope_role(user, classroom) -> str:
-    """
-    Canonical classroom scope role for ACL unification.
-
-    Roles: platform_admin | owner | manager | student | outsider | anonymous
-    """
     if not user or not user.is_authenticated:
         return 'anonymous'
     if user.is_staff or user.is_superuser:
@@ -175,15 +156,15 @@ def _get_classroom_scope_role(user, classroom) -> str:
 
     membership = classroom.memberships.filter(user=user).first()
     if membership:
-        if membership.role == 'ta':
-            return 'manager'
-        return 'student'
+        return 'manager' if membership.role == 'ta' else 'student'
     return 'outsider'
 
 
 def get_effective_contest_scope_role(user, contest: Contest) -> str:
     """
-    Resolve effective contest scope role with optional classroom-priority branch.
+    Resolve effective contest scope role.
+    ACL keeps a canonical `manager` role name for classroom-sourced managers,
+    while contests.permissions maps the same scope to legacy `co_owner`.
     """
     if _is_classroom_acl_source_enabled():
         binding = _get_bound_classroom(contest)

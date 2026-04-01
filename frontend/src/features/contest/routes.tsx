@@ -1,5 +1,4 @@
-import { Route } from "react-router";
-import ContestListScreen from "./screens/ContestListScreen";
+import { Navigate, Route } from "react-router";
 import ContestLayout from "./components/layout/ContestLayout";
 import { ContestProvider } from "./contexts/ContestContext";
 import ContestDashboardScreen from "./screens/ContestDashboardScreen";
@@ -14,7 +13,7 @@ import {
  * Contest List 路由（需在 RequireAuth + MainLayout 內使用）
  */
 export const contestListRoute = (
-  <Route path="/contests" element={<ContestListScreen />} />
+  <Route path="/contests" element={<Navigate to="/dashboard" replace />} />
 );
 
 /**

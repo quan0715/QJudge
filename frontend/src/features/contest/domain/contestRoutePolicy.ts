@@ -20,6 +20,12 @@ const trimTrailingSlash = (path: string): string =>
 export const getContestDashboardPath = (contestId: string): string =>
   `/contests/${contestId}`;
 
+export const getContestDashboardPathForContext = (
+  contestId: string,
+  classroomId?: string | null,
+): string =>
+  classroomId ? `/classrooms/${classroomId}/contest/${contestId}` : getContestDashboardPath(contestId);
+
 export const getClassroomContestDashboardPath = (
   classroomId: string,
   contestId: string,
@@ -27,6 +33,14 @@ export const getClassroomContestDashboardPath = (
 
 export const getContestPrecheckPath = (contestId: string): string =>
   `/contests/${contestId}/exam-precheck`;
+
+export const getContestPrecheckPathForContext = (
+  contestId: string,
+  classroomId?: string | null,
+): string =>
+  classroomId
+    ? `/classrooms/${classroomId}/contest/${contestId}/exam-precheck`
+    : getContestPrecheckPath(contestId);
 
 export const getClassroomContestPrecheckPath = (
   classroomId: string,
@@ -36,14 +50,26 @@ export const getClassroomContestPrecheckPath = (
 export const getContestSolveRootPath = (
   contestId: string,
   questionId?: string,
+  classroomId?: string | null,
 ): string => {
-  const base = `/contests/${contestId}/solve`;
+  const base = classroomId
+    ? `/classrooms/${classroomId}/contest/${contestId}/solve`
+    : `/contests/${contestId}/solve`;
   if (!questionId) return base;
   return `${base}?q=${encodeURIComponent(questionId)}`;
 };
 
 export const getContestSolvePath = (contestId: string, problemId: string): string =>
   `/contests/${contestId}/solve/${problemId}`;
+
+export const getContestSolvePathForContext = (
+  contestId: string,
+  problemId: string,
+  classroomId?: string | null,
+): string =>
+  classroomId
+    ? `/classrooms/${classroomId}/contest/${contestId}/solve/${problemId}`
+    : getContestSolvePath(contestId, problemId);
 
 export const getClassroomContestSolvePath = (
   classroomId: string,
@@ -102,7 +128,14 @@ export const isPathWithinContest = (params: {
   const { contestId, pathname } = params;
   const contestBase = getContestDashboardPath(contestId);
   const normalizedPath = trimTrailingSlash(pathname);
-  return normalizedPath === contestBase || normalizedPath.startsWith(`${contestBase}/`);
+  const classroomContestRegex = new RegExp(
+    `^/classrooms/[^/]+/contest/${contestId}(?:/|$)`,
+  );
+  return (
+    normalizedPath === contestBase ||
+    normalizedPath.startsWith(`${contestBase}/`) ||
+    classroomContestRegex.test(normalizedPath)
+  );
 };
 
 export const shouldRedirectToOverviewOnStrictSubmitted = (params: {
@@ -117,7 +150,10 @@ export const shouldRedirectToOverviewOnStrictSubmitted = (params: {
 
   const contestBase = getContestDashboardPath(contestId);
   const normalizedPath = trimTrailingSlash(pathname);
-  if (normalizedPath !== contestBase) return true;
+  const classroomContestRegex = new RegExp(
+    `^/classrooms/[^/]+/contest/${contestId}(?:/|$)`,
+  );
+  if (normalizedPath !== contestBase && !classroomContestRegex.test(normalizedPath)) return true;
 
   const tab = new URLSearchParams(search).get("tab");
   return !!tab && tab !== "overview";

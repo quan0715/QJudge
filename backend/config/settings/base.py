@@ -253,8 +253,9 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 # Contest ACL role source:
 # - False: legacy contest-scoped owner/co_owner/participant resolution
 # - True: classroom-bound contest resolves role from classroom scope first
+# Default is enabled because classroom-bound contests are now authoritative.
 CONTEST_ACL_CLASSROOM_SOURCE_ENABLED = (
-    os.getenv("CONTEST_ACL_CLASSROOM_SOURCE_ENABLED", "false").lower() == "true"
+    os.getenv("CONTEST_ACL_CLASSROOM_SOURCE_ENABLED", "true").lower() == "true"
 )
 
 # Redis Cache settings

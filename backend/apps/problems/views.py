@@ -221,22 +221,33 @@ class ProblemViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsProblemManager], url_path='drafts')
     def drafts(self, request):
         """
-        List CodingProblems not in any question bank (orphan / draft).
-        Teachers see their own; admins see all.
+        List CodingProblems not in any question bank.
+        Teachers see their own asset-backed drafts; admins also see unresolved orphans.
         """
         from apps.question_bank.models import QuestionBankMembership
+        from django.db.models import Q
 
         banked_asset_ids = QuestionBankMembership.objects.values_list(
             'question_asset_id', flat=True
         )
-        qs = Problem.objects.filter(
-            question_asset__isnull=False,
-        ).exclude(
-            question_asset_id__in=banked_asset_ids,
-        ).select_related('created_by', 'question_asset').order_by('-created_at')
 
         user = request.user
-        if not (user.is_staff or getattr(user, 'role', '') == 'admin'):
+        is_admin = user.is_staff or getattr(user, 'role', '') == 'admin'
+
+        draft_filter = Q(question_asset__isnull=False) & ~Q(question_asset_id__in=banked_asset_ids)
+        orphan_filter = Q(question_asset__isnull=True, created_by__isnull=True)
+
+        qs = Problem.objects.filter(
+            draft_filter | orphan_filter if is_admin else draft_filter
+        ).select_related(
+            'created_by',
+            'question_asset',
+        ).prefetch_related(
+            'contest_bindings__contest',
+            'contestproblem_set__contest',
+        ).order_by('-created_at')
+
+        if not is_admin:
             qs = qs.filter(created_by=user)
 
         serializer = OrphanProblemSerializer(qs, many=True)
