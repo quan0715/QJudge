@@ -7,6 +7,7 @@ import {
   Warning,
   InProgress,
 } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import { getStatusConfig } from "@/core/config/status.config";
 import type {
   SubmissionStatus,
@@ -35,15 +36,16 @@ export const SubmissionStatusBadge: React.FC<SubmissionStatusBadgeProps> = ({
   size = "md",
   className,
 }) => {
+  const { t } = useTranslation();
   const config = getStatusConfig(status as SubmissionStatus);
   return (
     <Tag
       type={config.type}
       size={size}
       className={className}
-      title={config.label}
+      title={t(config.labelKey)}
     >
-      {config.label}
+      {t(config.labelKey)}
     </Tag>
   );
 };

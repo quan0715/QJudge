@@ -82,7 +82,7 @@
     },
     "logout": {
       "confirmButton": "Log Out",
-      "confirmMessage": "Are you sure you want to log out?",
+      "confirmMessage": "Log out?",
       "confirmTitle": "Confirm Logout"
     },
     "register": {
@@ -366,9 +366,9 @@
     "communityTag": "QJudge Community",
     "createBank": "Create Question Bank",
     "deleteBank": "Delete Question Bank",
-    "deleteBankConfirmBody": "Are you sure you want to delete the question bank \"{{name}}\"?",
+    "deleteBankConfirmBody": "Delete bank \"{{name}}\"?",
     "deleteQuestion": "Delete Question",
-    "deleteQuestionConfirmBody": "Are you sure you want to delete the question \"{{title}}\"?",
+    "deleteQuestionConfirmBody": "Delete question \"{{title}}\"?",
     "description": "Description",
     "difficulty": "Difficulty",
     "editBank": "Edit Question Bank",
@@ -476,7 +476,7 @@
       "active": "Active",
       "addKey": "Add API Key",
       "createdAtLabel": "Created At",
-      "deleteConfirm": "Are you sure you want to delete the API Key? AI features will be unavailable.",
+      "deleteConfirm": "AI features will be disabled after deletion. Confirm?",
       "deleteKey": "Delete Key",
       "description": "Manage your Anthropic API Key for AI features",
       "empty": "No API Key set. Go to Anthropic Console to create one.",

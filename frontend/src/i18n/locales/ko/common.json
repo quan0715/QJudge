@@ -237,7 +237,7 @@
     "platform": "프로그래밍 평가 플랫폼",
     "prefix": "시스템",
     "problemManagement": "문제 관리",
-    "reviewQueue": "심사 대기열",
+    "reviewQueue": "심사 대기",
     "sideNav": "사이드 탐색",
     "systemSettings": "시스템 설정",
     "teacherDashboard": "교사 대시보드",
@@ -268,7 +268,7 @@
   },
   "nav": {
     "back": "뒤로",
-    "backToProblemList": "문제 목록으로 돌아가기",
+    "backToProblemList": "문제 목록으로",
     "classrooms": "교실",
     "contests": "대회",
     "dashboard": "대시보드",
@@ -430,12 +430,12 @@
     "sortOldest": "오래된 업데이트",
     "usedInContests": "시험 {{count}}건",
     "saveToBank": {
-      "desc": "「{{title}}」을(를) 문제집에 저장:",
-      "success": "문제집에 저장되었습니다",
-      "title": "문제집에 저장"
+      "desc": "「{{title}}」 저장 위치:",
+      "success": "저장 완료",
+      "title": "문제집 저장"
     },
     "score": "배점",
-    "selectTargetBank": "저장할 문제집 선택",
+    "selectTargetBank": "저장 위치 선택",
     "subtitle": "교실 중심으로 문제집을 관리하고 QJudge 커뮤니티를 탐색하세요",
     "tabs": {
       "explore": "탐색",

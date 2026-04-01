@@ -123,7 +123,7 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
   };
 
   const handleDeleteKey = async () => {
-    if (!window.confirm(t("settings.apiKey.deleteConfirm", "確定要刪除 API Key 嗎？刪除後將無法使用 AI 功能。"))) return;
+    if (!window.confirm(t("settings.apiKey.deleteConfirm", "刪除後將無法使用 AI 功能，確定？"))) return;
     setError(null);
     try {
       await deleteAPIKey();
@@ -176,7 +176,7 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
                   <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">Anthropic Console</a>{" "}
                   建立。
                 </p>
-                <Button renderIcon={Add} size="sm" onClick={handleOpenModal}>{t("settings.apiKey.addKey", "新增 API Key")}</Button>
+                <Button renderIcon={Add} size="sm" onClick={handleOpenModal}>{t("settings.apiKey.addKey", "新增 Key")}</Button>
               </div>
             ) : (
               <>

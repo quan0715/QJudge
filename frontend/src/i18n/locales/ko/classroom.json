@@ -108,7 +108,7 @@
   },
   "inviteLinkSection": "초대 링크",
   "joinLink": {
-    "backToDashboard": "대시보드로 돌아가기",
+    "backToDashboard": "대시보드로",
     "errorTitle": "교실에 참여할 수 없습니다",
     "invalidLink": "잘못된 초대 링크",
     "joinFailed": "교실 참여에 실패했습니다",
