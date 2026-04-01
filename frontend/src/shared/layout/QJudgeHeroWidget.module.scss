@@ -9,8 +9,7 @@
   background-position: center;
   background-repeat: no-repeat;
   width: 100%;
-  // No overflow:hidden — it breaks position:sticky on .tabsBar.
-  // Background image is contained by background-size:cover; overlay uses inset:0.
+  overflow: hidden;
   flex-shrink: 0; // Prevent hero from being compressed in flex layouts
 }
 

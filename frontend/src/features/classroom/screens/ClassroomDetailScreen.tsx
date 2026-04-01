@@ -254,27 +254,21 @@ const ClassroomDetailScreen: React.FC = () => {
                 showBorder={false}
               />
             }
+            tabs={
+              <Tabs
+                selectedIndex={selectedTabIndex >= 0 ? selectedTabIndex : 0}
+                onChange={handleTabChange}
+              >
+                <TabList aria-label={t("tabs", "教室分頁")}>
+                  {availablePanels.map((panel) => (
+                    <Tab key={panel} renderIcon={TAB_CONFIG[panel]?.icon}>
+                      {TAB_CONFIG[panel]?.label(t) ?? panel}
+                    </Tab>
+                  ))}
+                </TabList>
+              </Tabs>
+            }
           />
-
-          {/* Tabs outside QJudgeHeroWidget so sticky works (sticky scope = parent).
-              Negative margin overlaps hero bottom; glass bg keeps cover image visible. */}
-          <div
-            className={`classroom-tabs-bar${classroom.coverUrl ? "" : " classroom-tabs-bar--plain"}`}
-            style={classroom.coverUrl ? { backgroundImage: `url(${classroom.coverUrl})` } : undefined}
-          >
-            <Tabs
-              selectedIndex={selectedTabIndex >= 0 ? selectedTabIndex : 0}
-              onChange={handleTabChange}
-            >
-              <TabList aria-label={t("tabs", "教室分頁")}>
-                {availablePanels.map((panel) => (
-                  <Tab key={panel} renderIcon={TAB_CONFIG[panel]?.icon}>
-                    {TAB_CONFIG[panel]?.label(t) ?? panel}
-                  </Tab>
-                ))}
-              </TabList>
-            </Tabs>
-          </div>
 
           <div className="classroom-admin-panel">
             {activePanel === "overview" && (

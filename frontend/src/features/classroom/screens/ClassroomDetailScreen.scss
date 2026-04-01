@@ -151,19 +151,17 @@
   }
 }
 
-// ── Tab bar (rendered OUTSIDE QJudgeHeroWidget for sticky to work) ──
-// When cover image is present, the background-image is set inline via style prop.
-// A dark glass overlay keeps it readable while visually extending the hero.
+// ── Tab bar ──
+// Sits inside the hero cover — all backgrounds must be transparent so the
+// cover image shows through. We override every Carbon state (default,
+// hover, selected, focus, disabled) to avoid any opaque surface leaking.
 .classroom-tabs-bar {
   position: sticky;
-  top: 0;
+  top: 3rem;
   z-index: 3;
   padding: 0 layout.$spacing-10;
-  background-color: rgba(0, 0, 0, 0.5);
-  background-size: cover;
-  background-position: center bottom;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
 
   .cds--tabs {
     max-width: 84rem;
@@ -175,6 +173,7 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   }
 
+  // Reset every nav-item + link to transparent
   .cds--tabs__nav-item,
   .cds--tabs__nav-item:hover,
   .cds--tabs__nav-item--selected,
@@ -199,6 +198,7 @@
     }
   }
 
+  // Selected indicator — blue bottom border (theme-aware)
   .cds--tabs__nav-item--selected {
     border-block-end: 2px solid var(--cds-link-inverse, #78a9ff) !important;
   }
@@ -211,36 +211,6 @@
 
   .cds--tab-content {
     display: none;
-  }
-}
-
-// No cover image — standard Carbon theme tab bar
-.classroom-tabs-bar--plain {
-  margin-top: 0;
-  background: var(--cds-background);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-bottom: 1px solid var(--cds-border-subtle);
-
-  .cds--tab--list {
-    border-bottom-color: var(--cds-border-subtle);
-  }
-
-  .cds--tabs__nav-link {
-    color: var(--cds-text-secondary) !important;
-
-    &:hover {
-      color: var(--cds-text-primary) !important;
-    }
-  }
-
-  .cds--tabs__nav-item--selected {
-    border-block-end-color: var(--cds-border-interactive) !important;
-  }
-
-  .cds--tabs__nav-item--selected .cds--tabs__nav-link,
-  .cds--tabs__nav-item--selected .cds--tabs__nav-link:hover {
-    color: var(--cds-text-primary) !important;
   }
 }
 
