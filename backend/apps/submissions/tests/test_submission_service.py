@@ -16,6 +16,7 @@ from pytest_mock import MockerFixture
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.problems.models import Problem
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionVersion
 from apps.submissions.models import Submission
 from apps.submissions.services import SubmissionService
 from apps.submissions.access_policy import SubmissionAccessError
@@ -310,6 +311,78 @@ def test_student_formal_contest_submission_locks_question_editing(judge_mock: Mo
     assert contest.question_edit_locked is True
     assert contest.question_edit_lock_trigger == Contest.QuestionEditLockTrigger.CODING_SUBMISSION
     assert contest.question_edit_locked_at is not None
+
+
+@pytest.mark.django_db
+def test_contest_submission_sets_binding_fk_from_problem_instance(judge_mock: Mock) -> None:
+    teacher = UserFactory(role="teacher")
+    student = UserFactory(role="student")
+    contest = ContestFactory(owner=teacher)
+    problem = ProblemFactory(created_by=teacher)
+    ContestParticipantFactory(contest=contest, user=student)
+    asset = QuestionAsset.objects.create(
+        owner=teacher,
+        asset_type=QuestionAsset.AssetType.CODING,
+        title=problem.title,
+    )
+    version = QuestionVersion.objects.create(
+        question_asset=asset,
+        version_number=1,
+        title=problem.title,
+        created_by=teacher,
+    )
+    asset.latest_version = version
+    asset.save(update_fields=["latest_version"])
+    binding = ContestQuestionBinding.objects.create(
+        contest=contest,
+        question_asset=asset,
+        question_version=version,
+        coding_problem=problem,
+        binding_type=QuestionAsset.AssetType.CODING,
+        score=100,
+        created_by=teacher,
+    )
+
+    submission = SubmissionService.create_and_dispatch(
+        user=student,
+        data={
+            "problem": problem,
+            "language": "python",
+            "code": "print('ok')",
+            "contest": contest,
+        },
+    )
+
+    assert submission.contest_question_binding_id == binding.id
+
+
+@pytest.mark.django_db
+def test_practice_assignment_submitted_at_is_only_set_once(judge_mock: Mock) -> None:
+    teacher = UserFactory(role="teacher")
+    student = UserFactory(role="student")
+    contest = ContestFactory(owner=teacher, delivery_mode="practice")
+    problem = ProblemFactory(created_by=teacher)
+    original_submitted_at = timezone.now() - timedelta(days=1)
+    participant = ContestParticipantFactory(
+        contest=contest,
+        user=student,
+        assignment_state="accepted",
+        submitted_at=original_submitted_at,
+    )
+
+    SubmissionService.create_and_dispatch(
+        user=student,
+        data={
+            "problem": problem,
+            "language": "python",
+            "code": "print('ok')",
+            "contest": contest,
+        },
+    )
+
+    participant.refresh_from_db()
+    assert participant.assignment_state == "submitted"
+    assert participant.submitted_at == original_submitted_at
 
 
 @pytest.mark.django_db

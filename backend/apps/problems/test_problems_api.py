@@ -441,12 +441,14 @@ class ProblemContestLockGuardTests(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertIn("CONTEST_QUESTION_EDIT_LOCKED", str(response.data))
+        self.assertEqual(response.data["error"]["details"]["message"], "已有學生正式作答，競賽題目已鎖定")
 
     def test_delete_problem_blocked_when_linked_contest_locked(self):
         self.client.force_authenticate(user=self.owner)
         response = self.client.delete(f"/api/v1/problems/{self.problem.id}/")
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertIn("CONTEST_QUESTION_EDIT_LOCKED", str(response.data))
+        self.assertEqual(response.data["error"]["details"]["message"], "已有學生正式作答，競賽題目已鎖定")
 
 
 class ProblemTestRunTests(TestCase):

@@ -76,6 +76,8 @@ class SubmissionService:
         contest = data.get("contest")
         if contest is None and contest_id:
             contest = Contest.objects.get(id=contest_id)
+        if contest is not None and contest_id is None:
+            contest_id = contest.id
 
         source_type = "contest" if contest else "practice"
 
@@ -98,11 +100,13 @@ class SubmissionService:
         create_payload.pop("source_type", None)
 
         # Resolve ContestQuestionBinding for contest submissions
-        if source_type == "contest" and contest_id and create_payload.get("problem_id"):
+        problem_id = getattr(problem, "id", None)
+        if source_type == "contest" and contest_id and problem_id is not None:
             from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
             binding = ContestQuestionBinding.objects.filter(
                 contest_id=contest_id,
-                coding_problem_id=create_payload["problem_id"],
+                coding_problem_id=problem_id,
                 binding_type=QuestionAsset.AssetType.CODING,
             ).only("id").first()
             if binding:
@@ -178,10 +182,12 @@ class SubmissionService:
         ContestParticipant.objects.filter(
             contest=contest,
             user=user,
-        ).update(
-            assignment_state=AssignmentState.SUBMITTED,
-            submitted_at=timezone.now(),
-        )
+        ).update(assignment_state=AssignmentState.SUBMITTED)
+        ContestParticipant.objects.filter(
+            contest=contest,
+            user=user,
+            submitted_at__isnull=True,
+        ).update(submitted_at=timezone.now())
 
     @staticmethod
     def _check_keywords(

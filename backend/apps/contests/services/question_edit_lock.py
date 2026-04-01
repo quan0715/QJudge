@@ -29,7 +29,7 @@ class ContestQuestionEditLocked(APIException):
         super().__init__(
             detail={
                 "code": LOCKED_ERROR_CODE,
-                "error": LOCKED_ERROR_MESSAGE,
+                "message": LOCKED_ERROR_MESSAGE,
             }
         )
 

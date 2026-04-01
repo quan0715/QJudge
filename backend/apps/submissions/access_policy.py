@@ -55,7 +55,7 @@ class SubmissionAccessPolicy:
 
         if contest.delivery_mode == "practice":
             if participant.assignment_state == AssignmentState.UNACCEPTED:
-                raise SubmissionAccessError("You must accept this lab before submitting.")
+                raise SubmissionAccessError("You must accept this assignment before submitting.")
             return False
 
         # Exam status restrictions only apply in exam mode contests.

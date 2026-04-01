@@ -141,11 +141,13 @@ def judge_submission(submission_id):
         # Calculate final score
         total_score = legacy_total_score
         if submission.source_type == 'contest' and submission.contest_id:
-            binding = ContestQuestionBinding.objects.filter(
-                contest_id=submission.contest_id,
-                coding_problem_id=submission.problem_id,
-                binding_type=QuestionAsset.AssetType.CODING,
-            ).only("score").first()
+            binding = submission.contest_question_binding
+            if binding is None and submission.problem_id:
+                binding = ContestQuestionBinding.objects.filter(
+                    contest_id=submission.contest_id,
+                    coding_problem_id=submission.problem_id,
+                    binding_type=QuestionAsset.AssetType.CODING,
+                ).only("score").first()
             if binding:
                 if total_weight_sum > 0:
                     total_score = round(binding.score * (passed_weight_sum / total_weight_sum))

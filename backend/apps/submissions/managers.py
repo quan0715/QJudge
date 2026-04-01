@@ -43,7 +43,7 @@ class SubmissionQuerySet(models.QuerySet):
         *,
         user: Optional[User],
         source_type: str,
-        contest_id: Optional[int],
+        contest_id: Optional[str],
         include_all: bool,
         created_after: Optional[str],
         date_range_days: int,

@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from .models import Contest, ContestParticipant, ExamStatus
-from .permissions import get_contest_scope_role
+from .permissions import get_contest_scope_role, map_classroom_role_to_contest_scope
 
 
 # ============================================================================
@@ -122,16 +122,6 @@ STATUS_RESTRICTIONS = {
     }
 }
 
-CLASSROOM_SCOPE_TO_CONTEST_SCOPE = {
-    'platform_admin': 'platform_admin',
-    'owner': 'owner',
-    'manager': 'manager',
-    'student': 'participant',
-    'outsider': 'outsider',
-    'anonymous': 'anonymous',
-}
-
-
 def _is_classroom_acl_source_enabled() -> bool:
     return bool(getattr(settings, 'CONTEST_ACL_CLASSROOM_SOURCE_ENABLED', True))
 
@@ -170,7 +160,7 @@ def get_effective_contest_scope_role(user, contest: Contest) -> str:
         binding = _get_bound_classroom(contest)
         if binding is not None:
             classroom_scope_role = _get_classroom_scope_role(user, binding.classroom)
-            return CLASSROOM_SCOPE_TO_CONTEST_SCOPE.get(classroom_scope_role, 'outsider')
+            return map_classroom_role_to_contest_scope(classroom_scope_role)
     return get_contest_scope_role(user, contest)
 
 

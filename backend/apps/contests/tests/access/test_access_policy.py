@@ -601,7 +601,7 @@ class TestClassroomPriorityACL:
 
         with override_settings(CONTEST_ACL_CLASSROOM_SOURCE_ENABLED=True):
             role = get_effective_contest_scope_role(ta_user, contest)
-            assert role == 'manager'
+            assert role == 'co_owner'
             assert check_contest_permission(ta_user, contest, 'manage_contest_settings') is True
             assert check_contest_permission(ta_user, contest, 'manage_contest_lifecycle') is False
 

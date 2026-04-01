@@ -721,6 +721,7 @@ class TestQuestionEditLockGuard:
         }, format="json")
         assert create_res.status_code == status.HTTP_409_CONFLICT
         assert create_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert create_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
 
         q = ExamQuestion.objects.create(
             contest=contest, question_type="essay", prompt="Q", score=1, order=0,
@@ -728,10 +729,12 @@ class TestQuestionEditLockGuard:
         update_res = api_client.patch(url(contest.id, q.id), {"prompt": "new"}, format="json")
         assert update_res.status_code == status.HTTP_409_CONFLICT
         assert update_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert update_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
 
         delete_res = api_client.delete(url(contest.id, q.id))
         assert delete_res.status_code == status.HTTP_409_CONFLICT
         assert delete_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+        assert delete_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
 
         reorder_res = api_client.post(
             url(contest.id) + "reorder/",

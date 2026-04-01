@@ -37,6 +37,10 @@ CLASSROOM_SCOPE_TO_CONTEST_SCOPE = {
 }
 
 
+def map_classroom_role_to_contest_scope(classroom_role: str | None) -> str:
+    return CLASSROOM_SCOPE_TO_CONTEST_SCOPE.get(classroom_role, 'outsider')
+
+
 def _is_classroom_acl_source_enabled() -> bool:
     """
     Classroom-bound contests should resolve permissions from the classroom scope
@@ -76,7 +80,7 @@ def get_contest_scope_role(user, contest) -> str:
             from apps.classrooms.permissions import get_user_role_in_classroom
 
             classroom_role = get_user_role_in_classroom(user, binding.classroom)
-            return CLASSROOM_SCOPE_TO_CONTEST_SCOPE.get(classroom_role, 'outsider')
+            return map_classroom_role_to_contest_scope(classroom_role)
 
     if contest.owner_id == user.id:
         return 'owner'
