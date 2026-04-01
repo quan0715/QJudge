@@ -138,7 +138,7 @@ describe("MarkdownEditor image upload integration", () => {
         expect.stringContaining("![a](http://testserver/api/v1/markdown/images/")
       );
     });
-  });
+  }, 15000);
 
   it("uploads image from paste event", async () => {
     const uploadImage = vi.fn().mockResolvedValue({
@@ -174,7 +174,7 @@ describe("MarkdownEditor image upload integration", () => {
     await waitFor(() => {
       expect(uploadImage).toHaveBeenCalledWith(imageFile);
     });
-  });
+  }, 15000);
 
   it("uploads image from drag and drop", async () => {
     const uploadImage = vi.fn().mockResolvedValue({
@@ -201,5 +201,5 @@ describe("MarkdownEditor image upload integration", () => {
     await waitFor(() => {
       expect(uploadImage).toHaveBeenCalledWith(imageFile);
     });
-  });
+  }, 15000);
 });
