@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Search,
-  UserAdmin,
   CheckmarkFilled,
   Copy,
   TrashCan,
@@ -23,11 +22,12 @@ import {
   TableContainer,
   Tag,
   InlineNotification,
-  Grid,
-  Column,
   Tile,
   ButtonSet,
 } from "@carbon/react";
+import { PageHeader } from "@/shared/layout/PageHeader";
+import ContainerCard from "@/shared/layout/ContainerCard";
+import styles from "./AdminScreens.module.scss";
 import {
   deleteUser,
   issueTeacherActivationInvite,
@@ -248,269 +248,191 @@ const UserManagementScreen = () => {
   const unverifiedCount = users.filter((user) => !user.email_verified).length;
 
   return (
-    <div
-      style={{
-        width: "100%",
-        minHeight: "100%",
-        backgroundColor: "var(--cds-background)",
-      }}
-    >
-      <div style={{ maxWidth: "1200px", margin: "0 auto", width: "100%" }}>
-        <Grid>
-          <Column lg={16} md={8} sm={4}>
-            <div style={{ marginTop: "3rem", marginBottom: "2rem" }}>
-              <h1
-                style={{
-                  fontSize: "var(--cds-productive-heading-05, 2rem)",
-                  fontWeight: 400,
-                  marginBottom: "0.5rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  color: "var(--cds-text-primary)",
-                }}
-              >
-                <UserAdmin size={32} />
-                {t("user.management.title")}
-              </h1>
-              <p
-                style={{
-                  fontSize: "var(--cds-body-long-01, 0.875rem)",
-                  color: "var(--cds-text-secondary)",
-                }}
-              >
-                {t("user.management.description")}
-              </p>
-            </div>
+    <div className={styles.pageWrapper}>
+      <div className={styles.pageInner}>
+        <PageHeader
+          title={t("user.management.title")}
+          subtitle={t("user.management.description")}
+        />
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: "1rem",
-                marginBottom: "2rem",
-              }}
+        <div className={styles.statTileRow}>
+          <Tile>
+            <p className={styles.statLabel}>
+              {t("user.management.summary.totalUsers", "總使用者")}
+            </p>
+            <strong className={styles.statValue}>{users.length}</strong>
+          </Tile>
+          <Tile>
+            <p className={styles.statLabel}>
+              {t("user.management.summary.teachers", "已開通教師")}
+            </p>
+            <strong className={styles.statValue}>{teacherCount}</strong>
+          </Tile>
+          <Tile>
+            <p className={styles.statLabel}>
+              {t("user.management.summary.pendingOnboarding", "未完成 onboarding")}
+            </p>
+            <strong className={styles.statValue}>{pendingOnboardingCount}</strong>
+          </Tile>
+          <Tile>
+            <p className={styles.statLabel}>
+              {t("user.management.summary.unverified", "未驗證 Email")}
+            </p>
+            <strong className={styles.statValue}>{unverifiedCount}</strong>
+          </Tile>
+        </div>
+
+        {/* Activation Invite Section */}
+        <ContainerCard
+          title={t("user.management.activationInvite.title", "教師邀請制開通")}
+          subtitle={t(
+            "user.management.activationInvite.description",
+            "直接產生一次性 activation link。對方透過此連結登入或註冊後，即可完成 teacher 開通。"
+          )}
+          style={{ marginBottom: "2rem" }}
+        >
+          <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", flexWrap: "wrap" }}>
+            <Button
+              kind="primary"
+              onClick={() => handleIssueInvite()}
+              disabled={issuingInvite}
             >
-              <Tile>
-                <p style={{ color: "var(--cds-text-secondary)", marginBottom: "0.5rem" }}>
-                  {t("user.management.summary.totalUsers", "總使用者")}
-                </p>
-                <strong style={{ fontSize: "1.75rem" }}>{users.length}</strong>
-              </Tile>
-              <Tile>
-                <p style={{ color: "var(--cds-text-secondary)", marginBottom: "0.5rem" }}>
-                  {t("user.management.summary.teachers", "已開通教師")}
-                </p>
-                <strong style={{ fontSize: "1.75rem" }}>{teacherCount}</strong>
-              </Tile>
-              <Tile>
-                <p style={{ color: "var(--cds-text-secondary)", marginBottom: "0.5rem" }}>
-                  {t("user.management.summary.pendingOnboarding", "未完成 onboarding")}
-                </p>
-                <strong style={{ fontSize: "1.75rem" }}>{pendingOnboardingCount}</strong>
-              </Tile>
-              <Tile>
-                <p style={{ color: "var(--cds-text-secondary)", marginBottom: "0.5rem" }}>
-                  {t("user.management.summary.unverified", "未驗證 Email")}
-                </p>
-                <strong style={{ fontSize: "1.75rem" }}>{unverifiedCount}</strong>
-              </Tile>
+              {issuingInvite
+                ? t("user.management.activationInvite.sending", "產生中...")
+                : t("user.management.activationInvite.send", "產生開通連結")}
+            </Button>
+            {latestInviteUrl ? (
+              <Button
+                kind="ghost"
+                renderIcon={Copy}
+                onClick={() => copy(latestInviteUrl)}
+              >
+                {isCopied
+                  ? t("user.management.activationInvite.copied", "已複製")
+                  : t("user.management.activationInvite.copy", "複製連結")}
+              </Button>
+            ) : null}
+          </div>
+          {latestInviteUrl ? (
+            <div style={{ marginTop: "1rem" }}>
+              <InlineNotification
+                kind="info"
+                title={t("user.management.activationInvite.latest", "最近一次邀請")}
+                subtitle={`${t(
+                  "user.management.activationInvite.expiresAt",
+                  "到期"
+                )}: ${latestInviteExpiresAt ? formatDateTime(latestInviteExpiresAt) : "—"} · ${latestInviteUrl}`}
+                lowContrast
+                hideCloseButton
+              />
             </div>
+          ) : null}
+        </ContainerCard>
 
-            {/* Search Section */}
-            <div
-              className="carbon-panel"
-              style={{
-                padding: "1.5rem",
-                marginBottom: "2rem",
-                backgroundColor: "var(--cds-layer-01)",
-                border: "1px solid var(--cds-border-subtle)",
-              }}
+        {/* Search Section */}
+        <ContainerCard
+          title={t("user.management.searchLabel")}
+          style={{ marginBottom: "2rem" }}
+        >
+          <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <TextInput
+                id="search"
+                labelText={t("user.management.searchLabel")}
+                placeholder={t("user.management.searchPlaceholder")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") handleSearch();
+                }}
+              />
+            </div>
+            <Button
+              kind="primary"
+              renderIcon={Search}
+              onClick={handleSearch}
+              disabled={loading}
             >
-              <h2
-                style={{
-                  fontSize: "var(--cds-heading-03, 1.25rem)",
-                  fontWeight: 400,
-                  marginBottom: "0.5rem",
-                  color: "var(--cds-text-primary)",
+              {loading ? tc("button.searching") : tc("button.search")}
+            </Button>
+            {searchQuery && (
+              <Button
+                kind="secondary"
+                onClick={() => {
+                  setSearchQuery("");
+                  loadAllUsers();
                 }}
               >
-                {t("user.management.activationInvite.title", "教師邀請制開通")}
-              </h2>
-              <p
-                style={{
-                  fontSize: "var(--cds-body-long-01, 0.875rem)",
-                  color: "var(--cds-text-secondary)",
-                  marginBottom: "1rem",
-                }}
-              >
-                {t(
-                  "user.management.activationInvite.description",
-                  "直接產生一次性 activation link。對方透過此連結登入或註冊後，即可完成 teacher 開通。"
-                )}
-              </p>
-              <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", flexWrap: "wrap" }}>
-                <Button
-                  kind="primary"
-                  onClick={() => handleIssueInvite()}
-                  disabled={issuingInvite}
-                >
-                  {issuingInvite
-                    ? t("user.management.activationInvite.sending", "產生中...")
-                    : t("user.management.activationInvite.send", "產生開通連結")}
-                </Button>
-                {latestInviteUrl ? (
-                  <Button
-                    kind="ghost"
-                    renderIcon={Copy}
-                    onClick={() => copy(latestInviteUrl)}
-                  >
-                    {isCopied
-                      ? t("user.management.activationInvite.copied", "已複製")
-                      : t("user.management.activationInvite.copy", "複製連結")}
-                  </Button>
-                ) : null}
-              </div>
-              {latestInviteUrl ? (
-                <div style={{ marginTop: "1rem" }}>
-                  <InlineNotification
-                    kind="info"
-                    title={t("user.management.activationInvite.latest", "最近一次邀請")}
-                    subtitle={`${t(
-                      "user.management.activationInvite.expiresAt",
-                      "到期"
-                    )}: ${latestInviteExpiresAt ? formatDateTime(latestInviteExpiresAt) : "—"} · ${latestInviteUrl}`}
-                    lowContrast
-                    hideCloseButton
-                  />
-                </div>
-              ) : null}
+                {tc("button.clear")}
+              </Button>
+            )}
+          </div>
+
+          {error && (
+            <div style={{ marginTop: "1rem" }}>
+              <InlineNotification
+                kind="error"
+                title={tc("message.error")}
+                subtitle={error}
+                lowContrast
+                hideCloseButton
+              />
             </div>
+          )}
 
-            <div
-              className="carbon-panel"
-              style={{
-                padding: "1.5rem",
-                marginBottom: "2rem",
-                backgroundColor: "var(--cds-layer-01)",
-                border: "1px solid var(--cds-border-subtle)",
-              }}
-            >
-              <div
-                style={{ display: "flex", gap: "1rem", alignItems: "flex-end" }}
-              >
-                <div style={{ flex: 1 }}>
-                  <TextInput
-                    id="search"
-                    labelText={t("user.management.searchLabel")}
-                    placeholder={t("user.management.searchPlaceholder")}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") handleSearch();
-                    }}
-                  />
-                </div>
-                <Button
-                  kind="primary"
-                  renderIcon={Search}
-                  onClick={handleSearch}
-                  disabled={loading}
-                >
-                  {loading ? tc("button.searching") : tc("button.search")}
-                </Button>
-                {searchQuery && (
-                  <Button
-                    kind="secondary"
-                    onClick={() => {
-                      setSearchQuery("");
-                      loadAllUsers();
-                    }}
-                  >
-                    {tc("button.clear")}
-                  </Button>
-                )}
-              </div>
-
-              {error && (
-                <div style={{ marginTop: "1rem" }}>
-                  <InlineNotification
-                    kind="error"
-                    title={tc("message.error")}
-                    subtitle={error}
-                    lowContrast
-                    hideCloseButton
-                  />
-                </div>
-              )}
-
-              {success && (
-                <div style={{ marginTop: "1rem" }}>
-                  <InlineNotification
-                    kind="success"
-                    title={tc("message.success")}
-                    subtitle={success}
-                    lowContrast
-                    hideCloseButton
-                  />
-                </div>
-              )}
-
-              <div style={{ marginTop: "1rem" }}>
-                <ButtonSet>
-                  <Button
-                    kind={roleFilter === "all" ? "primary" : "tertiary"}
-                    size="sm"
-                    onClick={() => setRoleFilter("all")}
-                  >
-                    {t("user.management.filters.all", "全部")}
-                  </Button>
-                  <Button
-                    kind={roleFilter === "student" ? "primary" : "tertiary"}
-                    size="sm"
-                    onClick={() => setRoleFilter("student")}
-                  >
-                    {t("user.role.student")}
-                  </Button>
-                  <Button
-                    kind={roleFilter === "teacher" ? "primary" : "tertiary"}
-                    size="sm"
-                    onClick={() => setRoleFilter("teacher")}
-                  >
-                    {t("user.role.teacher")}
-                  </Button>
-                  <Button
-                    kind={roleFilter === "admin" ? "primary" : "tertiary"}
-                    size="sm"
-                    onClick={() => setRoleFilter("admin")}
-                  >
-                    {t("user.role.admin")}
-                  </Button>
-                </ButtonSet>
-              </div>
+          {success && (
+            <div style={{ marginTop: "1rem" }}>
+              <InlineNotification
+                kind="success"
+                title={tc("message.success")}
+                subtitle={success}
+                lowContrast
+                hideCloseButton
+              />
             </div>
+          )}
 
-            {/* Results Table */}
-            {filteredUsers.length > 0 && (
-              <div
-                className="carbon-panel"
-                style={{
-                  padding: "1.5rem",
-                  backgroundColor: "var(--cds-layer-01)",
-                  border: "1px solid var(--cds-border-subtle)",
-                }}
+          <div style={{ marginTop: "1rem" }}>
+            <ButtonSet>
+              <Button
+                kind={roleFilter === "all" ? "primary" : "tertiary"}
+                size="sm"
+                onClick={() => setRoleFilter("all")}
               >
-                <h2
-                  style={{
-                    fontSize: "var(--cds-heading-03, 1.25rem)",
-                    fontWeight: 400,
-                    marginBottom: "1rem",
-                    color: "var(--cds-text-primary)",
-                  }}
-                >
-                  {t("user.management.searchResults", { count: filteredUsers.length })}
-                </h2>
-                <TableContainer>
+                {t("user.management.filters.all", "全部")}
+              </Button>
+              <Button
+                kind={roleFilter === "student" ? "primary" : "tertiary"}
+                size="sm"
+                onClick={() => setRoleFilter("student")}
+              >
+                {t("user.role.student")}
+              </Button>
+              <Button
+                kind={roleFilter === "teacher" ? "primary" : "tertiary"}
+                size="sm"
+                onClick={() => setRoleFilter("teacher")}
+              >
+                {t("user.role.teacher")}
+              </Button>
+              <Button
+                kind={roleFilter === "admin" ? "primary" : "tertiary"}
+                size="sm"
+                onClick={() => setRoleFilter("admin")}
+              >
+                {t("user.role.admin")}
+              </Button>
+            </ButtonSet>
+          </div>
+        </ContainerCard>
+
+        {/* Results Table */}
+        {filteredUsers.length > 0 && (
+          <ContainerCard
+            title={t("user.management.searchResults", { count: filteredUsers.length })}
+            padding="none"
+          >
+            <TableContainer>
                   <Table>
                     <TableHead>
                       <TableRow>
@@ -662,10 +584,8 @@ const UserManagementScreen = () => {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </div>
-            )}
-          </Column>
-        </Grid>
+          </ContainerCard>
+        )}
       </div>
 
       {/* Confirmation Modal */}

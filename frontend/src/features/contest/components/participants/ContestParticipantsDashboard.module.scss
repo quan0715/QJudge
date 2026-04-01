@@ -1,3 +1,5 @@
+@use "@/styles/admin-panel" as mixins;
+
 .page {
   display: flex;
   flex-direction: column;
@@ -197,30 +199,18 @@
 }
 
 .list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  @include mixins.card-list;
   padding: 0;
-  flex: 1;
 }
 
 .listItem {
-  border: none;
-  border-bottom: 1px solid var(--cds-border-subtle);
+  @include mixins.sidebar-item;
+  padding: 0.625rem;
   border-radius: 0;
-  padding: 0.625rem 0.625rem;
-  background: transparent;
-  cursor: pointer;
-  transition: background-color 120ms ease;
-}
-
-.listItem:hover {
-  background: var(--cds-layer-hover);
 }
 
 .listItemSelected {
-  background: var(--cds-layer-selected-01, var(--cds-layer-selected));
-  border-left: 4px solid var(--cds-border-interactive);
+  @include mixins.sidebar-item-active;
   padding-left: calc(0.625rem - 3px);
 }
 
@@ -249,15 +239,14 @@
 }
 
 .primaryText {
-  color: var(--cds-text-primary);
-  font-weight: 600;
+  @include mixins.sidebar-label;
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
 .secondaryText {
-  color: var(--cds-text-secondary);
+  @include mixins.sidebar-meta;
   font-size: var(--cds-label-01-font-size, 0.75rem);
   line-height: 1.2;
 }
@@ -555,13 +544,10 @@
 
 .emptyState,
 .detailEmpty {
+  @include mixins.panel-empty-state;
   min-height: 14rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--cds-text-secondary);
-  text-align: center;
   padding: 1rem;
+  height: auto;
 }
 
 .skeletonStack {

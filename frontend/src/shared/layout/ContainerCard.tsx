@@ -7,13 +7,19 @@ interface ContainerCardProps {
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
   action?: React.ReactNode;
+  footer?: React.ReactNode;
   /** Optional Carbon Layer level injection for stronger visual separation */
   layerLevel?: 0 | 1 | 2;
   /** Enable Carbon Layer wrapper to keep contrast from parent surfaces */
   withLayer?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  /** Content area padding. "none" removes all padding, "compact" uses 0.5rem. */
+  padding?: "none" | "compact" | "default";
+  /** @deprecated Use padding="none" instead */
   noPadding?: boolean;
+  /** Stretch header actions to fill the full header height (e.g. for toolbar-style buttons) */
+  headerStretch?: boolean;
 }
 
 const ContainerCard: React.FC<ContainerCardProps> = ({
@@ -21,13 +27,30 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
   title,
   subtitle,
   action,
+  footer,
   layerLevel,
   withLayer = true,
   className,
   style,
+  padding,
   noPadding = false,
+  headerStretch = false,
 }) => {
-  const headerClass = `${styles.header}${subtitle ? ` ${styles.headerWithSubtitle}` : ""}`;
+  const resolvedPadding = padding ?? (noPadding ? "none" : "default");
+  const contentClass =
+    resolvedPadding === "none"
+      ? styles.contentNoPadding
+      : resolvedPadding === "compact"
+        ? styles.contentCompact
+        : styles.content;
+
+  const headerClass = [
+    styles.header,
+    subtitle ? styles.headerWithSubtitle : "",
+    headerStretch ? styles.headerStretch : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const card = (
     <div
@@ -45,9 +68,10 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
           {action ? <div className={styles.action}>{action}</div> : null}
         </div>
       )}
-      <div className={noPadding ? styles.contentNoPadding : styles.content}>
+      <div className={contentClass}>
         {children}
       </div>
+      {footer ? <div className={styles.footer}>{footer}</div> : null}
     </div>
   );
 

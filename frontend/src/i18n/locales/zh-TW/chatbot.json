@@ -6,6 +6,8 @@
   },
   "errors": {
     "aiServiceUnavailable": "抱歉，AI 服務暫時無法使用，請稍後再試。",
+    "apiKeyRequired": "請先在「個人設定 > API Key」中配置您的 Anthropic API Key 以使用 AI 功能。",
+    "invalidApiKey": "您的 API Key 無效或已過期，請檢查設定。",
     "cancelActionFailed": "取消操作失敗",
     "confirmActionFailed": "確認操作失敗，請重試",
     "createBackendSessionFailed": "無法建立對話，請稍後再試",

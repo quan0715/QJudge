@@ -21,6 +21,8 @@ import {
   Tag,
 } from "@carbon/react";
 import { Add, Edit, TrashCan } from "@carbon/icons-react";
+import { PageHeader } from "@/shared/layout/PageHeader";
+import styles from "./AdminScreens.module.scss";
 import {
   getAnnouncements,
   createAnnouncement,
@@ -143,8 +145,8 @@ const AnnouncementManagementScreen = () => {
     .map((a) => ({ ...a, id: a.id.toString() }));
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2 style={{ marginBottom: "2rem" }}>{t("announcement.management")}</h2>
+    <div className={styles.pageInner}>
+      <PageHeader title={t("announcement.management")} />
 
       <DataTable rows={currentRows} headers={headers} isSortable>
         {({ rows, headers, getHeaderProps, getTableProps }) => (

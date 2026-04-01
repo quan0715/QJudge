@@ -1,0 +1,275 @@
+// Shared exam layout mixins — consumed by StudentExamDemoScreen & PaperExamAnswering
+@use "@carbon/layout";
+@use "@carbon/type";
+@use "@carbon/motion";
+
+// ─── Container ──────────────────────────────────────────────
+@mixin exam-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--cds-background);
+  position: relative;
+}
+
+// ─── Toolbar ────────────────────────────────────────────────
+@mixin exam-toolbar($padding: 0) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3rem;
+  min-height: 3rem;
+  padding: $padding;
+  flex-shrink: 0;
+  gap: layout.$spacing-04;
+  background-color: var(--cds-background);
+  box-sizing: border-box;
+  transition: transform 200ms motion.motion(standard, productive),
+              opacity 200ms motion.motion(standard, productive);
+}
+
+@mixin exam-toolbar-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+@mixin exam-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  min-width: 0;
+  height: 100%;
+}
+
+@mixin exam-title {
+  @include type.type-style("heading-compact-01");
+  color: var(--cds-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin exam-toolbar-center($gap: null) {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  @if $gap { gap: $gap; }
+}
+
+@mixin exam-toolbar-btn-height {
+  min-height: 3rem;
+  height: 3rem;
+}
+
+// ─── Timer ──────────────────────────────────────────────────
+@mixin exam-timer {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  height: 100%;
+  color: var(--cds-text-secondary);
+}
+
+@mixin exam-timer-text {
+  @include type.type-style("heading-compact-01");
+  font-variant-numeric: tabular-nums;
+  color: var(--cds-text-primary);
+}
+
+// ─── Mode switcher ──────────────────────────────────────────
+@mixin exam-mode-switcher($border-radius: 0) {
+  position: fixed;
+  right: layout.$spacing-05;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  @if $border-radius != 0 { border-radius: $border-radius; }
+}
+
+@mixin exam-mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: layout.$spacing-03;
+  border: 1px solid var(--cds-border-subtle-01);
+  background-color: var(--cds-background);
+  color: var(--cds-text-secondary);
+  cursor: pointer;
+  transition: background-color 100ms motion.motion(standard, productive),
+              color 100ms motion.motion(standard, productive);
+
+  &:not(:first-child) {
+    border-top: none;
+  }
+
+  &:hover {
+    background-color: var(--cds-layer-hover-01);
+  }
+}
+
+@mixin exam-mode-btn-active {
+  background-color: var(--cds-background-inverse);
+  color: var(--cds-text-inverse);
+  border-color: var(--cds-background-inverse);
+
+  &:hover {
+    background-color: var(--cds-background-inverse);
+  }
+}
+
+// ─── Slide transitions ─────────────────────────────────────
+@mixin exam-slide-animations {
+  @keyframes slideInFromRight {
+    from { transform: translateX(40px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes slideInFromLeft {
+    from { transform: translateX(-40px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+}
+
+@mixin exam-slide-in-right {
+  animation: slideInFromRight 280ms motion.motion(entrance, productive) both;
+}
+
+@mixin exam-slide-in-left {
+  animation: slideInFromLeft 280ms motion.motion(entrance, productive) both;
+}
+
+// ─── Body & Navigation ─────────────────────────────────────
+@mixin exam-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+@mixin exam-nav-wrapper {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+  flex-shrink: 0;
+}
+
+@mixin exam-nav-wrapper-hidden {
+  width: 0;
+}
+
+@mixin exam-nav-toggle {
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 40px;
+  border: none;
+  border-radius: 0 6px 6px 0;
+  background-color: var(--cds-layer-01);
+  color: var(--cds-text-secondary);
+  cursor: pointer;
+  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.08);
+  transition: background-color 100ms motion.motion(standard, productive);
+
+  &:hover {
+    background-color: var(--cds-layer-hover-01);
+    color: var(--cds-text-primary);
+  }
+}
+
+// ─── Single-question mode ───────────────────────────────────
+@mixin exam-single-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@mixin exam-question-area {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: layout.$spacing-07 layout.$spacing-05;
+}
+
+@mixin exam-question-inner {
+  width: 100%;
+  max-width: 720px;
+}
+
+@mixin exam-nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: layout.$spacing-03 layout.$spacing-05;
+  flex-shrink: 0;
+}
+
+@mixin exam-nav-info {
+  @include type.type-style("label-01");
+  color: var(--cds-text-helper);
+  letter-spacing: 0.32px;
+}
+
+// ─── All-questions mode ─────────────────────────────────────
+@mixin exam-all-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: layout.$spacing-07 layout.$spacing-05 layout.$spacing-09;
+}
+
+@mixin exam-all-spacer {
+  flex-shrink: 0;
+  height: 40vh;
+}
+
+@mixin exam-all-item {
+  width: 100%;
+  max-width: 720px;
+  padding-bottom: layout.$spacing-07;
+  margin-bottom: layout.$spacing-07;
+  transition: opacity 400ms motion.motion(standard, productive);
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--cds-border-subtle-00);
+  }
+}
+
+@mixin exam-all-item-dimmed {
+  opacity: 0.4;
+}
+
+// ─── Loading / empty states ─────────────────────────────────
+@mixin exam-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100%;
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-01");
+  flex-direction: column;
+  gap: layout.$spacing-04;
+}
