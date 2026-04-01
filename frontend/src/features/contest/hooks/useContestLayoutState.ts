@@ -45,14 +45,14 @@ export function useContestLayoutState() {
   const dashboardPath =
     (contest?.boundClassroomId || classroomId) && contestId
       ? getClassroomContestDashboardPath(
-          classroomId || contest?.boundClassroomId!,
+          classroomId || contest?.boundClassroomId,
           contestId,
         )
       : "/dashboard";
   const precheckPath =
     (contest?.boundClassroomId || classroomId) && contestId
       ? getClassroomContestPrecheckPath(
-          classroomId || contest?.boundClassroomId!,
+          classroomId || contest?.boundClassroomId,
           contestId,
         )
       : "/dashboard";
