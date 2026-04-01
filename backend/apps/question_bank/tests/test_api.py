@@ -127,6 +127,28 @@ class TestQuestionBankAPI:
         assert get_resp.data["icon"] == "code"
         assert get_resp.data["cover_url"] == "https://example.com/bank-cover.png"
 
+    def test_create_duplicate_active_bank_same_category_returns_400(
+        self,
+        api_client: APIClient,
+        teacher: User,
+        teacher_private_bank: QuestionBank,
+    ):
+        api_client.force_authenticate(user=teacher)
+
+        resp = api_client.post(
+            "/api/v1/question-banks/",
+            {
+                "name": "Another Coding Bank",
+                "description": "desc",
+                "category": "coding",
+                "visibility": "private",
+            },
+            format="json",
+        )
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert "category" in resp.data["error"]["details"]
+
     @patch("apps.question_bank.views.store_markdown_image")
     @patch("apps.question_bank.views.build_markdown_image_object_key", return_value="question-bank/cover-1.png")
     def test_upload_cover_success(

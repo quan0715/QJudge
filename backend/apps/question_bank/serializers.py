@@ -147,6 +147,33 @@ class QuestionBankSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        request = self.context.get("request")
+        owner = getattr(request, "user", None) or getattr(self.instance, "owner", None)
+        category = attrs.get("category", getattr(self.instance, "category", None))
+        is_archived = attrs.get("is_archived", getattr(self.instance, "is_archived", False))
+
+        if owner and category and not is_archived:
+            conflict_qs = QuestionBank.objects.filter(
+                owner=owner,
+                category=category,
+                is_archived=False,
+            )
+            if self.instance is not None:
+                conflict_qs = conflict_qs.exclude(pk=self.instance.pk)
+            if conflict_qs.exists():
+                raise serializers.ValidationError(
+                    {
+                        "category": (
+                            "You already have an active question bank for this category. "
+                            "Archive the existing bank before creating another one."
+                        )
+                    }
+                )
+
+        return attrs
+
     def get_question_count(self, obj):
         # Use annotated value when available (avoids N+1 query).
         if hasattr(obj, "question_count"):
