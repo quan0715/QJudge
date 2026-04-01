@@ -42,19 +42,14 @@ export function useContestLayoutState() {
   const isAdmin = !!contest?.permissions?.canEditContest || hasManagementRole;
 
   const shouldWarnOnExit = shouldWarnOnExitByPolicy(contest, hasEnded);
+  const effectiveClassroomId = classroomId || contest?.boundClassroomId;
   const dashboardPath =
-    (contest?.boundClassroomId || classroomId) && contestId
-      ? getClassroomContestDashboardPath(
-          classroomId || contest?.boundClassroomId,
-          contestId,
-        )
+    effectiveClassroomId && contestId
+      ? getClassroomContestDashboardPath(effectiveClassroomId, contestId)
       : "/dashboard";
   const precheckPath =
-    (contest?.boundClassroomId || classroomId) && contestId
-      ? getClassroomContestPrecheckPath(
-          classroomId || contest?.boundClassroomId,
-          contestId,
-        )
+    effectiveClassroomId && contestId
+      ? getClassroomContestPrecheckPath(effectiveClassroomId, contestId)
       : "/dashboard";
 
   const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
