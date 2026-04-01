@@ -59,6 +59,7 @@ const ProblemCodingTab: React.FC<ProblemCodingTabProps> = ({
       {/* Code Editor Section */}
       <ContainerCard
         title="程式碼編輯器"
+        headerStretch
         action={
           <div className="problem-coding-tab__actions">
             <div className="problem-coding-tab__language-selector">
@@ -112,6 +113,7 @@ const ProblemCodingTab: React.FC<ProblemCodingTabProps> = ({
       {/* Test Cases Section */}
       <ContainerCard
         title="測試案例"
+        headerStretch
         action={
           <div className="problem-coding-tab__actions">
             <Button

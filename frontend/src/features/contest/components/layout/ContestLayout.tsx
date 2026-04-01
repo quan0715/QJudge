@@ -8,12 +8,10 @@ import {
   HeaderGlobalAction,
   Modal,
   HeaderNavigation,
-  Button,
 } from "@carbon/react";
 import {
   Maximize,
   Minimize,
-  Logout,
   Time,
   Renew,
   Settings,
@@ -27,8 +25,6 @@ import { ContentPage } from "@/shared/layout/ContentPage";
 import { ContestProvider } from "@/features/contest/contexts/ContestContext";
 import { ExamModeMonitorModal } from "@/features/contest/components/modals/ExamModeMonitorModal";
 import ExamStatusBadge from "@/features/contest/components/exam/ExamStatusBadge";
-import ContestExitModal from "@/features/contest/components/layout/ContestExitModal";
-import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useContestExamActions } from "@/features/contest/hooks/useContestExamActions";
 import { useContestLayoutState } from "@/features/contest/hooks/useContestLayoutState";
@@ -58,18 +54,17 @@ const ContestLayout = () => {
     hasEnded,
     isUpcoming,
     isAdmin,
-    shouldWarnOnExit,
     userScore,
     totalMaxScore,
     scoreboardData,
     refreshContest,
     navigate,
-    } = useContestLayoutState();
+  } = useContestLayoutState();
 
-    const boundClassroomId = classroomId || contest?.boundClassroomId || undefined;
-    const classroomName = useClassroomName(boundClassroomId);
-    const { t } = useTranslation("contest");
-    const { t: tc } = useTranslation("common");
+  const boundClassroomId = classroomId || contest?.boundClassroomId || undefined;
+  const classroomName = useClassroomName(boundClassroomId);
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const dashboardPath =
     boundClassroomId && contestId
       ? getClassroomContestDashboardPath(boundClassroomId, contestId)
@@ -84,11 +79,9 @@ const ContestLayout = () => {
         : "/dashboard";
 
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
-  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const { confirm, modalProps } = useConfirmModal();
 
   const { timeLeft, isCountdownToStart, unlockTimeLeft } = useContestTimers({
     contest,
@@ -112,10 +105,8 @@ const ContestLayout = () => {
 
   const {
     handleJoin,
-    handleLeave,
     handleStartExam,
     handleEndExam,
-    handleExit,
     toggleFullscreen,
     submissionProgress,
   } = useContestExamActions({
@@ -123,13 +114,6 @@ const ContestLayout = () => {
     contestId,
     hasEnded,
     refreshContest,
-    confirmLeave: () =>
-      confirm({
-        title: t("modal.confirmLeaveTitle"),
-        confirmLabel: tc("button.confirm"),
-        cancelLabel: tc("button.cancel"),
-        danger: true,
-      }),
     navigate,
     messages: {
       joinError: t("error.joinFailed"),
@@ -218,7 +202,6 @@ const ContestLayout = () => {
         hero={
           <ContestHero
             contest={contest}
-            onLeave={handleLeave}
             onStartExam={handleStartExam}
             onEndExam={handleEndExam}
             onGoToAnswering={handleGoToAnswering}
@@ -352,15 +335,6 @@ const ContestLayout = () => {
               >
                 {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
               </HeaderGlobalAction>
-
-              <Button
-                kind="danger--ghost"
-                renderIcon={Logout}
-                onClick={() => setIsExitModalOpen(true)}
-                className={styles.exitButton}
-              >
-                {t("exit")}
-              </Button>
             </HeaderGlobalBar>
 
             <SideMenu
@@ -380,14 +354,6 @@ const ContestLayout = () => {
             </div>
           </div>
 
-          <ContestExitModal
-            open={isExitModalOpen}
-            contest={contest}
-            shouldWarnOnExit={shouldWarnOnExit}
-            onClose={() => setIsExitModalOpen(false)}
-            onConfirm={handleExit}
-          />
-
           <ExamSubmissionProgressModal
             state={submissionProgress.state}
             onRequestClose={submissionProgress.close}
@@ -401,8 +367,6 @@ const ContestLayout = () => {
           >
             <p>{errorMessage}</p>
           </Modal>
-
-          <ConfirmModal {...modalProps} />
         </div>
       )}
     </ExamModeWrapper>

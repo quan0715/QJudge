@@ -3,6 +3,8 @@ import { Modal } from "@carbon/react";
 import { WarningAlt, CheckmarkFilled, ScreenOff, DocumentExport, VideoOff, FitToScreen } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamModeState } from "@/core/entities/contest.entity";
+import { ModalAlertContent } from "./ModalAlertContent";
+import styles from "./ModalAlertContent.module.scss";
 
 interface ExamModalsProps {
   showWarning: boolean;
@@ -102,25 +104,8 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         danger
         size="sm"
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
-          }}
-        >
-          {/* Icon */}
-          <div
-            style={{
-              padding: "1rem",
-              backgroundColor: pendingApiResponse
-                ? "var(--cds-layer-02)"
-                : "var(--cds-notification-background-warning)",
-              borderRadius: "50%",
-              marginBottom: "1.5rem",
-            }}
-          >
+        <ModalAlertContent
+          icon={
             <WarningAlt
               size={40}
               style={{
@@ -129,64 +114,25 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
                   : "var(--cds-support-warning)",
               }}
             />
-          </div>
-
-          {/* Title */}
-          <p
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: 600,
-              marginBottom: "0.5rem",
-              color: "var(--cds-text-primary)",
-            }}
-          >
-            {pendingApiResponse
-              ? t("exam.recordingViolation")
-              : t("exam.abnormalBehavior")}
-          </p>
-
+          }
+          variant={pendingApiResponse ? "neutral" : "warning"}
+          title={pendingApiResponse ? t("exam.recordingViolation") : t("exam.abnormalBehavior")}
+        >
           {/* Event type */}
-          <p
-            style={{
-              marginBottom: "1rem",
-              color: "var(--cds-text-secondary)",
-              fontSize: "0.875rem",
-            }}
-          >
+          <p className={styles.eventType}>
             {warningEventType === "tab_hidden" && t("exam.tabHidden")}
             {warningEventType === "window_blur" && t("exam.windowBlur")}
-            {warningEventType === "exit_fullscreen" &&
-              t("exam.exitedFullscreen")}
-            {warningEventType === "forbidden_action" &&
-              t("exam.forbiddenAction")}
-            {warningEventType === "multiple_displays" &&
-              t("exam.multipleDisplaysDetected")}
-            {warningEventType === "mouse_leave" &&
-              t("exam.mouseLeftWindow")}
+            {warningEventType === "exit_fullscreen" && t("exam.exitedFullscreen")}
+            {warningEventType === "forbidden_action" && t("exam.forbiddenAction")}
+            {warningEventType === "multiple_displays" && t("exam.multipleDisplaysDetected")}
+            {warningEventType === "mouse_leave" && t("exam.mouseLeftWindow")}
           </p>
 
-          {/* Instruction */}
-          <p
-            style={{
-              marginBottom: "1.5rem",
-              fontSize: "0.875rem",
-              color: "var(--cds-text-primary)",
-            }}
-          >
-            {t("exam.stayInExamPage")}
-          </p>
+          <p className={styles.instruction}>{t("exam.stayInExamPage")}</p>
 
           {/* Warning close cooldown */}
           {warningCountdown != null && warningCountdown > 0 && !pendingApiResponse && !isLocked && (
-            <p
-              data-testid="exam-warning-countdown"
-              style={{
-                marginBottom: "1rem",
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                color: "var(--cds-support-warning)",
-              }}
-            >
+            <p data-testid="exam-warning-countdown" className={styles.warningCountdown}>
               {t("exam.warningCloseIn", {
                 defaultValue: "可在 {{seconds}} 秒後關閉警告",
                 seconds: warningCountdown,
@@ -198,59 +144,17 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
           {!pendingApiResponse &&
             examState.violationCount !== undefined &&
             examState.maxWarnings !== undefined && (
-              <div
-                style={{
-                  width: "100%",
-                  backgroundColor: "var(--cds-layer-01)",
-                  padding: "1rem",
-                  border: "1px solid var(--cds-border-subtle)",
-                  marginBottom: "1rem",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "0.75rem",
-                    fontSize: "0.875rem",
-                  }}
-                >
-                  <span style={{ color: "var(--cds-text-secondary)" }}>
-                    {t("exam.accumulatedViolations")}
-                  </span>
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      color: "var(--cds-support-error)",
-                    }}
-                  >
-                    {examState.violationCount}
-                  </span>
+              <div className={styles.statBox}>
+                <div className={styles.statRow}>
+                  <span className={styles.statLabel}>{t("exam.accumulatedViolations")}</span>
+                  <span className={styles.statValueError}>{examState.violationCount}</span>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "0.875rem",
-                  }}
-                >
-                  <span style={{ color: "var(--cds-text-secondary)" }}>
-                    {t("exam.remainingChances")}
-                  </span>
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      color: isLocked
-                        ? "var(--cds-support-error)"
-                        : "var(--cds-support-success)",
-                    }}
-                  >
+                <div className={styles.statRow}>
+                  <span className={styles.statLabel}>{t("exam.remainingChances")}</span>
+                  <span className={isLocked ? styles.statValueError : styles.statValueSuccess}>
                     {isLocked
                       ? t("exam.alreadyLocked")
-                      : Math.max(
-                          0,
-                          examState.maxWarnings + 1 - examState.violationCount
-                        )}
+                      : Math.max(0, examState.maxWarnings + 1 - examState.violationCount)}
                   </span>
                 </div>
               </div>
@@ -258,40 +162,17 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
 
           {/* Warning message */}
           {isLocked ? (
-            <p
-              style={{
-                marginTop: "0.5rem",
-                color: "var(--cds-support-error)",
-                fontSize: "0.875rem",
-                fontWeight: 600,
-              }}
-            >
-              {t("exam.examLocked")}
-            </p>
+            <p className={styles.errorNote}>{t("exam.examLocked")}</p>
           ) : (
-            <p
-              style={{
-                marginTop: "0.5rem",
-                color: "var(--cds-support-error)",
-                fontSize: "0.75rem",
-              }}
-            >
-              {t("exam.zeroChanceWarning")}
-            </p>
+            <p className={styles.smallErrorNote}>{t("exam.zeroChanceWarning")}</p>
           )}
-          <p
-            style={{
-              marginTop: "0.5rem",
-              color: "var(--cds-text-secondary)",
-              fontSize: "0.75rem",
-            }}
-          >
+          <p className={styles.secondaryNote}>
             {t("exam.monitoringStillActive", { defaultValue: "關閉警告後仍持續監控。" })}
           </p>
-        </div>
+        </ModalAlertContent>
       </Modal>
 
-      {/* Recovery warning (grace window before counting a violation — fullscreen or mouse-leave) */}
+      {/* Recovery warning (grace window before counting a violation) */}
       <Modal
         data-testid="exam-recovery-modal"
         open={recoveryCountdown != null}
@@ -319,14 +200,8 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         danger
         size="sm"
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.75rem",
-          }}
-        >
-          <p style={{ margin: 0, color: "var(--cds-text-primary)", lineHeight: 1.5 }}>
+        <div className={styles.recoveryWrapper}>
+          <p className={styles.recoveryText}>
             {recoverySource === "tab_hidden"
               ? t("exam.tabHiddenRecoveryDesc", { defaultValue: "請在 {{seconds}} 秒內回到考試分頁，否則將記錄一次違規。", seconds: recoveryCountdown ?? 0 })
               : recoverySource === "window_blur"
@@ -337,9 +212,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
               ? t("exam.mouseLeaveRecoveryDesc", { seconds: recoveryCountdown ?? 0 })
               : t("exam.fullscreenRecoveryDesc", { seconds: recoveryCountdown ?? 0 })}
           </p>
-          <p style={{ margin: 0, color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
-            {t("exam.stayInExamPage")}
-          </p>
+          <p className={styles.recoveryHint}>{t("exam.stayInExamPage")}</p>
         </div>
       </Modal>
 
@@ -348,83 +221,23 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         data-testid="exam-unlock-modal"
         open={showUnlockNotification}
         modalHeading={t("exam.unlocked")}
-        primaryButtonText={withButtonTestId(
-          "exam-unlock-continue-btn",
-          t("exam.continueExam")
-        )}
+        primaryButtonText={withButtonTestId("exam-unlock-continue-btn", t("exam.continueExam"))}
         onRequestSubmit={onUnlockContinue}
         onRequestClose={onUnlockContinue}
         preventCloseOnClickOutside
         size="sm"
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
-          }}
+        <ModalAlertContent
+          icon={<CheckmarkFilled size={40} style={{ color: "var(--cds-support-success)" }} />}
+          variant="success"
+          title={t("exam.examUnlockedTitle")}
+          description={t("exam.examUnlockedDesc")}
+          descriptionPrimary
         >
-          {/* Icon */}
-          <div
-            style={{
-              padding: "1rem",
-              backgroundColor: "var(--cds-notification-background-success)",
-              borderRadius: "50%",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <CheckmarkFilled
-              size={40}
-              style={{ color: "var(--cds-support-success)" }}
-            />
+          <div className={styles.infoBox} style={{ textAlign: "left" }}>
+            <p className={styles.infoBoxText}>{t("exam.followRulesReminder")}</p>
           </div>
-
-          {/* Title */}
-          <p
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: 600,
-              marginBottom: "0.75rem",
-              color: "var(--cds-text-primary)",
-            }}
-          >
-            {t("exam.examUnlockedTitle")}
-          </p>
-
-          {/* Description */}
-          <p
-            style={{
-              marginBottom: "1.5rem",
-              fontSize: "0.875rem",
-              color: "var(--cds-text-primary)",
-              lineHeight: 1.5,
-            }}
-          >
-            {t("exam.examUnlockedDesc")}
-          </p>
-
-          {/* Reminder */}
-          <div
-            style={{
-              width: "100%",
-              padding: "0.75rem 1rem",
-              backgroundColor: "var(--cds-layer-01)",
-              border: "1px solid var(--cds-border-subtle)",
-              textAlign: "left",
-            }}
-          >
-            <p
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--cds-text-secondary)",
-                margin: 0,
-              }}
-            >
-              {t("exam.followRulesReminder")}
-            </p>
-          </div>
-        </div>
+        </ModalAlertContent>
       </Modal>
 
       {/* Screen Share Recovery Modal */}
@@ -446,83 +259,21 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         danger
         size="sm"
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
-          }}
+        <ModalAlertContent
+          icon={<ScreenOff size={40} style={{ color: "var(--cds-support-error)" }} />}
+          variant="error"
+          title={t("exam.screenShareLostHeading")}
+          description={t("exam.screenShareLostDesc")}
         >
-          <div
-            style={{
-              padding: "1rem",
-              backgroundColor: "var(--cds-notification-background-error)",
-              borderRadius: "50%",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <ScreenOff
-              size={40}
-              style={{ color: "var(--cds-support-error)" }}
-            />
-          </div>
-
-          <p
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: 600,
-              marginBottom: "0.75rem",
-              color: "var(--cds-text-primary)",
-            }}
-          >
-            {t("exam.screenShareLostHeading")}
-          </p>
-
-          <p
-            style={{
-              marginBottom: "1.5rem",
-              fontSize: "0.875rem",
-              color: "var(--cds-text-secondary)",
-              lineHeight: 1.5,
-            }}
-          >
-            {t("exam.screenShareLostDesc")}
-          </p>
-
           {screenShareRecoveryCountdown != null && screenShareRecoveryCountdown > 0 && (
-            <p
-              style={{
-                marginBottom: "1rem",
-                fontSize: "1.5rem",
-                fontWeight: 600,
-                color: "var(--cds-support-error)",
-              }}
-            >
+            <p className={styles.countdown}>
               {t("exam.screenShareForceSubmitIn", { seconds: screenShareRecoveryCountdown })}
             </p>
           )}
-
-          <div
-            style={{
-              width: "100%",
-              padding: "0.75rem 1rem",
-              backgroundColor: "var(--cds-notification-background-error)",
-              textAlign: "center",
-            }}
-          >
-            <p
-              style={{
-                fontSize: "0.875rem",
-                color: "var(--cds-support-error)",
-                margin: 0,
-                fontWeight: 600,
-              }}
-            >
-              {t("exam.screenShareTimeoutWarning")}
-            </p>
+          <div className={styles.warningBox}>
+            <p className={styles.warningBoxText}>{t("exam.screenShareTimeoutWarning")}</p>
           </div>
-        </div>
+        </ModalAlertContent>
       </Modal>
 
       {/* Webcam Recovery Modal */}
@@ -544,18 +295,14 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         danger
         size="sm"
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <div style={{ padding: "1rem", backgroundColor: "var(--cds-notification-background-error)", borderRadius: "50%", marginBottom: "1.5rem" }}>
-            <VideoOff size={40} style={{ color: "var(--cds-support-error)" }} />
-          </div>
-          <p style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.75rem", color: "var(--cds-text-primary)" }}>
-            {t("exam.webcamLostHeading", "Webcam 已停止運作")}
-          </p>
-          <p style={{ marginBottom: "1.5rem", fontSize: "0.875rem", color: "var(--cds-text-secondary)", lineHeight: 1.5 }}>
-            {t("exam.webcamLostDesc", "系統偵測到 Webcam 連線中斷，請確認攝影機未被其他程式佔用。")}
-          </p>
+        <ModalAlertContent
+          icon={<VideoOff size={40} style={{ color: "var(--cds-support-error)" }} />}
+          variant="error"
+          title={t("exam.webcamLostHeading", "Webcam 已停止運作")}
+          description={t("exam.webcamLostDesc", "系統偵測到 Webcam 連線中斷，請確認攝影機未被其他程式佔用。")}
+        >
           {webcamRecoveryCountdown != null && webcamRecoveryCountdown > 0 && (
-            <p style={{ marginBottom: "1rem", fontSize: "1.5rem", fontWeight: 600, color: "var(--cds-support-error)" }}>
+            <p className={styles.countdown}>
               {webcamModuleRole === "primary"
                 ? t("exam.webcamForceSubmitIn", {
                     defaultValue: "將在 {{seconds}} 秒後自動交卷",
@@ -568,13 +315,13 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
             </p>
           )}
           {webcamModuleRole === "primary" && (
-            <div style={{ width: "100%", padding: "0.75rem 1rem", backgroundColor: "var(--cds-notification-background-error)", textAlign: "center" }}>
-              <p style={{ fontSize: "0.875rem", color: "var(--cds-support-error)", margin: 0, fontWeight: 600 }}>
+            <div className={styles.warningBox}>
+              <p className={styles.warningBoxText}>
                 {t("exam.webcamTimeoutWarning", "若未在時限內恢復 Webcam，系統將自動交卷。")}
               </p>
             </div>
           )}
-        </div>
+        </ModalAlertContent>
       </Modal>
 
       {/* Viewport / Split View Recovery Modal */}
@@ -598,117 +345,60 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         danger
         size="sm"
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-          <div style={{ padding: "1rem", backgroundColor: "var(--cds-notification-background-error)", borderRadius: "50%", marginBottom: "1.5rem" }}>
-            <FitToScreen size={40} style={{ color: "var(--cds-support-error)" }} />
-          </div>
-          <p style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.75rem", color: "var(--cds-text-primary)" }}>
-            {isTablet
+        <ModalAlertContent
+          icon={<FitToScreen size={40} style={{ color: "var(--cds-support-error)" }} />}
+          variant="error"
+          title={
+            isTablet
               ? t("exam.splitViewDetectedHeading", "請關閉 Split View / Slide Over")
-              : t("exam.viewportInterruptedHeading", "請恢復考試視窗大小")}
-          </p>
-          <p style={{ marginBottom: "1.5rem", fontSize: "0.875rem", color: "var(--cds-text-secondary)", lineHeight: 1.5 }}>
-            {isTablet
+              : t("exam.viewportInterruptedHeading", "請恢復考試視窗大小")
+          }
+          description={
+            isTablet
               ? t("exam.splitViewDetectedDesc", "考試期間不允許使用分割畫面或 Slide Over，請關閉後繼續作答。")
-              : t("exam.viewportInterruptedDesc", "系統偵測到視窗大小或縮放異常，請恢復原始大小。")}
-          </p>
+              : t("exam.viewportInterruptedDesc", "系統偵測到視窗大小或縮放異常，請恢復原始大小。")
+          }
+        >
           {viewportRecoveryCountdown != null && viewportRecoveryCountdown > 0 && (
-            <p style={{ marginBottom: "1rem", fontSize: "1.5rem", fontWeight: 600, color: "var(--cds-support-error)" }}>
+            <p className={styles.countdown}>
               {t("exam.viewportForceSubmitIn", {
                 defaultValue: "將在 {{seconds}} 秒後自動交卷",
                 seconds: viewportRecoveryCountdown,
               })}
             </p>
           )}
-          <div style={{ width: "100%", padding: "0.75rem 1rem", backgroundColor: "var(--cds-notification-background-error)", textAlign: "center" }}>
-            <p style={{ fontSize: "0.875rem", color: "var(--cds-support-error)", margin: 0, fontWeight: 600 }}>
+          <div className={styles.warningBox}>
+            <p className={styles.warningBoxText}>
               {t("exam.viewportTimeoutWarning", "若未在時限內恢復，系統將自動交卷。")}
             </p>
           </div>
-        </div>
+        </ModalAlertContent>
       </Modal>
 
-      {/* Auto-Submit Notification (after screen share loss force submit) */}
+      {/* Auto-Submit Notification */}
       <Modal
         data-testid="exam-auto-submit-modal"
         open={showAutoSubmitNotice}
         modalHeading={t("exam.autoSubmittedTitle")}
-        primaryButtonText={withButtonTestId(
-          "exam-auto-submit-return-btn",
-          t("exam.returnToDashboard")
-        )}
+        primaryButtonText={withButtonTestId("exam-auto-submit-return-btn", t("exam.returnToDashboard"))}
         onRequestSubmit={onAutoSubmitReturnToDashboard}
         onRequestClose={onAutoSubmitReturnToDashboard}
         preventCloseOnClickOutside
         size="sm"
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
-          }}
+        <ModalAlertContent
+          icon={<DocumentExport size={40} style={{ color: "var(--cds-support-error)" }} />}
+          variant="error"
+          title={t("exam.autoSubmittedHeading")}
+          description={t("exam.autoSubmittedDesc")}
         >
-          <div
-            style={{
-              padding: "1rem",
-              backgroundColor: "var(--cds-notification-background-error)",
-              borderRadius: "50%",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <DocumentExport
-              size={40}
-              style={{ color: "var(--cds-support-error)" }}
-            />
+          <div className={styles.infoBox} style={{ textAlign: "center" }}>
+            <p className={styles.infoBoxText}>{t("exam.autoSubmittedHint")}</p>
           </div>
-
-          <p
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: 600,
-              marginBottom: "0.75rem",
-              color: "var(--cds-text-primary)",
-            }}
-          >
-            {t("exam.autoSubmittedHeading")}
-          </p>
-
-          <p
-            style={{
-              marginBottom: "1.5rem",
-              fontSize: "0.875rem",
-              color: "var(--cds-text-secondary)",
-              lineHeight: 1.5,
-            }}
-          >
-            {t("exam.autoSubmittedDesc")}
-          </p>
-
-          <div
-            style={{
-              width: "100%",
-              padding: "0.75rem 1rem",
-              backgroundColor: "var(--cds-layer-01)",
-              border: "1px solid var(--cds-border-subtle)",
-              textAlign: "center",
-            }}
-          >
-            <p
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--cds-text-secondary)",
-                margin: 0,
-              }}
-            >
-              {t("exam.autoSubmittedHint")}
-            </p>
-          </div>
-        </div>
+        </ModalAlertContent>
       </Modal>
 
-      {/* Fullscreen Exit Confirmation Modal (for locked/paused states) */}
+      {/* Fullscreen Exit Confirmation Modal */}
       <Modal
         data-testid="exam-fullscreen-exit-modal"
         open={showFullscreenExitConfirm}
@@ -719,10 +409,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
             ? t("exam.submittingExam")
             : t("exam.confirmSubmitExam")
         )}
-        secondaryButtonText={withButtonTestId(
-          "exam-fullscreen-exit-cancel-btn",
-          tc("button.cancel")
-        )}
+        secondaryButtonText={withButtonTestId("exam-fullscreen-exit-cancel-btn", tc("button.cancel"))}
         primaryButtonDisabled={isSubmittingFromFullscreenExit}
         onRequestSubmit={onFullscreenExitConfirm}
         onRequestClose={onFullscreenExitCancel}
@@ -730,76 +417,16 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         danger
         size="sm"
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
-          }}
+        <ModalAlertContent
+          icon={<WarningAlt size={40} style={{ color: "var(--cds-support-warning)" }} />}
+          variant="warning"
+          title={t("exam.leavingFullscreen")}
+          description={<>{t("exam.leaveFullscreenWillSubmit")}<br />{t("exam.autoSubmitNoMoreAnswer")}</>}
         >
-          {/* Icon */}
-          <div
-            style={{
-              padding: "1rem",
-              backgroundColor: "var(--cds-notification-background-warning)",
-              borderRadius: "50%",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <WarningAlt
-              size={40}
-              style={{ color: "var(--cds-support-warning)" }}
-            />
+          <div className={styles.warningBox}>
+            <p className={styles.warningBoxText}>{t("exam.cannotUndo")}</p>
           </div>
-
-          {/* Title */}
-          <p
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: 600,
-              marginBottom: "0.75rem",
-              color: "var(--cds-text-primary)",
-            }}
-          >
-            {t("exam.leavingFullscreen")}
-          </p>
-
-          {/* Description */}
-          <p
-            style={{
-              marginBottom: "1.5rem",
-              fontSize: "0.875rem",
-              color: "var(--cds-text-secondary)",
-              lineHeight: 1.5,
-            }}
-          >
-            {t("exam.leaveFullscreenWillSubmit")}
-            <br />
-            {t("exam.autoSubmitNoMoreAnswer")}
-          </p>
-
-          {/* Warning */}
-          <div
-            style={{
-              width: "100%",
-              padding: "0.75rem 1rem",
-              backgroundColor: "var(--cds-notification-background-error)",
-              textAlign: "center",
-            }}
-          >
-            <p
-              style={{
-                fontSize: "0.875rem",
-                color: "var(--cds-support-error)",
-                margin: 0,
-                fontWeight: 600,
-              }}
-            >
-              {t("exam.cannotUndo")}
-            </p>
-          </div>
-        </div>
+        </ModalAlertContent>
       </Modal>
     </>
   );

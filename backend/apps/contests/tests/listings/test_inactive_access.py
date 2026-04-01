@@ -16,6 +16,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.contests.models import Contest, ContestParticipant, ContestProblem
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.problems.models import Problem
 
 User = get_user_model()
@@ -248,6 +249,30 @@ class DraftContestAccessTests(APITestCase):
 
         # Owner should see draft contest
         contest_ids = [c['id'] for c in response.data['results']]
+        self.assertIn(str(self.draft_contest.id), contest_ids)
+
+    def test_classroom_ta_sees_bound_contest_in_manage_list(self):
+        """Classroom TAs should manage classroom-bound contests without teacher role."""
+        ta_user = User.objects.create_user(
+            username="classroom_ta",
+            email="classroom_ta@example.com",
+            password="password123",
+            role="student",
+        )
+        classroom = Classroom.objects.create(
+            name="OS",
+            owner=self.teacher,
+            invite_code="OS1234",
+        )
+        ClassroomMember.objects.create(classroom=classroom, user=ta_user, role="ta")
+        ClassroomContest.objects.create(classroom=classroom, contest=self.draft_contest)
+
+        self.client.force_authenticate(user=ta_user)
+        url = f"{reverse('contests:contest-list')}?scope=manage"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        contest_ids = [c["id"] for c in response.data["results"]]
         self.assertIn(str(self.draft_contest.id), contest_ids)
 
 

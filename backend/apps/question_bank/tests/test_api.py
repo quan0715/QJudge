@@ -127,6 +127,32 @@ class TestQuestionBankAPI:
         assert get_resp.data["icon"] == "code"
         assert get_resp.data["cover_url"] == "https://example.com/bank-cover.png"
 
+    def test_create_multiple_active_banks_same_category(
+        self,
+        api_client: APIClient,
+        teacher: User,
+        teacher_private_bank: QuestionBank,
+    ):
+        api_client.force_authenticate(user=teacher)
+
+        resp = api_client.post(
+            "/api/v1/question-banks/",
+            {
+                "name": "Another Coding Bank",
+                "description": "desc",
+                "category": "coding",
+                "visibility": "private",
+            },
+            format="json",
+        )
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert QuestionBank.objects.filter(
+            owner=teacher,
+            category=QuestionBank.Category.CODING,
+            is_archived=False,
+        ).count() == 2
+
     @patch("apps.question_bank.views.store_markdown_image")
     @patch("apps.question_bank.views.build_markdown_image_object_key", return_value="question-bank/cover-1.png")
     def test_upload_cover_success(
@@ -1161,37 +1187,30 @@ class TestCategoryValidation:
 
 
 @pytest.mark.django_db
-class TestUniqueActiveBankConstraint:
-    def test_duplicate_active_bank_same_category_raises(self, teacher: User):
-        from django.db import IntegrityError
-        QuestionBank.objects.create(owner=teacher, name="Bank A", category=QuestionBank.Category.CODING)
-        with pytest.raises(IntegrityError):
-            QuestionBank.objects.create(owner=teacher, name="Bank B", category=QuestionBank.Category.CODING)
-
-    def test_archived_bank_allows_new_active_bank(self, teacher: User):
+class TestMultipleBanksPerCategory:
+    def test_teacher_can_create_multiple_active_banks_same_category(self, teacher: User):
         first = QuestionBank.objects.create(owner=teacher, name="Bank A", category=QuestionBank.Category.CODING)
-        first.is_archived = True
-        first.save(update_fields=["is_archived"])
-        # Should not raise
         second = QuestionBank.objects.create(owner=teacher, name="Bank B", category=QuestionBank.Category.CODING)
+        assert first.pk is not None
         assert second.pk is not None
 
-    def test_platform_banks_exempt_from_uniqueness(self, admin_user: User):
-        # owner=admin_user (staff/ platform banks can have multiple per categoryadmin) 
-        b1 = QuestionBank.objects.create(
-            owner=admin_user, name="Official 1",
+    def test_platform_and_user_banks_can_coexist_same_category(self, admin_user: User):
+        teacher_bank = QuestionBank.objects.create(
+            owner=admin_user,
+            name="Official 1",
             category=QuestionBank.Category.CODING,
             visibility=QuestionBank.Visibility.PUBLIC,
-            verified=True, review_status=QuestionBank.ReviewStatus.APPROVED,
+            verified=True,
+            review_status=QuestionBank.ReviewStatus.APPROVED,
         )
-        # Platform bank = owner is None
-        b2 = QuestionBank.objects.create(
-            owner=None, name="Platform Bank",
+        platform_bank = QuestionBank.objects.create(
+            owner=None,
+            name="Platform Bank",
             category=QuestionBank.Category.CODING,
             visibility=QuestionBank.Visibility.PUBLIC,
         )
-        assert b1.pk is not None
-        assert b2.pk is not None
+        assert teacher_bank.pk is not None
+        assert platform_bank.pk is not None
 
 
 @pytest.mark.django_db

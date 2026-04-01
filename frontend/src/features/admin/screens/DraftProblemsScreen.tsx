@@ -23,6 +23,8 @@ import {
   InlineNotification,
 } from "@carbon/react";
 import { Renew, SendAlt, TrashCan } from "@carbon/icons-react";
+import { PageHeader } from "@/shared/layout/PageHeader";
+import styles from "./AdminScreens.module.scss";
 import { requestJson, httpClient } from "@/infrastructure/api/http.client";
 import {
   listMine,
@@ -178,22 +180,14 @@ export default function DraftProblemsScreen() {
   }));
 
   return (
-    <Layer style={{ maxWidth: "72rem", margin: "0 auto", padding: "2rem 1rem" }}>
-      <h2 style={{ marginBottom: "0.25rem" }}>
-        {t("drafts.pageTitle", "Draft Problems")}
-      </h2>
-      <p
-        style={{
-          marginBottom: "1.5rem",
-          color: "var(--cds-text-secondary)",
-          fontSize: "0.875rem",
-        }}
-      >
-        {t(
+    <Layer className={styles.pageInner}>
+      <PageHeader
+        title={t("drafts.pageTitle", "Draft Problems")}
+        subtitle={t(
           "drafts.pageDesc",
           "Coding problems not yet in any question bank. Admins also see unresolved orphan problems here.",
         )}
-      </p>
+      />
 
       {loading ? (
         <InlineLoading description={t("loading", "Loading...")} />

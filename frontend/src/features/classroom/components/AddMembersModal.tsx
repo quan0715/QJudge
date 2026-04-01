@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { useTranslation } from "react-i18next";
 import { getModalPortalRoot } from "@/shared/ui/theme/portalRoot";
@@ -16,6 +16,7 @@ import "./AddMembersModal.scss";
 interface AddMembersModalProps {
   open: boolean;
   classroomId: string;
+  reservedUsernames?: string[];
   onClose: () => void;
   onAdded: () => void;
 }
@@ -23,18 +24,24 @@ interface AddMembersModalProps {
 export const AddMembersModal: React.FC<AddMembersModalProps> = ({
   open,
   classroomId,
+  reservedUsernames = [],
   onClose,
   onAdded,
 }) => {
   const { t } = useTranslation("classroom");
   const { t: tc } = useTranslation("common");
   const { showToast } = useToast();
+  const reservedUsernameSet = useMemo(
+    () => new Set(reservedUsernames.map((name) => name.trim()).filter(Boolean)),
+    [reservedUsernames],
+  );
   const [text, setText] = useState("");
   const [csvName, setCsvName] = useState("");
   const [preview, setPreview] = useState<{
     valid: string[];
     duplicated: string[];
     invalid: string[];
+    reserved: string[];
   } | null>(null);
   const [result, setResult] = useState<{
     added: string[];
@@ -44,7 +51,7 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const buildPreview = (rawText: string) => {
+  const buildPreview = useCallback((rawText: string) => {
     const source = rawText
       .split(/[\n,;]+/)
       .map((item) => item.trim())
@@ -53,10 +60,15 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
     const valid: string[] = [];
     const duplicated: string[] = [];
     const invalid: string[] = [];
+    const reserved: string[] = [];
 
     source.forEach((username) => {
       if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
         invalid.push(username);
+        return;
+      }
+      if (reservedUsernameSet.has(username)) {
+        reserved.push(username);
         return;
       }
       if (seen.has(username)) {
@@ -67,17 +79,17 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
       valid.push(username);
     });
 
-    setPreview({ valid, duplicated, invalid });
-  };
+    setPreview({ valid, duplicated, invalid, reserved });
+  }, [reservedUsernameSet]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const content = await file.text();
     setCsvName(file.name);
-    setText((prev) => (prev ? `${prev}\n${content}` : content));
-    setPreview(null);
-    setResult(null);
+        setText((prev) => (prev ? `${prev}\n${content}` : content));
+        setPreview(null);
+        setResult(null);
     event.target.value = "";
   };
 
@@ -168,6 +180,7 @@ export const AddMembersModal: React.FC<AddMembersModalProps> = ({
           <div className="classroom-add-members__preview-tags">
             <Tag type="green">{t("addMembersModal.tagValid")} {preview.valid.length}</Tag>
             <Tag type="gray">{t("addMembersModal.tagDuplicated")} {preview.duplicated.length}</Tag>
+            <Tag type="blue">{t("addMembersModal.tagReserved", "保留")} {preview.reserved.length}</Tag>
             <Tag type="red">{t("addMembersModal.tagInvalid")} {preview.invalid.length}</Tag>
           </div>
           <p className="classroom-add-members__hint classroom-add-members__hint--tight">

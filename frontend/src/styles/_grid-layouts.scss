@@ -1,0 +1,21 @@
+// Shared grid layout mixins
+@use "@carbon/layout";
+
+/// Auto-fill card grid (e.g., contest cards, stat tiles)
+/// @param {Length} $min-width - Minimum card width before wrapping
+/// @param {Length} $gap       - Gap between items (default: spacing-03)
+@mixin card-grid($min-width: layout.rem(280px), $gap: layout.$spacing-03) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax($min-width, 1fr));
+  gap: $gap;
+}
+
+/// Two-column sidebar + detail grid (e.g., overview pages)
+/// @param {Number} $main-fr  - Main column fraction
+/// @param {Length} $side-min  - Sidebar minimum width
+@mixin sidebar-detail-grid($main-fr: 1.6fr, $side-min: layout.rem(280px)) {
+  display: grid;
+  grid-template-columns: minmax(0, $main-fr) minmax($side-min, 1fr);
+  gap: layout.$spacing-05;
+  align-items: start;
+}

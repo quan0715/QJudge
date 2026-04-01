@@ -237,7 +237,7 @@
     "platform": "프로그래밍 평가 플랫폼",
     "prefix": "시스템",
     "problemManagement": "문제 관리",
-    "reviewQueue": "送審佇列",
+    "reviewQueue": "심사 대기열",
     "sideNav": "사이드 탐색",
     "systemSettings": "시스템 설정",
     "teacherDashboard": "교사 대시보드",
@@ -245,9 +245,9 @@
     "userMenu": "사용자 메뉴"
   },
   "image": {
-    "galleryTab": "圖庫",
-    "linkTab": "連結",
-    "uploadTab": "上傳"
+    "galleryTab": "갤러리",
+    "linkTab": "링크",
+    "uploadTab": "업로드"
   },
   "language": {
     "selectLanguage": "언어 선택",
@@ -377,7 +377,7 @@
     "emptyMine": "문제집이 없습니다. 먼저 내 문제집을 만들어보세요.",
     "exploreOnlyPlatform": "탐색은 현재 QJudge Community만 지원합니다",
     "exploreOnlyPlatformDesc": "Phase1에서는 교사 간 공유가 포함되지 않으며, 커뮤니티에서 검증된 문제집이 중심이 됩니다.",
-    "importFromInbox": "匯入草稿",
+    "importFromInbox": "드래프트 가져오기",
     "inbox": {
       "clearSelection": "선택 해제",
       "coding": "프로그래밍 문제 선택 목록",
@@ -430,12 +430,12 @@
     "sortOldest": "오래된 업데이트",
     "usedInContests": "시험 {{count}}건",
     "saveToBank": {
-      "desc": "將「{{title}}」收錄到題庫：",
-      "success": "已收錄到題庫",
-      "title": "收錄到題庫"
+      "desc": "「{{title}}」을(를) 문제집에 저장:",
+      "success": "문제집에 저장되었습니다",
+      "title": "문제집에 저장"
     },
     "score": "배점",
-    "selectTargetBank": "選擇目標題庫",
+    "selectTargetBank": "저장할 문제집 선택",
     "subtitle": "교실 중심으로 문제집을 관리하고 QJudge 커뮤니티를 탐색하세요",
     "tabs": {
       "explore": "탐색",

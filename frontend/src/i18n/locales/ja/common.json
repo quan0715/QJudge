@@ -237,7 +237,7 @@
     "platform": "プログラミング評価プラットフォーム",
     "prefix": "システム",
     "problemManagement": "問題管理",
-    "reviewQueue": "送審佇列",
+    "reviewQueue": "審査待ちリスト",
     "sideNav": "サイドナビゲーション",
     "systemSettings": "システム設定",
     "teacherDashboard": "教師ダッシュボード",
@@ -430,12 +430,12 @@
     "sortOldest": "最古更新順",
     "usedInContests": "{{count}} 件の試験",
     "saveToBank": {
-      "desc": "將「{{title}}」收錄到題庫：",
-      "success": "已收錄到題庫",
-      "title": "收錄到題庫"
+      "desc": "「{{title}}」を問題集に保存:",
+      "success": "問題集に保存されました",
+      "title": "問題集に保存"
     },
-    "score": "得点",
-    "selectTargetBank": "選擇目標題庫",
+    "score": "配分",
+    "selectTargetBank": "保存先の問題集を選択",
     "subtitle": "クラスルーム中心の問題集管理とQJudge Community探索",
     "tabs": {
       "explore": "探索",

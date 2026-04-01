@@ -1,85 +1,22 @@
 @use "@carbon/layout";
 @use "@carbon/type";
-@use "@carbon/motion";
+@use "../styles/exam-layout" as exam;
 
-.container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-  background-color: var(--cds-background);
-  position: relative;
-}
+.container       { @include exam.exam-container; }
 
-// ─── Top bar (auto-hide on scroll) ───
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 3rem;
-  min-height: 3rem;
-  padding: 0;
-  flex-shrink: 0;
-  gap: layout.$spacing-04;
-  background-color: var(--cds-background);
-  box-sizing: border-box;
-  transition: transform 200ms motion.motion(standard, productive),
-              opacity 200ms motion.motion(standard, productive);
-}
-
-.toolbarHidden {
-  transform: translateY(-100%);
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-}
-
-.toolbarLeft {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  min-width: 0;
-  height: 100%;
-}
-
-.title {
-  @include type.type-style("heading-compact-01");
-  color: var(--cds-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.toolbarCenter {
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
+.toolbar         { @include exam.exam-toolbar(0); }
+.toolbarHidden   { @include exam.exam-toolbar-hidden; }
+.toolbarLeft     { @include exam.exam-toolbar-left; }
+.title           { @include exam.exam-title; }
+.toolbarCenter   { @include exam.exam-toolbar-center; }
 
 .toolbarLeft :global(.cds--btn),
-.toolbarCenter :global(.cds--btn) {
-  min-height: 3rem;
-  height: 3rem;
-}
+.toolbarCenter :global(.cds--btn) { @include exam.exam-toolbar-btn-height; }
 
-.timer {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-02;
-  height: 100%;
-  color: var(--cds-text-secondary);
-}
+.timer           { @include exam.exam-timer; }
+.timerText       { @include exam.exam-timer-text; }
 
-.timerText {
-  @include type.type-style("heading-compact-01");
-  font-variant-numeric: tabular-nums;
-  color: var(--cds-text-primary);
-}
-
+// Paper-only: save status
 .saveStatus {
   @include type.type-style("label-01");
   color: var(--cds-text-helper);
@@ -92,193 +29,28 @@
   color: var(--cds-support-error);
 }
 
-// ─── Vertical mode switcher (right-center) ───
-.modeSwitcher {
-  position: fixed;
-  right: layout.$spacing-05;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
+.modeSwitcher    { @include exam.exam-mode-switcher; }
+.modeBtn         { @include exam.exam-mode-btn; }
+.modeBtnActive   { @include exam.exam-mode-btn-active; }
 
-.modeBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: layout.$spacing-03;
-  border: 1px solid var(--cds-border-subtle-01);
-  background-color: var(--cds-background);
-  color: var(--cds-text-secondary);
-  cursor: pointer;
-  transition: background-color 100ms motion.motion(standard, productive),
-              color 100ms motion.motion(standard, productive);
+@include exam.exam-slide-animations;
+.slideInRight    { @include exam.exam-slide-in-right; }
+.slideInLeft     { @include exam.exam-slide-in-left; }
 
-  &:not(:first-child) {
-    border-top: none;
-  }
+.body            { @include exam.exam-body; }
+.navWrapper      { @include exam.exam-nav-wrapper; }
+.navWrapperHidden { @include exam.exam-nav-wrapper-hidden; }
+.navToggle       { @include exam.exam-nav-toggle; }
 
-  &:hover {
-    background-color: var(--cds-layer-hover-01);
-  }
-}
+.singleContent   { @include exam.exam-single-content; }
+.questionArea    { @include exam.exam-question-area; }
+.questionInner   { @include exam.exam-question-inner; }
+.navButtons      { @include exam.exam-nav-buttons; }
+.navInfo         { @include exam.exam-nav-info; }
 
-.modeBtnActive {
-  background-color: var(--cds-background-inverse);
-  color: var(--cds-text-inverse);
-  border-color: var(--cds-background-inverse);
+.allContent      { @include exam.exam-all-content; }
+.allSpacer       { @include exam.exam-all-spacer; }
+.allItem         { @include exam.exam-all-item; }
+.allItemDimmed   { @include exam.exam-all-item-dimmed; }
 
-  &:hover {
-    background-color: var(--cds-background-inverse);
-  }
-}
-
-// ─── Slide transitions (single mode) ───
-@keyframes slideInFromRight {
-  from { transform: translateX(40px); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes slideInFromLeft {
-  from { transform: translateX(-40px); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
-}
-
-.slideInRight {
-  animation: slideInFromRight 280ms motion.motion(entrance, productive) both;
-}
-
-.slideInLeft {
-  animation: slideInFromLeft 280ms motion.motion(entrance, productive) both;
-}
-
-// Main content area
-.body {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  position: relative;
-}
-
-// Nav wrapper (contains navigator + toggle button)
-.navWrapper {
-  display: flex;
-  align-items: stretch;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.navWrapperHidden {
-  width: 0;
-}
-
-// Nav toggle button
-.navToggle {
-  position: absolute;
-  right: -32px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 15;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 40px;
-  border: none;
-  border-radius: 0 6px 6px 0;
-  background-color: var(--cds-layer-01);
-  color: var(--cds-text-secondary);
-  cursor: pointer;
-  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.08);
-  transition: background-color 100ms motion.motion(standard, productive);
-
-  &:hover {
-    background-color: var(--cds-layer-hover-01);
-    color: var(--cds-text-primary);
-  }
-}
-
-// ─── Single-question mode ───
-.singleContent {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.questionArea {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: layout.$spacing-07 layout.$spacing-05;
-}
-
-.questionInner {
-  width: 100%;
-  max-width: 720px;
-}
-
-// Bottom nav strip
-.navButtons {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: layout.$spacing-03 layout.$spacing-05;
-  flex-shrink: 0;
-}
-
-.navInfo {
-  @include type.type-style("label-01");
-  color: var(--cds-text-helper);
-  letter-spacing: 0.32px;
-}
-
-// ─── All-questions mode ───
-.allContent {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: layout.$spacing-07 layout.$spacing-05 layout.$spacing-09;
-}
-
-.allSpacer {
-  flex-shrink: 0;
-  height: 40vh;
-}
-
-.allItem {
-  width: 100%;
-  max-width: 720px;
-  padding-bottom: layout.$spacing-07;
-  margin-bottom: layout.$spacing-07;
-  transition: opacity 400ms motion.motion(standard, productive);
-
-  &:not(:last-child) {
-    border-bottom: 1px solid var(--cds-border-subtle-00);
-  }
-}
-
-.allItemDimmed {
-  opacity: 0.4;
-}
-
-// Loading / empty states
-.centered {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  width: 100%;
-  color: var(--cds-text-secondary);
-  @include type.type-style("body-01");
-  flex-direction: column;
-  gap: layout.$spacing-04;
-}
+.centered        { @include exam.exam-centered; }

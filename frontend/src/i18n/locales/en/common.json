@@ -180,8 +180,8 @@
     "questionBanksSection": {
       "empty": "No question banks yet.",
       "emptyHint": "Create a question bank to start organizing your questions.",
-      "showLess": "收起",
-      "showMore": "顯示更多",
+      "showLess": "Show Less",
+      "showMore": "Show More",
       "title": "My Question Banks",
       "viewAll": "View All"
     },
@@ -237,7 +237,7 @@
     "platform": "Online Judge Platform",
     "prefix": "System",
     "problemManagement": "Problem Management",
-    "reviewQueue": "送審佇列",
+    "reviewQueue": "Review Queue",
     "sideNav": "Side Navigation",
     "systemSettings": "System Settings",
     "teacherDashboard": "Teacher Dashboard",
@@ -245,9 +245,9 @@
     "userMenu": "User Menu"
   },
   "image": {
-    "galleryTab": "圖庫",
-    "linkTab": "連結",
-    "uploadTab": "上傳"
+    "galleryTab": "Gallery",
+    "linkTab": "Link",
+    "uploadTab": "Upload"
   },
   "language": {
     "selectLanguage": "Select Language",
@@ -377,7 +377,7 @@
     "emptyMine": "No question banks yet. Create your first one.",
     "exploreOnlyPlatform": "Explore is currently centered on QJudge Community",
     "exploreOnlyPlatformDesc": "Phase 1 does not include shared banks; focuses on Community validation first.",
-    "importFromInbox": "匯入草稿",
+    "importFromInbox": "Import Drafts",
     "inbox": {
       "clearSelection": "Clear Selection",
       "coding": "Coding Question Selection",
@@ -430,12 +430,12 @@
     "sortOldest": "Oldest First",
     "usedInContests": "{{count}} contest(s)",
     "saveToBank": {
-      "desc": "將「{{title}}」收錄到題庫：",
-      "success": "已收錄到題庫",
-      "title": "收錄到題庫"
+      "desc": "Save \"{{title}}\" to question bank:",
+      "success": "Saved to bank",
+      "title": "Save to Bank"
     },
     "score": "Score",
-    "selectTargetBank": "選擇目標題庫",
+    "selectTargetBank": "Select Target Bank",
     "subtitle": "Manage and explore question banks with a focus on classrooms (QJudge Community)",
     "tabs": {
       "explore": "Explore",

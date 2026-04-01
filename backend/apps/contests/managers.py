@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 
@@ -19,7 +20,19 @@ class ContestQuerySet(models.QuerySet):
                 return self.none()
             if user.is_staff or getattr(user, "role", "") == "admin":
                 return self
-            return self.filter(Q(owner=user) | Q(admins=user)).distinct()
+            classroom_manager_filter = Q()
+            if bool(getattr(settings, "CONTEST_ACL_CLASSROOM_SOURCE_ENABLED", True)):
+                classroom_manager_filter = (
+                    Q(classroom_bindings__classroom__owner=user)
+                    | Q(classroom_bindings__classroom__admins=user)
+                    | Q(
+                        classroom_bindings__classroom__memberships__user=user,
+                        classroom_bindings__classroom__memberships__role="ta",
+                    )
+                )
+            return self.filter(
+                Q(owner=user) | Q(admins=user) | classroom_manager_filter
+            ).distinct()
 
         if scope == "participated":
             if not user or not user.is_authenticated:
@@ -35,4 +48,3 @@ class ContestQuerySet(models.QuerySet):
             return queryset.filter(visibility__in=["public", "private"])
 
         return queryset.filter(visibility="public")
-
