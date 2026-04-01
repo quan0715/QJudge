@@ -5,7 +5,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q, UniqueConstraint
+from django.db.models import UniqueConstraint
 
 
 class QuestionBank(models.Model):
@@ -76,15 +76,6 @@ class QuestionBank(models.Model):
             models.Index(fields=["owner", "category"]),
             models.Index(fields=["visibility", "verified"]),
             models.Index(fields=["review_status", "visibility", "verified"]),
-        ]
-        constraints = [
-            # Each user may have at most one active (non-archived) bank per category.
-            # Platform-managed banks (owner=NULL) are exempt.
-            UniqueConstraint(
-                fields=["owner", "category"],
-                condition=Q(is_archived=False, owner__isnull=False),
-                name="unique_active_bank_per_user_category",
-            ),
         ]
 
     def __str__(self):
