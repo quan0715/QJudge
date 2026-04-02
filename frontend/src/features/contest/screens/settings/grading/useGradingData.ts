@@ -182,7 +182,7 @@ export function useGradingData() {
     // Start from all participants
     const map = new Map<
       string,
-      { studentId: string; username: string; nickname: string; displayName?: string }
+      { studentId: string; username: string; nickname: string; displayName?: string; accountRole?: string }
     >();
     for (const p of participants) {
       const id = String(p.userId);
@@ -192,6 +192,7 @@ export function useGradingData() {
         nickname: p.nickname ?? p.displayName ?? p.username,
         displayName:
           p.userDisplayName ?? p.displayName ?? p.nickname ?? p.username,
+        accountRole: p.accountRole,
       });
     }
     // Also include any students from answers that might not be in participants
