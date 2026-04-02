@@ -248,13 +248,15 @@ const QuestionSourcePanel = ({
   return (
     <div className={[styles.root, className].filter(Boolean).join(" ")}>
       <div className={styles.tabsRoot}>
-      <Tabs selectedIndex={activeTabIndex} onChange={({ selectedIndex }) => setActiveTabIndex(selectedIndex)}>
-        <TabList aria-label={t("examEditor.sourceTabs", "題目來源分頁")} contained>
-          <Tab>{t("examEditor.sourceTabTypes", "題型")}</Tab>
-          <Tab>{t("examEditor.sourceTabBank", "題庫")}</Tab>
-        </TabList>
-        <div className={styles.tabPanelsWrap}>
-          <div className={styles.tabPanels}>
+        <div className={styles.tabsContentScope}>
+          <Tabs
+            selectedIndex={activeTabIndex}
+            onChange={({ selectedIndex }) => setActiveTabIndex(selectedIndex)}
+          >
+            <TabList aria-label={t("examEditor.sourceTabs", "題目來源分頁")}>
+              <Tab>{t("examEditor.sourceTabTypes", "題型")}</Tab>
+              <Tab>{t("examEditor.sourceTabBank", "題庫")}</Tab>
+            </TabList>
             <TabPanels>
               <TabPanel>
                 <div className={styles.tabPanelFill}>
@@ -313,9 +315,8 @@ const QuestionSourcePanel = ({
                 <div className={styles.tabPanelFill}>{bankContent}</div>
               </TabPanel>
             </TabPanels>
-          </div>
+          </Tabs>
         </div>
-      </Tabs>
       </div>
     </div>
   );

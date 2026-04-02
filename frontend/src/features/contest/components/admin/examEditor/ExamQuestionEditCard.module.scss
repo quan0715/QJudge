@@ -4,7 +4,7 @@
 .card {
   max-width: 720px;
   background: var(--cds-layer);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
   border: 1px solid transparent;
 }
 
@@ -16,9 +16,9 @@
 }
 
 .cardEditing {
-  border-color: var(--cds-focus);
-  border-radius: 4px;
-  box-shadow: 0 0 0 1px var(--cds-focus);
+  border-color: var(--cds-border-interactive);
+  border-radius: 0;
+  box-shadow: 0 0 0 1px rgba(15, 98, 254, 0.24);
 }
 
 // ─── Drag indicator ───
@@ -40,6 +40,7 @@
 // ─── Preview mode ───
 .previewBody {
   padding: layout.$spacing-05;
+  animation: fadeSlideIn 160ms ease-out;
 }
 
 .header {
@@ -160,10 +161,6 @@
   gap: layout.$spacing-04;
 }
 
-.shortInput {
-  max-width: 520px;
-}
-
 .textArea {
   width: 100%;
 
@@ -175,6 +172,7 @@
 // ─── Edit mode ───
 .editBody {
   padding: layout.$spacing-05;
+  animation: fadeSlideIn 180ms ease-out;
 }
 
 .editToolbar {
@@ -213,13 +211,13 @@
 .scoreInline {
   display: flex;
   align-items: center;
-  gap: layout.$spacing-03;
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
-  color: var(--cds-text-helper);
+  gap: layout.$spacing-02;
+}
 
-  input {
-    width: 60px;
-    text-align: right;
+.scoreNumberInput {
+  :global(.cds--number) {
+    width: 8.5rem;
+    min-width: 8.5rem;
   }
 }
 
@@ -271,6 +269,16 @@
   min-width: 0;
 }
 
+.optionMarkdown {
+  flex: 1;
+  min-width: 0;
+
+  :global(.markdown-field),
+  :global(.markdown-field__editor) {
+    width: 100%;
+  }
+}
+
 .optionActions {
   flex-shrink: 0;
   display: flex;
@@ -284,7 +292,30 @@
 .essayArea {
   width: 100%;
 
-  textarea {
-    min-height: 120px;
+  :global(.markdown-field),
+  :global(.markdown-field__editor) {
+    width: 100%;
+  }
+}
+
+.shortInput {
+  max-width: none;
+  width: 100%;
+
+  :global(.markdown-field),
+  :global(.markdown-field__editor) {
+    width: 100%;
+  }
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

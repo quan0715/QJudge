@@ -362,6 +362,14 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     }
   }, []);
 
+  const scrollEditorToBottom = useCallback(() => {
+    const pane = editorPaneRef.current;
+    if (!pane) return;
+    requestAnimationFrame(() => {
+      pane.scrollTo({ top: pane.scrollHeight, behavior: "smooth" });
+    });
+  }, []);
+
   const openTypePicker = useCallback((order?: number) => {
     setInsertAtOrder(order ?? null);
     setTypePickerOpen(true);
@@ -556,7 +564,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         void handleInsertFromSource(questions.length, {
           kind: "exam_type",
           questionType,
-        });
+        }).then(scrollEditorToBottom);
       }}
       onAddBankQuestion={(item) => {
         void handleInsertFromSource(questions.length, {
@@ -565,7 +573,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
           questionBankId: item.questionBankId,
           questionId: item.questionId,
           title: item.title,
-        });
+        }).then(scrollEditorToBottom);
       }}
     />
   );

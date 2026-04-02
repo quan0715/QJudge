@@ -93,6 +93,7 @@ const ProblemTreeItem: React.FC<{
       dragControls={dragControls}
       drag={!locked}
       as="div"
+      data-problem-id={problem.id}
       className={`${styles.treeItem} ${isActive ? styles.treeItemActive : ""}`}
     >
       {!locked && (
@@ -214,7 +215,16 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
   onExternalHoverIndexChange,
   onExternalDropAt,
 }) => {
+  const listRef = React.useRef<HTMLDivElement>(null);
   const totalScore = problems.reduce((sum, problem) => sum + (problem.maxScore ?? problem.score ?? 0), 0);
+
+  React.useEffect(() => {
+    if (!selectedId || !listRef.current) return;
+    const activeEl = listRef.current.querySelector(`[data-problem-id="${selectedId}"]`);
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [selectedId]);
 
   const renderDropSlot = (index: number) => {
     if (!externalCanDrop) {
@@ -282,6 +292,7 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
       )}
     >
       <Reorder.Group
+        ref={listRef}
         axis="y"
         values={problems}
         onReorder={onReorder}
