@@ -2,7 +2,7 @@ import { Button } from "@carbon/react";
 import { Add, Trophy } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { BoundContest } from "@/core/entities/classroom.entity";
-import { EmptyBlock } from "../../components/EmptyBlock";
+import { EmptyState } from "@/shared/ui/EmptyState";
 import { ClassroomContestCard as ContestCard } from "../../components/ClassroomContestCard";
 
 interface ContestPanelProps {
@@ -35,7 +35,7 @@ export const ContestPanel: React.FC<ContestPanelProps> = ({
         </div>
 
         {exams.length === 0 ? (
-          <EmptyBlock icon={Trophy} message={t("noExamContests", "尚未建立考試或競賽")} />
+          <EmptyState icon={Trophy} title={t("noExamContests", "尚未建立考試或競賽")} />
         ) : (
           <div className="classroom-admin-card-grid">
             {exams.map((contest) => (

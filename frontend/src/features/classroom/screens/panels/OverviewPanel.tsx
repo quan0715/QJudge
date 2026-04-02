@@ -3,7 +3,7 @@ import { Add, ArrowRight, Trophy } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ClassroomDetail, ClassroomAnnouncement } from "@/core/entities/classroom.entity";
 import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
-import { EmptyBlock } from "../../components/EmptyBlock";
+import { EmptyState } from "@/shared/ui/EmptyState";
 import { AnnouncementSection } from "../../components/AnnouncementSection";
 import { ClassroomContestCard as ContestCard, getActivityTimestamp } from "../../components/ClassroomContestCard";
 import type { ClassroomAdminPanelId } from "../ClassroomAdminLayout";
@@ -99,9 +99,9 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
             </div>
 
             {recentActivities.length === 0 ? (
-              <EmptyBlock
+              <EmptyState
                 icon={Trophy}
-                message={t("noActiveContests", "目前沒有進行中或即將開始的活動")}
+                title={t("noActiveContests", "目前沒有進行中或即將開始的活動")}
                 compact
               />
             ) : (

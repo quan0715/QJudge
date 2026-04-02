@@ -1,0 +1,43 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: layout.$spacing-02;
+  text-align: center;
+  padding: layout.$spacing-07 layout.$spacing-05;
+  min-height: layout.rem(200px);
+  color: var(--cds-text-secondary);
+}
+
+.compact {
+  min-height: layout.rem(96px);
+  padding: layout.$spacing-05;
+}
+
+.icon {
+  color: var(--cds-icon-secondary);
+  margin-bottom: layout.$spacing-02;
+}
+
+.title {
+  @include type.type-style("body-compact-01");
+  font-weight: 500;
+  color: var(--cds-text-primary);
+  margin: 0;
+}
+
+.description {
+  @include type.type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  max-width: 320px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.action {
+  margin-top: layout.$spacing-05;
+}

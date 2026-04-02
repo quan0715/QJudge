@@ -1,56 +1,32 @@
-import React from "react";
-import { Tile, Layer } from "@carbon/react";
+import type React from "react";
+import styles from "./EmptyState.module.scss";
 
 interface EmptyStateProps {
-  title: string;
+  /** Carbon icon component (e.g. Trophy, Bullhorn) */
+  icon?: React.ComponentType<{ size: number; className?: string }>;
+  title?: string;
   description?: string;
   action?: React.ReactNode;
   children?: React.ReactNode;
+  compact?: boolean;
+  className?: string;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
+  icon: Icon,
   title,
   description,
   action,
   children,
+  compact = false,
+  className,
 }) => (
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      height: "100%",
-      minHeight: 200,
-      padding: "2rem",
-    }}
-  >
-    <Layer>
-      <Tile style={{ textAlign: "center", maxWidth: 360 }}>
-        <p
-          style={{
-            fontSize: "0.875rem",
-            fontWeight: 500,
-            color: "var(--cds-text-primary)",
-            marginBottom: description ? "0.5rem" : 0,
-          }}
-        >
-          {title}
-        </p>
-        {description && (
-          <p
-            style={{
-              fontSize: "0.8125rem",
-              color: "var(--cds-text-secondary)",
-              lineHeight: 1.5,
-            }}
-          >
-            {description}
-          </p>
-        )}
-        {children}
-        {action && <div style={{ marginTop: "1rem" }}>{action}</div>}
-      </Tile>
-    </Layer>
+  <div className={[styles.root, compact && styles.compact, className].filter(Boolean).join(" ")}>
+    {Icon && <Icon size={28} className={styles.icon} />}
+    {title && <p className={styles.title}>{title}</p>}
+    {description && <p className={styles.description}>{description}</p>}
+    {children}
+    {action && <div className={styles.action}>{action}</div>}
   </div>
 );
 

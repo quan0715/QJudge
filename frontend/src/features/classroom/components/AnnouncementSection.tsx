@@ -2,7 +2,7 @@ import { Button } from "@carbon/react";
 import { Add, Bullhorn } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ClassroomAnnouncement } from "@/core/entities/classroom.entity";
-import { EmptyBlock } from "./EmptyBlock";
+import { EmptyState } from "@/shared/ui/EmptyState";
 import { AnnouncementCard } from "./AnnouncementCard";
 
 interface AnnouncementSectionProps {
@@ -36,9 +36,9 @@ export const AnnouncementSection: React.FC<AnnouncementSectionProps> = ({
         )}
       </div>
       {announcements.length === 0 ? (
-        <EmptyBlock
+        <EmptyState
           icon={Bullhorn}
-          message={t("noAnnouncements")}
+          title={t("noAnnouncements")}
           compact={compactEmpty}
         />
       ) : (
