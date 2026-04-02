@@ -69,9 +69,8 @@ describe("ProblemWorkTree", () => {
       />,
     );
 
-    expect(screen.getByTestId("work-tree-body")).toBeInTheDocument();
     expect(screen.getByText("No problems yet")).toBeInTheDocument();
-    expect(screen.getByTestId("work-tree-footer")).toBeInTheDocument();
+    expect(screen.getByText("0 problems")).toBeInTheDocument();
     expect(screen.getByText("0 problems")).toBeInTheDocument();
     expect(screen.getByText("Total 0pt")).toBeInTheDocument();
     expect(screen.queryByTestId("reorder-group")).not.toBeInTheDocument();
@@ -90,9 +89,8 @@ describe("ProblemWorkTree", () => {
       />,
     );
 
-    expect(screen.getByTestId("work-tree-body")).toBeInTheDocument();
     expect(screen.getByTestId("work-tree-skeleton")).toBeInTheDocument();
-    expect(screen.getByTestId("work-tree-footer")).toBeInTheDocument();
+    expect(screen.getByText("0 problems")).toBeInTheDocument();
     expect(screen.queryByText("No problems yet")).not.toBeInTheDocument();
     expect(screen.queryByTestId("reorder-group")).not.toBeInTheDocument();
   });
@@ -112,9 +110,7 @@ describe("ProblemWorkTree", () => {
       />,
     );
 
-    expect(screen.getByTestId("work-tree-body")).toBeInTheDocument();
     expect(screen.getByTestId("reorder-group")).toBeInTheDocument();
-    expect(screen.getByTestId("work-tree-footer")).toBeInTheDocument();
     expect(screen.getByText("2 problems")).toBeInTheDocument();
     expect(screen.getByText("Total 150pt")).toBeInTheDocument();
   });

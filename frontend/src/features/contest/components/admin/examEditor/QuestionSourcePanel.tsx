@@ -9,21 +9,15 @@ import {
   TabPanels,
   Tabs,
   Tile,
-  Tag,
 } from "@carbon/react";
 import { Draggable } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
 import { listMine, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
-import {
-  getQuestionDisplayTitle,
-  resolveExamQuestionType,
-} from "@/features/question-banks/screens/questionBankProblemManagement.utils";
-import {
-  EXAM_QUESTION_TYPE_ICON,
-  EXAM_QUESTION_TYPE_TAG_COLOR,
-} from "@/shared/ui/examQuestionTypeVisual";
+import { QuestionBankPreviewCard } from "@/features/question-banks/components/QuestionBankPreviewCard";
+import { getQuestionDisplayTitle } from "@/features/question-banks/screens/questionBankProblemManagement.utils";
+import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import {
   QUESTION_SOURCE_DRAG_MIME,
   type QuestionSourceBankQuestion,
@@ -147,6 +141,11 @@ const QuestionSourcePanel = ({
     });
   }, [keyword, questions]);
 
+  const selectedBank = useMemo(
+    () => banks.find((bank) => bank.id === selectedBankId) ?? null,
+    [banks, selectedBankId]
+  );
+
   const bankContent = (
     <div className={styles.section}>
       <div className={styles.controlRow}>
@@ -198,14 +197,18 @@ const QuestionSourcePanel = ({
               questionId: question.bankItemId,
               title,
             };
+
+            if (!selectedBank) {
+              return null;
+            }
+
             return (
-              <Tile
+              <div
                 key={question.bankItemId}
-                className={styles.sourceItem}
+                className={styles.previewCardWrap}
                 draggable
                 onDragStart={(event) => handleDragStart(event, sourceItem)}
                 onDragEnd={handleDragEnd}
-                onClick={handleClick}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
@@ -215,30 +218,14 @@ const QuestionSourcePanel = ({
                 role="button"
                 tabIndex={0}
               >
-                <div className={styles.sourceItemMain}>
-                  <div className={styles.sourceItemTitle} title={title}>
-                    {title}
-                  </div>
-                  {question.questionType === "exam" ? (
-                    <Tag
-                      size="sm"
-                      type={EXAM_QUESTION_TYPE_TAG_COLOR[resolveExamQuestionType(question)] as never}
-                    >
-                      {t(
-                        `common:questionType.label.${resolveExamQuestionType(question)}`,
-                        resolveExamQuestionType(question)
-                      )}
-                    </Tag>
-                  ) : (
-                    <Tag size="sm" type="cool-gray">
-                      {t("common:questionType.label.coding", "程式題")}
-                    </Tag>
-                  )}
-                </div>
-                <div className={styles.sourceItemActions}>
-                  <Draggable size={14} />
-                </div>
-              </Tile>
+                <QuestionBankPreviewCard
+                  bank={selectedBank}
+                  question={question}
+                  onClick={handleClick}
+                  iconVariant="neutral"
+                  className={styles.previewCard}
+                />
+              </div>
             );
           })
         )}
@@ -260,66 +247,76 @@ const QuestionSourcePanel = ({
 
   return (
     <div className={[styles.root, className].filter(Boolean).join(" ")}>
+      <div className={styles.tabsRoot}>
       <Tabs selectedIndex={activeTabIndex} onChange={({ selectedIndex }) => setActiveTabIndex(selectedIndex)}>
         <TabList aria-label={t("examEditor.sourceTabs", "題目來源分頁")} contained>
           <Tab>{t("examEditor.sourceTabTypes", "題型")}</Tab>
           <Tab>{t("examEditor.sourceTabBank", "題庫")}</Tab>
         </TabList>
-        <TabPanels>
-          <TabPanel>
-            <div className={styles.section}>
-              <div className={styles.listArea}>
-                {QUESTION_TYPE_ORDER.map((type) => {
-                  const Icon = EXAM_QUESTION_TYPE_ICON[type];
-                  const handleClick = () => {
-                    onAddType?.(type);
-                  };
-                  const item: QuestionSourceDragItem = {
-                    kind: "exam_type",
-                    questionType: type,
-                  };
-                  return (
-                    <Tile
-                      key={type}
-                      className={styles.typeItem}
-                      draggable
-                      onDragStart={(event) => handleDragStart(event, item)}
-                      onDragEnd={handleDragEnd}
-                      onClick={handleClick}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          handleClick();
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <div className={styles.typeItemMain}>
-                        <span className={styles.typeIcon}>
-                          <Icon size={18} />
-                        </span>
-                        <div className={styles.typeInfo}>
-                          <div className={styles.sourceItemTitle}>
-                            {t(`common:questionType.label.${type}`, type)}
-                          </div>
-                          <div className={styles.typeDesc}>
-                            {t(`common:questionType.description.${type}`, "")}
-                          </div>
-                        </div>
-                      </div>
-                      <div className={styles.sourceItemActions}>
-                        <Draggable size={14} />
-                      </div>
-                    </Tile>
-                  );
-                })}
-              </div>
-            </div>
-          </TabPanel>
-          <TabPanel>{bankContent}</TabPanel>
-        </TabPanels>
+        <div className={styles.tabPanelsWrap}>
+          <div className={styles.tabPanels}>
+            <TabPanels>
+              <TabPanel>
+                <div className={styles.tabPanelFill}>
+                  <div className={styles.section}>
+                    <div className={styles.listArea}>
+                      {QUESTION_TYPE_ORDER.map((type) => {
+                        const Icon = EXAM_QUESTION_TYPE_ICON[type];
+                        const handleClick = () => {
+                          onAddType?.(type);
+                        };
+                        const item: QuestionSourceDragItem = {
+                          kind: "exam_type",
+                          questionType: type,
+                        };
+                        return (
+                          <Tile
+                            key={type}
+                            className={styles.typeItem}
+                            draggable
+                            onDragStart={(event) => handleDragStart(event, item)}
+                            onDragEnd={handleDragEnd}
+                            onClick={handleClick}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                handleClick();
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            <div className={styles.typeItemMain}>
+                              <span className={styles.typeIcon}>
+                                <Icon size={18} />
+                              </span>
+                              <div className={styles.typeInfo}>
+                                <div className={styles.sourceItemTitle}>
+                                  {t(`common:questionType.label.${type}`, type)}
+                                </div>
+                                <div className={styles.typeDesc}>
+                                  {t(`common:questionType.description.${type}`, "")}
+                                </div>
+                              </div>
+                            </div>
+                            <div className={styles.sourceItemActions}>
+                              <Draggable size={14} />
+                            </div>
+                          </Tile>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </TabPanel>
+              <TabPanel>
+                <div className={styles.tabPanelFill}>{bankContent}</div>
+              </TabPanel>
+            </TabPanels>
+          </div>
+        </div>
       </Tabs>
+      </div>
     </div>
   );
 };

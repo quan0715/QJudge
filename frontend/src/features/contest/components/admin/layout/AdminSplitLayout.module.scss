@@ -24,6 +24,54 @@
   grid-template-columns: var(--sidebar-width) var(--middle-width) 1fr var(--right-width);
 }
 
+.noSidebarNoMiddle {
+  grid-template-columns: 1fr;
+
+  .content {
+    grid-column: 1;
+  }
+}
+
+.noSidebarWithRight {
+  grid-template-columns: 1fr var(--right-width);
+
+  .content {
+    grid-column: 1;
+  }
+
+  .right {
+    grid-column: 2;
+  }
+}
+
+.noSidebarWithMiddle {
+  grid-template-columns: var(--middle-width) 1fr;
+
+  .middle {
+    grid-column: 1;
+  }
+
+  .content {
+    grid-column: 2;
+  }
+}
+
+.noSidebarWithMiddleAndRight {
+  grid-template-columns: var(--middle-width) 1fr var(--right-width);
+
+  .middle {
+    grid-column: 1;
+  }
+
+  .content {
+    grid-column: 2;
+  }
+
+  .right {
+    grid-column: 3;
+  }
+}
+
 .toolbar {
   grid-column: 1 / -1;
   flex-shrink: 0;

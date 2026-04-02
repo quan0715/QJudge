@@ -199,9 +199,8 @@ export const UserMenu: React.FC<UserMenuProps> = ({
               type="button"
               className="user-menu-link"
               onClick={() => {
-                navigate(getClassroomContestDashboardPath(contest.boundClassroomId, contest.id));
-                setIsExpandedInternal(false);
-                onExpandedChange?.(false);
+                navigate(getClassroomContestDashboardPath(contest.boundClassroomId!, contest.id));
+                setIsExpandedInternal(false);                onExpandedChange?.(false);
               }}
             >
               <Book size={16} />

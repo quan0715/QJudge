@@ -9,6 +9,7 @@ import { Button, Modal } from "@carbon/react";
 import {
   Add,
   Close,
+  Menu,
   DocumentDownload,
   Upload,
   View,
@@ -116,6 +117,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sourceDragItem, setSourceDragItem] = useState<QuestionSourceDragItem | null>(null);
   const [sourceHoverIndex, setSourceHoverIndex] = useState<number | null>(null);
   const [sourcePanelExpanded, setSourcePanelExpanded] = useState(true);
@@ -582,6 +584,21 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       <AdminSplitLayout
         toolbar={
           <PanelToolbar
+            leftActions={(
+              <Button
+                kind="ghost"
+                size="md"
+                hasIconOnly
+                renderIcon={sidebarExpanded ? Close : Menu}
+                iconDescription={t(
+                  sidebarExpanded
+                    ? "examEditor.hideQuestionList"
+                    : "examEditor.showQuestionList",
+                  sidebarExpanded ? "隱藏題目列表" : "顯示題目列表"
+                )}
+                onClick={() => setSidebarExpanded((prev) => !prev)}
+              />
+            )}
             title={t("examEditor.questionManagement", "題目管理")}
             status={(
               <div className={styles.toolbarStatusGroup}>
@@ -637,6 +654,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
           />
         }
         sidebar={sidebarContent}
+        sidebarHidden={!sidebarExpanded}
         rightPane={!isCompactScreen && sourcePanelExpanded ? sourcePanelContent : undefined}
         rightPaneWidth={320}
         contentMaxWidth={720}

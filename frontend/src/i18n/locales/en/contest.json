@@ -574,7 +574,9 @@
     "questionLockedReason": "A student has started the exam. Questions are locked.",
     "codingSourceHint": "Pick a problem from the bank or create a new coding problem.",
     "confirmRemoveProblem": "Remove this problem from the contest?",
-    "collapseSourcePanel": "Collapse question sources"
+    "collapseSourcePanel": "Collapse question sources",
+    "hideQuestionList": "Hide question list",
+    "showQuestionList": "Show question list"
   },
   "examJson": {
     "exportOption": "Exam JSON",

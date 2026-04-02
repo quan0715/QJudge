@@ -146,7 +146,7 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
 
   const tableRows = (usageData?.breakdown ?? []).map((item, i) => ({
     id: String(i),
-    period: new Date(item.period).toLocaleDateString(t("common.locale", "zh-TW")),
+    period: new Date(item.period).toLocaleDateString(t("common.locale", "zh-TW") || "zh-TW"),
     requests: item.requests.toLocaleString(),
     input_tokens: item.input_tokens.toLocaleString(),
     output_tokens: item.output_tokens.toLocaleString(),
@@ -201,7 +201,7 @@ export const APIKeyPanel: React.FC<APIKeyPanelProps> = ({ hideUsageDetails = fal
                 </div>
                 <div className="api-key-panel__info-row">
                   <span className="api-key-panel__info-label">{t("settings.apiKey.createdAtLabel", "建立時間")}</span>
-                  <span>{apiKeyInfo.created_at ? new Date(apiKeyInfo.created_at).toLocaleDateString(t("common.locale", "zh-TW")) : "-"}</span>
+                  <span>{apiKeyInfo.created_at ? new Date(apiKeyInfo.created_at).toLocaleDateString(t("common.locale", "zh-TW") || "zh-TW") : "-"}</span>
                 </div>
                 <div className="api-key-panel__actions">
                   <Button kind="tertiary" size="sm" renderIcon={Renew} onClick={handleOpenModal}>{t("settings.apiKey.updateKey", "更新 Key")}</Button>

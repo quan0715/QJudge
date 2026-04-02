@@ -576,7 +576,9 @@
     "questionLockedReason": "已有學生正式作答，競賽題目已鎖定",
     "codingSourceHint": "可從題庫選題，或直接建立新的程式題。",
     "confirmRemoveProblem": "確定要從競賽移除此題？",
-    "collapseSourcePanel": "收起題目來源"
+    "collapseSourcePanel": "收起題目來源",
+    "hideQuestionList": "隱藏題目列表",
+    "showQuestionList": "顯示題目列表"
   },
   "examJson": {
     "exportOption": "Exam JSON",

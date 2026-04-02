@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Button, ComboBox, Modal, TextInput } from "@carbon/react";
-import { Add, Close } from "@carbon/icons-react";
+import { Add, Close, Menu } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type {
   ContestDetail,
@@ -99,6 +99,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   const [orderedProblems, setOrderedProblems] = useState<ContestProblemSummary[]>(() =>
     sortProblems(contest.problems ?? [])
   );
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [editorSaveStatus, setEditorSaveStatus] = useState<ToolbarSaveStatus>("idle");
 
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -466,6 +467,21 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       <AdminSplitLayout
         toolbar={
           <PanelToolbar
+            leftActions={(
+              <Button
+                kind="ghost"
+                size="md"
+                hasIconOnly
+                renderIcon={sidebarExpanded ? Close : Menu}
+                iconDescription={t(
+                  sidebarExpanded
+                    ? "examEditor.hideQuestionList"
+                    : "examEditor.showQuestionList",
+                  sidebarExpanded ? "隱藏題目列表" : "顯示題目列表"
+                )}
+                onClick={() => setSidebarExpanded((prev) => !prev)}
+              />
+            )}
             title={t("adminLayout.nav.problemManagement", "題目管理")}
             status={(
               <div className={styles.toolbarStatusGroup}>
@@ -516,6 +532,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
             }}
           />
         )}
+        sidebarHidden={!sidebarExpanded}
         rightPane={!isCompactScreen && sourcePanelExpanded ? sourcePanelContent : undefined}
         rightPaneWidth={320}
         contentMaxWidth={960}

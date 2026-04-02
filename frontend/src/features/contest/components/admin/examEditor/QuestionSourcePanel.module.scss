@@ -8,13 +8,40 @@
   background: var(--cds-layer);
 }
 
+.tabsRoot {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.tabPanelsWrap {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabPanels {
+  flex: 1;
+  min-height: 0;
+}
+
+.tabPanelFill {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .section {
   display: flex;
   flex-direction: column;
   min-height: 0;
   height: 100%;
   gap: layout.$spacing-03;
-  padding: layout.$spacing-04;
+  padding: layout.$spacing-03;
 }
 
 .controlRow {
@@ -24,10 +51,22 @@
 .listArea {
   display: flex;
   flex-direction: column;
-  gap: layout.$spacing-03;
+  gap: layout.$spacing-02;
   min-height: 0;
   overflow: auto;
-  padding-bottom: layout.$spacing-04;
+  padding-bottom: layout.$spacing-03;
+}
+
+.previewCardWrap {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.previewCard {
+  width: 100%;
 }
 
 .sourceItem,

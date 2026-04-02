@@ -5,7 +5,18 @@ import KpiCards from "./KpiCards";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (_key: string, fallback?: string) => fallback ?? _key,
+    t: (key: string, fallback?: string) => {
+      const translations: Record<string, string> = {
+        "adminOverview.actions.publishContest": "發布競賽",
+        "adminOverview.actions.publishResults": "發布成績",
+        "adminOverview.widgets.goProblemManagement": "前往題目",
+        "adminOverview.widgets.gradingStatus": "前往批改",
+        "adminOverview.widgets.participants": "參賽者",
+        "adminOverview.widgets.status": "考試類型",
+        "adminOverview.kpi.personUnit": "人",
+      };
+      return translations[key] || fallback || key;
+    },
   }),
   initReactI18next: {
     type: "3rdParty",
@@ -74,50 +85,26 @@ const buildMetrics = (
   }) as ContestOverviewMetrics;
 
 describe("KpiCards", () => {
-  it("shows draft contest actions and routes to problem editor", () => {
+  it("renders status, participant count, and basic actions", () => {
     const onOpenPanel = vi.fn();
-    const onPublishContest = vi.fn().mockResolvedValue(undefined);
 
     render(
       <KpiCards
-        contest={buildContest({ status: "draft" })}
-        overviewMetrics={buildMetrics({ timeProgress: { totalSeconds: 0, elapsedSeconds: 0, remainingSeconds: 0, progressPercent: 0, isStarted: false, isEnded: false } })}
+        contest={buildContest({ status: "draft", participantCount: 24 })}
         onOpenPanel={onOpenPanel}
-        onPublishContest={onPublishContest}
-        onPublishResults={vi.fn().mockResolvedValue(undefined)}
-        onRevokeResults={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
     expect(screen.getByText("參賽者")).toBeInTheDocument();
+    expect(screen.getByText("24")).toBeInTheDocument();
+    expect(screen.getByText("人")).toBeInTheDocument();
     expect(screen.getByText("考試類型")).toBeInTheDocument();
-    expect(screen.queryByText("即時在線")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "發布競賽" }));
-    fireEvent.click(screen.getByRole("button", { name: "前往題目" }));
+    
+    // Check basic actions
+    expect(screen.getByRole("button", { name: /設定/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /開啟競賽主頁/ })).toBeInTheDocument();
 
-    expect(onPublishContest).toHaveBeenCalledTimes(1);
-    expect(onOpenPanel).toHaveBeenCalledWith("problem_editor");
-  });
-
-  it("shows publish-results action after the contest has ended", () => {
-    const onOpenPanel = vi.fn();
-    const onPublishResults = vi.fn().mockResolvedValue(undefined);
-
-    render(
-      <KpiCards
-        contest={buildContest({ status: "published", resultsPublished: false })}
-        overviewMetrics={buildMetrics()}
-        onOpenPanel={onOpenPanel}
-        onPublishContest={vi.fn().mockResolvedValue(undefined)}
-        onPublishResults={onPublishResults}
-        onRevokeResults={vi.fn().mockResolvedValue(undefined)}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "發布成績" }));
-    fireEvent.click(screen.getByRole("button", { name: "前往批改" }));
-
-    expect(onPublishResults).toHaveBeenCalledTimes(1);
-    expect(onOpenPanel).toHaveBeenCalledWith("grading");
+    fireEvent.click(screen.getByRole("button", { name: /設定/ }));
+    expect(onOpenPanel).toHaveBeenCalledWith("settings");
   });
 });

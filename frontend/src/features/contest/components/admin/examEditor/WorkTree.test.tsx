@@ -75,9 +75,8 @@ describe("WorkTree", () => {
       />,
     );
 
-    expect(screen.getByTestId("work-tree-body")).toBeInTheDocument();
     expect(screen.getByText("尚無題目")).toBeInTheDocument();
-    expect(screen.getByTestId("work-tree-footer")).toBeInTheDocument();
+    expect(screen.getByText("0 題")).toBeInTheDocument();
     expect(screen.getByText("0 題")).toBeInTheDocument();
     expect(screen.getByText("總分 0")).toBeInTheDocument();
     expect(screen.queryByTestId("reorder-group")).not.toBeInTheDocument();
@@ -97,9 +96,7 @@ describe("WorkTree", () => {
       />,
     );
 
-    expect(screen.getByTestId("work-tree-body")).toBeInTheDocument();
     expect(screen.getByTestId("work-tree-skeleton")).toBeInTheDocument();
-    expect(screen.getByTestId("work-tree-footer")).toBeInTheDocument();
     expect(screen.queryByText("尚無題目")).not.toBeInTheDocument();
     expect(screen.queryByTestId("reorder-group")).not.toBeInTheDocument();
   });
@@ -120,9 +117,8 @@ describe("WorkTree", () => {
       />,
     );
 
-    expect(screen.getByTestId("work-tree-body")).toBeInTheDocument();
     expect(screen.getByTestId("reorder-group")).toBeInTheDocument();
-    expect(screen.getByTestId("work-tree-footer")).toBeInTheDocument();
+    expect(screen.getByText("2 題")).toBeInTheDocument();
     expect(screen.getByText("2 題")).toBeInTheDocument();
     expect(screen.getByText("總分 12")).toBeInTheDocument();
   });

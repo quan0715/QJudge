@@ -574,7 +574,9 @@
     "questionLockedReason": "학생이 시험을 시작하여 문항 편집이 잠겼습니다.",
     "codingSourceHint": "문항 은행에서 선택하거나 새 코딩 문제를 만들 수 있습니다.",
     "confirmRemoveProblem": "이 문제를 대회에서 제거하시겠습니까?",
-    "collapseSourcePanel": "문항 소스 접기"
+    "collapseSourcePanel": "문항 소스 접기",
+    "hideQuestionList": "문제 목록 숨기기",
+    "showQuestionList": "문제 목록 표시"
   },
   "examJson": {
     "exportOption": "Exam JSON",

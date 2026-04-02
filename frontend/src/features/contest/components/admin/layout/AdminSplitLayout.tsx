@@ -4,6 +4,7 @@ import styles from "./AdminSplitLayout.module.scss";
 interface AdminSplitLayoutProps {
   toolbar?: ReactNode;
   sidebar: ReactNode;
+  sidebarHidden?: boolean;
   sidebarWidth?: number;
   middlePane?: ReactNode;
   middlePaneWidth?: number;
@@ -24,6 +25,7 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
     {
       toolbar,
       sidebar,
+      sidebarHidden = false,
       sidebarWidth = 260,
       middlePane,
       middlePaneWidth = 220,
@@ -45,9 +47,13 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
 
     const rootClasses = [
       styles.root,
-      !middlePane && !rightPane && styles.noMiddle,
-      rightPane && !middlePane && styles.withRightOnly,
-      rightPane && middlePane && styles.withMiddleAndRight,
+      !sidebarHidden && !middlePane && !rightPane && styles.noMiddle,
+      !sidebarHidden && rightPane && !middlePane && styles.withRightOnly,
+      !sidebarHidden && rightPane && middlePane && styles.withMiddleAndRight,
+      sidebarHidden && !middlePane && !rightPane && styles.noSidebarNoMiddle,
+      sidebarHidden && !middlePane && !!rightPane && styles.noSidebarWithRight,
+      sidebarHidden && !!middlePane && !rightPane && styles.noSidebarWithMiddle,
+      sidebarHidden && !!middlePane && !!rightPane && styles.noSidebarWithMiddleAndRight,
       className,
     ]
       .filter(Boolean)
@@ -60,7 +66,7 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
     return (
       <div className={rootClasses} style={cssVars}>
         {toolbar && <div className={styles.toolbar}>{toolbar}</div>}
-        <div className={styles.sidebar}>{sidebar}</div>
+        {!sidebarHidden ? <div className={styles.sidebar}>{sidebar}</div> : null}
         {middlePane && <div className={styles.middle}>{middlePane}</div>}
         <div className={contentClasses} ref={ref}>
           {children}

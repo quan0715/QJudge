@@ -574,7 +574,9 @@
     "questionLockedReason": "学生が本試験を開始したため、問題編集はロックされています。",
     "codingSourceHint": "問題バンクから選択するか、新しいコーディング問題を作成できます。",
     "confirmRemoveProblem": "この問題をコンテストから削除しますか？",
-    "collapseSourcePanel": "問題ソースを閉じる"
+    "collapseSourcePanel": "問題ソースを閉じる",
+    "hideQuestionList": "問題一覧を隠す",
+    "showQuestionList": "問題一覧を表示"
   },
   "examJson": {
     "exportOption": "Exam JSON",

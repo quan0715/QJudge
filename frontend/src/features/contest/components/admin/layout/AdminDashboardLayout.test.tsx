@@ -3,65 +3,36 @@ import { describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import AdminDashboardLayout from "./AdminDashboardLayout";
 
+vi.mock("@/features/app/components/UserMenu", () => ({
+  UserMenu: () => <div data-testid="user-menu-mock" />,
+}));
+
 vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 const baseProps = {
+  contestId: "c1",
   contestName: "Contest A",
-  activePanel: "problem_editor" as const,
-  availablePanels: [
-    "overview",
-    "clarifications",
-    "logs",
-    "participants",
-    "problem_editor",
-    "grading",
-    "statistics",
-    "settings",
-  ] as const,
+  activePanel: "overview" as const,
+  availablePanels: ["overview", "settings"] as const,
   onPanelChange: vi.fn(),
-  onBack: vi.fn(),
-  onExport: vi.fn(),
 };
 
 describe("AdminDashboardLayout", () => {
-  it("shows import action only when exam json actions are enabled", () => {
-    const onImportExamJson = vi.fn();
-
+  it("renders basic layout structure", () => {
     render(
       <MemoryRouter>
-        <AdminDashboardLayout
-          {...baseProps}
-          showExamJsonActions
-          onImportExamJson={onImportExamJson}
-        >
-          <div>content</div>
+        <AdminDashboardLayout {...baseProps}>
+          <div data-testid="child-content">content</div>
         </AdminDashboardLayout>
       </MemoryRouter>,
     );
 
-    const importAction = screen.getByLabelText(/匯入 JSON|Import JSON|examJson\.importAction/);
-    expect(importAction).toBeInTheDocument();
-
-    fireEvent.click(importAction);
-    expect(onImportExamJson).toHaveBeenCalledTimes(1);
-  });
-
-  it("hides import action when exam json actions are disabled", () => {
-    render(
-      <MemoryRouter>
-        <AdminDashboardLayout {...baseProps} showExamJsonActions={false}>
-          <div>content</div>
-        </AdminDashboardLayout>
-      </MemoryRouter>,
-    );
-
-    expect(
-      screen.queryByLabelText(/匯入 JSON|Import JSON|examJson\.importAction/),
-    ).not.toBeInTheDocument();
-    expect(screen.getByLabelText("adminLayout.header.exportFiles")).toBeInTheDocument();
+    expect(screen.getByText("Contest A")).toBeInTheDocument();
+    expect(screen.getByTestId("child-content")).toBeInTheDocument();
+    expect(screen.getByTestId("user-menu-mock")).toBeInTheDocument();
   });
 
   it("renders refresh action when onRefresh is provided", () => {
@@ -78,5 +49,21 @@ describe("AdminDashboardLayout", () => {
     const refreshAction = screen.getByLabelText("adminLayout.header.refresh");
     fireEvent.click(refreshAction);
     expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders settings action when onSettingsOpen is provided", () => {
+    const onSettingsOpen = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <AdminDashboardLayout {...baseProps} onSettingsOpen={onSettingsOpen}>
+          <div>content</div>
+        </AdminDashboardLayout>
+      </MemoryRouter>,
+    );
+
+    const settingsAction = screen.getByLabelText("adminLayout.nav.settings");
+    fireEvent.click(settingsAction);
+    expect(onSettingsOpen).toHaveBeenCalledTimes(1);
   });
 });
