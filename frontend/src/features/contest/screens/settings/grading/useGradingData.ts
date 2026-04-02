@@ -7,6 +7,7 @@ import { useParams } from "react-router-dom";
 import {
   getAllExamAnswers,
   gradeExamAnswer,
+  ungradeExamAnswer,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
@@ -240,6 +241,36 @@ export function useGradingData() {
     [contestId]
   );
 
+  const ungradeAnswer = useCallback(
+    async (answerId: string) => {
+      // Optimistic update
+      setAnswers((prev) =>
+        prev.map((a) =>
+          a.id === answerId
+            ? {
+                ...a,
+                score: null,
+                feedback: "",
+                gradedBy: null,
+                gradedAt: null,
+                isAutoGraded: false,
+              }
+            : a
+        )
+      );
+
+      if (contestId) {
+        try {
+          await ungradeExamAnswer(contestId, answerId);
+        } catch {
+          // Revert on failure — refetch
+          void fetchData();
+        }
+      }
+    },
+    [contestId, fetchData]
+  );
+
   const refreshData = useCallback(() => {
     void fetchData();
   }, [fetchData]);
@@ -304,6 +335,7 @@ export function useGradingData() {
     globalStats,
     students,
     gradeAnswer,
+    ungradeAnswer,
     regradeObjectiveAnswers,
     regradingObjective,
     refreshData,

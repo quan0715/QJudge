@@ -211,9 +211,11 @@ export const createClassroomContest = async (
     contest_type: "coding" | "paper_exam";
     start_time?: string | null;
     end_time?: string | null;
+    requires_password?: boolean;
     visibility?: "public" | "private";
     password?: string;
     cheat_detection_enabled?: boolean;
+    allow_multiple_joins?: boolean;
     results_published?: boolean;
   }
 ): Promise<BoundContest> => {

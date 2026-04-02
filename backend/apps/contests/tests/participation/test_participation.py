@@ -123,6 +123,23 @@ class ContestParticipationTests(APITestCase):
             ContestParticipant.objects.filter(contest=self.public_contest, user=self.user).exists()
         )
 
+    def test_register_classroom_bound_contest_allows_manager_member(self):
+        classroom = Classroom.objects.create(
+            name="Bound Classroom 3",
+            owner=self.admin,
+            invite_code="BOUND345",
+        )
+        ClassroomContest.objects.create(classroom=classroom, contest=self.public_contest)
+        ClassroomMember.objects.create(classroom=classroom, user=self.user, role="ta")
+
+        url = reverse('contests:contest-register', args=[self.public_contest.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            ContestParticipant.objects.filter(contest=self.public_contest, user=self.user).exists()
+        )
+
     def test_enter_blocks_draft_contest(self):
         draft_contest = Contest.objects.create(
             name='Draft Contest',

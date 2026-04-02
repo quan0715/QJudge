@@ -55,8 +55,8 @@ interface AdminContestSettingsContentProps {
   tc: TranslateFn;
   contest: ContestDetail;
   form: Record<string, unknown>;
-  startDateInput: string;
-  endDateInput: string;
+  startDateInput: Date | null;
+  endDateInput: Date | null;
   startTimeInput: string;
   endTimeInput: string;
   startMeridiem: "AM" | "PM";

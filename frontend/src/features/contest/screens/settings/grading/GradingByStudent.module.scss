@@ -20,6 +20,37 @@
   background: var(--cds-layer-02, var(--cds-layer));
 }
 
+.flagBtn {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--cds-layer-hover);
+  }
+}
+
+.flagActive {
+  color: var(--cds-support-warning);
+}
+
+.flagInactive {
+  color: var(--cds-icon-secondary);
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  :global([class*="ListItem"]):hover &,
+  .flagBtn:focus-visible & {
+    opacity: 1;
+  }
+}
+
 .panelEmpty {
   display: flex;
   align-items: center;

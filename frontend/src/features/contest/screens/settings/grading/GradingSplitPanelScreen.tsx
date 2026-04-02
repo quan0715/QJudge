@@ -3,9 +3,13 @@ import { Button, TextArea, Tag } from "@carbon/react";
 import {
   ArrowRight,
   Checkmark,
+  Flag,
+  FlagFilled,
   Save,
+  Undo,
   UserFollow,
 } from "@carbon/icons-react";
+import { motion } from "motion/react";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
 import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
 import ScoreSlider, { formatScore, getScoreColor } from "./ScoreSlider";
@@ -18,6 +22,9 @@ import styles from "./GradingPanel.module.scss";
 interface GradingSplitPanelScreenProps {
   answer: GradingAnswerRow | null;
   onGrade: (answerId: string, score: number, feedback: string) => void;
+  onUngrade?: (answerId: string) => void;
+  isFlagged?: boolean;
+  onToggleFlag?: (answerId: string) => void;
   flowMode?: "byQuestion" | "byStudent";
   onNextQuestion?: () => void;
   hasNextQuestion?: boolean;
@@ -32,6 +39,9 @@ interface GradingSplitPanelScreenProps {
 export default function GradingSplitPanelScreen({
   answer,
   onGrade,
+  onUngrade,
+  isFlagged = false,
+  onToggleFlag,
   flowMode = "byStudent",
   onNextQuestion,
   hasNextQuestion = false,
@@ -46,6 +56,7 @@ export default function GradingSplitPanelScreen({
   const scoreInputBufferTimerRef = useRef<number | null>(null);
   const saveCooldownRef = useRef<number | null>(null);
   const saveLockedRef = useRef(false);
+  const panelBodyRef = useRef<HTMLDivElement>(null);
   const maxScore = answer?.maxScore ?? 0;
   const isSubjective = answer ? isSubjectiveType(answer.questionType) : false;
   const scoreStep = isSubjective ? 0.5 : 1;
@@ -64,6 +75,7 @@ export default function GradingSplitPanelScreen({
       window.clearTimeout(saveCooldownRef.current);
       saveCooldownRef.current = null;
     }
+    panelBodyRef.current?.scrollTo?.({ top: 0, behavior: "smooth" });
   }, [answer?.id]);
 
   useEffect(() => {
@@ -221,98 +233,128 @@ export default function GradingSplitPanelScreen({
           <Tag type="blue" size="sm">{t(`common:questionType.label.${answer.questionType}`, answer.questionType)}</Tag>
           <Tag type="teal" size="sm">{answer.maxScore}</Tag>
         </div>
-        {answer.gradedBy && (
-          <span className={styles.panelHeaderMeta}>
-            {answer.gradedBy === "system"
-              ? t("grading.auto", "自動批改")
-              : t("grading.gradedByLabel", "批改者：{{name}}", { name: answer.gradedBy })}
-          </span>
-        )}
+        <div className={styles.panelHeaderActions}>
+          {onToggleFlag && (
+            <button
+              className={`${styles.flagToggle} ${isFlagged ? styles.flagToggleActive : ""}`}
+              onClick={() => onToggleFlag(answer.id)}
+              aria-label={t("grading.toggleFlag", "標記")}
+            >
+              {isFlagged ? <FlagFilled size={16} /> : <Flag size={16} />}
+            </button>
+          )}
+          {answer.gradedBy && (
+            <span className={styles.panelHeaderMeta}>
+              {answer.gradedBy === "system"
+                ? t("grading.auto", "自動批改")
+                : t("grading.gradedByLabel", "批改者：{{name}}", { name: answer.gradedBy })}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className={styles.panelBody}>
-        <span className={styles.studentLine}>
-          {answer.studentNickname === answer.studentUsername
-            ? answer.studentNickname
-            : `${answer.studentNickname} (${answer.studentUsername})`}
-        </span>
-
-        <div className={styles.questionPrompt}>
-          <MarkdownContent.Problem>{answer.questionPrompt}</MarkdownContent.Problem>
-        </div>
-
-        <AnswerDisplay
-          questionType={answer.questionType}
-          answerContent={answer.answerContent}
-          options={answer.questionOptions}
-          correctAnswer={answer.correctAnswer}
-        />
-
-        <hr className={styles.divider} />
-
-        {/* Score display */}
-        <div className={styles.scoreDisplay}>
-          <span className={styles.scoreLabel}>
-            {isSubjective
-              ? t("grading.scoreLabel", "批改成績")
-              : t("grading.autoScoreLabel", "自動批改成績")}
+      <div ref={panelBodyRef} className={styles.panelBody}>
+        <motion.div
+          layout
+          className={styles.panelBodyContent}
+          transition={{ layout: { duration: 0.18, ease: "easeOut" } }}
+        >
+          <span className={styles.studentLine}>
+            {answer.studentNickname === answer.studentUsername
+              ? answer.studentNickname
+              : `${answer.studentNickname} (${answer.studentUsername})`}
           </span>
-          <span className={styles.scoreValue} style={{ color: scoreColor.bg }}>
-            {formatScore(score)}
-          </span>
-          <span className={styles.scoreMax}>/ {formatScore(maxScore)}</span>
-        </div>
 
-        <ScoreSlider
-          value={score}
-          max={maxScore}
-          step={scoreStep}
-          disabled={!isSubjective}
-          onChange={updateScore}
-        />
-
-        {isSubjective ? (
-          <div className={styles.shortcutHint}>
-            <span className={styles.shortcutGroup}>
-              <kbd className={styles.keyCap}>↑</kbd>
-              <kbd className={styles.keyCap}>↓</kbd>
-              <span>{t("grading.shortcutAdjust", "調整分數")}</span>
-            </span>
-            <span className={styles.shortcutGroup}>
-              <kbd className={styles.keyCap}>0-9</kbd>
-              <span>{t("grading.shortcutDirectInput", "直接輸入")}</span>
-            </span>
-            <span className={styles.shortcutGroup}>
-              <kbd className={styles.keyCap}>Enter</kbd>
-              <span>{t("grading.shortcutCommitAndNext", "儲存/前往下一步")}</span>
-            </span>
+          <div className={styles.questionPrompt}>
+            <MarkdownContent.Problem>{answer.questionPrompt}</MarkdownContent.Problem>
           </div>
-        ) : (
-          <p className={styles.readonlyHint}>
-            {t(
-              "grading.objectiveReadonlyHint",
-              "客觀題為自動批改，若分數異常請使用上方「自動批改客觀題」。",
-            )}
-          </p>
-        )}
 
-        <TextArea
-          id="panel-feedback"
-          labelText={t("grading.feedback", "評語（選填）")}
-          value={feedback}
-          disabled={!isSubjective}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-            setFeedback(e.target.value);
-            setSaved(false);
-          }}
-          rows={3}
-        />
+          <AnswerDisplay
+            questionType={answer.questionType}
+            answerContent={answer.answerContent}
+            options={answer.questionOptions}
+            correctAnswer={answer.correctAnswer}
+          />
 
-        <div className={styles.panelActions}>
+          <hr className={styles.divider} />
+
+          {/* Score display */}
+          <div className={styles.scoreDisplay}>
+            <span className={styles.scoreLabel}>
+              {isSubjective
+                ? t("grading.scoreLabel", "批改成績")
+                : t("grading.autoScoreLabel", "自動批改成績")}
+            </span>
+            <span className={styles.scoreValue} style={{ color: scoreColor.bg }}>
+              {formatScore(score)}
+            </span>
+            <span className={styles.scoreMax}>/ {formatScore(maxScore)}</span>
+          </div>
+
+          <ScoreSlider
+            value={score}
+            max={maxScore}
+            step={scoreStep}
+            disabled={!isSubjective}
+            onChange={updateScore}
+          />
+
+          {isSubjective ? (
+            <div className={styles.shortcutHint}>
+              <span className={styles.shortcutGroup}>
+                <kbd className={styles.keyCap}>↑</kbd>
+                <kbd className={styles.keyCap}>↓</kbd>
+                <span>{t("grading.shortcutAdjust", "調整分數")}</span>
+              </span>
+              <span className={styles.shortcutGroup}>
+                <kbd className={styles.keyCap}>0-9</kbd>
+                <span>{t("grading.shortcutDirectInput", "直接輸入")}</span>
+              </span>
+              <span className={styles.shortcutGroup}>
+                <kbd className={styles.keyCap}>Enter</kbd>
+                <span>{t("grading.shortcutCommitAndNext", "儲存/前往下一步")}</span>
+              </span>
+            </div>
+          ) : (
+            <p className={styles.readonlyHint}>
+              {t(
+                "grading.objectiveReadonlyHint",
+                "客觀題為自動批改，若分數異常請使用上方「自動批改客觀題」。",
+              )}
+            </p>
+          )}
+
+          <TextArea
+            id="panel-feedback"
+            labelText={t("grading.feedback", "評語（選填）")}
+            value={feedback}
+            disabled={!isSubjective}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+              setFeedback(e.target.value);
+              setSaved(false);
+            }}
+            rows={3}
+          />
+        </motion.div>
+
+      </div>
+
+      <div className={styles.panelActions}>
+        <div className={styles.panelActionsSecondary}>
+          {answer.gradedBy && onUngrade && (
+            <Button
+              kind="danger--ghost"
+              size="lg"
+              renderIcon={Undo}
+              onClick={() => onUngrade(answer.id)}
+            >
+              {t("grading.ungrade", "撤回批改")}
+            </Button>
+          )}
           {flowMode === "byStudent" && hasNextQuestion && (
             <Button
               kind="secondary"
-              size="sm"
+              size="lg"
               renderIcon={ArrowRight}
               onClick={onNextQuestion}
             >
@@ -322,42 +364,42 @@ export default function GradingSplitPanelScreen({
           {flowMode === "byStudent" && !hasNextQuestion && hasNextStudent && (
             <Button
               kind="secondary"
-              size="sm"
+              size="lg"
               renderIcon={UserFollow}
               onClick={onNextStudent}
             >
               {t("grading.nextStudent", "下一位學生")}
             </Button>
           )}
-          {isSubjective ? (
-            <>
-              <Button
-                kind="ghost"
-                size="sm"
-                renderIcon={Save}
-                onClick={handleSaveOnly}
-              >
-                {saved
-                  ? t("grading.saved", "已儲存")
-                  : t("grading.save", "儲存")}
-              </Button>
-              {(hasNextStudent || (flowMode === "byStudent" && hasNextQuestion)) && (
-                <Button
-                  kind="primary"
-                  size="sm"
-                  renderIcon={Checkmark}
-                  onClick={handleSaveAndNext}
-                >
-                  {flowMode === "byQuestion"
-                    ? t("grading.saveAndNextStudent", "儲存並下一位學生")
-                    : hasNextQuestion
-                      ? t("grading.saveAndNextQuestion", "儲存並下一題")
-                      : t("grading.saveAndNextStudent", "儲存並下一位學生")}
-                </Button>
-              )}
-            </>
-          ) : null}
         </div>
+        {isSubjective ? (
+          <div className={styles.panelActionsPrimary}>
+            <Button
+              kind="ghost"
+              size="lg"
+              renderIcon={Save}
+              onClick={handleSaveOnly}
+            >
+              {saved
+                ? t("grading.saved", "已儲存")
+                : t("grading.save", "儲存")}
+            </Button>
+            {(hasNextStudent || (flowMode === "byStudent" && hasNextQuestion)) && (
+              <Button
+                kind="primary"
+                size="lg"
+                renderIcon={Checkmark}
+                onClick={handleSaveAndNext}
+              >
+                {flowMode === "byQuestion"
+                  ? t("grading.saveAndNextStudent", "儲存並下一位學生")
+                  : hasNextQuestion
+                    ? t("grading.saveAndNextQuestion", "儲存並下一題")
+                    : t("grading.saveAndNextStudent", "儲存並下一位學生")}
+              </Button>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );

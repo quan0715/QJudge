@@ -324,6 +324,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
 
             with transaction.atomic():
+                raw_password = serializer.validated_data.get('password')
                 contest = Contest.objects.create(
                     owner=request.user,
                     name=serializer.validated_data['name'],
@@ -332,11 +333,15 @@ class ClassroomViewSet(viewsets.ModelViewSet):
                     delivery_mode='exam',
                     start_time=serializer.validated_data.get('start_time'),
                     end_time=serializer.validated_data.get('end_time'),
-                    visibility=serializer.validated_data.get('visibility', 'private'),
-                    password=serializer.validated_data.get('password'),
+                    visibility='private'
+                    if serializer.validated_data.get('requires_password')
+                    else 'public',
                     cheat_detection_enabled=serializer.validated_data.get('cheat_detection_enabled', False),
                     results_published=serializer.validated_data.get('results_published', False),
                 )
+                if raw_password is not None:
+                    contest.set_contest_password(raw_password)
+                    contest.save(update_fields=['password'])
                 binding = ClassroomContest.objects.create(classroom=classroom, contest=contest)
                 sync_classroom_participants(classroom, contest)
 

@@ -35,11 +35,12 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
   onJoin,
   isAdmin = false,
   onOpenAdminPanel,
-}) => {
+  }) => {
   const { t } = useTranslation("contest");
   // Registration Modal State
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const requiresPassword = contest?.requiresPassword ?? contest?.visibility === "private";
   const contestState = contest
     ? getContestState({
         status: contest.status,
@@ -88,8 +89,8 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
       <Tag type={getContestStateColor(contestState)}>
         {t(`preRegistration.state.${contestState}`, getContestStateLabel(contestState))}
       </Tag>
-      <Tag type={contest.visibility === "public" ? "green" : "purple"}>
-        {contest.visibility === "public" ? t("public", "公開") : t("private", "私有")}
+      <Tag type={requiresPassword ? "purple" : "green"}>
+        {requiresPassword ? t("access.requiresPassword", "需要密碼") : t("access.open", "免密碼")}
       </Tag>
       {contest.cheatDetectionEnabled && <Tag type="red">{t("examMode", "作弊檢查")}</Tag>}
       {contest.hasJoined && (
@@ -217,14 +218,11 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
             />
           )}
 
-          {contest.visibility === "private" && !contest.hasJoined && (
+          {requiresPassword && !contest.hasJoined && (
             <InlineNotification
               kind="info"
-              title={t("private", "私有")}
-              subtitle={t(
-                "hero.privateContestHint",
-                "此競賽為私有競賽，報名時需要輸入加入密碼。"
-              )}
+              title={t("access.requiresPassword", "需要密碼")}
+              subtitle={t("hero.requiresPasswordHint", "此競賽需要輸入密碼才能加入。")}
               lowContrast
               hideCloseButton
             />

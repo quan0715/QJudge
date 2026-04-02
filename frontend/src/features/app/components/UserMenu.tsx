@@ -324,7 +324,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         danger
         modalHeading={t("auth.logout.confirmTitle")}
         primaryButtonText={t("auth.logout.confirmButton")}
-        secondaryButtonText={t("button.cancel")}
+        secondaryButtonText={t("common:button.cancel")}
         onRequestClose={() => setIsLogoutModalOpen(false)}
         onRequestSubmit={handleLogout}
       >
@@ -336,7 +336,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         open={isNicknameModalOpen}
         modalHeading={tContest("avatar.editNickname")}
         primaryButtonText={tContest("button.save")}
-        secondaryButtonText={tContest("button.cancel")}
+        secondaryButtonText={tContest("common:button.cancel")}
         onRequestClose={() => setIsNicknameModalOpen(false)}
         onRequestSubmit={handleNicknameUpdate}
         primaryButtonDisabled={nicknameLoading}

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Modal, TextInput, InlineNotification } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 
 import type { ContestDetail } from "@/core/entities/contest.entity";
 
@@ -20,6 +21,8 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
   onClose,
   onSubmit,
 }) => {
+  const { t } = useTranslation("contest");
+  const requiresPassword = contest.requiresPassword ?? contest.visibility === "private";
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
 
@@ -43,27 +46,27 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
   return (
     <Modal
       open={open}
-      modalHeading="競賽報名"
-      primaryButtonText="確認報名"
-      secondaryButtonText="取消"
+      modalHeading={t("registration.title", "競賽報名")}
+      primaryButtonText={t("registration.confirm", "確認報名")}
+      secondaryButtonText={t("registration.cancel", "取消")}
       onRequestSubmit={handleSubmit}
       onRequestClose={handleClose}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         {/* Confirmation message */}
-        <p>確定要報名「{contest.name}」嗎？</p>
+        <p>{t("registration.confirmMessage", { name: contest.name, defaultValue: `確定要報名「${contest.name}」嗎？` })}</p>
 
-        {/* Private contest password input */}
-        {contest.visibility === "private" && (
+        {/* Password gate */}
+        {requiresPassword && (
           <div>
             <p style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>
-              此競賽為私有競賽，請輸入加入密碼。
+              {t("registration.requiresPasswordHint", "此競賽需要密碼才能加入。")}
             </p>
             <TextInput
               id="registration-password"
-              labelText="密碼"
+              labelText={t("registration.passwordLabel", "密碼")}
               type="password"
-              placeholder="請輸入競賽密碼"
+              placeholder={t("registration.passwordPlaceholder", "請輸入競賽密碼")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -74,12 +77,15 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
         {contest.anonymousModeEnabled && (
           <div>
             <p style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>
-              本競賽已啟用匿名模式，您可以設定一個暱稱。排行榜和提交列表將顯示您的暱稱而非真實帳號。
+              {t(
+                "registration.anonymousHint",
+                "本競賽已啟用匿名模式，您可以設定一個暱稱。排行榜和提交列表將顯示您的暱稱而非真實帳號。",
+              )}
             </p>
             <TextInput
               id="registration-nickname"
-              labelText="暱稱 (選填)"
-              placeholder="留空則使用預設帳號名稱"
+              labelText={t("registration.nicknameLabel", "暱稱 (選填)")}
+              placeholder={t("registration.nicknamePlaceholder", "留空則使用預設帳號名稱")}
               value={nickname}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setNickname(e.target.value)
@@ -93,7 +99,7 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
                 marginTop: "0.5rem",
               }}
             >
-              您可以在報名後隨時修改暱稱。
+              {t("registration.nicknameHint", "您可以在報名後隨時修改暱稱。")}
             </p>
           </div>
         )}
@@ -102,8 +108,11 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
         {contest.cheatDetectionEnabled && (
           <InlineNotification
             kind="warning"
-            title="注意"
-            subtitle="此競賽已啟用作弊檢查，開始後將啟用防作弊監控。"
+            title={t("registration.warningTitle", "注意")}
+            subtitle={t(
+              "registration.warningSubtitle",
+              "此競賽已啟用作弊檢查，開始後將啟用防作弊監控。",
+            )}
             lowContrast
             hideCloseButton
             style={{ marginTop: "0.5rem" }}

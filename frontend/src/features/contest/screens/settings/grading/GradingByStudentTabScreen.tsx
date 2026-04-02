@@ -3,6 +3,8 @@ import { Button, Tag } from "@carbon/react";
 import {
   ChevronLeft,
   ChevronRight,
+  Flag,
+  FlagFilled,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
@@ -50,6 +52,9 @@ interface GradingByStudentTabScreenProps {
     displayName?: string;
   }[];
   onGrade: (answerId: string, score: number, feedback: string) => void;
+  onUngrade?: (answerId: string) => void;
+  flaggedIds?: Set<string>;
+  onToggleFlag?: (answerId: string) => void;
   searchQuery: string;
   selectedStudentId: string | null;
   onSelectedStudentIdChange: (studentId: string | null) => void;
@@ -60,6 +65,9 @@ export default function GradingByStudentTabScreen({
   questionProgress,
   students,
   onGrade,
+  onUngrade,
+  flaggedIds,
+  onToggleFlag,
   searchQuery,
   selectedStudentId,
   onSelectedStudentIdChange,
@@ -370,6 +378,22 @@ export default function GradingByStudentTabScreen({
                 <ListItemTitle>Q{a.questionIndex}</ListItemTitle>
               </ListItemContent>
               <ListItemTrailing>
+                {!isAbsent && onToggleFlag && (
+                  <button
+                    className={styles.flagBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleFlag(a.id);
+                    }}
+                    aria-label={t("grading.toggleFlag", "標記")}
+                  >
+                    {flaggedIds?.has(a.id) ? (
+                      <FlagFilled size={14} className={styles.flagActive} />
+                    ) : (
+                      <Flag size={14} className={styles.flagInactive} />
+                    )}
+                  </button>
+                )}
                 {isAbsent ? (
                   <Tag type="warm-gray" size="sm">{t("grading.absent", "缺交")}</Tag>
                 ) : a.score !== null ? (
@@ -407,6 +431,9 @@ export default function GradingByStudentTabScreen({
           <GradingSplitPanelScreen
             answer={currentAnswer}
             onGrade={onGrade}
+            onUngrade={onUngrade}
+            isFlagged={currentAnswer ? flaggedIds?.has(currentAnswer.id) : false}
+            onToggleFlag={onToggleFlag}
             flowMode="byStudent"
             onNextQuestion={handleNext}
             hasNextQuestion={hasNext}

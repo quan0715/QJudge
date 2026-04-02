@@ -131,22 +131,22 @@
 // ─── Slide transitions ─────────────────────────────────────
 @mixin exam-slide-animations {
   @keyframes slideInFromRight {
-    from { transform: translateX(40px); opacity: 0; }
+    from { transform: translateX(16px); opacity: 0; }
     to   { transform: translateX(0); opacity: 1; }
   }
 
   @keyframes slideInFromLeft {
-    from { transform: translateX(-40px); opacity: 0; }
+    from { transform: translateX(-16px); opacity: 0; }
     to   { transform: translateX(0); opacity: 1; }
   }
 }
 
 @mixin exam-slide-in-right {
-  animation: slideInFromRight 280ms motion.motion(entrance, productive) both;
+  animation: slideInFromRight 320ms motion.motion(standard, productive) both;
 }
 
 @mixin exam-slide-in-left {
-  animation: slideInFromLeft 280ms motion.motion(entrance, productive) both;
+  animation: slideInFromLeft 320ms motion.motion(standard, productive) both;
 }
 
 // ─── Body & Navigation ─────────────────────────────────────

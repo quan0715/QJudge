@@ -111,7 +111,6 @@ const ContestLayout = () => {
     navigate,
     messages: {
       joinError: t("error.joinFailed"),
-      leaveError: t("error.leaveFailed"),
       startError: t("error.startExamFailed"),
       endError: t("error.endExamFailed"),
       exitError: t("error.exitFailed"),
@@ -318,6 +317,7 @@ const ContestLayout = () => {
                 aria-label={isRefreshing ? t('action.refreshing') : t("refresh")}
                 tooltipAlignment="center"
                 onClick={isRefreshing ? undefined : refreshContest}
+                className={styles.headerActions}
               >
                 <Renew size={20} className={isRefreshing ? styles.refreshing : undefined} />
               </HeaderGlobalAction>
@@ -326,6 +326,7 @@ const ContestLayout = () => {
                 aria-label={isFullscreen ? t("exitFullscreen") : t("enterFullscreen")}
                 tooltipAlignment="center"
                 onClick={toggleFullscreen}
+                className={styles.headerActions}
               >
                 {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
               </HeaderGlobalAction>

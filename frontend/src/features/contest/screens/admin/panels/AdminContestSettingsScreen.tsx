@@ -127,23 +127,49 @@ const sanitizeAnticheatPolicy = (
   return sanitized;
 };
 
-const toTimeInput = (dateStr: string): string => {
+const isValidDate = (date: Date | null | undefined): date is Date =>
+  !!date && !Number.isNaN(date.getTime());
+
+const parseDate = (dateStr: string | null | undefined): Date | null => {
+  if (!dateStr) return null;
   const date = new Date(dateStr);
+  return isValidDate(date) ? date : null;
+};
+
+const toTimeInput = (date: Date): string => {
   let hours = date.getHours() % 12;
   hours = hours || 12;
   const minutes = date.getMinutes().toString().padStart(2, "0");
   return `${hours.toString().padStart(2, "0")}:${minutes}`;
 };
 
-const toDateInput = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  return `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date
-    .getDate()
-    .toString()
-    .padStart(2, "0")}/${date.getFullYear()}`;
-};
+const buildDateTimeIso = (
+  date: Date | null,
+  time: string,
+  meridiem: "AM" | "PM",
+): string | null => {
+  if (!isValidDate(date)) return null;
+  const [hoursStr, minutesStr] = time.split(":");
+  const hours = Number(hoursStr);
+  const minutes = Number(minutesStr);
+  if (
+    Number.isNaN(hours) ||
+    Number.isNaN(minutes) ||
+    hours < 1 ||
+    hours > 12 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
 
-const isPM = (dateStr: string): boolean => new Date(dateStr).getHours() >= 12;
+  const next = new Date(date);
+  const normalizedHours = meridiem === "PM"
+    ? (hours === 12 ? 12 : hours + 12)
+    : (hours === 12 ? 0 : hours);
+  next.setHours(normalizedHours, minutes, 0, 0);
+  return isValidDate(next) ? next.toISOString() : null;
+};
 
 const isValueEqual = (left: unknown, right: unknown): boolean => {
   if (Object.is(left, right)) return true;
@@ -178,8 +204,8 @@ const AdminContestSettingsScreen = () => {
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [startTimeInput, setStartTimeInput] = useState("");
   const [endTimeInput, setEndTimeInput] = useState("");
-  const [startDateInput, setStartDateInput] = useState("");
-  const [endDateInput, setEndDateInput] = useState("");
+  const [startDateInput, setStartDateInput] = useState<Date | null>(null);
+  const [endDateInput, setEndDateInput] = useState<Date | null>(null);
   // publish_to_practice removed — questions live in the bank now
   const initializedRef = useRef(false);
   const initializedContestIdRef = useRef<string | null>(null);
@@ -233,63 +259,50 @@ const AdminContestSettingsScreen = () => {
       event: ChangeEvent<HTMLInputElement>,
       field: "startTime" | "endTime",
       setInput: (value: string) => void,
+      getDate: () => Date | null,
+      getMeridiem: () => "AM" | "PM",
     ) => {
       const value = event.target.value;
       setInput(value);
       if (value.length !== 5 || !value.includes(":")) return;
 
-      const [hours, minutes] = value.split(":").map(Number);
-      if (
-        Number.isNaN(hours) ||
-        Number.isNaN(minutes) ||
-        hours < 1 ||
-        hours > 12 ||
-        minutes < 0 ||
-        minutes > 59
-      ) {
-        return;
-      }
-
-      const current = form[field] ? new Date(form[field] as string) : new Date();
-      const currentlyPm = current.getHours() >= 12;
-      const normalizedHours = currentlyPm
-        ? (hours === 12 ? 12 : hours + 12)
-        : (hours === 12 ? 0 : hours);
-      current.setHours(normalizedHours);
-      current.setMinutes(minutes);
-      handleChange(field, current.toISOString());
+      const iso = buildDateTimeIso(getDate(), value, getMeridiem());
+      if (!iso) return;
+      handleChange(field, iso);
     },
-    [form, handleChange],
+    [handleChange],
   );
 
   const handleMeridiemChange = useCallback(
-    (value: string, field: "startTime" | "endTime") => {
-      const date = form[field] ? new Date(form[field] as string) : new Date();
-      let hours = date.getHours();
-      if (value === "PM" && hours < 12) hours += 12;
-      if (value === "AM" && hours >= 12) hours -= 12;
-      date.setHours(hours);
-      handleChange(field, date.toISOString());
+    (
+      value: string,
+      field: "startTime" | "endTime",
+      getDate: () => Date | null,
+      getTime: () => string,
+    ) => {
+      const iso = buildDateTimeIso(getDate(), getTime(), value === "PM" ? "PM" : "AM");
+      if (!iso) return;
+      handleChange(field, iso);
     },
-    [form, handleChange],
+    [handleChange],
   );
 
   const handleDateChange = useCallback(
     (
       dates: Date[],
       field: "startTime" | "endTime",
-      setInput: (value: string) => void,
+      setInput: (value: Date | null) => void,
+      getTime: () => string,
+      getMeridiem: () => "AM" | "PM",
     ) => {
       if (!dates?.length) return;
-      const selectedDate = dates[0];
-      const current = form[field] ? new Date(form[field] as string) : new Date();
-      selectedDate.setHours(current.getHours());
-      selectedDate.setMinutes(current.getMinutes());
-      const iso = selectedDate.toISOString();
+      const selectedDate = new Date(dates[0]);
+      setInput(selectedDate);
+      const iso = buildDateTimeIso(selectedDate, getTime(), getMeridiem());
+      if (!iso) return;
       handleChange(field, iso);
-      setInput(toDateInput(iso));
     },
-    [form, handleChange],
+    [handleChange],
   );
 
   const handleArchive = async () => {
@@ -335,6 +348,7 @@ const AdminContestSettingsScreen = () => {
       startTime: contest.startTime || "",
       endTime: contest.endTime || "",
       status: contest.status || "draft",
+      requiresPassword: contest.requiresPassword ?? (contest.visibility === "private"),
       visibility: contest.visibility || "public",
       password: contest.password || "",
       cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
@@ -349,16 +363,24 @@ const AdminContestSettingsScreen = () => {
       autoUnlockMinutes: contest.autoUnlockMinutes ?? 5,
     });
     if (contest.startTime) {
-      setStartTimeInput(toTimeInput(contest.startTime));
-      setStartDateInput(toDateInput(contest.startTime));
+      const startDate = parseDate(contest.startTime);
+      setStartTimeInput(startDate ? toTimeInput(startDate) : "");
+      setStartDateInput(startDate);
     }
     if (contest.endTime) {
-      setEndTimeInput(toTimeInput(contest.endTime));
-      setEndDateInput(toDateInput(contest.endTime));
+      const endDate = parseDate(contest.endTime);
+      setEndTimeInput(endDate ? toTimeInput(endDate) : "");
+      setEndDateInput(endDate);
     }
   }, [contest]);
 
   if (!contest) return null;
+
+  const getMeridiemFromIso = (value: unknown): "AM" | "PM" => {
+    if (typeof value !== "string") return "AM";
+    const date = parseDate(value);
+    return date && date.getHours() >= 12 ? "PM" : "AM";
+  };
 
   return (
     <div className={s.root}>
@@ -387,18 +409,64 @@ const AdminContestSettingsScreen = () => {
           endDateInput={endDateInput}
           startTimeInput={startTimeInput}
           endTimeInput={endTimeInput}
-          startMeridiem={form.startTime && isPM(form.startTime as string) ? "PM" : "AM"}
-          endMeridiem={form.endTime && isPM(form.endTime as string) ? "PM" : "AM"}
+          startMeridiem={getMeridiemFromIso(form.startTime)}
+          endMeridiem={getMeridiemFromIso(form.endTime)}
           getState={getState}
           onRetry={autoSave.retrySave}
           onChange={handleChange}
           onConfirmedChange={handleConfirmedChange}
-          onStartDateChange={(dates) => handleDateChange(dates, "startTime", setStartDateInput)}
-          onEndDateChange={(dates) => handleDateChange(dates, "endTime", setEndDateInput)}
-          onStartTimeChange={(event) => handleTimeChange(event, "startTime", setStartTimeInput)}
-          onEndTimeChange={(event) => handleTimeChange(event, "endTime", setEndTimeInput)}
-          onStartMeridiemChange={(value) => handleMeridiemChange(value, "startTime")}
-          onEndMeridiemChange={(value) => handleMeridiemChange(value, "endTime")}
+          onStartDateChange={(dates) =>
+            handleDateChange(
+              dates,
+              "startTime",
+              setStartDateInput,
+              () => startTimeInput,
+              () => getMeridiemFromIso(form.startTime),
+            )
+          }
+          onEndDateChange={(dates) =>
+            handleDateChange(
+              dates,
+              "endTime",
+              setEndDateInput,
+              () => endTimeInput,
+              () => getMeridiemFromIso(form.endTime),
+            )
+          }
+          onStartTimeChange={(event) =>
+            handleTimeChange(
+              event,
+              "startTime",
+              setStartTimeInput,
+              () => startDateInput ?? parseDate(form.startTime),
+              () => getMeridiemFromIso(form.startTime),
+            )
+          }
+          onEndTimeChange={(event) =>
+            handleTimeChange(
+              event,
+              "endTime",
+              setEndTimeInput,
+              () => endDateInput ?? parseDate(form.endTime),
+              () => getMeridiemFromIso(form.endTime),
+            )
+          }
+          onStartMeridiemChange={(value) =>
+            handleMeridiemChange(
+              value,
+              "startTime",
+              () => startDateInput,
+              () => startTimeInput,
+            )
+          }
+          onEndMeridiemChange={(value) =>
+            handleMeridiemChange(
+              value,
+              "endTime",
+              () => endDateInput,
+              () => endTimeInput,
+            )
+          }
           onArchive={() => void handleArchive()}
           onDelete={() => void handleDelete()}
         />

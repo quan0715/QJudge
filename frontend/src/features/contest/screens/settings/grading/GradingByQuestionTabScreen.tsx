@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Tag } from "@carbon/react";
+import { Flag, FlagFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import {
   ListPanel,
@@ -39,6 +40,9 @@ interface GradingByQuestionTabScreenProps {
     displayName?: string;
   }[];
   onGrade: (answerId: string, score: number, feedback: string) => void;
+  onUngrade?: (answerId: string) => void;
+  flaggedIds?: Set<string>;
+  onToggleFlag?: (answerId: string) => void;
   searchQuery: string;
   filter: GradingFilter;
   selectedQuestionId: string | null;
@@ -57,6 +61,9 @@ export default function GradingByQuestionTabScreen({
   answersByQuestion,
   students,
   onGrade,
+  onUngrade,
+  flaggedIds,
+  onToggleFlag,
   searchQuery,
   filter,
   selectedQuestionId,
@@ -310,6 +317,22 @@ export default function GradingByQuestionTabScreen({
                   <ListItemMeta>{a.studentUsername}</ListItemMeta>
                 </ListItemContent>
                 <ListItemTrailing>
+                  {!isAbsent && onToggleFlag && (
+                    <button
+                      className={styles.flagBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFlag(a.id);
+                      }}
+                      aria-label={t("grading.toggleFlag", "標記")}
+                    >
+                      {flaggedIds?.has(a.id) ? (
+                        <FlagFilled size={14} className={styles.flagActive} />
+                      ) : (
+                        <Flag size={14} className={styles.flagInactive} />
+                      )}
+                    </button>
+                  )}
                   {isAbsent ? (
                     <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
                   ) : a.score !== null ? (
@@ -352,6 +375,9 @@ export default function GradingByQuestionTabScreen({
       <GradingSplitPanelScreen
         answer={selectedAnswer}
         onGrade={onGrade}
+        onUngrade={onUngrade}
+        isFlagged={selectedAnswer ? flaggedIds?.has(selectedAnswer.id) : false}
+        onToggleFlag={onToggleFlag}
         flowMode="byQuestion"
         onNextQuestion={handleNextQuestion}
         hasNextQuestion={hasNextQuestion}

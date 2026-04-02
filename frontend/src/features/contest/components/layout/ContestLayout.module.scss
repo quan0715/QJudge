@@ -201,3 +201,29 @@
     transform: rotate(360deg);
   }
 }
+
+// ── Mobile adjustments ──
+@media (max-width: 900px) {
+  .headerBrand {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .breadcrumb {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .breadcrumb :global(.cds--breadcrumb-item--current) {
+    display: block;
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .headerActions {
+    display: none !important;
+  }
+}

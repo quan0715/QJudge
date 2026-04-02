@@ -37,8 +37,8 @@ interface AdminContestSettingsFormSectionsProps {
   tc: TranslateFn;
   contest: ContestDetail;
   form: Record<string, unknown>;
-  startDateInput: string;
-  endDateInput: string;
+  startDateInput: Date | null;
+  endDateInput: Date | null;
   startTimeInput: string;
   endTimeInput: string;
   startMeridiem: "AM" | "PM";
@@ -307,7 +307,7 @@ const AdminContestSettingsFormSections = ({
             <DatePicker
               datePickerType="single"
               dateFormat="m/d/Y"
-              value={startDateInput}
+              value={startDateInput ? [startDateInput] : []}
               onChange={onStartDateChange}
             >
               <DatePickerInput
@@ -347,7 +347,7 @@ const AdminContestSettingsFormSections = ({
             <DatePicker
               datePickerType="single"
               dateFormat="m/d/Y"
-              value={endDateInput}
+              value={endDateInput ? [endDateInput] : []}
               onChange={onEndDateChange}
             >
               <DatePickerInput
@@ -413,25 +413,23 @@ const AdminContestSettingsFormSections = ({
         </ActionRow>
 
         <ActionRow
-          label={tc("form.visibility")}
-          description="Private 競賽需要密碼才能加入"
-          saveState={getState("visibility")}
-          onRetry={() => onRetry("visibility")}
+          label={t("settings.requiresPassword")}
+          description={t("settings.requiresPasswordHelp")}
+          saveState={getState("requiresPassword")}
+          onRetry={() => onRetry("requiresPassword")}
         >
-          <Select
-            id="settings-visibility"
+          <Toggle
+            id="settings-requires-password"
             labelText=""
             hideLabel
-            value={(form.visibility as string) || "public"}
-            style={{ minWidth: 160 }}
-            onChange={(e) => onChange("visibility", e.target.value)}
-          >
-            <SelectItem value="public" text={tc("status.public")} />
-            <SelectItem value="private" text={tc("status.private")} />
-          </Select>
+            labelA={t("settings.noPassword")}
+            labelB={t("settings.requiresPasswordShort")}
+            toggled={!!form.requiresPassword}
+            onToggle={(checked) => onChange("requiresPassword", checked)}
+          />
         </ActionRow>
 
-        {form.visibility === "private" && (
+        {form.requiresPassword === true && (
           <FieldRow
             label={t("settings.joinPassword")}
             description="學生加入時需輸入此密碼"

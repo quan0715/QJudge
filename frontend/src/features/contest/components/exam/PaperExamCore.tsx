@@ -78,6 +78,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   const questionAreaRef = useRef<HTMLDivElement>(null);
   const allContentRef = useRef<HTMLDivElement>(null);
   const allItemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const prevIndexRef = useRef<number | null>(null);
   const maxIndex = items.length > 0 ? items.length - 1 : 0;
   const isSyncIndexActive = syncIndex != null && syncIndex >= 0 && syncIndex < items.length;
   const effectiveViewMode = isSyncIndexActive ? "single" : viewMode;
@@ -96,21 +97,26 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
     setActiveIndex((prev) => {
       const current = clampIndex(prev);
       const requested = typeof newIndex === "function" ? newIndex(current) : newIndex;
-      const next = clampIndex(requested);
-      if (next !== current) {
-        setSlideDir(next > current ? "right" : "left");
-        setAnimating(true);
-        onActiveIndexChange?.(current, next);
-      }
-      return next;
+      return clampIndex(requested);
     });
-  }, [clampIndex, onActiveIndexChange]);
+  }, [clampIndex]);
+
+  // Fire side effects (animation + callback) after activeIndex commits
+  useEffect(() => {
+    const prev = prevIndexRef.current;
+    if (prev !== null && prev !== effectiveActiveIndex) {
+      setSlideDir(effectiveActiveIndex > prev ? "right" : "left");
+      setAnimating(true);
+      onActiveIndexChange?.(prev, effectiveActiveIndex);
+    }
+    prevIndexRef.current = effectiveActiveIndex;
+  }, [effectiveActiveIndex, onActiveIndexChange]);
 
   useEffect(() => {
     if (!animating) return;
-    const t = setTimeout(() => setAnimating(false), 300);
+    const t = setTimeout(() => setAnimating(false), 350);
     return () => clearTimeout(t);
-  }, [animating, effectiveActiveIndex]);
+  }, [animating]);
 
   useEffect(() => {
     questionAreaRef.current?.scrollTo({ top: 0, behavior: "smooth" });

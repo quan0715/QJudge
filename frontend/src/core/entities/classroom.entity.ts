@@ -34,6 +34,7 @@ export interface BoundContest {
   contestDescription: string;
   contestStatus: "draft" | "published" | "archived";
   contestVisibility: "public" | "private";
+  requiresPassword?: boolean;
   contestType: "coding" | "paper_exam";
   deliveryMode: "practice" | "exam";
   contestStartTime: string;
@@ -55,6 +56,7 @@ export interface ClassroomLabSummary {
   description: string;
   status: "draft" | "published" | "archived";
   visibility: "public" | "private";
+  requiresPassword?: boolean;
   contestType: ClassroomLabType;
   deliveryMode: "practice" | "exam";
   startTime: string;

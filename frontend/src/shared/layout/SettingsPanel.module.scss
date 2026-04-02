@@ -26,6 +26,11 @@
   justify-content: space-between;
   align-items: baseline;
   margin-bottom: $spacing-03;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: $spacing-03 0;
+  background: var(--cds-background);
 }
 
 // ── Section ─────────────────────────────────────────────────────
