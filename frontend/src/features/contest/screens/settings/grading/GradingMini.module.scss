@@ -8,7 +8,7 @@
 
 .miniHeader {
   flex-shrink: 0;
-  border-bottom: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
+  border-bottom: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
 }
 
 /* Native <button> — no Carbon overrides needed. Same height as miniItem. */

@@ -56,6 +56,7 @@ export default function GradingByQuestionTabScreen({
   const [isQuestionPaneCollapsed, setIsQuestionPaneCollapsed] = useState(false);
   const [hoveredQuestionId, setHoveredQuestionId] = useState<string | null>(null);
   const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(null);
+  const cardListRef = useRef<HTMLDivElement>(null);
   const lastHandledSelectionNonceRef = useRef<number | null>(null);
   const lastAppliedSelectionStudentNonceRef = useRef<number | null>(null);
   const activeQuestionId = useMemo(() => {
@@ -143,7 +144,8 @@ export default function GradingByQuestionTabScreen({
       selectableRows.some((row) => row.id === selectedAnswerId);
 
     if (!selectedStillExists) {
-      const fallbackRow = selectableRows[0] ?? null;
+      const firstUngraded = selectableRows.find((row) => row.score === null);
+      const fallbackRow = firstUngraded ?? selectableRows[0] ?? null;
       setSelectedAnswerId(fallbackRow?.id ?? null);
     }
   }, [currentAnswers, selectedAnswerId]);
@@ -173,6 +175,17 @@ export default function GradingByQuestionTabScreen({
       lastAppliedSelectionStudentNonceRef.current = selectionRequest.nonce;
     }
   }, [selectionRequest?.nonce, selectionRequest, activeQuestionId, currentAnswers]);
+
+  // Scroll card list to the selected answer
+  useEffect(() => {
+    if (!selectedAnswerId || !cardListRef.current) return;
+    const el = cardListRef.current.querySelector(
+      `[data-answer-id="${selectedAnswerId}"]`,
+    );
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [selectedAnswerId]);
 
   const selectedAnswer = useMemo(
     () =>
@@ -292,7 +305,7 @@ export default function GradingByQuestionTabScreen({
               )}
         </div>
       ) : null}
-      <div className={styles.cardList}>
+      <div className={styles.cardList} ref={cardListRef}>
         {currentAnswers.length === 0 ? (
           <div className={styles.emptyState}>
             <span className={styles.emptyStateDesc}>
@@ -308,6 +321,7 @@ export default function GradingByQuestionTabScreen({
             return (
               <div
                 key={a.id}
+                data-answer-id={a.id}
                 className={`${styles.answerCard} ${isSelected ? styles.answerCardActive : ""}`}
                 onClick={
                   isAbsent
@@ -335,11 +349,6 @@ export default function GradingByQuestionTabScreen({
                 </div>
                 <div className={styles.cardSecondary}>
                   <span>{a.studentUsername}</span>
-                  <span>
-                    {isAbsent ? "" : a.gradedBy === "system" ? (
-                      <Tag type="cyan" size="sm">{t("grading.autoGraded", "自動")}</Tag>
-                    ) : a.gradedBy ?? ""}
-                  </span>
                 </div>
               </div>
             );
