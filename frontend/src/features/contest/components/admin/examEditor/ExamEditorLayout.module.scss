@@ -1,5 +1,12 @@
 @use "@carbon/layout";
 
+.editorToolbar {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  padding: 0 layout.$spacing-05;
+}
+
 .editorLayout {
   display: flex;
   height: 100%;

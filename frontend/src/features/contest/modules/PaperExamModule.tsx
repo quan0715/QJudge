@@ -76,6 +76,8 @@ export const paperExamContestModule: ContestTypeModule = {
             contestId={props.contestId}
             contest={props.contest}
             ref={props.panelRef}
+            onExport={props.onExport}
+            onPreview={props.onPreview}
           />
         );
       },

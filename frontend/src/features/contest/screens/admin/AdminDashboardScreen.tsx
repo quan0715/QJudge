@@ -85,7 +85,6 @@ const AdminDashboardInner = () => {
   });
 
   const isExamMode = contestModule.admin.editorKind === "paper_exam";
-  const showExamJsonActions = contestModule.admin.shouldShowJsonActions(activePanel);
 
   const handleBack = () => {
     navigate(
@@ -154,10 +153,6 @@ const AdminDashboardInner = () => {
       onPanelChange={handlePanelChange}
       onBack={handleBack}
       onRefresh={handleNavbarRefresh}
-      showExamJsonActions={showExamJsonActions}
-      onImportExamJson={() => examEditorRef.current?.openJsonImportModal()}
-      onPreview={handlePreview}
-      onExport={() => setExportOpen(true)}
     >
       <AdminPanelSlot
         panelId={activePanel}
@@ -165,6 +160,8 @@ const AdminDashboardInner = () => {
         contestId={contestId || ""}
         contest={contest}
         panelRef={examEditorRef}
+        onExport={() => setExportOpen(true)}
+        onPreview={handlePreview}
       />
 
       {contest && contestId && (

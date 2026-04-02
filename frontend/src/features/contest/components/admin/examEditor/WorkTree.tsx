@@ -6,6 +6,14 @@ import { useTranslation } from "react-i18next";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import { EXAM_QUESTION_TYPE_TAG_COLOR } from "@/shared/ui/examQuestionTypeVisual";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
+import {
+  ListItem,
+  ListItemLeading,
+  ListItemContent,
+  ListItemTitle,
+  ListItemMeta,
+  ListItemTrailing,
+} from "@/shared/ui/list/ListPanel";
 import AddQuestionMenuButton from "./AddQuestionMenuButton";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
@@ -46,6 +54,10 @@ const TreeItem: React.FC<{
       ? t("common:questionBank.saveToBank.alreadySaved", "此題已收錄至題庫")
       : t("common:questionBank.saveToBank.title", "收錄到題庫");
 
+  const titleText = question.prompt
+    ? question.prompt.replace(/[#*_`>\n]/g, "").slice(0, 40) || `Question ${index + 1}`
+    : `Question ${index + 1}`;
+
   return (
     <Reorder.Item
       value={question}
@@ -53,30 +65,28 @@ const TreeItem: React.FC<{
       dragControls={dragControls}
       drag={!frozen}
       as="div"
-      className={`${styles.treeItem} ${isActive ? styles.treeItemActive : ""}`}
       data-question-id={question.id}
     >
-      {!frozen && (
-        <div
-          className={styles.dragHandle}
-          onPointerDown={(e) => dragControls.start(e)}
-        >
-          <Draggable size={14} />
-        </div>
-      )}
-      <button
-        type="button"
-        className={styles.itemButton}
-        onClick={onSelect}
-      >
-        <span className={styles.itemOrder}>{index + 1}</span>
-        <div className={styles.itemInfo}>
-          <span className={styles.itemTitle}>
-            {question.prompt
-              ? question.prompt.replace(/[#*_`>\n]/g, "").slice(0, 40) || `Question ${index + 1}`
-              : `Question ${index + 1}`}
-          </span>
-          <div className={styles.itemMeta}>
+      <ListItem active={isActive} onClick={onSelect}>
+        {!frozen && (
+          <ListItemLeading>
+            <div
+              className={styles.dragHandle}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                dragControls.start(e);
+              }}
+            >
+              <Draggable size={14} />
+            </div>
+          </ListItemLeading>
+        )}
+        <ListItemLeading>
+          <span className={styles.itemOrder}>{index + 1}</span>
+        </ListItemLeading>
+        <ListItemContent>
+          <ListItemTitle>{titleText}</ListItemTitle>
+          <ListItemMeta>
             <Tag
               type={(EXAM_QUESTION_TYPE_TAG_COLOR[question.questionType] ?? "gray") as never}
               size="sm"
@@ -84,43 +94,45 @@ const TreeItem: React.FC<{
               {t(`common:questionType.label.${question.questionType}`, question.questionType)}
             </Tag>
             <span className={styles.itemScore}>{question.score}pt</span>
+          </ListItemMeta>
+        </ListItemContent>
+        <ListItemTrailing>
+          <div className={styles.actionBtns}>
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label={saveToBankLabel}
+              disabled={saveToBankDisabled}
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (saveToBankDisabled) return;
+                setSaveToBankOpen(true);
+              }}
+            >
+              <Catalog size={14} />
+            </IconButton>
+            {!frozen && (
+              <IconButton
+                kind="ghost"
+                size="sm"
+                label={t("button.delete", "刪除")}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+              >
+                <TrashCan size={14} />
+              </IconButton>
+            )}
           </div>
-        </div>
-      </button>
-      <div className={styles.deleteBtn}>
-        <IconButton
-          kind="ghost"
-          size="sm"
-          label={saveToBankLabel}
-          disabled={saveToBankDisabled}
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation();
-            if (saveToBankDisabled) return;
-            setSaveToBankOpen(true);
-          }}
-        >
-          <Catalog size={14} />
-        </IconButton>
-        {!frozen && (
-          <IconButton
-            kind="ghost"
-            size="sm"
-            label={t("button.delete", "刪除")}
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-          >
-            <TrashCan size={14} />
-          </IconButton>
-        )}
-      </div>
+        </ListItemTrailing>
+      </ListItem>
       <SaveToBankModal
         open={saveToBankOpen}
         onClose={() => setSaveToBankOpen(false)}
         sourceType="exam_question"
         sourceId={question.id}
-        sourceTitle={question.prompt?.replace(/[#*_`>\n]/g, "").slice(0, 40) || `Question ${index + 1}`}
+        sourceTitle={titleText}
       />
     </Reorder.Item>
   );

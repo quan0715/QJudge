@@ -11,9 +11,6 @@ import {
   TaskComplete,
   ChartColumn,
   Chat,
-  View,
-  DocumentDownload,
-  Upload,
   Renew,
 } from "@carbon/icons-react";
 import type { AdminPanelId } from "@/features/contest/modules/types";
@@ -30,10 +27,6 @@ interface AdminDashboardLayoutProps {
   onPanelChange: (panel: AdminPanelId) => void;
   onBack: () => void;
   onRefresh?: () => void;
-  onPreview?: () => void;
-  onExport?: () => void;
-  showExamJsonActions?: boolean;
-  onImportExamJson?: () => void;
   children: React.ReactNode;
 }
 
@@ -74,10 +67,6 @@ export default function AdminDashboardLayout({
   onPanelChange,
   onBack,
   onRefresh,
-  onPreview,
-  onExport,
-  showExamJsonActions,
-  onImportExamJson,
   children,
 }: AdminDashboardLayoutProps) {
   const { t } = useTranslation("contest");
@@ -164,33 +153,6 @@ export default function AdminDashboardLayout({
               onClick={onRefresh}
             >
               <Renew size={20} />
-            </HeaderGlobalAction>
-          )}
-          {showExamJsonActions && onImportExamJson && (
-            <HeaderGlobalAction
-              aria-label={t("examJson.importAction")}
-              tooltipAlignment="end"
-              onClick={onImportExamJson}
-            >
-              <Upload size={20} />
-            </HeaderGlobalAction>
-          )}
-          {onExport && (
-            <HeaderGlobalAction
-              aria-label={t("adminLayout.header.exportFiles")}
-              tooltipAlignment="end"
-              onClick={onExport}
-            >
-              <DocumentDownload size={20} />
-            </HeaderGlobalAction>
-          )}
-          {onPreview && (
-            <HeaderGlobalAction
-              aria-label={t("adminLayout.header.previewAnswer")}
-              tooltipAlignment="end"
-              onClick={onPreview}
-            >
-              <View size={20} />
             </HeaderGlobalAction>
           )}
           <HeaderGlobalAction

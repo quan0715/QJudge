@@ -8,6 +8,9 @@ import React, {
 import { Button, Modal } from "@carbon/react";
 import {
   Add,
+  DocumentDownload,
+  Upload,
+  View,
 } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
 import type { ContestDetail, ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
@@ -51,6 +54,8 @@ const DEFAULT_PAYLOADS: Record<ExamQuestionType, Omit<ExamQuestionUpsertPayload,
 interface ExamEditorLayoutProps {
   contestId: string;
   contest: ContestDetail;
+  onExport?: () => void;
+  onPreview?: () => void;
 }
 
 export interface ExamEditorLayoutHandle {
@@ -60,6 +65,8 @@ export interface ExamEditorLayoutHandle {
 const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayoutProps>(({
   contestId,
   contest,
+  onExport,
+  onPreview,
 }, ref) => {
   const { showToast } = useToast();
   const { t } = useTranslation("contest");
@@ -409,6 +416,28 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   return (
     <>
       <AdminSplitLayout
+        toolbar={
+          <div className={styles.editorToolbar}>
+            <Button
+              kind="ghost"
+              size="sm"
+              renderIcon={Upload}
+              onClick={() => setJsonImportOpen(true)}
+            >
+              {t("examJson.importAction", "匯入 JSON")}
+            </Button>
+            {onExport && (
+              <Button kind="ghost" size="sm" renderIcon={DocumentDownload} onClick={onExport}>
+                {t("adminLayout.header.exportFiles", "匯出")}
+              </Button>
+            )}
+            {onPreview && (
+              <Button kind="ghost" size="sm" renderIcon={View} onClick={onPreview}>
+                {t("adminLayout.header.previewAnswer", "預覽")}
+              </Button>
+            )}
+          </div>
+        }
         sidebar={sidebarContent}
         contentMaxWidth={720}
         contentClassName={styles.editorPane}
