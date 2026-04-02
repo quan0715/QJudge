@@ -23,7 +23,6 @@ import { KpiCard } from "@/shared/ui/dataCard";
 import { updateNickname, downloadMyReport } from "@/infrastructure/api/repositories";
 import { useInterval } from "@/shared/hooks/useInterval";
 import styles from "./ContestHero.module.scss";
-import "./ContestHero.css";
 
 const MinimalProgressBar = ({
   value,
@@ -40,11 +39,9 @@ const MinimalProgressBar = ({
   return (
     <div className={styles.progressWrapper}>
       {label && <div className={styles.progressLabel}>{label}</div>}
-      <div className="contest-progress-bar-container">
+      <div className={styles.progressBarContainer}>
         <div
-          className={`contest-progress-bar-fill ${isActive ? "active" : ""} ${
-            isFinished ? "finished" : ""
-          }`}
+          className={[styles.progressBarFill, isActive && styles.active, isFinished && styles.finished].filter(Boolean).join(" ")}
           style={{ width: `${value}%` }}
         />
       </div>
@@ -55,7 +52,6 @@ const MinimalProgressBar = ({
 interface ContestHeroProps {
   contest: ContestDetail | null;
   loading?: boolean;
-  onLeave?: () => void;
   onStartExam?: () => void;
   onEndExam?: () => void;
   onGoToAnswering?: () => void;
@@ -75,6 +71,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
+  const requiresPassword = contest?.requiresPassword ?? contest?.visibility === "private";
   const [progress, setProgress] = useState(0);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
 
@@ -177,8 +174,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       <Tag type={getContestStateColor(contestState)}>
         {getContestStateLabel(contestState)}
       </Tag>
-      <Tag type={contest.visibility === "public" ? "green" : "purple"}>
-        {contest.visibility === "public" ? t("public") : t("private")}
+      <Tag type={requiresPassword ? "purple" : "green"}>
+        {requiresPassword ? t("access.requiresPassword") : t("access.open")}
       </Tag>
       {contest.cheatDetectionEnabled && <Tag type="red">{t("examMode")}</Tag>}
     </>

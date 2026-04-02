@@ -1,6 +1,6 @@
-@use "@/styles/admin-panel" as mixins;
+/* Kept: classes still referenced by GradingByQuestionTabScreen.tsx and QuestionSidebarScreen.tsx */
 
-/* Question sidebar */
+/* Question sidebar shell */
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -11,73 +11,8 @@
   background: var(--cds-layer-02, var(--cds-layer));
 }
 
-.sidebarList {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.sidebarFooter {
-  flex-shrink: 0;
-  min-height: 2.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 0.75rem;
-  border-top: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
-  background: var(--cds-layer-01);
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
-}
-
-.sidebarHeader {
-  @include mixins.sidebar-header;
-}
-
-.sidebarHeaderRow,
-.paneHeaderRow {
-  @include mixins.pane-header-row;
-
-  .sidebarHeader {
-    border-bottom: none;
-    flex: 1;
-  }
-}
-
-.previewMeta {
-  flex: 1;
-  min-width: 0;
-  margin-right: 0.25rem;
-  color: var(--cds-text-secondary);
-  font-size: 0.6875rem;
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.previewBar {
-  font-size: 0.6875rem;
-  line-height: 1rem;
-  color: var(--cds-text-secondary);
-  padding: 0.375rem 0.75rem;
-  border-bottom: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
-  background: var(--cds-layer-01);
-}
-
-.sidebarItem {
-  @include mixins.sidebar-item;
-}
-
-.sidebarLabel {
-  @include mixins.sidebar-label;
-}
-
-.sidebarLeading {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
+.sidebarMini {
+  border-right: none;
 }
 
 .sidebarTypeIcon {
@@ -85,6 +20,7 @@
   flex-shrink: 0;
 }
 
+/* Progress ring in question sidebar */
 .sidebarProgress {
   display: inline-flex;
   align-items: center;
@@ -112,78 +48,14 @@
   box-shadow: inset 0 0 0 1px var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
 }
 
-.collapsedPane {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  padding-top: 0.5rem;
-  background: var(--cds-layer-02, var(--cds-layer));
-}
-
-.sidebarMini {
-  border-right: none;
-}
-
-/* Middle table column */
-.tableCol {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: 100%;
-}
-
-.tableScroll {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.rowSelected {
-  background: var(--cds-layer-selected-01);
-}
-
-/* Card list & answer cards */
-.cardList {
-  @include mixins.card-list;
-  min-height: 0;
-}
-
-.listFooter {
-  flex-shrink: 0;
-  min-height: 2.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0 0.75rem;
-  border-top: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
-  background: var(--cds-layer-01);
+/* Answer list extras */
+.previewBar {
+  font-size: 0.6875rem;
+  line-height: 1rem;
   color: var(--cds-text-secondary);
-  font-size: 0.75rem;
-}
-
-.answerCard {
-  @include mixins.card-item;
-}
-
-.answerCardActive {
-  @include mixins.card-item-active;
-}
-
-.cardPrimary {
-  @include mixins.card-primary;
-}
-
-.cardLabelRow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.cardSecondary {
-  @include mixins.card-secondary;
+  padding: 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
+  background: var(--cds-layer-01);
 }
 
 .scoreText {
@@ -191,20 +63,11 @@
   color: var(--cds-support-success);
 }
 
-.emptyState {
-  @include mixins.panel-empty-state;
-}
-
-.emptyStateDesc {
-  @include mixins.panel-empty-state-desc;
-}
-
 .absentItem {
   cursor: default;
   opacity: 0.7;
 }
 
-/* Content area override: grading panel fills entire space */
 .gradingContent {
   padding: 0;
   align-items: stretch;
