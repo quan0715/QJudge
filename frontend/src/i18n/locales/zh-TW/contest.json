@@ -159,6 +159,10 @@
     "student": "學生",
     "updateFailed": "更新暱稱失敗，請稍後再試"
   },
+  "access": {
+    "open": "免密碼",
+    "requiresPassword": "需要密碼"
+  },
   "button": {
     "backToLobby": "返回競賽大廳"
   },
@@ -186,9 +190,12 @@
     "modeExam": "紙筆題考試模式",
     "nameCoding": "競賽名稱",
     "nameExam": "紙筆題考試名稱",
+    "noPassword": "免密碼",
     "private": "私人競賽",
     "privateShort": "私人",
     "public": "公開",
+    "requiresPassword": "需要密碼",
+    "requiresPasswordShort": "密碼",
     "titleCoding": "建立 Coding Test",
     "titleExam": "建立紙筆題考試",
     "typeCoding": "Coding Test",
@@ -198,7 +205,7 @@
     "validation": {
       "cannotComputeEndTime": "無法計算結束時間，請檢查開始時間與比賽長度",
       "durationPositive": "比賽長度必須是大於 0 的分鐘數",
-      "passwordRequired": "私人競賽必須設定密碼"
+      "passwordRequired": "需要密碼時必須設定加入密碼"
     }
   },
   "dashboard": {
@@ -726,7 +733,8 @@
     "notYetStarted": "尚未開始",
     "passwordLabel": "密碼",
     "passwordPlaceholder": "請輸入競賽密碼",
-    "privateContestHint": "此競賽為私有競賽，請輸入加入密碼。",
+    "requiresPasswordHint": "此競賽需要輸入密碼才能加入。",
+    "privateContestHint": "此競賽需要輸入密碼才能加入。",
     "register": "報名",
     "registered": "已參與",
     "restartExam": "重新開始",
@@ -1023,11 +1031,13 @@
     "countdownLabel": "距離開始",
     "countdownValue": "{{days}}天 {{hours}}小時 {{minutes}}分 {{seconds}}秒",
     "ended": "競賽已結束",
+    "open": "免密碼",
     "noDescription": "暫無描述",
     "openAdminPanel": "前往管理後台",
     "registerNow": "報名",
     "registeredHint": "已報名，等待競賽開始",
     "registrationClosed": "目前不可報名",
+    "requiresPassword": "需要密碼",
     "state": {
       "archived": "已封存",
       "draft": "草稿",
@@ -1035,6 +1045,21 @@
       "running": "進行中",
       "upcoming": "即將開始"
     }
+  },
+  "registration": {
+    "anonymousHint": "本競賽已啟用匿名模式，您可以設定一個暱稱。排行榜和提交列表將顯示您的暱稱而非真實帳號。",
+    "cancel": "取消",
+    "confirm": "確認報名",
+    "confirmMessage": "確定要報名「{{name}}」嗎？",
+    "nicknameHint": "您可以在報名後隨時修改暱稱。",
+    "nicknameLabel": "暱稱 (選填)",
+    "nicknamePlaceholder": "留空則使用預設帳號名稱",
+    "passwordLabel": "密碼",
+    "passwordPlaceholder": "請輸入競賽密碼",
+    "requiresPasswordHint": "此競賽需要密碼才能加入。",
+    "title": "競賽報名",
+    "warningSubtitle": "此競賽已啟用作弊檢查，開始後將啟用防作弊監控。",
+    "warningTitle": "注意"
   },
   "precheck": {
     "backToDashboard": "返回儀表板",
@@ -1232,6 +1257,7 @@
     "contestName": "競賽名稱",
     "contestRules": "競賽規則",
     "contestStatus": "競賽發布狀態",
+    "joinPassword": "加入密碼",
     "dangerZone": "危險區域 (Danger Zone)",
     "deleteContest": "刪除競賽 (Delete Contest)",
     "deleteDesc": "此動作無法復原。所有相關資料（包含提交紀錄、排名）將被永久刪除。",
@@ -1244,8 +1270,8 @@
     "exportResults": "匯出成績 (Export Results)",
     "exportResultsDesc": "匯出競賽成績為 CSV 檔案，包含排名、帳號、解題數、總分、各題目狀態。",
     "exportSuccess": "成績匯出成功",
-    "joinPassword": "加入密碼",
     "maxWarnings": "容許違規次數上限 (0 表示立即鎖定)",
+    "noPassword": "免密碼",
     "publishPracticeFailed": "發布失敗，請稍後再試",
     "publishPracticeSuccess": "已將競賽題目發布到練習題庫",
     "publishToPractice": "公開競賽題目到練習",
@@ -1258,6 +1284,9 @@
     "rulesHelperText": "支援 Markdown 語法格式",
     "saveSettings": "儲存變更",
     "saving": "正在同步設定...",
+    "requiresPassword": "需要密碼",
+    "requiresPasswordHelp": "開啟後，學生加入時需要輸入密碼",
+    "requiresPasswordShort": "密碼",
     "scoreboardSettings": "排行榜與數據顯示",
     "showDuringContest": "競賽期間顯示排行榜",
     "showDuringContestHelp": "允許參賽者在考試進行中查看即時排名與進度",

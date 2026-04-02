@@ -85,6 +85,12 @@
       "confirmMessage": "Log out?",
       "confirmTitle": "Confirm Logout"
     },
+    "pendingAction": {
+      "classroomJoinSubtitle": "Please log in or register first. You'll be automatically added to the classroom afterwards.",
+      "classroomJoinTitle": "Join Classroom",
+      "teacherActivationSubtitle": "Please log in or register first. Teacher access will be activated automatically afterwards.",
+      "teacherActivationTitle": "Teacher Activation"
+    },
     "register": {
       "confirmPassword": "Confirm Password",
       "confirmPasswordPlaceholder": "Re-enter your password",
@@ -105,12 +111,6 @@
       "title": "Create Account",
       "username": "Username",
       "usernamePlaceholder": "Choose a username"
-    },
-    "pendingAction": {
-      "classroomJoinSubtitle": "Please log in or register first. You'll be automatically added to the classroom afterwards.",
-      "classroomJoinTitle": "Join Classroom",
-      "teacherActivationSubtitle": "Please log in or register first. Teacher access will be activated automatically afterwards.",
-      "teacherActivationTitle": "Teacher Activation"
     }
   },
   "button": {
@@ -353,6 +353,7 @@
   },
   "questionBank": {
     "addQuestion": "Add Question",
+    "allTypes": "All Types",
     "bankCreated": "Question bank created",
     "bankDeleted": "Question bank deleted",
     "bankNotFound": "Bank Not Found",
@@ -423,12 +424,6 @@
     "questionCreated": "Question created",
     "questionDeleted": "Question deleted",
     "questionUpdated": "Question updated",
-    "allTypes": "All Types",
-    "sortOrder": "Default Order",
-    "sortType": "By Type",
-    "sortNewest": "Newest First",
-    "sortOldest": "Oldest First",
-    "usedInContests": "{{count}} contest(s)",
     "saveToBank": {
       "desc": "Save \"{{title}}\" to question bank:",
       "success": "Saved to bank",
@@ -436,6 +431,10 @@
     },
     "score": "Score",
     "selectTargetBank": "Select Target Bank",
+    "sortNewest": "Newest First",
+    "sortOldest": "Oldest First",
+    "sortOrder": "Default Order",
+    "sortType": "By Type",
     "subtitle": "Manage and explore question banks with a focus on classrooms (QJudge Community)",
     "tabs": {
       "explore": "Explore",
@@ -446,7 +445,8 @@
     "tagPrivate": "Private",
     "tagPublic": "Public",
     "tagUserPublic": "Public",
-    "timeLimit": "Time Limit (ms)"
+    "timeLimit": "Time Limit (ms)",
+    "usedInContests": "{{count}} contest(s)"
   },
   "questionType": {
     "description": {

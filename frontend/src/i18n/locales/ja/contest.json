@@ -1,4 +1,8 @@
 {
+  "access": {
+    "open": "免密碼",
+    "requiresPassword": "需要密碼"
+  },
   "adminLayout": {
     "header": {
       "backToHome": "コンテストホームに戻る",
@@ -186,9 +190,12 @@
     "modeExam": "Paper Exam Mode",
     "nameCoding": "Contest Name",
     "nameExam": "Paper Exam Name",
+    "noPassword": "免密碼",
     "private": "Private Contest",
     "privateShort": "Private",
     "public": "Public",
+    "requiresPassword": "需要密碼",
+    "requiresPasswordShort": "密碼",
     "titleCoding": "Create Coding Test",
     "titleExam": "Create Paper Exam",
     "typeCoding": "Coding Test",
@@ -729,6 +736,7 @@
     "privateContestHint": "これは非公開コンテストです。参加するにはパスワードを入力してください。",
     "register": "登録",
     "registered": "参加済み",
+    "requiresPasswordHint": "此競賽需要輸入密碼才能加入。",
     "restartExam": "試験を再開",
     "resumeExam": "試験を続行",
     "startExam": "試験開始",
@@ -1024,10 +1032,12 @@
     "countdownValue": "{{days}}日 {{hours}}時間 {{minutes}}分 {{seconds}}秒",
     "ended": "コンテストは終了しました",
     "noDescription": "説明はまだありません",
+    "open": "免密碼",
     "openAdminPanel": "管理画面へ",
     "registerNow": "今すぐ参加登録",
     "registeredHint": "登録済みです。開始をお待ちください。",
     "registrationClosed": "現在は登録できません",
+    "requiresPassword": "需要密碼",
     "state": {
       "archived": "アーカイブ済み",
       "draft": "下書き",
@@ -1154,6 +1164,21 @@
   "progress": "進捗",
   "public": "公開",
   "refresh": "コンテスト情報を更新",
+  "registration": {
+    "anonymousHint": "本競賽已啟用匿名模式，您可以設定一個暱稱。排行榜和提交列表將顯示您的暱稱而非真實帳號。",
+    "cancel": "取消",
+    "confirm": "確認報名",
+    "confirmMessage": "確定要報名「{{name}}」嗎？",
+    "nicknameHint": "您可以在報名後隨時修改暱稱。",
+    "nicknameLabel": "暱稱 (選填)",
+    "nicknamePlaceholder": "留空則使用預設帳號名稱",
+    "passwordLabel": "密碼",
+    "passwordPlaceholder": "請輸入競賽密碼",
+    "requiresPasswordHint": "此競賽需要密碼才能加入。",
+    "title": "競賽報名",
+    "warningSubtitle": "此競賽已啟用作弊檢查，開始後將啟用防作弊監控。",
+    "warningTitle": "注意"
+  },
   "report": {
     "descriptionCoding": "解答統計、ソースコード、および傾向グラフを含むPDFレポートをダウンロードします",
     "descriptionPaper": "各問題の解答、得点、およびTAのコメントを含むPDFレポートをダウンロードします",
@@ -1246,6 +1271,7 @@
     "exportSuccess": "結果が正常にエクスポートされました",
     "joinPassword": "参加パスワード",
     "maxWarnings": "最大警告回数 (0 = 即座にロック)",
+    "noPassword": "免密碼",
     "publishPracticeFailed": "公開に失敗しました",
     "publishPracticeSuccess": "コンテスト問題を練習題庫に公開しました",
     "publishToPractice": "問題を練習用に公開",
@@ -1255,6 +1281,9 @@
     "publishToPracticeDesc": "アーカイブ後に利用可能。コンテストの問題を公開練習題庫へ複製します。",
     "publishToPracticeHint": "公開するには先にアーカイブしてください",
     "publishToPracticeIrreversible": "この操作は取り消せません。",
+    "requiresPassword": "需要密碼",
+    "requiresPasswordHelp": "開啟後，學生加入時需要輸入密碼",
+    "requiresPasswordShort": "密碼",
     "rulesHelperText": "Markdown構文をサポート",
     "saveSettings": "設定を保存",
     "saving": "保存中...",

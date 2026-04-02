@@ -1,4 +1,8 @@
 {
+  "access": {
+    "open": "No password",
+    "requiresPassword": "Requires Password"
+  },
   "adminLayout": {
     "header": {
       "backToHome": "Back to Contest Home",
@@ -186,9 +190,12 @@
     "modeExam": "Paper Exam Mode",
     "nameCoding": "Contest Name",
     "nameExam": "Paper Exam Name",
+    "noPassword": "No password",
     "private": "Private Contest",
     "privateShort": "Private",
     "public": "Public",
+    "requiresPassword": "Requires Password",
+    "requiresPasswordShort": "Password",
     "titleCoding": "Create Coding Test",
     "titleExam": "Create Paper Exam",
     "typeCoding": "Coding Test",
@@ -198,7 +205,7 @@
     "validation": {
       "cannotComputeEndTime": "Cannot compute end time, please check start time and duration",
       "durationPositive": "Duration must be greater than 0 minutes",
-      "passwordRequired": "Password is required for private contests"
+      "passwordRequired": "A join password is required when password protection is enabled"
     }
   },
   "dashboard": {
@@ -726,9 +733,10 @@
     "notYetStarted": "Not Yet Started",
     "passwordLabel": "Password",
     "passwordPlaceholder": "Enter contest password",
-    "privateContestHint": "This is a private contest. Please enter the password to join.",
     "register": "Register",
     "registered": "Participated",
+    "requiresPasswordHint": "This contest requires a password to join.",
+    "privateContestHint": "This contest requires a password to join.",
     "restartExam": "Restart Exam",
     "resumeExam": "Resume Exam",
     "startExam": "Start Exam",
@@ -1024,10 +1032,12 @@
     "countdownValue": "{{days}}d {{hours}}h {{minutes}}m {{seconds}}s",
     "ended": "Contest ended",
     "noDescription": "No description yet",
+    "open": "No password",
     "openAdminPanel": "Open Admin Panel",
     "registerNow": "Register now",
     "registeredHint": "Registered. Waiting for contest start.",
     "registrationClosed": "Registration unavailable",
+    "requiresPassword": "Requires Password",
     "state": {
       "archived": "Archived",
       "draft": "Draft",
@@ -1154,6 +1164,21 @@
   "progress": "Progress",
   "public": "Public",
   "refresh": "Refresh Contest",
+  "registration": {
+    "anonymousHint": "Anonymous mode is enabled. You can set a nickname. The scoreboard and submission list will show your nickname instead of your real account.",
+    "cancel": "Cancel",
+    "confirm": "Confirm Registration",
+    "confirmMessage": "Are you sure you want to register for \"{{name}}\"?",
+    "nicknameHint": "You can change your nickname after registration at any time.",
+    "nicknameLabel": "Nickname (Optional)",
+    "nicknamePlaceholder": "Leave blank to use your default account name",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter contest password",
+    "requiresPasswordHint": "This contest requires a password to join.",
+    "title": "Contest Registration",
+    "warningSubtitle": "Cheat detection is enabled. Monitoring will start once the contest begins.",
+    "warningTitle": "Notice"
+  },
   "report": {
     "descriptionCoding": "Download PDF report including stats, source code, and performance trends.",
     "descriptionPaper": "Download PDF report including questions, your responses, scores, and proctor comments.",
@@ -1246,6 +1271,7 @@
     "exportSuccess": "Results exported successfully",
     "joinPassword": "Join Password",
     "maxWarnings": "Max Warnings (0 = Immediate Lock)",
+    "noPassword": "No password",
     "publishPracticeFailed": "Failed to publish problems",
     "publishPracticeSuccess": "Contest problems published to practice",
     "publishToPractice": "Publish problems to practice",
@@ -1255,6 +1281,9 @@
     "publishToPracticeDesc": "Available after archiving. Copies all contest problems to the public practice library for Labs.",
     "publishToPracticeHint": "Archive first to publish",
     "publishToPracticeIrreversible": "This action cannot be undone.",
+    "requiresPassword": "Requires Password",
+    "requiresPasswordHelp": "When enabled, students must enter a password to join.",
+    "requiresPasswordShort": "Password",
     "rulesHelperText": "Supports Markdown syntax",
     "saveSettings": "Save Settings",
     "saving": "Saving...",

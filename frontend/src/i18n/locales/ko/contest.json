@@ -1,4 +1,8 @@
 {
+  "access": {
+    "open": "免密碼",
+    "requiresPassword": "需要密碼"
+  },
   "adminLayout": {
     "header": {
       "backToHome": "대회 홈으로 돌아가기",
@@ -186,9 +190,12 @@
     "modeExam": "Paper Exam Mode",
     "nameCoding": "Contest Name",
     "nameExam": "Paper Exam Name",
+    "noPassword": "免密碼",
     "private": "Private Contest",
     "privateShort": "Private",
     "public": "Public",
+    "requiresPassword": "需要密碼",
+    "requiresPasswordShort": "密碼",
     "titleCoding": "Create Coding Test",
     "titleExam": "Create Paper Exam",
     "typeCoding": "Coding Test",
@@ -729,6 +736,7 @@
     "privateContestHint": "이것은 비공개 대회입니다. 참가하려면 비밀번호를 입력하세요.",
     "register": "등록",
     "registered": "참가함",
+    "requiresPasswordHint": "此競賽需要輸入密碼才能加入。",
     "restartExam": "시험 재시작",
     "resumeExam": "시험 계속",
     "startExam": "시험 시작",
@@ -1024,10 +1032,12 @@
     "countdownValue": "{{days}}일 {{hours}}시간 {{minutes}}분 {{seconds}}초",
     "ended": "대회가 종료되었습니다",
     "noDescription": "설명이 없습니다",
+    "open": "免密碼",
     "openAdminPanel": "관리 화면으로 이동",
     "registerNow": "지금 등록",
     "registeredHint": "등록 완료. 대회 시작을 기다려 주세요.",
     "registrationClosed": "현재 등록할 수 없습니다",
+    "requiresPassword": "需要密碼",
     "state": {
       "archived": "보관됨",
       "draft": "초안",
@@ -1154,6 +1164,21 @@
   "progress": "진행률",
   "public": "공개",
   "refresh": "대회 정보 새로고침",
+  "registration": {
+    "anonymousHint": "本競賽已啟用匿名模式，您可以設定一個暱稱。排行榜和提交列表將顯示您的暱稱而非真實帳號。",
+    "cancel": "取消",
+    "confirm": "確認報名",
+    "confirmMessage": "確定要報名「{{name}}」嗎？",
+    "nicknameHint": "您可以在報名後隨時修改暱稱。",
+    "nicknameLabel": "暱稱 (選填)",
+    "nicknamePlaceholder": "留空則使用預設帳號名稱",
+    "passwordLabel": "密碼",
+    "passwordPlaceholder": "請輸入競賽密碼",
+    "requiresPasswordHint": "此競賽需要密碼才能加入。",
+    "title": "競賽報名",
+    "warningSubtitle": "此競賽已啟用作弊檢查，開始後將啟用防作弊監控。",
+    "warningTitle": "注意"
+  },
   "report": {
     "descriptionCoding": "풀이 통계, 소스 코드 및 추세 그래프가 포함된 PDF 보고서를 다운로드합니다",
     "descriptionPaper": "문제별 답변, 점수 및 TA 의견이 포함된 PDF 보고서를 다운로드합니다",
@@ -1246,6 +1271,7 @@
     "exportSuccess": "결과가 성공적으로 내보내졌습니다",
     "joinPassword": "참가 비밀번호",
     "maxWarnings": "최대 경고 횟수 (0 = 즉시 잠금)",
+    "noPassword": "免密碼",
     "publishPracticeFailed": "문제 공개에 실패했습니다",
     "publishPracticeSuccess": "대회 문제를 연습 문제로 공개했습니다",
     "publishToPractice": "문제를 연습으로 공개",
@@ -1255,6 +1281,9 @@
     "publishToPracticeDesc": "보관 후 사용 가능. 대회 문제를 공개 연습 문제로 복사합니다.",
     "publishToPracticeHint": "먼저 보관해야 공개할 수 있습니다",
     "publishToPracticeIrreversible": "이 작업은 되돌릴 수 없습니다.",
+    "requiresPassword": "需要密碼",
+    "requiresPasswordHelp": "開啟後，學生加入時需要輸入密碼",
+    "requiresPasswordShort": "密碼",
     "rulesHelperText": "Markdown 구문 지원",
     "saveSettings": "설정 저장",
     "saving": "저장 중...",
