@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ContestDetail, ContestOverviewMetrics } from "@/core/entities/contest.entity";
+import type { ContestDetail } from "@/core/entities/contest.entity";
 import OverviewActionWidgets from "./OverviewActionWidgets";
 
 vi.mock("react-i18next", () => ({
@@ -62,31 +62,12 @@ const buildContest = (
     ...overrides,
   }) as ContestDetail;
 
-const buildMetrics = (
-  overrides: Partial<ContestOverviewMetrics> = {},
-): ContestOverviewMetrics =>
-  ({
-    onlineNow: 5,
-    onlineActiveSessions: 2,
-    exam: {
-      status: "ended",
-      contestType: "coding",
-    },
-    timeProgress: {
-      totalSeconds: 7200,
-      elapsedSeconds: 3600,
-      remainingSeconds: 3600,
-      progressPercent: 50,
-      isStarted: true,
-      isEnded: false,
-    },
-    ...overrides,
-  }) as ContestOverviewMetrics;
-
 describe("OverviewActionWidgets", () => {
   it("shows the four action widgets and routes each widget", () => {
     const onOpenPanel = vi.fn();
     const onPublishContest = vi.fn().mockResolvedValue(undefined);
+    const onPublishResults = vi.fn().mockResolvedValue(undefined);
+    const onToggleStrictMode = vi.fn().mockResolvedValue(undefined);
 
     render(
       <OverviewActionWidgets
@@ -98,32 +79,39 @@ describe("OverviewActionWidgets", () => {
           pausedOrLockedCount: 5,
           submittedCount: 85,
         }}
-        overviewMetrics={buildMetrics()}
+        violationCount={9}
         onOpenPanel={onOpenPanel}
         onPublishContest={onPublishContest}
-        onPublishResults={vi.fn().mockResolvedValue(undefined)}
+        onRevertContestToDraft={vi.fn().mockResolvedValue(undefined)}
+        onPublishResults={onPublishResults}
+        onRevokeResults={vi.fn().mockResolvedValue(undefined)}
+        onToggleStrictMode={onToggleStrictMode}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "競賽狀態 發布競賽" }));
-    fireEvent.click(screen.getByRole("button", { name: "參賽者 查看統計" }));
-    fireEvent.click(screen.getByRole("button", { name: "題目數量 前往題目" }));
-    fireEvent.click(screen.getByRole("button", { name: "考試批改狀態 前往批改" }));
+    fireEvent.click(screen.getByRole("button", { name: "參賽者 進入參賽者列表" }));
+    fireEvent.click(screen.getByRole("button", { name: "題目數量 前往題目管理" }));
+    fireEvent.click(screen.getByRole("button", { name: "考試批改狀態 發布成績" }));
+    fireEvent.click(screen.getByRole("button", { name: "違規次數 前往事件面板" }));
+    fireEvent.click(screen.getByRole("button", { name: "嚴格考試模式 啟用模式" }));
 
     expect(onPublishContest).toHaveBeenCalledTimes(1);
-    expect(onOpenPanel).toHaveBeenCalledWith("statistics");
+    expect(onOpenPanel).toHaveBeenCalledWith("participants");
     expect(onOpenPanel).toHaveBeenCalledWith("problem_editor");
-    expect(onOpenPanel).toHaveBeenCalledWith("grading");
+    expect(onOpenPanel).toHaveBeenCalledWith("logs");
+    expect(onPublishResults).toHaveBeenCalledWith(63);
+    expect(onToggleStrictMode).toHaveBeenCalledTimes(1);
     expect(screen.getAllByText("考試進度").length).toBeGreaterThan(0);
   });
 
-  it("switches the status widget action after the contest ends", () => {
-    const onOpenPanel = vi.fn();
-    const onPublishResults = vi.fn().mockResolvedValue(undefined);
+  it("supports reverting contest and results after publish", () => {
+    const onRevertContestToDraft = vi.fn().mockResolvedValue(undefined);
+    const onRevokeResults = vi.fn().mockResolvedValue(undefined);
 
     render(
       <OverviewActionWidgets
-        contest={buildContest({ status: "published", resultsPublished: false })}
+        contest={buildContest({ status: "published", resultsPublished: true })}
         kpi={{
           totalParticipants: 136,
           notStartedCount: 12,
@@ -131,24 +119,20 @@ describe("OverviewActionWidgets", () => {
           pausedOrLockedCount: 5,
           submittedCount: 85,
         }}
-        overviewMetrics={buildMetrics({
-          timeProgress: {
-            totalSeconds: 7200,
-            elapsedSeconds: 7200,
-            remainingSeconds: 0,
-            progressPercent: 100,
-            isStarted: true,
-            isEnded: true,
-          },
-        })}
-        onOpenPanel={onOpenPanel}
+        violationCount={2}
+        onOpenPanel={vi.fn()}
         onPublishContest={vi.fn().mockResolvedValue(undefined)}
-        onPublishResults={onPublishResults}
+        onRevertContestToDraft={onRevertContestToDraft}
+        onPublishResults={vi.fn().mockResolvedValue(undefined)}
+        onRevokeResults={onRevokeResults}
+        onToggleStrictMode={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "競賽狀態 發布成績" }));
+    fireEvent.click(screen.getByRole("button", { name: "競賽狀態 退回草稿" }));
+    fireEvent.click(screen.getByRole("button", { name: "考試批改狀態 撤回發布" }));
 
-    expect(onPublishResults).toHaveBeenCalledTimes(1);
+    expect(onRevertContestToDraft).toHaveBeenCalledTimes(1);
+    expect(onRevokeResults).toHaveBeenCalledTimes(1);
   });
 });
