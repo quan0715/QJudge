@@ -46,6 +46,7 @@ require_env_key() {
 
 require_env_key "DB_PASSWORD"
 require_env_key "SECRET_KEY"
+require_env_key "RECUR_PUBLISHABLE_KEY"
 
 # ── deploy ─────────────────────────────────────────────────────
 

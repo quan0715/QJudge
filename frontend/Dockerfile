@@ -3,6 +3,10 @@ FROM node:20-alpine as build
 
 WORKDIR /app
 
+# Allow Docker build args to flow into the Vite build.
+ARG RECUR_PUBLISHABLE_KEY=""
+ENV RECUR_PUBLISHABLE_KEY=${RECUR_PUBLISHABLE_KEY}
+
 # Copy package files
 COPY package.json package-lock.json ./
 
