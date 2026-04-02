@@ -1,15 +1,14 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import {
-  Modal,
-  TextInput,
-  ComboBox,
-} from "@carbon/react";
+import { Button, ComboBox, Modal, TextInput } from "@carbon/react";
+import { Add, Close } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import type {
   ContestDetail,
   ContestProblemSummary,
 } from "@/core/entities/contest.entity";
 import {
   addContestProblem,
+  getContest,
   removeContestProblem,
   reorderContestProblems,
   updateContestProblemScore,
@@ -18,9 +17,14 @@ import { getProblems } from "@/infrastructure/api/repositories/problem.repositor
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useToast } from "@/shared/contexts";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
+import { GlobalSaveStatus } from "@/shared/ui/autoSave";
+import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
+import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import ProblemWorkTree from "./ProblemWorkTree";
 import EmbeddedProblemEditor from "./EmbeddedProblemEditor";
-import QuestionBankImportModal, { type BankImportSelectionItem } from "./QuestionBankImportModal";
+import QuestionSourcePanel from "./QuestionSourcePanel";
+import type { QuestionSourceDragItem } from "./questionSource.types";
+import useToolbarSaveStatus, { type ToolbarSaveStatus } from "./hooks/useToolbarSaveStatus";
 import styles from "./ExamEditorLayout.module.scss";
 
 interface CodingTestEditorLayoutProps {
@@ -28,17 +32,76 @@ interface CodingTestEditorLayoutProps {
   contest: ContestDetail;
 }
 
+const useCompactScreen = (query = "(max-width: 900px)") => {
+  const [isCompact, setIsCompact] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia(query);
+    const update = () => setIsCompact(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [query]);
+
+  return isCompact;
+};
+
+const sortProblems = (rows: ContestProblemSummary[]): ContestProblemSummary[] =>
+  [...rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+const moveProblem = (
+  list: ContestProblemSummary[],
+  fromIndex: number,
+  toIndex: number
+): ContestProblemSummary[] => {
+  if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) {
+    return list;
+  }
+
+  const copy = [...list];
+  const [item] = copy.splice(fromIndex, 1);
+  if (!item) return list;
+  copy.splice(toIndex, 0, item);
+
+  return copy.map((problem, order) => ({ ...problem, order }));
+};
+
+const resolveInsertedContestProblemId = (
+  beforeIds: Set<string>,
+  afterList: ContestProblemSummary[],
+): string | null => {
+  const inserted = afterList.find((problem) => !beforeIds.has(problem.id));
+  return inserted?.id ?? null;
+};
+
+const mergeSaveStatus = (
+  listStatus: ToolbarSaveStatus,
+  editorStatus: ToolbarSaveStatus
+): ToolbarSaveStatus => {
+  if (listStatus === "error" || editorStatus === "error") return "error";
+  if (listStatus === "saving" || editorStatus === "saving") return "saving";
+  if (listStatus === "saved" || editorStatus === "saved") return "saved";
+  return "idle";
+};
+
 const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   contestId,
   contest,
 }) => {
+  const { t } = useTranslation("contest");
   const { showToast } = useToast();
   const { refreshContest, loading: contestLoading } = useContest();
   const { confirm, modalProps } = useConfirmModal();
+  const listSave = useToolbarSaveStatus();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [orderedProblems, setOrderedProblems] = useState<ContestProblemSummary[]>(() =>
+    sortProblems(contest.problems ?? [])
+  );
+  const [editorSaveStatus, setEditorSaveStatus] = useState<ToolbarSaveStatus>("idle");
+
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [bankImportOpen, setBankImportOpen] = useState(false);
   const [newProblemTitle, setNewProblemTitle] = useState("");
   const [newProblemId, setNewProblemId] = useState("");
   const [adding, setAdding] = useState(false);
@@ -46,41 +109,82 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     { id: string; label: string }[]
   >([]);
   const [loadingAvailableProblems, setLoadingAvailableProblems] = useState(false);
+
+  const [sourceDragItem, setSourceDragItem] = useState<QuestionSourceDragItem | null>(null);
+  const [sourceHoverIndex, setSourceHoverIndex] = useState<number | null>(null);
+  const [sourcePanelExpanded, setSourcePanelExpanded] = useState(true);
+  const [sourceModalOpen, setSourceModalOpen] = useState(false);
+
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isCompactScreen = useCompactScreen();
+
   const questionEditLocked = !!contest.questionEditLocked;
-  const lockedReason = "已有學生正式作答，競賽題目已鎖定";
+  const lockedReason = t(
+    "examEditor.questionLockedReason",
+    "已有學生正式作答，競賽題目已鎖定"
+  );
 
-  const problems = useMemo(() => contest.problems ?? [], [contest.problems]);
-
-  // Pre-select first problem when data loads
   useEffect(() => {
-    if (problems.length > 0 && selectedId === null) {
-      setSelectedId(problems[0].id);
-    }
-  }, [problems, selectedId]);
+    setOrderedProblems(sortProblems(contest.problems ?? []));
+  }, [contest.problems]);
 
-  // Find the selected problem's actual problemId for the editor
+  useEffect(() => {
+    if (orderedProblems.length === 0) {
+      if (selectedId !== null) {
+        setSelectedId(null);
+      }
+      return;
+    }
+
+    if (!selectedId || !orderedProblems.some((problem) => problem.id === selectedId)) {
+      setSelectedId(orderedProblems[0].id);
+    }
+  }, [orderedProblems, selectedId]);
+
+  useEffect(() => {
+    setEditorSaveStatus("idle");
+  }, [selectedId]);
+
+  useEffect(() => {
+    return () => {
+      if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
+    };
+  }, []);
+
   const selectedProblem = selectedId
-    ? problems.find((p) => p.id === selectedId)
+    ? orderedProblems.find((problem) => problem.id === selectedId) ?? null
     : null;
 
-  // --- Load management problems for ComboBox ---
+  const toolbarStatus = useMemo(
+    () => mergeSaveStatus(listSave.status, editorSaveStatus),
+    [editorSaveStatus, listSave.status]
+  );
+
+  const fetchLatestProblems = useCallback(async (): Promise<ContestProblemSummary[]> => {
+    const latest = await getContest(contestId);
+    return sortProblems(latest?.problems ?? []);
+  }, [contestId]);
+
   const loadAvailableProblems = useCallback(async () => {
     try {
       setLoadingAvailableProblems(true);
       const list = await getProblems({ scope: "manage" });
       setAvailableProblems(
-        list.map((p) => ({
-          id: p.id.toString(),
-          label: `${p.id} - ${p.title}`,
+        list.map((problem) => ({
+          id: problem.id.toString(),
+          label: `${problem.id} - ${problem.title}`,
         })),
       );
-    } catch {
-      console.error("Failed to load management problems");
+    } catch (error) {
+      console.error("Failed to load management problems", error);
+      showToast({
+        kind: "error",
+        title: t("examEditor.loadFailed", "載入失敗"),
+      });
     } finally {
       setLoadingAvailableProblems(false);
     }
-  }, []);
+  }, [showToast, t]);
 
   const handleOpenAdd = useCallback(() => {
     if (questionEditLocked) {
@@ -88,8 +192,14 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       return;
     }
     setAddModalOpen(true);
-    loadAvailableProblems();
-  }, [loadAvailableProblems, questionEditLocked, showToast]);
+    void loadAvailableProblems();
+  }, [loadAvailableProblems, lockedReason, questionEditLocked, showToast]);
+
+  const refreshAfterListMutation = useCallback(async () => {
+    await refreshContest();
+    const latest = await fetchLatestProblems();
+    setOrderedProblems(latest);
+  }, [fetchLatestProblems, refreshContest]);
 
   const handleAdd = useCallback(async () => {
     if (!contestId) return;
@@ -97,47 +207,41 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       showToast({ kind: "warning", title: lockedReason });
       return;
     }
+
     try {
       setAdding(true);
-      if (newProblemId) {
-        await addContestProblem(contestId, { problem_id: newProblemId });
-      } else if (newProblemTitle) {
-        await addContestProblem(contestId, { title: newProblemTitle });
-      }
+      await listSave.track(async () => {
+        if (newProblemId) {
+          await addContestProblem(contestId, { problem_id: newProblemId });
+          return;
+        }
+        if (newProblemTitle) {
+          await addContestProblem(contestId, { title: newProblemTitle });
+        }
+      });
+
       setAddModalOpen(false);
       setNewProblemId("");
       setNewProblemTitle("");
-      await refreshContest();
-      showToast({ kind: "success", title: "Problem added" });
-    } catch {
-      showToast({ kind: "error", title: "Failed to add problem" });
+      await refreshAfterListMutation();
+      showToast({ kind: "success", title: t("examEditor.questionAdded", "題目已新增") });
+    } catch (error) {
+      console.error("Failed to add contest problem", error);
+      showToast({ kind: "error", title: t("examEditor.addFailed", "新增失敗") });
     } finally {
       setAdding(false);
     }
-  }, [contestId, lockedReason, newProblemId, newProblemTitle, questionEditLocked, refreshContest, showToast]);
-
-  const handleImportFromBank = useCallback(
-    async (items: BankImportSelectionItem[]) => {
-      if (!contestId || items.length === 0) return;
-      if (questionEditLocked) {
-        showToast({ kind: "warning", title: lockedReason });
-        return;
-      }
-      for (const item of items) {
-        await addContestProblem(contestId, {
-          question_bank_id: item.questionBankId,
-          question_id: item.questionId,
-        });
-      }
-      await refreshContest();
-      showToast({
-        kind: "success",
-        title: "Imported from question bank",
-        subtitle: `${items.length} question(s) imported`,
-      });
-    },
-    [contestId, lockedReason, questionEditLocked, refreshContest, showToast]
-  );
+  }, [
+    contestId,
+    listSave,
+    lockedReason,
+    newProblemId,
+    newProblemTitle,
+    questionEditLocked,
+    refreshAfterListMutation,
+    showToast,
+    t,
+  ]);
 
   const handleUpdateScore = useCallback(
     async (contestProblemId: string, maxScore: number) => {
@@ -145,142 +249,338 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         showToast({ kind: "warning", title: lockedReason });
         return;
       }
+
       try {
-        await updateContestProblemScore(contestId, contestProblemId, maxScore);
-        await refreshContest();
-      } catch {
-        showToast({ kind: "error", title: "Failed to update score" });
-        await refreshContest();
+        await listSave.track(() => updateContestProblemScore(contestId, contestProblemId, maxScore));
+        await refreshAfterListMutation();
+      } catch (error) {
+        console.error("Failed to update score", error);
+        showToast({ kind: "error", title: t("examEditor.saveFailed", "儲存失敗") });
       }
     },
-    [contestId, lockedReason, questionEditLocked, refreshContest, showToast]
+    [
+      contestId,
+      listSave,
+      lockedReason,
+      questionEditLocked,
+      refreshAfterListMutation,
+      showToast,
+      t,
+    ]
   );
 
-  // --- Remove ---
   const handleRemove = useCallback(
     async (problemId: string) => {
       if (questionEditLocked) {
         showToast({ kind: "warning", title: lockedReason });
         return;
       }
+
       const accepted = await confirm({
-        title: "Remove this problem from the contest?",
+        title: t("examEditor.confirmRemoveProblem", "確定要從競賽移除此題？"),
         danger: true,
-        confirmLabel: "Remove",
-        cancelLabel: "Cancel",
+        confirmLabel: t("button.delete", "刪除"),
+        cancelLabel: t("button.cancel", "取消"),
       });
+
       if (!accepted) return;
+
       try {
-        await removeContestProblem(contestId, problemId);
-        showToast({ kind: "success", title: "Problem removed" });
-        if (selectedId === problemId) setSelectedId(null);
-        await refreshContest();
-      } catch {
-        showToast({ kind: "error", title: "Failed to remove problem" });
+        await listSave.track(() => removeContestProblem(contestId, problemId));
+        setOrderedProblems((prev) => prev.filter((problem) => problem.id !== problemId));
+        if (selectedId === problemId) {
+          setSelectedId(null);
+        }
+        await refreshAfterListMutation();
+        showToast({ kind: "success", title: t("examEditor.questionDeleted", "題目已刪除") });
+      } catch (error) {
+        console.error("Failed to remove contest problem", error);
+        showToast({ kind: "error", title: t("examEditor.deleteFailed", "刪除失敗") });
       }
     },
-    [contestId, selectedId, confirm, questionEditLocked, lockedReason, refreshContest, showToast],
+    [
+      confirm,
+      contestId,
+      listSave,
+      lockedReason,
+      questionEditLocked,
+      refreshAfterListMutation,
+      selectedId,
+      showToast,
+      t,
+    ]
   );
 
-  // --- Reorder (debounced) ---
   const handleReorder = useCallback(
     (newOrder: ContestProblemSummary[]) => {
       if (questionEditLocked) {
         showToast({ kind: "warning", title: lockedReason });
         return;
       }
-      // Optimistic update happens in ProblemWorkTree via motion/react
+
+      const normalized = newOrder.map((problem, order) => ({ ...problem, order }));
+      setOrderedProblems(normalized);
+
       if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
       reorderTimeoutRef.current = setTimeout(async () => {
-        const orders = newOrder.map((p, i) => ({ id: p.id, order: i }));
         try {
-          await reorderContestProblems(contestId, orders);
-          await refreshContest();
-        } catch {
-          showToast({ kind: "error", title: "Failed to reorder" });
-          await refreshContest();
+          await listSave.track(() =>
+            reorderContestProblems(
+              contestId,
+              normalized.map((problem, order) => ({ id: problem.id, order }))
+            )
+          );
+          await refreshAfterListMutation();
+        } catch (error) {
+          console.error("Failed to reorder contest problems", error);
+          showToast({ kind: "error", title: t("examEditor.sortUpdateFailed", "排序更新失敗") });
+          await refreshAfterListMutation();
         }
       }, 600);
     },
-    [contestId, lockedReason, questionEditLocked, refreshContest, showToast],
+    [
+      contestId,
+      listSave,
+      lockedReason,
+      questionEditLocked,
+      refreshAfterListMutation,
+      showToast,
+      t,
+    ]
   );
 
-  // Cleanup timeout
-  React.useEffect(() => {
-    return () => {
-      if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
-    };
-  }, []);
+  const insertImportedProblemAt = useCallback(
+    async (
+      targetIndex: number,
+      importer: () => Promise<void>
+    ) => {
+      if (questionEditLocked) {
+        showToast({ kind: "warning", title: lockedReason });
+        return;
+      }
 
-  // When a problem is deleted from within the editor
-  const handleProblemRemoved = useCallback(() => {
-    setSelectedId(null);
-    refreshContest();
-  }, [refreshContest]);
+      const beforeIds = new Set(orderedProblems.map((problem) => problem.id));
+      try {
+        await importer();
+        await refreshContest();
+        const latest = await fetchLatestProblems();
+        setOrderedProblems(latest);
+
+        const insertedId = resolveInsertedContestProblemId(beforeIds, latest);
+        if (!insertedId) {
+          showToast({
+            kind: "warning",
+            title: t("examEditor.sourceInsertFallback", "題目已新增至尾端"),
+            subtitle: t(
+              "examEditor.sourceInsertFallbackDetail",
+              "無法精準識別新題目，已改為尾端插入"
+            ),
+          });
+          return;
+        }
+
+        const currentIndex = latest.findIndex((problem) => problem.id === insertedId);
+        if (currentIndex < 0) return;
+
+        const boundedIndex = Math.max(0, Math.min(targetIndex, latest.length - 1));
+        if (boundedIndex !== currentIndex) {
+          const moved = moveProblem(latest, currentIndex, boundedIndex);
+          setOrderedProblems(moved);
+          await listSave.track(() =>
+            reorderContestProblems(
+              contestId,
+              moved.map((problem, order) => ({ id: problem.id, order }))
+            )
+          );
+          await refreshAfterListMutation();
+        }
+
+        setSelectedId(insertedId);
+      } catch (error) {
+        console.error("Failed to insert imported coding problem", error);
+        showToast({ kind: "error", title: t("examEditor.addFailed", "新增失敗") });
+        await refreshAfterListMutation();
+      }
+    },
+    [
+      contestId,
+      fetchLatestProblems,
+      listSave,
+      lockedReason,
+      orderedProblems,
+      questionEditLocked,
+      refreshAfterListMutation,
+      refreshContest,
+      showToast,
+      t,
+    ]
+  );
+
+  const handleInsertFromSource = useCallback(
+    async (targetIndex: number, sourceItem: QuestionSourceDragItem) => {
+      if (sourceItem.kind !== "bank_question") return;
+
+      await insertImportedProblemAt(targetIndex, async () => {
+        await listSave.track(() =>
+          addContestProblem(contestId, {
+            question_bank_id: sourceItem.questionBankId,
+            question_id: sourceItem.questionId,
+          })
+        );
+      });
+    },
+    [contestId, insertImportedProblemAt, listSave]
+  );
+
+  const sourcePanelContent = (
+    <QuestionSourcePanel
+      mode="coding"
+      onDragStart={(item) => setSourceDragItem(item)}
+      onDragEnd={() => {
+        setSourceDragItem(null);
+        setSourceHoverIndex(null);
+      }}
+      onAddBankQuestion={(item) => {
+        void handleInsertFromSource(orderedProblems.length, {
+          kind: "bank_question",
+          category: "coding",
+          questionBankId: item.questionBankId,
+          questionId: item.questionId,
+          title: item.title,
+        });
+      }}
+    />
+  );
+
+  const sourcePanelOpen = isCompactScreen ? sourceModalOpen : sourcePanelExpanded;
+  const toggleSourcePanel = () => {
+    if (isCompactScreen) {
+      setSourceModalOpen((prev) => !prev);
+      return;
+    }
+    setSourcePanelExpanded((prev) => !prev);
+  };
 
   return (
     <>
-      <div className={styles.editorLayout}>
-        <div className={styles.workTreePane}>
+      <AdminSplitLayout
+        toolbar={
+          <PanelToolbar
+            title={t("adminLayout.nav.problemManagement", "題目管理")}
+            status={(
+              <div className={styles.toolbarStatusGroup}>
+                <GlobalSaveStatus status={toolbarStatus} />
+                {questionEditLocked ? <span className={styles.lockedHint}>{lockedReason}</span> : null}
+              </div>
+            )}
+            actions={
+              <>
+                <Button
+                  kind="primary"
+                  size="md"
+                  hasIconOnly
+                  renderIcon={sourcePanelOpen ? Close : Add}
+                  iconDescription={t(
+                    sourcePanelOpen
+                      ? "examEditor.collapseSourcePanel"
+                      : "examEditor.openSourcePanel",
+                    sourcePanelOpen ? "收起題目來源" : "開啟題目來源"
+                  )}
+                  onClick={toggleSourcePanel}
+                />
+              </>
+            }
+          />
+        }
+        sidebar={(
           <ProblemWorkTree
-            problems={problems}
+            problems={orderedProblems}
             selectedId={selectedId}
             questionEditLocked={questionEditLocked}
             lockedReason={lockedReason}
-            loading={contestLoading && problems.length === 0}
+            loading={contestLoading && orderedProblems.length === 0}
             onSelect={setSelectedId}
             onAdd={handleOpenAdd}
-            onImportFromBank={() => setBankImportOpen(true)}
             onRemove={handleRemove}
             onReorder={handleReorder}
             onUpdateScore={handleUpdateScore}
+            externalCanDrop={!!sourceDragItem && !questionEditLocked}
+            externalHoverIndex={sourceHoverIndex}
+            onExternalHoverIndexChange={setSourceHoverIndex}
+            onExternalDropAt={async (index) => {
+              if (!sourceDragItem || questionEditLocked) return;
+              const droppedItem = sourceDragItem;
+              setSourceHoverIndex(null);
+              setSourceDragItem(null);
+              await handleInsertFromSource(index, droppedItem);
+            }}
           />
-        </div>
-        <div className={styles.editorPane}>
-          {selectedProblem && !questionEditLocked ? (
-            <EmbeddedProblemEditor
-              key={selectedProblem.id}
-              contestProblemId={selectedProblem.id}
-              contestId={contestId}
-              onRemoved={handleProblemRemoved}
-            />
-          ) : selectedProblem ? (
-            <div className={styles.editorEmptyState}>
-              <p>{lockedReason}</p>
-            </div>
-          ) : (
-            <div className={styles.editorEmptyState}>
-              <p>Select a problem to edit</p>
-            </div>
-          )}
-        </div>
-      </div>
+        )}
+        rightPane={!isCompactScreen && sourcePanelExpanded ? sourcePanelContent : undefined}
+        rightPaneWidth={320}
+        contentMaxWidth={960}
+        contentClassName={styles.editorPane}
+      >
+        {selectedProblem && !questionEditLocked ? (
+          <EmbeddedProblemEditor
+            key={selectedProblem.id}
+            contestProblemId={selectedProblem.id}
+            contestId={contestId}
+            onRemoved={async () => {
+              setSelectedId(null);
+              await refreshAfterListMutation();
+            }}
+            showGlobalSaveStatus={false}
+            onGlobalSaveStatusChange={setEditorSaveStatus}
+          />
+        ) : selectedProblem ? (
+          <div className={styles.editorEmptyState}>
+            <p>{lockedReason}</p>
+          </div>
+        ) : (
+          <div className={styles.editorEmptyState}>
+            <p>{t("examEditor.noQuestions", "尚無題目")}</p>
+          </div>
+        )}
+      </AdminSplitLayout>
 
-      {/* Add Problem Modal */}
+      <Modal
+        open={sourceModalOpen}
+        onRequestClose={() => setSourceModalOpen(false)}
+        modalHeading={t("examEditor.sourcePanelTitle", "題目來源")}
+        passiveModal
+        size="md"
+      >
+        <div className={styles.sourceModalBody}>{sourcePanelContent}</div>
+      </Modal>
+
       <Modal
         open={addModalOpen}
-        modalHeading="Add Contest Problem"
-        primaryButtonText={adding ? "Adding..." : "Add"}
-        secondaryButtonText="Cancel"
+        modalHeading={t("examEditor.addQuestion", "新增題目")}
+        primaryButtonText={adding ? t("common.saving", "儲存中") : t("examEditor.addQuestion", "新增題目")}
+        secondaryButtonText={t("button.cancel", "取消")}
         onRequestSubmit={handleAdd}
         onRequestClose={() => setAddModalOpen(false)}
         primaryButtonDisabled={questionEditLocked || adding || (!newProblemId && !newProblemTitle)}
       >
         <div style={{ marginBottom: "1rem" }}>
           <p style={{ marginBottom: "1rem", color: "var(--cds-text-secondary)" }}>
-            Select from existing problems or create a new blank problem.
+            {t(
+              "examEditor.codingSourceHint",
+              "可從題庫選題，或直接建立新的程式題。"
+            )}
           </p>
           <div style={{ marginBottom: "1.5rem" }}>
             <ComboBox
               id="problem-select"
-              titleText="Select from Problem Bank (Clone)"
-              placeholder="Search by ID or title..."
+              titleText={t("examEditor.importFromBank", "從題庫匯入")}
+              placeholder={t("examEditor.sourceSearchPlaceholder", "搜尋題目")}
               items={availableProblems}
               itemToString={(item: { id: string; label: string } | null) =>
                 item ? item.label : ""
               }
-              onChange={(e: { selectedItem?: { id: string; label: string } | null }) => {
-                setNewProblemId(e.selectedItem ? e.selectedItem.id : "");
+              onChange={(event: { selectedItem?: { id: string; label: string } | null }) => {
+                setNewProblemId(event.selectedItem ? event.selectedItem.id : "");
               }}
               shouldFilterItem={({
                 item,
@@ -304,10 +604,10 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
           >
             <TextInput
               id="problem-title"
-              labelText="Or create blank problem"
-              placeholder="Enter problem title"
+              labelText={t("examEditor.createQuestion", "直接建立新題目")}
+              placeholder={t("examEditor.promptPlaceholder", "輸入題目敘述（支援 Markdown / LaTeX）")}
               value={newProblemTitle}
-              onChange={(e) => setNewProblemTitle(e.target.value)}
+              onChange={(event) => setNewProblemTitle(event.target.value)}
               disabled={!!newProblemId}
             />
           </div>
@@ -315,13 +615,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       </Modal>
 
       <ConfirmModal {...modalProps} />
-
-      <QuestionBankImportModal
-        open={bankImportOpen}
-        category="coding"
-        onClose={() => setBankImportOpen(false)}
-        onConfirm={handleImportFromBank}
-      />
     </>
   );
 };

@@ -555,7 +555,26 @@
       "invalidScore": "Score must be greater than 0",
       "minOptions": "At least 2 options are required"
     },
-    "validationFailed": "Validation failed"
+    "validationFailed": "Validation failed",
+    "sourcePanelTitle": "Question Sources",
+    "openSourcePanel": "Open question sources",
+    "sourceTabs": "Question source tabs",
+    "sourceTabTypes": "Types",
+    "sourceTabBank": "Question Bank",
+    "sourceBankLabel": "Question Bank",
+    "sourceSelectBank": "Select question bank",
+    "sourceSearch": "Search questions",
+    "sourceSearchPlaceholder": "Search questions",
+    "sourceNoQuestions": "No draggable questions available",
+    "sourceInsert": "Insert",
+    "sourceLoadFailed": "Failed to load question bank sources",
+    "sourceInsertFallback": "Question added to the end",
+    "sourceInsertFallbackDetail": "Unable to identify the new question precisely, appended to the end instead",
+    "autoSaveEnabled": "Auto-saving",
+    "questionLockedReason": "A student has started the exam. Questions are locked.",
+    "codingSourceHint": "Pick a problem from the bank or create a new coding problem.",
+    "confirmRemoveProblem": "Remove this problem from the contest?",
+    "collapseSourcePanel": "Collapse question sources"
   },
   "examJson": {
     "exportOption": "Exam JSON",

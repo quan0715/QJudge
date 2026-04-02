@@ -11,15 +11,14 @@ import {
   RadioButton,
   RadioButtonGroup,
   Checkbox,
+  InlineLoading,
 } from "@carbon/react";
 import {
   Add,
   TrashCan,
-  Checkmark,
   Close,
   DataBase,
   Draggable,
-  Edit,
   Copy,
 } from "@carbon/icons-react";
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
@@ -233,7 +232,7 @@ interface ExamQuestionEditCardProps {
   showScoreField?: boolean;
   frozen?: boolean;
   startEditingSignal?: number;
-  onSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
+  onAutoSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
   onSaveToBank?: (question: ExamQuestion) => void;
@@ -246,7 +245,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   showScoreField = true,
   frozen,
   startEditingSignal,
-  onSave,
+  onAutoSave,
   onDelete,
   onDuplicate,
   onSaveToBank,
@@ -259,6 +258,8 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   const [saving, setSaving] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const originalFormRef = useRef<QuestionFormState>(toFormState(question));
+  const latestFormRef = useRef<QuestionFormState>(toFormState(question));
+  const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync form when question prop changes (after external save/reload)
   useEffect(() => {
@@ -273,6 +274,16 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     if (startEditingSignal == null) return;
     setEditing(true);
   }, [question.id, startEditingSignal]);
+
+  useEffect(() => {
+    latestFormRef.current = form;
+  }, [form]);
+
+  useEffect(() => {
+    return () => {
+      if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+    };
+  }, []);
 
   // Click outside → save if dirty, else just close
   useEffect(() => {
@@ -298,56 +309,100 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     return () => document.removeEventListener("keydown", handleKeyDown);
   });
 
+  const getValidationError = useCallback((): string | null => {
+    if (!form.prompt.trim()) {
+      return t("examEditor.validation.emptyPrompt", "題目內容不可為空");
+    }
+    if (showScoreField) {
+      const score = Number(form.score || 0);
+      if (!Number.isFinite(score) || score <= 0) {
+        return t("examEditor.validation.invalidScore", "配分必須大於 0");
+      }
+    }
+    if (!isChoiceType(form.questionType)) return null;
+    if (form.questionType !== "true_false") {
+      if (form.options.length < 2) {
+        return t("examEditor.validation.minOptions", "至少需要 2 個選項");
+      }
+      if (form.options.some((o) => !o.trim())) {
+        return t("examEditor.validation.blankOption", "選項文字不可空白");
+      }
+    }
+    return null;
+  }, [form, showScoreField, t]);
+
+  const persistAutoSave = useCallback(
+    async (showValidationError = false): Promise<boolean> => {
+      const validationError = getValidationError();
+      if (validationError) {
+        if (showValidationError) {
+          showToast({
+            kind: "error",
+            title: t("examEditor.validationFailed", "驗證失敗"),
+            subtitle: validationError,
+          });
+        }
+        return false;
+      }
+
+      try {
+        setSaving(true);
+        const snapshot = latestFormRef.current;
+        const payload = buildPayload(snapshot, showScoreField);
+        await onAutoSave(payload, question.id);
+        originalFormRef.current = { ...snapshot };
+        return true;
+      } catch (error) {
+        const subtitle =
+          error instanceof Error
+            ? error.message
+            : t("examEditor.saveFailed", "儲存失敗");
+        showToast({
+          kind: "error",
+          title: t("examEditor.saveFailed", "儲存失敗"),
+          subtitle,
+        });
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [getValidationError, onAutoSave, question.id, showScoreField, showToast, t]
+  );
+
   const handleCloseOrSave = async () => {
-    if (isFormDirty(form, originalFormRef.current)) {
-      await handleSave();
+    if (saveDebounceRef.current) {
+      clearTimeout(saveDebounceRef.current);
+      saveDebounceRef.current = null;
+    }
+    if (isFormDirty(latestFormRef.current, originalFormRef.current)) {
+      const ok = await persistAutoSave(true);
+      if (!ok) return;
+      setEditing(false);
     } else {
       setEditing(false);
     }
   };
 
-  const validateForm = useCallback((): boolean => {
-    if (!form.prompt.trim()) {
-      showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.emptyPrompt", "題目內容不可為空") });
-      return false;
+  const handleInlineBlurAutoSave = useCallback(() => {
+    if (!editing || frozen) return;
+    if (!isFormDirty(latestFormRef.current, originalFormRef.current, showScoreField)) return;
+    if (saveDebounceRef.current) {
+      clearTimeout(saveDebounceRef.current);
+      saveDebounceRef.current = null;
     }
-    if (showScoreField) {
-      const score = Number(form.score || 0);
-      if (!Number.isFinite(score) || score <= 0) {
-        showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.invalidScore", "配分必須大於 0") });
-        return false;
-      }
-    }
-    if (!isChoiceType(form.questionType)) return true;
-    if (form.questionType !== "true_false") {
-      if (form.options.length < 2) {
-        showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.minOptions", "至少需要 2 個選項") });
-        return false;
-      }
-      if (form.options.some((o) => !o.trim())) {
-        showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.blankOption", "選項文字不可空白") });
-        return false;
-      }
-    }
-    return true;
-  }, [form, showScoreField, showToast, t]);
+    void persistAutoSave(false);
+  }, [editing, frozen, persistAutoSave, showScoreField]);
 
-  const handleSave = async () => {
-    if (!validateForm()) return;
-    try {
-      setSaving(true);
-      const payload = buildPayload(form, showScoreField);
-      await onSave(payload, question.id);
-      setEditing(false);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setForm(toFormState(question));
-    setEditing(false);
-  };
+  useEffect(() => {
+    if (!editing || frozen) return;
+    if (!isFormDirty(form, originalFormRef.current, showScoreField)) return;
+    if (getValidationError()) return;
+    if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+    saveDebounceRef.current = setTimeout(() => {
+      void persistAutoSave(false);
+    }, 1000);
+  }, [editing, form, frozen, getValidationError, persistAutoSave, showScoreField]);
 
   const handleTypeChange = (nextType: ExamQuestionType) => {
     setForm((prev) => {
@@ -395,11 +450,26 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         <div
           ref={cardRef}
           className={`${styles.card} ${styles.cardPreview}`}
+          onClick={() => {
+            if (!frozen) setEditing(true);
+          }}
+          role="button"
+          tabIndex={frozen ? -1 : 0}
+          onKeyDown={(event) => {
+            if (frozen) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setEditing(true);
+            }
+          }}
         >
           {!frozen && onPointerDownDrag && (
             <div
               className={styles.dragIndicator}
-              onPointerDown={onPointerDownDrag}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                onPointerDownDrag(event);
+              }}
             >
               <Draggable size={16} />
             </div>
@@ -423,7 +493,10 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                   <button
                     type="button"
                     className={styles.saveToBankButton}
-                    onClick={() => onSaveToBank(question)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSaveToBank(question);
+                    }}
                   >
                     <DataBase size={12} />
                     {t("examEditor.saveToBank", { defaultValue: "收錄到題庫" })}
@@ -436,13 +509,16 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 ) : null}
                 {!frozen && (
                   <>
-                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.copy", "複製")} onClick={() => onDuplicate(question.id)}>
+                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.copy", "複製")} onClick={(event) => {
+                      event.stopPropagation();
+                      onDuplicate(question.id);
+                    }}>
                       <Copy size={16} />
                     </IconButton>
-                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.edit", "編輯")} onClick={() => setEditing(true)}>
-                      <Edit size={16} />
-                    </IconButton>
-                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.delete", "刪除")} onClick={() => onDelete(question.id)}>
+                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.delete", "刪除")} onClick={(event) => {
+                      event.stopPropagation();
+                      onDelete(question.id);
+                    }}>
                       <TrashCan size={16} />
                     </IconButton>
                   </>
@@ -544,12 +620,15 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   }
 
   // ─── EDIT MODE ───
-  const dirty = isFormDirty(form, originalFormRef.current, showScoreField);
   const TypeIcon = TYPE_ICON[form.questionType];
 
   return (
     <Layer>
-      <div ref={cardRef} className={`${styles.card} ${styles.cardEditing}`}>
+      <div
+        ref={cardRef}
+        className={`${styles.card} ${styles.cardEditing}`}
+        onBlurCapture={handleInlineBlurAutoSave}
+      >
         <div className={styles.editToolbar}>
           <div className={styles.editToolbarLeft}>
             <div className={styles.typeSelector}>
@@ -589,18 +668,19 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             ) : null}
           </div>
           <div className={styles.editToolbarRight}>
-            <IconButton kind="ghost" size="sm" label={t("button.cancel", "取消")} onClick={handleCancel}>
+            {saving ? (
+              <InlineLoading
+                status="active"
+                description={t("common.saving", "儲存中...")}
+              />
+            ) : (
+              <span className={styles.autoSaveHint}>
+                {t("examEditor.autoSaveEnabled", "自動儲存中")}
+              </span>
+            )}
+            <IconButton kind="ghost" size="sm" label={t("button.close", "關閉")} onClick={handleCloseOrSave}>
               <Close size={16} />
             </IconButton>
-            <Button
-              kind="primary"
-              size="sm"
-              renderIcon={Checkmark}
-              onClick={handleSave}
-              disabled={!dirty || saving || frozen}
-            >
-              {saving ? t("common.saving", "儲存中...") : t("button.save", "儲存")}
-            </Button>
           </div>
         </div>
 

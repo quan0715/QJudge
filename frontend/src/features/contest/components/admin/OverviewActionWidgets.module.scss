@@ -175,8 +175,23 @@
 
 .progressFooter {
   margin: 0;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  display: grid;
+  gap: 0.2rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   color: var(--cds-text-secondary);
+  line-height: 1.35;
+}
+
+.progressWindowText {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.progressStatusText {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .bottomGrid {

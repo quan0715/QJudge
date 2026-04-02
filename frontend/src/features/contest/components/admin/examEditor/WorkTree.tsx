@@ -11,7 +11,6 @@ import {
   ListItemContent,
   ListItemTitle,
   ListItemMeta,
-  ListItemTrailing,
 } from "@/shared/ui/list/ListPanel";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
@@ -25,7 +24,7 @@ interface WorkTreeProps {
   onSelect: (id: string) => void;
   onAdd: () => void;
   onImportFromBank?: () => void;
-  onDelete: (id: string) => void;
+  onDelete?: (id: string) => void;
   onReorder: (reordered: ExamQuestion[]) => void;
 }
 
@@ -88,12 +87,9 @@ const WorkTree: React.FC<WorkTreeProps> = ({
   questions,
   selectedId,
   frozen,
-  lockedReason,
   loading,
   onSelect,
   onAdd,
-  onImportFromBank,
-  onDelete,
   onReorder,
 }) => {
   const { t } = useTranslation("contest");
@@ -134,7 +130,6 @@ const WorkTree: React.FC<WorkTreeProps> = ({
         <>
           <span>{t("examEditor.questionCount", { count: questions.length })}</span>
           <span>{t("examEditor.totalScore", { score: totalScore })}</span>
-          {frozen && lockedReason && <span>{lockedReason}</span>}
         </>
       )}
     >

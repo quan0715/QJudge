@@ -9,7 +9,6 @@ import {
   useExamAutoSave,
   type FieldSaveState,
 } from "@/features/contest/components/admin/examEditor/hooks/useExamAutoSave";
-import { GlobalSaveStatus } from "@/shared/ui/autoSave/GlobalSaveStatus";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import {
   archiveContest,
@@ -17,7 +16,6 @@ import {
 } from "@/infrastructure/api/repositories";
 import { sanitizeAnticheatPolicy } from "@/features/contest/components/admin/settings/anticheatPolicyUtils";
 import { ContestSettingsModal } from "@/features/contest/components/admin/settings";
-import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
 
 const isValidDate = (date: Date | null | undefined): date is Date =>
   !!date && !Number.isNaN(date.getTime());
@@ -80,7 +78,12 @@ const isValueEqual = (left: unknown, right: unknown): boolean => {
   return false;
 };
 
-const AdminContestSettingsScreen = () => {
+interface ContestSettingsOverlayProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+const ContestSettingsOverlay = ({ open, onClose }: ContestSettingsOverlayProps) => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation("contest");
@@ -92,8 +95,6 @@ const AdminContestSettingsScreen = () => {
     contestId: contestId || "",
     debounceMs: 1500,
   });
-
-  const [modalOpen, setModalOpen] = useState(true);
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [startTimeInput, setStartTimeInput] = useState("");
   const [endTimeInput, setEndTimeInput] = useState("");
@@ -275,120 +276,83 @@ const AdminContestSettingsScreen = () => {
   };
 
   return (
-    <div className={s.root}>
-      <div className={s.inner}>
-        <div className={s.pageHeader}>
-          <h2
-            style={{
-              fontSize: "var(--cds-heading-04-font-size, 1.25rem)",
-              fontWeight: 400,
-              lineHeight: "1.625rem",
-              color: "var(--cds-text-primary)",
-              margin: 0,
-            }}
-          >
-            {t("settings.title")}
-          </h2>
-          <GlobalSaveStatus status={autoSave.globalStatus} />
-        </div>
-
-        {!modalOpen && (
-          <div style={{ display: "flex", justifyContent: "center", paddingTop: "3rem" }}>
-            <button
-              type="button"
-              onClick={() => setModalOpen(true)}
-              style={{
-                background: "none",
-                border: "1px solid var(--cds-border-strong)",
-                borderRadius: "4px",
-                padding: "0.75rem 1.5rem",
-                color: "var(--cds-link-primary)",
-                cursor: "pointer",
-                fontSize: "0.875rem",
-              }}
-            >
-              {t("settings.openSettings", "開啟競賽設定")}
-            </button>
-          </div>
-        )}
-
-        <ContestSettingsModal
-          open={modalOpen}
-          onRequestClose={() => setModalOpen(false)}
-          t={t}
-          tc={tc}
-          contest={contest}
-          form={form}
-          getState={getState}
-          onRetry={autoSave.retrySave}
-          onChange={handleChange}
-          onConfirmedChange={handleConfirmedChange}
-          startDateInput={startDateInput}
-          endDateInput={endDateInput}
-          startTimeInput={startTimeInput}
-          endTimeInput={endTimeInput}
-          startMeridiem={getMeridiemFromIso(form.startTime)}
-          endMeridiem={getMeridiemFromIso(form.endTime)}
-          onStartDateChange={(dates) =>
-            handleDateChange(
-              dates,
-              "startTime",
-              setStartDateInput,
-              () => startTimeInput,
-              () => getMeridiemFromIso(form.startTime),
-            )
-          }
-          onEndDateChange={(dates) =>
-            handleDateChange(
-              dates,
-              "endTime",
-              setEndDateInput,
-              () => endTimeInput,
-              () => getMeridiemFromIso(form.endTime),
-            )
-          }
-          onStartTimeChange={(event) =>
-            handleTimeChange(
-              event,
-              "startTime",
-              setStartTimeInput,
-              () => startDateInput ?? parseDate(form.startTime as string),
-              () => getMeridiemFromIso(form.startTime),
-            )
-          }
-          onEndTimeChange={(event) =>
-            handleTimeChange(
-              event,
-              "endTime",
-              setEndTimeInput,
-              () => endDateInput ?? parseDate(form.endTime as string),
-              () => getMeridiemFromIso(form.endTime),
-            )
-          }
-          onStartMeridiemChange={(value) =>
-            handleMeridiemChange(
-              value as string,
-              "startTime",
-              () => startDateInput,
-              () => startTimeInput,
-            )
-          }
-          onEndMeridiemChange={(value) =>
-            handleMeridiemChange(
-              value as string,
-              "endTime",
-              () => endDateInput,
-              () => endTimeInput,
-            )
-          }
-          onArchive={() => void handleArchive()}
-          onDelete={() => void handleDelete()}
-        />
-        {/* ConfirmModal must be outside SettingsModal to avoid Carbon focus-trap conflicts */}
-        <ConfirmModal {...modalProps} />
-      </div>
-    </div>
+    <>
+      <ContestSettingsModal
+        open={open}
+        onRequestClose={onClose}
+        t={t}
+        tc={tc}
+        contest={contest}
+        form={form}
+        getState={getState}
+        onRetry={autoSave.retrySave}
+        onChange={handleChange}
+        onConfirmedChange={handleConfirmedChange}
+        startDateInput={startDateInput}
+        endDateInput={endDateInput}
+        startTimeInput={startTimeInput}
+        endTimeInput={endTimeInput}
+        startMeridiem={getMeridiemFromIso(form.startTime)}
+        endMeridiem={getMeridiemFromIso(form.endTime)}
+        onStartDateChange={(dates) =>
+          handleDateChange(
+            dates,
+            "startTime",
+            setStartDateInput,
+            () => startTimeInput,
+            () => getMeridiemFromIso(form.startTime),
+          )
+        }
+        onEndDateChange={(dates) =>
+          handleDateChange(
+            dates,
+            "endTime",
+            setEndDateInput,
+            () => endTimeInput,
+            () => getMeridiemFromIso(form.endTime),
+          )
+        }
+        onStartTimeChange={(event) =>
+          handleTimeChange(
+            event,
+            "startTime",
+            setStartTimeInput,
+            () => startDateInput ?? parseDate(form.startTime as string),
+            () => getMeridiemFromIso(form.startTime),
+          )
+        }
+        onEndTimeChange={(event) =>
+          handleTimeChange(
+            event,
+            "endTime",
+            setEndTimeInput,
+            () => endDateInput ?? parseDate(form.endTime as string),
+            () => getMeridiemFromIso(form.endTime),
+          )
+        }
+        onStartMeridiemChange={(value) =>
+          handleMeridiemChange(
+            value as string,
+            "startTime",
+            () => startDateInput,
+            () => startTimeInput,
+          )
+        }
+        onEndMeridiemChange={(value) =>
+          handleMeridiemChange(
+            value as string,
+            "endTime",
+            () => endDateInput,
+            () => endTimeInput,
+          )
+        }
+        onArchive={() => void handleArchive()}
+        onDelete={() => void handleDelete()}
+      />
+      <ConfirmModal {...modalProps} />
+    </>
   );
 };
 
-export default AdminContestSettingsScreen;
+export { ContestSettingsOverlay };
+export default ContestSettingsOverlay;

@@ -25,7 +25,6 @@ export default function AdminOverviewScreen() {
   const {
     participants,
     examEvents,
-    overviewMetrics,
     initialLoading,
     refreshAllAdminData,
   } = useContestAdmin();
@@ -206,12 +205,8 @@ export default function AdminOverviewScreen() {
         hero={
           <KpiCards
             contest={contest}
-            overviewMetrics={overviewMetrics}
             loading={initialLoading}
             onOpenPanel={openPanel}
-            onPublishContest={handlePublishContest}
-            onPublishResults={handlePublishResults}
-            onRevokeResults={handleRevokeResults}
           />
         }
         main={

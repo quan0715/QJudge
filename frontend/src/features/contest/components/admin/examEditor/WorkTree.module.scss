@@ -31,7 +31,7 @@
 
 /* ── Reorder list container ── */
 .treeListContent {
-  padding: layout.$spacing-03;
+  padding: 0;
   list-style: none;
   margin: 0;
   display: flex;
@@ -148,4 +148,98 @@
 .skeletonMeta {
   width: 35%;
   height: 14px;
+}
+
+/* ── Coding problem list item ── */
+.treeItem {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-02 layout.$spacing-02;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition: border-color 0.1s ease, background-color 0.1s ease;
+
+  &:hover {
+    background: var(--cds-layer-hover);
+  }
+}
+
+.treeItemActive {
+  border-color: var(--cds-border-interactive);
+  background: color-mix(in srgb, var(--cds-support-info) 10%, transparent);
+}
+
+.itemButton {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  display: flex;
+  align-items: flex-start;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-02;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.itemInfo {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.itemTitle {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-primary);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+}
+
+.itemSubMeta {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scoreEditor {
+  width: 5.25rem;
+  flex-shrink: 0;
+}
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── External source insertion slots (coding right panel drag) ── */
+.externalDropSlotIdle {
+  height: 0;
+}
+
+.externalDropSlot {
+  height: 18px;
+  border: 1px dashed transparent;
+  border-radius: 6px;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.externalDropSlotActive {
+  border-color: var(--cds-border-interactive);
+  background: color-mix(in srgb, var(--cds-support-info) 14%, transparent);
 }

@@ -34,6 +34,7 @@
       "publishResultsFailed": "發布失敗",
       "publishResultsSuccess": "成績已發布",
       "publishResultsWarning": "目前批改進度約 {{progress}}%，仍可發布，但建議先確認未完成批改內容。",
+      "openContestHomepage": "開啟競賽主頁",
       "revertToDraft": "退回草稿",
       "revertToDraftBody": "退回草稿後學生將無法再進入本競賽。",
       "revertToDraftConfirm": "確定要退回草稿嗎？",
@@ -52,6 +53,7 @@
       "strictModeEnableBody": "啟用後會套用監控與防作弊限制。",
       "strictModeEnableConfirm": "確定要啟用嚴格考試模式嗎？",
       "strictModeEnableSuccess": "已啟用嚴格考試模式",
+      "editSettings": "設定",
       "updateFailed": "更新失敗"
     },
     "events": {
@@ -555,7 +557,26 @@
       "invalidScore": "配分必須大於 0",
       "minOptions": "至少需要 2 個選項"
     },
-    "validationFailed": "驗證失敗"
+    "validationFailed": "驗證失敗",
+    "sourcePanelTitle": "題目來源",
+    "openSourcePanel": "開啟題目來源",
+    "sourceTabs": "題目來源分頁",
+    "sourceTabTypes": "題型",
+    "sourceTabBank": "題庫",
+    "sourceBankLabel": "題庫",
+    "sourceSelectBank": "選擇題庫",
+    "sourceSearch": "搜尋題目",
+    "sourceSearchPlaceholder": "搜尋題目",
+    "sourceNoQuestions": "目前沒有可拖入的題目",
+    "sourceInsert": "插入",
+    "sourceLoadFailed": "載入題庫來源失敗",
+    "sourceInsertFallback": "題目已新增至尾端",
+    "sourceInsertFallbackDetail": "無法精準識別新題目，已改為尾端插入",
+    "autoSaveEnabled": "自動儲存中",
+    "questionLockedReason": "已有學生正式作答，競賽題目已鎖定",
+    "codingSourceHint": "可從題庫選題，或直接建立新的程式題。",
+    "confirmRemoveProblem": "確定要從競賽移除此題？",
+    "collapseSourcePanel": "收起題目來源"
   },
   "examJson": {
     "exportOption": "Exam JSON",

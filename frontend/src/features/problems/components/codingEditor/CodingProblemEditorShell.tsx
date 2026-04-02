@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@carbon/react";
 import { Download, Upload, View } from "@carbon/icons-react";
 import type { ProblemYAML } from "@/shared/utils/problemYamlParser";
@@ -28,6 +28,8 @@ interface CodingProblemEditorShellProps {
     close: () => void;
   }) => void;
   showPreview?: boolean;
+  showGlobalSaveStatus?: boolean;
+  onGlobalSaveStatusChange?: (status: "idle" | "saving" | "saved" | "error") => void;
   extraActions?: React.ReactNode;
 }
 
@@ -40,6 +42,8 @@ const CodingProblemEditorShell: React.FC<CodingProblemEditorShellProps> = ({
   onImportYaml,
   onExportConfirm,
   showPreview = true,
+  showGlobalSaveStatus = true,
+  onGlobalSaveStatusChange,
   extraActions,
 }) => {
   const { autoSave } = useProblemEdit();
@@ -49,13 +53,19 @@ const CodingProblemEditorShell: React.FC<CodingProblemEditorShellProps> = ({
 
   const previewData = useMemo(() => formSchemaToPreview(formValues), [formValues]);
 
+  useEffect(() => {
+    onGlobalSaveStatusChange?.(autoSave.globalStatus);
+  }, [autoSave.globalStatus, onGlobalSaveStatusChange]);
+
   return (
     <div className={styles.editorRoot}>
       <ProblemEditHeader
         title={title || "Untitled"}
         onBack={onBack || (() => {})}
         hideBackButton={hideBackButton}
-        globalSaveStatus={<GlobalSaveStatus status={autoSave.globalStatus} />}
+        globalSaveStatus={
+          showGlobalSaveStatus ? <GlobalSaveStatus status={autoSave.globalStatus} /> : undefined
+        }
         actions={
           <>
             {onImportYaml ? (

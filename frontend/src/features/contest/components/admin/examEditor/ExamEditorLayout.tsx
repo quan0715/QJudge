@@ -8,6 +8,7 @@ import React, {
 import { Button, Modal } from "@carbon/react";
 import {
   Add,
+  Close,
   DocumentDownload,
   Upload,
   View,
@@ -36,9 +37,11 @@ import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import QuestionBankImportModal, { type BankImportSelectionItem } from "./QuestionBankImportModal";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
+import { GlobalSaveStatus } from "@/shared/ui/autoSave";
+import QuestionSourcePanel from "./QuestionSourcePanel";
+import type { QuestionSourceDragItem } from "./questionSource.types";
+import useToolbarSaveStatus from "./hooks/useToolbarSaveStatus";
 import styles from "./ExamEditorLayout.module.scss";
-
-// --- Question type picker config ---
 
 const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
   "single_choice", "multiple_choice", "true_false", "short_answer", "essay",
@@ -63,6 +66,42 @@ export interface ExamEditorLayoutHandle {
   openJsonImportModal: () => void;
 }
 
+const useCompactScreen = (query = "(max-width: 900px)") => {
+  const [isCompact, setIsCompact] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia(query);
+    const update = () => setIsCompact(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [query]);
+
+  return isCompact;
+};
+
+const moveQuestion = (list: ExamQuestion[], fromIndex: number, toIndex: number): ExamQuestion[] => {
+  if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return list;
+  const copy = [...list];
+  const [item] = copy.splice(fromIndex, 1);
+  if (!item) return list;
+  copy.splice(toIndex, 0, item);
+  return copy.map((question, order) => ({ ...question, order }));
+};
+
+const resolveInsertedQuestionId = (
+  beforeIds: Set<string>,
+  afterList: ExamQuestion[],
+  preferredId?: string | null,
+): string | null => {
+  if (preferredId && afterList.some((question) => question.id === preferredId)) {
+    return preferredId;
+  }
+  const inserted = afterList.find((question) => !beforeIds.has(question.id));
+  return inserted?.id ?? null;
+};
+
 const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayoutProps>(({
   contestId,
   contest,
@@ -72,18 +111,22 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   const { showToast } = useToast();
   const { t } = useTranslation("contest");
   const { confirm, modalProps } = useConfirmModal();
+  const toolbarSave = useToolbarSaveStatus();
 
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sourceDragItem, setSourceDragItem] = useState<QuestionSourceDragItem | null>(null);
+  const [sourceHoverIndex, setSourceHoverIndex] = useState<number | null>(null);
+  const [sourcePanelExpanded, setSourcePanelExpanded] = useState(true);
+  const [sourceModalOpen, setSourceModalOpen] = useState(false);
+
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Refs for scroll sync
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const editorPaneRef = useRef<HTMLDivElement>(null);
   const programmaticScrollRef = useRef(false);
 
-  // Type picker dialog state
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [insertAtOrder, setInsertAtOrder] = useState<number | null>(null);
   const [jsonImportOpen, setJsonImportOpen] = useState(false);
@@ -92,6 +135,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
 
   const frozen = !!contest.questionEditLocked;
   const lockedReason = "已有學生正式作答，競賽題目已鎖定";
+  const isCompactScreen = useCompactScreen();
 
   const toUpsertPayload = useCallback(
     (
@@ -125,25 +169,81 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     [],
   );
 
-  // --- Load questions ---
-  const loadQuestions = useCallback(async () => {
-    if (!contestId) return;
+  const loadQuestions = useCallback(async (): Promise<ExamQuestion[]> => {
+    if (!contestId) return [];
     try {
       setLoading(true);
       const list = await getExamQuestions(contestId);
       const sorted = list.sort((a, b) => a.order - b.order);
       setQuestions(sorted);
+      return sorted;
     } catch (error) {
       console.error("Failed to load exam questions", error);
       showToast({ kind: "error", title: t("examEditor.loadFailed", "載入失敗"), subtitle: t("examEditor.loadFailedDetail", "載入 Exam 題目失敗") });
+      return [];
     } finally {
       setLoading(false);
     }
-  }, [contestId, showToast]);
+  }, [contestId, showToast, t]);
 
   useEffect(() => {
-    loadQuestions();
+    void loadQuestions();
   }, [loadQuestions]);
+
+  const persistOrder = useCallback(
+    async (orderedQuestions: ExamQuestion[]) => {
+      const payload = orderedQuestions.map((question, order) => ({ id: question.id, order }));
+      const result = await toolbarSave.track(() => reorderExamQuestions(contestId, payload));
+      setQuestions(result.sort((a, b) => a.order - b.order));
+    },
+    [contestId, toolbarSave]
+  );
+
+  const insertImportedQuestionAt = useCallback(
+    async (
+      targetIndex: number,
+      importer: () => Promise<string | null>
+    ) => {
+      if (frozen) {
+        showToast({ kind: "warning", title: lockedReason });
+        return;
+      }
+
+      const beforeIds = new Set(questions.map((question) => question.id));
+      let preferredId: string | null = null;
+
+      try {
+        preferredId = await importer();
+        const reloaded = await loadQuestions();
+        const insertedId = resolveInsertedQuestionId(beforeIds, reloaded, preferredId);
+        if (!insertedId) {
+          showToast({
+            kind: "warning",
+            title: t("examEditor.sourceInsertFallback", "題目已新增至尾端"),
+            subtitle: t("examEditor.sourceInsertFallbackDetail", "無法精準識別新題目，已改為尾端插入"),
+          });
+          return;
+        }
+
+        const currentIndex = reloaded.findIndex((question) => question.id === insertedId);
+        if (currentIndex < 0) return;
+
+        const boundedIndex = Math.max(0, Math.min(targetIndex, reloaded.length - 1));
+        if (boundedIndex !== currentIndex) {
+          const moved = moveQuestion(reloaded, currentIndex, boundedIndex);
+          await persistOrder(moved);
+        }
+
+        setSelectedId(insertedId);
+      } catch (error) {
+        console.error("Failed to insert imported question", error);
+        const message = error instanceof Error ? error.message : t("examEditor.addFailed", "新增失敗");
+        showToast({ kind: "error", title: t("examEditor.addFailed", "新增失敗"), subtitle: message });
+        await loadQuestions();
+      }
+    },
+    [frozen, loadQuestions, lockedReason, persistOrder, questions, showToast, t]
+  );
 
   const handleJsonImport = useCallback(
     async (normalizedQuestions: ExamQuestionJsonNormalizedQuestion[]) => {
@@ -155,7 +255,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         toUpsertPayload(q, index),
       );
 
-      await batchImportExamQuestions(contestId, payloads);
+      await toolbarSave.track(() => batchImportExamQuestions(contestId, payloads));
       await loadQuestions();
       setSelectedId(null);
       showToast({
@@ -164,7 +264,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         subtitle: t("examEditor.importSuccessDetail", { count: normalizedQuestions.length }),
       });
     },
-    [contestId, frozen, loadQuestions, lockedReason, showToast, toUpsertPayload],
+    [contestId, frozen, loadQuestions, lockedReason, showToast, t, toUpsertPayload, toolbarSave],
   );
 
   useImperativeHandle(
@@ -182,12 +282,12 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         showToast({ kind: "warning", title: lockedReason });
         return;
       }
-      await importExamQuestionsFromBank(contestId, {
+      await toolbarSave.track(() => importExamQuestionsFromBank(contestId, {
         items: items.map((item) => ({
           question_bank_id: item.questionBankId,
           question_id: item.questionId,
         })),
-      });
+      }));
       await loadQuestions();
       showToast({
         kind: "success",
@@ -195,10 +295,9 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         subtitle: t("examEditor.importSuccessDetail", { count: items.length }),
       });
     },
-    [contestId, frozen, loadQuestions, lockedReason, showToast, t],
+    [contestId, frozen, loadQuestions, lockedReason, showToast, t, toolbarSave],
   );
 
-  // Pre-select first question once loaded
   useEffect(() => {
     if (questions.length > 0 && selectedId === null) {
       setSelectedId(questions[0].id);
@@ -211,7 +310,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     };
   }, []);
 
-  // --- Scroll sync: right pane scroll → update selectedId ---
   useEffect(() => {
     const pane = editorPaneRef.current;
     if (!pane || questions.length === 0) return;
@@ -250,7 +348,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     return () => pane.removeEventListener("scroll", handleScroll);
   }, [questions, selectedId]);
 
-  // --- Selection from WorkTree click: scroll right pane to card ---
   const handleSelect = useCallback((id: string) => {
     setSelectedId(id);
     const el = cardRefs.current.get(id);
@@ -263,13 +360,11 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     }
   }, []);
 
-  // --- Open type picker (append or insert) ---
   const openTypePicker = useCallback((order?: number) => {
     setInsertAtOrder(order ?? null);
     setTypePickerOpen(true);
   }, []);
 
-  // --- Create question of selected type ---
   const handleCreateQuestion = useCallback(
     async (type: ExamQuestionType) => {
       setTypePickerOpen(false);
@@ -277,7 +372,9 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       try {
         const base = DEFAULT_PAYLOADS[type];
         const order = insertAtOrder ?? questions.length;
-        const created = await createExamQuestion(contestId, { ...base, order });
+        const created = await toolbarSave.track(() =>
+          createExamQuestion(contestId, { ...base, order })
+        );
         showToast({ kind: "success", title: t("examEditor.questionAdded", "題目已新增") });
         await loadQuestions();
         if (created?.id) {
@@ -293,47 +390,48 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         showToast({ kind: "error", title: t("examEditor.addFailed", "新增失敗"), subtitle: message });
       }
     },
-    [contestId, frozen, insertAtOrder, questions.length, loadQuestions, showToast],
+    [contestId, frozen, insertAtOrder, loadQuestions, questions.length, showToast, t, toolbarSave],
   );
 
-  // --- Reorder (debounced) ---
   const handleReorder = useCallback(
     (newOrder: ExamQuestion[]) => {
-      setQuestions(newOrder);
+      setQuestions(newOrder.map((question, order) => ({ ...question, order })));
       if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
       reorderTimeoutRef.current = setTimeout(async () => {
-        const orders = newOrder.map((q, order) => ({ id: q.id, order }));
         try {
-          await reorderExamQuestions(contestId, orders);
+          await persistOrder(newOrder.map((question, order) => ({ ...question, order })));
         } catch (error) {
           console.error("Failed to reorder", error);
           showToast({ kind: "error", title: t("examEditor.sortUpdateFailed", "排序更新失敗") });
-          loadQuestions();
+          await loadQuestions();
         }
       }, 600);
     },
-    [contestId, loadQuestions, showToast],
+    [loadQuestions, persistOrder, showToast, t],
   );
 
-  // --- Save (update) ---
-  const handleSave = useCallback(
+  const handleAutoSave = useCallback(
     async (payload: ExamQuestionUpsertPayload, questionId?: string) => {
+      if (!questionId) return;
       try {
-        if (questionId) {
-          await updateExamQuestion(contestId, questionId, payload);
-          showToast({ kind: "success", title: t("examEditor.questionUpdated", "題目已更新") });
-        }
-        await loadQuestions();
+        const updated = await toolbarSave.track(() =>
+          updateExamQuestion(contestId, questionId, payload)
+        );
+        setQuestions((prev) =>
+          prev.map((question) =>
+            question.id === questionId
+              ? { ...question, ...updated }
+              : question
+          )
+        );
       } catch (error) {
         console.error("Failed to save exam question", error);
-        const message = error instanceof Error ? error.message : t("examEditor.saveFailed", "儲存失敗");
-        showToast({ kind: "error", title: t("examEditor.saveFailed", "儲存失敗"), subtitle: message });
+        throw error;
       }
     },
-    [contestId, loadQuestions, showToast],
+    [contestId, toolbarSave],
   );
 
-  // --- Duplicate ---
   const handleDuplicate = useCallback(
     async (questionId: string) => {
       if (frozen) return;
@@ -354,7 +452,9 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
             ? [...source.correctAnswer]
             : source.correctAnswer;
         }
-        const created = await createExamQuestion(contestId, payload);
+        const created = await toolbarSave.track(() =>
+          createExamQuestion(contestId, payload)
+        );
         showToast({ kind: "success", title: t("examEditor.questionCopied", "題目已複製") });
         await loadQuestions();
         if (created?.id) {
@@ -370,13 +470,12 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         showToast({ kind: "error", title: t("examEditor.copyFailed", "複製失敗"), subtitle: message });
       }
     },
-    [contestId, frozen, questions, loadQuestions, showToast],
+    [contestId, frozen, loadQuestions, questions, showToast, t, toolbarSave],
   );
 
-  // --- Delete ---
   const handleDelete = useCallback(
     async (questionId: string) => {
-      const q = questions.find((q) => q.id === questionId);
+      const q = questions.find((question) => question.id === questionId);
       const accepted = await confirm({
         title: t("examEditor.confirmDelete", { num: (q?.order ?? 0) + 1 }),
         danger: true,
@@ -385,7 +484,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       });
       if (!accepted) return;
       try {
-        await deleteExamQuestion(contestId, questionId);
+        await toolbarSave.track(() => deleteExamQuestion(contestId, questionId));
         showToast({ kind: "success", title: t("examEditor.questionDeleted", "題目已刪除") });
         if (selectedId === questionId) {
           setSelectedId(null);
@@ -396,7 +495,39 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         showToast({ kind: "error", title: t("examEditor.deleteFailed", "刪除失敗") });
       }
     },
-    [contestId, questions, selectedId, confirm, loadQuestions, showToast],
+    [confirm, contestId, loadQuestions, questions, selectedId, showToast, t, toolbarSave],
+  );
+
+  const handleInsertFromSource = useCallback(
+    async (targetIndex: number, sourceItem: QuestionSourceDragItem) => {
+      if (sourceItem.kind === "exam_type") {
+        await insertImportedQuestionAt(targetIndex, async () => {
+          const created = await toolbarSave.track(() =>
+            createExamQuestion(contestId, {
+              ...DEFAULT_PAYLOADS[sourceItem.questionType],
+              order: questions.length,
+            })
+          );
+          return created?.id ?? null;
+        });
+        return;
+      }
+
+      await insertImportedQuestionAt(targetIndex, async () => {
+        await toolbarSave.track(() =>
+          importExamQuestionsFromBank(contestId, {
+            items: [
+              {
+                question_bank_id: sourceItem.questionBankId,
+                question_id: sourceItem.questionId,
+              },
+            ],
+          })
+        );
+        return null;
+      });
+    },
+    [contestId, insertImportedQuestionAt, questions.length, toolbarSave]
   );
 
   const sidebarContent = (
@@ -404,15 +535,47 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       questions={questions}
       selectedId={selectedId}
       frozen={frozen}
-      lockedReason={lockedReason}
       loading={loading && questions.length === 0}
       onSelect={handleSelect}
       onAdd={() => openTypePicker()}
-      onImportFromBank={() => setBankImportOpen(true)}
-      onDelete={handleDelete}
       onReorder={handleReorder}
     />
   );
+
+  const sourcePanelContent = (
+    <QuestionSourcePanel
+      mode="paper"
+      onDragStart={(item) => setSourceDragItem(item)}
+      onDragEnd={() => {
+        setSourceDragItem(null);
+        setSourceHoverIndex(null);
+      }}
+      onAddType={(questionType) => {
+        void handleInsertFromSource(questions.length, {
+          kind: "exam_type",
+          questionType,
+        });
+      }}
+      onAddBankQuestion={(item) => {
+        void handleInsertFromSource(questions.length, {
+          kind: "bank_question",
+          category: "exam",
+          questionBankId: item.questionBankId,
+          questionId: item.questionId,
+          title: item.title,
+        });
+      }}
+    />
+  );
+
+  const sourcePanelOpen = isCompactScreen ? sourceModalOpen : sourcePanelExpanded;
+  const toggleSourcePanel = () => {
+    if (isCompactScreen) {
+      setSourceModalOpen((prev) => !prev);
+      return;
+    }
+    setSourcePanelExpanded((prev) => !prev);
+  };
 
   return (
     <>
@@ -420,6 +583,12 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         toolbar={
           <PanelToolbar
             title={t("examEditor.questionManagement", "題目管理")}
+            status={(
+              <div className={styles.toolbarStatusGroup}>
+                <GlobalSaveStatus status={toolbarSave.status} />
+                {frozen ? <span className={styles.lockedHint}>{lockedReason}</span> : null}
+              </div>
+            )}
             actions={
               <>
                 <Button
@@ -454,16 +623,22 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
                   kind="primary"
                   size="md"
                   hasIconOnly
-                  renderIcon={Add}
-                  iconDescription={t("examEditor.addQuestion", "新增題目")}
-                  onClick={() => openTypePicker()}
-                  disabled={frozen}
+                  renderIcon={sourcePanelOpen ? Close : Add}
+                  iconDescription={t(
+                    sourcePanelOpen
+                      ? "examEditor.collapseSourcePanel"
+                      : "examEditor.openSourcePanel",
+                    sourcePanelOpen ? "收起題目來源" : "開啟題目來源"
+                  )}
+                  onClick={toggleSourcePanel}
                 />
               </>
             }
           />
         }
         sidebar={sidebarContent}
+        rightPane={!isCompactScreen && sourcePanelExpanded ? sourcePanelContent : undefined}
+        rightPaneWidth={320}
         contentMaxWidth={720}
         contentClassName={styles.editorPane}
         ref={editorPaneRef}
@@ -476,26 +651,65 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
           className={styles.reorderGroup}
         >
           {questions.map((q, i) => (
-            <CardReorderItem
-              key={q.id}
-              question={q}
-              index={i}
-              frozen={frozen}
-              onSave={handleSave}
-              onDelete={handleDelete}
-              onDuplicate={handleDuplicate}
-              onSaveToBank={(q) => setSaveToBankQuestion(q)}
-              onInsertBefore={i > 0 ? () => openTypePicker(i) : undefined}
-              cardRefCallback={(el) => {
-                if (el) cardRefs.current.set(q.id, el);
-                else cardRefs.current.delete(q.id);
-              }}
-            />
+            <React.Fragment key={q.id}>
+              <InsertDropSlot
+                index={i}
+                active={sourceHoverIndex === i}
+                canDrop={!!sourceDragItem && !frozen}
+                onDragOver={() => setSourceHoverIndex(i)}
+                onDragLeave={() => setSourceHoverIndex((prev) => (prev === i ? null : prev))}
+                onDrop={async () => {
+                  if (!sourceDragItem || frozen) return;
+                  const droppedItem = sourceDragItem;
+                  setSourceHoverIndex(null);
+                  setSourceDragItem(null);
+                  await handleInsertFromSource(i, droppedItem);
+                }}
+              />
+              <CardReorderItem
+                question={q}
+                index={i}
+                frozen={frozen}
+                onAutoSave={handleAutoSave}
+                onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
+                onSaveToBank={(question) => setSaveToBankQuestion(question)}
+                cardRefCallback={(el) => {
+                  if (el) cardRefs.current.set(q.id, el);
+                  else cardRefs.current.delete(q.id);
+                }}
+              />
+            </React.Fragment>
           ))}
+          <InsertDropSlot
+            index={questions.length}
+            active={sourceHoverIndex === questions.length}
+            canDrop={!!sourceDragItem && !frozen}
+            onDragOver={() => setSourceHoverIndex(questions.length)}
+            onDragLeave={() =>
+              setSourceHoverIndex((prev) => (prev === questions.length ? null : prev))
+            }
+            onDrop={async () => {
+              if (!sourceDragItem || frozen) return;
+              const droppedItem = sourceDragItem;
+              setSourceHoverIndex(null);
+              setSourceDragItem(null);
+              await handleInsertFromSource(questions.length, droppedItem);
+            }}
+          />
         </Reorder.Group>
       </AdminSplitLayout>
 
-      {/* Type picker dialog */}
+      <Modal
+        open={sourceModalOpen}
+        onRequestClose={() => setSourceModalOpen(false)}
+        modalHeading={t("examEditor.sourcePanelTitle", "題目來源")}
+        passiveModal
+        size="md"
+      >
+        <div className={styles.sourceModalBody}>{sourcePanelContent}</div>
+      </Modal>
+
       <Modal
         open={typePickerOpen}
         onRequestClose={() => setTypePickerOpen(false)}
@@ -511,7 +725,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
                 key={type}
                 type="button"
                 className={styles.typePickerCard}
-                onClick={() => handleCreateQuestion(type)}
+                onClick={() => void handleCreateQuestion(type)}
               >
                 <Icon size={24} />
                 <div className={styles.typePickerInfo}>
@@ -556,19 +770,16 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   );
 });
 
-// --- Draggable card wrapper for right pane ---
-
 const CardReorderItem: React.FC<{
   question: ExamQuestion;
   index: number;
   frozen: boolean;
-  onSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
+  onAutoSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
   onSaveToBank?: (question: ExamQuestion) => void;
-  onInsertBefore?: () => void;
   cardRefCallback: (el: HTMLDivElement | null) => void;
-}> = ({ question, index, frozen, onSave, onDelete, onDuplicate, onSaveToBank, onInsertBefore, cardRefCallback }) => {
+}> = ({ question, index, frozen, onAutoSave, onDelete, onDuplicate, onSaveToBank, cardRefCallback }) => {
   const dragControls = useDragControls();
 
   return (
@@ -580,15 +791,12 @@ const CardReorderItem: React.FC<{
       as="div"
       className={styles.cardItem}
     >
-      {onInsertBefore && (
-        <InsertDivider frozen={frozen} onClick={onInsertBefore} />
-      )}
       <div ref={cardRefCallback}>
         <ExamQuestionEditCard
           question={question}
           index={index}
           frozen={frozen}
-          onSave={onSave}
+          onAutoSave={onAutoSave}
           onDelete={onDelete}
           onDuplicate={onDuplicate}
           onSaveToBank={onSaveToBank}
@@ -599,29 +807,31 @@ const CardReorderItem: React.FC<{
   );
 };
 
-// --- Insert divider between cards ---
-
-const InsertDivider: React.FC<{ frozen?: boolean; onClick: () => void }> = ({
-  frozen,
-  onClick,
-}) => {
-  const { t } = useTranslation("contest");
-  if (frozen) {
-    return <div className={styles.divider} />;
+const InsertDropSlot: React.FC<{
+  index: number;
+  active: boolean;
+  canDrop: boolean;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: () => Promise<void>;
+}> = ({ active, canDrop, onDragOver, onDragLeave, onDrop }) => {
+  if (!canDrop) {
+    return <div className={styles.dropSlotIdle} />;
   }
+
   return (
-    <div className={styles.dividerHover}>
-      <div className={styles.dividerLine} />
-      <button
-        type="button"
-        className={styles.dividerBtn}
-        onClick={onClick}
-        aria-label={t("examEditor.insertHere", "在此插入題目")}
-      >
-        <Add size={14} />
-      </button>
-      <div className={styles.dividerLine} />
-    </div>
+    <div
+      className={`${styles.dropSlot} ${active ? styles.dropSlotActive : ""}`}
+      onDragOver={(event) => {
+        event.preventDefault();
+        onDragOver();
+      }}
+      onDragLeave={onDragLeave}
+      onDrop={(event) => {
+        event.preventDefault();
+        void onDrop();
+      }}
+    />
   );
 };
 

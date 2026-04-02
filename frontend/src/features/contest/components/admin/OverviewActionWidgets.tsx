@@ -321,17 +321,18 @@ export default function OverviewActionWidgets({
             value={liveTimeProgress.progressPercent}
           />
           <div className={styles.progressFooter}>
-            {contestWindowText}
-            {" · "}
-            {liveTimeProgress.isEnded
-              ? t("adminOverview.time.ended", "已結束")
-              : liveTimeProgress.isStarted
-                ? t("adminOverview.time.remaining", "剩餘 {{time}}", {
-                    time: formatDuration(liveTimeProgress.remainingSeconds),
-                  })
-                : t("adminOverview.time.untilStart", "距離開始 {{time}}", {
-                    time: formatDuration(countdownSeconds),
-                  })}
+            <div className={styles.progressWindowText}>{contestWindowText}</div>
+            <div className={styles.progressStatusText}>
+              {liveTimeProgress.isEnded
+                ? t("adminOverview.time.ended", "已結束")
+                : liveTimeProgress.isStarted
+                  ? t("adminOverview.time.remaining", "剩餘 {{time}}", {
+                      time: formatDuration(liveTimeProgress.remainingSeconds),
+                    })
+                  : t("adminOverview.time.untilStart", "距離開始 {{time}}", {
+                      time: formatDuration(countdownSeconds),
+                    })}
+            </div>
           </div>
         </Tile>
 

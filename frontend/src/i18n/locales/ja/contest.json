@@ -555,7 +555,26 @@
       "invalidScore": "配点は0より大きくなければなりません",
       "minOptions": "少なくとも2つの選択肢が必要です"
     },
-    "validationFailed": "検証に失敗しました"
+    "validationFailed": "検証に失敗しました",
+    "sourcePanelTitle": "問題ソース",
+    "openSourcePanel": "問題ソースを開く",
+    "sourceTabs": "問題ソースタブ",
+    "sourceTabTypes": "問題タイプ",
+    "sourceTabBank": "問題バンク",
+    "sourceBankLabel": "問題バンク",
+    "sourceSelectBank": "問題バンクを選択",
+    "sourceSearch": "問題を検索",
+    "sourceSearchPlaceholder": "問題を検索",
+    "sourceNoQuestions": "ドラッグできる問題がありません",
+    "sourceInsert": "挿入",
+    "sourceLoadFailed": "問題バンクソースの読み込みに失敗しました",
+    "sourceInsertFallback": "問題を末尾に追加しました",
+    "sourceInsertFallbackDetail": "新しい問題を特定できなかったため、末尾に追加しました",
+    "autoSaveEnabled": "自動保存中",
+    "questionLockedReason": "学生が本試験を開始したため、問題編集はロックされています。",
+    "codingSourceHint": "問題バンクから選択するか、新しいコーディング問題を作成できます。",
+    "confirmRemoveProblem": "この問題をコンテストから削除しますか？",
+    "collapseSourcePanel": "問題ソースを閉じる"
   },
   "examJson": {
     "exportOption": "Exam JSON",

@@ -514,7 +514,7 @@ const QuestionBankExamEditor: React.FC<QuestionBankExamEditorProps> = ({
               key={question.id}
               question={question}
               index={index}
-              onSave={handleSave}
+              onAutoSave={handleSave}
               onDelete={handleDelete}
               onDuplicate={handleDuplicate}
               onInsertBefore={index > 0 ? () => openTypePicker(index) : undefined}
@@ -579,7 +579,7 @@ const QuestionBankExamEditor: React.FC<QuestionBankExamEditorProps> = ({
 const CardReorderItem: React.FC<{
   question: ExamQuestion;
   index: number;
-  onSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
+  onAutoSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
   onInsertBefore?: () => void;
@@ -587,7 +587,7 @@ const CardReorderItem: React.FC<{
 }> = ({
   question,
   index,
-  onSave,
+  onAutoSave,
   onDelete,
   onDuplicate,
   onInsertBefore,
@@ -612,7 +612,7 @@ const CardReorderItem: React.FC<{
         <ExamQuestionEditCard
           question={question}
           index={index}
-          onSave={onSave}
+          onAutoSave={onAutoSave}
           onDelete={onDelete}
           onDuplicate={onDuplicate}
           onPointerDownDrag={(e) => dragControls.start(e)}

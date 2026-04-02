@@ -7,13 +7,14 @@ import {
   UserMultiple,
   Education,
   Settings,
-  Launch,
   TaskComplete,
   ChartColumn,
   Chat,
   Renew,
 } from "@carbon/icons-react";
+import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { AdminPanelId } from "@/features/contest/modules/types";
+import { UserMenu } from "@/features/app/components/UserMenu";
 import AdminShellLayout, { type NavItem } from "@/shared/layout/AdminShellLayout";
 
 interface AdminDashboardLayoutProps {
@@ -24,9 +25,10 @@ interface AdminDashboardLayoutProps {
   activePanel: AdminPanelId;
   availablePanels: AdminPanelId[];
   examMode?: boolean;
+  contest?: ContestDetail | null;
   onPanelChange: (panel: AdminPanelId) => void;
-  onBack: () => void;
   onRefresh?: () => void;
+  onSettingsOpen?: () => void;
   children: React.ReactNode;
 }
 
@@ -64,9 +66,10 @@ export default function AdminDashboardLayout({
   activePanel,
   availablePanels,
   examMode,
+  contest,
   onPanelChange,
-  onBack,
   onRefresh,
+  onSettingsOpen,
   children,
 }: AdminDashboardLayoutProps) {
   const { t } = useTranslation("contest");
@@ -155,13 +158,16 @@ export default function AdminDashboardLayout({
               <Renew size={20} />
             </HeaderGlobalAction>
           )}
-          <HeaderGlobalAction
-            aria-label={t("adminLayout.header.backToHome")}
-            tooltipAlignment="end"
-            onClick={onBack}
-          >
-            <Launch size={20} />
-          </HeaderGlobalAction>
+          {onSettingsOpen && (
+            <HeaderGlobalAction
+              aria-label={t("adminLayout.nav.settings")}
+              tooltipAlignment="end"
+              onClick={onSettingsOpen}
+            >
+              <Settings size={20} />
+            </HeaderGlobalAction>
+          )}
+          <UserMenu contestMode contest={contest} onContestRefresh={onRefresh} />
         </>
       }
       sideNavAriaLabel={t("common:header.adminNavigation")}

@@ -7,6 +7,8 @@ interface AdminSplitLayoutProps {
   sidebarWidth?: number;
   middlePane?: ReactNode;
   middlePaneWidth?: number;
+  rightPane?: ReactNode;
+  rightPaneWidth?: number;
   children: ReactNode;
   contentMaxWidth?: number;
   contentClassName?: string;
@@ -25,6 +27,8 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
       sidebarWidth = 260,
       middlePane,
       middlePaneWidth = 220,
+      rightPane,
+      rightPaneWidth = 320,
       children,
       contentMaxWidth = 740,
       contentClassName,
@@ -36,11 +40,14 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
       "--sidebar-width": `${sidebarWidth}px`,
       "--content-max-width": `${contentMaxWidth}px`,
       ...(middlePane ? { "--middle-width": `${middlePaneWidth}px` } : {}),
+      ...(rightPane ? { "--right-width": `${rightPaneWidth}px` } : {}),
     } as CSSProperties;
 
     const rootClasses = [
       styles.root,
-      !middlePane && styles.noMiddle,
+      !middlePane && !rightPane && styles.noMiddle,
+      rightPane && !middlePane && styles.withRightOnly,
+      rightPane && middlePane && styles.withMiddleAndRight,
       className,
     ]
       .filter(Boolean)
@@ -58,6 +65,7 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
         <div className={contentClasses} ref={ref}>
           {children}
         </div>
+        {rightPane && <div className={styles.right}>{rightPane}</div>}
       </div>
     );
   },

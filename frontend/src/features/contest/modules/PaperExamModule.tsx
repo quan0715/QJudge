@@ -52,7 +52,6 @@ const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
   "problem_editor",
   "grading",
   "statistics",
-  "settings",
 ];
 
 export const paperExamContestModule: ContestTypeModule = {

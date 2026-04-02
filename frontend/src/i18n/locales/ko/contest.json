@@ -555,7 +555,26 @@
       "invalidScore": "배점은 0보다 커야 합니다",
       "minOptions": "최소 2개의 선택지가 필요합니다"
     },
-    "validationFailed": "검증 실패"
+    "validationFailed": "검증 실패",
+    "sourcePanelTitle": "문항 소스",
+    "openSourcePanel": "문항 소스 열기",
+    "sourceTabs": "문항 소스 탭",
+    "sourceTabTypes": "문항 유형",
+    "sourceTabBank": "문항 은행",
+    "sourceBankLabel": "문항 은행",
+    "sourceSelectBank": "문항 은행 선택",
+    "sourceSearch": "문항 검색",
+    "sourceSearchPlaceholder": "문항 검색",
+    "sourceNoQuestions": "드래그 가능한 문항이 없습니다",
+    "sourceInsert": "삽입",
+    "sourceLoadFailed": "문항 은행 소스 로드에 실패했습니다",
+    "sourceInsertFallback": "문항이 맨 뒤에 추가되었습니다",
+    "sourceInsertFallbackDetail": "새 문항을 정확히 식별할 수 없어 맨 뒤에 추가했습니다",
+    "autoSaveEnabled": "자동 저장 중",
+    "questionLockedReason": "학생이 시험을 시작하여 문항 편집이 잠겼습니다.",
+    "codingSourceHint": "문항 은행에서 선택하거나 새 코딩 문제를 만들 수 있습니다.",
+    "confirmRemoveProblem": "이 문제를 대회에서 제거하시겠습니까?",
+    "collapseSourcePanel": "문항 소스 접기"
   },
   "examJson": {
     "exportOption": "Exam JSON",

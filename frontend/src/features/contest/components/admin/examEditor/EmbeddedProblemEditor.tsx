@@ -29,12 +29,16 @@ interface EmbeddedEditorInnerProps {
   contestProblemId: string;
   contestId: string;
   onRemoved?: () => void;
+  showGlobalSaveStatus?: boolean;
+  onGlobalSaveStatusChange?: (status: "idle" | "saving" | "saved" | "error") => void;
 }
 
 const EmbeddedEditorInner: React.FC<EmbeddedEditorInnerProps> = ({
   contestProblemId,
   contestId,
   onRemoved,
+  showGlobalSaveStatus = true,
+  onGlobalSaveStatusChange,
 }) => {
   const { showToast } = useToast();
 
@@ -179,6 +183,8 @@ const EmbeddedEditorInner: React.FC<EmbeddedEditorInnerProps> = ({
             onDelete={handleDelete}
             onImportYaml={handleYAMLImport}
             onExportConfirm={handleExportConfirm}
+            showGlobalSaveStatus={showGlobalSaveStatus}
+            onGlobalSaveStatusChange={onGlobalSaveStatusChange}
           />
         </ProblemEditProvider>
       </FormProvider>
@@ -190,6 +196,8 @@ interface EmbeddedProblemEditorProps {
   contestProblemId: string;
   contestId: string;
   onRemoved?: () => void;
+  showGlobalSaveStatus?: boolean;
+  onGlobalSaveStatusChange?: (status: "idle" | "saving" | "saved" | "error") => void;
 }
 
 const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = (props) => (

@@ -198,6 +198,11 @@
   gap: layout.$spacing-03;
 }
 
+.autoSaveHint {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
 .typeSelector {
   display: flex;
   align-items: center;

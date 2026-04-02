@@ -24,6 +24,7 @@ import { useSettingsDialog } from "@/features/auth/contexts/SettingsDialogContex
 import { useTranslation } from "react-i18next";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import type { ContestDetail } from "@/core/entities/contest.entity";
+import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import { updateNickname } from "@/infrastructure/api/repositories";
 import { Avatar } from "@/shared/ui/avatar";
 import "./UserMenu.scss";
@@ -190,6 +191,21 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             >
               <Edit size={16} />
               {tContest("avatar.editNickname")}
+            </button>
+          )}
+
+          {contestMode && contest?.boundClassroomId && (
+            <button
+              type="button"
+              className="user-menu-link"
+              onClick={() => {
+                navigate(getClassroomContestDashboardPath(contest.boundClassroomId, contest.id));
+                setIsExpandedInternal(false);
+                onExpandedChange?.(false);
+              }}
+            >
+              <Book size={16} />
+              {tContest("adminLayout.header.backToHome", "前往競賽主頁")}
             </button>
           )}
 
