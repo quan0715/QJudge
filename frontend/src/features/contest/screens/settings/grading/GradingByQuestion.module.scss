@@ -6,7 +6,7 @@
   flex-direction: column;
   min-height: 0;
   border-right: 1px solid
-    var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
+    var(--qg-panel-divider-strong-color, var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01)));
   overflow: hidden;
   background: var(--cds-layer-02, var(--cds-layer));
 }
@@ -24,7 +24,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 0.75rem;
-  border-top: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
+  border-top: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
   background: var(--cds-layer-01);
   color: var(--cds-text-secondary);
   font-size: 0.75rem;
@@ -157,7 +157,7 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0 0.75rem;
-  border-top: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
+  border-top: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
   background: var(--cds-layer-01);
   color: var(--cds-text-secondary);
   font-size: 0.75rem;
@@ -199,10 +199,21 @@
   @include mixins.panel-empty-state-desc;
 }
 
+.absentItem {
+  cursor: default;
+  opacity: 0.7;
+}
+
 /* Content area override: grading panel fills entire space */
 .gradingContent {
   padding: 0;
   align-items: stretch;
   gap: 0;
   background: var(--cds-layer-02, var(--cds-layer));
+}
+
+@media (max-width: 900px) {
+  .previewBar {
+    display: none;
+  }
 }

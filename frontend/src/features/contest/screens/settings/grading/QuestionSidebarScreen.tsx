@@ -5,6 +5,16 @@ import {
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
+import {
+  ListPanel,
+  ListHeader,
+  ListFooter,
+  ListItem,
+  ListItemLeading,
+  ListItemContent,
+  ListItemTitle,
+  ListItemTrailing,
+} from "@/shared/ui/list/ListPanel";
 import type { QuestionProgress } from "./gradingTypes";
 import styles from "./GradingByQuestion.module.scss";
 import mini from "./GradingMini.module.scss";
@@ -48,96 +58,105 @@ export default function QuestionSidebarScreen({
   if (collapsed) {
     return (
       <div className={`${styles.sidebar} ${styles.sidebarMini}`}>
-        <div className={mini.miniHeader}>
-          <button
-            type="button"
-            className={mini.miniToggleButton}
-            onClick={onToggleCollapse}
-            aria-label={t("grading.expandQuestionList", "展開題目列表")}
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-        <div className={mini.miniList}>
+        <ListPanel
+          header={
+            <ListHeader
+              title=""
+              action={
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  aria-label={t("grading.expandQuestionList", "展開題目列表")}
+                  style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "var(--cds-icon-primary)" }}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              }
+            />
+          }
+          footer={<ListFooter>&nbsp;</ListFooter>}
+        >
           {orderedQuestions.map((q) => {
             const isActive = q.questionId === selectedQuestionId;
             const statusClass = getStatusClass(q);
             return (
-              <button
+              <ListItem
                 key={q.questionId}
-                type="button"
-                className={`${mini.miniItem} ${isActive ? mini.statusActive : ""} ${statusClass}`}
+                size="compact"
+                active={isActive}
                 onClick={() => onSelect(q.questionId)}
-                aria-label={`Q${q.questionIndex}`}
+                className={`${isActive ? mini.statusActive : ""} ${statusClass}`}
               >
                 Q{q.questionIndex}
-              </button>
+              </ListItem>
             );
           })}
-        </div>
-        <div className={mini.miniFooter} />
+        </ListPanel>
       </div>
     );
   }
 
   return (
     <div className={styles.sidebar}>
-      <div className={styles.sidebarHeaderRow}>
-        <div className={styles.sidebarHeader}>{t("grading.questionList")}</div>
-        <Button
-          kind="ghost"
-          size="sm"
-          hasIconOnly
-          renderIcon={ChevronLeft}
-          iconDescription={t("grading.collapseQuestionList", "收摺題目列表")}
-          onClick={onToggleCollapse}
-        />
-      </div>
-      <div className={styles.sidebarList}>
+      <ListPanel
+        header={
+          <ListHeader
+            title={t("grading.questionList")}
+            action={
+              <Button
+                kind="ghost"
+                size="sm"
+                hasIconOnly
+                renderIcon={ChevronLeft}
+                iconDescription={t("grading.collapseQuestionList", "收摺題目列表")}
+                onClick={onToggleCollapse}
+              />
+            }
+          />
+        }
+        footer={
+          <ListFooter>
+            <span>{t("grading.questionsCount", "{{count}} 題", { count: totalQuestions })}</span>
+            <span>{t("grading.totalScore", "總分 {{score}}", { score: totalScore })}</span>
+          </ListFooter>
+        }
+      >
         {orderedQuestions.map((q) => {
           const isActive = q.questionId === selectedQuestionId;
           const statusClass = getStatusClass(q);
           const TypeIcon = EXAM_QUESTION_TYPE_ICON[q.questionType];
           return (
-            <div
+            <ListItem
               key={q.questionId}
-              className={`${styles.sidebarItem} ${isActive ? mini.statusActive : ""} ${statusClass}`}
+              active={isActive}
               onClick={() => onSelect(q.questionId)}
-              onMouseEnter={() => onHoverQuestion?.(q.questionId)}
-              onMouseLeave={() => onHoverQuestion?.(null)}
-              onFocus={() => onHoverQuestion?.(q.questionId)}
-              onBlur={() => onHoverQuestion?.(null)}
-              onPointerEnter={() => onHoverQuestion?.(q.questionId)}
-              onPointerLeave={() => onHoverQuestion?.(null)}
-              role="button"
-              tabIndex={0}
+              className={`${isActive ? mini.statusActive : ""} ${statusClass}`}
             >
-              <div className={styles.sidebarLeading}>
+              <ListItemLeading>
                 <TypeIcon size={14} className={styles.sidebarTypeIcon} />
-                <div className={styles.sidebarLabel}>Q{q.questionIndex}</div>
-              </div>
-              <span
-                className={styles.sidebarProgress}
-                title={`${q.progressPercent}% (${q.gradedCount}/${q.totalAnswers})`}
-                aria-label={`${q.progressPercent}% (${q.gradedCount}/${q.totalAnswers})`}
-              >
+              </ListItemLeading>
+              <ListItemContent>
+                <ListItemTitle>Q{q.questionIndex}</ListItemTitle>
+              </ListItemContent>
+              <ListItemTrailing>
                 <span
-                  className={styles.sidebarProgressRing}
-                  style={{
-                    background: `conic-gradient(${getProgressRingColor(q.progressPercent)} ${q.progressPercent}%, var(--cds-border-strong) ${q.progressPercent}% 100%)`,
-                  }}
+                  className={styles.sidebarProgress}
+                  title={`${q.progressPercent}% (${q.gradedCount}/${q.totalAnswers})`}
                 >
-                  <span className={styles.sidebarProgressRingCenter} />
+                  <span
+                    className={styles.sidebarProgressRing}
+                    style={{
+                      background: `conic-gradient(${getProgressRingColor(q.progressPercent)} ${q.progressPercent}%, var(--cds-border-strong) ${q.progressPercent}% 100%)`,
+                    }}
+                  >
+                    <span className={styles.sidebarProgressRingCenter} />
+                  </span>
                 </span>
-              </span>
-            </div>
+              </ListItemTrailing>
+            </ListItem>
           );
         })}
-      </div>
-      <div className={styles.sidebarFooter}>
-        <span>{t("grading.questionsCount", "{{count}} 題", { count: totalQuestions })}</span>
-        <span>{t("grading.totalScore", "總分 {{score}}", { score: totalScore })}</span>
-      </div>
+      </ListPanel>
     </div>
   );
 }

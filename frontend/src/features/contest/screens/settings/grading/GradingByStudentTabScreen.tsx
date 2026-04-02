@@ -7,6 +7,18 @@ import {
 import { useTranslation } from "react-i18next";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
+import {
+  ListPanel,
+  ListHeader,
+  ListFooter,
+  ListItem,
+  ListItemLeading,
+  ListItemContent,
+  ListItemTitle,
+  ListItemMeta,
+  ListItemTrailing,
+} from "@/shared/ui/list/ListPanel";
+import { EmptyState } from "@/shared/ui/EmptyState";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import {
   GRADING_COLLAPSED_LIST_WIDTH,
@@ -216,135 +228,148 @@ export default function GradingByStudentTabScreen({
   }, [filtered, currentStudentFilteredIdx, hasNextStudent, onSelectedStudentIdChange]);
 
   const sidebarContent = (
-    <div className={styles.pane}>
-      <div className={styles.paneHeaderRow}>
-        <div className={styles.sidebarHeader}>{t("grading.studentList", "學生列表")}</div>
-      </div>
-      <div className={styles.cardList}>
-        {filtered.length === 0 ? (
-          <div className={styles.emptyState}>
-            <span className={styles.emptyStateDesc}>
-              {searchQuery.trim()
-                ? t("grading.noMatchingStudents", "沒有符合搜尋條件的學生")
-                : t("grading.noStudents", "尚無學生資料")}
-            </span>
-          </div>
-        ) : (
-          filtered.map((s) => {
-            const isSelected = s.studentId === activeSelectedStudentId;
-            return (
-              <div
-                key={s.studentId}
-                className={`${styles.answerCard} ${isSelected ? styles.answerCardActive : ""}`}
-                onClick={() => handleStudentSelect(s.studentId)}
-              >
-                <div className={styles.cardPrimary}>
-                  <span className={styles.cardLabelRow}>
-                    <span>{s.nickname || s.username}</span>
-                  </span>
-                  {s.totalCount === 0 ? (
-                    <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
-                  ) : (
-                    <span style={{ color: s.gradedCount === s.totalCount ? "var(--cds-support-success)" : "var(--cds-text-secondary)", fontWeight: 600, fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
-                      {s.gradedCount}/{s.totalCount}
-                    </span>
-                  )}
-                </div>
-                {s.nickname && s.nickname !== s.username && (
-                  <div className={styles.cardSecondary}>
-                    <span>{s.username}</span>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
-      <div className={styles.listFooter}>
-        <span>
+    <ListPanel
+      header={<ListHeader title={t("grading.studentList", "學生列表")} />}
+      footer={
+        <ListFooter>
           {t("grading.studentsDisplayCount", "顯示 {{shown}} / {{total}} 位", {
             shown: filtered.length,
             total: students.length,
           })}
-        </span>
-      </div>
-    </div>
+        </ListFooter>
+      }
+    >
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={searchQuery.trim()
+            ? t("grading.noMatchingStudents", "沒有符合搜尋條件的學生")
+            : t("grading.noStudents", "尚無學生資料")}
+          compact
+        />
+      ) : (
+        filtered.map((s) => (
+          <ListItem
+            key={s.studentId}
+            active={s.studentId === activeSelectedStudentId}
+            onClick={() => handleStudentSelect(s.studentId)}
+          >
+            <ListItemContent>
+              <ListItemTitle>{s.nickname || s.username}</ListItemTitle>
+              {s.nickname && s.nickname !== s.username && (
+                <ListItemMeta>{s.username}</ListItemMeta>
+              )}
+            </ListItemContent>
+            <ListItemTrailing>
+              {s.totalCount === 0 ? (
+                <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
+              ) : (
+                <span style={{ color: s.gradedCount === s.totalCount ? "var(--cds-support-success)" : "var(--cds-text-secondary)", fontWeight: 600, fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                  {s.gradedCount}/{s.totalCount}
+                </span>
+              )}
+            </ListItemTrailing>
+          </ListItem>
+        ))
+      )}
+    </ListPanel>
   );
 
   const middlePaneContent = isQuestionPaneCollapsed ? (
-    <div className={mini.miniPane}>
-      <div className={mini.miniHeader}>
-        <button
-          type="button"
-          className={mini.miniToggleButton}
-          onClick={() => setIsQuestionPaneCollapsed(false)}
-          aria-label={t("grading.expandQuestionList", "展開題目列表")}
-        >
-          <ChevronRight size={16} />
-        </button>
-      </div>
-      <div className={mini.miniList}>
-        {activeSelectedStudentId && currentStudentAnswers.length > 0 ? (
-          currentStudentAnswers.map((answer, idx) => {
-            const statusClass = answer.isAbsent
-              ? mini.statusEmpty
-              : answer.score !== null
-                ? mini.statusDone
-                : mini.statusPending;
-            return (
-              <button
-                key={answer.id}
-                type="button"
-                className={`${mini.miniItem} ${
-                  idx === selectedAnswerIdx ? mini.statusActive : ""
-                } ${statusClass}`}
-                onClick={answer.isAbsent ? undefined : () => setSelectedAnswerIdx(idx)}
-                disabled={answer.isAbsent}
-                aria-label={`Q${answer.questionIndex}`}
-              >
-                Q{answer.questionIndex}
-              </button>
-            );
-          })
-        ) : null}
-      </div>
-      <div className={mini.miniFooter} />
-    </div>
-  ) : (
-    <div className={styles.pane}>
-      <div className={styles.paneHeaderRow}>
-        <div className={styles.sidebarHeader}>{t("grading.questionList", "題目列表")}</div>
-        <Button
-          kind="ghost"
-          size="sm"
-          hasIconOnly
-          renderIcon={ChevronLeft}
-          iconDescription={t("grading.collapseQuestionList", "收摺題目列表")}
-          onClick={() => setIsQuestionPaneCollapsed(true)}
+    <ListPanel
+      header={
+        <ListHeader
+          title=""
+          action={
+            <button
+              type="button"
+              onClick={() => setIsQuestionPaneCollapsed(false)}
+              aria-label={t("grading.expandQuestionList", "展開題目列表")}
+              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "var(--cds-icon-primary)" }}
+            >
+              <ChevronRight size={16} />
+            </button>
+          }
         />
-      </div>
-      <div className={styles.cardList}>
-        {activeSelectedStudentId && currentStudentAnswers.length > 0 ? (
-          currentStudentAnswers.map((a, i) => {
-            const isActive = i === selectedAnswerIdx;
-            const isAbsent = a.isAbsent === true;
-            const TypeIcon = EXAM_QUESTION_TYPE_ICON[a.questionType];
-            const statusClass = isAbsent
-              ? mini.statusEmpty
-              : a.score !== null
-                ? mini.statusDone
-                : mini.statusPending;
-            return (
-              <div
-                key={a.id}
-                className={`${styles.sidebarItem} ${isActive ? mini.statusActive : ""} ${statusClass}`}
-                onClick={isAbsent ? undefined : () => setSelectedAnswerIdx(i)}
-                style={isAbsent ? { cursor: "default", opacity: 0.7 } : undefined}
-              >
-                <div className={styles.sidebarLeading}>
-                  <TypeIcon size={14} className={styles.sidebarTypeIcon} />
-                  <div className={styles.sidebarLabel}>Q{a.questionIndex}</div>
-                </div>
+      }
+      footer={<ListFooter>&nbsp;</ListFooter>}
+    >
+      {activeSelectedStudentId && currentStudentAnswers.length > 0 ? (
+        currentStudentAnswers.map((answer, idx) => {
+          const statusClass = answer.isAbsent
+            ? mini.statusEmpty
+            : answer.score !== null
+              ? mini.statusDone
+              : mini.statusPending;
+          return (
+            <ListItem
+              key={answer.id}
+              size="compact"
+              active={idx === selectedAnswerIdx}
+              onClick={answer.isAbsent ? undefined : () => setSelectedAnswerIdx(idx)}
+              className={`${idx === selectedAnswerIdx ? mini.statusActive : ""} ${statusClass}`}
+            >
+              Q{answer.questionIndex}
+            </ListItem>
+          );
+        })
+      ) : null}
+    </ListPanel>
+  ) : (
+    <ListPanel
+      header={
+        <ListHeader
+          title={t("grading.questionList", "題目列表")}
+          action={
+            <Button
+              kind="ghost"
+              size="sm"
+              hasIconOnly
+              renderIcon={ChevronLeft}
+              iconDescription={t("grading.collapseQuestionList", "收摺題目列表")}
+              onClick={() => setIsQuestionPaneCollapsed(true)}
+            />
+          }
+        />
+      }
+      footer={
+        <ListFooter>
+          <span>
+            {t("grading.questionsCount", "{{count}} 題", {
+              count: currentStudentAnswers.length,
+            })}
+          </span>
+          <span>
+            {selectedStudentSummary
+              ? `${selectedStudentSummary.gradedCount}/${selectedStudentSummary.totalCount} ${t("grading.complete", "完成")}`
+              : `0/0 ${t("grading.complete", "完成")}`}
+          </span>
+        </ListFooter>
+      }
+    >
+      {activeSelectedStudentId && currentStudentAnswers.length > 0 ? (
+        currentStudentAnswers.map((a, i) => {
+          const isActive = i === selectedAnswerIdx;
+          const isAbsent = a.isAbsent === true;
+          const TypeIcon = EXAM_QUESTION_TYPE_ICON[a.questionType];
+          const statusClass = isAbsent
+            ? mini.statusEmpty
+            : a.score !== null
+              ? mini.statusDone
+              : mini.statusPending;
+          return (
+            <ListItem
+              key={a.id}
+              active={isActive}
+              onClick={isAbsent ? undefined : () => setSelectedAnswerIdx(i)}
+              className={`${isActive ? mini.statusActive : ""} ${statusClass}`}
+            >
+              <ListItemLeading>
+                <TypeIcon size={14} className={styles.sidebarTypeIcon} />
+              </ListItemLeading>
+              <ListItemContent>
+                <ListItemTitle>Q{a.questionIndex}</ListItemTitle>
+              </ListItemContent>
+              <ListItemTrailing>
                 {isAbsent ? (
                   <Tag type="warm-gray" size="sm">{t("grading.absent", "缺交")}</Tag>
                 ) : a.score !== null ? (
@@ -352,30 +377,19 @@ export default function GradingByStudentTabScreen({
                 ) : (
                   <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批")}</Tag>
                 )}
-              </div>
-            );
-          })
-        ) : (
-          <div className={styles.emptyStateCompact}>
-            {activeSelectedStudentId
-              ? t("grading.noSubmissions", "此學生尚未提交任何作答")
-              : t("grading.selectStudentToGrade", "選擇一位學生來查看其所有作答")}
-          </div>
-        )}
-      </div>
-      <div className={styles.listFooter}>
-        <span>
-          {t("grading.questionsCount", "{{count}} 題", {
-            count: currentStudentAnswers.length,
-          })}
-        </span>
-        <span>
-          {selectedStudentSummary
-            ? `${selectedStudentSummary.gradedCount}/${selectedStudentSummary.totalCount} ${t("grading.complete", "完成")}`
-            : `0/0 ${t("grading.complete", "完成")}`}
-        </span>
-      </div>
-    </div>
+              </ListItemTrailing>
+            </ListItem>
+          );
+        })
+      ) : (
+        <EmptyState
+          title={activeSelectedStudentId
+            ? t("grading.noSubmissions", "此學生尚未提交任何作答")
+            : t("grading.selectStudentToGrade", "選擇一位學生來查看其所有作答")}
+          compact
+        />
+      )}
+    </ListPanel>
   );
 
   return (
