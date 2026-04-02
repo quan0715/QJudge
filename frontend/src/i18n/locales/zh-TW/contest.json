@@ -22,6 +22,38 @@
     "title": "管理後台"
   },
   "adminOverview": {
+    "actions": {
+      "publishContest": "發布競賽",
+      "publishContestBody": "發布後學生就可以看到這場競賽。",
+      "publishContestConfirm": "確定要發布競賽嗎？",
+      "publishContestFailed": "發布失敗",
+      "publishContestSuccess": "競賽已發布",
+      "publishResults": "發布成績",
+      "publishResultsBody": "發布後學生將可以查看這場競賽的成績。",
+      "publishResultsConfirm": "確定要發布成績嗎？",
+      "publishResultsFailed": "發布失敗",
+      "publishResultsSuccess": "成績已發布",
+      "publishResultsWarning": "目前批改進度約 {{progress}}%，仍可發布，但建議先確認未完成批改內容。",
+      "revertToDraft": "退回草稿",
+      "revertToDraftBody": "退回草稿後學生將無法再進入本競賽。",
+      "revertToDraftConfirm": "確定要退回草稿嗎？",
+      "revertToDraftFailed": "退回失敗",
+      "revertToDraftSuccess": "已退回草稿",
+      "revokeResults": "撤回發布",
+      "revokeResultsBody": "撤回後學生將無法再查看成績。",
+      "revokeResultsConfirm": "確定要撤回已發布的成績嗎？",
+      "revokeResultsFailed": "撤回失敗",
+      "revokeResultsSuccess": "已撤回成績發布",
+      "strictModeDisable": "停用模式",
+      "strictModeDisableBody": "停用後將關閉嚴格監控與限制。",
+      "strictModeDisableConfirm": "確定要停用嚴格考試模式嗎？",
+      "strictModeDisableSuccess": "已停用嚴格考試模式",
+      "strictModeEnable": "啟用模式",
+      "strictModeEnableBody": "啟用後會套用監控與防作弊限制。",
+      "strictModeEnableConfirm": "確定要啟用嚴格考試模式嗎？",
+      "strictModeEnableSuccess": "已啟用嚴格考試模式",
+      "updateFailed": "更新失敗"
+    },
     "events": {
       "critical": "高風險事件",
       "empty": "目前沒有事件",
@@ -42,10 +74,13 @@
       "paper_exam": "考卷"
     },
     "kpi": {
+      "caseUnit": "次",
       "examCount": "1 場",
       "examMode": "考試模式",
       "exams": "考試狀態",
       "onlineNow": "目前上線",
+      "personUnit": "人",
+      "problemUnit": "題",
       "time": "時間進度"
     },
     "sidebar": {
@@ -72,6 +107,29 @@
       "notStarted": "尚未開始",
       "remaining": "剩餘 {{time}}",
       "remainingLabel": "剩餘時間"
+    },
+    "widgets": {
+      "coding": "程式題",
+      "disabled": "未啟用",
+      "enabled": "已啟用",
+      "examProgress": "考試進度",
+      "goEventPanel": "前往事件面板",
+      "goParticipantList": "進入參賽者列表",
+      "goProblemManagement": "前往題目管理",
+      "gradingDraft": "待發布",
+      "gradingPending": "待發布成績",
+      "gradingPublished": "已發布",
+      "gradingRunning": "進行中",
+      "gradingStatus": "考試批改狀態",
+      "paperExam": "考卷題目",
+      "participants": "參賽者",
+      "questions": "題目數量",
+      "status": "競賽狀態",
+      "strictExamMode": "嚴格考試模式",
+      "subtitle": "快速進入設定、題目與狀態操作",
+      "title": "控制台",
+      "violationCount": "違規次數",
+      "violationCountAria": "違規次數 前往事件面板"
     }
   },
   "answering": {

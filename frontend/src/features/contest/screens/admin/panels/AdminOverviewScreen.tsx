@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import KpiCards from "@/features/contest/components/admin/KpiCards";
 import OverviewActionWidgets from "@/features/contest/components/admin/OverviewActionWidgets";
 import StudentStatusBreakdown from "@/features/contest/components/admin/StudentStatusBreakdown";
@@ -18,6 +19,8 @@ import styles from "./AdminOverviewScreen.module.scss";
 import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
 
 export default function AdminOverviewScreen() {
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const { contest, refreshContest } = useContest();
   const {
     participants,
@@ -58,60 +61,60 @@ export default function AdminOverviewScreen() {
   const handlePublishContest = useCallback(async () => {
     if (!contest?.id) return;
     const confirmed = await confirm({
-      title: "確定要發布競賽嗎？",
-      body: "發布後學生就可以看到這場競賽。",
-      confirmLabel: "發布競賽",
-      cancelLabel: "取消",
+      title: t("adminOverview.actions.publishContestConfirm"),
+      body: t("adminOverview.actions.publishContestBody"),
+      confirmLabel: t("adminOverview.actions.publishContest"),
+      cancelLabel: tc("button.cancel"),
     });
     if (!confirmed) return;
 
     try {
       await updateContest(contest.id, { status: "published" });
       await refreshContest();
-      showToast({ kind: "success", title: "競賽已發布" });
+      showToast({ kind: "success", title: t("adminOverview.actions.publishContestSuccess") });
     } catch (error) {
       showToast({
         kind: "error",
-        title: "發布失敗",
+        title: t("adminOverview.actions.publishContestFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     }
-  }, [confirm, contest?.id, refreshContest, showToast]);
+  }, [confirm, contest?.id, refreshContest, showToast, t, tc]);
 
   const handlePublishResults = useCallback(async (progressPercent?: number) => {
     if (!contest?.id) return;
     const progressWarning =
       typeof progressPercent === "number" && progressPercent < 100
-        ? `\n\n目前批改進度約 ${progressPercent}%，仍可發布，但建議先確認未完成批改內容。`
+        ? t("adminOverview.actions.publishResultsWarning", { progress: progressPercent })
         : "";
     const confirmed = await confirm({
-      title: "確定要發布成績嗎？",
-      body: `發布後學生將可以查看這場競賽的成績。${progressWarning}`,
-      confirmLabel: "發布成績",
-      cancelLabel: "取消",
+      title: t("adminOverview.actions.publishResultsConfirm"),
+      body: `${t("adminOverview.actions.publishResultsBody")}${progressWarning ? "\n\n" + progressWarning : ""}`,
+      confirmLabel: t("adminOverview.actions.publishResults"),
+      cancelLabel: tc("button.cancel"),
     });
     if (!confirmed) return;
 
     try {
       await updateContest(contest.id, { resultsPublished: true });
       await refreshContest();
-      showToast({ kind: "success", title: "成績已發布" });
+      showToast({ kind: "success", title: t("adminOverview.actions.publishResultsSuccess") });
     } catch (error) {
       showToast({
         kind: "error",
-        title: "發布失敗",
+        title: t("adminOverview.actions.publishResultsFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     }
-  }, [confirm, contest?.id, refreshContest, showToast]);
+  }, [confirm, contest?.id, refreshContest, showToast, t, tc]);
 
   const handleRevertContestToDraft = useCallback(async () => {
     if (!contest?.id) return;
     const confirmed = await confirm({
-      title: "確定要退回草稿嗎？",
-      body: "退回草稿後學生將無法再進入本競賽。",
-      confirmLabel: "退回草稿",
-      cancelLabel: "取消",
+      title: t("adminOverview.actions.revertToDraftConfirm"),
+      body: t("adminOverview.actions.revertToDraftBody"),
+      confirmLabel: t("adminOverview.actions.revertToDraft"),
+      cancelLabel: tc("button.cancel"),
       danger: true,
     });
     if (!confirmed) return;
@@ -119,26 +122,30 @@ export default function AdminOverviewScreen() {
     try {
       await updateContest(contest.id, { status: "draft" });
       await refreshContest();
-      showToast({ kind: "success", title: "已退回草稿" });
+      showToast({ kind: "success", title: t("adminOverview.actions.revertToDraftSuccess") });
     } catch (error) {
       showToast({
         kind: "error",
-        title: "退回失敗",
+        title: t("adminOverview.actions.revertToDraftFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     }
-  }, [confirm, contest?.id, refreshContest, showToast]);
+  }, [confirm, contest?.id, refreshContest, showToast, t, tc]);
 
   const handleToggleStrictMode = useCallback(async () => {
     if (!contest?.id) return;
     const nextEnabled = !contest.cheatDetectionEnabled;
     const confirmed = await confirm({
-      title: nextEnabled ? "確定要啟用嚴格考試模式嗎？" : "確定要停用嚴格考試模式嗎？",
+      title: nextEnabled
+        ? t("adminOverview.actions.strictModeEnableConfirm")
+        : t("adminOverview.actions.strictModeDisableConfirm"),
       body: nextEnabled
-        ? "啟用後會套用監控與防作弊限制。"
-        : "停用後將關閉嚴格監控與限制。",
-      confirmLabel: nextEnabled ? "啟用模式" : "停用模式",
-      cancelLabel: "取消",
+        ? t("adminOverview.actions.strictModeEnableBody")
+        : t("adminOverview.actions.strictModeDisableBody"),
+      confirmLabel: nextEnabled
+        ? t("adminOverview.actions.strictModeEnable")
+        : t("adminOverview.actions.strictModeDisable"),
+      cancelLabel: tc("button.cancel"),
       danger: !nextEnabled,
     });
     if (!confirmed) return;
@@ -148,24 +155,26 @@ export default function AdminOverviewScreen() {
       await refreshContest();
       showToast({
         kind: "success",
-        title: nextEnabled ? "已啟用嚴格考試模式" : "已停用嚴格考試模式",
+        title: nextEnabled
+          ? t("adminOverview.actions.strictModeEnableSuccess")
+          : t("adminOverview.actions.strictModeDisableSuccess"),
       });
     } catch (error) {
       showToast({
         kind: "error",
-        title: "更新失敗",
+        title: t("adminOverview.actions.updateFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     }
-  }, [confirm, contest?.cheatDetectionEnabled, contest?.id, refreshContest, showToast]);
+  }, [confirm, contest?.cheatDetectionEnabled, contest?.id, refreshContest, showToast, t, tc]);
 
   const handleRevokeResults = useCallback(async () => {
     if (!contest?.id) return;
     const confirmed = await confirm({
-      title: "確定要撤回已發布的成績嗎？",
-      body: "撤回後學生將無法再查看成績。",
-      confirmLabel: "撤回發布",
-      cancelLabel: "取消",
+      title: t("adminOverview.actions.revokeResultsConfirm"),
+      body: t("adminOverview.actions.revokeResultsBody"),
+      confirmLabel: t("adminOverview.actions.revokeResults"),
+      cancelLabel: tc("button.cancel"),
       danger: true,
     });
     if (!confirmed) return;
@@ -173,15 +182,15 @@ export default function AdminOverviewScreen() {
     try {
       await updateContest(contest.id, { resultsPublished: false });
       await refreshContest();
-      showToast({ kind: "success", title: "已撤回成績發布" });
+      showToast({ kind: "success", title: t("adminOverview.actions.revokeResultsSuccess") });
     } catch (error) {
       showToast({
         kind: "error",
-        title: "撤回失敗",
+        title: t("adminOverview.actions.revokeResultsFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
     }
-  }, [confirm, contest?.id, refreshContest, showToast]);
+  }, [confirm, contest?.id, refreshContest, showToast, t, tc]);
 
   useEffect(() => {
     return registerPanelRefresh("overview", async () => {

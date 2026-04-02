@@ -1,4 +1,4 @@
-import { Tile, Layer, SkeletonText } from "@carbon/react";
+import { Tile, SkeletonText } from "@carbon/react";
 import {
   CircleDash,
   InProgress,
@@ -40,7 +40,7 @@ export default function StudentStatusBreakdown({
           const count = kpi[key];
           const percent = Math.round((count / total) * 100);
           return (
-            <Layer key={key} level={2} className={styles.tileWrap}>
+            <div key={key} className={styles.tileWrap}>
               <Tile className={styles.tile}>
                 {loading ? (
                   <>
@@ -65,7 +65,7 @@ export default function StudentStatusBreakdown({
                   </>
                 )}
               </Tile>
-            </Layer>
+            </div>
           );
         })}
       </div>

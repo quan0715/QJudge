@@ -99,11 +99,11 @@ export const ListItemContent = ({ children, className }: SlotProps) => (
 );
 
 export const ListItemTitle = ({ children, className }: SlotProps) => (
-  <p className={cx(styles.title, className)}>{children}</p>
+  <div className={cx(styles.title, className)}>{children}</div>
 );
 
 export const ListItemMeta = ({ children, className }: SlotProps) => (
-  <p className={cx(styles.meta, className)}>{children}</p>
+  <div className={cx(styles.meta, className)}>{children}</div>
 );
 
 export const ListItemTrailing = ({ children, className }: SlotProps) => (

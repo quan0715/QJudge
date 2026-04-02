@@ -9,123 +9,15 @@ import {
   useExamAutoSave,
   type FieldSaveState,
 } from "@/features/contest/components/admin/examEditor/hooks/useExamAutoSave";
-import AdminContestSettingsContent from "@/features/contest/components/admin/AdminContestSettingsContent";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave/GlobalSaveStatus";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import {
   archiveContest,
   deleteContest,
 } from "@/infrastructure/api/repositories";
-import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
+import { sanitizeAnticheatPolicy } from "@/features/contest/components/admin/settings/anticheatPolicyUtils";
+import { ContestSettingsModal } from "@/features/contest/components/admin/settings";
 import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
-
-const sanitizeAnticheatPolicy = (
-  policy: unknown
-): typeof DEFAULT_DEVICE_POLICY => {
-  const raw =
-    policy && typeof policy === "object" && !Array.isArray(policy)
-      ? (policy as Record<string, unknown>)
-      : {};
-
-  const normalizeSource = (
-    source: unknown,
-    fallback: typeof DEFAULT_DEVICE_POLICY.desktop.sources.screenShare
-  ) => {
-    const src =
-      source && typeof source === "object" && !Array.isArray(source)
-        ? (source as Record<string, unknown>)
-        : {};
-    const interval = Number(
-      src.captureIntervalSeconds ?? src.capture_interval_seconds ?? fallback.captureIntervalSeconds
-    );
-    return {
-      enabled: typeof src.enabled === "boolean" ? src.enabled : fallback.enabled,
-      captureIntervalSeconds:
-        Number.isFinite(interval) && interval > 0 ? Math.floor(interval) : fallback.captureIntervalSeconds,
-    };
-  };
-
-  const normalizeDetectors = (
-    detectors: unknown,
-    fallback: typeof DEFAULT_DEVICE_POLICY.desktop.detectors
-  ) => {
-    const det =
-      detectors && typeof detectors === "object" && !Array.isArray(detectors)
-        ? (detectors as Record<string, unknown>)
-        : {};
-    return {
-      pwaMode:
-        typeof det.pwaMode === "boolean"
-          ? det.pwaMode
-          : typeof det.pwa_mode === "boolean"
-          ? (det.pwa_mode as boolean)
-          : fallback.pwaMode,
-      fullscreen: typeof det.fullscreen === "boolean" ? det.fullscreen : fallback.fullscreen,
-      focus: typeof det.focus === "boolean" ? det.focus : fallback.focus,
-      tabVisibility:
-        typeof det.tabVisibility === "boolean"
-          ? det.tabVisibility
-          : typeof det.tab_visibility === "boolean"
-          ? (det.tab_visibility as boolean)
-          : fallback.tabVisibility,
-      multiDisplay:
-        typeof det.multiDisplay === "boolean"
-          ? det.multiDisplay
-          : typeof det.multi_display === "boolean"
-          ? (det.multi_display as boolean)
-          : fallback.multiDisplay,
-      mouseLeave:
-        typeof det.mouseLeave === "boolean"
-          ? det.mouseLeave
-          : typeof det.mouse_leave === "boolean"
-          ? (det.mouse_leave as boolean)
-          : fallback.mouseLeave,
-      viewportIntegrity:
-        typeof det.viewportIntegrity === "boolean"
-          ? det.viewportIntegrity
-          : typeof det.viewport_integrity === "boolean"
-          ? (det.viewport_integrity as boolean)
-          : fallback.viewportIntegrity,
-    };
-  };
-
-  const normalizeDevice = (
-    device: unknown,
-    fallback: typeof DEFAULT_DEVICE_POLICY.desktop
-  ) => {
-    const item =
-      device && typeof device === "object" && !Array.isArray(device)
-        ? (device as Record<string, unknown>)
-        : {};
-    const sources =
-      item.sources && typeof item.sources === "object" && !Array.isArray(item.sources)
-        ? (item.sources as Record<string, unknown>)
-        : {};
-    return {
-      enabled: typeof item.enabled === "boolean" ? item.enabled : fallback.enabled,
-      sources: {
-        screenShare: normalizeSource(
-          sources.screenShare ?? sources.screen_share,
-          fallback.sources.screenShare
-        ),
-        webcam: normalizeSource(sources.webcam, fallback.sources.webcam),
-      },
-      detectors: normalizeDetectors(item.detectors, fallback.detectors),
-    };
-  };
-
-  const sanitized = {
-    desktop: normalizeDevice(raw.desktop, DEFAULT_DEVICE_POLICY.desktop),
-    tablet: normalizeDevice(raw.tablet, DEFAULT_DEVICE_POLICY.tablet),
-  };
-
-  sanitized.desktop.detectors.pwaMode = false;
-  sanitized.desktop.detectors.viewportIntegrity = false;
-  sanitized.tablet.detectors.fullscreen = false;
-  sanitized.tablet.detectors.multiDisplay = false;
-
-  return sanitized;
-};
 
 const isValidDate = (date: Date | null | undefined): date is Date =>
   !!date && !Number.isNaN(date.getTime());
@@ -201,12 +93,12 @@ const AdminContestSettingsScreen = () => {
     debounceMs: 1500,
   });
 
+  const [modalOpen, setModalOpen] = useState(true);
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [startTimeInput, setStartTimeInput] = useState("");
   const [endTimeInput, setEndTimeInput] = useState("");
   const [startDateInput, setStartDateInput] = useState<Date | null>(null);
   const [endDateInput, setEndDateInput] = useState<Date | null>(null);
-  // publish_to_practice removed — questions live in the bank now
   const initializedRef = useRef(false);
   const initializedContestIdRef = useRef<string | null>(null);
 
@@ -400,21 +292,43 @@ const AdminContestSettingsScreen = () => {
           <GlobalSaveStatus status={autoSave.globalStatus} />
         </div>
 
-        <AdminContestSettingsContent
+        {!modalOpen && (
+          <div style={{ display: "flex", justifyContent: "center", paddingTop: "3rem" }}>
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              style={{
+                background: "none",
+                border: "1px solid var(--cds-border-strong)",
+                borderRadius: "4px",
+                padding: "0.75rem 1.5rem",
+                color: "var(--cds-link-primary)",
+                cursor: "pointer",
+                fontSize: "0.875rem",
+              }}
+            >
+              {t("settings.openSettings", "開啟競賽設定")}
+            </button>
+          </div>
+        )}
+
+        <ContestSettingsModal
+          open={modalOpen}
+          onRequestClose={() => setModalOpen(false)}
           t={t}
           tc={tc}
           contest={contest}
           form={form}
+          getState={getState}
+          onRetry={autoSave.retrySave}
+          onChange={handleChange}
+          onConfirmedChange={handleConfirmedChange}
           startDateInput={startDateInput}
           endDateInput={endDateInput}
           startTimeInput={startTimeInput}
           endTimeInput={endTimeInput}
           startMeridiem={getMeridiemFromIso(form.startTime)}
           endMeridiem={getMeridiemFromIso(form.endTime)}
-          getState={getState}
-          onRetry={autoSave.retrySave}
-          onChange={handleChange}
-          onConfirmedChange={handleConfirmedChange}
           onStartDateChange={(dates) =>
             handleDateChange(
               dates,
@@ -470,6 +384,7 @@ const AdminContestSettingsScreen = () => {
           onArchive={() => void handleArchive()}
           onDelete={() => void handleDelete()}
         />
+        {/* ConfirmModal must be outside SettingsModal to avoid Carbon focus-trap conflicts */}
         <ConfirmModal {...modalProps} />
       </div>
     </div>

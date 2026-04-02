@@ -35,6 +35,7 @@ import { type ExamQuestionJsonNormalizedQuestion } from "./examQuestionJson";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import QuestionBankImportModal, { type BankImportSelectionItem } from "./QuestionBankImportModal";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
+import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
 import styles from "./ExamEditorLayout.module.scss";
 
 // --- Question type picker config ---
@@ -417,26 +418,50 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     <>
       <AdminSplitLayout
         toolbar={
-          <div className={styles.editorToolbar}>
-            <Button
-              kind="ghost"
-              size="sm"
-              renderIcon={Upload}
-              onClick={() => setJsonImportOpen(true)}
-            >
-              {t("examJson.importAction", "匯入 JSON")}
-            </Button>
-            {onExport && (
-              <Button kind="ghost" size="sm" renderIcon={DocumentDownload} onClick={onExport}>
-                {t("adminLayout.header.exportFiles", "匯出")}
-              </Button>
-            )}
-            {onPreview && (
-              <Button kind="ghost" size="sm" renderIcon={View} onClick={onPreview}>
-                {t("adminLayout.header.previewAnswer", "預覽")}
-              </Button>
-            )}
-          </div>
+          <PanelToolbar
+            title={t("examEditor.questionManagement", "題目管理")}
+            actions={
+              <>
+                <Button
+                  kind="ghost"
+                  size="md"
+                  hasIconOnly
+                  renderIcon={Upload}
+                  iconDescription={t("examJson.importAction", "匯入 JSON")}
+                  onClick={() => setJsonImportOpen(true)}
+                />
+                {onExport && (
+                  <Button
+                    kind="ghost"
+                    size="md"
+                    hasIconOnly
+                    renderIcon={DocumentDownload}
+                    iconDescription={t("adminLayout.header.exportFiles", "匯出")}
+                    onClick={onExport}
+                  />
+                )}
+                {onPreview && (
+                  <Button
+                    kind="ghost"
+                    size="md"
+                    hasIconOnly
+                    renderIcon={View}
+                    iconDescription={t("adminLayout.header.previewAnswer", "預覽")}
+                    onClick={onPreview}
+                  />
+                )}
+                <Button
+                  kind="primary"
+                  size="md"
+                  hasIconOnly
+                  renderIcon={Add}
+                  iconDescription={t("examEditor.addQuestion", "新增題目")}
+                  onClick={() => openTypePicker()}
+                  disabled={frozen}
+                />
+              </>
+            }
+          />
         }
         sidebar={sidebarContent}
         contentMaxWidth={720}
@@ -467,18 +492,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
               }}
             />
           ))}
-          {!frozen && (
-            <div className={styles.addQuestionRow}>
-              <Button
-                kind="tertiary"
-                size="md"
-                renderIcon={Add}
-                onClick={() => openTypePicker()}
-              >
-                {t("examEditor.addQuestion", "新增題目")}
-              </Button>
-            </div>
-          )}
         </Reorder.Group>
       </AdminSplitLayout>
 
