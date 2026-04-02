@@ -250,9 +250,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
           ? undefined
           : step === "configure_schedule"
             ? "#contest-name"
-            : creationType === "exam"
-              ? "#contest-exam-mode"
-              : "#contest-allow-multiple-joins"
+            : "#contest-exam-mode"
       }
     >
       <>
@@ -404,30 +402,28 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
               )}
             </div>
 
-            {creationType === "exam" && (
-              <div className={styles.questionCard}>
-                <div className={styles.questionHeader}>
-                  <div className={styles.questionCopy}>
-                    <div className={styles.questionTitle} id="contest-exam-mode-label">
-                      {t("createModal.examModeTitle", "啟用考試模式")}
-                    </div>
-                    <div className={styles.questionHint}>
-                      {t("createModal.examModeHint", "啟用後將套用考試所需的監考與防作弊設定。")}
-                    </div>
+            <div className={styles.questionCard}>
+              <div className={styles.questionHeader}>
+                <div className={styles.questionCopy}>
+                  <div className={styles.questionTitle} id="contest-exam-mode-label">
+                    {t("createModal.examModeTitle", "啟用考試模式")}
                   </div>
-                  <Toggle
-                    id="contest-exam-mode"
-                    aria-labelledby="contest-exam-mode-label"
-                    labelText=""
-                    hideLabel
-                    toggled={examModeEnabled}
-                    onToggle={(checked: boolean) => setExamModeEnabled(checked)}
-                    labelA=""
-                    labelB=""
-                  />
+                  <div className={styles.questionHint}>
+                    {t("createModal.examModeHint", "啟用後將套用考試所需的監考與防作弊設定。")}
+                  </div>
                 </div>
+                <Toggle
+                  id="contest-exam-mode"
+                  aria-labelledby="contest-exam-mode-label"
+                  labelText=""
+                  hideLabel
+                  toggled={examModeEnabled}
+                  onToggle={(checked: boolean) => setExamModeEnabled(checked)}
+                  labelA=""
+                  labelB=""
+                />
               </div>
-            )}
+            </div>
 
             <div className={styles.questionCard}>
               <div className={styles.questionHeader}>
