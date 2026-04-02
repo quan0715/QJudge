@@ -36,9 +36,9 @@ const FilterDemo = () => {
           titleText="狀態"
           label="選擇狀態"
           items={STATUS_OPTIONS}
-          itemToString={(item: { label: string } | null) => item?.label ?? ""}
+          itemToString={(item) => (typeof item === 'string' ? item : item?.label ?? "")}
           selectedItem={STATUS_OPTIONS.find((s) => s.id === status) ?? STATUS_OPTIONS[0]}
-          onChange={({ selectedItem }: { selectedItem: { id: string } | null }) => {
+          onChange={({ selectedItem }) => {
             if (selectedItem) setStatus(selectedItem.id);
           }}
         />
