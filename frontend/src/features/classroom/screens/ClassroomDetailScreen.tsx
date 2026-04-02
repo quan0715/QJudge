@@ -21,7 +21,10 @@ import type {
   ClassroomAnnouncement,
   ClassroomDetail,
 } from "@/core/entities/classroom.entity";
-import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import {
+  getClassroomContestAdminPath,
+  getClassroomContestDashboardPath,
+} from "@/features/contest/domain/contestRoutePolicy";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { KpiCard } from "@/shared/ui/dataCard";
 import {
@@ -162,7 +165,7 @@ const ClassroomDetailScreen: React.FC = () => {
     await fetchClassroomData();
     const targetClassroomId = classroomId || classroom?.id;
     if (targetClassroomId) {
-      navigate(getClassroomContestDashboardPath(targetClassroomId, contestId));
+      navigate(getClassroomContestAdminPath(targetClassroomId, contestId));
     }
   };
 

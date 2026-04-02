@@ -126,9 +126,9 @@ export default function OverviewInsightsPanel({
     return (
       <aside className={styles.panel}>
         <h3 className={styles.title}>
-          {t("adminOverview.sidebar.title", "考試摘要")}
+          {t("adminOverview.sidebar.title", "狀態與入口")}
         </h3>
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: 3 }).map((_, i) => (
           <Tile key={i} className={styles.tile}>
             <SkeletonText width="50%" />
             <SkeletonText heading width="70%" />
@@ -143,7 +143,7 @@ export default function OverviewInsightsPanel({
   return (
     <aside className={styles.panel}>
       <h3 className={styles.title}>
-        {t("adminOverview.sidebar.title", "考試摘要")}
+        {t("adminOverview.sidebar.title", "狀態與入口")}
       </h3>
 
       <Tile className={styles.tile}>
@@ -220,20 +220,6 @@ export default function OverviewInsightsPanel({
             : t("adminOverview.sidebar.problemCountCoding", "程式題目")}
         </div>
       </ActionTile>
-
-      <Tile className={styles.tile}>
-        <div className={styles.tileHeader}>
-          <span>{t("adminOverview.sidebar.online", "在線狀態")}</span>
-        </div>
-        <div className={styles.metricRow}>
-          <span>{t("adminOverview.sidebar.heartbeatOnline", "Heartbeat 在線")}</span>
-          <strong>{snapshot.onlineNow}</strong>
-        </div>
-        <div className={styles.metricRow}>
-          <span>{t("adminOverview.sidebar.activeSessions", "Active Sessions")}</span>
-          <strong>{snapshot.onlineActiveSessions}</strong>
-        </div>
-      </Tile>
 
     </aside>
   );

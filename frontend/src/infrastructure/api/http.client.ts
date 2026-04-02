@@ -64,7 +64,18 @@ const redirectToLogin = () => {
 
 const handleUnauthorized = (response: Response): boolean => {
   if (response.status === 401) {
-    clearAuthStorage();
+    const path = typeof window !== "undefined" ? window.location.pathname : "";
+    const isCriticalPath =
+      path.startsWith("/login") ||
+      path.startsWith("/register") ||
+      path.startsWith("/auth/") ||
+      path.startsWith("/teacher-activation") ||
+      path.startsWith("/onboarding") ||
+      path.startsWith("/classrooms/join");
+
+    if (!isCriticalPath) {
+      clearAuthStorage();
+    }
     redirectToLogin();
     return true;
   }

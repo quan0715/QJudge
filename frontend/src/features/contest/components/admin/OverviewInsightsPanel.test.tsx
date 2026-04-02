@@ -98,6 +98,7 @@ describe("OverviewInsightsPanel", () => {
       />,
     );
 
+    expect(screen.queryByText("在線狀態")).not.toBeInTheDocument();
     expect(screen.getByText("problems")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "競賽狀態" }));

@@ -7,6 +7,7 @@ import {
   DatePickerInput,
   TimePicker,
   TimePickerSelect,
+  PasswordInput,
   Select,
   SelectItem,
   Toggle,
@@ -37,9 +38,10 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
+  const getToday = () => new Date();
 
   const [name, setName] = useState("");
-  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(() => getToday());
   const [startTime, setStartTime] = useState("09:00");
   const [startMeridiem, setStartMeridiem] = useState<Meridiem>("AM");
   const [durationMinutes, setDurationMinutes] = useState("120");
@@ -54,7 +56,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
 
   const resetForm = () => {
     setName("");
-    setStartDate(null);
+    setStartDate(getToday());
     setStartTime("09:00");
     setStartMeridiem("AM");
     setDurationMinutes("120");
@@ -173,10 +175,10 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
 
   const modalHeading =
     step === "select_type"
-      ? t("createModal.chooseTypeTitle", "建立考試")
+      ? t("createModal.chooseTypeTitle", "建立競賽")
       : step === "configure_schedule"
-        ? t("createModal.configureSchedule", "設定時間")
-        : t("createModal.advancedSettings", "進階要求");
+        ? t("createModal.configureSchedule", "設定基本資訊")
+        : t("createModal.advancedSettings", "進階條件設定");
 
   const primaryButtonText =
     step === "select_type"
@@ -207,6 +209,10 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
           return;
         }
         if (step === "configure_schedule") {
+          if (!name.trim()) {
+            setError(t("createModal.validation.nameRequired", "請輸入競賽名稱"));
+            return;
+          }
           if (hasValidSchedule) {
             setStep("advanced");
             setError("");
@@ -232,7 +238,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
       }}
       primaryButtonDisabled={
         step === "select_type"
-          ? !creationType || !name.trim()
+          ? !creationType
           : step === "configure_schedule"
             ? loading
             : !canCreate || loading
@@ -243,7 +249,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
         step === "select_type"
           ? undefined
           : step === "configure_schedule"
-            ? "#start-date"
+            ? "#contest-name"
             : creationType === "exam"
               ? "#contest-exam-mode"
               : "#contest-allow-multiple-joins"
@@ -264,7 +270,10 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
         {step === "select_type" && (
           <div className={styles.stepStack}>
             <p className={styles.helperText}>
-              先選擇競賽類型，再輸入名稱。
+              {t(
+                "createModal.stepIntro",
+                "請先選擇競賽類型。",
+              )}
             </p>
 
             <div className={styles.typeSelector}>
@@ -302,24 +311,30 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
                 <span className={styles.typeSubtitle}>{t("createModal.typeExamDesc")}</span>
               </button>
             </div>
-
-            <TextInput
-              id="contest-name"
-              labelText={t("createModal.contestName", "競賽名稱")}
-              placeholder={t("placeholder.contestName")}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className={styles.nameInput}
-            />
           </div>
         )}
 
         {step === "configure_schedule" && creationType && (
           <div className={styles.stepStack}>
             <div className={styles.sectionLabel}>
-              {t("createModal.scheduleTitle", "設定時間")}
+              {t("createModal.scheduleTitle", "設定基本資訊")}
             </div>
+            <p className={styles.helperText}>
+              {t(
+                "createModal.scheduleIntro",
+                "請填寫競賽基本資訊與應試時段。建立完成後，仍可於競賽管理頁面調整。",
+              )}
+            </p>
+
+            <TextInput
+              id="contest-name"
+              labelText={t("createModal.contestName", "競賽名稱")}
+              placeholder={t("createModal.contestNamePlaceholder", "例如：114-2 期中評量")}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className={styles.nameInput}
+            />
 
             <div className={styles.fieldStack}>
               <DatePicker
@@ -330,8 +345,8 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
               >
                 <DatePickerInput
                   id="start-date"
-                  labelText={tc("form.startDate")}
-                  placeholder="yyyy/mm/dd"
+                  labelText={t("createModal.startDateLabel", "開始日期")}
+                  placeholder={t("createModal.startDatePlaceholder", "YYYY/MM/DD")}
                 />
               </DatePicker>
             </div>
@@ -339,10 +354,10 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
             <div className={styles.timeFieldBlock}>
               <TimePicker
                 id="start-time"
-                labelText={tc("form.startTime")}
+                labelText={t("createModal.startTimeLabel", "開始時間")}
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                placeholder="hh:mm"
+                placeholder={t("createModal.startTimePlaceholder", "HH:MM")}
               >
                 <TimePickerSelect
                   id="start-meridiem"
@@ -354,7 +369,10 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
                 </TimePickerSelect>
               </TimePicker>
               <div className={styles.fieldHint}>
-                例如 09:30
+                {t(
+                  "createModal.timeFormatExample",
+                  "請使用 12 小時制時間格式 HH:MM，並選擇上午或下午（例如 09:30 AM）。",
+                )}
               </div>
             </div>
 
@@ -369,7 +387,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
                   <SelectItem
                     key={minutes}
                     value={String(minutes)}
-                    text={`${minutes}m`}
+                    text={`${minutes} ${t("createModal.durationUnit", "分鐘")}`}
                   />
                 ))}
               </Select>
@@ -380,64 +398,92 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
         {step === "advanced" && creationType && (
           <div className={styles.stepStack}>
             <div className={styles.helperText}>
-              回答這幾個條件，建立後就能直接開始使用。
+              {t(
+                "createModal.advancedIntro",
+                "請依監考與參與規範設定進階條件。",
+              )}
             </div>
 
             {creationType === "exam" && (
               <div className={styles.questionCard}>
-                <div className={styles.questionTitle}>考試模式</div>
-                <div className={styles.questionHint}>
-                  開啟後會使用考試的監考與防作弊設定。
+                <div className={styles.questionHeader}>
+                  <div className={styles.questionCopy}>
+                    <div className={styles.questionTitle} id="contest-exam-mode-label">
+                      {t("createModal.examModeTitle", "啟用考試模式")}
+                    </div>
+                    <div className={styles.questionHint}>
+                      {t("createModal.examModeHint", "啟用後將套用考試所需的監考與防作弊設定。")}
+                    </div>
+                  </div>
+                  <Toggle
+                    id="contest-exam-mode"
+                    aria-labelledby="contest-exam-mode-label"
+                    labelText=""
+                    hideLabel
+                    toggled={examModeEnabled}
+                    onToggle={(checked: boolean) => setExamModeEnabled(checked)}
+                    labelA=""
+                    labelB=""
+                  />
                 </div>
-                <Toggle
-                  id="contest-exam-mode"
-                  labelText={examModeEnabled ? "已啟用" : "未啟用"}
-                  toggled={examModeEnabled}
-                  onToggle={(checked: boolean) => setExamModeEnabled(checked)}
-                  labelA="關閉"
-                  labelB="開啟"
-                />
               </div>
             )}
 
             <div className={styles.questionCard}>
-              <div className={styles.questionTitle}>重複加入</div>
-              <div className={styles.questionHint}>
-                學生離開後，是否還能重新加入這場競賽。
+              <div className={styles.questionHeader}>
+                <div className={styles.questionCopy}>
+                  <div className={styles.questionTitle} id="contest-rejoin-label">
+                    {t("createModal.rejoinTitle", "允許重新加入")}
+                  </div>
+                  <div className={styles.questionHint}>
+                    {t("createModal.rejoinHint", "啟用後，學生離開競賽後可再次加入。")}
+                  </div>
+                </div>
+                <Toggle
+                  id="contest-allow-multiple-joins"
+                  aria-labelledby="contest-rejoin-label"
+                  labelText=""
+                  hideLabel
+                  toggled={allowMultipleJoins}
+                  onToggle={(checked: boolean) => setAllowMultipleJoins(checked)}
+                  labelA=""
+                  labelB=""
+                />
               </div>
-              <Toggle
-                id="contest-allow-multiple-joins"
-                labelText={allowMultipleJoins ? "允許" : "不允許"}
-                toggled={allowMultipleJoins}
-                onToggle={(checked: boolean) => setAllowMultipleJoins(checked)}
-                labelA="不允許"
-                labelB="允許"
-              />
             </div>
 
             <div className={styles.questionCard}>
-              <div className={styles.questionTitle}>密碼設定</div>
-              <div className={styles.questionHint}>
-                需要密碼時，學生報名或進入時都要輸入。
+              <div className={styles.questionHeader}>
+                <div className={styles.questionCopy}>
+                  <div className={styles.questionTitle} id="contest-password-toggle-label">
+                    {t("createModal.passwordTitle", "要求競賽密碼")}
+                  </div>
+                  <div className={styles.questionHint}>
+                    {t("createModal.passwordHint", "啟用後，學生在加入或進入競賽時需輸入密碼。")}
+                  </div>
+                </div>
+                <Toggle
+                  id="contest-requires-password"
+                  aria-labelledby="contest-password-toggle-label"
+                  labelText=""
+                  hideLabel
+                  toggled={requiresPassword}
+                  onToggle={(checked: boolean) => setRequiresPassword(checked)}
+                  labelA=""
+                  labelB=""
+                />
               </div>
-              <Toggle
-                id="contest-requires-password"
-                labelText={requiresPassword ? "需要密碼" : "不需要密碼"}
-                toggled={requiresPassword}
-                onToggle={(checked: boolean) => setRequiresPassword(checked)}
-                labelA={t("createModal.noPassword")}
-                labelB={t("createModal.requiresPasswordShort")}
-              />
               {requiresPassword && (
-                <TextInput
+                <PasswordInput
                   id="contest-password"
-                  labelText={t("hero.passwordLabel")}
-                  placeholder={t("hero.passwordPlaceholder")}
-                  type="password"
+                  labelText={t("createModal.passwordInputLabel", "競賽密碼")}
+                  placeholder={t("createModal.passwordInputPlaceholder", "請輸入競賽密碼")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className={styles.passwordInput}
+                  showPasswordLabel={t("createModal.showPassword", "顯示密碼")}
+                  hidePasswordLabel={t("createModal.hidePassword", "隱藏密碼")}
                 />
               )}
             </div>

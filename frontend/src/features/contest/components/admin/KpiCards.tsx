@@ -1,10 +1,6 @@
 import type { ReactNode } from "react";
 import { Button, Tag } from "@carbon/react";
-import {
-  UserMultiple,
-  ChartBar,
-  Education,
-} from "@carbon/icons-react";
+import { Education, UserMultiple } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type {
   ContestDetail,
@@ -57,6 +53,11 @@ export default function KpiCards({
       : contestStatus === "published"
         ? "green"
         : "cool-gray";
+  const participantCount = contest.participantCount ?? 0;
+  const examTypeLabel = t(
+    `adminOverview.examType.${contest.contestType}`,
+    contest.contestType === "paper_exam" ? "考卷" : "Coding Test",
+  );
 
   const heroActions: ReactNode = (() => {
     if (isArchived) {
@@ -197,20 +198,15 @@ export default function KpiCards({
         <>
           <KpiCard
             icon={UserMultiple}
-            value={String(snapshot.onlineNow)}
-            label={t("adminOverview.kpi.onlineNow", "即時在線")}
-            showBorder={false}
-          />
-          <KpiCard
-            icon={ChartBar}
-            value={t(`adminOverview.examStatus.${snapshot.examStatus}`)}
-            label={t("adminOverview.kpi.exams", "考試進度")}
+            value={participantCount}
+            unit={t("adminOverview.kpi.personUnit", "人")}
+            label={t("adminOverview.kpi.participantCount", "參賽者")}
             showBorder={false}
           />
           <KpiCard
             icon={Education}
-            value={t(`adminOverview.examType.${snapshot.examType}`)}
-            label={t("adminOverview.kpi.examMode", "考試模式")}
+            value={examTypeLabel}
+            label={t("adminOverview.kpi.examMode", "考試類型")}
             showBorder={false}
           />
         </>

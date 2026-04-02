@@ -1,11 +1,16 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ContestDetail, ContestOverviewMetrics } from "@/core/entities/contest.entity";
-import KpiCards from "./KpiCards";
+import OverviewActionWidgets from "./OverviewActionWidgets";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (_key: string, fallback?: string) => fallback ?? _key,
+    t: (_key: string, fallback?: string, options?: Record<string, unknown>) =>
+      fallback && options
+        ? fallback.replace("{{submitted}}", String(options.submitted ?? ""))
+            .replace("{{total}}", String(options.total ?? ""))
+            .replace("{{time}}", String(options.time ?? ""))
+        : fallback ?? _key,
   }),
   initReactI18next: {
     type: "3rdParty",
@@ -13,7 +18,9 @@ vi.mock("react-i18next", () => ({
   },
 }));
 
-const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
+const buildContest = (
+  overrides: Partial<ContestDetail> = {},
+): ContestDetail =>
   ({
     id: "contest-1",
     name: "Contest",
@@ -34,7 +41,7 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     autoUnlockMinutes: 0,
     resultsPublished: false,
     examQuestionsCount: 0,
-    participantCount: 24,
+    participantCount: 20,
     isExamMonitored: false,
     requiresFullscreen: false,
     canSubmitExam: true,
@@ -48,7 +55,10 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
       canViewFullScoreboard: true,
       canManageClarifications: true,
     },
-    problems: [],
+    problems: [
+      { id: "cp-1", problemId: "p-1", label: "A", title: "Two Sum", score: 100, order: 0 },
+      { id: "cp-2", problemId: "p-2", label: "B", title: "Graph", score: 100, order: 1 },
+    ],
     ...overrides,
   }) as ContestDetail;
 
@@ -64,60 +74,81 @@ const buildMetrics = (
     },
     timeProgress: {
       totalSeconds: 7200,
-      elapsedSeconds: 7200,
-      remainingSeconds: 0,
-      progressPercent: 100,
+      elapsedSeconds: 3600,
+      remainingSeconds: 3600,
+      progressPercent: 50,
       isStarted: true,
-      isEnded: true,
+      isEnded: false,
     },
     ...overrides,
   }) as ContestOverviewMetrics;
 
-describe("KpiCards", () => {
-  it("shows draft contest actions and routes to problem editor", () => {
+describe("OverviewActionWidgets", () => {
+  it("shows the four action widgets and routes each widget", () => {
     const onOpenPanel = vi.fn();
     const onPublishContest = vi.fn().mockResolvedValue(undefined);
 
     render(
-      <KpiCards
-        contest={buildContest({ status: "draft" })}
-        overviewMetrics={buildMetrics({ timeProgress: { totalSeconds: 0, elapsedSeconds: 0, remainingSeconds: 0, progressPercent: 0, isStarted: false, isEnded: false } })}
+      <OverviewActionWidgets
+        contest={buildContest({ status: "draft", participantCount: 136 })}
+        kpi={{
+          totalParticipants: 136,
+          notStartedCount: 12,
+          inProgressCount: 34,
+          pausedOrLockedCount: 5,
+          submittedCount: 85,
+        }}
+        overviewMetrics={buildMetrics()}
         onOpenPanel={onOpenPanel}
         onPublishContest={onPublishContest}
         onPublishResults={vi.fn().mockResolvedValue(undefined)}
-        onRevokeResults={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
-    expect(screen.getByText("參賽者")).toBeInTheDocument();
-    expect(screen.getByText("考試類型")).toBeInTheDocument();
-    expect(screen.queryByText("即時在線")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "發布競賽" }));
-    fireEvent.click(screen.getByRole("button", { name: "前往題目" }));
+    fireEvent.click(screen.getByRole("button", { name: "競賽狀態 發布競賽" }));
+    fireEvent.click(screen.getByRole("button", { name: "參賽者 查看統計" }));
+    fireEvent.click(screen.getByRole("button", { name: "題目數量 前往題目" }));
+    fireEvent.click(screen.getByRole("button", { name: "考試批改狀態 前往批改" }));
 
     expect(onPublishContest).toHaveBeenCalledTimes(1);
+    expect(onOpenPanel).toHaveBeenCalledWith("statistics");
     expect(onOpenPanel).toHaveBeenCalledWith("problem_editor");
+    expect(onOpenPanel).toHaveBeenCalledWith("grading");
+    expect(screen.getAllByText("考試進度").length).toBeGreaterThan(0);
   });
 
-  it("shows publish-results action after the contest has ended", () => {
+  it("switches the status widget action after the contest ends", () => {
     const onOpenPanel = vi.fn();
     const onPublishResults = vi.fn().mockResolvedValue(undefined);
 
     render(
-      <KpiCards
+      <OverviewActionWidgets
         contest={buildContest({ status: "published", resultsPublished: false })}
-        overviewMetrics={buildMetrics()}
+        kpi={{
+          totalParticipants: 136,
+          notStartedCount: 12,
+          inProgressCount: 34,
+          pausedOrLockedCount: 5,
+          submittedCount: 85,
+        }}
+        overviewMetrics={buildMetrics({
+          timeProgress: {
+            totalSeconds: 7200,
+            elapsedSeconds: 7200,
+            remainingSeconds: 0,
+            progressPercent: 100,
+            isStarted: true,
+            isEnded: true,
+          },
+        })}
         onOpenPanel={onOpenPanel}
         onPublishContest={vi.fn().mockResolvedValue(undefined)}
         onPublishResults={onPublishResults}
-        onRevokeResults={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "發布成績" }));
-    fireEvent.click(screen.getByRole("button", { name: "前往批改" }));
+    fireEvent.click(screen.getByRole("button", { name: "競賽狀態 發布成績" }));
 
     expect(onPublishResults).toHaveBeenCalledTimes(1);
-    expect(onOpenPanel).toHaveBeenCalledWith("grading");
   });
 });

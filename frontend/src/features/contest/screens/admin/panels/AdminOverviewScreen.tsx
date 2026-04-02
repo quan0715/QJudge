@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import KpiCards from "@/features/contest/components/admin/KpiCards";
-import OverviewEventSummaryPanel from "@/features/contest/components/admin/OverviewEventSummaryPanel";
-import OverviewInsightsPanel from "@/features/contest/components/admin/OverviewInsightsPanel";
+import OverviewActionWidgets from "@/features/contest/components/admin/OverviewActionWidgets";
 import StudentStatusBreakdown from "@/features/contest/components/admin/StudentStatusBreakdown";
 import {
   useContest,
@@ -15,12 +14,12 @@ import { useToast } from "@/shared/contexts";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { computeParticipantStatusKpi } from "../participantStatusKpi";
 import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
+import styles from "./AdminOverviewScreen.module.scss";
 
 export default function AdminOverviewScreen() {
   const { contest, refreshContest } = useContest();
   const {
     participants,
-    examEvents,
     overviewMetrics,
     initialLoading,
     refreshAllAdminData,
@@ -139,18 +138,18 @@ export default function AdminOverviewScreen() {
           />
         }
         main={
-          <>
+          <div className={styles.mainColumn}>
+            <OverviewActionWidgets
+              contest={contest}
+              kpi={kpi}
+              overviewMetrics={overviewMetrics}
+              loading={initialLoading}
+              onOpenPanel={openPanel}
+              onPublishContest={handlePublishContest}
+              onPublishResults={handlePublishResults}
+            />
             <StudentStatusBreakdown kpi={kpi} loading={initialLoading} />
-            <OverviewEventSummaryPanel examEvents={examEvents} loading={initialLoading} />
-          </>
-        }
-        side={
-          <OverviewInsightsPanel
-            contest={contest}
-            overviewMetrics={overviewMetrics}
-            loading={initialLoading}
-            onOpenPanel={openPanel}
-          />
+          </div>
         }
       />
       <ConfirmModal {...modalProps} />
