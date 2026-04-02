@@ -538,28 +538,6 @@
   }
 }
 
-.classroom-admin-empty-block {
-  @include mixins.panel-empty-state;
-  gap: layout.$spacing-02;
-  padding: layout.$spacing-05 layout.$spacing-04;
-  min-height: layout.rem(140px);
-  height: auto;
-  background: var(--cds-layer-02);
-  border: 1px dashed var(--cds-border-subtle);
-}
-
-.classroom-admin-empty-block--compact {
-  min-height: layout.rem(96px);
-  padding: layout.$spacing-04;
-}
-
-.classroom-admin-empty-block__icon {
-  color: var(--cds-icon-disabled);
-}
-
-.classroom-admin-empty-block p {
-  margin: 0;
-}
 
 @media (max-width: 1056px) {
   .classroom-hero-content {

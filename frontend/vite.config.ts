@@ -8,6 +8,12 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const storybookTarget = env.VITE_STORYBOOK_TARGET || process.env.VITE_STORYBOOK_TARGET || 'http://localhost:6006'
+  const recurPublishableKey =
+    process.env.VITE_RECUR_PUBLISHABLE_KEY ||
+    process.env.RECUR_PUBLISHABLE_KEY ||
+    env.VITE_RECUR_PUBLISHABLE_KEY ||
+    env.RECUR_PUBLISHABLE_KEY ||
+    ''
 
   return {
     plugins: [
@@ -72,8 +78,8 @@ export default defineConfig(({ mode }) => {
     define: {
       // Forward VITE_ env vars from Docker env_file into import.meta.env
       // (Vite only reads .env files by default, not process.env)
-      ...(process.env.VITE_RECUR_PUBLISHABLE_KEY && {
-        'import.meta.env.VITE_RECUR_PUBLISHABLE_KEY': JSON.stringify(process.env.VITE_RECUR_PUBLISHABLE_KEY),
+      ...(recurPublishableKey && {
+        'import.meta.env.VITE_RECUR_PUBLISHABLE_KEY': JSON.stringify(recurPublishableKey),
       }),
     },
     server: {

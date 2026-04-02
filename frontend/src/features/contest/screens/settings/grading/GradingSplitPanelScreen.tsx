@@ -3,6 +3,7 @@ import { Button, TextArea, Tag } from "@carbon/react";
 import {
   ArrowRight,
   Checkmark,
+  Save,
   UserFollow,
 } from "@carbon/icons-react";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
@@ -151,9 +152,9 @@ export default function GradingSplitPanelScreen({
 
   // ── Save / Next ──
 
-  const handleSave = useCallback(() => {
-    if (!answer || !isSubjective) return;
-    if (saveLockedRef.current) return;
+  const doSave = useCallback((): boolean => {
+    if (!answer || !isSubjective) return false;
+    if (saveLockedRef.current) return false;
     saveLockedRef.current = true;
     if (saveCooldownRef.current !== null) window.clearTimeout(saveCooldownRef.current);
     saveCooldownRef.current = window.setTimeout(() => {
@@ -161,9 +162,19 @@ export default function GradingSplitPanelScreen({
       saveCooldownRef.current = null;
     }, 350);
     onGrade(answer.id, score, feedback);
+    return true;
+  }, [answer, feedback, isSubjective, onGrade, score]);
+
+  const handleSaveAndNext = useCallback(() => {
+    if (!doSave()) return;
     if (hasNextQuestion || hasNextStudent) { goNext(); return; }
     setSaved(true);
-  }, [answer, feedback, goNext, isSubjective, onGrade, score]);
+  }, [doSave, goNext, hasNextQuestion, hasNextStudent]);
+
+  const handleSaveOnly = useCallback(() => {
+    if (!doSave()) return;
+    setSaved(true);
+  }, [doSave]);
 
   useEffect(() => {
     if (!answer) return;
@@ -177,11 +188,11 @@ export default function GradingSplitPanelScreen({
           target.tagName === "SELECT" || target.isContentEditable)
       ) return;
       event.preventDefault();
-      if (isSubjective) { handleSave(); } else { goNext(); }
+      if (isSubjective) { handleSaveAndNext(); } else { goNext(); }
     };
     window.addEventListener("keydown", handleEnterShortcut);
     return () => window.removeEventListener("keydown", handleEnterShortcut);
-  }, [answer, isSubjective, flowMode, hasNextQuestion, hasNextStudent, onNextQuestion, onNextStudent, handleSave]);
+  }, [answer, isSubjective, flowMode, hasNextQuestion, hasNextStudent, onNextQuestion, onNextStudent, handleSaveAndNext]);
 
   // ── Render ──
 
@@ -214,14 +225,16 @@ export default function GradingSplitPanelScreen({
           <span className={styles.panelHeaderMeta}>
             {answer.gradedBy === "system"
               ? t("grading.auto", "自動批改")
-              : answer.gradedBy}
+              : t("grading.gradedByLabel", "批改者：{{name}}", { name: answer.gradedBy })}
           </span>
         )}
       </div>
 
       <div className={styles.panelBody}>
         <span className={styles.studentLine}>
-          {answer.studentNickname} ({answer.studentUsername})
+          {answer.studentNickname === answer.studentUsername
+            ? answer.studentNickname
+            : `${answer.studentNickname} (${answer.studentUsername})`}
         </span>
 
         <div className={styles.questionPrompt}>
@@ -296,7 +309,7 @@ export default function GradingSplitPanelScreen({
         />
 
         <div className={styles.panelActions}>
-          {hasNextQuestion && (
+          {flowMode === "byStudent" && hasNextQuestion && (
             <Button
               kind="secondary"
               size="sm"
@@ -317,18 +330,32 @@ export default function GradingSplitPanelScreen({
             </Button>
           )}
           {isSubjective ? (
-            <Button
-              kind="primary"
-              size="sm"
-              renderIcon={Checkmark}
-              onClick={handleSave}
-            >
-              {saved
-                ? t("grading.saved", "已儲存")
-                : flowMode === "byQuestion" && hasNextStudent
-                  ? t("grading.saveAndNextStudent", "儲存並下一位學生")
+            <>
+              <Button
+                kind="ghost"
+                size="sm"
+                renderIcon={Save}
+                onClick={handleSaveOnly}
+              >
+                {saved
+                  ? t("grading.saved", "已儲存")
                   : t("grading.save", "儲存")}
-            </Button>
+              </Button>
+              {(hasNextStudent || (flowMode === "byStudent" && hasNextQuestion)) && (
+                <Button
+                  kind="primary"
+                  size="sm"
+                  renderIcon={Checkmark}
+                  onClick={handleSaveAndNext}
+                >
+                  {flowMode === "byQuestion"
+                    ? t("grading.saveAndNextStudent", "儲存並下一位學生")
+                    : hasNextQuestion
+                      ? t("grading.saveAndNextQuestion", "儲存並下一題")
+                      : t("grading.saveAndNextStudent", "儲存並下一位學生")}
+                </Button>
+              )}
+            </>
           ) : null}
         </div>
       </div>

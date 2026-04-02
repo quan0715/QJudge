@@ -4,7 +4,7 @@ import { UserMultiple } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ClassroomDetail } from "@/core/entities/classroom.entity";
 import { MemberGrid, type MemberCardData } from "../../components/MemberTable";
-import { EmptyBlock } from "../../components/EmptyBlock";
+import { EmptyState } from "@/shared/ui/EmptyState";
 
 interface MembersPanelProps {
   classroom: ClassroomDetail;
@@ -79,7 +79,7 @@ export const MembersPanel: React.FC<MembersPanelProps> = ({ classroom }) => {
         />
       </div>
       {totalVisible === 0 ? (
-        <EmptyBlock icon={UserMultiple} message={t("memberNoResult", "找不到符合篩選條件的成員")} compact />
+        <EmptyState icon={UserMultiple} title={t("memberNoResult", "找不到符合篩選條件的成員")} compact />
       ) : (
         <div className="classroom-admin-member-groups">
           {groups.map((group) =>

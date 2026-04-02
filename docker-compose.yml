@@ -349,6 +349,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        RECUR_PUBLISHABLE_KEY: ${RECUR_PUBLISHABLE_KEY:-}
     container_name: oj_frontend
     restart: always
     ports:
