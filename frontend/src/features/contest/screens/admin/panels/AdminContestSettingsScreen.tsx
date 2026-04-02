@@ -438,7 +438,7 @@ const AdminContestSettingsScreen = () => {
               event,
               "startTime",
               setStartTimeInput,
-              () => startDateInput ?? parseDate(form.startTime),
+              () => startDateInput ?? parseDate(form.startTime as string),
               () => getMeridiemFromIso(form.startTime),
             )
           }
@@ -447,7 +447,7 @@ const AdminContestSettingsScreen = () => {
               event,
               "endTime",
               setEndTimeInput,
-              () => endDateInput ?? parseDate(form.endTime),
+              () => endDateInput ?? parseDate(form.endTime as string),
               () => getMeridiemFromIso(form.endTime),
             )
           }
