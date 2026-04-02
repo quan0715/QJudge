@@ -77,7 +77,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
     time: string,
     meridiem: Meridiem,
   ): string | null => {
-    if (!date) return null;
+    if (!date || Number.isNaN(date.getTime())) return null;
     const [hours, minutes] = time.split(":").map(Number);
     if (
       Number.isNaN(hours) ||
@@ -91,9 +91,11 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
     }
 
     const combined = new Date(date);
+    if (Number.isNaN(combined.getTime())) return null;
     const normalizedHours =
       meridiem === "PM" ? (hours === 12 ? 12 : hours + 12) : (hours === 12 ? 0 : hours);
     combined.setHours(normalizedHours, minutes, 0, 0);
+    if (Number.isNaN(combined.getTime())) return null;
     return combined.toISOString();
   };
 

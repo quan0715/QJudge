@@ -44,7 +44,6 @@ export default function QuestionSidebarScreen({
   questions,
   selectedQuestionId,
   onSelect,
-  onHoverQuestion,
   collapsed = false,
   onToggleCollapse,
 }: QuestionSidebarScreenProps) {

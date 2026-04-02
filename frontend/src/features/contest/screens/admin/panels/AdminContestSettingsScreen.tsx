@@ -453,7 +453,7 @@ const AdminContestSettingsScreen = () => {
           }
           onStartMeridiemChange={(value) =>
             handleMeridiemChange(
-              value,
+              value as string,
               "startTime",
               () => startDateInput,
               () => startTimeInput,
@@ -461,7 +461,7 @@ const AdminContestSettingsScreen = () => {
           }
           onEndMeridiemChange={(value) =>
             handleMeridiemChange(
-              value,
+              value as string,
               "endTime",
               () => endDateInput,
               () => endTimeInput,
