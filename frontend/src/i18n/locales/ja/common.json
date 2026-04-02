@@ -85,6 +85,12 @@
       "confirmMessage": "現在のアカウントからログアウトしますか？",
       "confirmTitle": "ログアウトの確認"
     },
+    "pendingAction": {
+      "classroomJoinSubtitle": "まずログインまたは登録してください。完了後、自動的にクラスルームに参加します。",
+      "classroomJoinTitle": "クラスルームに参加",
+      "teacherActivationSubtitle": "まずログインまたは登録してください。完了後、自動的に教師権限が有効になります。",
+      "teacherActivationTitle": "教師権限の有効化"
+    },
     "register": {
       "confirmPassword": "パスワード確認",
       "confirmPasswordPlaceholder": "パスワードを再入力",
@@ -105,12 +111,6 @@
       "title": "アカウント作成",
       "username": "ユーザー名",
       "usernamePlaceholder": "ユーザー名を選択"
-    },
-    "pendingAction": {
-      "classroomJoinSubtitle": "まずログインまたは登録してください。完了後、自動的にクラスルームに参加します。",
-      "classroomJoinTitle": "クラスルームに参加",
-      "teacherActivationSubtitle": "まずログインまたは登録してください。完了後、自動的に教師権限が有効になります。",
-      "teacherActivationTitle": "教師権限の有効化"
     }
   },
   "button": {
@@ -245,9 +245,9 @@
     "userMenu": "ユーザーメニュー"
   },
   "image": {
-    "galleryTab": "圖庫",
-    "linkTab": "連結",
-    "uploadTab": "上傳"
+    "galleryTab": "ギャラリー",
+    "linkTab": "リンク",
+    "uploadTab": "アップロード"
   },
   "language": {
     "selectLanguage": "言語を選択",
@@ -353,6 +353,7 @@
   },
   "questionBank": {
     "addQuestion": "問題を追加",
+    "allTypes": "全ての題型",
     "bankCreated": "問題集が作成されました",
     "bankDeleted": "問題集が削除されました",
     "bankNotFound": "問題集が見つかりません",
@@ -423,12 +424,6 @@
     "questionCreated": "問題が作成されました",
     "questionDeleted": "問題が削除されました",
     "questionUpdated": "問題が更新されました",
-    "allTypes": "全ての題型",
-    "sortOrder": "デフォルト順",
-    "sortType": "題型別",
-    "sortNewest": "最新更新順",
-    "sortOldest": "最古更新順",
-    "usedInContests": "{{count}} 件の試験",
     "saveToBank": {
       "desc": "「{{title}}」保存先:",
       "success": "保存完了",
@@ -436,6 +431,10 @@
     },
     "score": "配分",
     "selectTargetBank": "保存先を選択",
+    "sortNewest": "最新更新順",
+    "sortOldest": "最古更新順",
+    "sortOrder": "デフォルト順",
+    "sortType": "題型別",
     "subtitle": "クラスルーム中心の問題集管理とQJudge Community探索",
     "tabs": {
       "explore": "探索",
@@ -446,7 +445,8 @@
     "tagPrivate": "プライベート",
     "tagPublic": "公開",
     "tagUserPublic": "ユーザー公開",
-    "timeLimit": "時間制限(ms)"
+    "timeLimit": "時間制限(ms)",
+    "usedInContests": "{{count}} 件の試験"
   },
   "questionType": {
     "description": {

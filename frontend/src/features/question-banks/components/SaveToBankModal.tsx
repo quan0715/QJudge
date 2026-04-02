@@ -86,7 +86,7 @@ export const SaveToBankModal = ({
       open={open}
       modalHeading={t("questionBank.saveToBank.title", "收錄到題庫")}
       primaryButtonText={saving ? t("message.loading", "載入中") : t("button.confirm", "確認")}
-      secondaryButtonText={t("button.cancel")}
+      secondaryButtonText={t("common:button.cancel")}
       onRequestClose={onClose}
       onRequestSubmit={() => void handleSave()}
       primaryButtonDisabled={!targetBankId || saving}

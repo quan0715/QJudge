@@ -85,6 +85,12 @@
       "confirmMessage": "현재 계정에서 로그아웃하시겠습니까?",
       "confirmTitle": "로그아웃 확인"
     },
+    "pendingAction": {
+      "classroomJoinSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 자동으로 교실에 참여합니다.",
+      "classroomJoinTitle": "교실 참여",
+      "teacherActivationSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 자동으로 교사 권한이 활성화됩니다.",
+      "teacherActivationTitle": "교사 권한 활성화"
+    },
     "register": {
       "confirmPassword": "비밀번호 확인",
       "confirmPasswordPlaceholder": "비밀번호 재입력",
@@ -105,12 +111,6 @@
       "title": "계정 만들기",
       "username": "사용자 이름",
       "usernamePlaceholder": "사용자 이름 선택"
-    },
-    "pendingAction": {
-      "classroomJoinSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 자동으로 교실에 참여합니다.",
-      "classroomJoinTitle": "교실 참여",
-      "teacherActivationSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 자동으로 교사 권한이 활성화됩니다.",
-      "teacherActivationTitle": "교사 권한 활성화"
     }
   },
   "button": {
@@ -179,9 +179,9 @@
     },
     "questionBanksSection": {
       "empty": "아직 문제집이 없습니다.",
-      "emptyHint": "문제집을 만들어 문제를 정리하세요.",
-      "showLess": "收起",
-      "showMore": "顯示更多",
+      "emptyHint": "문제집을 만들어 문제를 정리해보세요.",
+      "showLess": "접기",
+      "showMore": "더 보기",
       "title": "내 문제집",
       "viewAll": "전체 보기"
     },
@@ -353,6 +353,7 @@
   },
   "questionBank": {
     "addQuestion": "문제 추가",
+    "allTypes": "전체 유형",
     "bankCreated": "문제집이 생성되었습니다",
     "bankDeleted": "문제집이 삭제되었습니다",
     "bankNotFound": "문제집을 찾을 수 없습니다",
@@ -423,12 +424,6 @@
     "questionCreated": "문제가 생성되었습니다",
     "questionDeleted": "문제가 삭제되었습니다",
     "questionUpdated": "문제가 업데이트되었습니다",
-    "allTypes": "전체 유형",
-    "sortOrder": "기본 순서",
-    "sortType": "유형별",
-    "sortNewest": "최신 업데이트",
-    "sortOldest": "오래된 업데이트",
-    "usedInContests": "시험 {{count}}건",
     "saveToBank": {
       "desc": "「{{title}}」 저장 위치:",
       "success": "저장 완료",
@@ -436,6 +431,10 @@
     },
     "score": "배점",
     "selectTargetBank": "저장 위치 선택",
+    "sortNewest": "최신 업데이트",
+    "sortOldest": "오래된 업데이트",
+    "sortOrder": "기본 순서",
+    "sortType": "유형별",
     "subtitle": "교실 중심으로 문제집을 관리하고 QJudge 커뮤니티를 탐색하세요",
     "tabs": {
       "explore": "탐색",
@@ -446,7 +445,8 @@
     "tagPrivate": "비공개",
     "tagPublic": "공개",
     "tagUserPublic": "사용자 공개",
-    "timeLimit": "시간 제한(ms)"
+    "timeLimit": "시간 제한(ms)",
+    "usedInContests": "시험 {{count}}건"
   },
   "questionType": {
     "description": {

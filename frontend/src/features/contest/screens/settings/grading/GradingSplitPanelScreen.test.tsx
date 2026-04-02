@@ -55,6 +55,13 @@ const answer: GradingAnswerRow = {
   correctAnswer: null,
 };
 
+const nextAnswer: GradingAnswerRow = {
+  ...answer,
+  id: "a-2",
+  questionIndex: 2,
+  questionPrompt: "Next question prompt",
+};
+
 describe("GradingSplitPanelScreen", () => {
   it("grades and advances without switching button label to saved in save-next flow", () => {
     const onGrade = vi.fn();
@@ -75,5 +82,32 @@ describe("GradingSplitPanelScreen", () => {
     expect(onGrade).toHaveBeenCalledWith("a-1", 3, "");
     expect(onNextStudent).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "已儲存" })).not.toBeInTheDocument();
+  });
+
+  it("smoothly scrolls the answer pane back to top when switching students", () => {
+    const onGrade = vi.fn();
+    const scrollTo = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollTo", {
+      configurable: true,
+      value: scrollTo,
+    });
+
+    const { rerender } = render(
+      <GradingSplitPanelScreen
+        answer={answer}
+        onGrade={onGrade}
+        flowMode="byStudent"
+      />,
+    );
+
+    rerender(
+      <GradingSplitPanelScreen
+        answer={nextAnswer}
+        onGrade={onGrade}
+        flowMode="byStudent"
+      />,
+    );
+
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
   });
 });

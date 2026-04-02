@@ -532,7 +532,7 @@ const QuestionBanksScreen = () => {
         open={bankModalOpen}
         modalHeading={t("questionBank.createBank", "建立題庫")}
         primaryButtonText={t("button.create")}
-        secondaryButtonText={t("button.cancel")}
+        secondaryButtonText={t("common:button.cancel")}
         onRequestClose={() => setBankModalOpen(false)}
         onRequestSubmit={() => {
           void handleCreateBank();
@@ -576,7 +576,7 @@ const QuestionBanksScreen = () => {
         open={moveModalOpen}
         modalHeading={t("questionBank.inbox.moveTo", "收錄到題庫")}
         primaryButtonText={ingesting ? t("questionBank.inbox.ingesting", "收編中...") : t("questionBank.inbox.moveTo", "收錄到題庫")}
-        secondaryButtonText={t("button.cancel")}
+        secondaryButtonText={t("common:button.cancel")}
         onRequestClose={() => setMoveModalOpen(false)}
         onRequestSubmit={() => {
           void handleIngestAll().then(() => setMoveModalOpen(false));

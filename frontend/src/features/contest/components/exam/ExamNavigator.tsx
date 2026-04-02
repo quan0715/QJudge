@@ -1,6 +1,16 @@
 import { type FC, memo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ExamItem } from "../../types/exam.types";
+import {
+  ListPanel,
+  ListHeader,
+  ListFooter,
+  ListItem,
+  ListItemLeading,
+  ListItemContent,
+  ListItemTitle,
+  ListItemMeta,
+} from "@/shared/ui/list/ListPanel";
 import styles from "./ExamNavigator.module.scss";
 
 interface ExamNavigatorProps {
@@ -27,7 +37,6 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
 
   const itemRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
-  // Auto-scroll the navigator list to keep the active item visible
   useEffect(() => {
     const el = itemRefs.current.get(activeIndex);
     if (el) {
@@ -37,68 +46,67 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
 
   return (
     <nav className={styles.navigator}>
-      <div className={styles.navHeader}>
-        <span>{t("answering.navigation.questionList")}</span>
-      </div>
+      <ListPanel
+        header={<ListHeader title={t("answering.navigation.questionList")} />}
+        footer={
+          <ListFooter>
+            <span className={styles.summaryText}>
+              {t("answering.navigation.answeredProgress", { answered: answeredCount, total: items.length })}
+            </span>
+            {markedCount > 0 && (
+              <span className={styles.summaryMarked}>
+                {t("answering.navigation.markedCount", { count: markedCount })}
+              </span>
+            )}
+          </ListFooter>
+        }
+      >
+        {items.map((item, index) => {
+          const id = item.kind === "coding" ? item.data.id : item.data.id;
+          const isActive = index === activeIndex;
+          const isAnswered = answeredIds.has(id);
+          const isMarked = markedIds?.has(id) ?? false;
 
-      <div className={styles.list}>
-            {items.map((item, index) => {
-              const id = item.kind === "coding" ? item.data.id : item.data.id;
-              const isActive = index === activeIndex;
-              const isAnswered = answeredIds.has(id);
-              const isMarked = markedIds?.has(id) ?? false;
+          const typeLabel =
+            item.kind === "coding"
+              ? t("answering.questionTypes.coding")
+              : t(`answering.questionTypes.${item.data.questionType}`);
 
-              const typeLabel =
-                item.kind === "coding"
-                  ? t("answering.questionTypes.coding")
-                  : t(`answering.questionTypes.${item.data.questionType}`);
+          const title =
+            item.kind === "coding"
+              ? `${item.data.label}. ${item.data.title}`
+              : item.data.prompt.slice(0, 30) + (item.data.prompt.length > 30 ? "…" : "");
 
-              const fullTitle =
-                item.kind === "coding"
-                  ? `${item.data.label}. ${item.data.title}`
-                  : item.data.prompt;
-
-              const title =
-                item.kind === "coding"
-                  ? fullTitle
-                  : item.data.prompt.slice(0, 30) + (item.data.prompt.length > 30 ? "…" : "");
-
-              return (
-                <button
-                  key={id}
+          return (
+            <ListItem
+              key={id}
+              active={isActive}
+              onClick={() => onSelect(index)}
+              className={isMarked ? styles.itemMarked : undefined}
+            >
+              <ListItemLeading>
+                <span
                   ref={(el) => {
-                    if (el) itemRefs.current.set(index, el);
-                    else itemRefs.current.delete(index);
+                    // Attach ref to parent button via leading span for scroll-into-view
+                    if (el?.parentElement?.parentElement) {
+                      itemRefs.current.set(index, el.parentElement.parentElement as HTMLButtonElement);
+                    } else {
+                      itemRefs.current.delete(index);
+                    }
                   }}
-                  className={`${styles.item} ${isActive ? styles.itemActive : ""} ${isMarked ? styles.itemMarked : ""}`}
-                  onClick={() => onSelect(index)}
-                  aria-current={isActive ? "true" : undefined}
+                  className={`${styles.itemNumber} ${isAnswered ? styles.itemNumberAnswered : ""}`}
                 >
-                  <span
-                    className={`${styles.itemNumber} ${
-                      isAnswered ? styles.itemNumberAnswered : ""
-                    }`}
-                  >
-                    {index + 1}
-                  </span>
-                  <div className={styles.itemInfo}>
-                    <span className={styles.itemType}>{typeLabel}</span>
-                    <span className={styles.itemTitle}>{title}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-      <div className={styles.summary}>
-        <span className={styles.summaryText}>
-          {t("answering.navigation.answeredProgress", { answered: answeredCount, total: items.length })}
-        </span>
-        {markedCount > 0 && (
-          <span className={styles.summaryMarked}>
-            {t("answering.navigation.markedCount", { count: markedCount })}
-          </span>
-        )}
-      </div>
+                  {index + 1}
+                </span>
+              </ListItemLeading>
+              <ListItemContent>
+                <ListItemMeta>{typeLabel}</ListItemMeta>
+                <ListItemTitle>{title}</ListItemTitle>
+              </ListItemContent>
+            </ListItem>
+          );
+        })}
+      </ListPanel>
     </nav>
   );
 });

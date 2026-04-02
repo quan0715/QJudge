@@ -52,10 +52,6 @@ from ..services.participant_state import (
 from ..services.anti_cheat_session import get_active_session, get_last_heartbeat
 from ..services.participant_dashboard import build_participant_dashboard
 from ..services.anticheat_config import build_contest_anticheat_config
-from ..services.detail_cache import (
-    bump_contest_detail_cache_version,
-    get_contest_detail_cache_key,
-)
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from ..services.question_edit_lock import ensure_contest_question_editable
 from .activity import ContestActivityViewSet
@@ -70,7 +66,6 @@ from apps.question_bank.bank_workflows import is_publicly_accessible_bank
 from apps.classrooms.permissions import get_user_role_in_classroom
 
 logger = logging.getLogger(__name__)
-CONTEST_DETAIL_CACHE_TTL_SECONDS = 2
 ANTICHEAT_CONFIG_CACHE_TTL_SECONDS = 30
 
 
@@ -148,7 +143,7 @@ class ContestViewSet(viewsets.ModelViewSet):
     def _ensure_classroom_bound_participant(self, contest: Contest, user):
         """
         Classroom-bound contests must source student participation from classroom
-        membership. Managers do not register separately.
+        membership. Managers and contest staff may still self-register.
         """
         classroom = self._get_primary_bound_classroom(contest)
         if classroom is None:
@@ -159,12 +154,6 @@ class ContestViewSet(viewsets.ModelViewSet):
             return None, False, Response(
                 {"message": "Join the classroom before joining this contest"},
                 status=status.HTTP_403_FORBIDDEN,
-            )
-
-        if classroom_role in {"platform_admin", "owner", "manager"}:
-            return None, False, Response(
-                {"message": "Classroom managers do not register separately"},
-                status=status.HTTP_400_BAD_REQUEST,
             )
 
         participant, created = ContestParticipant.objects.get_or_create(
@@ -262,7 +251,6 @@ class ContestViewSet(viewsets.ModelViewSet):
         Override to log contest update activity.
         """
         instance = serializer.save()
-        bump_contest_detail_cache_version(instance.id)
         cache.delete(f"contest_anticheat_config:{instance.id}")
 
         # Log activity - record what fields were changed
@@ -283,8 +271,6 @@ class ContestViewSet(viewsets.ModelViewSet):
         """
         instance = self.get_object()
         user = request.user
-        user_cache_key = user.id if user.is_authenticated else "anon"
-        cache_key = get_contest_detail_cache_key(instance.id, str(user_cache_key))
 
         if user.is_authenticated:
             try:
@@ -296,14 +282,8 @@ class ContestViewSet(viewsets.ModelViewSet):
             except ContestParticipant.DoesNotExist:
                 pass
 
-        cached_payload = cache.get(cache_key)
-        if cached_payload is not None:
-            return Response(cached_payload)
-
         serializer = self.get_serializer(instance)
-        payload = serializer.data
-        cache.set(cache_key, payload, timeout=CONTEST_DETAIL_CACHE_TTL_SECONDS)
-        return Response(payload)
+        return Response(serializer.data)
 
     @action(
         detail=True,
@@ -782,7 +762,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                 contest,
                 request.user,
                 'register',
-                "Registered for contest via classroom membership"
+                "Registered for contest via classroom binding"
             )
             return Response(
                 {'message': 'Successfully registered'},
@@ -796,8 +776,8 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Check password if private
-        if contest.visibility == 'private':
+        # Check password if contest requires one
+        if contest.requires_password:
             password = request.data.get('password')
             if not contest.verify_contest_password(password):
                 return Response(

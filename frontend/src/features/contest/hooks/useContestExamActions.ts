@@ -8,10 +8,7 @@ import {
   exitFullscreen,
   isFullscreen,
 } from "@/core/usecases/exam";
-import {
-  joinContestUseCase,
-  leaveContestUseCase,
-} from "@/core/usecases/contest";
+import { joinContestUseCase } from "@/core/usecases/contest";
 import { endExam } from "@/infrastructure/api/repositories";
 import { isSubmittedExamSessionResponse } from "@/infrastructure/api/repositories/exam.repository";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
@@ -48,7 +45,6 @@ import {
 } from "@/features/contest/domain/contestRoutePolicy";
 import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 
-type ConfirmLeaveFn = (() => Promise<boolean>) | undefined;
 type RefreshFn = () => Promise<void>;
 type ErrorHandler = (message: string) => void;
 
@@ -57,11 +53,9 @@ interface UseContestExamActionsParams {
   contestId?: string;
   hasEnded: boolean;
   refreshContest: RefreshFn;
-  confirmLeave?: ConfirmLeaveFn;
   navigate: NavigateFunction;
   messages: {
     joinError: string;
-    leaveError: string;
     startError: string;
     endError: string;
     exitError: string;
@@ -74,7 +68,6 @@ export const useContestExamActions = ({
   contestId,
   hasEnded,
   refreshContest,
-  confirmLeave,
   navigate,
   messages,
   onError,
@@ -133,22 +126,6 @@ export const useContestExamActions = ({
     },
     [contest, messages.joinError, onError, refreshContest]
   );
-
-  const handleLeave = useCallback(async () => {
-    if (!contest) return;
-    if (confirmLeave) {
-      const confirmed = await confirmLeave();
-      if (!confirmed) return;
-    }
-
-    const result = await leaveContestUseCase({ contestId: contest.id });
-
-    if (result.success) {
-      await refreshContest();
-    } else {
-      onError(result.error || messages.leaveError);
-    }
-  }, [confirmLeave, contest, messages.leaveError, onError, refreshContest]);
 
   const handleStartExam = useCallback(async () => {
     if (!contest || !contestId) return;
@@ -338,7 +315,6 @@ export const useContestExamActions = ({
 
   return {
     handleJoin,
-    handleLeave,
     handleStartExam,
     handleEndExam,
     handleExit,

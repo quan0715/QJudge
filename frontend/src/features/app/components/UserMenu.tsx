@@ -24,6 +24,7 @@ import { useSettingsDialog } from "@/features/auth/contexts/SettingsDialogContex
 import { useTranslation } from "react-i18next";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import type { ContestDetail } from "@/core/entities/contest.entity";
+import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import { updateNickname } from "@/infrastructure/api/repositories";
 import { Avatar } from "@/shared/ui/avatar";
 import "./UserMenu.scss";
@@ -193,6 +194,20 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             </button>
           )}
 
+          {contestMode && contest?.boundClassroomId && (
+            <button
+              type="button"
+              className="user-menu-link"
+              onClick={() => {
+                navigate(getClassroomContestDashboardPath(contest.boundClassroomId!, contest.id));
+                setIsExpandedInternal(false);                onExpandedChange?.(false);
+              }}
+            >
+              <Book size={16} />
+              {tContest("adminLayout.header.backToHome", "前往競賽主頁")}
+            </button>
+          )}
+
           {/* Settings Link */}
           <button
             data-testid="user-menu-docs-btn"
@@ -324,7 +339,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         danger
         modalHeading={t("auth.logout.confirmTitle")}
         primaryButtonText={t("auth.logout.confirmButton")}
-        secondaryButtonText={t("button.cancel")}
+        secondaryButtonText={t("common:button.cancel")}
         onRequestClose={() => setIsLogoutModalOpen(false)}
         onRequestSubmit={handleLogout}
       >
@@ -336,7 +351,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         open={isNicknameModalOpen}
         modalHeading={tContest("avatar.editNickname")}
         primaryButtonText={tContest("button.save")}
-        secondaryButtonText={tContest("button.cancel")}
+        secondaryButtonText={tContest("common:button.cancel")}
         onRequestClose={() => setIsNicknameModalOpen(false)}
         onRequestSubmit={handleNicknameUpdate}
         primaryButtonDisabled={nicknameLoading}

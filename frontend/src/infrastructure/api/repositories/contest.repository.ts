@@ -93,13 +93,6 @@ export const enterContest = async (id: string): Promise<void> => {
   );
 };
 
-export const leaveContest = async (id: string): Promise<void> => {
-  await requestJson<any>(
-    httpClient.post(`/api/v1/contests/${id}/leave/`),
-    "Failed to leave contest"
-  );
-};
-
 export const archiveContest = async (id: string): Promise<void> => {
   await ensureOk(
     httpClient.post(`/api/v1/contests/${id}/archive/`),
@@ -153,7 +146,6 @@ export const contestRepository: IContestRepository = {
   toggleStatus,
   registerContest,
   enterContest,
-  leaveContest,
   archiveContest,
   getContestStandings,
   getContestAnticheatConfig,

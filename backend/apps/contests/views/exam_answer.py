@@ -196,3 +196,33 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         answer_obj.participant.save(update_fields=['score'])
 
         return Response(ExamAnswerDetailSerializer(answer_obj).data)
+
+    @action(detail=True, methods=['post'], url_path='ungrade')
+    def ungrade_answer(self, request, contest_pk=None, pk=None):
+        """Revoke grading for a single answer (TA/admin only)."""
+        contest = self._get_contest(contest_pk)
+        if not can_manage_contest(request.user, contest):
+            raise PermissionDenied('Only contest staff can revoke grading.')
+
+        answer_obj = get_object_or_404(
+            ExamAnswer.objects.filter(participant__contest=contest),
+            pk=pk
+        )
+
+        answer_obj.score = None
+        answer_obj.feedback = ''
+        answer_obj.graded_by = None
+        answer_obj.graded_at = None
+        answer_obj.is_correct = None
+        answer_obj.save()
+
+        # Recalculate participant total score
+        total = ExamAnswer.objects.filter(
+            participant=answer_obj.participant,
+            score__isnull=False
+        ).aggregate(total=Sum('score'))['total'] or 0
+        rounded_total = Decimal(total).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        answer_obj.participant.score = int(rounded_total)
+        answer_obj.participant.save(update_fields=['score'])
+
+        return Response(ExamAnswerDetailSerializer(answer_obj).data)

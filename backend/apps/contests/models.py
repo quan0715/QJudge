@@ -292,6 +292,11 @@ class Contest(models.Model):
             return True
         except Exception:
             return False
+
+    @property
+    def requires_password(self) -> bool:
+        """Whether contest entry requires a password."""
+        return self.visibility == 'private'
     
     @property
     def can_download_my_report(self):

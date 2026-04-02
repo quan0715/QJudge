@@ -15,6 +15,7 @@ import {
   Time,
   Renew,
   Settings,
+  Launch,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import ExamModeWrapper from "@/features/contest/components/ExamModeWrapper";
@@ -111,7 +112,6 @@ const ContestLayout = () => {
     navigate,
     messages: {
       joinError: t("error.joinFailed"),
-      leaveError: t("error.leaveFailed"),
       startError: t("error.startExamFailed"),
       endError: t("error.endExamFailed"),
       exitError: t("error.exitFailed"),
@@ -305,19 +305,29 @@ const ContestLayout = () => {
               {renderExamStatus()}
 
               {isAdmin && (
-                <HeaderGlobalAction
-                  aria-label={t("admin")}
-                  tooltipAlignment="center"
-                  onClick={() => navigate(adminPath)}
-                >
-                  <Settings size={20} />
-                </HeaderGlobalAction>
+                <>
+                  <HeaderGlobalAction
+                    aria-label={tc("settings.title", "設定")}
+                    tooltipAlignment="center"
+                    onClick={() => navigate(`${adminPath}?panel=settings`)}
+                  >
+                    <Settings size={20} />
+                  </HeaderGlobalAction>
+                  <HeaderGlobalAction
+                    aria-label={t("preRegistration.openAdminPanel", "前往管理後台")}
+                    tooltipAlignment="center"
+                    onClick={() => navigate(adminPath)}
+                  >
+                    <Launch size={20} />
+                  </HeaderGlobalAction>
+                </>
               )}
 
               <HeaderGlobalAction
                 aria-label={isRefreshing ? t('action.refreshing') : t("refresh")}
                 tooltipAlignment="center"
                 onClick={isRefreshing ? undefined : refreshContest}
+                className={styles.headerActions}
               >
                 <Renew size={20} className={isRefreshing ? styles.refreshing : undefined} />
               </HeaderGlobalAction>
@@ -326,6 +336,7 @@ const ContestLayout = () => {
                 aria-label={isFullscreen ? t("exitFullscreen") : t("enterFullscreen")}
                 tooltipAlignment="center"
                 onClick={toggleFullscreen}
+                className={styles.headerActions}
               >
                 {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
               </HeaderGlobalAction>

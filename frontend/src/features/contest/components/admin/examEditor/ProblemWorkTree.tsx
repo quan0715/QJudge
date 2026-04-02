@@ -46,6 +46,10 @@ interface ProblemWorkTreeProps {
   onRemove: (id: string) => void;
   onReorder: (reordered: ContestProblemSummary[]) => void;
   onUpdateScore?: (id: string, maxScore: number) => Promise<void> | void;
+  externalCanDrop?: boolean;
+  externalHoverIndex?: number | null;
+  onExternalHoverIndexChange?: (index: number | null) => void;
+  onExternalDropAt?: (index: number) => Promise<void> | void;
 }
 
 const ProblemTreeItem: React.FC<{
@@ -89,6 +93,7 @@ const ProblemTreeItem: React.FC<{
       dragControls={dragControls}
       drag={!locked}
       as="div"
+      data-problem-id={problem.id}
       className={`${styles.treeItem} ${isActive ? styles.treeItemActive : ""}`}
     >
       {!locked && (
@@ -205,8 +210,50 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
   onRemove,
   onReorder,
   onUpdateScore,
+  externalCanDrop = false,
+  externalHoverIndex = null,
+  onExternalHoverIndexChange,
+  onExternalDropAt,
 }) => {
+  const listRef = React.useRef<HTMLDivElement>(null);
   const totalScore = problems.reduce((sum, problem) => sum + (problem.maxScore ?? problem.score ?? 0), 0);
+
+  React.useEffect(() => {
+    if (!selectedId || !listRef.current) return;
+    const activeEl = listRef.current.querySelector(`[data-problem-id="${selectedId}"]`);
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [selectedId]);
+
+  const renderDropSlot = (index: number) => {
+    if (!externalCanDrop) {
+      return <div key={`drop-slot-${index}`} className={styles.externalDropSlotIdle} />;
+    }
+
+    return (
+      <div
+        key={`drop-slot-${index}`}
+        className={`${styles.externalDropSlot} ${
+          externalHoverIndex === index ? styles.externalDropSlotActive : ""
+        }`}
+        onDragOver={(event) => {
+          event.preventDefault();
+          onExternalHoverIndexChange?.(index);
+        }}
+        onDragLeave={() => {
+          if (externalHoverIndex === index) {
+            onExternalHoverIndexChange?.(null);
+          }
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          onExternalHoverIndexChange?.(null);
+          void onExternalDropAt?.(index);
+        }}
+      />
+    );
+  };
 
   return (
     <WorkTreeShell
@@ -245,23 +292,27 @@ const ProblemWorkTree: React.FC<ProblemWorkTreeProps> = ({
       )}
     >
       <Reorder.Group
+        ref={listRef}
         axis="y"
         values={problems}
         onReorder={onReorder}
         as="div"
         className={styles.treeListContent}
       >
-        {problems.map((p) => (
-          <ProblemTreeItem
-            key={p.id}
-            problem={p}
-            isActive={selectedId === p.id}
-            locked={questionEditLocked}
-            onSelect={() => onSelect(p.id)}
-            onRemove={() => onRemove(p.id)}
-            onUpdateScore={onUpdateScore}
-          />
+        {problems.map((problem, index) => (
+          <React.Fragment key={problem.id}>
+            {renderDropSlot(index)}
+            <ProblemTreeItem
+              problem={problem}
+              isActive={selectedId === problem.id}
+              locked={questionEditLocked}
+              onSelect={() => onSelect(problem.id)}
+              onRemove={() => onRemove(problem.id)}
+              onUpdateScore={onUpdateScore}
+            />
+          </React.Fragment>
         ))}
+        {renderDropSlot(problems.length)}
       </Reorder.Group>
     </WorkTreeShell>
   );

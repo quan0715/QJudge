@@ -21,7 +21,10 @@ import type {
   ClassroomAnnouncement,
   ClassroomDetail,
 } from "@/core/entities/classroom.entity";
-import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import {
+  getClassroomContestAdminPath,
+  getClassroomContestDashboardPath,
+} from "@/features/contest/domain/contestRoutePolicy";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { KpiCard } from "@/shared/ui/dataCard";
 import {
@@ -152,6 +155,17 @@ const ClassroomDetailScreen: React.FC = () => {
     navigate(`/classrooms/${targetId}`);
   };
 
+  const handleNavigateContest = useCallback(
+    (contestId: string) => {
+      if (!classroom?.id) return;
+      const targetPath = isPrivileged
+        ? getClassroomContestAdminPath(classroom.id, contestId)
+        : getClassroomContestDashboardPath(classroom.id, contestId);
+      navigate(targetPath);
+    },
+    [classroom?.id, isPrivileged, navigate],
+  );
+
   const handleCreateContest = async (contestId?: string) => {
     if (!contestId) return;
     showToast({
@@ -162,7 +176,7 @@ const ClassroomDetailScreen: React.FC = () => {
     await fetchClassroomData();
     const targetClassroomId = classroomId || classroom?.id;
     if (targetClassroomId) {
-      navigate(getClassroomContestDashboardPath(targetClassroomId, contestId));
+      navigate(getClassroomContestAdminPath(targetClassroomId, contestId));
     }
   };
 
@@ -272,9 +286,7 @@ const ClassroomDetailScreen: React.FC = () => {
                 }}
                 onViewAnnouncement={setViewingAnnouncement}
                 onCreateExam={() => setCreateContestOpen(true)}
-                onNavigateExam={(contestId) =>
-                  navigate(getClassroomContestDashboardPath(classroom.id, contestId))
-                }
+                onNavigateExam={handleNavigateContest}
                 onJumpToPanel={handlePanelChange}
               />
             )}
@@ -296,9 +308,7 @@ const ClassroomDetailScreen: React.FC = () => {
                 exams={classroom.contests}
                 canBindContests={Boolean(isPrivileged)}
                 onCreateExam={() => setCreateContestOpen(true)}
-                onNavigateExam={(contestId) =>
-                  navigate(getClassroomContestDashboardPath(classroom.id, contestId))
-                }
+                onNavigateExam={handleNavigateContest}
               />
             )}
 

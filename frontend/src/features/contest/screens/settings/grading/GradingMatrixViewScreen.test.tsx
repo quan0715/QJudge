@@ -121,7 +121,9 @@ describe("GradingMatrixViewScreen", () => {
     expect(screen.getByTestId("matrix-summary-cell-0")).toHaveTextContent("8");
     expect(screen.getByTestId("matrix-summary-cell-1")).toHaveTextContent("-");
 
-    fireEvent.click(screen.getByTestId("matrix-cell-0-0"));
+    act(() => {
+      fireEvent.click(screen.getByTestId("matrix-cell-0-0"));
+    });
     expect(onSelectCell).toHaveBeenCalledWith("q-1", "s-1");
   });
 
@@ -137,7 +139,9 @@ describe("GradingMatrixViewScreen", () => {
     );
 
     const firstCell = screen.getByTestId("matrix-cell-0-0");
-    firstCell.focus();
+    act(() => {
+      firstCell.focus();
+    });
     expect(firstCell).toHaveFocus();
 
     act(() => {

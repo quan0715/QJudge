@@ -160,6 +160,12 @@
   }
 }
 
+@media (max-width: 900px) {
+  .globalToolbar {
+    display: none;
+  }
+}
+
 @keyframes grading-view-fade-in {
   from {
     opacity: 0;

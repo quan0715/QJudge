@@ -9,141 +9,57 @@ import {
   useExamAutoSave,
   type FieldSaveState,
 } from "@/features/contest/components/admin/examEditor/hooks/useExamAutoSave";
-import AdminContestSettingsContent from "@/features/contest/components/admin/AdminContestSettingsContent";
-import { GlobalSaveStatus } from "@/shared/ui/autoSave/GlobalSaveStatus";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import {
   archiveContest,
   deleteContest,
 } from "@/infrastructure/api/repositories";
-import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
-import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
+import { sanitizeAnticheatPolicy } from "@/features/contest/components/admin/settings/anticheatPolicyUtils";
+import { ContestSettingsModal } from "@/features/contest/components/admin/settings";
 
-const sanitizeAnticheatPolicy = (
-  policy: unknown
-): typeof DEFAULT_DEVICE_POLICY => {
-  const raw =
-    policy && typeof policy === "object" && !Array.isArray(policy)
-      ? (policy as Record<string, unknown>)
-      : {};
+const isValidDate = (date: Date | null | undefined): date is Date =>
+  !!date && !Number.isNaN(date.getTime());
 
-  const normalizeSource = (
-    source: unknown,
-    fallback: typeof DEFAULT_DEVICE_POLICY.desktop.sources.screenShare
-  ) => {
-    const src =
-      source && typeof source === "object" && !Array.isArray(source)
-        ? (source as Record<string, unknown>)
-        : {};
-    const interval = Number(
-      src.captureIntervalSeconds ?? src.capture_interval_seconds ?? fallback.captureIntervalSeconds
-    );
-    return {
-      enabled: typeof src.enabled === "boolean" ? src.enabled : fallback.enabled,
-      captureIntervalSeconds:
-        Number.isFinite(interval) && interval > 0 ? Math.floor(interval) : fallback.captureIntervalSeconds,
-    };
-  };
-
-  const normalizeDetectors = (
-    detectors: unknown,
-    fallback: typeof DEFAULT_DEVICE_POLICY.desktop.detectors
-  ) => {
-    const det =
-      detectors && typeof detectors === "object" && !Array.isArray(detectors)
-        ? (detectors as Record<string, unknown>)
-        : {};
-    return {
-      pwaMode:
-        typeof det.pwaMode === "boolean"
-          ? det.pwaMode
-          : typeof det.pwa_mode === "boolean"
-          ? (det.pwa_mode as boolean)
-          : fallback.pwaMode,
-      fullscreen: typeof det.fullscreen === "boolean" ? det.fullscreen : fallback.fullscreen,
-      focus: typeof det.focus === "boolean" ? det.focus : fallback.focus,
-      tabVisibility:
-        typeof det.tabVisibility === "boolean"
-          ? det.tabVisibility
-          : typeof det.tab_visibility === "boolean"
-          ? (det.tab_visibility as boolean)
-          : fallback.tabVisibility,
-      multiDisplay:
-        typeof det.multiDisplay === "boolean"
-          ? det.multiDisplay
-          : typeof det.multi_display === "boolean"
-          ? (det.multi_display as boolean)
-          : fallback.multiDisplay,
-      mouseLeave:
-        typeof det.mouseLeave === "boolean"
-          ? det.mouseLeave
-          : typeof det.mouse_leave === "boolean"
-          ? (det.mouse_leave as boolean)
-          : fallback.mouseLeave,
-      viewportIntegrity:
-        typeof det.viewportIntegrity === "boolean"
-          ? det.viewportIntegrity
-          : typeof det.viewport_integrity === "boolean"
-          ? (det.viewport_integrity as boolean)
-          : fallback.viewportIntegrity,
-    };
-  };
-
-  const normalizeDevice = (
-    device: unknown,
-    fallback: typeof DEFAULT_DEVICE_POLICY.desktop
-  ) => {
-    const item =
-      device && typeof device === "object" && !Array.isArray(device)
-        ? (device as Record<string, unknown>)
-        : {};
-    const sources =
-      item.sources && typeof item.sources === "object" && !Array.isArray(item.sources)
-        ? (item.sources as Record<string, unknown>)
-        : {};
-    return {
-      enabled: typeof item.enabled === "boolean" ? item.enabled : fallback.enabled,
-      sources: {
-        screenShare: normalizeSource(
-          sources.screenShare ?? sources.screen_share,
-          fallback.sources.screenShare
-        ),
-        webcam: normalizeSource(sources.webcam, fallback.sources.webcam),
-      },
-      detectors: normalizeDetectors(item.detectors, fallback.detectors),
-    };
-  };
-
-  const sanitized = {
-    desktop: normalizeDevice(raw.desktop, DEFAULT_DEVICE_POLICY.desktop),
-    tablet: normalizeDevice(raw.tablet, DEFAULT_DEVICE_POLICY.tablet),
-  };
-
-  sanitized.desktop.detectors.pwaMode = false;
-  sanitized.desktop.detectors.viewportIntegrity = false;
-  sanitized.tablet.detectors.fullscreen = false;
-  sanitized.tablet.detectors.multiDisplay = false;
-
-  return sanitized;
+const parseDate = (dateStr: string | null | undefined): Date | null => {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  return isValidDate(date) ? date : null;
 };
 
-const toTimeInput = (dateStr: string): string => {
-  const date = new Date(dateStr);
+const toTimeInput = (date: Date): string => {
   let hours = date.getHours() % 12;
   hours = hours || 12;
   const minutes = date.getMinutes().toString().padStart(2, "0");
   return `${hours.toString().padStart(2, "0")}:${minutes}`;
 };
 
-const toDateInput = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  return `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date
-    .getDate()
-    .toString()
-    .padStart(2, "0")}/${date.getFullYear()}`;
-};
+const buildDateTimeIso = (
+  date: Date | null,
+  time: string,
+  meridiem: "AM" | "PM",
+): string | null => {
+  if (!isValidDate(date)) return null;
+  const [hoursStr, minutesStr] = time.split(":");
+  const hours = Number(hoursStr);
+  const minutes = Number(minutesStr);
+  if (
+    Number.isNaN(hours) ||
+    Number.isNaN(minutes) ||
+    hours < 1 ||
+    hours > 12 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
 
-const isPM = (dateStr: string): boolean => new Date(dateStr).getHours() >= 12;
+  const next = new Date(date);
+  const normalizedHours = meridiem === "PM"
+    ? (hours === 12 ? 12 : hours + 12)
+    : (hours === 12 ? 0 : hours);
+  next.setHours(normalizedHours, minutes, 0, 0);
+  return isValidDate(next) ? next.toISOString() : null;
+};
 
 const isValueEqual = (left: unknown, right: unknown): boolean => {
   if (Object.is(left, right)) return true;
@@ -162,7 +78,12 @@ const isValueEqual = (left: unknown, right: unknown): boolean => {
   return false;
 };
 
-const AdminContestSettingsScreen = () => {
+interface ContestSettingsOverlayProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+const ContestSettingsOverlay = ({ open, onClose }: ContestSettingsOverlayProps) => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation("contest");
@@ -174,13 +95,11 @@ const AdminContestSettingsScreen = () => {
     contestId: contestId || "",
     debounceMs: 1500,
   });
-
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [startTimeInput, setStartTimeInput] = useState("");
   const [endTimeInput, setEndTimeInput] = useState("");
-  const [startDateInput, setStartDateInput] = useState("");
-  const [endDateInput, setEndDateInput] = useState("");
-  // publish_to_practice removed — questions live in the bank now
+  const [startDateInput, setStartDateInput] = useState<Date | null>(null);
+  const [endDateInput, setEndDateInput] = useState<Date | null>(null);
   const initializedRef = useRef(false);
   const initializedContestIdRef = useRef<string | null>(null);
 
@@ -233,63 +152,50 @@ const AdminContestSettingsScreen = () => {
       event: ChangeEvent<HTMLInputElement>,
       field: "startTime" | "endTime",
       setInput: (value: string) => void,
+      getDate: () => Date | null,
+      getMeridiem: () => "AM" | "PM",
     ) => {
       const value = event.target.value;
       setInput(value);
       if (value.length !== 5 || !value.includes(":")) return;
 
-      const [hours, minutes] = value.split(":").map(Number);
-      if (
-        Number.isNaN(hours) ||
-        Number.isNaN(minutes) ||
-        hours < 1 ||
-        hours > 12 ||
-        minutes < 0 ||
-        minutes > 59
-      ) {
-        return;
-      }
-
-      const current = form[field] ? new Date(form[field] as string) : new Date();
-      const currentlyPm = current.getHours() >= 12;
-      const normalizedHours = currentlyPm
-        ? (hours === 12 ? 12 : hours + 12)
-        : (hours === 12 ? 0 : hours);
-      current.setHours(normalizedHours);
-      current.setMinutes(minutes);
-      handleChange(field, current.toISOString());
+      const iso = buildDateTimeIso(getDate(), value, getMeridiem());
+      if (!iso) return;
+      handleChange(field, iso);
     },
-    [form, handleChange],
+    [handleChange],
   );
 
   const handleMeridiemChange = useCallback(
-    (value: string, field: "startTime" | "endTime") => {
-      const date = form[field] ? new Date(form[field] as string) : new Date();
-      let hours = date.getHours();
-      if (value === "PM" && hours < 12) hours += 12;
-      if (value === "AM" && hours >= 12) hours -= 12;
-      date.setHours(hours);
-      handleChange(field, date.toISOString());
+    (
+      value: string,
+      field: "startTime" | "endTime",
+      getDate: () => Date | null,
+      getTime: () => string,
+    ) => {
+      const iso = buildDateTimeIso(getDate(), getTime(), value === "PM" ? "PM" : "AM");
+      if (!iso) return;
+      handleChange(field, iso);
     },
-    [form, handleChange],
+    [handleChange],
   );
 
   const handleDateChange = useCallback(
     (
       dates: Date[],
       field: "startTime" | "endTime",
-      setInput: (value: string) => void,
+      setInput: (value: Date | null) => void,
+      getTime: () => string,
+      getMeridiem: () => "AM" | "PM",
     ) => {
       if (!dates?.length) return;
-      const selectedDate = dates[0];
-      const current = form[field] ? new Date(form[field] as string) : new Date();
-      selectedDate.setHours(current.getHours());
-      selectedDate.setMinutes(current.getMinutes());
-      const iso = selectedDate.toISOString();
+      const selectedDate = new Date(dates[0]);
+      setInput(selectedDate);
+      const iso = buildDateTimeIso(selectedDate, getTime(), getMeridiem());
+      if (!iso) return;
       handleChange(field, iso);
-      setInput(toDateInput(iso));
     },
-    [form, handleChange],
+    [handleChange],
   );
 
   const handleArchive = async () => {
@@ -335,6 +241,7 @@ const AdminContestSettingsScreen = () => {
       startTime: contest.startTime || "",
       endTime: contest.endTime || "",
       status: contest.status || "draft",
+      requiresPassword: contest.requiresPassword ?? (contest.visibility === "private"),
       visibility: contest.visibility || "public",
       password: contest.password || "",
       cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
@@ -349,63 +256,103 @@ const AdminContestSettingsScreen = () => {
       autoUnlockMinutes: contest.autoUnlockMinutes ?? 5,
     });
     if (contest.startTime) {
-      setStartTimeInput(toTimeInput(contest.startTime));
-      setStartDateInput(toDateInput(contest.startTime));
+      const startDate = parseDate(contest.startTime);
+      setStartTimeInput(startDate ? toTimeInput(startDate) : "");
+      setStartDateInput(startDate);
     }
     if (contest.endTime) {
-      setEndTimeInput(toTimeInput(contest.endTime));
-      setEndDateInput(toDateInput(contest.endTime));
+      const endDate = parseDate(contest.endTime);
+      setEndTimeInput(endDate ? toTimeInput(endDate) : "");
+      setEndDateInput(endDate);
     }
   }, [contest]);
 
   if (!contest) return null;
 
-  return (
-    <div className={s.root}>
-      <div className={s.inner}>
-        <div className={s.pageHeader}>
-          <h2
-            style={{
-              fontSize: "var(--cds-heading-04-font-size, 1.25rem)",
-              fontWeight: 400,
-              lineHeight: "1.625rem",
-              color: "var(--cds-text-primary)",
-              margin: 0,
-            }}
-          >
-            {t("settings.title")}
-          </h2>
-          <GlobalSaveStatus status={autoSave.globalStatus} />
-        </div>
+  const getMeridiemFromIso = (value: unknown): "AM" | "PM" => {
+    if (typeof value !== "string") return "AM";
+    const date = parseDate(value);
+    return date && date.getHours() >= 12 ? "PM" : "AM";
+  };
 
-        <AdminContestSettingsContent
-          t={t}
-          tc={tc}
-          contest={contest}
-          form={form}
-          startDateInput={startDateInput}
-          endDateInput={endDateInput}
-          startTimeInput={startTimeInput}
-          endTimeInput={endTimeInput}
-          startMeridiem={form.startTime && isPM(form.startTime as string) ? "PM" : "AM"}
-          endMeridiem={form.endTime && isPM(form.endTime as string) ? "PM" : "AM"}
-          getState={getState}
-          onRetry={autoSave.retrySave}
-          onChange={handleChange}
-          onConfirmedChange={handleConfirmedChange}
-          onStartDateChange={(dates) => handleDateChange(dates, "startTime", setStartDateInput)}
-          onEndDateChange={(dates) => handleDateChange(dates, "endTime", setEndDateInput)}
-          onStartTimeChange={(event) => handleTimeChange(event, "startTime", setStartTimeInput)}
-          onEndTimeChange={(event) => handleTimeChange(event, "endTime", setEndTimeInput)}
-          onStartMeridiemChange={(value) => handleMeridiemChange(value, "startTime")}
-          onEndMeridiemChange={(value) => handleMeridiemChange(value, "endTime")}
-          onArchive={() => void handleArchive()}
-          onDelete={() => void handleDelete()}
-        />
-        <ConfirmModal {...modalProps} />
-      </div>
-    </div>
+  return (
+    <>
+      <ContestSettingsModal
+        open={open}
+        onRequestClose={onClose}
+        t={t}
+        tc={tc}
+        contest={contest}
+        form={form}
+        getState={getState}
+        onRetry={autoSave.retrySave}
+        onChange={handleChange}
+        onConfirmedChange={handleConfirmedChange}
+        startDateInput={startDateInput}
+        endDateInput={endDateInput}
+        startTimeInput={startTimeInput}
+        endTimeInput={endTimeInput}
+        startMeridiem={getMeridiemFromIso(form.startTime)}
+        endMeridiem={getMeridiemFromIso(form.endTime)}
+        onStartDateChange={(dates) =>
+          handleDateChange(
+            dates,
+            "startTime",
+            setStartDateInput,
+            () => startTimeInput,
+            () => getMeridiemFromIso(form.startTime),
+          )
+        }
+        onEndDateChange={(dates) =>
+          handleDateChange(
+            dates,
+            "endTime",
+            setEndDateInput,
+            () => endTimeInput,
+            () => getMeridiemFromIso(form.endTime),
+          )
+        }
+        onStartTimeChange={(event) =>
+          handleTimeChange(
+            event,
+            "startTime",
+            setStartTimeInput,
+            () => startDateInput ?? parseDate(form.startTime as string),
+            () => getMeridiemFromIso(form.startTime),
+          )
+        }
+        onEndTimeChange={(event) =>
+          handleTimeChange(
+            event,
+            "endTime",
+            setEndTimeInput,
+            () => endDateInput ?? parseDate(form.endTime as string),
+            () => getMeridiemFromIso(form.endTime),
+          )
+        }
+        onStartMeridiemChange={(value) =>
+          handleMeridiemChange(
+            value as string,
+            "startTime",
+            () => startDateInput,
+            () => startTimeInput,
+          )
+        }
+        onEndMeridiemChange={(value) =>
+          handleMeridiemChange(
+            value as string,
+            "endTime",
+            () => endDateInput,
+            () => endTimeInput,
+          )
+        }
+        onArchive={() => void handleArchive()}
+        onDelete={() => void handleDelete()}
+      />
+      <ConfirmModal {...modalProps} />
+    </>
   );
 };
 
-export default AdminContestSettingsScreen;
+export { ContestSettingsOverlay };
+export default ContestSettingsOverlay;

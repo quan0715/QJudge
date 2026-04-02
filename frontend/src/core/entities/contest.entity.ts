@@ -295,6 +295,7 @@ export interface Contest {
   endTime: string;
   status: ContestStatus;
   visibility: ContestVisibility;
+  requiresPassword?: boolean;
   deliveryMode?: ContestDeliveryMode;
   password?: string;
   organizer?: string;
@@ -625,6 +626,7 @@ export interface ContestUpdateRequest {
   endTime?: string;
   status?: ContestStatus;
   visibility?: ContestVisibility;
+  requiresPassword?: boolean;
   password?: string;
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;

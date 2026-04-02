@@ -8,6 +8,7 @@ import {
 } from "@carbon/react";
 import { Add, DocumentExport } from "@carbon/icons-react";
 import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
+import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -419,89 +420,80 @@ const ContestParticipantsScreen = () => {
   return (
     <>
       <div className={styles.page}>
-        <div className={styles.localToolbar}>
-          <div className={styles.localToolbarLeft}>
-            <h4 className={styles.localToolbarTitle}>
-              {t("participants.viewTitle", "檢視參與者")}
-            </h4>
-          </div>
-          <div className={styles.localToolbarRight}>
-            <ExpandableSearch
-              id="participants-toolbar-search"
-              size="md"
-              className={styles.localToolbarSearch}
-              labelText={t("participants.searchLabel", "搜尋參賽者")}
-              placeholder={t("participants.searchPlaceholder", "搜尋姓名或使用者 ID...")}
-              value={searchQuery}
-              onChange={(event) => updateParams({ q: event.target.value || null })}
-            />
-            <FilterPopover
-              hasActiveFilters={hasActiveFilters}
-              triggerLabel={t("participants.filters", "篩選")}
-              onReset={() => updateParams({ q: null, status: null, sort: null })}
-              className={styles.localToolbarIconButton}
-            >
-              <FluidDropdown
-                id="participants-toolbar-status"
-                titleText={t("participants.selectStatus", "狀態")}
-                label={t("participants.selectStatus", "狀態")}
-                items={statusOptions}
-                itemToString={(item) => (item as Option | null)?.label ?? ""}
-                selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
-                onChange={({ selectedItem }) =>
-                  updateParams({
-                    status:
-                      (selectedItem as Option | null)?.id &&
-                      (selectedItem as Option).id !== "all"
-                        ? (selectedItem as Option).id
-                        : null,
-                  })
-                }
+        <PanelToolbar
+          title={t("participants.viewTitle", "檢視參與者")}
+          actions={
+            <>
+              <ExpandableSearch
+                id="participants-toolbar-search"
+                size="md"
+                className={styles.localToolbarSearch}
+                labelText={t("participants.searchLabel", "搜尋參賽者")}
+                placeholder={t("participants.searchPlaceholder", "搜尋姓名或使用者 ID...")}
+                value={searchQuery}
+                onChange={(event) => updateParams({ q: event.target.value || null })}
               />
-              <FluidDropdown
-                id="participants-toolbar-sort"
-                titleText={t("dashboard.sortLabel", "排序")}
-                label={t("dashboard.sortLabel", "排序")}
-                items={sortOptions}
-                itemToString={(item) => (item as Option | null)?.label ?? ""}
-                selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
-                onChange={({ selectedItem }) =>
-                  updateParams({
-                    sort:
-                      (selectedItem as Option | null)?.id &&
-                      (selectedItem as Option).id !== "score_desc"
-                        ? (selectedItem as Option).id
-                        : null,
-                  })
-                }
+              <FilterPopover
+                hasActiveFilters={hasActiveFilters}
+                triggerLabel={t("participants.filters", "篩選")}
+                onReset={() => updateParams({ q: null, status: null, sort: null })}
+              >
+                <FluidDropdown
+                  id="participants-toolbar-status"
+                  titleText={t("participants.selectStatus", "狀態")}
+                  label={t("participants.selectStatus", "狀態")}
+                  items={statusOptions}
+                  itemToString={(item) => (item as Option | null)?.label ?? ""}
+                  selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
+                  onChange={({ selectedItem }) =>
+                    updateParams({
+                      status:
+                        (selectedItem as Option | null)?.id &&
+                        (selectedItem as Option).id !== "all"
+                          ? (selectedItem as Option).id
+                          : null,
+                    })
+                  }
+                />
+                <FluidDropdown
+                  id="participants-toolbar-sort"
+                  titleText={t("dashboard.sortLabel", "排序")}
+                  label={t("dashboard.sortLabel", "排序")}
+                  items={sortOptions}
+                  itemToString={(item) => (item as Option | null)?.label ?? ""}
+                  selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
+                  onChange={({ selectedItem }) =>
+                    updateParams({
+                      sort:
+                        (selectedItem as Option | null)?.id &&
+                        (selectedItem as Option).id !== "score_desc"
+                          ? (selectedItem as Option).id
+                          : null,
+                    })
+                  }
+                />
+              </FilterPopover>
+              <Button
+                kind="ghost"
+                size="md"
+                data-testid="participants-toolbar-export-btn"
+                renderIcon={DocumentExport}
+                iconDescription={t("settings.exportCSV", "匯出 CSV")}
+                onClick={() => void handleExportResults()}
+                hasIconOnly
               />
-            </FilterPopover>
-            <Button
-              kind="ghost"
-              size="md"
-              data-testid="participants-toolbar-export-btn"
-              renderIcon={DocumentExport}
-              iconDescription={t("settings.exportCSV", "匯出 CSV")}
-              tooltipPosition="bottom"
-              tooltipAlignment="center"
-              onClick={() => void handleExportResults()}
-              hasIconOnly
-              className={styles.localToolbarIconButton}
-            />
-            <Button
-              kind="primary"
-              size="md"
-              data-testid="participants-toolbar-add-btn"
-              renderIcon={Add}
-              iconDescription={t("participants.add", "新增參賽者")}
-              tooltipPosition="bottom"
-              tooltipAlignment="center"
-              onClick={() => setAddModalOpen(true)}
-              hasIconOnly
-              className={styles.localToolbarIconButton}
-            />
-          </div>
-        </div>
+              <Button
+                kind="primary"
+                size="md"
+                data-testid="participants-toolbar-add-btn"
+                renderIcon={Add}
+                iconDescription={t("participants.add", "新增參賽者")}
+                onClick={() => setAddModalOpen(true)}
+                hasIconOnly
+              />
+            </>
+          }
+        />
 
         <div className={styles.root}>
           <ParticipantsMobileSelector

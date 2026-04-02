@@ -60,7 +60,7 @@ export const CreateBankModal = ({ open, onClose, onCreated }: CreateBankModalPro
       open={open}
       modalHeading={t("questionBank.createBank", "建立題庫")}
       primaryButtonText={t("button.create")}
-      secondaryButtonText={t("button.cancel")}
+      secondaryButtonText={t("common:button.cancel")}
       onRequestClose={() => {
         reset();
         onClose();

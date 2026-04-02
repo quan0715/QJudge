@@ -67,7 +67,6 @@
  *
  * ### Contest
  * - `joinContestUseCase` - Register for a contest
- * - `leaveContestUseCase` - Leave/unregister from a contest
  */
 
 export * from "./exam";

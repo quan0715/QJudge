@@ -17,6 +17,7 @@ import {
   GradingByStudentTabScreen,
   GradingMatrixViewScreen,
   useGradingData,
+  useGradingFlags,
 } from "./grading";
 import type { GradingFilter } from "./grading";
 import { isSubjectiveType } from "./grading/gradingTypes";
@@ -137,11 +138,14 @@ const ContestExamGradingScreen: React.FC = () => {
     questionProgress,
     students,
     gradeAnswer,
+    ungradeAnswer,
     regradeObjectiveAnswers,
     regradingObjective,
     refreshData,
     loading,
   } = useGradingData();
+
+  const { flaggedIds, toggleFlag } = useGradingFlags();
 
   const objectiveAnswerCount = useMemo(
     () => answers.filter((row) => !isSubjectiveType(row.questionType)).length,
@@ -388,6 +392,9 @@ const ContestExamGradingScreen: React.FC = () => {
               answersByQuestion={answersByQuestion}
               students={students}
               onGrade={gradeAnswer}
+              onUngrade={ungradeAnswer}
+              flaggedIds={flaggedIds}
+              onToggleFlag={toggleFlag}
               searchQuery={searchQuery}
               filter={filter}
               selectedQuestionId={selectedQuestionId}
@@ -406,6 +413,9 @@ const ContestExamGradingScreen: React.FC = () => {
               questionProgress={questionProgress}
               students={students}
               onGrade={gradeAnswer}
+              onUngrade={ungradeAnswer}
+              flaggedIds={flaggedIds}
+              onToggleFlag={toggleFlag}
               searchQuery={searchQuery}
               selectedStudentId={selectedStudentId}
               onSelectedStudentIdChange={(studentId) =>

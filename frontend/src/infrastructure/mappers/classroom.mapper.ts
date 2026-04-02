@@ -40,6 +40,10 @@ export function mapBoundContestDto(dto: any): BoundContest {
     contestDescription: dto.contest_description || "",
     contestStatus: dto.contest_status || "draft",
     contestVisibility: dto.contest_visibility || "public",
+    requiresPassword:
+      typeof dto.requires_password === "boolean"
+        ? dto.requires_password
+        : dto.contest_visibility === "private",
     contestType: dto.contest_type || "coding",
     deliveryMode: dto.delivery_mode || "exam",
     contestStartTime: dto.contest_start_time || dto.bound_at || "",
@@ -69,6 +73,10 @@ export function mapClassroomLabSummaryDto(dto: any): ClassroomLabSummary {
     description: dto.description || "",
     status: dto.status || "draft",
     visibility: dto.visibility || "private",
+    requiresPassword:
+      typeof dto.requires_password === "boolean"
+        ? dto.requires_password
+        : dto.visibility === "private",
     contestType: dto.contest_type || "coding",
     deliveryMode: dto.delivery_mode || "practice",
     startTime: dto.start_time || "",

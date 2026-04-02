@@ -7,16 +7,14 @@ import {
   UserMultiple,
   Education,
   Settings,
-  Launch,
   TaskComplete,
   ChartColumn,
   Chat,
-  View,
-  DocumentDownload,
-  Upload,
   Renew,
 } from "@carbon/icons-react";
+import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { AdminPanelId } from "@/features/contest/modules/types";
+import { UserMenu } from "@/features/app/components/UserMenu";
 import AdminShellLayout, { type NavItem } from "@/shared/layout/AdminShellLayout";
 
 interface AdminDashboardLayoutProps {
@@ -27,13 +25,10 @@ interface AdminDashboardLayoutProps {
   activePanel: AdminPanelId;
   availablePanels: AdminPanelId[];
   examMode?: boolean;
+  contest?: ContestDetail | null;
   onPanelChange: (panel: AdminPanelId) => void;
-  onBack: () => void;
   onRefresh?: () => void;
-  onPreview?: () => void;
-  onExport?: () => void;
-  showExamJsonActions?: boolean;
-  onImportExamJson?: () => void;
+  onSettingsOpen?: () => void;
   children: React.ReactNode;
 }
 
@@ -71,13 +66,10 @@ export default function AdminDashboardLayout({
   activePanel,
   availablePanels,
   examMode,
+  contest,
   onPanelChange,
-  onBack,
   onRefresh,
-  onPreview,
-  onExport,
-  showExamJsonActions,
-  onImportExamJson,
+  onSettingsOpen,
   children,
 }: AdminDashboardLayoutProps) {
   const { t } = useTranslation("contest");
@@ -166,40 +158,16 @@ export default function AdminDashboardLayout({
               <Renew size={20} />
             </HeaderGlobalAction>
           )}
-          {showExamJsonActions && onImportExamJson && (
+          {onSettingsOpen && (
             <HeaderGlobalAction
-              aria-label={t("examJson.importAction")}
+              aria-label={t("adminLayout.nav.settings")}
               tooltipAlignment="end"
-              onClick={onImportExamJson}
+              onClick={onSettingsOpen}
             >
-              <Upload size={20} />
+              <Settings size={20} />
             </HeaderGlobalAction>
           )}
-          {onExport && (
-            <HeaderGlobalAction
-              aria-label={t("adminLayout.header.exportFiles")}
-              tooltipAlignment="end"
-              onClick={onExport}
-            >
-              <DocumentDownload size={20} />
-            </HeaderGlobalAction>
-          )}
-          {onPreview && (
-            <HeaderGlobalAction
-              aria-label={t("adminLayout.header.previewAnswer")}
-              tooltipAlignment="end"
-              onClick={onPreview}
-            >
-              <View size={20} />
-            </HeaderGlobalAction>
-          )}
-          <HeaderGlobalAction
-            aria-label={t("adminLayout.header.backToHome")}
-            tooltipAlignment="end"
-            onClick={onBack}
-          >
-            <Launch size={20} />
-          </HeaderGlobalAction>
+          <UserMenu contestMode contest={contest} onContestRefresh={onRefresh} />
         </>
       }
       sideNavAriaLabel={t("common:header.adminNavigation")}

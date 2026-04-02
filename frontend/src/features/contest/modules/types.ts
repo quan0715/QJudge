@@ -51,6 +51,8 @@ export interface AdminPanelProps {
   contestId: string;
   contest: ContestDetail | null;
   panelRef?: React.RefObject<any>;
+  onExport?: () => void;
+  onPreview?: () => void;
 }
 
 export type AdminPanelRenderer = React.ComponentType<AdminPanelProps>;

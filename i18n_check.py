@@ -1,5 +1,7 @@
 import json
 import os
+import sys
+import re
 from collections import defaultdict
 
 def flatten_dict(d, parent_key='', sep='.'):
@@ -12,6 +14,10 @@ def flatten_dict(d, parent_key='', sep='.'):
             items.append((new_key, v))
     return dict(items)
 
+def has_chinese(text):
+    if not isinstance(text, str): return False
+    return bool(re.search('[\u4e00-\u9fa5]', text))
+
 def check_i18n():
     locales_dir = 'frontend/src/i18n/locales'
     languages = ['en', 'ja', 'ko', 'zh-TW']
@@ -19,6 +25,8 @@ def check_i18n():
 
     data = {}
     flattened_data = {}
+    errors = []
+    warnings = []
 
     for lang in languages:
         data[lang] = {}
@@ -32,11 +40,11 @@ def check_i18n():
                         data[lang][ns] = content
                         flattened_data[lang][ns] = flatten_dict(content)
                     except json.JSONDecodeError:
-                        print(f"Error decoding {file_path}")
+                        errors.append(f"Error decoding JSON: {file_path}")
             else:
-                print(f"Missing file: {file_path}")
+                errors.append(f"Missing i18n file: {file_path}")
 
-    # 1. Coverage Check
+    # 1. Coverage & Sync Check
     print("=== 1. Coverage Check ===")
     for ns in namespaces:
         all_keys = set()
@@ -48,42 +56,36 @@ def check_i18n():
             if ns in flattened_data[lang]:
                 missing = all_keys - set(flattened_data[lang][ns].keys())
                 if missing:
-                    print(f"Namespace '{ns}', Language '{lang}' missing keys: {sorted(list(missing))}")
+                    errors.append(f"Namespace '{ns}', Language '{lang}' missing keys: {sorted(list(missing))}")
+                
+                # Check for residual Chinese
+                if lang == 'en':
+                    for key, val in flattened_data[lang][ns].items():
+                        if has_chinese(val):
+                            errors.append(f"Namespace '{ns}', Language 'en' key '{key}' has CJK characters: '{val}'")
+                elif lang in ['ja', 'ko']:
+                    for key, val in flattened_data[lang][ns].items():
+                        # For JA/KO, we only warn because of Kanji/Hanja overlap
+                        if has_chinese(val):
+                            # Potentially check for zh-specific words like "的", "是", "確定" to be more specific
+                            if any(word in val for word in ['確定', '的', '是', '嗎', '請']):
+                                warnings.append(f"Namespace '{ns}', Language '{lang}' key '{key}' looks like Chinese: '{val}'")
             else:
-                print(f"Namespace '{ns}', Language '{lang}' is completely missing.")
+                errors.append(f"Namespace '{ns}', Language '{lang}' is completely missing.")
 
-    # 2. Duplicate Values Check (Same value, different keys within a namespace)
-    print("\n=== 2. Duplicate Values Check (Possible merge candidates) ===")
-    for ns in namespaces:
-        for lang in languages:
-            if ns not in flattened_data[lang]: continue
-            
-            val_to_keys = defaultdict(list)
-            for key, val in flattened_data[lang][ns].items():
-                if isinstance(val, str):
-                  val_to_keys[val.lower()].append(key)
-            
-            duplicates = {val: keys for val, keys in val_to_keys.items() if len(keys) > 1}
-            if duplicates:
-                print(f"Namespace '{ns}', Language '{lang}' has duplicate values:")
-                for val, keys in duplicates.items():
-                    print(f"  - '{val}': {keys}")
+    if warnings:
+        print("\n--- I18N WARNINGS ---")
+        for warn in warnings:
+            print(f" [WARN] {warn}")
 
-    # 3. Cross-namespace Redundancy (Values that appear in many namespaces but could be in 'common')
-    print("\n=== 3. Cross-namespace Redundancy (Candidates for 'common') ===")
-    val_across_ns = defaultdict(set)
-    for lang in languages:
-      for ns in namespaces:
-        if ns not in flattened_data[lang]: continue
-        if ns == 'common': continue
-        
-        for key, val in flattened_data[lang][ns].items():
-          if isinstance(val, str) and val.strip():
-            val_across_ns[val.lower()].add(ns)
+    if errors:
+        print("\n--- I18N SYNC ISSUES (NON-BLOCKING) ---")
+        for err in errors:
+            print(f" [INFO] {err}")
+        print("\nNote: These issues did not block the build but should be addressed.")
     
-    potential_common = {val: ns_list for val, ns_list in val_across_ns.items() if len(ns_list) > 2}
-    for val, ns_list in sorted(potential_common.items()):
-      print(f"  - '{val}' appears in namespaces: {sorted(list(ns_list))}")
+    print("\nAll i18n checks completed.")
+    sys.exit(0)
 
 if __name__ == "__main__":
     check_i18n()

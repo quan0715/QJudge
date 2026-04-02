@@ -129,7 +129,7 @@ export const ImportInboxModal = ({
           ? t("questionBank.inbox.ingesting", "收編中...")
           : `${t("questionBank.inbox.moveTo", "收錄到題庫")} (${selected.size})`
       }
-      secondaryButtonText={t("button.cancel")}
+      secondaryButtonText={t("common:button.cancel")}
       onRequestClose={onClose}
       onRequestSubmit={() => void handleIngest()}
       primaryButtonDisabled={selected.size === 0 || ingesting}

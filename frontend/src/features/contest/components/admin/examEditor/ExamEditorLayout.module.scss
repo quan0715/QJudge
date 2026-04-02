@@ -24,7 +24,7 @@
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: layout.$spacing-06 layout.$spacing-05 layout.$spacing-09;
+  padding: 24px;
   background: var(--cds-background);
 }
 
@@ -181,5 +181,54 @@
   &:focus-visible {
     outline: 2px solid var(--cds-focus);
     outline-offset: 2px;
+  }
+}
+
+.toolbarStatusGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  min-width: 0;
+}
+
+.lockedHint {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+  white-space: nowrap;
+}
+
+.sourceModalBody {
+  min-height: 320px;
+  max-height: min(70vh, 720px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dropSlotIdle {
+  width: 100%;
+  max-width: 720px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.dropSlot {
+  width: 100%;
+  max-width: 720px;
+  height: 22px;
+  flex-shrink: 0;
+  border: 1px dashed transparent;
+  border-radius: 6px;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.dropSlotActive {
+  border-color: var(--cds-border-interactive);
+  background: color-mix(in srgb, var(--cds-support-info) 14%, transparent);
+}
+
+@media (max-width: 900px) {
+  .lockedHint {
+    display: none;
   }
 }

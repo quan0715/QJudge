@@ -1,70 +1,97 @@
-import { Tag } from "@carbon/react";
-import {
-  UserMultiple,
-  ChartBar,
-  Education,
-} from "@carbon/icons-react";
+import type { ReactNode } from "react";
+import { Button, Tag } from "@carbon/react";
+import { Education, Launch, Settings, UserMultiple } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type {
   ContestDetail,
-  ContestOverviewMetrics,
-} from "@/core/entities/contest.entity";
-import {
-  getContestState,
-  getContestStateLabel,
-  getContestStateColor,
 } from "@/core/entities/contest.entity";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
-import { resolveOverviewSnapshot } from "./overviewMetrics.utils";
+import type { AdminPanelId } from "@/features/contest/modules/types";
 
 interface KpiCardsProps {
   contest: ContestDetail;
-  overviewMetrics: ContestOverviewMetrics | null;
   loading?: boolean;
+  onOpenPanel: (panel: AdminPanelId) => void;
 }
 
-export default function KpiCards({ contest, overviewMetrics, loading = false }: KpiCardsProps) {
+export default function KpiCards({
+  contest,
+  loading = false,
+  onOpenPanel,
+}: KpiCardsProps) {
   const { t } = useTranslation("contest");
-  const state = getContestState(contest);
-  const startDate = new Date(contest.startTime).toLocaleDateString();
-  const endDate = new Date(contest.endTime).toLocaleDateString();
-  const snapshot = resolveOverviewSnapshot(contest, overviewMetrics);
+  const contestStatus = contest.status ?? "draft";
+  const contestHomePath = contest.boundClassroomId
+    ? `/classrooms/${contest.boundClassroomId}/contest/${contest.id}`
+    : null;
+  const statusLabel =
+    contestStatus === "draft"
+      ? t("common:status.draft", "草稿")
+      : contestStatus === "published"
+        ? t("common:status.published", "已發布")
+        : t("common:status.archived", "已封存");
+  const statusColor =
+    contestStatus === "draft"
+      ? "gray"
+      : contestStatus === "published"
+        ? "green"
+        : "cool-gray";
+  const participantCount = contest.participantCount ?? 0;
+  const examTypeLabel = t(
+    `adminOverview.examType.${contest.contestType}`,
+    contest.contestType === "paper_exam" ? "考卷" : "Coding Test",
+  );
+
+  const heroActions: ReactNode = (
+    <>
+      <Button
+        kind="secondary"
+        size="md"
+        renderIcon={Settings}
+        onClick={() => onOpenPanel("settings")}
+      >
+        {t("adminOverview.actions.editSettings", "設定")}
+      </Button>
+      <Button
+        kind="primary"
+        size="md"
+        renderIcon={Launch}
+        disabled={!contestHomePath}
+        onClick={() => {
+          if (!contestHomePath) return;
+          window.open(contestHomePath, "_blank", "noopener,noreferrer");
+        }}
+      >
+        {t("adminOverview.actions.openContestHomepage", "開啟競賽主頁")}
+      </Button>
+    </>
+  );
 
   return (
     <QJudgeHeroWidget
       loading={loading}
       title={contest.name}
       badges={
-        <Tag type={getContestStateColor(state)} size="sm">
-          {getContestStateLabel(state)}
+        <Tag type={statusColor} size="sm">
+          {statusLabel}
         </Tag>
       }
-      metadata={
-        <div>
-          <span>{t("adminOverview.kpi.period", "競賽期間")}</span>
-          <span>{startDate} → {endDate}</span>
-        </div>
-      }
       description={contest.description}
+      actions={heroActions}
       kpiCards={
         <>
           <KpiCard
             icon={UserMultiple}
-            value={String(snapshot.onlineNow)}
-            label={t("adminOverview.kpi.onlineNow", "即時在線")}
-            showBorder={false}
-          />
-          <KpiCard
-            icon={ChartBar}
-            value={t(`adminOverview.examStatus.${snapshot.examStatus}`)}
-            label={t("adminOverview.kpi.exams", "考試進度")}
+            value={participantCount}
+            unit={t("adminOverview.kpi.personUnit", "人")}
+            label={t("adminOverview.kpi.participantCount", "參賽者")}
             showBorder={false}
           />
           <KpiCard
             icon={Education}
-            value={t(`adminOverview.examType.${snapshot.examType}`)}
-            label={t("adminOverview.kpi.examMode", "考試模式")}
+            value={examTypeLabel}
+            label={t("adminOverview.kpi.examMode", "考試類型")}
             showBorder={false}
           />
         </>

@@ -82,7 +82,6 @@ const CODING_ADMIN_PANELS: AdminPanelId[] = [
   "problem_editor",
   "grading",
   "statistics",
-  "settings",
 ];
 
 export const codingContestModule: ContestTypeModule = {

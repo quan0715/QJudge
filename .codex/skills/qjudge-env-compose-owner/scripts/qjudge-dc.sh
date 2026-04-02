@@ -56,4 +56,37 @@ case "$ENV_NAME" in
     ;;
 esac
 
+if [[ "$ENV_NAME" == "test" && $# -ge 2 ]]; then
+  case "$1" in
+    exec)
+      if [[ "${2:-}" == "-T" && $# -ge 4 ]]; then
+        case "$3" in
+          backend) set -- exec -T backend-test "${@:4}" ;;
+          frontend) set -- exec -T frontend-test "${@:4}" ;;
+          postgres) set -- exec -T postgres-test "${@:4}" ;;
+          redis) set -- exec -T redis-test "${@:4}" ;;
+          celery) set -- exec -T celery-test "${@:4}" ;;
+        esac
+      elif [[ $# -ge 3 ]]; then
+        case "$2" in
+          backend) set -- exec backend-test "${@:3}" ;;
+          frontend) set -- exec frontend-test "${@:3}" ;;
+          postgres) set -- exec postgres-test "${@:3}" ;;
+          redis) set -- exec redis-test "${@:3}" ;;
+          celery) set -- exec celery-test "${@:3}" ;;
+        esac
+      fi
+      ;;
+    logs|ps|start|stop|restart|up|down|build|run|kill|rm)
+      case "$2" in
+        backend) set -- "$1" backend-test "${@:3}" ;;
+        frontend) set -- "$1" frontend-test "${@:3}" ;;
+        postgres) set -- "$1" postgres-test "${@:3}" ;;
+        redis) set -- "$1" redis-test "${@:3}" ;;
+        celery) set -- "$1" celery-test "${@:3}" ;;
+      esac
+      ;;
+  esac
+fi
+
 exec "$DOCKER_BIN" compose -f "$COMPOSE_FILE" "$@"

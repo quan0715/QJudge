@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
 import { useClassroomName } from "@/features/classroom/hooks/useClassroomName";
 
@@ -17,6 +17,7 @@ import type { ExamEditorLayoutHandle } from "@/features/contest/components/admin
 
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
+import { ContestSettingsOverlay } from "@/features/contest/screens/admin/panels/AdminContestSettingsScreen";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
 import { useTabWithUrlParam } from "@/shared/hooks";
@@ -36,11 +37,13 @@ const AdminPanelSlot = ({
 
 const LEGACY_PANEL_ALIAS: Record<string, AdminPanelId> = {
   exam: "problem_editor",
+  settings: "overview",
 };
 
 const AdminDashboardInner = () => {
   const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { contest, loading, refreshContest } = useContest();
   const { refreshAllAdminData, refreshAdminData } = useContestAdmin();
@@ -73,6 +76,7 @@ const AdminDashboardInner = () => {
   );
 
   const [exportOpen, setExportOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const availablePanels = useMemo(
     () => contestModule.admin.getAvailablePanels(contest),
     [contestModule, contest],
@@ -85,15 +89,17 @@ const AdminDashboardInner = () => {
   });
 
   const isExamMode = contestModule.admin.editorKind === "paper_exam";
-  const showExamJsonActions = contestModule.admin.shouldShowJsonActions(activePanel);
+  const panelParam = searchParams.get("panel");
 
-  const handleBack = () => {
-    navigate(
-      effectiveClassroomId
-        ? `/classrooms/${effectiveClassroomId}/contest/${contestId}`
-        : "/dashboard",
-    );
-  };
+  useEffect(() => {
+    if (panelParam !== "settings") return;
+    setSettingsOpen(true);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("panel", "overview");
+      return next;
+    }, { replace: true });
+  }, [panelParam, setSearchParams]);
 
   const handlePreview = () => {
     const previewPath = effectiveClassroomId
@@ -151,13 +157,10 @@ const AdminDashboardInner = () => {
       activePanel={activePanel}
       availablePanels={availablePanels}
       examMode={isExamMode}
+      contest={contest}
       onPanelChange={handlePanelChange}
-      onBack={handleBack}
       onRefresh={handleNavbarRefresh}
-      showExamJsonActions={showExamJsonActions}
-      onImportExamJson={() => examEditorRef.current?.openJsonImportModal()}
-      onPreview={handlePreview}
-      onExport={() => setExportOpen(true)}
+      onSettingsOpen={() => setSettingsOpen(true)}
     >
       <AdminPanelSlot
         panelId={activePanel}
@@ -165,6 +168,8 @@ const AdminDashboardInner = () => {
         contestId={contestId || ""}
         contest={contest}
         panelRef={examEditorRef}
+        onExport={() => setExportOpen(true)}
+        onPreview={handlePreview}
       />
 
       {contest && contestId && (
@@ -175,6 +180,11 @@ const AdminDashboardInner = () => {
           contestId={contestId}
         />
       )}
+
+      <ContestSettingsOverlay
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </AdminDashboardLayout>
   );
 };

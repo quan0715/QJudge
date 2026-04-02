@@ -3,23 +3,22 @@ import {
   Button,
   IconButton,
   Layer,
+  NumberInput,
   Select,
   SelectItem,
-  TextArea,
   TextInput,
   Tag,
   RadioButton,
   RadioButtonGroup,
   Checkbox,
+  InlineLoading,
 } from "@carbon/react";
 import {
   Add,
   TrashCan,
-  Checkmark,
   Close,
   DataBase,
   Draggable,
-  Edit,
   Copy,
 } from "@carbon/icons-react";
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
@@ -38,6 +37,13 @@ import styles from "./ExamQuestionEditCard.module.scss";
 import { useTranslation } from "react-i18next";
 
 const TRUE_FALSE_OPTIONS = ["True", "False"];
+const ALLOWED_TYPE_SWITCHES: Record<ExamQuestionType, ExamQuestionType[]> = {
+  single_choice: ["single_choice", "multiple_choice"],
+  multiple_choice: ["multiple_choice", "single_choice"],
+  short_answer: ["short_answer", "essay"],
+  essay: ["essay", "short_answer"],
+  true_false: ["true_false"],
+};
 
 // --- Form types & helpers ---
 
@@ -131,7 +137,11 @@ const toFormState = (question: ExamQuestion): QuestionFormState => {
     };
   }
   const resolvedOptions =
-    question.questionType === "true_false" ? [...TRUE_FALSE_OPTIONS] : options;
+    question.questionType === "true_false"
+      ? options.length >= 2
+        ? options.slice(0, 2)
+        : [...TRUE_FALSE_OPTIONS]
+      : options;
   return {
     ...base,
     options: resolvedOptions,
@@ -165,7 +175,7 @@ const buildPayload = (
     return payload;
   }
   if (form.questionType === "true_false") {
-    payload.options = [...TRUE_FALSE_OPTIONS];
+    payload.options = form.options.map((o) => o.trim());
     if (form.singleAnswerIndex !== "") {
       payload.correct_answer = Number(form.singleAnswerIndex);
     }
@@ -225,6 +235,12 @@ const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> => {
   );
 };
 
+const toNumberInputValue = (value: string | number): string => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return "1";
+  return String(Math.max(1, Math.round(parsed)));
+};
+
 // --- Component ---
 
 interface ExamQuestionEditCardProps {
@@ -233,7 +249,7 @@ interface ExamQuestionEditCardProps {
   showScoreField?: boolean;
   frozen?: boolean;
   startEditingSignal?: number;
-  onSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
+  onAutoSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
   onSaveToBank?: (question: ExamQuestion) => void;
@@ -246,7 +262,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   showScoreField = true,
   frozen,
   startEditingSignal,
-  onSave,
+  onAutoSave,
   onDelete,
   onDuplicate,
   onSaveToBank,
@@ -259,6 +275,8 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   const [saving, setSaving] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const originalFormRef = useRef<QuestionFormState>(toFormState(question));
+  const latestFormRef = useRef<QuestionFormState>(toFormState(question));
+  const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync form when question prop changes (after external save/reload)
   useEffect(() => {
@@ -273,6 +291,16 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     if (startEditingSignal == null) return;
     setEditing(true);
   }, [question.id, startEditingSignal]);
+
+  useEffect(() => {
+    latestFormRef.current = form;
+  }, [form]);
+
+  useEffect(() => {
+    return () => {
+      if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+    };
+  }, []);
 
   // Click outside → save if dirty, else just close
   useEffect(() => {
@@ -298,58 +326,114 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     return () => document.removeEventListener("keydown", handleKeyDown);
   });
 
+  const getValidationError = useCallback((): string | null => {
+    if (!form.prompt.trim()) {
+      return t("examEditor.validation.emptyPrompt", "題目內容不可為空");
+    }
+    if (showScoreField) {
+      const score = Number(form.score || 0);
+      if (!Number.isFinite(score) || score <= 0) {
+        return t("examEditor.validation.invalidScore", "配分必須大於 0");
+      }
+    }
+    if (!isChoiceType(form.questionType)) return null;
+    if (form.options.length < 2) {
+      return t("examEditor.validation.minOptions", "至少需要 2 個選項");
+    }
+    if (form.options.some((o) => !o.trim())) {
+      return t("examEditor.validation.blankOption", "選項文字不可空白");
+    }
+    return null;
+  }, [form, showScoreField, t]);
+
+  const persistAutoSave = useCallback(
+    async (showValidationError = false): Promise<boolean> => {
+      const validationError = getValidationError();
+      if (validationError) {
+        if (showValidationError) {
+          showToast({
+            kind: "error",
+            title: t("examEditor.validationFailed", "驗證失敗"),
+            subtitle: validationError,
+          });
+        }
+        return false;
+      }
+
+      try {
+        setSaving(true);
+        const snapshot = latestFormRef.current;
+        const payload = buildPayload(snapshot, showScoreField);
+        await onAutoSave(payload, question.id);
+        originalFormRef.current = { ...snapshot };
+        return true;
+      } catch (error) {
+        const subtitle =
+          error instanceof Error
+            ? error.message
+            : t("examEditor.saveFailed", "儲存失敗");
+        showToast({
+          kind: "error",
+          title: t("examEditor.saveFailed", "儲存失敗"),
+          subtitle,
+        });
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [getValidationError, onAutoSave, question.id, showScoreField, showToast, t]
+  );
+
   const handleCloseOrSave = async () => {
-    if (isFormDirty(form, originalFormRef.current)) {
-      await handleSave();
+    if (saveDebounceRef.current) {
+      clearTimeout(saveDebounceRef.current);
+      saveDebounceRef.current = null;
+    }
+    if (isFormDirty(latestFormRef.current, originalFormRef.current)) {
+      const ok = await persistAutoSave(true);
+      if (!ok) return;
+      setEditing(false);
     } else {
       setEditing(false);
     }
   };
 
-  const validateForm = useCallback((): boolean => {
-    if (!form.prompt.trim()) {
-      showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.emptyPrompt", "題目內容不可為空") });
-      return false;
+  const handleInlineBlurAutoSave = useCallback(() => {
+    if (!editing || frozen) return;
+    if (!isFormDirty(latestFormRef.current, originalFormRef.current, showScoreField)) return;
+    if (saveDebounceRef.current) {
+      clearTimeout(saveDebounceRef.current);
+      saveDebounceRef.current = null;
     }
-    if (showScoreField) {
-      const score = Number(form.score || 0);
-      if (!Number.isFinite(score) || score <= 0) {
-        showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.invalidScore", "配分必須大於 0") });
-        return false;
-      }
-    }
-    if (!isChoiceType(form.questionType)) return true;
-    if (form.questionType !== "true_false") {
-      if (form.options.length < 2) {
-        showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.minOptions", "至少需要 2 個選項") });
-        return false;
-      }
-      if (form.options.some((o) => !o.trim())) {
-        showToast({ kind: "error", title: t("examEditor.validationFailed", "驗證失敗"), subtitle: t("examEditor.validation.blankOption", "選項文字不可空白") });
-        return false;
-      }
-    }
-    return true;
-  }, [form, showScoreField, showToast, t]);
+    void persistAutoSave(false);
+  }, [editing, frozen, persistAutoSave, showScoreField]);
 
-  const handleSave = async () => {
-    if (!validateForm()) return;
-    try {
-      setSaving(true);
-      const payload = buildPayload(form, showScoreField);
-      await onSave(payload, question.id);
-      setEditing(false);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setForm(toFormState(question));
-    setEditing(false);
-  };
+  useEffect(() => {
+    if (!editing || frozen) return;
+    if (!isFormDirty(form, originalFormRef.current, showScoreField)) return;
+    if (getValidationError()) return;
+    if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+    saveDebounceRef.current = setTimeout(() => {
+      void persistAutoSave(false);
+    }, 1000);
+  }, [editing, form, frozen, getValidationError, persistAutoSave, showScoreField]);
 
   const handleTypeChange = (nextType: ExamQuestionType) => {
+    const currentType = form.questionType;
+    const allowedTypes = ALLOWED_TYPE_SWITCHES[currentType] ?? [currentType];
+    if (!allowedTypes.includes(nextType)) {
+      showToast({
+        kind: "warning",
+        title: t("examEditor.typeSwitchRestricted", "題型切換受限"),
+        subtitle: t(
+          "examEditor.typeSwitchRule",
+          "僅允許「單選題 ↔ 多選題」與「簡答題 ↔ 問答題」互相切換。",
+        ),
+      });
+      return;
+    }
+
     setForm((prev) => {
       if (nextType === "essay" || nextType === "short_answer") {
         return { ...prev, questionType: nextType, options: [], singleAnswerIndex: "", multiAnswerIndexes: [] };
@@ -388,18 +472,35 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   if (!editing) {
     const correctSingle = getCorrectSingleIndex(question);
     const correctMulti = getCorrectMultiIndexes(question);
-    const tfOptions = [t("examEditor.trueOption", "是 (True)"), t("examEditor.falseOption", "否 (False)")];
+    const tfOptions = question.options.length >= 2
+      ? question.options
+      : [t("examEditor.trueOption", "是 (True)"), t("examEditor.falseOption", "否 (False)")];
 
     return (
       <Layer>
         <div
           ref={cardRef}
           className={`${styles.card} ${styles.cardPreview}`}
+          onClick={() => {
+            if (!frozen) setEditing(true);
+          }}
+          role="button"
+          tabIndex={frozen ? -1 : 0}
+          onKeyDown={(event) => {
+            if (frozen) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setEditing(true);
+            }
+          }}
         >
           {!frozen && onPointerDownDrag && (
             <div
               className={styles.dragIndicator}
-              onPointerDown={onPointerDownDrag}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                onPointerDownDrag(event);
+              }}
             >
               <Draggable size={16} />
             </div>
@@ -423,7 +524,10 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                   <button
                     type="button"
                     className={styles.saveToBankButton}
-                    onClick={() => onSaveToBank(question)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSaveToBank(question);
+                    }}
                   >
                     <DataBase size={12} />
                     {t("examEditor.saveToBank", { defaultValue: "收錄到題庫" })}
@@ -436,13 +540,16 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 ) : null}
                 {!frozen && (
                   <>
-                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.copy", "複製")} onClick={() => onDuplicate(question.id)}>
+                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.copy", "複製")} onClick={(event) => {
+                      event.stopPropagation();
+                      onDuplicate(question.id);
+                    }}>
                       <Copy size={16} />
                     </IconButton>
-                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.edit", "編輯")} onClick={() => setEditing(true)}>
-                      <Edit size={16} />
-                    </IconButton>
-                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.delete", "刪除")} onClick={() => onDelete(question.id)}>
+                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.delete", "刪除")} onClick={(event) => {
+                      event.stopPropagation();
+                      onDelete(question.id);
+                    }}>
                       <TrashCan size={16} />
                     </IconButton>
                   </>
@@ -465,22 +572,19 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               <div className={styles.previewAnswers}>
                 {/* True/False */}
                 {question.questionType === "true_false" && (
-                  <RadioButtonGroup
-                    name={`preview-${question.id}`}
-                    legendText=""
-                    orientation="vertical"
-                    valueSelected={correctSingle != null ? String(correctSingle) : undefined}
-                    onChange={() => {}}
-                  >
+                  <div className={styles.optionList}>
                     {tfOptions.map((label, i) => (
-                      <RadioButton
-                        key={i}
-                        labelText={`${String.fromCharCode(65 + i)}. ${label}`}
-                        value={String(i)}
-                        id={`pv-${question.id}-tf-${i}`}
-                      />
+                      <div key={i} className={styles.answerText}>
+                        <strong>{String.fromCharCode(65 + i)}.</strong>{" "}
+                        <MarkdownRenderer>{label}</MarkdownRenderer>
+                        {correctSingle === i ? (
+                          <Tag type="green" size="sm">
+                            {t("examEditor.correctAnswer", "正確答案")}
+                          </Tag>
+                        ) : null}
+                      </div>
                     ))}
-                  </RadioButtonGroup>
+                  </div>
                 )}
 
                 {/* Single choice */}
@@ -522,7 +626,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 {question.questionType === "short_answer" && (
                   <div className={styles.answerText}>
                     {question.correctAnswer != null
-                      ? String(question.correctAnswer)
+                      ? <MarkdownRenderer>{String(question.correctAnswer)}</MarkdownRenderer>
                       : <span className={styles.answerEmpty}>{t("examEditor.answerNotSet", "（未設定答案）")}</span>}
                   </div>
                 )}
@@ -531,7 +635,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 {question.questionType === "essay" && (
                   <div className={styles.answerText}>
                     {question.correctAnswer
-                      ? String(question.correctAnswer)
+                      ? <MarkdownRenderer>{String(question.correctAnswer)}</MarkdownRenderer>
                       : <span className={styles.answerEmpty}>{t("examEditor.referenceNotSet", "（未設定參考答案）")}</span>}
                   </div>
                 )}
@@ -544,12 +648,15 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   }
 
   // ─── EDIT MODE ───
-  const dirty = isFormDirty(form, originalFormRef.current, showScoreField);
   const TypeIcon = TYPE_ICON[form.questionType];
 
   return (
     <Layer>
-      <div ref={cardRef} className={`${styles.card} ${styles.cardEditing}`}>
+      <div
+        ref={cardRef}
+        className={`${styles.card} ${styles.cardEditing}`}
+        onBlurCapture={handleInlineBlurAutoSave}
+      >
         <div className={styles.editToolbar}>
           <div className={styles.editToolbarLeft}>
             <div className={styles.typeSelector}>
@@ -564,43 +671,49 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 disabled={frozen}
                 inline
               >
-                <SelectItem value="single_choice" text={t("common:questionType.label.single_choice", "單選題")} />
-                <SelectItem value="multiple_choice" text={t("common:questionType.label.multiple_choice", "多選題")} />
-                <SelectItem value="true_false" text={t("common:questionType.label.true_false", "是非題")} />
-                <SelectItem value="short_answer" text={t("common:questionType.label.short_answer", "簡答題")} />
-                <SelectItem value="essay" text={t("common:questionType.label.essay", "問答題")} />
+                {(["single_choice", "multiple_choice", "true_false", "short_answer", "essay"] as ExamQuestionType[]).map((type) => (
+                  <SelectItem
+                    key={type}
+                    value={type}
+                    text={t(`common:questionType.label.${type}`, type)}
+                    disabled={!(ALLOWED_TYPE_SWITCHES[form.questionType] ?? [form.questionType]).includes(type)}
+                  />
+                ))}
               </Select>
             </div>
             {showScoreField ? (
               <div className={styles.scoreInline}>
-                <TextInput
+                <NumberInput
                   id={`eqc-score-${question.id}`}
-                  labelText=""
+                  label={t("examEditor.scoreLabel", "分")}
+                  className={styles.scoreNumberInput}
                   hideLabel
                   size="sm"
-                  type="number"
                   min={1}
-                  value={form.score}
-                  onChange={(e) => setForm((p) => ({ ...p, score: e.target.value }))}
+                  step={1}
+                  value={Number(form.score || 1)}
+                  onChange={(_e, { value }) =>
+                    setForm((p) => ({ ...p, score: toNumberInputValue(value) }))
+                  }
                   disabled={frozen}
                 />
-                <span>{t("examEditor.scoreLabel", "分")}</span>
               </div>
             ) : null}
           </div>
           <div className={styles.editToolbarRight}>
-            <IconButton kind="ghost" size="sm" label={t("button.cancel", "取消")} onClick={handleCancel}>
+            {saving ? (
+              <InlineLoading
+                status="active"
+                description={t("common.saving", "儲存中...")}
+              />
+            ) : (
+              <span className={styles.autoSaveHint}>
+                {t("examEditor.autoSaveEnabled", "自動儲存中")}
+              </span>
+            )}
+            <IconButton kind="ghost" size="sm" label={t("button.close", "關閉")} onClick={handleCloseOrSave}>
               <Close size={16} />
             </IconButton>
-            <Button
-              kind="primary"
-              size="sm"
-              renderIcon={Checkmark}
-              onClick={handleSave}
-              disabled={!dirty || saving || frozen}
-            >
-              {saving ? t("common.saving", "儲存中...") : t("button.save", "儲存")}
-            </Button>
           </div>
         </div>
 
@@ -625,7 +738,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             {/* True/False: radio to pick correct answer */}
             {form.questionType === "true_false" && (
               <div className={styles.editOptionList}>
-                {[t("examEditor.trueOption", "是 (True)"), t("examEditor.falseOption", "否 (False)")].map((label, i) => (
+                {form.options.map((label, i) => (
                   <div key={i} className={styles.editOptionRow}>
                     <RadioButton
                       name={`edit-tf-${question.id}`}
@@ -637,7 +750,17 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                       disabled={frozen}
                     />
                     <span className={styles.optionLetter}>{String.fromCharCode(65 + i)}.</span>
-                    <span>{label}</span>
+                    <div className={styles.optionMarkdown}>
+                      <MarkdownField
+                        id={`eqc-tf-option-${question.id}-${i}`}
+                        labelText=""
+                        value={label}
+                        onChange={(val) => updateOption(i, val)}
+                        placeholder={t("examEditor.optionPlaceholder", { letter: String.fromCharCode(65 + i) })}
+                        minHeight="96px"
+                        disabled={!!frozen}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -755,14 +878,14 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             {/* Short answer */}
             {form.questionType === "short_answer" && (
               <div className={styles.shortInput}>
-                <TextInput
+                <MarkdownField
                   id={`eqc-short-answer-${question.id}`}
                   labelText={t("examEditor.standardAnswer", "標準答案")}
-                  size="sm"
                   placeholder={t("examEditor.shortAnswerPlaceholder", "輸入簡答標準答案（如數字、關鍵字）")}
                   value={form.shortAnswer}
-                  onChange={(e) => setForm((p) => ({ ...p, shortAnswer: e.target.value }))}
-                  disabled={frozen}
+                  onChange={(val) => setForm((p) => ({ ...p, shortAnswer: val }))}
+                  minHeight="96px"
+                  disabled={!!frozen}
                 />
               </div>
             )}
@@ -770,14 +893,14 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             {/* Essay */}
             {form.questionType === "essay" && (
               <div className={styles.essayArea}>
-                <TextArea
+                <MarkdownField
                   id={`eqc-essay-answer-${question.id}`}
                   labelText={t("examEditor.referenceAnswer", "參考答案")}
-                  rows={4}
                   value={form.essayReferenceAnswer}
-                  onChange={(e) => setForm((p) => ({ ...p, essayReferenceAnswer: e.target.value }))}
+                  onChange={(val) => setForm((p) => ({ ...p, essayReferenceAnswer: val }))}
                   placeholder={t("examEditor.referencePlaceholder", "參考答案（可選，支援 Markdown）")}
-                  disabled={frozen}
+                  minHeight="112px"
+                  disabled={!!frozen}
                 />
               </div>
             )}

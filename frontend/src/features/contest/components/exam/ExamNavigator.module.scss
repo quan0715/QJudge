@@ -1,61 +1,17 @@
 @use "@carbon/layout";
 @use "@carbon/type";
-@use "@carbon/motion";
 
+/* Navigator shell — fixed width sidebar */
 .navigator {
   display: flex;
   flex-direction: column;
   width: 200px;
   min-width: 200px;
-  overflow-y: auto;
 }
 
-.navHeader {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  padding: layout.$spacing-04;
-  color: var(--cds-text-helper);
-  @include type.type-style("label-01");
-  text-transform: uppercase;
-  letter-spacing: 0.32px;
-  flex-shrink: 0;
-}
-
-.list {
-  flex: 1;
-  overflow-y: auto;
-  padding: layout.$spacing-02 0;
-}
-
-.item {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  padding: layout.$spacing-03 layout.$spacing-04;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  width: 100%;
-  text-align: left;
-  transition: background-color 100ms motion.motion(standard, productive);
-
-  &:hover {
-    background-color: var(--cds-layer-hover-01);
-  }
-}
-
-.itemActive {
-  background-color: transparent;
-  border-left: 3px solid var(--cds-interactive);
-
-  &:hover {
-    background-color: var(--cds-layer-hover-01);
-  }
-}
-
+/* Numbered badge for each question */
 .itemNumber {
-  @include type.type-style("body-compact-01");
+  @include type.type-style("label-01");
   font-weight: 600;
   color: var(--cds-text-primary);
   width: 24px;
@@ -66,7 +22,6 @@
   border-radius: 50%;
   background-color: var(--cds-layer-02);
   flex-shrink: 0;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
 }
 
 .itemNumberAnswered {
@@ -74,44 +29,18 @@
   color: var(--cds-text-on-color);
 }
 
-.itemInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+/* Marked-for-review tint */
+.itemMarked {
+  background-color: rgba(255, 214, 0, 0.15);
 }
 
-.itemType {
-  @include type.type-style("label-01");
-  color: var(--cds-text-helper);
-}
-
-.itemTitle {
-  @include type.type-style("body-compact-01");
-  color: var(--cds-text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-}
-
-.summary {
-  padding: layout.$spacing-04;
-  flex-shrink: 0;
-}
-
+/* Footer text */
 .summaryText {
   @include type.type-style("label-01");
   color: var(--cds-text-helper);
 }
 
-.itemMarked {
-  background-color: rgba(255, 214, 0, 0.15);
-}
-
 .summaryMarked {
   @include type.type-style("label-01");
   color: var(--cds-support-warning);
-  display: block;
-  margin-top: layout.$spacing-02;
 }

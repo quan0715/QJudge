@@ -21,6 +21,11 @@ export const getClassroomContestDashboardPath = (
   contestId: string,
 ): string => `/classrooms/${classroomId}/contest/${contestId}`;
 
+export const getClassroomContestAdminPath = (
+  classroomId: string,
+  contestId: string,
+): string => `/classrooms/${classroomId}/contest/${contestId}/admin`;
+
 export const getClassroomContestPrecheckPath = (
   classroomId: string,
   contestId: string,

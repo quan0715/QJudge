@@ -260,3 +260,17 @@ export const gradeExamAnswer = async (
   );
   return mapAnswerDetailDto(dto);
 };
+
+/** Revoke grading for a single answer (TA only). */
+export const ungradeExamAnswer = async (
+  contestId: string,
+  answerId: string
+): Promise<ExamAnswerDetail> => {
+  const dto = await requestJson<ExamAnswerDetailDto>(
+    httpClient.post(
+      `/api/v1/contests/${contestId}/exam-answers/${answerId}/ungrade/`
+    ),
+    "Failed to ungrade answer"
+  );
+  return mapAnswerDetailDto(dto);
+};

@@ -24,7 +24,7 @@ export const PENDING_ACTIONS: PendingActionConfig[] = [
   {
     key: "classroom_join",
     storageKey: "qjudge.classroom_join_code",
-    priority: 10,
+    priority: -5,
     queryParam: null,
     banner: {
       titleKey: "auth.pendingAction.classroomJoinTitle",

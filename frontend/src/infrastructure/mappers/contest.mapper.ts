@@ -52,6 +52,10 @@ export function mapContestProblemSummaryDto(dto: any): ContestProblemSummary {
 }
 
 export function mapContestDto(dto: any): Contest {
+  const requiresPassword =
+    typeof dto.requires_password === "boolean"
+      ? dto.requires_password
+      : dto.visibility === "private";
   return {
     id: dto.id?.toString() || "",
     name: dto.name || "",
@@ -60,6 +64,7 @@ export function mapContestDto(dto: any): Contest {
     endTime: dto.end_time || "",
     status: dto.status || "draft",
     visibility: dto.visibility || "public",
+    requiresPassword,
     deliveryMode: dto.delivery_mode || "exam",
     password: dto.password,
 
@@ -924,6 +929,12 @@ export function mapContestUpdateRequestToDto(request: any): any {
     end_time: request.endTime,
     status: request.status,
     visibility: request.visibility,
+    requires_password:
+      typeof request.requiresPassword === "boolean"
+        ? request.requiresPassword
+        : typeof request.visibility === "string"
+        ? request.visibility === "private"
+        : undefined,
     password: request.password,
     cheat_detection_enabled: request.cheatDetectionEnabled,
     anticheat_device_policy: anticheatDevicePolicy,

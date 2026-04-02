@@ -33,8 +33,9 @@ export function validateJoinContest(
   contest: ContestDetail,
   password?: string
 ): { valid: boolean; error?: string } {
+  const requiresPassword = contest.requiresPassword ?? contest.visibility === "private";
   // Check if contest requires password
-  if (contest.visibility === "private" && !password) {
+  if (requiresPassword && !password) {
     return {
       valid: false,
       error: "This contest requires a password",

@@ -39,6 +39,7 @@ class ContestListSerializer(serializers.ModelSerializer):
     question_edit_locked_at = serializers.DateTimeField(read_only=True)
     question_edit_lock_trigger = serializers.CharField(read_only=True)
     delivery_mode = serializers.CharField(read_only=True)
+    requires_password = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = Contest
@@ -49,6 +50,7 @@ class ContestListSerializer(serializers.ModelSerializer):
             'end_time',
             'status',
             'visibility',
+            'requires_password',
             'delivery_mode',
             'owner_username',
             'participant_count',
@@ -77,6 +79,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     Includes role-based permissions and full contest information.
     """
     owner_username = serializers.CharField(source='owner.username', read_only=True)
+    requires_password = serializers.BooleanField(read_only=True)
     current_user_role = serializers.SerializerMethodField()
     permissions = serializers.SerializerMethodField()
     has_joined = serializers.SerializerMethodField()
@@ -122,6 +125,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'end_time',
             'status',
             'visibility',
+            'requires_password',
             'contest_type',
             'delivery_mode',
             'cheat_detection_enabled',
@@ -392,6 +396,7 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'rules',
             'start_time',
             'end_time',
+            'requires_password',
             'visibility',
             'password',
             'contest_type',
@@ -417,34 +422,43 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
                 'allow_blank': True,
             }
         }
+
+    requires_password = serializers.BooleanField(required=False, default=False)
+
+    def _resolve_requires_password(self, data):
+        initial_data = getattr(self, 'initial_data', {}) or {}
+        if 'requires_password' in initial_data:
+            return bool(data.get('requires_password'))
+        if 'visibility' in initial_data:
+            return data.get('visibility') == 'private'
+        if self.instance is not None:
+            return self.instance.requires_password
+        return False
     
     def validate(self, data):
         """Validate contest data."""
-        # For private contests, password should be provided
-        visibility = data.get('visibility')
-        
-        # Get effective visibility (from data or instance)
-        if visibility is None and self.instance:
-            visibility = self.instance.visibility
-            
-        if visibility == 'private':
+        requires_password = self._resolve_requires_password(data)
+        data['requires_password'] = requires_password
+        if requires_password:
             password_in_data = 'password' in data
             password = data.get('password')
-            
-            # If explicit empty password provided
             if password_in_data and not password:
                 raise serializers.ValidationError({
-                    'password': 'Password is required for private contests.'
+                    'password': 'Password is required for password-protected contests.'
                 })
-                
-            # Only require password when changing to private
-            changing_to_private = ('visibility' in data and data['visibility'] == 'private'
-                                   and (not self.instance or self.instance.visibility != 'private'))
-            if not password_in_data and changing_to_private:
+
+            changing_to_password_protected = (
+                'requires_password' in data
+                and bool(data['requires_password'])
+                and (not self.instance or not self.instance.requires_password)
+            )
+            if not password_in_data and changing_to_password_protected:
                 if not self.instance or not self.instance.password:
                      raise serializers.ValidationError({
-                        'password': 'Password is required for private contests.'
+                        'password': 'Password is required for password-protected contests.'
                      })
+        else:
+            data['password'] = None
         
         # Validate time range
         start_time = data.get('start_time')
@@ -462,13 +476,38 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
                 })
         
         return data
+
+    def create(self, validated_data):
+        """Create contest and safely hash password when provided."""
+        raw_password = validated_data.pop("password", None)
+        requires_password = validated_data.pop("requires_password", None)
+        if requires_password is False:
+            validated_data["visibility"] = "public"
+        elif requires_password is True:
+            validated_data["visibility"] = "private"
+        contest = super().create(validated_data)
+        if raw_password is not None:
+            contest.set_contest_password(raw_password)
+            contest.save(update_fields=["password"])
+        elif requires_password is False and contest.password:
+            contest.set_contest_password(None)
+            contest.save(update_fields=["password"])
+        return contest
     
     def update(self, instance, validated_data):
         """Update contest and safely hash password when provided."""
         raw_password = validated_data.pop("password", None)
+        requires_password = validated_data.pop("requires_password", None)
+        if requires_password is False:
+            validated_data["visibility"] = "public"
+        elif requires_password is True:
+            validated_data["visibility"] = "private"
         contest = super().update(instance, validated_data)
         if raw_password is not None:
             contest.set_contest_password(raw_password)
+            contest.save(update_fields=["password"])
+        elif requires_password is False and contest.password:
+            contest.set_contest_password(None)
             contest.save(update_fields=["password"])
         return contest
 

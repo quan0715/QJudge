@@ -53,3 +53,46 @@
 .modalSpacing {
   margin-bottom: layout.$spacing-05;
 }
+
+// ─── Progress bar (migrated from ContestHero.css) ───────────
+.progressBarContainer {
+  height: 6px;
+  width: 100%;
+  background-color: var(--cds-border-subtle);
+  position: relative;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  transition: width 0.4s cubic-bezier(0.2, 0, 0.38, 0.9);
+  position: relative;
+}
+
+.active {
+  background-color: var(--cds-interactive);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    transform: translateX(-100%);
+    animation: shimmer 2s infinite;
+  }
+}
+
+.finished {
+  background-color: var(--cds-text-secondary);
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

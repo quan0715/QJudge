@@ -1,12 +1,17 @@
-import React, { useRef, useEffect, useState } from "react";
-import { Button, IconButton, Tag } from "@carbon/react";
-import { Add, Catalog, Draggable, TrashCan } from "@carbon/icons-react";
+import React, { useRef, useEffect } from "react";
+import { Button, Tag } from "@carbon/react";
+import { Add, Draggable } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import { EXAM_QUESTION_TYPE_TAG_COLOR } from "@/shared/ui/examQuestionTypeVisual";
-import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
-import AddQuestionMenuButton from "./AddQuestionMenuButton";
+import {
+  ListItem,
+  ListItemLeading,
+  ListItemContent,
+  ListItemTitle,
+  ListItemMeta,
+} from "@/shared/ui/list/ListPanel";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
 
@@ -19,7 +24,7 @@ interface WorkTreeProps {
   onSelect: (id: string) => void;
   onAdd: () => void;
   onImportFromBank?: () => void;
-  onDelete: (id: string) => void;
+  onDelete?: (id: string) => void;
   onReorder: (reordered: ExamQuestion[]) => void;
 }
 
@@ -30,21 +35,13 @@ const TreeItem: React.FC<{
   isActive: boolean;
   frozen?: boolean;
   onSelect: () => void;
-  onDelete: () => void;
-}> = ({ question, index, isActive, frozen, onSelect, onDelete }) => {
+}> = ({ question, index, isActive, frozen, onSelect }) => {
   const { t } = useTranslation("contest");
   const dragControls = useDragControls();
-  const [saveToBankOpen, setSaveToBankOpen] = useState(false);
-  const saveToBankDisabled =
-    !!frozen ||
-    !!question.sourceBank ||
-    question.sourceMode === "copy" ||
-    question.sourceMode === "reference";
-  const saveToBankLabel = frozen
-    ? t("questionEditLocked", "已有學生正式作答，競賽題目已鎖定")
-    : saveToBankDisabled
-      ? t("common:questionBank.saveToBank.alreadySaved", "此題已收錄至題庫")
-      : t("common:questionBank.saveToBank.title", "收錄到題庫");
+
+  const titleText = question.prompt
+    ? question.prompt.replace(/[#*_`>\n]/g, "").slice(0, 40) || `Question ${index + 1}`
+    : `Question ${index + 1}`;
 
   return (
     <Reorder.Item
@@ -53,75 +50,35 @@ const TreeItem: React.FC<{
       dragControls={dragControls}
       drag={!frozen}
       as="div"
-      className={`${styles.treeItem} ${isActive ? styles.treeItemActive : ""}`}
       data-question-id={question.id}
     >
-      {!frozen && (
-        <div
-          className={styles.dragHandle}
-          onPointerDown={(e) => dragControls.start(e)}
-        >
-          <Draggable size={14} />
-        </div>
-      )}
-      <button
-        type="button"
-        className={styles.itemButton}
-        onClick={onSelect}
-      >
-        <span className={styles.itemOrder}>{index + 1}</span>
-        <div className={styles.itemInfo}>
-          <span className={styles.itemTitle}>
-            {question.prompt
-              ? question.prompt.replace(/[#*_`>\n]/g, "").slice(0, 40) || `Question ${index + 1}`
-              : `Question ${index + 1}`}
-          </span>
-          <div className={styles.itemMeta}>
+      <ListItem active={isActive} onClick={onSelect}>
+        <ListItemLeading>
+          {!frozen && (
+            <div
+              className={styles.dragHandle}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                dragControls.start(e);
+              }}
+            >
+              <Draggable size={14} />
+            </div>
+          )}
+          <span className={styles.itemOrder}>{index + 1}</span>
+        </ListItemLeading>
+        <ListItemContent>
+          <ListItemTitle>{titleText}</ListItemTitle>
+          <ListItemMeta>
             <Tag
               type={(EXAM_QUESTION_TYPE_TAG_COLOR[question.questionType] ?? "gray") as never}
               size="sm"
             >
               {t(`common:questionType.label.${question.questionType}`, question.questionType)}
             </Tag>
-            <span className={styles.itemScore}>{question.score}pt</span>
-          </div>
-        </div>
-      </button>
-      <div className={styles.deleteBtn}>
-        <IconButton
-          kind="ghost"
-          size="sm"
-          label={saveToBankLabel}
-          disabled={saveToBankDisabled}
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation();
-            if (saveToBankDisabled) return;
-            setSaveToBankOpen(true);
-          }}
-        >
-          <Catalog size={14} />
-        </IconButton>
-        {!frozen && (
-          <IconButton
-            kind="ghost"
-            size="sm"
-            label={t("button.delete", "刪除")}
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-          >
-            <TrashCan size={14} />
-          </IconButton>
-        )}
-      </div>
-      <SaveToBankModal
-        open={saveToBankOpen}
-        onClose={() => setSaveToBankOpen(false)}
-        sourceType="exam_question"
-        sourceId={question.id}
-        sourceTitle={question.prompt?.replace(/[#*_`>\n]/g, "").slice(0, 40) || `Question ${index + 1}`}
-      />
+          </ListItemMeta>
+        </ListItemContent>
+      </ListItem>
     </Reorder.Item>
   );
 };
@@ -130,12 +87,9 @@ const WorkTree: React.FC<WorkTreeProps> = ({
   questions,
   selectedId,
   frozen,
-  lockedReason,
   loading,
   onSelect,
   onAdd,
-  onImportFromBank,
-  onDelete,
   onReorder,
 }) => {
   const { t } = useTranslation("contest");
@@ -156,15 +110,6 @@ const WorkTree: React.FC<WorkTreeProps> = ({
   return (
     <WorkTreeShell
       title={t("examEditor.questionList", "題目列表")}
-      actions={(
-        <>
-          <AddQuestionMenuButton
-            onCreate={onAdd}
-            onImportFromBank={onImportFromBank}
-            disabled={!!frozen}
-          />
-        </>
-      )}
       hasItems={questions.length > 0}
       loading={loading}
       emptyState={(
@@ -185,7 +130,6 @@ const WorkTree: React.FC<WorkTreeProps> = ({
         <>
           <span>{t("examEditor.questionCount", { count: questions.length })}</span>
           <span>{t("examEditor.totalScore", { score: totalScore })}</span>
-          {frozen && lockedReason && <span>{lockedReason}</span>}
         </>
       )}
     >
@@ -205,7 +149,6 @@ const WorkTree: React.FC<WorkTreeProps> = ({
             isActive={selectedId === q.id}
             frozen={frozen}
             onSelect={() => onSelect(q.id)}
-            onDelete={() => onDelete(q.id)}
           />
         ))}
       </Reorder.Group>
