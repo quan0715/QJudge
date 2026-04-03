@@ -44,11 +44,12 @@ export const deleteClassroom = async (id: string): Promise<void> => {
   await ensureOk(httpClient.delete(`/api/v1/classrooms/${id}/`), "Failed to delete classroom");
 };
 
-export const joinClassroom = async (inviteCode: string): Promise<{ classroom_id: string }> => {
-  return requestJson<{ classroom_id: string }>(
+export const joinClassroom = async (inviteCode: string): Promise<ClassroomDetail> => {
+  const data = await requestJson<ClassroomDetailDto>(
     httpClient.post(`/api/v1/classrooms/join/`, { invite_code: inviteCode }),
     "Failed to join classroom"
   );
+  return mapClassroomDetailDto(data);
 };
 
 export const archiveClassroom = async (id: string): Promise<void> => {

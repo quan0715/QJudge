@@ -4,6 +4,7 @@ import type {
   ClassroomMember,
   ClassroomAnnouncement,
   ClassroomLabSummary,
+  BoundContest,
 } from "@/core/entities/classroom.entity";
 import type {
   ClassroomDto,
@@ -11,11 +12,12 @@ import type {
   ClassroomMemberDto,
   ClassroomAnnouncementDto,
   ClassroomLabSummaryDto,
+  BoundContestDto,
 } from "@/infrastructure/api/dto/classroom.dto";
 
 export function mapClassroomDto(dto: ClassroomDto): Classroom {
   return {
-    id: dto.id.toString(),
+    id: dto.uuid,
     name: dto.name,
     description: dto.description || "",
     ownerUsername: dto.owner_username || "",
@@ -51,9 +53,27 @@ export function mapClassroomAnnouncementDto(dto: ClassroomAnnouncementDto): Clas
   };
 }
 
+export function mapBoundContestDto(dto: BoundContestDto): BoundContest {
+  return {
+    contestId: dto.contest_id,
+    contestName: dto.contest_name,
+    contestDescription: dto.contest_description,
+    contestStatus: dto.contest_status,
+    contestVisibility: dto.contest_visibility,
+    requiresPassword: !!dto.requires_password,
+    contestType: dto.contest_type,
+    deliveryMode: dto.delivery_mode,
+    contestStartTime: dto.contest_start_time,
+    contestEndTime: dto.contest_end_time,
+    contestOwnerUsername: dto.contest_owner_username,
+    participantCount: dto.participant_count || 0,
+    boundAt: dto.bound_at,
+  };
+}
+
 export function mapClassroomLabSummaryDto(dto: ClassroomLabSummaryDto): ClassroomLabSummary {
   return {
-    labId: dto.lab_id.toString(),
+    labId: dto.lab_id,
     name: dto.name,
     description: dto.description || "",
     status: dto.status || "draft",
@@ -80,8 +100,8 @@ export function mapClassroomDetailDto(dto: ClassroomDetailDto): ClassroomDetail 
     inviteCode: dto.invite_code || null,
     inviteCodeEnabled: !!dto.invite_code_enabled,
     members: Array.isArray(dto.members) ? dto.members.map(mapClassroomMemberDto) : [],
+    contests: Array.isArray(dto.contests) ? dto.contests.map(mapBoundContestDto) : [],
     labs: Array.isArray(dto.labs) ? dto.labs.map(mapClassroomLabSummaryDto) : [],
-    contests: [], // Backward compat
     admins: Array.isArray(dto.admins) ? dto.admins : [],
     announcements: Array.isArray(dto.announcements) ? dto.announcements.map(mapClassroomAnnouncementDto) : [],
     updatedAt: dto.updated_at,

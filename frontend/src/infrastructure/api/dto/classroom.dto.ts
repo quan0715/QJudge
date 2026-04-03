@@ -1,7 +1,7 @@
 import type { ClassroomScopeRole } from "@/core/entities/classroom.entity";
 
 export interface ClassroomDto {
-  id: number | string;
+  uuid: string;
   name: string;
   description?: string;
   owner_username?: string;
@@ -33,7 +33,7 @@ export interface ClassroomAnnouncementDto {
 }
 
 export interface ClassroomLabSummaryDto {
-  lab_id: number | string;
+  lab_id: string;
   name: string;
   description?: string;
   status: "draft" | "published" | "archived";
@@ -56,10 +56,27 @@ export interface ClassroomLabSummaryDto {
   bound_at: string;
 }
 
+export interface BoundContestDto {
+  contest_id: string;
+  contest_name: string;
+  contest_description: string;
+  contest_status: "draft" | "published" | "archived";
+  contest_visibility: "public" | "private";
+  requires_password?: boolean;
+  contest_type: "coding" | "paper_exam";
+  delivery_mode: "practice" | "exam";
+  contest_start_time: string;
+  contest_end_time: string;
+  contest_owner_username: string;
+  participant_count: number;
+  bound_at: string;
+}
+
 export interface ClassroomDetailDto extends ClassroomDto {
   invite_code?: string | null;
   invite_code_enabled?: boolean;
   members?: ClassroomMemberDto[];
+  contests?: BoundContestDto[];
   labs?: ClassroomLabSummaryDto[];
   admins?: Array<{ id: number; username: string }>;
   announcements?: ClassroomAnnouncementDto[];

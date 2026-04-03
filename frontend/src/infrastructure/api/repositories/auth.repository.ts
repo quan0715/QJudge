@@ -93,7 +93,7 @@ export const updateAccountProfile = async (
 
 export const getPreferences = async (): Promise<PreferencesResponseDto> => {
   return requestJson<PreferencesResponseDto>(
-    httpClient.get("/api/v1/auth/preferences/"),
+    httpClient.get("/api/v1/auth/me/preferences"),
     "Failed to fetch preferences"
   );
 };
@@ -102,7 +102,7 @@ export const updatePreferences = async (
   data: UpdatePreferencesRequest
 ): Promise<PreferencesResponseDto> => {
   return requestJson<PreferencesResponseDto>(
-    httpClient.patch("/api/v1/auth/preferences/", data),
+    httpClient.patch("/api/v1/auth/me/preferences", data),
     "Failed to update preferences"
   );
 };
