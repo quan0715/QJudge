@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Dashboard,
@@ -10,7 +10,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
-import { listMine as listMyBanks } from "@/infrastructure/api/repositories/questionBank.repository";
+import { getQuestionBanks as listMyBanks } from "@/infrastructure/api/repositories/questionBank.repository";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import type { Classroom } from "@/core/entities/classroom.entity";
 import type { QuestionBank } from "@/core/entities/question-bank.entity";
@@ -27,6 +27,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
   const { user } = useAuth();
   const drawerRef = useRef<HTMLElement | null>(null);
+  const [, startTransition] = useTransition();
 
   // Extract IDs from URL since this component lives outside route context
   const classroomId = useMemo(() => {
@@ -48,20 +49,23 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const promises: Promise<void>[] = [
-      getClassrooms()
-        .then((rows) => setClassrooms(rows))
-        .catch(() => {}),
-    ];
-    if (isTeacherOrAdmin) {
-      promises.push(
-        listMyBanks()
-          .then((rows) => setBanks(rows))
-          .catch(() => {}),
-      );
+    try {
+      const classroomRows = await getClassrooms();
+      let bankRows: QuestionBank[] = [];
+      if (isTeacherOrAdmin) {
+        bankRows = await listMyBanks();
+      }
+      
+      startTransition(() => {
+        setClassrooms(classroomRows);
+        setBanks(bankRows);
+        setFetched(true);
+      });
+    } catch {
+      startTransition(() => {
+        setFetched(true);
+      });
     }
-    await Promise.all(promises);
-    setFetched(true);
   }, [user, isTeacherOrAdmin]);
 
   useEffect(() => {

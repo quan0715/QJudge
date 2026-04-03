@@ -11,6 +11,7 @@ import {
   mapSubmissionDto,
   mapSubmissionDetailDto,
 } from "@/infrastructure/mappers/submission.mapper";
+import type { SubmissionDto, SubmissionDetailDto } from "../api/dto/submission.dto";
 
 // ============================================================================
 // Submission Repository Implementation
@@ -19,7 +20,7 @@ import {
 export const submitSolution = async (
   data: SubmitSolutionPayload
 ): Promise<SubmissionDetail> => {
-  const responseData = await requestJson<any>(
+  const responseData = await requestJson<SubmissionDetailDto>(
     httpClient.post(`/api/v1/submissions/`, {
       problem: data.problem_id,
       language: data.language,
@@ -36,14 +37,16 @@ export const getSubmissions = async (
 ): Promise<GetSubmissionsResult> => {
   const query = buildQuery(params as Record<string, unknown>);
 
-  const data = await requestJson<any>(
+  const data = await requestJson<{ results?: SubmissionDto[]; count?: number } | SubmissionDto[]>(
     httpClient.get(`/api/v1/submissions/${query}`),
     "Failed to fetch submissions"
   );
-  const results = data.results || data;
-  const count = data.count || (Array.isArray(data) ? data.length : 0);
+  
+  const results = Array.isArray(data) ? data : data.results || [];
+  const count = !Array.isArray(data) && data.count != null ? data.count : results.length;
+
   return {
-    results: Array.isArray(results) ? results.map(mapSubmissionDto) : [],
+    results: results.map(mapSubmissionDto),
     count,
   };
 };
@@ -59,7 +62,7 @@ export const getSubmission = async (id: string): Promise<SubmissionDetail> => {
     throw new Error(errorData?.detail || "Failed to fetch submission");
   }
 
-  const data = await res.json();
+  const data = await res.json() as SubmissionDetailDto;
   return mapSubmissionDetailDto(data);
 };
 

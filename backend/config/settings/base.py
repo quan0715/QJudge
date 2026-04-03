@@ -415,9 +415,12 @@ AI_SERVICE_ALLOWED_IDS = os.getenv("AI_SERVICE_ALLOWED_IDS", "ai-service-01,ai-s
 # API Key Encryption settings
 # Fernet symmetric encryption key for storing user API keys
 # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+DEFAULT_DEV_ENCRYPTION_KEY = (
+    "u1hHKL4z-3J1B_Wx_Y9c8r7K2x5nQ8P3vL6M9s0W7Z4f5A6d9eG2hJ5kM8oP1qS4"
+)
 ENCRYPTION_KEY = os.getenv(
     "ENCRYPTION_KEY",
-    "u1hHKL4z-3J1B_Wx_Y9c8r7K2x5nQ8P3vL6M9s0W7Z4f5A6d9eG2hJ5kM8oP1qS4"  # Default dev key (change in production!)
+    DEFAULT_DEV_ENCRYPTION_KEY,  # Default dev key (change in production!)
 )
 
 # Recur Payment settings

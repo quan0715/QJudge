@@ -3,12 +3,11 @@ import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
-  getUserPreferences,
-  updateUserPreferences,
+  getPreferences as getUserPreferences,
+  updatePreferences as updateUserPreferences,
   changePassword as changePasswordApi,
-  updateCurrentUserProfile,
-  uploadUserAvatar as uploadUserAvatarApi,
-  requestPasswordReset as requestPasswordResetApi,
+  updateAccountProfile as updateCurrentUserProfile,
+  uploadAvatar as uploadUserAvatarApi,
 } from "@/infrastructure/api/repositories/auth.repository";
 import type {
   ThemePreference,

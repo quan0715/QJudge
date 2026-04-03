@@ -2,75 +2,51 @@ import type {
   Discussion,
   DiscussionComment,
   DiscussionAuthor,
-  DiscussionListResponse,
-  CommentListResponse,
 } from "@/core/entities/discussion.entity";
-import { mapPaginatedResponse } from "./pagination.mapper";
+import type {
+  DiscussionDto,
+  DiscussionCommentDto,
+  DiscussionAuthorDto,
+} from "../api/dto/discussion.dto";
 
-/**
- * Map author DTO to DiscussionAuthor entity
- */
-export function mapAuthorDto(dto: any): DiscussionAuthor {
+export function mapDiscussionAuthorDto(dto: DiscussionAuthorDto): DiscussionAuthor {
   return {
-    id: dto?.id?.toString() || '',
-    username: dto?.username || '未知用戶',
-    role: dto?.role,
+    id: dto.id.toString(),
+    username: dto.username,
+    role: dto.role,
   };
 }
 
-/**
- * Map discussion DTO from API to Discussion entity
- */
-export function mapDiscussionDto(dto: any): Discussion {
-  // Map embedded comments if present
-  const comments = Array.isArray(dto.comments)
-    ? dto.comments.map(mapCommentDto)
-    : [];
-
+export function mapDiscussionCommentDto(dto: DiscussionCommentDto): DiscussionComment {
   return {
-    id: dto.id?.toString() || '',
-    title: dto.title || '',
-    content: dto.content || '',
+    id: dto.id.toString(),
+    content: dto.content,
     isDeleted: !!dto.is_deleted,
-    createdAt: dto.created_at || dto.createdAt || '',
-    updatedAt: dto.updated_at || dto.updatedAt || '',
-    commentsCount: dto.comments_count ?? dto.commentsCount ?? 0,
-    comments,
-    likeCount: dto.like_count ?? dto.likeCount ?? 0,
-    isLiked: !!dto.is_liked,
-    author: mapAuthorDto(dto.user || dto.author),
-    problemId: dto.problem?.toString() || dto.problem_id?.toString(),
-  };
-}
-
-/**
- * Map comment DTO from API to DiscussionComment entity
- */
-export function mapCommentDto(dto: any): DiscussionComment {
-  return {
-    id: dto.id?.toString() || '',
-    content: dto.content || '',
-    isDeleted: !!dto.is_deleted,
-    createdAt: dto.created_at || dto.createdAt || '',
-    updatedAt: dto.updated_at || dto.updatedAt || '',
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
     parentId: dto.parent?.toString() || null,
-    likeCount: dto.like_count ?? dto.likeCount ?? 0,
+    likeCount: dto.like_count || 0,
     isLiked: !!dto.is_liked,
-    author: mapAuthorDto(dto.user || dto.author),
-    discussionId: dto.discussion?.toString() || dto.discussion_id?.toString(),
+    author: mapDiscussionAuthorDto(dto.author),
+    discussionId: dto.discussion?.toString(),
   };
 }
 
-/**
- * Map paginated discussion list response
- */
-export function mapDiscussionListResponse(data: any): DiscussionListResponse {
-  return mapPaginatedResponse(data, mapDiscussionDto);
-}
-
-/**
- * Map paginated comment list response
- */
-export function mapCommentListResponse(data: any): CommentListResponse {
-  return mapPaginatedResponse(data, mapCommentDto);
+export function mapDiscussionDto(dto: DiscussionDto): Discussion {
+  return {
+    id: dto.id.toString(),
+    title: dto.title,
+    content: dto.content,
+    isDeleted: !!dto.is_deleted,
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
+    commentsCount: dto.comments_count || 0,
+    comments: Array.isArray(dto.comments)
+      ? dto.comments.map(mapDiscussionCommentDto)
+      : [],
+    likeCount: dto.like_count || 0,
+    isLiked: !!dto.is_liked,
+    author: mapDiscussionAuthorDto(dto.author),
+    problemId: dto.problem?.toString(),
+  };
 }

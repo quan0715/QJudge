@@ -23,8 +23,13 @@
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
-  padding-left: 0;
   margin-left: 0;
+}
+
+/* When the first child is the title (no leftActions), add left padding.
+   If leftActions is present (e.g. a button), the button's own padding is enough. */
+.leftWithTitle {
+  padding-left: 1rem;
 }
 
 .title {

@@ -1,6 +1,7 @@
 """
 URL configuration for users app.
 """
+from django.conf import settings
 from django.urls import path
 from .views import (
     RegisterView,
@@ -37,9 +38,6 @@ urlpatterns = [
     path('email/register', RegisterView.as_view(), name='email-register'),
     path('email/login', LoginView.as_view(), name='email-login'),
 
-    # Development helper (DEBUG only)
-    path('dev/token', DevTokenView.as_view(), name='dev-token'),
-    
     # Generic OAuth (supports nycu, github, google, etc.)
     path('<str:provider>/login', OAuthLoginView.as_view(), name='oauth-login'),
     path('<str:provider>/callback', OAuthCallbackView.as_view(), name='oauth-callback'),
@@ -76,3 +74,6 @@ urlpatterns = [
     path('teacher-activations/preview', TeacherActivationInvitePreviewView.as_view(), name='teacher-activation-preview'),
     path('teacher-activations/consume', TeacherActivationInviteConsumeView.as_view(), name='teacher-activation-consume'),
 ]
+
+if settings.DEBUG:
+    urlpatterns.append(path('dev/token', DevTokenView.as_view(), name='dev-token'))

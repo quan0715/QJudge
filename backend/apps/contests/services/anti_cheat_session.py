@@ -195,6 +195,10 @@ def get_conflict_token_payload(token: str) -> dict[str, Any] | None:
 
 def consume_conflict_token(token: str) -> dict[str, Any] | None:
     key = conflict_token_key(token)
+    consume_lock_key = f"{key}:consume_lock"
+    # Atomic guard to ensure token is consumed only once under concurrent requests.
+    if not cache.add(consume_lock_key, 1, timeout=CONFLICT_TOKEN_TTL_SECONDS):
+        return None
     value = cache.get(key)
     cache.delete(key)
     return value if isinstance(value, dict) else None
@@ -238,26 +242,75 @@ def clear_heartbeat(contest_id: int, user_id: int) -> None:
 # ---------------------------------------------------------------------------
 
 EXAM_ALLOWED_JTI_PREFIX = "auth:exam_jti"
+EXAM_ALLOWED_JTI_INDEX_PREFIX = "auth:exam_jti:index"
 # Default TTL matches ACCESS_TOKEN_LIFETIME (8 h) + small buffer
 _EXAM_JTI_LOCK_TTL_SECONDS = 8 * 60 * 60 + 600
 
 
-def _exam_allowed_jti_key(user_id: int) -> str:
+def _legacy_exam_allowed_jti_key(user_id: int) -> str:
     return f"{EXAM_ALLOWED_JTI_PREFIX}:{user_id}"
 
 
-def set_exam_allowed_jti(user_id: int, jti: str) -> None:
+def _exam_allowed_jti_key(user_id: int, contest_id: int) -> str:
+    return f"{EXAM_ALLOWED_JTI_PREFIX}:{user_id}:{contest_id}"
+
+
+def _exam_allowed_jti_index_key(user_id: int) -> str:
+    return f"{EXAM_ALLOWED_JTI_INDEX_PREFIX}:{user_id}"
+
+
+def _load_exam_jti_index(user_id: int) -> list[int]:
+    value = cache.get(_exam_allowed_jti_index_key(user_id))
+    if not isinstance(value, list):
+        return []
+    out: list[int] = []
+    for item in value:
+        try:
+            out.append(int(item))
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def _save_exam_jti_index(user_id: int, contest_ids: list[int]) -> None:
+    cache.set(_exam_allowed_jti_index_key(user_id), contest_ids, timeout=_EXAM_JTI_LOCK_TTL_SECONDS)
+
+
+def set_exam_allowed_jti(user_id: int, contest_id: int, jti: str) -> None:
     """Pin this user's allowed access-token JTI in Redis.
 
     While this key exists, ``is_access_token_allowed`` will reject any
     access token whose JTI does not match.
     """
-    cache.set(_exam_allowed_jti_key(user_id), jti, timeout=_EXAM_JTI_LOCK_TTL_SECONDS)
+    cache.set(_exam_allowed_jti_key(user_id, contest_id), jti, timeout=_EXAM_JTI_LOCK_TTL_SECONDS)
+    contest_ids = _load_exam_jti_index(user_id)
+    if contest_id not in contest_ids:
+        contest_ids.append(contest_id)
+    _save_exam_jti_index(user_id, contest_ids)
 
 
-def clear_exam_allowed_jti(user_id: int) -> None:
-    """Remove the JTI pin (e.g. when exam ends)."""
-    cache.delete(_exam_allowed_jti_key(user_id))
+def clear_exam_allowed_jti(user_id: int, contest_id: int | None = None) -> None:
+    """Remove JTI pin(s).
+
+    - With contest_id: clear one contest-scoped pin.
+    - Without contest_id: clear all indexed pins for this user.
+    """
+    cache.delete(_legacy_exam_allowed_jti_key(user_id))
+    index_key = _exam_allowed_jti_index_key(user_id)
+    contest_ids = _load_exam_jti_index(user_id)
+    if contest_id is not None:
+        cache.delete(_exam_allowed_jti_key(user_id, contest_id))
+        if contest_id in contest_ids:
+            contest_ids.remove(contest_id)
+        if contest_ids:
+            _save_exam_jti_index(user_id, contest_ids)
+        else:
+            cache.delete(index_key)
+        return
+
+    for cid in contest_ids:
+        cache.delete(_exam_allowed_jti_key(user_id, cid))
+    cache.delete(index_key)
 
 
 def is_access_token_allowed(user_id: int, jti: str) -> bool:
@@ -266,41 +319,47 @@ def is_access_token_allowed(user_id: int, jti: str) -> bool:
     * If no pin exists → all tokens are allowed (normal operation).
     * If a pin exists → only the pinned JTI is allowed.
     """
-    allowed = cache.get(_exam_allowed_jti_key(user_id))
-    if allowed is None:
-        return True  # no restriction
-    if allowed == jti:
-        return True
-
-    # Failsafe: if the user is no longer in an active exam lock state,
-    # treat this pin as stale and release it to avoid login redirect loops.
+    # Failsafe: if the user is no longer in an active exam lock state, release
+    # any stale pin(s) to avoid login redirect loops.
     now = timezone.now()
-    has_active_exam_lock = ContestParticipant.objects.filter(
-        user_id=user_id,
-        contest__status="published",
-        contest__start_time__lte=now,
-        contest__end_time__gte=now,
-        exam_status__in=[
-            ExamStatus.IN_PROGRESS,
-            ExamStatus.PAUSED,
-            ExamStatus.LOCKED,
-            ExamStatus.LOCKED_TAKEOVER,
-        ],
-    ).exists()
-    if not has_active_exam_lock:
+    active_contest_ids = list(
+        ContestParticipant.objects.filter(
+            user_id=user_id,
+            contest__status="published",
+            contest__start_time__lte=now,
+            contest__end_time__gte=now,
+            exam_status__in=[
+                ExamStatus.IN_PROGRESS,
+                ExamStatus.PAUSED,
+                ExamStatus.LOCKED,
+                ExamStatus.LOCKED_TAKEOVER,
+            ],
+        ).values_list("contest_id", flat=True)
+    )
+    if not active_contest_ids:
         clear_exam_allowed_jti(user_id)
         return True
 
-    return False
+    # Backward-compat: clear legacy single-key pin once contest-scoped pins are used.
+    cache.delete(_legacy_exam_allowed_jti_key(user_id))
+
+    for contest_id in active_contest_ids:
+        allowed = cache.get(_exam_allowed_jti_key(user_id, contest_id))
+        if allowed is None:
+            continue
+        if allowed != jti:
+            return False
+    return True
 
 
-def blacklist_other_tokens(user, access_jti: str, refresh_jti: str = "") -> int:
+def blacklist_other_tokens(user, access_jti: str, refresh_jti: str = "", contest_id: int | None = None) -> int:
     """Blacklist all outstanding JWT tokens for *user* except the current
     session's refresh token **and** pin the allowed access-token JTI in Redis
     so that other devices' access tokens are immediately rejected at the
     authentication layer.
 
-    *access_jti* is used for the Redis pin (``set_exam_allowed_jti``).
+    *access_jti* is used for the Redis pin (``set_exam_allowed_jti``) when
+    *contest_id* is provided.
     *refresh_jti* is used to exclude the current session's refresh token from
     blacklisting (``OutstandingToken.jti`` stores refresh-token JTIs).
 
@@ -323,7 +382,8 @@ def blacklist_other_tokens(user, access_jti: str, refresh_jti: str = "") -> int:
             count += 1
 
     # 2) Pin allowed JTI (immediately rejects other access tokens)
-    set_exam_allowed_jti(user.id, access_jti)
+    if contest_id is not None:
+        set_exam_allowed_jti(user.id, contest_id, access_jti)
 
     return count
 

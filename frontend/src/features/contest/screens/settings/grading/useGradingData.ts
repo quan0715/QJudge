@@ -161,17 +161,25 @@ export function useGradingData() {
   }, [questionInfoMap, answersByQuestion]);
 
   // ── Derived: global stats ──
+  // Global stats — scoped to student-role participants only to avoid
+  // counting admin/TA test submissions in grading progress.
   const globalStats = useMemo<GlobalStats>(() => {
-    const studentIds = new Set(answers.map((a) => a.studentId));
-    const gradedAnswers = answers.filter((a) => a.score !== null).length;
-    const subjective = answers.filter((a) => isSubjectiveType(a.questionType));
+    const studentOnlyIds = new Set(
+      participants
+        .filter((p) => !p.accountRole || p.accountRole === "student")
+        .map((p) => String(p.userId)),
+    );
+    const studentAnswers = answers.filter((a) => studentOnlyIds.has(a.studentId));
+    const studentIds = new Set(studentAnswers.map((a) => a.studentId));
+    const gradedAnswers = studentAnswers.filter((a) => a.score !== null).length;
+    const subjective = studentAnswers.filter((a) => isSubjectiveType(a.questionType));
     return {
       totalStudents: studentIds.size,
-      totalParticipants: participants.length,
+      totalParticipants: studentOnlyIds.size,
       totalQuestions: questionInfoMap.size,
-      totalAnswers: answers.length,
+      totalAnswers: studentAnswers.length,
       gradedAnswers,
-      ungradedAnswers: answers.length - gradedAnswers,
+      ungradedAnswers: studentAnswers.length - gradedAnswers,
       subjectiveTotal: subjective.length,
       subjectiveGraded: subjective.filter((a) => a.score !== null).length,
     };

@@ -9,6 +9,9 @@ import {
   useProblemLeaderboard,
   useProblemSubmissions,
 } from "./ProblemContext";
+import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { ProblemStatistics } from "@/core/ports/problem.repository";
+import type { GetSubmissionsResult } from "@/core/ports/submission.repository";
 
 // Mock services
 vi.mock("@/infrastructure/api/repositories/problem.repository", () => ({
@@ -29,15 +32,24 @@ import { getProblem, getProblemStatistics } from "@/infrastructure/api/repositor
 import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
 
 // Test data
-const mockProblem = {
+const mockProblem: ProblemDetail = {
   id: "1",
   title: "Test Problem",
   difficulty: "easy",
   submissionCount: 100,
   acceptedCount: 80,
+  acceptanceRate: 80,
+  waCount: 10,
+  tleCount: 5,
+  mleCount: 5,
+  reCount: 0,
+  ceCount: 0,
+  tags: [],
+  isSolved: false,
+  description: "Test description",
 };
 
-const mockStatistics = {
+const mockStatistics: ProblemStatistics = {
   submissionCount: 100,
   acceptedCount: 80,
   acRate: 80,
@@ -45,21 +57,27 @@ const mockStatistics = {
   trend: [{ date: "2024-01-01", count: 10 }],
 };
 
-const mockSubmissions = {
+const mockSubmissions: GetSubmissionsResult = {
   results: [
     {
       id: "1",
+      problemId: "1",
+      userId: "u1",
       status: "AC",
       username: "user1",
       execTime: 100,
       language: "python",
+      createdAt: "2024-01-01",
     },
     {
       id: "2",
+      problemId: "1",
+      userId: "u2",
       status: "WA",
       username: "user2",
       execTime: 150,
       language: "cpp",
+      createdAt: "2024-01-01",
     },
   ],
   count: 2,
@@ -107,8 +125,8 @@ describe("useProblem", () => {
 
     it("should return initial state within provider", () => {
       vi.mocked(getProblem).mockResolvedValue(undefined);
-      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics as any);
-      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions as any);
+      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics);
+      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions);
 
       const { result } = renderHook(() => useProblem(), {
         wrapper: createWrapper("1"),
@@ -120,9 +138,9 @@ describe("useProblem", () => {
     });
 
     it("should load problem data successfully", async () => {
-      vi.mocked(getProblem).mockResolvedValue(mockProblem as any);
-      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics as any);
-      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions as any);
+      vi.mocked(getProblem).mockResolvedValue(mockProblem);
+      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics);
+      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions);
 
       const { result } = renderHook(() => useProblem(), {
         wrapper: createWrapper("1"),
@@ -141,12 +159,12 @@ describe("useProblem", () => {
         defaultOptions: { queries: { retry: false } },
       });
 
-      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics as any);
-      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions as any);
+      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics);
+      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions);
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <QueryClientProvider client={queryClient}>
-          <ProblemProvider problemId="1" initialProblem={mockProblem as any}>
+          <ProblemProvider problemId="1" initialProblem={mockProblem}>
             {children}
           </ProblemProvider>
         </QueryClientProvider>
@@ -163,9 +181,9 @@ describe("useProblem", () => {
     });
 
     it("should include contestId in context when provided", async () => {
-      vi.mocked(getProblem).mockResolvedValue(mockProblem as any);
-      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics as any);
-      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions as any);
+      vi.mocked(getProblem).mockResolvedValue(mockProblem);
+      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics);
+      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions);
 
       const { result } = renderHook(() => useProblem(), {
         wrapper: createWrapper("1", "contest-123"),
@@ -177,9 +195,9 @@ describe("useProblem", () => {
 
   describe("useProblemStatistics hook", () => {
     it("should return statistics data", async () => {
-      vi.mocked(getProblem).mockResolvedValue(mockProblem as any);
-      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics as any);
-      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions as any);
+      vi.mocked(getProblem).mockResolvedValue(mockProblem);
+      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics);
+      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions);
 
       const { result } = renderHook(() => useProblemStatistics(), {
         wrapper: createWrapper("1"),
@@ -196,36 +214,45 @@ describe("useProblem", () => {
 
   describe("useProblemLeaderboard hook", () => {
     it("should return leaderboard data grouped by user", async () => {
-      const acSubmissions = {
+      const acSubmissions: GetSubmissionsResult = {
         results: [
           {
             id: "1",
+            problemId: "1",
+            userId: "u1",
             status: "AC",
             username: "user1",
             execTime: 100,
             language: "python",
+            createdAt: "2024-01-01",
           },
           {
             id: "2",
+            problemId: "1",
+            userId: "u1",
             status: "AC",
             username: "user1",
             execTime: 80,
             language: "python",
+            createdAt: "2024-01-01",
           }, // faster
           {
             id: "3",
+            problemId: "1",
+            userId: "u2",
             status: "AC",
             username: "user2",
             execTime: 150,
             language: "cpp",
+            createdAt: "2024-01-01",
           },
         ],
         count: 3,
       };
 
-      vi.mocked(getProblem).mockResolvedValue(mockProblem as any);
-      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics as any);
-      vi.mocked(getSubmissions).mockResolvedValue(acSubmissions as any);
+      vi.mocked(getProblem).mockResolvedValue(mockProblem);
+      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics);
+      vi.mocked(getSubmissions).mockResolvedValue(acSubmissions);
 
       const { result } = renderHook(() => useProblemLeaderboard(), {
         wrapper: createWrapper("1"),
@@ -247,12 +274,12 @@ describe("useProblem", () => {
     });
 
     it("should return empty array when no AC submissions", async () => {
-      vi.mocked(getProblem).mockResolvedValue(mockProblem as any);
-      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics as any);
+      vi.mocked(getProblem).mockResolvedValue(mockProblem);
+      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics);
       vi.mocked(getSubmissions).mockResolvedValue({
         results: [],
         count: 0,
-      } as any);
+      });
 
       const { result } = renderHook(() => useProblemLeaderboard(), {
         wrapper: createWrapper("1"),
@@ -268,9 +295,9 @@ describe("useProblem", () => {
 
   describe("useProblemSubmissions hook", () => {
     it("should return submissions with pagination params", async () => {
-      vi.mocked(getProblem).mockResolvedValue(mockProblem as any);
-      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics as any);
-      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions as any);
+      vi.mocked(getProblem).mockResolvedValue(mockProblem);
+      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics);
+      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions);
 
       const { result } = renderHook(() => useProblemSubmissions(), {
         wrapper: createWrapper("1"),
@@ -287,9 +314,9 @@ describe("useProblem", () => {
     });
 
     it("should reset page to 1 when filter changes", async () => {
-      vi.mocked(getProblem).mockResolvedValue(mockProblem as any);
-      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics as any);
-      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions as any);
+      vi.mocked(getProblem).mockResolvedValue(mockProblem);
+      vi.mocked(getProblemStatistics).mockResolvedValue(mockStatistics);
+      vi.mocked(getSubmissions).mockResolvedValue(mockSubmissions);
 
       const { result } = renderHook(() => useProblemSubmissions(), {
         wrapper: createWrapper("1"),

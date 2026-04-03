@@ -9,26 +9,30 @@ export interface ParticipantStatusKpi {
 }
 
 export const computeParticipantStatusKpi = (
-  participants: ContestParticipant[]
+  participants: ContestParticipant[],
+  studentsOnly = true,
 ): ParticipantStatusKpi => {
-  const submittedCount = participants.filter(
+  const filtered = studentsOnly
+    ? participants.filter((p) => !p.accountRole || p.accountRole === "student")
+    : participants;
+  const submittedCount = filtered.filter(
     (p) => p.examStatus === "submitted"
   ).length;
-  const inProgressCount = participants.filter(
+  const inProgressCount = filtered.filter(
     (p) => p.examStatus === "in_progress"
   ).length;
-  const pausedOrLockedCount = participants.filter(
+  const pausedOrLockedCount = filtered.filter(
     (p) =>
       p.examStatus === "paused" ||
       p.examStatus === "locked" ||
       p.examStatus === "locked_takeover"
   ).length;
-  const notStartedCount = participants.filter(
+  const notStartedCount = filtered.filter(
     (p) => p.examStatus === "not_started"
   ).length;
 
   return {
-    totalParticipants: participants.length,
+    totalParticipants: filtered.length,
     submittedCount,
     inProgressCount,
     pausedOrLockedCount,

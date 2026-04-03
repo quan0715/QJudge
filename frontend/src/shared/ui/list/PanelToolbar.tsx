@@ -15,7 +15,7 @@ interface PanelToolbarProps {
 
 export const PanelToolbar = ({ leftActions, title, status, actions, className }: PanelToolbarProps) => (
   <div className={[styles.toolbar, className].filter(Boolean).join(" ")}>
-    <div className={styles.left}>
+    <div className={`${styles.left}${!leftActions && title ? ` ${styles.leftWithTitle}` : ""}`}>
       {leftActions}
       {title && <h4 className={styles.title}>{title}</h4>}
       {status}

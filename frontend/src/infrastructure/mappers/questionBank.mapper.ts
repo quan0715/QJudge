@@ -1,112 +1,117 @@
 import type {
-  BankQuestion,
-  CodingQuestionExt,
-  ExploreBankItem,
-  QuestionInboxItem,
   QuestionBank,
+  BankQuestion,
+  QuestionInboxItem,
+  QuestionInboxSummary,
+  CodingQuestionExt,
 } from "@/core/entities/question-bank.entity";
+import type {
+  QuestionBankDto,
+  BankQuestionDto,
+  QuestionInboxItemDto,
+  QuestionInboxSummaryDto,
+  CodingQuestionExtDto,
+} from "../api/dto/question-bank.dto";
 
-const toStringId = (value: unknown): string => String(value ?? "");
+export function mapQuestionBankDto(dto: QuestionBankDto): QuestionBank {
+  return {
+    id: dto.id.toString(),
+    name: dto.name,
+    description: dto.description || "",
+    icon: dto.icon || "",
+    coverUrl: dto.cover_url || "",
+    category: dto.category,
+    visibility: dto.visibility,
+    verified: !!dto.verified,
+    reviewStatus: dto.review_status,
+    reviewNote: dto.review_note,
+    submittedAt: dto.submitted_at,
+    reviewedAt: dto.reviewed_at,
+    reviewedByUsername: dto.reviewed_by_username,
+    ownerUsername: dto.owner_username,
+    questionCount: dto.question_count || 0,
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
+  };
+}
 
-const mapCodingExtDto = (dto: any): CodingQuestionExt => ({
-  translations: Array.isArray(dto?.translations)
-    ? dto.translations.map((item: any) => ({
-        language: item.language,
-        title: item.title,
-        description: item.description,
-        inputDescription: item.input_description,
-        outputDescription: item.output_description,
-        hint: item.hint,
-      }))
-    : [],
-  testCases: Array.isArray(dto?.test_cases)
-    ? dto.test_cases.map((item: any) => ({
-        inputData: item.input_data,
-        outputData: item.output_data,
-        isSample: Boolean(item.is_sample),
-        score: item.score,
-        order: item.order,
-        isHidden: Boolean(item.is_hidden),
-      }))
-    : [],
-  languageConfigs: Array.isArray(dto?.language_configs)
-    ? dto.language_configs.map((item: any) => ({
-        language: item.language,
-        templateCode: item.template_code,
-        isEnabled: item.is_enabled,
-        order: item.order,
-      }))
-    : [],
-  forbiddenKeywords: Array.isArray(dto?.forbidden_keywords)
-    ? dto.forbidden_keywords
-    : [],
-  requiredKeywords: Array.isArray(dto?.required_keywords)
-    ? dto.required_keywords
-    : [],
-});
+function mapCodingExtDto(dto?: CodingQuestionExtDto): CodingQuestionExt | undefined {
+  if (!dto) return undefined;
+  return {
+    translations: (dto.translations || []).map((t) => ({
+      language: t.language,
+      title: t.title,
+      description: t.description,
+      inputDescription: t.input_description,
+      outputDescription: t.output_description,
+      hint: t.hint,
+    })),
+    testCases: (dto.test_cases || []).map((tc) => ({
+      inputData: tc.input_data,
+      outputData: tc.output_data,
+      isSample: tc.is_sample,
+      score: tc.score,
+      order: tc.order,
+      isHidden: tc.is_hidden,
+    })),
+    languageConfigs: (dto.language_configs || []).map((lc) => ({
+      language: lc.language,
+      templateCode: lc.template_code,
+      isEnabled: lc.is_enabled,
+      order: lc.order,
+    })),
+    forbiddenKeywords: dto.forbidden_keywords || [],
+    requiredKeywords: dto.required_keywords || [],
+  };
+}
 
-export const mapQuestionBankDto = (dto: any): QuestionBank => ({
-  id: toStringId(dto.id),
-  name: dto.name,
-  description: dto.description || "",
-  icon: dto.icon || "",
-  coverUrl: dto.cover_url || "",
-  category: dto.category,
-  visibility: dto.visibility,
-  verified: Boolean(dto.verified),
-  reviewStatus: dto.review_status || "draft",
-  reviewNote: dto.review_note || "",
-  submittedAt: dto.submitted_at || undefined,
-  reviewedAt: dto.reviewed_at || undefined,
-  reviewedByUsername: dto.reviewed_by_username || undefined,
-  ownerUsername: dto.owner_username,
-  questionCount: Number(dto.question_count || 0),
-  createdAt: dto.created_at,
-  updatedAt: dto.updated_at,
-});
+export function mapBankQuestionDto(dto: BankQuestionDto): BankQuestion {
+  return {
+    id: dto.id.toString(),
+    bankItemId: (dto.bank_item_id || dto.id).toString(),
+    adapterQuestionId: dto.adapter_question_id?.toString() ?? null,
+    bankId: (dto.bank_id || "").toString(),
+    questionType: dto.question_type,
+    title: dto.title,
+    prompt: dto.prompt || "",
+    options: dto.options || [],
+    correctAnswer: dto.correct_answer,
+    score: dto.score || 0,
+    order: dto.order || 0,
+    difficulty: dto.difficulty || "medium",
+    timeLimit: dto.time_limit || 2000,
+    memoryLimit: dto.memory_limit || 256,
+    metadata: dto.metadata || {},
+    sourceQuestionId: dto.source_question_id?.toString() ?? null,
+    sourceBankId: dto.source_bank_id?.toString() ?? null,
+    sourceBankName: dto.source_bank_name || null,
+    contestUsages: (dto.contest_usages || []).map((u) => ({
+      contestId: u.contest_id.toString(),
+      contestName: u.contest_name,
+    })),
+    codingExt: mapCodingExtDto(dto.coding_ext),
+    createdAt: dto.created_at,
+    updatedAt: dto.updated_at,
+  };
+}
 
-export const mapExploreBankItemDto = (dto: any): ExploreBankItem => ({
-  ...mapQuestionBankDto(dto),
-  source: "platform",
-});
+export function mapQuestionInboxItemDto(dto: QuestionInboxItemDto): QuestionInboxItem {
+  return {
+    sourceType: dto.source_type,
+    sourceId: dto.source_id.toString(),
+    title: dto.title,
+    contestId: dto.contest_id?.toString(),
+    contestName: dto.contest_name,
+    questionType: dto.question_type,
+    score: dto.score,
+    updatedAt: dto.updated_at,
+  };
+}
 
-export const mapBankQuestionDto = (dto: any): BankQuestion => ({
-  id: toStringId(dto.bank_item_id),
-  bankItemId: toStringId(dto.bank_item_id),
-  adapterQuestionId: dto.adapter_question_id ? toStringId(dto.adapter_question_id) : null,
-  bankId: toStringId(dto.bank),
-  questionType: dto.question_type,
-  title: dto.title,
-  prompt: dto.prompt || "",
-  options: Array.isArray(dto.options) ? dto.options : [],
-  correctAnswer: dto.correct_answer,
-  score: Number(dto.score || 0),
-  order: Number(dto.order || 0),
-  difficulty: dto.difficulty || "medium",
-  timeLimit: Number(dto.time_limit || 1000),
-  memoryLimit: Number(dto.memory_limit || 128),
-  metadata: dto.metadata && typeof dto.metadata === "object" ? dto.metadata : undefined,
-  sourceQuestionId: dto.source_question_id ? toStringId(dto.source_question_id) : null,
-  sourceBankId: dto.source_bank_id ?? null,
-  sourceBankName: dto.source_bank_name ?? null,
-  contestUsages: Array.isArray(dto.contest_usages)
-    ? dto.contest_usages.map((u: any) => ({
-        contestId: toStringId(u.contest_id),
-        contestName: u.contest_name || "",
-      }))
-    : [],
-  codingExt: dto.coding_ext ? mapCodingExtDto(dto.coding_ext) : undefined,
-  createdAt: dto.created_at,
-  updatedAt: dto.updated_at,
-});
-
-export const mapQuestionInboxItemDto = (dto: any): QuestionInboxItem => ({
-  sourceType: dto.source_type,
-  sourceId: toStringId(dto.source_id),
-  title: dto.title || "",
-  contestId: dto.contest_id ? toStringId(dto.contest_id) : undefined,
-  contestName: dto.contest_name || undefined,
-  questionType: dto.question_type || undefined,
-  score: typeof dto.score === "number" ? dto.score : undefined,
-  updatedAt: dto.updated_at,
-});
+export function mapQuestionInboxSummaryDto(dto: QuestionInboxSummaryDto): QuestionInboxSummary {
+  return {
+    coding: (dto.coding || []).map(mapQuestionInboxItemDto),
+    exam: (dto.exam || []).map(mapQuestionInboxItemDto),
+    counts: dto.counts || { coding: 0, exam: 0 },
+  };
+}

@@ -44,9 +44,9 @@ class HMACAuth:
         if drift > cls.TIMESTAMP_TOLERANCE:
             return False, f"Timestamp drift {drift:.0f}s exceeds tolerance {cls.TIMESTAMP_TOLERANCE}s"
 
-        # Check nonce replay
+        # Check nonce replay (atomic SETNX via cache.add)
         nonce_key = f"{cls.NONCE_CACHE_PREFIX}{nonce}"
-        if cache.get(nonce_key) is not None:
+        if not cache.add(nonce_key, 1, cls.NONCE_TTL):
             return False, "Nonce replay detected"
 
         # Compute expected signature
@@ -68,9 +68,6 @@ class HMACAuth:
 
         if not hmac.compare_digest(expected, signature):
             return False, "Signature mismatch"
-
-        # Mark nonce as used
-        cache.set(nonce_key, 1, cls.NONCE_TTL)
 
         return True, ""
 

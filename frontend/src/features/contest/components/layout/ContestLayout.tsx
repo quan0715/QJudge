@@ -14,8 +14,7 @@ import {
   Minimize,
   Time,
   Renew,
-  Settings,
-  Launch,
+  Dashboard,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import ExamModeWrapper from "@/features/contest/components/ExamModeWrapper";
@@ -305,22 +304,13 @@ const ContestLayout = () => {
               {renderExamStatus()}
 
               {isAdmin && (
-                <>
-                  <HeaderGlobalAction
-                    aria-label={tc("settings.title", "設定")}
-                    tooltipAlignment="center"
-                    onClick={() => navigate(`${adminPath}?panel=settings`)}
-                  >
-                    <Settings size={20} />
-                  </HeaderGlobalAction>
-                  <HeaderGlobalAction
-                    aria-label={t("preRegistration.openAdminPanel", "前往管理後台")}
-                    tooltipAlignment="center"
-                    onClick={() => navigate(adminPath)}
-                  >
-                    <Launch size={20} />
-                  </HeaderGlobalAction>
-                </>
+                <HeaderGlobalAction
+                  aria-label={t("preRegistration.openAdminPanel", "前往管理後台")}
+                  tooltipAlignment="center"
+                  onClick={() => navigate(adminPath)}
+                >
+                  <Dashboard size={20} />
+                </HeaderGlobalAction>
               )}
 
               <HeaderGlobalAction

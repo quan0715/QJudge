@@ -99,6 +99,8 @@
 .listCol {
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: var(--cds-layer-01);
   border-right: 1px solid var(--cds-border-subtle);
 }

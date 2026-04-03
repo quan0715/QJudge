@@ -6,7 +6,12 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from rest_framework.permissions import IsAdminUser
 from apps.users.views import UserAPIKeyView, ValidateAPIKeyView, GetUsageStatsView
+
+schema_view_kwargs = {}
+if not settings.DEBUG:
+    schema_view_kwargs = {"permission_classes": [IsAdminUser]}
 
 urlpatterns = [
     path('django-admin/', admin.site.urls),  # Django backend admin (use only when frontend cannot handle it)
@@ -30,10 +35,10 @@ urlpatterns = [
     path('api/v1/users/me/api-key/validate', ValidateAPIKeyView.as_view(), name='validate-api-key'),
     path('api/v1/users/me/api-key/usage', GetUsageStatsView.as_view(), name='api-key-usage'),
     # OpenAPI Schema
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/schema/', SpectacularAPIView.as_view(**schema_view_kwargs), name='schema'),
     # Optional UI:
-    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema', **schema_view_kwargs), name='swagger-ui'),
+    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema', **schema_view_kwargs), name='redoc'),
 ]
 
 if settings.DEBUG:

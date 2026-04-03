@@ -116,7 +116,12 @@ class ExamLifecycleMixin:
         if getattr(contest, "cheat_detection_enabled", False):
             jti = get_token_jti(request)
             if jti:
-                bl_count = blacklist_other_tokens(request.user, access_jti=jti, refresh_jti=get_refresh_jti(request))
+                bl_count = blacklist_other_tokens(
+                    request.user,
+                    contest_id=contest.id,
+                    access_jti=jti,
+                    refresh_jti=get_refresh_jti(request),
+                )
                 if bl_count:
                     _ExamEvent.objects.create(
                         contest=contest,
@@ -199,7 +204,7 @@ class ExamLifecycleMixin:
 
         # Release JTI pin so other devices can work normally again
         if getattr(contest, "cheat_detection_enabled", False):
-            clear_exam_allowed_jti(request.user.id)
+            clear_exam_allowed_jti(request.user.id, contest_id=contest.id)
 
         return Response({
             'status': 'finished',

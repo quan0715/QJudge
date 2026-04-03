@@ -30,21 +30,8 @@
   gap: 0.875rem;
 }
 
-.widgetButton {
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid var(--cds-border-interactive);
-    outline-offset: 2px;
-    border-radius: 0.5rem;
-  }
-}
+/* ActionWidgetCard styles now live in shared/ui/dataCard/ActionWidgetCard.
+   Below are kept for skeleton placeholders and the progress card. */
 
 .widgetCard {
   height: 100%;
@@ -54,29 +41,6 @@
   gap: 0.625rem;
   padding: 0.75rem;
   border: 1px solid var(--cds-border-subtle);
-  transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease,
-    transform 120ms ease;
-}
-
-.widgetButton:hover .widgetCard,
-.widgetButton:focus-visible .widgetCard {
-  border-color: var(--cds-border-interactive);
-  box-shadow: 0 0 0 1px var(--cds-border-interactive);
-}
-
-.widgetHeader {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.widgetTitleRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
 }
 
 .widgetIcon {
@@ -92,40 +56,10 @@
   color: var(--cds-text-primary);
 }
 
-.widgetValue {
-  display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  font-size: var(--cds-heading-04-font-size, 1.5rem);
-  font-weight: 600;
-  color: var(--cds-text-primary);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
-
 .widgetUnit {
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   font-weight: 400;
   color: var(--cds-text-secondary);
-}
-
-.widgetFooter {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-top: auto;
-  padding-top: 0.25rem;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  color: var(--cds-text-secondary);
-}
-
-.widgetCta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-weight: 600;
-  color: var(--cds-link-primary);
 }
 
 .progressCard {
@@ -186,6 +120,10 @@
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   color: var(--cds-text-primary);
   font-variant-numeric: tabular-nums;
+}
+
+.progressWindowSep {
+  color: var(--cds-text-secondary);
 }
 
 .progressStatusText {
