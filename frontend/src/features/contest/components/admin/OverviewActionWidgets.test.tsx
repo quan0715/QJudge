@@ -79,6 +79,16 @@ describe("OverviewActionWidgets", () => {
           pausedOrLockedCount: 5,
           submittedCount: 85,
         }}
+        gradingStats={{
+          totalStudents: 136,
+          totalParticipants: 136,
+          totalQuestions: 2,
+          totalAnswers: 100,
+          gradedAnswers: 63,
+          ungradedAnswers: 37,
+          subjectiveTotal: 50,
+          subjectiveGraded: 30,
+        }}
         violationCount={9}
         onOpenPanel={onOpenPanel}
         onPublishContest={onPublishContest}
