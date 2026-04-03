@@ -584,10 +584,12 @@
     "exportOption": "Exam JSON",
     "import": {
       "cancel": "取消",
+      "backToEdit": "返回上一步",
       "chooseFile": "選擇檔案",
       "confirmReplace": "套用匯入",
       "copyPrompt": "複製 AI 提示詞",
       "copyPromptDone": "已複製",
+      "viewDoc": "查看匯入格式文件",
       "description": "請先選擇匯入模式，再貼上或上傳 JSON。系統會先預覽，再套用。",
       "errors": {
         "fileReadFailed": "檔案讀取失敗",

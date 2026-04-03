@@ -582,10 +582,12 @@
     "exportOption": "Exam JSON",
     "import": {
       "cancel": "Cancel",
+      "backToEdit": "Back to previous step",
       "chooseFile": "Choose file",
       "confirmReplace": "Apply Import",
       "copyPrompt": "Copy AI Prompt",
       "copyPromptDone": "Copied",
+      "viewDoc": "View import format docs",
       "description": "Choose an import mode, then paste or upload JSON. The system previews first, then applies.",
       "errors": {
         "fileReadFailed": "Failed to read file",

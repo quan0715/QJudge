@@ -54,12 +54,13 @@ Imported data must be a **single JSON object** (not an array):
 
 The import modal is a two-step flow:
 
-1. Paste/upload JSON.
-2. Choose an import mode.
-3. Click **Preview Changes**.
-4. Review summary (add/delete/keep/score delta).
-5. Click **Apply Import**.
-6. Use rollback if needed.
+1. Optionally click **View import format docs** in the modal to open this page.
+2. Paste/upload JSON.
+3. Choose an import mode.
+4. Click **Preview Changes** to move to the next step.
+5. On the preview step, review summary (add/delete/keep/score delta) and full question content.
+6. Click **Apply Import**.
+7. Use rollback if needed.
 
 ### Import Modes
 

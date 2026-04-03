@@ -39,8 +39,6 @@ interface ExamQuestionJsonImportModalProps {
   }) => Promise<void>;
 }
 
-const PREVIEW_LIMIT = 6;
-
 const TYPE_LABEL: Record<string, string> = {
   true_false: "T/F",
   single_choice: "Single",
@@ -133,7 +131,7 @@ const ExamQuestionJsonImportModal = ({
   }, [parsedQuestions]);
 
   const canStartPreview = !!parsedQuestions && parsedQuestions.length > 0 && !parsing;
-  const canApply = !!previewResult && canStartPreview;
+  const isPreviewStep = previewResult !== null;
   const needsReplaceAllConfirm =
     importMode === "replace_all" && (previewResult?.summary.will_delete ?? 0) > 0;
 
@@ -304,11 +302,9 @@ const ExamQuestionJsonImportModal = ({
       : t("examJson.import.previewAction", "預覽變更");
 
   const primaryButtonDisabled =
-    !canStartPreview ||
-    parsing ||
-    previewing ||
-    importing ||
-    (previewResult !== null && needsReplaceAllConfirm && !replaceAllConfirmed);
+    isPreviewStep
+      ? importing || (needsReplaceAllConfirm && !replaceAllConfirmed)
+      : !canStartPreview || parsing || previewing || importing;
 
   return (
     <Modal
@@ -320,73 +316,86 @@ const ExamQuestionJsonImportModal = ({
       onRequestSubmit={() => void handleSubmit()}
       primaryButtonDisabled={primaryButtonDisabled}
       size="lg"
-      danger={importMode === "replace_all"}
+      danger={isPreviewStep && importMode === "replace_all"}
     >
-      <p style={{ marginBottom: "0.75rem", color: "var(--cds-text-secondary)" }}>
-        {t("examJson.import.description")}
-      </p>
+      {!isPreviewStep && (
+        <>
+          <p style={{ marginBottom: "0.75rem", color: "var(--cds-text-secondary)" }}>
+            {t("examJson.import.description")}
+          </p>
 
-      <div style={{ marginBottom: "0.75rem" }}>
-        <Button kind="ghost" size="sm" onClick={() => void handleCopyPrompt()}>
-          {t("examJson.import.copyPrompt", "複製 AI 提示詞")}
-        </Button>
-        {copiedPrompt && (
-          <span style={{ marginLeft: "0.5rem", color: "var(--cds-text-success)" }}>
-            {t("examJson.import.copyPromptDone", "已複製")}
-          </span>
-        )}
-      </div>
+          <div style={{ marginBottom: "0.75rem" }}>
+            <Button kind="ghost" size="sm" onClick={() => void handleCopyPrompt()}>
+              {t("examJson.import.copyPrompt", "複製 AI 提示詞")}
+            </Button>
+            <a
+              href="/docs/exam-json-import-export"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ marginLeft: "0.75rem", color: "var(--cds-link-primary)" }}
+            >
+              {t("examJson.import.viewDoc", "查看匯入格式文件")}
+            </a>
+            {copiedPrompt && (
+              <span style={{ marginLeft: "0.5rem", color: "var(--cds-text-success)" }}>
+                {t("examJson.import.copyPromptDone", "已複製")}
+              </span>
+            )}
+          </div>
 
-      <RadioButtonGroup
-        legendText={t("examJson.import.modeLegend", "選擇匯入模式")}
-        name="import-mode"
-        valueSelected={importMode}
-        onChange={(value) => handleModeChange(value)}
-        orientation="vertical"
-      >
-        <RadioButton
-          id="import-mode-append"
-          labelText={t("examJson.import.modeAppend", "追加（保留現有題目）")}
-          value="append"
-        />
-        <RadioButton
-          id="import-mode-replace-all"
-          labelText={t("examJson.import.modeReplaceAll", "全部覆蓋（刪除現有題目）")}
-          value="replace_all"
-        />
-        <RadioButton
-          id="import-mode-replace-manual"
-          labelText={t("examJson.import.modeReplaceManualOnly", "只覆蓋手動/JSON 題目，保留題庫匯入題")}
-          value="replace_manual_only"
-        />
-      </RadioButtonGroup>
+          <RadioButtonGroup
+            legendText={t("examJson.import.modeLegend", "選擇匯入模式")}
+            name="import-mode"
+            valueSelected={importMode}
+            onChange={(value) => handleModeChange(value)}
+            orientation="vertical"
+          >
+            <RadioButton
+              id="import-mode-append"
+              labelText={t("examJson.import.modeAppend", "追加（保留現有題目）")}
+              value="append"
+            />
+            <RadioButton
+              id="import-mode-replace-all"
+              labelText={t("examJson.import.modeReplaceAll", "全部覆蓋（刪除現有題目）")}
+              value="replace_all"
+            />
+            <RadioButton
+              id="import-mode-replace-manual"
+              labelText={t("examJson.import.modeReplaceManualOnly", "只覆蓋手動/JSON 題目，保留題庫匯入題")}
+              value="replace_manual_only"
+            />
+          </RadioButtonGroup>
 
-      <FileUploader
-        labelTitle={t("examJson.import.uploadTitle")}
-        labelDescription={t("examJson.import.uploadHint")}
-        buttonLabel={t("examJson.import.chooseFile")}
-        filenameStatus="edit"
-        accept={[".json", "application/json"]}
-        onChange={(event, data) => handleFileChange(event, data)}
-        disabled={importing || previewing}
-      />
+          <FileUploader
+            labelTitle={t("examJson.import.uploadTitle")}
+            labelDescription={t("examJson.import.uploadHint")}
+            buttonLabel={t("examJson.import.chooseFile")}
+            filenameStatus="edit"
+            accept={[".json", "application/json"]}
+            onChange={(event, data) => handleFileChange(event, data)}
+            disabled={importing || previewing}
+          />
 
-      <TextArea
-        id="exam-json-paste-input"
-        labelText={t("examJson.import.pasteTitle")}
-        helperText={t("examJson.import.pasteHint")}
-        placeholder={t("examJson.import.pastePlaceholder")}
-        rows={10}
-        value={pastedJsonText}
-        onChange={handlePasteChange}
-        disabled={importing || previewing}
-        style={{ marginTop: "1rem" }}
-      />
+          <TextArea
+            id="exam-json-paste-input"
+            labelText={t("examJson.import.pasteTitle")}
+            helperText={t("examJson.import.pasteHint")}
+            placeholder={t("examJson.import.pastePlaceholder")}
+            rows={10}
+            value={pastedJsonText}
+            onChange={handlePasteChange}
+            disabled={importing || previewing}
+            style={{ marginTop: "1rem" }}
+          />
 
-      {fileName && (
-        <p style={{ marginTop: "0.5rem", color: "var(--cds-text-secondary)" }}>
-          {t("examJson.import.selectedFile")}: <strong>{fileName}</strong>
-        </p>
+          {fileName && (
+            <p style={{ marginTop: "0.5rem", color: "var(--cds-text-secondary)" }}>
+              {t("examJson.import.selectedFile")}: <strong>{fileName}</strong>
+            </p>
+          )}
+
+        </>
       )}
 
       {parsing && (
@@ -437,8 +446,20 @@ const ExamQuestionJsonImportModal = ({
         />
       )}
 
-      {parsedQuestions && errors.length === 0 && (
+      {isPreviewStep && parsedQuestions && errors.length === 0 && (
         <div style={{ marginTop: "1rem" }}>
+          <div style={{ marginBottom: "0.75rem" }}>
+            <Button
+              kind="ghost"
+              size="sm"
+              onClick={() => {
+                setPreviewResult(null);
+                setReplaceAllConfirmed(false);
+              }}
+            >
+              {t("examJson.import.backToEdit", "返回上一步")}
+            </Button>
+          </div>
           <h5 style={{ marginBottom: "0.75rem" }}>{t("examJson.import.previewTitle")}</h5>
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
             <Tag type="blue">{t("examJson.import.previewQuestionCount", { count: parsedQuestions.length })}</Tag>
@@ -461,14 +482,14 @@ const ExamQuestionJsonImportModal = ({
             </div>
           )}
 
-          <div style={{ maxHeight: "220px", overflowY: "auto", border: "1px solid var(--cds-border-subtle-01)", padding: "0.5rem" }}>
-            {parsedQuestions.slice(0, PREVIEW_LIMIT).map((question, index) => (
+          <div style={{ border: "1px solid var(--cds-border-subtle-01)", padding: "0.5rem" }}>
+            {parsedQuestions.map((question, index) => (
               <div
                 key={`${question.order}-${index}`}
                 style={{
                   padding: "0.5rem",
                   borderBottom:
-                    index === Math.min(parsedQuestions.length, PREVIEW_LIMIT) - 1
+                    index === parsedQuestions.length - 1
                       ? "none"
                       : "1px solid var(--cds-border-subtle-01)",
                 }}
@@ -476,9 +497,8 @@ const ExamQuestionJsonImportModal = ({
                 <strong>
                   #{index + 1} {TYPE_LABEL[question.question_type] ?? question.question_type}
                 </strong>
-                <div style={{ color: "var(--cds-text-secondary)", marginTop: "0.25rem" }}>
-                  {question.prompt.slice(0, 90)}
-                  {question.prompt.length > 90 ? "..." : ""}
+                <div style={{ color: "var(--cds-text-secondary)", marginTop: "0.25rem", whiteSpace: "pre-wrap" }}>
+                  {question.prompt}
                 </div>
                 <div style={{ color: "var(--cds-text-secondary)", marginTop: "0.25rem" }}>
                   {t("examJson.import.previewScore", { score: question.score })}
@@ -486,12 +506,6 @@ const ExamQuestionJsonImportModal = ({
               </div>
             ))}
           </div>
-
-          {parsedQuestions.length > PREVIEW_LIMIT && (
-            <p style={{ marginTop: "0.5rem", color: "var(--cds-text-secondary)" }}>
-              {t("examJson.import.previewMore", { count: parsedQuestions.length - PREVIEW_LIMIT })}
-            </p>
-          )}
 
           {needsReplaceAllConfirm && (
             <div style={{ marginTop: "0.75rem" }}>

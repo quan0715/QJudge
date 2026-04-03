@@ -132,8 +132,6 @@ describe("ExamQuestionJsonImportModal", () => {
       target: { value: JSON.stringify(validJson) },
     });
 
-    await screen.findByText(/examJson\.import\.previewTitle/i, {}, { timeout: 2000 });
-
     fireEvent.click(screen.getByRole("button", { name: /examJson\.import\.previewAction/i }));
 
     await waitFor(() => expect(onPreviewImport).toHaveBeenCalledTimes(1));
@@ -141,6 +139,7 @@ describe("ExamQuestionJsonImportModal", () => {
       payloadJson: JSON.stringify(validJson),
       importMode: "append",
     });
+    await screen.findByText(/examJson\.import\.previewTitle/i, {}, { timeout: 2000 });
 
     fireEvent.click(screen.getByRole("button", { name: /examJson\.import\.confirmReplace/i }));
     await waitFor(() => expect(onApplyImport).toHaveBeenCalledTimes(1));
@@ -179,9 +178,9 @@ describe("ExamQuestionJsonImportModal", () => {
     fireEvent.change(textArea, { target: { value: JSON.stringify(validJson) } });
     fireEvent.click(screen.getByLabelText(/examJson\.import\.modeReplaceAll/i));
 
-    await screen.findByText(/examJson\.import\.previewTitle/i, {}, { timeout: 2000 });
     fireEvent.click(screen.getByRole("button", { name: /examJson\.import\.previewAction/i }));
     await waitFor(() => expect(onPreviewImport).toHaveBeenCalledTimes(1));
+    await screen.findByText(/examJson\.import\.previewTitle/i, {}, { timeout: 2000 });
 
     const applyButton = screen.getByRole("button", { name: /examJson\.import\.confirmReplace/i });
     expect(applyButton).toBeDisabled();
