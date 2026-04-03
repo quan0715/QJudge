@@ -1,5 +1,3 @@
-import type { SubmissionStatus } from "@/core/entities/submission.entity";
-
 export interface TestCaseResultDto {
   id: number | string;
   test_case?: number | string;

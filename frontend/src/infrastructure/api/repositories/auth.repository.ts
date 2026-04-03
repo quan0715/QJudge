@@ -11,8 +11,6 @@ import type {
   ChangePasswordRequest,
   UpdatePreferencesRequest,
   SetAPIKeyRequest,
-  User,
-  TeacherActivationInvite,
 } from "@/core/entities/auth.entity";
 import type {
   AuthResponseDto,
@@ -26,7 +24,6 @@ import type {
   UsageStatsResponseDto,
   LoginRecordsResponseDto,
   UploadAvatarResponseDto,
-  ApiResponse,
 } from "@/infrastructure/api/dto/auth.dto";
 
 // ============================================================================

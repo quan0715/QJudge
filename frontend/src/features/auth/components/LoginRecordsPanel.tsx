@@ -92,10 +92,9 @@ export const LoginRecordsPanel: React.FC = () => {
     setLoggingOut(true);
     setLogoutMsg("");
     try {
-      const res = await logoutOtherDevices();
+      await logoutOtherDevices();
       setLogoutMsg(
-        res.message ||
-          t("settings.loginRecords.logoutSuccess", "已登出其他裝置")
+        t("settings.loginRecords.logoutSuccess", "已登出其他裝置")
       );
       fetchRecords();
     } catch {

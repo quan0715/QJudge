@@ -92,12 +92,10 @@ export function useDiscussionList(
     mutationFn: async (discussionId: string) => {
       return deleteDiscussion(discussionId);
     },
-    onSuccess: (updatedDiscussion) => {
-      // Update the discussion in cache to show is_deleted
-      queryClient.setQueryData(
-        discussionKeys.detail(updatedDiscussion.id),
-        updatedDiscussion
-      );
+    onSuccess: (_result, discussionId) => {
+      queryClient.invalidateQueries({
+        queryKey: discussionKeys.detail(discussionId),
+      });
       queryClient.invalidateQueries({
         queryKey: discussionKeys.list(problemId!),
       });

@@ -186,7 +186,7 @@ const UserManagementScreen = () => {
     setSuccess("");
 
     try {
-      const response = await issueTeacherActivationInvite();
+      const response = await issueTeacherActivationInvite("");
       setSuccess(response.message || t("user.management.activationInvite.sent", "已產生教師開通連結"));
       setLatestInviteUrl(response.data.activation_url || "");
       setLatestInviteExpiresAt(response.data.expires_at || null);

@@ -32,7 +32,7 @@ export const createClassroom = async (data: { name: string; description?: string
   return mapClassroomDto(responseData);
 };
 
-export const updateClassroom = async (id: string, data: { name?: string; description?: string }): Promise<Classroom> => {
+export const updateClassroom = async (id: string, data: { name?: string; description?: string; icon?: string; cover_url?: string }): Promise<Classroom> => {
   const responseData = await requestJson<ClassroomDto>(
     httpClient.patch(`/api/v1/classrooms/${id}/`, data),
     "Failed to update classroom"

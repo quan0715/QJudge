@@ -431,7 +431,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     if (!user?.email) {
       throw new Error("Email is required for password reset");
     }
-    await requestPasswordResetApi({ email: user.email });
+    await requestPasswordResetApi(user.email);
   }, [user?.email]);
 
   return {
