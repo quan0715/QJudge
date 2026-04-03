@@ -7,11 +7,11 @@ import {
 
 // Mock the auth service
 vi.mock("@/infrastructure/api/repositories/auth.repository", () => ({
-  getUserPreferences: vi.fn(),
-  updateUserPreferences: vi.fn(),
-  uploadUserAvatar: vi.fn(),
+  getPreferences: vi.fn(),
+  updatePreferences: vi.fn(),
+  uploadAvatar: vi.fn(),
   changePassword: vi.fn(),
-  updateCurrentUserProfile: vi.fn(),
+  updateAccountProfile: vi.fn(),
   requestPasswordReset: vi.fn(),
 }));
 
@@ -42,10 +42,10 @@ vi.mock("@/shared/contexts/ContentLanguageContext", () => ({
 }));
 
 import {
-  getUserPreferences,
-  updateUserPreferences,
+  getPreferences,
+  updatePreferences,
   changePassword,
-  updateCurrentUserProfile,
+  updateAccountProfile as updateCurrentUserProfile,
   requestPasswordReset,
 } from "@/infrastructure/api/repositories/auth.repository";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -109,7 +109,7 @@ describe("useUserPreferences", () => {
       getCurrentLanguageShortLabel: vi.fn(() => "中"),
     });
 
-    vi.mocked(getUserPreferences).mockResolvedValue({
+    vi.mocked(getPreferences).mockResolvedValue({
       success: true,
       data: mockPreferences,
     });
@@ -151,7 +151,7 @@ describe("useUserPreferences", () => {
       logout: vi.fn(),
     });
 
-    vi.mocked(getUserPreferences).mockResolvedValue({
+    vi.mocked(getPreferences).mockResolvedValue({
       success: true,
       data: mockPreferences,
     });
@@ -162,7 +162,7 @@ describe("useUserPreferences", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(getUserPreferences).toHaveBeenCalled();
+    expect(getPreferences).toHaveBeenCalled();
     expect(result.current.preferences).toEqual(mockPreferences);
     expect(setPreference).toHaveBeenCalledWith("dark");
     expect(result.current.themePreference).toBe("dark");
@@ -201,12 +201,12 @@ describe("useUserPreferences", () => {
       logout: vi.fn(),
     });
 
-    vi.mocked(getUserPreferences).mockResolvedValue({
+    vi.mocked(getPreferences).mockResolvedValue({
       success: true,
       data: mockPreferences,
     });
 
-    vi.mocked(updateUserPreferences).mockResolvedValue({
+    vi.mocked(updatePreferences).mockResolvedValue({
       success: true,
       data: { ...mockPreferences, preferred_theme: "light" },
     });
@@ -221,7 +221,7 @@ describe("useUserPreferences", () => {
       await result.current.updateTheme("light");
     });
 
-    expect(updateUserPreferences).toHaveBeenCalledWith({
+    expect(updatePreferences).toHaveBeenCalledWith({
       preferred_theme: "light",
     });
   });
@@ -270,7 +270,7 @@ describe("useUserPreferences", () => {
       logout: vi.fn(),
     });
 
-    vi.mocked(updateUserPreferences).mockResolvedValue({
+    vi.mocked(updatePreferences).mockResolvedValue({
       success: true,
       data: { ...mockPreferences, preferred_language: "en" },
     });
@@ -279,7 +279,7 @@ describe("useUserPreferences", () => {
     const delayedPreferences = new Promise<{ success: true; data: typeof mockPreferences }>((resolve) => {
       resolvePreferences = resolve;
     });
-    vi.mocked(getUserPreferences).mockReturnValue(delayedPreferences as any);
+    vi.mocked(getPreferences).mockReturnValue(delayedPreferences as any);
 
     const { result } = renderHook(() => useUserPreferences());
 
@@ -314,12 +314,12 @@ describe("useUserPreferences", () => {
       logout: vi.fn(),
     });
 
-    vi.mocked(getUserPreferences).mockResolvedValue({
+    vi.mocked(getPreferences).mockResolvedValue({
       success: true,
       data: mockPreferences,
     });
 
-    vi.mocked(updateUserPreferences).mockResolvedValue({
+    vi.mocked(updatePreferences).mockResolvedValue({
       success: true,
       data: { ...mockPreferences, editor_font_size: 16, editor_tab_size: 2 },
     });
@@ -334,7 +334,7 @@ describe("useUserPreferences", () => {
       await result.current.updateEditorSettings({ fontSize: 16, tabSize: 2 });
     });
 
-    expect(updateUserPreferences).toHaveBeenCalledWith({
+    expect(updatePreferences).toHaveBeenCalledWith({
       editor_font_size: 16,
       editor_tab_size: 2,
     });
@@ -354,7 +354,7 @@ describe("useUserPreferences", () => {
       logout: vi.fn(),
     });
 
-    vi.mocked(getUserPreferences).mockResolvedValue({
+    vi.mocked(getPreferences).mockResolvedValue({
       success: true,
       data: mockPreferences,
     });
@@ -405,8 +405,8 @@ describe("useUserPreferences", () => {
         username: "next-user",
         email: "next@test.com",
         role: "student",
-      } as any,
-    });
+      },
+    } as any);
 
     const { result } = renderHook(() => useUserPreferences());
 
@@ -453,9 +453,7 @@ describe("useUserPreferences", () => {
       await result.current.requestPasswordReset();
     });
 
-    expect(requestPasswordReset).toHaveBeenCalledWith({
-      email: "test@test.com",
-    });
+    expect(requestPasswordReset).toHaveBeenCalledWith("test@test.com");
   });
 
   it("should throw error when changing password without being logged in", async () => {
@@ -485,7 +483,7 @@ describe("useUserPreferences", () => {
     });
 
     const mockError = new Error("Network error");
-    vi.mocked(getUserPreferences).mockRejectedValue(mockError);
+    vi.mocked(getPreferences).mockRejectedValue(mockError);
     vi.spyOn(console, "error").mockImplementation(() => {});
 
     const { result } = renderHook(() => useUserPreferences());
@@ -541,7 +539,7 @@ describe("useUserPreferences", () => {
       logout: vi.fn(),
     });
 
-    vi.mocked(getUserPreferences).mockResolvedValue({
+    vi.mocked(getPreferences).mockResolvedValue({
       success: true,
       data: { ...mockPreferences, display_name: "Cached Name" },
     });
@@ -558,6 +556,6 @@ describe("useUserPreferences", () => {
       expect(second.result.current.displayName).toBe("Cached Name");
     });
 
-    expect(getUserPreferences).toHaveBeenCalledTimes(1);
+    expect(getPreferences).toHaveBeenCalledTimes(1);
   });
 });

@@ -24,6 +24,12 @@ import {
   mapContestAnticheatConfigDto,
   mapContestOverviewMetricsDto,
 } from "@/infrastructure/mappers/contest.mapper";
+import type {
+  ContestDto,
+  ContestDetailDto,
+  ScoreboardDto,
+  ContestOverviewMetricsDto,
+} from "@/infrastructure/api/dto/contest.dto";
 
 // ============================================================================
 // Contest Repository Implementation
@@ -31,12 +37,12 @@ import {
 
 export const getContests = async (scope?: string): Promise<Contest[]> => {
   const query = scope ? `?scope=${scope}` : "";
-  const data = await requestJson<any>(
+  const data = await requestJson<{ results?: ContestDto[] } | ContestDto[]>(
     httpClient.get(`/api/v1/contests/${query}`),
     "Failed to fetch contests"
   );
-  const results = data.results || data;
-  return Array.isArray(results) ? results.map(mapContestDto) : [];
+  const results = Array.isArray(data) ? data : data.results || [];
+  return results.map(mapContestDto);
 };
 
 export const getContest = async (
@@ -44,7 +50,7 @@ export const getContest = async (
 ): Promise<ContestDetail | undefined> => {
   const res = await httpClient.get(`/api/v1/contests/${id}/`);
   if (!res.ok) return undefined;
-  const data = await res.json();
+  const data = await res.json() as ContestDetailDto;
   return mapContestDetailDto(data);
 };
 
@@ -53,7 +59,7 @@ export const updateContest = async (
   data: ContestUpdatePayload
 ): Promise<Contest> => {
   const payload = mapContestUpdateRequestToDto(data);
-  const responseData = await requestJson<any>(
+  const responseData = await requestJson<ContestDto>(
     httpClient.patch(`/api/v1/contests/${id}/`, payload),
     "Failed to update contest"
   );
@@ -80,14 +86,14 @@ export const registerContest = async (
   id: string,
   data?: { password?: string; nickname?: string }
 ): Promise<void> => {
-  await requestJson<any>(
+  await requestJson<void>(
     httpClient.post(`/api/v1/contests/${id}/register/`, data),
     "Registration failed"
   );
 };
 
 export const enterContest = async (id: string): Promise<void> => {
-  await requestJson<any>(
+  await requestJson<void>(
     httpClient.post(`/api/v1/contests/${id}/enter/`),
     "Failed to enter contest"
   );
@@ -111,13 +117,13 @@ export const getContestStandings = async (
     const errorData = await res.json().catch(() => null);
     throw new Error(errorData?.detail || "Failed to fetch standings");
   }
-  return mapScoreboardDto(await res.json());
+  return mapScoreboardDto(await res.json() as ScoreboardDto);
 };
 
 export const getContestAnticheatConfig = async (
   id: string
 ): Promise<ContestAnticheatConfig> => {
-  const data = await requestJson<any>(
+  const data = await requestJson<any>( // Config DTO is complex, keeping any for internal parse
     httpClient.get(`/api/v1/contests/${id}/anticheat-config/`),
     "Failed to fetch anti-cheat config"
   );
@@ -127,7 +133,7 @@ export const getContestAnticheatConfig = async (
 export const getContestOverviewMetrics = async (
   id: string
 ): Promise<ContestOverviewMetrics> => {
-  const data = await requestJson<any>(
+  const data = await requestJson<ContestOverviewMetricsDto>(
     httpClient.get(`/api/v1/contests/${id}/overview-metrics/`),
     "Failed to fetch contest overview metrics"
   );

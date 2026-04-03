@@ -203,7 +203,7 @@ def finalize_submission(
 
     clear_active_session(participant.contest_id, participant.user_id)
     # Release JTI pin so other devices can work normally after exam ends
-    clear_exam_allowed_jti(participant.user_id)
+    clear_exam_allowed_jti(participant.user_id, contest_id=participant.contest_id)
 
     if participant.contest.cheat_detection_enabled:
         for module in modules:

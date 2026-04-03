@@ -99,9 +99,12 @@ GitHub (push to main)
 
 ## 文件導覽
 
+- [使用者與教師手冊](docs/user-guide.md)：教室、題庫、競賽功能說明。
+- [開發者指南](docs/developer-guide.md)：系統架構、環境設定、開發規範。
 - 後端測試指南：`backend/RUN_TESTS.md`
 - 壓力測試說明：`docs/loadtest.md`
 - 監控部署說明：`docs/monitoring.md`
+- 多國語系指南：`docs/i18n.md`
 
 ## 授權
 

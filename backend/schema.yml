@@ -2896,10 +2896,55 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/contests/{contest_pk}/exam-questions/batch-import/:
+  /api/v1/contests/{contest_pk}/exam-questions/import/apply/:
     post:
-      operationId: v1_contests_exam_questions_batch_import_create
-      description: Delete all existing questions and create new ones in a single transaction.
+      operationId: v1_contests_exam_questions_import_apply_create
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam-questions/import/preview/:
+    post:
+      operationId: v1_contests_exam_questions_import_preview_create
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam-questions/import/rollback/:
+    post:
+      operationId: v1_contests_exam_questions_import_rollback_create
+      description: |-
+        CRUD for exam paper questions.
+        - Admin/teacher: full CRUD with correct_answer visible.
+        - Registered students: read-only list (correct_answer hidden).
       parameters:
       - in: path
         name: contest_pk

@@ -27,10 +27,10 @@ env:
 
 jobs:
   # ============================================
-  # Static Analysis & Reports (Non-blocking)
+  # Static Analysis & Build Check (Blocking)
   # ============================================
-  validation:
-    name: Static Analysis & i18n
+  static-checks:
+    name: Static Analysis & Build Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,19 +49,23 @@ jobs:
         run: npm ci
         working-directory: frontend
 
-      - name: i18n Health Check
+      - name: i18n Health Check (Reporting)
         run: python3 i18n_check.py
 
       - name: TypeScript Compile Check
         run: npx tsc --noEmit
         working-directory: frontend
-        continue-on-error: true
+
+      - name: Frontend Build Check (Ensures CD Success)
+        run: npm run build
+        working-directory: frontend
 
   # ============================================
   # Frontend Unit Tests
   # ============================================
   frontend-unit:
     name: Frontend Unit Tests
+    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -99,6 +103,7 @@ jobs:
   # ============================================
   backend-unit:
     name: Backend Unit Tests
+    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -185,6 +190,7 @@ jobs:
   # ============================================
   judge:
     name: Judge Tests
+    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

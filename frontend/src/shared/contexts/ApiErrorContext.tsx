@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useTransition,
 } from "react";
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
@@ -56,6 +57,7 @@ export const ApiErrorProvider = ({ children }: ApiErrorProviderProps) => {
   const location = useLocation();
   const { showToast } = useToast();
   const [error, setError] = useState<ApiError | null>(null);
+  const [, startTransition] = useTransition();
   const lastServerToastAtRef = useRef(0);
   const SERVER_TOAST_THROTTLE_MS = 5000;
 
@@ -102,9 +104,11 @@ export const ApiErrorProvider = ({ children }: ApiErrorProviderProps) => {
   // Clear stale error state when route changes
   useEffect(() => {
     if (error) {
-      setError(null);
+      startTransition(() => {
+        setError(null);
+      });
     }
-  }, [location.pathname, error]);
+  }, [location.pathname, error, startTransition]);
 
   // Listen for global server error events from httpClient
   useEffect(() => {

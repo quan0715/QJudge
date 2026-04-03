@@ -53,13 +53,14 @@ def published_exam(teacher: User) -> Contest:
 @pytest.mark.django_db
 def test_stale_exam_jti_pin_is_auto_cleared_when_exam_lock_not_active(
     student: User,
+    published_exam: Contest,
 ) -> None:
-    set_exam_allowed_jti(student.id, "pinned-jti")
+    set_exam_allowed_jti(student.id, published_exam.id, "pinned-jti")
 
     # Participant is not in an active exam lock state; mismatched token should
     # be allowed and stale key should be removed to avoid re-login loops.
     assert is_access_token_allowed(student.id, "new-jti") is True
-    assert cache.get(_exam_allowed_jti_key(student.id)) is None
+    assert cache.get(_exam_allowed_jti_key(student.id, published_exam.id)) is None
 
 
 @pytest.mark.django_db
@@ -72,7 +73,7 @@ def test_exam_jti_pin_is_enforced_during_active_exam_lock(
         user=student,
         exam_status=ExamStatus.IN_PROGRESS,
     )
-    set_exam_allowed_jti(student.id, "pinned-jti")
+    set_exam_allowed_jti(student.id, published_exam.id, "pinned-jti")
 
     assert is_access_token_allowed(student.id, "other-jti") is False
-    assert cache.get(_exam_allowed_jti_key(student.id)) == "pinned-jti"
+    assert cache.get(_exam_allowed_jti_key(student.id, published_exam.id)) == "pinned-jti"

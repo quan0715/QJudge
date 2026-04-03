@@ -120,7 +120,7 @@ def admin_update_participant(
         if exam_status is not None and exam_status not in ACTIVE_EXAM_STATUSES:
             clear_active_session(participant.contest_id, participant.user_id)
             clear_heartbeat(participant.contest_id, participant.user_id)
-            clear_exam_allowed_jti(participant.user_id)
+            clear_exam_allowed_jti(participant.user_id, contest_id=participant.contest_id)
 
     ContestActivity.objects.create(
         contest=participant.contest,

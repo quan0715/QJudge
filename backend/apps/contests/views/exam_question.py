@@ -1,4 +1,6 @@
 """ContestExamQuestionViewSet."""
+import hashlib
+import json
 import logging
 from uuid import UUID
 
@@ -20,7 +22,9 @@ from apps.question_bank.bank_workflows import is_publicly_accessible_bank
 
 from ..models import (
     Contest,
+    ContestProblem,
     ExamQuestion,
+    ExamQuestionImportSession,
     ExamStatus,
     ExamQuestionType,
 )
@@ -50,6 +54,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
+    IMPORT_MODES = {
+        ExamQuestionImportSession.ImportMode.APPEND,
+        ExamQuestionImportSession.ImportMode.REPLACE_ALL,
+        ExamQuestionImportSession.ImportMode.REPLACE_MANUAL_ONLY,
+    }
 
     @staticmethod
     def _normalize_uuid(value, *, field_name: str) -> str:
@@ -276,65 +285,372 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             f"Deleted exam question #{question_id}"
         )
 
-    @action(detail=False, methods=['post'], url_path='batch-import')
-    def batch_import(self, request, contest_pk=None):
-        """Delete all existing questions and create new ones in a single transaction."""
+    def _extract_import_payload(self, request):
+        payload_json = request.data.get("payload_json")
+        if isinstance(payload_json, str):
+            try:
+                parsed_payload = json.loads(payload_json)
+            except json.JSONDecodeError as exc:
+                return None, None, Response(
+                    {"error": f"Invalid payload_json: {exc.msg}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        elif isinstance(payload_json, dict):
+            parsed_payload = payload_json
+        else:
+            return None, None, Response(
+                {"error": "payload_json must be a JSON string or object"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not isinstance(parsed_payload, dict):
+            return None, None, Response(
+                {"error": "payload_json root must be an object"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if parsed_payload.get("version") != "qjudge.exam.v1":
+            return None, None, Response(
+                {"error": 'payload_json.version must be "qjudge.exam.v1"'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        meta = parsed_payload.get("meta")
+        if not isinstance(meta, dict):
+            return None, None, Response(
+                {"error": "payload_json.meta must be an object"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        questions_data = parsed_payload.get("questions")
+        if not isinstance(questions_data, list) or not questions_data:
+            return None, None, Response(
+                {"error": "payload_json.questions must be a non-empty list"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = ExamQuestionSerializer(data=questions_data, many=True)
+        if not serializer.is_valid():
+            return None, None, Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        return parsed_payload, serializer.validated_data, None
+
+    @staticmethod
+    def _build_import_fingerprint(import_mode: str, payload: dict) -> str:
+        canonical = json.dumps(
+            {"import_mode": import_mode, "payload_json": payload},
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _serialize_exam_questions_snapshot(queryset):
+        rows = []
+        for question in queryset.order_by("order", "id"):
+            rows.append(
+                {
+                    "id": str(question.id),
+                    "question_type": question.question_type,
+                    "prompt": question.prompt,
+                    "options": question.options or [],
+                    "correct_answer": question.correct_answer,
+                    "score": int(question.score),
+                    "order": int(question.order),
+                    "source_bank_id": str(question.source_bank_id) if question.source_bank_id else None,
+                    "source_bank_name": question.source_bank_name or "",
+                    "source_question_id": str(question.source_question_id) if question.source_question_id else None,
+                    "source_mode": question.source_mode or ContestProblem.SourceMode.MANUAL,
+                    "question_asset_id": str(question.question_asset_id) if question.question_asset_id else None,
+                    "question_version_id": str(question.question_version_id) if question.question_version_id else None,
+                }
+            )
+        return rows
+
+    @staticmethod
+    def _cleanup_orphan_exam_bindings(contest):
+        from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+        exam_types = [
+            QuestionAsset.AssetType.TRUE_FALSE,
+            QuestionAsset.AssetType.SINGLE_CHOICE,
+            QuestionAsset.AssetType.MULTIPLE_CHOICE,
+            QuestionAsset.AssetType.SHORT_ANSWER,
+            QuestionAsset.AssetType.ESSAY,
+        ]
+        ContestQuestionBinding.objects.filter(
+            contest=contest,
+            coding_problem__isnull=True,
+            legacy_exam_question__isnull=True,
+            binding_type__in=exam_types,
+        ).delete()
+
+    @staticmethod
+    def _normalize_orders(contest):
+        questions = list(ExamQuestion.objects.filter(contest=contest).order_by("order", "id"))
+        dirty = []
+        for index, question in enumerate(questions):
+            if question.order != index:
+                question.order = index
+                dirty.append(question)
+        if dirty:
+            ExamQuestion.objects.bulk_update(dirty, ["order"])
+        return list(ExamQuestion.objects.filter(contest=contest).order_by("order", "id"))
+
+    @staticmethod
+    def _sync_exam_bindings(contest, actor):
+        questions = ExamQuestion.objects.filter(contest=contest).order_by("order", "id")
+        for question in questions:
+            ensure_contest_binding_for_exam_question(exam_question=question, actor=actor)
+
+    def _build_preview_summary(self, *, contest, import_mode: str, incoming_items_count: int, incoming_score: int):
+        existing_qs = ExamQuestion.objects.filter(contest=contest)
+        existing_count = existing_qs.count()
+        existing_score = sum(q.score for q in existing_qs)
+        delete_count = 0
+        keep_count = existing_count
+        keep_score = existing_score
+
+        if import_mode == ExamQuestionImportSession.ImportMode.REPLACE_ALL:
+            delete_count = existing_count
+            keep_count = 0
+            keep_score = 0
+        elif import_mode == ExamQuestionImportSession.ImportMode.REPLACE_MANUAL_ONLY:
+            replace_qs = existing_qs.filter(
+                source_mode__in=[
+                    ContestProblem.SourceMode.MANUAL,
+                    ContestProblem.SourceMode.JSON,
+                ]
+            )
+            delete_count = replace_qs.count()
+            keep_count = existing_count - delete_count
+            keep_score = existing_score - sum(q.score for q in replace_qs)
+
+        final_score = keep_score + incoming_score
+        return {
+            "mode": import_mode,
+            "will_add": incoming_items_count,
+            "will_delete": delete_count,
+            "will_keep": keep_count,
+            "score_before": existing_score,
+            "score_after": final_score,
+            "score_delta": final_score - existing_score,
+        }
+
+    @action(detail=False, methods=["post"], url_path="import/preview")
+    def import_preview(self, request, contest_pk=None):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
         ensure_contest_question_editable(
             contest=contest,
             actor_id=getattr(request.user, "id", None),
-            action="exam_question.batch_import",
+            action="exam_question.import_preview",
         )
 
-        questions_data = request.data.get('questions', [])
-        if not isinstance(questions_data, list):
+        import_mode = request.data.get("import_mode", ExamQuestionImportSession.ImportMode.APPEND)
+        if import_mode not in self.IMPORT_MODES:
             return Response(
-                {'error': 'questions must be a list'},
+                {"error": "import_mode is invalid"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Validate all questions before touching the DB
-        serializer = ExamQuestionSerializer(data=questions_data, many=True)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        parsed_payload, validated_questions, err = self._extract_import_payload(request)
+        if err:
+            return err
+
+        incoming_score = sum(int(item.get("score", 0)) for item in validated_questions)
+        summary = self._build_preview_summary(
+            contest=contest,
+            import_mode=import_mode,
+            incoming_items_count=len(validated_questions),
+            incoming_score=incoming_score,
+        )
+        fingerprint = self._build_import_fingerprint(import_mode, parsed_payload)
+        return Response(
+            {
+                "summary": summary,
+                "fingerprint": fingerprint,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["post"], url_path="import/apply")
+    def import_apply(self, request, contest_pk=None):
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(request.user, "id", None),
+            action="exam_question.import_apply",
+        )
+
+        import_mode = request.data.get("import_mode", ExamQuestionImportSession.ImportMode.APPEND)
+        if import_mode not in self.IMPORT_MODES:
+            return Response({"error": "import_mode is invalid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        parsed_payload, validated_questions, err = self._extract_import_payload(request)
+        if err:
+            return err
+
+        expected_fingerprint = request.data.get("fingerprint")
+        calculated_fingerprint = self._build_import_fingerprint(import_mode, parsed_payload)
+        if expected_fingerprint and expected_fingerprint != calculated_fingerprint:
+            return Response({"error": "fingerprint mismatch"}, status=status.HTTP_409_CONFLICT)
+
+        incoming_score = sum(int(item.get("score", 0)) for item in validated_questions)
+        preview_summary = self._build_preview_summary(
+            contest=contest,
+            import_mode=import_mode,
+            incoming_items_count=len(validated_questions),
+            incoming_score=incoming_score,
+        )
 
         with transaction.atomic():
-            ExamQuestion.objects.filter(contest=contest).delete()
+            before_snapshot = self._serialize_exam_questions_snapshot(
+                ExamQuestion.objects.filter(contest=contest)
+            )
 
-            new_questions = []
+            if import_mode == ExamQuestionImportSession.ImportMode.REPLACE_ALL:
+                ExamQuestion.objects.filter(contest=contest).delete()
+            elif import_mode == ExamQuestionImportSession.ImportMode.REPLACE_MANUAL_ONLY:
+                ExamQuestion.objects.filter(
+                    contest=contest,
+                    source_mode__in=[
+                        ContestProblem.SourceMode.MANUAL,
+                        ContestProblem.SourceMode.JSON,
+                    ],
+                ).delete()
+
+            existing_after_deletion = self._normalize_orders(contest)
+            next_order = len(existing_after_deletion)
+
             create_allowed_fields = {
-                'question_type',
-                'prompt',
-                'options',
-                'correct_answer',
-                'score',
+                "question_type",
+                "prompt",
+                "options",
+                "correct_answer",
+                "score",
             }
-            for idx, item_data in enumerate(serializer.validated_data):
+            new_questions = []
+            for item_data in validated_questions:
                 sanitized_data = {
                     key: value
                     for key, value in item_data.items()
                     if key in create_allowed_fields
                 }
-                new_questions.append(ExamQuestion(
-                    contest=contest,
-                    order=idx,
-                    **sanitized_data,
-                ))
-            created = ExamQuestion.objects.bulk_create(new_questions)
+                new_questions.append(
+                    ExamQuestion(
+                        contest=contest,
+                        order=next_order,
+                        source_mode=ContestProblem.SourceMode.JSON,
+                        **sanitized_data,
+                    )
+                )
+                next_order += 1
+
+            if new_questions:
+                ExamQuestion.objects.bulk_create(new_questions)
+
+            self._cleanup_orphan_exam_bindings(contest)
+            self._sync_exam_bindings(contest, request.user)
+            after_snapshot = self._serialize_exam_questions_snapshot(
+                ExamQuestion.objects.filter(contest=contest)
+            )
+
+            session = ExamQuestionImportSession.objects.create(
+                contest=contest,
+                actor=request.user,
+                import_mode=import_mode,
+                before_snapshot=before_snapshot,
+                after_snapshot=after_snapshot,
+                summary=preview_summary,
+            )
 
         ContestActivityViewSet.log_activity(
             contest,
             request.user,
-            'update_problem',
-            f"Batch imported {len(created)} exam questions",
+            "update_problem",
+            f"Applied exam import ({import_mode}) with {preview_summary['will_add']} questions",
         )
 
-        result_serializer = self.get_serializer(
-            ExamQuestion.objects.filter(contest=contest).order_by('order', 'id'),
+        serialized = self.get_serializer(
+            ExamQuestion.objects.filter(contest=contest).order_by("order", "id"),
             many=True,
         )
-        return Response(result_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "session_id": str(session.id),
+                "applied_summary": preview_summary,
+                "questions": serialized.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=False, methods=["post"], url_path="import/rollback")
+    def import_rollback(self, request, contest_pk=None):
+        contest = self._get_contest()
+        self._ensure_admin_permission(contest)
+        ensure_contest_question_editable(
+            contest=contest,
+            actor_id=getattr(request.user, "id", None),
+            action="exam_question.import_rollback",
+        )
+        session_id = request.data.get("session_id")
+        if not session_id:
+            return Response({"error": "session_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        session = ExamQuestionImportSession.objects.filter(contest=contest, id=session_id).first()
+        if not session:
+            return Response({"error": "import session not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        with transaction.atomic():
+            ExamQuestion.objects.filter(contest=contest).delete()
+            restore_rows = session.before_snapshot if isinstance(session.before_snapshot, list) else []
+            restored = []
+            for row in restore_rows:
+                if not isinstance(row, dict):
+                    continue
+                restored.append(
+                    ExamQuestion(
+                        id=row.get("id"),
+                        contest=contest,
+                        question_type=row.get("question_type", ExamQuestionType.ESSAY),
+                        prompt=row.get("prompt", ""),
+                        options=row.get("options") or [],
+                        correct_answer=row.get("correct_answer"),
+                        score=max(1, int(row.get("score") or 1)),
+                        order=max(0, int(row.get("order") or 0)),
+                        source_bank_id=row.get("source_bank_id"),
+                        source_bank_name=row.get("source_bank_name") or "",
+                        source_question_id=row.get("source_question_id"),
+                        source_mode=row.get("source_mode") or ContestProblem.SourceMode.MANUAL,
+                        question_asset_id=row.get("question_asset_id"),
+                        question_version_id=row.get("question_version_id"),
+                    )
+                )
+
+            if restored:
+                ExamQuestion.objects.bulk_create(restored)
+
+            self._normalize_orders(contest)
+            self._cleanup_orphan_exam_bindings(contest)
+            self._sync_exam_bindings(contest, request.user)
+
+        ContestActivityViewSet.log_activity(
+            contest,
+            request.user,
+            "update_problem",
+            f"Rolled back exam import session {session.id}",
+        )
+        return Response(
+            {
+                "rolled_back": True,
+                "restored_count": len(restored),
+                "session_id": str(session.id),
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=False, methods=['post'], url_path='import-from-bank')
     def import_from_bank(self, request, contest_pk=None):

@@ -1,284 +1,206 @@
 /**
  * Auth Repository Implementation
  *
- * Authentication, user management, and preferences.
+ * Handles login, registration, password changes, and preferences.
  */
 
-import {
-  httpClient,
-  requestJson,
-  ensureOk,
-  clearAuthStorage,
-} from "@/infrastructure/api/http.client";
+import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import type {
-  AuthResponse,
   LoginCredentials,
   RegisterCredentials,
-  PreferencesResponse,
-  UpdatePreferencesRequest,
   ChangePasswordRequest,
-  ChangePasswordResponse,
-  CurrentUserResponse,
-  UserSearchResponse,
-  TeacherActivationIssueResponse,
-  TeacherActivationPreviewResponse,
-  TeacherActivationConsumeResponse,
-  ForgotPasswordRequest,
-  APIKeyResponse,
-  ResetPasswordRequest,
+  UpdatePreferencesRequest,
   SetAPIKeyRequest,
-  UpdateAccountProfileRequest,
-  UploadAvatarResponse,
-  UsageStatsResponse,
 } from "@/core/entities/auth.entity";
-
-const API_BASE = "/api/v1/auth";
+import type {
+  AuthResponseDto,
+  CurrentUserResponseDto,
+  PreferencesResponseDto,
+  UserSearchResponseDto,
+  TeacherActivationIssueResponseDto,
+  TeacherActivationPreviewResponseDto,
+  TeacherActivationConsumeResponseDto,
+  APIKeyResponseDto,
+  UsageStatsResponseDto,
+  LoginRecordsResponseDto,
+  UploadAvatarResponseDto,
+} from "@/infrastructure/api/dto/auth.dto";
 
 // ============================================================================
-// Authentication
+// Auth Repository Implementation
 // ============================================================================
 
-export const login = async (data: LoginCredentials): Promise<AuthResponse> => {
-  const res = await httpClient.post(`${API_BASE}/email/login`, data);
-  if (!res.ok) {
-    const errorData = await res.json();
-    const error: any = new Error("Login failed");
-    error.response = { data: errorData };
-    throw error;
-  }
-  return res.json();
+export const login = async (
+  credentials: LoginCredentials
+): Promise<AuthResponseDto> => {
+  return requestJson<AuthResponseDto>(
+    httpClient.post("/api/v1/auth/login/", credentials),
+    "Login failed"
+  );
 };
 
 export const register = async (
-  data: RegisterCredentials
-): Promise<AuthResponse> => {
-  const res = await httpClient.post(`${API_BASE}/email/register`, data);
-  if (!res.ok) {
-    const errorData = await res.json();
-    const error: any = new Error("Registration failed");
-    error.response = { data: errorData };
-    throw error;
-  }
-  return res.json();
-};
-
-export const getOAuthUrl = async (provider: string): Promise<string> => {
-  const data = await requestJson<any>(
-    httpClient.get(`${API_BASE}/${provider}/login`),
-    "Failed to get OAuth URL"
+  credentials: RegisterCredentials
+): Promise<AuthResponseDto> => {
+  return requestJson<AuthResponseDto>(
+    httpClient.post("/api/v1/auth/register/", credentials),
+    "Registration failed"
   );
-  return data.data.authorization_url;
 };
 
-export const oauthCallback = async (provider: string, data: {
-  code: string;
-  redirect_uri: string;
-  conflict_token?: string;
-}): Promise<AuthResponse> => {
-  const res = await httpClient.post(`${API_BASE}/${provider}/callback`, data);
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => null);
-    const error: any = new Error("OAuth callback failed");
-    error.response = { data: errorData, status: res.status };
-    throw error;
-  }
-  return res.json();
-};
-
-export const resolveConflict = async (data: {
-  conflict_token: string;
-  action?: "takeover_lock";
-}): Promise<AuthResponse> => {
-  const res = await httpClient.post(`${API_BASE}/resolve-conflict`, {
-    action: data.action || "takeover_lock",
-    conflict_token: data.conflict_token,
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => null);
-    const error: any = new Error("Resolve conflict failed");
-    error.response = { data: errorData, status: res.status };
-    throw error;
-  }
-  return res.json();
+export const getCurrentUser = async (): Promise<CurrentUserResponseDto> => {
+  return requestJson<CurrentUserResponseDto>(
+    httpClient.get("/api/v1/auth/me/"),
+    "Failed to fetch user data"
+  );
 };
 
 export const logout = async (): Promise<void> => {
-  try {
-    await ensureOk(httpClient.post(`${API_BASE}/logout`), "Failed to logout");
-  } finally {
-    clearAuthStorage();
-  }
+  await ensureOk(httpClient.post("/api/v1/auth/logout/"), "Logout failed");
+};
+
+export const changePassword = async (
+  data: ChangePasswordRequest
+): Promise<void> => {
+  await requestJson<{ success: boolean; message?: string }>(
+    httpClient.post("/api/v1/auth/password/change/", data),
+    "Failed to change password"
+  );
+};
+
+export const requestPasswordReset = async (email: string): Promise<void> => {
+  await ensureOk(
+    httpClient.post("/api/v1/auth/password/reset/", { email }),
+    "Failed to request password reset"
+  );
+};
+
+export const updateAccountProfile = async (
+  data: { username?: string; email?: string }
+): Promise<CurrentUserResponseDto> => {
+  return requestJson<CurrentUserResponseDto>(
+    httpClient.patch("/api/v1/auth/account/", data),
+    "Failed to update profile"
+  );
 };
 
 // ============================================================================
-// User Management (Admin)
+// Preferences
 // ============================================================================
 
-export const searchUsers = async (query: string): Promise<UserSearchResponse> => {
-  const res = await httpClient.get(
-    `/api/v1/auth/search?q=${encodeURIComponent(query)}`
-  );
-  if (!res.ok) {
-    const errorData = await res.json();
-    const error: any = new Error("Search failed");
-    error.response = { data: errorData };
-    throw error;
-  }
-  return res.json();
-};
-
-export const updateUserRole = async (
-  userId: number,
-  role: string
-): Promise<any> => {
-  const res = await httpClient.patch(`/api/v1/auth/${userId}/role`, { role });
-  if (!res.ok) {
-    const errorData = await res.json();
-    const error: any = new Error("Update failed");
-    error.response = { data: errorData };
-    throw error;
-  }
-  return res.json();
-};
-
-export const issueTeacherActivationInvite = async (): Promise<TeacherActivationIssueResponse> => {
-  return requestJson<TeacherActivationIssueResponse>(
-    httpClient.post(`/api/v1/auth/teacher-activations`, {}),
-    "Failed to issue teacher activation invite"
+export const getPreferences = async (): Promise<PreferencesResponseDto> => {
+  return requestJson<PreferencesResponseDto>(
+    httpClient.get("/api/v1/auth/me/preferences"),
+    "Failed to fetch preferences"
   );
 };
+
+export const updatePreferences = async (
+  data: UpdatePreferencesRequest
+): Promise<PreferencesResponseDto> => {
+  return requestJson<PreferencesResponseDto>(
+    httpClient.patch("/api/v1/auth/me/preferences", data),
+    "Failed to update preferences"
+  );
+};
+
+export const uploadAvatar = async (file: File): Promise<UploadAvatarResponseDto> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return requestJson<UploadAvatarResponseDto>(
+    httpClient.post("/api/v1/auth/avatar/", formData),
+    "Failed to upload avatar"
+  );
+};
+
+// ============================================================================
+// Admin - User Management
+// ============================================================================
+
+export const searchUsers = async (query: string): Promise<UserSearchResponseDto> => {
+  return requestJson<UserSearchResponseDto>(
+    httpClient.get(`/api/v1/management/users/?search=${encodeURIComponent(query)}`),
+    "Failed to search users"
+  );
+};
+
+export const deleteUser = async (id: number | string): Promise<void> => {
+  await ensureOk(httpClient.delete(`/api/v1/management/users/${id}/`), "Failed to delete user");
+};
+
+export const updateUserRole = async (id: number | string, role: string): Promise<any> => {
+  return requestJson<any>(
+    httpClient.patch(`/api/v1/management/users/${id}/`, { role }),
+    "Failed to update user role"
+  );
+};
+
+export const logoutOtherDevices = async (): Promise<void> => {
+  await ensureOk(httpClient.post("/api/v1/auth/logout-others/"), "Failed to logout other devices");
+};
+
+// ============================================================================
+// Teacher Activation
+// ============================================================================
+
+export const issueTeacherActivationInvite = async (
+  email: string
+): Promise<TeacherActivationIssueResponseDto> => {
+  return requestJson<TeacherActivationIssueResponseDto>(
+    httpClient.post("/api/v1/management/teacher-invites/", { email }),
+    "Failed to issue invite"
+  );
+};
+
+// Alias used in some components
+export const issueTeacherInvite = issueTeacherActivationInvite;
 
 export const previewTeacherActivationInvite = async (
   token: string
-): Promise<TeacherActivationPreviewResponse> => {
-  return requestJson<TeacherActivationPreviewResponse>(
-    httpClient.get(
-      `/api/v1/auth/teacher-activations/preview?token=${encodeURIComponent(token)}`
-    ),
-    "Failed to preview teacher activation invite"
+): Promise<TeacherActivationPreviewResponseDto> => {
+  return requestJson<TeacherActivationPreviewResponseDto>(
+    httpClient.get(`/api/v1/auth/teacher-activation/preview/?token=${encodeURIComponent(token)}`),
+    "Failed to preview activation"
   );
 };
 
 export const consumeTeacherActivationInvite = async (
   token: string
-): Promise<TeacherActivationConsumeResponse> => {
-  return requestJson<TeacherActivationConsumeResponse>(
-    httpClient.post(`/api/v1/auth/teacher-activations/consume`, { token }),
-    "Failed to consume teacher activation invite"
-  );
-};
-
-export const deleteUser = async (userId: number): Promise<void> => {
-  await ensureOk(
-    httpClient.delete(`/api/v1/auth/${userId}/`),
-    "Failed to delete user"
+): Promise<TeacherActivationConsumeResponseDto> => {
+  return requestJson<TeacherActivationConsumeResponseDto>(
+    httpClient.post("/api/v1/auth/teacher-activation/consume/", { token }),
+    "Failed to activate teacher account"
   );
 };
 
 // ============================================================================
-// User Stats & Preferences
+// OAuth
 // ============================================================================
 
-export const getUserStats = async (): Promise<any> => {
-  const data = await requestJson<any>(
-    httpClient.get(`${API_BASE}/me/stats`),
-    "Failed to fetch user stats"
-  );
-  return data.data;
-};
-
-export const getUserPreferences = async (): Promise<PreferencesResponse> => {
-  return requestJson<PreferencesResponse>(
-    httpClient.get(`${API_BASE}/me/preferences`),
-    "Failed to fetch preferences"
+export const getOAuthUrl = async (provider: string, redirect?: string): Promise<any> => {
+  const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
+  return requestJson<any>(
+    httpClient.get(`/api/v1/auth/oauth/${provider}/url/${query}`),
+    "Failed to get OAuth URL"
   );
 };
 
-export const updateUserPreferences = async (
-  data: UpdatePreferencesRequest
-): Promise<PreferencesResponse> => {
-  return requestJson<PreferencesResponse>(
-    httpClient.patch(`${API_BASE}/me/preferences`, data),
-    "Failed to update preferences"
-  );
-};
-
-export const changePassword = async (
-  data: ChangePasswordRequest
-): Promise<ChangePasswordResponse> => {
-  return requestJson<ChangePasswordResponse>(
-    httpClient.post(`${API_BASE}/change-password`, data),
-    "Failed to change password"
-  );
-};
-
-export const updateCurrentUserProfile = async (
-  data: UpdateAccountProfileRequest
-): Promise<CurrentUserResponse> => {
-  return requestJson<CurrentUserResponse>(
-    httpClient.patch(`${API_BASE}/me`, data),
-    "Failed to update profile"
-  );
-};
-
-export const uploadUserAvatar = async (file: File): Promise<UploadAvatarResponse> => {
-  const formData = new FormData();
-  formData.append("file", file);
-  const response = await httpClient.request("/api/v1/auth/me/avatar/upload", {
-    method: "POST",
-    body: formData,
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(
-      (errorData?.error?.message as string) ||
-        (errorData?.message as string) ||
-        "Failed to upload avatar"
-    );
-  }
-  return response.json();
-};
-
-export const requestPasswordReset = async (
-  data: ForgotPasswordRequest
-): Promise<{ success: boolean; message?: string }> => {
-  return requestJson<{ success: boolean; message?: string }>(
-    httpClient.post(`${API_BASE}/forgot-password`, data),
-    "Failed to request password reset"
-  );
-};
-
-export const resetPassword = async (
-  data: ResetPasswordRequest
-): Promise<{ success: boolean; message?: string }> => {
-  return requestJson<{ success: boolean; message?: string }>(
-    httpClient.post(`${API_BASE}/reset-password`, data),
-    "Failed to reset password"
+export const oauthCallback = async (provider: string, code: string): Promise<AuthResponseDto> => {
+  return requestJson<AuthResponseDto>(
+    httpClient.post(`/api/v1/auth/oauth/${provider}/callback/`, { code }),
+    "OAuth callback failed"
   );
 };
 
 // ============================================================================
-// Login Records & Device Management
+// Login Records
 // ============================================================================
 
-export const getLoginRecords = async (): Promise<{
-  success: boolean;
-  data: import("@/core/entities/auth.entity").UserLoginRecord[];
-}> => {
-  return requestJson(
-    httpClient.get(`${API_BASE}/me/login-records`),
+export const getLoginRecords = async (): Promise<LoginRecordsResponseDto> => {
+  return requestJson<LoginRecordsResponseDto>(
+    httpClient.get("/api/v1/auth/login-records/"),
     "Failed to fetch login records"
-  );
-};
-
-export const logoutOtherDevices = async (): Promise<{
-  success: boolean;
-  data: { blacklisted_count: number };
-  message?: string;
-}> => {
-  return requestJson(
-    httpClient.post(`${API_BASE}/me/logout-other-devices`),
-    "Failed to logout other devices"
   );
 };
 
@@ -286,66 +208,66 @@ export const logoutOtherDevices = async (): Promise<{
 // API Key Management
 // ============================================================================
 
-export const getAPIKeyInfo = async (): Promise<APIKeyResponse> => {
-  return requestJson<APIKeyResponse>(
-    httpClient.get("/api/v1/users/me/api-key"),
+export const getAPIKeyInfo = async (): Promise<APIKeyResponseDto> => {
+  return requestJson<APIKeyResponseDto>(
+    httpClient.get("/api/v1/auth/api-key/"),
     "Failed to fetch API key info"
   );
 };
 
-export const setAPIKey = async (
-  data: SetAPIKeyRequest
-): Promise<APIKeyResponse> => {
-  return requestJson<APIKeyResponse>(
-    httpClient.post("/api/v1/users/me/api-key", data),
+export const setAPIKey = async (data: SetAPIKeyRequest): Promise<APIKeyResponseDto> => {
+  return requestJson<APIKeyResponseDto>(
+    httpClient.post("/api/v1/auth/api-key/", data),
     "Failed to set API key"
   );
 };
 
-export const deleteAPIKey = async (): Promise<{ success: boolean }> => {
-  return requestJson<{ success: boolean }>(
-    httpClient.delete("/api/v1/users/me/api-key"),
-    "Failed to delete API key"
-  );
+export const deleteAPIKey = async (): Promise<void> => {
+  await ensureOk(httpClient.delete("/api/v1/auth/api-key/"), "Failed to delete API key");
 };
 
-export const getUsageStats = async (params?: {
+export const getUsageStats = async (params: {
   start_date?: string;
   end_date?: string;
-  granularity?: "total" | "day" | "week" | "month";
-}): Promise<UsageStatsResponse> => {
+  granularity?: string;
+}): Promise<UsageStatsResponseDto> => {
   const query = new URLSearchParams(params as any).toString();
-  return requestJson<UsageStatsResponse>(
-    httpClient.get(`/api/v1/users/me/api-key/usage?${query}`),
-    "Failed to fetch usage stats"
+  return requestJson<UsageStatsResponseDto>(
+    httpClient.get(`/api/v1/auth/api-key/usage/?${query}`),
+    "Failed to fetch usage data"
   );
 };
 
 // ============================================================================
-// Default Export
+// Repository Instance
 // ============================================================================
 
-export default {
+export const authRepository = {
   login,
   register,
+  getCurrentUser,
+  logout,
+  changePassword,
+  requestPasswordReset,
+  updateAccountProfile,
+  getPreferences,
+  updatePreferences,
+  uploadAvatar,
+  searchUsers,
+  deleteUser,
+  updateUserRole,
+  logoutOtherDevices,
+  issueTeacherActivationInvite,
+  issueTeacherInvite,
+  previewTeacherActivationInvite,
+  consumeTeacherActivationInvite,
   getOAuthUrl,
   oauthCallback,
-  resolveConflict,
-  logout,
-  searchUsers,
-  updateUserRole,
-  deleteUser,
-  getUserStats,
-  getUserPreferences,
-  updateUserPreferences,
-  changePassword,
-  updateCurrentUserProfile,
-  requestPasswordReset,
-  resetPassword,
   getLoginRecords,
-  logoutOtherDevices,
   getAPIKeyInfo,
   setAPIKey,
   deleteAPIKey,
   getUsageStats,
 };
+
+export default authRepository;

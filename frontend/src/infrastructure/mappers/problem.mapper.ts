@@ -1,10 +1,21 @@
 import type {
-  Problem,
-  ProblemDetail,
+  CodingProblem as Problem,
+  CodingProblemDetail as ProblemDetail,
   Tag,
+  TestCase,
+  LanguageConfig,
+  Translation,
 } from "@/core/entities/problem.entity";
+import type {
+  ProblemDto,
+  ProblemDetailDto,
+  TagDto,
+  TestCaseDto,
+  LanguageConfigDto,
+  ProblemTranslationDto,
+} from "@/infrastructure/api/dto/problem.dto";
 
-export function mapTagDto(dto: any): Tag {
+export function mapTagDto(dto: TagDto): Tag {
   return {
     id: dto.id?.toString() || "",
     name: dto.name || "",
@@ -15,10 +26,9 @@ export function mapTagDto(dto: any): Tag {
   };
 }
 
-export function mapProblemDto(dto: any): Problem {
+export function mapProblemDto(dto: ProblemDto): Problem {
   // For contest problems, use problem_id (the actual Problem ID) if available
-  // Otherwise fall back to id (for standalone problem views)
-  const problemId = dto.problem_id ?? dto.id;
+  const problemId = (dto as any).problem_id ?? dto.id;
   return {
     id: problemId?.toString() || "",
     title: dto.title || "",
@@ -34,12 +44,11 @@ export function mapProblemDto(dto: any): Problem {
     createdBy: dto.created_by,
     tags: Array.isArray(dto.tags) ? dto.tags.map(mapTagDto) : [],
     isSolved: !!dto.is_solved,
-
     createdAt: dto.created_at,
   };
 }
 
-export function mapProblemDetailDto(dto: any): ProblemDetail {
+export function mapProblemDetailDto(dto: ProblemDetailDto): ProblemDetail {
   const problem = mapProblemDto(dto);
   return {
     ...problem,
@@ -50,14 +59,14 @@ export function mapProblemDetailDto(dto: any): ProblemDetail {
     timeLimit: dto.time_limit,
     memoryLimit: dto.memory_limit,
     samples: Array.isArray(dto.samples)
-      ? dto.samples.map((s: any) => ({
+      ? dto.samples.map((s) => ({
           input: s.input,
           output: s.output,
           explanation: s.explanation,
         }))
       : [],
     translations: Array.isArray(dto.translations)
-      ? dto.translations.map((t: any) => ({
+      ? dto.translations.map((t: ProblemTranslationDto): Translation => ({
           language: t.language,
           title: t.title,
           description: t.description,
@@ -67,9 +76,9 @@ export function mapProblemDetailDto(dto: any): ProblemDetail {
         }))
       : [],
     testCases: Array.isArray(dto.test_cases)
-      ? dto.test_cases.map((tc: any) => ({
-          input: tc.input_data,
-          output: tc.output_data,
+      ? dto.test_cases.map((tc: TestCaseDto): TestCase => ({
+          input: tc.input_data ?? tc.input ?? "",
+          output: tc.output_data ?? tc.output ?? "",
           isSample: tc.is_sample,
           isHidden: tc.is_hidden,
           score: tc.score,
@@ -77,7 +86,7 @@ export function mapProblemDetailDto(dto: any): ProblemDetail {
         }))
       : [],
     languageConfigs: Array.isArray(dto.language_configs)
-      ? dto.language_configs.map((lc: any) => ({
+      ? dto.language_configs.map((lc: LanguageConfigDto): LanguageConfig => ({
           language: lc.language,
           templateCode: lc.template_code,
           isEnabled: lc.is_enabled,

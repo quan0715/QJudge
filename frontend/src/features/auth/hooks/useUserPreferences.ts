@@ -3,11 +3,11 @@ import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
-  getUserPreferences,
-  updateUserPreferences,
+  getPreferences as getUserPreferences,
+  updatePreferences as updateUserPreferences,
   changePassword as changePasswordApi,
-  updateCurrentUserProfile,
-  uploadUserAvatar as uploadUserAvatarApi,
+  updateAccountProfile as updateCurrentUserProfile,
+  uploadAvatar as uploadUserAvatarApi,
   requestPasswordReset as requestPasswordResetApi,
 } from "@/infrastructure/api/repositories/auth.repository";
 import type {
@@ -431,7 +431,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     if (!user?.email) {
       throw new Error("Email is required for password reset");
     }
-    await requestPasswordResetApi({ email: user.email });
+    await requestPasswordResetApi(user.email);
   }, [user?.email]);
 
   return {

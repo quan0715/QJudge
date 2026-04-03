@@ -53,8 +53,7 @@ const OAuthCallbackPage = () => {
 
     const handleCallback = async () => {
       try {
-        const redirectUri = `${window.location.origin}/auth/${provider}/callback`;
-        const response = await oauthCallback(provider, { code, redirect_uri: redirectUri });
+        const response = await oauthCallback(provider, code);
 
         if (response.success) {
           localStorage.setItem('user', JSON.stringify(response.data.user));

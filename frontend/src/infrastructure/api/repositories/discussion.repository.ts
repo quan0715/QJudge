@@ -1,209 +1,178 @@
-/**
- * Discussion Repository Implementation
- *
- * API endpoints for problem discussions and comments.
- */
-
-import { httpClient, requestJson } from "@/infrastructure/api/http.client";
+import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import { buildQuery } from "@/infrastructure/api/utils/buildQuery.client";
 import type {
   Discussion,
   DiscussionComment,
+  CreateDiscussionPayload,
+  CreateCommentPayload,
+  UpdateDiscussionPayload,
+  UpdateCommentPayload,
   DiscussionListResponse,
   CommentListResponse,
 } from "@/core/entities/discussion.entity";
 import {
   mapDiscussionDto,
-  mapCommentDto,
-  mapDiscussionListResponse,
-  mapCommentListResponse,
+  mapDiscussionCommentDto,
 } from "@/infrastructure/mappers/discussion.mapper";
+import type {
+  DiscussionDto,
+  DiscussionCommentDto,
+  DiscussionListDto,
+  CommentListDto,
+} from "@/infrastructure/api/dto/discussion.dto";
 
 // ============================================================================
-// Types
-// ============================================================================
-
-export interface CreateDiscussionPayload {
-  title: string;
-  content: string;
-}
-
-export interface UpdateDiscussionPayload {
-  title?: string;
-  content?: string;
-}
-
-export interface CreateCommentPayload {
-  content: string;
-  parent?: string;
-}
-
-export interface UpdateCommentPayload {
-  content: string;
-}
-
-export interface LikeResponse {
-  is_liked: boolean;
-  like_count: number;
-}
-
-// ============================================================================
-// Discussions
+// Discussion Repository Implementation
 // ============================================================================
 
 export const getDiscussions = async (
   problemId: string,
-  params?: { page?: number; page_size?: number }
+  params?: any
 ): Promise<DiscussionListResponse> => {
-  const query = buildQuery(params as Record<string, unknown>);
-  const data = await requestJson<any>(
-    httpClient.get(`/api/v1/problems/${problemId}/discussions/${query}`),
-    "無法載入討論"
+  const query = buildQuery({ ...params, problem: problemId });
+  const data = await requestJson<DiscussionListDto>(
+    httpClient.get(`/api/v1/discussions/${query}`),
+    "Failed to fetch discussions"
   );
-  return mapDiscussionListResponse(data);
+  return {
+    results: (data.results || []).map(mapDiscussionDto),
+    count: data.count || 0,
+    next: data.next,
+    previous: data.previous,
+  };
+};
+
+export const getDiscussion = async (id: string): Promise<Discussion> => {
+  const data = await requestJson<DiscussionDto>(
+    httpClient.get(`/api/v1/discussions/${id}/`),
+    "Failed to fetch discussion"
+  );
+  return mapDiscussionDto(data);
 };
 
 export const createDiscussion = async (
   problemId: string,
   payload: CreateDiscussionPayload
 ): Promise<Discussion> => {
-  const data = await requestJson<any>(
-    httpClient.post(`/api/v1/problems/${problemId}/discussions/`, payload),
-    "無法建立討論"
-  );
-  return mapDiscussionDto(data);
-};
-
-export const getDiscussion = async (
-  discussionId: string
-): Promise<Discussion> => {
-  const data = await requestJson<any>(
-    httpClient.get(`/api/v1/problems/problem-discussions/${discussionId}/`),
-    "無法載入討論"
+  const data = await requestJson<DiscussionDto>(
+    httpClient.post(`/api/v1/discussions/`, {
+      ...payload,
+      problem: problemId,
+    }),
+    "Failed to create discussion"
   );
   return mapDiscussionDto(data);
 };
 
 export const updateDiscussion = async (
-  discussionId: string,
+  id: string,
   payload: UpdateDiscussionPayload
 ): Promise<Discussion> => {
-  const data = await requestJson<any>(
-    httpClient.patch(
-      `/api/v1/problems/problem-discussions/${discussionId}/`,
-      payload
-    ),
-    "無法更新討論"
+  const data = await requestJson<DiscussionDto>(
+    httpClient.patch(`/api/v1/discussions/${id}/`, payload),
+    "Failed to update discussion"
   );
   return mapDiscussionDto(data);
 };
 
-export const deleteDiscussion = async (
-  discussionId: string
-): Promise<Discussion> => {
-  const data = await requestJson<any>(
-    httpClient.delete(`/api/v1/problems/problem-discussions/${discussionId}/`),
-    "無法刪除討論"
+export const deleteDiscussion = async (id: string): Promise<void> => {
+  await ensureOk(
+    httpClient.delete(`/api/v1/discussions/${id}/`),
+    "Failed to delete discussion"
   );
-  return mapDiscussionDto(data);
 };
 
-// ============================================================================
 // Comments
-// ============================================================================
-
 export const getComments = async (
   discussionId: string,
-  params?: { page?: number; page_size?: number }
+  params?: any
 ): Promise<CommentListResponse> => {
-  const query = buildQuery(params as Record<string, unknown>);
-  const data = await requestJson<any>(
-    httpClient.get(
-      `/api/v1/problems/problem-discussions/${discussionId}/comments/${query}`
-    ),
-    "無法載入評論"
+  const query = buildQuery({ ...params, discussion: discussionId });
+  const data = await requestJson<CommentListDto>(
+    httpClient.get(`/api/v1/comments/${query}`),
+    "Failed to fetch comments"
   );
-  return mapCommentListResponse(data);
+  return {
+    results: (data.results || []).map(mapDiscussionCommentDto),
+    count: data.count || 0,
+    next: data.next,
+    previous: data.previous,
+  };
 };
 
 export const createComment = async (
   discussionId: string,
   payload: CreateCommentPayload
 ): Promise<DiscussionComment> => {
-  const data = await requestJson<any>(
-    httpClient.post(
-      `/api/v1/problems/problem-discussions/${discussionId}/comments/`,
-      payload
-    ),
-    "無法建立評論"
+  const data = await requestJson<DiscussionCommentDto>(
+    httpClient.post(`/api/v1/comments/`, {
+      ...payload,
+      discussion: discussionId,
+    }),
+    "Failed to create comment"
   );
-  return mapCommentDto(data);
+  return mapDiscussionCommentDto(data);
 };
 
 export const updateComment = async (
-  commentId: string,
+  id: string,
   payload: UpdateCommentPayload
 ): Promise<DiscussionComment> => {
-  const data = await requestJson<any>(
-    httpClient.patch(
-      `/api/v1/problems/problem-discussion-comments/${commentId}/`,
-      payload
-    ),
-    "無法更新評論"
+  const data = await requestJson<DiscussionCommentDto>(
+    httpClient.patch(`/api/v1/comments/${id}/`, payload),
+    "Failed to update comment"
   );
-  return mapCommentDto(data);
+  return mapDiscussionCommentDto(data);
 };
 
-export const deleteComment = async (
-  commentId: string
-): Promise<DiscussionComment> => {
-  const data = await requestJson<any>(
-    httpClient.delete(
-      `/api/v1/problems/problem-discussion-comments/${commentId}/`
-    ),
-    "無法刪除評論"
-  );
-  return mapCommentDto(data);
-};
-
-// ============================================================================
-// Likes
-// ============================================================================
-
-export const likeDiscussion = async (
-  discussionId: string
-): Promise<LikeResponse> => {
-  return requestJson<LikeResponse>(
-    httpClient.post(
-      `/api/v1/problems/problem-discussions/${discussionId}/like/`
-    ),
-    "無法按讚"
+export const deleteComment = async (id: string): Promise<void> => {
+  await ensureOk(
+    httpClient.delete(`/api/v1/comments/${id}/`),
+    "Failed to delete comment"
   );
 };
 
-export const likeComment = async (commentId: string): Promise<LikeResponse> => {
-  return requestJson<LikeResponse>(
-    httpClient.post(
-      `/api/v1/problems/problem-discussion-comments/${commentId}/like/`
-    ),
-    "無法按讚"
+// Social
+export const toggleLikeDiscussion = async (id: string): Promise<any> => {
+  return requestJson<any>(
+    httpClient.post(`/api/v1/discussions/${id}/toggle_like/`),
+    "Failed to toggle like"
   );
 };
 
+export const toggleLikeComment = async (id: string): Promise<any> => {
+  return requestJson<any>(
+    httpClient.post(`/api/v1/comments/${id}/toggle_like/`),
+    "Failed to toggle like"
+  );
+};
+
+// Compatibility aliases
+export const likeDiscussion = toggleLikeDiscussion;
+export const unlikeDiscussion = toggleLikeDiscussion;
+export const likeComment = (id: string, _optionalId?: string) => toggleLikeComment(id);
+export const unlikeComment = (id: string, _optionalId?: string) => toggleLikeComment(id);
+
 // ============================================================================
-// Default Export
+// Repository Export
 // ============================================================================
 
-export default {
+export const discussionRepository = {
   getDiscussions,
-  createDiscussion,
   getDiscussion,
+  createDiscussion,
   updateDiscussion,
   deleteDiscussion,
   getComments,
   createComment,
   updateComment,
   deleteComment,
+  toggleLikeDiscussion,
+  toggleLikeComment,
   likeDiscussion,
+  unlikeDiscussion,
   likeComment,
+  unlikeComment,
 };
+
+export default discussionRepository;

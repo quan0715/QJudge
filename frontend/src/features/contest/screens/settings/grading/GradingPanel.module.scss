@@ -233,6 +233,7 @@
     border-top: none;
     gap: 0;
     background: var(--cds-layer-02, var(--cds-layer));
+    flex-wrap: wrap;
   }
 
   .panelActionsSecondary:empty {
@@ -249,5 +250,9 @@
   .panelActionsPrimary :global(.cds--btn) {
     flex: 1;
     max-width: none;
+    min-height: 3rem;
+    white-space: normal;
+    line-height: 1.25;
+    padding-inline: 1rem;
   }
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   Loading,
   Button,
@@ -8,8 +8,7 @@ import {
   PopoverContent,
   FluidSearch,
   FluidDropdown,
-  OverflowMenu,
-  OverflowMenuItem,
+  Toggle,
 } from "@carbon/react";
 import { Catalog, DocumentExport, Filter, UserMultiple } from "@carbon/icons-react";
 import {
@@ -20,14 +19,10 @@ import {
   useGradingFlags,
 } from "./grading";
 import type { GradingFilter } from "./grading";
-import { isSubjectiveType } from "./grading/gradingTypes";
 import { useTranslation } from "react-i18next";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useAdminPanelRefresh } from "@/features/contest/contexts";
-import { updateContest } from "@/infrastructure/api/repositories";
-import { useToast } from "@/shared/contexts/ToastContext";
 import { EmptyState } from "@/shared/ui/EmptyState";
-import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import {
   IconModeSwitcher,
   type IconModeOption,
@@ -44,21 +39,16 @@ const isValidFilter = (value: string): value is GradingFilter =>
   value === "all" || value === "graded" || value === "ungraded";
 
 const ContestExamGradingScreen: React.FC = () => {
-  const { contestId } = useParams<{ contestId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [, startTransition] = useTransition();
   const { contest, refreshContest } = useContest();
   const { registerPanelRefresh } = useAdminPanelRefresh();
-  const [objectiveRegradedOnce, setObjectiveRegradedOnce] = useState(false);
-  const [publishingResults, setPublishingResults] = useState(false);
   const [selectionRequest, setSelectionRequest] = useState<{
     questionId: string;
     studentId: string;
     nonce: number;
   } | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const { confirm, modalProps } = useConfirmModal();
-  const { showToast } = useToast();
   const { t } = useTranslation("contest");
   const rawViewMode = searchParams.get("grading_view") || "byQuestion";
   const viewMode: GradingViewMode = isValidViewMode(rawViewMode)
@@ -69,6 +59,7 @@ const ContestExamGradingScreen: React.FC = () => {
   const filter: GradingFilter = isValidFilter(rawFilter) ? rawFilter : "all";
   const selectedQuestionId = searchParams.get("grading_question");
   const selectedStudentId = searchParams.get("grading_student");
+  const studentsOnly = searchParams.get("grading_students_only") === "1";
 
   const updateGradingParams = useCallback((updates: Record<string, string | null>) => {
     startTransition(() => {
@@ -97,39 +88,9 @@ const ContestExamGradingScreen: React.FC = () => {
   }, [setSearchParams, startTransition]);
 
   const published = !!contest?.resultsPublished;
-
-  const handleTogglePublish = async (next: boolean) => {
-    if (!contestId) return;
-    setPublishingResults(true);
-    try {
-      await updateContest(contestId, { resultsPublished: next } as any);
-      await refreshContest();
-      showToast({ kind: "success", title: next ? t("grading.publishSuccess", "成績已發布") : t("grading.unpublishSuccess", "已撤回發布") });
-    } catch {
-      showToast({ kind: "error", title: next ? t("grading.publishFailed", "發布失敗") : t("grading.unpublishFailed", "撤回失敗") });
-    } finally {
-      setPublishingResults(false);
-    }
-  };
-
-  const handleRequestTogglePublish = async () => {
-    const next = !published;
-    const confirmed = await confirm({
-      title: next
-        ? t("grading.publishConfirmTitle", "確定要發布成績嗎？")
-        : t("grading.unpublishConfirmTitle", "確定要撤回已發布成績嗎？"),
-      body: next
-        ? t("grading.publishConfirmBody", "發布後學生將可看到成績。")
-        : t("grading.unpublishConfirmBody", "撤回後學生將無法查看已發布成績。"),
-      confirmLabel: next
-        ? t("grading.publishResults", "發布成績")
-        : t("grading.unpublishResults", "撤回發布"),
-      cancelLabel: t("button.cancel", "取消"),
-      danger: !next,
-    });
-    if (!confirmed) return;
-    await handleTogglePublish(next);
-  };
+  const publishStateLabel = published
+    ? t("grading.published", "已發布")
+    : t("grading.unpublished", "未發布");
 
   const {
     answers,
@@ -139,34 +100,62 @@ const ContestExamGradingScreen: React.FC = () => {
     students,
     gradeAnswer,
     ungradeAnswer,
-    regradeObjectiveAnswers,
-    regradingObjective,
     refreshData,
     loading,
   } = useGradingData();
 
   const { flaggedIds, toggleFlag } = useGradingFlags();
 
-  const objectiveAnswerCount = useMemo(
-    () => answers.filter((row) => !isSubjectiveType(row.questionType)).length,
-    [answers],
+  // Filter to only student-role participants when toggle is active
+  const studentOnlyIds = useMemo(() => {
+    if (!studentsOnly) return null;
+    return new Set(
+      students
+        .filter((s) => !s.accountRole || s.accountRole === "student")
+        .map((s) => s.studentId),
+    );
+  }, [studentsOnly, students]);
+
+  const filteredStudents = useMemo(
+    () => (studentOnlyIds ? students.filter((s) => studentOnlyIds.has(s.studentId)) : students),
+    [students, studentOnlyIds],
   );
+
+  const filteredAnswers = useMemo(
+    () => (studentOnlyIds ? answers.filter((a) => studentOnlyIds.has(a.studentId)) : answers),
+    [answers, studentOnlyIds],
+  );
+
+  const filteredAnswersByQuestion = useMemo(() => {
+    if (!studentOnlyIds) return answersByQuestion;
+    const map = new Map<string, typeof answers>();
+    for (const [qId, rows] of answersByQuestion) {
+      map.set(qId, rows.filter((a) => studentOnlyIds.has(a.studentId)));
+    }
+    return map;
+  }, [answersByQuestion, studentOnlyIds]);
+
+  const filteredAnswersByStudent = useMemo(() => {
+    if (!studentOnlyIds) return answersByStudent;
+    const map = new Map<string, typeof answers>();
+    for (const [sId, rows] of answersByStudent) {
+      if (studentOnlyIds.has(sId)) map.set(sId, rows);
+    }
+    return map;
+  }, [answersByStudent, studentOnlyIds]);
   const ungradedCount = useMemo(
-    () => answers.filter((row) => row.score === null).length,
-    [answers],
+    () => filteredAnswers.filter((row) => row.score === null).length,
+    [filteredAnswers],
   );
   const gradedCount = useMemo(
-    () => answers.length - ungradedCount,
-    [answers.length, ungradedCount],
+    () => filteredAnswers.length - ungradedCount,
+    [filteredAnswers.length, ungradedCount],
   );
   const gradingProgress = useMemo(
-    () => `${Math.round((gradedCount / Math.max(answers.length, 1)) * 100)}%`,
-    [gradedCount, answers.length],
+    () => `${Math.round((gradedCount / Math.max(filteredAnswers.length, 1)) * 100)}%`,
+    [gradedCount, filteredAnswers.length],
   );
-  const publishStateLabel = published
-    ? t("grading.published", "已發布")
-    : t("grading.unpublished", "未發布");
-  const hasActiveFilters = searchQuery.trim().length > 0 || filter !== "all";
+  const hasActiveFilters = searchQuery.trim().length > 0 || filter !== "all" || studentsOnly;
   const filterOptions = useMemo<GlobalFilterOption[]>(
     () => [
       { id: "all" as const, label: t("grading.filterAll", "全部") },
@@ -214,24 +203,6 @@ const ContestExamGradingScreen: React.FC = () => {
     });
   };
 
-  const handleRegradeObjective = async () => {
-    const result = await regradeObjectiveAnswers();
-    setObjectiveRegradedOnce(true);
-    if (result.failed > 0) {
-      showToast({
-        kind: "warning",
-        title: t("grading.objectiveRegradePartialFail", "客觀題重新批改完成（部分失敗）"),
-        subtitle: t("grading.regradePartialDetail", { updated: result.updated, failed: result.failed, skipped: result.skipped }),
-      });
-      return;
-    }
-    showToast({
-      kind: "success",
-      title: t("grading.objectiveRegradeComplete", "客觀題重新批改完成"),
-      subtitle: t("grading.regradeDetail", { updated: result.updated, skipped: result.skipped }),
-    });
-  };
-
   useEffect(() => {
     return registerPanelRefresh("grading", async () => {
       await Promise.all([refreshData(), refreshContest()]);
@@ -270,9 +241,9 @@ const ContestExamGradingScreen: React.FC = () => {
           <div className={styles.globalMeta}>
             {t("grading.globalSummary", "題目 {{questions}} 題 · 學生 {{students}} 人 · 批改進度 {{graded}}/{{total}} ({{progress}}) · {{status}}", {
               questions: questionProgress.length,
-              students: students.length,
+              students: filteredStudents.length,
               graded: gradedCount,
-              total: answers.length,
+              total: filteredAnswers.length,
               progress: gradingProgress,
               status: publishStateLabel,
             })}
@@ -326,6 +297,17 @@ const ContestExamGradingScreen: React.FC = () => {
                         }
                       />
                     ) : null}
+                    <Toggle
+                      id="grading-students-only"
+                      labelText={t("grading.studentsOnly", "只顯示學生")}
+                      labelA={t("grading.studentsOnlyOff", "全部角色")}
+                      labelB={t("grading.studentsOnlyOn", "僅學生")}
+                      toggled={studentsOnly}
+                      onToggle={(checked) =>
+                        updateGradingParams({ grading_students_only: checked ? "1" : null })
+                      }
+                      size="sm"
+                    />
                   </div>
                   <div className={styles.globalFilterPopoverActions}>
                     <Button
@@ -351,36 +333,6 @@ const ContestExamGradingScreen: React.FC = () => {
         </div>
 
         <div className={styles.toolbarSpacer} />
-
-        {objectiveAnswerCount > 0 ? (
-          <OverflowMenu
-            ariaLabel={t("grading.moreActions", "更多操作")}
-            className={styles.toolbarOverflow}
-            size="sm"
-            flipped
-          >
-            <OverflowMenuItem
-              itemText={
-                objectiveRegradedOnce
-                  ? t("grading.autoGraded", "已自動批改")
-                  : t("grading.autoGrade", "自動批改客觀題")
-              }
-              disabled={regradingObjective || objectiveRegradedOnce}
-              onClick={handleRegradeObjective}
-            />
-          </OverflowMenu>
-        ) : null}
-
-        <div className={styles.toolbarDivider} />
-        <Button
-          kind={published ? "danger--ghost" : "secondary"}
-          size="sm"
-          disabled={publishingResults}
-          onClick={handleRequestTogglePublish}
-          className={styles.toolbarAction}
-        >
-          {published ? t("grading.unpublishResults", "撤回發布") : t("grading.publishResults", "發布成績")}
-        </Button>
       </div>
 
       {/* Editor body */}
@@ -389,8 +341,8 @@ const ContestExamGradingScreen: React.FC = () => {
           {viewMode === "byQuestion" ? (
             <GradingByQuestionTabScreen
               questionProgress={questionProgress}
-              answersByQuestion={answersByQuestion}
-              students={students}
+              answersByQuestion={filteredAnswersByQuestion}
+              students={filteredStudents}
               onGrade={gradeAnswer}
               onUngrade={ungradeAnswer}
               flaggedIds={flaggedIds}
@@ -409,9 +361,9 @@ const ContestExamGradingScreen: React.FC = () => {
             />
           ) : viewMode === "byStudent" ? (
             <GradingByStudentTabScreen
-              answersByStudent={answersByStudent}
+              answersByStudent={filteredAnswersByStudent}
               questionProgress={questionProgress}
-              students={students}
+              students={filteredStudents}
               onGrade={gradeAnswer}
               onUngrade={ungradeAnswer}
               flaggedIds={flaggedIds}
@@ -425,14 +377,13 @@ const ContestExamGradingScreen: React.FC = () => {
           ) : (
             <GradingMatrixViewScreen
               questionProgress={questionProgress}
-              students={students}
-              answersByQuestion={answersByQuestion}
+              students={filteredStudents}
+              answersByQuestion={filteredAnswersByQuestion}
               onSelectCell={handleSelectMatrixCell}
             />
           )}
         </div>
       </div>
-      <ConfirmModal {...modalProps} />
     </div>
   );
 };

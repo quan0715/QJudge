@@ -14,6 +14,7 @@ import { updateContest } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { computeParticipantStatusKpi } from "../participantStatusKpi";
+import { useGradingData } from "@/features/contest/screens/settings/grading";
 import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
 import styles from "./AdminOverviewScreen.module.scss";
 import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
@@ -37,6 +38,7 @@ export default function AdminOverviewScreen() {
     () => computeParticipantStatusKpi(participants),
     [participants],
   );
+  const { globalStats } = useGradingData();
   const violationCount = useMemo(
     () =>
       examEvents.filter(
@@ -82,13 +84,33 @@ export default function AdminOverviewScreen() {
 
   const handlePublishResults = useCallback(async (progressPercent?: number) => {
     if (!contest?.id) return;
-    const progressWarning =
-      typeof progressPercent === "number" && progressPercent < 100
-        ? t("adminOverview.actions.publishResultsWarning", { progress: progressPercent })
-        : "";
+    const isIncomplete = typeof progressPercent === "number" && progressPercent < 100;
     const confirmed = await confirm({
       title: t("adminOverview.actions.publishResultsConfirm"),
-      body: `${t("adminOverview.actions.publishResultsBody")}${progressWarning ? "\n\n" + progressWarning : ""}`,
+      body: isIncomplete ? (
+        <>
+          <p>{t("adminOverview.actions.publishResultsBody")}</p>
+          <p style={{ marginTop: "0.75rem", color: "var(--cds-support-warning)" }}>
+            {t("adminOverview.actions.publishResultsWarning", { progress: progressPercent })}
+          </p>
+          <button
+            type="button"
+            onClick={() => openPanel("grading")}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              marginTop: "0.5rem",
+              color: "var(--cds-link-primary)",
+              fontSize: "0.875rem",
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            {t("adminOverview.actions.goToGrading", "前往批改面板")}
+          </button>
+        </>
+      ) : t("adminOverview.actions.publishResultsBody"),
       confirmLabel: t("adminOverview.actions.publishResults"),
       cancelLabel: tc("button.cancel"),
     });
@@ -214,6 +236,7 @@ export default function AdminOverviewScreen() {
             <OverviewActionWidgets
               contest={contest}
               kpi={kpi}
+              gradingStats={globalStats}
               violationCount={violationCount}
               loading={initialLoading}
               onOpenPanel={openPanel}

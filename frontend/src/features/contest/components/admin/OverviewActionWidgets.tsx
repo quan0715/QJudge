@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ComponentType, ReactNode } from "react";
 import { ProgressBar, Tile, SkeletonText } from "@carbon/react";
 import {
-  ChevronRight,
   Education,
   Time,
   UserMultiple,
   TaskComplete,
   Warning,
+  Undo,
+  Security,
+  Edit,
+  Send,
+  Activity,
+  Group,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
+import { ActionWidgetCard } from "@/shared/ui/dataCard";
 import type { ParticipantStatusKpi } from "@/features/contest/screens/admin/participantStatusKpi";
+import type { GlobalStats } from "@/features/contest/screens/settings/grading/gradingTypes";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 import {
   calculateContestTimeProgressAt,
@@ -22,6 +28,7 @@ import styles from "./OverviewActionWidgets.module.scss";
 interface OverviewActionWidgetsProps {
   contest: ContestDetail;
   kpi: ParticipantStatusKpi;
+  gradingStats?: GlobalStats;
   violationCount: number;
   loading?: boolean;
   onOpenPanel: (panel: AdminPanelId) => void;
@@ -32,53 +39,11 @@ interface OverviewActionWidgetsProps {
   onToggleStrictMode: () => Promise<void>;
 }
 
-interface WidgetCardProps {
-  title: string;
-  icon: ComponentType<{ size: number; className?: string }>;
-  value: ReactNode;
-  unit?: string;
-  cta: string;
-  onClick: () => void;
-}
-
-const WidgetCard = ({
-  title,
-  icon: Icon,
-  value,
-  unit,
-  cta,
-  onClick,
-}: WidgetCardProps) => (
-  <button
-    type="button"
-    className={styles.widgetButton}
-    onClick={onClick}
-    aria-label={`${title} ${cta}`}
-  >
-    <Tile className={styles.widgetCard}>
-      <div className={styles.widgetHeader}>
-        <div className={styles.widgetTitleRow}>
-          <Icon size={16} className={styles.widgetIcon} />
-          <h3 className={styles.widgetTitle}>{title}</h3>
-        </div>
-      </div>
-      <div className={styles.widgetValue}>
-        <span>{value}</span>
-        {unit && <span className={styles.widgetUnit}>{unit}</span>}
-      </div>
-      <div className={styles.widgetFooter}>
-        <span>{cta}</span>
-        <span className={styles.widgetCta}>
-          <ChevronRight size={16} />
-        </span>
-      </div>
-    </Tile>
-  </button>
-);
 
 export default function OverviewActionWidgets({
   contest,
   kpi,
+  gradingStats,
   violationCount,
   loading = false,
   onOpenPanel,
@@ -102,13 +67,18 @@ export default function OverviewActionWidgets({
     }
     return Math.max(0, Math.floor((startAtMs - nowMs) / 1000));
   }, [contest.startTime, nowMs]);
-  const contestWindowText = useMemo(() => {
-    const formatDateTime = (value: string | undefined): string => {
+  const { startTimeLabel, endTimeLabel } = useMemo(() => {
+    const fmt = (value: string | undefined): string => {
       const ts = Date.parse(value ?? "");
       if (!Number.isFinite(ts)) return "--";
-      return new Date(ts).toLocaleString();
+      const d = new Date(ts);
+      const month = (d.getMonth() + 1).toString().padStart(2, "0");
+      const day = d.getDate().toString().padStart(2, "0");
+      const hours = d.getHours().toString().padStart(2, "0");
+      const mins = d.getMinutes().toString().padStart(2, "0");
+      return `${month}/${day} ${hours}:${mins}`;
     };
-    return `${formatDateTime(contest.startTime)} -> ${formatDateTime(contest.endTime)}`;
+    return { startTimeLabel: fmt(contest.startTime), endTimeLabel: fmt(contest.endTime) };
   }, [contest.endTime, contest.startTime]);
   const workItemCount =
     contest.contestType === "paper_exam"
@@ -116,10 +86,9 @@ export default function OverviewActionWidgets({
       : contest.problems.length;
   const canToggleStatus = contest.permissions?.canToggleStatus !== false;
   const canEditContest = contest.permissions?.canEditContest !== false;
-  const gradingProgressPercent =
-    kpi.totalParticipants > 0
-      ? Math.round((kpi.submittedCount / kpi.totalParticipants) * 100)
-      : 0;
+  const gradingProgressPercent = gradingStats && gradingStats.totalAnswers > 0
+    ? Math.round((gradingStats.gradedAnswers / gradingStats.totalAnswers) * 100)
+    : 0;
 
   const statusLabel =
     contestStatus === "draft"
@@ -246,9 +215,11 @@ export default function OverviewActionWidgets({
       </div>
 
       <div className={styles.grid}>
-        <WidgetCard
+        <ActionWidgetCard
           title={t("adminOverview.widgets.status", "競賽狀態")}
           icon={TaskComplete}
+          actionIcon={Undo}
+          actionIntent="danger"
           value={statusLabel}
           cta={statusAction.cta}
           onClick={() => {
@@ -257,9 +228,12 @@ export default function OverviewActionWidgets({
           }}
         />
 
-        <WidgetCard
+        <ActionWidgetCard
           title={t("adminOverview.widgets.strictExamMode", "嚴格考試模式")}
           icon={TaskComplete}
+          actionIcon={Security}
+          actionIntent="toggle"
+          active={contest.cheatDetectionEnabled}
           value={
             contest.cheatDetectionEnabled
               ? t("adminOverview.widgets.enabled", "已啟用")
@@ -276,20 +250,26 @@ export default function OverviewActionWidgets({
           }}
         />
 
-        <WidgetCard
+        <ActionWidgetCard
           title={t("adminOverview.widgets.questions", "題目數量")}
           icon={Education}
+          actionIcon={Edit}
+          actionIntent="navigate"
           value={workItemCount}
           unit={t("adminOverview.kpi.problemUnit", "題")}
           cta={t("adminOverview.widgets.goProblemManagement", "前往題目管理")}
           onClick={() => onOpenPanel("problem_editor")}
         />
 
-        <WidgetCard
+        <ActionWidgetCard
           title={t("adminOverview.widgets.gradingStatus", "考試批改狀態")}
           icon={Time}
+          actionIcon={Send}
+          actionIntent="toggle"
+          active={contest.resultsPublished}
           value={`${gradingProgressPercent}%`}
           unit={gradingStatusLabel}
+          progress={gradingProgressPercent}
           cta={gradingAction.cta}
           onClick={() => {
             if (!canEditContest) return;
@@ -321,7 +301,11 @@ export default function OverviewActionWidgets({
             value={liveTimeProgress.progressPercent}
           />
           <div className={styles.progressFooter}>
-            <div className={styles.progressWindowText}>{contestWindowText}</div>
+            <div className={styles.progressWindowText}>
+              {startTimeLabel}
+              <span className={styles.progressWindowSep}>{" — "}</span>
+              {endTimeLabel}
+            </div>
             <div className={styles.progressStatusText}>
               {liveTimeProgress.isEnded
                 ? t("adminOverview.time.ended", "已結束")
@@ -336,35 +320,25 @@ export default function OverviewActionWidgets({
           </div>
         </Tile>
 
-        <button
-          type="button"
-          className={styles.widgetButton}
-          aria-label={t("adminOverview.widgets.violationCountAria", "違規次數 前往事件面板")}
+        <ActionWidgetCard
+          title={t("adminOverview.widgets.violationCount", "違規次數")}
+          icon={Warning}
+          actionIcon={Activity}
+          actionIntent="danger"
+          active={violationCount > 0}
+          value={violationCount}
+          valueColor={violationCount > 0 ? "var(--cds-support-error, #da1e28)" : undefined}
+          unit={t("adminOverview.kpi.caseUnit", "次")}
+          cta={t("adminOverview.widgets.goEventPanel", "前往事件面板")}
+          notificationDot={violationCount > 0}
           onClick={() => onOpenPanel("logs")}
-        >
-          <Tile className={styles.widgetCard}>
-            <div className={styles.widgetHeader}>
-              <div className={styles.widgetTitleRow}>
-                <Warning size={16} className={styles.widgetIcon} />
-                <h3 className={styles.widgetTitle}>{t("adminOverview.widgets.violationCount", "違規次數")}</h3>
-              </div>
-            </div>
-            <div className={styles.widgetValue}>
-              <span>{violationCount}</span>
-              <span className={styles.widgetUnit}>{t("adminOverview.kpi.caseUnit", "次")}</span>
-            </div>
-            <div className={styles.widgetFooter}>
-              <span>{t("adminOverview.widgets.goEventPanel", "前往事件面板")}</span>
-              <span className={styles.widgetCta}>
-                <ChevronRight size={16} />
-              </span>
-            </div>
-          </Tile>
-        </button>
+        />
 
-        <WidgetCard
+        <ActionWidgetCard
           title={t("adminOverview.widgets.participants", "參賽者")}
           icon={UserMultiple}
+          actionIcon={Group}
+          actionIntent="navigate"
           value={kpi.totalParticipants}
           unit={t("adminOverview.kpi.personUnit", "人")}
           cta={t("adminOverview.widgets.goParticipantList", "進入參賽者列表")}

@@ -1,64 +1,114 @@
-During an online exam, proctors need to keep track of students' progress and handle various unexpected situations in real-time. This guide will show you how to use QJudge's proctoring tools for manual intervention.
+This document describes the QJudge Exam JSON import/export v2 minimum spec: `preview -> apply -> rollback`, including the "Copy AI Prompt" workflow.
 
 ---
 
-## 1. Participants Management
+## 1. JSON Format (`qjudge.exam.v1`)
 
-You can view all examinees via **"My Contests" > Select Exam > "Participants"**.
+Imported data must be a **single JSON object** (not an array):
 
-### Student Status
-In the list, you can see the real-time status of each student:
-- **In Progress**: The student is currently on the exam page.
-- **Locked**: The student has been automatically locked by the system due to anti-cheat violations.
-- **Finished**: The student has clicked the "Finish" button.
-- **Missing**: The student has not entered the exam yet.
+```json
+{
+  "version": "qjudge.exam.v1",
+  "meta": {
+    "exported_at": "2026-04-04T00:00:00.000Z",
+    "contest_name": "OS Midterm"
+  },
+  "questions": [
+    {
+      "question_type": "single_choice",
+      "prompt": "Which one is a Python keyword?",
+      "score": 5,
+      "options": ["var", "let", "def", "function"],
+      "correct_answer": 2
+    }
+  ]
+}
+```
 
----
+### Required Rules
 
-## 2. Handling Anti-Cheat Lockouts (Unlocking)
+- `version` must be `qjudge.exam.v1`.
+- Root keys must be only `version`, `meta`, and `questions` (no unknown fields).
+- `questions` must contain at least one item.
+- `score` must be greater than 0.
+- Allowed question types: `true_false`, `single_choice`, `multiple_choice`, `short_answer`, `essay`.
 
-If you have enabled "Exam Mode", students will accumulate violation counts if they switch windows or leave full-screen mode. After reaching the limit, the student will be locked and cannot continue entering answers.
+### Type-specific Rules
 
-### How to unlock manually:
-1. **Locate Student**: Find the student with the "Locked" status in the participant list.
-2. **Click Unlock**: Click the **"Unlock"** button on the right side of the student's row.
-3. **Confirm Unlock**: The system will clear the violation status, and the student will receive an immediate notification to re-enter full-screen and continue.
-
-> **Tip**: After unlocking, the student's violation count will reset to zero. You can view specific reasons and timestamps for the lockout in the "Event Log".
-
----
-
-## 3. Adding Participants Manually
-
-If a student cannot enter the exam for special reasons (e.g., forgot password, unable to register), the teacher can add them manually:
-
-1. **Go to "Participants"**.
-2. **Add Manually**: Click **"Add Participant Manually"** on the page.
-3. **Enter Account**: Enter the student's **Username** or **Email**.
-4. **Complete**: After the student refreshes the page, the exam will appear for them.
-
----
-
-## 4. Other Manual Interventions
-
-### Force Submit
-If the exam has ended but a student has not clicked the submit button (or their browser crashed), the system usually handles it automatically. However, for individual cases:
-- In "Participants", click **"Finish"** for the specific student. The system will take the currently saved answers as the final version.
-
-### Time Extension
-If an individual student is delayed due to computer failure, the teacher can manually add time:
-1. **Go to Settings**: Click the **"Settings"** tab of the exam.
-2. **Individual Override**: Find the student and set a personal end time offset.
-   *(Note: This feature depends on the version; if not available, consider extending the end time for the entire contest.)*
+- `true_false`
+  - `options` is optional; if present it must be `["True", "False"]`
+  - `correct_answer` can be `0/1/true/false/"true"/"false"`
+- `single_choice`
+  - `options` must contain at least 2 items
+  - `correct_answer` must be a valid integer option index
+- `multiple_choice`
+  - `options` must contain at least 2 items
+  - `correct_answer` must be a non-empty array of integer option indexes
+- `short_answer` / `essay`
+  - `options` should not be provided
+  - `correct_answer` is optional and can be a string/primitive
 
 ---
 
-## 5. Real-time Event Log
+## 2. Import Flow (v2)
 
-At the bottom (or side) of the management console, there is an **"Events"** log that records:
-- **Login/Logout timestamps**.
-- **Entering/Exiting full-screen**.
-- **Lockout and unlock timestamps**.
-- **Actions handled automatically by the system**.
+The import modal is a two-step flow:
 
-Through the event log, teachers can determine if a student had clear cheating intent or if it was just an accidental operation.
+1. Optionally click **View import format docs** in the modal to open this page.
+2. Paste/upload JSON.
+3. Choose an import mode.
+4. Click **Preview Changes** to move to the next step.
+5. On the preview step, review summary (add/delete/keep/score delta) and full question content.
+6. Click **Apply Import**.
+7. Use rollback if needed.
+
+### Import Modes
+
+- `append` (default): keep existing questions and append new ones.
+- `replace_all`: delete all existing questions then import new ones (with explicit confirmation).
+- `replace_manual_only`: delete only manual/JSON questions and keep bank-imported questions.
+
+---
+
+## 3. API Endpoints
+
+- `POST /api/v1/contests/{id}/exam-questions/import/preview`
+- `POST /api/v1/contests/{id}/exam-questions/import/apply`
+- `POST /api/v1/contests/{id}/exam-questions/import/rollback`
+
+### Request Fields
+
+- preview/apply: `payload_json`, `import_mode`
+- apply (optional): `fingerprint` (recommended from preview response)
+- rollback: `session_id`
+
+### Response Highlights
+
+- preview: `summary`, `fingerprint`
+- apply: `session_id`, `applied_summary`, `questions`
+- rollback: `rolled_back`, `restored_count`, `session_id`
+
+---
+
+## 4. Copy AI Prompt Workflow
+
+In the import modal, click **Copy AI Prompt**:
+
+1. Paste the prompt into your AI tool.
+2. Ask AI to return explanation + final JSON code block.
+3. Copy the JSON object back into QJudge import.
+4. Preview first, then apply.
+
+---
+
+## 5. Rollback and Lock Rules
+
+- Every apply creates a rollback session (before/after snapshots).
+- Rollback restores the state before that apply.
+- If contest question editing is locked (`question_edit_locked`), preview/apply/rollback are all rejected.
+
+---
+
+## 6. Removed Legacy Flow
+
+The old `batch-import` endpoint was removed. Direct overwrite shortcut is no longer supported.

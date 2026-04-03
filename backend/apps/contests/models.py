@@ -337,6 +337,7 @@ class ContestProblem(models.Model):
 
     class SourceMode(models.TextChoices):
         MANUAL = "manual", "Manual"
+        JSON = "json", "JSON"
         COPY = "copy", "Copy"
         REFERENCE = "reference", "Reference"
 
@@ -530,6 +531,41 @@ class ExamQuestion(models.Model):
             'question_type': self.question_type,
             'score': self.score,
         }
+
+
+class ExamQuestionImportSession(models.Model):
+    """Audit and rollback snapshot for exam question imports."""
+
+    class ImportMode(models.TextChoices):
+        APPEND = "append", "Append"
+        REPLACE_ALL = "replace_all", "Replace All"
+        REPLACE_MANUAL_ONLY = "replace_manual_only", "Replace Manual Only"
+
+    id = models.UUIDField(primary_key=True, default=uuid_lib.uuid4, editable=False)
+    contest = models.ForeignKey(
+        Contest,
+        on_delete=models.CASCADE,
+        related_name="exam_question_import_sessions",
+    )
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="exam_question_import_sessions",
+    )
+    import_mode = models.CharField(max_length=32, choices=ImportMode.choices)
+    before_snapshot = models.JSONField(default=list, blank=True)
+    after_snapshot = models.JSONField(default=list, blank=True)
+    summary = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "exam_question_import_sessions"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["contest", "created_at"]),
+        ]
 
 
 class ExamStatus(models.TextChoices):

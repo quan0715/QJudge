@@ -24,10 +24,30 @@ import type {
   ContestAnticheatDevicePolicy,
   ContestAnticheatConfig,
   ContestOverviewMetrics,
+  ContestUpdateRequest,
+  ContestType,
+  ExamQuestionType,
 } from "@/core/entities/contest.entity";
+import type {
+  ContestProblemSummaryDto,
+  ContestDto,
+  ContestDetailDto,
+  ContestOverviewMetricsDto,
+  ContestParticipantDto,
+  ParticipantDashboardDto,
+  ScoreboardRowDto,
+  ScoreboardDto,
+  AnticheatDevicePolicyDto,
+  ParticipantDashboardStatusDto,
+  ParticipantTimelineItemDto,
+  ParticipantPaperReportRowDto,
+  ParticipantCodingProblemRowDto,
+  ParticipantEvidenceRowDto,
+  EventFeedItemDto,
+} from "@/infrastructure/api/dto/contest.dto";
 import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
 
-export function mapContestProblemSummaryDto(dto: any): ContestProblemSummary {
+export function mapContestProblemSummaryDto(dto: ContestProblemSummaryDto): ContestProblemSummary {
   const resolvedMaxScore = dto.max_score ?? dto.score;
   return {
     id: dto.id?.toString() || "",
@@ -47,11 +67,11 @@ export function mapContestProblemSummaryDto(dto: any): ContestProblemSummary {
       dto.source_question_id != null ? dto.source_question_id.toString() : null,
     sourceMode: dto.source_mode || "manual",
     userStatus: dto.user_status,
-    difficulty: dto.difficulty,
+    difficulty: dto.difficulty as any,
   };
 }
 
-export function mapContestDto(dto: any): Contest {
+export function mapContestDto(dto: ContestDto): Contest {
   const requiresPassword =
     typeof dto.requires_password === "boolean"
       ? dto.requires_password
@@ -75,7 +95,7 @@ export function mapContestDto(dto: any): Contest {
   };
 }
 
-export function mapContestDetailDto(dto: any): ContestDetail {
+export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
   const contest = mapContestDto(dto);
 
   return {
@@ -115,7 +135,7 @@ export function mapContestDetailDto(dto: any): ContestDetail {
     lockReason: dto.lock_reason,
     submitReason: dto.submit_reason,
     examStatus: dto.exam_status,
-    assignmentState: dto.assignment_state ?? null,
+    assignmentState: dto.assignment_state as any ?? null,
     acceptedAt: dto.accepted_at ?? null,
     submittedAt: dto.submitted_at ?? null,
     autoUnlockAt: dto.auto_unlock_at,
@@ -142,7 +162,7 @@ export function mapContestDetailDto(dto: any): ContestDetail {
 
     // Multi-admin support
     admins: Array.isArray(dto.admins)
-      ? dto.admins.map((a: any) => ({
+      ? dto.admins.map((a) => ({
           id: a.id?.toString() || "",
           username: a.username || "",
         }))
@@ -150,20 +170,14 @@ export function mapContestDetailDto(dto: any): ContestDetail {
   };
 }
 
-export function mapAnticheatDevicePolicyDto(value: unknown): ContestAnticheatDevicePolicy {
-  const root =
-    value && typeof value === "object" && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
+export function mapAnticheatDevicePolicyDto(value: AnticheatDevicePolicyDto | undefined): ContestAnticheatDevicePolicy {
+  const root = value || {};
 
   const parseSource = (
-    sourceValue: unknown,
+    sourceValue: any,
     fallback: { enabled: boolean; captureIntervalSeconds: number }
   ) => {
-    const source =
-      sourceValue && typeof sourceValue === "object" && !Array.isArray(sourceValue)
-        ? (sourceValue as Record<string, unknown>)
-        : {};
+    const source = sourceValue || {};
     return {
       enabled: typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
       captureIntervalSeconds:
@@ -176,13 +190,10 @@ export function mapAnticheatDevicePolicyDto(value: unknown): ContestAnticheatDev
   };
 
   const parseDetectors = (
-    detectorValue: unknown,
+    detectorValue: any,
     fallback: ContestAnticheatDevicePolicy["desktop"]["detectors"]
   ) => {
-    const detectors =
-      detectorValue && typeof detectorValue === "object" && !Array.isArray(detectorValue)
-        ? (detectorValue as Record<string, unknown>)
-        : {};
+    const detectors = detectorValue || {};
     return {
       pwaMode:
         typeof detectors.pwa_mode === "boolean"
@@ -224,19 +235,13 @@ export function mapAnticheatDevicePolicyDto(value: unknown): ContestAnticheatDev
     key: "desktop" | "tablet",
     fallback: ContestAnticheatDevicePolicy["desktop"]
   ) => {
-    const item =
-      root[key] && typeof root[key] === "object" && !Array.isArray(root[key])
-        ? (root[key] as Record<string, unknown>)
-        : {};
-    const sources =
-      item.sources && typeof item.sources === "object" && !Array.isArray(item.sources)
-        ? (item.sources as Record<string, unknown>)
-        : {};
+    const item = root[key] || {};
+    const sources = item.sources || {};
     return {
       enabled: typeof item.enabled === "boolean" ? item.enabled : fallback.enabled,
       sources: {
         screenShare: parseSource(
-          sources.screen_share ?? sources.screenShare,
+          sources.screen_share ?? (sources as any).screenShare,
           fallback.sources.screenShare
         ),
         webcam: parseSource(sources.webcam, fallback.sources.webcam),
@@ -251,12 +256,12 @@ export function mapAnticheatDevicePolicyDto(value: unknown): ContestAnticheatDev
   };
 }
 
-export function mapContestOverviewMetricsDto(dto: any): ContestOverviewMetrics {
+export function mapContestOverviewMetricsDto(dto: ContestOverviewMetricsDto): ContestOverviewMetrics {
   const examStatus =
     dto?.exam?.status === "upcoming" ||
     dto?.exam?.status === "running" ||
     dto?.exam?.status === "ended"
-      ? dto.exam.status
+      ? (dto.exam.status as any)
       : "upcoming";
 
   const contestType = dto?.exam?.contest_type === "paper_exam" ? "paper_exam" : "coding";
@@ -350,7 +355,7 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
   }
 
   const rawDevicePolicy = root["device_policy"] ?? contestSettings["anticheat_device_policy"];
-  const parsedDevicePolicy = mapAnticheatDevicePolicyDto(rawDevicePolicy);
+  const parsedDevicePolicy = mapAnticheatDevicePolicyDto(rawDevicePolicy as any);
 
   return {
     version,
@@ -427,7 +432,7 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
         "contest_settings"
       ),
       anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
-        contestSettings["anticheat_device_policy"]
+        contestSettings["anticheat_device_policy"] as any
       ),
     },
     effective: {
@@ -492,7 +497,7 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
       autoUnlockMinutes: ensureNumber(effective, "auto_unlock_minutes", "effective"),
       contestType: ensureString(effective, "contest_type", "effective") === "paper_exam" ? "paper_exam" : "coding",
       anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
-        effective["anticheat_device_policy"]
+        effective["anticheat_device_policy"] as any
       ),
     },
     devicePolicy: parsedDevicePolicy,
@@ -503,7 +508,7 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
   };
 }
 
-export function mapContestParticipantDto(dto: any): ContestParticipant {
+export function mapContestParticipantDto(dto: ContestParticipantDto): ContestParticipant {
   return {
     userId: dto.user_id?.toString() || "",
     username: dto.username || "",
@@ -511,7 +516,6 @@ export function mapContestParticipantDto(dto: any): ContestParticipant {
     userDisplayName: dto.user_display_name || dto.user?.profile?.display_name || "",
     accountRole: dto.account_role || dto.user?.role || "",
     authProvider: dto.auth_provider || dto.user?.auth_provider || "",
-    // 優先使用動態計算的 total_score，否則使用靜態的 score
     score: dto.total_score ?? dto.score ?? 0,
     rank: dto.rank,
     joinedAt: dto.joined_at || "",
@@ -524,13 +528,13 @@ export function mapContestParticipantDto(dto: any): ContestParticipant {
   };
 }
 
-const mapParticipantDashboardStatusDto = (dto: any): ParticipantDashboardStatus => ({
+const mapParticipantDashboardStatusDto = (dto: ParticipantDashboardStatusDto): ParticipantDashboardStatus => ({
   code: dto?.code || "",
   label: dto?.label || "",
   color: dto?.color || "gray",
 });
 
-const mapParticipantTimelineDto = (dto: any): ParticipantDashboardTimelineItem => ({
+const mapParticipantTimelineDto = (dto: ParticipantTimelineItemDto): ParticipantDashboardTimelineItem => ({
   id: dto?.id?.toString() || "",
   source: dto?.source === "exam_event" ? "exam_event" : "activity",
   eventType: dto?.event_type || "",
@@ -557,11 +561,11 @@ const mapParticipantOverviewDto = (dto: any): ParticipantOverviewSummary => ({
   totalQuestions: dto?.total_questions != null ? Number(dto.total_questions) : undefined,
 });
 
-const mapPaperOverviewRowDto = (dto: any): ParticipantPaperReportOverviewRow => ({
+const mapPaperOverviewRowDto = (dto: ParticipantPaperReportRowDto): ParticipantPaperReportOverviewRow => ({
   questionId: dto?.question_id?.toString() || "",
   index: Number(dto?.index ?? 0),
-  questionType: dto?.question_type || "essay",
-  status: mapParticipantDashboardStatusDto(dto?.status),
+  questionType: (dto?.question_type || "essay") as ExamQuestionType,
+  status: mapParticipantDashboardStatusDto(dto?.status || {}),
   score: dto?.score != null ? Number(dto.score) : null,
   maxScore: Number(dto?.max_score ?? 0),
 });
@@ -569,7 +573,7 @@ const mapPaperOverviewRowDto = (dto: any): ParticipantPaperReportOverviewRow => 
 const mapPaperQuestionDetailDto = (dto: any): ParticipantPaperQuestionDetail => ({
   questionId: dto?.question_id?.toString() || "",
   index: Number(dto?.index ?? 0),
-  questionType: dto?.question_type || "essay",
+  questionType: (dto?.question_type || "essay") as ExamQuestionType,
   prompt: dto?.prompt || "",
   options: Array.isArray(dto?.options) ? dto.options.map((item: unknown) => String(item)) : [],
   correctAnswer: dto?.correct_answer,
@@ -580,10 +584,10 @@ const mapPaperQuestionDetailDto = (dto: any): ParticipantPaperQuestionDetail => 
   gradedByUsername: dto?.graded_by_username || null,
   gradedAt: dto?.graded_at || null,
   isCorrect: dto?.is_correct ?? null,
-  status: mapParticipantDashboardStatusDto(dto?.status),
+  status: mapParticipantDashboardStatusDto(dto?.status || {}),
 });
 
-const mapCodingProblemRowDto = (dto: any): ParticipantCodingProblemRow => ({
+const mapCodingProblemRowDto = (dto: ParticipantCodingProblemRowDto): ParticipantCodingProblemRow => ({
   problemId: dto?.problem_id?.toString() || "",
   label: dto?.label || "",
   title: dto?.title || "",
@@ -621,14 +625,14 @@ const mapCodingTrendPointDto = (dto: any): ParticipantCodingTrendPoint => ({
   problemTitle: dto?.problem_title,
 });
 
-const mapParticipantEvidenceRowDto = (dto: any): ParticipantEvidenceRow => ({
+const mapParticipantEvidenceRowDto = (dto: ParticipantEvidenceRowDto): ParticipantEvidenceRow => ({
   // Keep API compatibility: unknown status falls back to pending.
-  jobStatus: ["pending", "running", "success", "failed", "no_data"].includes(dto?.job_status)
+  jobStatus: (["pending", "running", "success", "failed", "no_data"].includes(dto?.job_status || "")
     ? dto.job_status
-    : "pending",
+    : "pending") as any,
   id: Number(dto?.id ?? 0),
   uploadSessionId: dto?.upload_session_id || "default",
-  sourceModule: dto?.source_module === "webcam" ? "webcam" : "screen_share",
+  sourceModule: (dto?.source_module === "webcam" ? "webcam" : "screen_share") as any,
   hasVideo: !!dto?.has_video,
   jobErrorMessage: dto?.job_error_message || "",
   durationSeconds: Number(dto?.duration_seconds ?? 0),
@@ -642,7 +646,7 @@ const mapParticipantEvidenceRowDto = (dto: any): ParticipantEvidenceRow => ({
   videoId: dto?.video_id != null ? Number(dto.video_id) : null,
 });
 
-const mapEventFeedItemDto = (dto: any): EventFeedItem => ({
+const mapEventFeedItemDto = (dto: EventFeedItemDto): EventFeedItem => ({
   incidentKey: dto?.incident_key || "",
   eventType: dto?.event_type || "",
   priority: Number(dto?.priority ?? 3),
@@ -653,13 +657,13 @@ const mapEventFeedItemDto = (dto: any): EventFeedItem => ({
   count: Number(dto?.count ?? 1),
   evidenceCount: Number(dto?.evidence_count ?? 0),
   summary: dto?.summary || "",
-  source: dto?.source === "exam_event" ? "exam_event" : "activity",
+  source: (dto?.source === "exam_event" ? "exam_event" : "activity") as any,
   userName: dto?.user_name || "",
   userId: dto?.user_id?.toString() || "",
   metadata: dto?.metadata || {},
 });
 
-export function mapParticipantDashboardDto(dto: any): ParticipantDashboard {
+export function mapParticipantDashboardDto(dto: ParticipantDashboardDto): ParticipantDashboard {
   const participant = mapContestParticipantDto(dto?.participant || {});
   const baseParticipant = {
     ...participant,
@@ -668,7 +672,7 @@ export function mapParticipantDashboardDto(dto: any): ParticipantDashboard {
     lockedAt: dto?.participant?.locked_at,
   };
 
-  const contestType = dto?.contest_type === "paper_exam" ? "paper_exam" : "coding";
+  const contestType = (dto?.contest_type === "paper_exam" ? "paper_exam" : "coding") as ContestType;
   const report =
     contestType === "paper_exam"
       ? {
@@ -720,7 +724,7 @@ export function mapParticipantDashboardDto(dto: any): ParticipantDashboard {
   };
 }
 
-export function mapScoreboardRowDto(dto: any): ScoreboardRow {
+export function mapScoreboardRowDto(dto: ScoreboardRowDto): ScoreboardRow {
   return {
     userId: dto.user_id?.toString() || "",
     displayName: dto.display_name || "",
@@ -732,8 +736,7 @@ export function mapScoreboardRowDto(dto: any): ScoreboardRow {
   };
 }
 
-export function mapScoreboardDto(dto: any): ScoreboardData {
-  // API returns { problems: [], standings: [] }
+export function mapScoreboardDto(dto: ScoreboardDto): ScoreboardData {
   const standings = dto.standings || dto.rows || [];
 
   return {
@@ -756,12 +759,8 @@ export function mapScoreboardDto(dto: any): ScoreboardData {
           userId: s.user?.id?.toString() || "",
           displayName: s.display_name || s.nickname || s.user?.username || "",
           nickname: s.nickname,
-          display_name: s.display_name, // Pass original for compatibility if needed
-          solved: s.solved || 0,
-          solvedCount: s.solved || 0,
+          solvedCount: s.solved || s.solved_count || 0,
           totalScore: s.total_score || 0,
-          total_score: s.total_score || 0,
-          time: s.time || 0,
           penalty: s.time || 0,
           problems: s.problems || {},
         }))
@@ -860,7 +859,7 @@ export function mapExamQuestionDto(dto: any): ExamQuestion {
   };
 }
 
-export function mapContestUpdateRequestToDto(request: any): any {
+export function mapContestUpdateRequestToDto(request: ContestUpdateRequest): any {
   const anticheatDevicePolicy =
     request.anticheatDevicePolicy != null
       ? {

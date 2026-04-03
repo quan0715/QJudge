@@ -68,7 +68,7 @@ const LegacyContestBindingScreen = () => {
         manageableClassrooms.map((classroom) => getClassroomContests(classroom.id))
       );
       const boundContestIds = new Set(
-        classroomContestGroups.flatMap((rows) => rows.map((row) => row.contestId))
+        classroomContestGroups.flatMap((rows) => rows.map((row: { contestId: string }) => row.contestId))
       );
       const unboundContests = manageableContests.filter(
         (contest) => !boundContestIds.has(contest.id)

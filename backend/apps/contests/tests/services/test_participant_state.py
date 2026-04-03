@@ -204,7 +204,7 @@ def test_admin_update_participant_to_not_started_clears_attempt_and_runtime_keys
     )
     cache.set(active_session_key(contest.id, student.id), {"device_id": "dev-1"}, timeout=300)
     cache.set(heartbeat_key(contest.id, student.id), timezone.now().isoformat(), timeout=300)
-    cache.set(_exam_allowed_jti_key(student.id), "jti-1", timeout=300)
+    cache.set(_exam_allowed_jti_key(student.id, contest.id), "jti-1", timeout=300)
 
     admin_update_participant(
         participant,
@@ -220,4 +220,4 @@ def test_admin_update_participant_to_not_started_clears_attempt_and_runtime_keys
     assert participant.submit_reason == ""
     assert cache.get(active_session_key(contest.id, student.id)) is None
     assert cache.get(heartbeat_key(contest.id, student.id)) is None
-    assert cache.get(_exam_allowed_jti_key(student.id)) is None
+    assert cache.get(_exam_allowed_jti_key(student.id, contest.id)) is None

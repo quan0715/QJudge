@@ -88,7 +88,7 @@ export interface ContestProblemSummary {
     name: string;
   } | null;
   sourceQuestionId?: string | null;
-  sourceMode?: "manual" | "copy" | "reference";
+  sourceMode?: "manual" | "json" | "copy" | "reference";
   userStatus?: SubmissionStatus;
   difficulty?: Difficulty;
 }
@@ -581,7 +581,7 @@ export interface ExamQuestion {
     name: string;
   } | null;
   sourceQuestionId?: string | null;
-  sourceMode?: "manual" | "copy" | "reference";
+  sourceMode?: "manual" | "json" | "copy" | "reference";
   createdAt: string;
   updatedAt: string;
 }
@@ -633,10 +633,12 @@ export interface ContestUpdateRequest {
   warningTimeoutSeconds?: number;
   screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest?: boolean;
+  anonymousModeEnabled?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;
   allowAutoUnlock?: boolean;
   autoUnlockMinutes?: number;
+  resultsPublished?: boolean;
 }
 
 // ============ Contest State Utilities ============

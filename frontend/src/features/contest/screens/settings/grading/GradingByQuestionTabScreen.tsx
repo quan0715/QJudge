@@ -318,11 +318,20 @@ export default function GradingByQuestionTabScreen({
                 </ListItemContent>
                 <ListItemTrailing>
                   {!isAbsent && onToggleFlag && (
-                    <button
+                    <span
+                      role="button"
+                      tabIndex={0}
                       className={styles.flagBtn}
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleFlag(a.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onToggleFlag(a.id);
+                        }
                       }}
                       aria-label={t("grading.toggleFlag", "標記")}
                     >
@@ -331,7 +340,7 @@ export default function GradingByQuestionTabScreen({
                       ) : (
                         <Flag size={14} className={styles.flagInactive} />
                       )}
-                    </button>
+                    </span>
                   )}
                   {isAbsent ? (
                     <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>

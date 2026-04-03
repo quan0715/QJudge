@@ -120,8 +120,8 @@ describe("Submission Mapper", () => {
         id: 1,
         problem_id: 42,
         user_id: 10,
-        execution_time: 100,
-        createdAt: "2024-01-01T00:00:00Z",
+        exec_time: 100,
+        created_at: "2024-01-01T00:00:00Z",
         language: "cpp",
         status: "AC",
       };

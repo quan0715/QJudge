@@ -1,8 +1,8 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import { buildQuery } from "@/infrastructure/api/utils/buildQuery.client";
 import type {
-  Problem,
-  ProblemDetail,
+  CodingProblem as Problem,
+  CodingProblemDetail as ProblemDetail,
   ProblemUpsertPayload,
   Tag,
 } from "@/core/entities/problem.entity";
@@ -19,6 +19,7 @@ import {
   mapProblemDetailDto,
   mapTagDto,
 } from "@/infrastructure/mappers/problem.mapper";
+import type { ProblemDto, ProblemDetailDto, TagDto } from "@/infrastructure/api/dto/problem.dto";
 
 const MANAGEMENT_PROBLEMS_BASE = "/api/v1/management/problems";
 
@@ -46,12 +47,12 @@ export const getProblems = async (
     query = `?scope=${defaultScope}`;
   }
 
-  const data = await requestJson<any>(
+  const data = await requestJson<{ results?: ProblemDto[] } | ProblemDto[]>(
     httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${query}`),
     "Failed to fetch problems"
   );
-  const results = data.results || data;
-  return Array.isArray(results) ? results.map(mapProblemDto) : [];
+  const results = Array.isArray(data) ? data : data.results || [];
+  return results.map(mapProblemDto);
 };
 
 export const getPaginatedProblems = async (
@@ -68,7 +69,12 @@ export const getPaginatedProblems = async (
       })
     : "?scope=manage";
 
-  const data = await requestJson<any>(
+  const data = await requestJson<{
+    results?: ProblemDto[];
+    count?: number;
+    next?: string | null;
+    previous?: string | null;
+  }>(
     httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${query}`),
     "Failed to fetch problems"
   );
@@ -92,14 +98,14 @@ export const getProblem = async (
     return undefined;
   }
 
-  const data = await res.json();
+  const data = await res.json() as ProblemDetailDto;
   return mapProblemDetailDto(data);
 };
 
 export const createProblem = async (
   data: ProblemUpsertPayload
 ): Promise<ProblemDetail> => {
-  const responseData = await requestJson<any>(
+  const responseData = await requestJson<ProblemDetailDto>(
     httpClient.post(`${MANAGEMENT_PROBLEMS_BASE}/`, data),
     "Failed to create problem"
   );
@@ -110,7 +116,7 @@ export const updateProblem = async (
   id: string,
   data: ProblemUpsertPayload
 ): Promise<ProblemDetail> => {
-  const responseData = await requestJson<any>(
+  const responseData = await requestJson<ProblemDetailDto>(
     httpClient.put(`${MANAGEMENT_PROBLEMS_BASE}/${id}/?scope=manage`, data),
     "Failed to update problem"
   );
@@ -121,7 +127,7 @@ export const patchProblem = async (
   id: string,
   data: Partial<ProblemUpsertPayload>
 ): Promise<ProblemDetail> => {
-  const responseData = await requestJson<any>(
+  const responseData = await requestJson<ProblemDetailDto>(
     httpClient.patch(`${MANAGEMENT_PROBLEMS_BASE}/${id}/?scope=manage`, data),
     "Failed to patch problem"
   );
@@ -137,7 +143,7 @@ export const deleteProblem = async (id: string): Promise<void> => {
 
 export const getTags = async (): Promise<Tag[]> => {
   try {
-    const data = await requestJson<any>(
+    const data = await requestJson<{ results?: TagDto[]; tags?: TagDto[] } | TagDto[]>(
       httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/tags/`),
       "Failed to fetch tags"
     );
@@ -152,7 +158,7 @@ export const getTags = async (): Promise<Tag[]> => {
 export const createTag = async (
   data: { name: string; color?: string; description?: string }
 ): Promise<Tag> => {
-  const responseData = await requestJson<any>(
+  const responseData = await requestJson<TagDto>(
     httpClient.post(`${MANAGEMENT_PROBLEMS_BASE}/tags/`, data),
     "Failed to create tag"
   );
@@ -163,7 +169,7 @@ export const updateTag = async (
   slug: string,
   data: { name?: string; color?: string; description?: string }
 ): Promise<Tag> => {
-  const responseData = await requestJson<any>(
+  const responseData = await requestJson<TagDto>(
     httpClient.patch(`${MANAGEMENT_PROBLEMS_BASE}/tags/${slug}/`, data),
     "Failed to update tag"
   );
@@ -182,7 +188,13 @@ export const getProblemStatistics = async (
   params?: { contest?: string; limit?: number }
 ): Promise<ProblemStatistics> => {
   const query = buildQuery(params as Record<string, unknown>);
-  const data = await requestJson<any>(
+  const data = await requestJson<{
+    submission_count?: number;
+    accepted_count?: number;
+    ac_rate?: number;
+    status_counts?: Record<string, number>;
+    trend?: any[];
+  }>(
     httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${problemId}/statistics/${query}`),
     "Failed to fetch problem statistics"
   );
