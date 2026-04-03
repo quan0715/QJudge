@@ -150,8 +150,8 @@ export const toggleLikeComment = async (id: string): Promise<any> => {
 // Compatibility aliases
 export const likeDiscussion = toggleLikeDiscussion;
 export const unlikeDiscussion = toggleLikeDiscussion;
-export const likeComment = (_discId: string, id: string) => toggleLikeComment(id);
-export const unlikeComment = (_discId: string, id: string) => toggleLikeComment(id);
+export const likeComment = (id: string, _optionalId?: string) => toggleLikeComment(id);
+export const unlikeComment = (id: string, _optionalId?: string) => toggleLikeComment(id);
 
 // ============================================================================
 // Repository Export
