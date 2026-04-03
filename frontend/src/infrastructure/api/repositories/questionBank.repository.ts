@@ -6,12 +6,6 @@ import type {
   ExploreBankItem,
   BankCategory,
 } from "@/core/entities/question-bank.entity";
-import type {
-  IQuestionBankRepository,
-  CreateQuestionBankPayload,
-  UpdateQuestionBankPayload,
-  UpsertBankQuestionPayload,
-} from "@/core/ports/questionBank.repository";
 import {
   mapQuestionBankDto,
   mapBankQuestionDto,
@@ -61,7 +55,7 @@ export const listExplore = async (): Promise<ExploreBankItem[]> => {
   }));
 };
 
-export const create = async (payload: CreateQuestionBankPayload): Promise<QuestionBank> => {
+export const create = async (payload: any): Promise<QuestionBank> => {
   const responseData = await requestJson<QuestionBankDto>(
     httpClient.post(`/api/v1/question-banks/`, payload),
     "Failed to create question bank"
@@ -69,7 +63,7 @@ export const create = async (payload: CreateQuestionBankPayload): Promise<Questi
   return mapQuestionBankDto(responseData);
 };
 
-export const update = async (id: string, payload: UpdateQuestionBankPayload): Promise<QuestionBank> => {
+export const update = async (id: string, payload: any): Promise<QuestionBank> => {
   const responseData = await requestJson<QuestionBankDto>(
     httpClient.patch(`/api/v1/question-banks/${id}/`, payload),
     "Failed to update question bank"
@@ -124,7 +118,7 @@ export const listQuestions = async (bankId: string): Promise<BankQuestion[]> => 
   return results.map(mapBankQuestionDto);
 };
 
-export const createQuestion = async (bankId: string, payload: UpsertBankQuestionPayload): Promise<BankQuestion> => {
+export const createQuestion = async (bankId: string, payload: any): Promise<BankQuestion> => {
   const responseData = await requestJson<BankQuestionDto>(
     httpClient.post(`/api/v1/question-banks/${bankId}/questions/`, payload),
     "Failed to create question"
@@ -132,9 +126,9 @@ export const createQuestion = async (bankId: string, payload: UpsertBankQuestion
   return mapBankQuestionDto(responseData);
 };
 
-export const updateQuestion = async (bankItemId: string, payload: UpsertBankQuestionPayload): Promise<BankQuestion> => {
+export const updateQuestion = async (bankItemId: string, payload: any): Promise<BankQuestion> => {
   const responseData = await requestJson<BankQuestionDto>(
-    httpClient.patch(`/api/v1/question-banks/items/${bankItemId}/`),
+    httpClient.patch(`/api/v1/question-banks/items/${bankItemId}/`, payload),
     "Failed to update question"
   );
   return mapBankQuestionDto(responseData);
@@ -176,10 +170,10 @@ export const ingestInbox = async (params: {
 };
 
 // ============================================================================
-// Repository Instance
+// Repository Export
 // ============================================================================
 
-export const questionBankRepository: IQuestionBankRepository = {
+export const questionBankRepository = {
   getBank,
   listMine,
   listExplore,

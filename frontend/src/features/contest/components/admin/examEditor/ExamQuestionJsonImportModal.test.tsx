@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import ExamQuestionJsonImportModal from "./ExamQuestionJsonImportModal";
 
 vi.mock("react-i18next", () => ({
@@ -194,11 +194,7 @@ describe("ExamQuestionJsonImportModal", () => {
   });
 
   it("copies AI prompt template to clipboard", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(globalThis.navigator, "clipboard", {
-      value: { writeText },
-      configurable: true,
-    });
+    const writeTextSpy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
 
     render(
       <ExamQuestionJsonImportModal
@@ -222,7 +218,7 @@ describe("ExamQuestionJsonImportModal", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /examJson\.import\.copyPrompt/i }));
-    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
-    expect(writeText.mock.calls[0][0]).toContain("qjudge.exam.v1");
+    await waitFor(() => expect(writeTextSpy).toHaveBeenCalledTimes(1));
+    expect(writeTextSpy.mock.calls[0][0]).toContain("qjudge.exam.v1");
   });
 });

@@ -1,99 +1,113 @@
-本文件說明 QJudge 「紙筆題考試 (Paper-like Test)」題目的 JSON 匯入與匯出格式規範。透過此格式，教師可以快速地進行跨考試的題目復用或大量題目建立。
+本文件說明 QJudge Exam JSON 匯入/匯出 v2 最小規格：`preview -> apply -> rollback`，以及「複製 AI 提示詞」使用方式。
 
 ---
 
-## 1. 核心 JSON 結構
+## 1. JSON 格式（`qjudge.exam.v1`）
 
-匯入與匯出的 JSON 檔案應為一個 **題目物件的陣列 (Array of Objects)**。每個題目物件包含以下欄位：
+匯入資料必須是**單一 JSON 物件**（不是陣列）：
 
-| 欄位名稱 | 型別 | 必填 | 說明 |
-| :--- | :--- | :--- | :--- |
-| `question_type` | String | 是 | 題型代碼，詳見[題型代碼表](#2-題型代碼表) |
-| `prompt` | String | 是 | 題目內容，支援 Markdown 與 LaTeX |
-| `score` | Number | 是 | 該題配分（正整數） |
-| `options` | Array | 否 | 選擇題選項，為字串陣列。簡答/問答題應為 `[]` |
-| `correct_answer` | Mixed | 否 | 正確答案，格式依題型而定 |
-| `order` | Number | 否 | 顯示順序（由小到大） |
-
----
-
-## 2. 題型代碼表 (Question Types)
-
-| 代碼 (`question_type`) | 說明 | `correct_answer` 格式 |
-| :--- | :--- | :--- |
-| `single_choice` | 單選題 | Number (選項索引，從 0 開始) |
-| `multiple_choice` | 多選題 | Array of Numbers (索引陣列，如 `[0, 2]`) |
-| `true_false` | 是非題 | Boolean (`true` 或 `false`) |
-| `short_answer` | 簡答題 | String (參考答案，可留空) |
-| `essay` | 問答題 | String (參考答案，可留空) |
-
----
-
-## 3. 各題型範例
-
-### 單選題 (Single Choice)
 ```json
 {
-  "question_type": "single_choice",
-  "prompt": "下列哪一個是 Python 的保留字？",
-  "score": 5,
-  "options": ["var", "let", "def", "function"],
-  "correct_answer": 2,
-  "order": 1
+  "version": "qjudge.exam.v1",
+  "meta": {
+    "exported_at": "2026-04-04T00:00:00.000Z",
+    "contest_name": "OS Midterm"
+  },
+  "questions": [
+    {
+      "question_type": "single_choice",
+      "prompt": "下列哪個是 Python 關鍵字？",
+      "score": 5,
+      "options": ["var", "let", "def", "function"],
+      "correct_answer": 2
+    }
+  ]
 }
 ```
 
-### 多選題 (Multiple Choice)
-```json
-{
-  "question_type": "multiple_choice",
-  "prompt": "以下哪些屬於編譯式語言？",
-  "score": 10,
-  "options": ["C++", "Python", "Rust", "JavaScript"],
-  "correct_answer": [0, 2],
-  "order": 2
-}
-```
+### 必要規則
 
-### 是非題 (True/False)
-```json
-{
-  "question_type": "true_false",
-  "prompt": "HTML 是一種程式語言。",
-  "score": 5,
-  "options": ["True", "False"],
-  "correct_answer": false,
-  "order": 3
-}
-```
+- `version` 必須為 `qjudge.exam.v1`。
+- root 只允許 `version`、`meta`、`questions`（不可有未知欄位）。
+- `questions` 至少 1 題。
+- `score` 必須大於 0。
+- 題型僅允許：`true_false`、`single_choice`、`multiple_choice`、`short_answer`、`essay`。
 
-### 問答題 (Essay)
-```json
-{
-  "question_type": "essay",
-  "prompt": "請簡述 RESTful API 的核心原則。",
-  "score": 20,
-  "options": [],
-  "correct_answer": "包含：無狀態 (Stateless)、統一介面 (Uniform Interface)...",
-  "order": 4
-}
-```
+### 題型規則
+
+- `true_false`
+  - `options` 可省略；若提供必須是 `["True", "False"]`
+  - `correct_answer` 可用 `0/1/true/false/"true"/"false"`
+- `single_choice`
+  - `options` 至少 2 個
+  - `correct_answer` 必須是有效索引整數
+- `multiple_choice`
+  - `options` 至少 2 個
+  - `correct_answer` 必須是非空整數索引陣列
+- `short_answer` / `essay`
+  - 不應提供 `options`
+  - `correct_answer` 可省略或為字串/基本型別
 
 ---
 
-## 4. 匯入規則與注意事項
+## 2. 匯入流程（v2）
 
-1. **覆蓋機制**：匯入 JSON 時，系統通常會將檔案中的題目「追加」到現有的題目列表末端。
-2. **格式校驗**：
-   - 選擇題的 `correct_answer` 索引必須存在於 `options` 陣列中。
-   - 總配分會自動加總，請確認與您的考試設定一致。
-3. **媒體資源**：目前 JSON 僅支援純文字內容（含 Markdown 語法的圖片連結）。若有本地圖片需求，請先上傳至圖床再於 `prompt` 中引用。
-4. **凍結保護**：若考試已經開始且有學生作答，匯入功能可能會受限，建議在考試開始前完成所有題目匯入。
+前端匯入 Modal 統一採兩段式：
+
+1. 貼上/上傳 JSON。
+2. 選擇匯入模式。
+3. 按「預覽變更」。
+4. 檢查摘要（新增/刪除/保留/總分變化）。
+5. 按「套用匯入」。
+6. 若要回復，使用 rollback。
+
+### 匯入模式
+
+- `append`（預設）：保留現有題目，將新題目加到尾端。
+- `replace_all`：刪除現有題目後匯入新題目（需二次確認）。
+- `replace_manual_only`：只刪除手動建立與 JSON 匯入題，保留題庫匯入題。
 
 ---
 
-## 5. 常見錯誤處理
+## 3. API 端點
 
-- **`options must be an array`**：請檢查 `options` 是否使用了中括號 `[]`。
-- **`score must be greater than 0`**：配分不可為 0 或負數。
-- **`Invalid JSON format`**：請確保檔案符合標準 JSON 規範（例如：最後一個物件後不可有逗號）。
+- `POST /api/v1/contests/{id}/exam-questions/import/preview`
+- `POST /api/v1/contests/{id}/exam-questions/import/apply`
+- `POST /api/v1/contests/{id}/exam-questions/import/rollback`
+
+### 請求欄位
+
+- preview/apply：`payload_json`、`import_mode`
+- apply（可選）：`fingerprint`（建議帶入 preview 回傳值）
+- rollback：`session_id`
+
+### 回應重點
+
+- preview：`summary`、`fingerprint`
+- apply：`session_id`、`applied_summary`、`questions`
+- rollback：`rolled_back`、`restored_count`、`session_id`
+
+---
+
+## 4. AI 提示詞複製（外部 AI 生成再貼回）
+
+在匯入 Modal 內按「複製 AI 提示詞」後：
+
+1. 貼到你使用的 AI 工具。
+2. 讓 AI 回覆「說明 + 最終 JSON code block」。
+3. 複製 JSON 物件貼回 QJudge 匯入框。
+4. 先預覽，再套用。
+
+---
+
+## 5. 回滾與限制
+
+- 每次 apply 都會建立可回滾 session（含 before/after snapshot）。
+- rollback 會還原到該次 apply 前狀態。
+- 若競賽已進入題目編輯鎖定（`question_edit_locked`），preview/apply/rollback 都會被拒絕。
+
+---
+
+## 6. 移除舊流程
+
+舊端點 `batch-import` 已移除，系統不再支援「直接覆蓋」捷徑。

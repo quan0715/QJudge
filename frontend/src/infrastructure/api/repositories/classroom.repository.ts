@@ -1,6 +1,5 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import type { Classroom, ClassroomDetail } from "@/core/entities/classroom.entity";
-import type { IClassroomRepository, CreateClassroomPayload, UpdateClassroomPayload } from "@/core/ports/classroom.repository";
 import { mapClassroomDto, mapClassroomDetailDto } from "@/infrastructure/mappers/classroom.mapper";
 import type { ClassroomDto, ClassroomDetailDto } from "@/infrastructure/api/dto/classroom.dto";
 
@@ -25,7 +24,7 @@ export const getClassroom = async (id: string): Promise<ClassroomDetail | undefi
   return mapClassroomDetailDto(data);
 };
 
-export const createClassroom = async (data: CreateClassroomPayload): Promise<Classroom> => {
+export const createClassroom = async (data: { name: string; description?: string }): Promise<Classroom> => {
   const responseData = await requestJson<ClassroomDto>(
     httpClient.post(`/api/v1/classrooms/`, data),
     "Failed to create classroom"
@@ -33,7 +32,7 @@ export const createClassroom = async (data: CreateClassroomPayload): Promise<Cla
   return mapClassroomDto(responseData);
 };
 
-export const updateClassroom = async (id: string, data: UpdateClassroomPayload): Promise<Classroom> => {
+export const updateClassroom = async (id: string, data: { name?: string; description?: string }): Promise<Classroom> => {
   const responseData = await requestJson<ClassroomDto>(
     httpClient.patch(`/api/v1/classrooms/${id}/`, data),
     "Failed to update classroom"
@@ -148,7 +147,7 @@ export const getClassroomLabSolve = async (classroomId: string, labId: string): 
   return requestJson<any>(httpClient.get(`/api/v1/classrooms/${classroomId}/labs/${labId}/solve/`));
 };
 
-// Contest operations (Bound Contests)
+// Contest operations
 export const getClassroomContests = async (id: string): Promise<any> => {
   return requestJson<any>(httpClient.get(`/api/v1/classrooms/${id}/contests/`));
 };
@@ -172,10 +171,10 @@ export const unbindContest = async (classroomId: string, contestId: string): Pro
 };
 
 // ============================================================================
-// Repository Instance
+// Repository Export
 // ============================================================================
 
-export const classroomRepository: IClassroomRepository = {
+export const classroomRepository = {
   getClassrooms,
   getClassroom,
   createClassroom,
@@ -184,11 +183,22 @@ export const classroomRepository: IClassroomRepository = {
   joinClassroom,
   archiveClassroom,
   toggleInviteCode,
+  regenerateCode,
   addMembers,
   removeMember,
+  updateMemberRole,
+  uploadClassroomCover,
+  getAnnouncements,
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,
+  getClassroomLabs,
+  createClassroomLab,
+  getClassroomLab,
+  acceptClassroomLab,
+  getClassroomLabSolve,
+  getClassroomContests,
+  createClassroomContest,
   bindContest,
   unbindContest,
 };

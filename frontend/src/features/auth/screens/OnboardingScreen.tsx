@@ -52,12 +52,14 @@ const OnboardingScreen = () => {
     setError("");
 
     try {
-      const preferences = await updatePreferences({
+      const response = await updatePreferences({
         display_name: trimmedDisplayName,
         preferred_language: preferredLanguage,
         preferred_theme: preferredTheme,
         onboarding_completed_at: new Date().toISOString(),
       });
+
+      const preferences = response.data;
 
       const nextUser: User = {
         ...user,
