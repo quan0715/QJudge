@@ -489,7 +489,7 @@ class TestImportFlow:
     def test_batch_import_route_removed(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)
         res = api_client.post(url(contest.id) + "batch-import/", {"questions": []}, format="json")
-        assert res.status_code == status.HTTP_404_NOT_FOUND
+        assert res.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
     def test_preview_apply_and_rollback_replace_all(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)
