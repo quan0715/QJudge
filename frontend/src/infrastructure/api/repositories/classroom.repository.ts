@@ -63,7 +63,6 @@ export const toggleInviteCode = async (id: string, enabled: boolean): Promise<{ 
   );
 };
 
-// Legacy alias for toggleInviteCode or similar
 export const regenerateCode = async (id: string): Promise<any> => {
   return requestJson<any>(
     httpClient.post(`/api/v1/classrooms/${id}/toggle_invite_code/`, { enabled: true }),
@@ -85,10 +84,31 @@ export const removeMember = async (classroomId: string, userId: number): Promise
   );
 };
 
+export const updateMemberRole = async (classroomId: string, userId: number, role: string): Promise<any> => {
+  return requestJson<any>(
+    httpClient.patch(`/api/v1/classrooms/${classroomId}/members/${userId}/`, { role }),
+    "Failed to update member role"
+  );
+};
+
+export const uploadClassroomCover = async (id: string, file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const data = await requestJson<{ cover_url: string }>(
+    httpClient.post(`/api/v1/classrooms/${id}/upload_cover/`, formData),
+    "Failed to upload cover"
+  );
+  return data.cover_url;
+};
+
 // Announcement operations
+export const getAnnouncements = async (classroomId: string): Promise<any[]> => {
+  return requestJson<any[]>(httpClient.get(`/api/v1/classrooms/${classroomId}/announcements/`));
+};
+
 export const createAnnouncement = async (classroomId: string, data: { title: string; content: string; is_pinned?: boolean }): Promise<any> => {
   return requestJson<any>(
-    httpClient.post(`/api/v1/classrooms/${classroomId}/announcements/`),
+    httpClient.post(`/api/v1/classrooms/${classroomId}/announcements/`, data),
     "Failed to create announcement"
   );
 };
@@ -108,6 +128,35 @@ export const deleteAnnouncement = async (classroomId: string, announcementId: st
 };
 
 // Lab operations
+export const getClassroomLabs = async (id: string): Promise<any> => {
+  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${id}/labs/`));
+};
+
+export const createClassroomLab = async (id: string, data: any): Promise<any> => {
+  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${id}/labs/`, data));
+};
+
+export const getClassroomLab = async (classroomId: string, labId: string): Promise<any> => {
+  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${classroomId}/labs/${labId}/`));
+};
+
+export const acceptClassroomLab = async (classroomId: string, labId: string): Promise<any> => {
+  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${classroomId}/labs/${labId}/accept/`));
+};
+
+export const getClassroomLabSolve = async (classroomId: string, labId: string): Promise<any> => {
+  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${classroomId}/labs/${labId}/solve/`));
+};
+
+// Contest operations (Bound Contests)
+export const getClassroomContests = async (id: string): Promise<any> => {
+  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${id}/contests/`));
+};
+
+export const createClassroomContest = async (id: string, data: any): Promise<any> => {
+  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${id}/contests/`, data));
+};
+
 export const bindContest = async (classroomId: string, contestId: string): Promise<any> => {
   return requestJson<any>(
     httpClient.post(`/api/v1/classrooms/${classroomId}/bind_contest/`, { contest_id: contestId }),
@@ -120,31 +169,6 @@ export const unbindContest = async (classroomId: string, contestId: string): Pro
     httpClient.post(`/api/v1/classrooms/${classroomId}/unbind_contest/`, { contest_id: contestId }),
     "Failed to unbind contest"
   );
-};
-
-// Missing functions found in index.ts
-export const getClassroomContests = async (id: string): Promise<any> => {
-  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${id}/contests/`));
-};
-
-export const createClassroomContest = async (id: string, data: any): Promise<any> => {
-  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${id}/contests/`, data));
-};
-
-export const getClassroomLabs = async (id: string): Promise<any> => {
-  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${id}/labs/`));
-};
-
-export const createClassroomLab = async (id: string, data: any): Promise<any> => {
-  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${id}/labs/`, data));
-};
-
-export const acceptClassroomLab = async (classroomId: string, labId: string): Promise<any> => {
-  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${classroomId}/labs/${labId}/accept/`));
-};
-
-export const getClassroomLabSolve = async (classroomId: string, labId: string): Promise<any> => {
-  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${classroomId}/labs/${labId}/solve/`));
 };
 
 // ============================================================================

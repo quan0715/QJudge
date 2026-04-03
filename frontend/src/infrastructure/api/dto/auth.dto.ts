@@ -6,7 +6,6 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
-// Data shapes as returned by Django REST Framework (some wrapped, some not)
 export interface AuthSuccessDto {
   access_token: string;
   user: User;
@@ -14,18 +13,18 @@ export interface AuthSuccessDto {
 }
 
 export type AuthResponseDto = ApiResponse<AuthSuccessDto>;
-export type CurrentUserResponseDto = User; // Directly returns User object
+export type CurrentUserResponseDto = ApiResponse<User>;
 export type PreferencesResponseDto = ApiResponse<UserPreferences>;
-export type UserSearchResponseDto = ManagedUser[]; // Directly returns array
-export type TeacherActivationIssueResponseDto = TeacherActivationInvite;
-export type TeacherActivationPreviewResponseDto = TeacherActivationPreview;
+export type UserSearchResponseDto = ApiResponse<ManagedUser[]>;
+export type TeacherActivationIssueResponseDto = ApiResponse<TeacherActivationInvite>;
+export type TeacherActivationPreviewResponseDto = ApiResponse<TeacherActivationPreview>;
 export type TeacherActivationConsumeResponseDto = ApiResponse<{
   user: User;
   invite: TeacherActivationInvite;
 }>;
-export type APIKeyResponseDto = APIKeyInfo; // Directly returns object
-export type UsageStatsResponseDto = UsageStatsData;
-export type LoginRecordsResponseDto = UserLoginRecord[];
+export type APIKeyResponseDto = ApiResponse<APIKeyInfo>;
+export type UsageStatsResponseDto = ApiResponse<UsageStatsData>;
+export type LoginRecordsResponseDto = ApiResponse<UserLoginRecord[]>;
 export type UploadAvatarResponseDto = ApiResponse<{
   avatar_url: string;
   content_type: string;

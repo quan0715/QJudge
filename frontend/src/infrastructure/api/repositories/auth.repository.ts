@@ -60,10 +60,11 @@ export const register = async (
 };
 
 export const getCurrentUser = async (): Promise<User> => {
-  return requestJson<CurrentUserResponseDto>(
+  const response = await requestJson<CurrentUserResponseDto>(
     httpClient.get("/api/v1/auth/me/"),
     "Failed to fetch user data"
   );
+  return response.data;
 };
 
 export const logout = async (): Promise<void> => {
@@ -79,13 +80,21 @@ export const changePassword = async (
   );
 };
 
+export const requestPasswordReset = async (email: string): Promise<void> => {
+  await ensureOk(
+    httpClient.post("/api/v1/auth/password/reset/", { email }),
+    "Failed to request password reset"
+  );
+};
+
 export const updateAccountProfile = async (
   data: { username?: string; email?: string }
 ): Promise<User> => {
-  return requestJson<CurrentUserResponseDto>(
+  const response = await requestJson<CurrentUserResponseDto>(
     httpClient.patch("/api/v1/auth/account/", data),
     "Failed to update profile"
   );
+  return response.data;
 };
 
 // ============================================================================
@@ -126,35 +135,53 @@ export const uploadAvatar = async (file: File): Promise<string> => {
 // ============================================================================
 
 export const searchUsers = async (query: string): Promise<ManagedUser[]> => {
-  return requestJson<UserSearchResponseDto>(
+  const response = await requestJson<UserSearchResponseDto>(
     httpClient.get(`/api/v1/management/users/?search=${encodeURIComponent(query)}`),
     "Failed to search users"
   );
+  return response.data;
+};
+
+export const deleteUser = async (id: number | string): Promise<void> => {
+  await ensureOk(httpClient.delete(`/api/v1/management/users/${id}/`), "Failed to delete user");
+};
+
+export const updateUserRole = async (id: number | string, role: string): Promise<any> => {
+  return requestJson<any>(
+    httpClient.patch(`/api/v1/management/users/${id}/`, { role }),
+    "Failed to update user role"
+  );
+};
+
+export const logoutOtherDevices = async (): Promise<void> => {
+  await ensureOk(httpClient.post("/api/v1/auth/logout-others/"), "Failed to logout other devices");
 };
 
 // ============================================================================
 // Teacher Activation
 // ============================================================================
 
-export const issueTeacherInvite = async (
+export const issueTeacherActivationInvite = async (
   email: string
 ): Promise<TeacherActivationInvite> => {
-  return requestJson<TeacherActivationIssueResponseDto>(
+  const response = await requestJson<TeacherActivationIssueResponseDto>(
     httpClient.post("/api/v1/management/teacher-invites/", { email }),
     "Failed to issue invite"
   );
+  return response.data;
 };
 
-export const previewTeacherActivation = async (
+export const previewTeacherActivationInvite = async (
   token: string
 ): Promise<TeacherActivationPreview> => {
-  return requestJson<TeacherActivationPreviewResponseDto>(
+  const response = await requestJson<TeacherActivationPreviewResponseDto>(
     httpClient.get(`/api/v1/auth/teacher-activation/preview/?token=${encodeURIComponent(token)}`),
     "Failed to preview activation"
   );
+  return response.data;
 };
 
-export const consumeTeacherActivation = async (
+export const consumeTeacherActivationInvite = async (
   token: string
 ): Promise<{ user: User; invite: TeacherActivationInvite }> => {
   const response = await requestJson<TeacherActivationConsumeResponseDto>(
@@ -169,10 +196,11 @@ export const consumeTeacherActivation = async (
 // ============================================================================
 
 export const getLoginRecords = async (): Promise<UserLoginRecord[]> => {
-  return requestJson<LoginRecordsResponseDto>(
+  const response = await requestJson<LoginRecordsResponseDto>(
     httpClient.get("/api/v1/auth/login-records/"),
     "Failed to fetch login records"
   );
+  return response.data;
 };
 
 // ============================================================================
@@ -197,7 +225,7 @@ export const deleteAPIKey = async (): Promise<void> => {
   await ensureOk(httpClient.delete("/api/v1/auth/api-key/"), "Failed to delete API key");
 };
 
-export const getUsageData = async (params: {
+export const getUsageStats = async (params: {
   start_date?: string;
   end_date?: string;
 }): Promise<UsageStatsData> => {
@@ -209,7 +237,7 @@ export const getUsageData = async (params: {
 };
 
 // ============================================================================
-// Repository Export
+// Repository Instance
 // ============================================================================
 
 export const authRepository = {
@@ -218,19 +246,23 @@ export const authRepository = {
   getCurrentUser,
   logout,
   changePassword,
+  requestPasswordReset,
   updateAccountProfile,
   getPreferences,
   updatePreferences,
   uploadAvatar,
   searchUsers,
-  issueTeacherInvite,
-  previewTeacherActivation,
-  consumeTeacherActivation,
+  deleteUser,
+  updateUserRole,
+  logoutOtherDevices,
+  issueTeacherActivationInvite,
+  previewTeacherActivationInvite,
+  consumeTeacherActivationInvite,
   getLoginRecords,
   getAPIKeyInfo,
   setAPIKey,
   deleteAPIKey,
-  getUsageData,
+  getUsageStats,
 };
 
 export default authRepository;
