@@ -88,7 +88,7 @@ export interface ContestProblemSummary {
     name: string;
   } | null;
   sourceQuestionId?: string | null;
-  sourceMode?: "manual" | "copy" | "reference";
+  sourceMode?: "manual" | "json" | "copy" | "reference";
   userStatus?: SubmissionStatus;
   difficulty?: Difficulty;
 }
@@ -581,7 +581,7 @@ export interface ExamQuestion {
     name: string;
   } | null;
   sourceQuestionId?: string | null;
-  sourceMode?: "manual" | "copy" | "reference";
+  sourceMode?: "manual" | "json" | "copy" | "reference";
   createdAt: string;
   updatedAt: string;
 }

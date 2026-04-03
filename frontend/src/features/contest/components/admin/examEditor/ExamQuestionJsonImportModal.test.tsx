@@ -7,33 +7,71 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("ExamQuestionJsonImportModal", () => {
+  const validJson = {
+    version: "qjudge.exam.v1",
+    meta: {
+      exported_at: "2026-03-02T00:00:00.000Z",
+      contest_name: "OS Exam",
+    },
+    questions: [
+      {
+        question_type: "true_false",
+        prompt: "Linux is kernel",
+        score: 2,
+        correct_answer: "true",
+      },
+    ],
+  };
 
   it("renders with primary action disabled before file is parsed", () => {
     render(
       <ExamQuestionJsonImportModal
         open
+        contestName="OS Exam"
         onClose={vi.fn()}
-        onConfirmImport={vi.fn().mockResolvedValue(undefined)}
+        onPreviewImport={vi.fn().mockResolvedValue({
+          summary: {
+            mode: "append",
+            will_add: 1,
+            will_delete: 0,
+            will_keep: 0,
+            score_before: 0,
+            score_after: 2,
+            score_delta: 2,
+          },
+          fingerprint: "fp",
+        })}
+        onApplyImport={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
     const submitButton = screen.getByRole("button", {
-      name: /確認覆蓋|confirm|examJson\.import\.confirmReplace/i,
+      name: /examJson\.import\.previewAction/i,
     });
     expect(submitButton).toBeDisabled();
   });
 
   it("shows validation errors and keeps submit disabled for invalid JSON", async () => {
-    const { container } = render(
+    render(
       <ExamQuestionJsonImportModal
         open
+        contestName="OS Exam"
         onClose={vi.fn()}
-        onConfirmImport={vi.fn().mockResolvedValue(undefined)}
+        onPreviewImport={vi.fn().mockResolvedValue({
+          summary: {
+            mode: "append",
+            will_add: 1,
+            will_delete: 0,
+            will_keep: 0,
+            score_before: 0,
+            score_after: 2,
+            score_delta: 2,
+          },
+          fingerprint: "fp",
+        })}
+        onApplyImport={vi.fn().mockResolvedValue(undefined)}
       />,
     );
-
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(input).toBeTruthy();
 
     const invalidJson = {
       version: "qjudge.exam.v1",
@@ -52,10 +90,8 @@ describe("ExamQuestionJsonImportModal", () => {
       ],
     };
 
-    fireEvent.change(input, {
-      target: {
-        files: [new File([JSON.stringify(invalidJson)], "invalid.json", { type: "application/json" })],
-      },
+    fireEvent.change(screen.getByLabelText(/examJson\.import\.pasteTitle/i), {
+      target: { value: JSON.stringify(invalidJson) },
     });
 
     await waitFor(() => {
@@ -63,109 +99,130 @@ describe("ExamQuestionJsonImportModal", () => {
     });
 
     const submitButton = screen.getByRole("button", {
-      name: /確認覆蓋|confirm|examJson\.import\.confirmReplace/i,
+      name: /examJson\.import\.previewAction/i,
     });
     expect(submitButton).toBeDisabled();
   });
 
-  it("shows preview and submits parsed questions for valid JSON", async () => {
-    const onConfirmImport = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(
-      <ExamQuestionJsonImportModal
-        open
-        onClose={vi.fn()}
-        onConfirmImport={onConfirmImport}
-      />,
-    );
-
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(input).toBeTruthy();
-
-    const validJson = {
-      version: "qjudge.exam.v1",
-      meta: {
-        exported_at: "2026-03-02T00:00:00.000Z",
-        contest_name: "OS Exam",
+  it("runs preview first, then apply with fingerprint", async () => {
+    const onPreviewImport = vi.fn().mockResolvedValue({
+      summary: {
+        mode: "append",
+        will_add: 1,
+        will_delete: 0,
+        will_keep: 2,
+        score_before: 10,
+        score_after: 12,
+        score_delta: 2,
       },
-      questions: [
-        {
-          question_type: "true_false",
-          prompt: "Linux is kernel",
-          score: 2,
-          correct_answer: "true",
-        },
-      ],
-    };
-
-    fireEvent.change(input, {
-      target: {
-        files: [new File([JSON.stringify(validJson)], "valid.json", { type: "application/json" })],
-      },
+      fingerprint: "fp-123",
     });
-
-    await screen.findByText(/examJson\.import\.previewTitle/i, {}, { timeout: 2000 });
-
-    const submitButton = screen.getByRole("button", {
-      name: /確認覆蓋|confirm|examJson\.import\.confirmReplace/i,
-    });
-    expect(submitButton).not.toBeDisabled();
-
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(onConfirmImport).toHaveBeenCalledTimes(1);
-    });
-
-    const payload = onConfirmImport.mock.calls[0][0];
-    expect(payload).toHaveLength(1);
-    expect(payload[0].question_type).toBe("true_false");
-    expect(payload[0].correct_answer).toBe(0);
-  });
-
-  it("accepts pasted JSON content without selecting a file", async () => {
-    const onConfirmImport = vi.fn().mockResolvedValue(undefined);
+    const onApplyImport = vi.fn().mockResolvedValue(undefined);
     render(
       <ExamQuestionJsonImportModal
         open
+        contestName="OS Exam"
         onClose={vi.fn()}
-        onConfirmImport={onConfirmImport}
+        onPreviewImport={onPreviewImport}
+        onApplyImport={onApplyImport}
       />,
     );
 
-    const validJson = {
-      version: "qjudge.exam.v1",
-      meta: {
-        exported_at: "2026-03-02T00:00:00.000Z",
-        contest_name: "OS Exam",
-      },
-      questions: [
-        {
-          question_type: "essay",
-          prompt: "Explain process scheduling.",
-          score: 6,
-        },
-      ],
-    };
-
-    const textArea = screen.getByLabelText(/examJson\.import\.pasteTitle/i);
-    fireEvent.change(textArea, { target: { value: JSON.stringify(validJson) } });
+    fireEvent.change(screen.getByLabelText(/examJson\.import\.pasteTitle/i), {
+      target: { value: JSON.stringify(validJson) },
+    });
 
     await screen.findByText(/examJson\.import\.previewTitle/i, {}, { timeout: 2000 });
 
-    const submitButton = screen.getByRole("button", {
-      name: /確認覆蓋|confirm|examJson\.import\.confirmReplace/i,
-    });
-    expect(submitButton).not.toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /examJson\.import\.previewAction/i }));
 
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(onConfirmImport).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onPreviewImport).toHaveBeenCalledTimes(1));
+    expect(onPreviewImport).toHaveBeenCalledWith({
+      payloadJson: JSON.stringify(validJson),
+      importMode: "append",
     });
 
-    const payload = onConfirmImport.mock.calls[0][0];
-    expect(payload).toHaveLength(1);
-    expect(payload[0].question_type).toBe("essay");
-    expect(payload[0].prompt).toContain("process scheduling");
+    fireEvent.click(screen.getByRole("button", { name: /examJson\.import\.confirmReplace/i }));
+    await waitFor(() => expect(onApplyImport).toHaveBeenCalledTimes(1));
+    expect(onApplyImport).toHaveBeenCalledWith({
+      payloadJson: JSON.stringify(validJson),
+      importMode: "append",
+      fingerprint: "fp-123",
+    });
+  });
+
+  it("requires explicit confirmation before apply in replace_all mode", async () => {
+    const onPreviewImport = vi.fn().mockResolvedValue({
+      summary: {
+        mode: "replace_all",
+        will_add: 1,
+        will_delete: 3,
+        will_keep: 0,
+        score_before: 15,
+        score_after: 2,
+        score_delta: -13,
+      },
+      fingerprint: "fp-456",
+    });
+    const onApplyImport = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ExamQuestionJsonImportModal
+        open
+        contestName="OS Exam"
+        onClose={vi.fn()}
+        onPreviewImport={onPreviewImport}
+        onApplyImport={onApplyImport}
+      />,
+    );
+
+    const textArea = screen.getByLabelText(/examJson\.import\.pasteTitle/i);
+    fireEvent.change(textArea, { target: { value: JSON.stringify(validJson) } });
+    fireEvent.click(screen.getByLabelText(/examJson\.import\.modeReplaceAll/i));
+
+    await screen.findByText(/examJson\.import\.previewTitle/i, {}, { timeout: 2000 });
+    fireEvent.click(screen.getByRole("button", { name: /examJson\.import\.previewAction/i }));
+    await waitFor(() => expect(onPreviewImport).toHaveBeenCalledTimes(1));
+
+    const applyButton = screen.getByRole("button", { name: /examJson\.import\.confirmReplace/i });
+    expect(applyButton).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText(/examJson\.import\.replaceAllConfirm/i));
+    expect(applyButton).not.toBeDisabled();
+
+    fireEvent.click(applyButton);
+    await waitFor(() => expect(onApplyImport).toHaveBeenCalledTimes(1));
+  });
+
+  it("copies AI prompt template to clipboard", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(globalThis.navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+
+    render(
+      <ExamQuestionJsonImportModal
+        open
+        contestName="OS Exam"
+        onClose={vi.fn()}
+        onPreviewImport={vi.fn().mockResolvedValue({
+          summary: {
+            mode: "append",
+            will_add: 1,
+            will_delete: 0,
+            will_keep: 0,
+            score_before: 0,
+            score_after: 2,
+            score_delta: 2,
+          },
+          fingerprint: "fp",
+        })}
+        onApplyImport={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /examJson\.import\.copyPrompt/i }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    expect(writeText.mock.calls[0][0]).toContain("qjudge.exam.v1");
   });
 });

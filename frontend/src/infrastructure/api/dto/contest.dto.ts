@@ -15,7 +15,7 @@ export interface ContestProblemSummaryDto {
     name?: string;
   } | null;
   source_question_id?: number | string | null;
-  source_mode?: "manual" | "copy" | "reference";
+  source_mode?: "manual" | "json" | "copy" | "reference";
   user_status?: SubmissionStatus;
   difficulty?: string;
 }

@@ -192,6 +192,27 @@ export const consumeTeacherActivationInvite = async (
 };
 
 // ============================================================================
+// OAuth
+// ============================================================================
+
+export const getOAuthUrl = async (provider: string, redirect?: string): Promise<string> => {
+  const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
+  const response = await requestJson<ApiResponse<{ url: string }>>(
+    httpClient.get(`/api/v1/auth/oauth/${provider}/url/${query}`),
+    "Failed to get OAuth URL"
+  );
+  return response.data.url;
+};
+
+export const oauthCallback = async (provider: string, code: string): Promise<AuthSuccessData> => {
+  const response = await requestJson<AuthResponseDto>(
+    httpClient.post(`/api/v1/auth/oauth/${provider}/callback/`, { code }),
+    "OAuth callback failed"
+  );
+  return response.data;
+};
+
+// ============================================================================
 // Login Records
 // ============================================================================
 
@@ -208,17 +229,19 @@ export const getLoginRecords = async (): Promise<UserLoginRecord[]> => {
 // ============================================================================
 
 export const getAPIKeyInfo = async (): Promise<APIKeyInfo> => {
-  return requestJson<APIKeyResponseDto>(
+  const response = await requestJson<APIKeyResponseDto>(
     httpClient.get("/api/v1/auth/api-key/"),
     "Failed to fetch API key info"
   );
+  return response.data;
 };
 
 export const setAPIKey = async (data: SetAPIKeyRequest): Promise<APIKeyInfo> => {
-  return requestJson<APIKeyResponseDto>(
+  const response = await requestJson<APIKeyResponseDto>(
     httpClient.post("/api/v1/auth/api-key/", data),
     "Failed to set API key"
   );
+  return response.data;
 };
 
 export const deleteAPIKey = async (): Promise<void> => {
@@ -230,10 +253,11 @@ export const getUsageStats = async (params: {
   end_date?: string;
 }): Promise<UsageStatsData> => {
   const query = new URLSearchParams(params).toString();
-  return requestJson<UsageStatsResponseDto>(
+  const response = await requestJson<UsageStatsResponseDto>(
     httpClient.get(`/api/v1/auth/api-key/usage/?${query}`),
     "Failed to fetch usage data"
   );
+  return response.data;
 };
 
 // ============================================================================
@@ -258,6 +282,8 @@ export const authRepository = {
   issueTeacherActivationInvite,
   previewTeacherActivationInvite,
   consumeTeacherActivationInvite,
+  getOAuthUrl,
+  oauthCallback,
   getLoginRecords,
   getAPIKeyInfo,
   setAPIKey,

@@ -1,24 +1,42 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import {
-  Modal,
+  Button,
+  Checkbox,
   FileUploader,
-  TextArea,
   InlineNotification,
-  Tag,
-  RadioButtonGroup,
+  Modal,
   RadioButton,
+  RadioButtonGroup,
+  Tag,
+  TextArea,
 } from "@carbon/react";
 import { useTranslation } from "react-i18next";
+import type {
+  ExamQuestionImportMode,
+  ExamQuestionImportPreviewResponse,
+} from "@/infrastructure/api/repositories/examQuestions.repository";
 import type {
   ExamQuestionJsonNormalizedQuestion,
   ExamQuestionJsonValidationError,
 } from "./examQuestionJson";
-import { parseExamQuestionJsonV1 } from "./examQuestionJson";
+import {
+  buildExamQuestionImportPromptTemplate,
+  parseExamQuestionJsonV1,
+} from "./examQuestionJson";
 
 interface ExamQuestionJsonImportModalProps {
   open: boolean;
+  contestName: string;
   onClose: () => void;
-  onConfirmImport: (questions: ExamQuestionJsonNormalizedQuestion[]) => Promise<void>;
+  onPreviewImport: (payload: {
+    payloadJson: string;
+    importMode: ExamQuestionImportMode;
+  }) => Promise<ExamQuestionImportPreviewResponse>;
+  onApplyImport: (payload: {
+    payloadJson: string;
+    importMode: ExamQuestionImportMode;
+    fingerprint?: string;
+  }) => Promise<void>;
 }
 
 const PREVIEW_LIMIT = 6;
@@ -78,32 +96,26 @@ const extractFileFromEvent = (event: unknown, data?: unknown): File | null => {
 
 const ExamQuestionJsonImportModal = ({
   open,
+  contestName,
   onClose,
-  onConfirmImport,
+  onPreviewImport,
+  onApplyImport,
 }: ExamQuestionJsonImportModalProps) => {
   const { t } = useTranslation("contest");
   const [fileName, setFileName] = useState<string>("");
   const [parsing, setParsing] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [importTarget, setImportTarget] = useState<"exam-json">("exam-json");
+  const [importMode, setImportMode] = useState<ExamQuestionImportMode>("append");
   const [errors, setErrors] = useState<ExamQuestionJsonValidationError[]>([]);
   const [submitError, setSubmitError] = useState<string>("");
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [parsedQuestions, setParsedQuestions] = useState<ExamQuestionJsonNormalizedQuestion[] | null>(
     null,
   );
-
-  const handleImportTargetChange = (value: unknown) => {
-    const extracted =
-      typeof value === "string"
-        ? value
-        : value && typeof value === "object" && "target" in value
-          ? (value as { target?: { value?: unknown } }).target?.value
-          : undefined;
-
-    if (extracted === "exam-json") {
-      setImportTarget("exam-json");
-    }
-  };
+  const [parsedPayloadJson, setParsedPayloadJson] = useState<string>("");
+  const [previewResult, setPreviewResult] = useState<ExamQuestionImportPreviewResponse | null>(null);
+  const [replaceAllConfirmed, setReplaceAllConfirmed] = useState(false);
 
   const totalScore = useMemo(
     () => (parsedQuestions ? parsedQuestions.reduce((sum, question) => sum + question.score, 0) : 0),
@@ -120,15 +132,25 @@ const ExamQuestionJsonImportModal = ({
     return Array.from(map.entries());
   }, [parsedQuestions]);
 
+  const canStartPreview = !!parsedQuestions && parsedQuestions.length > 0 && !parsing;
+  const canApply = !!previewResult && canStartPreview;
+  const needsReplaceAllConfirm =
+    importMode === "replace_all" && (previewResult?.summary.will_delete ?? 0) > 0;
+
   const resetState = () => {
     setFileName("");
     setPastedJsonText("");
     setParsing(false);
+    setPreviewing(false);
     setImporting(false);
-    setImportTarget("exam-json");
+    setImportMode("append");
     setErrors([]);
     setSubmitError("");
+    setCopiedPrompt(false);
     setParsedQuestions(null);
+    setParsedPayloadJson("");
+    setPreviewResult(null);
+    setReplaceAllConfirmed(false);
   };
 
   const handleClose = () => {
@@ -143,6 +165,9 @@ const ExamQuestionJsonImportModal = ({
       setErrors([]);
       setSubmitError("");
       setParsedQuestions(null);
+      setParsedPayloadJson("");
+      setPreviewResult(null);
+      setReplaceAllConfirmed(false);
       return;
     }
 
@@ -150,10 +175,14 @@ const ExamQuestionJsonImportModal = ({
     setErrors([]);
     setSubmitError("");
     setParsedQuestions(null);
+    setParsedPayloadJson("");
+    setPreviewResult(null);
+    setReplaceAllConfirmed(false);
 
     const result = parseExamQuestionJsonV1(trimmed);
     if (result.success && result.data) {
       setParsedQuestions(result.data.questions);
+      setParsedPayloadJson(trimmed);
       setErrors([]);
     } else {
       setErrors(result.errors ?? [{ field: "json", message: t("examJson.import.errors.invalidJson") }]);
@@ -197,12 +226,54 @@ const ExamQuestionJsonImportModal = ({
     parseContent(content);
   };
 
-  const handleConfirmImport = async () => {
-    if (!parsedQuestions || parsedQuestions.length === 0) return;
+  const handleModeChange = (value: unknown) => {
+    const normalized = String(value ?? "append") as ExamQuestionImportMode;
+    setImportMode(normalized);
+    setPreviewResult(null);
+    setReplaceAllConfirmed(false);
+    setSubmitError("");
+  };
+
+  const handlePreview = async () => {
+    if (!canStartPreview || !parsedPayloadJson) return;
+    setPreviewing(true);
+    setSubmitError("");
+    try {
+      const result = await onPreviewImport({
+        payloadJson: parsedPayloadJson,
+        importMode,
+      });
+      setPreviewResult(result);
+      setReplaceAllConfirmed(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("examJson.import.errors.importFailed");
+      setSubmitError(message);
+      setPreviewResult(null);
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!parsedPayloadJson) return;
+
+    if (!previewResult) {
+      await handlePreview();
+      return;
+    }
+
+    if (needsReplaceAllConfirm && !replaceAllConfirmed) {
+      return;
+    }
+
     setImporting(true);
     setSubmitError("");
     try {
-      await onConfirmImport(parsedQuestions);
+      await onApplyImport({
+        payloadJson: parsedPayloadJson,
+        importMode,
+        fingerprint: previewResult.fingerprint,
+      });
       handleClose();
     } catch (error) {
       const message = error instanceof Error ? error.message : t("examJson.import.errors.importFailed");
@@ -212,33 +283,81 @@ const ExamQuestionJsonImportModal = ({
     }
   };
 
+  const handleCopyPrompt = async () => {
+    const text = buildExamQuestionImportPromptTemplate(contestName);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 2000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("examJson.import.errors.importFailed");
+      setSubmitError(message);
+    }
+  };
+
+  const primaryButtonText = previewResult
+    ? importing
+      ? t("examJson.import.importing")
+      : t("examJson.import.confirmReplace")
+    : previewing
+      ? t("examJson.import.previewing", "預覽中...")
+      : t("examJson.import.previewAction", "預覽變更");
+
+  const primaryButtonDisabled =
+    !canStartPreview ||
+    parsing ||
+    previewing ||
+    importing ||
+    (previewResult !== null && needsReplaceAllConfirm && !replaceAllConfirmed);
+
   return (
     <Modal
       open={open}
       modalHeading={t("examJson.import.title")}
-      primaryButtonText={importing ? t("examJson.import.importing") : t("examJson.import.confirmReplace")}
+      primaryButtonText={primaryButtonText}
       secondaryButtonText={t("examJson.import.cancel")}
       onRequestClose={handleClose}
-      onRequestSubmit={handleConfirmImport}
-      primaryButtonDisabled={!parsedQuestions || parsing || importing}
+      onRequestSubmit={() => void handleSubmit()}
+      primaryButtonDisabled={primaryButtonDisabled}
       size="lg"
-      danger
+      danger={importMode === "replace_all"}
     >
       <p style={{ marginBottom: "0.75rem", color: "var(--cds-text-secondary)" }}>
         {t("examJson.import.description")}
       </p>
 
+      <div style={{ marginBottom: "0.75rem" }}>
+        <Button kind="ghost" size="sm" onClick={() => void handleCopyPrompt()}>
+          {t("examJson.import.copyPrompt", "複製 AI 提示詞")}
+        </Button>
+        {copiedPrompt && (
+          <span style={{ marginLeft: "0.5rem", color: "var(--cds-text-success)" }}>
+            {t("examJson.import.copyPromptDone", "已複製")}
+          </span>
+        )}
+      </div>
+
       <RadioButtonGroup
-        legendText={t("examJson.import.targetLegend")}
-        name="import-target"
-        valueSelected={importTarget}
-        onChange={(value) => handleImportTargetChange(value)}
+        legendText={t("examJson.import.modeLegend", "選擇匯入模式")}
+        name="import-mode"
+        valueSelected={importMode}
+        onChange={(value) => handleModeChange(value)}
         orientation="vertical"
       >
         <RadioButton
-          id="import-exam-json"
-          labelText={t("examJson.import.targetExamJson")}
-          value="exam-json"
+          id="import-mode-append"
+          labelText={t("examJson.import.modeAppend", "追加（保留現有題目）")}
+          value="append"
+        />
+        <RadioButton
+          id="import-mode-replace-all"
+          labelText={t("examJson.import.modeReplaceAll", "全部覆蓋（刪除現有題目）")}
+          value="replace_all"
+        />
+        <RadioButton
+          id="import-mode-replace-manual"
+          labelText={t("examJson.import.modeReplaceManualOnly", "只覆蓋手動/JSON 題目，保留題庫匯入題")}
+          value="replace_manual_only"
         />
       </RadioButtonGroup>
 
@@ -249,7 +368,7 @@ const ExamQuestionJsonImportModal = ({
         filenameStatus="edit"
         accept={[".json", "application/json"]}
         onChange={(event, data) => handleFileChange(event, data)}
-        disabled={importing}
+        disabled={importing || previewing}
       />
 
       <TextArea
@@ -260,7 +379,7 @@ const ExamQuestionJsonImportModal = ({
         rows={10}
         value={pastedJsonText}
         onChange={handlePasteChange}
-        disabled={importing}
+        disabled={importing || previewing}
         style={{ marginTop: "1rem" }}
       />
 
@@ -276,6 +395,16 @@ const ExamQuestionJsonImportModal = ({
           kind="info"
           title={t("examJson.import.parsingTitle")}
           subtitle={t("examJson.import.parsingSubtitle")}
+          style={{ marginTop: "1rem" }}
+        />
+      )}
+
+      {previewing && (
+        <InlineNotification
+          lowContrast
+          kind="info"
+          title={t("examJson.import.previewingTitle", "預覽中")}
+          subtitle={t("examJson.import.previewingSubtitle", "正在計算匯入變更")}
           style={{ marginTop: "1rem" }}
         />
       )}
@@ -321,6 +450,17 @@ const ExamQuestionJsonImportModal = ({
             ))}
           </div>
 
+          {previewResult && (
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+              <Tag type="green">{t("examJson.import.summaryAdd", "新增")}: {previewResult.summary.will_add}</Tag>
+              <Tag type="red">{t("examJson.import.summaryDelete", "刪除")}: {previewResult.summary.will_delete}</Tag>
+              <Tag type="gray">{t("examJson.import.summaryKeep", "保留")}: {previewResult.summary.will_keep}</Tag>
+              <Tag type="cyan">
+                {t("examJson.import.summaryScoreDelta", "總分變化")}: {previewResult.summary.score_delta}
+              </Tag>
+            </div>
+          )}
+
           <div style={{ maxHeight: "220px", overflowY: "auto", border: "1px solid var(--cds-border-subtle-01)", padding: "0.5rem" }}>
             {parsedQuestions.slice(0, PREVIEW_LIMIT).map((question, index) => (
               <div
@@ -351,6 +491,20 @@ const ExamQuestionJsonImportModal = ({
             <p style={{ marginTop: "0.5rem", color: "var(--cds-text-secondary)" }}>
               {t("examJson.import.previewMore", { count: parsedQuestions.length - PREVIEW_LIMIT })}
             </p>
+          )}
+
+          {needsReplaceAllConfirm && (
+            <div style={{ marginTop: "0.75rem" }}>
+              <Checkbox
+                id="replace-all-confirm"
+                labelText={t(
+                  "examJson.import.replaceAllConfirm",
+                  "我了解此操作會刪除現有題目，並以匯入內容覆蓋",
+                )}
+                checked={replaceAllConfirmed}
+                onChange={(_event, { checked }) => setReplaceAllConfirmed(!!checked)}
+              />
+            </div>
           )}
         </div>
       )}

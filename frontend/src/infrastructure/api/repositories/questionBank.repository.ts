@@ -35,13 +35,18 @@ export const getBank = async (bankId: string): Promise<QuestionBank> => {
   return mapQuestionBankDto(responseData);
 };
 
-export const listMine = async (): Promise<QuestionBank[]> => {
+export const getQuestionBanks = async (scope?: string): Promise<QuestionBank[]> => {
+  const query = scope ? `?scope=${scope}` : "";
   const data = await requestJson<{ results?: QuestionBankDto[] } | QuestionBankDto[]>(
-    httpClient.get(`/api/v1/question-banks/mine/`),
-    "Failed to fetch my question banks"
+    httpClient.get(`/api/v1/question-banks/${query}`),
+    "Failed to fetch question banks"
   );
   const results = Array.isArray(data) ? data : data.results || [];
   return results.map(mapQuestionBankDto);
+};
+
+export const listMine = async (): Promise<QuestionBank[]> => {
+  return getQuestionBanks("mine");
 };
 
 export const listExplore = async (): Promise<ExploreBankItem[]> => {
@@ -102,12 +107,7 @@ export const review = async (
 };
 
 export const listReviewQueue = async (): Promise<QuestionBank[]> => {
-  const data = await requestJson<{ results?: QuestionBankDto[] } | QuestionBankDto[]>(
-    httpClient.get(`/api/v1/question-banks/review-queue/`),
-    "Failed to fetch review queue"
-  );
-  const results = Array.isArray(data) ? data : data.results || [];
-  return results.map(mapQuestionBankDto);
+  return getQuestionBanks("review-queue");
 };
 
 export const deleteBank = async (id: string): Promise<void> => {
@@ -134,7 +134,7 @@ export const createQuestion = async (bankId: string, payload: UpsertBankQuestion
 
 export const updateQuestion = async (bankItemId: string, payload: UpsertBankQuestionPayload): Promise<BankQuestion> => {
   const responseData = await requestJson<BankQuestionDto>(
-    httpClient.patch(`/api/v1/question-banks/items/${bankItemId}/`, payload),
+    httpClient.patch(`/api/v1/question-banks/items/${bankItemId}/`),
     "Failed to update question"
   );
   return mapBankQuestionDto(responseData);

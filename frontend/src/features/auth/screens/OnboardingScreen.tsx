@@ -14,7 +14,7 @@ import { useAuthLayoutMetadata } from "@/features/auth/contexts/AuthLayoutContex
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import { LanguageSwitch, ThemeSwitch } from "@/shared/ui/config";
-import { updateUserPreferences } from "@/infrastructure/api/repositories/auth.repository";
+import { updatePreferences } from "@/infrastructure/api/repositories/auth.repository";
 import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
 import type { SupportedLanguage } from "@/i18n";
 
@@ -52,7 +52,7 @@ const OnboardingScreen = () => {
     setError("");
 
     try {
-      const response = await updateUserPreferences({
+      const preferences = await updatePreferences({
         display_name: trimmedDisplayName,
         preferred_language: preferredLanguage,
         preferred_theme: preferredTheme,
@@ -65,12 +65,12 @@ const OnboardingScreen = () => {
           solved_count: user.profile?.solved_count ?? 0,
           submission_count: user.profile?.submission_count ?? 0,
           accept_rate: user.profile?.accept_rate ?? 0,
-          ...response.data,
+          ...preferences,
         },
       };
 
-      setPreference(response.data.preferred_theme);
-      setContentLanguage(response.data.preferred_language as SupportedLanguage);
+      setPreference(preferences.preferred_theme);
+      setContentLanguage(preferences.preferred_language as SupportedLanguage);
       setUser(nextUser);
       localStorage.setItem("user", JSON.stringify(nextUser));
       window.dispatchEvent(new Event("storage"));
