@@ -25,6 +25,7 @@ import type {
   ContestAnticheatConfig,
   ContestOverviewMetrics,
   ContestUpdateRequest,
+  ContestType,
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
 import type {
@@ -43,7 +44,7 @@ import type {
   ParticipantCodingProblemRowDto,
   ParticipantEvidenceRowDto,
   EventFeedItemDto,
-} from "../api/dto/contest.dto";
+} from "@/infrastructure/api/dto/contest.dto";
 import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
 
 export function mapContestProblemSummaryDto(dto: ContestProblemSummaryDto): ContestProblemSummary {

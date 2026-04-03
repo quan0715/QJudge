@@ -11,7 +11,7 @@ import type {
   ClassroomMemberDto,
   ClassroomAnnouncementDto,
   ClassroomLabSummaryDto,
-} from "../api/dto/classroom.dto";
+} from "@/infrastructure/api/dto/classroom.dto";
 
 export function mapClassroomDto(dto: ClassroomDto): Classroom {
   return {

@@ -11,7 +11,7 @@ import {
   mapSubmissionDto,
   mapSubmissionDetailDto,
 } from "@/infrastructure/mappers/submission.mapper";
-import type { SubmissionDto, SubmissionDetailDto } from "../api/dto/submission.dto";
+import type { SubmissionDto, SubmissionDetailDto } from "@/infrastructure/api/dto/submission.dto";
 
 // ============================================================================
 // Submission Repository Implementation

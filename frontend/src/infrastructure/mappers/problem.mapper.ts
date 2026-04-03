@@ -13,7 +13,7 @@ import type {
   TestCaseDto,
   LanguageConfigDto,
   ProblemTranslationDto,
-} from "../api/dto/problem.dto";
+} from "@/infrastructure/api/dto/problem.dto";
 
 export function mapTagDto(dto: TagDto): Tag {
   return {

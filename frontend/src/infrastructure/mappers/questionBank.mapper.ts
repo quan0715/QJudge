@@ -11,7 +11,7 @@ import type {
   QuestionInboxItemDto,
   QuestionInboxSummaryDto,
   CodingQuestionExtDto,
-} from "../api/dto/question-bank.dto";
+} from "@/infrastructure/api/dto/question-bank.dto";
 
 export function mapQuestionBankDto(dto: QuestionBankDto): QuestionBank {
   return {

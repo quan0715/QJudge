@@ -1,15 +1,19 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
+import { buildQuery } from "@/infrastructure/api/utils/buildQuery.client";
 import type {
   Discussion,
   DiscussionComment,
-  CreateDiscussionPayload,
-  CreateCommentPayload,
-  UpdateDiscussionPayload,
-  UpdateCommentPayload,
   DiscussionListResponse,
   CommentListResponse,
 } from "@/core/entities/discussion.entity";
-import type { IDiscussionRepository } from "@/core/ports/discussion.repository";
+import type {
+  IDiscussionRepository,
+  GetDiscussionsParams,
+  GetCommentsParams,
+  CreateDiscussionPayload,
+  UpdateDiscussionPayload,
+  CreateCommentPayload,
+} from "@/core/ports/discussion.repository";
 import {
   mapDiscussionDto,
   mapDiscussionCommentDto,
@@ -19,18 +23,18 @@ import type {
   DiscussionCommentDto,
   DiscussionListDto,
   CommentListDto,
-} from "../api/dto/discussion.dto";
+} from "@/infrastructure/api/dto/discussion.dto";
 
 // ============================================================================
 // Discussion Repository Implementation
 // ============================================================================
 
 export const getDiscussions = async (
-  problemId: string,
-  page = 1
+  params?: GetDiscussionsParams
 ): Promise<DiscussionListResponse> => {
+  const query = buildQuery(params as Record<string, unknown>);
   const data = await requestJson<DiscussionListDto>(
-    httpClient.get(`/api/v1/discussions/?problem=${problemId}&page=${page}`),
+    httpClient.get(`/api/v1/discussions/${query}`),
     "Failed to fetch discussions"
   );
   return {
@@ -50,13 +54,13 @@ export const getDiscussion = async (id: string): Promise<Discussion> => {
 };
 
 export const createDiscussion = async (
-  problemId: string,
   payload: CreateDiscussionPayload
 ): Promise<Discussion> => {
   const data = await requestJson<DiscussionDto>(
     httpClient.post(`/api/v1/discussions/`, {
-      ...payload,
-      problem: problemId,
+      title: payload.title,
+      content: payload.content,
+      problem: payload.problem_id,
     }),
     "Failed to create discussion"
   );
@@ -84,10 +88,11 @@ export const deleteDiscussion = async (id: string): Promise<void> => {
 // Comments
 export const getComments = async (
   discussionId: string,
-  page = 1
+  params?: GetCommentsParams
 ): Promise<CommentListResponse> => {
+  const query = buildQuery(params as Record<string, unknown>);
   const data = await requestJson<CommentListDto>(
-    httpClient.get(`/api/v1/comments/?discussion=${discussionId}&page=${page}`),
+    httpClient.get(`/api/v1/comments/${query}${query ? '&' : '?'}discussion=${discussionId}`),
     "Failed to fetch comments"
   );
   return {
@@ -104,7 +109,8 @@ export const createComment = async (
 ): Promise<DiscussionComment> => {
   const data = await requestJson<DiscussionCommentDto>(
     httpClient.post(`/api/v1/comments/`, {
-      ...payload,
+      content: payload.content,
+      parent: payload.parent_id,
       discussion: discussionId,
     }),
     "Failed to create comment"
@@ -112,36 +118,40 @@ export const createComment = async (
   return mapDiscussionCommentDto(data);
 };
 
-export const updateComment = async (
-  id: string,
-  payload: UpdateCommentPayload
-): Promise<DiscussionComment> => {
-  const data = await requestJson<DiscussionCommentDto>(
-    httpClient.patch(`/api/v1/comments/${id}/`, payload),
-    "Failed to update comment"
-  );
-  return mapDiscussionCommentDto(data);
-};
-
-export const deleteComment = async (id: string): Promise<void> => {
+export const deleteComment = async (_discussionId: string, commentId: string): Promise<void> => {
   await ensureOk(
-    httpClient.delete(`/api/v1/comments/${id}/`),
+    httpClient.delete(`/api/v1/comments/${commentId}/`),
     "Failed to delete comment"
   );
 };
 
-// Social
-export const toggleLikeDiscussion = async (id: string): Promise<void> => {
+// Social (Likes)
+export const likeDiscussion = async (id: string): Promise<void> => {
   await ensureOk(
     httpClient.post(`/api/v1/discussions/${id}/toggle_like/`),
-    "Failed to toggle like"
+    "Failed to like discussion"
   );
 };
 
-export const toggleLikeComment = async (id: string): Promise<void> => {
+export const unlikeDiscussion = async (id: string): Promise<void> => {
+  // Our backend uses toggle_like, so unlike is the same call
   await ensureOk(
-    httpClient.post(`/api/v1/comments/${id}/toggle_like/`),
-    "Failed to toggle like"
+    httpClient.post(`/api/v1/discussions/${id}/toggle_like/`),
+    "Failed to unlike discussion"
+  );
+};
+
+export const likeComment = async (_discussionId: string, commentId: string): Promise<void> => {
+  await ensureOk(
+    httpClient.post(`/api/v1/comments/${commentId}/toggle_like/`),
+    "Failed to like comment"
+  );
+};
+
+export const unlikeComment = async (_discussionId: string, commentId: string): Promise<void> => {
+  await ensureOk(
+    httpClient.post(`/api/v1/comments/${commentId}/toggle_like/`),
+    "Failed to unlike comment"
   );
 };
 
@@ -155,12 +165,13 @@ export const discussionRepository: IDiscussionRepository = {
   createDiscussion,
   updateDiscussion,
   deleteDiscussion,
+  likeDiscussion,
+  unlikeDiscussion,
   getComments,
   createComment,
-  updateComment,
   deleteComment,
-  toggleLikeDiscussion,
-  toggleLikeComment,
+  likeComment,
+  unlikeComment,
 };
 
 export default discussionRepository;

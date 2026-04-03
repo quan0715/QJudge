@@ -7,7 +7,7 @@ import type {
   DiscussionDto,
   DiscussionCommentDto,
   DiscussionAuthorDto,
-} from "../api/dto/discussion.dto";
+} from "@/infrastructure/api/dto/discussion.dto";
 
 export function mapDiscussionAuthorDto(dto: DiscussionAuthorDto): DiscussionAuthor {
   return {

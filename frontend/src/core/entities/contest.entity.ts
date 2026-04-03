@@ -633,10 +633,12 @@ export interface ContestUpdateRequest {
   warningTimeoutSeconds?: number;
   screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest?: boolean;
+  anonymousModeEnabled?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;
   allowAutoUnlock?: boolean;
   autoUnlockMinutes?: number;
+  resultsPublished?: boolean;
 }
 
 // ============ Contest State Utilities ============

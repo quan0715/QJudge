@@ -19,7 +19,7 @@ import {
   mapProblemDetailDto,
   mapTagDto,
 } from "@/infrastructure/mappers/problem.mapper";
-import type { ProblemDto, ProblemDetailDto, TagDto } from "../api/dto/problem.dto";
+import type { ProblemDto, ProblemDetailDto, TagDto } from "@/infrastructure/api/dto/problem.dto";
 
 const MANAGEMENT_PROBLEMS_BASE = "/api/v1/management/problems";
 

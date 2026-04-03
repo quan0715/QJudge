@@ -8,7 +8,7 @@ import type {
   SubmissionDto,
   SubmissionDetailDto,
   TestCaseResultDto,
-} from "../api/dto/submission.dto";
+} from "@/infrastructure/api/dto/submission.dto";
 import { mapProblemDto } from "./problem.mapper";
 
 export function mapTestResultDto(dto: TestCaseResultDto): TestResult {

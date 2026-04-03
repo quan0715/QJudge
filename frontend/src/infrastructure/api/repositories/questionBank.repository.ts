@@ -20,7 +20,7 @@ import type {
   QuestionBankDto,
   BankQuestionDto,
   QuestionInboxSummaryDto,
-} from "../api/dto/question-bank.dto";
+} from "@/infrastructure/api/dto/question-bank.dto";
 
 // ============================================================================
 // Question Bank Repository Implementation

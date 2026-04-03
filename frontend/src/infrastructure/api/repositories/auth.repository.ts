@@ -22,10 +22,6 @@ import type {
   UsageStatsData,
 } from "@/core/entities/auth.entity";
 import type {
-  IAuthRepository,
-  UpdateAccountProfilePayload,
-} from "@/core/ports/auth.repository";
-import type {
   AuthResponseDto,
   CurrentUserResponseDto,
   PreferencesResponseDto,
@@ -37,7 +33,7 @@ import type {
   UsageStatsResponseDto,
   LoginRecordsResponseDto,
   UploadAvatarResponseDto,
-} from "../api/dto/auth.dto";
+} from "@/infrastructure/api/dto/auth.dto";
 
 // ============================================================================
 // Auth Repository Implementation
@@ -64,11 +60,10 @@ export const register = async (
 };
 
 export const getCurrentUser = async (): Promise<User> => {
-  const response = await requestJson<CurrentUserResponseDto>(
+  return requestJson<CurrentUserResponseDto>(
     httpClient.get("/api/v1/auth/me/"),
     "Failed to fetch user data"
   );
-  return response.data;
 };
 
 export const logout = async (): Promise<void> => {
@@ -85,13 +80,12 @@ export const changePassword = async (
 };
 
 export const updateAccountProfile = async (
-  data: UpdateAccountProfilePayload
+  data: { username?: string; email?: string }
 ): Promise<User> => {
-  const response = await requestJson<CurrentUserResponseDto>(
+  return requestJson<CurrentUserResponseDto>(
     httpClient.patch("/api/v1/auth/account/", data),
     "Failed to update profile"
   );
-  return response.data;
 };
 
 // ============================================================================
@@ -127,25 +121,15 @@ export const uploadAvatar = async (file: File): Promise<string> => {
   return response.data.avatar_url;
 };
 
-export const requestPasswordReset = async (
-  data: { email: string },
-): Promise<void> => {
-  await ensureOk(
-    httpClient.post("/api/v1/auth/password/reset/", data),
-    "Failed to request password reset",
-  );
-};
-
 // ============================================================================
 // Admin - User Management
 // ============================================================================
 
 export const searchUsers = async (query: string): Promise<ManagedUser[]> => {
-  const response = await requestJson<UserSearchResponseDto>(
+  return requestJson<UserSearchResponseDto>(
     httpClient.get(`/api/v1/management/users/?search=${encodeURIComponent(query)}`),
     "Failed to search users"
   );
-  return response.data;
 };
 
 // ============================================================================
@@ -155,21 +139,19 @@ export const searchUsers = async (query: string): Promise<ManagedUser[]> => {
 export const issueTeacherInvite = async (
   email: string
 ): Promise<TeacherActivationInvite> => {
-  const response = await requestJson<TeacherActivationIssueResponseDto>(
+  return requestJson<TeacherActivationIssueResponseDto>(
     httpClient.post("/api/v1/management/teacher-invites/", { email }),
     "Failed to issue invite"
   );
-  return response.data;
 };
 
 export const previewTeacherActivation = async (
   token: string
 ): Promise<TeacherActivationPreview> => {
-  const response = await requestJson<TeacherActivationPreviewResponseDto>(
+  return requestJson<TeacherActivationPreviewResponseDto>(
     httpClient.get(`/api/v1/auth/teacher-activation/preview/?token=${encodeURIComponent(token)}`),
     "Failed to preview activation"
   );
-  return response.data;
 };
 
 export const consumeTeacherActivation = async (
@@ -187,11 +169,10 @@ export const consumeTeacherActivation = async (
 // ============================================================================
 
 export const getLoginRecords = async (): Promise<UserLoginRecord[]> => {
-  const response = await requestJson<LoginRecordsResponseDto>(
+  return requestJson<LoginRecordsResponseDto>(
     httpClient.get("/api/v1/auth/login-records/"),
     "Failed to fetch login records"
   );
-  return response.data;
 };
 
 // ============================================================================
@@ -199,19 +180,17 @@ export const getLoginRecords = async (): Promise<UserLoginRecord[]> => {
 // ============================================================================
 
 export const getAPIKeyInfo = async (): Promise<APIKeyInfo> => {
-  const response = await requestJson<APIKeyResponseDto>(
+  return requestJson<APIKeyResponseDto>(
     httpClient.get("/api/v1/auth/api-key/"),
     "Failed to fetch API key info"
   );
-  return response.data;
 };
 
 export const setAPIKey = async (data: SetAPIKeyRequest): Promise<APIKeyInfo> => {
-  const response = await requestJson<APIKeyResponseDto>(
+  return requestJson<APIKeyResponseDto>(
     httpClient.post("/api/v1/auth/api-key/", data),
     "Failed to set API key"
   );
-  return response.data;
 };
 
 export const deleteAPIKey = async (): Promise<void> => {
@@ -223,18 +202,17 @@ export const getUsageData = async (params: {
   end_date?: string;
 }): Promise<UsageStatsData> => {
   const query = new URLSearchParams(params).toString();
-  const response = await requestJson<UsageStatsResponseDto>(
+  return requestJson<UsageStatsResponseDto>(
     httpClient.get(`/api/v1/auth/api-key/usage/?${query}`),
     "Failed to fetch usage data"
   );
-  return response.data;
 };
 
 // ============================================================================
-// Repository Instance
+// Repository Export
 // ============================================================================
 
-export const authRepository: IAuthRepository = {
+export const authRepository = {
   login,
   register,
   getCurrentUser,

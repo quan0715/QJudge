@@ -8,6 +8,7 @@ import {
   changePassword as changePasswordApi,
   updateAccountProfile as updateCurrentUserProfile,
   uploadAvatar as uploadUserAvatarApi,
+  requestPasswordReset as requestPasswordResetApi,
 } from "@/infrastructure/api/repositories/auth.repository";
 import type {
   ThemePreference,

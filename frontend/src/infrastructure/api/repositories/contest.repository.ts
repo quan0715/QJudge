@@ -29,7 +29,7 @@ import type {
   ContestDetailDto,
   ScoreboardDto,
   ContestOverviewMetricsDto,
-} from "../api/dto/contest.dto";
+} from "@/infrastructure/api/dto/contest.dto";
 
 // ============================================================================
 // Contest Repository Implementation

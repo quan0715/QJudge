@@ -2,7 +2,7 @@ import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.cli
 import type { Classroom, ClassroomDetail } from "@/core/entities/classroom.entity";
 import type { IClassroomRepository, CreateClassroomPayload, UpdateClassroomPayload } from "@/core/ports/classroom.repository";
 import { mapClassroomDto, mapClassroomDetailDto } from "@/infrastructure/mappers/classroom.mapper";
-import type { ClassroomDto, ClassroomDetailDto } from "../api/dto/classroom.dto";
+import type { ClassroomDto, ClassroomDetailDto } from "@/infrastructure/api/dto/classroom.dto";
 
 // ============================================================================
 // Classroom Repository Implementation
@@ -63,6 +63,14 @@ export const toggleInviteCode = async (id: string, enabled: boolean): Promise<{ 
   );
 };
 
+// Legacy alias for toggleInviteCode or similar
+export const regenerateCode = async (id: string): Promise<any> => {
+  return requestJson<any>(
+    httpClient.post(`/api/v1/classrooms/${id}/toggle_invite_code/`, { enabled: true }),
+    "Failed to regenerate code"
+  );
+};
+
 export const addMembers = async (id: string, usernames: string[]): Promise<any> => {
   return requestJson<any>(
     httpClient.post(`/api/v1/classrooms/${id}/add_members/`, { usernames }),
@@ -80,7 +88,7 @@ export const removeMember = async (classroomId: string, userId: number): Promise
 // Announcement operations
 export const createAnnouncement = async (classroomId: string, data: { title: string; content: string; is_pinned?: boolean }): Promise<any> => {
   return requestJson<any>(
-    httpClient.post(`/api/v1/classrooms/${classroomId}/announcements/`, data),
+    httpClient.post(`/api/v1/classrooms/${classroomId}/announcements/`),
     "Failed to create announcement"
   );
 };
@@ -112,6 +120,31 @@ export const unbindContest = async (classroomId: string, contestId: string): Pro
     httpClient.post(`/api/v1/classrooms/${classroomId}/unbind_contest/`, { contest_id: contestId }),
     "Failed to unbind contest"
   );
+};
+
+// Missing functions found in index.ts
+export const getClassroomContests = async (id: string): Promise<any> => {
+  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${id}/contests/`));
+};
+
+export const createClassroomContest = async (id: string, data: any): Promise<any> => {
+  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${id}/contests/`, data));
+};
+
+export const getClassroomLabs = async (id: string): Promise<any> => {
+  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${id}/labs/`));
+};
+
+export const createClassroomLab = async (id: string, data: any): Promise<any> => {
+  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${id}/labs/`, data));
+};
+
+export const acceptClassroomLab = async (classroomId: string, labId: string): Promise<any> => {
+  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${classroomId}/labs/${labId}/accept/`));
+};
+
+export const getClassroomLabSolve = async (classroomId: string, labId: string): Promise<any> => {
+  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${classroomId}/labs/${labId}/solve/`));
 };
 
 // ============================================================================
