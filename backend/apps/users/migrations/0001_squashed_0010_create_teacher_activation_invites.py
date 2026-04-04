@@ -10,22 +10,6 @@ import django.utils.timezone
 
 
 class Migration(migrations.Migration):
-    replaces = [
-        ("users", "0001_initial"),
-        ("users", "0002_add_user_preferences"),
-        ("users", "0003_add_user_api_key"),
-        (
-            "users",
-            "0004_rename_user_api_keys_user_idx_user_api_ke_user_id_42a3cd_idx_and_more",
-        ),
-        ("users", "0005_add_display_name_to_profile"),
-        ("users", "0006_create_user_login_record"),
-        ("users", "0007_create_user_login_record"),
-        ("users", "0008_add_avatar_fields"),
-        ("users", "0009_add_onboarding_completed_at"),
-        ("users", "0010_create_teacher_activation_invites"),
-    ]
-
     initial = True
 
     dependencies = [
