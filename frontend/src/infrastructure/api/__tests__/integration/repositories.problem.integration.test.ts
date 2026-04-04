@@ -6,10 +6,12 @@ import {
 } from "@/infrastructure/api/repositories/problem.repository";
 import { loginAndSetToken, setAuthToken, setupApiTestEnv } from "./helpers/apiTestEnv";
 import { TEST_PROBLEMS, TEST_USERS } from "@/tests/helpers/data.helper";
+import { ensureProblemExists } from "./helpers/problemSeed";
 
 describe("problem repository integration", () => {
   let restoreFetch: (() => void) | undefined;
   let problemId = "";
+  let problemTitle = "";
 
   beforeAll(async () => {
     const env = setupApiTestEnv();
@@ -20,16 +22,9 @@ describe("problem repository integration", () => {
       password: TEST_USERS.teacher.password,
     });
 
-    const problems = await getProblems();
-    const target = problems.find(
-      (problem) => problem.title === TEST_PROBLEMS.aPlusB.title
-    );
-
-    if (!target) {
-      throw new Error("Seeded problem P001 not found in API response");
-    }
-
+    const target = await ensureProblemExists(TEST_PROBLEMS.aPlusB.title);
     problemId = target.id;
+    problemTitle = target.title;
   });
 
   afterAll(() => {
@@ -39,10 +34,10 @@ describe("problem repository integration", () => {
 
   it("loads problem list with expected entries", async () => {
     const problems = await getProblems();
-    const hasSeededProblem = problems.some((problem) => problem.title === TEST_PROBLEMS.aPlusB.title);
+    const hasTargetProblem = problems.some((problem) => problem.id === problemId);
 
     expect(problems.length).toBeGreaterThan(0);
-    expect(hasSeededProblem).toBe(true);
+    expect(hasTargetProblem).toBe(true);
   });
 
   it("loads problem detail and statistics", async () => {
@@ -54,7 +49,7 @@ describe("problem repository integration", () => {
     }
 
     expect(detail.id).toBe(problemId);
-    expect(detail.title).toBe(TEST_PROBLEMS.aPlusB.title);
+    expect(detail.title).toBe(problemTitle);
     expect(detail.testCases.length).toBeGreaterThan(0);
 
     expect(stats.submissionCount).toBeGreaterThanOrEqual(0);

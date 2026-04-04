@@ -4,6 +4,7 @@ import sys
 import re
 from collections import defaultdict
 
+# Keep this script change-tracked so CI path filters can be exercised when needed.
 def flatten_dict(d, parent_key='', sep='.'):
     items = []
     for k, v in d.items():

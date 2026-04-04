@@ -1,7 +1,8 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import { loginAndSetToken, setAuthToken, setupApiTestEnv } from "./helpers/apiTestEnv";
-import { TEST_USERS } from "@/tests/helpers/data.helper";
+import { TEST_PROBLEMS, TEST_USERS } from "@/tests/helpers/data.helper";
+import { ensureProblemExists } from "./helpers/problemSeed";
 
 describe("infrastructure http client integration", () => {
   let restoreFetch: (() => void) | undefined;
@@ -14,6 +15,7 @@ describe("infrastructure http client integration", () => {
       email: TEST_USERS.teacher.email,
       password: TEST_USERS.teacher.password,
     });
+    await ensureProblemExists(TEST_PROBLEMS.aPlusB.title);
   });
 
   afterAll(() => {

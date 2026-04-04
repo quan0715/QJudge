@@ -75,7 +75,10 @@ export const uploadCover = async (id: string, file: File): Promise<string> => {
   const formData = new FormData();
   formData.append("file", file);
   const data = await requestJson<{ cover_url: string }>(
-    httpClient.post(`/api/v1/question-banks/${id}/upload_cover/`, formData),
+    httpClient.request(`/api/v1/question-banks/${id}/upload_cover/`, {
+      method: "POST",
+      body: formData,
+    }),
     "Failed to upload cover"
   );
   return data.cover_url;
@@ -83,7 +86,7 @@ export const uploadCover = async (id: string, file: File): Promise<string> => {
 
 export const submitForReview = async (id: string): Promise<QuestionBank> => {
   const responseData = await requestJson<QuestionBankDto>(
-    httpClient.post(`/api/v1/question-banks/${id}/submit_for_review/`),
+    httpClient.post(`/api/v1/question-banks/${id}/submit-for-review/`),
     "Failed to submit for review"
   );
   return mapQuestionBankDto(responseData);
@@ -128,7 +131,7 @@ export const createQuestion = async (bankId: string, payload: any): Promise<Bank
 
 export const updateQuestion = async (bankItemId: string, payload: any): Promise<BankQuestion> => {
   const responseData = await requestJson<BankQuestionDto>(
-    httpClient.patch(`/api/v1/question-banks/items/${bankItemId}/`, payload),
+    httpClient.patch(`/api/v1/question-bank-items/${bankItemId}/`, payload),
     "Failed to update question"
   );
   return mapBankQuestionDto(responseData);
@@ -136,14 +139,14 @@ export const updateQuestion = async (bankItemId: string, payload: any): Promise<
 
 export const deleteQuestion = async (bankItemId: string): Promise<void> => {
   await ensureOk(
-    httpClient.delete(`/api/v1/question-banks/items/${bankItemId}/`),
+    httpClient.delete(`/api/v1/question-bank-items/${bankItemId}/`),
     "Failed to delete question"
   );
 };
 
 export const clone = async (bankItemId: string, targetBankId?: string): Promise<BankQuestion> => {
   const responseData = await requestJson<BankQuestionDto>(
-    httpClient.post(`/api/v1/question-banks/items/${bankItemId}/clone/`, { target_bank_id: targetBankId }),
+    httpClient.post(`/api/v1/question-bank-items/${bankItemId}/clone-to-my-bank/`, { target_bank_id: targetBankId }),
     "Failed to clone question"
   );
   return mapBankQuestionDto(responseData);
@@ -164,7 +167,13 @@ export const ingestInbox = async (params: {
   items: Array<{ sourceType: string; sourceId: string }>;
 }): Promise<any> => {
   return requestJson<any>(
-    httpClient.post(`/api/v1/question-banks/${params.targetBankId}/ingest/`, { items: params.items }),
+    httpClient.post(`/api/v1/question-banks/inbox/ingest/`, {
+      target_bank_id: params.targetBankId,
+      items: params.items.map((item) => ({
+        source_type: item.sourceType,
+        source_id: item.sourceId,
+      })),
+    }),
     "Failed to ingest questions"
   );
 };

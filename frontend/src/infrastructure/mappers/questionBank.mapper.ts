@@ -70,7 +70,7 @@ export function mapBankQuestionDto(dto: BankQuestionDto): BankQuestion {
     id: dto.id.toString(),
     bankItemId: (dto.bank_item_id || dto.id).toString(),
     adapterQuestionId: dto.adapter_question_id?.toString() ?? null,
-    bankId: (dto.bank_id || "").toString(),
+    bankId: (dto.bank_id || dto.bank || "").toString(),
     questionType: dto.question_type,
     title: dto.title,
     prompt: dto.prompt || "",

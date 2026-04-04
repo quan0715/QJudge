@@ -99,6 +99,78 @@ jobs:
           retention-days: 14
 
   # ============================================
+  # Frontend API Integration Tests (Docker test stack)
+  # ============================================
+  frontend-api-integration:
+    name: Frontend API Integration Tests
+    needs: static-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Docker version
+        run: |
+          docker --version
+          docker compose version
+
+      - name: Start test stack
+        run: docker compose -f docker-compose.test.yml up -d --build
+
+      - name: Wait for backend readiness
+        run: |
+          set -euo pipefail
+          DC="docker compose -f docker-compose.test.yml"
+          for i in $(seq 1 240); do
+            # Fail fast if the container has exited
+            STATE=$($DC ps --format '{{.State}}' backend-test 2>/dev/null || echo "missing")
+            if [ "$STATE" = "exited" ] || [ "$STATE" = "dead" ] || [ "$STATE" = "missing" ]; then
+              echo "backend-test container is not running (state=$STATE). Dumping logs:"
+              $DC ps
+              $DC logs --tail=200 backend-test || true
+              exit 1
+            fi
+            if $DC exec -T backend-test \
+              python -c "
+          import sys, urllib.error, urllib.request
+          try:
+              r = urllib.request.urlopen('http://127.0.0.1:8000/api/v1/auth/me', timeout=2)
+              print('backend=200'); sys.exit(0)
+          except urllib.error.HTTPError as exc:
+              print(f'backend={exc.code}'); sys.exit(0)
+          except Exception:
+              sys.exit(1)
+          "; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Timed out waiting for backend readiness."
+          $DC ps
+          $DC logs --tail=200 backend-test frontend-test || true
+          exit 1
+
+      - name: Run Frontend API Integration Tests
+        run: docker compose -f docker-compose.test.yml exec -T frontend-test npm run test:api
+
+      - name: Collect compose logs
+        if: always()
+        run: docker compose -f docker-compose.test.yml logs --no-color > frontend-api-compose.log
+
+      - name: Upload Frontend API artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-api-integration-artifacts
+          path: frontend-api-compose.log
+          retention-days: 14
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v
+
+  # ============================================
   # Backend Unit Tests (no Judge)
   # ============================================
   backend-unit:

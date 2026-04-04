@@ -17,6 +17,7 @@
     "back": "返回",
     "items": {
       "admin-overview": "管理員功能總覽",
+      "classroom-management": "教室管理",
       "common-errors": "常見錯誤",
       "contest-extension-architecture": "Contest 擴充架構指南",
       "contests": "參加競賽",
@@ -32,6 +33,7 @@
       "judge-system": "評測系統說明",
       "overview": "平台概覽",
       "problem-import": "YAML 題目建立",
+      "question-bank": "題庫管理",
       "quick-start": "快速入門",
       "student-exam-guide": "學生考試指南",
       "submission": "程式碼提交",

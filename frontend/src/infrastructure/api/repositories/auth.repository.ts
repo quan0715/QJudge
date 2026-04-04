@@ -34,7 +34,7 @@ export const login = async (
   credentials: LoginCredentials
 ): Promise<AuthResponseDto> => {
   return requestJson<AuthResponseDto>(
-    httpClient.post("/api/v1/auth/login/", credentials),
+    httpClient.post("/api/v1/auth/email/login", credentials),
     "Login failed"
   );
 };
@@ -43,34 +43,34 @@ export const register = async (
   credentials: RegisterCredentials
 ): Promise<AuthResponseDto> => {
   return requestJson<AuthResponseDto>(
-    httpClient.post("/api/v1/auth/register/", credentials),
+    httpClient.post("/api/v1/auth/email/register", credentials),
     "Registration failed"
   );
 };
 
 export const getCurrentUser = async (): Promise<CurrentUserResponseDto> => {
   return requestJson<CurrentUserResponseDto>(
-    httpClient.get("/api/v1/auth/me/"),
+    httpClient.get("/api/v1/auth/me"),
     "Failed to fetch user data"
   );
 };
 
 export const logout = async (): Promise<void> => {
-  await ensureOk(httpClient.post("/api/v1/auth/logout/"), "Logout failed");
+  await ensureOk(httpClient.post("/api/v1/auth/logout"), "Logout failed");
 };
 
 export const changePassword = async (
   data: ChangePasswordRequest
 ): Promise<void> => {
   await requestJson<{ success: boolean; message?: string }>(
-    httpClient.post("/api/v1/auth/password/change/", data),
+    httpClient.post("/api/v1/auth/change-password", data),
     "Failed to change password"
   );
 };
 
 export const requestPasswordReset = async (email: string): Promise<void> => {
   await ensureOk(
-    httpClient.post("/api/v1/auth/password/reset/", { email }),
+    httpClient.post("/api/v1/auth/forgot-password", { email }),
     "Failed to request password reset"
   );
 };
@@ -79,7 +79,7 @@ export const updateAccountProfile = async (
   data: { username?: string; email?: string }
 ): Promise<CurrentUserResponseDto> => {
   return requestJson<CurrentUserResponseDto>(
-    httpClient.patch("/api/v1/auth/account/", data),
+    httpClient.patch("/api/v1/auth/me", data),
     "Failed to update profile"
   );
 };
@@ -109,7 +109,10 @@ export const uploadAvatar = async (file: File): Promise<UploadAvatarResponseDto>
   formData.append("file", file);
 
   return requestJson<UploadAvatarResponseDto>(
-    httpClient.post("/api/v1/auth/avatar/", formData),
+    httpClient.request("/api/v1/auth/me/avatar/upload", {
+      method: "POST",
+      body: formData,
+    }),
     "Failed to upload avatar"
   );
 };
@@ -137,7 +140,7 @@ export const updateUserRole = async (id: number | string, role: string): Promise
 };
 
 export const logoutOtherDevices = async (): Promise<void> => {
-  await ensureOk(httpClient.post("/api/v1/auth/logout-others/"), "Failed to logout other devices");
+  await ensureOk(httpClient.post("/api/v1/auth/me/logout-other-devices"), "Failed to logout other devices");
 };
 
 // ============================================================================
@@ -160,7 +163,7 @@ export const previewTeacherActivationInvite = async (
   token: string
 ): Promise<TeacherActivationPreviewResponseDto> => {
   return requestJson<TeacherActivationPreviewResponseDto>(
-    httpClient.get(`/api/v1/auth/teacher-activation/preview/?token=${encodeURIComponent(token)}`),
+    httpClient.get(`/api/v1/auth/teacher-activations/preview?token=${encodeURIComponent(token)}`),
     "Failed to preview activation"
   );
 };
@@ -169,7 +172,7 @@ export const consumeTeacherActivationInvite = async (
   token: string
 ): Promise<TeacherActivationConsumeResponseDto> => {
   return requestJson<TeacherActivationConsumeResponseDto>(
-    httpClient.post("/api/v1/auth/teacher-activation/consume/", { token }),
+    httpClient.post("/api/v1/auth/teacher-activations/consume", { token }),
     "Failed to activate teacher account"
   );
 };
@@ -178,17 +181,22 @@ export const consumeTeacherActivationInvite = async (
 // OAuth
 // ============================================================================
 
-export const getOAuthUrl = async (provider: string, redirect?: string): Promise<any> => {
+export const getOAuthUrl = async (provider: string, redirect?: string): Promise<string> => {
   const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
-  return requestJson<any>(
-    httpClient.get(`/api/v1/auth/oauth/${provider}/url/${query}`),
+  const response = await requestJson<{ success: boolean; data?: { authorization_url?: string } }>(
+    httpClient.get(`/api/v1/auth/${provider}/login${query}`),
     "Failed to get OAuth URL"
   );
+  return response?.data?.authorization_url || "";
 };
 
 export const oauthCallback = async (provider: string, code: string): Promise<AuthResponseDto> => {
+  const redirectUri =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/auth/${provider}/callback`
+      : `http://localhost:5173/auth/${provider}/callback`;
   return requestJson<AuthResponseDto>(
-    httpClient.post(`/api/v1/auth/oauth/${provider}/callback/`, { code }),
+    httpClient.post(`/api/v1/auth/${provider}/callback`, { code, redirect_uri: redirectUri }),
     "OAuth callback failed"
   );
 };
@@ -199,7 +207,7 @@ export const oauthCallback = async (provider: string, code: string): Promise<Aut
 
 export const getLoginRecords = async (): Promise<LoginRecordsResponseDto> => {
   return requestJson<LoginRecordsResponseDto>(
-    httpClient.get("/api/v1/auth/login-records/"),
+    httpClient.get("/api/v1/auth/me/login-records"),
     "Failed to fetch login records"
   );
 };
@@ -210,20 +218,20 @@ export const getLoginRecords = async (): Promise<LoginRecordsResponseDto> => {
 
 export const getAPIKeyInfo = async (): Promise<APIKeyResponseDto> => {
   return requestJson<APIKeyResponseDto>(
-    httpClient.get("/api/v1/auth/api-key/"),
+    httpClient.get("/api/v1/auth/me/api-key"),
     "Failed to fetch API key info"
   );
 };
 
 export const setAPIKey = async (data: SetAPIKeyRequest): Promise<APIKeyResponseDto> => {
   return requestJson<APIKeyResponseDto>(
-    httpClient.post("/api/v1/auth/api-key/", data),
+    httpClient.post("/api/v1/auth/me/api-key", data),
     "Failed to set API key"
   );
 };
 
 export const deleteAPIKey = async (): Promise<void> => {
-  await ensureOk(httpClient.delete("/api/v1/auth/api-key/"), "Failed to delete API key");
+  await ensureOk(httpClient.delete("/api/v1/auth/me/api-key"), "Failed to delete API key");
 };
 
 export const getUsageStats = async (params: {
@@ -233,7 +241,7 @@ export const getUsageStats = async (params: {
 }): Promise<UsageStatsResponseDto> => {
   const query = new URLSearchParams(params as any).toString();
   return requestJson<UsageStatsResponseDto>(
-    httpClient.get(`/api/v1/auth/api-key/usage/?${query}`),
+    httpClient.get(`/api/v1/auth/me/api-key/usage?${query}`),
     "Failed to fetch usage data"
   );
 };

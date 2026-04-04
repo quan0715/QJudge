@@ -9,6 +9,8 @@ from datetime import timedelta
 from apps.users.models import UserProfile
 from apps.problems.models import Problem, TestCase, ProblemTranslation, LanguageConfig
 from apps.contests.models import Contest, ContestProblem, ContestParticipant, ExamQuestion
+from apps.classrooms.models import Classroom
+from apps.question_bank.models import QuestionBank
 
 User = get_user_model()
 
@@ -27,7 +29,13 @@ class Command(BaseCommand):
         
         # 3. Create test contests
         self._create_contests()
-        
+
+        # 4. Create test classroom
+        self._create_classrooms()
+
+        # 5. Create test question bank
+        self._create_question_banks()
+
         self.stdout.write(self.style.SUCCESS('✓ E2E 測試資料建立完成'))
 
     def _create_users(self):
@@ -116,7 +124,6 @@ class Command(BaseCommand):
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
-                'visibility': 'private',
                 'order': 1
             }
         )
@@ -188,7 +195,6 @@ int main() {
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
-                'visibility': 'private',
                 'order': 2
             }
         )
@@ -240,7 +246,6 @@ int main() {
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
-                'visibility': 'private',
                 'order': 3
             }
         )
@@ -320,7 +325,6 @@ int main() {
                 'start_time': now - timedelta(hours=1),
                 'end_time': now + timedelta(hours=2),
                 'owner': teacher,
-                'visibility': 'public',
                 'status': 'published',
                 'cheat_detection_enabled': False,
                 'scoreboard_visible_during_contest': True,
@@ -352,7 +356,6 @@ int main() {
                 'start_time': now + timedelta(days=1),
                 'end_time': now + timedelta(days=1, hours=2),
                 'owner': teacher,
-                'visibility': 'public',
                 'status': 'published',
                 'cheat_detection_enabled': False,
             }
@@ -381,7 +384,6 @@ int main() {
                 'start_time': now - timedelta(hours=1),
                 'end_time': now + timedelta(hours=2),
                 'owner': teacher,
-                'visibility': 'public',
                 'status': 'published',
                 'contest_type': 'paper_exam',
                 'cheat_detection_enabled': True,
@@ -428,3 +430,36 @@ int main() {
                 'score': 10,
             }
         )
+
+    def _create_classrooms(self):
+        """建立測試教室"""
+        self.stdout.write('建立測試教室...')
+        teacher = User.objects.filter(username='teacher').first()
+        classroom, created = Classroom.objects.get_or_create(
+            name="E2E Test Classroom",
+            defaults={
+                'owner': teacher,
+                'invite_code': 'E2ETEST',
+            }
+        )
+        if created:
+            self.stdout.write('  ✓ 建立教室: E2E Test Classroom')
+        else:
+            self.stdout.write('  - 教室已存在: E2E Test Classroom')
+
+    def _create_question_banks(self):
+        """建立測試題庫"""
+        self.stdout.write('建立測試題庫...')
+        teacher = User.objects.filter(username='teacher').first()
+        bank, created = QuestionBank.objects.get_or_create(
+            name="E2E Test Bank",
+            owner=teacher,
+            defaults={
+                'description': 'E2E 測試用題庫',
+                'category': QuestionBank.Category.CODING,
+            }
+        )
+        if created:
+            self.stdout.write('  ✓ 建立題庫: E2E Test Bank')
+        else:
+            self.stdout.write('  - 題庫已存在: E2E Test Bank')
