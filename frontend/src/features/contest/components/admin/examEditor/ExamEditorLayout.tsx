@@ -510,19 +510,21 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         return;
       }
 
-      await insertImportedQuestionAt(targetIndex, async () => {
-        await toolbarSave.track(() =>
-          importExamQuestionsFromBank(contestId, {
-            items: [
-              {
-                question_bank_id: sourceItem.questionBankId,
-                question_id: sourceItem.questionId,
-              },
-            ],
-          })
-        );
-        return null;
-      });
+      if (sourceItem.kind === "bank_question") {
+        await insertImportedQuestionAt(targetIndex, async () => {
+          await toolbarSave.track(() =>
+            importExamQuestionsFromBank(contestId, {
+              items: [
+                {
+                  question_bank_id: sourceItem.questionBankId,
+                  question_id: sourceItem.questionId,
+                },
+              ],
+            })
+          );
+          return null;
+        });
+      }
     },
     [contestId, insertImportedQuestionAt, questions.length, toolbarSave]
   );

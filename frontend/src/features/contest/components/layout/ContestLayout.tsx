@@ -15,6 +15,7 @@ import {
   Time,
   Renew,
   Dashboard,
+  ChevronLeft,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import ExamModeWrapper from "@/features/contest/components/ExamModeWrapper";
@@ -230,6 +231,7 @@ const ContestLayout = () => {
 
   const showScoreDisplay =
     isSolvePage && contest?.problems && contest.problems.length > 0;
+  const hideSolveNavExtras = isSolvePage && contest?.contestType === "coding";
 
   return (
     <ExamModeWrapper {...examModeProps}>
@@ -238,40 +240,54 @@ const ContestLayout = () => {
       ) : (
         <div className={styles.root}>
           <Header aria-label={t("header.contestPlatform")}>
-            <SideMenuToggle
-              isOpen={sideMenuOpen}
-              onClick={() => setSideMenuOpen((o) => !o)}
-            />
+            {!hideSolveNavExtras ? (
+              <SideMenuToggle
+                isOpen={sideMenuOpen}
+                onClick={() => setSideMenuOpen((o) => !o)}
+              />
+            ) : (
+              <button
+                type="button"
+                className={`side-menu-toggle ${styles.solveBackButton}`}
+                aria-label={t("adminLayout.header.backToHome", "返回競賽主頁")}
+                title={t("adminLayout.header.backToHome", "返回競賽主頁")}
+                onClick={() => navigate(dashboardPath)}
+              >
+                <ChevronLeft size={20} />
+              </button>
+            )}
             <div className={styles.headerBrand}>
               <Link to="/dashboard" className={styles.headerBrandLink}>
                 {tc("header.prefix")}
               </Link>
-              <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
-                {boundClassroomId ? (
-                  <>
-                    <BreadcrumbItem>
-                      <Link to="/dashboard">{tc("nav.dashboard")}</Link>
-                    </BreadcrumbItem>
-                    <BreadcrumbItem>
-                      <Link to={`/classrooms/${boundClassroomId}`}>
-                        {classroomName || tc("nav.classrooms", "教室")}
-                      </Link>
-                    </BreadcrumbItem>
-                    <BreadcrumbItem isCurrentPage>
-                      {contest?.name || t("mode")}
-                    </BreadcrumbItem>
-                  </>
-                ) : (
-                  <>
-                    <BreadcrumbItem>
-                      <Link to="/dashboard">{tc("nav.dashboard")}</Link>
-                    </BreadcrumbItem>
-                    <BreadcrumbItem isCurrentPage>
-                      {contest?.name || t("mode")}
-                    </BreadcrumbItem>
-                  </>
-                )}
-              </Breadcrumb>
+              {!hideSolveNavExtras ? (
+                <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
+                  {boundClassroomId ? (
+                    <>
+                      <BreadcrumbItem>
+                        <Link to="/dashboard">{tc("nav.dashboard")}</Link>
+                      </BreadcrumbItem>
+                      <BreadcrumbItem>
+                        <Link to={`/classrooms/${boundClassroomId}`}>
+                          {classroomName || tc("nav.classrooms", "教室")}
+                        </Link>
+                      </BreadcrumbItem>
+                      <BreadcrumbItem isCurrentPage>
+                        {contest?.name || t("mode")}
+                      </BreadcrumbItem>
+                    </>
+                  ) : (
+                    <>
+                      <BreadcrumbItem>
+                        <Link to="/dashboard">{tc("nav.dashboard")}</Link>
+                      </BreadcrumbItem>
+                      <BreadcrumbItem isCurrentPage>
+                        {contest?.name || t("mode")}
+                      </BreadcrumbItem>
+                    </>
+                  )}
+                </Breadcrumb>
+              ) : null}
             </div>
 
             <HeaderNavigation aria-label={tc("header.contestNavigation")}>
@@ -332,10 +348,12 @@ const ContestLayout = () => {
               </HeaderGlobalAction>
             </HeaderGlobalBar>
 
-            <SideMenu
-              isOpen={sideMenuOpen}
-              onClose={() => setSideMenuOpen(false)}
-            />
+            {!hideSolveNavExtras ? (
+              <SideMenu
+                isOpen={sideMenuOpen}
+                onClose={() => setSideMenuOpen(false)}
+              />
+            ) : null}
           </Header>
 
           <ExamModeMonitorModal

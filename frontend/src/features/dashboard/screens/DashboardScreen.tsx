@@ -97,25 +97,6 @@ const DashboardScreen = () => {
     };
   }, [showToast, t, isTeacherOrAdmin]);
 
-  const refreshClassrooms = async () => {
-    setLoading(true);
-    try {
-      const rows = await getClassrooms();
-      setClassrooms(rows);
-    } catch (error) {
-      showToast({
-        kind: "error",
-        title: t("dashboard.classroomHub.loadFailed", "載入教室失敗"),
-        subtitle:
-          error instanceof Error
-            ? error.message
-            : t("dashboard.classroomHub.loadFailedHint", "請稍後再試"),
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCreateClassroom = async (name: string, description: string) => {
     try {
       const created = await createClassroom({ name, description });
