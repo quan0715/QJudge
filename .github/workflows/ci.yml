@@ -140,7 +140,7 @@ jobs:
                   sys.exit(0)
               except Exception:
                   sys.exit(1)
-PY
+              PY
             then
               exit 0
             fi
