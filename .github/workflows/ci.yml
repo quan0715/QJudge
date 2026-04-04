@@ -126,20 +126,20 @@ jobs:
           # Keep this check lightweight because this loop runs frequently.
           for i in {1..240}; do
             if docker compose -f docker-compose.test.yml exec -T backend-test python - <<'PY'
-import sys
-import urllib.error
-import urllib.request
+              import sys
+              import urllib.error
+              import urllib.request
 
-url = "http://127.0.0.1:8000/api/v1/auth/me"
-try:
-    urllib.request.urlopen(url, timeout=2)
-    print("backend=200")
-    sys.exit(0)
-except urllib.error.HTTPError as exc:
-    print(f"backend={exc.code}")
-    sys.exit(0)
-except Exception:
-    sys.exit(1)
+              url = "http://127.0.0.1:8000/api/v1/auth/me"
+              try:
+                  urllib.request.urlopen(url, timeout=2)
+                  print("backend=200")
+                  sys.exit(0)
+              except urllib.error.HTTPError as exc:
+                  print(f"backend={exc.code}")
+                  sys.exit(0)
+              except Exception:
+                  sys.exit(1)
 PY
             then
               exit 0
