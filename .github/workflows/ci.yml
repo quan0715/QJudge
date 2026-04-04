@@ -122,14 +122,25 @@ jobs:
         run: |
           set -euo pipefail
           # Frontend API tests only need backend API availability.
-          # Backend test container runs migrations + seed setup on boot; allow longer warmup in CI.
-          # Use curl hard timeouts to avoid a single hung TCP request blocking the whole loop.
+          # Probe from inside backend container to avoid flaky host port forwarding on CI runners.
           for i in {1..240}; do
-            BE_CODE="$(
-              curl -sS --connect-timeout 1 --max-time 2 -o /dev/null -w '%{http_code}' http://localhost:8002/api/v1/auth/me || true
-            )"
-            if [[ "$BE_CODE" != "000" ]]; then
-              echo "backend=$BE_CODE"
+            if docker compose -f docker-compose.test.yml exec -T backend-test python - <<'PY'
+import sys
+import urllib.error
+import urllib.request
+
+url = "http://127.0.0.1:8000/api/v1/auth/me"
+try:
+    urllib.request.urlopen(url, timeout=2)
+    print("backend=200")
+    sys.exit(0)
+except urllib.error.HTTPError as exc:
+    print(f"backend={exc.code}")
+    sys.exit(0)
+except Exception:
+    sys.exit(1)
+PY
+            then
               exit 0
             fi
             sleep 2
