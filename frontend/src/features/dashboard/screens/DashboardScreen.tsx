@@ -124,7 +124,6 @@ const DashboardScreen = () => {
         kind: "success",
         title: t("classroom.createSuccess", "教室建立成功"),
       });
-      await refreshClassrooms();
       navigate(`/classrooms/${created.id}`);
     } catch (error) {
       showToast({
