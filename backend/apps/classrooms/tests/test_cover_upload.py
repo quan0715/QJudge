@@ -104,7 +104,9 @@ class TestClassroomCoverUpload:
             {"file": _png_file()},
             format="multipart",
         )
-        assert resp.status_code == status.HTTP_403_FORBIDDEN
+        assert resp.status_code == status.HTTP_403_FORBIDDEN, (
+            f"Expected 403 but got {resp.status_code}: {resp.data}"
+        )
 
     def test_upload_cover_missing_file(
         self, api_client: APIClient, owner: User, classroom: Classroom

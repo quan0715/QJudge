@@ -114,6 +114,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             'regenerate_code',
             'create_announcement',
             'update_announcement', 'delete_announcement',
+            'upload_cover',
         }
         platform_admin_actions = {
             'bind_contest', 'unbind_contest',
