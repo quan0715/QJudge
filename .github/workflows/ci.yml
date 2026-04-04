@@ -121,8 +121,17 @@ jobs:
       - name: Wait for backend readiness
         run: |
           set -euo pipefail
+          DC="docker compose -f docker-compose.test.yml"
           for i in $(seq 1 240); do
-            if docker compose -f docker-compose.test.yml exec -T backend-test \
+            # Fail fast if the container has exited
+            STATE=$($DC ps --format '{{.State}}' backend-test 2>/dev/null || echo "missing")
+            if [ "$STATE" = "exited" ] || [ "$STATE" = "dead" ] || [ "$STATE" = "missing" ]; then
+              echo "backend-test container is not running (state=$STATE). Dumping logs:"
+              $DC ps
+              $DC logs --tail=200 backend-test || true
+              exit 1
+            fi
+            if $DC exec -T backend-test \
               python -c "
           import sys, urllib.error, urllib.request
           try:
@@ -138,8 +147,8 @@ jobs:
             sleep 2
           done
           echo "Timed out waiting for backend readiness."
-          docker compose -f docker-compose.test.yml ps
-          docker compose -f docker-compose.test.yml logs --tail=200 backend-test frontend-test || true
+          $DC ps
+          $DC logs --tail=200 backend-test frontend-test || true
           exit 1
 
       - name: Run Frontend API Integration Tests
