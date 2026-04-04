@@ -14,13 +14,11 @@ export default defineConfig({
     include: ["src/infrastructure/api/__tests__/integration/**/*.integration.test.ts"],
     testTimeout: 30000, // API tests may take longer
     hookTimeout: 30000,
-    // Run serially to avoid rate limiting issues
+    // Run serially: integration suites mutate global fetch/localStorage.
     pool: "forks",
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    fileParallelism: false,
+    minWorkers: 1,
+    maxWorkers: 1,
   },
   resolve: {
     alias: [

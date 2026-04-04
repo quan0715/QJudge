@@ -31,6 +31,7 @@ export interface BankQuestionDto {
   id: number | string;
   bank_item_id?: number | string;
   adapter_question_id?: number | string | null;
+  bank?: number | string;
   bank_id?: number | string;
   question_type: "coding" | "exam";
   title: string;

@@ -83,10 +83,17 @@ export const setupApiTestEnv = (baseUrl = DEFAULT_BASE_URL) => {
 
   ensureDomGlobals();
 
+  const testStorage = createLocalStorage();
   Object.defineProperty(globalThis, "localStorage", {
-    value: createLocalStorage(),
+    value: testStorage,
     configurable: true,
   });
+  if (globalThis.window) {
+    Object.defineProperty(globalThis.window, "localStorage", {
+      value: testStorage,
+      configurable: true,
+    });
+  }
 
   globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     // Auto-attach Authorization header from localStorage token

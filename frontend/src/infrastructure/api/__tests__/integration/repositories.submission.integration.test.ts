@@ -4,7 +4,6 @@ import {
   getSubmissions,
   submitSolution,
 } from "@/infrastructure/api/repositories/submission.repository";
-import { getProblems } from "@/infrastructure/api/repositories/problem.repository";
 import { setupApiTestEnv, loginAndSetToken, setAuthToken } from "./helpers/apiTestEnv";
 import {
   TEST_CODE_SAMPLES,
@@ -12,6 +11,7 @@ import {
   TEST_USERS,
 } from "@/tests/helpers/data.helper";
 import type { SubmissionDetail } from "@/core/entities/submission.entity";
+import { ensureProblemExists } from "./helpers/problemSeed";
 
 describe("submission repository integration", () => {
   let restoreFetch: (() => void) | undefined;
@@ -27,13 +27,7 @@ describe("submission repository integration", () => {
       password: TEST_USERS.teacher.password,
     });
 
-    const problems = await getProblems();
-    const target = problems.find((problem) => problem.title === TEST_PROBLEMS.aPlusB.title);
-
-    if (!target) {
-      throw new Error("Seeded problem P001 not found in API response");
-    }
-
+    const target = await ensureProblemExists(TEST_PROBLEMS.aPlusB.title);
     problemId = target.id;
 
     await loginAndSetToken({

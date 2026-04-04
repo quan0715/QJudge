@@ -4,13 +4,13 @@ import {
   pollSubmissionUseCase,
 } from "@/core/usecases/solver/submitSolution.usecase";
 import { testRunUseCase } from "@/core/usecases/solver/testRun.usecase";
-import { getProblems } from "@/infrastructure/api/repositories/problem.repository";
 import { setupApiTestEnv, loginAndSetToken, setAuthToken } from "./helpers/apiTestEnv";
 import {
   TEST_CODE_SAMPLES,
   TEST_PROBLEMS,
   TEST_USERS,
 } from "@/tests/helpers/data.helper";
+import { ensureProblemExists } from "./helpers/problemSeed";
 
 describe("solver use case integration", () => {
   let restoreFetch: (() => void) | undefined;
@@ -25,13 +25,7 @@ describe("solver use case integration", () => {
       password: TEST_USERS.teacher.password,
     });
 
-    const problems = await getProblems();
-    const target = problems.find((problem) => problem.title === TEST_PROBLEMS.aPlusB.title);
-
-    if (!target) {
-      throw new Error("Seeded problem P001 not found in API response");
-    }
-
+    const target = await ensureProblemExists(TEST_PROBLEMS.aPlusB.title);
     problemId = target.id;
 
     await loginAndSetToken({
@@ -46,6 +40,11 @@ describe("solver use case integration", () => {
   });
 
   it("runs test cases via testRunUseCase", async () => {
+    await loginAndSetToken({
+      email: TEST_USERS.teacher.email,
+      password: TEST_USERS.teacher.password,
+    });
+
     const result = await testRunUseCase({
       problemId,
       language: "cpp",
@@ -57,6 +56,11 @@ describe("solver use case integration", () => {
     expect(result.success).toBe(true);
     expect(result.total).toBe(result.cases.length);
     expect(result.passed + result.failed).toBeLessThanOrEqual(result.total);
+
+    await loginAndSetToken({
+      email: TEST_USERS.student.email,
+      password: TEST_USERS.student.password,
+    });
   });
 
   it("submits solution and polls result", async () => {
