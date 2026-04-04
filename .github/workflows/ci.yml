@@ -122,9 +122,14 @@ jobs:
         run: |
           set -euo pipefail
           # Backend test container runs migrations + seed setup on boot; allow longer warmup in CI.
+          # Use curl hard timeouts to avoid a single hung TCP request blocking the whole loop.
           for i in {1..240}; do
-            FE_CODE="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5174 || true)"
-            BE_CODE="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8002/api/v1/auth/me || true)"
+            FE_CODE="$(
+              curl -sS --connect-timeout 1 --max-time 2 -o /dev/null -w '%{http_code}' http://localhost:5174 || true
+            )"
+            BE_CODE="$(
+              curl -sS --connect-timeout 1 --max-time 2 -o /dev/null -w '%{http_code}' http://localhost:8002/api/v1/auth/me || true
+            )"
             if [[ "$FE_CODE" != "000" && "$BE_CODE" != "000" ]]; then
               echo "frontend=$FE_CODE backend=$BE_CODE"
               exit 0
@@ -133,6 +138,7 @@ jobs:
           done
           echo "Timed out waiting for test stack readiness."
           docker compose -f docker-compose.test.yml ps
+          docker compose -f docker-compose.test.yml logs --tail=200 backend-test frontend-test || true
           exit 1
 
       - name: Run Frontend API Integration Tests
