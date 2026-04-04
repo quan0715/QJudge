@@ -39,6 +39,7 @@ from .serializers import (
     QuestionInboxItemSerializer,
     QuestionBankItemWriteSerializer,
 )
+from .permissions import IsQuestionBankAdminReviewer, IsQuestionBankOwner
 from .write_workflows import create_bank_question, update_bank_question
 from .write_workflows import materialize_bank_question_adapter_for_membership
 from .bank_workflows import (
@@ -138,6 +139,8 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                 QuestionBank.objects.filter(is_archived=False)
                 .annotate(question_count=Count("questions", distinct=True))
             )
+        if self.action == "review":
+            return QuestionBank.objects.filter(is_archived=False)
 
         return (
             QuestionBank.objects.filter(
@@ -147,6 +150,15 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             .annotate(question_count=Count("questions", distinct=True))
             .order_by("-updated_at", "id")
         )
+
+    def get_permissions(self):
+        if self.action == "review":
+            return [permissions.IsAuthenticated(), IsQuestionBankAdminReviewer()]
+        if self.action == "submit_for_review":
+            return [permissions.IsAuthenticated(), IsQuestionBankOwner()]
+        if self.action == "questions" and self.request.method.lower() == "post":
+            return [permissions.IsAuthenticated(), IsQuestionBankOwner()]
+        return super().get_permissions()
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -272,8 +284,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="submit-for-review")
     def submit_for_review(self, request, uuid=None, pk=None):
         bank = self.get_object()
-        if bank.owner_id != request.user.id:
-            return Response({"detail": "Only owner can submit for review."}, status=status.HTTP_403_FORBIDDEN)
+        self.check_object_permissions(request, bank)
         if bank.review_status == QuestionBank.ReviewStatus.PENDING:
             return Response({"detail": "This bank is already pending review."}, status=status.HTTP_400_BAD_REQUEST)
         if not bank.questions.exists():
@@ -302,12 +313,8 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="review")
     def review(self, request, uuid=None, pk=None):
-        if not self._is_admin_user(request.user):
-            return Response({"detail": "Admin only."}, status=status.HTTP_403_FORBIDDEN)
-
-        bank = QuestionBank.objects.filter(uuid=uuid, is_archived=False).first()
-        if not bank:
-            return Response({"detail": "Bank not found."}, status=status.HTTP_404_NOT_FOUND)
+        bank = self.get_object()
+        self.check_object_permissions(request, bank)
 
         decision = str(request.data.get("decision", "")).strip().lower()
         note = str(request.data.get("note", "")).strip()
@@ -357,11 +364,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         if not bank:
             return Response({"detail": "Bank not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if bank.owner_id != request.user.id:
-            return Response(
-                {"detail": "Only the bank owner can add questions."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        self.check_object_permissions(request, bank)
 
         serializer = QuestionBankItemWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

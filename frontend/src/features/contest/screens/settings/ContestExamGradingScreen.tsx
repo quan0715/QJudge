@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Loading,
@@ -23,6 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useAdminPanelRefresh } from "@/features/contest/contexts";
 import { EmptyState } from "@/shared/ui/EmptyState";
+import ContestScoreboard from "@/features/contest/components/ContestScoreboard";
 import {
   IconModeSwitcher,
   type IconModeOption,
@@ -41,7 +42,7 @@ const isValidFilter = (value: string): value is GradingFilter =>
 const ContestExamGradingScreen: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [, startTransition] = useTransition();
-  const { contest, refreshContest } = useContest();
+  const { contest, scoreboardData, standingsLoading, refreshContest, refreshStandings } = useContest();
   const { registerPanelRefresh } = useAdminPanelRefresh();
   const [selectionRequest, setSelectionRequest] = useState<{
     questionId: string;
@@ -49,6 +50,7 @@ const ContestExamGradingScreen: React.FC = () => {
     nonce: number;
   } | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const initialStandingsRequestedRef = useRef(false);
   const { t } = useTranslation("contest");
   const rawViewMode = searchParams.get("grading_view") || "byQuestion";
   const viewMode: GradingViewMode = isValidViewMode(rawViewMode)
@@ -60,6 +62,7 @@ const ContestExamGradingScreen: React.FC = () => {
   const selectedQuestionId = searchParams.get("grading_question");
   const selectedStudentId = searchParams.get("grading_student");
   const studentsOnly = searchParams.get("grading_students_only") === "1";
+  const isCodingContest = contest?.contestType === "coding";
 
   const updateGradingParams = useCallback((updates: Record<string, string | null>) => {
     startTransition(() => {
@@ -168,21 +171,27 @@ const ContestExamGradingScreen: React.FC = () => {
     () => [
       {
         value: "byQuestion",
-        label: t("grading.byQuestion", "按題目批改"),
+        label: isCodingContest
+          ? t("grading.byQuestionResults", "按題目作答結果")
+          : t("grading.byQuestion", "按題目批改"),
         icon: DocumentExport,
       },
       {
         value: "byStudent",
-        label: t("grading.byStudent", "按學生批改"),
+        label: isCodingContest
+          ? t("grading.byStudentResults", "按學生作答結果")
+          : t("grading.byStudent", "按學生批改"),
         icon: UserMultiple,
       },
       {
         value: "matrix",
-        label: t("grading.matrixOverview", "矩陣總覽"),
+        label: isCodingContest
+          ? t("grading.leaderboardOverview", "排行榜")
+          : t("grading.matrixOverview", "矩陣總覽"),
         icon: Catalog,
       },
     ],
-    [t],
+    [isCodingContest, t],
   );
 
   const handleViewChange = (nextMode: GradingViewMode) => {
@@ -205,9 +214,23 @@ const ContestExamGradingScreen: React.FC = () => {
 
   useEffect(() => {
     return registerPanelRefresh("grading", async () => {
-      await Promise.all([refreshData(), refreshContest()]);
+      await Promise.all([refreshData(), refreshContest(), isCodingContest ? refreshStandings() : Promise.resolve()]);
     });
-  }, [refreshContest, refreshData, registerPanelRefresh]);
+  }, [isCodingContest, refreshContest, refreshData, refreshStandings, registerPanelRefresh]);
+
+  useEffect(() => {
+    if (!isCodingContest) return;
+    if (scoreboardData) return;
+    if (initialStandingsRequestedRef.current) return;
+    initialStandingsRequestedRef.current = true;
+    void refreshStandings();
+  }, [isCodingContest, refreshStandings, scoreboardData]);
+
+  useEffect(() => {
+    if (!isCodingContest || viewMode !== "matrix") return;
+    if (scoreboardData || standingsLoading) return;
+    void refreshStandings();
+  }, [isCodingContest, refreshStandings, scoreboardData, standingsLoading, viewMode]);
 
   if (loading) {
     return (
@@ -221,7 +244,9 @@ const ContestExamGradingScreen: React.FC = () => {
     return (
       <EmptyState
         title={t("grading.noAnswers", "尚無作答資料")}
-        description={t("grading.noAnswersDesc", "目前還沒有學生提交作答，請確認考試已開始且學生已完成作答後再進入批改。")}
+        description={isCodingContest
+          ? t("grading.noAnswersDescCoding", "目前還沒有學生提交程式碼，請確認考試已開始且學生已送出 submission。")
+          : t("grading.noAnswersDesc", "目前還沒有學生提交作答，請確認考試已開始且學生已完成作答後再進入批改。")}
       />
     );
   }
@@ -234,19 +259,26 @@ const ContestExamGradingScreen: React.FC = () => {
             value={viewMode}
             options={viewModeOptions}
             onChange={handleViewChange}
-            ariaLabel={t("grading.viewMode", "批改模式")}
+            ariaLabel={isCodingContest ? t("grading.viewModeResults", "作答結果檢視模式") : t("grading.viewMode", "批改模式")}
             className={styles.modeSwitcher}
             tooltipPosition="bottom"
           />
           <div className={styles.globalMeta}>
-            {t("grading.globalSummary", "題目 {{questions}} 題 · 學生 {{students}} 人 · 批改進度 {{graded}}/{{total}} ({{progress}}) · {{status}}", {
-              questions: questionProgress.length,
-              students: filteredStudents.length,
-              graded: gradedCount,
-              total: filteredAnswers.length,
-              progress: gradingProgress,
-              status: publishStateLabel,
-            })}
+            {isCodingContest
+              ? t("grading.globalSummaryResults", "題目 {{questions}} 題 · 學生 {{students}} 人 · 最後提交 {{total}} 筆 · {{status}}", {
+                  questions: questionProgress.length,
+                  students: filteredStudents.length,
+                  total: filteredAnswers.length,
+                  status: publishStateLabel,
+                })
+              : t("grading.globalSummary", "題目 {{questions}} 題 · 學生 {{students}} 人 · 批改進度 {{graded}}/{{total}} ({{progress}}) · {{status}}", {
+                  questions: questionProgress.length,
+                  students: filteredStudents.length,
+                  graded: gradedCount,
+                  total: filteredAnswers.length,
+                  progress: gradingProgress,
+                  status: publishStateLabel,
+                })}
           </div>
 
           {viewMode !== "matrix" ? (
@@ -278,7 +310,7 @@ const ContestExamGradingScreen: React.FC = () => {
                         updateGradingParams({ grading_search: event.target.value || null })
                       }
                     />
-                    {viewMode === "byQuestion" ? (
+                    {viewMode === "byQuestion" && !isCodingContest ? (
                       <FluidDropdown
                         id="grading-global-filter"
                         titleText={t("grading.filter", "篩選")}
@@ -344,11 +376,11 @@ const ContestExamGradingScreen: React.FC = () => {
               answersByQuestion={filteredAnswersByQuestion}
               students={filteredStudents}
               onGrade={gradeAnswer}
-              onUngrade={ungradeAnswer}
+              onUngrade={isCodingContest ? undefined : ungradeAnswer}
               flaggedIds={flaggedIds}
               onToggleFlag={toggleFlag}
               searchQuery={searchQuery}
-              filter={filter}
+              filter={isCodingContest ? "all" : filter}
               selectedQuestionId={selectedQuestionId}
               onSelectedQuestionIdChange={(questionId) =>
                 updateGradingParams({ grading_question: questionId })
@@ -358,6 +390,7 @@ const ContestExamGradingScreen: React.FC = () => {
                 updateGradingParams({ grading_student: studentId })
               }
               selectionRequest={selectionRequest}
+              readOnly={isCodingContest}
             />
           ) : viewMode === "byStudent" ? (
             <GradingByStudentTabScreen
@@ -365,7 +398,7 @@ const ContestExamGradingScreen: React.FC = () => {
               questionProgress={questionProgress}
               students={filteredStudents}
               onGrade={gradeAnswer}
-              onUngrade={ungradeAnswer}
+              onUngrade={isCodingContest ? undefined : ungradeAnswer}
               flaggedIds={flaggedIds}
               onToggleFlag={toggleFlag}
               searchQuery={searchQuery}
@@ -373,14 +406,71 @@ const ContestExamGradingScreen: React.FC = () => {
               onSelectedStudentIdChange={(studentId) =>
                 updateGradingParams({ grading_student: studentId })
               }
+              readOnly={isCodingContest}
             />
           ) : (
-            <GradingMatrixViewScreen
-              questionProgress={questionProgress}
-              students={filteredStudents}
-              answersByQuestion={filteredAnswersByQuestion}
-              onSelectCell={handleSelectMatrixCell}
-            />
+            isCodingContest ? (
+              standingsLoading && !scoreboardData ? (
+                <div className={styles.editorLoading}>
+                  <Loading
+                    withOverlay={false}
+                    description={t("grading.loading", "載入批改資料...")}
+                  />
+                </div>
+              ) : scoreboardData ? (
+                <ContestScoreboard
+                  problems={scoreboardData.problems.map((problem) => ({
+                    id: problem.id,
+                    title: problem.title || problem.label,
+                    order: problem.order,
+                    label: problem.label,
+                    score: problem.score,
+                  }))}
+                  standings={scoreboardData.rows.map((row) => ({
+                    rank: row.rank,
+                    user: {
+                      id: Number(row.userId),
+                      username: row.displayName,
+                    },
+                    displayName: row.displayName,
+                    nickname: row.nickname,
+                    solved: row.solvedCount,
+                    total_score: row.totalScore,
+                    time: row.penalty,
+                    problems: Object.fromEntries(
+                      Object.entries(row.problems || {}).map(([problemId, stats]) => [
+                        problemId,
+                        {
+                          status:
+                            stats.status === "AC"
+                              ? "AC"
+                              : stats.status === "WA" || stats.status === "TLE" || stats.status === "MLE" || stats.status === "RE" || stats.status === "CE" || stats.status === "SE" || stats.status === "KR" || stats.status === "NS"
+                                ? "WA"
+                                : null,
+                          score: stats.score ?? 0,
+                          tries: stats.tries ?? 0,
+                          time: stats.time ?? 0,
+                          pending: !!stats.pending,
+                        },
+                      ]),
+                    ),
+                  }))}
+                  loading={standingsLoading}
+                />
+              ) : (
+                <EmptyState
+                  title={t("grading.leaderboardEmpty", "排行榜尚無資料")}
+                  description={t("grading.leaderboardEmptyDesc", "目前沒有可顯示的排行榜資料，請稍後重新整理。")}
+                />
+              )
+            ) : (
+              <GradingMatrixViewScreen
+                questionProgress={questionProgress}
+                students={filteredStudents}
+                answersByQuestion={filteredAnswersByQuestion}
+                onSelectCell={handleSelectMatrixCell}
+              />
+            )
           )}
         </div>
       </div>

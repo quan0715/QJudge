@@ -4,6 +4,7 @@ This module provides an HTTP client to communicate with the AI Service container
 It replaces direct usage of claude-agent-sdk in the Django backend.
 """
 
+import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
@@ -14,6 +15,7 @@ import httpx
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+RETRYABLE_STATUS_CODES = {429, 503}
 
 
 class SessionMode(str, Enum):
@@ -89,6 +91,12 @@ class AIServiceClient:
         if not token:
             raise AIServiceError("AI_SERVICE_INTERNAL_TOKEN is not configured")
         return {"X-AI-Internal-Token": token}
+
+    def _retry_attempts(self) -> int:
+        return max(0, int(getattr(settings, "AI_SERVICE_RETRY_ATTEMPTS", 2)))
+
+    def _retry_backoff_seconds(self) -> float:
+        return max(0.0, float(getattr(settings, "AI_SERVICE_RETRY_BACKOFF_SECONDS", 0.2)))
 
     def _build_request_payload(
         self,
@@ -187,40 +195,54 @@ class AIServiceClient:
         )
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            try:
-                response = await client.post(
-                    f"{self.base_url}/api/chat",
-                    json=payload,
-                    headers=self._auth_headers(),
-                )
-                response.raise_for_status()
-                data = response.json()
-
-                # Parse session context from response
-                ctx_data = data.get("session_context", {})
-                response_context = SessionContext.from_dict(ctx_data)
-
-                return ChatResponse(
-                    content=data.get("content", ""),
-                    session_context=response_context,
-                    metadata=data.get("metadata", {}),
-                    claude_session_id=data.get("claude_session_id"),
-                    stage=data.get("stage"),
-                )
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"AI Service HTTP error: {e.response.status_code}")
-                error_detail = "AI Service error"
+            attempt = 0
+            retries = self._retry_attempts()
+            backoff = self._retry_backoff_seconds()
+            while True:
                 try:
-                    error_data = e.response.json()
-                    error_detail = error_data.get("detail", error_detail)
-                except Exception:
-                    pass
-                raise AIServiceError(error_detail) from e
+                    response = await client.post(
+                        f"{self.base_url}/api/chat",
+                        json=payload,
+                        headers=self._auth_headers(),
+                    )
+                    response.raise_for_status()
+                    data = response.json()
 
-            except httpx.RequestError as e:
-                logger.error(f"AI Service request error: {e}")
-                raise AIServiceError(f"Cannot connect to AI Service: {e}") from e
+                    # Parse session context from response
+                    ctx_data = data.get("session_context", {})
+                    response_context = SessionContext.from_dict(ctx_data)
+
+                    return ChatResponse(
+                        content=data.get("content", ""),
+                        session_context=response_context,
+                        metadata=data.get("metadata", {}),
+                        claude_session_id=data.get("claude_session_id"),
+                        stage=data.get("stage"),
+                    )
+
+                except httpx.HTTPStatusError as e:
+                    status_code = getattr(e.response, "status_code", None)
+                    if status_code in RETRYABLE_STATUS_CODES and attempt < retries:
+                        await asyncio.sleep(backoff * (2**attempt))
+                        attempt += 1
+                        continue
+
+                    logger.error(f"AI Service HTTP error: {status_code}")
+                    error_detail = "AI Service error"
+                    try:
+                        error_data = e.response.json()
+                        error_detail = error_data.get("detail", error_detail)
+                    except Exception:
+                        pass
+                    raise AIServiceError(error_detail) from e
+
+                except (httpx.TimeoutException, httpx.RequestError) as e:
+                    if attempt < retries:
+                        await asyncio.sleep(backoff * (2**attempt))
+                        attempt += 1
+                        continue
+                    logger.error(f"AI Service request error: {e}")
+                    raise AIServiceError(f"Cannot connect to AI Service: {e}") from e
 
     async def health_check(self) -> dict:
         """Check AI Service health status.
@@ -272,26 +294,40 @@ class AIServiceClient:
             Response dict with success status
         """
         async with httpx.AsyncClient(timeout=10.0) as client:
-            try:
-                response = await client.post(
-                    f"{self.base_url}/api/chat/answer",
-                    json={"request_id": request_id, "answers": answers},
-                    headers=self._auth_headers(),
-                )
-                response.raise_for_status()
-                return response.json()
-            except httpx.HTTPStatusError as e:
-                logger.error(f"Failed to submit user answer: {e.response.status_code}")
-                error_detail = "Failed to submit answer"
+            attempt = 0
+            retries = self._retry_attempts()
+            backoff = self._retry_backoff_seconds()
+            while True:
                 try:
-                    error_data = e.response.json()
-                    error_detail = error_data.get("detail", error_detail)
-                except Exception:
-                    pass
-                raise AIServiceError(error_detail) from e
-            except Exception as e:
-                logger.error(f"Error submitting user answer: {e}")
-                raise AIServiceError(f"Cannot connect to AI Service: {e}") from e
+                    response = await client.post(
+                        f"{self.base_url}/api/chat/answer",
+                        json={"request_id": request_id, "answers": answers},
+                        headers=self._auth_headers(),
+                    )
+                    response.raise_for_status()
+                    return response.json()
+                except httpx.HTTPStatusError as e:
+                    status_code = getattr(e.response, "status_code", None)
+                    if status_code in RETRYABLE_STATUS_CODES and attempt < retries:
+                        await asyncio.sleep(backoff * (2**attempt))
+                        attempt += 1
+                        continue
+
+                    logger.error(f"Failed to submit user answer: {status_code}")
+                    error_detail = "Failed to submit answer"
+                    try:
+                        error_data = e.response.json()
+                        error_detail = error_data.get("detail", error_detail)
+                    except Exception:
+                        pass
+                    raise AIServiceError(error_detail) from e
+                except (httpx.TimeoutException, httpx.RequestError) as e:
+                    if attempt < retries:
+                        await asyncio.sleep(backoff * (2**attempt))
+                        attempt += 1
+                        continue
+                    logger.error(f"Error submitting user answer: {e}")
+                    raise AIServiceError(f"Cannot connect to AI Service: {e}") from e
 
 
 class AIServiceError(Exception):

@@ -326,6 +326,35 @@ class TestQuestionBankAPI:
         assert review_resp.data["review_status"] == QuestionBank.ReviewStatus.REJECTED
         assert review_resp.data["verified"] is False
 
+    def test_review_requires_admin(
+        self,
+        api_client: APIClient,
+        teacher: User,
+        teacher_private_bank: QuestionBank,
+    ):
+        Question.objects.create(
+            bank=teacher_private_bank,
+            question_type=Question.QuestionType.CODING,
+            title="Needs Review",
+            prompt="desc",
+            score=100,
+        )
+
+        api_client.force_authenticate(user=teacher)
+        submit_resp = api_client.post(
+            f"/api/v1/question-banks/{teacher_private_bank.uuid}/submit-for-review/",
+            {},
+            format="json",
+        )
+        assert submit_resp.status_code == status.HTTP_200_OK
+
+        review_resp = api_client.post(
+            f"/api/v1/question-banks/{teacher_private_bank.uuid}/review/",
+            {"decision": "approve", "note": "should fail"},
+            format="json",
+        )
+        assert review_resp.status_code == status.HTTP_403_FORBIDDEN
+
     def test_submit_for_review_requires_owner(
         self,
         api_client: APIClient,

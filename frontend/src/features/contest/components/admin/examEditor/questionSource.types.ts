@@ -11,6 +11,10 @@ export type QuestionSourceDragItem =
       questionBankId: string;
       questionId: string;
       title: string;
+    }
+  | {
+      kind: "coding_template";
+      title: string;
     };
 
 export interface QuestionSourceBankQuestion {

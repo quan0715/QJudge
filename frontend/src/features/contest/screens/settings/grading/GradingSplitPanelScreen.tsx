@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, TextArea, Tag } from "@carbon/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button, TextArea, Tag, InlineLoading } from "@carbon/react";
 import {
   ArrowRight,
   Checkmark,
@@ -17,6 +17,8 @@ import type { GradingAnswerRow } from "./gradingTypes";
 import { isSubjectiveType } from "./gradingTypes";
 import { useTranslation } from "react-i18next";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
+import { getSubmission } from "@/infrastructure/api/repositories/submission.repository";
+import type { SubmissionDetail } from "@/core/entities/submission.entity";
 import styles from "./GradingPanel.module.scss";
 
 interface GradingSplitPanelScreenProps {
@@ -34,6 +36,7 @@ interface GradingSplitPanelScreenProps {
     primary: string;
     secondary?: string;
   };
+  readOnly?: boolean;
 }
 
 export default function GradingSplitPanelScreen({
@@ -47,6 +50,7 @@ export default function GradingSplitPanelScreen({
   hasNextQuestion = false,
   onNextStudent,
   hasNextStudent = false,
+  readOnly = false,
 }: GradingSplitPanelScreenProps) {
   const { t } = useTranslation("contest");
   const [score, setScore] = useState<number>(0);
@@ -57,9 +61,61 @@ export default function GradingSplitPanelScreen({
   const saveCooldownRef = useRef<number | null>(null);
   const saveLockedRef = useRef(false);
   const panelBodyRef = useRef<HTMLDivElement>(null);
+  const [submissionDetail, setSubmissionDetail] = useState<SubmissionDetail | null>(null);
+  const [submissionLoading, setSubmissionLoading] = useState(false);
   const maxScore = answer?.maxScore ?? 0;
-  const isSubjective = answer ? isSubjectiveType(answer.questionType) : false;
+  const isSubjective = !readOnly && answer ? isSubjectiveType(answer.questionType) : false;
   const scoreStep = isSubjective ? 0.5 : 1;
+
+  const fallbackCodeFromAnswer = useMemo(() => {
+    if (!answer) return "";
+    const content = answer.answerContent as Record<string, unknown>;
+    const candidates = [
+      content.code,
+      content.sourceCode,
+      content.source_code,
+      content.latestCode,
+      content.latest_code,
+      content.text,
+    ];
+    const found = candidates.find((item) => typeof item === "string" && item.trim().length > 0);
+    return typeof found === "string" ? found : "";
+  }, [answer]);
+
+  const resolvedCode = submissionDetail?.code || fallbackCodeFromAnswer;
+
+  const resolvedSubmissionMeta = useMemo(() => {
+    if (!answer) {
+      return null;
+    }
+    const content = answer.answerContent as Record<string, unknown>;
+    return {
+      status:
+        submissionDetail?.status ??
+        answer.latestSubmissionStatus ??
+        (typeof content.status === "string" ? content.status : null),
+      language:
+        submissionDetail?.language ??
+        answer.latestSubmissionLanguage ??
+        (typeof content.language === "string" ? content.language : null),
+      score:
+        submissionDetail?.score ??
+        answer.score ??
+        (typeof content.score === "number" ? content.score : null),
+      execTime:
+        submissionDetail?.execTime ??
+        answer.latestSubmissionExecTime ??
+        (typeof content.execTime === "number" ? content.execTime : null),
+      memoryUsage:
+        submissionDetail?.memoryUsage ??
+        answer.latestSubmissionMemoryUsage ??
+        (typeof content.memoryUsage === "number" ? content.memoryUsage : null),
+      createdAt:
+        submissionDetail?.createdAt ??
+        answer.latestSubmissionCreatedAt ??
+        (typeof content.createdAt === "string" ? content.createdAt : null),
+    };
+  }, [answer, submissionDetail]);
 
   // ── Lifecycle ──
 
@@ -86,6 +142,45 @@ export default function GradingSplitPanelScreen({
         window.clearTimeout(saveCooldownRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!readOnly || !answer) {
+      setSubmissionDetail(null);
+      setSubmissionLoading(false);
+      return;
+    }
+    const submissionId =
+      answer.latestSubmissionId ||
+      ((answer.answerContent as Record<string, unknown>).submissionId as string | undefined) ||
+      ((answer.answerContent as Record<string, unknown>).submission_id as string | undefined);
+
+    if (!submissionId) {
+      setSubmissionDetail(null);
+      setSubmissionLoading(false);
+      return;
+    }
+
+    let canceled = false;
+    setSubmissionLoading(true);
+    void getSubmission(String(submissionId))
+      .then((data) => {
+        if (canceled) return;
+        setSubmissionDetail(data);
+      })
+      .catch(() => {
+        if (canceled) return;
+        setSubmissionDetail(null);
+      })
+      .finally(() => {
+        if (!canceled) {
+          setSubmissionLoading(false);
+        }
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [answer, readOnly]);
 
   // ── Helpers ──
 
@@ -276,30 +371,68 @@ export default function GradingSplitPanelScreen({
             correctAnswer={answer.correctAnswer}
           />
 
+          {readOnly ? (
+            <div className={styles.questionPrompt}>
+              <div className={styles.studentLine}>{t("grading.latestSubmissionCode", "最後一次 Submission 程式碼")}</div>
+              {submissionLoading ? (
+                <InlineLoading description={t("grading.loadingSubmission", "載入 submission...")} />
+              ) : resolvedCode ? (
+                <pre style={{ whiteSpace: "pre-wrap", marginTop: "0.5rem" }}>
+                  <code>{resolvedCode}</code>
+                </pre>
+              ) : (
+                <span>{t("grading.noSubmissionCode", "找不到程式碼內容")}</span>
+              )}
+              {resolvedSubmissionMeta ? (
+                <div className={styles.shortcutHint} style={{ marginTop: "0.75rem" }}>
+                  {resolvedSubmissionMeta.status ? (
+                    <Tag type="blue" size="sm">{String(resolvedSubmissionMeta.status)}</Tag>
+                  ) : null}
+                  {resolvedSubmissionMeta.language ? (
+                    <Tag type="cool-gray" size="sm">{resolvedSubmissionMeta.language}</Tag>
+                  ) : null}
+                  {typeof resolvedSubmissionMeta.score === "number" ? (
+                    <Tag type="teal" size="sm">{resolvedSubmissionMeta.score}/{maxScore}</Tag>
+                  ) : null}
+                  {typeof resolvedSubmissionMeta.execTime === "number" ? (
+                    <Tag type="warm-gray" size="sm">{resolvedSubmissionMeta.execTime} ms</Tag>
+                  ) : null}
+                  {typeof resolvedSubmissionMeta.memoryUsage === "number" ? (
+                    <Tag type="warm-gray" size="sm">{resolvedSubmissionMeta.memoryUsage} KB</Tag>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <hr className={styles.divider} />
 
-          {/* Score display */}
-          <div className={styles.scoreDisplay}>
-            <span className={styles.scoreLabel}>
-              {isSubjective
-                ? t("grading.scoreLabel", "批改成績")
-                : t("grading.autoScoreLabel", "自動批改成績")}
-            </span>
-            <span className={styles.scoreValue} style={{ color: scoreColor.bg }}>
-              {formatScore(score)}
-            </span>
-            <span className={styles.scoreMax}>/ {formatScore(maxScore)}</span>
-          </div>
+          {!readOnly ? (
+            <>
+              {/* Score display */}
+              <div className={styles.scoreDisplay}>
+                <span className={styles.scoreLabel}>
+                  {isSubjective
+                    ? t("grading.scoreLabel", "批改成績")
+                    : t("grading.autoScoreLabel", "自動批改成績")}
+                </span>
+                <span className={styles.scoreValue} style={{ color: scoreColor.bg }}>
+                  {formatScore(score)}
+                </span>
+                <span className={styles.scoreMax}>/ {formatScore(maxScore)}</span>
+              </div>
 
-          <ScoreSlider
-            value={score}
-            max={maxScore}
-            step={scoreStep}
-            disabled={!isSubjective}
-            onChange={updateScore}
-          />
+              <ScoreSlider
+                value={score}
+                max={maxScore}
+                step={scoreStep}
+                disabled={!isSubjective}
+                onChange={updateScore}
+              />
+            </>
+          ) : null}
 
-          {isSubjective ? (
+          {!readOnly && isSubjective ? (
             <div className={styles.shortcutHint}>
               <span className={styles.shortcutGroup}>
                 <kbd className={styles.keyCap}>↑</kbd>
@@ -324,22 +457,25 @@ export default function GradingSplitPanelScreen({
             </p>
           )}
 
-          <TextArea
-            id="panel-feedback"
-            labelText={t("grading.feedback", "評語（選填）")}
-            value={feedback}
-            disabled={!isSubjective}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-              setFeedback(e.target.value);
-              setSaved(false);
-            }}
-            rows={3}
-          />
+          {!readOnly ? (
+            <TextArea
+              id="panel-feedback"
+              labelText={t("grading.feedback", "評語（選填）")}
+              value={feedback}
+              disabled={!isSubjective}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                setFeedback(e.target.value);
+                setSaved(false);
+              }}
+              rows={3}
+            />
+          ) : null}
         </motion.div>
 
       </div>
 
-      <div className={styles.panelActions}>
+      {!readOnly ? (
+        <div className={styles.panelActions}>
         <div className={styles.panelActionsSecondary}>
           {answer.gradedBy && onUngrade && (
             <Button
@@ -400,7 +536,8 @@ export default function GradingSplitPanelScreen({
             )}
           </div>
         ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

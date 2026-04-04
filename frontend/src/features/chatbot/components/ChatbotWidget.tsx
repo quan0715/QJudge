@@ -11,6 +11,8 @@ import styles from "@/shared/ui/chatbot/ChatbotWidget.module.scss";
 export interface ChatbotWidgetProps {
   /** 預設是否展開 */
   defaultExpanded?: boolean;
+  /** 嵌入模式：永遠展開、填滿容器、無浮動按鈕 */
+  embedded?: boolean;
   /** 題目上下文資訊（用於顯示在 UI） */
   problemContext?: {
     id: number | string;
@@ -28,15 +30,16 @@ export interface ChatbotWidgetProps {
  */
 export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
   defaultExpanded = true,
+  embedded = false,
   problemContext = null,
   backgroundInfo = null,
   onProblemUpdated,
 }) => {
   const { t } = useTranslation("chatbot");
   const { t: tc } = useTranslation("common");
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded || embedded);
   // 追蹤是否曾經展開過，用於延遲初始化（一旦展開過就永遠為 true）
-  const [hasBeenExpanded, setHasBeenExpanded] = useState(defaultExpanded);
+  const [hasBeenExpanded, setHasBeenExpanded] = useState(defaultExpanded || embedded);
 
   // 只有在曾經展開過時才啟用 chatbot
   const {
@@ -72,10 +75,14 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
     });
   }, [hasBeenExpanded]);
 
+  const panelClassName = embedded
+    ? `${styles.chatbotPanel} ${styles.chatbotPanelEmbedded}`
+    : styles.chatbotPanel;
+
   return (
     <>
-      {/* 收合狀態的按鈕 */}
-      {!isExpanded && (
+      {/* 收合狀態的按鈕（嵌入模式不顯示） */}
+      {!embedded && !isExpanded && (
         <button
           className={styles.collapsedButton}
           onClick={handleToggle}
@@ -88,7 +95,7 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
 
       {/* 展開的聊天面板 */}
       {isExpanded && (
-        <div className={styles.chatbotPanel}>
+        <div className={panelClassName}>
           {isInitializing ? (
             <div className={styles.loadingContainer}>
               <Loading withOverlay={false} small />
@@ -107,7 +114,7 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
               onSwitchSession={switchSession}
               onDeleteSession={deleteSession}
               onRenameSession={renameSession}
-              onCollapse={handleToggle}
+              onCollapse={embedded ? undefined : handleToggle}
               onClearError={clearError}
               problemContext={problemContext}
               backgroundInfo={backgroundInfo}

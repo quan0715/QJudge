@@ -1,6 +1,7 @@
 /** Shared types for the exam grading system. */
 
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import type { SubmissionStatus } from "@/core/entities/submission.entity";
 import i18n from "i18next";
 
 /** @deprecated Use ExamQuestionType from core entity directly. */
@@ -40,6 +41,13 @@ export interface GradingAnswerRow {
   correctAnswer: unknown;
   /** True if this is a placeholder row for a student who didn't submit. */
   isAbsent?: boolean;
+  /** Coding contest: latest submission summary for this student/problem. */
+  latestSubmissionId?: string | null;
+  latestSubmissionStatus?: SubmissionStatus | null;
+  latestSubmissionLanguage?: string | null;
+  latestSubmissionCreatedAt?: string | null;
+  latestSubmissionExecTime?: number | null;
+  latestSubmissionMemoryUsage?: number | null;
 }
 
 /** Per-question progress stats. */

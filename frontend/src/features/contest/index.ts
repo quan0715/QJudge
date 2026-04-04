@@ -6,6 +6,7 @@ export {
   classroomContestAdminRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,
+  classroomPracticeRoute,
 } from "./routes";
 
 // Screens

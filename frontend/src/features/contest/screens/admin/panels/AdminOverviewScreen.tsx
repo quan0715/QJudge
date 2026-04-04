@@ -38,7 +38,7 @@ export default function AdminOverviewScreen() {
     () => computeParticipantStatusKpi(participants),
     [participants],
   );
-  const { globalStats } = useGradingData();
+  const { globalStats } = useGradingData({ participantsOverride: participants });
   const violationCount = useMemo(
     () =>
       examEvents.filter(

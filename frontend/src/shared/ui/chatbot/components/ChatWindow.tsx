@@ -40,7 +40,7 @@ export interface ChatWindowProps {
   onSwitchSession: (sessionId: string) => void;
   onDeleteSession?: (sessionId: string) => Promise<void>;
   onRenameSession?: (sessionId: string, title: string) => Promise<void>;
-  onCollapse: () => void;
+  onCollapse?: () => void;
   onClearError?: () => void;
   problemContext?: {
     id: number | string;
@@ -217,15 +217,17 @@ export const ChatWindow: FC<ChatWindowProps> = ({
           >
             <Edit size={16} />
           </IconButton>
-          <IconButton
-            label={t("widget.collapse")}
-            kind="ghost"
-            size="sm"
-            onClick={onCollapse}
-            align="left"
-          >
-            <ChevronRight size={16} />
-          </IconButton>
+          {onCollapse && (
+            <IconButton
+              label={t("widget.collapse")}
+              kind="ghost"
+              size="sm"
+              onClick={onCollapse}
+              align="left"
+            >
+              <ChevronRight size={16} />
+            </IconButton>
+          )}
         </div>
       </div>
 

@@ -42,6 +42,8 @@ function getTextAnswer(answerContent: Record<string, unknown>): string {
   return typeof text === "string" ? text : "";
 }
 
+const TRUE_FALSE_DEFAULT_OPTIONS = ["True", "False"];
+
 const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
   questionType,
   answerContent,
@@ -50,7 +52,11 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
 }) => {
   const { t } = useTranslation("contest");
   const subjective = isSubjectiveType(questionType);
-  const hasOptions = options.length > 0;
+  const effectiveOptions =
+    questionType === "true_false" && options.length === 0
+      ? TRUE_FALSE_DEFAULT_OPTIONS
+      : options;
+  const hasOptions = effectiveOptions.length > 0;
 
   if (subjective) {
     const text = getTextAnswer(answerContent);
@@ -88,7 +94,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
     <div className={styles.root}>
       <span className={styles.label}>{t("grading.answerContent", "作答內容")}</span>
       <div className={styles.optionsList}>
-        {options.map((opt, i) => {
+        {effectiveOptions.map((opt, i) => {
           const selected = isSelected(answerContent, i);
           const correct = isCorrect(correctAnswer, i);
           const classNames = [
@@ -116,7 +122,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
             {t("grading.correctAnswer", "正確答案")}:
           </span>
           <span className={styles.correctValue}>
-            {formatCorrectLabel(correctAnswer, options)}
+            {formatCorrectLabel(correctAnswer, effectiveOptions)}
           </span>
         </div>
       )}

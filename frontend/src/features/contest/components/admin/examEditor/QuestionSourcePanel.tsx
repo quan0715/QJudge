@@ -18,6 +18,7 @@ import { listMine, listQuestions } from "@/infrastructure/api/repositories/quest
 import { QuestionBankPreviewCard } from "@/features/question-banks/components/QuestionBankPreviewCard";
 import { getQuestionDisplayTitle } from "@/features/question-banks/screens/questionBankProblemManagement.utils";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
+import { Code } from "@carbon/icons-react";
 import {
   QUESTION_SOURCE_DRAG_MIME,
   type QuestionSourceBankQuestion,
@@ -40,6 +41,8 @@ interface QuestionSourcePanelProps {
   onDragEnd?: () => void;
   onAddType?: (questionType: ExamQuestionType) => void;
   onAddBankQuestion?: (item: QuestionSourceBankQuestion) => void;
+  /** Click callback for coding template (adds a new blank problem) */
+  onAddTemplate?: () => void;
 }
 
 const QuestionSourcePanel = ({
@@ -49,6 +52,7 @@ const QuestionSourcePanel = ({
   onDragEnd,
   onAddType,
   onAddBankQuestion,
+  onAddTemplate,
 }: QuestionSourcePanelProps) => {
   const { t } = useTranslation("contest");
   const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -242,7 +246,76 @@ const QuestionSourcePanel = ({
   }
 
   if (mode === "coding") {
-    return <div className={[styles.root, className].filter(Boolean).join(" ")}>{bankContent}</div>;
+    return (
+      <div className={[styles.root, className].filter(Boolean).join(" ")}>
+        <div className={styles.tabsRoot}>
+          <div className={styles.tabsContentScope}>
+            <Tabs
+              selectedIndex={activeTabIndex}
+              onChange={({ selectedIndex }) => setActiveTabIndex(selectedIndex)}
+            >
+              <TabList aria-label={t("examEditor.sourceTabs", "題目來源分頁")}>
+                <Tab>{t("examEditor.sourceTabAdd", "新增題目")}</Tab>
+                <Tab>{t("examEditor.sourceTabBank", "題庫")}</Tab>
+              </TabList>
+              <TabPanels>
+                <TabPanel>
+                  <div className={styles.tabPanelFill}>
+                    <div className={styles.section}>
+                      <div className={styles.listArea}>
+                        {(() => {
+                          const templateItem: QuestionSourceDragItem = {
+                            kind: "coding_template",
+                            title: "Hello World",
+                          };
+                          return (
+                            <Tile
+                              className={styles.typeItem}
+                              draggable
+                              onDragStart={(event) => handleDragStart(event, templateItem)}
+                              onDragEnd={handleDragEnd}
+                              onClick={() => onAddTemplate?.()}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  onAddTemplate?.();
+                                }
+                              }}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className={styles.typeItemMain}>
+                                <span className={styles.typeIcon}>
+                                  <Code size={18} />
+                                </span>
+                                <div className={styles.typeInfo}>
+                                  <div className={styles.sourceItemTitle}>
+                                    {t("examEditor.codingTemplate", "程式題")}
+                                  </div>
+                                  <div className={styles.typeDesc}>
+                                    {t("examEditor.codingTemplateDesc", "拖入或點擊以新增一道程式題")}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className={styles.sourceItemActions}>
+                                <Draggable size={14} />
+                              </div>
+                            </Tile>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </TabPanel>
+                <TabPanel>
+                  <div className={styles.tabPanelFill}>{bankContent}</div>
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

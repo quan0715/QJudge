@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Settings, UserMultiple } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { Modal } from "@carbon/react";
 import type { ClassroomDetail } from "@/core/entities/classroom.entity";
 import { SettingsModal, type SettingsModalNavItem } from "@/shared/ui/modal";
 import { ClassroomSettingsGeneralPanel } from "./ClassroomSettingsGeneralPanel";
@@ -12,6 +13,7 @@ interface ClassroomSettingsModalProps {
   onClose: () => void;
   classroom: ClassroomDetail;
   onRefresh: () => Promise<void>;
+  onDeleteClassroom: () => Promise<void>;
 }
 
 export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
@@ -19,11 +21,15 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
   onClose,
   classroom,
   onRefresh,
+  onDeleteClassroom,
 }) => {
   const { t } = useTranslation("classroom");
+  const { t: tc } = useTranslation("common");
   // Rendered as a sibling of SettingsModal (not inside it) to avoid nested
   // Carbon focus-trap conflicts that prevent typing in the inner modal.
   const [addMembersOpen, setAddMembersOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deletingClassroom, setDeletingClassroom] = useState(false);
 
   const navItems: SettingsModalNavItem[] = [
     {
@@ -45,6 +51,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
           <ClassroomSettingsGeneralPanel
             classroom={classroom}
             onRefresh={onRefresh}
+            onOpenDeleteConfirm={() => setConfirmDeleteOpen(true)}
           />
         );
       case "members":
@@ -80,6 +87,24 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
         onClose={() => setAddMembersOpen(false)}
         onAdded={() => void onRefresh()}
       />
+      <Modal
+        open={confirmDeleteOpen}
+        size="sm"
+        danger
+        modalHeading={t("confirmDeleteClassroomTitle", "確認刪除教室")}
+        primaryButtonText={tc("button.delete")}
+        secondaryButtonText={tc("button.cancel")}
+        primaryButtonDisabled={deletingClassroom}
+        onRequestClose={() => setConfirmDeleteOpen(false)}
+        onRequestSubmit={() => {
+          setConfirmDeleteOpen(false);
+          setDeletingClassroom(true);
+          void onDeleteClassroom().finally(() => setDeletingClassroom(false));
+        }}
+      >
+        <p>{t("confirmDeleteClassroomBody", "確定要刪除此教室？此操作無法復原。")}</p>
+        <p><strong>{classroom.name}</strong></p>
+      </Modal>
     </>
   );
 };
