@@ -109,7 +109,10 @@ export const uploadAvatar = async (file: File): Promise<UploadAvatarResponseDto>
   formData.append("file", file);
 
   return requestJson<UploadAvatarResponseDto>(
-    httpClient.post("/api/v1/auth/me/avatar/upload", formData),
+    httpClient.request("/api/v1/auth/me/avatar/upload", {
+      method: "POST",
+      body: formData,
+    }),
     "Failed to upload avatar"
   );
 };

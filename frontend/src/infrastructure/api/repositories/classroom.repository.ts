@@ -95,7 +95,10 @@ export const uploadClassroomCover = async (id: string, file: File): Promise<stri
   const formData = new FormData();
   formData.append("file", file);
   const data = await requestJson<{ cover_url: string }>(
-    httpClient.post(`/api/v1/classrooms/${id}/upload_cover/`, formData),
+    httpClient.request(`/api/v1/classrooms/${id}/upload_cover/`, {
+      method: "POST",
+      body: formData,
+    }),
     "Failed to upload cover"
   );
   return data.cover_url;
