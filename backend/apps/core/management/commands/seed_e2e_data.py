@@ -116,7 +116,6 @@ class Command(BaseCommand):
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
-                'visibility': 'private',
                 'order': 1
             }
         )
@@ -188,7 +187,6 @@ int main() {
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
-                'visibility': 'private',
                 'order': 2
             }
         )
@@ -240,7 +238,6 @@ int main() {
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
-                'visibility': 'private',
                 'order': 3
             }
         )
@@ -320,7 +317,6 @@ int main() {
                 'start_time': now - timedelta(hours=1),
                 'end_time': now + timedelta(hours=2),
                 'owner': teacher,
-                'visibility': 'public',
                 'status': 'published',
                 'cheat_detection_enabled': False,
                 'scoreboard_visible_during_contest': True,
@@ -352,7 +348,6 @@ int main() {
                 'start_time': now + timedelta(days=1),
                 'end_time': now + timedelta(days=1, hours=2),
                 'owner': teacher,
-                'visibility': 'public',
                 'status': 'published',
                 'cheat_detection_enabled': False,
             }
@@ -381,7 +376,6 @@ int main() {
                 'start_time': now - timedelta(hours=1),
                 'end_time': now + timedelta(hours=2),
                 'owner': teacher,
-                'visibility': 'public',
                 'status': 'published',
                 'contest_type': 'paper_exam',
                 'cheat_detection_enabled': True,
