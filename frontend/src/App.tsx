@@ -28,7 +28,7 @@ import {
   SettingsDialog,
 } from "@/features/auth";
 import { problemDetailRoutes, problemSolveRoutes } from "@/features/problems";
-import { classroomContestDetailRoutes, classroomContestAdminRoute, classroomExamPreviewRoute, classroomExamPrecheckRoute } from "@/features/contest";
+import { classroomContestDetailRoutes, classroomContestAdminRoute, classroomExamPreviewRoute, classroomExamPrecheckRoute, classroomPracticeRoute } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { errorRoutes, fallbackRoute } from "@/features/app";
@@ -165,6 +165,9 @@ function App() {
 
                             {/* Classroom Exam Preview - Classroom-scoped */}
                             {classroomExamPreviewRoute}
+
+                            {/* Classroom Practice - Classroom-scoped */}
+                            {classroomPracticeRoute}
                           </Route>
                         </Route>
 

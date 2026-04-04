@@ -14,7 +14,7 @@ import {
   Upload,
   View,
 } from "@carbon/icons-react";
-import { Reorder, useDragControls } from "motion/react";
+import { CardListEditor } from "@/shared/ui/cardListEditor";
 import type { ContestDetail, ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
 import {
   getExamQuestions,
@@ -658,61 +658,32 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         contentClassName={styles.editorPane}
         ref={editorPaneRef}
       >
-        <Reorder.Group
-          axis="y"
-          values={questions}
+        <CardListEditor
+          items={questions}
           onReorder={handleReorder}
-          as="div"
-          className={styles.reorderGroup}
-        >
-          {questions.map((q, i) => (
-            <React.Fragment key={q.id}>
-              <InsertDropSlot
-                index={i}
-                active={sourceHoverIndex === i}
-                canDrop={!!sourceDragItem && !frozen}
-                onDragOver={() => setSourceHoverIndex(i)}
-                onDragLeave={() => setSourceHoverIndex((prev) => (prev === i ? null : prev))}
-                onDrop={async () => {
-                  if (!sourceDragItem || frozen) return;
-                  const droppedItem = sourceDragItem;
-                  setSourceHoverIndex(null);
-                  setSourceDragItem(null);
-                  await handleInsertFromSource(i, droppedItem);
-                }}
-              />
-              <CardReorderItem
-                question={q}
-                index={i}
-                frozen={frozen}
-                onAutoSave={handleAutoSave}
-                onDelete={handleDelete}
-                onDuplicate={handleDuplicate}
-                onSaveToBank={(question) => setSaveToBankQuestion(question)}
-                cardRefCallback={(el) => {
-                  if (el) cardRefs.current.set(q.id, el);
-                  else cardRefs.current.delete(q.id);
-                }}
-              />
-            </React.Fragment>
-          ))}
-          <InsertDropSlot
-            index={questions.length}
-            active={sourceHoverIndex === questions.length}
-            canDrop={!!sourceDragItem && !frozen}
-            onDragOver={() => setSourceHoverIndex(questions.length)}
-            onDragLeave={() =>
-              setSourceHoverIndex((prev) => (prev === questions.length ? null : prev))
-            }
-            onDrop={async () => {
-              if (!sourceDragItem || frozen) return;
-              const droppedItem = sourceDragItem;
-              setSourceHoverIndex(null);
-              setSourceDragItem(null);
-              await handleInsertFromSource(questions.length, droppedItem);
-            }}
-          />
-        </Reorder.Group>
+          frozen={frozen}
+          canDrop={!!sourceDragItem && !frozen}
+          hoverIndex={sourceHoverIndex}
+          onHoverIndexChange={setSourceHoverIndex}
+          onDropAt={(index) => {
+            if (!sourceDragItem || frozen) return;
+            const droppedItem = sourceDragItem;
+            setSourceDragItem(null);
+            void handleInsertFromSource(index, droppedItem);
+          }}
+          renderCard={(q, i, dragHandleProps) => (
+            <ExamQuestionEditCard
+              question={q}
+              index={i}
+              frozen={frozen}
+              onAutoSave={handleAutoSave}
+              onDelete={handleDelete}
+              onDuplicate={handleDuplicate}
+              onSaveToBank={(question) => setSaveToBankQuestion(question)}
+              onPointerDownDrag={dragHandleProps?.onPointerDown}
+            />
+          )}
+        />
       </AdminSplitLayout>
 
       <Modal
@@ -786,71 +757,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     </>
   );
 });
-
-const CardReorderItem: React.FC<{
-  question: ExamQuestion;
-  index: number;
-  frozen: boolean;
-  onAutoSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
-  onDelete: (questionId: string) => Promise<void>;
-  onDuplicate: (questionId: string) => Promise<void>;
-  onSaveToBank?: (question: ExamQuestion) => void;
-  cardRefCallback: (el: HTMLDivElement | null) => void;
-}> = ({ question, index, frozen, onAutoSave, onDelete, onDuplicate, onSaveToBank, cardRefCallback }) => {
-  const dragControls = useDragControls();
-
-  return (
-    <Reorder.Item
-      value={question}
-      dragListener={false}
-      dragControls={dragControls}
-      drag={!frozen}
-      as="div"
-      className={styles.cardItem}
-    >
-      <div ref={cardRefCallback}>
-        <ExamQuestionEditCard
-          question={question}
-          index={index}
-          frozen={frozen}
-          onAutoSave={onAutoSave}
-          onDelete={onDelete}
-          onDuplicate={onDuplicate}
-          onSaveToBank={onSaveToBank}
-          onPointerDownDrag={!frozen ? (e) => dragControls.start(e) : undefined}
-        />
-      </div>
-    </Reorder.Item>
-  );
-};
-
-const InsertDropSlot: React.FC<{
-  index: number;
-  active: boolean;
-  canDrop: boolean;
-  onDragOver: () => void;
-  onDragLeave: () => void;
-  onDrop: () => Promise<void>;
-}> = ({ active, canDrop, onDragOver, onDragLeave, onDrop }) => {
-  if (!canDrop) {
-    return <div className={styles.dropSlotIdle} />;
-  }
-
-  return (
-    <div
-      className={`${styles.dropSlot} ${active ? styles.dropSlotActive : ""}`}
-      onDragOver={(event) => {
-        event.preventDefault();
-        onDragOver();
-      }}
-      onDragLeave={onDragLeave}
-      onDrop={(event) => {
-        event.preventDefault();
-        void onDrop();
-      }}
-    />
-  );
-};
 
 ExamEditorLayout.displayName = "ExamEditorLayout";
 

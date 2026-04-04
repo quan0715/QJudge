@@ -30,6 +30,40 @@ type Meridiem = "AM" | "PM";
 
 const DURATION_OPTIONS = [60, 90, 120, 180, 240];
 
+const getDefaultSchedule = (): {
+  startDate: Date;
+  startTime: string;
+  startMeridiem: Meridiem;
+} => {
+  const now = new Date();
+  const rounded = new Date(now);
+  rounded.setSeconds(0, 0);
+
+  const minutes = rounded.getMinutes();
+  if (minutes > 0 && minutes < 30) {
+    rounded.setMinutes(30);
+  } else if (minutes > 30) {
+    rounded.setHours(rounded.getHours() + 1, 0, 0, 0);
+  }
+
+  // UX default: nearest half-hour slot, then +2h.
+  rounded.setHours(rounded.getHours() + 2);
+
+  const hours24 = rounded.getHours();
+  const startMeridiem: Meridiem = hours24 >= 12 ? "PM" : "AM";
+  const hours12Raw = hours24 % 12;
+  const hours12 = hours12Raw === 0 ? 12 : hours12Raw;
+  const startTime = `${String(hours12).padStart(2, "0")}:${String(
+    rounded.getMinutes(),
+  ).padStart(2, "0")}`;
+
+  return {
+    startDate: rounded,
+    startTime,
+    startMeridiem,
+  };
+};
+
 const CreateContestModal: React.FC<CreateContestModalProps> = ({
   open,
   onClose,
@@ -38,12 +72,12 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
-  const getToday = () => new Date();
+  const defaultSchedule = getDefaultSchedule();
 
   const [name, setName] = useState("");
-  const [startDate, setStartDate] = useState<Date | null>(() => getToday());
-  const [startTime, setStartTime] = useState("09:00");
-  const [startMeridiem, setStartMeridiem] = useState<Meridiem>("AM");
+  const [startDate, setStartDate] = useState<Date | null>(() => defaultSchedule.startDate);
+  const [startTime, setStartTime] = useState(defaultSchedule.startTime);
+  const [startMeridiem, setStartMeridiem] = useState<Meridiem>(defaultSchedule.startMeridiem);
   const [durationMinutes, setDurationMinutes] = useState("120");
   const [examModeEnabled, setExamModeEnabled] = useState(true);
   const [allowMultipleJoins, setAllowMultipleJoins] = useState(false);
@@ -55,10 +89,11 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
   const [error, setError] = useState("");
 
   const resetForm = () => {
+    const nextSchedule = getDefaultSchedule();
     setName("");
-    setStartDate(getToday());
-    setStartTime("09:00");
-    setStartMeridiem("AM");
+    setStartDate(nextSchedule.startDate);
+    setStartTime(nextSchedule.startTime);
+    setStartMeridiem(nextSchedule.startMeridiem);
     setDurationMinutes("120");
     setExamModeEnabled(true);
     setAllowMultipleJoins(false);

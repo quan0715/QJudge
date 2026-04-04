@@ -2,7 +2,7 @@
  * Data hook for exam grading.
  * Fetches real data from API.
  */
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useContext } from "react";
 import { useParams } from "react-router-dom";
 import {
   getAllExamAnswers,
@@ -10,8 +10,10 @@ import {
   ungradeExamAnswer,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
-import type { ExamQuestion } from "@/core/entities/contest.entity";
-import { useContestAdmin } from "@/features/contest/contexts";
+import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
+import type { ContestParticipant, ExamQuestion } from "@/core/entities/contest.entity";
+import ContestAdminContext from "@/features/contest/contexts/ContestAdminContext";
+import { useContest } from "@/features/contest/contexts/ContestContext";
 import { isSubjectiveType } from "./gradingTypes";
 import { calculateObjectiveExpectedScore } from "./objectiveRegrade";
 import { buildGradingRows } from "./buildGradingRows";
@@ -22,14 +24,123 @@ import type {
   QuestionType,
 } from "./gradingTypes";
 
-export function useGradingData() {
+interface UseGradingDataOptions {
+  participantsOverride?: ContestParticipant[];
+}
+
+export function useGradingData(options: UseGradingDataOptions = {}) {
   const { contestId } = useParams<{ contestId: string }>();
-  const { participants } = useContestAdmin();
+  const contestAdminContext = useContext(ContestAdminContext);
+  const participants = useMemo(
+    () => options.participantsOverride ?? contestAdminContext?.participants ?? [],
+    [options.participantsOverride, contestAdminContext?.participants],
+  );
+  const { contest, scoreboardData } = useContest();
 
   const [answers, setAnswers] = useState<GradingAnswerRow[]>([]);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [regradingObjective, setRegradingObjective] = useState(false);
+
+  const codingCanonicalQuestions = useMemo(() => {
+    if (contest?.contestType !== "coding") return [];
+
+    const orderedContestProblems = [...(contest.problems || [])].sort(
+      (left, right) => (left.order ?? 0) - (right.order ?? 0),
+    );
+    const scoreboardProblems = [...(scoreboardData?.problems || [])].sort(
+      (left, right) => (left.order ?? 0) - (right.order ?? 0),
+    );
+
+    const canonicalById = new Map<
+      string,
+      { id: string; order: number; title: string; maxScore: number; label?: string }
+    >();
+    const submissionToCanonical = new Map<string, string>();
+
+    for (let idx = 0; idx < scoreboardProblems.length; idx += 1) {
+      const problem = scoreboardProblems[idx];
+      const canonicalId = String(problem.id || problem.problemId || "");
+      if (!canonicalId) continue;
+      canonicalById.set(canonicalId, {
+        id: canonicalId,
+        order: problem.order ?? idx + 1,
+        title: problem.title || problem.label || `P${idx + 1}`,
+        maxScore: Number(problem.score ?? 0),
+        label: problem.label,
+      });
+      submissionToCanonical.set(canonicalId, canonicalId);
+      if (problem.problemId) {
+        submissionToCanonical.set(String(problem.problemId), canonicalId);
+      }
+    }
+
+    for (let idx = 0; idx < orderedContestProblems.length; idx += 1) {
+      const problem = orderedContestProblems[idx];
+      const submissionProblemId = String(problem.problemId || "");
+      if (!submissionProblemId) continue;
+
+      let canonicalId = submissionToCanonical.get(submissionProblemId);
+      if (!canonicalId && problem.label) {
+        const matchByLabel = scoreboardProblems.find((row) => row.label === problem.label);
+        canonicalId = matchByLabel?.id ? String(matchByLabel.id) : undefined;
+      }
+      if (!canonicalId && idx < scoreboardProblems.length) {
+        const matchByOrder = scoreboardProblems[idx];
+        canonicalId = matchByOrder?.id ? String(matchByOrder.id) : undefined;
+      }
+      if (!canonicalId) canonicalId = submissionProblemId;
+
+      if (!canonicalById.has(canonicalId)) {
+        canonicalById.set(canonicalId, {
+          id: canonicalId,
+          order: problem.order ?? idx + 1,
+          title: problem.title || `P${idx + 1}`,
+          maxScore: Number(problem.maxScore ?? problem.score ?? 0),
+          label: problem.label,
+        });
+      }
+      submissionToCanonical.set(submissionProblemId, canonicalId);
+    }
+
+    const ordered = Array.from(canonicalById.values()).sort((left, right) => {
+      if (left.order !== right.order) return left.order - right.order;
+      return left.id.localeCompare(right.id);
+    });
+
+    return ordered.map((problem, index) => ({
+      ...problem,
+      index: index + 1,
+      indexByOrder: problem.order || index + 1,
+      submissionToCanonical,
+    }));
+  }, [contest?.contestType, contest?.problems, scoreboardData?.problems]);
+
+  const codingSubmissionToCanonicalMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const problem of codingCanonicalQuestions) {
+      map.set(problem.id, problem.id);
+      for (const [sourceId, canonicalId] of problem.submissionToCanonical.entries()) {
+        map.set(sourceId, canonicalId);
+      }
+    }
+    return map;
+  }, [codingCanonicalQuestions]);
+
+  const codingProblemMetaMap = useMemo(() => {
+    const map = new Map<
+      string,
+      { index: number; title: string; maxScore: number }
+    >();
+    for (const problem of codingCanonicalQuestions) {
+      map.set(problem.id, {
+        index: problem.index,
+        title: problem.title,
+        maxScore: problem.maxScore,
+      });
+    }
+    return map;
+  }, [codingCanonicalQuestions]);
 
   // Build participant map
   const participantMap = useMemo(() => {
@@ -48,6 +159,168 @@ export function useGradingData() {
     if (!contestId) return;
     setLoading(true);
     try {
+      if (contest?.contestType === "coding") {
+        const allSubmissions: Awaited<ReturnType<typeof getSubmissions>>["results"] = [];
+        const pageSize = 100;
+        let page = 1;
+        let total = Number.POSITIVE_INFINITY;
+
+        while (allSubmissions.length < total) {
+          const response = await getSubmissions({
+            contest: contestId,
+            source_type: "contest",
+            include_all: "true",
+            page,
+            page_size: pageSize,
+          });
+          total = response.count;
+          allSubmissions.push(...response.results);
+          if (response.results.length < pageSize) break;
+          page += 1;
+        }
+
+        const latestSubmissionByStudentProblem = new Map<string, (typeof allSubmissions)[number]>();
+        for (const submission of allSubmissions) {
+          const canonicalProblemId =
+            codingSubmissionToCanonicalMap.get(String(submission.problemId)) || String(submission.problemId);
+          const key = `${submission.userId}:${canonicalProblemId}`;
+          const prev = latestSubmissionByStudentProblem.get(key);
+          if (!prev) {
+            latestSubmissionByStudentProblem.set(key, submission);
+            continue;
+          }
+          if (new Date(submission.createdAt).getTime() > new Date(prev.createdAt).getTime()) {
+            latestSubmissionByStudentProblem.set(key, submission);
+          }
+        }
+
+        const rows: GradingAnswerRow[] = Array.from(
+          latestSubmissionByStudentProblem.values(),
+        ).map((submission) => {
+          const student = participantMap.get(submission.userId);
+          const canonicalProblemId =
+            codingSubmissionToCanonicalMap.get(String(submission.problemId)) || String(submission.problemId);
+          const problemMeta = codingProblemMetaMap.get(canonicalProblemId);
+          const normalizedScore = submission.score ?? 0;
+          const isPending =
+            submission.status === "pending" || submission.status === "judging";
+          return {
+            id: `coding-${submission.id}`,
+            studentId: submission.userId,
+            studentUsername: student?.username ?? submission.username ?? "unknown",
+            studentNickname:
+              student?.nickname ??
+              submission.username ??
+              "unknown",
+            questionId: canonicalProblemId,
+            questionIndex: problemMeta?.index ?? 0,
+            questionPrompt: problemMeta?.title ?? canonicalProblemId,
+            questionType: "essay",
+            questionOptions: [],
+            maxScore: problemMeta?.maxScore ?? 0,
+            answerContent: {
+              submissionId: submission.id,
+              status: submission.status,
+              language: submission.language,
+              score: normalizedScore,
+              execTime: submission.execTime ?? null,
+              memoryUsage: submission.memoryUsage ?? null,
+              createdAt: submission.createdAt,
+            },
+            score: isPending ? null : normalizedScore,
+            feedback: "",
+            gradedBy: null,
+            gradedAt: null,
+            isAutoGraded: true,
+            correctAnswer: null,
+            latestSubmissionId: submission.id,
+            latestSubmissionStatus: submission.status,
+            latestSubmissionLanguage: submission.language,
+            latestSubmissionCreatedAt: submission.createdAt,
+            latestSubmissionExecTime: submission.execTime ?? null,
+            latestSubmissionMemoryUsage: submission.memoryUsage ?? null,
+          };
+        });
+
+        const existingRowKeys = new Set(rows.map((row) => `${row.studentId}:${row.questionId}`));
+        for (const standingRow of scoreboardData?.rows || []) {
+          const studentId = String(standingRow.userId || "");
+          if (!studentId) continue;
+          const student = participantMap.get(studentId);
+
+          for (const [rawProblemId, rawStats] of Object.entries(standingRow.problems || {})) {
+            const canonicalProblemId =
+              codingSubmissionToCanonicalMap.get(String(rawProblemId)) || String(rawProblemId);
+            const key = `${studentId}:${canonicalProblemId}`;
+            if (existingRowKeys.has(key)) continue;
+
+            const stats = (rawStats || {}) as {
+              status?: string | null;
+              score?: number | null;
+              tries?: number | null;
+              time?: number | null;
+              pending?: boolean | null;
+            };
+            const hasActivity =
+              !!stats.pending ||
+              Number(stats.tries ?? 0) > 0 ||
+              Number(stats.score ?? 0) > 0 ||
+              !!stats.status;
+            if (!hasActivity) continue;
+
+            const mappedStatus =
+              stats.pending
+                ? "pending"
+                : stats.status === "AC"
+                  ? "AC"
+                  : stats.status
+                    ? "WA"
+                    : null;
+            const problemMeta = codingProblemMetaMap.get(canonicalProblemId);
+            const normalizedScore = Number(stats.score ?? 0);
+
+            rows.push({
+              id: `coding-standing-${studentId}-${canonicalProblemId}`,
+              studentId,
+              studentUsername:
+                student?.username || standingRow.displayName || standingRow.nickname || "unknown",
+              studentNickname:
+                student?.nickname || standingRow.displayName || standingRow.nickname || "unknown",
+              questionId: canonicalProblemId,
+              questionIndex: problemMeta?.index ?? 0,
+              questionPrompt: problemMeta?.title ?? canonicalProblemId,
+              questionType: "essay",
+              questionOptions: [],
+              maxScore: problemMeta?.maxScore ?? 0,
+              answerContent: {
+                source: "standings_fallback",
+                status: mappedStatus,
+                score: normalizedScore,
+                tries: Number(stats.tries ?? 0),
+                time: Number(stats.time ?? 0),
+              },
+              score: stats.pending ? null : normalizedScore,
+              feedback: "",
+              gradedBy: null,
+              gradedAt: null,
+              isAutoGraded: true,
+              correctAnswer: null,
+              latestSubmissionId: null,
+              latestSubmissionStatus: mappedStatus,
+              latestSubmissionLanguage: null,
+              latestSubmissionCreatedAt: null,
+              latestSubmissionExecTime: null,
+              latestSubmissionMemoryUsage: null,
+            });
+            existingRowKeys.add(key);
+          }
+        }
+
+        setQuestions([]);
+        setAnswers(rows);
+        return;
+      }
+
       const [allAnswers, questions] = await Promise.all([
         getAllExamAnswers(contestId),
         getExamQuestions(contestId),
@@ -67,7 +340,13 @@ export function useGradingData() {
     } finally {
       setLoading(false);
     }
-  }, [contestId, participantMap]);
+  }, [
+    codingProblemMetaMap,
+    codingSubmissionToCanonicalMap,
+    contest?.contestType,
+    contestId,
+    participantMap,
+  ]);
 
   useEffect(() => {
     void fetchData();
@@ -86,16 +365,28 @@ export function useGradingData() {
       }
     >();
 
-    // Always include all questions, even if no answer exists.
-    for (let idx = 0; idx < questions.length; idx += 1) {
-      const q = questions[idx];
-      map.set(q.id, {
-        questionId: q.id,
-        questionIndex: (q.order ?? idx) + 1,
-        questionType: q.questionType,
-        prompt: q.prompt ?? "",
-        maxScore: q.score ?? 0,
-      });
+    if (contest?.contestType === "coding") {
+      for (const problem of codingCanonicalQuestions) {
+        map.set(problem.id, {
+          questionId: problem.id,
+          questionIndex: problem.index,
+          questionType: "essay",
+          prompt: problem.title,
+          maxScore: problem.maxScore,
+        });
+      }
+    } else {
+      // Always include all questions, even if no answer exists.
+      for (let idx = 0; idx < questions.length; idx += 1) {
+        const q = questions[idx];
+        map.set(q.id, {
+          questionId: q.id,
+          questionIndex: (q.order ?? idx) + 1,
+          questionType: q.questionType,
+          prompt: q.prompt ?? "",
+          maxScore: q.score ?? 0,
+        });
+      }
     }
 
     // Backfill orphan answer rows (defensive: stale/deleted question snapshots).
@@ -110,7 +401,7 @@ export function useGradingData() {
       });
     }
     return map;
-  }, [questions, answers]);
+  }, [contest?.contestType, codingCanonicalQuestions, questions, answers]);
 
   // ── Derived: answers grouped by question ──
   const answersByQuestion = useMemo(() => {

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { TextInput, TextArea } from "@carbon/react";
+import { Button, TextInput, TextArea } from "@carbon/react";
 import type { ClassroomDetail } from "@/core/entities/classroom.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { Section, FieldRow, ActionRow } from "@/shared/layout/SettingsPanel";
@@ -17,15 +17,21 @@ const AUTO_SAVE_DELAY = 800;
 interface ClassroomSettingsGeneralPanelProps {
   classroom: ClassroomDetail;
   onRefresh: () => Promise<void>;
+  onOpenDeleteConfirm: () => void;
 }
 
 export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPanelProps> = ({
   classroom,
   onRefresh,
+  onOpenDeleteConfirm,
 }) => {
   const { t } = useTranslation("classroom");
   const { t: tc } = useTranslation("common");
   const { showToast } = useToast();
+  const canDeleteClassroom =
+    classroom.currentUserRole === "platform_admin" ||
+    classroom.currentUserRole === "owner" ||
+    classroom.currentUserRole === "manager";
 
   const [settingName, setSettingName] = useState(classroom.name);
   const [settingDescription, setSettingDescription] = useState(classroom.description ?? "");
@@ -233,6 +239,20 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
           <span>{new Date(classroom.updatedAt).toLocaleString()}</span>
         </ActionRow>
       </Section>
+
+      {canDeleteClassroom && (
+        <Section title={t("deleteClassroom", "刪除教室")}>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              kind="danger--tertiary"
+              size="sm"
+              onClick={onOpenDeleteConfirm}
+            >
+              {t("deleteClassroom", "刪除教室")}
+            </Button>
+          </div>
+        </Section>
+      )}
     </>
   );
 };

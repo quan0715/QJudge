@@ -30,6 +30,7 @@ import { KpiCard } from "@/shared/ui/dataCard";
 import {
   getClassroom,
   getClassrooms,
+  deleteClassroom,
   deleteAnnouncement,
 } from "@/infrastructure/api/repositories/classroom.repository";
 import { AnnouncementModal } from "../components/AnnouncementModal";
@@ -203,6 +204,27 @@ const ClassroomDetailScreen: React.FC = () => {
     }
   };
 
+  const handleDeleteClassroom = async () => {
+    if (!classroom?.id) return;
+    try {
+      await deleteClassroom(classroom.id);
+      showToast({
+        kind: "success",
+        title: t("classroomDeleted", "教室已刪除"),
+      });
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("classroomDeleteFailed", "刪除教室失敗"),
+        subtitle:
+          error instanceof Error
+            ? error.message
+            : t("loadFailedHint", "請稍後再試"),
+      });
+    }
+  };
+
   if (loading && !classroom) return <ClassroomSkeleton />;
 
   if (!classroom) {
@@ -335,6 +357,7 @@ const ClassroomDetailScreen: React.FC = () => {
             onClose={() => setSettingsModalOpen(false)}
             classroom={classroom}
             onRefresh={refreshAll}
+            onDeleteClassroom={handleDeleteClassroom}
           />
         </>
       )}

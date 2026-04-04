@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import type { FieldPath } from "react-hook-form";
 import { Dropdown } from "@carbon/react";
-import { InlineEditableMarkdown } from "@/shared/ui/markdown/markdownEditor";
+import { InlineEditableMarkdown, MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import { AutoSaveField } from "@/features/problems/components/edit/common";
+import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { Section, FieldRow } from "@/shared/layout/SettingsPanel";
 import { TextInput } from "@carbon/react";
 
@@ -10,7 +12,12 @@ const LANGUAGE_OPTIONS = [
   { id: "en", label: "English" },
 ];
 
-const ContentSection: React.FC = () => {
+interface ContentSectionProps {
+  /** Use always-visible MarkdownField instead of click-to-edit InlineEditableMarkdown */
+  directEdit?: boolean;
+}
+
+const ContentSection: React.FC<ContentSectionProps> = ({ directEdit = false }) => {
   const [selectedLanguage, setSelectedLanguage] = useState("zh");
   const isZh = selectedLanguage === "zh";
 
@@ -27,6 +34,41 @@ const ContentSection: React.FC = () => {
       }}
       size="sm"
     />
+  );
+
+  const renderMarkdown = (
+    name: FieldPath<ProblemFormSchema>,
+    id: string,
+    placeholder: string,
+    minHeight: string,
+  ) => (
+    <AutoSaveField name={name}>
+      {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) =>
+        directEdit ? (
+          <MarkdownField
+            id={id}
+            value={String(field.value ?? "")}
+            onChange={(value) => { field.onChange(value); onAutoSaveChange(value); }}
+            minHeight={minHeight}
+            placeholder={placeholder}
+            invalid={invalid}
+            invalidText={error}
+          />
+        ) : (
+          <InlineEditableMarkdown
+            id={id}
+            labelText=""
+            value={String(field.value ?? "")}
+            onChange={(value) => { field.onChange(value); onAutoSaveChange(value); }}
+            onBlur={onAutoSaveBlur}
+            placeholder={placeholder}
+            minHeight={minHeight}
+            invalid={invalid}
+            invalidText={error}
+          />
+        )
+      }
+    </AutoSaveField>
   );
 
   return (
@@ -55,75 +97,39 @@ const ContentSection: React.FC = () => {
       </FieldRow>
 
       <FieldRow label="題目描述">
-        <AutoSaveField name={isZh ? "translationZh.description" : "translationEn.description"}>
-          {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
-            <InlineEditableMarkdown
-              id={isZh ? "description-zh" : "description-en"}
-              labelText=""
-              value={field.value}
-              onChange={(value) => { field.onChange(value); onAutoSaveChange(value); }}
-              onBlur={onAutoSaveBlur}
-              placeholder={isZh ? "點擊以編輯題目描述..." : "Click to edit description..."}
-              minHeight="150px"
-              invalid={invalid}
-              invalidText={error}
-            />
-          )}
-        </AutoSaveField>
+        {renderMarkdown(
+          isZh ? "translationZh.description" : "translationEn.description",
+          isZh ? "description-zh" : "description-en",
+          isZh ? "點擊以編輯題目描述..." : "Click to edit description...",
+          "150px",
+        )}
       </FieldRow>
 
       <FieldRow label="輸入說明">
-        <AutoSaveField name={isZh ? "translationZh.inputDescription" : "translationEn.inputDescription"}>
-          {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
-            <InlineEditableMarkdown
-              id={isZh ? "input-desc-zh" : "input-desc-en"}
-              labelText=""
-              value={field.value}
-              onChange={(value) => { field.onChange(value); onAutoSaveChange(value); }}
-              onBlur={onAutoSaveBlur}
-              placeholder={isZh ? "點擊以編輯輸入說明..." : "Click to edit input format..."}
-              minHeight="100px"
-              invalid={invalid}
-              invalidText={error}
-            />
-          )}
-        </AutoSaveField>
+        {renderMarkdown(
+          isZh ? "translationZh.inputDescription" : "translationEn.inputDescription",
+          isZh ? "input-desc-zh" : "input-desc-en",
+          isZh ? "點擊以編輯輸入說明..." : "Click to edit input format...",
+          "100px",
+        )}
       </FieldRow>
 
       <FieldRow label="輸出說明">
-        <AutoSaveField name={isZh ? "translationZh.outputDescription" : "translationEn.outputDescription"}>
-          {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
-            <InlineEditableMarkdown
-              id={isZh ? "output-desc-zh" : "output-desc-en"}
-              labelText=""
-              value={field.value}
-              onChange={(value) => { field.onChange(value); onAutoSaveChange(value); }}
-              onBlur={onAutoSaveBlur}
-              placeholder={isZh ? "點擊以編輯輸出說明..." : "Click to edit output format..."}
-              minHeight="100px"
-              invalid={invalid}
-              invalidText={error}
-            />
-          )}
-        </AutoSaveField>
+        {renderMarkdown(
+          isZh ? "translationZh.outputDescription" : "translationEn.outputDescription",
+          isZh ? "output-desc-zh" : "output-desc-en",
+          isZh ? "點擊以編輯輸出說明..." : "Click to edit output format...",
+          "100px",
+        )}
       </FieldRow>
 
       <FieldRow label={isZh ? "提示（選填）" : "Hint (optional)"}>
-        <AutoSaveField name={isZh ? "translationZh.hint" : "translationEn.hint"}>
-          {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (
-            <InlineEditableMarkdown
-              id={isZh ? "hint-zh" : "hint-en"}
-              labelText=""
-              value={field.value}
-              onChange={(value) => { field.onChange(value); onAutoSaveChange(value); }}
-              onBlur={onAutoSaveBlur}
-              placeholder={isZh ? "點擊以編輯提示..." : "Click to edit hint..."}
-              minHeight="80px"
-              invalid={invalid}
-              invalidText={error}
-            />
-          )}
-        </AutoSaveField>
+        {renderMarkdown(
+          isZh ? "translationZh.hint" : "translationEn.hint",
+          isZh ? "hint-zh" : "hint-en",
+          isZh ? "點擊以編輯提示..." : "Click to edit hint...",
+          "80px",
+        )}
       </FieldRow>
     </Section>
   );

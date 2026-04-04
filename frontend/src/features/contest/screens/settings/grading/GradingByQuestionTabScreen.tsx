@@ -54,6 +54,7 @@ interface GradingByQuestionTabScreenProps {
     studentId: string;
     nonce: number;
   } | null;
+  readOnly?: boolean;
 }
 
 export default function GradingByQuestionTabScreen({
@@ -71,6 +72,7 @@ export default function GradingByQuestionTabScreen({
   selectedStudentId,
   onSelectedStudentIdChange,
   selectionRequest = null,
+  readOnly = false,
 }: GradingByQuestionTabScreenProps) {
   const { t } = useTranslation("contest");
   const [isQuestionPaneCollapsed, setIsQuestionPaneCollapsed] = useState(false);
@@ -344,6 +346,10 @@ export default function GradingByQuestionTabScreen({
                   )}
                   {isAbsent ? (
                     <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
+                  ) : readOnly ? (
+                    <Tag type="cool-gray" size="sm">
+                      {a.latestSubmissionStatus || t("grading.answered", "已作答")}
+                    </Tag>
                   ) : a.score !== null ? (
                     <span className={styles.scoreText}>
                       {a.score}/{a.maxScore}
@@ -388,6 +394,7 @@ export default function GradingByQuestionTabScreen({
         isFlagged={selectedAnswer ? flaggedIds?.has(selectedAnswer.id) : false}
         onToggleFlag={onToggleFlag}
         flowMode="byQuestion"
+        readOnly={readOnly}
         onNextQuestion={handleNextQuestion}
         hasNextQuestion={hasNextQuestion}
         onNextStudent={handleNext}

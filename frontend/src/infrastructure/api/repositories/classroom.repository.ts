@@ -1,7 +1,15 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
-import type { Classroom, ClassroomDetail } from "@/core/entities/classroom.entity";
-import { mapClassroomDto, mapClassroomDetailDto } from "@/infrastructure/mappers/classroom.mapper";
-import type { ClassroomDto, ClassroomDetailDto } from "@/infrastructure/api/dto/classroom.dto";
+import type { BoundContest, Classroom, ClassroomDetail } from "@/core/entities/classroom.entity";
+import {
+  mapBoundContestDto,
+  mapClassroomDto,
+  mapClassroomDetailDto,
+} from "@/infrastructure/mappers/classroom.mapper";
+import type {
+  BoundContestDto,
+  ClassroomDto,
+  ClassroomDetailDto,
+} from "@/infrastructure/api/dto/classroom.dto";
 
 // ============================================================================
 // Classroom Repository Implementation
@@ -156,8 +164,26 @@ export const getClassroomContests = async (id: string): Promise<any> => {
   return requestJson<any>(httpClient.get(`/api/v1/classrooms/${id}/contests/`));
 };
 
-export const createClassroomContest = async (id: string, data: any): Promise<any> => {
-  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${id}/contests/`, data));
+export const createClassroomContest = async (
+  id: string,
+  data: {
+    name: string;
+    description?: string;
+    start_time?: string;
+    end_time?: string;
+    contest_type: "coding" | "paper_exam";
+    requires_password?: boolean;
+    password?: string;
+    cheat_detection_enabled?: boolean;
+    allow_multiple_joins?: boolean;
+    results_published?: boolean;
+  },
+): Promise<BoundContest> => {
+  const responseData = await requestJson<BoundContestDto>(
+    httpClient.post(`/api/v1/classrooms/${id}/contests/`, data),
+    "Failed to create classroom contest",
+  );
+  return mapBoundContestDto(responseData);
 };
 
 export const bindContest = async (classroomId: string, contestId: string): Promise<any> => {

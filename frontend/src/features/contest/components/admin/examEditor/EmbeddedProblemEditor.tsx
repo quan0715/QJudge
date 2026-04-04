@@ -1,46 +1,44 @@
-import React, { useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { SkeletonText, SkeletonPlaceholder } from "@carbon/react";
-import {
-  patchProblem,
-  deleteProblem,
-} from "@/infrastructure/api/repositories/problem.repository";
 import { getContestProblem } from "@/infrastructure/api/repositories/contestProblems.repository";
 import { ProblemEditProvider } from "@/features/problems/contexts/ProblemEditContext";
 import { MarkdownEditorProvider } from "@/shared/ui/markdown/markdownEditor";
-import { CodingProblemEditorShell } from "@/features/problems/components";
-import { useToast } from "@/shared/contexts";
 import {
   DEFAULT_PROBLEM_FORM_VALUES,
   type ProblemFormSchema,
 } from "@/features/problems/forms/problemFormSchema";
 import { problemFormSchema } from "@/features/problems/forms/problemFormValidation";
-import {
-  yamlToFormSchema,
-  formSchemaToApiPayload,
-  problemDetailToFormSchema,
-} from "@/features/problems/forms/problemFormAdapters";
-import type { ProblemYAML } from "@/shared/utils/problemYamlParser";
+import { problemDetailToFormSchema } from "@/features/problems/forms/problemFormAdapters";
+import { formSchemaToPreview } from "@/features/problems/screens/problemsIdEdit/utils/previewAdapter";
+import "@/features/problems/screens/problemsIdEdit/screen.scss";
+import CodingProblemPreviewCard from "./CodingProblemPreviewCard";
+import CodingProblemTabbedEditor from "./CodingProblemTabbedEditor";
 import styles from "./EmbeddedProblemEditor.module.scss";
 
-interface EmbeddedEditorInnerProps {
+interface EmbeddedProblemEditorProps {
   contestProblemId: string;
   contestId: string;
-  onRemoved?: () => void;
-  showGlobalSaveStatus?: boolean;
-  onGlobalSaveStatusChange?: (status: "idle" | "saving" | "saved" | "error") => void;
+  label?: string;
+  score?: number;
+  frozen?: boolean;
+  onDelete?: () => Promise<void>;
+  onPointerDownDrag?: (e: React.PointerEvent) => void;
 }
 
-const EmbeddedEditorInner: React.FC<EmbeddedEditorInnerProps> = ({
+const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = ({
   contestProblemId,
   contestId,
-  onRemoved,
-  showGlobalSaveStatus = true,
-  onGlobalSaveStatusChange,
+  label,
+  score,
+  frozen = false,
+  onDelete,
+  onPointerDownDrag,
 }) => {
-  const { showToast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   const methods = useForm<ProblemFormSchema>({
     defaultValues: DEFAULT_PROBLEM_FORM_VALUES,
@@ -76,76 +74,31 @@ const EmbeddedEditorInner: React.FC<EmbeddedEditorInnerProps> = ({
     reset(formSchema, { keepDefaultValues: false });
   }, [formSchema, reset]);
 
-  const handleYAMLImport = useCallback(
-    async (yamlData: ProblemYAML) => {
-      const formData = yamlToFormSchema(yamlData);
-      reset(formData, { keepDefaultValues: false });
-      try {
-        if (!problem?.id) {
-          throw new Error("Problem adapter not found");
-        }
-        const apiPayload = formSchemaToApiPayload(formData);
-        await patchProblem(problem.id, apiPayload);
-        showToast({ kind: "success", title: "Import Success" });
-      } catch (err) {
-        showToast({
-          kind: "warning",
-          title: "Imported but auto-save failed",
-          subtitle: err instanceof Error ? err.message : "Please save manually",
-        });
+  // Click outside to exit editing
+  useEffect(() => {
+    if (!editing) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (editorRef.current && !editorRef.current.contains(e.target as Node)) {
+        setEditing(false);
       }
-    },
-    [problem?.id, reset, showToast],
-  );
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  });
 
-  const handleDelete = async () => {
-    if (!problem) return;
-    try {
-      await deleteProblem(problem.id);
-      showToast({ kind: "success", title: "Problem deleted" });
-      onRemoved?.();
-    } catch (err) {
-      showToast({
-        kind: "error",
-        title: "Delete failed",
-        subtitle: err instanceof Error ? err.message : "Please try again",
-      });
-      throw err;
-    }
-  };
+  // Escape to exit editing
+  useEffect(() => {
+    if (!editing) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEditing(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  });
 
-  const handleExportConfirm = useCallback(
-    ({
-      exportFormat,
-      pdfScale,
-      close,
-    }: {
-      exportFormat: "pdf" | "yaml";
-      pdfScale: number;
-      close: () => void;
-    }) => {
-      if (!problem) return;
-      if (exportFormat === "yaml") {
-        const yamlContent = `# Problem: ${problem.title}\n# Export not yet implemented`;
-        const blob = new Blob([yamlContent], { type: "text/yaml" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${problem.title.replace(/[^a-zA-Z0-9]/g, "_")}.yaml`;
-        a.click();
-        URL.revokeObjectURL(url);
-        close();
-        showToast({ kind: "success", title: "YAML exported" });
-      } else {
-        close();
-        showToast({
-          kind: "success",
-          title: "PDF export",
-          subtitle: `Coming soon (scale: ${pdfScale}%)`,
-        });
-      }
-    },
-    [problem, showToast],
+  const previewData = useMemo(
+    () => formSchemaToPreview(formValues as ProblemFormSchema),
+    [formValues]
   );
 
   if (isLoading) {
@@ -156,52 +109,47 @@ const EmbeddedEditorInner: React.FC<EmbeddedEditorInnerProps> = ({
         </div>
         <div className={styles.skeletonBody}>
           <SkeletonText paragraph lineCount={3} width="80%" />
-          <SkeletonPlaceholder style={{ width: "100%", height: "12rem", marginTop: "1rem" }} />
-          <div style={{ marginTop: "1rem" }}>
-            <SkeletonText paragraph lineCount={2} width="60%" />
-          </div>
+          <SkeletonPlaceholder style={{ width: "100%", height: "6rem", marginTop: "0.5rem" }} />
         </div>
       </div>
     );
   }
 
   if (error || !problem) {
+    return null;
+  }
+
+  if (!editing) {
     return (
-      <div className={styles.emptyState}>
-        <p>{error ? "Failed to load problem" : "Problem not found"}</p>
-      </div>
+      <CodingProblemPreviewCard
+        label={label}
+        score={score}
+        problem={previewData}
+        frozen={frozen}
+        onClick={() => setEditing(true)}
+        onPointerDownDrag={onPointerDownDrag}
+      />
     );
   }
 
   return (
-    <MarkdownEditorProvider>
-      <FormProvider {...methods}>
-        <ProblemEditProvider problemId={problem.id}>
-          <CodingProblemEditorShell
-            title={problem.title || "Untitled"}
-            formValues={formValues as ProblemFormSchema}
-            onDelete={handleDelete}
-            onImportYaml={handleYAMLImport}
-            onExportConfirm={handleExportConfirm}
-            showGlobalSaveStatus={showGlobalSaveStatus}
-            onGlobalSaveStatusChange={onGlobalSaveStatusChange}
-          />
-        </ProblemEditProvider>
-      </FormProvider>
-    </MarkdownEditorProvider>
+    <div ref={editorRef}>
+      <MarkdownEditorProvider>
+        <FormProvider {...methods}>
+          <ProblemEditProvider problemId={problem.id}>
+            <CodingProblemTabbedEditor
+              label={label}
+              title={problem.title || "Untitled"}
+              score={score}
+              difficulty={problem.difficulty}
+              onDelete={frozen ? undefined : onDelete}
+              onPointerDownDrag={onPointerDownDrag}
+            />
+          </ProblemEditProvider>
+        </FormProvider>
+      </MarkdownEditorProvider>
+    </div>
   );
 };
-
-interface EmbeddedProblemEditorProps {
-  contestProblemId: string;
-  contestId: string;
-  onRemoved?: () => void;
-  showGlobalSaveStatus?: boolean;
-  onGlobalSaveStatusChange?: (status: "idle" | "saving" | "saved" | "error") => void;
-}
-
-const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = (props) => (
-  <EmbeddedEditorInner {...props} />
-);
 
 export default EmbeddedProblemEditor;
