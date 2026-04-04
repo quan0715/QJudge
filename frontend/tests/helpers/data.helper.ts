@@ -123,6 +123,24 @@ int main() {
 } as const;
 
 /**
+ * Test classrooms (match seed_e2e_data.py)
+ */
+export const TEST_CLASSROOMS = {
+  default: {
+    name: "E2E Test Classroom",
+  },
+} as const;
+
+/**
+ * Test question banks (match seed_e2e_data.py)
+ */
+export const TEST_QUESTION_BANKS = {
+  default: {
+    name: "E2E Test Bank",
+  },
+} as const;
+
+/**
  * API endpoints
  */
 export const API_ENDPOINTS = {
