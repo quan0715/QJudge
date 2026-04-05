@@ -21,6 +21,8 @@ export interface ActionWidgetCardProps {
   cta: string;
   /** Show a notification dot on the action button (e.g. for unread alerts). */
   notificationDot?: boolean;
+  /** Draw semantic red border (e.g. disabled/off states). */
+  dangerBorder?: boolean;
   onClick: () => void;
 }
 
@@ -48,6 +50,7 @@ export const ActionWidgetCard = ({
   progress,
   cta,
   notificationDot = false,
+  dangerBorder = false,
   onClick,
 }: ActionWidgetCardProps) => (
   <button
@@ -56,7 +59,7 @@ export const ActionWidgetCard = ({
     onClick={onClick}
     aria-label={`${title} ${cta}`}
   >
-    <Tile className={styles.card}>
+    <Tile className={`${styles.card} ${dangerBorder ? styles.dangerBorder : ""}`}>
       <div className={styles.header}>
         <Icon size={16} className={styles.icon} />
         <h3 className={styles.title}>{title}</h3>

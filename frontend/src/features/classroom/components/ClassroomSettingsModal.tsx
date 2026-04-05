@@ -89,10 +89,13 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
       />
       <Modal
         open={confirmDeleteOpen}
+        data-testid="classroom-delete-confirm-modal"
         size="sm"
         danger
         modalHeading={t("confirmDeleteClassroomTitle", "確認刪除教室")}
-        primaryButtonText={tc("button.delete")}
+        primaryButtonText={
+          <span data-testid="classroom-delete-submit">{tc("button.delete")}</span>
+        }
         secondaryButtonText={tc("button.cancel")}
         primaryButtonDisabled={deletingClassroom}
         onRequestClose={() => setConfirmDeleteOpen(false)}
@@ -102,8 +105,10 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
           void onDeleteClassroom().finally(() => setDeletingClassroom(false));
         }}
       >
-        <p>{t("confirmDeleteClassroomBody", "確定要刪除此教室？此操作無法復原。")}</p>
-        <p><strong>{classroom.name}</strong></p>
+        <div data-testid="classroom-delete-confirm-marker">
+          <p>{t("confirmDeleteClassroomBody", "確定要刪除此教室？此操作無法復原。")}</p>
+          <p><strong>{classroom.name}</strong></p>
+        </div>
       </Modal>
     </>
   );

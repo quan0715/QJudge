@@ -66,6 +66,7 @@ const ClassroomAdminLayout = ({
           {onOpenSettings && (
             <HeaderGlobalAction
               aria-label={t("tab.settings", "教室設定")}
+              data-testid="classroom-open-settings"
               tooltipAlignment="end"
               onClick={onOpenSettings}
             >

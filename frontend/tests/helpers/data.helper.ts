@@ -86,6 +86,16 @@ export const TEST_CONTESTS = {
     contestType: "paper_exam" as const,
     maxCheatWarnings: 2,
   },
+  /** 草稿程式競賽（種子空列表，供題目編輯 E2E） */
+  draftCodingEditor: {
+    name: "E2E Draft Coding Editor",
+  },
+} as const;
+
+/** 種子題庫名稱（與 seed_e2e_data 對齊） */
+export const TEST_SEED_BANKS = {
+  coding: "E2E Test Bank",
+  exam: "E2E Exam Bank",
 } as const;
 
 /**

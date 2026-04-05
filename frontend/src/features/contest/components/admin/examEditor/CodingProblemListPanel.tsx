@@ -63,6 +63,7 @@ const ProblemTreeItem: React.FC<{
           {!locked && (
             <div
               className={treeStyles.dragHandle}
+              data-testid={`coding-sidebar-drag-${problem.id}`}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 attachReorderPointerSession(

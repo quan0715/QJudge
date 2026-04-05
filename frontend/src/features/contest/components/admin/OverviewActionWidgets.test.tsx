@@ -45,6 +45,7 @@ const buildContest = (
     isExamMonitored: false,
     requiresFullscreen: false,
     canSubmitExam: true,
+    requiresPassword: false,
     permissions: {
       canSwitchView: true,
       canEditContest: true,
@@ -63,11 +64,14 @@ const buildContest = (
   }) as ContestDetail;
 
 describe("OverviewActionWidgets", () => {
-  it("shows the four action widgets and routes each widget", () => {
+  it("shows draft-focused widgets and hides participant/grading/violation cards", () => {
     const onOpenPanel = vi.fn();
     const onPublishContest = vi.fn().mockResolvedValue(undefined);
-    const onPublishResults = vi.fn().mockResolvedValue(undefined);
     const onToggleStrictMode = vi.fn().mockResolvedValue(undefined);
+    const onRequestToggleAllowMultipleJoins = vi.fn().mockResolvedValue(undefined);
+    const onRequestTogglePassword = vi.fn().mockResolvedValue(undefined);
+    const onOpenChecklist = vi.fn();
+    const onOpenScheduleSettings = vi.fn();
 
     render(
       <OverviewActionWidgets
@@ -91,27 +95,36 @@ describe("OverviewActionWidgets", () => {
         }}
         violationCount={9}
         onOpenPanel={onOpenPanel}
+        onOpenChecklist={onOpenChecklist}
+        onOpenScheduleSettings={onOpenScheduleSettings}
         onPublishContest={onPublishContest}
         onRevertContestToDraft={vi.fn().mockResolvedValue(undefined)}
-        onPublishResults={onPublishResults}
+        onPublishResults={vi.fn().mockResolvedValue(undefined)}
         onRevokeResults={vi.fn().mockResolvedValue(undefined)}
         onToggleStrictMode={onToggleStrictMode}
+        onRequestToggleAllowMultipleJoins={onRequestToggleAllowMultipleJoins}
+        onRequestTogglePassword={onRequestTogglePassword}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "競賽狀態 發布競賽" }));
-    fireEvent.click(screen.getByRole("button", { name: "參賽者 進入參賽者列表" }));
     fireEvent.click(screen.getByRole("button", { name: "題目數量 前往題目管理" }));
-    fireEvent.click(screen.getByRole("button", { name: "考試批改狀態 發布成績" }));
-    fireEvent.click(screen.getByRole("button", { name: "違規次數 前往事件面板" }));
+    fireEvent.click(screen.getByRole("button", { name: "允許重新加入 啟用重進" }));
+    fireEvent.click(screen.getByRole("button", { name: "密碼保護 啟用密碼" }));
+    fireEvent.click(screen.getByRole("button", { name: "發佈代辦事件數量 檢視代辦" }));
     fireEvent.click(screen.getByRole("button", { name: "嚴格考試模式 啟用模式" }));
+    fireEvent.click(screen.getByRole("button", { name: "考試進度 編輯時間" }));
 
     expect(onPublishContest).toHaveBeenCalledTimes(1);
-    expect(onOpenPanel).toHaveBeenCalledWith("participants");
     expect(onOpenPanel).toHaveBeenCalledWith("problem_editor");
-    expect(onOpenPanel).toHaveBeenCalledWith("logs");
-    expect(onPublishResults).toHaveBeenCalledWith(63);
+    expect(onRequestToggleAllowMultipleJoins).toHaveBeenCalledTimes(1);
+    expect(onRequestTogglePassword).toHaveBeenCalledTimes(1);
+    expect(onOpenChecklist).toHaveBeenCalledTimes(1);
     expect(onToggleStrictMode).toHaveBeenCalledTimes(1);
+    expect(onOpenScheduleSettings).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("考試批改狀態")).not.toBeInTheDocument();
+    expect(screen.queryByText("參賽者")).not.toBeInTheDocument();
+    expect(screen.queryByText("違規次數")).not.toBeInTheDocument();
     expect(screen.getAllByText("考試進度").length).toBeGreaterThan(0);
   });
 
@@ -147,6 +160,7 @@ describe("OverviewActionWidgets", () => {
   });
 
   it("shows unscheduled copy when start/end time are missing", () => {
+    const onOpenScheduleSettings = vi.fn();
     render(
       <OverviewActionWidgets
         contest={buildContest({ startTime: "", endTime: "", status: "draft" })}
@@ -164,6 +178,7 @@ describe("OverviewActionWidgets", () => {
         onPublishResults={vi.fn().mockResolvedValue(undefined)}
         onRevokeResults={vi.fn().mockResolvedValue(undefined)}
         onToggleStrictMode={vi.fn().mockResolvedValue(undefined)}
+        onOpenScheduleSettings={onOpenScheduleSettings}
       />,
     );
 
@@ -171,5 +186,7 @@ describe("OverviewActionWidgets", () => {
       screen.getByText((content) => /未設定|adminOverview\\.time\\.unset/.test(content)),
     ).toBeInTheDocument();
     expect(screen.getByText("尚未排程，請先發布並設定時段")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "考試進度 設定時間" }));
+    expect(onOpenScheduleSettings).toHaveBeenCalledTimes(1);
   });
 });

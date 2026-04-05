@@ -17,6 +17,7 @@ interface OverviewInsightsPanelProps {
   overviewMetrics: ContestOverviewMetrics | null;
   loading?: boolean;
   onOpenPanel: (panel: AdminPanelId) => void;
+  onOpenSettings?: () => void;
 }
 
 interface ActionTileProps {
@@ -51,6 +52,7 @@ export default function OverviewInsightsPanel({
   overviewMetrics,
   loading = false,
   onOpenPanel,
+  onOpenSettings,
 }: OverviewInsightsPanelProps) {
   const { t } = useTranslation("contest");
   const snapshot = resolveOverviewSnapshot(contest, overviewMetrics);
@@ -189,7 +191,13 @@ export default function OverviewInsightsPanel({
       <ActionTile
         title={t("adminOverview.sidebar.contestState", "競賽狀態")}
         description={nextStep}
-        onClick={() => onOpenPanel("settings")}
+        onClick={() => {
+          if (onOpenSettings) {
+            onOpenSettings();
+            return;
+          }
+          onOpenPanel("settings");
+        }}
       >
         <div className={styles.metricRow}>
           <span>{t("adminOverview.sidebar.statusLabel", "目前狀態")}</span>

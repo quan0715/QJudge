@@ -29,6 +29,7 @@ export const ConfirmModal = ({
 }: ConfirmModalProps) => (
   <Modal
     open={open}
+    data-testid="confirm-modal"
     modalHeading={title}
     primaryButtonText={confirmLabel}
     secondaryButtonText={cancelLabel}

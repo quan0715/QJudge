@@ -129,6 +129,7 @@ const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = ({
   if (!editing) {
     return (
       <CodingProblemPreviewCard
+        contestProblemId={contestProblemId}
         orderLabel={orderLabel}
         displayTitle={previewData.title || ""}
         score={score}
@@ -151,6 +152,7 @@ const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = ({
         <FormProvider {...methods}>
           <ProblemEditProvider problemId={problem.id}>
             <CodingProblemTabbedEditor
+              contestProblemId={contestProblemId}
               orderLabel={orderLabel}
               score={score}
               difficulty={problem.difficulty}

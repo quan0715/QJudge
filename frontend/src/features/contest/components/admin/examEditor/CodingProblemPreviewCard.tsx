@@ -14,6 +14,8 @@ import examStyles from "./ExamQuestionEditCard.module.scss";
 import previewStyles from "./CodingProblemPreviewCard.module.scss";
 
 interface CodingProblemPreviewCardProps {
+  /** Contest-scoped row id (matches sidebar `data-problem-id`). */
+  contestProblemId: string;
   /** Contest order label (A, B, …). */
   orderLabel: string;
   displayTitle: string;
@@ -30,6 +32,7 @@ interface CodingProblemPreviewCardProps {
 }
 
 const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
+  contestProblemId,
   orderLabel,
   displayTitle,
   score,
@@ -110,6 +113,7 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
           {!frozen && onPointerDownDrag && (
             <div
               className={examStyles.dragIndicator}
+              data-testid={`coding-card-reorder-${contestProblemId}`}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 onPointerDownDrag(e);
@@ -142,6 +146,7 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
                   <button
                     type="button"
                     className={examStyles.saveToBankButton}
+                    data-testid={`coding-card-save-to-bank-${contestProblemId}`}
                     title={saveToBankLabel}
                     disabled={saveToBankDisabled}
                     onClick={(e) => {
@@ -168,6 +173,7 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
                         kind="ghost"
                         size="sm"
                         label={t("examEditor.actions.copy", "複製")}
+                        data-testid={`coding-card-duplicate-${contestProblemId}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           void onDuplicate();
@@ -181,6 +187,7 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
                         kind="ghost"
                         size="sm"
                         label={t("examEditor.actions.delete", "刪除")}
+                        data-testid={`coding-card-delete-${contestProblemId}`}
                         onClick={(e) => void handleDelete(e)}
                       >
                         <TrashCan size={16} />

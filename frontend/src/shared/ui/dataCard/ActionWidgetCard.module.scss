@@ -29,6 +29,15 @@
     box-shadow 160ms ease;
 }
 
+.dangerBorder {
+}
+
+.button:hover .dangerBorder,
+.button:focus-visible .dangerBorder {
+  border-color: var(--cds-support-error, #da1e28);
+  box-shadow: 0 0 0 1px rgba(218, 30, 40, 0.25);
+}
+
 .header {
   display: flex;
   align-items: center;

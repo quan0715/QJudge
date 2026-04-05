@@ -107,4 +107,21 @@ describe("KpiCards", () => {
     fireEvent.click(screen.getByRole("button", { name: /設定/ }));
     expect(onOpenPanel).toHaveBeenCalledWith("settings");
   });
+
+  it("prefers onOpenSettings callback when provided", () => {
+    const onOpenSettings = vi.fn();
+    const onOpenPanel = vi.fn();
+
+    render(
+      <KpiCards
+        contest={buildContest({ status: "draft" })}
+        onOpenPanel={onOpenPanel}
+        onOpenSettings={onOpenSettings}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /設定/ }));
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
+    expect(onOpenPanel).not.toHaveBeenCalled();
+  });
 });

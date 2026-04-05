@@ -109,16 +109,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           })}
         </nav>
 
-        {/* Content */}
+        {/* Content — single panel mount (avoid duplicate ids / testids in DOM) */}
         <div className="settings-modal__content" ref={contentRef}>
-          {/* Desktop: single active panel */}
-          <div className="settings-modal__desktop-content">
-            <h2 className="settings-modal__content-title">{activeLabel}</h2>
-            {renderPanel(activeId)}
-          </div>
-
-          {/* Mobile: custom layout or fallback to renderPanel */}
-          <div className="settings-modal__mobile-content">
+          <h2 className="settings-modal__content-title">{activeLabel}</h2>
+          <div className="settings-modal__body">
             {renderMobileContent
               ? renderMobileContent(activeId)
               : renderPanel(activeId)}

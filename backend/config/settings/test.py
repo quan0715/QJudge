@@ -108,10 +108,14 @@ DOCKER_SECCOMP_PROFILE = os.getenv('DOCKER_SECCOMP_PROFILE', None)
 ALLOWED_HOSTS = ['*']
 
 # CSRF trusted origins for E2E test frontend (port 5174)
+# Include 127.0.0.1 — Playwright/CI often uses PLAYWRIGHT_BASE_URL=http://127.0.0.1:5174
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5174",
+    "http://127.0.0.1:5174",
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 # 靜態檔案

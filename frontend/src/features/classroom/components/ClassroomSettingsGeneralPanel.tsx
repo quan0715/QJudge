@@ -172,6 +172,7 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
         <FieldRow label={t("name")}>
           <TextInput
             id="classroom-settings-name"
+            data-testid="classroom-settings-name"
             hideLabel
             labelText={t("name")}
             value={settingName}
@@ -181,6 +182,7 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
         <FieldRow label={t("description")}>
           <TextArea
             id="classroom-settings-description"
+            data-testid="classroom-settings-description"
             hideLabel
             labelText={t("description")}
             value={settingDescription}
@@ -196,6 +198,7 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
                 <button
                   key={opt.key}
                   type="button"
+                  data-testid={`classroom-icon-${opt.key}`}
                   className={`classroom-icon-picker__item${isSelected ? " classroom-icon-picker__item--active" : ""}`}
                   title={opt.label}
                   onClick={() => handleIconChange(opt.key)}
@@ -224,6 +227,8 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
             onUpload={handleCoverUpload}
             onApplyUrl={handleCoverUrlSubmit}
             onRemove={coverPreview ? handleRemoveCover : undefined}
+            triggerDataTestId="classroom-cover-edit-trigger"
+            fileInputDataTestId="classroom-cover-file-input"
           />
         </FieldRow>
       </Section>
@@ -246,6 +251,7 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
             <Button
               kind="danger--tertiary"
               size="sm"
+              data-testid="classroom-settings-open-delete"
               onClick={onOpenDeleteConfirm}
             >
               {t("deleteClassroom", "刪除教室")}

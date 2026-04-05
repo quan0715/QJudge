@@ -298,9 +298,22 @@ const DashboardScreen = () => {
         title={`${welcomeName} ${t("dashboard.classroomHub.welcomeBack", "歡迎回來")}`}
         actions={
           isTeacherOrAdmin ? (
-            <MenuButton label={t("common:button.create", "新增")} kind="primary" size="md">
-              <MenuItem label={t("classroom.create", "建立教室")} onClick={() => setCreateOpen(true)} />
-              <MenuItem label={t("questionBank.createBank", "建立題庫")} onClick={() => setBankCreateOpen(true)} />
+            <MenuButton
+              label={t("common:button.create", "新增")}
+              kind="primary"
+              size="md"
+              data-testid="dashboard-create-menu"
+            >
+              <MenuItem
+                label={t("classroom.create", "建立教室")}
+                data-testid="dashboard-create-classroom"
+                onClick={() => setCreateOpen(true)}
+              />
+              <MenuItem
+                label={t("questionBank.createBank", "建立題庫")}
+                data-testid="dashboard-create-bank"
+                onClick={() => setBankCreateOpen(true)}
+              />
             </MenuButton>
           ) : undefined
         }

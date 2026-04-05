@@ -22,6 +22,7 @@ import previewStyles from "./CodingProblemPreviewCard.module.scss";
 import styles from "./CodingProblemTabbedEditor.module.scss";
 
 interface CodingProblemTabbedEditorProps {
+  contestProblemId: string;
   orderLabel: string;
   score?: number;
   difficulty?: string;
@@ -35,6 +36,7 @@ interface CodingProblemTabbedEditorProps {
 }
 
 const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
+  contestProblemId,
   orderLabel,
   score,
   difficulty,
@@ -89,6 +91,7 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
       {onPointerDownDrag && (
         <div
           className={examStyles.dragIndicator}
+          data-testid={`coding-card-reorder-${contestProblemId}`}
           onPointerDown={(e) => {
             e.stopPropagation();
             onPointerDownDrag(e);
@@ -122,6 +125,7 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
               <button
                 type="button"
                 className={examStyles.saveToBankButton}
+                data-testid={`coding-card-save-to-bank-${contestProblemId}`}
                 title={saveToBankTitle}
                 disabled={saveToBankDisabled}
                 onClick={() => {
@@ -146,13 +150,20 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
                 kind="ghost"
                 size="sm"
                 label={t("examEditor.actions.copy", "複製")}
+                data-testid={`coding-card-duplicate-${contestProblemId}`}
                 onClick={() => void onDuplicate()}
               >
                 <Copy size={16} />
               </IconButton>
             ) : null}
             {onDelete ? (
-              <IconButton kind="ghost" size="sm" label={t("examEditor.actions.delete", "刪除")} onClick={() => void handleDelete()}>
+              <IconButton
+                kind="ghost"
+                size="sm"
+                label={t("examEditor.actions.delete", "刪除")}
+                data-testid={`coding-card-delete-${contestProblemId}`}
+                onClick={() => void handleDelete()}
+              >
                 <TrashCan size={16} />
               </IconButton>
             ) : null}

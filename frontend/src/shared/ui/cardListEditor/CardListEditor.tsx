@@ -12,13 +12,14 @@ const InsertDropSlot: React.FC<{
   onDragOver: () => void;
   onDragLeave: () => void;
   onDrop: () => void;
-}> = ({ active, canDrop, onDragOver, onDragLeave, onDrop }) => {
+}> = ({ index, active, canDrop, onDragOver, onDragLeave, onDrop }) => {
   if (!canDrop) {
-    return <div className={styles.dropSlotIdle} />;
+    return <div className={styles.dropSlotIdle} data-testid={`contest-card-drop-slot-${index}`} />;
   }
   return (
     <div
       className={`${styles.dropSlot} ${active ? styles.dropSlotActive : ""}`}
+      data-testid={`contest-card-drop-slot-${index}`}
       onDragOver={(e) => { e.preventDefault(); onDragOver(); }}
       onDragLeave={onDragLeave}
       onDrop={(e) => { e.preventDefault(); onDrop(); }}

@@ -60,6 +60,7 @@ const TreeItem: React.FC<{
           {!frozen && (
             <div
               className={styles.dragHandle}
+              data-testid={`worktree-drag-${question.id}`}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 attachReorderPointerSession(

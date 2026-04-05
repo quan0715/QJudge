@@ -13,12 +13,14 @@ interface KpiCardsProps {
   contest: ContestDetail;
   loading?: boolean;
   onOpenPanel: (panel: AdminPanelId) => void;
+  onOpenSettings?: () => void;
 }
 
 export default function KpiCards({
   contest,
   loading = false,
   onOpenPanel,
+  onOpenSettings,
 }: KpiCardsProps) {
   const { t } = useTranslation("contest");
   const contestStatus = contest.status ?? "draft";
@@ -49,7 +51,13 @@ export default function KpiCards({
         kind="secondary"
         size="md"
         renderIcon={Settings}
-        onClick={() => onOpenPanel("settings")}
+        onClick={() => {
+          if (onOpenSettings) {
+            onOpenSettings();
+            return;
+          }
+          onOpenPanel("settings");
+        }}
       >
         {t("adminOverview.actions.editSettings", "設定")}
       </Button>

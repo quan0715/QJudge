@@ -70,6 +70,28 @@
   border: 1px solid var(--cds-border-subtle);
 }
 
+.progressButton {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-border-interactive);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+
+  &:hover .progressCard,
+  &:focus-visible .progressCard {
+    border-color: var(--cds-interactive, #0f62fe);
+    box-shadow: 0 0 0 1px var(--cds-interactive, #0f62fe);
+  }
+}
+
 .progressHeader {
   display: flex;
   align-items: flex-start;
@@ -130,6 +152,21 @@
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   color: var(--cds-text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.progressActionRow {
+  margin-top: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--cds-interactive, #0f62fe);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+}
+
+.progressActionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .bottomGrid {

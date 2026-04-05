@@ -12,10 +12,15 @@ import {
 import { useTranslation } from "react-i18next";
 
 type Meridiem = "AM" | "PM";
+type ScheduleModalMode = "publish" | "schedule";
 
 interface PublishScheduleModalProps {
   open: boolean;
   loading?: boolean;
+  mode?: ScheduleModalMode;
+  warningMessage?: string;
+  initialStartTime?: string;
+  initialEndTime?: string;
   onClose: () => void;
   onConfirm: (payload: {
     startTime: string;
@@ -59,6 +64,32 @@ const getDefaultSchedule = (): {
   };
 };
 
+const toModalStateFromIso = (startIso?: string, endIso?: string): {
+  startDate: Date;
+  startTime: string;
+  startMeridiem: Meridiem;
+  durationMinutes: string;
+} | null => {
+  if (!startIso || !endIso) return null;
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return null;
+
+  const hours24 = start.getHours();
+  const startMeridiem: Meridiem = hours24 >= 12 ? "PM" : "AM";
+  const hours12Raw = hours24 % 12;
+  const hours12 = hours12Raw === 0 ? 12 : hours12Raw;
+  const startTime = `${String(hours12).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`;
+  const durationMinutes = String(Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000)));
+
+  return {
+    startDate: start,
+    startTime,
+    startMeridiem,
+    durationMinutes,
+  };
+};
+
 const combineDateTime = (
   date: Date | null,
   time: string,
@@ -87,6 +118,10 @@ const combineDateTime = (
 export default function PublishScheduleModal({
   open,
   loading = false,
+  mode = "publish",
+  warningMessage,
+  initialStartTime,
+  initialEndTime,
   onClose,
   onConfirm,
 }: PublishScheduleModalProps) {
@@ -100,13 +135,21 @@ export default function PublishScheduleModal({
 
   useEffect(() => {
     if (!open) return;
-    const defaults = getDefaultSchedule();
-    setStartDate(defaults.startDate);
-    setStartTime(defaults.startTime);
-    setStartMeridiem(defaults.startMeridiem);
-    setDurationMinutes("120");
+    const existing = toModalStateFromIso(initialStartTime, initialEndTime);
+    if (existing) {
+      setStartDate(existing.startDate);
+      setStartTime(existing.startTime);
+      setStartMeridiem(existing.startMeridiem);
+      setDurationMinutes(existing.durationMinutes);
+    } else {
+      const defaults = getDefaultSchedule();
+      setStartDate(defaults.startDate);
+      setStartTime(defaults.startTime);
+      setStartMeridiem(defaults.startMeridiem);
+      setDurationMinutes("120");
+    }
     setError("");
-  }, [open]);
+  }, [open, initialStartTime, initialEndTime]);
 
   const startDateTime = useMemo(
     () => combineDateTime(startDate, startTime, startMeridiem),
@@ -123,9 +166,15 @@ export default function PublishScheduleModal({
   return (
     <Modal
       open={open}
-      modalHeading={t("adminOverview.publishSchedule.title", "設定發布時段")}
-      modalLabel={t("adminOverview.publishSchedule.label", "發布競賽")}
-      primaryButtonText={t("adminOverview.actions.publishContest", "發布競賽")}
+      modalHeading={mode === "publish"
+        ? t("adminOverview.publishSchedule.title", "設定發布時段")
+        : t("adminOverview.scheduleEditor.title", "設定考試時間")}
+      modalLabel={mode === "publish"
+        ? t("adminOverview.publishSchedule.label", "發布競賽")
+        : t("adminOverview.scheduleEditor.label", "時間編輯")}
+      primaryButtonText={mode === "publish"
+        ? t("adminOverview.actions.publishContest", "發布競賽")
+        : t("adminOverview.scheduleEditor.save", "儲存時間")}
       secondaryButtonText={tc("button.cancel")}
       onRequestClose={onClose}
       onSecondarySubmit={onClose}
@@ -145,6 +194,16 @@ export default function PublishScheduleModal({
       hasScrollingContent
       selectorPrimaryFocus="#publish-start-time"
     >
+      {!!warningMessage && (
+        <InlineNotification
+          kind="warning"
+          title={t("common:status.warning", "提醒")}
+          subtitle={warningMessage}
+          style={{ marginBottom: "1rem" }}
+          lowContrast
+          hideCloseButton
+        />
+      )}
       {error && (
         <InlineNotification
           kind="error"

@@ -599,6 +599,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
                   kind="primary"
                   size="md"
                   hasIconOnly
+                  data-testid="contest-editor-open-source"
                   renderIcon={sourcePanelOpen ? Close : Add}
                   iconDescription={t(
                     sourcePanelOpen

@@ -497,6 +497,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
           {!frozen && onPointerDownDrag && (
             <div
               className={styles.dragIndicator}
+              data-testid={`exam-card-reorder-${question.id}`}
               onPointerDown={(event) => {
                 event.stopPropagation();
                 onPointerDownDrag(event);
@@ -524,6 +525,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                   <button
                     type="button"
                     className={styles.saveToBankButton}
+                    data-testid={`exam-card-save-to-bank-${question.id}`}
                     onClick={(event) => {
                       event.stopPropagation();
                       onSaveToBank(question);
@@ -540,16 +542,28 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 ) : null}
                 {!frozen && (
                   <>
-                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.copy", "複製")} onClick={(event) => {
+                    <IconButton
+                      kind="ghost"
+                      size="sm"
+                      label={t("examEditor.actions.copy", "複製")}
+                      data-testid={`exam-card-duplicate-${question.id}`}
+                      onClick={(event) => {
                       event.stopPropagation();
                       onDuplicate(question.id);
-                    }}>
+                    }}
+                    >
                       <Copy size={16} />
                     </IconButton>
-                    <IconButton kind="ghost" size="sm" label={t("examEditor.actions.delete", "刪除")} onClick={(event) => {
+                    <IconButton
+                      kind="ghost"
+                      size="sm"
+                      label={t("examEditor.actions.delete", "刪除")}
+                      data-testid={`exam-card-delete-${question.id}`}
+                      onClick={(event) => {
                       event.stopPropagation();
                       onDelete(question.id);
-                    }}>
+                    }}
+                    >
                       <TrashCan size={16} />
                     </IconButton>
                   </>

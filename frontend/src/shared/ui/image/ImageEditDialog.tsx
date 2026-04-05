@@ -36,6 +36,9 @@ interface ImageEditDialogProps {
   onUpload: (file: File) => Promise<void> | void;
   onApplyUrl: (url: string) => Promise<void> | void;
   onRemove?: () => Promise<void> | void;
+  /** Optional hooks for E2E (Playwright) */
+  triggerDataTestId?: string;
+  fileInputDataTestId?: string;
 }
 
 export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
@@ -56,6 +59,8 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
   onUpload,
   onApplyUrl,
   onRemove,
+  triggerDataTestId,
+  fileInputDataTestId,
 }) => {
   const { t } = useTranslation("common");
   const uid = useId();
@@ -94,10 +99,11 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
 
   const galleryPanel = (
     <div className="image-edit-gallery">
-      {galleryImages?.map((image) => (
+      {galleryImages?.map((image, galleryIndex) => (
         <button
           type="button"
           key={image.url}
+          data-testid={`image-edit-gallery-${galleryIndex}`}
           className="cds--tile cds--tile--clickable image-edit-gallery__item"
           onClick={() => handleGallerySelect(image)}
           disabled={disabled}
@@ -163,6 +169,7 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
         type="file"
         accept={accept}
         hidden
+        data-testid={fileInputDataTestId}
         onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ""; }}
       />
 
@@ -170,6 +177,7 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
         type="button"
         className={`image-edit-dialog__trigger image-edit-dialog__trigger--${variant}`}
         disabled={disabled}
+        data-testid={triggerDataTestId}
         onClick={() => setOpen(true)}
       >
         {previewUrl ? (
@@ -192,6 +200,7 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
       {ReactDOM.createPortal(
         <Modal
           open={open}
+          data-testid="image-edit-dialog"
           size={hasGallery ? "md" : "sm"}
           modalHeading={modalHeading}
           passiveModal
@@ -201,9 +210,9 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
             {hasGallery ? (
               <Tabs>
                 <TabList aria-label="image source tabs">
-                  <Tab>{t("image.galleryTab", "圖庫")}</Tab>
-                  <Tab>{t("image.uploadTab", "上傳")}</Tab>
-                  <Tab>{t("image.linkTab", "連結")}</Tab>
+                  <Tab data-testid="image-edit-tab-gallery">{t("image.galleryTab", "圖庫")}</Tab>
+                  <Tab data-testid="image-edit-tab-upload">{t("image.uploadTab", "上傳")}</Tab>
+                  <Tab data-testid="image-edit-tab-link">{t("image.linkTab", "連結")}</Tab>
                 </TabList>
                 <TabPanels>
                   <TabPanel>{galleryPanel}</TabPanel>

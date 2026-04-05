@@ -170,6 +170,7 @@ const AdminDashboardInner = () => {
         panelRef={examEditorRef}
         onExport={() => setExportOpen(true)}
         onPreview={handlePreview}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       {contest && contestId && (
