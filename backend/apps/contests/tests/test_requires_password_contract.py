@@ -213,7 +213,8 @@ def test_publish_requires_schedule_window(
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "start_time" in response.data
+    assert response.data.get("success") is False
+    assert "start_time" in response.data["error"]["details"]
 
 
 @pytest.mark.django_db
