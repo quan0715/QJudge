@@ -16,6 +16,10 @@ QJudge 採用微服務化的單體架構，主要由以下模組組成：
 | **Judge** | 程式碼安全隔離執行 | Docker, Python |
 | **Store** | 資料庫與快取 | PostgreSQL 15, Redis 7, MinIO |
 
+開發環境另含 **PgBouncer**（session mode）作為連線池，與 Django `CONN_MAX_AGE` 預設行為一致；細節見 `docker-compose.dev.yml` 與 `backend/config/settings/base.py` 註解。
+
+**較新的總表（含 API 前綴、CI job、models 檔案位置與已載明之檢視範圍）**：[project-architecture-inventory-2026-04-05.md](./project-architecture-inventory-2026-04-05.md)。
+
 ---
 
 ## 2. 開發環境設定 (Environment Setup)

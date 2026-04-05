@@ -53,6 +53,7 @@ const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
   "grading",
   "statistics",
 ];
+const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];
 
 export const paperExamContestModule: ContestTypeModule = {
   type: "paper_exam",
@@ -66,7 +67,8 @@ export const paperExamContestModule: ContestTypeModule = {
     },
   admin: {
     editorKind: "paper_exam",
-    getAvailablePanels: () => PAPER_EXAM_ADMIN_PANELS,
+    getAvailablePanels: (contest) =>
+      contest?.status === "draft" ? DRAFT_ADMIN_PANELS : PAPER_EXAM_ADMIN_PANELS,
     getPanelRenderers: () => ({
       problem_editor: (props) => {
         if (!props.contest) return null;

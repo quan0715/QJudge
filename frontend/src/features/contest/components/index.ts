@@ -15,7 +15,6 @@ export { default as ExamModeWrapper } from "./ExamModeWrapper";
 export { ExamModals } from "./exam/ExamModals";
 export { ExamOverlays } from "./exam/ExamOverlays";
 export { PaperExamCore } from "./exam/PaperExamCore";
-export { default as ExamEventStats } from "./ExamEventStats";
 export { default as PaperExamResultsList } from "./exam/PaperExamResultsList";
 
 // Content Components

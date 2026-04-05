@@ -3,13 +3,7 @@ import {
   Modal,
   TextInput,
   InlineNotification,
-  DatePicker,
-  DatePickerInput,
-  TimePicker,
-  TimePickerSelect,
   PasswordInput,
-  Select,
-  SelectItem,
   Toggle,
 } from "@carbon/react";
 import { Code, Education } from "@carbon/icons-react";
@@ -25,44 +19,7 @@ interface CreateContestModalProps {
 }
 
 type ContestCreationType = "coding_test" | "exam";
-type CreateContestStep = "select_type" | "configure_schedule" | "advanced";
-type Meridiem = "AM" | "PM";
-
-const DURATION_OPTIONS = [60, 90, 120, 180, 240];
-
-const getDefaultSchedule = (): {
-  startDate: Date;
-  startTime: string;
-  startMeridiem: Meridiem;
-} => {
-  const now = new Date();
-  const rounded = new Date(now);
-  rounded.setSeconds(0, 0);
-
-  const minutes = rounded.getMinutes();
-  if (minutes > 0 && minutes < 30) {
-    rounded.setMinutes(30);
-  } else if (minutes > 30) {
-    rounded.setHours(rounded.getHours() + 1, 0, 0, 0);
-  }
-
-  // UX default: nearest half-hour slot, then +2h.
-  rounded.setHours(rounded.getHours() + 2);
-
-  const hours24 = rounded.getHours();
-  const startMeridiem: Meridiem = hours24 >= 12 ? "PM" : "AM";
-  const hours12Raw = hours24 % 12;
-  const hours12 = hours12Raw === 0 ? 12 : hours12Raw;
-  const startTime = `${String(hours12).padStart(2, "0")}:${String(
-    rounded.getMinutes(),
-  ).padStart(2, "0")}`;
-
-  return {
-    startDate: rounded,
-    startTime,
-    startMeridiem,
-  };
-};
+type CreateContestStep = "select_type" | "basic" | "advanced";
 
 const CreateContestModal: React.FC<CreateContestModalProps> = ({
   open,
@@ -72,13 +29,8 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
-  const defaultSchedule = getDefaultSchedule();
 
   const [name, setName] = useState("");
-  const [startDate, setStartDate] = useState<Date | null>(() => defaultSchedule.startDate);
-  const [startTime, setStartTime] = useState(defaultSchedule.startTime);
-  const [startMeridiem, setStartMeridiem] = useState<Meridiem>(defaultSchedule.startMeridiem);
-  const [durationMinutes, setDurationMinutes] = useState("120");
   const [examModeEnabled, setExamModeEnabled] = useState(true);
   const [allowMultipleJoins, setAllowMultipleJoins] = useState(false);
   const [requiresPassword, setRequiresPassword] = useState(false);
@@ -89,12 +41,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
   const [error, setError] = useState("");
 
   const resetForm = () => {
-    const nextSchedule = getDefaultSchedule();
     setName("");
-    setStartDate(nextSchedule.startDate);
-    setStartTime(nextSchedule.startTime);
-    setStartMeridiem(nextSchedule.startMeridiem);
-    setDurationMinutes("120");
     setExamModeEnabled(true);
     setAllowMultipleJoins(false);
     setRequiresPassword(false);
@@ -109,66 +56,14 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
     onClose();
   };
 
-  const combineDateTime = (
-    date: Date | null,
-    time: string,
-    meridiem: Meridiem,
-  ): string | null => {
-    if (!date || Number.isNaN(date.getTime())) return null;
-    const [hours, minutes] = time.split(":").map(Number);
-    if (
-      Number.isNaN(hours) ||
-      Number.isNaN(minutes) ||
-      hours < 1 ||
-      hours > 12 ||
-      minutes < 0 ||
-      minutes > 59
-    ) {
-      return null;
-    }
-
-    const combined = new Date(date);
-    if (Number.isNaN(combined.getTime())) return null;
-    const normalizedHours =
-      meridiem === "PM" ? (hours === 12 ? 12 : hours + 12) : (hours === 12 ? 0 : hours);
-    combined.setHours(normalizedHours, minutes, 0, 0);
-    if (Number.isNaN(combined.getTime())) return null;
-    return combined.toISOString();
-  };
-
-  const startDateTime = combineDateTime(startDate, startTime, startMeridiem);
-  const duration = Number.parseInt(durationMinutes, 10);
-  const hasValidSchedule = !!startDate && !!startDateTime && duration > 0;
   const hasValidAdvanced = !requiresPassword || !!password.trim();
-  const canCreate =
-    !!creationType &&
-    !!name.trim() &&
-    hasValidSchedule &&
-    hasValidAdvanced;
+  const canCreate = !!creationType && !!name.trim() && hasValidAdvanced;
 
   const handleSubmit = async () => {
-    if (!creationType || !name.trim() || !startDate) return;
-
-    if (!startDateTime) {
-      setError(t("validation.invalidDateTime"));
-      return;
-    }
-
-    if (Number.isNaN(duration) || duration <= 0) {
-      setError(t("createModal.validation.durationPositive"));
-      return;
-    }
+    if (!creationType || !name.trim()) return;
 
     if (requiresPassword && !password.trim()) {
       setError(t("createModal.validation.passwordRequired"));
-      return;
-    }
-
-    const endDateTime = new Date(
-      new Date(startDateTime).getTime() + duration * 60 * 1000,
-    ).toISOString();
-    if (!endDateTime) {
-      setError(t("createModal.validation.cannotComputeEndTime"));
       return;
     }
 
@@ -179,8 +74,6 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
       const createdContest = await createClassroomContest(classroomId, {
         name,
         description: "",
-        start_time: startDateTime,
-        end_time: endDateTime,
         contest_type: creationType === "exam" ? "paper_exam" : "coding",
         requires_password: requiresPassword,
         password: requiresPassword ? password : undefined,
@@ -204,23 +97,21 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
   const modalLabel =
     step === "select_type"
       ? "1 / 3"
-      : step === "configure_schedule"
+      : step === "basic"
         ? "2 / 3"
         : "3 / 3";
 
   const modalHeading =
     step === "select_type"
       ? t("createModal.chooseTypeTitle", "建立競賽")
-      : step === "configure_schedule"
-        ? t("createModal.configureSchedule", "設定基本資訊")
+      : step === "basic"
+        ? t("createModal.configureBasic", "設定基本資訊")
         : t("createModal.advancedSettings", "進階條件設定");
 
   const primaryButtonText =
-    step === "select_type"
-      ? tc("button.next", "下一步")
-      : step === "configure_schedule"
-        ? tc("button.next", "下一步")
-        : tc("button.create");
+    step === "advanced"
+      ? tc("button.create")
+      : tc("button.next", "下一步");
 
   const secondaryButtonText =
     step === "select_type"
@@ -238,33 +129,29 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
       onRequestSubmit={() => {
         if (step === "select_type") {
           if (creationType) {
-            setStep("configure_schedule");
+            setStep("basic");
             setError("");
           }
           return;
         }
-        if (step === "configure_schedule") {
+        if (step === "basic") {
           if (!name.trim()) {
             setError(t("createModal.validation.nameRequired", "請輸入競賽名稱"));
             return;
           }
-          if (hasValidSchedule) {
-            setStep("advanced");
-            setError("");
-          } else {
-            setError(t("validation.invalidDateTime"));
-          }
+          setStep("advanced");
+          setError("");
           return;
         }
         void handleSubmit();
       }}
       onSecondarySubmit={() => {
         if (step === "advanced") {
-          setStep("configure_schedule");
+          setStep("basic");
           setError("");
           return;
         }
-        if (step === "configure_schedule") {
+        if (step === "basic") {
           setStep("select_type");
           setError("");
           return;
@@ -274,7 +161,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
       primaryButtonDisabled={
         step === "select_type"
           ? !creationType
-          : step === "configure_schedule"
+          : step === "basic"
             ? loading
             : !canCreate || loading
       }
@@ -283,7 +170,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
       selectorPrimaryFocus={
         step === "select_type"
           ? undefined
-          : step === "configure_schedule"
+          : step === "basic"
             ? "#contest-name"
             : "#contest-exam-mode"
       }
@@ -347,15 +234,15 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
           </div>
         )}
 
-        {step === "configure_schedule" && creationType && (
+        {step === "basic" && creationType && (
           <div className={styles.stepStack}>
             <div className={styles.sectionLabel}>
-              {t("createModal.scheduleTitle", "設定基本資訊")}
+              {t("createModal.configureBasic", "設定基本資訊")}
             </div>
             <p className={styles.helperText}>
               {t(
-                "createModal.scheduleIntro",
-                "請填寫競賽基本資訊與應試時段。建立完成後，仍可於競賽管理頁面調整。",
+                "createModal.basicIntro",
+                "競賽會先建立為草稿，發布時再設定正式時段。",
               )}
             </p>
 
@@ -368,63 +255,6 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
               required
               className={styles.nameInput}
             />
-
-            <div className={styles.fieldStack}>
-              <DatePicker
-                datePickerType="single"
-                onChange={([date]) => setStartDate(date)}
-                value={startDate ? [startDate] : []}
-                className={styles.dateField}
-              >
-                <DatePickerInput
-                  id="start-date"
-                  labelText={t("createModal.startDateLabel", "開始日期")}
-                  placeholder={t("createModal.startDatePlaceholder", "YYYY/MM/DD")}
-                />
-              </DatePicker>
-            </div>
-
-            <div className={styles.timeFieldBlock}>
-              <TimePicker
-                id="start-time"
-                labelText={t("createModal.startTimeLabel", "開始時間")}
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                placeholder={t("createModal.startTimePlaceholder", "HH:MM")}
-              >
-                <TimePickerSelect
-                  id="start-meridiem"
-                  value={startMeridiem}
-                  onChange={(e) => setStartMeridiem(e.target.value as Meridiem)}
-                >
-                  <SelectItem value="AM" text="AM" />
-                  <SelectItem value="PM" text="PM" />
-                </TimePickerSelect>
-              </TimePicker>
-              <div className={styles.fieldHint}>
-                {t(
-                  "createModal.timeFormatExample",
-                  "請使用 12 小時制時間格式 HH:MM，並選擇上午或下午（例如 09:30 AM）。",
-                )}
-              </div>
-            </div>
-
-            <div className={styles.durationFieldBlock}>
-              <Select
-                id="duration-minutes"
-                labelText={t("createModal.duration")}
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(e.target.value)}
-              >
-                {DURATION_OPTIONS.map((minutes) => (
-                  <SelectItem
-                    key={minutes}
-                    value={String(minutes)}
-                    text={`${minutes} ${t("createModal.durationUnit", "分鐘")}`}
-                  />
-                ))}
-              </Select>
-            </div>
           </div>
         )}
 

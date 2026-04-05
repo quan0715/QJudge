@@ -28,6 +28,12 @@
   background: var(--cds-background);
 }
 
+/** While Reorder drag: reduce nested scroll + auto-scroll fighting Motion layout. */
+.reorderPointerScrollLock {
+  overflow-y: hidden !important;
+  overscroll-behavior: none;
+}
+
 // ─── Reorder group fills content area ───
 .reorderGroup {
   width: 100%;

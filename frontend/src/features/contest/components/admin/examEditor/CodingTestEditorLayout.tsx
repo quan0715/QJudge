@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@carbon/react";
 import { Add, Close, Menu, Upload, View } from "@carbon/icons-react";
@@ -27,6 +28,15 @@ import EmbeddedProblemEditor from "./EmbeddedProblemEditor";
 import QuestionSourcePanel from "./QuestionSourcePanel";
 import type { QuestionSourceDragItem } from "./questionSource.types";
 import useToolbarSaveStatus from "./hooks/useToolbarSaveStatus";
+import { useEditorPaneScrollSelection } from "./hooks/useEditorPaneScrollSelection";
+import { labelForContestProblemOrder } from "@/features/contest/domain/contestProblemOrderLabel";
+import ProblemImportModal from "@/features/problems/components/modals/ProblemImportModal";
+import type { ProblemYAML } from "@/shared/utils/problemYamlParser";
+import {
+  formSchemaToApiPayload,
+  yamlToFormSchema,
+} from "@/features/problems/forms/problemFormAdapters";
+import { patchProblem } from "@/infrastructure/api/repositories/problem.repository";
 import styles from "./ExamEditorLayout.module.scss";
 
 interface CodingTestEditorLayoutProps {
@@ -66,7 +76,11 @@ const moveProblem = (
   if (!item) return list;
   copy.splice(toIndex, 0, item);
 
-  return copy.map((problem, order) => ({ ...problem, order }));
+  return copy.map((problem, order) => ({
+    ...problem,
+    order,
+    label: labelForContestProblemOrder(order),
+  }));
 };
 
 const resolveInsertedContestProblemId = (
@@ -82,6 +96,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   contest,
 }) => {
   const { t } = useTranslation("contest");
+  const queryClient = useQueryClient();
   const { classroomId } = useParams<{ classroomId?: string }>();
   const { showToast } = useToast();
   const { refreshContest, loading: contestLoading } = useContest();
@@ -99,9 +114,31 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   const [sourcePanelExpanded, setSourcePanelExpanded] = useState(true);
   const [sourceModalOpen, setSourceModalOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [yamlImportOpen, setYamlImportOpen] = useState(false);
+  const [viewReorderPointerDepth, setViewReorderPointerDepth] = useState(0);
 
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isCompactScreen = useCompactScreen();
+
+  const codingScrollItemsKey = useMemo(
+    () => orderedProblems.map((problem) => problem.id).join(","),
+    [orderedProblems],
+  );
+
+  const {
+    editorPaneRef,
+    onReorderPointerSessionChange: bumpReorderPointerDepth,
+    handleSelect,
+    onCardRoot,
+  } = useEditorPaneScrollSelection(selectedId, setSelectedId, codingScrollItemsKey);
+
+  const onReorderPointerSessionChange = useCallback(
+    (delta: 1 | -1) => {
+      bumpReorderPointerDepth(delta);
+      setViewReorderPointerDepth((d) => Math.max(0, d + delta));
+    },
+    [bumpReorderPointerDepth],
+  );
 
   const questionEditLocked = !!contest.questionEditLocked;
   const lockedReason = t(
@@ -151,7 +188,11 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         return;
       }
 
-      const normalized = newOrder.map((problem, order) => ({ ...problem, order }));
+      const normalized = newOrder.map((problem, order) => ({
+        ...problem,
+        order,
+        label: labelForContestProblemOrder(order),
+      }));
       setOrderedProblems(normalized);
 
       if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
@@ -279,6 +320,118 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     });
   }, [handleInsertFromSource, orderedProblems.length]);
 
+  const handleDuplicateCodingProblemExcerpt = useCallback(
+    async (problemId: string) => {
+      if (questionEditLocked) {
+        showToast({ kind: "warning", title: lockedReason });
+        return;
+      }
+      const beforeIds = new Set(orderedProblems.map((p) => p.id));
+      try {
+        await listSave.track(() =>
+          addContestProblem(contestId, { problem_id: problemId })
+        );
+        await refreshContest();
+        const latest = await fetchLatestProblems();
+        setOrderedProblems(latest);
+        const inserted = latest.find((p) => !beforeIds.has(p.id));
+        if (inserted) {
+          setSelectedId(inserted.id);
+        }
+        showToast({
+          kind: "success",
+          title: t("examEditor.questionCopied", "題目已複製"),
+        });
+      } catch (err) {
+        console.error("Failed to duplicate contest problem", err);
+        showToast({
+          kind: "error",
+          title: t("examEditor.copyFailed", "複製失敗"),
+          subtitle: err instanceof Error ? err.message : undefined,
+        });
+      }
+    },
+    [
+      contestId,
+      fetchLatestProblems,
+      listSave,
+      lockedReason,
+      orderedProblems,
+      questionEditLocked,
+      refreshContest,
+      showToast,
+      t,
+    ],
+  );
+
+  const handleYamlPopulate = useCallback(
+    (parsedData: ProblemYAML) => {
+      const cp = orderedProblems.find((p) => p.id === selectedId);
+      const problemId = cp?.problemId;
+      if (!problemId) {
+        showToast({
+          kind: "warning",
+          title: t("examEditor.yamlImportNeedSelection", "請先選取程式題"),
+        });
+        return;
+      }
+      void (async () => {
+        try {
+          const formData = yamlToFormSchema(parsedData);
+          const apiPayload = formSchemaToApiPayload(formData);
+          await listSave.track(() => patchProblem(problemId, apiPayload));
+          await refreshContest();
+          await queryClient.invalidateQueries({
+            queryKey: ["contestProblemEditor", contestId, selectedId],
+          });
+          showToast({
+            kind: "success",
+            title: t("examEditor.yamlImportSuccess", "YAML 已套用"),
+          });
+        } catch (err) {
+          showToast({
+            kind: "error",
+            title: t("examEditor.yamlImportFailed", "YAML 匯入失敗"),
+            subtitle: err instanceof Error ? err.message : undefined,
+          });
+        }
+      })();
+    },
+    [
+      contestId,
+      listSave,
+      orderedProblems,
+      queryClient,
+      refreshContest,
+      selectedId,
+      showToast,
+      t,
+    ],
+  );
+
+  const openYamlImport = useCallback(() => {
+    if (questionEditLocked) {
+      showToast({ kind: "warning", title: lockedReason });
+      return;
+    }
+    const cp = orderedProblems.find((p) => p.id === selectedId);
+    if (!selectedId || !cp?.problemId) {
+      showToast({
+        kind: "warning",
+        title: t("examEditor.yamlImportNeedSelection", "請先選取程式題"),
+      });
+      return;
+    }
+    setYamlImportOpen(true);
+  }, [
+    lockedReason,
+    orderedProblems,
+    questionEditLocked,
+    selectedId,
+    showToast,
+    t,
+  ]);
+
   const aiPanelContent = (
     <ChatbotWidget
       defaultExpanded
@@ -333,9 +486,20 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     }
   };
 
+  const contentPaneClassName = [
+    styles.editorPane,
+    viewReorderPointerDepth > 0 ? styles.reorderPointerScrollLock : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const sidebarScrollLockClass =
+    viewReorderPointerDepth > 0 ? styles.reorderPointerScrollLock : undefined;
+
   return (
     <>
       <AdminSplitLayout
+        ref={editorPaneRef}
         toolbar={
           <PanelToolbar
             leftActions={(
@@ -367,10 +531,8 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
                   size="md"
                   hasIconOnly
                   renderIcon={Upload}
-                  iconDescription={t("examEditor.importYaml", "匯入")}
-                  onClick={() => {
-                    // TODO: open YAML import modal
-                  }}
+                  iconDescription={t("examEditor.importYaml", "匯入 YAML")}
+                  onClick={openYamlImport}
                 />
                 {effectiveClassroomId && (
                   <Button
@@ -391,7 +553,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
                   kind={aiPanelOpen ? "secondary" : "ghost"}
                   size="md"
                   hasIconOnly
-                  iconDescription="AI"
+                  iconDescription={t("examEditor.aiAssistant", "AI 助教")}
                   onClick={toggleAiPanel}
                 >
                   <AgentAvatar size="sm" />
@@ -419,10 +581,12 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
             selectedId={selectedId}
             locked={questionEditLocked}
             loading={contestLoading && orderedProblems.length === 0}
-            onSelect={setSelectedId}
+            onSelect={handleSelect}
             onReorder={handleReorder}
+            onReorderPointerSessionChange={onReorderPointerSessionChange}
           />
         )}
+        sidebarClassName={sidebarScrollLockClass}
         sidebarHidden={!sidebarExpanded}
         rightPane={
           !isCompactScreen && (aiPanelOpen || sourcePanelExpanded)
@@ -457,11 +621,13 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         }
         rightPaneWidth={320}
         contentMaxWidth={720}
-        contentClassName={styles.editorPane}
+        contentClassName={contentPaneClassName}
       >
         <CardListEditor
           items={orderedProblems}
           onReorder={handleReorder}
+          onReorderPointerSessionChange={onReorderPointerSessionChange}
+          onCardRoot={onCardRoot}
           frozen={questionEditLocked}
           canDrop={!!sourceDragItem && !questionEditLocked}
           hoverIndex={sourceHoverIndex}
@@ -476,14 +642,24 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
             <EmbeddedProblemEditor
               contestProblemId={cp.id}
               contestId={contestId}
-              label={cp.label}
+              orderLabel={cp.label}
+              contestBinding={{
+                sourceBank: cp.sourceBank ?? null,
+                sourceMode: cp.sourceMode,
+              }}
               score={cp.maxScore ?? cp.score}
               frozen={questionEditLocked}
+              onDuplicate={
+                questionEditLocked
+                  ? undefined
+                  : () => handleDuplicateCodingProblemExcerpt(cp.problemId)
+              }
               onDelete={async () => {
                 await removeContestProblem(contestId, cp.id);
                 await refreshAfterListMutation();
               }}
               onPointerDownDrag={dragHandleProps?.onPointerDown}
+              onSaveToBankSuccess={refreshAfterListMutation}
             />
           )}
           emptyState={
@@ -499,6 +675,13 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
           {sourcePanelContent}
         </div>
       )}
+
+      <ProblemImportModal
+        open={yamlImportOpen}
+        onClose={() => setYamlImportOpen(false)}
+        mode="populateForm"
+        onPopulate={handleYamlPopulate}
+      />
     </>
   );
 };

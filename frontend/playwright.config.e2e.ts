@@ -60,17 +60,18 @@ export default defineConfig({
 
   /* Configure projects for Chrome only */
   projects: [
+    // Setup project
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
     {
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        // Clear storage before each test to ensure clean state
-        storageState: undefined,
-        // Use fresh context for each test
-        contextOptions: {
-          storageState: undefined,
-        },
+        // storageState will be overridden in individual tests using test.use()
       },
+      dependencies: ['setup'],
     },
   ],
 });

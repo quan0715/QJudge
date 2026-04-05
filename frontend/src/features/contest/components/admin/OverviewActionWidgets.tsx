@@ -56,21 +56,23 @@ export default function OverviewActionWidgets({
   const { t } = useTranslation("contest");
   const [nowMs, setNowMs] = useState(() => Date.now());
   const contestStatus = contest.status ?? "draft";
+  const startAtMs = useMemo(() => Date.parse(contest.startTime ?? ""), [contest.startTime]);
+  const endAtMs = useMemo(() => Date.parse(contest.endTime ?? ""), [contest.endTime]);
+  const hasSchedule = Number.isFinite(startAtMs) && Number.isFinite(endAtMs) && endAtMs > startAtMs;
   const liveTimeProgress = useMemo(
     () => calculateContestTimeProgressAt(contest, nowMs),
     [contest, nowMs],
   );
   const countdownSeconds = useMemo(() => {
-    const startAtMs = Date.parse(contest.startTime ?? "");
     if (!Number.isFinite(startAtMs)) {
       return 0;
     }
     return Math.max(0, Math.floor((startAtMs - nowMs) / 1000));
-  }, [contest.startTime, nowMs]);
+  }, [nowMs, startAtMs]);
   const { startTimeLabel, endTimeLabel } = useMemo(() => {
     const fmt = (value: string | undefined): string => {
       const ts = Date.parse(value ?? "");
-      if (!Number.isFinite(ts)) return "--";
+      if (!Number.isFinite(ts)) return t("adminOverview.time.unset", "未設定");
       const d = new Date(ts);
       const month = (d.getMonth() + 1).toString().padStart(2, "0");
       const day = d.getDate().toString().padStart(2, "0");
@@ -79,7 +81,7 @@ export default function OverviewActionWidgets({
       return `${month}/${day} ${hours}:${mins}`;
     };
     return { startTimeLabel: fmt(contest.startTime), endTimeLabel: fmt(contest.endTime) };
-  }, [contest.endTime, contest.startTime]);
+  }, [contest.endTime, contest.startTime, t]);
   const workItemCount =
     contest.contestType === "paper_exam"
       ? contest.examQuestionsCount
@@ -307,7 +309,9 @@ export default function OverviewActionWidgets({
               {endTimeLabel}
             </div>
             <div className={styles.progressStatusText}>
-              {liveTimeProgress.isEnded
+              {!hasSchedule
+                ? t("adminOverview.time.unscheduledHint", "尚未排程，請先發布並設定時段")
+                : liveTimeProgress.isEnded
                 ? t("adminOverview.time.ended", "已結束")
                 : liveTimeProgress.isStarted
                   ? t("adminOverview.time.remaining", "剩餘 {{time}}", {

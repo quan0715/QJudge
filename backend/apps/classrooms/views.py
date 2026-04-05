@@ -338,6 +338,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
                     if serializer.validated_data.get('requires_password')
                     else 'public',
                     cheat_detection_enabled=serializer.validated_data.get('cheat_detection_enabled', False),
+                    allow_multiple_joins=serializer.validated_data.get('allow_multiple_joins', False),
                     results_published=serializer.validated_data.get('results_published', False),
                 )
                 if raw_password is not None:

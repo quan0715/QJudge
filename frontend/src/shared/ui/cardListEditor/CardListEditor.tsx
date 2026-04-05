@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useEffect, type ReactNode } from "react";
 import { Reorder, useDragControls } from "motion/react";
+import { attachReorderPointerSession } from "./reorderPointerSession";
 import styles from "./CardListEditor.module.scss";
 
 // ─── InsertDropSlot ─────────────────────────────────────────
@@ -36,11 +37,13 @@ function CardReorderItem<T>({
   frozen,
   children,
   cardRefCallback,
+  onReorderPointerSessionChange,
 }: {
   item: T;
   frozen: boolean;
   children: (dragHandleProps: DragHandleProps | null) => ReactNode;
   cardRefCallback?: (el: HTMLDivElement | null) => void;
+  onReorderPointerSessionChange?: (delta: 1 | -1) => void;
 }) {
   const dragControls = useDragControls();
   return (
@@ -54,7 +57,16 @@ function CardReorderItem<T>({
     >
       <div ref={cardRefCallback}>
         {children(
-          !frozen ? { onPointerDown: (e) => dragControls.start(e) } : null,
+          !frozen
+            ? {
+                onPointerDown: (e) =>
+                  attachReorderPointerSession(
+                    onReorderPointerSessionChange,
+                    (ev) => dragControls.start(ev),
+                    e,
+                  ),
+              }
+            : null,
         )}
       </div>
     </Reorder.Item>
@@ -78,6 +90,10 @@ export interface CardListEditorProps<T extends { id: string }> {
   onDropAt?: (index: number) => void;
   scrollToId?: string | null;
   emptyState?: ReactNode;
+  /** Notified when a list-item reorder drag starts (+1) or ends (-1). Nested drags sum depth. */
+  onReorderPointerSessionChange?: (delta: 1 | -1) => void;
+  /** Each card's inner wrapper root (for scroll-into-view / measuring without duplicating refs in renderCard). */
+  onCardRoot?: (id: string, el: HTMLDivElement | null) => void;
 }
 
 export function CardListEditor<T extends { id: string }>({
@@ -91,6 +107,8 @@ export function CardListEditor<T extends { id: string }>({
   onDropAt,
   scrollToId,
   emptyState,
+  onReorderPointerSessionChange,
+  onCardRoot,
 }: CardListEditorProps<T>) {
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -135,9 +153,11 @@ export function CardListEditor<T extends { id: string }>({
           <CardReorderItem
             item={item}
             frozen={frozen}
+            onReorderPointerSessionChange={onReorderPointerSessionChange}
             cardRefCallback={(el) => {
               if (el) cardRefs.current.set(item.id, el);
               else cardRefs.current.delete(item.id);
+              onCardRoot?.(item.id, el);
             }}
           >
             {(dragHandleProps) => renderCard(item, i, dragHandleProps)}

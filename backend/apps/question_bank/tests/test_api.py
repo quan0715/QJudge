@@ -12,7 +12,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from PIL import Image
 
-from apps.contests.models import Contest, ExamQuestion
+from apps.contests.models import Contest, ContestProblem, ExamQuestion
 from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
 from apps.question_bank.bank_workflows import (
     clone_question_to_bank,
@@ -830,6 +830,74 @@ class TestQuestionBankAPI:
             {
                 "target_bank_id": str(target_bank.uuid),
                 "items": [{"source_type": "problem", "source_id": problem.id}],
+            },
+            format="json",
+        )
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data["ingested_count"] == 1
+        assert Question.objects.filter(
+            bank=target_bank,
+            metadata__legacy_problem_id=str(problem.id),
+        ).exists()
+
+    def test_inbox_ingest_problem_when_creator_null_but_contest_owner(
+        self,
+        api_client: APIClient,
+        teacher: User,
+    ):
+        target_bank = QuestionBank.objects.create(
+            owner=teacher,
+            name="Target Coding Bank Null Creator",
+            category=QuestionBank.Category.CODING,
+            visibility=QuestionBank.Visibility.PRIVATE,
+            verified=False,
+        )
+        problem = Problem.objects.create(
+            title="Contest Linked No Creator",
+            slug="contest-linked-no-creator",
+            created_by=None,
+        )
+        ProblemTranslation.objects.create(
+            problem=problem,
+            language="zh-TW",
+            title="Contest Linked No Creator",
+            description="desc",
+            input_description="in",
+            output_description="out",
+            hint="",
+        )
+        ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
+
+        contest = Contest.objects.create(
+            name="Coding Contest For Ingest",
+            owner=teacher,
+            contest_type="coding",
+        )
+        ContestProblem.objects.create(contest=contest, problem=problem, order=0)
+
+        from apps.question_bank.question_assets import write_coding_content_to_asset, sync_asset_to_problem
+
+        asset, _version = write_coding_content_to_asset(
+            owner=teacher,
+            title="Contest Linked No Creator",
+            prompt="desc",
+            difficulty="medium",
+            translations=[],
+            actor=teacher,
+        )
+        sync_asset_to_problem(question_asset=asset, problem=problem)
+
+        api_client.force_authenticate(user=teacher)
+        inbox_resp = api_client.get("/api/v1/question-banks/inbox/?category=coding")
+        assert inbox_resp.status_code == status.HTTP_200_OK
+        assert any(item["source_id"] == str(problem.id) for item in inbox_resp.data["coding"])
+
+        resp = api_client.post(
+            "/api/v1/question-banks/inbox/ingest/",
+            {
+                "target_bank_id": str(target_bank.uuid),
+                "items": [{"source_type": "problem", "source_id": str(problem.id)}],
             },
             format="json",
         )

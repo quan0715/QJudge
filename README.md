@@ -101,6 +101,7 @@ GitHub (push to main)
 
 - [使用者與教師手冊](docs/user-guide.md)：教室、題庫、競賽功能說明。
 - [開發者指南](docs/developer-guide.md)：系統架構、環境設定、開發規範。
+- [架構／API／部署／測試盤點（依 repo 實際檢視範圍）](docs/project-architecture-inventory-2026-04-05.md)：後端路由、`INSTALLED_APPS` 與 models 位置、Compose/CI 摘要、安全與技術債線索。
 - 後端測試指南：`backend/RUN_TESTS.md`
 - 壓力測試說明：`docs/loadtest.md`
 - 監控部署說明：`docs/monitoring.md`

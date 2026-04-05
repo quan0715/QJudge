@@ -578,7 +578,20 @@
     "confirmRemoveProblem": "確定要從競賽移除此題？",
     "collapseSourcePanel": "收起題目來源",
     "hideQuestionList": "隱藏題目列表",
-    "showQuestionList": "顯示題目列表"
+    "showQuestionList": "顯示題目列表",
+    "importYaml": "匯入 YAML",
+    "preview": "預覽",
+    "aiAssistant": "AI 助教",
+    "codingPreviewPlaceholder": "待編輯",
+    "codingProblemUntitled": "未定標題的程式題",
+    "codingProblemWithLabel": "題目 {{label}}",
+    "saveToBank": "收錄到題庫",
+    "saveToBankAlreadyInBank": "此題已收錄至題庫",
+    "removeFromContest": "從競賽移除",
+    "maxScoreFieldLabel": "配分",
+    "yamlImportNeedSelection": "請先選取一則程式題，再匯入 YAML。",
+    "yamlImportSuccess": "YAML 已套用並儲存",
+    "yamlImportFailed": "YAML 匯入失敗"
   },
   "examJson": {
     "exportOption": "Exam JSON",

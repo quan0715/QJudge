@@ -191,3 +191,90 @@ def test_classroom_contest_create_defaults_to_open_without_password(
     assert contest.visibility == "public"
     assert contest.password is None
     assert contest.requires_password is False
+
+
+@pytest.mark.django_db
+def test_publish_requires_schedule_window(
+    api_client: APIClient,
+    owner: User,
+) -> None:
+    contest = Contest.objects.create(
+        name="Draft Without Schedule",
+        owner=owner,
+        status="draft",
+        visibility="public",
+    )
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.patch(
+        f"/api/v1/contests/{contest.id}/",
+        {"status": "published"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "start_time" in response.data
+
+
+@pytest.mark.django_db
+def test_publish_with_valid_schedule_succeeds(
+    api_client: APIClient,
+    owner: User,
+) -> None:
+    contest = Contest.objects.create(
+        name="Draft With Schedule",
+        owner=owner,
+        status="draft",
+        visibility="public",
+    )
+    api_client.force_authenticate(user=owner)
+    start_time = timezone.now() + timedelta(hours=1)
+    end_time = start_time + timedelta(hours=2)
+
+    response = api_client.patch(
+        f"/api/v1/contests/{contest.id}/",
+        {
+            "status": "published",
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat(),
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    contest.refresh_from_db()
+    assert contest.status == "published"
+    assert contest.start_time is not None
+    assert contest.end_time is not None
+
+
+@pytest.mark.django_db
+def test_revert_to_draft_keeps_schedule_but_unpublishes_results(
+    api_client: APIClient,
+    owner: User,
+) -> None:
+    start_time = timezone.now() - timedelta(hours=1)
+    end_time = timezone.now() + timedelta(hours=1)
+    contest = Contest.objects.create(
+        name="Published Contest",
+        owner=owner,
+        status="published",
+        visibility="public",
+        start_time=start_time,
+        end_time=end_time,
+        results_published=True,
+    )
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.patch(
+        f"/api/v1/contests/{contest.id}/",
+        {"status": "draft"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    contest.refresh_from_db()
+    assert contest.status == "draft"
+    assert contest.start_time == start_time
+    assert contest.end_time == end_time
+    assert contest.results_published is False

@@ -165,6 +165,15 @@ def _resolve_problem_source_context(problem: Problem) -> tuple[str | None, str]:
     return str(contest_problem.contest_id), contest_problem.contest.name
 
 
+def _user_may_ingest_coding_problem(*, user, problem: Problem) -> bool:
+    """Allow creator or any contest owner/admin that links this problem in a contest."""
+    if getattr(problem, "created_by_id", None) == user.id:
+        return True
+    return ContestProblem.objects.filter(problem=problem).filter(
+        Q(contest__owner=user) | Q(contest__admins=user)
+    ).exists()
+
+
 def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=None) -> Question:
     if bank.category != QuestionBank.Category.CODING:
         raise ValueError(
@@ -452,9 +461,13 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
                 source_bank_id__isnull=False,
             ).values_list("problem_id", flat=True)
         )
+        managed_problem_ids = ContestProblem.objects.filter(
+            Q(contest__owner=user) | Q(contest__admins=user)
+        ).values_list("problem_id", flat=True)
         coding_rows = (
-            Problem.objects.filter(created_by=user)
+            Problem.objects.filter(Q(created_by=user) | Q(id__in=managed_problem_ids))
             .exclude(id__in=synced | bank_imported)
+            .distinct()
             .order_by("-updated_at", "-id")
         )
         coding_items: list[dict[str, Any]] = []
@@ -547,8 +560,8 @@ def ingest_question_bank_inbox_items(
             source_id = item["source_id"]
 
             if source_type == "problem":
-                source = Problem.objects.filter(id=source_id, created_by=user).first()
-                if not source:
+                source = Problem.objects.filter(id=source_id).first()
+                if not source or not _user_may_ingest_coding_problem(user=user, problem=source):
                     raise ValueError(f"Problem {source_id} not found")
 
                 if not source.question_asset_id:

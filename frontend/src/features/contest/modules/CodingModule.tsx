@@ -83,6 +83,7 @@ const CODING_ADMIN_PANELS: AdminPanelId[] = [
   "grading",
   "statistics",
 ];
+const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];
 
 export const codingContestModule: ContestTypeModule = {
   type: "coding",
@@ -103,7 +104,8 @@ export const codingContestModule: ContestTypeModule = {
   },
   admin: {
     editorKind: "coding",
-    getAvailablePanels: () => CODING_ADMIN_PANELS,
+    getAvailablePanels: (contest) =>
+      contest?.status === "draft" ? DRAFT_ADMIN_PANELS : CODING_ADMIN_PANELS,
     getPanelRenderers: () => ({
       problem_editor: (props) => {
         if (!props.contest) return null;

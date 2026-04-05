@@ -1,109 +1,58 @@
 @use "@carbon/layout";
 @use "@carbon/type";
 
-.card {
-  width: 100%;
-  max-width: 720px;
-  background: var(--cds-layer);
-  border: 1px solid transparent;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-
-.cardClickable {
-  cursor: pointer;
-
-  &:hover {
-    border-color: var(--cds-border-strong-01);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--cds-focus);
-    outline-offset: -2px;
-  }
-}
-
-.cardFrozen {
-  cursor: default;
-}
-
-// ─── Drag indicator ─────────────────────────────────────────
-.dragIndicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: layout.$spacing-02 0;
-  color: var(--cds-icon-secondary);
-  opacity: 0;
-  transition: opacity 0.15s;
-  cursor: grab;
-
-  .cardClickable:hover & {
-    opacity: 0.6;
-  }
-}
-
-// ─── Header ─────────────────────────────────────────────────
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: layout.$spacing-03;
-  padding: layout.$spacing-04 layout.$spacing-05;
-  border-bottom: 1px solid var(--cds-border-subtle);
-}
-
-.headerLeft {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  min-width: 0;
-  flex: 1;
-}
-
-.label {
-  @include type.type-style("heading-compact-02");
-  color: var(--cds-text-secondary);
-  flex-shrink: 0;
-}
-
-.title {
-  @include type.type-style("heading-compact-02");
+/** Short title under exam-style header (not prompt-sized). */
+.titleLine {
+  @include type.type-style("heading-compact-01");
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  margin: 0 0 layout.$spacing-04;
+  padding-right: layout.$spacing-05;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tags {
-  display: flex;
-  gap: layout.$spacing-02;
-  flex-shrink: 0;
-}
-
-// ─── Body ───────────────────────────────────────────────────
-.body {
-  padding: layout.$spacing-05;
-}
-
-.descriptionContent {
+/** Compact description — avoid exam `.prompt` large typography. */
+.descriptionCompact {
   @include type.type-style("body-compact-01");
-  max-height: 200px;
-  overflow: hidden;
-  position: relative;
+  color: var(--cds-text-primary);
+  line-height: 1.45;
+  max-height: 9rem;
+  overflow-y: auto;
+  margin: 0;
+  padding-right: layout.$spacing-03;
 
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3rem;
-    background: linear-gradient(transparent, var(--cds-layer));
-    pointer-events: none;
+  :global(.markdown-body) {
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+
+    p {
+      margin-bottom: layout.$spacing-03;
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+      line-height: 1.35;
+      margin: layout.$spacing-03 0;
+    }
+
+    pre,
+    code {
+      font-size: 0.8125rem;
+    }
   }
 }
 
-.placeholder {
+.descriptionEmpty {
   @include type.type-style("body-compact-01");
   color: var(--cds-text-placeholder);
   font-style: italic;

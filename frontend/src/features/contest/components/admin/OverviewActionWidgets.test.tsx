@@ -145,4 +145,31 @@ describe("OverviewActionWidgets", () => {
     expect(onRevertContestToDraft).toHaveBeenCalledTimes(1);
     expect(onRevokeResults).toHaveBeenCalledTimes(1);
   });
+
+  it("shows unscheduled copy when start/end time are missing", () => {
+    render(
+      <OverviewActionWidgets
+        contest={buildContest({ startTime: "", endTime: "", status: "draft" })}
+        kpi={{
+          totalParticipants: 20,
+          notStartedCount: 20,
+          inProgressCount: 0,
+          pausedOrLockedCount: 0,
+          submittedCount: 0,
+        }}
+        violationCount={0}
+        onOpenPanel={vi.fn()}
+        onPublishContest={vi.fn().mockResolvedValue(undefined)}
+        onRevertContestToDraft={vi.fn().mockResolvedValue(undefined)}
+        onPublishResults={vi.fn().mockResolvedValue(undefined)}
+        onRevokeResults={vi.fn().mockResolvedValue(undefined)}
+        onToggleStrictMode={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(
+      screen.getByText((content) => /未設定|adminOverview\\.time\\.unset/.test(content)),
+    ).toBeInTheDocument();
+    expect(screen.getByText("尚未排程，請先發布並設定時段")).toBeInTheDocument();
+  });
 });

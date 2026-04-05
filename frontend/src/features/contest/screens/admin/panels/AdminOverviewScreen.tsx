@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import KpiCards from "@/features/contest/components/admin/KpiCards";
 import OverviewActionWidgets from "@/features/contest/components/admin/OverviewActionWidgets";
+import PublishScheduleModal from "@/features/contest/components/admin/PublishScheduleModal";
 import StudentStatusBreakdown from "@/features/contest/components/admin/StudentStatusBreakdown";
 import {
   useContest,
@@ -33,6 +34,8 @@ export default function AdminOverviewScreen() {
   const { showToast } = useToast();
   const { confirm, modalProps } = useConfirmModal();
   const [, setSearchParams] = useSearchParams();
+  const [publishScheduleOpen, setPublishScheduleOpen] = useState(false);
+  const [publishScheduleSubmitting, setPublishScheduleSubmitting] = useState(false);
 
   const kpi = useMemo(
     () => computeParticipantStatusKpi(participants),
@@ -61,16 +64,23 @@ export default function AdminOverviewScreen() {
 
   const handlePublishContest = useCallback(async () => {
     if (!contest?.id) return;
-    const confirmed = await confirm({
-      title: t("adminOverview.actions.publishContestConfirm"),
-      body: t("adminOverview.actions.publishContestBody"),
-      confirmLabel: t("adminOverview.actions.publishContest"),
-      cancelLabel: tc("button.cancel"),
-    });
-    if (!confirmed) return;
+    setPublishScheduleOpen(true);
+  }, [contest?.id]);
 
+  const handleConfirmPublishSchedule = useCallback(async (payload: {
+    startTime: string;
+    endTime: string;
+    durationMinutes: number;
+  }) => {
+    if (!contest?.id) return;
+    setPublishScheduleSubmitting(true);
     try {
-      await updateContest(contest.id, { status: "published" });
+      await updateContest(contest.id, {
+        status: "published",
+        startTime: payload.startTime,
+        endTime: payload.endTime,
+      });
+      setPublishScheduleOpen(false);
       await refreshContest();
       showToast({ kind: "success", title: t("adminOverview.actions.publishContestSuccess") });
     } catch (error) {
@@ -79,8 +89,10 @@ export default function AdminOverviewScreen() {
         title: t("adminOverview.actions.publishContestFailed"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
+    } finally {
+      setPublishScheduleSubmitting(false);
     }
-  }, [confirm, contest?.id, refreshContest, showToast, t, tc]);
+  }, [contest?.id, refreshContest, showToast, t]);
 
   const handlePublishResults = useCallback(async (progressPercent?: number) => {
     if (!contest?.id) return;
@@ -141,7 +153,7 @@ export default function AdminOverviewScreen() {
     if (!confirmed) return;
 
     try {
-      await updateContest(contest.id, { status: "draft" });
+      await updateContest(contest.id, { status: "draft", resultsPublished: false });
       await refreshContest();
       showToast({ kind: "success", title: t("adminOverview.actions.revertToDraftSuccess") });
     } catch (error) {
@@ -251,6 +263,15 @@ export default function AdminOverviewScreen() {
         }
       />
       <ConfirmModal {...modalProps} />
+      <PublishScheduleModal
+        open={publishScheduleOpen}
+        loading={publishScheduleSubmitting}
+        onClose={() => {
+          if (publishScheduleSubmitting) return;
+          setPublishScheduleOpen(false);
+        }}
+        onConfirm={handleConfirmPublishSchedule}
+      />
     </>
   );
 }

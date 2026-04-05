@@ -314,9 +314,20 @@ class ContestViewSet(viewsets.ModelViewSet):
             )
         if contest.status == 'published':
             contest.status = 'draft'
+            contest.results_published = False
         else:
+            if not contest.start_time or not contest.end_time:
+                return Response(
+                    {'error': 'Start time and end time are required before publishing.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if contest.end_time <= contest.start_time:
+                return Response(
+                    {'error': 'End time must be after start time.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             contest.status = 'published'
-        contest.save()
+        contest.save(update_fields=['status', 'results_published'])
 
         # Log activity
         ContestActivityViewSet.log_activity(
