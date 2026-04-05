@@ -91,7 +91,13 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
               </div>
               {isPrivileged && (
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                  <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateExam}>
+                  <Button
+                    kind="ghost"
+                    size="sm"
+                    renderIcon={Add}
+                    data-testid="classroom-create-contest-btn"
+                    onClick={onCreateExam}
+                  >
                     {t("createContest", "建立考試")}
                   </Button>
                 </div>

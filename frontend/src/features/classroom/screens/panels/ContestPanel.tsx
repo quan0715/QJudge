@@ -28,7 +28,13 @@ export const ContestPanel: React.FC<ContestPanelProps> = ({
             <h3>{t("contests", "考試與競賽")}</h3>
           </div>
           {canBindContests && (
-            <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateExam}>
+            <Button
+              kind="ghost"
+              size="sm"
+              renderIcon={Add}
+              data-testid="classroom-create-contest-btn"
+              onClick={onCreateExam}
+            >
               {t("createContest", "建立考試")}
             </Button>
           )}
