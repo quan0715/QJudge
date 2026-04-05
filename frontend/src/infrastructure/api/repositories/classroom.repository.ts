@@ -94,7 +94,7 @@ export const removeMember = async (classroomId: string, userId: number): Promise
 
 export const updateMemberRole = async (classroomId: string, userId: number, role: string): Promise<any> => {
   return requestJson<any>(
-    httpClient.patch(`/api/v1/classrooms/${classroomId}/members/${userId}/`, { role }),
+    httpClient.post(`/api/v1/classrooms/${classroomId}/update_member_role/`, { user_id: userId, role }),
     "Failed to update member role"
   );
 };
