@@ -57,6 +57,12 @@
   "announcementDeleteFailed": "공지사항 삭제에 실패했습니다",
   "announcementDeleted": "공지사항이 삭제되었습니다",
   "announcements": "공지사항",
+  "activitySchedule": {
+    "emptySubtitle": "게시되었고 아직 종료되지 않은 활동이 있으면 여기에 표시됩니다.",
+    "emptyTitle": "진행 중이거나 예정된 활동이 없습니다",
+    "heroTitle": "다음 활동",
+    "timelineHeading": "활동 타임라인"
+  },
   "archived": "보관됨",
   "backToClassrooms": "교실 목록으로 돌아가기",
   "basicInfo": "기본 정보",

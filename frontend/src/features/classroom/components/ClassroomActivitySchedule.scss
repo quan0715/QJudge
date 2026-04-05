@@ -1,0 +1,109 @@
+@use "@carbon/react/scss/spacing" as *;
+
+.classroom-activity-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-06;
+}
+
+.classroom-activity-schedule__hero-section {
+  margin: 0;
+}
+
+.classroom-activity-schedule__hero-tile {
+  max-width: 100%;
+}
+
+.classroom-activity-schedule__hero-title {
+  margin: 0;
+  font-size: var(--cds-heading-03-font-size);
+  font-weight: var(--cds-heading-03-font-weight);
+  line-height: var(--cds-heading-03-line-height);
+  letter-spacing: var(--cds-heading-03-letter-spacing);
+}
+
+.classroom-activity-schedule__hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-03;
+  align-items: center;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size);
+}
+
+.classroom-activity-schedule__timeline {
+  margin: 0;
+}
+
+.classroom-activity-schedule__timeline-heading {
+  margin: 0 0 $spacing-05;
+  font-size: var(--cds-heading-03-font-size);
+  font-weight: var(--cds-heading-03-font-weight);
+}
+
+.classroom-activity-schedule__timeline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-06;
+  border-inline-start: 2px solid var(--cds-border-subtle-01);
+  padding-inline-start: $spacing-05;
+}
+
+.classroom-activity-schedule__day {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.classroom-activity-schedule__day-label {
+  margin: 0 0 $spacing-03;
+  font-size: var(--cds-heading-01-font-size);
+  font-weight: 600;
+  color: var(--cds-text-primary);
+}
+
+.classroom-activity-schedule__contests {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+}
+
+.classroom-activity-schedule__contest-button {
+  display: block;
+  width: 100%;
+  text-align: start;
+  padding: $spacing-04 $spacing-05;
+  border: 1px solid var(--cds-border-subtle-00);
+  border-radius: var(--cds-layout-size-height-xs, 4px);
+  background: var(--cds-layer-01);
+  color: var(--cds-text-primary);
+  cursor: pointer;
+  font: inherit;
+  transition: background-color 70ms linear;
+}
+
+.classroom-activity-schedule__contest-button:hover {
+  background: var(--cds-layer-hover-01);
+}
+
+.classroom-activity-schedule__contest-button:focus {
+  outline: 2px solid var(--cds-focus);
+  outline-offset: 2px;
+}
+
+.classroom-activity-schedule__contest-name {
+  display: block;
+  font-weight: 600;
+  margin-bottom: $spacing-02;
+}
+
+.classroom-activity-schedule__contest-meta {
+  font-size: var(--cds-body-compact-01-font-size);
+  color: var(--cds-text-secondary);
+}

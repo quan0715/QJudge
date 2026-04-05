@@ -57,6 +57,12 @@
   "announcementDeleteFailed": "お知らせの削除に失敗しました",
   "announcementDeleted": "お知らせを削除しました",
   "announcements": "お知らせ",
+  "activitySchedule": {
+    "emptySubtitle": "公開中で終了していないアクティビティがあると、ここに表示されます。",
+    "emptyTitle": "進行中または今後のアクティビティはありません",
+    "heroTitle": "次のアクティビティ",
+    "timelineHeading": "アクティビティタイムライン"
+  },
   "archived": "アーカイブ済み",
   "backToClassrooms": "教室一覧に戻る",
   "basicInfo": "基本情報",

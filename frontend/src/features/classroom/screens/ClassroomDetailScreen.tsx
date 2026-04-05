@@ -300,6 +300,7 @@ const ClassroomDetailScreen: React.FC = () => {
           <div className="classroom-admin-panel">
             {activePanel === "overview" && (
               <OverviewPanel
+                key={`${classroom.id}-${classroom.updatedAt}`}
                 classroom={classroom}
                 isPrivileged={Boolean(isPrivileged)}
                 onCreateAnnouncement={() => {

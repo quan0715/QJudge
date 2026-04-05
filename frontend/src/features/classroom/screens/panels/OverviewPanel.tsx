@@ -1,11 +1,14 @@
+import { useMemo, useState } from "react";
 import { Button } from "@carbon/react";
-import { Add, ArrowRight, Trophy } from "@carbon/icons-react";
+import { ArrowRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ClassroomDetail, ClassroomAnnouncement } from "@/core/entities/classroom.entity";
 import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { AnnouncementSection } from "../../components/AnnouncementSection";
-import { ClassroomContestCard as ContestCard, getActivityTimestamp } from "../../components/ClassroomContestCard";
+import { ClassroomActivityHero } from "../../components/ClassroomActivityHero";
+import { ClassroomActivityTimeline } from "../../components/ClassroomActivityTimeline";
+import "../../components/ClassroomActivitySchedule.scss";
+import { buildTimelineDayGroups, pickHeroContest } from "../../domain/classroomActivityTimeline";
 import type { ClassroomAdminPanelId } from "../ClassroomAdminLayout";
 
 interface OverviewPanelProps {
@@ -28,19 +31,38 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
   onJumpToPanel,
 }) => {
   const { t } = useTranslation("classroom");
-  const activeExams = classroom.contests.filter((row) => row.contestStatus === "published");
-  const recentActivities = [...activeExams]
-    .sort((left, right) => {
-      const leftTime = getActivityTimestamp(left);
-      const rightTime = getActivityTimestamp(right);
-      return rightTime.localeCompare(leftTime);
-    })
-    .slice(0, 3);
+
+  const [nowMs] = useState(() => Date.now());
+
+  const heroContest = useMemo(
+    () => pickHeroContest(classroom.contests, nowMs),
+    [classroom.contests, nowMs],
+  );
+
+  const timelineGroups = useMemo(
+    () => buildTimelineDayGroups(classroom.contests, nowMs),
+    [classroom.contests, nowMs],
+  );
 
   return (
     <EntityOverviewFrame
       sectionClassName="classroom-admin-overview-frame-section"
       main={
+        <div className="classroom-activity-schedule">
+          <ClassroomActivityHero
+            contest={heroContest}
+            isPrivileged={isPrivileged}
+            onOpenContest={onNavigateExam}
+            onCreateExam={isPrivileged ? onCreateExam : undefined}
+          />
+          <ClassroomActivityTimeline
+            groups={timelineGroups}
+            heroContestId={heroContest?.contestId ?? null}
+            onOpenContest={onNavigateExam}
+          />
+        </div>
+      }
+      side={
         <>
           <AnnouncementSection
             announcements={classroom.announcements.slice(0, 4)}
@@ -60,10 +82,6 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
               {t("viewAllAnnouncements")}
             </Button>
           )}
-        </>
-      }
-      side={
-        <>
           {!isPrivileged && (
             <section className="classroom-admin-section classroom-admin-section--todo">
               <div className="classroom-admin-section__header">
@@ -83,45 +101,6 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
               </div>
             </section>
           )}
-
-          <section className="classroom-admin-section">
-            <div className="classroom-admin-section__header">
-              <div className="classroom-admin-section__title">
-                <h3>{t("recentActivities", "近期活動")}</h3>
-              </div>
-              {isPrivileged && (
-                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                  <Button
-                    kind="ghost"
-                    size="sm"
-                    renderIcon={Add}
-                    data-testid="classroom-create-contest-btn"
-                    onClick={onCreateExam}
-                  >
-                    {t("createContest", "建立考試")}
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {recentActivities.length === 0 ? (
-              <EmptyState
-                icon={Trophy}
-                title={t("noActiveContests", "目前沒有進行中或即將開始的活動")}
-                compact
-              />
-            ) : (
-              <div className="classroom-admin-card-grid">
-                {recentActivities.map((activity) => (
-                  <ContestCard
-                    key={activity.contestId}
-                    contest={activity}
-                    onNavigate={() => onNavigateExam(activity.contestId)}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
         </>
       }
     />

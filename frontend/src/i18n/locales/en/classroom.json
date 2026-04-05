@@ -57,6 +57,12 @@
   "announcementDeleteFailed": "Failed to delete announcement",
   "announcementDeleted": "Announcement deleted",
   "announcements": "Announcements",
+  "activitySchedule": {
+    "emptySubtitle": "Published activities that have not ended yet will appear here.",
+    "emptyTitle": "No in-progress or upcoming activities",
+    "heroTitle": "Next activity",
+    "timelineHeading": "Activity timeline"
+  },
   "archived": "Archived",
   "backToClassrooms": "Back to classrooms",
   "basicInfo": "Basic Information",
