@@ -251,7 +251,9 @@ def test_classroom_bound_contest_uses_classroom_scope_by_default(owner: User) ->
 
     assert get_contest_scope_role(owner, contest) == "owner"
     assert get_contest_scope_role(classroom_ta, contest) == "co_owner"
-    assert get_contest_scope_role(legacy_contest_owner, contest) == "outsider"
+    # Contest creator keeps owner scope even when not a classroom member (merge w/ classroom ACL).
+    assert get_contest_scope_role(legacy_contest_owner, contest) == "owner"
+    assert can_manage_contest(legacy_contest_owner, contest) is True
     assert can_manage_contest(classroom_ta, contest) is True
 
 

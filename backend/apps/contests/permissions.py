@@ -41,6 +41,39 @@ def map_classroom_role_to_contest_scope(classroom_role: str | None) -> str:
     return CLASSROOM_SCOPE_TO_CONTEST_SCOPE.get(classroom_role, 'outsider')
 
 
+_SCOPE_PRECEDENCE = {
+    'platform_admin': 5,
+    'owner': 4,
+    'co_owner': 3,
+    'participant': 2,
+    'outsider': 1,
+    'anonymous': 0,
+}
+
+
+def _max_contest_scope(a: str, b: str) -> str:
+    """Return the more privileged of two contest scope roles."""
+    if _SCOPE_PRECEDENCE.get(a, 0) >= _SCOPE_PRECEDENCE.get(b, 0):
+        return a
+    return b
+
+
+def _native_contest_scope(user, contest) -> str:
+    """
+    Scope derived only from the contest record (owner, co-admins, registration).
+    Used together with classroom-derived scope so binding never strips contest owners.
+    """
+    if contest.owner_id == user.id:
+        return 'owner'
+    if contest.admins.filter(pk=user.pk).exists():
+        return 'co_owner'
+    from .models import ContestParticipant  # local import avoids cycles
+
+    if ContestParticipant.objects.filter(contest=contest, user=user).exists():
+        return 'participant'
+    return 'outsider'
+
+
 def _is_classroom_acl_source_enabled() -> bool:
     """
     Classroom-bound contests should resolve permissions from the classroom scope
@@ -74,22 +107,18 @@ def get_contest_scope_role(user, contest) -> str:
     if user.is_staff or user.is_superuser:
         return 'platform_admin'
 
+    native = _native_contest_scope(user, contest)
+
     if _is_classroom_acl_source_enabled():
         binding = _get_primary_classroom_binding(contest)
         if binding is not None:
             from apps.classrooms.permissions import get_user_role_in_classroom
 
             classroom_role = get_user_role_in_classroom(user, binding.classroom)
-            return map_classroom_role_to_contest_scope(classroom_role)
+            classroom_scope = map_classroom_role_to_contest_scope(classroom_role)
+            return _max_contest_scope(classroom_scope, native)
 
-    if contest.owner_id == user.id:
-        return 'owner'
-    if contest.admins.filter(pk=user.pk).exists():
-        return 'co_owner'
-    from .models import ContestParticipant  # avoid circular import
-    if ContestParticipant.objects.filter(contest=contest, user=user).exists():
-        return 'participant'
-    return 'outsider'
+    return native
 
 
 def can_manage_contest(user, contest) -> bool:
