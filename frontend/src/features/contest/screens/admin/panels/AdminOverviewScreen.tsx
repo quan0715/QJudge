@@ -87,9 +87,65 @@ export default function AdminOverviewScreen({
 
   const handlePublishContest = useCallback(async () => {
     if (!contest?.id) return;
+    const workItemCount = contest.contestType === "paper_exam"
+      ? contest.examQuestionsCount
+      : contest.problems.length;
     const hasSchedule =
       Number.isFinite(Date.parse(contest.startTime ?? "")) &&
       Number.isFinite(Date.parse(contest.endTime ?? ""));
+    const hasRules = (contest.rules ?? "").trim().length > 0;
+    const publishSummaryConfirmed = await confirm({
+      title: t("adminOverview.actions.publishContest", "發布競賽"),
+      body: (
+        <div className={styles.publishSummary}>
+          <p className={styles.publishSummaryIntro}>
+            {t("adminOverview.publishSummary.description", "請確認以下設定後再發布競賽。")}
+          </p>
+          <div className={styles.publishSummaryGrid}>
+            <div className={styles.publishSummaryItem}>
+              <span className={styles.publishSummaryLabel}>{t("adminOverview.publishSummary.problemCount", "題目數量")}</span>
+              <span className={styles.publishSummaryValue}>{workItemCount}</span>
+            </div>
+            <div className={styles.publishSummaryItem}>
+              <span className={styles.publishSummaryLabel}>{t("adminOverview.publishSummary.mode", "模式")}</span>
+              <span className={styles.publishSummaryValue}>
+                {contest.contestType === "paper_exam"
+                  ? t("adminOverview.examType.paper_exam", "考卷")
+                  : t("adminOverview.examType.coding", "Coding Test")}
+              </span>
+            </div>
+            <div className={styles.publishSummaryItem}>
+              <span className={styles.publishSummaryLabel}>{t("adminOverview.publishSummary.requiresPassword", "需要密碼")}</span>
+              <Tag type={contest.requiresPassword ? "green" : "red"} size="sm">
+                {contest.requiresPassword ? t("common:yes", "是") : t("common:no", "否")}
+              </Tag>
+            </div>
+            <div className={styles.publishSummaryItem}>
+              <span className={styles.publishSummaryLabel}>{t("adminOverview.publishSummary.strictMode", "嚴格考試模式")}</span>
+              <Tag type={contest.cheatDetectionEnabled ? "green" : "red"} size="sm">
+                {contest.cheatDetectionEnabled ? t("common:enabled", "已啟用") : t("common:disabled", "未啟用")}
+              </Tag>
+            </div>
+            <div className={styles.publishSummaryItem}>
+              <span className={styles.publishSummaryLabel}>{t("adminOverview.publishSummary.schedule", "已設定時間")}</span>
+              <Tag type={hasSchedule ? "green" : "red"} size="sm">
+                {hasSchedule ? t("common:yes", "是") : t("common:no", "否")}
+              </Tag>
+            </div>
+            <div className={styles.publishSummaryItem}>
+              <span className={styles.publishSummaryLabel}>{t("adminOverview.publishSummary.rules", "已設定競賽規則")}</span>
+              <Tag type={hasRules ? "green" : "red"} size="sm">
+                {hasRules ? t("common:yes", "是") : t("common:no", "否")}
+              </Tag>
+            </div>
+          </div>
+        </div>
+      ),
+      confirmLabel: t("adminOverview.actions.publishContest", "發布競賽"),
+      cancelLabel: tc("button.cancel"),
+    });
+    if (!publishSummaryConfirmed) return;
+
     if (hasSchedule) {
       try {
         await updateContest(contest.id, { status: "published" });
@@ -104,10 +160,6 @@ export default function AdminOverviewScreen({
       }
       return;
     }
-    const workItemCount = contest.contestType === "paper_exam"
-      ? contest.examQuestionsCount
-      : contest.problems.length;
-    const hasRules = (contest.rules ?? "").trim().length > 0;
     const pendingTodoCount = (workItemCount > 0 ? 0 : 1) + (hasRules ? 0 : 1);
     setPublishScheduleMode("publish");
     setPublishScheduleWarning(
@@ -116,7 +168,7 @@ export default function AdminOverviewScreen({
         : "",
     );
     setPublishScheduleOpen(true);
-  }, [contest, refreshContest, showToast, t]);
+  }, [confirm, contest, refreshContest, showToast, t, tc]);
 
   const handleOpenScheduleEditor = useCallback(() => {
     if (!contest?.id) return;

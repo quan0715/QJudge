@@ -77,6 +77,9 @@ SILENCED_SYSTEM_CHECKS = ['django_ratelimit.E003', 'django_ratelimit.W001']
 # Disable ratelimit in tests to prevent 403 errors
 RATELIMIT_ENABLE = False
 
+# DRF UserRateThrottle（base 預設 120/min）易與 pytest / Playwright E2E 撞 429，測試 settings 關閉。
+REST_FRAMEWORK = {**REST_FRAMEWORK, "DEFAULT_THROTTLE_CLASSES": []}
+
 # Faster password hashing for tests
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',

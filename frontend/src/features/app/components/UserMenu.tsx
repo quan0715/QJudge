@@ -324,6 +324,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
 
           <button
             type="button"
+            data-testid="user-menu-logout-request"
             className="user-menu-link user-menu-link--danger"
             onClick={handleLogoutRequest}
           >
@@ -336,14 +337,19 @@ export const UserMenu: React.FC<UserMenuProps> = ({
       {/* Logout Confirmation Modal */}
       <Modal
         open={isLogoutModalOpen}
+        data-testid="user-menu-logout-modal"
         danger
         modalHeading={t("auth.logout.confirmTitle")}
-        primaryButtonText={t("auth.logout.confirmButton")}
+        primaryButtonText={
+          <span data-testid="user-menu-logout-confirm">
+            {t("auth.logout.confirmButton")}
+          </span>
+        }
         secondaryButtonText={t("common:button.cancel")}
         onRequestClose={() => setIsLogoutModalOpen(false)}
         onRequestSubmit={handleLogout}
       >
-        <p>{t("auth.logout.confirmMessage")}</p>
+        <p data-testid="user-menu-logout-message">{t("auth.logout.confirmMessage")}</p>
       </Modal>
 
       {/* Nickname Modal */}

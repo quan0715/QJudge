@@ -67,6 +67,7 @@ export default function OverviewActionWidgets({
 }: OverviewActionWidgetsProps) {
   const { t } = useTranslation("contest");
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [countdownBaseSeconds, setCountdownBaseSeconds] = useState<number>(0);
   const contestStatus = contest.status ?? "draft";
   const startAtMs = useMemo(() => Date.parse(contest.startTime ?? ""), [contest.startTime]);
   const endAtMs = useMemo(() => Date.parse(contest.endTime ?? ""), [contest.endTime]);
@@ -81,6 +82,10 @@ export default function OverviewActionWidgets({
     }
     return Math.max(0, Math.floor((startAtMs - nowMs) / 1000));
   }, [nowMs, startAtMs]);
+  const countdownProgress = useMemo(() => {
+    if (countdownBaseSeconds <= 0) return 0;
+    return Math.max(0, Math.min(100, (countdownSeconds / countdownBaseSeconds) * 100));
+  }, [countdownBaseSeconds, countdownSeconds]);
   const { startTimeLabel, endTimeLabel } = useMemo(() => {
     const fmt = (value: string | undefined): string => {
       const ts = Date.parse(value ?? "");
@@ -191,6 +196,20 @@ export default function OverviewActionWidgets({
       window.clearInterval(timerId);
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasSchedule) {
+      setCountdownBaseSeconds(0);
+      return;
+    }
+    if (countdownSeconds > 0 && countdownBaseSeconds === 0) {
+      setCountdownBaseSeconds(countdownSeconds);
+      return;
+    }
+    if (countdownSeconds === 0 && countdownBaseSeconds !== 0) {
+      setCountdownBaseSeconds(0);
+    }
+  }, [countdownBaseSeconds, countdownSeconds, hasSchedule]);
 
   if (loading) {
     return (
@@ -344,26 +363,41 @@ export default function OverviewActionWidgets({
               <h3 className={styles.widgetTitle}>{t("adminOverview.widgets.examProgress", "考試進度")}</h3>
             </div>
             <span className={styles.progressPercent}>
-              {Math.round(liveTimeProgress.progressPercent)}%
+              {hasSchedule && !liveTimeProgress.isStarted
+                ? t("adminOverview.time.notStarted", "尚未開始")
+                : `${Math.round(liveTimeProgress.progressPercent)}%`}
             </span>
           </div>
-          <div className={styles.progressValue}>
-            {formatDuration(liveTimeProgress.elapsedSeconds)}
-            <span className={styles.widgetUnit}>/ {formatDuration(liveTimeProgress.totalSeconds)}</span>
+          <div className={styles.progressPrimaryRow}>
+            <div className={styles.progressValue}>
+              {!hasSchedule
+                ? t("adminOverview.time.configure", "設定時間")
+                : !liveTimeProgress.isStarted
+                  ? formatDuration(countdownSeconds)
+                  : formatDuration(liveTimeProgress.elapsedSeconds)}
+              {hasSchedule && liveTimeProgress.isStarted && (
+                <span className={styles.widgetUnit}>/ {formatDuration(liveTimeProgress.totalSeconds)}</span>
+              )}
+              {hasSchedule && !liveTimeProgress.isStarted && (
+                <span className={styles.widgetUnit}>{t("adminOverview.time.untilStartShort", "後開始")}</span>
+              )}
+            </div>
+            {hasSchedule && (
+              <div className={styles.progressWindowText}>
+                {startTimeLabel}
+                <span className={styles.progressWindowSep}>{" — "}</span>
+                {endTimeLabel}
+              </div>
+            )}
           </div>
           <ProgressBar
             className={styles.progressBar}
             hideLabel
             label={t("adminOverview.widgets.examProgress", "考試進度")}
             size="small"
-            value={liveTimeProgress.progressPercent}
+            value={!hasSchedule ? 0 : !liveTimeProgress.isStarted ? countdownProgress : liveTimeProgress.progressPercent}
           />
           <div className={styles.progressFooter}>
-            <div className={styles.progressWindowText}>
-              {startTimeLabel}
-              <span className={styles.progressWindowSep}>{" — "}</span>
-              {endTimeLabel}
-            </div>
             <div className={styles.progressStatusText}>
               {!hasSchedule
                 ? t("adminOverview.time.unscheduledHint", "尚未排程，請先發布並設定時段")
@@ -373,9 +407,7 @@ export default function OverviewActionWidgets({
                   ? t("adminOverview.time.remaining", "剩餘 {{time}}", {
                       time: formatDuration(liveTimeProgress.remainingSeconds),
                     })
-                  : t("adminOverview.time.untilStart", "距離開始 {{time}}", {
-                      time: formatDuration(countdownSeconds),
-                    })}
+                  : ""}
             </div>
             <div className={styles.progressActionRow}>
               <span>{scheduleActionText}</span>

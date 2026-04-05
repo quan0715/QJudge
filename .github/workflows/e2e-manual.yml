@@ -1,4 +1,6 @@
-name: E2E Manual
+# Playwright E2E：僅允許手動觸發（repository_dispatch / push / PR 皆未啟用）。
+# 使用方式：GitHub → Actions → 選本 workflow → 「Run workflow」。
+name: E2E (manual only)
 
 on:
   workflow_dispatch:

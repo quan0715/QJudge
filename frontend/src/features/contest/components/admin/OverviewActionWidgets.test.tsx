@@ -182,9 +182,7 @@ describe("OverviewActionWidgets", () => {
       />,
     );
 
-    expect(
-      screen.getByText((content) => /未設定|adminOverview\\.time\\.unset/.test(content)),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/未設定 — 未設定/)).not.toBeInTheDocument();
     expect(screen.getByText("尚未排程，請先發布並設定時段")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "考試進度 設定時間" }));
     expect(onOpenScheduleSettings).toHaveBeenCalledTimes(1);

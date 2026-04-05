@@ -72,10 +72,11 @@ const LoginPage = () => {
 
   return (
     <>
-      <Form onSubmit={handleLogin} className="auth-form">
+      <Form onSubmit={handleLogin} className="auth-form" data-testid="auth-login-form">
         <PendingActionBanner />
         <TextInput
           id="email"
+          data-testid="auth-login-email"
           labelText={t("auth.login.email", "Email")}
           placeholder={t("auth.login.emailPlaceholder", "QStudent")}
           value={email}
@@ -85,6 +86,7 @@ const LoginPage = () => {
 
         <PasswordInput
           id="password"
+          data-testid="auth-login-password"
           labelText={t("auth.login.password", "密碼")}
           placeholder={t("auth.login.passwordPlaceholder", "••••••••")}
           value={password}
@@ -92,13 +94,23 @@ const LoginPage = () => {
           required
         />
 
-        {error && <p className="auth-error">{error}</p>}
+        {error && (
+          <p className="auth-error" data-testid="auth-form-error">
+            {error}
+          </p>
+        )}
 
         <div className="auth-actions">
           {loading ? (
             <InlineLoading description={t("auth.login.loading", "登入中...")} />
           ) : (
-            <Button kind="primary" type="submit" className="auth-submit-btn" renderIcon={ArrowRight}>
+            <Button
+              kind="primary"
+              type="submit"
+              className="auth-submit-btn"
+              data-testid="auth-login-submit"
+              renderIcon={ArrowRight}
+            >
               {t("auth.login.submit", "登入")}
             </Button>
           )}
@@ -133,7 +145,11 @@ const LoginPage = () => {
       <div className="auth-footer">
         <p>
           {t("auth.login.noAccount", "還沒有帳號？")}{" "}
-          <Link to={buildAuthLink("/register")} className="auth-link">
+          <Link
+            to={buildAuthLink("/register")}
+            className="auth-link"
+            data-testid="auth-login-nav-register"
+          >
             {t("auth.login.registerNow", "立即註冊")}
           </Link>
         </p>
