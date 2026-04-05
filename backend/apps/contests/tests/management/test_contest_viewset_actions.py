@@ -160,6 +160,8 @@ def test_toggle_status_published_to_draft_and_back(
     owner: User,
     contest: Contest,
 ) -> None:
+    contest.results_published = True
+    contest.save(update_fields=["results_published"])
     api_client.force_authenticate(user=owner)
 
     first = api_client.post(f"/api/v1/contests/{contest.id}/toggle_status/", {}, format="json")
@@ -167,8 +169,29 @@ def test_toggle_status_published_to_draft_and_back(
 
     assert first.status_code == status.HTTP_200_OK
     assert first.data["status"] == "draft"
+    contest.refresh_from_db()
+    assert contest.results_published is False
     assert second.status_code == status.HTTP_200_OK
     assert second.data["status"] == "published"
+
+
+@pytest.mark.django_db
+def test_toggle_status_rejects_publish_without_schedule(
+    api_client: APIClient,
+    owner: User,
+) -> None:
+    contest = Contest.objects.create(
+        name="Draft Without Schedule",
+        owner=owner,
+        status="draft",
+        visibility="public",
+    )
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.post(f"/api/v1/contests/{contest.id}/toggle_status/", {}, format="json")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["error"] == "Start time and end time are required before publishing."
 
 
 @pytest.mark.django_db

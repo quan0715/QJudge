@@ -36,3 +36,5 @@ runtime.js
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+# Playwright storageState from tests/e2e/auth.setup.ts (host path: frontend/.auth/)
+.auth/

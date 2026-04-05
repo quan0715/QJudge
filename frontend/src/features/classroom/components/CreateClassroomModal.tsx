@@ -46,15 +46,23 @@ export const CreateClassroomModal: React.FC<CreateClassroomModalProps> = ({
   return (
     <Modal
       open={open}
+      data-testid="create-classroom-modal"
       onRequestClose={handleClose}
       onRequestSubmit={handleSubmit}
       modalHeading="建立教室"
-      primaryButtonText={submitting ? "建立中..." : "建立"}
+      primaryButtonText={
+        submitting ? (
+          "建立中..."
+        ) : (
+          <span data-testid="create-classroom-submit">建立</span>
+        )
+      }
       primaryButtonDisabled={submitting || !name.trim()}
       secondaryButtonText="取消"
     >
       <TextInput
         id="classroom-name"
+        data-testid="create-classroom-name"
         labelText="教室名稱"
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -63,6 +71,7 @@ export const CreateClassroomModal: React.FC<CreateClassroomModalProps> = ({
       <div className="classroom-create-modal__description-row">
         <TextArea
           id="classroom-description"
+          data-testid="create-classroom-description"
           labelText="描述（選填）"
           value={description}
           onChange={(e) => setDescription(e.target.value)}

@@ -576,7 +576,20 @@
     "confirmRemoveProblem": "この問題をコンテストから削除しますか？",
     "collapseSourcePanel": "問題ソースを閉じる",
     "hideQuestionList": "問題一覧を隠す",
-    "showQuestionList": "問題一覧を表示"
+    "showQuestionList": "問題一覧を表示",
+    "importYaml": "YAML をインポート",
+    "preview": "プレビュー",
+    "aiAssistant": "AI アシスタント",
+    "codingPreviewPlaceholder": "未編集",
+    "codingProblemUntitled": "無題の問題",
+    "codingProblemWithLabel": "問題 {{label}}",
+    "saveToBank": "問題バンクに保存",
+    "saveToBankAlreadyInBank": "すでに問題バンクに登録済み",
+    "removeFromContest": "コンテストから削除",
+    "maxScoreFieldLabel": "配点",
+    "yamlImportNeedSelection": "先にコーディング問題を選んでから YAML をインポートしてください。",
+    "yamlImportSuccess": "YAML を適用して保存しました",
+    "yamlImportFailed": "YAML のインポートに失敗しました"
   },
   "examJson": {
     "exportOption": "Exam JSON",

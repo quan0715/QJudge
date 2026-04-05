@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import { Button, Tag } from "@carbon/react";
 import { Add, Draggable } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
@@ -14,6 +14,7 @@ import {
 } from "@/shared/ui/list/ListPanel";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
+import { attachReorderPointerSession } from "@/shared/ui/cardListEditor";
 
 interface WorkTreeProps {
   questions: ExamQuestion[];
@@ -26,6 +27,7 @@ interface WorkTreeProps {
   onImportFromBank?: () => void;
   onDelete?: (id: string) => void;
   onReorder: (reordered: ExamQuestion[]) => void;
+  onReorderPointerSessionChange?: (delta: 1 | -1) => void;
 }
 
 /** Single draggable tree item */
@@ -35,7 +37,8 @@ const TreeItem: React.FC<{
   isActive: boolean;
   frozen?: boolean;
   onSelect: () => void;
-}> = ({ question, index, isActive, frozen, onSelect }) => {
+  onReorderPointerSessionChange?: (delta: 1 | -1) => void;
+}> = ({ question, index, isActive, frozen, onSelect, onReorderPointerSessionChange }) => {
   const { t } = useTranslation("contest");
   const dragControls = useDragControls();
 
@@ -57,9 +60,14 @@ const TreeItem: React.FC<{
           {!frozen && (
             <div
               className={styles.dragHandle}
+              data-testid={`worktree-drag-${question.id}`}
               onPointerDown={(e) => {
                 e.stopPropagation();
-                dragControls.start(e);
+                attachReorderPointerSession(
+                  onReorderPointerSessionChange,
+                  (ev) => dragControls.start(ev),
+                  e,
+                );
               }}
             >
               <Draggable size={14} />
@@ -91,14 +99,25 @@ const WorkTree: React.FC<WorkTreeProps> = ({
   onSelect,
   onAdd,
   onReorder,
+  onReorderPointerSessionChange,
 }) => {
   const { t } = useTranslation("contest");
   const totalScore = questions.reduce((s, q) => s + q.score, 0);
   const listRef = useRef<HTMLDivElement>(null);
+  const reorderDragDepthRef = useRef(0);
+
+  const bumpReorderSession = useCallback(
+    (delta: 1 | -1) => {
+      reorderDragDepthRef.current = Math.max(0, reorderDragDepthRef.current + delta);
+      onReorderPointerSessionChange?.(delta);
+    },
+    [onReorderPointerSessionChange],
+  );
 
   // Auto-scroll the active item into view when selectedId changes
   useEffect(() => {
     if (!selectedId || !listRef.current) return;
+    if (reorderDragDepthRef.current > 0) return;
     const activeEl = listRef.current.querySelector(
       `[data-question-id="${selectedId}"]`,
     );
@@ -149,6 +168,7 @@ const WorkTree: React.FC<WorkTreeProps> = ({
             isActive={selectedId === q.id}
             frozen={frozen}
             onSelect={() => onSelect(q.id)}
+            onReorderPointerSessionChange={bumpReorderSession}
           />
         ))}
       </Reorder.Group>

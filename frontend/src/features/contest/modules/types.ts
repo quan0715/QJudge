@@ -53,6 +53,7 @@ export interface AdminPanelProps {
   panelRef?: React.RefObject<any>;
   onExport?: () => void;
   onPreview?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export type AdminPanelRenderer = React.ComponentType<AdminPanelProps>;

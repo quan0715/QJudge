@@ -576,7 +576,20 @@
     "confirmRemoveProblem": "Remove this problem from the contest?",
     "collapseSourcePanel": "Collapse question sources",
     "hideQuestionList": "Hide question list",
-    "showQuestionList": "Show question list"
+    "showQuestionList": "Show question list",
+    "importYaml": "Import YAML",
+    "preview": "Preview",
+    "aiAssistant": "AI assistant",
+    "codingPreviewPlaceholder": "Not edited yet",
+    "codingProblemUntitled": "Untitled problem",
+    "codingProblemWithLabel": "Problem {{label}}",
+    "saveToBank": "Save to question bank",
+    "saveToBankAlreadyInBank": "Already in question bank",
+    "removeFromContest": "Remove from contest",
+    "maxScoreFieldLabel": "Points",
+    "yamlImportNeedSelection": "Select a coding problem first, then import YAML.",
+    "yamlImportSuccess": "YAML applied and saved",
+    "yamlImportFailed": "YAML import failed"
   },
   "examJson": {
     "exportOption": "Exam JSON",

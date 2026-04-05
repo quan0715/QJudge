@@ -460,20 +460,35 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
         else:
             data['password'] = None
         
-        # Validate time range
-        start_time = data.get('start_time')
-        end_time = data.get('end_time')
-        
-        # Handle partial updates for time check
-        if self.instance:
-            start_time = start_time if start_time is not None else self.instance.start_time
-            end_time = end_time if end_time is not None else self.instance.end_time
+        status_in_data = 'status' in data
+        target_status = data.get('status') if status_in_data else (self.instance.status if self.instance else None)
 
-        if start_time and end_time:
-            if start_time >= end_time:
+        has_start_time = 'start_time' in data
+        has_end_time = 'end_time' in data
+        start_time = data.get('start_time') if has_start_time else (self.instance.start_time if self.instance else None)
+        end_time = data.get('end_time') if has_end_time else (self.instance.end_time if self.instance else None)
+
+        if start_time and end_time and start_time >= end_time:
+            raise serializers.ValidationError({
+                'end_time': 'End time must be after start time.'
+            })
+
+        if target_status == 'published':
+            if not start_time:
+                raise serializers.ValidationError({
+                    'start_time': 'Start time is required before publishing.'
+                })
+            if not end_time:
+                raise serializers.ValidationError({
+                    'end_time': 'End time is required before publishing.'
+                })
+            if end_time <= start_time:
                 raise serializers.ValidationError({
                     'end_time': 'End time must be after start time.'
                 })
+
+        if target_status == 'draft':
+            data['results_published'] = False
         
         return data
 

@@ -77,6 +77,9 @@ SILENCED_SYSTEM_CHECKS = ['django_ratelimit.E003', 'django_ratelimit.W001']
 # Disable ratelimit in tests to prevent 403 errors
 RATELIMIT_ENABLE = False
 
+# DRF UserRateThrottle（base 預設 120/min）易與 pytest / Playwright E2E 撞 429，測試 settings 關閉。
+REST_FRAMEWORK = {**REST_FRAMEWORK, "DEFAULT_THROTTLE_CLASSES": []}
+
 # Faster password hashing for tests
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',
@@ -108,10 +111,14 @@ DOCKER_SECCOMP_PROFILE = os.getenv('DOCKER_SECCOMP_PROFILE', None)
 ALLOWED_HOSTS = ['*']
 
 # CSRF trusted origins for E2E test frontend (port 5174)
+# Include 127.0.0.1 — Playwright/CI often uses PLAYWRIGHT_BASE_URL=http://127.0.0.1:5174
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5174",
+    "http://127.0.0.1:5174",
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 # 靜態檔案

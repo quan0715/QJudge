@@ -2,6 +2,7 @@ import React, {
   useState,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useImperativeHandle,
 } from "react";
@@ -42,6 +43,7 @@ import { GlobalSaveStatus } from "@/shared/ui/autoSave";
 import QuestionSourcePanel from "./QuestionSourcePanel";
 import type { QuestionSourceDragItem } from "./questionSource.types";
 import useToolbarSaveStatus from "./hooks/useToolbarSaveStatus";
+import { useEditorPaneScrollSelection } from "./hooks/useEditorPaneScrollSelection";
 import styles from "./ExamEditorLayout.module.scss";
 
 const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
@@ -125,10 +127,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
 
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const editorPaneRef = useRef<HTMLDivElement>(null);
-  const programmaticScrollRef = useRef(false);
-
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [insertAtOrder, setInsertAtOrder] = useState<number | null>(null);
   const [jsonImportOpen, setJsonImportOpen] = useState(false);
@@ -138,6 +136,19 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
   const frozen = !!contest.questionEditLocked;
   const lockedReason = "已有學生正式作答，競賽題目已鎖定";
   const isCompactScreen = useCompactScreen();
+
+  const examScrollItemsKey = useMemo(
+    () => questions.map((question) => question.id).join(","),
+    [questions],
+  );
+
+  const {
+    editorPaneRef,
+    cardRefs,
+    onReorderPointerSessionChange,
+    handleSelect,
+    onCardRoot,
+  } = useEditorPaneScrollSelection(selectedId, setSelectedId, examScrollItemsKey);
 
   const loadQuestions = useCallback(async (): Promise<ExamQuestion[]> => {
     if (!contestId) return [];
@@ -299,63 +310,13 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
     };
   }, []);
 
-  useEffect(() => {
-    const pane = editorPaneRef.current;
-    if (!pane || questions.length === 0) return;
-
-    let ticking = false;
-    const handleScroll = () => {
-      if (programmaticScrollRef.current) return;
-      if (ticking) return;
-      ticking = true;
-
-      requestAnimationFrame(() => {
-        ticking = false;
-        const paneRect = pane.getBoundingClientRect();
-        const paneCenterY = paneRect.top + paneRect.height / 2;
-
-        let closestId: string | null = null;
-        let closestDist = Infinity;
-
-        for (const [id, el] of cardRefs.current) {
-          const rect = el.getBoundingClientRect();
-          const cardCenterY = rect.top + rect.height / 2;
-          const dist = Math.abs(cardCenterY - paneCenterY);
-          if (dist < closestDist) {
-            closestDist = dist;
-            closestId = id;
-          }
-        }
-
-        if (closestId && closestId !== selectedId) {
-          setSelectedId(closestId);
-        }
-      });
-    };
-
-    pane.addEventListener("scroll", handleScroll, { passive: true });
-    return () => pane.removeEventListener("scroll", handleScroll);
-  }, [questions, selectedId]);
-
-  const handleSelect = useCallback((id: string) => {
-    setSelectedId(id);
-    const el = cardRefs.current.get(id);
-    if (el) {
-      programmaticScrollRef.current = true;
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTimeout(() => {
-        programmaticScrollRef.current = false;
-      }, 600);
-    }
-  }, []);
-
   const scrollEditorToBottom = useCallback(() => {
     const pane = editorPaneRef.current;
     if (!pane) return;
     requestAnimationFrame(() => {
       pane.scrollTo({ top: pane.scrollHeight, behavior: "smooth" });
     });
-  }, []);
+  }, [editorPaneRef]);
 
   const openTypePicker = useCallback((order?: number) => {
     setInsertAtOrder(order ?? null);
@@ -538,6 +499,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       onSelect={handleSelect}
       onAdd={() => openTypePicker()}
       onReorder={handleReorder}
+      onReorderPointerSessionChange={onReorderPointerSessionChange}
     />
   );
 
@@ -637,6 +599,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
                   kind="primary"
                   size="md"
                   hasIconOnly
+                  data-testid="contest-editor-open-source"
                   renderIcon={sourcePanelOpen ? Close : Add}
                   iconDescription={t(
                     sourcePanelOpen
@@ -661,6 +624,8 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         <CardListEditor
           items={questions}
           onReorder={handleReorder}
+          onReorderPointerSessionChange={onReorderPointerSessionChange}
+          onCardRoot={onCardRoot}
           frozen={frozen}
           canDrop={!!sourceDragItem && !frozen}
           hoverIndex={sourceHoverIndex}

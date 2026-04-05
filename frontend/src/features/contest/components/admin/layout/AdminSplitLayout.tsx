@@ -5,6 +5,7 @@ interface AdminSplitLayoutProps {
   toolbar?: ReactNode;
   sidebar: ReactNode;
   sidebarHidden?: boolean;
+  sidebarClassName?: string;
   sidebarWidth?: number;
   middlePane?: ReactNode;
   middlePaneWidth?: number;
@@ -26,6 +27,7 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
       toolbar,
       sidebar,
       sidebarHidden = false,
+      sidebarClassName,
       sidebarWidth = 260,
       middlePane,
       middlePaneWidth = 220,
@@ -66,7 +68,13 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
     return (
       <div className={rootClasses} style={cssVars}>
         {toolbar && <div className={styles.toolbar}>{toolbar}</div>}
-        {!sidebarHidden ? <div className={styles.sidebar}>{sidebar}</div> : null}
+        {!sidebarHidden ? (
+          <div
+            className={[styles.sidebar, sidebarClassName].filter(Boolean).join(" ")}
+          >
+            {sidebar}
+          </div>
+        ) : null}
         {middlePane && <div className={styles.middle}>{middlePane}</div>}
         <div className={contentClasses} ref={ref}>
           {children}

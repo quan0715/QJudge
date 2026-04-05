@@ -30,6 +30,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   renderMobileContent,
   className,
 }) => {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 672px)").matches;
+  });
   const visibleItems = useMemo(
     () => navItems.filter((item) => !item.hidden),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,6 +59,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
     prevOpenRef.current = open;
   }, [open, initialActiveId, visibleItems]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 672px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+    };
+
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+    };
+  }, []);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -109,17 +129,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           })}
         </nav>
 
-        {/* Content */}
+        {/* Content — single panel mount (avoid duplicate ids / testids in DOM) */}
         <div className="settings-modal__content" ref={contentRef}>
-          {/* Desktop: single active panel */}
-          <div className="settings-modal__desktop-content">
-            <h2 className="settings-modal__content-title">{activeLabel}</h2>
-            {renderPanel(activeId)}
-          </div>
-
-          {/* Mobile: custom layout or fallback to renderPanel */}
-          <div className="settings-modal__mobile-content">
-            {renderMobileContent
+          <h2 className="settings-modal__content-title">{activeLabel}</h2>
+          <div className="settings-modal__body">
+            {isMobile && renderMobileContent
               ? renderMobileContent(activeId)
               : renderPanel(activeId)}
           </div>

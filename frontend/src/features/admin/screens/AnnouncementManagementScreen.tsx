@@ -162,7 +162,11 @@ const AnnouncementManagementScreen = () => {
                   }
                   placeholder={t("announcement.search")}
                 />
-                <Button renderIcon={Add} onClick={handleOpenCreateModal}>
+                <Button
+                  renderIcon={Add}
+                  data-testid="announcement-create"
+                  onClick={handleOpenCreateModal}
+                >
                   {t("announcement.create")}
                 </Button>
               </TableToolbarContent>
@@ -188,7 +192,7 @@ const AnnouncementManagementScreen = () => {
                   if (!announcement) return null;
 
                   return (
-                    <TableRow key={row.id}>
+                    <TableRow key={row.id} data-testid={`announcement-row-${announcement.id}`}>
                       <TableCell>{announcement.title}</TableCell>
                       <TableCell>{announcement.author?.username}</TableCell>
                       <TableCell>
@@ -213,6 +217,7 @@ const AnnouncementManagementScreen = () => {
                             renderIcon={Edit}
                             iconDescription={tc("button.edit")}
                             hasIconOnly
+                            data-testid={`announcement-edit-${announcement.id}`}
                             onClick={() => handleOpenEditModal(announcement)}
                           />
                           <Button
@@ -221,6 +226,7 @@ const AnnouncementManagementScreen = () => {
                             renderIcon={TrashCan}
                             iconDescription={tc("button.delete")}
                             hasIconOnly
+                            data-testid={`announcement-delete-${announcement.id}`}
                             onClick={() => handleOpenDeleteModal(announcement)}
                           />
                         </div>
@@ -252,13 +258,16 @@ const AnnouncementManagementScreen = () => {
       {/* Create/Edit Modal */}
       <Modal
         open={isModalOpen}
+        data-testid="announcement-editor-modal"
         modalHeading={
           editingAnnouncement
             ? t("announcement.edit")
             : t("announcement.create")
         }
         primaryButtonText={
-          editingAnnouncement ? tc("button.save") : tc("button.create")
+          <span data-testid="announcement-editor-submit">
+            {editingAnnouncement ? tc("button.save") : tc("button.create")}
+          </span>
         }
         secondaryButtonText={tc("button.cancel")}
         onRequestClose={() => setIsModalOpen(false)}
@@ -266,6 +275,7 @@ const AnnouncementManagementScreen = () => {
       >
         <TextInput
           id="title"
+          data-testid="announcement-field-title"
           labelText={t("announcement.form.title")}
           placeholder={t("announcement.form.titlePlaceholder")}
           value={formData.title}
@@ -274,6 +284,7 @@ const AnnouncementManagementScreen = () => {
         />
         <TextArea
           id="content"
+          data-testid="announcement-field-content"
           labelText={t("announcement.form.content")}
           placeholder={t("announcement.form.contentPlaceholder")}
           value={formData.content}
@@ -285,6 +296,7 @@ const AnnouncementManagementScreen = () => {
         />
         <Toggle
           id="visible"
+          data-testid="announcement-field-visible"
           labelText={t("announcement.form.publishLabel")}
           labelA={t("announcement.form.hidden")}
           labelB={t("announcement.form.published")}
@@ -296,14 +308,19 @@ const AnnouncementManagementScreen = () => {
       {/* Delete Confirmation Modal */}
       <Modal
         open={isDeleteModalOpen}
+        data-testid="announcement-delete-modal"
         danger
         modalHeading={t("announcement.delete")}
-        primaryButtonText={tc("button.delete")}
+        primaryButtonText={
+          <span data-testid="announcement-delete-submit">
+            {tc("button.delete")}
+          </span>
+        }
         secondaryButtonText={tc("button.cancel")}
         onRequestClose={() => setIsDeleteModalOpen(false)}
         onRequestSubmit={handleDelete}
       >
-        <p>
+        <p data-testid="announcement-delete-marker">
           {t("announcement.confirmDelete", {
             title: deletingAnnouncement?.title,
           })}

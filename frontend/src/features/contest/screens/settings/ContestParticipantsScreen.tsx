@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import {
-  Button,
-  ExpandableSearch,
-  FluidDropdown,
-  InlineNotification,
-} from "@carbon/react";
+import { Button, ExpandableSearch, FluidDropdown } from "@carbon/react";
 import { Add, DocumentExport } from "@carbon/icons-react";
 import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
@@ -31,6 +26,7 @@ import {
   updateParticipant,
 } from "@/infrastructure/api/repositories";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
+import { useToast } from "@/shared/contexts/ToastContext";
 
 import ParticipantDashboardPane from "@/features/contest/components/participants/ParticipantDashboardPane";
 import ParticipantsListPane from "@/features/contest/components/participants/ParticipantsListPane";
@@ -55,11 +51,8 @@ const ContestParticipantsScreen = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const { confirm, modalProps } = useConfirmModal();
+  const { showToast } = useToast();
 
-  const [notification, setNotification] = useState<{
-    kind: "success" | "error";
-    message: string;
-  } | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingParticipant, setEditingParticipant] = useState<ContestParticipant | null>(null);
@@ -255,11 +248,19 @@ const ContestParticipantsScreen = () => {
     try {
       await addContestParticipant(contestId, username);
       await refreshAdminData();
-      setNotification({ kind: "success", message: t("participants.added", "參賽者已新增") });
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.added", "參賽者已新增"),
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : t("participants.addFailed", "新增參賽者失敗");
-      setNotification({ kind: "error", message });
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
       throw error;
     }
   };
@@ -277,7 +278,11 @@ const ContestParticipantsScreen = () => {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : t("participants.exportFailed", "匯出失敗");
-      setNotification({ kind: "error", message });
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
     }
   };
 
@@ -285,14 +290,19 @@ const ContestParticipantsScreen = () => {
     if (!contestId || !selectedUserId || !dashboard) return;
     try {
       await downloadParticipantReport(contestId, selectedUserId);
-      setNotification({
+      showToast({
         kind: "success",
-        message: t("participants.reportDownloaded", { name: dashboard.participant.username }),
+        title: t("common.success", "成功"),
+        subtitle: t("participants.reportDownloaded", { name: dashboard.participant.username }),
       });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : t("participants.downloadFailed", "下載報告失敗");
-      setNotification({ kind: "error", message });
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
     }
   };
 
@@ -308,11 +318,19 @@ const ContestParticipantsScreen = () => {
     try {
       await unlockParticipant(contestId, Number(selectedUserId));
       await refreshBoth();
-      setNotification({ kind: "success", message: t("participants.unlocked", "已解除鎖定") });
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.unlocked", "已解除鎖定"),
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : t("participants.unlockFailed", "解除鎖定失敗");
-      setNotification({ kind: "error", message });
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
     }
   };
 
@@ -328,10 +346,18 @@ const ContestParticipantsScreen = () => {
     try {
       await approveTakeover(contestId, Number(selectedUserId));
       await refreshBoth();
-      setNotification({ kind: "success", message: t("dashboard.takeoverApproved", "已核可裝置接管") });
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("dashboard.takeoverApproved", "已核可裝置接管"),
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : t("dashboard.takeoverApproveFailed", "核可裝置接管失敗");
-      setNotification({ kind: "error", message });
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
     }
   };
 
@@ -347,11 +373,19 @@ const ContestParticipantsScreen = () => {
     try {
       await reopenExam(contestId, Number(selectedUserId));
       await refreshBoth();
-      setNotification({ kind: "success", message: t("participants.reopened", "已重新開放考試") });
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.reopened", "已重新開放考試"),
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : t("participants.reopenFailed", "重新開放失敗");
-      setNotification({ kind: "error", message });
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
     }
   };
 
@@ -368,11 +402,19 @@ const ContestParticipantsScreen = () => {
       await removeParticipant(contestId, Number(selectedUserId));
       await refreshAdminData();
       updateParams({ user: null, detail: null });
-      setNotification({ kind: "success", message: t("participants.removed", "參賽者已移除") });
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.removed", "參賽者已移除"),
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : t("participants.removeFailed", "移除參賽者失敗");
-      setNotification({ kind: "error", message });
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
     }
   };
 
@@ -394,11 +436,19 @@ const ContestParticipantsScreen = () => {
       });
       setEditModalOpen(false);
       await refreshBoth();
-      setNotification({ kind: "success", message: t("participants.statusUpdated", "參賽者狀態已更新") });
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.statusUpdated", "參賽者狀態已更新"),
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : t("participants.updateFailed", "更新失敗");
-      setNotification({ kind: "error", message });
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
     } finally {
       setSaving(false);
     }
@@ -539,16 +589,6 @@ const ContestParticipantsScreen = () => {
           />
         </div>
       </div>
-
-      {notification ? (
-        <InlineNotification
-          lowContrast
-          kind={notification.kind}
-          title={notification.kind === "success" ? t("common.success", "成功") : t("common.error", "錯誤")}
-          subtitle={notification.message}
-          onCloseButtonClick={() => setNotification(null)}
-        />
-      ) : null}
 
       <AddParticipantModal
         isOpen={addModalOpen}

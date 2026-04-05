@@ -1,7 +1,11 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
-import WorkTreeShell from "@/features/contest/components/admin/examEditor/WorkTreeShell";
+import {
+  ListPanel,
+  ListHeader,
+  ListFooter,
+} from "@/shared/ui/list/ListPanel";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import QuestionStatisticsDetail from "./QuestionStatisticsDetail";
 import { useExamStatistics } from "./useExamStatistics";
@@ -64,11 +68,13 @@ export default function ExamStatisticsPanel() {
   }
 
   const sidebarContent = (
-    <WorkTreeShell
-      title={t("statistics.title", "題目統計")}
-      hasItems={safeStats.length > 0}
-      emptyState={t("statistics.noData", "尚無題目資料")}
-      footer={<span>{t("statistics.questionCount", { count: safeStats.length })}</span>}
+    <ListPanel
+      header={<ListHeader title={t("statistics.title", "題目統計")} />}
+      footer={(
+        <ListFooter>
+          <span>{t("statistics.questionCount", { count: safeStats.length })}</span>
+        </ListFooter>
+      )}
     >
       <div className={styles.questionList}>
         {safeStats.map((q) => (
@@ -93,7 +99,7 @@ export default function ExamStatisticsPanel() {
           </button>
         ))}
       </div>
-    </WorkTreeShell>
+    </ListPanel>
   );
 
   return (

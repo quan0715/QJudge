@@ -38,6 +38,9 @@
   font-weight: 600;
   color: var(--cds-text-primary);
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .right {

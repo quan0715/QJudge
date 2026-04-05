@@ -3,14 +3,19 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * Playwright E2E Testing Configuration
  *
- * This configuration is specifically designed for E2E testing with Docker Compose.
- * It launches the entire stack (backend, frontend, database) and runs tests against it.
+ * Designed for the docker test stack: `docker compose -f docker-compose.test.yml`
+ * maps `frontend-test` to host port 5174 (see CI e2e-manual workflow).
  *
- * Usage:
- *   npm run test:e2e       # Run all E2E tests
- *   npm run test:e2e:ui    # Run with UI mode
- *   npm run test:e2e:debug # Run with debug mode
+ * Usage (host machine, stack already up):
+ *   npm run test:e2e            # headless
+ *   npm run test:e2e:ui         # Playwright UI against localhost:5174
+ *   PLAYWRIGHT_BASE_URL=http://127.0.0.1:5174 npm run test:e2e:ui
  */
+const e2eBaseURL =
+  process.env.PLAYWRIGHT_BASE_URL ||
+  process.env.E2E_BASE_URL ||
+  "http://localhost:5174";
+
 export default defineConfig({
   testDir: "./tests/e2e",
 
@@ -35,8 +40,7 @@ export default defineConfig({
 
   /* Shared settings for all the projects below */
   use: {
-    /* Base URL for E2E tests - points to frontend-test service */
-    baseURL: "http://localhost:5174",
+    baseURL: e2eBaseURL,
 
     /* Collect trace when retrying the failed test */
     trace: "retain-on-failure",
@@ -60,17 +64,18 @@ export default defineConfig({
 
   /* Configure projects for Chrome only */
   projects: [
+    // Setup project
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
     {
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        // Clear storage before each test to ensure clean state
-        storageState: undefined,
-        // Use fresh context for each test
-        contextOptions: {
-          storageState: undefined,
-        },
+        // storageState will be overridden in individual tests using test.use()
       },
+      dependencies: ['setup'],
     },
   ],
 });

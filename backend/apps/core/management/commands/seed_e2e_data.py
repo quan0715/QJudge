@@ -9,8 +9,10 @@ from datetime import timedelta
 from apps.users.models import UserProfile
 from apps.problems.models import Problem, TestCase, ProblemTranslation, LanguageConfig
 from apps.contests.models import Contest, ContestProblem, ContestParticipant, ExamQuestion
-from apps.classrooms.models import Classroom
-from apps.question_bank.models import QuestionBank
+from apps.classrooms.models import Classroom, ClassroomContest
+from apps.question_bank.models import Question, QuestionBank
+from apps.question_bank.bank_workflows import upsert_exam_question_into_bank, upsert_problem_into_bank
+
 
 User = get_user_model()
 
@@ -35,6 +37,9 @@ class Command(BaseCommand):
 
         # 5. Create test question bank
         self._create_question_banks()
+
+        # 6. Bind contests to E2E classroom (admin URLs need bound_classroom_id)
+        self._bind_classroom_contests()
 
         self.stdout.write(self.style.SUCCESS('✓ E2E 測試資料建立完成'))
 
@@ -104,10 +109,13 @@ class Command(BaseCommand):
                 user.save()
                 self.stdout.write(f'  ✓ 建立用戶: {username}')
             
-            # Ensure profile exists
-            if not hasattr(user, 'profile'):
-                UserProfile.objects.create(user=user)
+            # Ensure profile exists + E2E 可直達教室／競賽管理（RequireCompletedOnboarding）
+            profile, p_created = UserProfile.objects.get_or_create(user=user)
+            if p_created:
                 self.stdout.write(f'  ✓ 建立用戶資料: {username}')
+            if profile.onboarding_completed_at is None:
+                profile.onboarding_completed_at = timezone.now()
+                profile.save(update_fields=['onboarding_completed_at', 'updated_at'])
 
     def _create_problems(self):
         """建立測試題目"""
@@ -431,6 +439,27 @@ int main() {
             }
         )
 
+        # Draft coding contest: empty list for isolated editor E2E
+        draft_coding, dcreated = Contest.objects.get_or_create(
+            name="E2E Draft Coding Editor",
+            defaults={
+                'description': 'E2E 題目編輯測試用草稿程式競賽',
+                'start_time': now + timedelta(days=7),
+                'end_time': now + timedelta(days=7, hours=3),
+                'owner': teacher,
+                'status': 'draft',
+                'contest_type': 'coding',
+                'cheat_detection_enabled': False,
+            },
+        )
+        if dcreated:
+            self.stdout.write('  ✓ 建立競賽: E2E Draft Coding Editor')
+        else:
+            draft_coding.start_time = now + timedelta(days=7)
+            draft_coding.end_time = now + timedelta(days=7, hours=3)
+            draft_coding.save(update_fields=['start_time', 'end_time'])
+            self.stdout.write('  - 草稿程式競賽已存在: E2E Draft Coding Editor')
+
     def _create_classrooms(self):
         """建立測試教室"""
         self.stdout.write('建立測試教室...')
@@ -463,3 +492,75 @@ int main() {
             self.stdout.write('  ✓ 建立題庫: E2E Test Bank')
         else:
             self.stdout.write('  - 題庫已存在: E2E Test Bank')
+
+        # At least one coding row for QuestionSourcePanel (coding mode)
+        prob_ab = Problem.objects.filter(title="A+B Problem").first()
+        if prob_ab and teacher:
+            upsert_problem_into_bank(problem=prob_ab, bank=bank, created_by=teacher)
+            self.stdout.write('  ✓ 題庫題目: A+B Problem → E2E Test Bank')
+
+        # Exam bank + one single_choice row for paper editor source tab
+        exam_bank, ecreated = QuestionBank.objects.get_or_create(
+            name="E2E Exam Bank",
+            owner=teacher,
+            defaults={
+                'description': 'E2E 紙本測試題庫',
+                'category': QuestionBank.Category.EXAM,
+            },
+        )
+        if not ecreated and exam_bank.category != QuestionBank.Category.EXAM:
+            exam_bank.category = QuestionBank.Category.EXAM
+            exam_bank.save(update_fields=['category'])
+        if ecreated:
+            self.stdout.write('  ✓ 建立題庫: E2E Exam Bank')
+
+        src_contest, _ = Contest.objects.get_or_create(
+            name="E2E Exam Bank Source Contest",
+            defaults={
+                'owner': teacher,
+                'contest_type': 'paper_exam',
+                'status': 'draft',
+                'description': '僅供種子匯入紙本題庫（勿用於 E2E 流程）',
+            },
+        )
+        eq, _ = ExamQuestion.objects.get_or_create(
+            contest=src_contest,
+            order=0,
+            defaults={
+                'question_type': 'single_choice',
+                'prompt': 'E2E bank seed: 2+2=?',
+                'options': ['3', '4', '5'],
+                'correct_answer': 1,
+                'score': 5,
+            },
+        )
+        if teacher and not Question.objects.filter(
+            bank=exam_bank, metadata__legacy_exam_question_id=str(eq.id)
+        ).exists():
+            upsert_exam_question_into_bank(eq, bank=exam_bank, created_by=teacher)
+            self.stdout.write('  ✓ 題庫題目: exam seed → E2E Exam Bank')
+
+    def _bind_classroom_contests(self):
+        """將常用競賽綁定到 E2E Test Classroom（/classrooms/.../admin 需要）"""
+        self.stdout.write('綁定競賽與 E2E 教室...')
+        classroom = Classroom.objects.filter(name="E2E Test Classroom").first()
+        if not classroom:
+            self.stdout.write(self.style.WARNING('  - 跳過：找不到 E2E Test Classroom'))
+            return
+        names = [
+            "E2E Exam Mode Contest",
+            "E2E Test Contest",
+            "E2E Draft Coding Editor",
+        ]
+        for name in names:
+            contest = Contest.objects.filter(name=name).first()
+            if not contest:
+                continue
+            _, bound = ClassroomContest.objects.get_or_create(
+                classroom=classroom,
+                contest=contest,
+            )
+            if bound:
+                self.stdout.write(f'  ✓ 綁定: {name}')
+            else:
+                self.stdout.write(f'  - 已綁定: {name}')

@@ -2,6 +2,7 @@
  * E2E Tests for Authentication
  *
  * Tests login, registration, logout, and unauthorized access protection.
+ * Locators: data-testid (+ Carbon nested input fill via fillAuthFormInput).
  * Note: NYCU SSO is not tested here as it requires external OAuth flow.
  */
 
@@ -12,15 +13,14 @@ import {
   loginViaAPI,
   clearAuth,
   isAuthenticated,
+  fillAuthFormInput,
 } from "../helpers/auth.helper";
 import { TEST_USERS } from "../helpers/data.helper";
 
 test.describe("Authentication E2E Tests", () => {
-  // Use serial mode to avoid login conflicts
   test.describe.configure({ mode: "serial" });
 
   test.beforeEach(async ({ page }) => {
-    // Navigate to any page to access localStorage, then clear all auth state
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await clearAuth(page);
   });
@@ -35,122 +35,110 @@ test.describe("Authentication E2E Tests", () => {
       };
 
       await page.goto("/register");
-
-      // Verify we're on register page
       await expect(page).toHaveURL(/\/register/);
+      await expect(page.getByTestId("auth-register-form")).toBeVisible();
 
-      // Fill registration form
-      await page.fill("#username", newUser.username);
-      await page.fill("#email", newUser.email);
-      await page.fill("#password", newUser.password);
-      await page.fill("#confirm-password", newUser.password);
+      await fillAuthFormInput(page, "auth-register-username", newUser.username);
+      await fillAuthFormInput(page, "auth-register-email", newUser.email);
+      await fillAuthFormInput(page, "auth-register-password", newUser.password);
+      await fillAuthFormInput(
+        page,
+        "auth-register-password-confirm",
+        newUser.password,
+      );
 
-      // Submit form
-      await page.click('button[type="submit"]');
+      await page.getByTestId("auth-register-submit").click();
 
-      // Should redirect to login or dashboard
       await page.waitForFunction(
         () => window.location.pathname !== "/register",
         undefined,
-        { timeout: 20000 }
+        { timeout: 20000 },
       );
 
-      // Verify we're not on register page anymore
       expect(page.url()).not.toContain("/register");
     });
 
     test("should show error when passwords do not match", async ({ page }) => {
       await page.goto("/register");
 
-      // Fill with mismatched passwords
-      await page.fill("#username", "testuser");
-      await page.fill("#email", "test@example.com");
-      await page.fill("#password", "Password123!");
-      await page.fill("#confirm-password", "DifferentPassword123!");
+      await fillAuthFormInput(page, "auth-register-username", "testuser");
+      await fillAuthFormInput(page, "auth-register-email", "test@example.com");
+      await fillAuthFormInput(page, "auth-register-password", "Password123!");
+      await fillAuthFormInput(
+        page,
+        "auth-register-password-confirm",
+        "DifferentPassword123!",
+      );
 
-      // Submit form
-      await page.click('button[type="submit"]');
+      await page.getByTestId("auth-register-submit").click();
 
-      // Should show error message (use specific selector)
-      await expect(page.locator(".auth-error")).toBeVisible({ timeout: 5000 });
-
-      // Should still be on register page
+      // Client-side validation: mismatch is on the confirm PasswordInput (`data-testid` is on `<input>`).
+      await expect(page.getByTestId("auth-register-password-confirm")).toHaveAttribute(
+        "aria-invalid",
+        "true",
+        { timeout: 5000 },
+      );
       await expect(page).toHaveURL(/\/register/);
     });
 
     test("should show error when email already exists", async ({ page }) => {
       await page.goto("/register");
 
-      // Use existing student email
-      await page.fill("#username", "newuser");
-      await page.fill("#email", TEST_USERS.student.email);
-      await page.fill("#password", "Password123!");
-      await page.fill("#confirm-password", "Password123!");
+      await fillAuthFormInput(page, "auth-register-username", "newuser");
+      await fillAuthFormInput(page, "auth-register-email", TEST_USERS.student.email);
+      await fillAuthFormInput(page, "auth-register-password", "Password123!");
+      await fillAuthFormInput(
+        page,
+        "auth-register-password-confirm",
+        "Password123!",
+      );
 
-      // Submit form
-      await page.click('button[type="submit"]');
+      await page.getByTestId("auth-register-submit").click();
       await page.waitForFunction(
         () => ["/register", "/error"].includes(window.location.pathname),
         undefined,
-        { timeout: 5000 }
+        { timeout: 5000 },
       );
 
-      // App may show inline error on /register, or navigate to /error via global API handler.
       const path = new URL(page.url()).pathname;
       expect(path === "/register" || path === "/error").toBe(true);
 
       if (path === "/register") {
-        await expect(page.locator(".auth-error")).toBeVisible({ timeout: 5000 });
+        await expect(page.getByTestId("auth-form-error")).toBeVisible({
+          timeout: 5000,
+        });
       }
     });
   });
 
   test.describe("Login", () => {
     test("should login as student successfully", async ({ page }) => {
-      // Unskipped test
-
       await login(page, "student");
-
-      // Verify we're no longer on login page
       await expect(page).not.toHaveURL(/\/login/);
-
-      // Verify user is authenticated
-      const authenticated = await isAuthenticated(page);
-      expect(authenticated).toBe(true);
+      expect(await isAuthenticated(page)).toBe(true);
     });
 
     test("should login as teacher successfully", async ({ page }) => {
       await login(page, "teacher");
-
       await expect(page).not.toHaveURL(/\/login/);
-
-      const authenticated = await isAuthenticated(page);
-      expect(authenticated).toBe(true);
+      expect(await isAuthenticated(page)).toBe(true);
     });
 
     test("should login as admin successfully", async ({ page }) => {
       await login(page, "admin");
-
       await expect(page).not.toHaveURL(/\/login/);
-
-      const authenticated = await isAuthenticated(page);
-      expect(authenticated).toBe(true);
+      expect(await isAuthenticated(page)).toBe(true);
     });
 
     test("should show error with invalid credentials", async ({ page }) => {
       await page.goto("/login");
+      await fillAuthFormInput(page, "auth-login-email", "nonexistent@example.com");
+      await fillAuthFormInput(page, "auth-login-password", "wrongpassword");
+      await page.getByTestId("auth-login-submit").click();
 
-      // Fill with invalid credentials
-      await page.fill("#email", "nonexistent@example.com");
-      await page.fill("#password", "wrongpassword");
-
-      // Submit form
-      await page.click('button[type="submit"]');
-
-      // Should show error message
-      await expect(page.locator(".auth-error")).toBeVisible({ timeout: 5000 });
-
-      // Should still be on login page
+      await expect(page.getByTestId("auth-form-error")).toBeVisible({
+        timeout: 5000,
+      });
       await expect(page).toHaveURL(/\/login/);
     });
 
@@ -158,49 +146,33 @@ test.describe("Authentication E2E Tests", () => {
       page,
     }) => {
       await page.goto("/login");
+      await fillAuthFormInput(page, "auth-login-email", TEST_USERS.student.email);
+      await fillAuthFormInput(page, "auth-login-password", "wrongpassword123");
+      await page.getByTestId("auth-login-submit").click();
 
-      // Use existing email with wrong password
-      await page.fill("#email", TEST_USERS.student.email);
-      await page.fill("#password", "wrongpassword123");
-
-      // Submit form
-      await page.click('button[type="submit"]');
-
-      // Should show error message
-      await expect(page.locator(".auth-error")).toBeVisible({ timeout: 5000 });
-
-      // Should still be on login page
+      await expect(page.getByTestId("auth-form-error")).toBeVisible({
+        timeout: 5000,
+      });
       await expect(page).toHaveURL(/\/login/);
     });
 
     test("should show error with empty fields", async ({ page }) => {
       await page.goto("/login");
-
-      // Click submit without filling anything
-      await page.click('button[type="submit"]');
-
-      // HTML5 validation should prevent submission or show error
-      // Check that we're still on login page
+      await page.getByTestId("auth-login-submit").click();
       await expect(page).toHaveURL(/\/login/);
     });
   });
 
   test.describe("Logout", () => {
     test("should logout successfully", async ({ page }) => {
-      // First login
       await loginViaAPI(page, "teacher");
       await expect(page).not.toHaveURL(/\/login/);
       await page.goto("/dashboard");
 
-      // Then logout
       await logout(page);
 
-      // Should redirect to landing page (or login in legacy flow)
       await expect(page).toHaveURL(/\/$|\/login/);
-
-      // Verify user is not authenticated
-      const authenticated = await isAuthenticated(page);
-      expect(authenticated).toBe(false);
+      expect(await isAuthenticated(page)).toBe(false);
     });
   });
 
@@ -208,35 +180,23 @@ test.describe("Authentication E2E Tests", () => {
     test("should protect unauthorized access to dashboard", async ({
       page,
     }) => {
-      // Try to access dashboard without login
       await page.goto("/dashboard");
-
-      // Should redirect to public page
       await page.waitForURL(/\/$|\/login/, { timeout: 5000 });
       await expect(page).toHaveURL(/\/$|\/login/);
     });
 
     test("should maintain session after page reload", async ({ page }) => {
-      // Login
       await login(page, "student");
       await expect(page).not.toHaveURL(/\/login/);
-
-      // Reload page
       await page.reload();
-
-      // Should still be logged in (not bounced back to login)
       await expect(page).not.toHaveURL(/\/login/);
-
-      const authenticated = await isAuthenticated(page);
-      expect(authenticated).toBe(true);
+      expect(await isAuthenticated(page)).toBe(true);
     });
 
     test("should store user info in localStorage after login", async ({
       page,
     }) => {
       await login(page, "student");
-
-      // JWT is cookie-based now; localStorage keeps user profile for UI state.
       const user = await page.evaluate(() => localStorage.getItem("user"));
       expect(user).toBeTruthy();
       expect(user!).toContain(TEST_USERS.student.email);
@@ -251,7 +211,6 @@ test.describe("Authentication E2E Tests", () => {
 
       await logout(page);
 
-      // Check localStorage is cleared
       const token = await page.evaluate(() => localStorage.getItem("token"));
       expect(token).toBeFalsy();
     });
@@ -261,35 +220,26 @@ test.describe("Authentication E2E Tests", () => {
     test("should navigate from login to register page", async ({ page }) => {
       await page.goto("/login");
       await expect(page).toHaveURL(/\/login/);
-
-      // Click register link
-      await page.click('a[href="/register"]');
-
-      // Should be on register page
+      await page.getByTestId("auth-login-nav-register").click();
       await expect(page).toHaveURL(/\/register/);
     });
 
     test("should navigate from register to login page", async ({ page }) => {
       await page.goto("/register");
       await expect(page).toHaveURL(/\/register/);
-
-      // Click login link
-      await page.click('a[href="/login"]');
-
-      // Should be on login page
+      await page.getByTestId("auth-register-nav-login").click();
       await expect(page).toHaveURL(/\/login/);
     });
 
     test("should redirect to login when accessing protected route while not authenticated", async ({
       page,
     }) => {
-      // Try various protected routes
-      const protectedRoutes = ["/dashboard", "/problems", "/classrooms"];
+      // Must match real routes under RequireAuth (not teacher-only / bare /classrooms, which 404).
+      const protectedRoutes = ["/dashboard", "/problems", "/ranking"];
 
       for (const route of protectedRoutes) {
         await page.goto(route);
-        // Should redirect to public page
-        await page.waitForURL(/\/$|\/login/, { timeout: 5000 });
+        await page.waitForURL(/\/$|\/login/, { timeout: 10000 });
       }
     });
   });

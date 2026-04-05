@@ -126,4 +126,21 @@ describe("OverviewInsightsPanel", () => {
     expect(screen.getByText("questions")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
   });
+
+  it("shows unscheduled hints when contest has no schedule", () => {
+    render(
+      <OverviewInsightsPanel
+        contest={buildContest({
+          startTime: "",
+          endTime: "",
+          status: "draft",
+        })}
+        overviewMetrics={null}
+        onOpenPanel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText("未設定").length).toBeGreaterThan(0);
+    expect(screen.getByText("尚未排程，請先發布並設定時段")).toBeInTheDocument();
+  });
 });

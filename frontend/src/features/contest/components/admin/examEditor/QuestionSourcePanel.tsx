@@ -210,6 +210,7 @@ const QuestionSourcePanel = ({
               <div
                 key={question.bankItemId}
                 className={styles.previewCardWrap}
+                data-testid={`question-source-bank-preview-${question.bankItemId}`}
                 draggable
                 onDragStart={(event) => handleDragStart(event, sourceItem)}
                 onDragEnd={handleDragEnd}
@@ -255,8 +256,8 @@ const QuestionSourcePanel = ({
               onChange={({ selectedIndex }) => setActiveTabIndex(selectedIndex)}
             >
               <TabList aria-label={t("examEditor.sourceTabs", "題目來源分頁")}>
-                <Tab>{t("examEditor.sourceTabAdd", "新增題目")}</Tab>
-                <Tab>{t("examEditor.sourceTabBank", "題庫")}</Tab>
+                <Tab data-testid="question-source-tab-coding-add">{t("examEditor.sourceTabAdd", "新增題目")}</Tab>
+                <Tab data-testid="question-source-tab-coding-bank">{t("examEditor.sourceTabBank", "題庫")}</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel>
@@ -269,38 +270,40 @@ const QuestionSourcePanel = ({
                             title: "Hello World",
                           };
                           return (
-                            <Tile
-                              className={styles.typeItem}
-                              draggable
-                              onDragStart={(event) => handleDragStart(event, templateItem)}
-                              onDragEnd={handleDragEnd}
-                              onClick={() => onAddTemplate?.()}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter" || event.key === " ") {
-                                  event.preventDefault();
-                                  onAddTemplate?.();
-                                }
-                              }}
-                              role="button"
-                              tabIndex={0}
-                            >
-                              <div className={styles.typeItemMain}>
-                                <span className={styles.typeIcon}>
-                                  <Code size={18} />
-                                </span>
-                                <div className={styles.typeInfo}>
-                                  <div className={styles.sourceItemTitle}>
-                                    {t("examEditor.codingTemplate", "程式題")}
-                                  </div>
-                                  <div className={styles.typeDesc}>
-                                    {t("examEditor.codingTemplateDesc", "拖入或點擊以新增一道程式題")}
+                            <div data-testid="question-source-coding-template-tile">
+                              <Tile
+                                className={styles.typeItem}
+                                draggable
+                                onDragStart={(event) => handleDragStart(event, templateItem)}
+                                onDragEnd={handleDragEnd}
+                                onClick={() => onAddTemplate?.()}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    onAddTemplate?.();
+                                  }
+                                }}
+                                role="button"
+                                tabIndex={0}
+                              >
+                                <div className={styles.typeItemMain}>
+                                  <span className={styles.typeIcon}>
+                                    <Code size={18} />
+                                  </span>
+                                  <div className={styles.typeInfo}>
+                                    <div className={styles.sourceItemTitle}>
+                                      {t("examEditor.codingTemplate", "程式題")}
+                                    </div>
+                                    <div className={styles.typeDesc}>
+                                      {t("examEditor.codingTemplateDesc", "拖入或點擊以新增一道程式題")}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                              <div className={styles.sourceItemActions}>
-                                <Draggable size={14} />
-                              </div>
-                            </Tile>
+                                <div className={styles.sourceItemActions}>
+                                  <Draggable size={14} />
+                                </div>
+                              </Tile>
+                            </div>
                           );
                         })()}
                       </div>
@@ -327,8 +330,8 @@ const QuestionSourcePanel = ({
             onChange={({ selectedIndex }) => setActiveTabIndex(selectedIndex)}
           >
             <TabList aria-label={t("examEditor.sourceTabs", "題目來源分頁")}>
-              <Tab>{t("examEditor.sourceTabTypes", "題型")}</Tab>
-              <Tab>{t("examEditor.sourceTabBank", "題庫")}</Tab>
+              <Tab data-testid="question-source-tab-paper-types">{t("examEditor.sourceTabTypes", "題型")}</Tab>
+              <Tab data-testid="question-source-tab-paper-bank">{t("examEditor.sourceTabBank", "題庫")}</Tab>
             </TabList>
             <TabPanels>
               <TabPanel>
@@ -345,39 +348,40 @@ const QuestionSourcePanel = ({
                           questionType: type,
                         };
                         return (
-                          <Tile
-                            key={type}
-                            className={styles.typeItem}
-                            draggable
-                            onDragStart={(event) => handleDragStart(event, item)}
-                            onDragEnd={handleDragEnd}
-                            onClick={handleClick}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                handleClick();
-                              }
-                            }}
-                            role="button"
-                            tabIndex={0}
-                          >
-                            <div className={styles.typeItemMain}>
-                              <span className={styles.typeIcon}>
-                                <Icon size={18} />
-                              </span>
-                              <div className={styles.typeInfo}>
-                                <div className={styles.sourceItemTitle}>
-                                  {t(`common:questionType.label.${type}`, type)}
-                                </div>
-                                <div className={styles.typeDesc}>
-                                  {t(`common:questionType.description.${type}`, "")}
+                          <div key={type} data-testid={`question-source-exam-type-${type}`}>
+                            <Tile
+                              className={styles.typeItem}
+                              draggable
+                              onDragStart={(event) => handleDragStart(event, item)}
+                              onDragEnd={handleDragEnd}
+                              onClick={handleClick}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  handleClick();
+                                }
+                              }}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className={styles.typeItemMain}>
+                                <span className={styles.typeIcon}>
+                                  <Icon size={18} />
+                                </span>
+                                <div className={styles.typeInfo}>
+                                  <div className={styles.sourceItemTitle}>
+                                    {t(`common:questionType.label.${type}`, type)}
+                                  </div>
+                                  <div className={styles.typeDesc}>
+                                    {t(`common:questionType.description.${type}`, "")}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            <div className={styles.sourceItemActions}>
-                              <Draggable size={14} />
-                            </div>
-                          </Tile>
+                              <div className={styles.sourceItemActions}>
+                                <Draggable size={14} />
+                              </div>
+                            </Tile>
+                          </div>
                         );
                       })}
                     </div>

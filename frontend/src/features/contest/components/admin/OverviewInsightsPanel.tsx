@@ -17,6 +17,7 @@ interface OverviewInsightsPanelProps {
   overviewMetrics: ContestOverviewMetrics | null;
   loading?: boolean;
   onOpenPanel: (panel: AdminPanelId) => void;
+  onOpenSettings?: () => void;
 }
 
 interface ActionTileProps {
@@ -51,13 +52,17 @@ export default function OverviewInsightsPanel({
   overviewMetrics,
   loading = false,
   onOpenPanel,
+  onOpenSettings,
 }: OverviewInsightsPanelProps) {
   const { t } = useTranslation("contest");
   const snapshot = resolveOverviewSnapshot(contest, overviewMetrics);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const contestStatus = contest.status ?? "draft";
-  const startAt = contest.startTime ? new Date(contest.startTime).toLocaleString() : "-";
-  const endAt = contest.endTime ? new Date(contest.endTime).toLocaleString() : "-";
+  const startAtMs = contest.startTime ? Date.parse(contest.startTime) : Number.NaN;
+  const endAtMs = contest.endTime ? Date.parse(contest.endTime) : Number.NaN;
+  const hasSchedule = Number.isFinite(startAtMs) && Number.isFinite(endAtMs) && endAtMs > startAtMs;
+  const startAt = hasSchedule ? new Date(startAtMs).toLocaleString() : t("adminOverview.time.unset", "未設定");
+  const endAt = hasSchedule ? new Date(endAtMs).toLocaleString() : t("adminOverview.time.unset", "未設定");
   const liveTimeProgress = useMemo(
     () => calculateContestTimeProgressAt(contest, nowMs),
     [contest, nowMs],
@@ -163,7 +168,9 @@ export default function OverviewInsightsPanel({
           value={liveTimeProgress.progressPercent}
         />
         <div className={styles.subText}>
-          {liveTimeProgress.isEnded
+          {!hasSchedule
+            ? t("adminOverview.time.unscheduledHint", "尚未排程，請先發布並設定時段")
+            : liveTimeProgress.isEnded
             ? t("adminOverview.time.ended", "已結束")
             : liveTimeProgress.isStarted
               ? t("adminOverview.time.remaining", "剩餘 {{time}}", {
@@ -184,7 +191,13 @@ export default function OverviewInsightsPanel({
       <ActionTile
         title={t("adminOverview.sidebar.contestState", "競賽狀態")}
         description={nextStep}
-        onClick={() => onOpenPanel("settings")}
+        onClick={() => {
+          if (onOpenSettings) {
+            onOpenSettings();
+            return;
+          }
+          onOpenPanel("settings");
+        }}
       >
         <div className={styles.metricRow}>
           <span>{t("adminOverview.sidebar.statusLabel", "目前狀態")}</span>

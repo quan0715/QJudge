@@ -84,6 +84,7 @@ export const SaveToBankModal = ({
   return (
     <Modal
       open={open}
+      data-testid="save-to-bank-modal"
       modalHeading={t("questionBank.saveToBank.title", "收錄到題庫")}
       primaryButtonText={saving ? t("message.loading", "載入中") : t("button.confirm", "確認")}
       secondaryButtonText={t("common:button.cancel")}

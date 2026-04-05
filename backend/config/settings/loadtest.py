@@ -14,6 +14,14 @@ CELERY_TASK_EAGER_PROPAGATES = False
 # --- Rate limiting enabled (test real throttle behaviour) ---
 RATELIMIT_ENABLE = True
 
+# test.py 關閉 DRF throttle；負載測試需還原 base 行為。
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+}
+
 # Disable only login IP ratelimit in loadtest by default to avoid test data pollution.
 LOADTEST_DISABLE_LOGIN_RATELIMIT = os.getenv(
     "LOADTEST_DISABLE_LOGIN_RATELIMIT", "1"

@@ -82,10 +82,11 @@ const RegisterPage = () => {
 
   return (
     <>
-      <Form onSubmit={handleRegister} className="auth-form">
+      <Form onSubmit={handleRegister} className="auth-form" data-testid="auth-register-form">
         <PendingActionBanner />
         <TextInput
           id="username"
+          data-testid="auth-register-username"
           labelText={t("auth.register.username")}
           placeholder={t("auth.register.usernamePlaceholder")}
           value={username}
@@ -97,6 +98,7 @@ const RegisterPage = () => {
 
         <TextInput
           id="email"
+          data-testid="auth-register-email"
           type="email"
           labelText={t("auth.register.email")}
           placeholder={t("auth.register.emailPlaceholder")}
@@ -109,6 +111,7 @@ const RegisterPage = () => {
 
         <PasswordInput
           id="password"
+          data-testid="auth-register-password"
           labelText={t("auth.register.password")}
           placeholder={t("auth.register.passwordPlaceholder")}
           helperText={t("auth.register.passwordHelper", "至少 8 個字元，不能是純數字或常見密碼")}
@@ -121,6 +124,7 @@ const RegisterPage = () => {
 
         <PasswordInput
           id="confirm-password"
+          data-testid="auth-register-password-confirm"
           labelText={t("auth.register.confirmPassword")}
           placeholder={t("auth.register.confirmPasswordPlaceholder")}
           value={confirmPassword}
@@ -130,13 +134,23 @@ const RegisterPage = () => {
           required
         />
 
-        {error && <p className="auth-error">{error}</p>}
+        {error && (
+          <p className="auth-error" data-testid="auth-form-error">
+            {error}
+          </p>
+        )}
 
         <div className="auth-actions">
           {loading ? (
             <InlineLoading description={t("auth.register.loading")} />
           ) : (
-            <Button kind="primary" type="submit" className="auth-submit-btn" renderIcon={ArrowRight}>
+            <Button
+              kind="primary"
+              type="submit"
+              className="auth-submit-btn"
+              data-testid="auth-register-submit"
+              renderIcon={ArrowRight}
+            >
               {t("auth.register.submit")}
             </Button>
           )}
@@ -146,7 +160,11 @@ const RegisterPage = () => {
       <div className="auth-footer">
         <p>
           {t("auth.register.hasAccount")}{" "}
-          <Link to={buildAuthLink("/login")} className="auth-link">
+          <Link
+            to={buildAuthLink("/login")}
+            className="auth-link"
+            data-testid="auth-register-nav-login"
+          >
             {t("auth.register.loginNow")}
           </Link>
         </p>

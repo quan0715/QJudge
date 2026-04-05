@@ -350,6 +350,7 @@ class CreateClassroomContestSerializer(serializers.Serializer):
     visibility = serializers.ChoiceField(choices=['public', 'private'], required=False, default='public')
     password = serializers.CharField(required=False, allow_blank=True, allow_null=True, default=None)
     cheat_detection_enabled = serializers.BooleanField(required=False, default=False)
+    allow_multiple_joins = serializers.BooleanField(required=False, default=False)
     results_published = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs):

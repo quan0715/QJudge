@@ -14,6 +14,7 @@ import { problemFormSchema } from "@/features/problems/forms/problemFormValidati
 import { problemDetailToFormSchema } from "@/features/problems/forms/problemFormAdapters";
 import { formSchemaToPreview } from "@/features/problems/screens/problemsIdEdit/utils/previewAdapter";
 import "@/features/problems/screens/problemsIdEdit/screen.scss";
+import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import CodingProblemPreviewCard from "./CodingProblemPreviewCard";
 import CodingProblemTabbedEditor from "./CodingProblemTabbedEditor";
 import styles from "./EmbeddedProblemEditor.module.scss";
@@ -21,21 +22,27 @@ import styles from "./EmbeddedProblemEditor.module.scss";
 interface EmbeddedProblemEditorProps {
   contestProblemId: string;
   contestId: string;
-  label?: string;
+  orderLabel: string;
+  contestBinding: Pick<ContestProblemSummary, "sourceBank" | "sourceMode">;
   score?: number;
   frozen?: boolean;
   onDelete?: () => Promise<void>;
+  onDuplicate?: () => void | Promise<void>;
   onPointerDownDrag?: (e: React.PointerEvent) => void;
+  onSaveToBankSuccess?: () => void | Promise<void>;
 }
 
 const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = ({
   contestProblemId,
   contestId,
-  label,
+  orderLabel,
+  contestBinding,
   score,
   frozen = false,
   onDelete,
+  onDuplicate,
   onPointerDownDrag,
+  onSaveToBankSuccess,
 }) => {
   const [editing, setEditing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -122,12 +129,19 @@ const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = ({
   if (!editing) {
     return (
       <CodingProblemPreviewCard
-        label={label}
+        contestProblemId={contestProblemId}
+        orderLabel={orderLabel}
+        displayTitle={previewData.title || ""}
         score={score}
         problem={previewData}
         frozen={frozen}
+        contestBinding={contestBinding}
+        problemId={problem.id}
+        onSaveToBankSuccess={() => void onSaveToBankSuccess?.()}
         onClick={() => setEditing(true)}
         onPointerDownDrag={onPointerDownDrag}
+        onDuplicate={frozen ? undefined : onDuplicate}
+        onDelete={frozen ? undefined : onDelete}
       />
     );
   }
@@ -138,11 +152,16 @@ const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = ({
         <FormProvider {...methods}>
           <ProblemEditProvider problemId={problem.id}>
             <CodingProblemTabbedEditor
-              label={label}
-              title={problem.title || "Untitled"}
+              contestProblemId={contestProblemId}
+              orderLabel={orderLabel}
               score={score}
               difficulty={problem.difficulty}
+              frozen={frozen}
+              contestBinding={contestBinding}
+              problemId={problem.id}
+              onSaveToBankSuccess={() => void onSaveToBankSuccess?.()}
               onDelete={frozen ? undefined : onDelete}
+              onDuplicate={frozen ? undefined : onDuplicate}
               onPointerDownDrag={onPointerDownDrag}
             />
           </ProblemEditProvider>

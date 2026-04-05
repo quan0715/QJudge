@@ -12,6 +12,10 @@ import {
   Send,
   Activity,
   Group,
+  Locked,
+  Login,
+  CheckmarkOutline,
+  Calendar,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
@@ -32,11 +36,15 @@ interface OverviewActionWidgetsProps {
   violationCount: number;
   loading?: boolean;
   onOpenPanel: (panel: AdminPanelId) => void;
+  onOpenChecklist?: () => void;
   onPublishContest: () => Promise<void>;
   onRevertContestToDraft: () => Promise<void>;
   onPublishResults: (progressPercent?: number) => Promise<void>;
   onRevokeResults: () => Promise<void>;
   onToggleStrictMode: () => Promise<void>;
+  onRequestToggleAllowMultipleJoins?: () => Promise<void>;
+  onRequestTogglePassword?: () => Promise<void>;
+  onOpenScheduleSettings?: () => void;
 }
 
 
@@ -47,30 +55,41 @@ export default function OverviewActionWidgets({
   violationCount,
   loading = false,
   onOpenPanel,
+  onOpenChecklist,
   onPublishContest,
   onRevertContestToDraft,
   onPublishResults,
   onRevokeResults,
   onToggleStrictMode,
+  onRequestToggleAllowMultipleJoins,
+  onRequestTogglePassword,
+  onOpenScheduleSettings,
 }: OverviewActionWidgetsProps) {
   const { t } = useTranslation("contest");
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [countdownBaseSeconds, setCountdownBaseSeconds] = useState<number>(0);
   const contestStatus = contest.status ?? "draft";
+  const startAtMs = useMemo(() => Date.parse(contest.startTime ?? ""), [contest.startTime]);
+  const endAtMs = useMemo(() => Date.parse(contest.endTime ?? ""), [contest.endTime]);
+  const hasSchedule = Number.isFinite(startAtMs) && Number.isFinite(endAtMs) && endAtMs > startAtMs;
   const liveTimeProgress = useMemo(
     () => calculateContestTimeProgressAt(contest, nowMs),
     [contest, nowMs],
   );
   const countdownSeconds = useMemo(() => {
-    const startAtMs = Date.parse(contest.startTime ?? "");
     if (!Number.isFinite(startAtMs)) {
       return 0;
     }
     return Math.max(0, Math.floor((startAtMs - nowMs) / 1000));
-  }, [contest.startTime, nowMs]);
+  }, [nowMs, startAtMs]);
+  const countdownProgress = useMemo(() => {
+    if (countdownBaseSeconds <= 0) return 0;
+    return Math.max(0, Math.min(100, (countdownSeconds / countdownBaseSeconds) * 100));
+  }, [countdownBaseSeconds, countdownSeconds]);
   const { startTimeLabel, endTimeLabel } = useMemo(() => {
     const fmt = (value: string | undefined): string => {
       const ts = Date.parse(value ?? "");
-      if (!Number.isFinite(ts)) return "--";
+      if (!Number.isFinite(ts)) return t("adminOverview.time.unset", "未設定");
       const d = new Date(ts);
       const month = (d.getMonth() + 1).toString().padStart(2, "0");
       const day = d.getDate().toString().padStart(2, "0");
@@ -79,7 +98,7 @@ export default function OverviewActionWidgets({
       return `${month}/${day} ${hours}:${mins}`;
     };
     return { startTimeLabel: fmt(contest.startTime), endTimeLabel: fmt(contest.endTime) };
-  }, [contest.endTime, contest.startTime]);
+  }, [contest.endTime, contest.startTime, t]);
   const workItemCount =
     contest.contestType === "paper_exam"
       ? contest.examQuestionsCount
@@ -96,6 +115,16 @@ export default function OverviewActionWidgets({
       : contestStatus === "published"
         ? t("common:status.published", "已發布")
         : t("common:status.archived", "已封存");
+  const isDraftMode = contestStatus === "draft";
+  const enabledColor = "var(--cds-support-success, #198038)";
+  const disabledColor = "var(--cds-support-error, #da1e28)";
+  const draftColor = "var(--cds-support-warning, #f1c21b)";
+  const hasRules = (contest.rules ?? "").trim().length > 0;
+  const hasWorkItems = workItemCount > 0;
+  const publishTodoCount = (hasWorkItems ? 0 : 1) + (hasSchedule ? 0 : 1) + (hasRules ? 0 : 1);
+  const scheduleActionText = hasSchedule
+    ? t("adminOverview.time.editTime", "編輯時間")
+    : t("adminOverview.time.configure", "設定時間");
 
   const gradingStatusLabel = useMemo(() => {
     if (contest.resultsPublished) {
@@ -168,6 +197,20 @@ export default function OverviewActionWidgets({
     };
   }, []);
 
+  useEffect(() => {
+    if (!hasSchedule) {
+      setCountdownBaseSeconds(0);
+      return;
+    }
+    if (countdownSeconds > 0 && countdownBaseSeconds === 0) {
+      setCountdownBaseSeconds(countdownSeconds);
+      return;
+    }
+    if (countdownSeconds === 0 && countdownBaseSeconds !== 0) {
+      setCountdownBaseSeconds(0);
+    }
+  }, [countdownBaseSeconds, countdownSeconds, hasSchedule]);
+
   if (loading) {
     return (
       <section className={styles.section}>
@@ -221,6 +264,7 @@ export default function OverviewActionWidgets({
           actionIcon={Undo}
           actionIntent="danger"
           value={statusLabel}
+          valueColor={contestStatus === "draft" ? draftColor : undefined}
           cta={statusAction.cta}
           onClick={() => {
             if (!canToggleStatus) return;
@@ -230,7 +274,7 @@ export default function OverviewActionWidgets({
 
         <ActionWidgetCard
           title={t("adminOverview.widgets.strictExamMode", "嚴格考試模式")}
-          icon={TaskComplete}
+          icon={Security}
           actionIcon={Security}
           actionIntent="toggle"
           active={contest.cheatDetectionEnabled}
@@ -239,6 +283,8 @@ export default function OverviewActionWidgets({
               ? t("adminOverview.widgets.enabled", "已啟用")
               : t("adminOverview.widgets.disabled", "未啟用")
           }
+          valueColor={contest.cheatDetectionEnabled ? enabledColor : disabledColor}
+          dangerBorder={!contest.cheatDetectionEnabled}
           cta={
             contest.cheatDetectionEnabled
               ? t("adminOverview.actions.disableStrictExamMode", "停用模式")
@@ -261,89 +307,185 @@ export default function OverviewActionWidgets({
           onClick={() => onOpenPanel("problem_editor")}
         />
 
-        <ActionWidgetCard
-          title={t("adminOverview.widgets.gradingStatus", "考試批改狀態")}
-          icon={Time}
-          actionIcon={Send}
-          actionIntent="toggle"
-          active={contest.resultsPublished}
-          value={`${gradingProgressPercent}%`}
-          unit={gradingStatusLabel}
-          progress={gradingProgressPercent}
-          cta={gradingAction.cta}
-          onClick={() => {
-            if (!canEditContest) return;
-            gradingAction.onClick();
-          }}
-        />
+        {isDraftMode ? (
+          <ActionWidgetCard
+            title={t("adminOverview.widgets.allowRejoin", "允許重新加入")}
+            icon={Login}
+            actionIcon={Security}
+            actionIntent="toggle"
+            active={contest.allowMultipleJoins}
+            value={contest.allowMultipleJoins
+              ? t("adminOverview.widgets.enabled", "已啟用")
+              : t("adminOverview.widgets.disabled", "未啟用")}
+            valueColor={contest.allowMultipleJoins ? enabledColor : disabledColor}
+            dangerBorder={!contest.allowMultipleJoins}
+            cta={contest.allowMultipleJoins
+              ? t("adminOverview.actions.disableAllowRejoin", "停用重進")
+              : t("adminOverview.actions.enableAllowRejoin", "啟用重進")}
+            onClick={() => {
+              if (!canEditContest || !onRequestToggleAllowMultipleJoins) return;
+              void onRequestToggleAllowMultipleJoins();
+            }}
+          />
+        ) : (
+          <ActionWidgetCard
+            title={t("adminOverview.widgets.gradingStatus", "考試批改狀態")}
+            icon={Time}
+            actionIcon={Send}
+            actionIntent="toggle"
+            active={contest.resultsPublished}
+            value={`${gradingProgressPercent}%`}
+            unit={gradingStatusLabel}
+            progress={gradingProgressPercent}
+            cta={gradingAction.cta}
+            onClick={() => {
+              if (!canEditContest) return;
+              gradingAction.onClick();
+            }}
+          />
+        )}
       </div>
 
       <div className={styles.bottomGrid}>
-        <Tile className={`${styles.progressCard} ${styles.progressSpan2}`}>
+        <button
+          type="button"
+          className={`${styles.progressButton} ${styles.progressSpan2}`}
+          aria-label={`${t("adminOverview.widgets.examProgress", "考試進度")} ${scheduleActionText}`}
+          onClick={() => {
+            if (!onOpenScheduleSettings) return;
+            onOpenScheduleSettings();
+          }}
+        >
+          <Tile className={styles.progressCard}>
           <div className={styles.progressHeader}>
             <div className={styles.progressTitleRow}>
               <Time size={16} className={styles.widgetIcon} />
               <h3 className={styles.widgetTitle}>{t("adminOverview.widgets.examProgress", "考試進度")}</h3>
             </div>
             <span className={styles.progressPercent}>
-              {Math.round(liveTimeProgress.progressPercent)}%
+              {hasSchedule && !liveTimeProgress.isStarted
+                ? t("adminOverview.time.notStarted", "尚未開始")
+                : `${Math.round(liveTimeProgress.progressPercent)}%`}
             </span>
           </div>
-          <div className={styles.progressValue}>
-            {formatDuration(liveTimeProgress.elapsedSeconds)}
-            <span className={styles.widgetUnit}>/ {formatDuration(liveTimeProgress.totalSeconds)}</span>
+          <div className={styles.progressPrimaryRow}>
+            <div className={styles.progressValue}>
+              {!hasSchedule
+                ? t("adminOverview.time.configure", "設定時間")
+                : !liveTimeProgress.isStarted
+                  ? formatDuration(countdownSeconds)
+                  : formatDuration(liveTimeProgress.elapsedSeconds)}
+              {hasSchedule && liveTimeProgress.isStarted && (
+                <span className={styles.widgetUnit}>/ {formatDuration(liveTimeProgress.totalSeconds)}</span>
+              )}
+              {hasSchedule && !liveTimeProgress.isStarted && (
+                <span className={styles.widgetUnit}>{t("adminOverview.time.untilStartShort", "後開始")}</span>
+              )}
+            </div>
+            {hasSchedule && (
+              <div className={styles.progressWindowText}>
+                {startTimeLabel}
+                <span className={styles.progressWindowSep}>{" — "}</span>
+                {endTimeLabel}
+              </div>
+            )}
           </div>
           <ProgressBar
             className={styles.progressBar}
             hideLabel
             label={t("adminOverview.widgets.examProgress", "考試進度")}
             size="small"
-            value={liveTimeProgress.progressPercent}
+            value={!hasSchedule ? 0 : !liveTimeProgress.isStarted ? countdownProgress : liveTimeProgress.progressPercent}
           />
           <div className={styles.progressFooter}>
-            <div className={styles.progressWindowText}>
-              {startTimeLabel}
-              <span className={styles.progressWindowSep}>{" — "}</span>
-              {endTimeLabel}
-            </div>
             <div className={styles.progressStatusText}>
-              {liveTimeProgress.isEnded
+              {!hasSchedule
+                ? t("adminOverview.time.unscheduledHint", "尚未排程，請先發布並設定時段")
+                : liveTimeProgress.isEnded
                 ? t("adminOverview.time.ended", "已結束")
                 : liveTimeProgress.isStarted
                   ? t("adminOverview.time.remaining", "剩餘 {{time}}", {
                       time: formatDuration(liveTimeProgress.remainingSeconds),
                     })
-                  : t("adminOverview.time.untilStart", "距離開始 {{time}}", {
-                      time: formatDuration(countdownSeconds),
-                    })}
+                  : ""}
+            </div>
+            <div className={styles.progressActionRow}>
+              <span>{scheduleActionText}</span>
+              <span className={styles.progressActionIcon}>
+                <Calendar size={16} />
+              </span>
             </div>
           </div>
-        </Tile>
+          </Tile>
+        </button>
 
-        <ActionWidgetCard
-          title={t("adminOverview.widgets.violationCount", "違規次數")}
-          icon={Warning}
-          actionIcon={Activity}
-          actionIntent="danger"
-          active={violationCount > 0}
-          value={violationCount}
-          valueColor={violationCount > 0 ? "var(--cds-support-error, #da1e28)" : undefined}
-          unit={t("adminOverview.kpi.caseUnit", "次")}
-          cta={t("adminOverview.widgets.goEventPanel", "前往事件面板")}
-          notificationDot={violationCount > 0}
-          onClick={() => onOpenPanel("logs")}
-        />
+        {isDraftMode && (
+          <ActionWidgetCard
+            title={t("adminOverview.widgets.passwordRequired", "密碼保護")}
+            icon={Locked}
+            actionIcon={Security}
+            actionIntent="toggle"
+            active={contest.requiresPassword}
+            value={contest.requiresPassword
+              ? t("adminOverview.widgets.enabled", "已啟用")
+              : t("adminOverview.widgets.disabled", "未啟用")}
+            valueColor={contest.requiresPassword ? enabledColor : disabledColor}
+            dangerBorder={!contest.requiresPassword}
+            cta={contest.requiresPassword
+              ? t("adminOverview.actions.disablePassword", "停用密碼")
+              : t("adminOverview.actions.enablePassword", "啟用密碼")}
+            onClick={() => {
+              if (!canEditContest || !onRequestTogglePassword) return;
+              void onRequestTogglePassword();
+            }}
+          />
+        )}
 
-        <ActionWidgetCard
-          title={t("adminOverview.widgets.participants", "參賽者")}
-          icon={UserMultiple}
-          actionIcon={Group}
-          actionIntent="navigate"
-          value={kpi.totalParticipants}
-          unit={t("adminOverview.kpi.personUnit", "人")}
-          cta={t("adminOverview.widgets.goParticipantList", "進入參賽者列表")}
-          onClick={() => onOpenPanel("participants")}
-        />
+        {isDraftMode && (
+          <ActionWidgetCard
+            title={t("adminOverview.draftChecklist.todoCountTitle", "發佈代辦事件數量")}
+            icon={CheckmarkOutline}
+            actionIcon={Edit}
+            actionIntent="navigate"
+            value={publishTodoCount}
+            unit={t("adminOverview.kpi.caseUnit", "次")}
+            valueColor={publishTodoCount > 0 ? draftColor : enabledColor}
+            cta={t("adminOverview.draftChecklist.actions.open", "檢視代辦")}
+            onClick={() => {
+              if (!onOpenChecklist) return;
+              onOpenChecklist();
+            }}
+          />
+        )}
+
+        {!isDraftMode && (
+          <ActionWidgetCard
+            title={t("adminOverview.widgets.violationCount", "違規次數")}
+            icon={Warning}
+            actionIcon={Activity}
+            actionIntent="danger"
+            active={violationCount > 0}
+            value={violationCount}
+            valueColor={violationCount > 0 ? "var(--cds-support-error, #da1e28)" : undefined}
+            unit={t("adminOverview.kpi.caseUnit", "次")}
+            cta={t("adminOverview.widgets.goEventPanel", "前往事件面板")}
+            notificationDot={violationCount > 0}
+            onClick={() => onOpenPanel("logs")}
+          />
+        )}
+
+        {!isDraftMode && (
+          <ActionWidgetCard
+            title={t("adminOverview.widgets.participants", "參賽者")}
+            icon={UserMultiple}
+            actionIcon={Group}
+            actionIntent="navigate"
+            value={kpi.totalParticipants}
+            unit={t("adminOverview.kpi.personUnit", "人")}
+            cta={t("adminOverview.widgets.goParticipantList", "進入參賽者列表")}
+            onClick={() => onOpenPanel("participants")}
+          />
+        )}
       </div>
     </section>
   );

@@ -9,6 +9,11 @@ import { TEST_USERS } from "./data.helper";
 
 export type UserRole = keyof typeof TEST_USERS;
 
+/** Carbon TextInput / PasswordInput forward `data-testid` to the real `<input>`. */
+export async function fillAuthFormInput(page: Page, testId: string, value: string) {
+  await page.getByTestId(testId).fill(value);
+}
+
 /**
  * Login helper function
  *
@@ -21,6 +26,7 @@ export async function login(page: Page, role: UserRole = "student") {
   const gotoLogin = async () => {
     const isSameLoginRedirectInterrupt = (message: string) =>
       message.includes('interrupted by another navigation to "http://localhost:5174/login"') ||
+      message.includes('interrupted by another navigation to "http://127.0.0.1:5174/login"') ||
       message.includes("interrupted by another navigation to \"/login\"");
 
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -70,16 +76,25 @@ export async function login(page: Page, role: UserRole = "student") {
     // It's possible the page is on /login but redirecting. 
     // We race waitForSelector with a URL change check
     const emailVisible = await Promise.race([
-      page.waitForSelector("#email", { state: "visible", timeout: 45000 }).then(() => true).catch(() => false),
-      page.waitForFunction(() => window.location.pathname !== "/login", undefined, { timeout: 45000 }).then(() => false).catch(() => false),
+      page
+        .getByTestId("auth-login-email")
+        .waitFor({ state: "visible", timeout: 45000 })
+        .then(() => true)
+        .catch(() => false),
+      page
+        .waitForFunction(() => window.location.pathname !== "/login", undefined, {
+          timeout: 45000,
+        })
+        .then(() => false)
+        .catch(() => false),
     ]);
 
     if (!emailVisible) return; // Not visible, likely navigated away
 
     try {
-      await page.fill("#email", user.email);
-      await page.fill("#password", user.password);
-      await page.click('button[type="submit"]');
+      await fillAuthFormInput(page, "auth-login-email", user.email);
+      await fillAuthFormInput(page, "auth-login-password", user.password);
+      await page.getByTestId("auth-login-submit").click();
     } catch {
       // Elements might have unmounted if a delayed redirect triggered
     }
@@ -94,7 +109,7 @@ export async function login(page: Page, role: UserRole = "student") {
       .catch(() => null);
 
     const hasAuthError = page
-      .locator(".auth-error")
+      .getByTestId("auth-form-error")
       .isVisible({ timeout: 25000 })
       .then((visible) => (visible ? "error" : null))
       .catch(() => null);
@@ -108,7 +123,7 @@ export async function login(page: Page, role: UserRole = "student") {
 
   const stillOnLogin = new URL(page.url()).pathname === "/login";
   const authErrorVisible = await page
-    .locator(".auth-error")
+    .getByTestId("auth-form-error")
     .isVisible()
     .catch(() => false);
 
@@ -127,27 +142,13 @@ export async function login(page: Page, role: UserRole = "student") {
  * @param page - Playwright page object
  */
 export async function logout(page: Page) {
-  const userMenuButton = page.getByRole("button", {
-    name: /使用者選單|User Menu/i,
-  });
-  await userMenuButton.click({ timeout: 5000 });
-
-  const logoutButton = page.getByRole("button", {
-    name: /登出|Logout/i,
-  });
-  const logoutCount = await logoutButton.count();
-  let clicked = false;
-  for (let i = 0; i < logoutCount; i++) {
-    const candidate = logoutButton.nth(i);
-    if (await candidate.isVisible().catch(() => false)) {
-      await candidate.click({ timeout: 5000, force: true });
-      clicked = true;
-      break;
-    }
-  }
-  if (!clicked) {
-    await logoutButton.first().click({ timeout: 5000, force: true });
-  }
+  await page.getByTestId("user-menu-toggle-btn").click({ timeout: 5000 });
+  await page.getByTestId("user-menu-logout-request").click({ timeout: 5000 });
+  const confirmBtn = page
+    .getByTestId("user-menu-logout-modal")
+    .getByRole("button")
+    .filter({ has: page.getByTestId("user-menu-logout-confirm") });
+  await confirmBtn.click({ timeout: 5000 });
 
   // Accept either immediate redirect or client auth state cleared.
   const logoutObserved = await Promise.race([
@@ -200,13 +201,12 @@ export async function register(
   // Navigate to register page
   await page.goto("/register");
 
-  // Fill in registration form
-  await page.fill("#email", email);
-  await page.fill("#password", password);
-  await page.fill("#username", username);
+  await fillAuthFormInput(page, "auth-register-username", username);
+  await fillAuthFormInput(page, "auth-register-email", email);
+  await fillAuthFormInput(page, "auth-register-password", password);
+  await fillAuthFormInput(page, "auth-register-password-confirm", password);
 
-  // Submit form
-  await page.click('button[type="submit"]');
+  await page.getByTestId("auth-register-submit").click();
 
   await page.waitForFunction(
     () => window.location.pathname !== "/register",
