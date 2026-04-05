@@ -144,6 +144,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
 
   const {
     editorPaneRef,
+    cardRefs,
     onReorderPointerSessionChange,
     handleSelect,
     onCardRoot,
