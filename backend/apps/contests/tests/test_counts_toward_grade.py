@@ -3,6 +3,7 @@ import uuid
 
 import pytest
 from django.utils import timezone
+from rest_framework.test import APIClient
 from apps.contests.models import Contest, ContestParticipant
 from apps.submissions.models import Submission
 from apps.problems.models import Problem
@@ -18,6 +19,7 @@ def owner(db):
         username=f"owner_ctg_{suffix}",
         email=f"owner_ctg_{suffix}@example.com",
         password="pw",
+        role="teacher",
     )
 
 
@@ -152,3 +154,45 @@ class TestPracticeKeepLatestSubmission:
         )
         assert Submission.objects.filter(pk=old.pk).exists()
         assert Submission.objects.filter(pk=new.pk).exists()
+
+
+@pytest.mark.django_db
+class TestCountsTowardGradeAPI:
+    def test_create_contest_with_field(self, owner):
+        client = APIClient()
+        client.force_authenticate(user=owner)
+        resp = client.post("/api/v1/contests/", {
+            "name": "Graded HW",
+            "delivery_mode": "practice",
+            "counts_toward_grade": True,
+        }, format="json")
+        assert resp.status_code == 201
+        assert resp.json()["counts_toward_grade"] is True
+
+    def test_create_defaults_to_true(self, owner):
+        client = APIClient()
+        client.force_authenticate(user=owner)
+        resp = client.post("/api/v1/contests/", {
+            "name": "No flag",
+        }, format="json")
+        assert resp.status_code == 201
+        assert resp.json()["counts_toward_grade"] is True
+
+    def test_update_to_false(self, homework_contest, owner):
+        client = APIClient()
+        client.force_authenticate(user=owner)
+        resp = client.patch(
+            f"/api/v1/contests/{homework_contest.id}/",
+            {"counts_toward_grade": False},
+            format="json",
+        )
+        assert resp.status_code == 200
+        homework_contest.refresh_from_db()
+        assert homework_contest.counts_toward_grade is False
+
+    def test_detail_exposes_field(self, practice_contest, owner):
+        client = APIClient()
+        client.force_authenticate(user=owner)
+        resp = client.get(f"/api/v1/contests/{practice_contest.id}/")
+        assert resp.status_code == 200
+        assert resp.json()["counts_toward_grade"] is False
