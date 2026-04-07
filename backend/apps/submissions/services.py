@@ -60,7 +60,45 @@ class SubmissionService:
             cls._log_contest_activity(result, user)
             cls._mark_practice_assignment_submitted(result.submission, user)
 
+        if (
+            result.source_type == "contest"
+            and not result.submission.is_test
+        ):
+            contest_obj = result.submission.contest
+            if contest_obj and not contest_obj.counts_toward_grade:
+                cls.cleanup_practice_submissions(
+                    user=user,
+                    problem=result.submission.problem,
+                    contest=contest_obj,
+                    current_submission=result.submission,
+                )
+
         return result.submission
+
+    @staticmethod
+    def cleanup_practice_submissions(
+        *,
+        user: User,
+        problem: Problem,
+        contest: Contest,
+        current_submission: Submission,
+    ) -> int:
+        """
+        For pure-practice contests (counts_toward_grade=False), delete all
+        previous submissions for the same user+problem+contest, keeping only
+        current_submission. Returns the number of deleted rows.
+        """
+        if contest.counts_toward_grade:
+            return 0
+
+        qs = Submission.objects.filter(
+            user=user,
+            problem=problem,
+            contest=contest,
+            source_type="contest",
+        ).exclude(pk=current_submission.pk)
+        count, _ = qs.delete()
+        return count
 
     # ------------------------------------------------------------------
     # Submission creation (unchanged public contract for backward compat)
