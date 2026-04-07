@@ -41,6 +41,7 @@ def _login_ip_rate(group, request):
 
 
 @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=True), name="post")
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 @method_decorator(csrf_exempt, name="dispatch")
 class RegisterView(SchemaAPIView):
     permission_classes = [AllowAny]

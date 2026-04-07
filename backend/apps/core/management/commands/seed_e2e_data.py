@@ -139,7 +139,7 @@ class Command(BaseCommand):
         if created:
             ProblemTranslation.objects.create(
                 problem=prob1,
-                language='zh-hant',
+                language='zh-TW',
                 title="A+B Problem",
                 description="計算兩個整數 $a$ 和 $b$ 的和。",
                 input_description="輸入包含兩個整數 $a$ 和 $b$，用空格分隔。",
@@ -210,7 +210,7 @@ int main() {
         if created:
             ProblemTranslation.objects.create(
                 problem=prob2,
-                language='zh-hant',
+                language='zh-TW',
                 title="Hello World",
                 description='撰寫一個程式輸出 "Hello, World!"。',
                 input_description="無輸入。",
@@ -261,7 +261,7 @@ int main() {
         if created:
             ProblemTranslation.objects.create(
                 problem=prob3,
-                language='zh-hant',
+                language='zh-TW',
                 title="階乘計算",
                 description='計算給定整數 $n$ 的階乘 $n!$。',
                 input_description="輸入一個整數 $n$ ($0 \\leq n \\leq 10$)。",

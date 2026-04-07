@@ -54,7 +54,6 @@ const redirectToLogin = () => {
     path.startsWith("/register") ||
     path.startsWith("/auth/") ||
     path.startsWith("/teacher-activation") ||
-    path.startsWith("/onboarding") ||
     path.startsWith("/classrooms/join")
   ) {
     return;
@@ -70,7 +69,6 @@ const handleUnauthorized = (response: Response): boolean => {
       path.startsWith("/register") ||
       path.startsWith("/auth/") ||
       path.startsWith("/teacher-activation") ||
-      path.startsWith("/onboarding") ||
       path.startsWith("/classrooms/join");
 
     if (!isCriticalPath) {

@@ -1,6 +1,7 @@
 """
 Serializers for user authentication and profile management.
 """
+from datetime import timedelta
 from urllib.parse import urlparse
 
 from rest_framework import serializers
@@ -285,12 +286,12 @@ class UserPreferencesUpdateSerializer(serializers.Serializer):
         required=False,
         allow_blank=True
     )
-    preferred_language = serializers.CharField(
-        max_length=20,
+    preferred_language = serializers.ChoiceField(
+        choices=[c[0] for c in UserProfile.LANGUAGE_CHOICES],
         required=False
     )
     preferred_theme = serializers.ChoiceField(
-        choices=['light', 'dark', 'system'],
+        choices=[c[0] for c in UserProfile.THEME_CHOICES],
         required=False
     )
     editor_font_size = serializers.IntegerField(
@@ -307,13 +308,6 @@ class UserPreferencesUpdateSerializer(serializers.Serializer):
         allow_null=True
     )
     
-    def validate_preferred_language(self, value):
-        """Validate language choice."""
-        valid_languages = ['zh-TW', 'en', 'ja', 'ko']
-        if value not in valid_languages:
-            raise serializers.ValidationError(f'無效的語言選擇，請選擇: {", ".join(valid_languages)}')
-        return value
-
     def validate_avatar_url(self, value):
         if value == "":
             return value
@@ -325,7 +319,7 @@ class UserPreferencesUpdateSerializer(serializers.Serializer):
         return value
 
     def validate_onboarding_completed_at(self, value):
-        if value and value > timezone.now():
+        if value and value > timezone.now() + timedelta(seconds=60):
             raise serializers.ValidationError("完成時間不能晚於現在")
         return value
 

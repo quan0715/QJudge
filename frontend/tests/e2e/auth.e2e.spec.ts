@@ -216,6 +216,74 @@ test.describe("Authentication E2E Tests", () => {
     });
   });
 
+  test.describe("Onboarding Flow", () => {
+    test("new user should see onboarding and complete it", async ({
+      page,
+    }) => {
+      const timestamp = Date.now();
+      const newUser = {
+        email: `onboard${timestamp}@example.com`,
+        username: `onboard${timestamp}`,
+        password: "TestPass123!",
+      };
+
+      // Register through the browser so cookies are set in page context
+      await page.goto("/register");
+      await fillAuthFormInput(page, "auth-register-username", newUser.username);
+      await fillAuthFormInput(page, "auth-register-email", newUser.email);
+      await fillAuthFormInput(page, "auth-register-password", newUser.password);
+      await fillAuthFormInput(
+        page,
+        "auth-register-password-confirm",
+        newUser.password,
+      );
+      await page.getByTestId("auth-register-submit").click();
+
+      // Wait for registration to complete (leaves /register)
+      await page.waitForFunction(
+        () => window.location.pathname !== "/register",
+        undefined,
+        { timeout: 20000 },
+      );
+
+      // GET login page first to ensure csrftoken cookie is set, then go to dashboard.
+      // Full reload lets AuthContext pick up localStorage user + cookies.
+      await page.goto("/login");
+      await page.waitForTimeout(500);
+      await page.goto("/dashboard");
+      await page.waitForURL(/\/onboarding/, { timeout: 15000 });
+      await expect(page).toHaveURL(/\/onboarding/);
+
+      const nameInput = page.locator("#onboarding-display-name");
+      await nameInput.waitFor({ state: "visible", timeout: 10000 });
+      await nameInput.fill(newUser.username);
+
+      await page.getByRole("button", { name: /開始使用/i }).click();
+
+      // After onboarding submission, user may go through /dashboard or re-auth
+      await page.waitForURL((url) => !url.pathname.includes("/onboarding"), {
+        timeout: 15000,
+      }).catch(async () => {
+        // Debug: capture state if we're still on onboarding
+        const html = await page.locator(".auth-form").innerHTML().catch(() => "no-form");
+        const url = page.url();
+        throw new Error(`Stuck after onboarding submit. URL: ${url}, form: ${html.slice(0, 500)}`);
+      });
+
+      // Should end up on dashboard (not login or onboarding)
+      const finalUrl = page.url();
+      expect(finalUrl).toMatch(/\/dashboard/);
+    });
+
+    test("unauthenticated user accessing protected route should go to login, not onboarding", async ({
+      page,
+    }) => {
+      await page.goto("/dashboard");
+      await page.waitForURL(/\/$|\/login/, { timeout: 10000 });
+      await expect(page).not.toHaveURL(/\/onboarding/);
+    });
+  });
+
   test.describe("Navigation", () => {
     test("should navigate from login to register page", async ({ page }) => {
       await page.goto("/login");

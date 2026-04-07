@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import FormParser, MultiPartParser
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.core.cache import cache
 from django.urls import reverse
@@ -346,7 +347,8 @@ class UserPreferencesView(SchemaAPIView):
         if 'editor_tab_size' in validated_data:
             profile.editor_tab_size = validated_data['editor_tab_size']
         if 'onboarding_completed_at' in validated_data:
-            profile.onboarding_completed_at = validated_data['onboarding_completed_at']
+            val = validated_data['onboarding_completed_at']
+            profile.onboarding_completed_at = timezone.now() if val else None
 
         profile.save()
         cache.delete(f"user_preferences:v1:{user.id}")

@@ -214,10 +214,6 @@ class UserPreferencesViewTestCase(TestCase):
 
         profile = UserProfile.objects.get(user=self.user)
         self.assertIsNotNone(profile.onboarding_completed_at)
-        self.assertEqual(
-            profile.onboarding_completed_at.astimezone(timezone.utc),
-            completed_at.astimezone(timezone.utc),
-        )
 
     def test_patch_onboarding_completed_at_rejects_future_time(self):
         self.client.force_authenticate(user=self.user)
@@ -230,3 +226,94 @@ class UserPreferencesViewTestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # ── Incident 2026-04-07 regression tests ──────────────────────────
+
+    def test_patch_invalid_preferred_language_zh_hant(self):
+        """zh-hant was a legacy default that should be rejected."""
+        self.client.force_authenticate(user=self.user)
+        for lang in ["zh-hant", "zh", "en-US", "fr", ""]:
+            response = self.client.patch(
+                self.url,
+                {"preferred_language": lang},
+                format="json",
+            )
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_400_BAD_REQUEST,
+                f"Expected 400 for preferred_language={lang!r}",
+            )
+
+    def test_patch_preferred_language_all_valid(self):
+        self.client.force_authenticate(user=self.user)
+        for lang in ["zh-TW", "en", "ja", "ko"]:
+            response = self.client.patch(
+                self.url,
+                {"preferred_language": lang},
+                format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data["data"]["preferred_language"], lang)
+
+    def test_onboarding_completed_at_uses_server_time(self):
+        """Backend should ignore the provided timestamp and use server time."""
+        self.client.force_authenticate(user=self.user)
+        past_time = (timezone.now() - timedelta(hours=1)).isoformat()
+
+        response = self.client.patch(
+            self.url,
+            {"onboarding_completed_at": past_time},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertIsNotNone(profile.onboarding_completed_at)
+        diff = abs((profile.onboarding_completed_at - timezone.now()).total_seconds())
+        self.assertLess(diff, 5, "Server should set onboarding time to ~now()")
+
+    def test_onboarding_completed_at_future_within_buffer(self):
+        """A timestamp within 60s buffer should be accepted."""
+        self.client.force_authenticate(user=self.user)
+        near_future = (timezone.now() + timedelta(seconds=30)).isoformat()
+
+        response = self.client.patch(
+            self.url,
+            {"onboarding_completed_at": near_future},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_onboarding_completed_at_future_beyond_buffer(self):
+        """A timestamp >60s in the future should be rejected."""
+        self.client.force_authenticate(user=self.user)
+        far_future = (timezone.now() + timedelta(minutes=2)).isoformat()
+
+        response = self.client.patch(
+            self.url,
+            {"onboarding_completed_at": far_future},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_preferences_response_shape(self):
+        """GET response must contain all expected fields with correct types."""
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.data["data"]
+        expected_fields = {
+            "solved_count", "submission_count", "accept_rate",
+            "display_name", "avatar_url",
+            "preferred_language", "preferred_theme",
+            "editor_font_size", "editor_tab_size",
+            "onboarding_completed_at",
+        }
+        self.assertEqual(set(data.keys()), expected_fields)
+
+        self.assertIsInstance(data["preferred_language"], str)
+        self.assertIn(data["preferred_language"], ["zh-TW", "en", "ja", "ko"])
+        self.assertIn(data["preferred_theme"], ["light", "dark", "system"])
+        self.assertIsInstance(data["editor_font_size"], int)
+        self.assertIn(data["editor_tab_size"], [2, 4])

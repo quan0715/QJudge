@@ -108,7 +108,7 @@ class Command(BaseCommand):
             # 建立翻譯
             ProblemTranslation.objects.create(
                 problem=problem1,
-                language='zh-hant',
+                language='zh-TW',
                 title='A + B 問題',
                 description='給定兩個整數 A 和 B，請計算 A + B 的值。',
                 input_description='一行包含兩個整數 A 和 B，以空格分隔。(-10^9 ≤ A, B ≤ 10^9)',
@@ -185,7 +185,7 @@ print(a + b)''',
             # 建立翻譯
             ProblemTranslation.objects.create(
                 problem=problem2,
-                language='zh-hant',
+                language='zh-TW',
                 title='Fibonacci 數列',
                 description='''Fibonacci 數列定義如下：
 F(0) = 0
