@@ -56,8 +56,10 @@ const OAuthCallbackPage = () => {
         const response = await oauthCallback(provider, code);
 
         if (response.success) {
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-          const nextPath = getAuthedLandingPath(response.data.user);
+          // Extract user profile only — do not persist tokens in localStorage
+          const { access_token: _a, refresh_token: _r, ...safeData } = response.data;
+          localStorage.setItem('user', JSON.stringify(safeData.user));
+          const nextPath = getAuthedLandingPath(safeData.user);
           
           const elapsedTime = Date.now() - startTime;
           const remainingTime = Math.max(0, MIN_ANIMATION_TIME - elapsedTime);

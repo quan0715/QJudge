@@ -9,7 +9,7 @@
  * 4. Verifying test data is properly seeded
  */
 
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
@@ -71,7 +71,7 @@ async function getFirstReachableStatus(urls: string[]): Promise<number | null> {
 
 function canQueryDocker(composeFile: string, rootDir: string): boolean {
   try {
-    execSync(`docker compose -f ${composeFile} ps --services`, {
+    execFileSync("docker", ["compose", "-f", composeFile, "ps", "--services"], {
       encoding: "utf-8",
       stdio: "pipe",
       cwd: rootDir,
@@ -91,8 +91,8 @@ function isServiceRunning(
   service: string
 ): boolean {
   try {
-    const output = execSync(
-      `docker compose -f ${composeFile} ps --services --status running ${service}`,
+    const output = execFileSync(
+      "docker", ["compose", "-f", composeFile, "ps", "--services", "--status", "running", service],
       { encoding: "utf-8", stdio: "pipe", cwd: rootDir }
     )
       .trim()
@@ -249,21 +249,21 @@ async function globalSetup() {
       // Verify test data exists
       console.log("✅ Verifying test data...");
       try {
-        execSync(
-          `docker compose -f ${composeFile} exec -T backend-test python manage.py shell << 'EOF'
-from django.contrib.auth import get_user_model
-from apps.problems.models import Problem
-
-User = get_user_model()
-users = User.objects.count()
-problems = Problem.objects.count()
-
-print(f"Users: {users}, Problems: {problems}")
-
-if users < 3 or problems < 2:
-    print("Warning: Test data may not be properly seeded")
-    exit(1)
-EOF`,
+        execFileSync(
+          "docker",
+          [
+            "compose", "-f", composeFile, "exec", "-T", "backend-test",
+            "python", "manage.py", "shell", "-c",
+            'from django.contrib.auth import get_user_model\n'
+            + 'from apps.problems.models import Problem\n'
+            + 'User = get_user_model()\n'
+            + 'users = User.objects.count()\n'
+            + 'problems = Problem.objects.count()\n'
+            + 'print(f"Users: {users}, Problems: {problems}")\n'
+            + 'if users < 3 or problems < 2:\n'
+            + '    print("Warning: Test data may not be properly seeded")\n'
+            + '    exit(1)\n',
+          ],
           { stdio: "inherit", cwd: rootDir }
         );
       } catch {
@@ -282,14 +282,18 @@ EOF`,
     console.log("📦 Environment not running. Starting Docker Compose...");
 
     // Stop any existing containers first
-    execSync(`docker compose -f ${composeFile} down -v 2>/dev/null || true`, {
-      stdio: "inherit",
-      cwd: rootDir,
-    });
+    try {
+      execFileSync("docker", ["compose", "-f", composeFile, "down", "-v"], {
+        stdio: "inherit",
+        cwd: rootDir,
+      });
+    } catch {
+      // ignore — may not be running
+    }
 
     // Start services
     console.log("\n🐳 Starting Docker Compose services...");
-    execSync(`docker compose -f ${composeFile} up -d`, {
+    execFileSync("docker", ["compose", "-f", composeFile, "up", "-d"], {
       stdio: "inherit",
       cwd: rootDir,
     });
@@ -348,21 +352,21 @@ EOF`,
 
     // Verify test data
     console.log("\n✅ Verifying test data...");
-    execSync(
-      `docker compose -f ${composeFile} exec -T backend-test python manage.py shell << 'EOF'
-from django.contrib.auth import get_user_model
-from apps.problems.models import Problem
-
-User = get_user_model()
-users = User.objects.count()
-problems = Problem.objects.count()
-
-print(f"Users: {users}, Problems: {problems}")
-
-if users < 3 or problems < 2:
-    print("Warning: Test data may not be properly seeded")
-    exit(1)
-EOF`,
+    execFileSync(
+      "docker",
+      [
+        "compose", "-f", composeFile, "exec", "-T", "backend-test",
+        "python", "manage.py", "shell", "-c",
+        'from django.contrib.auth import get_user_model\n'
+        + 'from apps.problems.models import Problem\n'
+        + 'User = get_user_model()\n'
+        + 'users = User.objects.count()\n'
+        + 'problems = Problem.objects.count()\n'
+        + 'print(f"Users: {users}, Problems: {problems}")\n'
+        + 'if users < 3 or problems < 2:\n'
+        + '    print("Warning: Test data may not be properly seeded")\n'
+        + '    exit(1)\n',
+      ],
       { stdio: "inherit", cwd: rootDir }
     );
 
@@ -376,8 +380,8 @@ EOF`,
     if (!isCI) {
       console.log("\n📋 Backend logs:");
       try {
-        execSync(
-          `docker compose -f ${composeFile} logs --tail=50 backend-test`,
+        execFileSync(
+          "docker", ["compose", "-f", composeFile, "logs", "--tail=50", "backend-test"],
           {
             stdio: "inherit",
             cwd: rootDir,

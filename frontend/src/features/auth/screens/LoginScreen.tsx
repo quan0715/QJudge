@@ -32,8 +32,10 @@ const LoginPage = () => {
     try {
       const response = await login({ email, password });
       if (response.success) {
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        window.location.href = getAuthedLandingPath(response.data.user);
+        // Extract user profile only — do not persist tokens in localStorage
+        const { access_token: _a, refresh_token: _r, ...safeData } = response.data;
+        localStorage.setItem("user", JSON.stringify(safeData.user));
+        window.location.href = getAuthedLandingPath(safeData.user);
       } else {
         setError(t("auth.login.failed"));
       }

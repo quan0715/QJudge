@@ -198,7 +198,7 @@ const chatbotRepository: ChatbotRepository = {
   },
 
   async createSession(): Promise<ChatSession> {
-    const sessionId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `temp-${Date.now()}-${crypto.randomUUID().replace(/-/g, "").substring(0, 9)}`;
     return {
       id: sessionId,
       title: "新對話",

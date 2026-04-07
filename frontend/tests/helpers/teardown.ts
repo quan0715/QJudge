@@ -6,7 +6,7 @@
  * Set E2E_CLEANUP=true to stop and cleanup the environment.
  */
 
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
@@ -32,7 +32,7 @@ async function globalTeardown() {
   try {
     // Stop and remove containers, networks, and volumes
     console.log("🛑 Stopping Docker Compose services...");
-    execSync(`docker-compose -f ${composeFile} down -v`, {
+    execFileSync("docker", ["compose", "-f", composeFile, "down", "-v"], {
       stdio: "inherit",
       cwd: rootDir,
     });

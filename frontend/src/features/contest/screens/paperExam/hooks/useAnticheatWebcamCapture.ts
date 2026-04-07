@@ -58,7 +58,7 @@ export const useAnticheatWebcamCapture = ({
   const [uploadSessionId] = useState(() => {
     const existing = getExamCaptureSessionId(contestId);
     if (existing) return existing;
-    const created = Math.random().toString(36).substring(2, 15);
+    const created = crypto.randomUUID().replace(/-/g, "").substring(0, 13);
     setExamCaptureSessionId(contestId, created);
     return created;
   });

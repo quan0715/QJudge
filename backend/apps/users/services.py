@@ -302,10 +302,9 @@ class BaseOAuthService(ABC):
         if not oauth_avatar_url and cls.provider_name == 'github' and oauth_id:
             oauth_avatar_url = f"https://avatars.githubusercontent.com/u/{oauth_id}"
         logger.info(
-            "oauth profile sync provider=%s has_avatar=%s avatar_source_candidate=%s",
+            "oauth profile sync provider=%s has_avatar=%s",
             cls.provider_name,
             bool(oauth_avatar_url),
-            user_info.get('avatar_source') or '',
         )
 
         def _sync_oauth_avatar(target_user: User) -> None:

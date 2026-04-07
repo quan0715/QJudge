@@ -60,8 +60,10 @@ const RegisterPage = () => {
         password_confirm: confirmPassword,
       });
       if (response.success) {
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        navigate(getAuthedLandingPath(response.data.user), { replace: true });
+        // Extract user profile only — do not persist tokens in localStorage
+        const { access_token: _a, refresh_token: _r, ...safeData } = response.data;
+        localStorage.setItem("user", JSON.stringify(safeData.user));
+        navigate(getAuthedLandingPath(safeData.user), { replace: true });
       } else {
         setError(t("auth.register.failed"));
       }

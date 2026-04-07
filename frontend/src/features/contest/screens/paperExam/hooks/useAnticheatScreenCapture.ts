@@ -80,7 +80,7 @@ export const useAnticheatScreenCapture = ({
     // Reuse existing session ID if available (e.g. page reload during exam)
     const existing = getExamCaptureSessionId(contestId);
     if (existing) return existing;
-    const newId = Math.random().toString(36).substring(2, 15);
+    const newId = crypto.randomUUID().replace(/-/g, "").substring(0, 13);
     setExamCaptureSessionId(contestId, newId);
     return newId;
   });

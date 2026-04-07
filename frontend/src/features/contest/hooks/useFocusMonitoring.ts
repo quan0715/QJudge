@@ -125,9 +125,7 @@ export function useFocusMonitoring({
 
     // Listener integrity verification (every 10s)
     const verifyTimer = setInterval(() => {
-      const token = typeof crypto?.randomUUID === "function"
-        ? crypto.randomUUID()
-        : Math.random().toString(36).substring(2, 15);
+      const token = crypto.randomUUID();
       if (detector.verifyIntegrity && !detector.verifyIntegrity(token)) {
         onViolation("listener_tampered", "Focus listener integrity check failed: focus");
       }

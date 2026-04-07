@@ -78,10 +78,7 @@ export function useFullscreenMonitoring({
 
     // Listener integrity verification (every 10s)
     const verifyTimer = setInterval(() => {
-      const token =
-        typeof crypto?.randomUUID === "function"
-          ? crypto.randomUUID()
-          : Math.random().toString(36).substring(2, 15);
+      const token = crypto.randomUUID();
 
       lastVerifyResponseRef.current = null;
       const synthetic = new Event("fullscreenchange");
