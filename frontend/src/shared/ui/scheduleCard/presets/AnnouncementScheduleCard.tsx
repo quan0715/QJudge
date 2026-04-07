@@ -17,24 +17,24 @@ export function AnnouncementScheduleCard({
   const { t } = useTranslation("classroom");
 
   return (
-    <ScheduleCard.Root onClick={onClick}>
-      <ScheduleCard.Badge icon={<Bullhorn size={20} />} color="purple" />
+    <ScheduleCard.Root onClick={onClick} accentColor="var(--cds-support-info)">
+      <ScheduleCard.Header
+        icon={<Bullhorn size={16} />}
+        tag={
+          <Tag type="purple" size="sm">
+            {t("activitySchedule.announcementLabel", "公告")}
+          </Tag>
+        }
+      >
+        {announcement.title}
+      </ScheduleCard.Header>
 
-      <ScheduleCard.Content>
-        <ScheduleCard.Title>{announcement.title}</ScheduleCard.Title>
-        <ScheduleCard.Meta>
-          {announcement.createdByUsername
-            ? `${announcement.createdByUsername} · `
-            : ""}
-          {formatDateTime(announcement.createdAt, DATE_FORMATS.DATE_ONLY)}
-        </ScheduleCard.Meta>
-      </ScheduleCard.Content>
-
-      <ScheduleCard.Aside>
-        <Tag type="purple" size="sm">
-          {t("activitySchedule.announcementLabel", "公告")}
-        </Tag>
-      </ScheduleCard.Aside>
+      <ScheduleCard.Meta>
+        {announcement.createdByUsername
+          ? `${announcement.createdByUsername} · `
+          : ""}
+        {formatDateTime(announcement.createdAt, DATE_FORMATS.DATE_ONLY)}
+      </ScheduleCard.Meta>
     </ScheduleCard.Root>
   );
 }

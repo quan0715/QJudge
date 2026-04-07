@@ -1,33 +1,34 @@
-@use "@carbon/react/scss/spacing" as *;
 @use "@carbon/react/scss/type" as *;
 
-// ── Root card ─────────────────────────────────────────────────────────────────
+// ── Root tile ─────────────────────────────────────────────────────────────────
 
 .root {
   display: flex;
-  align-items: flex-start;
-  gap: $spacing-04;
+  flex-direction: column;
+  gap: var(--cds-spacing-02, 0.25rem);
   width: 100%;
-  padding: $spacing-04 $spacing-05;
+  padding: var(--cds-spacing-04, 0.75rem) var(--cds-spacing-05, 1rem);
   background: var(--cds-layer-01);
-  border: 1px solid var(--cds-border-subtle-01);
-  border-radius: 6px;
+  border: 1px solid var(--cds-border-subtle);
+  border-left: 4px solid var(--cds-border-subtle);
   text-align: start;
-  transition: background 100ms ease, box-shadow 100ms ease;
-
-  // When used as a button
   cursor: default;
+  transition: background-color 150ms ease;
 
   &[type="button"] {
     cursor: pointer;
 
     &:hover {
       background: var(--cds-layer-hover-01);
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
 
     &:active {
       background: var(--cds-layer-active-01);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cds-focus);
+      outline-offset: -2px;
     }
   }
 }
@@ -36,45 +37,25 @@
   opacity: 0.55;
 }
 
-// ── Badge (circular icon) ─────────────────────────────────────────────────────
+// ── Header row ────────────────────────────────────────────────────────────────
 
-.badge {
+.header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  color: #fff;
-
-  // Ensure Carbon icons inherit white colour
-  svg {
-    fill: currentColor;
-  }
-}
-
-// Badge colour variants
-
-.badgeBlue   { background: var(--cds-interactive); }
-.badgeGreen  { background: var(--cds-support-success); }
-.badgeGray   { background: var(--cds-border-strong-01); }
-.badgePurple { background: #8a3ffc; }
-.badgeOrange { background: var(--cds-support-warning); color: var(--cds-text-inverse); }
-
-// ── Content area ──────────────────────────────────────────────────────────────
-
-.content {
-  flex: 1;
+  gap: var(--cds-spacing-03, 0.5rem);
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
 }
 
-// ── Title ─────────────────────────────────────────────────────────────────────
+.headerIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  color: var(--cds-icon-secondary);
+}
 
 .title {
+  flex: 1;
+  min-width: 0;
   margin: 0;
   @include type-style("productive-heading-01");
   color: var(--cds-text-primary);
@@ -83,13 +64,17 @@
   text-overflow: ellipsis;
 }
 
-// ── Time row ─────────────────────────────────────────────────────────────────
+.headerTag {
+  flex-shrink: 0;
+}
+
+// ── Time row ──────────────────────────────────────────────────────────────────
 
 .time {
   margin: 0;
   display: flex;
   align-items: center;
-  gap: $spacing-02;
+  gap: var(--cds-spacing-02, 0.25rem);
   @include type-style("label-01");
   color: var(--cds-text-secondary);
 }
@@ -105,15 +90,4 @@
   margin: 0;
   @include type-style("label-01");
   color: var(--cds-text-helper);
-}
-
-// ── Aside (right slot) ────────────────────────────────────────────────────────
-
-.aside {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: $spacing-02;
-  padding-top: 2px;
 }

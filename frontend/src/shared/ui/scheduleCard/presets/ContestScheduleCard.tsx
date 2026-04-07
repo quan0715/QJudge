@@ -14,21 +14,19 @@ import {
   type ContestDisplayState,
 } from "@/core/entities/contest.entity";
 import { getBoundContestTimeRange } from "@/features/classroom/domain/classroomActivityTimeline";
-import { ScheduleCard, type ScheduleCardColor } from "../ScheduleCard";
+import { ScheduleCard } from "../ScheduleCard";
 
 // ── State → visual mapping ────────────────────────────────────────────────────
 
-function stateToColor(state: ContestDisplayState): ScheduleCardColor {
-  switch (state) {
-    case "running":  return "green";
-    case "ended":
-    case "archived": return "gray";
-    default:         return "blue";
-  }
-}
+const ACCENT: Record<string, string> = {
+  upcoming: "var(--cds-interactive)",
+  running:  "var(--cds-support-success)",
+  ended:    "var(--cds-border-strong-01)",
+  archived: "var(--cds-text-disabled)",
+};
 
 function StateIcon({ state }: { state: ContestDisplayState }) {
-  const props = { size: 20 };
+  const props = { size: 16 };
   switch (state) {
     case "running":  return <InProgress {...props} />;
     case "ended":    return <CheckmarkFilled {...props} />;
@@ -54,9 +52,7 @@ export function ContestScheduleCard({ contest, onClick }: ContestScheduleCardPro
     endTime:   isNaN(endMs)   ? undefined : new Date(endMs).toISOString(),
   });
 
-  const color = stateToColor(state);
-  const tagColor = getContestStateColor(state);
-  const label = getContestStateLabel(state);
+  const accent = ACCENT[state] ?? ACCENT.upcoming;
   const isMuted = state === "ended" || state === "archived";
 
   const deliveryLabel =
@@ -65,23 +61,26 @@ export function ContestScheduleCard({ contest, onClick }: ContestScheduleCardPro
       : t("contestDeliveryPractice", "練習");
 
   return (
-    <ScheduleCard.Root onClick={onClick} muted={isMuted}>
-      <ScheduleCard.Badge icon={<StateIcon state={state} />} color={color} />
+    <ScheduleCard.Root onClick={onClick} accentColor={accent} muted={isMuted}>
+      <ScheduleCard.Header
+        icon={<StateIcon state={state} />}
+        tag={
+          <Tag type={getContestStateColor(state)} size="sm">
+            {getContestStateLabel(state)}
+          </Tag>
+        }
+      >
+        {contest.contestName}
+      </ScheduleCard.Header>
 
-      <ScheduleCard.Content>
-        <ScheduleCard.Title>{contest.contestName}</ScheduleCard.Title>
-        <ScheduleCard.Time
-          start={contest.contestStartTime || contest.boundAt}
-          end={contest.contestEndTime   || contest.boundAt}
-        />
-        <ScheduleCard.Meta>
-          {contest.contestOwnerUsername} · {deliveryLabel}
-        </ScheduleCard.Meta>
-      </ScheduleCard.Content>
+      <ScheduleCard.Time
+        start={contest.contestStartTime || contest.boundAt}
+        end={contest.contestEndTime || contest.boundAt}
+      />
 
-      <ScheduleCard.Aside>
-        <Tag type={tagColor} size="sm">{label}</Tag>
-      </ScheduleCard.Aside>
+      <ScheduleCard.Meta>
+        {contest.contestOwnerUsername} · {deliveryLabel}
+      </ScheduleCard.Meta>
     </ScheduleCard.Root>
   );
 }

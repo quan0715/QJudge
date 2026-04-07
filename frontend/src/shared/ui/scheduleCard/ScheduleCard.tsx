@@ -1,17 +1,15 @@
 /**
- * ScheduleCard — compound component for calendar event cards.
+ * ScheduleCard — Carbon-aligned compound component for schedule event cards.
+ *
+ * Visual: flat tile with 4px left accent border, 16px inline icon, clean type hierarchy.
  *
  * Usage:
- *   <ScheduleCard.Root onClick={...}>
- *     <ScheduleCard.Badge icon={<Calendar />} color="blue" />
- *     <ScheduleCard.Content>
- *       <ScheduleCard.Title>期中考</ScheduleCard.Title>
- *       <ScheduleCard.Time start={startIso} end={endIso} />
- *       <ScheduleCard.Meta>teacher · 2026/04/07</ScheduleCard.Meta>
- *     </ScheduleCard.Content>
- *     <ScheduleCard.Aside>
- *       <Tag type="green">進行中</Tag>
- *     </ScheduleCard.Aside>
+ *   <ScheduleCard.Root onClick={...} accentColor="var(--cds-interactive)">
+ *     <ScheduleCard.Header icon={<Calendar size={16} />} tag={<Tag ...>即將開始</Tag>}>
+ *       期中考
+ *     </ScheduleCard.Header>
+ *     <ScheduleCard.Time start={startIso} end={endIso} />
+ *     <ScheduleCard.Meta>prof.chen · 考試</ScheduleCard.Meta>
  *   </ScheduleCard.Root>
  */
 
@@ -20,18 +18,6 @@ import { Time } from "@carbon/icons-react";
 import { formatDateTime, DATE_FORMATS } from "@/i18n/dateUtils";
 import styles from "./ScheduleCard.module.scss";
 
-// ── Badge colour tokens ───────────────────────────────────────────────────────
-
-export type ScheduleCardColor = "blue" | "green" | "gray" | "purple" | "orange";
-
-const COLOR_CLASS: Record<ScheduleCardColor, string> = {
-  blue:   styles.badgeBlue,
-  green:  styles.badgeGreen,
-  gray:   styles.badgeGray,
-  purple: styles.badgePurple,
-  orange: styles.badgeOrange,
-};
-
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 interface RootProps {
@@ -39,59 +25,53 @@ interface RootProps {
   onClick?: () => void;
   className?: string;
   style?: CSSProperties;
-  /** Apply dimmed / ended appearance */
+  /** CSS colour value for left accent border */
+  accentColor?: string;
+  /** Dimmed visual for ended / archived items */
   muted?: boolean;
 }
 
-function Root({ children, onClick, className, style, muted }: RootProps) {
-  const cls = [
-    styles.root,
-    muted ? styles.rootMuted : "",
-    className ?? "",
-  ]
+function Root({ children, onClick, className, style, accentColor, muted }: RootProps) {
+  const cls = [styles.root, muted ? styles.rootMuted : "", className ?? ""]
     .filter(Boolean)
     .join(" ");
 
+  const mergedStyle: CSSProperties = {
+    ...style,
+    ...(accentColor ? { borderLeftColor: accentColor } : {}),
+  };
+
   if (onClick) {
     return (
-      <button type="button" className={cls} style={style} onClick={onClick}>
+      <button type="button" className={cls} style={mergedStyle} onClick={onClick}>
         {children}
       </button>
     );
   }
 
   return (
-    <div className={cls} style={style}>
+    <div className={cls} style={mergedStyle}>
       {children}
     </div>
   );
 }
 
-// ── Badge ─────────────────────────────────────────────────────────────────────
+// ── Header (icon + title + optional tag) ──────────────────────────────────────
 
-interface BadgeProps {
-  icon: ReactNode;
-  color: ScheduleCardColor;
+interface HeaderProps {
+  children: ReactNode;
+  icon?: ReactNode;
+  tag?: ReactNode;
 }
 
-function Badge({ icon, color }: BadgeProps) {
+function Header({ children, icon, tag }: HeaderProps) {
   return (
-    <span className={`${styles.badge} ${COLOR_CLASS[color]}`} aria-hidden>
-      {icon}
-    </span>
+    <div className={styles.header}>
+      {icon && <span className={styles.headerIcon}>{icon}</span>}
+      <span className={styles.title}>{children}</span>
+      {tag && <span className={styles.headerTag}>{tag}</span>}
+    </div>
   );
-}
-
-// ── Content ───────────────────────────────────────────────────────────────────
-
-function Content({ children }: { children: ReactNode }) {
-  return <div className={styles.content}>{children}</div>;
-}
-
-// ── Title ─────────────────────────────────────────────────────────────────────
-
-function Title({ children }: { children: ReactNode }) {
-  return <p className={styles.title}>{children}</p>;
 }
 
 // ── Time ──────────────────────────────────────────────────────────────────────
@@ -108,9 +88,9 @@ function TimeRange({ start, end }: TimeRangeProps) {
 
   return (
     <p className={styles.time}>
-      <Time size={12} className={styles.timeIcon} aria-hidden />
+      <Time size={12} className={styles.timeIcon} />
       {startStr}
-      {end ? <> — {endStr}</> : null}
+      {end ? ` — ${endStr}` : null}
     </p>
   );
 }
@@ -121,20 +101,11 @@ function Meta({ children }: { children: ReactNode }) {
   return <p className={styles.meta}>{children}</p>;
 }
 
-// ── Aside ─────────────────────────────────────────────────────────────────────
-
-function Aside({ children }: { children: ReactNode }) {
-  return <div className={styles.aside}>{children}</div>;
-}
-
 // ── Compound export ───────────────────────────────────────────────────────────
 
 export const ScheduleCard = {
   Root,
-  Badge,
-  Content,
-  Title,
+  Header,
   Time: TimeRange,
   Meta,
-  Aside,
 };
