@@ -33,6 +33,7 @@ export function buildCalendarDayRows(
   }
 
   for (const c of contests) {
+    if (c.contestStatus === "draft") continue;
     const { startMs: cStart } = getBoundContestTimeRange(c);
     if (Number.isNaN(cStart)) continue;
     addEvent(localDateKeyFromMs(cStart), { type: "contest", contest: c, sortMs: cStart });

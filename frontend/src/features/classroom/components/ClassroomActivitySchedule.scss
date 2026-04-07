@@ -1,5 +1,4 @@
 @use "@carbon/react/scss/spacing" as *;
-@use "@carbon/react/scss/type" as *;
 
 // ── Calendar List ─────────────────────────────────────────────────────────────
 
@@ -8,40 +7,38 @@
 }
 
 .cal-list__heading {
-  margin: 0 0 $spacing-05;
+  margin: 0 0 $spacing-04;
   font-size: var(--cds-heading-03-font-size);
   font-weight: var(--cds-heading-03-font-weight);
   letter-spacing: var(--cds-heading-03-letter-spacing);
 }
 
-// ── Load earlier / later buttons ──────────────────────────────────────────────
+// ── Scroll container ──────────────────────────────────────────────────────────
 
-.cal-list__load-btn {
-  display: flex;
-  align-items: center;
-  gap: $spacing-02;
-  width: 100%;
-  padding: $spacing-03 $spacing-04;
-  background: none;
+.cal-list__scroll {
+  height: min(560px, 70vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--cds-border-subtle-01);
   border-radius: 4px;
-  cursor: pointer;
-  font-size: var(--cds-label-01-font-size);
-  color: var(--cds-link-primary);
-  justify-content: center;
-  transition: background 100ms ease;
+  background: var(--cds-layer-01);
 
-  &:hover {
-    background: var(--cds-layer-hover-01);
+  // Thin scrollbar (WebKit)
+  &::-webkit-scrollbar {
+    width: 6px;
   }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--cds-border-subtle-02);
+    border-radius: 3px;
+  }
+}
 
-  &:first-of-type {
-    margin-bottom: $spacing-04;
-  }
-
-  &:last-of-type {
-    margin-top: $spacing-04;
-  }
+.cal-list__sentinel {
+  height: 1px;
+  pointer-events: none;
 }
 
 // ── Days list ─────────────────────────────────────────────────────────────────
@@ -54,22 +51,21 @@
 
 .cal-list__day {
   display: grid;
-  grid-template-columns: 52px 1fr;
-  column-gap: $spacing-04;
-  min-height: 56px;
-  padding: $spacing-03 0;
-  border-top: 1px solid var(--cds-border-subtle-01);
+  grid-template-columns: 56px 1fr;
+  column-gap: $spacing-03;
+  min-height: 52px;
+  padding: $spacing-03 $spacing-04 $spacing-03 $spacing-03;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
   align-items: start;
 
   &:last-child {
-    border-bottom: 1px solid var(--cds-border-subtle-01);
+    border-bottom: none;
   }
 }
 
-// Empty day: just show the date, minimal height
 .cal-list__day--empty {
   min-height: 40px;
-  opacity: 0.55;
+  opacity: 0.45;
 }
 
 // ── Date column (left) ────────────────────────────────────────────────────────
@@ -80,7 +76,8 @@
   align-items: center;
   justify-content: flex-start;
   padding-top: 2px;
-  gap: 2px;
+  gap: 1px;
+  user-select: none;
 }
 
 .cal-list__weekday {
@@ -96,19 +93,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 400;
   line-height: 1;
   color: var(--cds-text-primary);
 
-  // Today: filled circle
   .cal-list__day--today & {
     background: var(--cds-interactive);
     color: var(--cds-text-on-color);
-    font-weight: 600;
+    font-weight: 700;
   }
 }
 
@@ -119,21 +115,23 @@
   flex-direction: column;
   gap: $spacing-02;
   padding-top: 2px;
+  min-width: 0;
 }
 
-// ── Individual event item ─────────────────────────────────────────────────────
+// ── Event item ────────────────────────────────────────────────────────────────
 
 .cal-list__event {
   display: grid;
-  grid-template-columns: 4px 1fr auto;
-  column-gap: $spacing-03;
+  grid-template-columns: 22px 1fr auto;
+  column-gap: $spacing-02;
   align-items: center;
   width: 100%;
-  min-height: 40px;
+  min-height: 38px;
   padding: $spacing-02 $spacing-03;
-  background: var(--cds-layer-01);
   border: 1px solid var(--cds-border-subtle-00);
   border-radius: 4px;
+  border-left-width: 3px;
+  background: var(--cds-layer-01);
   cursor: pointer;
   text-align: start;
   transition: background 100ms ease;
@@ -147,45 +145,75 @@
   }
 }
 
-// Left color accent bar
-.cal-list__event-bar {
-  width: 4px;
-  align-self: stretch;
-  border-radius: 2px;
+// Contest state colors (left border + icon tint)
+
+.cal-list__event--upcoming {
+  border-left-color: var(--cds-interactive);
+
+  .cal-list__event-icon {
+    color: var(--cds-interactive);
+  }
+}
+
+.cal-list__event--running {
+  border-left-color: var(--cds-support-success);
+
+  .cal-list__event-icon {
+    color: var(--cds-support-success);
+  }
+}
+
+.cal-list__event--ended {
+  border-left-color: var(--cds-border-strong-01);
+
+  .cal-list__event-icon {
+    color: var(--cds-text-disabled);
+  }
+}
+
+.cal-list__event--archived {
+  border-left-color: var(--cds-text-disabled);
+  opacity: 0.7;
+
+  .cal-list__event-icon {
+    color: var(--cds-text-disabled);
+  }
+}
+
+// Announcement: purple accent
+.cal-list__event--announcement {
+  border-left-color: #8a3ffc;
+
+  .cal-list__event-icon {
+    color: #8a3ffc;
+  }
+}
+
+// ── Icon column ───────────────────────────────────────────────────────────────
+
+.cal-list__event-icon-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.cal-list__event-bar--contest {
-  background: var(--cds-interactive);
-}
+// ── Event body ────────────────────────────────────────────────────────────────
 
-.cal-list__event-bar--announcement {
-  background: var(--cds-support-info);
-}
-
-// Event body (name + time)
 .cal-list__event-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .cal-list__event-name {
-  display: flex;
-  align-items: center;
-  gap: $spacing-02;
   font-size: var(--cds-body-short-01-font-size);
   font-weight: 600;
   color: var(--cds-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.cal-list__event-icon {
-  flex-shrink: 0;
-  color: var(--cds-support-info);
 }
 
 .cal-list__event-time {
