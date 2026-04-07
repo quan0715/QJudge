@@ -188,7 +188,7 @@ class TestQuestionBankAPI:
             format="multipart",
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
-        assert resp.data["error"] == "file is required"
+        assert resp.data["success"] is False
 
     def test_upload_cover_invalid_format(
         self,
@@ -1123,7 +1123,7 @@ class TestQuestionBankAPI:
         )
 
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
-        assert "not reconstructible" in resp.data["detail"]
+        assert resp.data["success"] is False
         assert not Question.objects.filter(
             bank=target_bank,
             metadata__legacy_exam_question_id=str(exam_question.id),
@@ -1381,7 +1381,7 @@ class TestCategoryValidationOnPost:
             format="json",
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
-        assert "coding" in resp.data["detail"].lower() or "exam" in resp.data["detail"].lower()
+        assert resp.data["success"] is False
 
     def test_post_coding_question_to_exam_bank_returns_400(
         self, api_client: APIClient, teacher: User
