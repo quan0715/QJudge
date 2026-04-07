@@ -1,25 +1,13 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { Tag } from "@carbon/react";
-import {
-  Bullhorn,
-  Calendar,
-  CheckmarkFilled,
-  InProgress,
-  Archive,
-} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { ClassroomAnnouncement } from "@/core/entities/classroom.entity";
-import {
-  getContestState,
-  getContestStateColor,
-  getContestStateLabel,
-  type ContestDisplayState,
-} from "@/core/entities/contest.entity";
-import type { CalendarDayRow, TimelineEvent } from "@/features/classroom/domain/classroomActivityTimeline";
-import { getBoundContestTimeRange } from "@/features/classroom/domain/classroomActivityTimeline";
-import { formatDateTime, DATE_FORMATS } from "@/i18n/dateUtils";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { Trophy } from "@carbon/icons-react";
+import type { ClassroomAnnouncement } from "@/core/entities/classroom.entity";
+import type { CalendarDayRow, TimelineEvent } from "@/features/classroom/domain/classroomActivityTimeline";
+import {
+  ContestScheduleCard,
+  AnnouncementScheduleCard,
+} from "@/shared/ui/scheduleCard";
+import { EmptyState } from "@/shared/ui/EmptyState";
 
 export interface ClassroomActivityTimelineProps {
   rows: CalendarDayRow[];
@@ -29,101 +17,30 @@ export interface ClassroomActivityTimelineProps {
   onLoadLater: () => void;
 }
 
-// ── Contest state → icon / bar-color mapping ──────────────────────────────────
+// ── Event dispatcher ──────────────────────────────────────────────────────────
 
-type ContestBarVariant = "upcoming" | "running" | "ended" | "archived";
-
-function getContestBarVariant(state: ContestDisplayState): ContestBarVariant {
-  if (state === "running") return "running";
-  if (state === "ended") return "ended";
-  if (state === "archived") return "archived";
-  return "upcoming";
-}
-
-function ContestStateIcon({ state, className }: { state: ContestDisplayState; className?: string }) {
-  const variant = getContestBarVariant(state);
-  const props = { size: 16, className };
-  switch (variant) {
-    case "running":   return <InProgress {...props} />;
-    case "ended":     return <CheckmarkFilled {...props} />;
-    case "archived":  return <Archive {...props} />;
-    default:          return <Calendar {...props} />;
-  }
-}
-
-// ── Event row components ──────────────────────────────────────────────────────
-
-function ContestEventItem({
+function EventCard({
   event,
   onOpenContest,
-}: {
-  event: Extract<TimelineEvent, { type: "contest" }>;
-  onOpenContest: (id: string) => void;
-}) {
-  const { contest } = event;
-  const startIso = contest.contestStartTime || contest.boundAt;
-  const endIso = contest.contestEndTime || contest.boundAt;
-  const { startMs, endMs } = getBoundContestTimeRange(contest);
-  const state = getContestState({
-    status: contest.contestStatus,
-    startTime: isNaN(startMs) ? undefined : new Date(startMs).toISOString(),
-    endTime: isNaN(endMs) ? undefined : new Date(endMs).toISOString(),
-  });
-  const variant = getContestBarVariant(state);
-
-  return (
-    <button
-      type="button"
-      className={`cal-list__event cal-list__event--contest cal-list__event--${variant}`}
-      onClick={() => onOpenContest(contest.contestId)}
-    >
-      <span className="cal-list__event-icon-col" aria-hidden>
-        <ContestStateIcon state={state} className="cal-list__event-icon" />
-      </span>
-      <span className="cal-list__event-body">
-        <span className="cal-list__event-name">{contest.contestName}</span>
-        <span className="cal-list__event-time">
-          {formatDateTime(startIso, DATE_FORMATS.SHORT)}
-          {" — "}
-          {formatDateTime(endIso, DATE_FORMATS.SHORT)}
-        </span>
-      </span>
-      <Tag type={getContestStateColor(state)} size="sm" className="cal-list__event-tag">
-        {getContestStateLabel(state)}
-      </Tag>
-    </button>
-  );
-}
-
-function AnnouncementEventItem({
-  event,
   onViewAnnouncement,
 }: {
-  event: Extract<TimelineEvent, { type: "announcement" }>;
+  event: TimelineEvent;
+  onOpenContest: (id: string) => void;
   onViewAnnouncement: (a: ClassroomAnnouncement) => void;
 }) {
-  const { announcement } = event;
-  const { t } = useTranslation("classroom");
-
+  if (event.type === "contest") {
+    return (
+      <ContestScheduleCard
+        contest={event.contest}
+        onClick={() => onOpenContest(event.contest.contestId)}
+      />
+    );
+  }
   return (
-    <button
-      type="button"
-      className="cal-list__event cal-list__event--announcement"
-      onClick={() => onViewAnnouncement(announcement)}
-    >
-      <span className="cal-list__event-icon-col" aria-hidden>
-        <Bullhorn size={16} className="cal-list__event-icon" />
-      </span>
-      <span className="cal-list__event-body">
-        <span className="cal-list__event-name">{announcement.title}</span>
-        <span className="cal-list__event-time">
-          {formatDateTime(announcement.createdAt, DATE_FORMATS.SHORT)}
-        </span>
-      </span>
-      <Tag type="purple" size="sm" className="cal-list__event-tag">
-        {t("activitySchedule.announcementLabel", "公告")}
-      </Tag>
-    </button>
+    <AnnouncementScheduleCard
+      announcement={event.announcement}
+      onClick={() => onViewAnnouncement(event.announcement)}
+    />
   );
 }
 
@@ -138,8 +55,8 @@ export const ClassroomActivityTimeline: React.FC<ClassroomActivityTimelineProps>
 }) => {
   const { t } = useTranslation("classroom");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const todayRef = useRef<HTMLLIElement>(null);
-  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const todayRef  = useRef<HTMLLIElement>(null);
+  const topSentinelRef    = useRef<HTMLDivElement>(null);
   const bottomSentinelRef = useRef<HTMLDivElement>(null);
 
   // Preserve scroll position when prepending earlier rows
@@ -152,21 +69,22 @@ export const ClassroomActivityTimeline: React.FC<ClassroomActivityTimelineProps>
     }
   }, [rows]);
 
-  // Scroll to today on first mount
+  // Scroll to today row on first mount
   useEffect(() => {
-    if (todayRef.current && scrollRef.current) {
-      scrollRef.current.scrollTop =
-        todayRef.current.offsetTop - scrollRef.current.offsetTop;
+    const scroll = scrollRef.current;
+    const today  = todayRef.current;
+    if (scroll && today) {
+      scroll.scrollTop = today.offsetTop - scroll.offsetTop;
     }
   }, []);
 
-  // Keep stable refs to callbacks so IntersectionObserver doesn't need recreating
+  // Keep stable refs so IntersectionObserver doesn't need recreating
   const onLoadEarlierRef = useRef(onLoadEarlier);
-  const onLoadLaterRef = useRef(onLoadLater);
+  const onLoadLaterRef   = useRef(onLoadLater);
   useEffect(() => { onLoadEarlierRef.current = onLoadEarlier; }, [onLoadEarlier]);
-  useEffect(() => { onLoadLaterRef.current = onLoadLater; }, [onLoadLater]);
+  useEffect(() => { onLoadLaterRef.current   = onLoadLater;   }, [onLoadLater]);
 
-  // Debounce flags to avoid rapid-fire loading
+  // Debounce flag to avoid rapid-fire loading
   const loadingRef = useRef(false);
 
   useEffect(() => {
@@ -191,7 +109,7 @@ export const ClassroomActivityTimeline: React.FC<ClassroomActivityTimelineProps>
       { root, threshold: 0, rootMargin: "60px 0px 60px 0px" },
     );
 
-    if (topSentinelRef.current) observer.observe(topSentinelRef.current);
+    if (topSentinelRef.current)    observer.observe(topSentinelRef.current);
     if (bottomSentinelRef.current) observer.observe(bottomSentinelRef.current);
 
     return () => observer.disconnect();
@@ -206,7 +124,6 @@ export const ClassroomActivityTimeline: React.FC<ClassroomActivityTimelineProps>
       </h2>
 
       <div ref={scrollRef} className="cal-list__scroll">
-        {/* Top sentinel – triggers earlier load */}
         <div ref={topSentinelRef} className="cal-list__sentinel" aria-hidden />
 
         {hasEvents ? (
@@ -217,12 +134,13 @@ export const ClassroomActivityTimeline: React.FC<ClassroomActivityTimelineProps>
                 ref={row.isToday ? todayRef : undefined}
                 className={[
                   "cal-list__day",
-                  row.isToday ? "cal-list__day--today" : "",
+                  row.isToday            ? "cal-list__day--today" : "",
                   row.events.length === 0 ? "cal-list__day--empty" : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
               >
+                {/* Left: date column */}
                 <div className="cal-list__date-col" aria-hidden>
                   <span className="cal-list__weekday">
                     {row.date.toLocaleDateString(undefined, { weekday: "short" })}
@@ -230,22 +148,20 @@ export const ClassroomActivityTimeline: React.FC<ClassroomActivityTimelineProps>
                   <span className="cal-list__date-num">{row.date.getDate()}</span>
                 </div>
 
+                {/* Right: event cards */}
                 <div className="cal-list__events-col">
-                  {row.events.map((event, idx) =>
-                    event.type === "contest" ? (
-                      <ContestEventItem
-                        key={event.contest.contestId}
-                        event={event}
-                        onOpenContest={onOpenContest}
-                      />
-                    ) : (
-                      <AnnouncementEventItem
-                        key={`ann-${event.announcement.id}-${idx}`}
-                        event={event}
-                        onViewAnnouncement={onViewAnnouncement}
-                      />
-                    ),
-                  )}
+                  {row.events.map((event, idx) => (
+                    <EventCard
+                      key={
+                        event.type === "contest"
+                          ? event.contest.contestId
+                          : `ann-${event.announcement.id}-${idx}`
+                      }
+                      event={event}
+                      onOpenContest={onOpenContest}
+                      onViewAnnouncement={onViewAnnouncement}
+                    />
+                  ))}
                 </div>
               </li>
             ))}
@@ -258,7 +174,6 @@ export const ClassroomActivityTimeline: React.FC<ClassroomActivityTimelineProps>
           />
         )}
 
-        {/* Bottom sentinel – triggers later load */}
         <div ref={bottomSentinelRef} className="cal-list__sentinel" aria-hidden />
       </div>
     </section>

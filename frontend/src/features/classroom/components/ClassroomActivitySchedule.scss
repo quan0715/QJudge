@@ -23,13 +23,8 @@
   border-radius: 4px;
   background: var(--cds-layer-01);
 
-  // Thin scrollbar (WebKit)
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  &::-webkit-scrollbar       { width: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb {
     background: var(--cds-border-subtle-02);
     border-radius: 3px;
@@ -58,9 +53,7 @@
   border-bottom: 1px solid var(--cds-border-subtle-01);
   align-items: start;
 
-  &:last-child {
-    border-bottom: none;
-  }
+  &:last-child { border-bottom: none; }
 }
 
 .cal-list__day--empty {
@@ -68,13 +61,12 @@
   opacity: 0.45;
 }
 
-// ── Date column (left) ────────────────────────────────────────────────────────
+// ── Date column ───────────────────────────────────────────────────────────────
 
 .cal-list__date-col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
   padding-top: 2px;
   gap: 1px;
   user-select: none;
@@ -108,7 +100,7 @@
   }
 }
 
-// ── Events column (right) ─────────────────────────────────────────────────────
+// ── Events column ─────────────────────────────────────────────────────────────
 
 .cal-list__events-col {
   display: flex;
@@ -116,112 +108,4 @@
   gap: $spacing-02;
   padding-top: 2px;
   min-width: 0;
-}
-
-// ── Event item ────────────────────────────────────────────────────────────────
-
-.cal-list__event {
-  display: grid;
-  grid-template-columns: 22px 1fr auto;
-  column-gap: $spacing-02;
-  align-items: center;
-  width: 100%;
-  min-height: 38px;
-  padding: $spacing-02 $spacing-03;
-  border: 1px solid var(--cds-border-subtle-00);
-  border-radius: 4px;
-  border-left-width: 3px;
-  background: var(--cds-layer-01);
-  cursor: pointer;
-  text-align: start;
-  transition: background 100ms ease;
-
-  &:hover {
-    background: var(--cds-layer-hover-01);
-  }
-
-  &:active {
-    background: var(--cds-layer-active-01);
-  }
-}
-
-// Contest state colors (left border + icon tint)
-
-.cal-list__event--upcoming {
-  border-left-color: var(--cds-interactive);
-
-  .cal-list__event-icon {
-    color: var(--cds-interactive);
-  }
-}
-
-.cal-list__event--running {
-  border-left-color: var(--cds-support-success);
-
-  .cal-list__event-icon {
-    color: var(--cds-support-success);
-  }
-}
-
-.cal-list__event--ended {
-  border-left-color: var(--cds-border-strong-01);
-
-  .cal-list__event-icon {
-    color: var(--cds-text-disabled);
-  }
-}
-
-.cal-list__event--archived {
-  border-left-color: var(--cds-text-disabled);
-  opacity: 0.7;
-
-  .cal-list__event-icon {
-    color: var(--cds-text-disabled);
-  }
-}
-
-// Announcement: purple accent
-.cal-list__event--announcement {
-  border-left-color: #8a3ffc;
-
-  .cal-list__event-icon {
-    color: #8a3ffc;
-  }
-}
-
-// ── Icon column ───────────────────────────────────────────────────────────────
-
-.cal-list__event-icon-col {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-// ── Event body ────────────────────────────────────────────────────────────────
-
-.cal-list__event-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.cal-list__event-name {
-  font-size: var(--cds-body-short-01-font-size);
-  font-weight: 600;
-  color: var(--cds-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cal-list__event-time {
-  font-size: var(--cds-label-01-font-size);
-  color: var(--cds-text-secondary);
-  white-space: nowrap;
-}
-
-.cal-list__event-tag {
-  flex-shrink: 0;
 }

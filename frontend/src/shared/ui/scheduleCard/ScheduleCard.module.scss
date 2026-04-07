@@ -1,0 +1,119 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+
+// ── Root card ─────────────────────────────────────────────────────────────────
+
+.root {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-04;
+  width: 100%;
+  padding: $spacing-04 $spacing-05;
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 6px;
+  text-align: start;
+  transition: background 100ms ease, box-shadow 100ms ease;
+
+  // When used as a button
+  cursor: default;
+
+  &[type="button"] {
+    cursor: pointer;
+
+    &:hover {
+      background: var(--cds-layer-hover-01);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    &:active {
+      background: var(--cds-layer-active-01);
+    }
+  }
+}
+
+.rootMuted {
+  opacity: 0.55;
+}
+
+// ── Badge (circular icon) ─────────────────────────────────────────────────────
+
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: #fff;
+
+  // Ensure Carbon icons inherit white colour
+  svg {
+    fill: currentColor;
+  }
+}
+
+// Badge colour variants
+
+.badgeBlue   { background: var(--cds-interactive); }
+.badgeGreen  { background: var(--cds-support-success); }
+.badgeGray   { background: var(--cds-border-strong-01); }
+.badgePurple { background: #8a3ffc; }
+.badgeOrange { background: var(--cds-support-warning); color: var(--cds-text-inverse); }
+
+// ── Content area ──────────────────────────────────────────────────────────────
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+// ── Title ─────────────────────────────────────────────────────────────────────
+
+.title {
+  margin: 0;
+  @include type-style("productive-heading-01");
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Time row ─────────────────────────────────────────────────────────────────
+
+.time {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
+  @include type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+
+.timeIcon {
+  flex-shrink: 0;
+  color: var(--cds-icon-secondary);
+}
+
+// ── Meta row ──────────────────────────────────────────────────────────────────
+
+.meta {
+  margin: 0;
+  @include type-style("label-01");
+  color: var(--cds-text-helper);
+}
+
+// ── Aside (right slot) ────────────────────────────────────────────────────────
+
+.aside {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: $spacing-02;
+  padding-top: 2px;
+}

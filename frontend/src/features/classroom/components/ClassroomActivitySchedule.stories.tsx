@@ -4,7 +4,6 @@ import { I18nextProvider } from "react-i18next";
 import type { BoundContest, ClassroomAnnouncement } from "@/core/entities/classroom.entity";
 import i18n from "@/i18n";
 import { ClassroomActivityTimeline } from "./ClassroomActivityTimeline";
-import "./ClassroomActivitySchedule.scss";
 import { buildCalendarDayRows } from "@/features/classroom/domain/classroomActivityTimeline";
 
 const baseContest = (overrides: Partial<BoundContest>): BoundContest => ({
