@@ -33,6 +33,7 @@ function EventCard({
       <ContestScheduleCard
         contest={event.contest}
         onClick={() => onOpenContest(event.contest.contestId)}
+        timeOnly
       />
     );
   }
@@ -40,6 +41,7 @@ function EventCard({
     <AnnouncementScheduleCard
       announcement={event.announcement}
       onClick={() => onViewAnnouncement(event.announcement)}
+      timeOnly
     />
   );
 }

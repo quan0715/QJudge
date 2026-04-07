@@ -84,6 +84,19 @@
   color: var(--cds-icon-secondary);
 }
 
+// ── Description (truncated body) ──────────────────────────────────────────────
+
+.description {
+  margin: 0;
+  @include type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
 // ── Meta row ──────────────────────────────────────────────────────────────────
 
 .meta {

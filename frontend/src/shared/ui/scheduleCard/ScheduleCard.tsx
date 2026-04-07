@@ -1,16 +1,7 @@
 /**
  * ScheduleCard — Carbon-aligned compound component for schedule event cards.
  *
- * Visual: flat tile with 4px left accent border, 16px inline icon, clean type hierarchy.
- *
- * Usage:
- *   <ScheduleCard.Root onClick={...} accentColor="var(--cds-interactive)">
- *     <ScheduleCard.Header icon={<Calendar size={16} />} tag={<Tag ...>即將開始</Tag>}>
- *       期中考
- *     </ScheduleCard.Header>
- *     <ScheduleCard.Time start={startIso} end={endIso} />
- *     <ScheduleCard.Meta>prof.chen · 考試</ScheduleCard.Meta>
- *   </ScheduleCard.Root>
+ * Slots: Root → Header, Time, Description, Meta
  */
 
 import type { ReactNode, CSSProperties } from "react";
@@ -25,9 +16,7 @@ interface RootProps {
   onClick?: () => void;
   className?: string;
   style?: CSSProperties;
-  /** CSS colour value for left accent border */
   accentColor?: string;
-  /** Dimmed visual for ended / archived items */
   muted?: boolean;
 }
 
@@ -82,31 +71,23 @@ const TIME_HM: Intl.DateTimeFormatOptions = {
   hour12: false,
 };
 
-function isToday(iso: string): boolean {
-  const d = new Date(iso);
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
-}
-
-function smartFormat(iso: string): string {
-  return isToday(iso)
-    ? formatDateTime(iso, TIME_HM)
-    : formatDateTime(iso, DATE_FORMATS.SHORT);
-}
-
 interface TimeRangeProps {
   start?: string | null;
   end?: string | null;
+  /** When true, always show time-only (HH:mm) regardless of date. Use inside calendar where date is already shown. */
+  timeOnly?: boolean;
 }
 
-function TimeRange({ start, end }: TimeRangeProps) {
+function TimeRange({ start, end, timeOnly }: TimeRangeProps) {
   if (!start && !end) return null;
-  const startStr = start ? smartFormat(start) : "—";
-  const endStr   = end   ? smartFormat(end)   : "—";
+
+  const fmt = (iso: string) =>
+    timeOnly
+      ? formatDateTime(iso, TIME_HM)
+      : formatDateTime(iso, DATE_FORMATS.SHORT);
+
+  const startStr = start ? fmt(start) : "—";
+  const endStr   = end   ? fmt(end)   : "—";
 
   return (
     <p className={styles.time}>
@@ -115,6 +96,12 @@ function TimeRange({ start, end }: TimeRangeProps) {
       {end ? ` — ${endStr}` : null}
     </p>
   );
+}
+
+// ── Description (single-line truncated body text) ─────────────────────────────
+
+function Description({ children }: { children: ReactNode }) {
+  return <p className={styles.description}>{children}</p>;
 }
 
 // ── Meta ──────────────────────────────────────────────────────────────────────
@@ -129,5 +116,6 @@ export const ScheduleCard = {
   Root,
   Header,
   Time: TimeRange,
+  Description,
   Meta,
 };

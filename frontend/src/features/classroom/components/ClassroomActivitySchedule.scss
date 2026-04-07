@@ -1,4 +1,5 @@
 @use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
 
 // ── Calendar List ─────────────────────────────────────────────────────────────
 
@@ -6,11 +7,12 @@
   margin: 0;
 }
 
+// Match sidebar section headings: productive-heading-03, weight 300
 .cal-list__heading {
+  @include type-style("productive-heading-03");
+  font-weight: 300;
   margin: 0 0 $spacing-04;
-  font-size: var(--cds-heading-03-font-size);
-  font-weight: var(--cds-heading-03-font-weight);
-  letter-spacing: var(--cds-heading-03-letter-spacing);
+  color: var(--cds-text-primary);
 }
 
 // ── Scroll container ──────────────────────────────────────────────────────────
@@ -19,9 +21,8 @@
   height: min(560px, 70vh);
   overflow-y: auto;
   overscroll-behavior: contain;
-  border: 1px solid var(--cds-border-subtle-01);
-  border-radius: 4px;
-  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle);
+  background: transparent;
 
   &::-webkit-scrollbar       { width: 6px; }
   &::-webkit-scrollbar-track { background: transparent; }
@@ -46,19 +47,19 @@
 
 .cal-list__day {
   display: grid;
-  grid-template-columns: 56px 1fr;
+  grid-template-columns: 52px 1fr;
   column-gap: $spacing-03;
   min-height: 52px;
   padding: $spacing-03 $spacing-04 $spacing-03 $spacing-03;
-  border-bottom: 1px solid var(--cds-border-subtle-01);
+  border-bottom: 1px solid var(--cds-border-subtle);
   align-items: start;
 
   &:last-child { border-bottom: none; }
 }
 
 .cal-list__day--empty {
-  min-height: 40px;
-  opacity: 0.45;
+  min-height: 36px;
+  opacity: 0.35;
 }
 
 // ── Date column ───────────────────────────────────────────────────────────────
@@ -73,9 +74,7 @@
 }
 
 .cal-list__weekday {
-  font-size: var(--cds-label-01-font-size);
-  font-weight: 400;
-  letter-spacing: var(--cds-label-01-letter-spacing);
+  @include type-style("label-01");
   color: var(--cds-text-secondary);
   text-transform: uppercase;
   line-height: 1;
@@ -85,10 +84,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 400;
   line-height: 1;
   color: var(--cds-text-primary);
@@ -96,7 +95,7 @@
   .cal-list__day--today & {
     background: var(--cds-interactive);
     color: var(--cds-text-on-color);
-    font-weight: 700;
+    font-weight: 600;
   }
 }
 

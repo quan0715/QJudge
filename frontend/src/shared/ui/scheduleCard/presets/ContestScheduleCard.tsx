@@ -5,7 +5,6 @@ import {
   CheckmarkFilled,
   InProgress,
 } from "@carbon/icons-react";
-import { useTranslation } from "react-i18next";
 import type { BoundContest } from "@/core/entities/classroom.entity";
 import {
   getContestState,
@@ -15,8 +14,6 @@ import {
 } from "@/core/entities/contest.entity";
 import { getBoundContestTimeRange } from "@/features/classroom/domain/classroomActivityTimeline";
 import { ScheduleCard } from "../ScheduleCard";
-
-// ── State → visual mapping ────────────────────────────────────────────────────
 
 const ACCENT: Record<string, string> = {
   upcoming: "var(--cds-interactive)",
@@ -35,16 +32,14 @@ function StateIcon({ state }: { state: ContestDisplayState }) {
   }
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export interface ContestScheduleCardProps {
   contest: BoundContest;
   onClick?: () => void;
+  /** Show time-only (HH:mm) instead of full date+time. Use inside calendar. */
+  timeOnly?: boolean;
 }
 
-export function ContestScheduleCard({ contest, onClick }: ContestScheduleCardProps) {
-  const { t } = useTranslation("classroom");
-
+export function ContestScheduleCard({ contest, onClick, timeOnly }: ContestScheduleCardProps) {
   const { startMs, endMs } = getBoundContestTimeRange(contest);
   const state = getContestState({
     status: contest.contestStatus,
@@ -54,11 +49,6 @@ export function ContestScheduleCard({ contest, onClick }: ContestScheduleCardPro
 
   const accent = ACCENT[state] ?? ACCENT.upcoming;
   const isMuted = state === "ended" || state === "archived";
-
-  const deliveryLabel =
-    contest.deliveryMode === "exam"
-      ? t("contestDeliveryExam", "考試")
-      : t("contestDeliveryPractice", "練習");
 
   return (
     <ScheduleCard.Root onClick={onClick} accentColor={accent} muted={isMuted}>
@@ -76,11 +66,14 @@ export function ContestScheduleCard({ contest, onClick }: ContestScheduleCardPro
       <ScheduleCard.Time
         start={contest.contestStartTime || contest.boundAt}
         end={contest.contestEndTime || contest.boundAt}
+        timeOnly={timeOnly}
       />
 
-      <ScheduleCard.Meta>
-        {contest.contestOwnerUsername} · {deliveryLabel}
-      </ScheduleCard.Meta>
+      {contest.contestDescription && (
+        <ScheduleCard.Description>
+          {contest.contestDescription}
+        </ScheduleCard.Description>
+      )}
     </ScheduleCard.Root>
   );
 }
