@@ -58,10 +58,12 @@
   "announcementDeleted": "Announcement deleted",
   "announcements": "Announcements",
   "activitySchedule": {
+    "announcementLabel": "Announcement",
+    "emptyAll": "No activities or announcements yet",
     "emptySubtitle": "Published activities that have not ended yet will appear here.",
     "emptyTitle": "No in-progress or upcoming activities",
-    "heroTitle": "Next activity",
-    "timelineHeading": "Activity timeline"
+    "timelineHeading": "Activity timeline",
+    "today": "Today"
   },
   "archived": "Archived",
   "backToClassrooms": "Back to classrooms",

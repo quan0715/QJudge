@@ -58,10 +58,12 @@
   "announcementDeleted": "公告已刪除",
   "announcements": "公告",
   "activitySchedule": {
+    "announcementLabel": "公告",
+    "emptyAll": "教室目前沒有任何活動或公告",
     "emptySubtitle": "當教室有已發布且尚未結束的活動時，會顯示在這裡。",
     "emptyTitle": "目前沒有進行中或即將開始的活動",
-    "heroTitle": "下一場活動",
-    "timelineHeading": "活動時間軸"
+    "timelineHeading": "活動時間軸",
+    "today": "今天"
   },
   "archived": "已封存",
   "backToClassrooms": "返回教室列表",
