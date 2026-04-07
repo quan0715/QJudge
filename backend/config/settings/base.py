@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "apps.ai",  # AI Chat
     "apps.question_bank",
     "apps.subscriptions",
+    "apps.notifications",
     "drf_spectacular",
 ]
 
@@ -122,7 +123,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-LANGUAGE_CODE = "zh-hant"
+LANGUAGE_CODE = "zh-Hant"
 TIME_ZONE = "Asia/Taipei"
 USE_I18N = True
 USE_TZ = True
@@ -285,6 +286,10 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# Email defaults (provider-agnostic; EMAIL_BACKEND set per environment)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@example.com")
+EMAIL_SUBJECT_PREFIX = "[QJudge] "
 
 # Celery settings
 CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")

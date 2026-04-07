@@ -78,6 +78,8 @@ const ContestParticipantsScreen = () => {
     return Boolean(contest.ownerUsername && user.username === contest.ownerUsername);
   }, [contest, user]);
 
+  const rosterManagedByClassroom = Boolean(contest?.isClassroomBound);
+
   const statusOptions = useMemo(
     () => [
       { id: "all", label: t("participantsAdmin.allStatus", "全部狀態") },
@@ -532,15 +534,17 @@ const ContestParticipantsScreen = () => {
                 onClick={() => void handleExportResults()}
                 hasIconOnly
               />
-              <Button
-                kind="primary"
-                size="md"
-                data-testid="participants-toolbar-add-btn"
-                renderIcon={Add}
-                iconDescription={t("participants.add", "新增參賽者")}
-                onClick={() => setAddModalOpen(true)}
-                hasIconOnly
-              />
+              {!rosterManagedByClassroom ? (
+                <Button
+                  kind="primary"
+                  size="md"
+                  data-testid="participants-toolbar-add-btn"
+                  renderIcon={Add}
+                  iconDescription={t("participants.add", "新增參賽者")}
+                  onClick={() => setAddModalOpen(true)}
+                  hasIconOnly
+                />
+              ) : null}
             </>
           }
         />
@@ -582,7 +586,7 @@ const ContestParticipantsScreen = () => {
             onUnlock={handleUnlock}
             onApproveTakeover={handleApproveTakeover}
             onReopenExam={handleReopenExam}
-            onRemoveParticipant={handleRemoveParticipant}
+            onRemoveParticipant={rosterManagedByClassroom ? undefined : handleRemoveParticipant}
             canDeleteExamVideos={canDeleteExamVideos}
             onOpenGrading={() => updateParams({ panel: "grading" })}
             onRefreshEvents={refreshBoth}
@@ -590,11 +594,13 @@ const ContestParticipantsScreen = () => {
         </div>
       </div>
 
-      <AddParticipantModal
-        isOpen={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        onSubmit={handleAddParticipant}
-      />
+      {!rosterManagedByClassroom ? (
+        <AddParticipantModal
+          isOpen={addModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          onSubmit={handleAddParticipant}
+        />
+      ) : null}
 
       <ParticipantStatusEditModal
         open={editModalOpen}

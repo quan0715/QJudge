@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from uuid import uuid4
 
 import pytest
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests.models import Contest
 from apps.users.models import User
 
@@ -68,7 +70,7 @@ def superuser() -> User:
 
 
 @pytest.mark.django_db
-def test_owner_can_list_admins(
+def test_owner_cannot_list_admins_without_classroom_binding(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -79,10 +81,29 @@ def test_owner_can_list_admins(
 
     response = api_client.get(f"/api/v1/contests/{contest.id}/admins/")
 
-    assert response.status_code == status.HTTP_200_OK
-    usernames = {item["username"] for item in response.data}
-    assert admin_candidate.username in usernames
-    assert owner.username not in usernames
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
+
+
+@pytest.mark.django_db
+def test_contest_owner_gets_classroom_managed_when_listing_admins_on_bound_contest(
+    api_client: APIClient,
+    contest: Contest,
+    owner: User,
+    admin_candidate: User,
+) -> None:
+    contest.admins.add(admin_candidate)
+    classroom = Classroom.objects.create(
+        name="Bound",
+        owner=owner,
+        invite_code=uuid4().hex[:8].upper(),
+    )
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.get(f"/api/v1/contests/{contest.id}/admins/")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.data["error"]["code"] == "contest_managed_by_classroom"
 
 
 @pytest.mark.django_db
@@ -105,7 +126,7 @@ def test_student_cannot_list_admins(
 
 
 @pytest.mark.django_db
-def test_owner_can_add_admin(
+def test_owner_cannot_add_admin_without_classroom_binding(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -119,13 +140,14 @@ def test_owner_can_add_admin(
         format="json",
     )
 
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
     contest.refresh_from_db()
-    assert contest.admins.filter(id=admin_candidate.id).exists()
+    assert not contest.admins.filter(id=admin_candidate.id).exists()
 
 
 @pytest.mark.django_db
-def test_superuser_can_add_admin(
+def test_superuser_cannot_add_admin_without_classroom_binding(
     api_client: APIClient,
     contest: Contest,
     superuser: User,
@@ -139,9 +161,8 @@ def test_superuser_can_add_admin(
         format="json",
     )
 
-    assert response.status_code == status.HTTP_200_OK
-    contest.refresh_from_db()
-    assert contest.admins.filter(id=admin_candidate.id).exists()
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
 
 
 @pytest.mark.django_db
@@ -165,7 +186,7 @@ def test_add_admin_requires_owner(
 
 
 @pytest.mark.django_db
-def test_add_admin_missing_username(
+def test_add_admin_missing_username_returns_binding_gate_first(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -175,11 +196,11 @@ def test_add_admin_missing_username(
     response = api_client.post(f"/api/v1/contests/{contest.id}/add_admin/", {}, format="json")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data.get("error") == "Username is required"
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
 
 
 @pytest.mark.django_db
-def test_add_admin_user_not_found(
+def test_add_admin_user_not_found_returns_binding_gate_first(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -192,12 +213,12 @@ def test_add_admin_user_not_found(
         format="json",
     )
 
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.data.get("error") == "User not found"
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
 
 
 @pytest.mark.django_db
-def test_add_admin_rejects_owner(
+def test_add_admin_rejects_owner_returns_binding_gate_first(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -211,11 +232,11 @@ def test_add_admin_rejects_owner(
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data.get("error") == "Owner is already an admin"
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
 
 
 @pytest.mark.django_db
-def test_add_admin_rejects_existing_admin(
+def test_add_admin_rejects_existing_admin_returns_binding_gate_first(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -231,11 +252,11 @@ def test_add_admin_rejects_existing_admin(
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data.get("error") == "User is already an admin"
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
 
 
 @pytest.mark.django_db
-def test_owner_can_remove_admin(
+def test_owner_cannot_remove_admin_without_classroom_binding(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -250,13 +271,14 @@ def test_owner_can_remove_admin(
         format="json",
     )
 
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
     contest.refresh_from_db()
-    assert not contest.admins.filter(id=admin_candidate.id).exists()
+    assert contest.admins.filter(id=admin_candidate.id).exists()
 
 
 @pytest.mark.django_db
-def test_superuser_can_remove_admin(
+def test_superuser_cannot_remove_admin_without_classroom_binding(
     api_client: APIClient,
     contest: Contest,
     superuser: User,
@@ -271,9 +293,8 @@ def test_superuser_can_remove_admin(
         format="json",
     )
 
-    assert response.status_code == status.HTTP_200_OK
-    contest.refresh_from_db()
-    assert not contest.admins.filter(id=admin_candidate.id).exists()
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
 
 
 @pytest.mark.django_db
@@ -298,7 +319,7 @@ def test_remove_admin_requires_owner(
 
 
 @pytest.mark.django_db
-def test_remove_admin_missing_user_id(
+def test_remove_admin_missing_user_id_returns_binding_gate_first(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -308,11 +329,11 @@ def test_remove_admin_missing_user_id(
     response = api_client.post(f"/api/v1/contests/{contest.id}/remove_admin/", {}, format="json")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data.get("error") == "user_id is required"
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
 
 
 @pytest.mark.django_db
-def test_remove_admin_user_not_found(
+def test_remove_admin_user_not_found_returns_binding_gate_first(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -325,12 +346,12 @@ def test_remove_admin_user_not_found(
         format="json",
     )
 
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.data.get("error") == "User not found"
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
 
 
 @pytest.mark.django_db
-def test_remove_admin_rejects_non_admin(
+def test_remove_admin_rejects_non_admin_returns_binding_gate_first(
     api_client: APIClient,
     contest: Contest,
     owner: User,
@@ -345,4 +366,4 @@ def test_remove_admin_rejects_non_admin(
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data.get("error") == "User is not an admin"
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"

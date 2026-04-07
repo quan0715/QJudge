@@ -1,0 +1,110 @@
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
+
+// ── Calendar List ─────────────────────────────────────────────────────────────
+
+.cal-list {
+  margin: 0;
+}
+
+// Match sidebar section headings: productive-heading-03, weight 300
+.cal-list__heading {
+  @include type-style("productive-heading-03");
+  font-weight: 300;
+  margin: 0 0 $spacing-04;
+  color: var(--cds-text-primary);
+}
+
+// ── Scroll container ──────────────────────────────────────────────────────────
+
+.cal-list__scroll {
+  height: min(560px, 70vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--cds-border-subtle);
+  background: transparent;
+
+  &::-webkit-scrollbar       { width: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--cds-border-subtle-02);
+    border-radius: 3px;
+  }
+}
+
+.cal-list__sentinel {
+  height: 1px;
+  pointer-events: none;
+}
+
+// ── Days list ─────────────────────────────────────────────────────────────────
+
+.cal-list__days {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cal-list__day {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  column-gap: $spacing-03;
+  min-height: 52px;
+  padding: $spacing-03 $spacing-04 $spacing-03 $spacing-03;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  align-items: start;
+
+  &:last-child { border-bottom: none; }
+}
+
+.cal-list__day--empty {
+  min-height: 36px;
+  opacity: 0.35;
+}
+
+// ── Date column ───────────────────────────────────────────────────────────────
+
+.cal-list__date-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2px;
+  gap: 1px;
+  user-select: none;
+}
+
+.cal-list__weekday {
+  @include type-style("label-01");
+  color: var(--cds-text-secondary);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.cal-list__date-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--cds-text-primary);
+
+  .cal-list__day--today & {
+    background: var(--cds-interactive);
+    color: var(--cds-text-on-color);
+    font-weight: 600;
+  }
+}
+
+// ── Events column ─────────────────────────────────────────────────────────────
+
+.cal-list__events-col {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-02;
+  padding-top: 2px;
+  min-width: 0;
+}

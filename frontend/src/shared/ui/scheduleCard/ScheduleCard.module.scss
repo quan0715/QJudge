@@ -1,0 +1,106 @@
+@use "@carbon/react/scss/type" as *;
+
+// ── Root tile ─────────────────────────────────────────────────────────────────
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cds-spacing-02, 0.25rem);
+  width: 100%;
+  padding: var(--cds-spacing-04, 0.75rem) var(--cds-spacing-05, 1rem);
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle);
+  border-left: 4px solid var(--cds-border-subtle);
+  text-align: start;
+  cursor: default;
+  transition: background-color 150ms ease;
+
+  &[type="button"] {
+    cursor: pointer;
+
+    &:hover {
+      background: var(--cds-layer-hover-01);
+    }
+
+    &:active {
+      background: var(--cds-layer-active-01);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cds-focus);
+      outline-offset: -2px;
+    }
+  }
+}
+
+.rootMuted {
+  opacity: 0.55;
+}
+
+// ── Header row ────────────────────────────────────────────────────────────────
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--cds-spacing-03, 0.5rem);
+  min-width: 0;
+}
+
+.headerIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  color: var(--cds-icon-secondary);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  @include type-style("productive-heading-01");
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.headerTag {
+  flex-shrink: 0;
+}
+
+// ── Time row ──────────────────────────────────────────────────────────────────
+
+.time {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--cds-spacing-02, 0.25rem);
+  @include type-style("label-01");
+  color: var(--cds-text-secondary);
+}
+
+.timeIcon {
+  flex-shrink: 0;
+  color: var(--cds-icon-secondary);
+}
+
+// ── Description (truncated body) ──────────────────────────────────────────────
+
+.description {
+  margin: 0;
+  @include type-style("body-compact-01");
+  color: var(--cds-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+// ── Meta row ──────────────────────────────────────────────────────────────────
+
+.meta {
+  margin: 0;
+  @include type-style("label-01");
+  color: var(--cds-text-helper);
+}

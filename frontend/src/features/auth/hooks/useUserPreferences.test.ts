@@ -558,4 +558,77 @@ describe("useUserPreferences", () => {
 
     expect(getPreferences).toHaveBeenCalledTimes(1);
   });
+
+  // ── Incident 2026-04-07 regression tests ──────────────────────────
+
+  it("should apply backend preferred_language to ContentLanguageContext", async () => {
+    const mockSetContentLanguage = vi.fn();
+    vi.mocked(useContentLanguage).mockReturnValue({
+      contentLanguage: "zh-TW",
+      setContentLanguage: mockSetContentLanguage,
+      toggleLanguage: vi.fn(),
+      supportedLanguages: [
+        { id: "zh-TW", label: "繁體中文", shortLabel: "中" },
+        { id: "en", label: "English", shortLabel: "EN" },
+        { id: "ja", label: "日本語", shortLabel: "日" },
+        { id: "ko", label: "한국어", shortLabel: "한" },
+      ] as any,
+      getCurrentLanguageLabel: vi.fn(),
+      getCurrentLanguageShortLabel: vi.fn(),
+    });
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        id: 1,
+        username: "test",
+        email: "test@test.com",
+        role: "student",
+      },
+      loading: false,
+      setUser: vi.fn(),
+      checkUser: vi.fn(),
+      logout: vi.fn(),
+    });
+    vi.mocked(getPreferences).mockResolvedValue({
+      success: true,
+      data: { ...mockPreferences, preferred_language: "en" },
+    });
+
+    renderHook(() => useUserPreferences());
+
+    await waitFor(() => {
+      expect(mockSetContentLanguage).toHaveBeenCalledWith("en");
+    });
+  });
+
+  it("should send valid language when updateLanguage is called", async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        id: 1,
+        username: "test",
+        email: "test@test.com",
+        role: "student",
+      },
+      loading: false,
+      setUser: vi.fn(),
+      checkUser: vi.fn(),
+      logout: vi.fn(),
+    });
+    vi.mocked(getPreferences).mockResolvedValue({
+      success: true,
+      data: mockPreferences,
+    });
+    vi.mocked(updatePreferences).mockResolvedValue({
+      success: true,
+      data: { ...mockPreferences, preferred_language: "ja" },
+    });
+
+    const { result } = renderHook(() => useUserPreferences());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.updateLanguage("ja");
+    });
+
+    expect(updatePreferences).toHaveBeenCalledWith({ preferred_language: "ja" });
+  });
 });

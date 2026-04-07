@@ -260,6 +260,7 @@ export default function GradingByStudentTabScreen({
         filtered.map((s) => (
           <ListItem
             key={s.studentId}
+            testId={`grading-student-row-${s.studentId}`}
             active={s.studentId === activeSelectedStudentId}
             onClick={() => handleStudentSelect(s.studentId)}
           >

@@ -5,6 +5,9 @@ import {
   getClassroom,
   addMembers,
   updateMemberRole,
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
 } from "@/infrastructure/api/repositories/classroom.repository";
 import { loginAndSetToken, setAuthToken, setupApiTestEnv } from "./helpers/apiTestEnv";
 import { TEST_CLASSROOMS, TEST_USERS } from "@/tests/helpers/data.helper";
@@ -73,5 +76,60 @@ describe("classroom repository integration", () => {
     const restored = await getClassroom(created.id);
     const memberRestored = restored?.members.find((m) => m.username === TEST_USERS.student.username);
     expect(memberRestored?.role).toBe("student");
+  });
+
+  describe("announcement CRUD", () => {
+    let classroomId: string;
+
+    beforeAll(async () => {
+      const created = await createClassroom({
+        name: `Announcement Test Classroom ${Date.now()}`,
+        description: "Integration test for announcements",
+      });
+      classroomId = created.id;
+    });
+
+    it("creates an announcement and returns it", async () => {
+      const ann = await createAnnouncement(classroomId, {
+        title: "Test Announcement",
+        content: "Hello world",
+        is_pinned: false,
+      });
+
+      expect(ann.id).toBeDefined();
+      expect(ann.title).toBe("Test Announcement");
+      expect(ann.content).toBe("Hello world");
+      expect(ann.is_pinned).toBe(false);
+    });
+
+    it("updates an announcement", async () => {
+      const created = await createAnnouncement(classroomId, {
+        title: "Original Title",
+        content: "Original content",
+      });
+
+      const updated = await updateAnnouncement(classroomId, String(created.id), {
+        title: "Updated Title",
+      });
+
+      expect(updated.id).toBe(created.id);
+      expect(updated.title).toBe("Updated Title");
+      expect(updated.content).toBe("Original content");
+    });
+
+    it("deletes an announcement", async () => {
+      const created = await createAnnouncement(classroomId, {
+        title: "To Be Deleted",
+        content: "Will be gone",
+      });
+
+      await expect(
+        deleteAnnouncement(classroomId, String(created.id))
+      ).resolves.not.toThrow();
+
+      const detail = await getClassroom(classroomId);
+      const still = detail?.announcements.find((a: { id: number }) => a.id === created.id);
+      expect(still).toBeUndefined();
+    });
   });
 });

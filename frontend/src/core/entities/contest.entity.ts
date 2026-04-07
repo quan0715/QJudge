@@ -297,6 +297,7 @@ export interface Contest {
   visibility: ContestVisibility;
   requiresPassword?: boolean;
   deliveryMode?: ContestDeliveryMode;
+  countsTowardGrade?: boolean;
   password?: string;
   organizer?: string;
 
@@ -325,6 +326,7 @@ export interface ContestDetail extends Contest {
   // Contest type
   contestType: ContestType;
   deliveryMode: ContestDeliveryMode;
+  countsTowardGrade: boolean;
 
   // Cheat detection
   cheatDetectionEnabled: boolean;
@@ -639,6 +641,7 @@ export interface ContestUpdateRequest {
   allowAutoUnlock?: boolean;
   autoUnlockMinutes?: number;
   resultsPublished?: boolean;
+  countsTowardGrade?: boolean;
 }
 
 // ============ Contest State Utilities ============

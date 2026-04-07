@@ -20,7 +20,6 @@ from ..models import (
     Contest,
     ContestParticipant,
     ContestProblem,
-    ExamEvidenceJob,
     ExamStatus,
 )
 from ..serializers import (
@@ -32,6 +31,7 @@ from ..serializers import (
 from ..permissions import (
     IsContestOwnerOrAdmin,
     IsContestLifecycleOwner,
+    IsTeacherOrAdmin,
     can_manage_contest,
 )
 from ..services.export_service import (
@@ -85,6 +85,14 @@ class ContestViewSet(viewsets.ModelViewSet):
     ordering_fields = ['start_time', 'end_time', 'created_at']
     ordering = ['-created_at']
 
+    def get_permissions(self):
+        if self.action == "create":
+            return [permissions.IsAuthenticated(), IsTeacherOrAdmin()]
+        return [permission() for permission in self.permission_classes]
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
     @staticmethod
     def _normalize_uuid(value, *, field_name: str) -> str:
         try:
@@ -130,6 +138,55 @@ class ContestViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_403_FORBIDDEN,
         )
+
+    @staticmethod
+    def _contest_requires_classroom_binding_response():
+        return Response(
+            {
+                "error": {
+                    "code": "contest_requires_classroom_binding",
+                    "message": "This contest must be bound to a classroom.",
+                    "type": "validation_error",
+                }
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def _classroom_roster_admin_gate(self, contest: Contest):
+        """
+        Co-admin and manual roster endpoints are disabled for classroom-bound contests;
+        unbound contests are invalid in production — return a dedicated error.
+        """
+        if not self._is_classroom_managed_contest(contest):
+            return self._contest_requires_classroom_binding_response()
+        return self._classroom_managed_response()
+
+    @staticmethod
+    def _verify_contest_join_password(contest: Contest, request_data: dict):
+        if not contest.requires_password:
+            return None
+        password = request_data.get("password")
+        if not contest.verify_contest_password(password):
+            return Response(
+                {"message": "Invalid password"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+
+    @classmethod
+    def _assert_user_in_bound_classroom(cls, contest: Contest, user):
+        classroom = cls._get_primary_bound_classroom(contest)
+        if classroom is None:
+            return Response(
+                {"message": "Contest has no primary classroom binding."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        if get_user_role_in_classroom(user, classroom) is None:
+            return Response(
+                {"message": "Join the classroom before joining this contest"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
 
     @staticmethod
     def _get_primary_bound_classroom(contest: Contest):
@@ -220,7 +277,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return ContestListSerializer
 
-        if self.action in ['update', 'partial_update']:
+        if self.action in ['create', 'update', 'partial_update']:
             return ContestCreateUpdateSerializer
 
         return ContestDetailSerializer
@@ -234,17 +291,6 @@ class ContestViewSet(viewsets.ModelViewSet):
                 return error_response
 
         return super().handle_exception(exc)
-
-    def create(self, request, *args, **kwargs):
-        return Response(
-            {
-                "detail": (
-                    "Standalone contest creation is disabled. "
-                    "Create contests from a classroom."
-                )
-            },
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
 
     def perform_update(self, serializer):
         """
@@ -368,10 +414,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         Get all admins for this contest.
         """
         contest = self.get_object()
-        if self._is_classroom_managed_contest(contest):
-            return self._classroom_managed_response()
-        admins = contest.admins.all()
-        return Response([{'id': u.id, 'username': u.username} for u in admins])
+        return self._classroom_roster_admin_gate(contest)
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner], url_path='add_admin')
     def add_admin(self, request, pk=None):
@@ -380,43 +423,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         Only owner (or platform admin) can add co-admins.
         """
         contest = self.get_object()
-        if self._is_classroom_managed_contest(contest):
-            return self._classroom_managed_response()
-
-        username = request.data.get('username')
-        if not username:
-            return Response({'error': 'Username is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        from apps.users.models import User
-        try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        if user == contest.owner:
-            return Response({'error': 'Owner is already an admin'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Only teachers or system admins can be added as co-admin
-        if not (user.is_staff or user.is_superuser or getattr(user, 'role', '') in ('teacher', 'admin')):
-            return Response(
-                {'error': 'Only teachers or admins can be added as co-admin'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if contest.admins.filter(pk=user.pk).exists():
-            return Response({'error': 'User is already an admin'}, status=status.HTTP_400_BAD_REQUEST)
-
-        contest.admins.add(user)
-
-        # Log activity
-        ContestActivityViewSet.log_activity(
-            contest,
-            request.user,
-            'other',
-            f"Added admin: {username}"
-        )
-
-        return Response({'status': 'added', 'user': {'id': user.id, 'username': user.username}})
+        return self._classroom_roster_admin_gate(contest)
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner], url_path='remove_admin')
     def remove_admin(self, request, pk=None):
@@ -425,33 +432,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         Only owner (or platform admin) can remove co-admins.
         """
         contest = self.get_object()
-        if self._is_classroom_managed_contest(contest):
-            return self._classroom_managed_response()
-
-        user_id = request.data.get('user_id')
-        if not user_id:
-            return Response({'error': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        from apps.users.models import User
-        try:
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        if not contest.admins.filter(pk=user.pk).exists():
-            return Response({'error': 'User is not an admin'}, status=status.HTTP_400_BAD_REQUEST)
-
-        contest.admins.remove(user)
-
-        # Log activity
-        ContestActivityViewSet.log_activity(
-            contest,
-            request.user,
-            'other',
-            f"Removed admin: {user.username}"
-        )
-
-        return Response({'status': 'removed'})
+        return self._classroom_roster_admin_gate(contest)
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -661,33 +642,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         Manually add a participant to the contest.
         """
         contest = self.get_object()
-        if self._is_classroom_managed_contest(contest):
-            return self._classroom_managed_response()
-        username = request.data.get('username')
-
-        if not username:
-            return Response({'error': 'Username is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        from apps.users.models import User
-        try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        if ContestParticipant.objects.filter(contest=contest, user=user).exists():
-            return Response({'error': 'User is already registered'}, status=status.HTTP_400_BAD_REQUEST)
-
-        ContestParticipant.objects.create(contest=contest, user=user)
-
-        # Log activity
-        ContestActivityViewSet.log_activity(
-            contest,
-            request.user,
-            'register',
-            f"Added participant: {username}"
-        )
-
-        return Response({'status': 'added'})
+        return self._classroom_roster_admin_gate(contest)
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='remove_participant')
     def remove_participant(self, request, pk=None):
@@ -696,45 +651,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         Only contest owners/admins can perform this action.
         """
         contest = self.get_object()
-        if self._is_classroom_managed_contest(contest):
-            return self._classroom_managed_response()
-        user_id = request.data.get('user_id')
-
-        if not user_id:
-            return Response({'error': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
-        except ContestParticipant.DoesNotExist:
-            return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        username = participant.user.username
-
-        # Block removal if participant has evidence data (screenshots/videos)
-        has_evidence = ExamEvidenceJob.objects.filter(participant=participant).exists()
-        if has_evidence:
-            return Response(
-                {
-                    'error': (
-                        f'Cannot remove participant {username}: '
-                        'exam evidence data exists. '
-                        'Delete evidence first or use the evidence management API.'
-                    )
-                },
-                status=status.HTTP_409_CONFLICT,
-            )
-
-        participant.delete()
-
-        # Log activity
-        ContestActivityViewSet.log_activity(
-            contest,
-            request.user,
-            'unregister',
-            f"Removed participant: {username}"
-        )
-
-        return Response({'status': 'removed'})
+        return self._classroom_roster_admin_gate(contest)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def register(self, request, pk=None):
@@ -758,66 +675,36 @@ class ContestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        if self._is_classroom_managed_contest(contest):
-            participant, created, error_response = self._ensure_classroom_bound_participant(
-                contest, user,
-            )
-            if error_response is not None:
-                return error_response
-            if participant.nickname != user.username and not participant.nickname:
-                participant.nickname = user.username
-                participant.save(update_fields=["nickname"])
-            if not created:
-                return Response({'message': 'Already registered'}, status=status.HTTP_400_BAD_REQUEST)
-            ContestActivityViewSet.log_activity(
-                contest,
-                request.user,
-                'register',
-                "Registered for contest via classroom binding"
-            )
-            return Response(
-                {'message': 'Successfully registered'},
-                status=status.HTTP_201_CREATED
-            )
+        if not self._is_classroom_managed_contest(contest):
+            return self._contest_requires_classroom_binding_response()
 
-        # Check if already registered
-        if ContestParticipant.objects.filter(contest=contest, user=user).exists():
-            return Response(
-                {'message': 'Already registered'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        err = self._assert_user_in_bound_classroom(contest, user)
+        if err is not None:
+            return err
 
-        # Check password if contest requires one
-        if contest.requires_password:
-            password = request.data.get('password')
-            if not contest.verify_contest_password(password):
-                return Response(
-                    {'message': 'Invalid password'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+        err = self._verify_contest_join_password(contest, request.data)
+        if err is not None:
+            return err
 
-        # Handle nickname (default to username if empty)
-        nickname = request.data.get('nickname', '').strip()
-        if not nickname:
-            nickname = user.username
-
-        ContestParticipant.objects.create(
-            contest=contest,
-            user=user,
-            nickname=nickname
+        participant, created, error_response = self._ensure_classroom_bound_participant(
+            contest, user,
         )
-
-        # Log activity
+        if error_response is not None:
+            return error_response
+        if participant.nickname != user.username and not participant.nickname:
+            participant.nickname = user.username
+            participant.save(update_fields=["nickname"])
+        if not created:
+            return Response({'message': 'Already registered'}, status=status.HTTP_400_BAD_REQUEST)
         ContestActivityViewSet.log_activity(
             contest,
             request.user,
             'register',
-            "Registered for contest"
+            "Registered for contest via classroom binding",
         )
-
         return Response(
             {'message': 'Successfully registered'},
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_path='update_nickname')
@@ -872,10 +759,20 @@ class ContestViewSet(viewsets.ModelViewSet):
         if can_manage_contest(user, contest):
             return Response({'message': 'Entered successfully (Privileged)'})
 
-        if self._is_classroom_managed_contest(contest):
-            _, _, error_response = self._ensure_classroom_bound_participant(contest, user)
-            if error_response is not None:
-                return error_response
+        if not self._is_classroom_managed_contest(contest):
+            return self._contest_requires_classroom_binding_response()
+
+        err = self._assert_user_in_bound_classroom(contest, user)
+        if err is not None:
+            return err
+
+        err = self._verify_contest_join_password(contest, request.data)
+        if err is not None:
+            return err
+
+        _, _, error_response = self._ensure_classroom_bound_participant(contest, user)
+        if error_response is not None:
+            return error_response
 
         if contest.status == 'draft':
             return Response(

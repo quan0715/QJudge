@@ -54,6 +54,8 @@ interface ListItemProps {
   asButton?: boolean;
   onClick?: () => void;
   className?: string;
+  /** E2E / automation hook */
+  testId?: string;
 }
 
 export const ListItem = ({
@@ -64,6 +66,7 @@ export const ListItem = ({
   asButton = false,
   onClick,
   className,
+  testId,
 }: ListItemProps) => {
   const cls = cx(
     styles.item,
@@ -75,13 +78,17 @@ export const ListItem = ({
 
   if (asButton || onClick) {
     return (
-      <button type="button" className={cls} onClick={onClick}>
+      <button type="button" className={cls} onClick={onClick} data-testid={testId}>
         {children}
       </button>
     );
   }
 
-  return <div className={cls}>{children}</div>;
+  return (
+    <div className={cls} data-testid={testId}>
+      {children}
+    </div>
+  );
 };
 
 // ─── Slot Primitives ────────────────────────────────────────

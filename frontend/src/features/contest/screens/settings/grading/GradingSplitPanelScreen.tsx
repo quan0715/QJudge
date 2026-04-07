@@ -422,13 +422,15 @@ export default function GradingSplitPanelScreen({
                 <span className={styles.scoreMax}>/ {formatScore(maxScore)}</span>
               </div>
 
-              <ScoreSlider
-                value={score}
-                max={maxScore}
-                step={scoreStep}
-                disabled={!isSubjective}
-                onChange={updateScore}
-              />
+              <div data-testid="grading-score-slider-wrap">
+                <ScoreSlider
+                  value={score}
+                  max={maxScore}
+                  step={scoreStep}
+                  disabled={!isSubjective}
+                  onChange={updateScore}
+                />
+              </div>
             </>
           ) : null}
 
@@ -514,6 +516,7 @@ export default function GradingSplitPanelScreen({
               kind="ghost"
               size="lg"
               renderIcon={Save}
+              data-testid="grading-save-score-btn"
               onClick={handleSaveOnly}
             >
               {saved

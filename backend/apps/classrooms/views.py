@@ -114,6 +114,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             'regenerate_code',
             'create_announcement',
             'update_announcement', 'delete_announcement',
+            'notify_announcement',
             'upload_cover',
         }
         platform_admin_actions = {
@@ -546,6 +547,27 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         if deleted == 0:
             return Response({'detail': 'Announcement not found.'}, status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['post'], url_path=r'announcements/(?P<ann_id>\d+)/notify',
+            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
+    def notify_announcement(self, request, id=None, ann_id=None):
+        """Send email notification for a specific classroom announcement."""
+        classroom = self.get_object()
+        try:
+            announcement = classroom.announcements.select_related('created_by').get(pk=ann_id)
+        except ClassroomAnnouncement.DoesNotExist:
+            return Response({'detail': 'Announcement not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.notifications.services import NotificationService
+
+        notifications = NotificationService.send_classroom_announcement_email(
+            announcement=announcement,
+            triggered_by=request.user,
+        )
+        return Response({
+            'detail': f'已排入 {len(notifications)} 封通知信寄送佇列。',
+            'count': len(notifications),
+        })
 
     COVER_SUPPORTED_FORMATS = {
         "PNG": ("png", "image/png"),

@@ -91,15 +91,14 @@ export const codingContestModule: ContestTypeModule = {
     getTabs: (contest) => getCodingTabs(contest),
     getSolveRenderer: () => () => <ContestProblemScreen />,
     getAnsweringEntryPath: (contestId, contest) => {
-      const firstProblemId = getFirstProblemId(contest);
       const classroomId = contest?.boundClassroomId;
+      if (!classroomId) {
+        return "/dashboard";
+      }
+      const firstProblemId = getFirstProblemId(contest);
       return firstProblemId
-        ? classroomId
-          ? getClassroomContestSolvePath(classroomId, contestId, firstProblemId)
-          : `/dashboard`
-        : classroomId
-          ? `/classrooms/${classroomId}/contest/${contestId}`
-          : `/dashboard`;
+        ? getClassroomContestSolvePath(classroomId, contestId, firstProblemId)
+        : `/classrooms/${classroomId}/contest/${contestId}`;
     },
   },
   admin: {

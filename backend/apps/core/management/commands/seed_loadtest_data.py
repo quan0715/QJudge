@@ -129,7 +129,7 @@ class Command(BaseCommand):
             )
             if created:
                 ProblemTranslation.objects.create(
-                    problem=prob, language="zh-hant",
+                    problem=prob, language="zh-TW",
                     title=spec["title"], description=f"{spec['title']} 壓測用",
                     input_description="", output_description="",
                 )

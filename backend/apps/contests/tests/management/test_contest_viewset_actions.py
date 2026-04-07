@@ -382,7 +382,7 @@ def test_reopen_exam_rejects_non_submitted_participant(
 
 
 @pytest.mark.django_db
-def test_participant_management_add_and_remove(
+def test_participant_roster_mutation_returns_binding_gate_when_unbound(
     api_client: APIClient,
     owner: User,
     contest: Contest,
@@ -396,28 +396,24 @@ def test_participant_management_add_and_remove(
         format="json",
     )
     assert missing_username.status_code == status.HTTP_400_BAD_REQUEST
+    assert missing_username.data["error"]["code"] == "contest_requires_classroom_binding"
 
     user_not_found = api_client.post(
         f"/api/v1/contests/{contest.id}/add_participant/",
         {"username": "missing-user"},
         format="json",
     )
-    assert user_not_found.status_code == status.HTTP_404_NOT_FOUND
+    assert user_not_found.status_code == status.HTTP_400_BAD_REQUEST
+    assert user_not_found.data["error"]["code"] == "contest_requires_classroom_binding"
 
     added = api_client.post(
         f"/api/v1/contests/{contest.id}/add_participant/",
         {"username": student.username},
         format="json",
     )
-    assert added.status_code == status.HTTP_200_OK
-    assert ContestParticipant.objects.filter(contest=contest, user=student).exists()
-
-    duplicate = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_participant/",
-        {"username": student.username},
-        format="json",
-    )
-    assert duplicate.status_code == status.HTTP_400_BAD_REQUEST
+    assert added.status_code == status.HTTP_400_BAD_REQUEST
+    assert added.data["error"]["code"] == "contest_requires_classroom_binding"
+    assert not ContestParticipant.objects.filter(contest=contest, user=student).exists()
 
     missing_user_id = api_client.post(
         f"/api/v1/contests/{contest.id}/remove_participant/",
@@ -425,21 +421,17 @@ def test_participant_management_add_and_remove(
         format="json",
     )
     assert missing_user_id.status_code == status.HTTP_400_BAD_REQUEST
+    assert missing_user_id.data["error"]["code"] == "contest_requires_classroom_binding"
 
+    ContestParticipant.objects.create(contest=contest, user=student)
     removed = api_client.post(
         f"/api/v1/contests/{contest.id}/remove_participant/",
         {"user_id": student.id},
         format="json",
     )
-    assert removed.status_code == status.HTTP_200_OK
-    assert not ContestParticipant.objects.filter(contest=contest, user=student).exists()
-
-    not_found = api_client.post(
-        f"/api/v1/contests/{contest.id}/remove_participant/",
-        {"user_id": student.id},
-        format="json",
-    )
-    assert not_found.status_code == status.HTTP_404_NOT_FOUND
+    assert removed.status_code == status.HTTP_400_BAD_REQUEST
+    assert removed.data["error"]["code"] == "contest_requires_classroom_binding"
+    assert ContestParticipant.objects.filter(contest=contest, user=student).exists()
 
 
 @pytest.mark.django_db
@@ -1235,7 +1227,7 @@ def test_remove_participant_blocked_when_evidence_job_exists(
     contest: Contest,
     student: User,
 ) -> None:
-    """Removing a participant who has evidence jobs should return 409."""
+    """Roster removal is gated; evidence checks are not reached for unbound contests."""
     from apps.contests.models import ExamEvidenceJob, EvidenceJobStatus
 
     api_client.force_authenticate(user=owner)
@@ -1260,9 +1252,8 @@ def test_remove_participant_blocked_when_evidence_job_exists(
         format="json",
     )
 
-    assert resp.status_code == status.HTTP_409_CONFLICT
-    assert "evidence" in resp.data["error"].lower()
-    # Participant and evidence job must still exist
+    assert resp.status_code == status.HTTP_400_BAD_REQUEST
+    assert resp.data["error"]["code"] == "contest_requires_classroom_binding"
     assert ContestParticipant.objects.filter(pk=participant.pk).exists()
     assert ExamEvidenceJob.objects.filter(participant=participant).exists()
 
@@ -1274,7 +1265,7 @@ def test_remove_participant_allowed_without_evidence(
     contest: Contest,
     student: User,
 ) -> None:
-    """Removing a participant with no evidence jobs should succeed normally."""
+    """Manual roster removal requires classroom binding or is classroom-managed."""
     api_client.force_authenticate(user=owner)
 
     ContestParticipant.objects.create(
@@ -1291,8 +1282,9 @@ def test_remove_participant_allowed_without_evidence(
         format="json",
     )
 
-    assert resp.status_code == status.HTTP_200_OK
-    assert not ContestParticipant.objects.filter(contest=contest, user=student).exists()
+    assert resp.status_code == status.HTTP_400_BAD_REQUEST
+    assert resp.data["error"]["code"] == "contest_requires_classroom_binding"
+    assert ContestParticipant.objects.filter(contest=contest, user=student).exists()
 
 
 @pytest.mark.django_db
@@ -1302,7 +1294,7 @@ def test_remove_participant_blocked_even_for_succeeded_evidence(
     contest: Contest,
     student: User,
 ) -> None:
-    """Even completed (success) evidence jobs must block participant removal."""
+    """Roster removal gate runs before evidence enforcement for unbound contests."""
     from apps.contests.models import ExamEvidenceJob, EvidenceJobStatus
 
     api_client.force_authenticate(user=owner)
@@ -1326,7 +1318,8 @@ def test_remove_participant_blocked_even_for_succeeded_evidence(
         format="json",
     )
 
-    assert resp.status_code == status.HTTP_409_CONFLICT
+    assert resp.status_code == status.HTTP_400_BAD_REQUEST
+    assert resp.data["error"]["code"] == "contest_requires_classroom_binding"
     assert ContestParticipant.objects.filter(pk=participant.pk).exists()
 
 

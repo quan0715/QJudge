@@ -121,6 +121,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
   return (
     <Modal
       open={open}
+      data-testid="create-contest-modal"
       onRequestClose={handleClose}
       modalLabel={modalLabel}
       modalHeading={modalHeading}
@@ -199,6 +200,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
             <div className={styles.typeSelector}>
               <button
                 type="button"
+                data-testid="create-contest-type-coding"
                 onClick={() => {
                   setCreationType("coding_test");
                   setExamModeEnabled(false);
@@ -216,6 +218,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
 
               <button
                 type="button"
+                data-testid="create-contest-type-exam"
                 onClick={() => {
                   setCreationType("exam");
                   setExamModeEnabled(true);
@@ -248,6 +251,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
 
             <TextInput
               id="contest-name"
+              data-testid="create-contest-name"
               labelText={t("createModal.contestName", "競賽名稱")}
               placeholder={t("createModal.contestNamePlaceholder", "例如：114-2 期中評量")}
               value={name}

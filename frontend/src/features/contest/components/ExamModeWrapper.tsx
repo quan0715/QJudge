@@ -22,7 +22,11 @@ import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/
 import { useAnticheatWebcamCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatWebcamCapture";
 import { ExamCaptureProvider } from "@/features/contest/contexts/ExamCaptureContext";
 import { createStreamAdapter } from "@/features/contest/anticheat/streamAdapter";
-import { setRuntimeScreenShareHandoff } from "@/features/contest/anticheat/screenShareHandoffStore";
+import {
+  setRuntimeScreenShareHandoff,
+  clearPrecheckScreenShareHandoff,
+  clearRuntimeScreenShareHandoff,
+} from "@/features/contest/anticheat/screenShareHandoffStore";
 import { setRuntimeWebcamHandoff } from "@/features/contest/anticheat/webcamHandoffStore";
 import { requestUserMediaVideo, supportsUserMediaApi } from "@/features/contest/anticheat/mediaApi";
 import { isStreamHealthy } from "@/features/contest/anticheat/mediaStreamHealth";
@@ -195,6 +199,16 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const screenStreamMonitorEnabled = streamMonitorEnabled && monitoringPlan.runtime.monitorScreenShareStream;
   const webcamStreamMonitorEnabled = streamMonitorEnabled && monitoringPlan.runtime.monitorWebcamStream;
   const lockedFullscreenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // When config refreshes and screen share is no longer required, discard any
+  // lingering precheck/runtime handoff streams so they don't trigger "螢幕分享已中斷"
+  // the next time the stream lifecycle runs.
+  useEffect(() => {
+    if (!monitoringPlan.runtime.monitorScreenShareStream) {
+      clearPrecheckScreenShareHandoff(true);
+      clearRuntimeScreenShareHandoff(true);
+    }
+  }, [monitoringPlan.runtime.monitorScreenShareStream]);
 
   const capture = useAnticheatScreenCapture({
     contestId,

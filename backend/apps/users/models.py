@@ -185,8 +185,16 @@ class UserProfile(models.Model):
     )
 
     # Preferences
+    LANGUAGE_CHOICES = [
+        ('zh-TW', '繁體中文'),
+        ('en', 'English'),
+        ('ja', '日本語'),
+        ('ko', '한국어'),
+    ]
+
     preferred_language = models.CharField(
         max_length=20,
+        choices=LANGUAGE_CHOICES,
         default='zh-TW',
         verbose_name='偏好語言'
     )

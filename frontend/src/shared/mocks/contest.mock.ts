@@ -19,6 +19,7 @@ export const createMockContest = (
   currentUserRole: "teacher",
   participantCount: 30,
   contestType: "paper_exam",
+  countsTowardGrade: false,
   cheatDetectionEnabled: true,
   anticheatDevicePolicy: {
     desktop: {

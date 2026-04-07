@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.classrooms.models import Classroom
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest
 from apps.contests.serializers import ContestCreateUpdateSerializer
 from apps.users.models import User
@@ -106,6 +106,15 @@ def test_register_requires_password_for_password_protected_contest(
     )
     contest.set_contest_password("secret-789")
     contest.save(update_fields=["password"])
+
+    classroom = Classroom.objects.create(
+        name="Pwd Contract",
+        description="",
+        owner=owner,
+        invite_code=uuid4().hex[:8].upper(),
+    )
+    ClassroomMember.objects.create(classroom=classroom, user=student, role="student")
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
 
     api_client.force_authenticate(user=student)
 

@@ -302,6 +302,29 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.score, 2)
 
+    def test_teacher_grade_after_exam_submitted(self):
+        """考生已交卷仍可批改問答題（配合前端 E2E 交卷後批改流程）。"""
+        self.participant.exam_status = ExamStatus.SUBMITTED
+        self.participant.save(update_fields=["exam_status"])
+        ans = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={"text": "Submitted essay"},
+        )
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse(
+            "contests:contest-exam-answers-grade-answer",
+            kwargs={"contest_pk": self.contest.id, "pk": ans.id},
+        )
+        resp = self.client.post(
+            url, {"score": 12, "feedback": "ok"}, format="json"
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        ans.refresh_from_db()
+        self.assertEqual(ans.score, 12)
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.score, 12)
+
     def test_student_cannot_grade(self):
         ans = ExamAnswer.objects.create(
             participant=self.participant,

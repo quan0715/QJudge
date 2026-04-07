@@ -3,7 +3,7 @@ import { Add, Bullhorn } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ClassroomAnnouncement } from "@/core/entities/classroom.entity";
 import { EmptyState } from "@/shared/ui/EmptyState";
-import { AnnouncementCard } from "./AnnouncementCard";
+import { AnnouncementScheduleCard } from "@/shared/ui/scheduleCard";
 
 interface AnnouncementSectionProps {
   announcements: ClassroomAnnouncement[];
@@ -44,7 +44,7 @@ export const AnnouncementSection: React.FC<AnnouncementSectionProps> = ({
       ) : (
         <div className="classroom-admin-announcement-list">
           {announcements.map((announcement) => (
-            <AnnouncementCard
+            <AnnouncementScheduleCard
               key={announcement.id}
               announcement={announcement}
               onClick={() => onView(announcement)}

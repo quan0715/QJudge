@@ -9,7 +9,7 @@ from datetime import timedelta
 from apps.users.models import UserProfile
 from apps.problems.models import Problem, TestCase, ProblemTranslation, LanguageConfig
 from apps.contests.models import Contest, ContestProblem, ContestParticipant, ExamQuestion
-from apps.classrooms.models import Classroom, ClassroomContest
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.question_bank.models import Question, QuestionBank
 from apps.question_bank.bank_workflows import upsert_exam_question_into_bank, upsert_problem_into_bank
 
@@ -139,7 +139,7 @@ class Command(BaseCommand):
         if created:
             ProblemTranslation.objects.create(
                 problem=prob1,
-                language='zh-hant',
+                language='zh-TW',
                 title="A+B Problem",
                 description="計算兩個整數 $a$ 和 $b$ 的和。",
                 input_description="輸入包含兩個整數 $a$ 和 $b$，用空格分隔。",
@@ -210,7 +210,7 @@ int main() {
         if created:
             ProblemTranslation.objects.create(
                 problem=prob2,
-                language='zh-hant',
+                language='zh-TW',
                 title="Hello World",
                 description='撰寫一個程式輸出 "Hello, World!"。',
                 input_description="無輸入。",
@@ -261,7 +261,7 @@ int main() {
         if created:
             ProblemTranslation.objects.create(
                 problem=prob3,
-                language='zh-hant',
+                language='zh-TW',
                 title="階乘計算",
                 description='計算給定整數 $n$ 的階乘 $n!$。',
                 input_description="輸入一個整數 $n$ ($0 \\leq n \\leq 10$)。",
@@ -475,6 +475,16 @@ int main() {
             self.stdout.write('  ✓ 建立教室: E2E Test Classroom')
         else:
             self.stdout.write('  - 教室已存在: E2E Test Classroom')
+
+        for username in ['student', 'student2']:
+            user = User.objects.filter(username=username).first()
+            if user:
+                _, mem_created = ClassroomMember.objects.get_or_create(
+                    classroom=classroom, user=user,
+                    defaults={'role': 'student'},
+                )
+                if mem_created:
+                    self.stdout.write(f'  ✓ 加入成員: {username}')
 
     def _create_question_banks(self):
         """建立測試題庫"""

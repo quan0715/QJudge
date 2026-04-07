@@ -119,7 +119,7 @@ export const getAnnouncements = async (classroomId: string): Promise<any[]> => {
 
 export const createAnnouncement = async (classroomId: string, data: { title: string; content: string; is_pinned?: boolean }): Promise<any> => {
   return requestJson<any>(
-    httpClient.post(`/api/v1/classrooms/${classroomId}/announcements/`, data),
+    httpClient.post(`/api/v1/classrooms/${classroomId}/announcements/create/`, data),
     "Failed to create announcement"
   );
 };
@@ -133,7 +133,7 @@ export const updateAnnouncement = async (classroomId: string, announcementId: st
 
 export const deleteAnnouncement = async (classroomId: string, announcementId: string): Promise<void> => {
   await ensureOk(
-    httpClient.delete(`/api/v1/classrooms/${classroomId}/announcements/${announcementId}/`),
+    httpClient.delete(`/api/v1/classrooms/${classroomId}/announcements/${announcementId}/delete/`),
     "Failed to delete announcement"
   );
 };

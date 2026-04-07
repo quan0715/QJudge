@@ -150,6 +150,12 @@ class Contest(models.Model):
         help_text='exam: 正式考試流程; practice: 教室練習/作業流程',
     )
 
+    counts_toward_grade = models.BooleanField(
+        default=True,
+        verbose_name='計入正式成績',
+        help_text='True: 作業/考試（成績計入成績簿）; False: 純練習（僅保留最新提交、不計分）',
+    )
+
     # Contest-level question edit lock (production safeguard)
     class QuestionEditLockTrigger(models.TextChoices):
         CODING_SUBMISSION = 'coding_submission', 'Coding Submission'
@@ -564,7 +570,10 @@ class ExamQuestionImportSession(models.Model):
         db_table = "exam_question_import_sessions"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["contest", "created_at"]),
+            models.Index(
+                fields=["contest", "created_at"],
+                name="exam_qis_contest_created_idx",
+            ),
         ]
 
 

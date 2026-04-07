@@ -1,11 +1,13 @@
+import { useMemo, useState } from "react";
 import { Button } from "@carbon/react";
-import { Add, ArrowRight, Trophy } from "@carbon/icons-react";
+import { ArrowRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ClassroomDetail, ClassroomAnnouncement } from "@/core/entities/classroom.entity";
 import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
-import { EmptyState } from "@/shared/ui/EmptyState";
 import { AnnouncementSection } from "../../components/AnnouncementSection";
-import { ClassroomContestCard as ContestCard, getActivityTimestamp } from "../../components/ClassroomContestCard";
+import { ClassroomActivityTimeline } from "../../components/ClassroomActivityTimeline";
+import "../../components/ClassroomActivitySchedule.scss";
+import { buildCalendarDayRows } from "../../domain/classroomActivityTimeline";
 import type { ClassroomAdminPanelId } from "../ClassroomAdminLayout";
 
 interface OverviewPanelProps {
@@ -23,24 +25,47 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
   isPrivileged,
   onCreateAnnouncement,
   onViewAnnouncement,
-  onCreateExam,
   onNavigateExam,
   onJumpToPanel,
 }) => {
   const { t } = useTranslation("classroom");
-  const activeExams = classroom.contests.filter((row) => row.contestStatus === "published");
-  const recentActivities = [...activeExams]
-    .sort((left, right) => {
-      const leftTime = getActivityTimestamp(left);
-      const rightTime = getActivityTimestamp(right);
-      return rightTime.localeCompare(leftTime);
-    })
-    .slice(0, 3);
+
+  const [nowMs] = useState(() => Date.now());
+  const [startOffset, setStartOffset] = useState(-3);
+  const [endOffset, setEndOffset] = useState(3);
+
+  const startMs = useMemo(() => {
+    const d = new Date(nowMs);
+    d.setDate(d.getDate() + startOffset);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }, [nowMs, startOffset]);
+
+  const endMs = useMemo(() => {
+    const d = new Date(nowMs);
+    d.setDate(d.getDate() + endOffset);
+    d.setHours(23, 59, 59, 999);
+    return d.getTime();
+  }, [nowMs, endOffset]);
+
+  const calRows = useMemo(
+    () => buildCalendarDayRows(classroom.contests, classroom.announcements, startMs, endMs, nowMs),
+    [classroom.contests, classroom.announcements, startMs, endMs, nowMs],
+  );
 
   return (
     <EntityOverviewFrame
       sectionClassName="classroom-admin-overview-frame-section"
       main={
+        <ClassroomActivityTimeline
+          rows={calRows}
+          onOpenContest={onNavigateExam}
+          onViewAnnouncement={onViewAnnouncement}
+          onLoadEarlier={() => setStartOffset((o) => o - 7)}
+          onLoadLater={() => setEndOffset((o) => o + 7)}
+        />
+      }
+      side={
         <>
           <AnnouncementSection
             announcements={classroom.announcements.slice(0, 4)}
@@ -60,10 +85,6 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
               {t("viewAllAnnouncements")}
             </Button>
           )}
-        </>
-      }
-      side={
-        <>
           {!isPrivileged && (
             <section className="classroom-admin-section classroom-admin-section--todo">
               <div className="classroom-admin-section__header">
@@ -83,39 +104,6 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
               </div>
             </section>
           )}
-
-          <section className="classroom-admin-section">
-            <div className="classroom-admin-section__header">
-              <div className="classroom-admin-section__title">
-                <h3>{t("recentActivities", "近期活動")}</h3>
-              </div>
-              {isPrivileged && (
-                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                  <Button kind="ghost" size="sm" renderIcon={Add} onClick={onCreateExam}>
-                    {t("createContest", "建立考試")}
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {recentActivities.length === 0 ? (
-              <EmptyState
-                icon={Trophy}
-                title={t("noActiveContests", "目前沒有進行中或即將開始的活動")}
-                compact
-              />
-            ) : (
-              <div className="classroom-admin-card-grid">
-                {recentActivities.map((activity) => (
-                  <ContestCard
-                    key={activity.contestId}
-                    contest={activity}
-                    onNavigate={() => onNavigateExam(activity.contestId)}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
         </>
       }
     />
