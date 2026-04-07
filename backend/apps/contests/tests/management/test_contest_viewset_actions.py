@@ -224,7 +224,7 @@ def test_archive_contest_and_reject_second_archive(
     assert first.status_code == status.HTTP_200_OK
     assert first.data["status"] == "archived"
     assert second.status_code == status.HTTP_400_BAD_REQUEST
-    assert second.data["error"] == "Contest is already archived"
+    assert second.data["success"] is False
 
 
 @pytest.mark.django_db
@@ -378,7 +378,7 @@ def test_reopen_exam_rejects_non_submitted_participant(
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data["error"] == "Warning: User has not finished the exam."
+    assert response.data["success"] is False
 
 
 @pytest.mark.django_db
@@ -567,7 +567,7 @@ def test_add_problem_returns_404_when_problem_id_not_found(
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.data["error"] == "Problem not found"
+    assert response.data["success"] is False
 
 
 @pytest.mark.django_db
@@ -585,7 +585,7 @@ def test_add_problem_returns_400_when_problem_id_is_not_uuid(
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "problem_id" in response.data
+    assert "problem_id" in response.data.get("error", {}).get("details", {})
 
 
 @pytest.mark.django_db

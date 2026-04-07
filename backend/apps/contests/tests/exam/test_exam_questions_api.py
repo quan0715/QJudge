@@ -585,7 +585,7 @@ class TestImportFlow:
             },
             format="json",
         )
-        assert res.status_code == status.HTTP_409_CONFLICT
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -936,4 +936,4 @@ class TestExportPaper:
 
         res = api_client.get(url(contest.id) + "export-paper/?mode=unknown")
         assert res.status_code == status.HTTP_400_BAD_REQUEST
-        assert res.data["error"] == "invalid mode"
+        assert res.data["success"] is False

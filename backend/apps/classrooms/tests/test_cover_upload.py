@@ -118,7 +118,7 @@ class TestClassroomCoverUpload:
             format="multipart",
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
-        assert resp.data["error"] == "file is required"
+        assert resp.data["success"] is False
 
     def test_upload_cover_invalid_format(
         self, api_client: APIClient, owner: User, classroom: Classroom

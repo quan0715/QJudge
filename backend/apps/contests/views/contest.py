@@ -1139,7 +1139,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                 cp.save()
                 binding.legacy_contest_problem = cp
                 binding.save(update_fields=['legacy_contest_problem', 'updated_at'])
-        except DRFValidationError:
+        except (DRFValidationError, NotFound):
             raise
         except Exception as exc:
             logger.exception("Failed to add contest problem from payload: %s", exc)
