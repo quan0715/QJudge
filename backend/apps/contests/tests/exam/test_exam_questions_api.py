@@ -585,7 +585,7 @@ class TestImportFlow:
             },
             format="json",
         )
-        assert res.status_code == status.HTTP_400_BAD_REQUEST
+        assert res.status_code == status.HTTP_409_CONFLICT
 
 
 # ═══════════════════════════════════════════════════════════════════
