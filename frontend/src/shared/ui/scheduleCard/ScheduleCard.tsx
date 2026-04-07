@@ -76,6 +76,28 @@ function Header({ children, icon, tag }: HeaderProps) {
 
 // ── Time ──────────────────────────────────────────────────────────────────────
 
+const TIME_HM: Intl.DateTimeFormatOptions = {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+};
+
+function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+}
+
+function smartFormat(iso: string): string {
+  return isToday(iso)
+    ? formatDateTime(iso, TIME_HM)
+    : formatDateTime(iso, DATE_FORMATS.SHORT);
+}
+
 interface TimeRangeProps {
   start?: string | null;
   end?: string | null;
@@ -83,8 +105,8 @@ interface TimeRangeProps {
 
 function TimeRange({ start, end }: TimeRangeProps) {
   if (!start && !end) return null;
-  const startStr = start ? formatDateTime(start, DATE_FORMATS.SHORT) : "—";
-  const endStr   = end   ? formatDateTime(end,   DATE_FORMATS.SHORT) : "—";
+  const startStr = start ? smartFormat(start) : "—";
+  const endStr   = end   ? smartFormat(end)   : "—";
 
   return (
     <p className={styles.time}>
