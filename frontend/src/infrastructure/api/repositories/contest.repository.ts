@@ -92,9 +92,12 @@ export const registerContest = async (
   );
 };
 
-export const enterContest = async (id: string): Promise<void> => {
+export const enterContest = async (
+  id: string,
+  data?: { password?: string },
+): Promise<void> => {
   await requestJson<void>(
-    httpClient.post(`/api/v1/contests/${id}/enter/`),
+    httpClient.post(`/api/v1/contests/${id}/enter/`, data ?? {}),
     "Failed to enter contest"
   );
 };

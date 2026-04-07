@@ -72,7 +72,8 @@ interface ParticipantDashboardPaneProps {
   onUnlock: () => void;
   onApproveTakeover: () => void;
   onReopenExam: () => void;
-  onRemoveParticipant: () => void;
+  /** When undefined, roster removal is hidden (e.g. classroom-managed contests). */
+  onRemoveParticipant?: () => void;
   canDeleteExamVideos: boolean;
   onOpenGrading: () => void;
   onRefreshEvents?: () => Promise<void> | void;
@@ -452,13 +453,17 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                               onClick={onReopenExam}
                             />
                           ) : null}
-                          <MenuItemDivider />
-                          <MenuItem
-                            kind="danger"
-                            label={t("participants.actions.remove", "移除參賽者")}
-                            renderIcon={TrashCan}
-                            onClick={onRemoveParticipant}
-                          />
+                          {onRemoveParticipant ? (
+                            <>
+                              <MenuItemDivider />
+                              <MenuItem
+                                kind="danger"
+                                label={t("participants.actions.remove", "移除參賽者")}
+                                renderIcon={TrashCan}
+                                onClick={onRemoveParticipant}
+                              />
+                            </>
+                          ) : null}
                         </MenuButton>
                       </div>
                     </div>

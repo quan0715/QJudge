@@ -49,6 +49,8 @@ python manage.py runserver
 pytest
 ```
 
+- 佈署前可執行 `python manage.py audit_contest_classroom_bindings`：若有競賽未綁定課堂會以非零退出碼失敗。
+
 ## 測試執行原則（重點）
 
 - backend 測試建議用 `config.settings.test` + 明確 `DATABASE_URL` 指向 docker postgres

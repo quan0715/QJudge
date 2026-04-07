@@ -44,7 +44,19 @@ class ContestQuerySet(models.QuerySet):
 
         queryset = self.filter(status="published")
 
-        if user and user.is_authenticated:
-            return queryset.filter(visibility__in=["public", "private"])
+        if not user or not user.is_authenticated:
+            return queryset.none()
 
-        return queryset.filter(visibility="public")
+        relation_filter = (
+            Q(registrations__user=user)
+            | Q(classroom_bindings__classroom__owner=user)
+            | Q(classroom_bindings__classroom__admins=user)
+            | Q(classroom_bindings__classroom__memberships__user=user)
+            | Q(owner=user)
+            | Q(admins=user)
+        )
+        return (
+            queryset.filter(relation_filter)
+            .filter(visibility__in=["public", "private"])
+            .distinct()
+        )

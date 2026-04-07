@@ -60,10 +60,13 @@ export const paperExamContestModule: ContestTypeModule = {
     student: {
       getTabs: (contest) => getPaperExamTabs(contest),
       getSolveRenderer: () => () => <PaperExamAnsweringScreen />,
-      getAnsweringEntryPath: (contestId, contest) =>
-        contest?.boundClassroomId
-          ? getClassroomContestSolvePath(contest.boundClassroomId, contestId)
-        : "/dashboard",
+      getAnsweringEntryPath: (contestId, contest) => {
+        const classroomId = contest?.boundClassroomId;
+        if (!classroomId) {
+          return "/dashboard";
+        }
+        return getClassroomContestSolvePath(classroomId, contestId);
+      },
     },
   admin: {
     editorKind: "paper_exam",

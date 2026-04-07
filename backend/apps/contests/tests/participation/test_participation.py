@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -49,22 +50,35 @@ class ContestParticipationTests(APITestCase):
         )
         self.private_contest.set_contest_password('secretpassword')
         self.private_contest.save()
-        
+
         self.client.force_authenticate(user=self.user)
 
+    def _bind_user_to_contest(self, contest, user=None):
+        u = user or self.user
+        room = Classroom.objects.create(
+            name=f"C-{contest.id}",
+            owner=self.admin,
+            invite_code=uuid.uuid4().hex[:8].upper(),
+        )
+        ClassroomMember.objects.create(classroom=room, user=u, role="student")
+        ClassroomContest.objects.create(classroom=room, contest=contest)
+
     def test_register_public_contest(self):
+        self._bind_user_to_contest(self.public_contest)
         url = reverse('contests:contest-register', args=[self.public_contest.id])
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(ContestParticipant.objects.filter(contest=self.public_contest, user=self.user).exists())
 
     def test_register_private_contest_success(self):
+        self._bind_user_to_contest(self.private_contest)
         url = reverse('contests:contest-register', args=[self.private_contest.id])
         response = self.client.post(url, {'password': 'secretpassword'})
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(ContestParticipant.objects.filter(contest=self.private_contest, user=self.user).exists())
 
     def test_register_private_contest_fail(self):
+        self._bind_user_to_contest(self.private_contest)
         url = reverse('contests:contest-register', args=[self.private_contest.id])
         response = self.client.post(url, {'password': 'wrongpassword'})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -85,6 +99,7 @@ class ContestParticipationTests(APITestCase):
         self.assertEqual(response.data.get('message'), 'Contest has ended')
 
     def test_register_blocks_when_already_registered(self):
+        self._bind_user_to_contest(self.public_contest)
         ContestParticipant.objects.create(contest=self.public_contest, user=self.user)
         url = reverse('contests:contest-register', args=[self.public_contest.id])
         response = self.client.post(url)
@@ -92,14 +107,22 @@ class ContestParticipationTests(APITestCase):
         self.assertEqual(response.data.get('message'), 'Already registered')
 
     def test_register_classroom_bound_contest_requires_classroom_membership(self):
+        isolated = Contest.objects.create(
+            name="Isolated",
+            start_time=timezone.now(),
+            end_time=timezone.now() + timedelta(hours=2),
+            owner=self.admin,
+            visibility="public",
+            status="published",
+        )
         classroom = Classroom.objects.create(
             name="Bound Classroom",
             owner=self.admin,
             invite_code="BOUND123",
         )
-        ClassroomContest.objects.create(classroom=classroom, contest=self.public_contest)
+        ClassroomContest.objects.create(classroom=classroom, contest=isolated)
 
-        url = reverse('contests:contest-register', args=[self.public_contest.id])
+        url = reverse('contests:contest-register', args=[isolated.id])
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(
@@ -113,14 +136,22 @@ class ContestParticipationTests(APITestCase):
             owner=self.admin,
             invite_code="BOUND234",
         )
-        ClassroomContest.objects.create(classroom=classroom, contest=self.public_contest)
+        contest_b = Contest.objects.create(
+            name="Bound B",
+            start_time=timezone.now(),
+            end_time=timezone.now() + timedelta(hours=2),
+            owner=self.admin,
+            visibility="public",
+            status="published",
+        )
+        ClassroomContest.objects.create(classroom=classroom, contest=contest_b)
         ClassroomMember.objects.create(classroom=classroom, user=self.user, role="student")
 
-        url = reverse('contests:contest-register', args=[self.public_contest.id])
+        url = reverse('contests:contest-register', args=[contest_b.id])
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(
-            ContestParticipant.objects.filter(contest=self.public_contest, user=self.user).exists()
+            ContestParticipant.objects.filter(contest=contest_b, user=self.user).exists()
         )
 
     def test_register_classroom_bound_contest_allows_manager_member(self):
@@ -129,15 +160,23 @@ class ContestParticipationTests(APITestCase):
             owner=self.admin,
             invite_code="BOUND345",
         )
-        ClassroomContest.objects.create(classroom=classroom, contest=self.public_contest)
+        contest_c = Contest.objects.create(
+            name="Bound C",
+            start_time=timezone.now(),
+            end_time=timezone.now() + timedelta(hours=2),
+            owner=self.admin,
+            visibility="public",
+            status="published",
+        )
+        ClassroomContest.objects.create(classroom=classroom, contest=contest_c)
         ClassroomMember.objects.create(classroom=classroom, user=self.user, role="ta")
 
-        url = reverse('contests:contest-register', args=[self.public_contest.id])
+        url = reverse('contests:contest-register', args=[contest_c.id])
         response = self.client.post(url)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(
-            ContestParticipant.objects.filter(contest=self.public_contest, user=self.user).exists()
+            ContestParticipant.objects.filter(contest=contest_c, user=self.user).exists()
         )
 
     def test_enter_blocks_draft_contest(self):
@@ -149,16 +188,26 @@ class ContestParticipationTests(APITestCase):
             visibility='public',
             status='draft',
         )
+        self._bind_user_to_contest(draft_contest)
         url = reverse('contests:contest-enter', args=[draft_contest.id])
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(response.data.get('message'), 'Contest is not published')
 
-    def test_enter_blocks_when_not_registered(self):
+    def test_enter_blocks_when_not_classroom_member(self):
+        room = Classroom.objects.create(
+            name="NoMember",
+            owner=self.admin,
+            invite_code="NOMEM01",
+        )
+        ClassroomContest.objects.create(classroom=room, contest=self.public_contest)
         url = reverse('contests:contest-enter', args=[self.public_contest.id])
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.data.get('message'), 'Not registered')
+        self.assertEqual(
+            response.data.get('message'),
+            'Join the classroom before joining this contest',
+        )
 
     def test_enter_allows_multiple_joins(self):
         contest = Contest.objects.create(
@@ -170,6 +219,7 @@ class ContestParticipationTests(APITestCase):
             status='published',
             allow_multiple_joins=True,
         )
+        self._bind_user_to_contest(contest)
         participant = ContestParticipant.objects.create(
             contest=contest,
             user=self.user,
@@ -182,9 +232,9 @@ class ContestParticipationTests(APITestCase):
         self.assertIsNone(participant.left_at)
 
     def test_enter_and_leave_contest(self):
-        # Register first
+        self._bind_user_to_contest(self.public_contest)
         ContestParticipant.objects.create(contest=self.public_contest, user=self.user)
-        
+
         # Enter
         url_enter = reverse('contests:contest-enter', args=[self.public_contest.id])
         response = self.client.post(url_enter)

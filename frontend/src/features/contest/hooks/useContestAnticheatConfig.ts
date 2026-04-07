@@ -38,5 +38,18 @@ export function useContestAnticheatConfig(contestId?: string): UseContestAntiche
     void load();
   }, [load]);
 
+  // Re-fetch when the student returns to the tab so policy changes made by
+  // an admin during an active exam session are picked up automatically.
+  useEffect(() => {
+    if (!contestId) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [contestId, load]);
+
   return { config, loading, error, refresh: load };
 }

@@ -12,26 +12,28 @@
 
 ## File Map
 
-| Action | Path | Responsibility |
-|--------|------|----------------|
-| Modify | `backend/apps/contests/models.py` | Add `counts_toward_grade` field to `Contest` |
-| Create | `backend/apps/contests/migrations/0066_contest_counts_toward_grade.py` | Migration (auto-generated) |
-| Modify | `backend/apps/contests/serializers.py` | Expose field in list, detail, create/update serializers |
-| Modify | `backend/apps/submissions/services.py` | Practice keep-latest logic in `create_submission` |
-| Create | `backend/apps/contests/tests/test_counts_toward_grade.py` | Backend tests |
-| Modify | `frontend/src/core/entities/contest.entity.ts` | Add `countsTowardGrade` to entity types |
-| Modify | `frontend/src/infrastructure/api/dto/contest.dto.ts` | Add `counts_toward_grade` to DTO |
-| Modify | `frontend/src/infrastructure/mappers/contest.mapper.ts` | Map DTO → entity |
-| Modify | `frontend/src/core/ports/contest.repository.ts` | Add to `ContestUpdatePayload` |
+
+| Action | Path                                                                   | Responsibility                                          |
+| ------ | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| Modify | `backend/apps/contests/models.py`                                      | Add `counts_toward_grade` field to `Contest`            |
+| Create | `backend/apps/contests/migrations/0066_contest_counts_toward_grade.py` | Migration (auto-generated)                              |
+| Modify | `backend/apps/contests/serializers.py`                                 | Expose field in list, detail, create/update serializers |
+| Modify | `backend/apps/submissions/services.py`                                 | Practice keep-latest logic in `create_submission`       |
+| Create | `backend/apps/contests/tests/test_counts_toward_grade.py`              | Backend tests                                           |
+| Modify | `frontend/src/core/entities/contest.entity.ts`                         | Add `countsTowardGrade` to entity types                 |
+| Modify | `frontend/src/infrastructure/api/dto/contest.dto.ts`                   | Add `counts_toward_grade` to DTO                        |
+| Modify | `frontend/src/infrastructure/mappers/contest.mapper.ts`                | Map DTO → entity                                        |
+| Modify | `frontend/src/core/ports/contest.repository.ts`                        | Add to `ContestUpdatePayload`                           |
+
 
 ---
 
 ### Task 1: Add `counts_toward_grade` field to Contest model
 
 **Files:**
-- Modify: `backend/apps/contests/models.py:140-151`
 
-- [ ] **Step 1: Add the field**
+- Modify: `backend/apps/contests/models.py:140-151`
+- **Step 1: Add the field**
 
 In `backend/apps/contests/models.py`, add after the `delivery_mode` field block (after line 151):
 
@@ -45,9 +47,10 @@ In `backend/apps/contests/models.py`, add after the `delivery_mode` field block 
 
 Default is `True` for backward compatibility (all existing contests count).
 
-- [ ] **Step 2: Generate migration**
+- **Step 2: Generate migration**
 
 Run:
+
 ```bash
 cd backend
 python manage.py makemigrations contests --name contest_counts_toward_grade
@@ -55,16 +58,17 @@ python manage.py makemigrations contests --name contest_counts_toward_grade
 
 Expected: creates `backend/apps/contests/migrations/0066_contest_counts_toward_grade.py`
 
-- [ ] **Step 3: Apply migration**
+- **Step 3: Apply migration**
 
 Run:
+
 ```bash
 python manage.py migrate contests
 ```
 
 Expected: `Applying contests.0066_contest_counts_toward_grade... OK`
 
-- [ ] **Step 4: Commit**
+- **Step 4: Commit**
 
 ```bash
 git add backend/apps/contests/models.py backend/apps/contests/migrations/0066_contest_counts_toward_grade.py
@@ -76,9 +80,9 @@ git commit -m "feat(contest): add counts_toward_grade boolean field"
 ### Task 2: Expose field in serializers
 
 **Files:**
-- Modify: `backend/apps/contests/serializers.py:41` (list), `:130` (detail), `:392-416` (create/update)
 
-- [ ] **Step 1: ContestListSerializer — add read field**
+- Modify: `backend/apps/contests/serializers.py:41` (list), `:130` (detail), `:392-416` (create/update)
+- **Step 1: ContestListSerializer — add read field**
 
 In `ContestListSerializer`, add `'counts_toward_grade'` to the `fields` list after `'delivery_mode'` (around line 54):
 
@@ -103,7 +107,7 @@ In `ContestListSerializer`, add `'counts_toward_grade'` to the `fields` list aft
         ]
 ```
 
-- [ ] **Step 2: ContestDetailSerializer — add to fields**
+- **Step 2: ContestDetailSerializer — add to fields**
 
 In `ContestDetailSerializer.Meta.fields`, add `'counts_toward_grade'` after `'delivery_mode'` (around line 130):
 
@@ -113,7 +117,7 @@ In `ContestDetailSerializer.Meta.fields`, add `'counts_toward_grade'` after `'de
             'cheat_detection_enabled',
 ```
 
-- [ ] **Step 3: ContestCreateUpdateSerializer — add to fields**
+- **Step 3: ContestCreateUpdateSerializer — add to fields**
 
 In `ContestCreateUpdateSerializer.Meta.fields`, add `'counts_toward_grade'` after `'delivery_mode'` (around line 403):
 
@@ -123,9 +127,10 @@ In `ContestCreateUpdateSerializer.Meta.fields`, add `'counts_toward_grade'` afte
             'cheat_detection_enabled',
 ```
 
-- [ ] **Step 4: Run existing serializer tests**
+- **Step 4: Run existing serializer tests**
 
 Run:
+
 ```bash
 cd backend
 DJANGO_SETTINGS_MODULE=config.settings.test PYTEST_ADDOPTS='--no-cov' pytest apps/contests/tests/ -x -q 2>&1 | tail -20
@@ -133,7 +138,7 @@ DJANGO_SETTINGS_MODULE=config.settings.test PYTEST_ADDOPTS='--no-cov' pytest app
 
 Expected: all pass (no breakage)
 
-- [ ] **Step 5: Commit**
+- **Step 5: Commit**
 
 ```bash
 git add backend/apps/contests/serializers.py
@@ -145,10 +150,10 @@ git commit -m "feat(contest): expose counts_toward_grade in all contest serializ
 ### Task 3: Practice keep-latest submission logic
 
 **Files:**
+
 - Modify: `backend/apps/submissions/services.py:69-130`
 - Test: `backend/apps/contests/tests/test_counts_toward_grade.py`
-
-- [ ] **Step 1: Write the failing test**
+- **Step 1: Write the failing test**
 
 Create `backend/apps/contests/tests/test_counts_toward_grade.py`:
 
@@ -295,9 +300,10 @@ class TestPracticeKeepLatestSubmission:
         assert Submission.objects.filter(pk=new.pk).exists()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- **Step 2: Run test to verify it fails**
 
 Run:
+
 ```bash
 cd backend
 DJANGO_SETTINGS_MODULE=config.settings.test PYTEST_ADDOPTS='--no-cov' pytest apps/contests/tests/test_counts_toward_grade.py -x -v 2>&1 | tail -30
@@ -305,7 +311,7 @@ DJANGO_SETTINGS_MODULE=config.settings.test PYTEST_ADDOPTS='--no-cov' pytest app
 
 Expected: FAIL — `AttributeError: type object 'SubmissionService' has no attribute 'cleanup_practice_submissions'`
 
-- [ ] **Step 3: Implement cleanup_practice_submissions**
+- **Step 3: Implement cleanup_practice_submissions**
 
 In `backend/apps/submissions/services.py`, add this class method to `SubmissionService` (after `create_and_dispatch`):
 
@@ -336,7 +342,7 @@ In `backend/apps/submissions/services.py`, add this class method to `SubmissionS
         return count
 ```
 
-- [ ] **Step 4: Call cleanup from create_and_dispatch**
+- **Step 4: Call cleanup from create_and_dispatch**
 
 In `SubmissionService.create_and_dispatch`, after `result.submission` is obtained and before returning, add:
 
@@ -356,9 +362,10 @@ In `SubmissionService.create_and_dispatch`, after `result.submission` is obtaine
                 )
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- **Step 5: Run test to verify it passes**
 
 Run:
+
 ```bash
 cd backend
 DJANGO_SETTINGS_MODULE=config.settings.test PYTEST_ADDOPTS='--no-cov' pytest apps/contests/tests/test_counts_toward_grade.py -x -v 2>&1 | tail -30
@@ -366,9 +373,10 @@ DJANGO_SETTINGS_MODULE=config.settings.test PYTEST_ADDOPTS='--no-cov' pytest app
 
 Expected: 5 passed
 
-- [ ] **Step 6: Run full submission tests to verify no regression**
+- **Step 6: Run full submission tests to verify no regression**
 
 Run:
+
 ```bash
 cd backend
 DJANGO_SETTINGS_MODULE=config.settings.test PYTEST_ADDOPTS='--no-cov' pytest apps/submissions/ -x -q 2>&1 | tail -20
@@ -376,7 +384,7 @@ DJANGO_SETTINGS_MODULE=config.settings.test PYTEST_ADDOPTS='--no-cov' pytest app
 
 Expected: all pass
 
-- [ ] **Step 7: Commit**
+- **Step 7: Commit**
 
 ```bash
 git add backend/apps/submissions/services.py backend/apps/contests/tests/test_counts_toward_grade.py
@@ -388,12 +396,12 @@ git commit -m "feat(submissions): keep-latest cleanup for pure-practice contests
 ### Task 4: Frontend types and mapper
 
 **Files:**
+
 - Modify: `frontend/src/core/entities/contest.entity.ts`
 - Modify: `frontend/src/infrastructure/api/dto/contest.dto.ts`
 - Modify: `frontend/src/infrastructure/mappers/contest.mapper.ts`
 - Modify: `frontend/src/core/ports/contest.repository.ts`
-
-- [ ] **Step 1: Add to entity types**
+- **Step 1: Add to entity types**
 
 In `frontend/src/core/entities/contest.entity.ts`, add to the `Contest` interface (after `deliveryMode`):
 
@@ -413,7 +421,7 @@ And in `ContestUpdateRequest` (after `resultsPublished`):
   countsTowardGrade?: boolean;
 ```
 
-- [ ] **Step 2: Add to DTO**
+- **Step 2: Add to DTO**
 
 In `frontend/src/infrastructure/api/dto/contest.dto.ts`:
 
@@ -425,7 +433,7 @@ In `ContestDto`, add after `delivery_mode`:
 
 In `ContestDetailDto` (if it re-declares delivery fields, add there too; otherwise inherited).
 
-- [ ] **Step 3: Update mapper**
+- **Step 3: Update mapper**
 
 In `frontend/src/infrastructure/mappers/contest.mapper.ts`:
 
@@ -447,7 +455,7 @@ In `mapContestUpdateRequestToDto` (if it exists), add:
     counts_toward_grade: req.countsTowardGrade,
 ```
 
-- [ ] **Step 4: Add to ContestUpdatePayload**
+- **Step 4: Add to ContestUpdatePayload**
 
 In `frontend/src/core/ports/contest.repository.ts`, in `ContestUpdatePayload`, add:
 
@@ -455,9 +463,10 @@ In `frontend/src/core/ports/contest.repository.ts`, in `ContestUpdatePayload`, a
   countsTowardGrade?: boolean;
 ```
 
-- [ ] **Step 5: Run frontend lint**
+- **Step 5: Run frontend lint**
 
 Run:
+
 ```bash
 cd frontend
 npx eslint src/core/entities/contest.entity.ts src/infrastructure/api/dto/contest.dto.ts src/infrastructure/mappers/contest.mapper.ts src/core/ports/contest.repository.ts 2>&1
@@ -465,7 +474,7 @@ npx eslint src/core/entities/contest.entity.ts src/infrastructure/api/dto/contes
 
 Expected: no errors
 
-- [ ] **Step 6: Commit**
+- **Step 6: Commit**
 
 ```bash
 git add frontend/src/core/entities/contest.entity.ts frontend/src/infrastructure/api/dto/contest.dto.ts frontend/src/infrastructure/mappers/contest.mapper.ts frontend/src/core/ports/contest.repository.ts
@@ -477,9 +486,9 @@ git commit -m "feat(frontend): add countsTowardGrade to contest types and mapper
 ### Task 5: API serializer integration test
 
 **Files:**
-- Modify: `backend/apps/contests/tests/test_counts_toward_grade.py`
 
-- [ ] **Step 1: Add serializer round-trip tests**
+- Modify: `backend/apps/contests/tests/test_counts_toward_grade.py`
+- **Step 1: Add serializer round-trip tests**
 
 Append to `backend/apps/contests/tests/test_counts_toward_grade.py`:
 
@@ -529,9 +538,10 @@ class TestCountsTowardGradeAPI:
         assert resp.json()["counts_toward_grade"] is False
 ```
 
-- [ ] **Step 2: Run tests**
+- **Step 2: Run tests**
 
 Run:
+
 ```bash
 cd backend
 DJANGO_SETTINGS_MODULE=config.settings.test PYTEST_ADDOPTS='--no-cov' pytest apps/contests/tests/test_counts_toward_grade.py -x -v 2>&1 | tail -30
@@ -539,7 +549,7 @@ DJANGO_SETTINGS_MODULE=config.settings.test PYTEST_ADDOPTS='--no-cov' pytest app
 
 Expected: all pass
 
-- [ ] **Step 3: Commit**
+- **Step 3: Commit**
 
 ```bash
 git add backend/apps/contests/tests/test_counts_toward_grade.py
@@ -551,6 +561,7 @@ git commit -m "test(contest): API integration tests for counts_toward_grade"
 ## Self-Review
 
 **1. Spec coverage:**
+
 - ✅ `counts_toward_grade` field added (`True` = homework/exam, `False` = practice)
 - ✅ Practice keep-latest: `cleanup_practice_submissions` deletes old submissions
 - ✅ Homework keeps all submissions (method is a no-op when `counts_toward_grade=True`)
@@ -559,6 +570,8 @@ git commit -m "test(contest): API integration tests for counts_toward_grade"
 **2. Placeholder scan:** No TBD/TODO/vague steps found.
 
 **3. Type consistency:**
+
 - Backend field: `counts_toward_grade` (snake_case) — consistent across model, serializers, tests
 - Frontend entity: `countsTowardGrade` (camelCase) — consistent across entity, mapper, port
 - Frontend DTO: `counts_toward_grade` (snake_case) — matches API response
+

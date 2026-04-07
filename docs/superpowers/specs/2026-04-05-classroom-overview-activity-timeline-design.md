@@ -23,12 +23,11 @@
 - **主欄（`EntityOverviewFrame.main`）**
   1. **焦點區（Hero）**：預設顯示**開始時間在未來**的活動中，**開始時間最早**的那一筆（「下一場即將來臨」）。顯示名稱、開始／結束時間（依現有格式化慣例）、狀態（如 `contestStatus`）。可點進入競賽（`onNavigateExam`）。
   2. **時間軸（Timeline）**：僅呈現**有至少一場符合下列條件之活動**的節點：
-     - **進行中**：`now >= contestStartTime` 且 `now < contestEndTime`（時間欄位缺漏時之後備規則須與 `ClassroomContestCard`／`getActivityTimestamp` 一致，並在本規格「時間語意」中固定下來）。
-     - **未來**：`contestStartTime > now`（後備時間之語意同前）。
-     - **同一日**多場活動可收攏在同一日期節點下，依開始時間排序。
-     - **不出現**「僅在過去且已結束」的活動節點（避免噪音）。
+    - **進行中**：`now >= contestStartTime` 且 `now < contestEndTime`（時間欄位缺漏時之後備規則須與 `ClassroomContestCard`／`getActivityTimestamp` 一致，並在本規格「時間語意」中固定下來）。
+    - **未來**：`contestStartTime > now`（後備時間之語意同前）。
+    - **同一日**多場活動可收攏在同一日期節點下，依開始時間排序。
+    - **不出現**「僅在過去且已結束」的活動節點（避免噪音）。
   3. 無任何「進行中或未來」活動時：焦點區與時間軸區顯示**空狀態**；教師／管理員沿用既有「建立考試」入口（與現行權限一致）。
-
 - **側欄（`EntityOverviewFrame.side`）**
   - **最新公告**（既有行為搬移至此）。
   - **學生：我的待辦**（既有行為）。
@@ -37,7 +36,7 @@
 ## 時間語意與排序
 
 - **起訖**：優先 `contestStartTime`、`contestEndTime`；缺漏時與 `ClassroomContestCard` 對齊（例如以 `boundAt` 作為後備），避免總覽與活動卡片矛盾。
-- **Hero「下一場未來」**：取集合 \(S = \{ c \mid \text{start}(c) > now \}\)；若 \(S\) 非空，選 \(\arg\min \text{start}(c)\)。若 \(S\) 為空（僅進行中或全已結束）：Hero 改為展示**進行中**優先（若有多場進行中，取開始最早者），否則落入空狀態。（避免「只有進行中、沒有未來」時 Hero 空白。）
+- **Hero「下一場未來」**：取集合 S =  c \mid \text{start}(c) > now ；若 S 非空，選 \arg\min \text{start}(c)。若 S 為空（僅進行中或全已結束）：Hero 改為展示**進行中**優先（若有多場進行中，取開始最早者），否則落入空狀態。（避免「只有進行中、沒有未來」時 Hero 空白。）
 - **Timeline 排序**：節點依**該日最早一場的開始時間**（或第一筆事件的排序鍵）由早到晚排列。
 
 ## 互動與權限
