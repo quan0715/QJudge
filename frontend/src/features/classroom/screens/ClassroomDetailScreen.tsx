@@ -1,13 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  Button,
-  Tag,
-  Tabs,
-  TabList,
-  Tab,
-} from "@carbon/react";
+import { Button, Tag, Tabs, TabList, Tab } from "@carbon/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Bullhorn,
   Dashboard,
@@ -35,7 +30,9 @@ import {
 } from "@/infrastructure/api/repositories/classroom.repository";
 import { AnnouncementModal } from "../components/AnnouncementModal";
 import CreateContestModal from "@/features/classroom/components/CreateContestModal";
-import ClassroomAdminLayout, { type ClassroomAdminPanelId } from "./ClassroomAdminLayout";
+import ClassroomAdminLayout, {
+  type ClassroomAdminPanelId,
+} from "./ClassroomAdminLayout";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import { ClassroomSkeleton } from "../components/ClassroomSkeleton";
 import { AnnouncementSection } from "../components/AnnouncementSection";
@@ -65,9 +62,11 @@ const ClassroomDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [createContestOpen, setCreateContestOpen] = useState(false);
-  const [viewingAnnouncement, setViewingAnnouncement] = useState<ClassroomAnnouncement | null>(null);
+  const [viewingAnnouncement, setViewingAnnouncement] =
+    useState<ClassroomAnnouncement | null>(null);
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
-  const [editingAnnouncement, setEditingAnnouncement] = useState<ClassroomAnnouncement | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState<ClassroomAnnouncement | null>(null);
 
   const isPrivileged =
     classroom?.currentUserRole === "platform_admin" ||
@@ -95,6 +94,7 @@ const ClassroomDetailScreen: React.FC = () => {
     defaultKey: "overview",
     aliases: PANEL_ALIAS,
   });
+  const shouldReduceMotion = useReducedMotion();
 
   const fetchClassroomData = useCallback(async () => {
     if (!classroomId) return;
@@ -232,7 +232,11 @@ const ClassroomDetailScreen: React.FC = () => {
       <div className="classroom-admin-empty">
         <Education size={48} className="classroom-admin-empty__icon" />
         <p>{t("notFound", "找不到教室")}</p>
-        <Button kind="tertiary" size="sm" onClick={() => navigate("/dashboard")}>
+        <Button
+          kind="tertiary"
+          size="sm"
+          onClick={() => navigate("/dashboard")}
+        >
           {t("backToClassrooms")}
         </Button>
       </div>
@@ -245,17 +249,24 @@ const ClassroomDetailScreen: React.FC = () => {
   }>;
   const normalizedDescription = classroom.description?.trim() ?? "";
   const shouldShowDescription =
-    normalizedDescription.length > 0 && normalizedDescription !== classroom.name.trim();
+    normalizedDescription.length > 0 &&
+    normalizedDescription !== classroom.name.trim();
 
   return (
     <>
       <ClassroomAdminLayout
         classroomName={classroom.name}
-        classroomOptions={classroomOptions.map((row) => ({ id: row.id, name: row.name, icon: row.icon }))}
+        classroomOptions={classroomOptions.map((row) => ({
+          id: row.id,
+          name: row.name,
+          icon: row.icon,
+        }))}
         selectedClassroomId={classroomId || classroom.id}
         onClassroomSwitch={handleClassroomSwitch}
         onGoHome={() => navigate("/dashboard")}
-        onOpenSettings={isPrivileged ? () => setSettingsModalOpen(true) : undefined}
+        onOpenSettings={
+          isPrivileged ? () => setSettingsModalOpen(true) : undefined
+        }
       >
         <div className="classroom-admin-page">
           <QJudgeHeroWidget
@@ -269,10 +280,11 @@ const ClassroomDetailScreen: React.FC = () => {
                 )}
               </>
             }
-            description={shouldShowDescription ? normalizedDescription : undefined}
+            description={
+              shouldShowDescription ? normalizedDescription : undefined
+            }
             icon={HeroIcon}
             coverUrl={classroom.coverUrl || undefined}
-
             kpiCards={
               <KpiCard
                 icon={UserMultiple}
@@ -298,47 +310,65 @@ const ClassroomDetailScreen: React.FC = () => {
           />
 
           <div className="classroom-admin-panel">
-            {activePanel === "overview" && (
-              <OverviewPanel
-                key={`${classroom.id}-${classroom.updatedAt}`}
-                classroom={classroom}
-                isPrivileged={Boolean(isPrivileged)}
-                onCreateAnnouncement={() => {
-                  setEditingAnnouncement(null);
-                  setAnnouncementModalOpen(true);
-                }}
-                onViewAnnouncement={setViewingAnnouncement}
-                onCreateExam={() => setCreateContestOpen(true)}
-                onNavigateExam={handleNavigateContest}
-                onJumpToPanel={handlePanelChange}
-              />
-            )}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={activePanel}
+                className="classroom-admin-panel__motion"
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                {activePanel === "overview" && (
+                  <OverviewPanel
+                    key={`${classroom.id}-${classroom.updatedAt}`}
+                    classroom={classroom}
+                    isPrivileged={Boolean(isPrivileged)}
+                    onCreateAnnouncement={() => {
+                      setEditingAnnouncement(null);
+                      setAnnouncementModalOpen(true);
+                    }}
+                    onViewAnnouncement={setViewingAnnouncement}
+                    onCreateExam={() => setCreateContestOpen(true)}
+                    onNavigateExam={handleNavigateContest}
+                    onJumpToPanel={handlePanelChange}
+                  />
+                )}
 
-            {activePanel === "announcements" && (
-              <AnnouncementSection
-                announcements={classroom.announcements}
-                isPrivileged={Boolean(isPrivileged)}
-                onCreateClick={() => {
-                  setEditingAnnouncement(null);
-                  setAnnouncementModalOpen(true);
-                }}
-                onView={setViewingAnnouncement}
-              />
-            )}
+                {activePanel === "announcements" && (
+                  <AnnouncementSection
+                    announcements={classroom.announcements}
+                    isPrivileged={Boolean(isPrivileged)}
+                    onCreateClick={() => {
+                      setEditingAnnouncement(null);
+                      setAnnouncementModalOpen(true);
+                    }}
+                    onView={setViewingAnnouncement}
+                    description={t(
+                      "announcementArchiveSubtitle",
+                      "{{count}} 則公告",
+                      {
+                        count: classroom.announcements.length,
+                      },
+                    )}
+                    groupPinned
+                  />
+                )}
 
-            {activePanel === "contests" && (
-              <ContestPanel
-                exams={classroom.contests}
-                canBindContests={Boolean(isPrivileged)}
-                onCreateExam={() => setCreateContestOpen(true)}
-                onNavigateExam={handleNavigateContest}
-              />
-            )}
+                {activePanel === "contests" && (
+                  <ContestPanel
+                    exams={classroom.contests}
+                    canBindContests={Boolean(isPrivileged)}
+                    onCreateExam={() => setCreateContestOpen(true)}
+                    onNavigateExam={handleNavigateContest}
+                  />
+                )}
 
-            {activePanel === "members" && (
-              <MembersPanel classroom={classroom} />
-            )}
-
+                {activePanel === "members" && (
+                  <MembersPanel classroom={classroom} />
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </ClassroomAdminLayout>
@@ -395,18 +425,15 @@ const ClassroomDetailScreen: React.FC = () => {
 
 type TFn = ReturnType<typeof useTranslation>["t"];
 
-const TAB_CONFIG: Record<ClassroomAdminPanelId, { label: (t: TFn) => string; icon: any }> = {
-  overview:      { label: (t) => t("tab.overview", "總覽"),      icon: Dashboard },
+const TAB_CONFIG: Record<
+  ClassroomAdminPanelId,
+  { label: (t: TFn) => string; icon: any }
+> = {
+  overview: { label: (t) => t("tab.overview", "總覽"), icon: Dashboard },
   announcements: { label: (t) => t("tab.announcements"), icon: Bullhorn },
-  contests:      { label: (t) => t("tab.contests", "活動"),      icon: Trophy },
-  members:       { label: (t) => t("tab.members", "成員"),       icon: UserMultiple },
-  settings:      { label: (t) => t("tab.settings", "設定"),      icon: Settings },
+  contests: { label: (t) => t("tab.contests", "活動"), icon: Trophy },
+  members: { label: (t) => t("tab.members", "成員"), icon: UserMultiple },
+  settings: { label: (t) => t("tab.settings", "設定"), icon: Settings },
 };
-
-
-
-
-
-
 
 export default ClassroomDetailScreen;

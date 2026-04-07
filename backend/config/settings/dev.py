@@ -6,6 +6,23 @@ from .base import *
 
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
+# GlitchTip / Sentry Error Tracking (optional in dev — sentry-sdk is a prod dependency)
+GLITCHTIP_DSN = os.getenv("GLITCHTIP_DSN", "")
+if GLITCHTIP_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+
+        sentry_sdk.init(
+            dsn=GLITCHTIP_DSN,
+            integrations=[DjangoIntegration(transaction_style="url")],
+            traces_sample_rate=0,
+            send_default_pii=False,
+            environment="development",
+        )
+    except ImportError:
+        pass
+
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,*').split(',')
 
 # Development-specific apps

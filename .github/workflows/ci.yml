@@ -8,7 +8,7 @@ on:
       - "backend/**"
       - "docker-compose.test.yml"
       - ".github/workflows/ci.yml"
-      - "i18n_check.py"
+      - "scripts/i18n/i18n_check.py"
   pull_request:
     branches: [main, dev]
     paths:
@@ -16,7 +16,7 @@ on:
       - "backend/**"
       - "docker-compose.test.yml"
       - ".github/workflows/ci.yml"
-      - "i18n_check.py"
+      - "scripts/i18n/i18n_check.py"
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -50,7 +50,7 @@ jobs:
         working-directory: frontend
 
       - name: i18n Health Check (Reporting)
-        run: python3 i18n_check.py
+        run: python3 scripts/i18n/i18n_check.py
 
       - name: TypeScript Compile Check
         run: npx tsc --noEmit

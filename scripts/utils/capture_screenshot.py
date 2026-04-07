@@ -1,8 +1,13 @@
+import os
 import time
 from playwright.sync_api import sync_playwright
 from PIL import Image, ImageDraw, ImageFont
 
 def main():
+    base_url = os.environ.get("OJ_BASE_URL", "http://localhost:5174")
+    email = os.environ.get("OJ_TEST_EMAIL", "teacher@example.com")
+    password = os.environ.get("OJ_TEST_PASSWORD", "teacher123")
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         # Using a fixed viewport helps standardize image output sizes.
@@ -10,13 +15,13 @@ def main():
         page = context.new_page()
 
         print("Navigating to login page...")
-        page.goto("http://localhost:5174/login")
+        page.goto(f"{base_url}/login")
         page.screenshot(path="debug_0_login.png")
         
         # Fill login form
         print("Logging in...")
-        page.fill("#email", "teacher@example.com")
-        page.fill("#password", "teacher123")
+        page.fill("#email", email)
+        page.fill("#password", password)
         page.screenshot(path="debug_1_filled.png")
         page.click("button[type='submit']")
         
@@ -25,7 +30,7 @@ def main():
         page.screenshot(path="debug_2_dashboard.png")
         
         print("Navigating to teacher contests page...")
-        page.goto("http://localhost:5174/teacher/contests")
+        page.goto(f"{base_url}/teacher/contests")
         page.wait_for_load_state("networkidle")
         page.screenshot(path="debug_3_contests.png")
         

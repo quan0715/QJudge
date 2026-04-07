@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.core.cache import cache
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.exceptions import NotFound, ValidationError as DRFValidationError
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -392,7 +392,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         """
         contest = self.get_object()
         if contest.status == 'archived':
-            return Response({'error': 'Contest is already archived'}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError('Contest is already archived')
 
         contest.status = 'archived'
         contest.save()
@@ -587,7 +587,7 @@ class ContestViewSet(viewsets.ModelViewSet):
 
             return Response({'status': 'unlocked'})
         except ContestParticipant.DoesNotExist:
-            return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Participant not found')
 
     @action(detail=True, methods=['patch'], permission_classes=[IsContestOwnerOrAdmin], url_path='update_participant')
     def update_participant(self, request, pk=None):
@@ -610,7 +610,7 @@ class ContestViewSet(viewsets.ModelViewSet):
 
             return Response({'status': 'updated', 'exam_status': participant.exam_status})
         except ContestParticipant.DoesNotExist:
-            return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Participant not found')
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='reopen_exam')
     def reopen_exam(self, request, pk=None):
@@ -624,7 +624,7 @@ class ContestViewSet(viewsets.ModelViewSet):
             participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
 
             if participant.exam_status != ExamStatus.SUBMITTED:
-                return Response({'error': 'Warning: User has not finished the exam.'}, status=status.HTTP_400_BAD_REQUEST)
+                raise DRFValidationError('Warning: User has not finished the exam.')
 
             reopen_participant_exam(
                 participant,
@@ -634,7 +634,7 @@ class ContestViewSet(viewsets.ModelViewSet):
 
             return Response({'status': 'reopened', 'exam_status': ExamStatus.PAUSED})
         except ContestParticipant.DoesNotExist:
-            return Response({'error': 'Participant not found'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Participant not found')
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='add_participant')
     def add_participant(self, request, pk=None):
@@ -695,7 +695,7 @@ class ContestViewSet(viewsets.ModelViewSet):
             participant.nickname = user.username
             participant.save(update_fields=["nickname"])
         if not created:
-            return Response({'message': 'Already registered'}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError('Already registered')
         ContestActivityViewSet.log_activity(
             contest,
             request.user,
@@ -1073,14 +1073,13 @@ class ContestViewSet(viewsets.ModelViewSet):
                     )
                     source_problem = self._resolve_problem(normalized_problem_id)
                     if not source_problem:
-                        return Response({'error': 'Problem not found'}, status=status.HTTP_404_NOT_FOUND)
+                        raise NotFound('Problem not found')
                     problem = ProblemService.clone_problem(source_problem, contest, user)
                 elif title:
                     problem = ProblemService.create_contest_problem(contest, user, title=title)
                 else:
-                    return Response(
-                        {'error': 'Either problem_id/title or question_bank_id/question_id is required'},
-                        status=status.HTTP_400_BAD_REQUEST,
+                    raise DRFValidationError(
+                        'Either problem_id/title or question_bank_id/question_id is required'
                     )
 
                 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
@@ -1105,7 +1104,7 @@ class ContestViewSet(viewsets.ModelViewSet):
                     try:
                         max_score = max(1, int(requested_max_score))
                     except (TypeError, ValueError):
-                        return Response({'error': 'max_score must be a positive integer'}, status=status.HTTP_400_BAD_REQUEST)
+                        raise DRFValidationError('max_score must be a positive integer')
 
                 # Primary write: ContestQuestionBinding
                 binding = ContestQuestionBinding.objects.create(
@@ -1140,11 +1139,11 @@ class ContestViewSet(viewsets.ModelViewSet):
                 cp.save()
                 binding.legacy_contest_problem = cp
                 binding.save(update_fields=['legacy_contest_problem', 'updated_at'])
-        except DRFValidationError as exc:
-            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+        except (DRFValidationError, NotFound):
+            raise
         except Exception as exc:
             logger.exception("Failed to add contest problem from payload: %s", exc)
-            return Response({'error': 'Failed to add problem'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            raise DRFValidationError('Failed to add problem')
 
         from apps.problems.serializers import ProblemListSerializer
         serializer = ProblemListSerializer(problem, context={'request': request})
@@ -1176,7 +1175,7 @@ class ContestViewSet(viewsets.ModelViewSet):
         orders = request.data.get('orders', [])
 
         if not orders:
-            return Response({'error': 'No orders provided'}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError('No orders provided')
 
         from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 

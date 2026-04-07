@@ -13,6 +13,9 @@ pytest-mock>=3.12,<4.0
 factory-boy>=3.3,<3.4
 Faker>=20.0,<21.0
 
+# Monitoring (optional — enables GlitchTip/Sentry in dev)
+sentry-sdk>=1.38,<2.0
+
 # Code quality
 black>=23.11,<24.0
 flake8>=6.1,<7.0

@@ -7,6 +7,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework.permissions import IsAdminUser
+from apps.core.views.health import health_check
 from apps.users.views import UserAPIKeyView, ValidateAPIKeyView, GetUsageStatsView
 
 schema_view_kwargs = {}
@@ -14,6 +15,7 @@ if not settings.DEBUG:
     schema_view_kwargs = {"permission_classes": [IsAdminUser]}
 
 urlpatterns = [
+    path('api/health/', health_check, name='health-check'),
     path('django-admin/', admin.site.urls),  # Django backend admin (use only when frontend cannot handle it)
     path('api/v1/auth/', include('apps.users.urls')),
     path('api/v1/markdown/', include('apps.core.urls')),

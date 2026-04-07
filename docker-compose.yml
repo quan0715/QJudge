@@ -197,6 +197,12 @@ services:
         condition: service_healthy
     networks:
       - oj_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # Celery Worker - High Priority (Contest submissions)
   celery-high:
@@ -366,6 +372,42 @@ services:
     container_name: oj_cloudflared
     restart: always
     command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    networks:
+      - oj_network
+
+  # GlitchTip Error Tracking
+  glitchtip:
+    image: glitchtip/glitchtip:latest
+    container_name: oj_glitchtip
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/glitchtip
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-change-me-in-production}
+      REDIS_URL: redis://redis:6379/1
+      DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-noreply@qjudge.local}
+      GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:8080}
+      ENABLE_ORGANIZATION_CREATION: "true"
+    ports:
+      - "8080:8000"
+    networks:
+      - oj_network
+
+  glitchtip-worker:
+    image: glitchtip/glitchtip:latest
+    container_name: oj_glitchtip_worker
+    restart: always
+    command: ./bin/run-celery-with-beat.sh
+    depends_on:
+      - glitchtip
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/glitchtip
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-change-me-in-production}
+      REDIS_URL: redis://redis:6379/1
     networks:
       - oj_network
 

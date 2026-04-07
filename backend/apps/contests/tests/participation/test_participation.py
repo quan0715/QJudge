@@ -104,7 +104,7 @@ class ContestParticipationTests(APITestCase):
         url = reverse('contests:contest-register', args=[self.public_contest.id])
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data.get('message'), 'Already registered')
+        self.assertFalse(response.data.get('success'))
 
     def test_register_classroom_bound_contest_requires_classroom_membership(self):
         isolated = Contest.objects.create(

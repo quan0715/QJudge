@@ -12,12 +12,12 @@ def deep_update(base, source):
 
 def sync_i18n():
     locales_dir = 'frontend/src/i18n/locales'
-    基準_lang = 'zh-TW'
+    base_lang = 'zh-TW'
     target_langs = ['en', 'ja', 'ko']
     namespaces = ['admin', 'chatbot', 'classroom', 'common', 'contest', 'docs', 'landing', 'problem']
 
     for ns in namespaces:
-        base_path = os.path.join(locales_dir, 基準_lang, f"{ns}.json")
+        base_path = os.path.join(locales_dir, base_lang, f"{ns}.json")
         if not os.path.exists(base_path): continue
         
         with open(base_path, 'r', encoding='utf-8') as f:

@@ -1,4 +1,7 @@
-import type { BoundContest, ClassroomAnnouncement } from "@/core/entities/classroom.entity";
+import type {
+  BoundContest,
+  ClassroomAnnouncement,
+} from "@/core/entities/classroom.entity";
 
 // ── Calendar day row (consecutive, including empty days) ──────────────────────
 
@@ -7,6 +10,120 @@ export interface CalendarDayRow {
   date: Date;
   isToday: boolean;
   events: TimelineEvent[];
+}
+
+// ── Month schedule (overview calendar) ───────────────────────────────────────
+
+export interface ClassroomMonthScheduleEvent {
+  type: "contest";
+  contest: BoundContest;
+  sortMs: number;
+}
+
+export interface ClassroomMonthScheduleCell {
+  dateKey: string;
+  date: Date;
+  isToday: boolean;
+  isCurrentMonth: boolean;
+  events: ClassroomMonthScheduleEvent[];
+}
+
+function buildEventsByDay(
+  contests: BoundContest[],
+): Map<string, ClassroomMonthScheduleEvent[]> {
+  const eventsByDay = new Map<string, ClassroomMonthScheduleEvent[]>();
+  for (const contest of contests) {
+    if (contest.contestStatus === "draft") continue;
+    const { startMs } = getBoundContestTimeRange(contest);
+    if (Number.isNaN(startMs)) continue;
+    const key = localDateKeyFromMs(startMs);
+    const list = eventsByDay.get(key) ?? [];
+    list.push({ type: "contest", contest, sortMs: startMs });
+    eventsByDay.set(key, list);
+  }
+  return eventsByDay;
+}
+
+/**
+ * Builds a fixed six-week month grid for classroom overview.
+ * Only contest/exam events are included; announcements are intentionally excluded.
+ */
+export function buildClassroomMonthSchedule(
+  contests: BoundContest[],
+  monthAnchor: Date,
+  nowMs: number,
+): ClassroomMonthScheduleCell[] {
+  const todayKey = localDateKeyFromMs(nowMs);
+  const monthStart = new Date(monthAnchor);
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const targetMonth = monthStart.getMonth();
+
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(monthStart.getDate() - monthStart.getDay());
+
+  const eventsByDay = buildEventsByDay(contests);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart);
+    date.setDate(gridStart.getDate() + index);
+    const dateKey = localDateKeyFromMs(date.getTime());
+    const events = eventsByDay.get(dateKey) ?? [];
+    return {
+      dateKey,
+      date,
+      isToday: dateKey === todayKey,
+      isCurrentMonth: date.getMonth() === targetMonth,
+      events: [...events].sort((a, b) => a.sortMs - b.sortMs),
+    };
+  });
+}
+
+export function buildClassroomWeekSchedule(
+  contests: BoundContest[],
+  weekAnchor: Date,
+  nowMs: number,
+): ClassroomMonthScheduleCell[] {
+  const todayKey = localDateKeyFromMs(nowMs);
+  const weekStart = new Date(weekAnchor);
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const anchorMonth = weekAnchor.getMonth();
+
+  const eventsByDay = buildEventsByDay(contests);
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + index);
+    const dateKey = localDateKeyFromMs(date.getTime());
+    const events = eventsByDay.get(dateKey) ?? [];
+    return {
+      dateKey,
+      date,
+      isToday: dateKey === todayKey,
+      isCurrentMonth: date.getMonth() === anchorMonth,
+      events: [...events].sort((a, b) => a.sortMs - b.sortMs),
+    };
+  });
+}
+
+export function getUpcomingContestTasks(
+  contests: BoundContest[],
+  nowMs: number,
+  limit = 3,
+): BoundContest[] {
+  return contests
+    .filter((contest) => {
+      if (contest.contestStatus !== "published") return false;
+      const { endMs } = getBoundContestTimeRange(contest);
+      return Number.isNaN(endMs) || endMs >= nowMs;
+    })
+    .sort(
+      (a, b) =>
+        getBoundContestTimeRange(a).startMs -
+        getBoundContestTimeRange(b).startMs,
+    )
+    .slice(0, limit);
 }
 
 /**
@@ -36,13 +153,21 @@ export function buildCalendarDayRows(
     if (c.contestStatus === "draft") continue;
     const { startMs: cStart } = getBoundContestTimeRange(c);
     if (Number.isNaN(cStart)) continue;
-    addEvent(localDateKeyFromMs(cStart), { type: "contest", contest: c, sortMs: cStart });
+    addEvent(localDateKeyFromMs(cStart), {
+      type: "contest",
+      contest: c,
+      sortMs: cStart,
+    });
   }
 
   for (const a of announcements) {
     const sortMs = new Date(a.createdAt).getTime();
     if (Number.isNaN(sortMs)) continue;
-    addEvent(localDateKeyFromMs(sortMs), { type: "announcement", announcement: a, sortMs });
+    addEvent(localDateKeyFromMs(sortMs), {
+      type: "announcement",
+      announcement: a,
+      sortMs,
+    });
   }
 
   // Normalise to start-of-local-day
@@ -95,7 +220,11 @@ export function localDateKeyFromMs(ms: number): string {
 
 export type TimelineEvent =
   | { type: "contest"; contest: BoundContest; sortMs: number }
-  | { type: "announcement"; announcement: ClassroomAnnouncement; sortMs: number };
+  | {
+      type: "announcement";
+      announcement: ClassroomAnnouncement;
+      sortMs: number;
+    };
 
 // ── Day group ─────────────────────────────────────────────────────────────────
 
@@ -124,20 +253,30 @@ export function buildAllTimelineDayGroups(
   for (const c of contests) {
     const { startMs } = getBoundContestTimeRange(c);
     if (Number.isNaN(startMs)) continue;
-    addEvent(localDateKeyFromMs(startMs), { type: "contest", contest: c, sortMs: startMs });
+    addEvent(localDateKeyFromMs(startMs), {
+      type: "contest",
+      contest: c,
+      sortMs: startMs,
+    });
   }
 
   for (const a of announcements) {
     const sortMs = new Date(a.createdAt).getTime();
     if (Number.isNaN(sortMs)) continue;
-    addEvent(localDateKeyFromMs(sortMs), { type: "announcement", announcement: a, sortMs });
+    addEvent(localDateKeyFromMs(sortMs), {
+      type: "announcement",
+      announcement: a,
+      sortMs,
+    });
   }
 
-  const groups: TimelineDayGroup[] = Array.from(byDay.entries()).map(([dateKey, events]) => ({
-    dateKey,
-    isToday: dateKey === todayKey,
-    events: [...events].sort((a, b) => a.sortMs - b.sortMs),
-  }));
+  const groups: TimelineDayGroup[] = Array.from(byDay.entries()).map(
+    ([dateKey, events]) => ({
+      dateKey,
+      isToday: dateKey === todayKey,
+      events: [...events].sort((a, b) => a.sortMs - b.sortMs),
+    }),
+  );
 
   groups.sort((a, b) => {
     const aMin = Math.min(...a.events.map((e) => e.sortMs));
@@ -151,7 +290,10 @@ export function buildAllTimelineDayGroups(
 // ── Legacy exports (kept for backward compat, @deprecated) ───────────────────
 
 /** @deprecated Use buildAllTimelineDayGroups instead */
-export function contestBelongsOnActiveTimeline(contest: BoundContest, nowMs: number): boolean {
+export function contestBelongsOnActiveTimeline(
+  contest: BoundContest,
+  nowMs: number,
+): boolean {
   const { startMs, endMs } = getBoundContestTimeRange(contest);
   if (Number.isNaN(startMs) || Number.isNaN(endMs)) return false;
   if (nowMs >= endMs) return false;
@@ -159,10 +301,17 @@ export function contestBelongsOnActiveTimeline(contest: BoundContest, nowMs: num
 }
 
 /** @deprecated Use buildAllTimelineDayGroups instead */
-export function pickHeroContest(contests: BoundContest[], nowMs: number): BoundContest | null {
-  const active = contests.filter((c) => contestBelongsOnActiveTimeline(c, nowMs));
+export function pickHeroContest(
+  contests: BoundContest[],
+  nowMs: number,
+): BoundContest | null {
+  const active = contests.filter((c) =>
+    contestBelongsOnActiveTimeline(c, nowMs),
+  );
   if (active.length === 0) return null;
-  const future = active.filter((c) => getBoundContestTimeRange(c).startMs > nowMs);
+  const future = active.filter(
+    (c) => getBoundContestTimeRange(c).startMs > nowMs,
+  );
   const pool = future.length > 0 ? future : active;
   return pool.reduce((best, c) => {
     const t = getBoundContestTimeRange(c).startMs;
@@ -172,8 +321,13 @@ export function pickHeroContest(contests: BoundContest[], nowMs: number): BoundC
 }
 
 /** @deprecated Use buildAllTimelineDayGroups instead */
-export function buildTimelineDayGroups(contests: BoundContest[], nowMs: number): { dateKey: string; contests: BoundContest[] }[] {
-  const active = contests.filter((c) => contestBelongsOnActiveTimeline(c, nowMs));
+export function buildTimelineDayGroups(
+  contests: BoundContest[],
+  nowMs: number,
+): { dateKey: string; contests: BoundContest[] }[] {
+  const active = contests.filter((c) =>
+    contestBelongsOnActiveTimeline(c, nowMs),
+  );
   const byDay = new Map<string, BoundContest[]>();
   for (const c of active) {
     const { startMs } = getBoundContestTimeRange(c);
@@ -184,7 +338,11 @@ export function buildTimelineDayGroups(contests: BoundContest[], nowMs: number):
   }
   const groups = Array.from(byDay.entries()).map(([dateKey, list]) => ({
     dateKey,
-    contests: [...list].sort((a, b) => getBoundContestTimeRange(a).startMs - getBoundContestTimeRange(b).startMs),
+    contests: [...list].sort(
+      (a, b) =>
+        getBoundContestTimeRange(a).startMs -
+        getBoundContestTimeRange(b).startMs,
+    ),
   }));
   groups.sort((a, b) => {
     const aMin = getBoundContestTimeRange(a.contests[0]).startMs;

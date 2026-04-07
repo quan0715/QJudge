@@ -10,6 +10,7 @@ from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import mixins, permissions, status, viewsets
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -183,7 +184,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="review-queue")
     def review_queue(self, request):
         if not self._is_admin_user(request.user):
-            return Response({"detail": "Admin only."}, status=status.HTTP_403_FORBIDDEN)
+            raise PermissionDenied('Admin only.')
         queryset = self.filter_queryset(self.get_queryset())
         serializer = QuestionBankSerializer(queryset, many=True)
         return Response({"count": len(serializer.data), "results": serializer.data})
@@ -192,10 +193,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
     def inbox(self, request):
         category = request.query_params.get("category")
         if category not in (None, "", "coding", "exam"):
-            return Response(
-                {"detail": "Invalid category. Use coding or exam."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError("Invalid category. Use coding or exam.")
         normalized_category = category or None
         payload = list_question_bank_inbox(request.user, normalized_category)
         coding_serialized = QuestionInboxItemSerializer(payload.get("coding", []), many=True).data
@@ -223,7 +221,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                 items=data["items"],
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError(str(exc))
         return Response(result, status=status.HTTP_200_OK)
 
     @action(
@@ -237,18 +235,15 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
 
         uploaded = request.FILES.get("file")
         if not uploaded:
-            return Response({"error": "file is required"}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError("file is required")
 
         max_bytes = int(getattr(settings, "MARKDOWN_IMAGE_MAX_BYTES", 5242880))
         if uploaded.size > max_bytes:
-            return Response(
-                {"error": f"File is too large (max {max_bytes // 1048576}MB)"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError(f"File is too large (max {max_bytes // 1048576}MB)")
 
         payload = uploaded.read()
         if not payload:
-            return Response({"error": "Uploaded file is empty"}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError("Uploaded file is empty")
 
         try:
             with Image.open(BytesIO(payload)) as img:
@@ -256,13 +251,10 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             with Image.open(BytesIO(payload)) as img:
                 image_format = (img.format or "").upper()
         except (UnidentifiedImageError, OSError):
-            return Response({"error": "Unsupported image file"}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError("Unsupported image file")
 
         if image_format not in self.COVER_SUPPORTED_FORMATS:
-            return Response(
-                {"error": "Unsupported format. Use png/jpg/webp"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError("Unsupported format. Use png/jpg/webp")
 
         extension, content_type = self.COVER_SUPPORTED_FORMATS[image_format]
         object_key = build_markdown_image_object_key(extension)
@@ -270,7 +262,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         try:
             store_markdown_image(content=payload, object_key=object_key, content_type=content_type)
         except MarkdownImageStorageError:
-            return Response({"error": "Failed to upload image"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            raise DRFValidationError("Failed to upload image")
 
         base_url = (getattr(settings, "MARKDOWN_IMAGE_PUBLIC_BASE_URL", "") or "").strip()
         path = reverse("markdown-image-read", kwargs={"object_key": object_key})
@@ -286,9 +278,9 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         bank = self.get_object()
         self.check_object_permissions(request, bank)
         if bank.review_status == QuestionBank.ReviewStatus.PENDING:
-            return Response({"detail": "This bank is already pending review."}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError("This bank is already pending review.")
         if not bank.questions.exists():
-            return Response({"detail": "Please add at least one question before submission."}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError("Please add at least one question before submission.")
 
         bank.review_status = QuestionBank.ReviewStatus.PENDING
         bank.review_note = ""
@@ -319,9 +311,9 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         decision = str(request.data.get("decision", "")).strip().lower()
         note = str(request.data.get("note", "")).strip()
         if decision not in {"approve", "reject"}:
-            return Response({"detail": "decision must be approve or reject"}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError("decision must be approve or reject")
         if bank.review_status != QuestionBank.ReviewStatus.PENDING:
-            return Response({"detail": "Bank is not pending review."}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError("Bank is not pending review.")
 
         if decision == "approve":
             bank.review_status = QuestionBank.ReviewStatus.APPROVED
@@ -354,15 +346,15 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             if not bank:
                 bank_exists = QuestionBank.objects.filter(uuid=uuid, is_archived=False).exists()
                 if not bank_exists:
-                    return Response({"detail": "Bank not found."}, status=status.HTTP_404_NOT_FOUND)
-                return Response({"detail": "No access to this bank."}, status=status.HTTP_403_FORBIDDEN)
+                    raise NotFound("Bank not found.")
+                raise PermissionDenied("No access to this bank.")
             rows = get_bank_questions_payload(bank=bank)
             serializer = QuestionBankItemReadSerializer(rows, many=True)
             return Response(serializer.data)
 
         bank = QuestionBank.objects.filter(uuid=uuid, is_archived=False).first()
         if not bank:
-            return Response({"detail": "Bank not found."}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound("Bank not found.")
 
         self.check_object_permissions(request, bank)
 
@@ -371,15 +363,9 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
 
         question_type = serializer.validated_data.get("question_type")
         if bank.category == QuestionBank.Category.CODING and question_type != Question.QuestionType.CODING:
-            return Response(
-                {"detail": "Coding bank only accepts coding questions."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError("Coding bank only accepts coding questions.")
         if bank.category == QuestionBank.Category.EXAM and question_type != Question.QuestionType.EXAM:
-            return Response(
-                {"detail": "Exam bank only accepts exam questions."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError("Exam bank only accepts exam questions.")
 
         question = create_bank_question(
             bank=bank,
@@ -474,7 +460,7 @@ class QuestionBankItemViewSet(
             )
 
         if source_question.bank.owner_id != request.user.id and not is_publicly_accessible_bank(source_question.bank):
-            return Response({"detail": "Question is not cloneable."}, status=status.HTTP_403_FORBIDDEN)
+            raise PermissionDenied("Question is not cloneable.")
 
         payload = QuestionCloneSerializer(data=request.data or {})
         payload.is_valid(raise_exception=True)
@@ -487,7 +473,7 @@ class QuestionBankItemViewSet(
                 target_bank_uuid=target_bank_id,
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError(str(exc))
 
         cloned = clone_question_to_bank(source_question, target_bank, request.user)
         cloned.refresh_from_db()

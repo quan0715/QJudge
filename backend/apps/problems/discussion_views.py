@@ -38,8 +38,7 @@ def _is_privileged(user, problem: Problem) -> bool:
 
 def _require_author(user, owner):
     if user != owner:
-        return Response(status=status.HTTP_403_FORBIDDEN)
-    return None
+        raise PermissionDenied()
 
 
 def _soft_delete(instance, serializer_cls, request):
@@ -116,9 +115,7 @@ class ProblemDiscussionDetailView(DiscussionAPIView):
 
     def patch(self, request, pk: int):
         discussion = self.get_object(request, pk)
-        forbidden = _require_author(request.user, discussion.user)
-        if forbidden:
-            return forbidden
+        _require_author(request.user, discussion.user)
 
         serializer = ProblemDiscussionSerializer(
             discussion, data=request.data, partial=True, context={"request": request}
@@ -130,7 +127,7 @@ class ProblemDiscussionDetailView(DiscussionAPIView):
     def delete(self, request, pk: int):
         discussion = self.get_object(request, pk)
         if not (request.user == discussion.user or _is_privileged(request.user, discussion.problem)):
-            return Response(status=status.HTTP_403_FORBIDDEN)
+            raise PermissionDenied()
         return _soft_delete(discussion, ProblemDiscussionSerializer, request)
 
 
@@ -189,9 +186,7 @@ class ProblemDiscussionCommentDetailView(DiscussionAPIView):
 
     def patch(self, request, pk: int):
         comment = self.get_object(request, pk)
-        forbidden = _require_author(request.user, comment.user)
-        if forbidden:
-            return forbidden
+        _require_author(request.user, comment.user)
 
         serializer = ProblemDiscussionCommentSerializer(
             comment, data=request.data, partial=True, context={"request": request}
@@ -203,7 +198,7 @@ class ProblemDiscussionCommentDetailView(DiscussionAPIView):
     def delete(self, request, pk: int):
         comment = self.get_object(request, pk)
         if not (request.user == comment.user or _is_privileged(request.user, comment.discussion.problem)):
-            return Response(status=status.HTTP_403_FORBIDDEN)
+            raise PermissionDenied()
         return _soft_delete(comment, ProblemDiscussionCommentSerializer, request)
 
 

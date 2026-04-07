@@ -7,6 +7,7 @@ from uuid import UUID
 from PIL import Image, UnidentifiedImageError
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from django.conf import settings
@@ -218,7 +219,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         ).delete()
 
         if deleted == 0:
-            return Response({'detail': 'Member not found.'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Member not found.')
         return Response({'detail': 'Member removed.'})
 
     @action(detail=True, methods=['post'], url_path='update_member_role',
@@ -234,7 +235,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         ).update(role=serializer.validated_data['role'])
 
         if updated == 0:
-            return Response({'detail': 'Member not found.'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Member not found.')
         return Response({'detail': 'Member role updated.'})
 
     # ── Join / Invite Code ───────────────────────────────
@@ -248,16 +249,10 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         try:
             classroom = Classroom.objects.get(invite_code=code, is_archived=False)
         except Classroom.DoesNotExist:
-            return Response(
-                {'detail': 'Invalid invite code.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise NotFound('Invalid invite code.')
 
         if not classroom.invite_code_enabled:
-            return Response(
-                {'detail': 'Invite code is disabled for this classroom.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            raise PermissionDenied('Invite code is disabled for this classroom.')
 
         if classroom.owner_id == request.user.id or classroom.admins.filter(pk=request.user.pk).exists():
             return Response(
@@ -303,15 +298,15 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         try:
             binding = self._get_bound_lab(classroom, lab_id)
         except ClassroomContest.DoesNotExist:
-            return None, Response({'detail': 'Lab not found.'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Lab not found.')
 
         if not self._is_classroom_manager(classroom, request.user):
             if binding.contest.status != 'published':
-                return None, Response({'detail': 'Lab not found.'}, status=status.HTTP_404_NOT_FOUND)
+                raise NotFound('Lab not found.')
             participant = binding.contest.registrations.filter(user=request.user).first()
             if participant is None:
-                return None, Response({'detail': 'You are not a classroom member.'}, status=status.HTTP_403_FORBIDDEN)
-        return binding, None
+                raise PermissionDenied('You are not a classroom member.')
+        return binding
 
     # ── Bind Contest ─────────────────────────────────────
 
@@ -321,7 +316,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         classroom = self.get_object()
         if request.method.lower() == 'post':
             if not self._is_classroom_manager(classroom, request.user):
-                return Response({'detail': 'You do not have permission to create contests.'}, status=status.HTTP_403_FORBIDDEN)
+                raise PermissionDenied('You do not have permission to create contests.')
             serializer = CreateClassroomContestSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
@@ -370,7 +365,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         try:
             contest = Contest.objects.get(id=serializer.validated_data['contest_id'])
         except Contest.DoesNotExist:
-            return Response({'detail': 'Contest not found.'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Contest not found.')
 
         _, created = ClassroomContest.objects.get_or_create(
             classroom=classroom, contest=contest,
@@ -396,7 +391,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         ).delete()
 
         if deleted == 0:
-            return Response({'detail': 'Binding not found.'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Binding not found.')
         bump_contest_detail_cache_version(serializer.validated_data['contest_id'])
         return Response({'detail': 'Contest unbound.'})
 
@@ -408,7 +403,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         classroom = self.get_object()
         if request.method.lower() == 'post':
             if not self._is_classroom_manager(classroom, request.user):
-                return Response({'detail': 'You do not have permission to create labs.'}, status=status.HTTP_403_FORBIDDEN)
+                raise PermissionDenied('You do not have permission to create labs.')
             serializer = CreateClassroomLabSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
@@ -443,9 +438,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             permission_classes=[permissions.IsAuthenticated, IsClassroomMember])
     def retrieve_lab(self, request, id=None, lab_id=None):
         classroom = self.get_object()
-        binding, error = self._get_lab_or_403(request, classroom, lab_id)
-        if error is not None:
-            return error
+        binding = self._get_lab_or_403(request, classroom, lab_id)
         serializer = ClassroomLabDetailSerializer(binding, context={'request': request})
         return Response(serializer.data)
 
@@ -453,13 +446,11 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             permission_classes=[permissions.IsAuthenticated, IsClassroomMember])
     def accept_lab(self, request, id=None, lab_id=None):
         classroom = self.get_object()
-        binding, error = self._get_lab_or_403(request, classroom, lab_id)
-        if error is not None:
-            return error
+        binding = self._get_lab_or_403(request, classroom, lab_id)
 
         participant = binding.contest.registrations.filter(user=request.user).first()
         if participant is None:
-            return Response({'detail': 'You are not a classroom member.'}, status=status.HTTP_403_FORBIDDEN)
+            raise PermissionDenied('You are not a classroom member.')
 
         now = timezone.now()
         update_fields = []
@@ -487,19 +478,14 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             permission_classes=[permissions.IsAuthenticated, IsClassroomMember])
     def solve_lab(self, request, id=None, lab_id=None):
         classroom = self.get_object()
-        binding, error = self._get_lab_or_403(request, classroom, lab_id)
-        if error is not None:
-            return error
+        binding = self._get_lab_or_403(request, classroom, lab_id)
 
         if not self._is_classroom_manager(classroom, request.user):
             participant = binding.contest.registrations.filter(user=request.user).first()
             if participant is None:
-                return Response({'detail': 'You are not a classroom member.'}, status=status.HTTP_403_FORBIDDEN)
+                raise PermissionDenied('You are not a classroom member.')
             if participant.assignment_state == AssignmentState.UNACCEPTED:
-                return Response(
-                    {'detail': 'You must accept this lab before solving it.'},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+                raise PermissionDenied('You must accept this lab before solving it.')
 
         serializer = ClassroomLabDetailSerializer(binding, context={'request': request})
         return Response(serializer.data)
@@ -531,7 +517,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         try:
             announcement = classroom.announcements.get(pk=ann_id)
         except ClassroomAnnouncement.DoesNotExist:
-            return Response({'detail': 'Announcement not found.'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Announcement not found.')
         serializer = ClassroomAnnouncementWriteSerializer(
             announcement, data=request.data, partial=True
         )
@@ -545,7 +531,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         classroom = self.get_object()
         deleted, _ = classroom.announcements.filter(pk=ann_id).delete()
         if deleted == 0:
-            return Response({'detail': 'Announcement not found.'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Announcement not found.')
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'], url_path=r'announcements/(?P<ann_id>\d+)/notify',
@@ -556,7 +542,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         try:
             announcement = classroom.announcements.select_related('created_by').get(pk=ann_id)
         except ClassroomAnnouncement.DoesNotExist:
-            return Response({'detail': 'Announcement not found.'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Announcement not found.')
 
         from apps.notifications.services import NotificationService
 
@@ -584,18 +570,15 @@ class ClassroomViewSet(viewsets.ModelViewSet):
 
         uploaded = request.FILES.get('file')
         if not uploaded:
-            return Response({'error': 'file is required'}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError('file is required')
 
         max_bytes = int(getattr(settings, 'MARKDOWN_IMAGE_MAX_BYTES', 5242880))
         if uploaded.size > max_bytes:
-            return Response(
-                {'error': f'File is too large (max {max_bytes // 1048576}MB)'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError(f'File is too large (max {max_bytes // 1048576}MB)')
 
         payload = uploaded.read()
         if not payload:
-            return Response({'error': 'Uploaded file is empty'}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError('Uploaded file is empty')
 
         try:
             with Image.open(BytesIO(payload)) as img:
@@ -603,13 +586,10 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             with Image.open(BytesIO(payload)) as img:
                 image_format = (img.format or '').upper()
         except (UnidentifiedImageError, OSError):
-            return Response({'error': 'Unsupported image file'}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError('Unsupported image file')
 
         if image_format not in self.COVER_SUPPORTED_FORMATS:
-            return Response(
-                {'error': 'Unsupported format. Use png/jpg/webp'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError('Unsupported format. Use png/jpg/webp')
 
         extension, content_type = self.COVER_SUPPORTED_FORMATS[image_format]
         object_key = build_markdown_image_object_key(extension)
@@ -617,7 +597,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         try:
             store_markdown_image(content=payload, object_key=object_key, content_type=content_type)
         except MarkdownImageStorageError:
-            return Response({'error': 'Failed to upload image'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            raise APIException('Failed to upload image')
 
         base_url = (getattr(settings, 'MARKDOWN_IMAGE_PUBLIC_BASE_URL', '') or '').strip()
         path = reverse('markdown-image-read', kwargs={'object_key': object_key})

@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
 Execute the script from the root application context:
 ```bash
-python3 capture_screenshot.py
+python3 scripts/utils/capture_screenshot.py
 ```
 
 ### 4. Relocate the Output to Documentation Assets

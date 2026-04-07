@@ -46,7 +46,7 @@ describe("uploadMarkdownImage", () => {
 
   it("throws api error message when upload fails", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ error: "Unsupported image format" }), {
+      new Response(JSON.stringify({ success: false, error: { code: "INVALID", message: "Unsupported image format" } }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       })

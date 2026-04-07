@@ -91,7 +91,7 @@ class QuestionBankViewsEnhancedTests(APITestCase):
         }
         response = self.client.post(questions_url, payload)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('Coding bank only accepts coding questions', response.data['detail'])
+        self.assertFalse(response.data['success'])
 
     def test_destroy_bank_archives(self):
         """Test that destroying a bank archives it instead of deleting"""

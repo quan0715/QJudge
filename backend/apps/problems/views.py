@@ -5,6 +5,7 @@ from uuid import UUID
 
 from django.contrib.auth import get_user_model
 from rest_framework import viewsets, permissions, filters, status, serializers
+from rest_framework.exceptions import NotFound, ValidationError as DRFValidationError
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
@@ -260,17 +261,17 @@ class ProblemViewSet(viewsets.ModelViewSet):
             "question_asset",
         ).first()
         if problem is None:
-            return Response({'error': 'Problem not found'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Problem not found')
 
         payload = ResolveOrphanProblemSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
 
         owner = User.objects.filter(id=payload.validated_data['owner_id']).first()
         if owner is None:
-            return Response({'error': 'Owner not found'}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound('Owner not found')
 
         if not (owner.is_staff or getattr(owner, 'role', None) in ['admin', 'teacher']):
-            return Response({'error': 'Owner must be a teacher or admin'}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError('Owner must be a teacher or admin')
 
         bank_uuid = payload.validated_data.get('question_bank_uuid')
         bank = None
@@ -283,7 +284,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
                 category=QuestionBank.Category.CODING,
             ).first()
             if bank is None:
-                return Response({'error': 'Target bank not found'}, status=status.HTTP_404_NOT_FOUND)
+                raise NotFound('Target bank not found')
 
         with transaction.atomic():
             problem.created_by = owner

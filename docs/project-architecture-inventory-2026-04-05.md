@@ -114,7 +114,7 @@
 
 | Job                        | 內容（依檔案）                                                                                        |
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
-| `static-checks`            | `npm ci`、`i18n_check.py`、`tsc --noEmit`、`npm run build`（frontend）                              |
+| `static-checks`            | `npm ci`、`scripts/i18n/i18n_check.py`、`tsc --noEmit`、`npm run build`（frontend）                              |
 | `frontend-unit`            | `npm run lint`、`npm run test:coverage`                                                         |
 | `frontend-api-integration` | compose test stack → 等待 backend → `docker compose exec frontend-test npm run test:api`         |
 | `backend-unit`             | Postgres + Redis service、`migrate`、`pytest`（ignore judge 與某效能測試）；另 job 內 `--cov-fail-under=80` |

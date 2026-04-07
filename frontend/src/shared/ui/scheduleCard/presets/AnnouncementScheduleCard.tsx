@@ -30,7 +30,10 @@ export function AnnouncementScheduleCard({
   const preview = stripMarkdown(announcement.content);
 
   return (
-    <ScheduleCard.Root onClick={onClick} accentColor="var(--cds-support-info)">
+    <ScheduleCard.Root
+      onClick={onClick}
+      accentColor="var(--cds-border-strong-01)"
+    >
       <ScheduleCard.Header
         icon={<Bullhorn size={16} />}
         tag={
@@ -51,7 +54,11 @@ export function AnnouncementScheduleCard({
           ? `${announcement.createdByUsername} · `
           : ""}
         {timeOnly
-          ? formatDateTime(announcement.createdAt, { hour: "2-digit", minute: "2-digit", hour12: false })
+          ? formatDateTime(announcement.createdAt, {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })
           : formatDateTime(announcement.createdAt, DATE_FORMATS.DATE_ONLY)}
       </ScheduleCard.Meta>
     </ScheduleCard.Root>

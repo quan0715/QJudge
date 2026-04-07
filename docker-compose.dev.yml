@@ -171,6 +171,7 @@ services:
       - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
       - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
       - ANTICHEAT_PRESIGNED_URL_TTL_SECONDS=${ANTICHEAT_PRESIGNED_URL_TTL_SECONDS:-300}
+      - GLITCHTIP_DSN=${GLITCHTIP_DSN:-}
     depends_on:
       judge-image:
         condition: service_started
@@ -315,6 +316,40 @@ services:
       - backend
     networks:
       - oj_network_dev
+  # GlitchTip Error Tracking (Dev)
+  glitchtip:
+    image: glitchtip/glitchtip:latest
+    container_name: oj_glitchtip_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/glitchtip
+      SECRET_KEY: dev-glitchtip-secret
+      REDIS_URL: redis://redis:6379/1
+      DEFAULT_FROM_EMAIL: noreply@localhost
+      GLITCHTIP_DOMAIN: http://localhost:8080
+      ENABLE_ORGANIZATION_CREATION: "true"
+    ports:
+      - "8080:8000"
+    networks:
+      - oj_network_dev
+
+  glitchtip-worker:
+    image: glitchtip/glitchtip:latest
+    container_name: oj_glitchtip_worker_dev
+    command: ./bin/run-celery-with-beat.sh
+    depends_on:
+      - glitchtip
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/glitchtip
+      SECRET_KEY: dev-glitchtip-secret
+      REDIS_URL: redis://redis:6379/1
+    networks:
+      - oj_network_dev
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: oj_cloudflared
