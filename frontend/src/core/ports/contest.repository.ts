@@ -35,7 +35,7 @@ export interface IContestRepository {
     id: string,
     data?: { password?: string; nickname?: string }
   ): Promise<void>;
-  enterContest(id: string): Promise<void>;
+  enterContest(id: string, data?: { password?: string }): Promise<void>;
   archiveContest(id: string): Promise<void>;
 
   // Scoreboard
@@ -188,6 +188,7 @@ export interface ContestUpdatePayload {
   endTime?: string;
   status?: ContestStatus;
   resultsPublished?: boolean;
+  countsTowardGrade?: boolean;
   visibility?: ContestVisibility;
   requiresPassword?: boolean;
   password?: string;

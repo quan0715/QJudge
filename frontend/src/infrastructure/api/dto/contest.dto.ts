@@ -30,6 +30,7 @@ export interface ContestDto {
   visibility?: ContestVisibility;
   requires_password?: boolean;
   delivery_mode?: ContestDeliveryMode;
+  counts_toward_grade?: boolean;
   password?: string;
   has_joined?: boolean;
   is_registered?: boolean;

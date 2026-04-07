@@ -86,6 +86,7 @@ export function mapContestDto(dto: ContestDto): Contest {
     visibility: dto.visibility || "public",
     requiresPassword,
     deliveryMode: dto.delivery_mode || "exam",
+    countsTowardGrade: dto.counts_toward_grade ?? true,
     password: dto.password,
 
     hasJoined: !!dto.has_joined,
@@ -107,6 +108,7 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
 
     contestType: dto.contest_type ?? "coding",
     deliveryMode: dto.delivery_mode ?? "exam",
+    countsTowardGrade: dto.counts_toward_grade ?? true,
     cheatDetectionEnabled: !!dto.cheat_detection_enabled,
     anticheatDevicePolicy: mapAnticheatDevicePolicyDto(dto.anticheat_device_policy),
     warningTimeoutSeconds:
@@ -946,6 +948,7 @@ export function mapContestUpdateRequestToDto(request: ContestUpdateRequest): any
     allow_auto_unlock: request.allowAutoUnlock,
     auto_unlock_minutes: request.autoUnlockMinutes,
     results_published: request.resultsPublished,
+    counts_toward_grade: request.countsTowardGrade,
   };
   // Strip undefined keys so PATCH only sends changed fields
   Object.keys(dto).forEach((k) => {
