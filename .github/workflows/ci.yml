@@ -50,7 +50,7 @@ jobs:
         working-directory: frontend
 
       - name: i18n Health Check (Reporting)
-        run: python3 i18n_check.py
+        run: python3 scripts/i18n/i18n_check.py
 
       - name: TypeScript Compile Check
         run: npx tsc --noEmit
