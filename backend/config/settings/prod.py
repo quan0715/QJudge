@@ -16,6 +16,7 @@ if GLITCHTIP_DSN:
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
 
     sentry_sdk.init(
         dsn=GLITCHTIP_DSN,
@@ -23,6 +24,10 @@ if GLITCHTIP_DSN:
             DjangoIntegration(transaction_style="url"),
             CeleryIntegration(),
             RedisIntegration(),
+            LoggingIntegration(
+                level="WARNING",       # WARNING+ 記為 breadcrumb
+                event_level="ERROR",   # ERROR+ 送為獨立 event
+            ),
         ],
         traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
         send_default_pii=False,
