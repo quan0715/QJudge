@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.db.models import Max
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
@@ -79,34 +79,20 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Only contest owner/admin can manage exam questions')
 
     def _resolve_bank_question_for_import(self, *, user, question_bank_id, question_id):
-        try:
-            normalized_bank_uuid = self._normalize_uuid(
-                question_bank_id, field_name="question_bank_id"
-            )
-        except DRFValidationError as exc:
-            return None, None, Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+        normalized_bank_uuid = self._normalize_uuid(
+            question_bank_id, field_name="question_bank_id"
+        )
 
         bank = QuestionBank.objects.filter(uuid=normalized_bank_uuid, is_archived=False).first()
         if not bank:
-            return (
-                None,
-                None,
-                Response({"error": "Question bank not found"}, status=status.HTTP_404_NOT_FOUND),
-            )
+            raise NotFound("Question bank not found")
 
         if bank.owner_id != user.id and not is_publicly_accessible_bank(bank):
-            return (
-                None,
-                None,
-                Response({"error": "No access to this question bank"}, status=status.HTTP_403_FORBIDDEN),
-            )
+            raise PermissionDenied("No access to this question bank")
 
-        try:
-            normalized_question_uuid = self._normalize_uuid(
-                question_id, field_name="question_id"
-            )
-        except DRFValidationError as exc:
-            return None, None, Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+        normalized_question_uuid = self._normalize_uuid(
+            question_id, field_name="question_id"
+        )
 
         # Primary lookup: QuestionBankMembership (bank_item_id from frontend)
         from apps.question_bank.models import QuestionBankMembership
@@ -136,13 +122,9 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             ).first()
 
         if not question:
-            return (
-                None,
-                None,
-                Response({"error": "Question not found in bank"}, status=status.HTTP_404_NOT_FOUND),
-            )
+            raise NotFound("Question not found in bank")
 
-        return bank, question, None
+        return bank, question
 
     @staticmethod
     def _normalize_exam_question_type(question: Question) -> str:
@@ -291,49 +273,31 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             try:
                 parsed_payload = json.loads(payload_json)
             except json.JSONDecodeError as exc:
-                return None, None, Response(
-                    {"error": f"Invalid payload_json: {exc.msg}"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                raise DRFValidationError(f"Invalid payload_json: {exc.msg}")
         elif isinstance(payload_json, dict):
             parsed_payload = payload_json
         else:
-            return None, None, Response(
-                {"error": "payload_json must be a JSON string or object"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError("payload_json must be a JSON string or object")
 
         if not isinstance(parsed_payload, dict):
-            return None, None, Response(
-                {"error": "payload_json root must be an object"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError("payload_json root must be an object")
 
         if parsed_payload.get("version") != "qjudge.exam.v1":
-            return None, None, Response(
-                {"error": 'payload_json.version must be "qjudge.exam.v1"'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError('payload_json.version must be "qjudge.exam.v1"')
 
         meta = parsed_payload.get("meta")
         if not isinstance(meta, dict):
-            return None, None, Response(
-                {"error": "payload_json.meta must be an object"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError("payload_json.meta must be an object")
 
         questions_data = parsed_payload.get("questions")
         if not isinstance(questions_data, list) or not questions_data:
-            return None, None, Response(
-                {"error": "payload_json.questions must be a non-empty list"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError("payload_json.questions must be a non-empty list")
 
         serializer = ExamQuestionSerializer(data=questions_data, many=True)
         if not serializer.is_valid():
-            return None, None, Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError(serializer.errors)
 
-        return parsed_payload, serializer.validated_data, None
+        return parsed_payload, serializer.validated_data
 
     @staticmethod
     def _build_import_fingerprint(import_mode: str, payload: dict) -> str:
@@ -450,14 +414,9 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
         import_mode = request.data.get("import_mode", ExamQuestionImportSession.ImportMode.APPEND)
         if import_mode not in self.IMPORT_MODES:
-            return Response(
-                {"error": "import_mode is invalid"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise DRFValidationError("import_mode is invalid")
 
-        parsed_payload, validated_questions, err = self._extract_import_payload(request)
-        if err:
-            return err
+        parsed_payload, validated_questions = self._extract_import_payload(request)
 
         incoming_score = sum(int(item.get("score", 0)) for item in validated_questions)
         summary = self._build_preview_summary(
@@ -487,16 +446,14 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
         import_mode = request.data.get("import_mode", ExamQuestionImportSession.ImportMode.APPEND)
         if import_mode not in self.IMPORT_MODES:
-            return Response({"error": "import_mode is invalid"}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError("import_mode is invalid")
 
-        parsed_payload, validated_questions, err = self._extract_import_payload(request)
-        if err:
-            return err
+        parsed_payload, validated_questions = self._extract_import_payload(request)
 
         expected_fingerprint = request.data.get("fingerprint")
         calculated_fingerprint = self._build_import_fingerprint(import_mode, parsed_payload)
         if expected_fingerprint and expected_fingerprint != calculated_fingerprint:
-            return Response({"error": "fingerprint mismatch"}, status=status.HTTP_409_CONFLICT)
+            raise DRFValidationError("fingerprint mismatch")
 
         incoming_score = sum(int(item.get("score", 0)) for item in validated_questions)
         preview_summary = self._build_preview_summary(
@@ -598,11 +555,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         )
         session_id = request.data.get("session_id")
         if not session_id:
-            return Response({"error": "session_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError("session_id is required")
 
         session = ExamQuestionImportSession.objects.filter(contest=contest, id=session_id).first()
         if not session:
-            return Response({"error": "import session not found"}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound("import session not found")
 
         with transaction.atomic():
             ExamQuestion.objects.filter(contest=contest).delete()
@@ -666,7 +623,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
         items = request.data.get('items', [])
         if not isinstance(items, list) or not items:
-            return Response({'error': 'items must be a non-empty list'}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError('items must be a non-empty list')
 
         current_max_order = ExamQuestion.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
         next_order = (current_max_order if current_max_order is not None else -1) + 1
@@ -675,30 +632,22 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             for item in items:
                 if not isinstance(item, dict):
-                    return Response({'error': 'Invalid item payload'}, status=status.HTTP_400_BAD_REQUEST)
+                    raise DRFValidationError('Invalid item payload')
 
                 question_bank_id = item.get('question_bank_id')
                 question_id = item.get('question_id')
                 if not question_bank_id or question_id is None:
-                    return Response(
-                        {'error': 'Each item requires question_bank_id and question_id'},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    raise DRFValidationError('Each item requires question_bank_id and question_id')
 
-                bank, bank_question, err = self._resolve_bank_question_for_import(
+                bank, bank_question = self._resolve_bank_question_for_import(
                     user=request.user,
                     question_bank_id=question_bank_id,
                     question_id=question_id,
                 )
-                if err:
-                    return err
 
                 prompt = (bank_question.prompt or bank_question.title or "").strip()
                 if not prompt:
-                    return Response(
-                        {'error': f'Imported question {bank_question.id} has empty prompt/title'},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    raise DRFValidationError(f'Imported question {bank_question.id} has empty prompt/title')
 
                 exam_question = ExamQuestion.objects.create(
                     contest=contest,
@@ -752,7 +701,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
         orders = request.data.get('orders', [])
         if not isinstance(orders, list) or not orders:
-            return Response({'error': 'No orders provided'}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError('No orders provided')
 
         for item in orders:
             question_id = item.get('id')
@@ -803,10 +752,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 include_answer_area=include_answer_area,
             )
         except ExportValidationError as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            raise DRFValidationError(str(exc))
         except Exception as exc:
             logger.exception("Failed to generate paper exam sheet: %s", exc)
-            return Response(
-                {"error": "Failed to generate paper exam sheet"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            raise DRFValidationError("Failed to generate paper exam sheet")

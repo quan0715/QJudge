@@ -12,6 +12,7 @@ import {
   getContestStateLabel,
   type ContestDisplayState,
 } from "@/core/entities/contest.entity";
+import { getBoundContestTimeRange } from "@/features/classroom/domain/classroomActivityTimeline";
 import { ScheduleCard } from "../ScheduleCard";
 
 const ACCENT: Record<string, string> = {
@@ -33,18 +34,6 @@ function StateIcon({ state }: { state: ContestDisplayState }) {
     default:
       return <Calendar {...props} />;
   }
-}
-
-function getBoundContestTimeRange(contest: BoundContest): {
-  startMs: number;
-  endMs: number;
-} {
-  const startIso = contest.contestStartTime || contest.boundAt;
-  const endIso = contest.contestEndTime || contest.boundAt;
-  return {
-    startMs: new Date(startIso).getTime(),
-    endMs: new Date(endIso).getTime(),
-  };
 }
 
 export interface ContestScheduleCardProps {

@@ -38,22 +38,23 @@ export const ContestPanel: React.FC<ContestPanelProps> = ({
       return aMs - bMs;
     });
 
-    const available = sorted.filter((contest) => {
-      const state = getContestState({
+    const contestsWithState = sorted.map((contest) => ({
+      contest,
+      state: getContestState({
         status: contest.contestStatus,
         startTime: contest.contestStartTime || contest.boundAt,
         endTime: contest.contestEndTime || contest.boundAt,
-      });
-      return state === "upcoming" || state === "running";
-    });
-    const ended = sorted.filter((contest) => {
-      const state = getContestState({
-        status: contest.contestStatus,
-        startTime: contest.contestStartTime || contest.boundAt,
-        endTime: contest.contestEndTime || contest.boundAt,
-      });
-      return state === "ended" || state === "archived";
-    });
+      }),
+    }));
+
+    const available = contestsWithState
+      .filter(({ state }) => state === "upcoming" || state === "running")
+      .map(({ contest }) => contest);
+      
+    const ended = contestsWithState
+      .filter(({ state }) => state === "ended" || state === "archived")
+      .map(({ contest }) => contest);
+      
     const draft = sorted.filter((contest) => contest.contestStatus === "draft");
 
     return [
@@ -129,12 +130,14 @@ export const ContestPanel: React.FC<ContestPanelProps> = ({
           <div className="classroom-admin-contest-catalog">
             <div
               className="classroom-admin-contest-filters"
+              role="group"
               aria-label={t("contestFilters", "競賽篩選")}
             >
               {filters.map((item) => (
                 <button
                   key={item.id}
                   type="button"
+                  aria-pressed={filter === item.id}
                   className={[
                     "classroom-admin-contest-filter",
                     filter === item.id

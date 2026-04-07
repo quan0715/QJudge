@@ -1,3 +1,4 @@
+import os
 import time
 from playwright.sync_api import sync_playwright
 from PIL import Image, ImageDraw, ImageFont
@@ -27,22 +28,26 @@ def process_image(img_path, box, text, out_path, pad=12, text_offset=15):
     print(f"Saved {out_path}")
 
 def main():
+    base_url = os.environ.get("OJ_BASE_URL", "http://localhost:5174")
+    email = os.environ.get("OJ_TEST_EMAIL", "teacher@example.com")
+    password = os.environ.get("OJ_TEST_PASSWORD", "teacher123")
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(viewport={"width": 1280, "height": 900})
         page = context.new_page()
 
         print("Navigating to login page...")
-        page.goto("http://localhost:5174/login")
+        page.goto(f"{base_url}/login")
         
         print("Logging in...")
-        page.fill("#email", "teacher@example.com")
-        page.fill("#password", "teacher123")
+        page.fill("#email", email)
+        page.fill("#password", password)
         page.click("button[type='submit']")
         page.wait_for_url("**/dashboard*")
         
         print("Navigating to teacher contests page...")
-        page.goto("http://localhost:5174/teacher/contests")
+        page.goto(f"{base_url}/teacher/contests")
         page.wait_for_load_state("networkidle")
         page.wait_for_selector("text=新增競賽", timeout=10000)
         time.sleep(1) 

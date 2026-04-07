@@ -2,26 +2,36 @@
 Custom exception handler for consistent API responses.
 """
 from django.db import OperationalError
+from django.utils import timezone
 from rest_framework.views import exception_handler
 from rest_framework.response import Response
 from rest_framework import status
 
 
+def _get_request_id(context):
+    request = context.get("request")
+    return getattr(request, "request_id", None) if request else None
+
+
 def custom_exception_handler(exc, context):
     """
     Custom exception handler that returns consistent error responses.
-    
+
     Response format:
     {
         "success": false,
         "error": {
             "code": "ERROR_CODE",
             "message": "Error message",
+            "request_id": "abc123...",
+            "timestamp": "2026-04-08T...",
             "details": {}  # Optional additional details
         }
     }
     """
     response = exception_handler(exc, context)
+    request_id = _get_request_id(context)
+    now = timezone.now().isoformat()
 
     if response is None and isinstance(exc, OperationalError):
         message = str(exc)
@@ -32,6 +42,8 @@ def custom_exception_handler(exc, context):
                     "error": {
                         "code": "DB_OVERLOADED",
                         "message": "Database is temporarily overloaded. Please retry.",
+                        "request_id": request_id,
+                        "timestamp": now,
                     },
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -42,21 +54,23 @@ def custom_exception_handler(exc, context):
 
     if response is not None:
         error_code = getattr(exc, 'default_code', 'UNKNOWN_ERROR').upper()
-        
+
         custom_response_data = {
             'success': False,
             'error': {
                 'code': error_code,
                 'message': str(exc),
+                'request_id': request_id,
+                'timestamp': now,
             }
         }
-        
+
         if hasattr(exc, 'detail'):
             if isinstance(exc.detail, dict):
                 custom_response_data['error']['details'] = exc.detail
             elif isinstance(exc.detail, list):
                 custom_response_data['error']['details'] = {'errors': exc.detail}
-        
+
         response.data = custom_response_data
-    
+
     return response

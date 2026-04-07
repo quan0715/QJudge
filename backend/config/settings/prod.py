@@ -6,6 +6,29 @@ from .base import *
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
+# =============================================================================
+# GlitchTip / Sentry Error Tracking
+# =============================================================================
+GLITCHTIP_DSN = os.getenv("GLITCHTIP_DSN", "")
+
+if GLITCHTIP_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
+
+    sentry_sdk.init(
+        dsn=GLITCHTIP_DSN,
+        integrations=[
+            DjangoIntegration(transaction_style="url"),
+            CeleryIntegration(),
+            RedisIntegration(),
+        ],
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
+        send_default_pii=False,
+        environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
+    )
+
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # =============================================================================
@@ -42,7 +65,7 @@ if ENCRYPTION_KEY == DEFAULT_DEV_ENCRYPTION_KEY:
 
 # Security settings
 SECURE_SSL_REDIRECT = True
-SECURE_REDIRECT_EXEMPT = [r'^api/v1/ai/internal/']
+SECURE_REDIRECT_EXEMPT = [r'^api/v1/ai/internal/', r'^api/health/']
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
@@ -88,6 +111,11 @@ LOGGING = {
     },
     'loggers': {
         'django': {
+            'handlers': ['file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'qjudge.requests': {
             'handlers': ['file'],
             'level': 'WARNING',
             'propagate': False,

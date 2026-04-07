@@ -25,6 +25,12 @@ export const MessageBubble: FC<MessageBubbleProps> = ({
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
 
+  // 過濾掉 background_information 標籤
+  const filterBackgroundInfo = useCallback((content: string): string => {
+    // 移除 <background_information>...</background_information> 及其內容
+    return content.replace(/<background_information>[\s\S]*?<\/background_information>\s*/g, "").trim();
+  }, []);
+
   const handleCopy = useCallback(() => {
     const textToCopy = isUser
       ? filterBackgroundInfo(message.content)
@@ -33,7 +39,7 @@ export const MessageBubble: FC<MessageBubbleProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [message.content, isUser]);
+  }, [message.content, isUser, filterBackgroundInfo]);
 
   // 顯示工具調用狀態
   const renderToolStatus = () => {
@@ -58,12 +64,6 @@ export const MessageBubble: FC<MessageBubbleProps> = ({
       );
     }
     return null;
-  };
-
-  // 過濾掉 background_information 標籤
-  const filterBackgroundInfo = (content: string): string => {
-    // 移除 <background_information>...</background_information> 及其內容
-    return content.replace(/<background_information>[\s\S]*?<\/background_information>\s*/g, "").trim();
   };
 
   // 清理 AI 訊息中的多餘空行 - 保留段落間距（兩個換行），壓縮三個以上
