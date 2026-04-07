@@ -5,10 +5,9 @@ import { useTranslation } from "react-i18next";
 import type { ClassroomDetail, ClassroomAnnouncement } from "@/core/entities/classroom.entity";
 import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
 import { AnnouncementSection } from "../../components/AnnouncementSection";
-import { ClassroomActivityHero } from "../../components/ClassroomActivityHero";
 import { ClassroomActivityTimeline } from "../../components/ClassroomActivityTimeline";
 import "../../components/ClassroomActivitySchedule.scss";
-import { buildTimelineDayGroups, pickHeroContest } from "../../domain/classroomActivityTimeline";
+import { buildAllTimelineDayGroups } from "../../domain/classroomActivityTimeline";
 import type { ClassroomAdminPanelId } from "../ClassroomAdminLayout";
 
 interface OverviewPanelProps {
@@ -26,7 +25,6 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
   isPrivileged,
   onCreateAnnouncement,
   onViewAnnouncement,
-  onCreateExam,
   onNavigateExam,
   onJumpToPanel,
 }) => {
@@ -34,33 +32,20 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
 
   const [nowMs] = useState(() => Date.now());
 
-  const heroContest = useMemo(
-    () => pickHeroContest(classroom.contests, nowMs),
-    [classroom.contests, nowMs],
-  );
-
   const timelineGroups = useMemo(
-    () => buildTimelineDayGroups(classroom.contests, nowMs),
-    [classroom.contests, nowMs],
+    () => buildAllTimelineDayGroups(classroom.contests, classroom.announcements, nowMs),
+    [classroom.contests, classroom.announcements, nowMs],
   );
 
   return (
     <EntityOverviewFrame
       sectionClassName="classroom-admin-overview-frame-section"
       main={
-        <div className="classroom-activity-schedule">
-          <ClassroomActivityHero
-            contest={heroContest}
-            isPrivileged={isPrivileged}
-            onOpenContest={onNavigateExam}
-            onCreateExam={isPrivileged ? onCreateExam : undefined}
-          />
-          <ClassroomActivityTimeline
-            groups={timelineGroups}
-            heroContestId={heroContest?.contestId ?? null}
-            onOpenContest={onNavigateExam}
-          />
-        </div>
+        <ClassroomActivityTimeline
+          groups={timelineGroups}
+          onOpenContest={onNavigateExam}
+          onViewAnnouncement={onViewAnnouncement}
+        />
       }
       side={
         <>
