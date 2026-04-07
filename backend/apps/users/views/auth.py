@@ -125,7 +125,8 @@ class DevTokenView(SchemaAPIView):
 
         User = get_user_model()
         if not settings.DEBUG:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+            from rest_framework.exceptions import NotFound
+            raise NotFound()
 
         role = request.data.get("role", "student")
         want_superuser = bool(request.data.get("superuser", False))

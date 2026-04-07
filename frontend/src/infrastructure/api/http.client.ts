@@ -129,6 +129,12 @@ const stringify = (v: unknown): string =>
 const getErrorMessage = (data: any, fallback: string): string => {
   if (!data) return fallback;
   if (typeof data === "string") return data;
+  // Standardized backend format: {success: false, error: {code, message, ...}}
+  if (typeof data.success === "boolean" && data.error?.message) {
+    return typeof data.error.message === "string"
+      ? data.error.message
+      : fallback;
+  }
   if (typeof data.detail === "string") return data.detail;
   if (typeof data.message === "string") return data.message;
   if (typeof data.error === "string") return data.error;
