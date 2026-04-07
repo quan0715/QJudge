@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.db.models import Max
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError as DRFValidationError
+from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
@@ -453,7 +453,9 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         expected_fingerprint = request.data.get("fingerprint")
         calculated_fingerprint = self._build_import_fingerprint(import_mode, parsed_payload)
         if expected_fingerprint and expected_fingerprint != calculated_fingerprint:
-            raise DRFValidationError("fingerprint mismatch")
+            exc = APIException("fingerprint mismatch")
+            exc.status_code = 409
+            raise exc
 
         incoming_score = sum(int(item.get("score", 0)) for item in validated_questions)
         preview_summary = self._build_preview_summary(
@@ -755,4 +757,4 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             raise DRFValidationError(str(exc))
         except Exception as exc:
             logger.exception("Failed to generate paper exam sheet: %s", exc)
-            raise DRFValidationError("Failed to generate paper exam sheet")
+            raise APIException("Failed to generate paper exam sheet")

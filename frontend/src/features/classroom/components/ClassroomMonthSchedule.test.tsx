@@ -14,6 +14,7 @@ vi.mock("react-i18next", () => ({
         return `+${options?.count ?? ""}`;
       return fallback ?? key;
     },
+    i18n: { language: "en" },
   }),
   initReactI18next: {
     type: "3rdParty",

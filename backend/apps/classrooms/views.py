@@ -7,7 +7,7 @@ from uuid import UUID
 from PIL import Image, UnidentifiedImageError
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError as DRFValidationError
+from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from django.conf import settings
@@ -597,7 +597,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         try:
             store_markdown_image(content=payload, object_key=object_key, content_type=content_type)
         except MarkdownImageStorageError:
-            raise DRFValidationError('Failed to upload image')
+            raise APIException('Failed to upload image')
 
         base_url = (getattr(settings, 'MARKDOWN_IMAGE_PUBLIC_BASE_URL', '') or '').strip()
         path = reverse('markdown-image-read', kwargs={'object_key': object_key})

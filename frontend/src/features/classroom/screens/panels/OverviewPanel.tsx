@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@carbon/react";
 import { ArrowRight, Trophy } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -102,6 +102,30 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
     onNavigateExam(contestId);
   };
 
+  const handlePreviousRange = useCallback(() => {
+    setRangeAnchor((current) => {
+      const next = new Date(current);
+      if (scheduleViewMode === "week") {
+        next.setDate(current.getDate() - 7);
+      } else {
+        next.setMonth(current.getMonth() - 1);
+      }
+      return next;
+    });
+  }, [scheduleViewMode]);
+
+  const handleNextRange = useCallback(() => {
+    setRangeAnchor((current) => {
+      const next = new Date(current);
+      if (scheduleViewMode === "week") {
+        next.setDate(current.getDate() + 7);
+      } else {
+        next.setMonth(current.getMonth() + 1);
+      }
+      return next;
+    });
+  }, [scheduleViewMode]);
+
   return (
     <>
       <EntityOverviewFrame
@@ -116,28 +140,8 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
             onViewModeChange={setScheduleViewMode}
             onSelectDate={setSelectedDateKey}
             onOpenContest={openContestPreview}
-            onPreviousRange={() => {
-              setRangeAnchor((current) => {
-                const next = new Date(current);
-                if (scheduleViewMode === "week") {
-                  next.setDate(current.getDate() - 7);
-                } else {
-                  next.setMonth(current.getMonth() - 1);
-                }
-                return next;
-              });
-            }}
-            onNextRange={() => {
-              setRangeAnchor((current) => {
-                const next = new Date(current);
-                if (scheduleViewMode === "week") {
-                  next.setDate(current.getDate() + 7);
-                } else {
-                  next.setMonth(current.getMonth() + 1);
-                }
-                return next;
-              });
-            }}
+            onPreviousRange={handlePreviousRange}
+            onNextRange={handleNextRange}
           />
         }
         side={

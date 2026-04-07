@@ -189,6 +189,11 @@
   min-width: 0;
 }
 
+.classroom-month-schedule__header-row,
+.classroom-month-schedule__row {
+  display: contents;
+}
+
 .classroom-week-schedule {
   --week-slot-height: 5.25rem;
 

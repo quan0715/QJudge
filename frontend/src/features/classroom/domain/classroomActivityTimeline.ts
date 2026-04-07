@@ -28,6 +28,22 @@ export interface ClassroomMonthScheduleCell {
   events: ClassroomMonthScheduleEvent[];
 }
 
+function buildEventsByDay(
+  contests: BoundContest[],
+): Map<string, ClassroomMonthScheduleEvent[]> {
+  const eventsByDay = new Map<string, ClassroomMonthScheduleEvent[]>();
+  for (const contest of contests) {
+    if (contest.contestStatus === "draft") continue;
+    const { startMs } = getBoundContestTimeRange(contest);
+    if (Number.isNaN(startMs)) continue;
+    const key = localDateKeyFromMs(startMs);
+    const list = eventsByDay.get(key) ?? [];
+    list.push({ type: "contest", contest, sortMs: startMs });
+    eventsByDay.set(key, list);
+  }
+  return eventsByDay;
+}
+
 /**
  * Builds a fixed six-week month grid for classroom overview.
  * Only contest/exam events are included; announcements are intentionally excluded.
@@ -46,16 +62,7 @@ export function buildClassroomMonthSchedule(
   const gridStart = new Date(monthStart);
   gridStart.setDate(monthStart.getDate() - monthStart.getDay());
 
-  const eventsByDay = new Map<string, ClassroomMonthScheduleEvent[]>();
-  for (const contest of contests) {
-    if (contest.contestStatus === "draft") continue;
-    const { startMs } = getBoundContestTimeRange(contest);
-    if (Number.isNaN(startMs)) continue;
-    const key = localDateKeyFromMs(startMs);
-    const list = eventsByDay.get(key) ?? [];
-    list.push({ type: "contest", contest, sortMs: startMs });
-    eventsByDay.set(key, list);
-  }
+  const eventsByDay = buildEventsByDay(contests);
 
   return Array.from({ length: 42 }, (_, index) => {
     const date = new Date(gridStart);
@@ -83,16 +90,7 @@ export function buildClassroomWeekSchedule(
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const anchorMonth = weekAnchor.getMonth();
 
-  const eventsByDay = new Map<string, ClassroomMonthScheduleEvent[]>();
-  for (const contest of contests) {
-    if (contest.contestStatus === "draft") continue;
-    const { startMs } = getBoundContestTimeRange(contest);
-    if (Number.isNaN(startMs)) continue;
-    const key = localDateKeyFromMs(startMs);
-    const list = eventsByDay.get(key) ?? [];
-    list.push({ type: "contest", contest, sortMs: startMs });
-    eventsByDay.set(key, list);
-  }
+  const eventsByDay = buildEventsByDay(contests);
 
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(weekStart);

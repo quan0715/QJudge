@@ -33,44 +33,44 @@ interface ClassroomMonthScheduleProps {
 const MAX_EVENTS_PER_DAY = 2;
 const MIN_EVENT_MINUTES = 30;
 
-const formatEventTime = (date: Date) =>
-  date.toLocaleTimeString(undefined, {
+const formatEventTime = (date: Date, locale: string) =>
+  date.toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
   });
 
-const formatMonthTitle = (date: Date) =>
-  date.toLocaleDateString(undefined, { year: "numeric", month: "long" });
+const formatMonthTitle = (date: Date, locale: string) =>
+  date.toLocaleDateString(locale, { year: "numeric", month: "long" });
 
-const formatShortDate = (date: Date) =>
-  date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+const formatShortDate = (date: Date, locale: string) =>
+  date.toLocaleDateString(locale, { month: "short", day: "numeric" });
 
-const formatWeekTitle = (cells: ClassroomMonthScheduleCell[]) => {
+const formatWeekTitle = (cells: ClassroomMonthScheduleCell[], locale: string) => {
   const first = cells[0]?.date;
   const last = cells[cells.length - 1]?.date;
   if (!first || !last) return "";
   if (first.getFullYear() === last.getFullYear()) {
-    return `${first.getFullYear()} ${formatShortDate(first)} - ${formatShortDate(last)}`;
+    return `${first.getFullYear()} ${formatShortDate(first, locale)} - ${formatShortDate(last, locale)}`;
   }
-  return `${first.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })} - ${last.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}`;
+  return `${first.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" })} - ${last.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" })}`;
 };
 
-const formatSelectedDate = (date: Date) =>
-  date.toLocaleDateString(undefined, {
+const formatSelectedDate = (date: Date, locale: string) =>
+  date.toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
     weekday: "short",
   });
 
-const formatWeekdayDate = (date: Date) =>
-  date.toLocaleDateString(undefined, {
+const formatWeekdayDate = (date: Date, locale: string) =>
+  date.toLocaleDateString(locale, {
     weekday: "short",
     day: "numeric",
   });
 
-const formatHourLabel = (hour: number) =>
-  new Date(2026, 0, 1, hour).toLocaleTimeString(undefined, {
+const formatHourLabel = (hour: number, locale: string) =>
+  new Date(0, 0, 1, hour).toLocaleTimeString(locale, {
     hour: "numeric",
   });
 
@@ -149,24 +149,25 @@ export const ClassroomMonthSchedule: React.FC<ClassroomMonthScheduleProps> = ({
   onPreviousRange,
   onNextRange,
 }) => {
-  const { t } = useTranslation("classroom");
+  const { t, i18n } = useTranslation("classroom");
+  const locale = i18n.language;
 
   const weekdayLabels = useMemo(() => {
     const base = new Date(2026, 0, 4); // Sunday
     return Array.from({ length: 7 }, (_, index) => {
       const date = new Date(base);
       date.setDate(base.getDate() + index);
-      return date.toLocaleDateString(undefined, { weekday: "short" });
+      return date.toLocaleDateString(locale, { weekday: "short" });
     });
-  }, []);
+  }, [locale]);
 
   const selectedCell =
     cells.find((cell) => cell.dateKey === selectedDateKey) ?? cells[0];
   const hasEvents = cells.some((cell) => cell.events.length > 0);
   const rangeLabel =
     viewMode === "week"
-      ? formatWeekTitle(cells)
-      : formatMonthTitle(rangeAnchor);
+      ? formatWeekTitle(cells, locale)
+      : formatMonthTitle(rangeAnchor, locale);
   const previousLabel =
     viewMode === "week"
       ? t("activitySchedule.previousWeek", "上一週")
@@ -252,6 +253,7 @@ export const ClassroomMonthSchedule: React.FC<ClassroomMonthScheduleProps> = ({
           cells={cells}
           selectedDateKey={selectedDateKey}
           rangeLabel={rangeLabel}
+          locale={locale}
           onSelectDate={onSelectDate}
           onOpenContest={onOpenContest}
         />
@@ -277,7 +279,7 @@ export const ClassroomMonthSchedule: React.FC<ClassroomMonthScheduleProps> = ({
               {t("activitySchedule.selectedDateEvents", "選取日期事件")}
             </h3>
             {selectedCell ? (
-              <span>{formatSelectedDate(selectedCell.date)}</span>
+              <span>{formatSelectedDate(selectedCell.date, locale)}</span>
             ) : null}
           </div>
 
@@ -323,30 +325,41 @@ function MonthScheduleGrid({
   onSelectDate: (dateKey: string) => void;
   onOpenContest: (contestId: string) => void;
 }) {
+  const rows: ClassroomMonthScheduleCell[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    rows.push(cells.slice(i, i + 7));
+  }
+
   return (
     <div
       className="classroom-month-schedule__grid"
       role="grid"
       aria-label={rangeLabel}
     >
-      {weekdayLabels.map((label) => (
-        <div
-          key={label}
-          className="classroom-month-schedule__weekday"
-          role="columnheader"
-        >
-          {label}
-        </div>
-      ))}
+      <div className="classroom-month-schedule__header-row" role="row">
+        {weekdayLabels.map((label) => (
+          <div
+            key={label}
+            className="classroom-month-schedule__weekday"
+            role="columnheader"
+          >
+            {label}
+          </div>
+        ))}
+      </div>
 
-      {cells.map((cell) => (
-        <MonthCell
-          key={cell.dateKey}
-          cell={cell}
-          selected={cell.dateKey === selectedDateKey}
-          onSelectDate={onSelectDate}
-          onOpenContest={onOpenContest}
-        />
+      {rows.map((row) => (
+        <div key={row[0].dateKey} className="classroom-month-schedule__row" role="row">
+          {row.map((cell) => (
+            <MonthCell
+              key={cell.dateKey}
+              cell={cell}
+              selected={cell.dateKey === selectedDateKey}
+              onSelectDate={onSelectDate}
+              onOpenContest={onOpenContest}
+            />
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -356,12 +369,14 @@ function WeekScheduleGrid({
   cells,
   selectedDateKey,
   rangeLabel,
+  locale,
   onSelectDate,
   onOpenContest,
 }: {
   cells: ClassroomMonthScheduleCell[];
   selectedDateKey: string;
   rangeLabel: string;
+  locale: string;
   onSelectDate: (dateKey: string) => void;
   onOpenContest: (contestId: string) => void;
 }) {
@@ -381,52 +396,56 @@ function WeekScheduleGrid({
       aria-label={rangeLabel}
       style={{ "--slot-count": hours.length - 1 } as CSSProperties}
     >
-      <div className="classroom-week-schedule__corner" />
-      {cells.map((cell) => (
-        <button
-          key={cell.dateKey}
-          type="button"
-          className={[
-            "classroom-week-schedule__day-heading",
-            cell.dateKey === selectedDateKey
-              ? "classroom-week-schedule__day-heading--selected"
-              : "",
-            cell.isToday ? "classroom-week-schedule__day-heading--today" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          onClick={() => onSelectDate(cell.dateKey)}
-        >
-          <span>{formatWeekdayDate(cell.date)}</span>
-        </button>
-      ))}
-
-      <div className="classroom-week-schedule__time-axis" style={slotRowsStyle}>
-        {hours.slice(0, -1).map((hour) => (
-          <span key={hour}>{formatHourLabel(hour)}</span>
+      <div className="classroom-week-schedule__header-row" role="row" style={{ display: "contents" }}>
+        <div className="classroom-week-schedule__corner" role="columnheader" />
+        {cells.map((cell) => (
+          <button
+            key={cell.dateKey}
+            type="button"
+            role="columnheader"
+            className={[
+              "classroom-week-schedule__day-heading",
+              cell.dateKey === selectedDateKey
+                ? "classroom-week-schedule__day-heading--selected"
+                : "",
+              cell.isToday ? "classroom-week-schedule__day-heading--today" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onClick={() => onSelectDate(cell.dateKey)}
+          >
+            <span>{formatWeekdayDate(cell.date, locale)}</span>
+          </button>
         ))}
       </div>
 
-      {cells.map((cell) => (
-        <div
-          key={cell.dateKey}
-          className={[
-            "classroom-week-schedule__day-column",
-            cell.events.length === 0
-              ? "classroom-week-schedule__day-column--empty"
-              : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          role="gridcell"
-          aria-selected={cell.dateKey === selectedDateKey}
-        >
+      <div className="classroom-week-schedule__body-row" role="row" style={{ display: "contents" }}>
+        <div className="classroom-week-schedule__time-axis" role="gridcell" style={slotRowsStyle}>
+          {hours.slice(0, -1).map((hour) => (
+            <span key={hour}>{formatHourLabel(hour, locale)}</span>
+          ))}
+        </div>
+
+        {cells.map((cell) => (
+          <div
+            key={cell.dateKey}
+            className={[
+              "classroom-week-schedule__day-column",
+              cell.events.length === 0
+                ? "classroom-week-schedule__day-column--empty"
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            role="gridcell"
+            aria-selected={cell.dateKey === selectedDateKey}
+          >
           <button
             type="button"
             className="classroom-week-schedule__mobile-day-heading"
             onClick={() => onSelectDate(cell.dateKey)}
           >
-            {formatWeekdayDate(cell.date)}
+            {formatWeekdayDate(cell.date, locale)}
           </button>
           <div
             className="classroom-week-schedule__hour-lines"
@@ -451,13 +470,14 @@ function WeekScheduleGrid({
                   {event.contest.contestName}
                 </span>
                 <span className="classroom-week-schedule__event-time">
-                  {formatEventTime(new Date(event.sortMs))}
+                  {formatEventTime(new Date(event.sortMs), locale)}
                 </span>
               </span>
             </button>
           ))}
         </div>
       ))}
+      </div>
     </div>
   );
 }
