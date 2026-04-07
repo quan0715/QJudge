@@ -134,9 +134,27 @@ backend/test_*.py
 # Logs
 logs
 *.log
+gh_log.txt
+all_exports.txt
+unused_exports.txt
 
 # OS
 Thumbs.db
+.DS_Store
+
+# Screenshots (excluding public assets)
+*.png
+!frontend/public/**/*.png
+!frontend/src/assets/**/*.png
+!frontend/tests/e2e/fixtures/**/*.png
+
+# Runtime and ephemeral data
+test-results/
+incident_logs/
+volume/
+running/
+{{name}}*
+", "*
 
 # AI/Agent tools
 .agent/
