@@ -38,9 +38,25 @@
   min-width: 0;
 }
 
+.root:global(.classroom-overview-frame) {
+  .sectionInner {
+    max-width: 90rem;
+  }
+
+  .bodyGrid {
+    grid-template-columns: minmax(0, 2.4fr) minmax(20rem, 0.9fr);
+  }
+}
+
 @media (max-width: 980px) {
   .bodyGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .root:global(.classroom-overview-frame) {
+    .bodyGrid {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 }
 
@@ -53,5 +69,11 @@
 @media (max-width: 672px) {
   .section {
     padding: 1rem;
+  }
+
+  .root:global(.classroom-overview-frame) {
+    .mainCol {
+      display: none;
+    }
   }
 }

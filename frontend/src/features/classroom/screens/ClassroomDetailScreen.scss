@@ -122,9 +122,17 @@
   color: #fff !important;
   flex-shrink: 0;
 
-  [class*="kpiIcon"] { color: rgba(255, 255, 255, 0.5); }
-  [class*="kpiValue"] { color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
-  [class*="kpiLabel"] { color: rgba(255, 255, 255, 0.55); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
+  [class*="kpiIcon"] {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  [class*="kpiValue"] {
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  [class*="kpiLabel"] {
+    color: rgba(255, 255, 255, 0.55);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
 }
 
 // ── Hero + Tabs wrapper ──
@@ -145,7 +153,11 @@
     left: 0;
     right: 0;
     height: 6px;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, transparent 100%);
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.08) 0%,
+      transparent 100%
+    );
     pointer-events: none;
     z-index: 4;
   }
@@ -186,7 +198,9 @@
     color: rgba(255, 255, 255, 0.7) !important;
     background-color: transparent !important;
 
-    svg { fill: currentColor; }
+    svg {
+      fill: currentColor;
+    }
 
     &:hover {
       color: #fff !important;
@@ -223,6 +237,10 @@
   padding: layout.$spacing-06 layout.$spacing-10;
 }
 
+.classroom-admin-panel__motion {
+  min-width: 0;
+}
+
 // Override EntityOverviewFrame defaults when embedded inside .classroom-admin-panel
 .classroom-admin-overview-frame-section {
   padding: 0;
@@ -232,6 +250,11 @@
 // Keep for ContestPanel which still uses this class without side column
 .classroom-admin-overview-layout {
   @include grid.sidebar-detail-grid;
+}
+
+.classroom-admin-catalog-layout {
+  display: grid;
+  min-width: 0;
 }
 
 .classroom-admin-overview-layout__main > .classroom-admin-section,
@@ -265,6 +288,12 @@
     font-weight: 300;
     margin: 0;
     color: var(--cds-text-primary);
+  }
+
+  p {
+    @include type.type-style("label-01");
+    margin: layout.$spacing-02 0 0;
+    color: var(--cds-text-secondary);
   }
 }
 
@@ -323,6 +352,22 @@
   gap: layout.$spacing-03;
 }
 
+.classroom-admin-announcement-groups {
+  display: grid;
+  gap: layout.$spacing-06;
+}
+
+.classroom-admin-announcement-group {
+  display: grid;
+  gap: layout.$spacing-03;
+
+  h4 {
+    @include type.type-style("heading-compact-02");
+    margin: 0;
+    color: var(--cds-text-primary);
+  }
+}
+
 .classroom-admin-announcement-card {
   @include card.interactive($override-tile: true);
   display: flex;
@@ -330,7 +375,9 @@
   gap: layout.$spacing-03;
   border: 1px solid var(--cds-border-subtle);
   border-left: 3px solid var(--cds-border-interactive);
-  transition: background-color 110ms ease, border-color 110ms ease;
+  transition:
+    background-color 110ms ease,
+    border-color 110ms ease;
 
   &:hover {
     border-color: var(--cds-border-interactive);
@@ -413,6 +460,84 @@
   @include grid.card-grid;
 }
 
+.classroom-admin-contest-catalog {
+  display: grid;
+  gap: layout.$spacing-06;
+}
+
+.classroom-admin-contest-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+}
+
+.classroom-admin-contest-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  min-height: layout.rem(32px);
+  padding: 0 layout.$spacing-03;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+  color: var(--cds-text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+
+  span,
+  strong {
+    @include type.type-style("label-01");
+  }
+
+  strong {
+    color: var(--cds-text-helper);
+    font-weight: 500;
+  }
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+    color: var(--cds-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+}
+
+.classroom-admin-contest-filter--selected {
+  border-color: var(--cds-border-strong-01);
+  background: var(--cds-layer-selected-01);
+  color: var(--cds-text-primary);
+}
+
+.classroom-admin-contest-group {
+  display: grid;
+  gap: layout.$spacing-03;
+}
+
+.classroom-admin-contest-group__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+  padding-bottom: layout.$spacing-02;
+  border-bottom: 1px solid var(--cds-border-subtle);
+
+  h4 {
+    @include type.type-style("heading-compact-02");
+    margin: 0;
+    color: var(--cds-text-primary);
+  }
+
+  span {
+    @include type.type-style("label-01");
+    color: var(--cds-text-secondary);
+  }
+}
+
 .classroom-admin-mini-list {
   display: grid;
   gap: layout.$spacing-02;
@@ -491,7 +616,6 @@
   color: var(--cds-text-secondary);
 }
 
-
 .classroom-settings-save-row {
   display: flex;
   justify-content: flex-end;
@@ -537,7 +661,6 @@
     color: var(--cds-icon-primary);
   }
 }
-
 
 @media (max-width: 1056px) {
   .classroom-hero-content {

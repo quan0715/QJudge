@@ -12,24 +12,39 @@ import {
   getContestStateLabel,
   type ContestDisplayState,
 } from "@/core/entities/contest.entity";
-import { getBoundContestTimeRange } from "@/features/classroom/domain/classroomActivityTimeline";
 import { ScheduleCard } from "../ScheduleCard";
 
 const ACCENT: Record<string, string> = {
-  upcoming: "var(--cds-interactive)",
-  running:  "var(--cds-support-success)",
-  ended:    "var(--cds-border-strong-01)",
+  upcoming: "var(--cds-border-strong-01)",
+  running: "var(--cds-support-success)",
+  ended: "var(--cds-border-strong-01)",
   archived: "var(--cds-text-disabled)",
 };
 
 function StateIcon({ state }: { state: ContestDisplayState }) {
   const props = { size: 16 };
   switch (state) {
-    case "running":  return <InProgress {...props} />;
-    case "ended":    return <CheckmarkFilled {...props} />;
-    case "archived": return <Archive {...props} />;
-    default:         return <Calendar {...props} />;
+    case "running":
+      return <InProgress {...props} />;
+    case "ended":
+      return <CheckmarkFilled {...props} />;
+    case "archived":
+      return <Archive {...props} />;
+    default:
+      return <Calendar {...props} />;
   }
+}
+
+function getBoundContestTimeRange(contest: BoundContest): {
+  startMs: number;
+  endMs: number;
+} {
+  const startIso = contest.contestStartTime || contest.boundAt;
+  const endIso = contest.contestEndTime || contest.boundAt;
+  return {
+    startMs: new Date(startIso).getTime(),
+    endMs: new Date(endIso).getTime(),
+  };
 }
 
 export interface ContestScheduleCardProps {
@@ -39,12 +54,16 @@ export interface ContestScheduleCardProps {
   timeOnly?: boolean;
 }
 
-export function ContestScheduleCard({ contest, onClick, timeOnly }: ContestScheduleCardProps) {
+export function ContestScheduleCard({
+  contest,
+  onClick,
+  timeOnly,
+}: ContestScheduleCardProps) {
   const { startMs, endMs } = getBoundContestTimeRange(contest);
   const state = getContestState({
     status: contest.contestStatus,
     startTime: isNaN(startMs) ? undefined : new Date(startMs).toISOString(),
-    endTime:   isNaN(endMs)   ? undefined : new Date(endMs).toISOString(),
+    endTime: isNaN(endMs) ? undefined : new Date(endMs).toISOString(),
   });
 
   const accent = ACCENT[state] ?? ACCENT.upcoming;

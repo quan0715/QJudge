@@ -1,10 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { I18nextProvider } from "react-i18next";
-import type { BoundContest, ClassroomAnnouncement } from "@/core/entities/classroom.entity";
+import type { BoundContest } from "@/core/entities/classroom.entity";
 import i18n from "@/i18n";
-import { ClassroomActivityTimeline } from "./ClassroomActivityTimeline";
-import { buildCalendarDayRows } from "@/features/classroom/domain/classroomActivityTimeline";
+import { ClassroomMonthSchedule } from "./ClassroomMonthSchedule";
+import {
+  buildClassroomMonthSchedule,
+  buildClassroomWeekSchedule,
+  localDateKeyFromMs,
+} from "@/features/classroom/domain/classroomActivityTimeline";
+import type { ClassroomScheduleViewMode } from "./ClassroomMonthSchedule";
+
+const DAY = 86_400_000;
 
 const baseContest = (overrides: Partial<BoundContest>): BoundContest => ({
   contestId: "c1",
@@ -14,59 +21,70 @@ const baseContest = (overrides: Partial<BoundContest>): BoundContest => ({
   contestVisibility: "public",
   contestType: "coding",
   deliveryMode: "exam",
-  contestStartTime: new Date(Date.now() + 2 * 86400000).toISOString(),
-  contestEndTime: new Date(Date.now() + 2 * 86400000 + 7200000).toISOString(),
+  contestStartTime: new Date(Date.now() + 2 * DAY).toISOString(),
+  contestEndTime: new Date(Date.now() + 2 * DAY + 7_200_000).toISOString(),
   contestOwnerUsername: "teacher",
   participantCount: 3,
   boundAt: new Date().toISOString(),
   ...overrides,
 });
 
-const baseAnnouncement = (overrides: Partial<ClassroomAnnouncement>): ClassroomAnnouncement => ({
-  id: "a1",
-  title: "Sample announcement",
-  content: "Body text",
-  isPinned: false,
-  createdByUsername: "teacher",
-  createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-  updatedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-  ...overrides,
-});
-
 interface DemoProps {
   contests: BoundContest[];
-  announcements: ClassroomAnnouncement[];
 }
 
-function ScheduleDemo(props: DemoProps) {
+function ScheduleDemo({ contests }: DemoProps) {
   const [nowMs] = useState(() => Date.now());
-  const [startOffset, setStartOffset] = useState(-3);
-  const [endOffset, setEndOffset] = useState(3);
+  const [viewMode, setViewMode] = useState<ClassroomScheduleViewMode>("week");
+  const [rangeAnchor, setRangeAnchor] = useState(() => {
+    const date = new Date(nowMs);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  });
+  const [selectedDateKey, setSelectedDateKey] = useState(() =>
+    localDateKeyFromMs(nowMs),
+  );
 
-  const startMs = (() => {
-    const d = new Date(nowMs);
-    d.setDate(d.getDate() + startOffset);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-  })();
-
-  const endMs = (() => {
-    const d = new Date(nowMs);
-    d.setDate(d.getDate() + endOffset);
-    d.setHours(23, 59, 59, 999);
-    return d.getTime();
-  })();
-
-  const rows = buildCalendarDayRows(props.contests, props.announcements, startMs, endMs, nowMs);
+  const cells = useMemo(
+    () =>
+      viewMode === "week"
+        ? buildClassroomWeekSchedule(contests, rangeAnchor, nowMs)
+        : buildClassroomMonthSchedule(contests, rangeAnchor, nowMs),
+    [contests, rangeAnchor, viewMode, nowMs],
+  );
 
   return (
-    <div style={{ maxWidth: 720 }}>
-      <ClassroomActivityTimeline
-        rows={rows}
-        onOpenContest={(id) => console.info("open contest", id)}
-        onViewAnnouncement={(a) => console.info("view announcement", a.id)}
-        onLoadEarlier={() => setStartOffset((o) => o - 7)}
-        onLoadLater={() => setEndOffset((o) => o + 7)}
+    <div style={{ maxWidth: 960 }}>
+      <ClassroomMonthSchedule
+        cells={cells}
+        rangeAnchor={rangeAnchor}
+        viewMode={viewMode}
+        selectedDateKey={selectedDateKey}
+        onViewModeChange={setViewMode}
+        onSelectDate={setSelectedDateKey}
+        onOpenContest={(id) => console.info("preview contest", id)}
+        onPreviousRange={() => {
+          setRangeAnchor((current) => {
+            const next = new Date(current);
+            if (viewMode === "week") {
+              next.setDate(current.getDate() - 7);
+            } else {
+              next.setMonth(current.getMonth() - 1);
+            }
+            return next;
+          });
+        }}
+        onNextRange={() => {
+          setRangeAnchor((current) => {
+            const next = new Date(current);
+            if (viewMode === "week") {
+              next.setDate(current.getDate() + 7);
+            } else {
+              next.setMonth(current.getMonth() + 1);
+            }
+            return next;
+          });
+        }}
       />
     </div>
   );
@@ -84,11 +102,13 @@ const meta: Meta<typeof ScheduleDemo> = {
   ],
   args: {
     contests: [],
-    announcements: [],
   },
   parameters: {
     docs: {
-      description: { component: "教室總覽主欄：統一時間軸，含活動（contest）與公告（announcement）事件，預設捲至今天。" },
+      description: {
+        component:
+          "教室總覽主欄：學生視角月曆，只顯示競賽/考試排程，不顯示公告。",
+      },
     },
   },
 };
@@ -101,29 +121,18 @@ export const Empty: Story = {};
 export const ContestsOnly: Story = {
   args: {
     contests: [
-      baseContest({ contestId: "past", contestName: "Past exam", contestStartTime: new Date(Date.now() - 7 * 86400000).toISOString(), contestEndTime: new Date(Date.now() - 7 * 86400000 + 7200000).toISOString() }),
-      baseContest({ contestId: "upcoming", contestName: "Upcoming exam" }),
-    ],
-  },
-};
-
-export const AnnouncementsOnly: Story = {
-  args: {
-    announcements: [
-      baseAnnouncement({ id: "a1", title: "Week 1 announcement", createdAt: new Date(Date.now() - 7 * 86400000).toISOString(), updatedAt: new Date(Date.now() - 7 * 86400000).toISOString() }),
-      baseAnnouncement({ id: "a2", title: "Today's announcement", createdAt: new Date(Date.now() - 1800000).toISOString(), updatedAt: new Date(Date.now() - 1800000).toISOString() }),
-    ],
-  },
-};
-
-export const Mixed: Story = {
-  args: {
-    contests: [
-      baseContest({ contestId: "live", contestName: "Live exam", contestStartTime: new Date(Date.now() - 3600000).toISOString(), contestEndTime: new Date(Date.now() + 7200000).toISOString() }),
-      baseContest({ contestId: "next", contestName: "Tomorrow", contestStartTime: new Date(Date.now() + 86400000).toISOString(), contestEndTime: new Date(Date.now() + 86400000 + 7200000).toISOString() }),
-    ],
-    announcements: [
-      baseAnnouncement({ id: "a1", title: "Posted yesterday", createdAt: new Date(Date.now() - 86400000).toISOString(), updatedAt: new Date(Date.now() - 86400000).toISOString() }),
+      baseContest({
+        contestId: "past",
+        contestName: "Past exam",
+        contestStartTime: new Date(Date.now() - 7 * DAY).toISOString(),
+        contestEndTime: new Date(
+          Date.now() - 7 * DAY + 7_200_000,
+        ).toISOString(),
+      }),
+      baseContest({
+        contestId: "upcoming",
+        contestName: "Upcoming exam",
+      }),
     ],
   },
 };
@@ -131,11 +140,34 @@ export const Mixed: Story = {
 export const SameDayMultiple: Story = {
   args: {
     contests: [
-      baseContest({ contestId: "morning", contestName: "Morning exam", contestStartTime: new Date(Date.now() + 2 * 86400000).toISOString(), contestEndTime: new Date(Date.now() + 2 * 86400000 + 3600000).toISOString() }),
-      baseContest({ contestId: "afternoon", contestName: "Afternoon exam", contestStartTime: new Date(Date.now() + 2 * 86400000 + 7200000).toISOString(), contestEndTime: new Date(Date.now() + 2 * 86400000 + 10800000).toISOString() }),
-    ],
-    announcements: [
-      baseAnnouncement({ id: "a1", title: "Same day announcement", createdAt: new Date(Date.now() + 2 * 86400000 - 1800000).toISOString(), updatedAt: new Date(Date.now() + 2 * 86400000 - 1800000).toISOString() }),
+      baseContest({
+        contestId: "morning",
+        contestName: "Morning exam",
+        contestStartTime: new Date(Date.now() + 2 * DAY).toISOString(),
+        contestEndTime: new Date(
+          Date.now() + 2 * DAY + 3_600_000,
+        ).toISOString(),
+      }),
+      baseContest({
+        contestId: "afternoon",
+        contestName: "Afternoon exam",
+        contestStartTime: new Date(
+          Date.now() + 2 * DAY + 7_200_000,
+        ).toISOString(),
+        contestEndTime: new Date(
+          Date.now() + 2 * DAY + 10_800_000,
+        ).toISOString(),
+      }),
+      baseContest({
+        contestId: "evening",
+        contestName: "Evening exam",
+        contestStartTime: new Date(
+          Date.now() + 2 * DAY + 14_400_000,
+        ).toISOString(),
+        contestEndTime: new Date(
+          Date.now() + 2 * DAY + 18_000_000,
+        ).toISOString(),
+      }),
     ],
   },
 };
