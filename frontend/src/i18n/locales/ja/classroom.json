@@ -62,6 +62,8 @@
     "emptyAll": "アクティビティもお知らせもまだありません",
     "emptySubtitle": "公開中で終了していないアクティビティがあると、ここに表示されます。",
     "emptyTitle": "進行中または今後のアクティビティはありません",
+    "loadEarlier": "以前を表示",
+    "loadLater": "以降を表示",
     "timelineHeading": "アクティビティタイムライン",
     "today": "今日"
   },

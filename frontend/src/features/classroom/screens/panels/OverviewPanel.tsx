@@ -7,7 +7,7 @@ import EntityOverviewFrame from "@/shared/layout/EntityOverviewFrame";
 import { AnnouncementSection } from "../../components/AnnouncementSection";
 import { ClassroomActivityTimeline } from "../../components/ClassroomActivityTimeline";
 import "../../components/ClassroomActivitySchedule.scss";
-import { buildAllTimelineDayGroups } from "../../domain/classroomActivityTimeline";
+import { buildCalendarDayRows } from "../../domain/classroomActivityTimeline";
 import type { ClassroomAdminPanelId } from "../ClassroomAdminLayout";
 
 interface OverviewPanelProps {
@@ -31,10 +31,26 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
   const { t } = useTranslation("classroom");
 
   const [nowMs] = useState(() => Date.now());
+  const [startOffset, setStartOffset] = useState(-3);
+  const [endOffset, setEndOffset] = useState(3);
 
-  const timelineGroups = useMemo(
-    () => buildAllTimelineDayGroups(classroom.contests, classroom.announcements, nowMs),
-    [classroom.contests, classroom.announcements, nowMs],
+  const startMs = useMemo(() => {
+    const d = new Date(nowMs);
+    d.setDate(d.getDate() + startOffset);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }, [nowMs, startOffset]);
+
+  const endMs = useMemo(() => {
+    const d = new Date(nowMs);
+    d.setDate(d.getDate() + endOffset);
+    d.setHours(23, 59, 59, 999);
+    return d.getTime();
+  }, [nowMs, endOffset]);
+
+  const calRows = useMemo(
+    () => buildCalendarDayRows(classroom.contests, classroom.announcements, startMs, endMs, nowMs),
+    [classroom.contests, classroom.announcements, startMs, endMs, nowMs],
   );
 
   return (
@@ -42,9 +58,11 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
       sectionClassName="classroom-admin-overview-frame-section"
       main={
         <ClassroomActivityTimeline
-          groups={timelineGroups}
+          rows={calRows}
           onOpenContest={onNavigateExam}
           onViewAnnouncement={onViewAnnouncement}
+          onLoadEarlier={() => setStartOffset((o) => o - 7)}
+          onLoadLater={() => setEndOffset((o) => o + 7)}
         />
       }
       side={

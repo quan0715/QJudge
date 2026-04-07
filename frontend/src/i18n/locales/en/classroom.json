@@ -62,6 +62,8 @@
     "emptyAll": "No activities or announcements yet",
     "emptySubtitle": "Published activities that have not ended yet will appear here.",
     "emptyTitle": "No in-progress or upcoming activities",
+    "loadEarlier": "Show earlier",
+    "loadLater": "Show later",
     "timelineHeading": "Activity timeline",
     "today": "Today"
   },

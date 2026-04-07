@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { ClickableTile, Tag } from "@carbon/react";
-import { Bullhorn, Trophy } from "@carbon/icons-react";
+import { Tag } from "@carbon/react";
+import { Bullhorn, ChevronDown, ChevronUp } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ClassroomAnnouncement } from "@/core/entities/classroom.entity";
 import {
@@ -8,25 +8,27 @@ import {
   getContestStateColor,
   getContestStateLabel,
 } from "@/core/entities/contest.entity";
-import type { TimelineDayGroup, TimelineEvent } from "@/features/classroom/domain/classroomActivityTimeline";
+import type { CalendarDayRow, TimelineEvent } from "@/features/classroom/domain/classroomActivityTimeline";
 import { getBoundContestTimeRange } from "@/features/classroom/domain/classroomActivityTimeline";
 import { formatDateTime, DATE_FORMATS } from "@/i18n/dateUtils";
 import { EmptyState } from "@/shared/ui/EmptyState";
+import { Trophy } from "@carbon/icons-react";
 
 export interface ClassroomActivityTimelineProps {
-  groups: TimelineDayGroup[];
+  rows: CalendarDayRow[];
   onOpenContest: (contestId: string) => void;
   onViewAnnouncement: (announcement: ClassroomAnnouncement) => void;
+  onLoadEarlier: () => void;
+  onLoadLater: () => void;
 }
 
-function formatDayHeading(dateKey: string): string {
-  const [y, m, d] = dateKey.split("-").map((x) => Number.parseInt(x, 10));
-  if (!y || !m || !d) return dateKey;
-  const ms = new Date(y, m - 1, d, 12, 0, 0, 0).getTime();
-  return formatDateTime(ms, DATE_FORMATS.DATE_ONLY);
+function formatWeekday(date: Date): string {
+  return formatDateTime(date, {
+    weekday: "short",
+  });
 }
 
-function ContestEventRow({
+function ContestEventItem({
   event,
   onOpenContest,
 }: {
@@ -44,24 +46,28 @@ function ContestEventRow({
   });
 
   return (
-    <ClickableTile
-      className="classroom-activity-schedule__event-tile"
+    <button
+      type="button"
+      className="cal-list__event cal-list__event--contest"
       onClick={() => onOpenContest(contest.contestId)}
     >
-      <div className="classroom-activity-schedule__event-header">
-        <span className="classroom-activity-schedule__event-name">{contest.contestName}</span>
-        <Tag type={getContestStateColor(state)} size="sm">
-          {getContestStateLabel(state)}
-        </Tag>
-      </div>
-      <div className="classroom-activity-schedule__event-meta">
-        {formatDateTime(startIso, DATE_FORMATS.SHORT)} — {formatDateTime(endIso, DATE_FORMATS.SHORT)}
-      </div>
-    </ClickableTile>
+      <span className="cal-list__event-bar cal-list__event-bar--contest" aria-hidden />
+      <span className="cal-list__event-body">
+        <span className="cal-list__event-name">{contest.contestName}</span>
+        <span className="cal-list__event-time">
+          {formatDateTime(startIso, DATE_FORMATS.SHORT)}
+          {" — "}
+          {formatDateTime(endIso, DATE_FORMATS.SHORT)}
+        </span>
+      </span>
+      <Tag type={getContestStateColor(state)} size="sm" className="cal-list__event-tag">
+        {getContestStateLabel(state)}
+      </Tag>
+    </button>
   );
 }
 
-function AnnouncementEventRow({
+function AnnouncementEventItem({
   event,
   onViewAnnouncement,
 }: {
@@ -72,31 +78,38 @@ function AnnouncementEventRow({
   const { t } = useTranslation("classroom");
 
   return (
-    <ClickableTile
-      className="classroom-activity-schedule__event-tile classroom-activity-schedule__event-tile--announcement"
+    <button
+      type="button"
+      className="cal-list__event cal-list__event--announcement"
       onClick={() => onViewAnnouncement(announcement)}
     >
-      <div className="classroom-activity-schedule__event-header">
-        <Bullhorn size={16} className="classroom-activity-schedule__event-icon" />
-        <span className="classroom-activity-schedule__event-name">{announcement.title}</span>
-        <Tag type="blue" size="sm">
-          {t("activitySchedule.announcementLabel", "公告")}
-        </Tag>
-      </div>
-      <div className="classroom-activity-schedule__event-meta">
-        {formatDateTime(announcement.createdAt, DATE_FORMATS.SHORT)}
-      </div>
-    </ClickableTile>
+      <span className="cal-list__event-bar cal-list__event-bar--announcement" aria-hidden />
+      <span className="cal-list__event-body">
+        <span className="cal-list__event-name">
+          <Bullhorn size={14} className="cal-list__event-icon" aria-hidden />
+          {announcement.title}
+        </span>
+        <span className="cal-list__event-time">
+          {formatDateTime(announcement.createdAt, DATE_FORMATS.SHORT)}
+        </span>
+      </span>
+      <Tag type="blue" size="sm" className="cal-list__event-tag">
+        {t("activitySchedule.announcementLabel", "公告")}
+      </Tag>
+    </button>
   );
 }
 
 export const ClassroomActivityTimeline: React.FC<ClassroomActivityTimelineProps> = ({
-  groups,
+  rows,
   onOpenContest,
   onViewAnnouncement,
+  onLoadEarlier,
+  onLoadLater,
 }) => {
   const { t } = useTranslation("classroom");
   const todayRef = useRef<HTMLLIElement>(null);
+  const hasEvents = rows.some((r) => r.events.length > 0);
 
   useEffect(() => {
     if (todayRef.current) {
@@ -104,69 +117,81 @@ export const ClassroomActivityTimeline: React.FC<ClassroomActivityTimelineProps>
     }
   }, []);
 
-  if (groups.length === 0) {
-    return (
-      <section
-        className="classroom-admin-section classroom-activity-schedule__timeline"
-        aria-labelledby="classroom-activity-timeline-heading"
+  return (
+    <section
+      className="cal-list"
+      aria-labelledby="cal-list-heading"
+    >
+      <h2 id="cal-list-heading" className="cal-list__heading">
+        {t("activitySchedule.timelineHeading", "活動時間軸")}
+      </h2>
+
+      <button
+        type="button"
+        className="cal-list__load-btn"
+        onClick={onLoadEarlier}
       >
-        <h2
-          id="classroom-activity-timeline-heading"
-          className="classroom-activity-schedule__timeline-heading"
-        >
-          {t("activitySchedule.timelineHeading", "活動時間軸")}
-        </h2>
+        <ChevronUp size={16} />
+        {t("activitySchedule.loadEarlier", "顯示更早")}
+      </button>
+
+      {!hasEvents ? (
         <EmptyState
           icon={Trophy}
           title={t("activitySchedule.emptyAll", "教室目前沒有任何活動或公告")}
           compact
         />
-      </section>
-    );
-  }
+      ) : (
+        <ol className="cal-list__days">
+          {rows.map((row) => (
+            <li
+              key={row.dateKey}
+              ref={row.isToday ? todayRef : undefined}
+              className={[
+                "cal-list__day",
+                row.isToday ? "cal-list__day--today" : "",
+                row.events.length === 0 ? "cal-list__day--empty" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {/* Left date column */}
+              <div className="cal-list__date-col" aria-hidden>
+                <span className="cal-list__weekday">{formatWeekday(row.date)}</span>
+                <span className="cal-list__date-num">{row.date.getDate()}</span>
+              </div>
 
-  return (
-    <section
-      className="classroom-admin-section classroom-activity-schedule__timeline"
-      aria-labelledby="classroom-activity-timeline-heading"
-    >
-      <h2
-        id="classroom-activity-timeline-heading"
-        className="classroom-activity-schedule__timeline-heading"
-      >
-        {t("activitySchedule.timelineHeading", "活動時間軸")}
-      </h2>
-      <ol className="classroom-activity-schedule__timeline-list">
-        {groups.map((group) => (
-          <li
-            key={group.dateKey}
-            ref={group.isToday ? todayRef : undefined}
-            className={[
-              "classroom-activity-schedule__day",
-              group.isToday ? "classroom-activity-schedule__day--today" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <h3 className="classroom-activity-schedule__day-label">
-              {group.isToday
-                ? `${formatDayHeading(group.dateKey)} · ${t("activitySchedule.today", "今天")}`
-                : formatDayHeading(group.dateKey)}
-            </h3>
-            <ul className="classroom-activity-schedule__events">
-              {group.events.map((event, idx) => (
-                <li key={event.type === "contest" ? event.contest.contestId : `ann-${event.announcement.id}-${idx}`}>
-                  {event.type === "contest" ? (
-                    <ContestEventRow event={event} onOpenContest={onOpenContest} />
+              {/* Right events column */}
+              <div className="cal-list__events-col">
+                {row.events.map((event, idx) =>
+                  event.type === "contest" ? (
+                    <ContestEventItem
+                      key={event.contest.contestId}
+                      event={event}
+                      onOpenContest={onOpenContest}
+                    />
                   ) : (
-                    <AnnouncementEventRow event={event} onViewAnnouncement={onViewAnnouncement} />
-                  )}
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ol>
+                    <AnnouncementEventItem
+                      key={`ann-${event.announcement.id}-${idx}`}
+                      event={event}
+                      onViewAnnouncement={onViewAnnouncement}
+                    />
+                  ),
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <button
+        type="button"
+        className="cal-list__load-btn"
+        onClick={onLoadLater}
+      >
+        <ChevronDown size={16} />
+        {t("activitySchedule.loadLater", "顯示更晚")}
+      </button>
     </section>
   );
 };

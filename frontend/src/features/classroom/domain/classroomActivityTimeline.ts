@@ -1,5 +1,73 @@
 import type { BoundContest, ClassroomAnnouncement } from "@/core/entities/classroom.entity";
 
+// ── Calendar day row (consecutive, including empty days) ──────────────────────
+
+export interface CalendarDayRow {
+  dateKey: string;
+  date: Date;
+  isToday: boolean;
+  events: TimelineEvent[];
+}
+
+/**
+ * Returns one entry per consecutive calendar day from startMs to endMs (inclusive).
+ * Each entry contains all events (contests + announcements) that fall on that day.
+ * Days with no events still appear (empty events array).
+ */
+export function buildCalendarDayRows(
+  contests: BoundContest[],
+  announcements: ClassroomAnnouncement[],
+  startMs: number,
+  endMs: number,
+  nowMs: number,
+): CalendarDayRow[] {
+  const todayKey = localDateKeyFromMs(nowMs);
+
+  // Build event map keyed by date string
+  const eventsByDay = new Map<string, TimelineEvent[]>();
+
+  function addEvent(key: string, event: TimelineEvent) {
+    const list = eventsByDay.get(key) ?? [];
+    list.push(event);
+    eventsByDay.set(key, list);
+  }
+
+  for (const c of contests) {
+    const { startMs: cStart } = getBoundContestTimeRange(c);
+    if (Number.isNaN(cStart)) continue;
+    addEvent(localDateKeyFromMs(cStart), { type: "contest", contest: c, sortMs: cStart });
+  }
+
+  for (const a of announcements) {
+    const sortMs = new Date(a.createdAt).getTime();
+    if (Number.isNaN(sortMs)) continue;
+    addEvent(localDateKeyFromMs(sortMs), { type: "announcement", announcement: a, sortMs });
+  }
+
+  // Normalise to start-of-local-day
+  const startDate = new Date(startMs);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(endMs);
+  endDate.setHours(23, 59, 59, 999);
+
+  const rows: CalendarDayRow[] = [];
+  const cursor = new Date(startDate);
+
+  while (cursor <= endDate) {
+    const key = localDateKeyFromMs(cursor.getTime());
+    const rawEvents = eventsByDay.get(key) ?? [];
+    rows.push({
+      dateKey: key,
+      date: new Date(cursor),
+      isToday: key === todayKey,
+      events: [...rawEvents].sort((a, b) => a.sortMs - b.sortMs),
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return rows;
+}
+
 // ── Time helpers ──────────────────────────────────────────────────────────────
 
 export function getBoundContestTimeRange(contest: BoundContest): {

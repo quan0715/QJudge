@@ -5,7 +5,7 @@ import type { BoundContest, ClassroomAnnouncement } from "@/core/entities/classr
 import i18n from "@/i18n";
 import { ClassroomActivityTimeline } from "./ClassroomActivityTimeline";
 import "./ClassroomActivitySchedule.scss";
-import { buildAllTimelineDayGroups } from "@/features/classroom/domain/classroomActivityTimeline";
+import { buildCalendarDayRows } from "@/features/classroom/domain/classroomActivityTimeline";
 
 const baseContest = (overrides: Partial<BoundContest>): BoundContest => ({
   contestId: "c1",
@@ -41,13 +41,33 @@ interface DemoProps {
 
 function ScheduleDemo(props: DemoProps) {
   const [nowMs] = useState(() => Date.now());
-  const groups = buildAllTimelineDayGroups(props.contests, props.announcements, nowMs);
+  const [startOffset, setStartOffset] = useState(-3);
+  const [endOffset, setEndOffset] = useState(3);
+
+  const startMs = (() => {
+    const d = new Date(nowMs);
+    d.setDate(d.getDate() + startOffset);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  })();
+
+  const endMs = (() => {
+    const d = new Date(nowMs);
+    d.setDate(d.getDate() + endOffset);
+    d.setHours(23, 59, 59, 999);
+    return d.getTime();
+  })();
+
+  const rows = buildCalendarDayRows(props.contests, props.announcements, startMs, endMs, nowMs);
+
   return (
     <div style={{ maxWidth: 720 }}>
       <ClassroomActivityTimeline
-        groups={groups}
+        rows={rows}
         onOpenContest={(id) => console.info("open contest", id)}
         onViewAnnouncement={(a) => console.info("view announcement", a.id)}
+        onLoadEarlier={() => setStartOffset((o) => o - 7)}
+        onLoadLater={() => setEndOffset((o) => o + 7)}
       />
     </div>
   );

@@ -62,6 +62,8 @@
     "emptyAll": "아직 활동이나 공지사항이 없습니다",
     "emptySubtitle": "게시되었고 아직 종료되지 않은 활동이 있으면 여기에 표시됩니다.",
     "emptyTitle": "진행 중이거나 예정된 활동이 없습니다",
+    "loadEarlier": "이전 표시",
+    "loadLater": "이후 표시",
     "timelineHeading": "활동 타임라인",
     "today": "오늘"
   },

@@ -1,112 +1,180 @@
 @use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type" as *;
 
-// ── Wrapper ───────────────────────────────────────────────────────────────────
+// ── Calendar List ─────────────────────────────────────────────────────────────
 
-.classroom-activity-schedule {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-06;
-}
-
-// ── Timeline heading ──────────────────────────────────────────────────────────
-
-.classroom-activity-schedule__timeline {
+.cal-list {
   margin: 0;
 }
 
-.classroom-activity-schedule__timeline-heading {
+.cal-list__heading {
   margin: 0 0 $spacing-05;
   font-size: var(--cds-heading-03-font-size);
   font-weight: var(--cds-heading-03-font-weight);
   letter-spacing: var(--cds-heading-03-letter-spacing);
 }
 
-// ── Timeline list & day nodes ─────────────────────────────────────────────────
+// ── Load earlier / later buttons ──────────────────────────────────────────────
 
-.classroom-activity-schedule__timeline-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.cal-list__load-btn {
   display: flex;
-  flex-direction: column;
-  gap: $spacing-06;
-  border-inline-start: 2px solid var(--cds-border-subtle-01);
-  padding-inline-start: $spacing-05;
-}
+  align-items: center;
+  gap: $spacing-02;
+  width: 100%;
+  padding: $spacing-03 $spacing-04;
+  background: none;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: var(--cds-label-01-font-size);
+  color: var(--cds-link-primary);
+  justify-content: center;
+  transition: background 100ms ease;
 
-.classroom-activity-schedule__day {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
 
-// Today marker: accent line + bold label
-.classroom-activity-schedule__day--today {
-  > .classroom-activity-schedule__day-label {
-    color: var(--cds-interactive);
-    font-weight: 600;
+  &:first-of-type {
+    margin-bottom: $spacing-04;
+  }
 
-    &::before {
-      content: "";
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--cds-interactive);
-      margin-inline-end: $spacing-03;
-      vertical-align: middle;
-    }
+  &:last-of-type {
+    margin-top: $spacing-04;
   }
 }
 
-.classroom-activity-schedule__day-label {
-  margin: 0 0 $spacing-03;
+// ── Days list ─────────────────────────────────────────────────────────────────
+
+.cal-list__days {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cal-list__day {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  column-gap: $spacing-04;
+  min-height: 56px;
+  padding: $spacing-03 0;
+  border-top: 1px solid var(--cds-border-subtle-01);
+  align-items: start;
+
+  &:last-child {
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+  }
+}
+
+// Empty day: just show the date, minimal height
+.cal-list__day--empty {
+  min-height: 40px;
+  opacity: 0.55;
+}
+
+// ── Date column (left) ────────────────────────────────────────────────────────
+
+.cal-list__date-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 2px;
+  gap: 2px;
+}
+
+.cal-list__weekday {
   font-size: var(--cds-label-01-font-size);
   font-weight: 400;
   letter-spacing: var(--cds-label-01-letter-spacing);
   color: var(--cds-text-secondary);
   text-transform: uppercase;
+  line-height: 1;
 }
 
-// ── Event list ────────────────────────────────────────────────────────────────
+.cal-list__date-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--cds-text-primary);
 
-.classroom-activity-schedule__events {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  // Today: filled circle
+  .cal-list__day--today & {
+    background: var(--cds-interactive);
+    color: var(--cds-text-on-color);
+    font-weight: 600;
+  }
+}
+
+// ── Events column (right) ─────────────────────────────────────────────────────
+
+.cal-list__events-col {
   display: flex;
   flex-direction: column;
-  gap: $spacing-03;
+  gap: $spacing-02;
+  padding-top: 2px;
 }
 
-// ── Event tile (shared base – Carbon ClickableTile overrides) ─────────────────
+// ── Individual event item ─────────────────────────────────────────────────────
 
-.classroom-activity-schedule__event-tile.cds--tile {
-  padding: $spacing-04 $spacing-05;
-  border: 1px solid var(--cds-border-subtle-00);
+.cal-list__event {
+  display: grid;
+  grid-template-columns: 4px 1fr auto;
+  column-gap: $spacing-03;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: $spacing-02 $spacing-03;
   background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-00);
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: start;
+  transition: background 100ms ease;
 
   &:hover {
     background: var(--cds-layer-hover-01);
   }
+
+  &:active {
+    background: var(--cds-layer-active-01);
+  }
 }
 
-.classroom-activity-schedule__event-header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-03;
-  align-items: center;
-  margin-bottom: $spacing-02;
-}
-
-.classroom-activity-schedule__event-icon {
-  color: var(--cds-icon-secondary);
+// Left color accent bar
+.cal-list__event-bar {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 2px;
   flex-shrink: 0;
 }
 
-.classroom-activity-schedule__event-name {
-  flex: 1;
+.cal-list__event-bar--contest {
+  background: var(--cds-interactive);
+}
+
+.cal-list__event-bar--announcement {
+  background: var(--cds-support-info);
+}
+
+// Event body (name + time)
+.cal-list__event-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
+}
+
+.cal-list__event-name {
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
   font-size: var(--cds-body-short-01-font-size);
   font-weight: 600;
   color: var(--cds-text-primary);
@@ -115,12 +183,17 @@
   text-overflow: ellipsis;
 }
 
-.classroom-activity-schedule__event-meta {
-  font-size: var(--cds-label-01-font-size);
-  color: var(--cds-text-secondary);
+.cal-list__event-icon {
+  flex-shrink: 0;
+  color: var(--cds-support-info);
 }
 
-// Announcement tile: slightly muted border to distinguish from contest
-.classroom-activity-schedule__event-tile--announcement.cds--tile {
-  border-style: dashed;
+.cal-list__event-time {
+  font-size: var(--cds-label-01-font-size);
+  color: var(--cds-text-secondary);
+  white-space: nowrap;
+}
+
+.cal-list__event-tag {
+  flex-shrink: 0;
 }

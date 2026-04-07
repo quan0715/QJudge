@@ -62,6 +62,8 @@
     "emptyAll": "教室目前沒有任何活動或公告",
     "emptySubtitle": "當教室有已發布且尚未結束的活動時，會顯示在這裡。",
     "emptyTitle": "目前沒有進行中或即將開始的活動",
+    "loadEarlier": "顯示更早",
+    "loadLater": "顯示更晚",
     "timelineHeading": "活動時間軸",
     "today": "今天"
   },
