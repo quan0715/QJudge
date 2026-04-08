@@ -40,6 +40,7 @@ export interface BoundContest {
   contestStartTime: string;
   contestEndTime: string;
   contestOwnerUsername: string;
+  resultsPublished?: boolean;
   participantCount: number;
   boundAt: string;
 }

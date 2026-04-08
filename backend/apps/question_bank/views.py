@@ -1,6 +1,7 @@
 """
 Views for question bank API.
 """
+import logging
 from io import BytesIO
 
 from PIL import Image, UnidentifiedImageError
@@ -50,6 +51,8 @@ from .bank_workflows import (
     is_publicly_accessible_bank,
     list_question_bank_inbox,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _serialize_bank_question_response(*, question=None, membership=None):
@@ -221,7 +224,8 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                 items=data["items"],
             )
         except ValueError as exc:
-            raise DRFValidationError(str(exc))
+            logger.warning("Inbox ingest validation error: %s", exc)
+            raise DRFValidationError(exc.args[0] if exc.args else "Invalid input.")
         return Response(result, status=status.HTTP_200_OK)
 
     @action(
@@ -473,7 +477,8 @@ class QuestionBankItemViewSet(
                 target_bank_uuid=target_bank_id,
             )
         except ValueError as exc:
-            raise DRFValidationError(str(exc))
+            logger.warning("Clone question validation error: %s", exc)
+            raise DRFValidationError(exc.args[0] if exc.args else "Invalid input.")
 
         cloned = clone_question_to_bank(source_question, target_bank, request.user)
         cloned.refresh_from_db()

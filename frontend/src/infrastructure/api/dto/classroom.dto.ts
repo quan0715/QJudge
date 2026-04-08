@@ -68,6 +68,7 @@ export interface BoundContestDto {
   contest_start_time: string;
   contest_end_time: string;
   contest_owner_username: string;
+  results_published?: boolean;
   participant_count: number;
   bound_at: string;
 }

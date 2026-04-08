@@ -70,6 +70,7 @@ class BoundContestSerializer(serializers.ModelSerializer):
     contest_start_time = serializers.DateTimeField(source='contest.start_time', read_only=True)
     contest_end_time = serializers.DateTimeField(source='contest.end_time', read_only=True)
     contest_owner_username = serializers.CharField(source='contest.owner.username', read_only=True)
+    results_published = serializers.BooleanField(source='contest.results_published', read_only=True)
     participant_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -86,6 +87,7 @@ class BoundContestSerializer(serializers.ModelSerializer):
             'contest_start_time',
             'contest_end_time',
             'contest_owner_username',
+            'results_published',
             'participant_count',
             'bound_at',
         ]

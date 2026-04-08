@@ -593,7 +593,7 @@ class InternalCommitActionView(SchemaAPIView):
                     action_obj.save(update_fields=["status", "error_message"])
                     logger.exception("Commit action failed: %s", exc)
                     return Response(
-                        {"error": str(exc)},
+                        {"error": "Action execution failed."},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     )
 
@@ -750,9 +750,9 @@ class InternalCodeRunView(SchemaAPIView):
 
         try:
             judge = get_judge(language)
-        except ValueError as exc:
+        except ValueError:
             return Response(
-                {"error": str(exc)},
+                {"error": f"Unsupported language: {language}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

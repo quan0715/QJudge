@@ -19,6 +19,7 @@ export const ClassroomContestCard: React.FC<ClassroomContestCardProps> = ({ cont
     visibility: contest.contestVisibility,
     requiresPassword,
     deliveryMode: contest.deliveryMode,
+    resultsPublished: contest.resultsPublished,
     organizer: undefined,
     hasJoined: true,
     isRegistered: true,
