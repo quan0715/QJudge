@@ -261,7 +261,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.exception(f"Error submitting user answer: {e}")
             return Response(
-                {"error": str(e)},
+                {"error": "Failed to submit answer"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

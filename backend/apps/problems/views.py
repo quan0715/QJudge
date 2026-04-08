@@ -357,12 +357,13 @@ class ProblemViewSet(viewsets.ModelViewSet):
             )
         except TestRunSetupError as exc:
             error_text = str(exc)
-            error_status = (
-                status.HTTP_400_BAD_REQUEST
-                if not error_text.startswith("Judge system error:")
-                else status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-            return Response({"error": error_text}, status=error_status)
+            logger.warning("Test run setup error: %s", error_text)
+            if error_text.startswith("Judge system error:"):
+                return Response(
+                    {"error": "Judge system error"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+            return Response({"error": error_text}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(result)
     
@@ -390,9 +391,9 @@ class ProblemViewSet(viewsets.ModelViewSet):
         try:
             import yaml
             data = yaml.safe_load(yaml_content)
-        except yaml.YAMLError as e:
+        except yaml.YAMLError:
             return Response(
-                {'error': f'Invalid YAML: {str(e)}'},
+                {'error': 'Invalid YAML syntax'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         

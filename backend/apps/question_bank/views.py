@@ -225,7 +225,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             )
         except ValueError as exc:
             logger.warning("Inbox ingest validation error: %s", exc)
-            raise DRFValidationError(exc.args[0] if exc.args else "Invalid input.")
+            raise DRFValidationError("Invalid input.")
         return Response(result, status=status.HTTP_200_OK)
 
     @action(
@@ -478,7 +478,7 @@ class QuestionBankItemViewSet(
             )
         except ValueError as exc:
             logger.warning("Clone question validation error: %s", exc)
-            raise DRFValidationError(exc.args[0] if exc.args else "Invalid input.")
+            raise DRFValidationError("Invalid input.")
 
         cloned = clone_question_to_bank(source_question, target_bank, request.user)
         cloned.refresh_from_db()
