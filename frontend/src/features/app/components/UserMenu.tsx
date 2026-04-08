@@ -12,6 +12,7 @@ import {
   Edit,
   Code,
   Book,
+  RecentlyViewed,
   Settings,
   UserMultiple,
   Bullhorn,
@@ -221,6 +222,19 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           >
             <Book size={16} />
             {t("nav.documentation")}
+          </button>
+
+          <button
+            type="button"
+            className="user-menu-link"
+            onClick={() => {
+              navigate("/changelog");
+              setIsExpandedInternal(false);
+              onExpandedChange?.(false);
+            }}
+          >
+            <RecentlyViewed size={16} />
+            {t("nav.changelog")}
           </button>
 
           <button

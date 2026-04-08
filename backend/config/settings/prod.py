@@ -32,7 +32,6 @@ if GLITCHTIP_DSN:
         traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
         send_default_pii=False,
         environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
-        _experiments={"enable_logs": True},
     )
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')

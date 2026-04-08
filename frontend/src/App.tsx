@@ -31,6 +31,7 @@ import { problemDetailRoutes, problemSolveRoutes } from "@/features/problems";
 import { classroomContestDetailRoutes, classroomContestAdminRoute, classroomExamPreviewRoute, classroomExamPrecheckRoute, classroomPracticeRoute } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
+import { changelogRoutes } from "@/features/changelog";
 import { errorRoutes, fallbackRoute } from "@/features/app";
 import { adminRoutes, draftProblemsRoute } from "@/features/admin";
 import { landingRoute } from "@/features/landing";
@@ -107,7 +108,10 @@ function App() {
                         </Route>
 
                         {/* Public Documentation Routes - no login required, custom layout */}
-                        <Route element={<DocsLayout />}>{docsRoutes}</Route>
+                        <Route element={<DocsLayout />}>
+                          {docsRoutes}
+                          {changelogRoutes}
+                        </Route>
 
                         {/* Public Landing Page */}
                         {landingRoute}

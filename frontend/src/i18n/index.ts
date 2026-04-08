@@ -10,6 +10,7 @@ import zhTWDocs from "./locales/zh-TW/docs.json";
 import zhTWLanding from "./locales/zh-TW/landing.json";
 import zhTWClassroom from "./locales/zh-TW/classroom.json";
 import zhTWChatbot from "./locales/zh-TW/chatbot.json";
+import zhTWChangelog from "./locales/zh-TW/changelog.json";
 
 // English
 import enCommon from "./locales/en/common.json";
@@ -51,6 +52,7 @@ const resources = {
     landing: zhTWLanding,
     classroom: zhTWClassroom,
     chatbot: zhTWChatbot,
+    changelog: zhTWChangelog,
   },
   en: {
     common: enCommon,
@@ -98,7 +100,7 @@ i18n.use(initReactI18next).init({
   resources,
   lng: "zh-TW",
   fallbackLng: "zh-TW",
-  ns: ["common", "problem", "contest", "admin", "docs", "landing", "classroom", "chatbot"],
+  ns: ["common", "problem", "contest", "admin", "docs", "landing", "classroom", "chatbot", "changelog"],
   defaultNS: "common",
   interpolation: {
     escapeValue: false,

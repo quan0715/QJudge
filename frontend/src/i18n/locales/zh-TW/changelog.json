@@ -1,0 +1,13 @@
+{
+  "title": "更新紀錄",
+  "description": "查看 QJudge 的最新功能與改善",
+  "version": "版本",
+  "date": "發布日期",
+  "categories": {
+    "added": "新功能",
+    "improved": "改善",
+    "fixed": "修復"
+  },
+  "latestBadge": "最新",
+  "noContent": "尚無更新紀錄"
+}
