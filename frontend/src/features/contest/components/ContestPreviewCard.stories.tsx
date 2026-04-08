@@ -81,3 +81,20 @@ export const Past: Story = {
         />
       ),
 };
+
+export const ResultsPublished: Story = {
+  parameters: {
+    docs: {
+      source: { code: `<ContestPreviewCard contest={{ ...endedContest, resultsPublished: true }} />` },
+    },
+  },
+  render: () => (
+    <ContestPreviewCard
+      contest={sampleContest({
+        startTime: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
+        endTime: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+        resultsPublished: true,
+      })}
+    />
+  ),
+};
