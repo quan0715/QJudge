@@ -848,6 +848,9 @@
     "updated": "更新",
     "viewModeResults": "作答結果檢視模式"
   },
+  "badge": {
+    "resultsPublished": "成績已發佈"
+  },
   "header": {
     "contestPlatform": "競賽平台"
   },

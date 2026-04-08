@@ -817,6 +817,9 @@
     "unpublished": "미공개",
     "updated": "업데이트"
   },
+  "badge": {
+    "resultsPublished": "성적 공개"
+  },
   "header": {
     "contestPlatform": "대회 플랫폼"
   },

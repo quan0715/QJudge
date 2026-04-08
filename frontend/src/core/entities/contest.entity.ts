@@ -301,6 +301,9 @@ export interface Contest {
   password?: string;
   organizer?: string;
 
+  // Results
+  resultsPublished?: boolean;
+
   // User state
   hasJoined: boolean;
   isRegistered: boolean;

@@ -817,6 +817,9 @@
     "unpublished": "未公開",
     "updated": "更新"
   },
+  "badge": {
+    "resultsPublished": "成績公開済み"
+  },
   "header": {
     "contestPlatform": "コンテストプラットフォーム"
   },

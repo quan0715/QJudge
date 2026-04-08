@@ -66,6 +66,7 @@ export function mapBoundContestDto(dto: BoundContestDto): BoundContest {
     contestStartTime: dto.contest_start_time,
     contestEndTime: dto.contest_end_time,
     contestOwnerUsername: dto.contest_owner_username,
+    resultsPublished: !!dto.results_published,
     participantCount: dto.participant_count || 0,
     boundAt: dto.bound_at,
   };

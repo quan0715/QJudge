@@ -40,7 +40,14 @@ export const ContestPreviewCard: React.FC<ContestPreviewCardProps> = ({
       <Stack gap={3}>
         <div className="contest-preview-card__header">
           <h3 className="contest-preview-card__title">{contest.name}</h3>
-          <Tag type={stateColor}>{stateLabel}</Tag>
+          <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
+            <Tag type={stateColor}>{stateLabel}</Tag>
+            {contestState === "ended" && contest.resultsPublished && (
+              <Tag type="green" size="sm">
+                {t("badge.resultsPublished", "成績已發佈")}
+              </Tag>
+            )}
+          </div>
         </div>
 
         <div className="contest-preview-card__meta">

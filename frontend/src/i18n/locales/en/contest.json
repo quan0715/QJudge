@@ -846,6 +846,9 @@
     "updated": "updated",
     "viewModeResults": "Answer result view mode"
   },
+  "badge": {
+    "resultsPublished": "Graded"
+  },
   "header": {
     "contestPlatform": "Contest Platform"
   },
