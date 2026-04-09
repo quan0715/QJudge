@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import ContestResultDashboardPanel from "./ContestResultDashboardPanel";
+import { useContestResultDashboard } from "./useContestResultDashboard";
+import { createContestResultDashboardMock } from "./contestResultDashboard.mock";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -31,6 +33,10 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@carbon/charts-react", () => ({
   SimpleBarChart: () => <div data-testid="score-distribution-chart" />,
+}));
+
+vi.mock("./useContestResultDashboard", () => ({
+  useContestResultDashboard: vi.fn(),
 }));
 
 const buildContest = (
@@ -74,6 +80,14 @@ const buildContest = (
   }) as ContestDetail;
 
 describe("ContestResultDashboardPanel", () => {
+  beforeEach(() => {
+    vi.mocked(useContestResultDashboard).mockReturnValue({
+      data: createContestResultDashboardMock(buildContest()),
+      loading: false,
+      error: null,
+    });
+  });
+
   it("renders KPI cards and score distribution chart", () => {
     render(
       <MemoryRouter>
@@ -146,7 +160,12 @@ describe("ContestResultDashboardPanel", () => {
     expect(firstCardText).toContain("Q1");
   });
 
-  it("shows coding contests as summary-only", () => {
+  it("shows not supported message for coding contests", () => {
+    vi.mocked(useContestResultDashboard).mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
+    });
     render(
       <MemoryRouter>
         <ContestResultDashboardPanel
@@ -156,8 +175,22 @@ describe("ContestResultDashboardPanel", () => {
     );
 
     expect(
-      screen.getByText("Coding 結果先保留基本資訊"),
+      screen.getByText("目前不支援 Coding 考試的結果分析"),
     ).toBeInTheDocument();
+  });
+
+  it("shows loading state", () => {
+    vi.mocked(useContestResultDashboard).mockReturnValue({
+      data: null,
+      loading: true,
+      error: null,
+    });
+    render(
+      <MemoryRouter>
+        <ContestResultDashboardPanel contest={buildContest()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("載入中…")).toBeInTheDocument();
   });
 
   it("shows grading progress for essay questions in drawer", () => {

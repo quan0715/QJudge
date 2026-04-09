@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { SimpleBarChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
 import "@carbon/charts-react/styles.css";
@@ -11,11 +11,11 @@ import {
 import { Close } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import {
-  createContestResultDashboardMock,
   dashboardTypeLabels,
   type QuestionDetailMock,
   type QuestionSummaryMock,
 } from "./contestResultDashboard.mock";
+import { useContestResultDashboard } from "./useContestResultDashboard";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
 import styles from "./ContestResultDashboardPanel.module.scss";
 
@@ -41,38 +41,42 @@ export default function ContestResultDashboardPanel({
   const [drawerQuestionId, setDrawerQuestionId] = useState<string | null>(null);
   const [focusChip, setFocusChip] = useState<FocusChip>("score_rate");
 
-  const dashboard = useMemo(
-    () => createContestResultDashboardMock(contest),
-    [contest],
-  );
+  const { data: dashboard, loading, error } = useContestResultDashboard(contest);
 
   const sortedQuestions = useMemo(
-    () => [...dashboard.questions].sort((a, b) => a.order - b.order),
-    [dashboard.questions],
+    () =>
+      dashboard
+        ? [...dashboard.questions].sort((a, b) => a.order - b.order)
+        : [],
+    [dashboard],
   );
 
   const drawerQuestion =
     sortedQuestions.find((q) => q.questionId === drawerQuestionId) ?? null;
-  const drawerDetail = drawerQuestionId
-    ? dashboard.details[drawerQuestionId]
-    : null;
+  const drawerDetail =
+    drawerQuestionId && dashboard
+      ? dashboard.details[drawerQuestionId]
+      : null;
 
   const closeDrawer = useCallback(() => setDrawerQuestionId(null), []);
 
-  const completionRate = Math.round(
-    (dashboard.contest.completedCount / dashboard.contest.participantCount) *
-      100,
-  );
-
-  const isCodingSummaryOnly = dashboard.contest.contestType === "coding";
+  const completionRate = dashboard
+    ? Math.round(
+        (dashboard.contest.completedCount /
+          dashboard.contest.participantCount) *
+          100,
+      )
+    : 0;
 
   const scoreDistributionChartData = useMemo(
     () =>
-      dashboard.scoreDistribution.map((bucket) => ({
-        group: bucket.rangeLabel,
-        value: bucket.count,
-      })),
-    [dashboard.scoreDistribution],
+      dashboard
+        ? dashboard.scoreDistribution.map((bucket) => ({
+            group: bucket.rangeLabel,
+            value: bucket.count,
+          }))
+        : [],
+    [dashboard],
   );
 
   const scoreDistributionChartOptions = useMemo(
@@ -95,7 +99,9 @@ export default function ContestResultDashboardPanel({
         },
       },
       color: {
-        scale: dashboard.scoreDistribution.reduce<Record<string, string>>(
+        scale: (dashboard?.scoreDistribution ?? []).reduce<
+          Record<string, string>
+        >(
           (acc, bucket) => {
             acc[bucket.rangeLabel] = "#4589ff";
             return acc;
@@ -104,8 +110,59 @@ export default function ContestResultDashboardPanel({
         ),
       },
     }),
-    [dashboard.scoreDistribution, t],
+    [dashboard, t],
   );
+
+  if (contest?.contestType === "coding") {
+    return (
+      <div className={styles.root}>
+        <div className={styles.toolbar}>
+          <div className={styles.titleMeta}>
+            <span className={styles.panelTitle}>
+              {t("statistics.resultSummary", "結果摘要")}
+            </span>
+          </div>
+        </div>
+        <div className={styles.emptyGrid}>
+          <p>{t("statistics.codingNotSupported", "目前不支援 Coding 考試的結果分析")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.root}>
+        <div className={styles.toolbar}>
+          <div className={styles.titleMeta}>
+            <span className={styles.panelTitle}>
+              {t("statistics.resultSummary", "結果摘要")}
+            </span>
+          </div>
+        </div>
+        <div className={styles.emptyGrid}>
+          <p>{t("statistics.loading", "載入中…")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !dashboard) {
+    return (
+      <div className={styles.root}>
+        <div className={styles.toolbar}>
+          <div className={styles.titleMeta}>
+            <span className={styles.panelTitle}>
+              {t("statistics.resultSummary", "結果摘要")}
+            </span>
+          </div>
+        </div>
+        <div className={styles.emptyGrid}>
+          <p>{error ?? t("statistics.noData", "無法載入資料")}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.root}>
@@ -182,25 +239,6 @@ export default function ContestResultDashboardPanel({
 
         {/* Right: Question Grid */}
         <div className={styles.questionColumn}>
-          {isCodingSummaryOnly ? (
-            <Tile className={styles.basicInfoCard}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>
-                  {t(
-                    "statistics.codingBasicOnly",
-                    "Coding 結果先保留基本資訊",
-                  )}
-                </h2>
-              </div>
-              <p className={styles.basicInfoCopy}>
-                {t(
-                  "statistics.codingBasicOnlyDesc",
-                  "目前只顯示整體分數分布與 KPI。每題深入分析、狀態分布與提交樣本先不在這個版本處理。",
-                )}
-              </p>
-            </Tile>
-          ) : (
-            <>
               <div className={styles.questionHeader}>
                 <h2 className={styles.questionHeaderTitle}>
                   {t("statistics.questionBoard", "題目分析")}
@@ -246,8 +284,6 @@ export default function ContestResultDashboardPanel({
                   ))}
                 </div>
               )}
-            </>
-          )}
         </div>
       </div>
 
