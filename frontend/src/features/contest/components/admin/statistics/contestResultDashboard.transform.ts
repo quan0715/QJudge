@@ -1,55 +1,61 @@
-import type { ScoreboardData } from "@/core/entities/contest.entity";
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
 import type { ExamAnswerDto } from "@/infrastructure/api/repositories/exam.repository";
 import type { DashboardMockData, QuestionSummaryMock, QuestionDetailMock } from "./contestResultDashboard.mock";
 
 interface TransformInput {
+  contestId: string;
   contestName: string;
   courseName: string;
-  contestType: "paper_exam" | "coding";
   resultsPublished: boolean;
-  standings: ScoreboardData;
+  participantCount: number;
   examQuestions: ExamQuestion[];
   examAnswers: ExamAnswerDto[];
 }
 
 export function transformToDashboardData(input: TransformInput): DashboardMockData {
-  const { standings, examQuestions, examAnswers } = input;
-  const participantCount = standings.rows.length;
-  const totalScores = standings.rows.map((r) => r.totalScore);
-  const maxTotalScore = standings.problems.reduce((sum, p) => sum + p.score, 0);
+  const { examQuestions, examAnswers, participantCount } = input;
 
-  const completedCount = standings.rows.filter((r) => r.totalScore > 0).length;
+  const answersByQuestion = groupBy(examAnswers, (a) => a.question_id);
+  const answersByParticipant = groupBy(examAnswers, (a) => String(a.participant_user_id));
+
+  // Compute per-participant total scores
+  const totalScores: number[] = [];
+  for (const [, pAnswers] of answersByParticipant) {
+    const total = pAnswers.reduce((sum, a) => sum + (a.score ?? 0), 0);
+    totalScores.push(total);
+  }
+  // Participants with no answers get 0
+  const answeredParticipants = answersByParticipant.size;
+  for (let i = answeredParticipants; i < participantCount; i++) {
+    totalScores.push(0);
+  }
+
+  const maxTotalScore = examQuestions.reduce((sum, q) => sum + q.score, 0);
+  const completedCount = totalScores.filter((s) => s > 0).length;
   const averageScore = participantCount > 0
     ? totalScores.reduce((a, b) => a + b, 0) / participantCount
     : 0;
   const medianScore = median(totalScores);
-
   const scoreDistribution = buildScoreDistribution(totalScores, maxTotalScore);
 
-  const answersByQuestion = groupBy(examAnswers, (a) => a.question_id);
-  const orderedProblems = [...standings.problems].sort((a, b) => a.order - b.order);
+  const sortedQuestions = [...examQuestions].sort((a, b) => a.order - b.order);
 
   const questions: QuestionSummaryMock[] = [];
   const details: Record<string, QuestionDetailMock> = {};
 
-  for (const problem of orderedProblems) {
-    const examQ = examQuestions.find((q) => q.order === problem.order);
-    if (!examQ) continue;
-
+  for (const examQ of sortedQuestions) {
     const answers = answersByQuestion.get(examQ.id) ?? [];
     const kind = examQ.questionType as ExamQuestionType;
 
-    const questionScores = standings.rows
-      .map((row) => row.problems[problem.id]?.score ?? 0);
+    const questionScores = answers.map((a) => a.score ?? 0);
     const answerCount = answers.length;
     const missingCount = participantCount - answerCount;
     const qAvg = participantCount > 0
       ? questionScores.reduce((a, b) => a + b, 0) / participantCount
       : 0;
-    const scoreRate = problem.score > 0 ? Math.round((qAvg / problem.score) * 100) : 0;
-    const zeroCount = questionScores.filter((s) => s === 0).length;
-    const fullCount = questionScores.filter((s) => s >= problem.score).length;
+    const scoreRate = examQ.score > 0 ? Math.round((qAvg / examQ.score) * 100) : 0;
+    const zeroCount = questionScores.filter((s) => s === 0).length + missingCount;
+    const fullCount = questionScores.filter((s) => s >= examQ.score).length;
     const zeroRate = participantCount > 0 ? Math.round((zeroCount / participantCount) * 100) : 0;
     const fullRate = participantCount > 0 ? Math.round((fullCount / participantCount) * 100) : 0;
 
@@ -58,7 +64,7 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
       order: examQ.order,
       title: examQ.prompt.length > 40 ? examQ.prompt.slice(0, 40) + "…" : examQ.prompt,
       kind,
-      maxScore: problem.score,
+      maxScore: examQ.score,
       answerCount,
       missingCount,
       averageScore: Math.round(qAvg * 10) / 10,
@@ -69,7 +75,7 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
     };
     questions.push(summary);
 
-    const scoreBands = buildQuestionScoreBands(questionScores, problem.score);
+    const scoreBands = buildQuestionScoreBands(questionScores, examQ.score);
 
     if (kind === "single_choice" || kind === "multiple_choice" || kind === "true_false") {
       const optionDist = buildOptionDistribution(examQ, answers);
@@ -100,10 +106,10 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
 
   return {
     contest: {
-      id: standings.contestId,
+      id: input.contestId,
       name: input.contestName,
       course: input.courseName,
-      contestType: input.contestType,
+      contestType: "paper_exam",
       participantCount,
       completedCount,
       resultsPublished: input.resultsPublished,

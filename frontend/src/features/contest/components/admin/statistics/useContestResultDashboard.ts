@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
-import { getContestStandings } from "@/infrastructure/api/repositories/contest.repository";
+import { getContestParticipants } from "@/infrastructure/api/repositories/contestParticipants.repository";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { getAllExamAnswers } from "@/infrastructure/api/repositories/exam.repository";
 import type { DashboardMockData } from "./contestResultDashboard.mock";
@@ -39,8 +39,8 @@ export function useContestResultDashboard(
 
     (async () => {
       try {
-        const [standings, examQuestions, examAnswers] = await Promise.all([
-          getContestStandings(contestId),
+        const [participants, examQuestions, examAnswers] = await Promise.all([
+          getContestParticipants(contestId),
           getExamQuestions(contestId),
           getAllExamAnswers(contestId),
         ]);
@@ -48,11 +48,11 @@ export function useContestResultDashboard(
         if (cancelled) return;
 
         const result = transformToDashboardData({
+          contestId,
           contestName: contest.name ?? "",
           courseName: "",
-          contestType: "paper_exam",
           resultsPublished: contest.resultsPublished ?? false,
-          standings,
+          participantCount: participants.length,
           examQuestions,
           examAnswers,
         });
