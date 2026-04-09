@@ -31,8 +31,13 @@ vi.mock("react-i18next", () => ({
   },
 }));
 
+vi.mock("@/shared/ui/theme/ThemeContext", () => ({
+  useTheme: () => ({ theme: "white" }),
+}));
+
 vi.mock("@carbon/charts-react", () => ({
   LollipopChart: () => <div data-testid="score-distribution-chart" />,
+  SimpleBarChart: () => <div data-testid="drawer-distribution-chart" />,
 }));
 
 vi.mock("./useContestResultDashboard", () => ({
@@ -213,7 +218,7 @@ describe("ContestResultDashboardPanel", () => {
     expect(screen.getAllByText("29 / 47").length).toBeGreaterThan(0);
   });
 
-  it("loads detail from question query param", () => {
+  it("calls loadQuestionDetail when opening drawer", () => {
     const loadQuestionDetail = vi.fn();
     vi.mocked(useContestResultDashboard).mockReturnValue({
       data: createContestResultDashboardMock(buildContest()),
@@ -225,12 +230,14 @@ describe("ContestResultDashboardPanel", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/admin?question=q1"]}>
+      <MemoryRouter>
         <ContestResultDashboardPanel contest={buildContest()} />
       </MemoryRouter>,
     );
 
-    expect(loadQuestionDetail).toHaveBeenCalledWith("q1");
-    expect(screen.getByRole("complementary")).toBeInTheDocument();
+    const card = screen.getByText("基礎語法與觀念檢核").closest("button")!;
+    fireEvent.click(card);
+
+    expect(loadQuestionDetail).toHaveBeenCalled();
   });
 });

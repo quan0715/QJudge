@@ -76,12 +76,22 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
     // Details only available when answers are loaded
     if (answersByQuestion) {
       const scoreBands = buildQuestionScoreBands(gradedScores, examQ.score);
+      const responses = answers.map((answer) => ({
+        participantId: answer.participant_user_id,
+        username: answer.participant_username,
+        nickname: answer.participant_nickname || null,
+        displayName: answer.participant_nickname || answer.participant_username,
+        score: answer.score,
+        gradedAt: answer.graded_at,
+        answer: answer.answer,
+      }));
 
       if (kind === "single_choice" || kind === "multiple_choice" || kind === "true_false") {
         details[examQ.id] = {
           questionId: examQ.id,
           kind,
           scoreBands,
+          responses,
           optionDistribution: buildOptionDistribution(examQ, answers),
           omittedCount: missingCount,
         };
@@ -91,6 +101,7 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
           questionId: examQ.id,
           kind,
           scoreBands,
+          responses,
           gradingProgress: { graded, total: answers.length },
         };
       } else {
@@ -98,6 +109,7 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
           questionId: examQ.id,
           kind: "essay",
           scoreBands,
+          responses,
           gradingProgress: { graded: answers.length, total: answers.length },
         };
       }

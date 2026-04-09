@@ -107,6 +107,15 @@ export interface ExamDashboardQuestionDetailDto {
   question_id: string;
   kind: string;
   score_bands: Array<{ label: string; count: number }>;
+  responses: Array<{
+    participant_id: number;
+    username: string;
+    nickname: string | null;
+    display_name: string;
+    score: number | null;
+    graded_at: string | null;
+    answer: unknown;
+  }>;
   option_distribution?: Array<{
     label: string;
     count: number;
@@ -114,6 +123,12 @@ export interface ExamDashboardQuestionDetailDto {
     is_correct: boolean;
   }>;
   omitted_count?: number;
+  omitted_participants?: Array<{
+    participant_id: number;
+    username: string;
+    nickname: string | null;
+    display_name: string;
+  }>;
   grading_progress?: {
     graded: number;
     total: number;

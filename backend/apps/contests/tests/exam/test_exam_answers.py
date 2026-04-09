@@ -505,9 +505,17 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data['kind'], ExamQuestionType.SINGLE_CHOICE)
         self.assertEqual(resp.data['omitted_count'], 0)
+        self.assertEqual(
+            resp.data['score_bands'],
+            [
+                {'label': '0', 'count': 1},
+                {'label': '5', 'count': 1},
+            ],
+        )
         option_b = next(item for item in resp.data['option_distribution'] if item['label'].startswith('B.'))
         self.assertEqual(option_b['count'], 1)
         self.assertTrue(option_b['is_correct'])
+        self.assertEqual(resp.data['omitted_participants'], [])
 
     def test_question_detail_cache_invalidates_on_grading(self):
         answer = ExamAnswer.objects.create(

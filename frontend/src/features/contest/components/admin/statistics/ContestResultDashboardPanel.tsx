@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import { LollipopChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
@@ -14,14 +14,14 @@ import {
   Close,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
 import {
   type QuestionDetailMock,
   type QuestionSummaryMock,
 } from "./contestResultDashboard.mock";
 import { useContestResultDashboard } from "./useContestResultDashboard";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
-import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import ExamQuestionPrompt from "@/features/contest/components/exam/ExamQuestionPrompt";
+import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import {
   EXAM_QUESTION_TYPE_ICON,
 } from "@/shared/ui/examQuestionTypeVisual";
@@ -29,12 +29,26 @@ import { resolveExamQuestionTypeFromRaw } from "@/shared/ui/questionVisual";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
 import styles from "./ContestResultDashboardPanel.module.scss";
 
+const resolveCarbonChartTheme = (
+  theme: string,
+): "white" | "g10" | "g90" | "g100" => {
+  switch (theme) {
+    case "g10":
+    case "g90":
+    case "g100":
+    case "white":
+      return theme;
+    default:
+      return "white";
+  }
+};
+
 export default function ContestResultDashboardPanel({
   contest,
 }: AdminPanelProps) {
   const { t } = useTranslation("contest");
-  const [searchParams, setSearchParams] = useSearchParams();
-  const drawerQuestionId = searchParams.get("question");
+  const { theme } = useTheme();
+  const [drawerQuestionId, setDrawerQuestionId] = useState<string | null>(null);
 
   const {
     data: dashboard,
@@ -63,21 +77,8 @@ export default function ContestResultDashboardPanel({
       : null;
   const drawerError = drawerQuestionId ? detailErrors[drawerQuestionId] ?? null : null;
 
-  const closeDrawer = useCallback(() => {
-    setSearchParams((previous) => {
-      const next = new URLSearchParams(previous);
-      next.delete("question");
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
-
-  const openDrawer = useCallback((questionId: string) => {
-    setSearchParams((previous) => {
-      const next = new URLSearchParams(previous);
-      next.set("question", questionId);
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
+  const closeDrawer = useCallback(() => setDrawerQuestionId(null), []);
+  const openDrawer = useCallback((questionId: string) => setDrawerQuestionId(questionId), []);
 
   useEffect(() => {
     if (!drawerQuestionId || !drawerQuestion) return;
@@ -114,11 +115,13 @@ export default function ContestResultDashboardPanel({
       ? (dashboard.summary.averageScore / dashboard.summary.maxTotalScore) * 100
       : 0;
 
+  const chartTheme = resolveCarbonChartTheme(theme);
+
   const scoreDistributionChartOptions = useMemo(
     () => ({
       title: "",
       height: "260px",
-      theme: "g90" as const,
+      theme: chartTheme,
       toolbar: { enabled: false },
       legend: { enabled: false },
       axes: {
@@ -136,15 +139,16 @@ export default function ContestResultDashboardPanel({
       color: {
         scale: (dashboard?.scoreDistribution ?? []).reduce<Record<string, string>>(
           (acc, bucket) => {
-            acc[bucket.rangeLabel] = "#4589ff";
+            acc[bucket.rangeLabel] = "var(--cds-link-primary)";
             return acc;
           },
           {},
         ),
       },
     }),
-    [dashboard?.scoreDistribution, t],
+    [chartTheme, dashboard?.scoreDistribution, t],
   );
+
 
   if (contest?.contestType === "coding") {
     return (
@@ -268,6 +272,7 @@ export default function ContestResultDashboardPanel({
             </div>
             <div className={styles.chartFrame}>
               <LollipopChart
+                key={`${contest?.id ?? "contest"}-${chartTheme}`}
                 data={scoreDistributionChartData}
                 options={scoreDistributionChartOptions}
               />
@@ -509,6 +514,11 @@ function DrawerContent({
   onClose: () => void;
 }) {
   const questionVisual = getQuestionVisual(question.kind);
+  const [scoreFilter, setScoreFilter] = useState<string>("all");
+
+  useEffect(() => {
+    setScoreFilter("all");
+  }, [question.questionId]);
 
   if (loading) {
     return (
@@ -520,9 +530,11 @@ function DrawerContent({
               Q{question.order} · {questionVisual.label}
             </h2>
             <div className={styles.drawerPrompt}>
-              <MarkdownRenderer enableMath enableHighlight>
-                {question.title}
-              </MarkdownRenderer>
+              <ExamQuestionPrompt
+                content={question.title}
+                emptyText="（尚未填寫題目敘述）"
+                compact
+              />
             </div>
             <div className={styles.drawerMeta}>
               <span>
@@ -556,9 +568,11 @@ function DrawerContent({
               Q{question.order} · {questionVisual.label}
             </h2>
             <div className={styles.drawerPrompt}>
-              <MarkdownRenderer enableMath enableHighlight>
-                {question.title}
-              </MarkdownRenderer>
+              <ExamQuestionPrompt
+                content={question.title}
+                emptyText="（尚未填寫題目敘述）"
+                compact
+              />
             </div>
             <div className={styles.drawerMeta}>
               <span>
@@ -609,6 +623,14 @@ function DrawerContent({
   const objectiveDetail = isObjectiveDetail(detail) ? detail : null;
   const subjectiveDetail = isSubjectiveDetail(detail) ? detail : null;
   const codingDetail = isCodingDetail(detail) ? detail : null;
+  const scoreFilterOptions = buildScoreFilterOptions(detail.responses);
+  const filteredResponses = detail.responses.filter((response) =>
+    scoreFilter === "all"
+      ? true
+      : scoreFilter === "ungraded"
+        ? response.score == null
+        : formatScoreLabel(response.score) === scoreFilter,
+  );
 
   return (
     <>
@@ -619,9 +641,11 @@ function DrawerContent({
             Q{question.order} · {questionVisual.label}
           </h2>
           <div className={styles.drawerPrompt}>
-            <MarkdownRenderer enableMath enableHighlight>
-              {question.title}
-            </MarkdownRenderer>
+            <ExamQuestionPrompt
+              content={question.title}
+              emptyText="（尚未填寫題目敘述）"
+              compact
+            />
           </div>
           <div className={styles.drawerMeta}>
             <span>
@@ -640,30 +664,6 @@ function DrawerContent({
           onClick={onClose}
         />
       </div>
-
-      <section className={styles.drawerSection}>
-        <h3 className={styles.drawerSectionTitle}>分數分布</h3>
-        <MiniBarList data={detail.scoreBands} />
-      </section>
-
-      {objectiveDetail && (
-        <>
-          <section className={styles.drawerSection}>
-            <h3 className={styles.drawerSectionTitle}>選項分布</h3>
-            <MiniBarList
-              data={objectiveDetail.optionDistribution.map((item) => ({
-                label: item.label,
-                count: item.count,
-                tone: item.isCorrect ? "success" : "default",
-                suffix: `${item.percent}%`,
-              }))}
-            />
-          </section>
-          <div className={styles.infoCallout}>
-            未作答 {objectiveDetail.omittedCount} 人
-          </div>
-        </>
-      )}
 
       {subjectiveDetail && (
         <section className={styles.drawerSection}>
@@ -690,6 +690,31 @@ function DrawerContent({
                 ? "warning"
                 : "success"
             }
+          />
+        </section>
+      )}
+
+      <section className={styles.drawerSection}>
+        <h3 className={styles.drawerSectionTitle}>分數分布</h3>
+        <MetricBarList
+          rows={detail.scoreBands.map((item) => ({
+            id: item.label,
+            label: item.label,
+            value: item.count,
+            maxValue: Math.max(...detail.scoreBands.map((band) => band.count), 0),
+            meta: `${item.count}`,
+            tone: "default",
+          }))}
+          emptyText="目前沒有已批改分數"
+        />
+      </section>
+
+      {objectiveDetail && (
+        <section className={styles.drawerSection}>
+          <h3 className={styles.drawerSectionTitle}>選項分布</h3>
+          <OptionDistributionList
+            data={objectiveDetail.optionDistribution}
+            omittedParticipants={objectiveDetail.omittedParticipants ?? []}
           />
         </section>
       )}
@@ -743,6 +768,22 @@ function DrawerContent({
           </section>
         </>
       )}
+
+      <section className={styles.drawerSection}>
+        <div className={styles.drawerSectionHeader}>
+          <h3 className={styles.drawerSectionTitle}>所有回答</h3>
+          <span className={styles.sectionMeta}>{filteredResponses.length} 筆</span>
+        </div>
+        <ScoreFilterChips
+          options={scoreFilterOptions}
+          activeValue={scoreFilter}
+          onChange={setScoreFilter}
+        />
+        <ResponseList
+          questionKind={question.kind}
+          responses={filteredResponses}
+        />
+      </section>
     </>
   );
 }
@@ -815,23 +856,24 @@ function RateBar({
   className?: string;
 }) {
   return (
-    <div className={`${styles.rateBar} ${className ?? ""}`}>
-      <div className={styles.rateBarHeader}>
-        <span>{label}</span>
-        <span>{Math.round(value)}%</span>
-      </div>
-      <div className={styles.rateBarTrack}>
-        <div
-          className={`${styles.rateBarFill} ${
-            tone === "critical"
-              ? styles.rateBarFillCritical
-              : tone === "warning"
-                ? styles.rateBarFillWarning
-                : styles.rateBarFillSuccess
-          }`}
-          style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-        />
-      </div>
+    <div className={className}>
+      <MetricBarList
+        rows={[
+          {
+            id: label,
+            label,
+            value,
+            maxValue: 100,
+            meta: `${Math.round(value)}%`,
+            tone:
+              tone === "critical"
+                ? "critical"
+                : tone === "warning"
+                  ? "warning"
+                  : "success",
+          },
+        ]}
+      />
     </div>
   );
 }
@@ -877,6 +919,217 @@ function MiniBarList({
       ))}
     </div>
   );
+}
+
+function OptionDistributionList({
+  data,
+  omittedParticipants,
+}: {
+  data: Array<{
+    label: string;
+    count: number;
+    percent: number;
+    isCorrect: boolean;
+  }>;
+  omittedParticipants: Array<{
+    participantId: number;
+    username: string;
+    nickname: string | null;
+    displayName: string;
+  }>;
+}) {
+  if (data.length === 0) {
+    return <div className={styles.drawerEmptyState}>目前沒有選項資料</div>;
+  }
+
+  const max = Math.max(...data.map((item) => item.count), 0);
+
+  return (
+    <div className={styles.optionList}>
+      <MetricBarList
+        rows={data.map((item) => ({
+          id: item.label,
+          label: item.label,
+          value: item.count,
+          maxValue: max,
+          meta: `${item.count} · ${item.percent}%`,
+          submeta: item.isCorrect ? "正解" : "非正解",
+          tone: item.isCorrect ? "success" : "default",
+          longLabel: true,
+        }))}
+      />
+      <div className={styles.infoCallout}>
+        <div className={styles.infoCalloutHeader}>
+          <span>未作答 {omittedParticipants.length} 人</span>
+        </div>
+        {omittedParticipants.length > 0 ? (
+          <div className={styles.omittedParticipantList}>
+            {omittedParticipants.map((participant) => (
+              <span
+                key={participant.participantId}
+                className={styles.omittedParticipantItem}
+              >
+                {participant.displayName}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className={styles.infoCalloutMeta}>本題無未作答學生</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MetricBarList({
+  rows,
+  emptyText,
+}: {
+  rows: Array<{
+    id: string;
+    label: string;
+    value: number;
+    maxValue: number;
+    meta?: string;
+    submeta?: string;
+    tone?: "default" | "success" | "warning" | "critical";
+    longLabel?: boolean;
+  }>;
+  emptyText?: string;
+}) {
+  if (rows.length === 0) {
+    return <div className={styles.drawerEmptyState}>{emptyText ?? "目前沒有資料"}</div>;
+  }
+
+  return (
+    <div className={styles.metricBarList}>
+      {rows.map((row) => {
+        const ratio = row.maxValue > 0 ? (row.value / row.maxValue) * 100 : 0;
+        return (
+          <div key={row.id} className={styles.metricBarRow}>
+            <div className={styles.metricBarHeader}>
+              <div
+                className={`${styles.metricBarLabel} ${
+                  row.longLabel ? styles.metricBarLabelLong : ""
+                }`}
+              >
+                {row.label}
+              </div>
+              <div className={styles.metricBarMeta}>
+                {row.submeta ? (
+                  <span
+                    className={
+                      row.tone === "success"
+                        ? styles.optionStateCorrect
+                        : row.tone === "critical"
+                          ? styles.metricStateCritical
+                          : styles.optionStateIncorrect
+                    }
+                  >
+                    {row.submeta}
+                  </span>
+                ) : null}
+                {row.meta ? <span>{row.meta}</span> : null}
+              </div>
+            </div>
+            <div className={styles.rateBarTrack}>
+              <div
+                className={`${styles.rateBarFill} ${
+                  row.tone === "critical"
+                    ? styles.rateBarFillCritical
+                    : row.tone === "warning"
+                      ? styles.rateBarFillWarning
+                      : row.tone === "success"
+                        ? styles.rateBarFillSuccess
+                        : styles.rateBarFillDefault
+                }`}
+                style={{ width: `${Math.max(0, Math.min(100, ratio))}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ScoreFilterChips({
+  options,
+  activeValue,
+  onChange,
+}: {
+  options: Array<{ label: string; value: string; count: number }>;
+  activeValue: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className={styles.scoreChipRow}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={`${styles.scoreChip} ${
+            activeValue === option.value ? styles.scoreChipActive : ""
+          }`}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label} {option.count}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ResponseList({
+  questionKind,
+  responses,
+}: {
+  questionKind: QuestionSummaryMock["kind"];
+  responses: QuestionDetailMock["responses"];
+}) {
+  if (responses.length === 0) {
+    return <div className={styles.drawerEmptyState}>目前沒有符合條件的回答</div>;
+  }
+
+  return (
+    <div className={styles.responseList}>
+      {responses.map((response) => (
+        <Tile key={`${response.participantId}-${response.username}`} className={styles.responseCard}>
+          <div className={styles.responseHeader}>
+            <div className={styles.responseIdentity}>{response.displayName}</div>
+            <div className={styles.responseScore}>
+              {response.score == null ? "未批改" : `${formatScoreLabel(response.score)} 分`}
+            </div>
+          </div>
+          <div className={styles.responseBody}>
+            <ResponseAnswerContent questionKind={questionKind} answer={response.answer} />
+          </div>
+        </Tile>
+      ))}
+    </div>
+  );
+}
+
+function ResponseAnswerContent({
+  questionKind,
+  answer,
+}: {
+  questionKind: QuestionSummaryMock["kind"];
+  answer: unknown;
+}) {
+  const text = formatAnswerContent(questionKind, answer);
+  const isMarkdown =
+    questionKind === "essay" || questionKind === "short_answer";
+
+  if (isMarkdown) {
+    return (
+      <MarkdownRenderer enableMath enableHighlight>
+        {text}
+      </MarkdownRenderer>
+    );
+  }
+
+  return <div className={styles.responsePlainText}>{text}</div>;
 }
 
 /* ── Helpers ── */
@@ -949,4 +1202,70 @@ function statusTone(status: string): "default" | "success" | "warning" {
   if (status === "AC") return "success";
   if (status === "Pending") return "warning";
   return "default";
+}
+
+function buildScoreFilterOptions(
+  responses: QuestionDetailMock["responses"],
+): Array<{ label: string; value: string; count: number }> {
+  const counts = new Map<string, number>();
+  let ungraded = 0;
+  for (const response of responses) {
+    if (response.score == null) {
+      ungraded += 1;
+      continue;
+    }
+    const label = formatScoreLabel(response.score);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+
+  const gradedOptions = [...counts.entries()]
+    .sort((a, b) => Number(b[0]) - Number(a[0]))
+    .map(([label, count]) => ({
+      label: `${label} 分`,
+      value: label,
+      count,
+    }));
+
+  return [
+    { label: "全部", value: "all", count: responses.length },
+    ...gradedOptions,
+    ...(ungraded > 0 ? [{ label: "未批改", value: "ungraded", count: ungraded }] : []),
+  ];
+}
+
+function formatScoreLabel(score: number | null): string {
+  if (score == null) return "未批改";
+  return Number.isInteger(score) ? String(score) : score.toFixed(1).replace(/\.0$/, "");
+}
+
+function formatAnswerContent(
+  questionKind: QuestionSummaryMock["kind"],
+  answer: unknown,
+): string {
+  if (answer == null) return "無作答內容";
+
+  if (
+    questionKind === "essay" ||
+    questionKind === "short_answer"
+  ) {
+    if (typeof answer === "string") return answer;
+    if (typeof answer === "object" && answer && "text" in answer) {
+      const text = (answer as { text?: unknown }).text;
+      return typeof text === "string" ? text : JSON.stringify(answer, null, 2);
+    }
+    return JSON.stringify(answer, null, 2);
+  }
+
+  if (typeof answer === "object" && answer && "selected" in answer) {
+    const selected = (answer as { selected?: unknown }).selected;
+    if (Array.isArray(selected)) {
+      return selected.map(String).join(", ");
+    }
+    if (selected == null) {
+      return "未選擇";
+    }
+    return String(selected);
+  }
+
+  return typeof answer === "string" ? answer : JSON.stringify(answer, null, 2);
 }

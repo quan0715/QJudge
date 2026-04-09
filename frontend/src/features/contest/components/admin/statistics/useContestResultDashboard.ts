@@ -179,6 +179,15 @@ function mapQuestionDetail(dto: ExamDashboardQuestionDetailDto): QuestionDetailM
       questionId: dto.question_id,
       kind: dto.kind,
       scoreBands: dto.score_bands,
+      responses: dto.responses.map((response) => ({
+        participantId: response.participant_id,
+        username: response.username,
+        nickname: response.nickname,
+        displayName: response.display_name,
+        score: response.score,
+        gradedAt: response.graded_at,
+        answer: response.answer,
+      })),
       optionDistribution: (dto.option_distribution ?? []).map((item) => ({
         label: item.label,
         count: item.count,
@@ -186,6 +195,12 @@ function mapQuestionDetail(dto: ExamDashboardQuestionDetailDto): QuestionDetailM
         isCorrect: item.is_correct,
       })),
       omittedCount: dto.omitted_count ?? 0,
+      omittedParticipants: (dto.omitted_participants ?? []).map((item) => ({
+        participantId: item.participant_id,
+        username: item.username,
+        nickname: item.nickname,
+        displayName: item.display_name,
+      })),
     };
   }
 
@@ -193,6 +208,15 @@ function mapQuestionDetail(dto: ExamDashboardQuestionDetailDto): QuestionDetailM
     questionId: dto.question_id,
     kind: dto.kind as "short_answer" | "essay",
     scoreBands: dto.score_bands,
+    responses: dto.responses.map((response) => ({
+      participantId: response.participant_id,
+      username: response.username,
+      nickname: response.nickname,
+      displayName: response.display_name,
+      score: response.score,
+      gradedAt: response.graded_at,
+      answer: response.answer,
+    })),
     gradingProgress: {
       graded: dto.grading_progress?.graded ?? 0,
       total: dto.grading_progress?.total ?? 0,

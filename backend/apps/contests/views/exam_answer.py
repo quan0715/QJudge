@@ -47,7 +47,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
     @staticmethod
     def _question_detail_cache_key(contest_id, question_id):
-        return f"contest:{contest_id}:exam_question_detail:{question_id}:v1"
+        return f"contest:{contest_id}:exam_question_detail:{question_id}:v2"
 
     def _invalidate_dashboard_cache(self, contest_id, question_id=None):
         keys = [self._dashboard_summary_cache_key(contest_id)]
@@ -88,23 +88,29 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
     @staticmethod
     def _build_question_score_bands(scores, max_score):
-        if max_score <= 0:
-            return [{'label': '0', 'count': len(scores)}]
+        if not scores:
+            return []
 
-        step = 1 if max_score <= 5 else 3 if max_score <= 15 else 5
-        band_count = max((max_score + step - 1) // step, 1)
-        bands = []
-        for index in range(band_count):
-            lower = index * step
-            upper = min(lower + step, max_score)
-            bands.append({'label': f'{lower}-{upper}', 'count': 0})
-
+        counts = {}
         for score in scores:
-            raw = float(score or 0)
-            band_index = min(max(int(raw // step), 0), band_count - 1)
-            bands[band_index]['count'] += 1
+            decimal_score = Decimal(str(score or 0)).quantize(
+                Decimal('0.01'),
+                rounding=ROUND_HALF_UP,
+            ).normalize()
+            label = format(decimal_score, 'f').rstrip('0').rstrip('.')
+            if '.' in label:
+                label = label.rstrip('0').rstrip('.')
+            if label == '':
+                label = '0'
+            counts[label] = counts.get(label, 0) + 1
 
-        return bands
+        def _score_sort_key(label):
+            return Decimal(label)
+
+        return [
+            {'label': label, 'count': counts[label]}
+            for label in sorted(counts.keys(), key=_score_sort_key)
+        ]
 
     @staticmethod
     def _extract_selected_values(answer):
@@ -450,22 +456,50 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             return Response(cached_payload)
 
         question = get_object_or_404(ExamQuestion, pk=question_id, contest=contest)
-        participants = list(self._student_participants_qs(contest).values_list('id', flat=True))
-        participant_count = len(participants)
+        participants = list(self._student_participants_qs(contest))
+        participant_ids = [participant.id for participant in participants]
+        participants_by_id = {participant.id: participant for participant in participants}
+        participant_count = len(participant_ids)
 
         answers = list(
             ExamAnswer.objects.filter(
-                participant_id__in=participants,
+                participant_id__in=participant_ids,
                 question=question,
-            ).values('answer', 'score', 'graded_at')
+            ).values('participant_id', 'answer', 'score', 'graded_at')
         )
         graded_scores = [float(answer['score']) for answer in answers if answer['score'] is not None]
         missing_count = max(participant_count - len(answers), 0)
+        answered_participant_ids = {answer['participant_id'] for answer in answers}
+        omitted_participants = [
+            {
+                'participant_id': participant.id,
+                'username': participant.user.username,
+                'nickname': participant.nickname or None,
+                'display_name': participant.nickname or participant.user.username,
+            }
+            for participant in participants
+            if participant.id not in answered_participant_ids
+        ]
 
         payload = {
             'question_id': str(question.id),
             'kind': question.question_type,
             'score_bands': self._build_question_score_bands(graded_scores, question.score),
+            'responses': [
+                {
+                    'participant_id': answer['participant_id'],
+                    'username': participants_by_id[answer['participant_id']].user.username,
+                    'nickname': participants_by_id[answer['participant_id']].nickname or None,
+                    'display_name': (
+                        participants_by_id[answer['participant_id']].nickname
+                        or participants_by_id[answer['participant_id']].user.username
+                    ),
+                    'score': float(answer['score']) if answer['score'] is not None else None,
+                    'graded_at': answer['graded_at'],
+                    'answer': answer['answer'],
+                }
+                for answer in answers
+            ],
         }
 
         if question.question_type in {
@@ -475,6 +509,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         }:
             payload['option_distribution'] = self._build_option_distribution(question, answers)
             payload['omitted_count'] = missing_count
+            payload['omitted_participants'] = omitted_participants
         else:
             graded_count = sum(1 for answer in answers if answer['graded_at'] is not None)
             payload['grading_progress'] = {

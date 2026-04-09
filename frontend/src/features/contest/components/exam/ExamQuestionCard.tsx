@@ -8,8 +8,8 @@ import {
   Tag,
 } from "@carbon/react";
 import { Flag, FlagFilled } from "@carbon/icons-react";
-import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
+import ExamQuestionPrompt from "./ExamQuestionPrompt";
 import styles from "./ExamQuestionCard.module.scss";
 
 const TYPE_COLORS: Record<ExamQuestionType, string> = {
@@ -237,13 +237,10 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
         </div>
       </div>
 
-      {question.prompt ? (
-        <div className={styles.prompt}>
-          <MarkdownRenderer enableHighlight enableCopy>{question.prompt}</MarkdownRenderer>
-        </div>
-      ) : (
-        <div className={styles.promptEmpty}>{t("answering.question.promptEmpty")}</div>
-      )}
+      <ExamQuestionPrompt
+        content={question.prompt}
+        emptyText={t("answering.question.promptEmpty")}
+      />
 
       <div className={styles.answerArea}>
         <div className={styles.answerLabel}>{t("answering.question.answerLabel")}</div>

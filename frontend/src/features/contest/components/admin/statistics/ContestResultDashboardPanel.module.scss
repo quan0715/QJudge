@@ -322,6 +322,10 @@
   background: var(--cds-support-success);
 }
 
+.rateBarFillDefault {
+  background: var(--cds-link-primary, #4589ff);
+}
+
 .previewMetrics {
   display: flex;
   align-items: center;
@@ -469,6 +473,70 @@
   gap: layout.$spacing-03;
 }
 
+.drawerChartFrame {
+  :global {
+    .cds--cc--chart-wrapper,
+    .chart-wrapper,
+    .cds--chart-holder,
+    .chart-holder {
+      background-color: transparent !important;
+    }
+
+    .cds--cc--chart-wrapper svg.layout-child {
+      background-color: transparent !important;
+    }
+  }
+}
+
+.drawerEmptyState {
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+}
+
+.metricBarList {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+}
+
+.metricBarRow {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+}
+
+.metricBarHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+}
+
+.metricBarLabel {
+  color: var(--cds-text-primary);
+  @include type.type-style("body-compact-01");
+}
+
+.metricBarLabelLong {
+  flex: 1;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.metricBarMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  flex-shrink: 0;
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.metricStateCritical {
+  color: var(--cds-support-error);
+}
+
 .drawerSectionTitle {
   margin: 0;
   color: var(--cds-text-primary);
@@ -537,13 +605,108 @@
   @include type.type-style("label-01");
 }
 
+.optionList {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.optionRow {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.optionRowHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+}
+
+.optionLabel {
+  color: var(--cds-text-primary);
+  @include type.type-style("body-compact-01");
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  flex: 1;
+}
+
+.optionMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  flex-shrink: 0;
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.optionStateCorrect {
+  color: var(--cds-support-success);
+}
+
+.optionStateIncorrect {
+  color: var(--cds-text-secondary);
+}
+
+.optionTrack {
+  width: 100%;
+  height: 0.875rem;
+  border-radius: 999px;
+  background: var(--cds-layer-02);
+  overflow: hidden;
+}
+
+.optionFill {
+  height: 100%;
+  background: var(--cds-link-primary, #4589ff);
+  border-radius: 999px;
+}
+
+.optionFillCorrect {
+  background: var(--cds-support-success, #42be65);
+}
+
+.optionFillIncorrect {
+  background: #a8a8a8;
+}
+
 .infoCallout {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+}
+
+.infoCalloutHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: layout.$spacing-04;
-  border-left: 3px solid var(--cds-border-interactive);
-  background: var(--cds-layer-01);
+  color: var(--cds-text-primary);
+  @include type.type-style("body-compact-01");
+  font-weight: 600;
+}
+
+.infoCalloutMeta {
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+}
+
+.omittedParticipantList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+}
+
+.omittedParticipantItem {
+  padding: layout.$spacing-02 layout.$spacing-03;
+  border-radius: 999px;
+  background: var(--cds-layer-02);
+  color: var(--cds-text-primary);
+  @include type.type-style("label-01");
 }
 
 .detailMetricGrid {
@@ -563,6 +726,77 @@
 .detailMetricLabel {
   color: var(--cds-text-secondary);
   @include type.type-style("label-01");
+}
+
+.scoreChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+}
+
+.scoreChip {
+  padding: layout.$spacing-02 layout.$spacing-03;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 999px;
+  background: var(--cds-layer-01);
+  color: var(--cds-text-secondary);
+  cursor: pointer;
+  @include type.type-style("label-01");
+}
+
+.scoreChipActive {
+  border-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected-01);
+  color: var(--cds-text-primary);
+}
+
+.responseList {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.responseCard {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.responseHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+}
+
+.responseIdentity {
+  color: var(--cds-text-primary);
+  font-weight: 600;
+  @include type.type-style("body-compact-01");
+}
+
+.responseScore {
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.responseBody {
+  color: var(--cds-text-primary);
+  min-width: 0;
+
+  :global(.markdown-body) {
+    color: var(--cds-text-primary);
+    @include type.type-style("body-compact-01");
+  }
+}
+
+.responsePlainText {
+  color: var(--cds-text-primary);
+  @include type.type-style("body-compact-01");
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* ── Coding-only & empty states ── */
