@@ -147,18 +147,19 @@
 }
 
 .questionGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: layout.$spacing-04;
 }
 
-/* ── Preview card ── */
+/* ── Preview card (horizontal) ── */
 .previewCard {
   display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
+  flex-direction: row;
+  align-items: center;
+  gap: layout.$spacing-05;
   width: 100%;
-  padding: layout.$spacing-04;
+  padding: layout.$spacing-04 layout.$spacing-05;
   border: 1px solid var(--cds-border-subtle);
   background: var(--cds-layer-01);
   color: inherit;
@@ -178,6 +179,14 @@
   background: var(--cds-layer-selected-01);
 }
 
+.previewCardLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
 .previewCardMeta {
   color: var(--cds-text-secondary);
   @include type.type-style("label-01");
@@ -187,37 +196,49 @@
   color: var(--cds-text-primary);
   @include type.type-style("body-compact-01");
   font-weight: 600;
-  margin-top: 2px;
 }
 
-.donutGroup {
+.previewCardStats {
   display: flex;
   align-items: center;
-  gap: layout.$spacing-04;
-}
-
-.donutScore {
-  display: flex;
-  align-items: baseline;
   gap: layout.$spacing-02;
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+  margin-top: layout.$spacing-02;
 }
 
+/* ── Donut chart ── */
 .donutWrap {
   position: relative;
-  width: 3rem;
-  height: 3rem;
+  width: 4.5rem;
+  height: 4.5rem;
   flex-shrink: 0;
+}
+
+.donutSvg {
+  width: 100%;
+  height: 100%;
 }
 
 .donutLabel {
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  @include type.type-style("label-01");
-  font-weight: 700;
+  line-height: 1.2;
+}
+
+.donutLabelScore {
   color: var(--cds-text-primary);
+  @include type.type-style("body-compact-01");
+  font-weight: 700;
+}
+
+.donutLabelMax {
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
 }
 
 .previewScore {
@@ -423,10 +444,6 @@
 
 /* ── Responsive ── */
 @media (max-width: 1179px) {
-  .questionGrid {
-    grid-template-columns: 1fr;
-  }
-
   .body {
     grid-template-columns: 300px 1fr;
   }

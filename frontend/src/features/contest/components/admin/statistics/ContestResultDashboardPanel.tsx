@@ -288,34 +288,31 @@ function DonutChart({
   const gap = DONUT_CIRCUMFERENCE - filled;
 
   return (
-    <div className={styles.donutGroup}>
-      <div className={styles.donutWrap}>
-        <svg viewBox="0 0 36 36" width="48" height="48" aria-hidden="true">
-          <circle
-            cx="18"
-            cy="18"
-            r={DONUT_RADIUS}
-            fill="none"
-            stroke="var(--cds-layer-02, #2a2a4a)"
-            strokeWidth="3.5"
-          />
-          <circle
-            cx="18"
-            cy="18"
-            r={DONUT_RADIUS}
-            fill="none"
-            stroke={donutColor(rate)}
-            strokeWidth="3.5"
-            strokeDasharray={`${filled} ${gap}`}
-            strokeLinecap="round"
-            transform="rotate(-90 18 18)"
-          />
-        </svg>
-        <div className={styles.donutLabel}>{Math.round(rate)}%</div>
-      </div>
-      <div className={styles.donutScore}>
-        <span className={styles.previewScore}>{score.toFixed(1)}</span>
-        <span className={styles.previewScoreMax}>/ {maxScore}</span>
+    <div className={styles.donutWrap}>
+      <svg viewBox="0 0 36 36" aria-hidden="true" className={styles.donutSvg}>
+        <circle
+          cx="18"
+          cy="18"
+          r={DONUT_RADIUS}
+          fill="none"
+          stroke="var(--cds-layer-02, #2a2a4a)"
+          strokeWidth="3"
+        />
+        <circle
+          cx="18"
+          cy="18"
+          r={DONUT_RADIUS}
+          fill="none"
+          stroke={donutColor(rate)}
+          strokeWidth="3"
+          strokeDasharray={`${filled} ${gap}`}
+          strokeLinecap="round"
+          transform="rotate(-90 18 18)"
+        />
+      </svg>
+      <div className={styles.donutLabel}>
+        <span className={styles.donutLabelScore}>{score.toFixed(1)}</span>
+        <span className={styles.donutLabelMax}>/ {maxScore}</span>
       </div>
     </div>
   );
@@ -339,10 +336,17 @@ function QuestionPreviewCard({
       onClick={onClick}
       aria-pressed={isActive}
     >
-      <div className={styles.previewCardMeta}>
-        Q{question.order} · {dashboardTypeLabels[question.kind]}
+      <div className={styles.previewCardLeft}>
+        <div className={styles.previewCardMeta}>
+          Q{question.order} · {dashboardTypeLabels[question.kind]}
+        </div>
+        <div className={styles.previewCardTitle}>{question.title}</div>
+        <div className={styles.previewCardStats}>
+          <span>{question.answerCount} 人作答</span>
+          <span>·</span>
+          <span>{question.missingCount} 人未作答</span>
+        </div>
       </div>
-      <div className={styles.previewCardTitle}>{question.title}</div>
       <DonutChart
         rate={question.scoreRate}
         score={question.averageScore}
