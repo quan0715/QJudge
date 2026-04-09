@@ -105,10 +105,45 @@
   }
 }
 
+.chartHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+}
+
 .chartTitle {
   margin: 0;
   color: var(--cds-text-primary);
   @include type.type-style("heading-compact-01");
+}
+
+.chartLegend {
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.chartFrame {
+  position: relative;
+}
+
+.chartReferenceLine {
+  position: absolute;
+  left: layout.$spacing-06;
+  right: layout.$spacing-06;
+  height: 0;
+  border-top: 2px dashed var(--cds-support-warning);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.chartReferenceLabel {
+  position: absolute;
+  top: -1.5rem;
+  right: 0;
+  color: var(--cds-support-warning);
+  @include type.type-style("label-01");
+  white-space: nowrap;
 }
 
 /* ── Right column: question grid ── */
@@ -122,7 +157,6 @@
 
 .questionHeader {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: layout.$spacing-04;
   flex-shrink: 0;
@@ -141,42 +175,28 @@
   margin-left: layout.$spacing-03;
 }
 
-.chipBar {
+.questionSection {
   display: flex;
-  gap: layout.$spacing-03;
-  margin-bottom: layout.$spacing-04;
-  flex-shrink: 0;
-}
+  flex-direction: column;
+  gap: layout.$spacing-04;
 
-.chip {
-  padding: layout.$spacing-02 layout.$spacing-04;
-  border: 1px solid var(--cds-border-subtle);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--cds-text-secondary);
-  cursor: pointer;
-  @include type.type-style("label-01");
-  transition:
-    background-color 120ms ease,
-    border-color 120ms ease,
-    color 120ms ease;
-
-  &:hover {
-    background: var(--cds-layer-hover-01);
+  & + & {
+    margin-top: layout.$spacing-06;
   }
 }
 
-.chipActive {
-  background: var(--cds-background-active);
-  border-color: var(--cds-border-interactive);
-  color: var(--cds-text-primary);
-  font-weight: 600;
+.questionSectionTitle {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  @include type.type-style("heading-compact-01");
 }
 
 .questionGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: layout.$spacing-04;
+  content-visibility: auto;
+  contain-intrinsic-size: 48rem;
 }
 
 /* ── Preview card (horizontal) ── */
@@ -217,9 +237,26 @@
 .previewCardMeta {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: layout.$spacing-02;
   color: var(--cds-text-secondary);
   @include type.type-style("label-01");
+}
+
+.previewCardMetaLeft {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  min-width: 0;
+}
+
+.questionTypeText {
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.inlineTag {
+  flex-shrink: 0;
 }
 
 .previewCardTitle {
@@ -235,54 +272,82 @@
 .previewCardStats {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: layout.$spacing-02;
   color: var(--cds-text-secondary);
   @include type.type-style("label-01");
   margin-top: layout.$spacing-02;
 }
 
-/* ── Donut chart ── */
-.donutWrap {
-  position: relative;
-  width: 5.5rem;
-  height: 5.5rem;
-  flex-shrink: 0;
+.previewProgress {
+  margin-top: layout.$spacing-03;
 }
 
-.donutSvg {
-  width: 100%;
-  height: 100%;
-}
-
-.donutArc {
-  animation: donutFill 600ms ease-out forwards;
-}
-
-@keyframes donutFill {
-  from {
-    stroke-dasharray: 0 88;
-  }
-}
-
-.donutLabel {
-  position: absolute;
-  inset: 0;
+.rateBar {
   display: flex;
   flex-direction: column;
+  gap: layout.$spacing-02;
+}
+
+.rateBarHeader {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  line-height: 1.2;
-}
-
-.donutLabelScore {
-  color: var(--cds-text-primary);
-  @include type.type-style("body-compact-01");
-  font-weight: 700;
-}
-
-.donutLabelMax {
+  justify-content: space-between;
   color: var(--cds-text-secondary);
   @include type.type-style("label-01");
+}
+
+.rateBarTrack {
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--cds-layer-02);
+  overflow: hidden;
+}
+
+.rateBarFill {
+  height: 100%;
+  min-width: 0.75rem;
+  border-radius: 999px;
+}
+
+.rateBarFillCritical {
+  background: var(--cds-support-error);
+}
+
+.rateBarFillWarning {
+  background: var(--cds-support-warning);
+}
+
+.rateBarFillSuccess {
+  background: var(--cds-support-success);
+}
+
+.previewMetrics {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  margin-top: layout.$spacing-03;
+}
+
+.metricPill {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-02 layout.$spacing-03;
+  border-radius: 999px;
+  background: var(--cds-layer-02);
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.metricPillLabel {
+  @include type.type-style("label-01");
+}
+
+.metricPillValue {
+  color: var(--cds-text-primary);
+  font-weight: 600;
 }
 
 /* ── Drawer overlay ── */
@@ -342,15 +407,51 @@
 }
 
 .drawerPrompt {
-  margin: layout.$spacing-02 0 0;
+  margin-top: layout.$spacing-02;
   color: var(--cds-text-primary);
-  @include type.type-style("body-compact-01");
+
+  :global(.markdown-body) {
+    color: var(--cds-text-primary);
+    @include type.type-style("body-compact-01");
+  }
+
+  :global(.markdown-body > :first-child) {
+    margin-top: 0;
+  }
+
+  :global(.markdown-body > :last-child) {
+    margin-bottom: 0;
+  }
 }
 
 .drawerLoading {
   color: var(--cds-text-secondary);
   @include type.type-style("body-compact-01");
   padding: layout.$spacing-05 0;
+}
+
+.drawerError {
+  color: var(--cds-support-error);
+  @include type.type-style("body-compact-01");
+  padding: layout.$spacing-05 0;
+}
+
+.drawerSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+  padding-top: layout.$spacing-02;
+}
+
+.drawerSkeletonBars {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.drawerBarSkeleton {
+  height: 1rem;
+  width: 100%;
 }
 
 .drawerMeta {
@@ -489,6 +590,33 @@
   text-align: center;
   color: var(--cds-text-secondary);
   @include type.type-style("body-compact-01");
+}
+
+.chartSkeleton {
+  width: 100%;
+  height: 16rem;
+}
+
+.previewCardSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-04 layout.$spacing-05;
+}
+
+.progressSkeleton {
+  width: 100%;
+  height: 0.5rem;
+}
+
+.skeletonMetricRow {
+  display: flex;
+  gap: layout.$spacing-03;
+}
+
+.metricSkeleton {
+  width: 6rem;
+  height: 1.5rem;
 }
 
 /* ── Responsive ── */

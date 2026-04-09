@@ -26,6 +26,14 @@ export const ContestPreviewCard: React.FC<ContestPreviewCardProps> = ({
   const contestState = getContestState(contest);
   const stateLabel = getContestStateLabel(contestState);
   const stateColor = getContestStateColor(contestState);
+  const showResultsPublishedBadge =
+    contestState === "ended" && contest.resultsPublished;
+  const primaryBadgeLabel = showResultsPublishedBadge
+    ? t("badge.resultsPublished", "成績已發佈")
+    : stateLabel;
+  const primaryBadgeType = showResultsPublishedBadge
+    ? "green"
+    : stateColor;
   const durationHours = Math.max(
     0,
     Math.round(
@@ -40,13 +48,8 @@ export const ContestPreviewCard: React.FC<ContestPreviewCardProps> = ({
       <Stack gap={3}>
         <div className="contest-preview-card__header">
           <h3 className="contest-preview-card__title">{contest.name}</h3>
-          <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
-            <Tag type={stateColor}>{stateLabel}</Tag>
-            {contestState === "ended" && contest.resultsPublished && (
-              <Tag type="green" size="sm">
-                {t("badge.resultsPublished", "成績已發佈")}
-              </Tag>
-            )}
+          <div className="contest-preview-card__badges">
+            <Tag type={primaryBadgeType}>{primaryBadgeLabel}</Tag>
           </div>
         </div>
 

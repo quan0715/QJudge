@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
-import { useClassroomName } from "@/features/classroom/hooks/useClassroomName";
 
 import {
   ContestProvider,
@@ -49,7 +48,6 @@ const AdminDashboardInner = () => {
   const { refreshAllAdminData, refreshAdminData } = useContestAdmin();
   const { triggerPanelRefresh } = useAdminPanelRefresh();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
-  const classroomName = useClassroomName(effectiveClassroomId);
   const hasManagementRole =
     contest?.currentUserRole !== undefined &&
     contest.currentUserRole !== "student";
@@ -153,7 +151,7 @@ const AdminDashboardInner = () => {
       contestId={contestId || ""}
       contestName={contest?.name || "Loading..."}
       classroomId={effectiveClassroomId}
-      classroomName={classroomName}
+      classroomName=""
       activePanel={activePanel}
       availablePanels={availablePanels}
       examMode={isExamMode}

@@ -32,7 +32,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@carbon/charts-react", () => ({
-  SimpleBarChart: () => <div data-testid="score-distribution-chart" />,
+  LollipopChart: () => <div data-testid="score-distribution-chart" />,
 }));
 
 vi.mock("./useContestResultDashboard", () => ({
@@ -85,8 +85,9 @@ describe("ContestResultDashboardPanel", () => {
       data: createContestResultDashboardMock(buildContest()),
       loading: false,
       error: null,
-      loadDetails: vi.fn(),
-      detailsLoaded: true,
+      loadQuestionDetail: vi.fn(),
+      detailLoadingIds: {},
+      detailErrors: {},
     });
   });
 
@@ -104,7 +105,7 @@ describe("ContestResultDashboardPanel", () => {
     expect(screen.getByTestId("score-distribution-chart")).toBeInTheDocument();
   });
 
-  it("renders question preview cards in grid", () => {
+  it("renders objective and subjective metrics with different emphasis", () => {
     render(
       <MemoryRouter>
         <ContestResultDashboardPanel contest={buildContest()} />
@@ -112,7 +113,8 @@ describe("ContestResultDashboardPanel", () => {
     );
 
     expect(screen.getByText("基礎語法與觀念檢核")).toBeInTheDocument();
-    expect(screen.getByText("多選：資料結構特性判斷")).toBeInTheDocument();
+    expect(screen.getAllByText("正答率").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("批改率").length).toBeGreaterThan(0);
   });
 
   it("opens drawer when clicking a question card", () => {
@@ -144,7 +146,7 @@ describe("ContestResultDashboardPanel", () => {
     expect(screen.queryByText("選項分布")).not.toBeInTheDocument();
   });
 
-  it("renders questions sorted by order", () => {
+  it("renders questions sorted by score rate", () => {
     render(
       <MemoryRouter>
         <ContestResultDashboardPanel contest={buildContest()} />
@@ -153,7 +155,7 @@ describe("ContestResultDashboardPanel", () => {
 
     const cards = screen.getAllByRole("button", { pressed: false });
     const firstCardText = cards[0]?.textContent ?? "";
-    expect(firstCardText).toContain("Q1");
+    expect(firstCardText).toContain("Q2");
   });
 
   it("shows not supported message for coding contests", () => {
@@ -161,8 +163,9 @@ describe("ContestResultDashboardPanel", () => {
       data: null,
       loading: false,
       error: null,
-      loadDetails: vi.fn(),
-      detailsLoaded: false,
+      loadQuestionDetail: vi.fn(),
+      detailLoadingIds: {},
+      detailErrors: {},
     });
     render(
       <MemoryRouter>
@@ -182,15 +185,16 @@ describe("ContestResultDashboardPanel", () => {
       data: null,
       loading: true,
       error: null,
-      loadDetails: vi.fn(),
-      detailsLoaded: false,
+      loadQuestionDetail: vi.fn(),
+      detailLoadingIds: {},
+      detailErrors: {},
     });
     render(
       <MemoryRouter>
         <ContestResultDashboardPanel contest={buildContest()} />
       </MemoryRouter>,
     );
-    expect(screen.getByText("載入中…")).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-skeleton")).toBeInTheDocument();
   });
 
   it("shows grading progress for essay questions in drawer", () => {
@@ -206,6 +210,27 @@ describe("ContestResultDashboardPanel", () => {
     fireEvent.click(card);
 
     expect(screen.getByText("批改進度")).toBeInTheDocument();
-    expect(screen.getByText("29 / 47")).toBeInTheDocument();
+    expect(screen.getAllByText("29 / 47").length).toBeGreaterThan(0);
+  });
+
+  it("loads detail from question query param", () => {
+    const loadQuestionDetail = vi.fn();
+    vi.mocked(useContestResultDashboard).mockReturnValue({
+      data: createContestResultDashboardMock(buildContest()),
+      loading: false,
+      error: null,
+      loadQuestionDetail,
+      detailLoadingIds: {},
+      detailErrors: {},
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/admin?question=q1"]}>
+        <ContestResultDashboardPanel contest={buildContest()} />
+      </MemoryRouter>,
+    );
+
+    expect(loadQuestionDetail).toHaveBeenCalledWith("q1");
+    expect(screen.getByRole("complementary")).toBeInTheDocument();
   });
 });

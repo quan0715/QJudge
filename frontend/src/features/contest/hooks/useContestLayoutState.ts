@@ -31,6 +31,7 @@ export function useContestLayoutState() {
   const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
 
   const isSolvePage = /\/solve(?:\/|$)/.test(location.pathname);
+  const isAdminRoute = /\/admin(?:\/|$)/.test(location.pathname);
   const isPaperExamPage = isSolvePage && contest?.contestType === "paper_exam";
   const isExamActive = isExamMonitoringActive(contest);
   const hasEnded = !!contest && isContestEnded(contest);
@@ -134,7 +135,7 @@ export function useContestLayoutState() {
   // Poll contest data periodically while exam is active (backend is source of truth)
   useInterval(() => {
     refreshContest().catch(() => {});
-  }, isExamActive ? CONTEST_POLL_INTERVAL_MS : null);
+  }, isExamActive && !isAdminRoute ? CONTEST_POLL_INTERVAL_MS : null);
 
   // Keep paper-exam precheck gate synced from contest dashboard lifecycle.
   useEffect(() => {

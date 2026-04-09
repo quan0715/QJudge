@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
-import { getContestParticipants } from "@/infrastructure/api/repositories/contestParticipants.repository";
-import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
-import { getAllExamAnswers, type ExamAnswerDto } from "@/infrastructure/api/repositories/exam.repository";
-import type { DashboardMockData } from "./contestResultDashboard.mock";
-import { transformToDashboardData } from "./contestResultDashboard.transform";
+import {
+  getExamDashboardQuestionDetail,
+  getExamDashboardSummary,
+  type ExamDashboardQuestionDetailDto,
+  type ExamDashboardSummaryDto,
+} from "@/infrastructure/api/repositories/exam.repository";
+import type { DashboardMockData, QuestionDetailMock } from "./contestResultDashboard.mock";
 
 interface UseDashboardResult {
   data: DashboardMockData | null;
   loading: boolean;
   error: string | null;
-  /** Call to load per-question detail (answers). Returns updated data. */
-  loadDetails: () => Promise<void>;
-  detailsLoaded: boolean;
+  loadQuestionDetail: (questionId: string) => Promise<void>;
+  detailLoadingIds: Record<string, boolean>;
+  detailErrors: Record<string, string>;
 }
 
 export function useContestResultDashboard(
@@ -21,70 +23,47 @@ export function useContestResultDashboard(
   const [data, setData] = useState<DashboardMockData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [detailsLoaded, setDetailsLoaded] = useState(false);
+  const [detailLoadingIds, setDetailLoadingIds] = useState<Record<string, boolean>>({});
+  const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
   const cancelRef = useRef(false);
-
-  // Cache for rebuild
-  const cacheRef = useRef<{
-    contestId: string;
-    participantScores: number[];
-    examQuestions: Parameters<typeof transformToDashboardData>[0]["examQuestions"];
-    studentUserIds: Set<string>;
-    answers: ExamAnswerDto[] | null;
-  } | null>(null);
+  const hydratedContestIdRef = useRef<string | null>(null);
+  const inFlightDetailIdsRef = useRef<Set<string>>(new Set());
+  const loadedDetailIdsRef = useRef<Set<string>>(new Set());
 
   const contestId = contest?.id;
   const contestType = contest?.contestType;
 
   useEffect(() => {
     if (!contestId || !contest) {
+      setData(null);
       setLoading(false);
+      hydratedContestIdRef.current = null;
       return;
     }
     if (contestType === "coding") {
+      setData(null);
       setLoading(false);
+      hydratedContestIdRef.current = null;
       return;
     }
 
     cancelRef.current = false;
-    setLoading(true);
+    const isSameContest = hydratedContestIdRef.current === contestId;
+    setLoading(!isSameContest || data === null);
     setError(null);
-    setDetailsLoaded(false);
-    cacheRef.current = null;
+    if (!isSameContest) {
+      setDetailLoadingIds({});
+      setDetailErrors({});
+      inFlightDetailIdsRef.current = new Set();
+      loadedDetailIdsRef.current = new Set();
+    }
 
-    (async () => {
+    void (async () => {
       try {
-        const [participants, examQuestions] = await Promise.all([
-          getContestParticipants(contestId),
-          getExamQuestions(contestId),
-        ]);
+        const summary = await getExamDashboardSummary(contestId);
         if (cancelRef.current) return;
-
-        const students = participants.filter(
-          (p) => !p.accountRole || p.accountRole === "student",
-        );
-        const studentUserIds = new Set(students.map((p) => p.userId));
-        const participantScores = students.map((p) => Number(p.score) || 0);
-
-        cacheRef.current = {
-          contestId,
-          participantScores,
-          examQuestions,
-          studentUserIds,
-          answers: null,
-        };
-
-        const result = transformToDashboardData({
-          contestId,
-          contestName: contest.name ?? "",
-          courseName: "",
-          resultsPublished: contest.resultsPublished ?? false,
-          participantScores,
-          examQuestions,
-          examAnswers: null,
-        });
-
-        setData(result);
+        setData(mapDashboardSummary(summary));
+        hydratedContestIdRef.current = contestId;
         setLoading(false);
       } catch (err) {
         if (cancelRef.current) return;
@@ -93,36 +72,130 @@ export function useContestResultDashboard(
       }
     })();
 
-    return () => { cancelRef.current = true; };
-  }, [contestId, contestType, contest]);
+    return () => {
+      cancelRef.current = true;
+    };
+  }, [contestId, contestType]);
 
-  const loadDetails = useCallback(async () => {
-    const cache = cacheRef.current;
-    if (!cache || !contest || detailsLoaded) return;
+  const loadQuestionDetail = useCallback(async (questionId: string) => {
+    if (!contestId) return;
+    if (loadedDetailIdsRef.current.has(questionId)) return;
+    if (inFlightDetailIdsRef.current.has(questionId)) return;
 
+    inFlightDetailIdsRef.current.add(questionId);
+    setDetailLoadingIds((previous) => ({ ...previous, [questionId]: true }));
+    setDetailErrors((previous) => {
+      const next = { ...previous };
+      delete next[questionId];
+      return next;
+    });
     try {
-      const allAnswers = await getAllExamAnswers(cache.contestId);
-      const studentAnswers = allAnswers.filter((a) =>
-        cache.studentUserIds.has(String(a.participant_user_id)),
-      );
-      cache.answers = studentAnswers;
-
-      const result = transformToDashboardData({
-        contestId: cache.contestId,
-        contestName: contest.name ?? "",
-        courseName: "",
-        resultsPublished: contest.resultsPublished ?? false,
-        participantScores: cache.participantScores,
-        examQuestions: cache.examQuestions,
-        examAnswers: studentAnswers,
+      const detail = await getExamDashboardQuestionDetail(contestId, questionId);
+      loadedDetailIdsRef.current.add(questionId);
+      setData((previous) => {
+        if (!previous) return previous;
+        return {
+          ...previous,
+          details: {
+            ...previous.details,
+            [questionId]: mapQuestionDetail(detail),
+          },
+        };
       });
-
-      setData(result);
-      setDetailsLoaded(true);
-    } catch {
-      // Silently fail — drawer will show empty
+    } catch (err) {
+      setDetailErrors((previous) => ({
+        ...previous,
+        [questionId]:
+          err instanceof Error ? err.message : "Failed to load question detail",
+      }));
+    } finally {
+      inFlightDetailIdsRef.current.delete(questionId);
+      setDetailLoadingIds((previous) => {
+        const next = { ...previous };
+        delete next[questionId];
+        return next;
+      });
     }
-  }, [contest, detailsLoaded]);
+  }, [contestId]);
 
-  return { data, loading, error, loadDetails, detailsLoaded };
+  return { data, loading, error, loadQuestionDetail, detailLoadingIds, detailErrors };
+}
+
+function mapDashboardSummary(dto: ExamDashboardSummaryDto): DashboardMockData {
+  return {
+    contest: {
+      id: dto.contest.id,
+      name: dto.contest.name,
+      course: dto.contest.course,
+      contestType: dto.contest.contest_type,
+      participantCount: dto.contest.participant_count,
+      completedCount: dto.contest.completed_count,
+      resultsPublished: dto.contest.results_published,
+    },
+    summary: {
+      averageScore: dto.summary.average_score,
+      medianScore: dto.summary.median_score,
+      maxTotalScore: dto.summary.max_total_score,
+    },
+    scoreDistribution: dto.score_distribution.map((bucket) => ({
+      rangeLabel: bucket.range_label,
+      count: bucket.count,
+    })),
+    questions: dto.questions.map((question) => ({
+      questionId: question.question_id,
+      order: question.order,
+      title: question.title,
+      kind: question.kind as DashboardMockData["questions"][number]["kind"],
+      maxScore: question.max_score,
+      answerCount: question.answer_count,
+      missingCount: question.missing_count,
+      averageScore: question.average_score,
+      scoreRate: question.score_rate,
+      zeroRate: question.zero_rate,
+      fullRate: question.full_rate,
+      status: question.status,
+      objectiveStats: question.objective_stats
+        ? { correctRate: question.objective_stats.correct_rate }
+        : undefined,
+      subjectiveStats: question.subjective_stats
+        ? {
+            gradedCount: question.subjective_stats.graded_count,
+            pendingCount: question.subjective_stats.pending_count,
+            gradingRate: question.subjective_stats.grading_rate,
+          }
+        : undefined,
+    })),
+    details: {},
+  };
+}
+
+function mapQuestionDetail(dto: ExamDashboardQuestionDetailDto): QuestionDetailMock {
+  if (
+    dto.kind === "single_choice" ||
+    dto.kind === "multiple_choice" ||
+    dto.kind === "true_false"
+  ) {
+    return {
+      questionId: dto.question_id,
+      kind: dto.kind,
+      scoreBands: dto.score_bands,
+      optionDistribution: (dto.option_distribution ?? []).map((item) => ({
+        label: item.label,
+        count: item.count,
+        percent: item.percent,
+        isCorrect: item.is_correct,
+      })),
+      omittedCount: dto.omitted_count ?? 0,
+    };
+  }
+
+  return {
+    questionId: dto.question_id,
+    kind: dto.kind as "short_answer" | "essay",
+    scoreBands: dto.score_bands,
+    gradingProgress: {
+      graded: dto.grading_progress?.graded ?? 0,
+      total: dto.grading_progress?.total ?? 0,
+    },
+  };
 }
