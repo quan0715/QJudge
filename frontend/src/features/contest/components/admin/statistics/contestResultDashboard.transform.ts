@@ -60,7 +60,7 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
     const summary: QuestionSummaryMock = {
       questionId: examQ.id,
       order: examQ.order,
-      title: examQ.prompt.length > 40 ? examQ.prompt.slice(0, 40) + "…" : examQ.prompt,
+      title: examQ.prompt,
       kind,
       maxScore: examQ.score,
       answerCount,

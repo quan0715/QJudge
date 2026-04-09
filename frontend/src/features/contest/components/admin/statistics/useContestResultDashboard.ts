@@ -46,7 +46,12 @@ export function useContestResultDashboard(
         ]);
         if (cancelRef.current) return;
 
-        const participantScores = participants.map((p) => Number(p.score) || 0);
+        // Filter out admin/teacher — only count students
+        const students = participants.filter(
+          (p) => !p.accountRole || p.accountRole === "student",
+        );
+        const studentUserIds = new Set(students.map((p) => p.userId));
+        const participantScores = students.map((p) => Number(p.score) || 0);
 
         const buildData = (answers: ReturnType<typeof getAllExamAnswers> extends Promise<infer T> ? T : never[] | null) =>
           transformToDashboardData({
@@ -64,10 +69,14 @@ export function useContestResultDashboard(
         setLoading(false);
 
         // Phase 2: background — load answers for per-question details
-        const examAnswers = await getAllExamAnswers(contestId);
+        const allAnswers = await getAllExamAnswers(contestId);
         if (cancelRef.current) return;
 
-        setData(buildData(examAnswers));
+        // Filter out admin/teacher answers
+        const studentAnswers = allAnswers.filter((a) =>
+          studentUserIds.has(String(a.participant_user_id)),
+        );
+        setData(buildData(studentAnswers));
       } catch (err) {
         if (cancelRef.current) return;
         setError(err instanceof Error ? err.message : "Failed to load dashboard");

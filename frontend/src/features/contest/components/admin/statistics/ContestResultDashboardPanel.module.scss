@@ -223,6 +223,10 @@
   color: var(--cds-text-primary);
   @include type.type-style("body-compact-01");
   font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .previewCardStats {
@@ -245,6 +249,16 @@
 .donutSvg {
   width: 100%;
   height: 100%;
+}
+
+.donutArc {
+  animation: donutFill 600ms ease-out forwards;
+}
+
+@keyframes donutFill {
+  from {
+    stroke-dasharray: 0 88;
+  }
 }
 
 .donutLabel {

@@ -346,7 +346,7 @@ function DonutChart({
           r={DONUT_RADIUS}
           fill="none"
           stroke="var(--cds-layer-02, #2a2a4a)"
-          strokeWidth="3"
+          strokeWidth="2"
         />
         <circle
           cx="18"
@@ -354,10 +354,11 @@ function DonutChart({
           r={DONUT_RADIUS}
           fill="none"
           stroke={donutColor(rate)}
-          strokeWidth="3"
+          strokeWidth="2"
           strokeDasharray={`${filled} ${gap}`}
           strokeLinecap="round"
           transform="rotate(-90 18 18)"
+          className={styles.donutArc}
         />
       </svg>
       <div className={styles.donutLabel}>
@@ -377,30 +378,22 @@ function getDonutData(
 ): { rate: number; label: string; sublabel: string } {
   if (focusChip === "grading_rate") {
     if (detail && (detail.kind === "short_answer" || detail.kind === "essay")) {
-      const pct = Math.round(
-        (detail.gradingProgress.graded / detail.gradingProgress.total) * 100,
-      );
-      return {
-        rate: pct,
-        label: `${detail.gradingProgress.graded}/${detail.gradingProgress.total}`,
-        sublabel: "已批改",
-      };
+      const pct = detail.gradingProgress.total > 0
+        ? Math.round((detail.gradingProgress.graded / detail.gradingProgress.total) * 100)
+        : 0;
+      return { rate: pct, label: `${pct}%`, sublabel: "批改率" };
     }
-    return { rate: 100, label: "N/A", sublabel: "自動批改" };
+    return { rate: 100, label: "100%", sublabel: "自動批改" };
   }
   if (focusChip === "answer_rate") {
     const total = question.answerCount + question.missingCount;
     const pct = total > 0 ? Math.round((question.answerCount / total) * 100) : 0;
-    return {
-      rate: pct,
-      label: `${question.answerCount}/${total}`,
-      sublabel: "已作答",
-    };
+    return { rate: pct, label: `${pct}%`, sublabel: "作答率" };
   }
   return {
     rate: question.scoreRate,
-    label: `${question.averageScore.toFixed(1)}`,
-    sublabel: `/ ${question.maxScore}`,
+    label: `${question.scoreRate}%`,
+    sublabel: "得分率",
   };
 }
 
@@ -431,6 +424,11 @@ function QuestionPreviewCard({
           Q{question.order} · {dashboardTypeLabels[question.kind]}
         </div>
         <div className={styles.previewCardTitle}>{question.title}</div>
+        <div className={styles.previewCardStats}>
+          <span>{question.averageScore.toFixed(1)} / {question.maxScore}</span>
+          <span>·</span>
+          <span>{question.answerCount} 人作答</span>
+        </div>
       </div>
       <DonutChart
         rate={donut.rate}
