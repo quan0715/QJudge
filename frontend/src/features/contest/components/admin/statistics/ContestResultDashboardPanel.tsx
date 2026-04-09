@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import type { ComponentType } from "react";
 import { LollipopChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
@@ -45,11 +45,15 @@ export default function ContestResultDashboardPanel({
     detailErrors,
   } = useContestResultDashboard(contest);
 
-  const sortedQuestions = dashboard
-    ? [...dashboard.questions].sort(
-        (a, b) => a.scoreRate - b.scoreRate || a.order - b.order,
-      )
-    : [];
+  const sortedQuestions = useMemo(
+    () =>
+      dashboard
+        ? [...dashboard.questions].sort(
+            (a, b) => a.scoreRate - b.scoreRate || a.order - b.order,
+          )
+        : [],
+    [dashboard?.questions],
+  );
 
   const drawerQuestion =
     sortedQuestions.find((q) => q.questionId === drawerQuestionId) ?? null;
@@ -94,46 +98,53 @@ export default function ContestResultDashboardPanel({
       )
     : 0;
 
-  const scoreDistributionChartData = dashboard
-    ? dashboard.scoreDistribution.map((bucket) => ({
-        group: bucket.rangeLabel,
-        value: bucket.count,
-      }))
-    : [];
+  const scoreDistributionChartData = useMemo(
+    () =>
+      dashboard
+        ? dashboard.scoreDistribution.map((bucket) => ({
+            group: bucket.rangeLabel,
+            value: bucket.count,
+          }))
+        : [],
+    [dashboard?.scoreDistribution],
+  );
 
   const averageScoreRate =
     dashboard && dashboard.summary.maxTotalScore > 0
       ? (dashboard.summary.averageScore / dashboard.summary.maxTotalScore) * 100
       : 0;
 
-  const scoreDistributionChartOptions = {
-    title: "",
-    height: "260px",
-    theme: "g90" as const,
-    toolbar: { enabled: false },
-    legend: { enabled: false },
-    axes: {
-      left: {
-        mapsTo: "group",
-        scaleType: ScaleTypes.LABELS,
-        title: t("statistics.scoreRange", "分數區間"),
-      },
-      bottom: {
-        mapsTo: "value",
-        scaleType: ScaleTypes.LINEAR,
-        title: t("statistics.studentCount", "人數"),
-      },
-    },
-    color: {
-      scale: (dashboard?.scoreDistribution ?? []).reduce<Record<string, string>>(
-        (acc, bucket) => {
-          acc[bucket.rangeLabel] = "#4589ff";
-          return acc;
+  const scoreDistributionChartOptions = useMemo(
+    () => ({
+      title: "",
+      height: "260px",
+      theme: "g90" as const,
+      toolbar: { enabled: false },
+      legend: { enabled: false },
+      axes: {
+        left: {
+          mapsTo: "group",
+          scaleType: ScaleTypes.LABELS,
+          title: t("statistics.scoreRange", "分數區間"),
         },
-        {},
-      ),
-    },
-  };
+        bottom: {
+          mapsTo: "value",
+          scaleType: ScaleTypes.LINEAR,
+          title: t("statistics.studentCount", "人數"),
+        },
+      },
+      color: {
+        scale: (dashboard?.scoreDistribution ?? []).reduce<Record<string, string>>(
+          (acc, bucket) => {
+            acc[bucket.rangeLabel] = "#4589ff";
+            return acc;
+          },
+          {},
+        ),
+      },
+    }),
+    [dashboard?.scoreDistribution, t],
+  );
 
   if (contest?.contestType === "coding") {
     return (
@@ -499,7 +510,7 @@ function DrawerContent({
 }) {
   const questionVisual = getQuestionVisual(question.kind);
 
-  if (loading || (!detail && !error)) {
+  if (loading) {
     return (
       <>
         <div className={styles.drawerHeader}>
@@ -571,7 +582,29 @@ function DrawerContent({
     );
   }
 
-  if (!detail) return null;
+  if (!detail) {
+    return (
+      <>
+        <div className={styles.drawerHeader}>
+          <div>
+            <h2 className={styles.drawerTitle}>
+              {questionVisual.Icon && <questionVisual.Icon size={18} />}
+              Q{question.order} · {questionVisual.label}
+            </h2>
+          </div>
+          <Button
+            kind="ghost"
+            size="sm"
+            hasIconOnly
+            iconDescription="Close"
+            renderIcon={Close}
+            onClick={onClose}
+          />
+        </div>
+        <DrawerSkeleton />
+      </>
+    );
+  }
 
   const objectiveDetail = isObjectiveDetail(detail) ? detail : null;
   const subjectiveDetail = isSubjectiveDetail(detail) ? detail : null;
