@@ -110,7 +110,7 @@ describe("ContestResultDashboardPanel", () => {
     expect(screen.getByTestId("score-distribution-chart")).toBeInTheDocument();
   });
 
-  it("renders objective and subjective metrics with different emphasis", () => {
+  it("renders question preview cards with rate bar", () => {
     render(
       <MemoryRouter>
         <ContestResultDashboardPanel contest={buildContest()} />
@@ -118,8 +118,7 @@ describe("ContestResultDashboardPanel", () => {
     );
 
     expect(screen.getByText("基礎語法與觀念檢核")).toBeInTheDocument();
-    expect(screen.getAllByText("正答率").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("批改率").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("得分率").length).toBeGreaterThan(0);
   });
 
   it("opens drawer when clicking a question card", () => {
@@ -136,6 +135,19 @@ describe("ContestResultDashboardPanel", () => {
     expect(screen.getByText("選項分布")).toBeInTheDocument();
     expect(screen.getAllByText(/作答學生/).length).toBeGreaterThan(0);
     expect(screen.queryByText("所有回答")).not.toBeInTheDocument();
+  });
+
+  it("collapses long participant lists behind a +N toggle", () => {
+    render(
+      <MemoryRouter>
+        <ContestResultDashboardPanel contest={buildContest()} />
+      </MemoryRouter>,
+    );
+
+    const card = screen.getByText("基礎語法與觀念檢核").closest("button")!;
+    fireEvent.click(card);
+
+    expect(screen.getAllByRole("button", { name: "+1" }).length).toBeGreaterThan(0);
   });
 
   it("closes drawer on Escape key", () => {

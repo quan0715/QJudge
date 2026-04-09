@@ -376,14 +376,6 @@ const QuestionPreviewCard = memo(function QuestionPreviewCard({
   isActive: boolean;
   onClick: () => void;
 }) {
-  const totalParticipants = question.answerCount + question.missingCount;
-  const answerRate = totalParticipants > 0
-    ? Math.round((question.answerCount / totalParticipants) * 100)
-    : 0;
-  const isObjective =
-    question.kind === "single_choice" ||
-    question.kind === "multiple_choice" ||
-    question.kind === "true_false";
   const questionVisual = getQuestionVisual(question.kind);
   const attention = getQuestionAttention(question);
 
@@ -414,41 +406,10 @@ const QuestionPreviewCard = memo(function QuestionPreviewCard({
           value={question.scoreRate}
           tone={attention.tone}
         />
-        <div className={styles.previewMetrics}>
-          {isObjective ? (
-            <>
-              <MetricPill
-                label="正答率"
-                value={`${question.objectiveStats?.correctRate ?? 0}%`}
-              />
-              <MetricPill label="作答率" value={`${answerRate}%`} />
-            </>
-          ) : (
-            <>
-              <MetricPill
-                label="已批改"
-                value={`${question.subjectiveStats?.gradedCount ?? 0} / ${question.answerCount}`}
-              />
-              <MetricPill
-                label="批改率"
-                value={`${question.subjectiveStats?.gradingRate ?? 0}%`}
-              />
-            </>
-          )}
-        </div>
       </div>
     </button>
   );
 });
-
-function MetricPill({ label, value }: { label: string; value: string }) {
-  return (
-    <span className={styles.metricPill}>
-      <span className={styles.metricPillLabel}>{label}</span>
-      <span className={styles.metricPillValue}>{value}</span>
-    </span>
-  );
-}
 
 function QuestionSection({
   questions,
@@ -948,7 +909,7 @@ function OptionDistributionList({
                 maxValue: max,
                 meta: `${item.count} · ${item.percent}%`,
                 submeta: item.isCorrect ? "正解" : "非正解",
-                tone: item.isCorrect ? "success" : "default",
+                tone: item.isCorrect ? "success" : "incorrect",
                 longLabel: true,
               },
             ]}
@@ -958,16 +919,10 @@ function OptionDistributionList({
               <span>作答學生 {item.participants.length} 人</span>
             </div>
             {item.participants.length > 0 ? (
-              <div className={styles.omittedParticipantList}>
-                {item.participants.map((participant) => (
-                  <span
-                    key={`${item.label}-${participant.participantId}`}
-                    className={styles.omittedParticipantItem}
-                  >
-                    {participant.displayName}
-                  </span>
-                ))}
-              </div>
+              <ParticipantChipList
+                participants={item.participants}
+                itemKeyPrefix={item.label}
+              />
             ) : (
               <span className={styles.infoCalloutMeta}>目前無學生選擇此選項</span>
             )}
@@ -979,19 +934,52 @@ function OptionDistributionList({
           <span>未作答 {omittedParticipants.length} 人</span>
         </div>
         {omittedParticipants.length > 0 ? (
-          <div className={styles.omittedParticipantList}>
-            {omittedParticipants.map((participant) => (
-              <span
-                key={participant.participantId}
-                className={styles.omittedParticipantItem}
-              >
-                {participant.displayName}
-              </span>
-            ))}
-          </div>
+          <ParticipantChipList participants={omittedParticipants} />
         ) : (
           <span className={styles.infoCalloutMeta}>本題無未作答學生</span>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ParticipantChipList({
+  participants,
+  itemKeyPrefix = "participant",
+}: {
+  participants: Array<{
+    participantId: number;
+    username: string;
+    nickname: string | null;
+    displayName: string;
+  }>;
+  itemKeyPrefix?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hasParticipants = participants.length > 0;
+  const visibleParticipants = expanded ? participants : [];
+  const hiddenCount = participants.length;
+
+  return (
+    <div className={styles.participantChipListBlock}>
+      <div className={styles.omittedParticipantList}>
+        {visibleParticipants.map((participant) => (
+          <span
+            key={`${itemKeyPrefix}-${participant.participantId}`}
+            className={styles.omittedParticipantItem}
+          >
+            {participant.displayName}
+          </span>
+        ))}
+        {hasParticipants ? (
+          <button
+            type="button"
+            className={styles.participantListToggle}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? "收合" : `+${hiddenCount}`}
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -1008,7 +996,7 @@ function MetricBarList({
     maxValue: number;
     meta?: string;
     submeta?: string;
-    tone?: "default" | "success" | "warning" | "critical";
+    tone?: "default" | "success" | "warning" | "critical" | "incorrect";
     longLabel?: boolean;
   }>;
   emptyText?: string;
@@ -1037,7 +1025,7 @@ function MetricBarList({
                     className={
                       row.tone === "success"
                         ? styles.optionStateCorrect
-                        : row.tone === "critical"
+                        : row.tone === "critical" || row.tone === "incorrect"
                           ? styles.metricStateCritical
                           : styles.optionStateIncorrect
                     }
@@ -1055,6 +1043,8 @@ function MetricBarList({
                     ? styles.rateBarFillCritical
                     : row.tone === "warning"
                       ? styles.rateBarFillWarning
+                      : row.tone === "incorrect"
+                        ? styles.rateBarFillIncorrect
                       : row.tone === "success"
                         ? styles.rateBarFillSuccess
                         : styles.rateBarFillDefault

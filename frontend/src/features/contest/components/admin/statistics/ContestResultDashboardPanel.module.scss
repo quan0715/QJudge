@@ -114,11 +114,9 @@
 
 /* ── Right column: question grid ── */
 .questionColumn {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow-y: auto;
-  padding: layout.$spacing-05;
+  align-items: stretch;
+  max-width: none;
+  transition: width 200ms ease;
 }
 
 .questionHeader {
@@ -159,7 +157,7 @@
 
 .questionGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: layout.$spacing-04;
   content-visibility: auto;
   contain-intrinsic-size: 48rem;
@@ -180,7 +178,8 @@
   text-align: left;
   transition:
     background-color 120ms ease,
-    border-color 120ms ease;
+    border-color 120ms ease,
+    transform 200ms ease;
 
   &:hover {
     background: var(--cds-layer-hover-01);
@@ -288,37 +287,14 @@
   background: var(--cds-support-success);
 }
 
+.rateBarFillIncorrect {
+  background: color-mix(in srgb, var(--cds-support-error) 48%, var(--cds-layer-02));
+}
+
 .rateBarFillDefault {
   background: var(--cds-link-primary, #4589ff);
 }
 
-.previewMetrics {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: layout.$spacing-03;
-  margin-top: layout.$spacing-03;
-}
-
-.metricPill {
-  display: inline-flex;
-  align-items: center;
-  gap: layout.$spacing-02;
-  padding: layout.$spacing-02 layout.$spacing-03;
-  border-radius: 999px;
-  background: var(--cds-layer-02);
-  color: var(--cds-text-secondary);
-  @include type.type-style("label-01");
-}
-
-.metricPillLabel {
-  @include type.type-style("label-01");
-}
-
-.metricPillValue {
-  color: var(--cds-text-primary);
-  font-weight: 600;
-}
 
 /* ── Right pane (question detail) ── */
 .rightPaneInner {
@@ -596,7 +572,7 @@
 }
 
 .optionStateIncorrect {
-  color: var(--cds-text-secondary);
+  color: color-mix(in srgb, var(--cds-support-error) 72%, var(--cds-text-secondary));
 }
 
 .optionTrack {
@@ -650,12 +626,34 @@
   gap: layout.$spacing-02;
 }
 
+.participantChipListBlock {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+}
+
 .omittedParticipantItem {
   padding: layout.$spacing-02 layout.$spacing-03;
   border-radius: 999px;
   background: var(--cds-layer-02);
   color: var(--cds-text-primary);
   @include type.type-style("label-01");
+}
+
+.participantListToggle {
+  padding: layout.$spacing-02 layout.$spacing-03;
+  border-radius: 999px;
+  border: 1px dashed var(--cds-border-subtle);
+  background: transparent;
+  color: var(--cds-text-secondary);
+  cursor: pointer;
+  @include type.type-style("label-01");
+
+  &:hover {
+    color: var(--cds-text-primary);
+    border-color: var(--cds-border-strong-01);
+    background: var(--cds-layer-hover-01);
+  }
 }
 
 .detailMetricGrid {
