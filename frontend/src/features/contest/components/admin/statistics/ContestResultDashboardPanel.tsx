@@ -199,7 +199,7 @@ export default function ContestResultDashboardPanel({
           >
             <KpiCard
               label={t("statistics.avgTotalScore", "平均總分")}
-              value={`${dashboard.summary.averageScore.toFixed(1)} / 100`}
+              value={`${dashboard.summary.averageScore.toFixed(1)} / ${dashboard.summary.maxTotalScore}`}
               caption={t("statistics.classAverage", "全班平均")}
             />
             <KpiCard

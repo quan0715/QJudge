@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getContestParticipants } from "@/infrastructure/api/repositories/contestParticipants.repository";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
@@ -18,6 +18,7 @@ export function useContestResultDashboard(
   const [data, setData] = useState<DashboardMockData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const cancelRef = useRef(false);
 
   const contestId = contest?.id;
   const contestType = contest?.contestType;
@@ -27,46 +28,54 @@ export function useContestResultDashboard(
       setLoading(false);
       return;
     }
-
     if (contestType === "coding") {
       setLoading(false);
       return;
     }
 
-    let cancelled = false;
+    cancelRef.current = false;
     setLoading(true);
     setError(null);
 
     (async () => {
       try {
-        const [participants, examQuestions, examAnswers] = await Promise.all([
+        // Phase 1: fast — participants (with scores) + questions
+        const [participants, examQuestions] = await Promise.all([
           getContestParticipants(contestId),
           getExamQuestions(contestId),
-          getAllExamAnswers(contestId),
         ]);
+        if (cancelRef.current) return;
 
-        if (cancelled) return;
+        const participantScores = participants.map((p) => Number(p.score) || 0);
 
-        const result = transformToDashboardData({
-          contestId,
-          contestName: contest.name ?? "",
-          courseName: "",
-          resultsPublished: contest.resultsPublished ?? false,
-          participantCount: participants.length,
-          examQuestions,
-          examAnswers,
-        });
+        const buildData = (answers: ReturnType<typeof getAllExamAnswers> extends Promise<infer T> ? T : never[] | null) =>
+          transformToDashboardData({
+            contestId,
+            contestName: contest.name ?? "",
+            courseName: "",
+            resultsPublished: contest.resultsPublished ?? false,
+            participantScores,
+            examQuestions,
+            examAnswers: answers,
+          });
 
-        setData(result);
+        // Show KPI + question grid immediately (no per-question detail yet)
+        setData(buildData(null));
+        setLoading(false);
+
+        // Phase 2: background — load answers for per-question details
+        const examAnswers = await getAllExamAnswers(contestId);
+        if (cancelRef.current) return;
+
+        setData(buildData(examAnswers));
       } catch (err) {
-        if (cancelled) return;
+        if (cancelRef.current) return;
         setError(err instanceof Error ? err.message : "Failed to load dashboard");
-      } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => { cancelRef.current = true; };
   }, [contestId, contestType, contest]);
 
   return { data, loading, error };
