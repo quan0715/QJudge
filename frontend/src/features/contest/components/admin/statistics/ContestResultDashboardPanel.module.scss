@@ -35,7 +35,7 @@
 
 .body {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 420px 1fr;
   gap: layout.$spacing-05;
   flex: 1;
   min-height: 0;
@@ -79,41 +79,36 @@
   @include type.type-style("body-compact-01");
 }
 
-.chartCard {
-  padding: layout.$spacing-05;
-  border: 1px solid var(--cds-border-subtle);
-}
-
-.sectionHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: layout.$spacing-04;
-  margin-bottom: layout.$spacing-04;
-}
-
 .sectionTitle {
-  margin: 0;
+  margin: 0 0 layout.$spacing-05;
   color: var(--cds-text-primary);
   @include type.type-style("heading-compact-02");
 }
 
-.referenceBadges {
+.chartSection {
   display: flex;
-  gap: layout.$spacing-02;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+
+  // Fix Carbon Charts white background in dark mode
+  :global {
+    .cds--cc--chart-wrapper,
+    .chart-wrapper,
+    .cds--chart-holder,
+    .chart-holder {
+      background-color: transparent !important;
+    }
+
+    .cds--cc--chart-wrapper svg.layout-child {
+      background-color: transparent !important;
+    }
+  }
 }
 
-.referenceBadge {
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  background: var(--cds-layer-02);
-  color: var(--cds-text-secondary);
-  @include type.type-style("label-01");
-}
-
-.chartWrap {
-  min-height: 14rem;
+.chartTitle {
+  margin: 0;
+  color: var(--cds-text-primary);
+  @include type.type-style("heading-compact-01");
 }
 
 /* ── Right column: question grid ── */
@@ -146,9 +141,41 @@
   margin-left: layout.$spacing-03;
 }
 
-.questionGrid {
+.chipBar {
   display: flex;
-  flex-direction: column;
+  gap: layout.$spacing-03;
+  margin-bottom: layout.$spacing-04;
+  flex-shrink: 0;
+}
+
+.chip {
+  padding: layout.$spacing-02 layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cds-text-secondary);
+  cursor: pointer;
+  @include type.type-style("label-01");
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+}
+
+.chipActive {
+  background: var(--cds-background-active);
+  border-color: var(--cds-border-interactive);
+  color: var(--cds-text-primary);
+  font-weight: 600;
+}
+
+.questionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: layout.$spacing-04;
 }
 
@@ -210,8 +237,8 @@
 /* ── Donut chart ── */
 .donutWrap {
   position: relative;
-  width: 4.5rem;
-  height: 4.5rem;
+  width: 5.5rem;
+  height: 5.5rem;
   flex-shrink: 0;
 }
 
@@ -241,16 +268,6 @@
   @include type.type-style("label-01");
 }
 
-.previewScore {
-  color: var(--cds-text-primary);
-  @include type.type-style("heading-03");
-}
-
-.previewScoreMax {
-  color: var(--cds-text-secondary);
-  @include type.type-style("body-compact-01");
-}
-
 /* ── Drawer overlay ── */
 .drawerBackdrop {
   position: fixed;
@@ -269,7 +286,7 @@
 
 .drawer {
   position: fixed;
-  top: 0;
+  top: 3rem; // below Carbon UI Shell header
   right: 0;
   bottom: 0;
   width: 50%;
@@ -445,7 +462,7 @@
 /* ── Responsive ── */
 @media (max-width: 1179px) {
   .body {
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: 360px 1fr;
   }
 }
 

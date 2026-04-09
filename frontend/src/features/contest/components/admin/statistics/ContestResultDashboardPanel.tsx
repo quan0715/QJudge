@@ -26,11 +26,20 @@ const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
 /* ── Main Component ── */
 
+type FocusChip = "score_rate" | "grading_rate" | "answer_rate";
+
+const FOCUS_CHIPS: Array<{ value: FocusChip; label: string }> = [
+  { value: "score_rate", label: "得分率" },
+  { value: "grading_rate", label: "批改率" },
+  { value: "answer_rate", label: "作答率" },
+];
+
 export default function ContestResultDashboardPanel({
   contest,
 }: AdminPanelProps) {
   const { t } = useTranslation("contest");
   const [drawerQuestionId, setDrawerQuestionId] = useState<string | null>(null);
+  const [focusChip, setFocusChip] = useState<FocusChip>("score_rate");
 
   const dashboard = useMemo(
     () => createContestResultDashboardMock(contest),
@@ -69,7 +78,8 @@ export default function ContestResultDashboardPanel({
   const scoreDistributionChartOptions = useMemo(
     () => ({
       title: "",
-      height: "220px",
+      height: "260px",
+      theme: "g90" as const,
       toolbar: { enabled: false },
       legend: { enabled: false },
       axes: {
@@ -122,6 +132,10 @@ export default function ContestResultDashboardPanel({
       <div className={styles.body}>
         {/* Left: Summary */}
         <div className={styles.summaryColumn}>
+          <h2 className={styles.sectionTitle}>
+            {t("statistics.examOverview", "考試總覽")}
+          </h2>
+
           <section
             className={styles.kpiGrid}
             aria-label={t("statistics.summaryArea", "總覽摘要")}
@@ -155,29 +169,15 @@ export default function ContestResultDashboardPanel({
             />
           </section>
 
-          <Tile className={styles.chartCard}>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>
-                {t("statistics.scoreDistribution", "總分分布")}
-              </h2>
-              <div className={styles.referenceBadges}>
-                <span className={styles.referenceBadge}>
-                  {t("statistics.avgLabel", "平均")}{" "}
-                  {dashboard.summary.averageScore.toFixed(1)}
-                </span>
-                <span className={styles.referenceBadge}>
-                  {t("statistics.medianLabel", "中位數")}{" "}
-                  {dashboard.summary.medianScore}
-                </span>
-              </div>
-            </div>
-            <div className={styles.chartWrap}>
-              <SimpleBarChart
-                data={scoreDistributionChartData}
-                options={scoreDistributionChartOptions}
-              />
-            </div>
-          </Tile>
+          <div className={styles.chartSection}>
+            <h3 className={styles.chartTitle}>
+              {t("statistics.scoreDistribution", "總分分布")}
+            </h3>
+            <SimpleBarChart
+              data={scoreDistributionChartData}
+              options={scoreDistributionChartOptions}
+            />
+          </div>
         </div>
 
         {/* Right: Question Grid */}
@@ -211,6 +211,18 @@ export default function ContestResultDashboardPanel({
                   </span>
                 </h2>
               </div>
+              <div className={styles.chipBar}>
+                {FOCUS_CHIPS.map((chip) => (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    className={`${styles.chip} ${focusChip === chip.value ? styles.chipActive : ""}`}
+                    onClick={() => setFocusChip(chip.value)}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
 
               {sortedQuestions.length === 0 ? (
                 <div className={styles.emptyGrid}>
@@ -224,6 +236,8 @@ export default function ContestResultDashboardPanel({
                     <QuestionPreviewCard
                       key={question.questionId}
                       question={question}
+                      detail={dashboard.details[question.questionId]}
+                      focusChip={focusChip}
                       isActive={question.questionId === drawerQuestionId}
                       onClick={() =>
                         setDrawerQuestionId(question.questionId)
@@ -277,12 +291,12 @@ function donutColor(rate: number): string {
 
 function DonutChart({
   rate,
-  score,
-  maxScore,
+  label,
+  sublabel,
 }: {
   rate: number;
-  score: number;
-  maxScore: number;
+  label: string;
+  sublabel: string;
 }) {
   const filled = (rate / 100) * DONUT_CIRCUMFERENCE;
   const gap = DONUT_CIRCUMFERENCE - filled;
@@ -311,8 +325,8 @@ function DonutChart({
         />
       </svg>
       <div className={styles.donutLabel}>
-        <span className={styles.donutLabelScore}>{score.toFixed(1)}</span>
-        <span className={styles.donutLabelMax}>/ {maxScore}</span>
+        <span className={styles.donutLabelScore}>{label}</span>
+        <span className={styles.donutLabelMax}>{sublabel}</span>
       </div>
     </div>
   );
@@ -320,15 +334,55 @@ function DonutChart({
 
 /* ── QuestionPreviewCard ── */
 
+function getDonutData(
+  question: QuestionSummaryMock,
+  detail: QuestionDetailMock | undefined,
+  focusChip: FocusChip,
+): { rate: number; label: string; sublabel: string } {
+  if (focusChip === "grading_rate") {
+    if (detail && (detail.kind === "short_answer" || detail.kind === "essay")) {
+      const pct = Math.round(
+        (detail.gradingProgress.graded / detail.gradingProgress.total) * 100,
+      );
+      return {
+        rate: pct,
+        label: `${detail.gradingProgress.graded}/${detail.gradingProgress.total}`,
+        sublabel: "已批改",
+      };
+    }
+    return { rate: 100, label: "N/A", sublabel: "自動批改" };
+  }
+  if (focusChip === "answer_rate") {
+    const total = question.answerCount + question.missingCount;
+    const pct = total > 0 ? Math.round((question.answerCount / total) * 100) : 0;
+    return {
+      rate: pct,
+      label: `${question.answerCount}/${total}`,
+      sublabel: "已作答",
+    };
+  }
+  return {
+    rate: question.scoreRate,
+    label: `${question.averageScore.toFixed(1)}`,
+    sublabel: `/ ${question.maxScore}`,
+  };
+}
+
 function QuestionPreviewCard({
   question,
+  detail,
+  focusChip,
   isActive,
   onClick,
 }: {
   question: QuestionSummaryMock;
+  detail: QuestionDetailMock | undefined;
+  focusChip: FocusChip;
   isActive: boolean;
   onClick: () => void;
 }) {
+  const donut = getDonutData(question, detail, focusChip);
+
   return (
     <button
       type="button"
@@ -341,16 +395,11 @@ function QuestionPreviewCard({
           Q{question.order} · {dashboardTypeLabels[question.kind]}
         </div>
         <div className={styles.previewCardTitle}>{question.title}</div>
-        <div className={styles.previewCardStats}>
-          <span>{question.answerCount} 人作答</span>
-          <span>·</span>
-          <span>{question.missingCount} 人未作答</span>
-        </div>
       </div>
       <DonutChart
-        rate={question.scoreRate}
-        score={question.averageScore}
-        maxScore={question.maxScore}
+        rate={donut.rate}
+        label={donut.label}
+        sublabel={donut.sublabel}
       />
     </button>
   );

@@ -11,7 +11,7 @@ import type {
   ContestTypeModule,
 } from "@/features/contest/modules/types";
 import CodingTestEditorLayout from "@/features/contest/components/admin/examEditor/CodingTestEditorLayout";
-import CodingStatisticsPlaceholder from "@/features/contest/components/admin/statistics/CodingStatisticsPlaceholder";
+import ContestResultDashboardPanel from "@/features/contest/components/admin/statistics/ContestResultDashboardPanel";
 import ContestProblemScreen from "@/features/contest/screens/ContestProblemScreen";
 import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 
@@ -115,7 +115,7 @@ export const codingContestModule: ContestTypeModule = {
           />
         );
       },
-      statistics: () => <CodingStatisticsPlaceholder />,
+      statistics: (props) => <ContestResultDashboardPanel {...props} />,
     }),
     getExportTargets: () => ["coding-pdf", "coding-markdown"],
     shouldShowJsonActions: () => false,
