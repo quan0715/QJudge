@@ -174,6 +174,15 @@ function buildQuestionScoreBands(
   return bands;
 }
 
+function extractSelected(answer: unknown): number | number[] | null {
+  if (answer == null) return null;
+  if (typeof answer === "number") return answer;
+  if (typeof answer === "object" && "selected" in (answer as Record<string, unknown>)) {
+    return (answer as Record<string, unknown>).selected as number | number[];
+  }
+  return null;
+}
+
 function buildOptionDistribution(
   question: ExamQuestion,
   answers: ExamAnswerDto[],
@@ -185,17 +194,21 @@ function buildOptionDistribution(
   return options.map((opt, idx) => {
     const optionLabel = String.fromCharCode(65 + idx);
     const count = answers.filter((a) => {
-      const ans = a.answer;
-      if (Array.isArray(ans)) return ans.includes(idx) || ans.includes(String(idx));
-      return ans === idx || ans === String(idx) || ans === optionLabel;
+      const sel = extractSelected(a.answer);
+      if (sel === null) return false;
+      if (Array.isArray(sel)) return sel.includes(idx);
+      return sel === idx;
     }).length;
 
-    const isCorrect = Array.isArray(correctAnswer)
-      ? correctAnswer.includes(idx) || correctAnswer.includes(String(idx))
-      : correctAnswer === idx || correctAnswer === String(idx);
+    let isCorrect = false;
+    if (Array.isArray(correctAnswer)) {
+      isCorrect = correctAnswer.includes(idx);
+    } else if (typeof correctAnswer === "number") {
+      isCorrect = correctAnswer === idx;
+    }
 
     return {
-      label: `${optionLabel}. ${opt.length > 30 ? opt.slice(0, 30) + "…" : opt}`,
+      label: `${optionLabel}. ${opt}`,
       count,
       percent: Math.round((count / total) * 100),
       isCorrect,

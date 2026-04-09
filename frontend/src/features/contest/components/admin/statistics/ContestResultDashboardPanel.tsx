@@ -8,7 +8,14 @@ import {
   Tag,
   Tile,
 } from "@carbon/react";
-import { Close } from "@carbon/icons-react";
+import {
+  Close,
+  CheckmarkOutline,
+  ListChecked,
+  Checkmark,
+  TextShortParagraph,
+  Document,
+} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import {
   dashboardTypeLabels,
@@ -34,6 +41,14 @@ const FOCUS_CHIPS: Array<{ value: FocusChip; label: string }> = [
   { value: "answer_rate", label: "作答率" },
 ];
 
+const QUESTION_TYPE_ICON: Record<string, typeof CheckmarkOutline> = {
+  single_choice: CheckmarkOutline,
+  multiple_choice: ListChecked,
+  true_false: Checkmark,
+  short_answer: TextShortParagraph,
+  essay: Document,
+};
+
 export default function ContestResultDashboardPanel({
   contest,
 }: AdminPanelProps) {
@@ -41,7 +56,7 @@ export default function ContestResultDashboardPanel({
   const [drawerQuestionId, setDrawerQuestionId] = useState<string | null>(null);
   const [focusChip, setFocusChip] = useState<FocusChip>("score_rate");
 
-  const { data: dashboard, loading, error } = useContestResultDashboard(contest);
+  const { data: dashboard, loading, error, loadDetails, detailsLoaded } = useContestResultDashboard(contest);
 
   const sortedQuestions = useMemo(
     () =>
@@ -59,6 +74,11 @@ export default function ContestResultDashboardPanel({
       : null;
 
   const closeDrawer = useCallback(() => setDrawerQuestionId(null), []);
+
+  const openDrawer = useCallback((questionId: string) => {
+    setDrawerQuestionId(questionId);
+    if (!detailsLoaded) void loadDetails();
+  }, [detailsLoaded, loadDetails]);
 
   const completionRate = dashboard
     ? Math.round(
@@ -277,9 +297,7 @@ export default function ContestResultDashboardPanel({
                       detail={dashboard.details[question.questionId]}
                       focusChip={focusChip}
                       isActive={question.questionId === drawerQuestionId}
-                      onClick={() =>
-                        setDrawerQuestionId(question.questionId)
-                      }
+                      onClick={() => openDrawer(question.questionId)}
                     />
                   ))}
                 </div>
@@ -421,6 +439,7 @@ function QuestionPreviewCard({
     >
       <div className={styles.previewCardLeft}>
         <div className={styles.previewCardMeta}>
+          {(() => { const Icon = QUESTION_TYPE_ICON[question.kind]; return Icon ? <Icon size={14} /> : null; })()}
           Q{question.order} · {dashboardTypeLabels[question.kind]}
         </div>
         <div className={styles.previewCardTitle}>{question.title}</div>
@@ -447,10 +466,10 @@ function QuestionDetailDrawer({
   onClose,
 }: {
   question: QuestionSummaryMock | null;
-  detail: QuestionDetailMock | null;
+  detail: QuestionDetailMock | null | undefined;
   onClose: () => void;
 }) {
-  const isOpen = question !== null && detail !== null;
+  const isOpen = question !== null;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -472,10 +491,10 @@ function QuestionDetailDrawer({
         className={`${styles.drawer} ${isOpen ? styles.drawerOpen : ""}`}
         aria-label="Question detail"
       >
-        {question && detail && (
+        {question && (
           <DrawerContent
             question={question}
-            detail={detail}
+            detail={detail ?? null}
             onClose={onClose}
           />
         )}
@@ -490,20 +509,19 @@ function DrawerContent({
   onClose,
 }: {
   question: QuestionSummaryMock;
-  detail: QuestionDetailMock;
+  detail: QuestionDetailMock | null;
   onClose: () => void;
 }) {
+  const Icon = QUESTION_TYPE_ICON[question.kind];
   return (
     <>
       <div className={styles.drawerHeader}>
         <div>
           <h2 className={styles.drawerTitle}>
-            Q{question.order} · {question.title}
+            {Icon && <Icon size={18} />} Q{question.order} · {dashboardTypeLabels[question.kind]}
           </h2>
+          <p className={styles.drawerPrompt}>{question.title}</p>
           <div className={styles.drawerMeta}>
-            <Tag type="blue" size="sm">
-              {dashboardTypeLabels[question.kind]}
-            </Tag>
             <span>
               {question.averageScore.toFixed(1)} / {question.maxScore}
             </span>
@@ -521,6 +539,10 @@ function DrawerContent({
         />
       </div>
 
+      {!detail ? (
+        <div className={styles.drawerLoading}>載入詳細數據中…</div>
+      ) : (
+      <>
       <section className={styles.drawerSection}>
         <h3 className={styles.drawerSectionTitle}>分數分布</h3>
         <MiniBarList data={detail.scoreBands} />
@@ -617,6 +639,8 @@ function DrawerContent({
             />
           </section>
         </>
+      )}
+      </>
       )}
     </>
   );

@@ -85,6 +85,8 @@ describe("ContestResultDashboardPanel", () => {
       data: createContestResultDashboardMock(buildContest()),
       loading: false,
       error: null,
+      loadDetails: vi.fn(),
+      detailsLoaded: true,
     });
   });
 
@@ -123,9 +125,7 @@ describe("ContestResultDashboardPanel", () => {
     const card = screen.getByText("基礎語法與觀念檢核").closest("button")!;
     fireEvent.click(card);
 
-    expect(
-      screen.getByText("Q1 · 基礎語法與觀念檢核"),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("complementary")).toBeInTheDocument();
     expect(screen.getByText("選項分布")).toBeInTheDocument();
   });
 
@@ -138,14 +138,10 @@ describe("ContestResultDashboardPanel", () => {
 
     const card = screen.getByText("基礎語法與觀念檢核").closest("button")!;
     fireEvent.click(card);
-    expect(
-      screen.getByText("Q1 · 基礎語法與觀念檢核"),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("complementary")).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(
-      screen.queryByText("Q1 · 基礎語法與觀念檢核"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("選項分布")).not.toBeInTheDocument();
   });
 
   it("renders questions sorted by order", () => {
@@ -165,6 +161,8 @@ describe("ContestResultDashboardPanel", () => {
       data: null,
       loading: false,
       error: null,
+      loadDetails: vi.fn(),
+      detailsLoaded: false,
     });
     render(
       <MemoryRouter>
@@ -184,6 +182,8 @@ describe("ContestResultDashboardPanel", () => {
       data: null,
       loading: true,
       error: null,
+      loadDetails: vi.fn(),
+      detailsLoaded: false,
     });
     render(
       <MemoryRouter>

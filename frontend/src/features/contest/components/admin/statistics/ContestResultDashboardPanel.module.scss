@@ -215,6 +215,9 @@
 }
 
 .previewCardMeta {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
   color: var(--cds-text-secondary);
   @include type.type-style("label-01");
 }
@@ -331,8 +334,23 @@
 
 .drawerTitle {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
   @include type.type-style("heading-03");
   color: var(--cds-text-primary);
+}
+
+.drawerPrompt {
+  margin: layout.$spacing-02 0 0;
+  color: var(--cds-text-primary);
+  @include type.type-style("body-compact-01");
+}
+
+.drawerLoading {
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+  padding: layout.$spacing-05 0;
 }
 
 .drawerMeta {
@@ -399,15 +417,15 @@
 .miniBarFill {
   height: 100%;
   min-width: 0;
-  background: linear-gradient(90deg, #60a5fa 0%, #1e40af 100%);
+  background: var(--cds-link-primary, #4589ff);
 }
 
 .miniBarFillSuccess {
-  background: linear-gradient(90deg, #42be65 0%, #198038 100%);
+  background: var(--cds-support-success, #42be65);
 }
 
 .miniBarFillWarning {
-  background: linear-gradient(90deg, #f1c21b 0%, #b28600 100%);
+  background: var(--cds-support-warning, #f1c21b);
 }
 
 .miniBarCount {
