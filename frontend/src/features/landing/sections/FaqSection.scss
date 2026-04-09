@@ -1,0 +1,11 @@
+@use "@carbon/layout";
+
+.landing-faq-section__inner {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+  gap: layout.$spacing-07;
+
+  @media (max-width: 1055px) {
+    grid-template-columns: 1fr;
+  }
+}

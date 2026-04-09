@@ -1,0 +1,106 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.landing-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  background: color-mix(in srgb, var(--cds-background) 92%, white 8%);
+  backdrop-filter: blur(14px);
+}
+
+[data-carbon-theme="g100"] .landing-header,
+[data-carbon-theme="g90"] .landing-header {
+  border-bottom-color: rgba(160, 174, 192, 0.24);
+  background: color-mix(in srgb, var(--cds-background) 74%, #0f1f38 26%);
+  box-shadow: inset 0 -1px 0 rgba(140, 182, 255, 0.08);
+}
+
+.landing-header__inner {
+  width: min(112rem, 100%);
+  margin: 0 auto;
+  padding: layout.$spacing-04 layout.$spacing-06;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-05;
+
+  @media (max-width: 1055px) {
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 671px) {
+    padding-inline: layout.$spacing-05;
+  }
+}
+
+.landing-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  color: inherit;
+  text-decoration: none;
+  flex-shrink: 0;
+
+  span {
+    @include type.type-style("heading-03");
+    font-weight: 600;
+  }
+}
+
+.landing-header__nav {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-05;
+
+  a {
+    position: relative;
+    color: var(--cds-text-secondary);
+    text-decoration: none;
+    transition: color 180ms ease;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--cds-text-primary);
+    }
+  }
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+[data-carbon-theme="g100"] .landing-header__nav a,
+[data-carbon-theme="g90"] .landing-header__nav a {
+  color: rgba(244, 247, 255, 0.78);
+}
+
+[data-carbon-theme="g100"] .landing-header__nav a:hover,
+[data-carbon-theme="g100"] .landing-header__nav a:focus-visible,
+[data-carbon-theme="g90"] .landing-header__nav a:hover,
+[data-carbon-theme="g90"] .landing-header__nav a:focus-visible {
+  color: #ffffff;
+}
+
+.landing-header__actions {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  margin-left: auto;
+
+  @media (max-width: 767px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+.landing-header__switchers {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+
+  @media (max-width: 671px) {
+    gap: layout.$spacing-02;
+  }
+}
