@@ -526,14 +526,7 @@
 .optionDistributionCard {
   display: flex;
   flex-direction: column;
-  gap: layout.$spacing-03;
-}
-
-.optionParticipantsSection {
-  display: flex;
-  flex-direction: column;
   gap: layout.$spacing-02;
-  padding-left: layout.$spacing-02;
 }
 
 .optionRow {
@@ -597,65 +590,6 @@
   background: #a8a8a8;
 }
 
-.infoCallout {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
-  padding: layout.$spacing-04;
-  border: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer-01);
-}
-
-.infoCalloutHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--cds-text-primary);
-  @include type.type-style("body-compact-01");
-  font-weight: 600;
-}
-
-.infoCalloutMeta {
-  color: var(--cds-text-secondary);
-  @include type.type-style("body-compact-01");
-}
-
-.omittedParticipantList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: layout.$spacing-02;
-}
-
-.participantChipListBlock {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-02;
-}
-
-.omittedParticipantItem {
-  padding: layout.$spacing-02 layout.$spacing-03;
-  border-radius: 999px;
-  background: var(--cds-layer-02);
-  color: var(--cds-text-primary);
-  @include type.type-style("label-01");
-}
-
-.participantListToggle {
-  padding: layout.$spacing-02 layout.$spacing-03;
-  border-radius: 999px;
-  border: 1px dashed var(--cds-border-subtle);
-  background: transparent;
-  color: var(--cds-text-secondary);
-  cursor: pointer;
-  @include type.type-style("label-01");
-
-  &:hover {
-    color: var(--cds-text-primary);
-    border-color: var(--cds-border-strong-01);
-    background: var(--cds-layer-hover-01);
-  }
-}
-
 .detailMetricGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -701,6 +635,35 @@
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-03;
+}
+
+.objectiveResponseList {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.objectiveResponseCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+}
+
+.objectiveResponseIdentity {
+  color: var(--cds-text-primary);
+  font-weight: 600;
+  @include type.type-style("body-compact-01");
+}
+
+.objectiveResponseTags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: layout.$spacing-02;
 }
 
 .responseCard {

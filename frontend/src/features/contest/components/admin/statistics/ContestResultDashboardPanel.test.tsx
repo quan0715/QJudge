@@ -133,11 +133,12 @@ describe("ContestResultDashboardPanel", () => {
 
     expect(screen.getByText("Q1 ·")).toBeInTheDocument();
     expect(screen.getByText("選項分布")).toBeInTheDocument();
-    expect(screen.getAllByText(/作答學生/).length).toBeGreaterThan(0);
+    expect(screen.getByText("所有作答")).toBeInTheDocument();
+    expect(screen.queryByText(/作答學生/)).not.toBeInTheDocument();
     expect(screen.queryByText("所有回答")).not.toBeInTheDocument();
   });
 
-  it("collapses long participant lists behind a +N toggle", () => {
+  it("filters objective participant list by selected option", () => {
     render(
       <MemoryRouter>
         <ContestResultDashboardPanel contest={buildContest()} />
@@ -147,7 +148,13 @@ describe("ContestResultDashboardPanel", () => {
     const card = screen.getByText("基礎語法與觀念檢核").closest("button")!;
     fireEvent.click(card);
 
-    expect(screen.getAllByRole("button", { name: "+1" }).length).toBeGreaterThan(0);
+    expect(screen.getByText("Amy")).toBeInTheDocument();
+    expect(screen.getByText("ben")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "A 1" }));
+
+    expect(screen.getByText("ben")).toBeInTheDocument();
+    expect(screen.queryByText("Amy")).not.toBeInTheDocument();
   });
 
   it("closes drawer on Escape key", () => {

@@ -291,7 +291,6 @@ export default function ContestResultDashboardPanel({
           detail={drawerDetail}
           error={drawerError}
           loading={drawerQuestionId ? Boolean(detailLoadingIds[drawerQuestionId]) : false}
-          onClose={closeDrawer}
         />
       </motion.div>
     </AnimatePresence>
@@ -304,7 +303,7 @@ export default function ContestResultDashboardPanel({
           leftActions={
             <Button
               kind="ghost"
-              size="sm"
+              size="md"
               hasIconOnly
               renderIcon={sidebarExpanded ? Close : Menu}
               iconDescription={sidebarExpanded
@@ -328,7 +327,7 @@ export default function ContestResultDashboardPanel({
             <>
               <Button
                 kind="ghost"
-                size="sm"
+                size="md"
                 hasIconOnly
                 iconDescription={exporting
                   ? t("statistics.exporting", "匯出中…")
@@ -339,8 +338,8 @@ export default function ContestResultDashboardPanel({
               />
               {drawerQuestion && (
                 <Button
-                  kind="ghost"
-                  size="sm"
+                  kind="secondary"
+                  size="md"
                   hasIconOnly
                   iconDescription={t("statistics.closeDetail", "關閉詳細")}
                   renderIcon={Close}
@@ -492,20 +491,20 @@ function DrawerContent({
   detail,
   error,
   loading,
-  onClose,
 }: {
   question: QuestionSummaryMock;
   detail: QuestionDetailMock | null;
   error: string | null;
   loading: boolean;
-  onClose: () => void;
 }) {
   const { t } = useTranslation("contest");
   const questionVisual = getQuestionVisual(question.kind);
   const [scoreFilter, setScoreFilter] = useState<string>("all");
+  const [objectiveFilter, setObjectiveFilter] = useState<string>("all");
 
   useEffect(() => {
     setScoreFilter("all");
+    setObjectiveFilter("all");
   }, [question.questionId]);
 
   if (loading) {
@@ -532,14 +531,6 @@ function DrawerContent({
               <span>{t("statistics.omittedCount", "{{count}} 人未作答", { count: question.missingCount })}</span>
             </div>
           </div>
-          <Button
-            kind="ghost"
-            size="sm"
-            hasIconOnly
-            iconDescription={t("statistics.close", "Close")}
-            renderIcon={Close}
-            onClick={onClose}
-          />
         </div>
         <DrawerSkeleton />
       </>
@@ -570,14 +561,6 @@ function DrawerContent({
               <span>{t("statistics.omittedCount", "{{count}} 人未作答", { count: question.missingCount })}</span>
             </div>
           </div>
-          <Button
-            kind="ghost"
-            size="sm"
-            hasIconOnly
-            iconDescription={t("statistics.close", "Close")}
-            renderIcon={Close}
-            onClick={onClose}
-          />
         </div>
         <div className={styles.drawerError}>{error}</div>
       </>
@@ -594,14 +577,6 @@ function DrawerContent({
               Q{question.order} · {questionVisual.label}
             </h2>
           </div>
-          <Button
-            kind="ghost"
-            size="sm"
-            hasIconOnly
-            iconDescription={t("statistics.close", "Close")}
-            renderIcon={Close}
-            onClick={onClose}
-          />
         </div>
         <DrawerSkeleton />
       </>
@@ -611,6 +586,21 @@ function DrawerContent({
   const objectiveDetail = isObjectiveDetail(detail) ? detail : null;
   const subjectiveDetail = isSubjectiveDetail(detail) ? detail : null;
   const codingDetail = isCodingDetail(detail) ? detail : null;
+  const objectiveParticipants = objectiveDetail
+    ? buildObjectiveParticipantRows(objectiveDetail)
+    : [];
+  const objectiveFilterOptions = objectiveDetail
+    ? buildObjectiveFilterOptions(objectiveDetail, objectiveParticipants, t)
+    : [];
+  const filteredObjectiveParticipants = objectiveDetail
+    ? objectiveParticipants.filter((participant) =>
+        objectiveFilter === "all"
+          ? !participant.isOmitted
+          : objectiveFilter === "omitted"
+            ? participant.isOmitted
+            : participant.selectedFilters.includes(objectiveFilter),
+      )
+    : [];
   const scoreFilterOptions = subjectiveDetail
     ? buildScoreFilterOptions(detail.responses, t)
     : [];
@@ -647,14 +637,6 @@ function DrawerContent({
             <span>{t("statistics.omittedCount", "{{count}} 人未作答", { count: question.missingCount })}</span>
           </div>
         </div>
-        <Button
-          kind="ghost"
-          size="sm"
-          hasIconOnly
-          iconDescription={t("statistics.close", "Close")}
-          renderIcon={Close}
-          onClick={onClose}
-        />
       </div>
 
       {subjectiveDetail && (
@@ -702,14 +684,33 @@ function DrawerContent({
       </section>
 
       {objectiveDetail && (
-        <section className={styles.drawerSection}>
-          <h3 className={styles.drawerSectionTitle}>{t("statistics.optionDistribution", "選項分布")}
-          </h3>
-          <OptionDistributionList
-            data={objectiveDetail.optionDistribution}
-            omittedParticipants={objectiveDetail.omittedParticipants ?? []}
-          />
-        </section>
+        <>
+          <section className={styles.drawerSection}>
+            <h3 className={styles.drawerSectionTitle}>{t("statistics.optionDistribution", "選項分布")}
+            </h3>
+            <OptionDistributionList data={objectiveDetail.optionDistribution} />
+          </section>
+          <section className={styles.drawerSection}>
+            <div className={styles.drawerSectionHeader}>
+              <h3 className={styles.drawerSectionTitle}>
+                {t("statistics.allObjectiveResponses", "所有作答")}
+              </h3>
+              <span className={styles.sectionMeta}>
+                {t("studentStatus.personCount", "{{count}} 人", {
+                  count: filteredObjectiveParticipants.length,
+                })}
+              </span>
+            </div>
+            <ScoreFilterChips
+              options={objectiveFilterOptions}
+              activeValue={objectiveFilter}
+              onChange={setObjectiveFilter}
+            />
+            <ObjectiveParticipantList
+              participants={filteredObjectiveParticipants}
+            />
+          </section>
+        </>
       )}
 
       {codingDetail && (
@@ -918,7 +919,6 @@ function MiniBarList({
 
 function OptionDistributionList({
   data,
-  omittedParticipants,
 }: {
   data: Array<{
     label: string;
@@ -931,12 +931,6 @@ function OptionDistributionList({
       nickname: string | null;
       displayName: string;
     }>;
-  }>;
-  omittedParticipants: Array<{
-    participantId: number;
-    username: string;
-    nickname: string | null;
-    displayName: string;
   }>;
 }) {
   const { t } = useTranslation("contest");
@@ -966,74 +960,55 @@ function OptionDistributionList({
               },
             ]}
           />
-          <div className={styles.optionParticipantsSection}>
-            <div className={styles.infoCalloutHeader}>
-              <span>{t("statistics.selectedStudents", "作答學生 {{count}} 人", { count: item.participants.length })}</span>
-            </div>
-            {item.participants.length > 0 ? (
-              <ParticipantChipList
-                participants={item.participants}
-                itemKeyPrefix={item.label}
-              />
-            ) : (
-              <span className={styles.infoCalloutMeta}>{t("statistics.noStudentsSelected", "目前無學生選擇此選項")}</span>
-            )}
-          </div>
         </div>
       ))}
-      <div className={styles.infoCallout}>
-        <div className={styles.infoCalloutHeader}>
-          <span>{t("statistics.omittedStudents", "未作答 {{count}} 人", { count: omittedParticipants.length })}</span>
-        </div>
-        {omittedParticipants.length > 0 ? (
-          <ParticipantChipList participants={omittedParticipants} />
-        ) : (
-          <span className={styles.infoCalloutMeta}>{t("statistics.noOmittedStudents", "本題無未作答學生")}</span>
-        )}
-      </div>
     </div>
   );
 }
 
-function ParticipantChipList({
+function ObjectiveParticipantList({
   participants,
-  itemKeyPrefix = "participant",
 }: {
-  participants: Array<{
-    participantId: number;
-    username: string;
-    nickname: string | null;
-    displayName: string;
-  }>;
-  itemKeyPrefix?: string;
+  participants: ObjectiveParticipantRow[];
 }) {
   const { t } = useTranslation("contest");
-  const [expanded, setExpanded] = useState(false);
-  const hasParticipants = participants.length > 0;
-  const visibleParticipants = expanded ? participants : [];
-  const hiddenCount = participants.length;
+  if (participants.length === 0) {
+    return (
+      <div className={styles.drawerEmptyState}>
+        {t("statistics.noFilteredParticipants", "目前沒有符合條件的學生")}
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.participantChipListBlock}>
-      <div className={styles.omittedParticipantList}>
-        {visibleParticipants.map((participant) => (
-          <span
-            key={`${itemKeyPrefix}-${participant.participantId}`}
-            className={styles.omittedParticipantItem}
-          >
+    <div className={styles.objectiveResponseList}>
+      {participants.map((participant) => (
+        <Tile
+          key={`participant-${participant.participantId}`}
+          className={styles.objectiveResponseCard}
+        >
+          <div className={styles.objectiveResponseIdentity}>
             {participant.displayName}
-          </span>
-        ))}
-        {hasParticipants ? (
-          <button
-            type="button"
-            className={styles.participantListToggle}
-            onClick={() => setExpanded((value) => !value)}
-          >
-            {expanded ? t("statistics.collapse", "收合") : `+${hiddenCount}`}
-          </button>
-        ) : null}
-      </div>
+          </div>
+          <div className={styles.objectiveResponseTags}>
+            {participant.isOmitted ? (
+              <Tag type="cool-gray" size="sm">
+                {t("statistics.omitted", "未作答")}
+              </Tag>
+            ) : (
+              participant.selectedOptions.map((option) => (
+                <Tag
+                  key={`participant-${participant.participantId}-${option}`}
+                  type="outline"
+                  size="sm"
+                >
+                  {option}
+                </Tag>
+              ))
+            )}
+          </div>
+        </Tile>
+      ))}
     </div>
   );
 }
@@ -1348,4 +1323,106 @@ function formatAnswerContent(
   }
 
   return typeof answer === "string" ? answer : JSON.stringify(answer, null, 2);
+}
+
+type ObjectiveParticipantRow = {
+  participantId: number;
+  username: string;
+  nickname: string | null;
+  displayName: string;
+  isOmitted: boolean;
+  selectedOptions: string[];
+  selectedFilters: string[];
+};
+
+function buildObjectiveParticipantRows(
+  detail: Extract<
+    QuestionDetailMock,
+    { kind: "single_choice" | "multiple_choice" | "true_false" }
+  >,
+): ObjectiveParticipantRow[] {
+  const participants = new Map<number, ObjectiveParticipantRow>();
+
+  for (const option of detail.optionDistribution) {
+    const optionCode = getOptionFilterLabel(option.label);
+    const optionFilter = buildObjectiveOptionFilterValue(option.label);
+    for (const participant of option.participants) {
+      const existing = participants.get(participant.participantId);
+      if (existing) {
+        if (!existing.selectedOptions.includes(optionCode)) {
+          existing.selectedOptions.push(optionCode);
+        }
+        if (!existing.selectedFilters.includes(optionFilter)) {
+          existing.selectedFilters.push(optionFilter);
+        }
+        continue;
+      }
+      participants.set(participant.participantId, {
+        ...participant,
+        isOmitted: false,
+        selectedOptions: [optionCode],
+        selectedFilters: [optionFilter],
+      });
+    }
+  }
+
+  for (const participant of detail.omittedParticipants ?? []) {
+    if (participants.has(participant.participantId)) {
+      continue;
+    }
+    participants.set(participant.participantId, {
+      ...participant,
+      isOmitted: true,
+      selectedOptions: [],
+      selectedFilters: [],
+    });
+  }
+
+  return [...participants.values()].sort((left, right) =>
+    left.displayName.localeCompare(right.displayName, "zh-Hant"),
+  );
+}
+
+function buildObjectiveFilterOptions(
+  detail: Extract<
+    QuestionDetailMock,
+    { kind: "single_choice" | "multiple_choice" | "true_false" }
+  >,
+  participants: ObjectiveParticipantRow[],
+  t: ReturnType<typeof useTranslation<"contest">>["t"],
+): Array<{ label: string; value: string; count: number }> {
+  const answeredCount = participants.filter(
+    (participant) => !participant.isOmitted,
+  ).length;
+
+  return [
+    {
+      label: t("statistics.all", "全部"),
+      value: "all",
+      count: answeredCount,
+    },
+    ...detail.optionDistribution.map((option) => ({
+      label: getOptionFilterLabel(option.label),
+      value: buildObjectiveOptionFilterValue(option.label),
+      count: option.participants.length,
+    })),
+    ...((detail.omittedParticipants?.length ?? 0) > 0
+      ? [
+          {
+            label: t("statistics.omitted", "未作答"),
+            value: "omitted",
+            count: detail.omittedParticipants?.length ?? 0,
+          },
+        ]
+      : []),
+  ];
+}
+
+function buildObjectiveOptionFilterValue(label: string): string {
+  return `option:${label}`;
+}
+
+function getOptionFilterLabel(label: string): string {
+  const match = label.match(/^\s*([A-Z]+)\./);
+  return match?.[1] ?? label;
 }
