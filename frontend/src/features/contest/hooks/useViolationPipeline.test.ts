@@ -352,4 +352,19 @@ describe("useViolationPipeline", () => {
       }),
     );
   });
+
+  it("externalCountdown=true: recover without prior trigger is a no-op", () => {
+    const config = makeConfig({ externalCountdown: true });
+    const { result } = renderHook(() => useViolationPipeline(config));
+
+    act(() => { result.current.recover("spurious_recover"); });
+
+    expect(result.current.isInterrupted).toBe(false);
+    expect(result.current.recoveryCountdown).toBeNull();
+    // No restored event should be recorded (wasn't interrupted)
+    const restoredCalls = mockRecordExamEvent.mock.calls.filter(
+      (c: unknown[]) => c[1] === "viewport_restored",
+    );
+    expect(restoredCalls).toHaveLength(0);
+  });
 });
