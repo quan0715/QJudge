@@ -1,0 +1,216 @@
+@use "@carbon/layout";
+
+.landing-audience-section__desktop {
+  display: block;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+.landing-audience-section__mobile {
+  display: none;
+
+  @media (max-width: 767px) {
+    display: block;
+  }
+}
+
+.landing-audience-section__tabs-shell {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-01);
+}
+
+.landing-audience-section__panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(28rem, 1.28fr);
+  gap: layout.$spacing-07;
+  padding: layout.$spacing-06 0 0;
+  align-items: center;
+
+  @media (max-width: 1055px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-audience-section .landing-section-heading__title {
+  max-width: none;
+  text-wrap: pretty;
+}
+
+.landing-audience-section .landing-section-heading__description {
+  max-width: 46rem;
+}
+
+.landing-audience-section__content {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  padding: 0;
+}
+
+.landing-audience-section__case-meta {
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cds-text-helper);
+}
+
+.landing-audience-section__content h3 {
+  margin: 0;
+  max-width: 14ch;
+  line-height: 1.06;
+}
+
+.landing-audience-section__content dl {
+  display: grid;
+  gap: layout.$spacing-05;
+}
+
+.landing-audience-section__content :is(dt, dd) {
+  margin: 0;
+}
+
+.landing-audience-section__content dl > div {
+  padding: 0 0 0 layout.$spacing-05;
+  border-left: 3px solid var(--cds-border-subtle-01);
+}
+
+.landing-audience-section__content dl > div:last-child {
+  border-left-color: color-mix(in srgb, var(--cds-link-primary) 70%, var(--cds-border-subtle-01) 30%);
+}
+
+.landing-audience-section__content dt {
+  margin-bottom: layout.$spacing-02;
+  color: var(--cds-text-helper);
+  font-weight: 600;
+}
+
+.landing-audience-section__content dd {
+  line-height: 1.65;
+  color: var(--cds-text-secondary);
+}
+
+.landing-audience-section__visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32rem;
+}
+
+.landing-audience-section__visual-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 42rem);
+  min-height: 32rem;
+  padding: layout.$spacing-07;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--cds-border-subtle-01);
+  background:
+    radial-gradient(circle at 16% 18%, rgba(124, 199, 255, 0.14) 0%, transparent 26%),
+    linear-gradient(180deg, color-mix(in srgb, var(--cds-layer-01) 96%, white 4%), color-mix(in srgb, var(--cds-layer-02) 98%, white 2%));
+}
+
+.landing-audience-section__visual-stage img {
+  position: relative;
+  z-index: 1;
+  width: min(30rem, 100%);
+  max-height: 26rem;
+  opacity: 0.96;
+}
+
+.landing-audience-section__panel--independent .landing-audience-section__visual-stage {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(94, 180, 255, 0.18) 0%, transparent 28%),
+    linear-gradient(180deg, rgba(243, 249, 255, 0.96), rgba(231, 241, 255, 0.94));
+}
+
+.landing-audience-section__panel--experimental .landing-audience-section__visual-stage {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(34, 211, 238, 0.16) 0%, transparent 28%),
+    linear-gradient(180deg, rgba(241, 253, 255, 0.96), rgba(230, 249, 252, 0.94));
+}
+
+.landing-audience-section__panel--apcs .landing-audience-section__visual-stage {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(99, 102, 241, 0.18) 0%, transparent 28%),
+    linear-gradient(180deg, rgba(244, 246, 255, 0.96), rgba(234, 238, 255, 0.94));
+}
+
+[data-carbon-theme="g100"] .landing-audience-section__tabs-shell,
+[data-carbon-theme="g90"] .landing-audience-section__tabs-shell {
+  border-color: rgba(163, 191, 240, 0.18);
+  background: rgba(17, 27, 45, 0.96);
+}
+
+[data-carbon-theme="g100"] .landing-audience-section__case-meta,
+[data-carbon-theme="g90"] .landing-audience-section__case-meta {
+  color: rgba(236, 241, 250, 0.72);
+}
+
+[data-carbon-theme="g100"] .landing-audience-section__content dl > div,
+[data-carbon-theme="g90"] .landing-audience-section__content dl > div {
+  border-left-color: rgba(163, 191, 240, 0.18);
+}
+
+[data-carbon-theme="g100"] .landing-audience-section__visual-stage,
+[data-carbon-theme="g90"] .landing-audience-section__visual-stage {
+  border-color: rgba(163, 191, 240, 0.18);
+  background:
+    radial-gradient(circle at 16% 18%, rgba(90, 160, 255, 0.18) 0%, transparent 26%),
+    linear-gradient(180deg, rgba(18, 30, 50, 0.98), rgba(17, 27, 45, 0.96));
+}
+
+[data-carbon-theme="g100"] .landing-audience-section__panel--independent .landing-audience-section__visual-stage,
+[data-carbon-theme="g90"] .landing-audience-section__panel--independent .landing-audience-section__visual-stage {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(65, 180, 255, 0.18) 0%, transparent 28%),
+    linear-gradient(180deg, rgba(18, 31, 54, 0.98), rgba(16, 27, 46, 0.96));
+}
+
+[data-carbon-theme="g100"] .landing-audience-section__panel--experimental .landing-audience-section__visual-stage,
+[data-carbon-theme="g90"] .landing-audience-section__panel--experimental .landing-audience-section__visual-stage {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(45, 212, 191, 0.16) 0%, transparent 28%),
+    linear-gradient(180deg, rgba(16, 31, 44, 0.98), rgba(14, 26, 39, 0.96));
+}
+
+[data-carbon-theme="g100"] .landing-audience-section__panel--apcs .landing-audience-section__visual-stage,
+[data-carbon-theme="g90"] .landing-audience-section__panel--apcs .landing-audience-section__visual-stage {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(129, 140, 248, 0.18) 0%, transparent 28%),
+    linear-gradient(180deg, rgba(21, 29, 52, 0.98), rgba(17, 24, 43, 0.96));
+}
+
+@media (max-width: 1055px) {
+  .landing-audience-section__content h3 {
+    max-width: none;
+  }
+
+  .landing-audience-section__visual-stage {
+    width: 100%;
+    min-height: 28rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .landing-audience-section__visual-stage {
+    padding: layout.$spacing-06;
+    min-height: 24rem;
+  }
+
+  .landing-audience-section__visual-label {
+    font-size: 0.95rem;
+    white-space: normal;
+  }
+
+  .landing-audience-section__visual-stage img {
+    width: min(24rem, 100%);
+    max-height: 20rem;
+  }
+}

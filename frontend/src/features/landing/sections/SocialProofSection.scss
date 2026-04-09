@@ -1,0 +1,71 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.landing-social-proof-section {
+  background: color-mix(in srgb, var(--cds-layer-01) 55%, transparent);
+}
+
+.landing-social-proof-section__metrics,
+.landing-social-proof-section__cases {
+  display: grid;
+  gap: layout.$spacing-05;
+}
+
+.landing-social-proof-section__metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: layout.$spacing-06;
+
+  @media (max-width: 1055px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-social-proof-section__cases {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  @media (max-width: 1055px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-social-proof-section__metric-card,
+.landing-social-proof-section__case-card {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-06;
+  border-radius: 1rem;
+}
+
+.landing-social-proof-section__metric-card {
+  background: var(--cds-layer-inverse);
+  color: var(--cds-text-inverse);
+
+  strong {
+    @include type.type-style("productive-heading-06");
+  }
+
+  h3,
+  p {
+    margin: 0;
+    color: inherit;
+  }
+}
+
+.landing-social-proof-section__case-card dl {
+  display: grid;
+  gap: layout.$spacing-04;
+  margin: 0;
+}
+
+.landing-social-proof-section__case-card :is(dt, dd, p) {
+  margin: 0;
+}
+
+.landing-social-proof-section__case-label {
+  color: var(--cds-link-primary);
+}
+
+.landing-social-proof-section__case-card dd {
+  color: var(--cds-text-secondary);
+}
