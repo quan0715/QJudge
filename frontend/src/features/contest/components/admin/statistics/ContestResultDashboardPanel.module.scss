@@ -178,12 +178,6 @@
   background: var(--cds-layer-selected-01);
 }
 
-.previewCardTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
 .previewCardMeta {
   color: var(--cds-text-secondary);
   @include type.type-style("label-01");
@@ -196,10 +190,16 @@
   margin-top: 2px;
 }
 
-.previewCardBody {
+.donutGroup {
   display: flex;
   align-items: center;
   gap: layout.$spacing-04;
+}
+
+.donutScore {
+  display: flex;
+  align-items: baseline;
+  gap: layout.$spacing-02;
 }
 
 .donutWrap {

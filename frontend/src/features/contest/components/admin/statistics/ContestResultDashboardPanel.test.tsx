@@ -97,7 +97,6 @@ describe("ContestResultDashboardPanel", () => {
 
     expect(screen.getByText("基礎語法與觀念檢核")).toBeInTheDocument();
     expect(screen.getByText("多選：資料結構特性判斷")).toBeInTheDocument();
-    expect(screen.getAllByText("穩定").length).toBeGreaterThanOrEqual(1);
   });
 
   it("opens drawer when clicking a question card", () => {
@@ -135,16 +134,12 @@ describe("ContestResultDashboardPanel", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows sort dropdown and changes sort order", () => {
+  it("renders questions sorted by order", () => {
     render(
       <MemoryRouter>
         <ContestResultDashboardPanel contest={buildContest()} />
       </MemoryRouter>,
     );
-
-    fireEvent.change(screen.getByLabelText("排序"), {
-      target: { value: "order" },
-    });
 
     const cards = screen.getAllByRole("button", { pressed: false });
     const firstCardText = cards[0]?.textContent ?? "";

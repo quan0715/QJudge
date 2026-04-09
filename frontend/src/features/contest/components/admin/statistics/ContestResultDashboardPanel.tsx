@@ -5,8 +5,6 @@ import "@carbon/charts-react/styles.css";
 import {
   Button,
   ProgressBar,
-  Select,
-  SelectItem,
   Tag,
   Tile,
 } from "@carbon/react";
@@ -15,7 +13,6 @@ import { useTranslation } from "react-i18next";
 import {
   createContestResultDashboardMock,
   dashboardTypeLabels,
-  type DashboardSortMode,
   type QuestionDetailMock,
   type QuestionSummaryMock,
 } from "./contestResultDashboard.mock";
@@ -23,20 +20,6 @@ import type { AdminPanelProps } from "@/features/contest/modules/types";
 import styles from "./ContestResultDashboardPanel.module.scss";
 
 /* ── Constants ── */
-
-const STATUS_ORDER: Record<QuestionSummaryMock["status"], number> = {
-  attention: 0,
-  grading: 1,
-  stable: 2,
-};
-
-const SORT_OPTIONS: Array<{ value: DashboardSortMode; label: string }> = [
-  { value: "attention", label: "依關注程度" },
-  { value: "order", label: "依題號" },
-  { value: "average_asc", label: "依平均分升序" },
-  { value: "zero_desc", label: "依 0 分率降序" },
-  { value: "grading_desc", label: "依待處理量降序" },
-];
 
 const DONUT_RADIUS = 14;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
@@ -47,7 +30,6 @@ export default function ContestResultDashboardPanel({
   contest,
 }: AdminPanelProps) {
   const { t } = useTranslation("contest");
-  const [sortMode, setSortMode] = useState<DashboardSortMode>("attention");
   const [drawerQuestionId, setDrawerQuestionId] = useState<string | null>(null);
 
   const dashboard = useMemo(
@@ -55,13 +37,13 @@ export default function ContestResultDashboardPanel({
     [contest],
   );
 
-  const filteredQuestions = useMemo(
-    () => sortQuestions(dashboard.questions, dashboard, sortMode),
-    [dashboard, sortMode],
+  const sortedQuestions = useMemo(
+    () => [...dashboard.questions].sort((a, b) => a.order - b.order),
+    [dashboard.questions],
   );
 
   const drawerQuestion =
-    filteredQuestions.find((q) => q.questionId === drawerQuestionId) ?? null;
+    sortedQuestions.find((q) => q.questionId === drawerQuestionId) ?? null;
   const drawerDetail = drawerQuestionId
     ? dashboard.details[drawerQuestionId]
     : null;
@@ -122,15 +104,6 @@ export default function ContestResultDashboardPanel({
         <div className={styles.titleMeta}>
           <span className={styles.panelTitle}>
             {t("statistics.resultSummary", "結果摘要")}
-          </span>
-          <span>{dashboard.contest.course}</span>
-          <span>·</span>
-          <span>{contest?.name ?? dashboard.contest.name}</span>
-          <span>·</span>
-          <span>
-            {dashboard.contest.contestType === "coding"
-              ? t("statistics.codingContest", "Coding contest")
-              : t("statistics.paperExam", "Paper exam")}
           </span>
           <Tag
             type={
@@ -233,30 +206,13 @@ export default function ContestResultDashboardPanel({
                   {t("statistics.questionBoard", "題目分析")}
                   <span className={styles.questionCount}>
                     {t("statistics.questionCount", "{{count}} 題", {
-                      count: filteredQuestions.length,
+                      count: sortedQuestions.length,
                     })}
                   </span>
                 </h2>
-                <Select
-                  id="dashboard-sort-mode"
-                  labelText={t("statistics.sortMode", "排序")}
-                  size="sm"
-                  value={sortMode}
-                  onChange={(e) =>
-                    setSortMode(e.target.value as DashboardSortMode)
-                  }
-                >
-                  {SORT_OPTIONS.map((opt) => (
-                    <SelectItem
-                      key={opt.value}
-                      value={opt.value}
-                      text={opt.label}
-                    />
-                  ))}
-                </Select>
               </div>
 
-              {filteredQuestions.length === 0 ? (
+              {sortedQuestions.length === 0 ? (
                 <div className={styles.emptyGrid}>
                   <p>
                     {t("statistics.noQuestionData", "目前沒有題目資料")}
@@ -264,7 +220,7 @@ export default function ContestResultDashboardPanel({
                 </div>
               ) : (
                 <div className={styles.questionGrid}>
-                  {filteredQuestions.map((question) => (
+                  {sortedQuestions.map((question) => (
                     <QuestionPreviewCard
                       key={question.questionId}
                       question={question}
@@ -319,34 +275,48 @@ function donutColor(rate: number): string {
   return "var(--cds-support-error, #da1e28)";
 }
 
-function DonutChart({ rate }: { rate: number }) {
+function DonutChart({
+  rate,
+  score,
+  maxScore,
+}: {
+  rate: number;
+  score: number;
+  maxScore: number;
+}) {
   const filled = (rate / 100) * DONUT_CIRCUMFERENCE;
   const gap = DONUT_CIRCUMFERENCE - filled;
 
   return (
-    <div className={styles.donutWrap}>
-      <svg viewBox="0 0 36 36" width="48" height="48" aria-hidden="true">
-        <circle
-          cx="18"
-          cy="18"
-          r={DONUT_RADIUS}
-          fill="none"
-          stroke="var(--cds-layer-02, #2a2a4a)"
-          strokeWidth="3.5"
-        />
-        <circle
-          cx="18"
-          cy="18"
-          r={DONUT_RADIUS}
-          fill="none"
-          stroke={donutColor(rate)}
-          strokeWidth="3.5"
-          strokeDasharray={`${filled} ${gap}`}
-          strokeLinecap="round"
-          transform="rotate(-90 18 18)"
-        />
-      </svg>
-      <div className={styles.donutLabel}>{Math.round(rate)}%</div>
+    <div className={styles.donutGroup}>
+      <div className={styles.donutWrap}>
+        <svg viewBox="0 0 36 36" width="48" height="48" aria-hidden="true">
+          <circle
+            cx="18"
+            cy="18"
+            r={DONUT_RADIUS}
+            fill="none"
+            stroke="var(--cds-layer-02, #2a2a4a)"
+            strokeWidth="3.5"
+          />
+          <circle
+            cx="18"
+            cy="18"
+            r={DONUT_RADIUS}
+            fill="none"
+            stroke={donutColor(rate)}
+            strokeWidth="3.5"
+            strokeDasharray={`${filled} ${gap}`}
+            strokeLinecap="round"
+            transform="rotate(-90 18 18)"
+          />
+        </svg>
+        <div className={styles.donutLabel}>{Math.round(rate)}%</div>
+      </div>
+      <div className={styles.donutScore}>
+        <span className={styles.previewScore}>{score.toFixed(1)}</span>
+        <span className={styles.previewScoreMax}>/ {maxScore}</span>
+      </div>
     </div>
   );
 }
@@ -369,26 +339,15 @@ function QuestionPreviewCard({
       onClick={onClick}
       aria-pressed={isActive}
     >
-      <div className={styles.previewCardTop}>
-        <div>
-          <div className={styles.previewCardMeta}>
-            Q{question.order} · {dashboardTypeLabels[question.kind]}
-          </div>
-          <div className={styles.previewCardTitle}>{question.title}</div>
-        </div>
-        <Tag type={statusToTagType(question.status)} size="sm">
-          {statusToLabel(question.status)}
-        </Tag>
+      <div className={styles.previewCardMeta}>
+        Q{question.order} · {dashboardTypeLabels[question.kind]}
       </div>
-      <div className={styles.previewCardBody}>
-        <DonutChart rate={question.scoreRate} />
-        <div>
-          <span className={styles.previewScore}>
-            {question.averageScore.toFixed(1)}
-          </span>{" "}
-          <span className={styles.previewScoreMax}>/ {question.maxScore}</span>
-        </div>
-      </div>
+      <div className={styles.previewCardTitle}>{question.title}</div>
+      <DonutChart
+        rate={question.scoreRate}
+        score={question.averageScore}
+        maxScore={question.maxScore}
+      />
     </button>
   );
 }
@@ -620,60 +579,6 @@ function MiniBarList({
 }
 
 /* ── Helpers ── */
-
-function sortQuestions(
-  questions: QuestionSummaryMock[],
-  dashboard: ReturnType<typeof createContestResultDashboardMock>,
-  sortMode: DashboardSortMode,
-) {
-  return [...questions].sort((left, right) => {
-    if (sortMode === "attention") {
-      if (STATUS_ORDER[left.status] !== STATUS_ORDER[right.status]) {
-        return STATUS_ORDER[left.status] - STATUS_ORDER[right.status];
-      }
-      return (
-        (dashboard.details[right.questionId]?.scoreBands[0]?.count ?? 0) -
-        (dashboard.details[left.questionId]?.scoreBands[0]?.count ?? 0)
-      );
-    }
-    if (sortMode === "order") return left.order - right.order;
-    if (sortMode === "average_asc")
-      return left.averageScore - right.averageScore;
-    if (sortMode === "zero_desc") return right.zeroRate - left.zeroRate;
-    return gradingBacklog(right, dashboard) - gradingBacklog(left, dashboard);
-  });
-}
-
-function gradingBacklog(
-  question: QuestionSummaryMock,
-  dashboard: ReturnType<typeof createContestResultDashboardMock>,
-) {
-  const detail = dashboard.details[question.questionId];
-  if (detail.kind === "short_answer" || detail.kind === "essay") {
-    return detail.gradingProgress.total - detail.gradingProgress.graded;
-  }
-  if (detail.kind === "coding") {
-    return (
-      detail.statusDistribution.find((item) => item.status === "Pending")
-        ?.count ?? 0
-    );
-  }
-  return question.missingCount;
-}
-
-function statusToTagType(
-  status: QuestionSummaryMock["status"],
-): "green" | "red" | "purple" {
-  if (status === "stable") return "green";
-  if (status === "attention") return "red";
-  return "purple";
-}
-
-function statusToLabel(status: QuestionSummaryMock["status"]) {
-  if (status === "stable") return "穩定";
-  if (status === "attention") return "需關注";
-  return "待批改";
-}
 
 function statusTone(status: string): "default" | "success" | "warning" {
   if (status === "AC") return "success";
