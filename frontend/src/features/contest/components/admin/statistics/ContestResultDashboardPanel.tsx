@@ -13,7 +13,9 @@ import {
 import {
   Close,
   Download,
+  Menu,
 } from "@carbon/icons-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import {
   type QuestionDetailMock,
@@ -54,6 +56,7 @@ export default function ContestResultDashboardPanel({
   const { t } = useTranslation("contest");
   const { theme } = useTheme();
   const [drawerQuestionId, setDrawerQuestionId] = useState<string | null>(null);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [exporting, setExporting] = useState(false);
 
   const handleExport = useCallback(async () => {
@@ -274,21 +277,42 @@ export default function ContestResultDashboardPanel({
   );
 
   const rightPaneContent = drawerQuestion ? (
-    <div className={styles.rightPaneInner}>
-      <DrawerContent
-        question={drawerQuestion}
-        detail={drawerDetail}
-        error={drawerError}
-        loading={drawerQuestionId ? Boolean(detailLoadingIds[drawerQuestionId]) : false}
-        onClose={closeDrawer}
-      />
-    </div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={drawerQuestionId}
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 20 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className={styles.rightPaneInner}
+      >
+        <DrawerContent
+          question={drawerQuestion}
+          detail={drawerDetail}
+          error={drawerError}
+          loading={drawerQuestionId ? Boolean(detailLoadingIds[drawerQuestionId]) : false}
+          onClose={closeDrawer}
+        />
+      </motion.div>
+    </AnimatePresence>
   ) : undefined;
 
   return (
     <AdminSplitLayout
       toolbar={
         <PanelToolbar
+          leftActions={
+            <Button
+              kind="ghost"
+              size="sm"
+              hasIconOnly
+              renderIcon={sidebarExpanded ? Close : Menu}
+              iconDescription={sidebarExpanded
+                ? t("statistics.hideSummary", "隱藏考試總覽")
+                : t("statistics.showSummary", "顯示考試總覽")}
+              onClick={() => setSidebarExpanded((prev) => !prev)}
+            />
+          }
           title={t("statistics.resultSummary", "結果摘要")}
           status={
             <Tag
@@ -301,21 +325,34 @@ export default function ContestResultDashboardPanel({
             </Tag>
           }
           actions={
-            <Button
-              kind="ghost"
-              size="sm"
-              hasIconOnly
-              iconDescription={exporting
-                ? t("statistics.exporting", "匯出中…")
-                : t("statistics.exportResults", "匯出成績")}
-              renderIcon={Download}
-              onClick={handleExport}
-              disabled={exporting}
-            />
+            <>
+              <Button
+                kind="ghost"
+                size="sm"
+                hasIconOnly
+                iconDescription={exporting
+                  ? t("statistics.exporting", "匯出中…")
+                  : t("statistics.exportResults", "匯出成績")}
+                renderIcon={Download}
+                onClick={handleExport}
+                disabled={exporting}
+              />
+              {drawerQuestion && (
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  hasIconOnly
+                  iconDescription={t("statistics.closeDetail", "關閉詳細")}
+                  renderIcon={Close}
+                  onClick={closeDrawer}
+                />
+              )}
+            </>
           }
         />
       }
       sidebar={sidebarContent}
+      sidebarHidden={!sidebarExpanded}
       sidebarWidth={420}
       rightPane={rightPaneContent}
       rightPaneWidth={480}
@@ -376,6 +413,7 @@ const QuestionPreviewCard = memo(function QuestionPreviewCard({
   isActive: boolean;
   onClick: () => void;
 }) {
+  const { t } = useTranslation("contest");
   const questionVisual = getQuestionVisual(question.kind);
   const attention = getQuestionAttention(question);
 
@@ -396,13 +434,22 @@ const QuestionPreviewCard = memo(function QuestionPreviewCard({
         </div>
         <div className={styles.previewCardTitle}>{question.title}</div>
         <div className={styles.previewCardStats}>
-          <span>平均 {question.averageScore.toFixed(1)} / {question.maxScore}</span>
+          <span>
+            {t("statistics.averagePreview", "平均 {{score}} / {{maxScore}}", {
+              score: question.averageScore.toFixed(1),
+              maxScore: question.maxScore,
+            })}
+          </span>
           <span>·</span>
-          <span>{question.answerCount} 人作答</span>
+          <span>
+            {t("statistics.answeredCount", "{{count}} 人作答", {
+              count: question.answerCount,
+            })}
+          </span>
         </div>
         <RateBar
           className={styles.previewProgress}
-          label="得分率"
+          label={t("statistics.scoreRate", "得分率")}
           value={question.scoreRate}
           tone={attention.tone}
         />
@@ -453,6 +500,7 @@ function DrawerContent({
   loading: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("contest");
   const questionVisual = getQuestionVisual(question.kind);
   const [scoreFilter, setScoreFilter] = useState<string>("all");
 
@@ -472,7 +520,7 @@ function DrawerContent({
             <div className={styles.drawerPrompt}>
               <ExamQuestionPrompt
                 content={question.title}
-                emptyText="（尚未填寫題目敘述）"
+                emptyText={t("answering.question.promptEmpty")}
                 compact
               />
             </div>
@@ -480,15 +528,15 @@ function DrawerContent({
               <span>
                 {question.averageScore.toFixed(1)} / {question.maxScore}
               </span>
-              <span>{question.answerCount} 人作答</span>
-              <span>{question.missingCount} 人未作答</span>
+              <span>{t("statistics.answeredCount", "{{count}} 人作答", { count: question.answerCount })}</span>
+              <span>{t("statistics.omittedCount", "{{count}} 人未作答", { count: question.missingCount })}</span>
             </div>
           </div>
           <Button
             kind="ghost"
             size="sm"
             hasIconOnly
-            iconDescription="Close"
+            iconDescription={t("statistics.close", "Close")}
             renderIcon={Close}
             onClick={onClose}
           />
@@ -510,7 +558,7 @@ function DrawerContent({
             <div className={styles.drawerPrompt}>
               <ExamQuestionPrompt
                 content={question.title}
-                emptyText="（尚未填寫題目敘述）"
+                emptyText={t("answering.question.promptEmpty")}
                 compact
               />
             </div>
@@ -518,15 +566,15 @@ function DrawerContent({
               <span>
                 {question.averageScore.toFixed(1)} / {question.maxScore}
               </span>
-              <span>{question.answerCount} 人作答</span>
-              <span>{question.missingCount} 人未作答</span>
+              <span>{t("statistics.answeredCount", "{{count}} 人作答", { count: question.answerCount })}</span>
+              <span>{t("statistics.omittedCount", "{{count}} 人未作答", { count: question.missingCount })}</span>
             </div>
           </div>
           <Button
             kind="ghost"
             size="sm"
             hasIconOnly
-            iconDescription="Close"
+            iconDescription={t("statistics.close", "Close")}
             renderIcon={Close}
             onClick={onClose}
           />
@@ -550,7 +598,7 @@ function DrawerContent({
             kind="ghost"
             size="sm"
             hasIconOnly
-            iconDescription="Close"
+            iconDescription={t("statistics.close", "Close")}
             renderIcon={Close}
             onClick={onClose}
           />
@@ -564,7 +612,7 @@ function DrawerContent({
   const subjectiveDetail = isSubjectiveDetail(detail) ? detail : null;
   const codingDetail = isCodingDetail(detail) ? detail : null;
   const scoreFilterOptions = subjectiveDetail
-    ? buildScoreFilterOptions(detail.responses)
+    ? buildScoreFilterOptions(detail.responses, t)
     : [];
   const filteredResponses = subjectiveDetail
     ? detail.responses.filter((response) =>
@@ -587,7 +635,7 @@ function DrawerContent({
           <div className={styles.drawerPrompt}>
             <ExamQuestionPrompt
               content={question.title}
-              emptyText="（尚未填寫題目敘述）"
+              emptyText={t("answering.question.promptEmpty")}
               compact
             />
           </div>
@@ -595,15 +643,15 @@ function DrawerContent({
             <span>
               {question.averageScore.toFixed(1)} / {question.maxScore}
             </span>
-            <span>{question.answerCount} 人作答</span>
-            <span>{question.missingCount} 人未作答</span>
+            <span>{t("statistics.answeredCount", "{{count}} 人作答", { count: question.answerCount })}</span>
+            <span>{t("statistics.omittedCount", "{{count}} 人未作答", { count: question.missingCount })}</span>
           </div>
         </div>
         <Button
           kind="ghost"
           size="sm"
           hasIconOnly
-          iconDescription="Close"
+          iconDescription={t("statistics.close", "Close")}
           renderIcon={Close}
           onClick={onClose}
         />
@@ -612,14 +660,14 @@ function DrawerContent({
       {subjectiveDetail && (
         <section className={styles.drawerSection}>
           <div className={styles.drawerSectionHeader}>
-            <h3 className={styles.drawerSectionTitle}>批改進度</h3>
+            <h3 className={styles.drawerSectionTitle}>{t("statistics.gradingProgress", "批改進度")}</h3>
             <span className={styles.sectionMeta}>
               {subjectiveDetail.gradingProgress.graded} /{" "}
               {subjectiveDetail.gradingProgress.total}
             </span>
           </div>
           <RateBar
-            label="批改率"
+            label={t("statistics.gradingRate", "批改率")}
             value={
               subjectiveDetail.gradingProgress.total > 0
                 ? (subjectiveDetail.gradingProgress.graded /
@@ -639,7 +687,7 @@ function DrawerContent({
       )}
 
       <section className={styles.drawerSection}>
-        <h3 className={styles.drawerSectionTitle}>分數分布</h3>
+        <h3 className={styles.drawerSectionTitle}>{t("statistics.scoreDistribution", "分數分布")}</h3>
         <MetricBarList
           rows={detail.scoreBands.map((item) => ({
             id: item.label,
@@ -649,13 +697,14 @@ function DrawerContent({
             meta: `${item.count}`,
             tone: "default",
           }))}
-          emptyText="目前沒有已批改分數"
+          emptyText={t("statistics.noGradedScores", "目前沒有已批改分數")}
         />
       </section>
 
       {objectiveDetail && (
         <section className={styles.drawerSection}>
-          <h3 className={styles.drawerSectionTitle}>選項分布</h3>
+          <h3 className={styles.drawerSectionTitle}>{t("statistics.optionDistribution", "選項分布")}
+          </h3>
           <OptionDistributionList
             data={objectiveDetail.optionDistribution}
             omittedParticipants={objectiveDetail.omittedParticipants ?? []}
@@ -666,7 +715,7 @@ function DrawerContent({
       {codingDetail && (
         <>
           <section className={styles.drawerSection}>
-            <h3 className={styles.drawerSectionTitle}>Status 分布</h3>
+            <h3 className={styles.drawerSectionTitle}>{t("statistics.statusDistribution", "Status 分布")}</h3>
             <MiniBarList
               data={codingDetail.statusDistribution.map((item) => ({
                 label: item.status,
@@ -679,13 +728,13 @@ function DrawerContent({
             <div className={styles.detailMetricGrid}>
               <Tile className={styles.detailMetricCard}>
                 <span className={styles.detailMetricLabel}>
-                  平均提交次數
+                  {t("statistics.avgSubmissionCount", "平均提交次數")}
                 </span>
                 <strong>{codingDetail.avgSubmissions.toFixed(1)}</strong>
               </Tile>
               <Tile className={styles.detailMetricCard}>
                 <span className={styles.detailMetricLabel}>
-                  首 AC 中位數
+                  {t("statistics.medianFirstAc", "首 AC 中位數")}
                 </span>
                 <strong>
                   {codingDetail.medianFirstAcMinutes != null
@@ -697,9 +746,9 @@ function DrawerContent({
           </section>
           <section className={styles.drawerSection}>
             <div className={styles.drawerSectionHeader}>
-              <h3 className={styles.drawerSectionTitle}>常見失敗類型</h3>
+              <h3 className={styles.drawerSectionTitle}>{t("statistics.commonFailureTypes", "常見失敗類型")}</h3>
               <Button kind="ghost" size="sm">
-                查看提交樣本
+                {t("statistics.viewSubmissionSamples", "查看提交樣本")}
               </Button>
             </div>
             <MiniBarList
@@ -716,8 +765,8 @@ function DrawerContent({
       {subjectiveDetail ? (
         <section className={styles.drawerSection}>
           <div className={styles.drawerSectionHeader}>
-            <h3 className={styles.drawerSectionTitle}>所有回答</h3>
-            <span className={styles.sectionMeta}>{filteredResponses.length} 筆</span>
+            <h3 className={styles.drawerSectionTitle}>{t("statistics.allResponses", "所有回答")}</h3>
+            <span className={styles.sectionMeta}>{t("statistics.responseCount", "{{count}} 筆", { count: filteredResponses.length })}</span>
           </div>
           <ScoreFilterChips
             options={scoreFilterOptions}
@@ -890,8 +939,9 @@ function OptionDistributionList({
     displayName: string;
   }>;
 }) {
+  const { t } = useTranslation("contest");
   if (data.length === 0) {
-    return <div className={styles.drawerEmptyState}>目前沒有選項資料</div>;
+    return <div className={styles.drawerEmptyState}>{t("statistics.noOptionData", "目前沒有選項資料")}</div>;
   }
 
   const max = Math.max(...data.map((item) => item.count), 0);
@@ -908,7 +958,9 @@ function OptionDistributionList({
                 value: item.count,
                 maxValue: max,
                 meta: `${item.count} · ${item.percent}%`,
-                submeta: item.isCorrect ? "正解" : "非正解",
+                submeta: item.isCorrect
+                  ? t("statistics.correctAnswer", "正解")
+                  : t("statistics.incorrectAnswer", "非正解"),
                 tone: item.isCorrect ? "success" : "incorrect",
                 longLabel: true,
               },
@@ -916,7 +968,7 @@ function OptionDistributionList({
           />
           <div className={styles.optionParticipantsSection}>
             <div className={styles.infoCalloutHeader}>
-              <span>作答學生 {item.participants.length} 人</span>
+              <span>{t("statistics.selectedStudents", "作答學生 {{count}} 人", { count: item.participants.length })}</span>
             </div>
             {item.participants.length > 0 ? (
               <ParticipantChipList
@@ -924,19 +976,19 @@ function OptionDistributionList({
                 itemKeyPrefix={item.label}
               />
             ) : (
-              <span className={styles.infoCalloutMeta}>目前無學生選擇此選項</span>
+              <span className={styles.infoCalloutMeta}>{t("statistics.noStudentsSelected", "目前無學生選擇此選項")}</span>
             )}
           </div>
         </div>
       ))}
       <div className={styles.infoCallout}>
         <div className={styles.infoCalloutHeader}>
-          <span>未作答 {omittedParticipants.length} 人</span>
+          <span>{t("statistics.omittedStudents", "未作答 {{count}} 人", { count: omittedParticipants.length })}</span>
         </div>
         {omittedParticipants.length > 0 ? (
           <ParticipantChipList participants={omittedParticipants} />
         ) : (
-          <span className={styles.infoCalloutMeta}>本題無未作答學生</span>
+          <span className={styles.infoCalloutMeta}>{t("statistics.noOmittedStudents", "本題無未作答學生")}</span>
         )}
       </div>
     </div>
@@ -955,6 +1007,7 @@ function ParticipantChipList({
   }>;
   itemKeyPrefix?: string;
 }) {
+  const { t } = useTranslation("contest");
   const [expanded, setExpanded] = useState(false);
   const hasParticipants = participants.length > 0;
   const visibleParticipants = expanded ? participants : [];
@@ -977,7 +1030,7 @@ function ParticipantChipList({
             className={styles.participantListToggle}
             onClick={() => setExpanded((value) => !value)}
           >
-            {expanded ? "收合" : `+${hiddenCount}`}
+            {expanded ? t("statistics.collapse", "收合") : `+${hiddenCount}`}
           </button>
         ) : null}
       </div>
@@ -1001,8 +1054,9 @@ function MetricBarList({
   }>;
   emptyText?: string;
 }) {
+  const { t } = useTranslation("contest");
   if (rows.length === 0) {
-    return <div className={styles.drawerEmptyState}>{emptyText ?? "目前沒有資料"}</div>;
+    return <div className={styles.drawerEmptyState}>{emptyText ?? t("statistics.noMetricData", "目前沒有資料")}</div>;
   }
 
   return (
@@ -1093,8 +1147,9 @@ function ResponseList({
   questionKind: QuestionSummaryMock["kind"];
   responses: QuestionDetailMock["responses"];
 }) {
+  const { t } = useTranslation("contest");
   if (responses.length === 0) {
-    return <div className={styles.drawerEmptyState}>目前沒有符合條件的回答</div>;
+    return <div className={styles.drawerEmptyState}>{t("statistics.noFilteredResponses", "目前沒有符合條件的回答")}</div>;
   }
 
   return (
@@ -1104,7 +1159,11 @@ function ResponseList({
           <div className={styles.responseHeader}>
             <div className={styles.responseIdentity}>{response.displayName}</div>
             <div className={styles.responseScore}>
-              {response.score == null ? "未批改" : `${formatScoreLabel(response.score)} 分`}
+              {response.score == null
+                ? t("statistics.ungraded", "未批改")
+                : t("statistics.scoreLabel", "{{score}} 分", {
+                    score: formatScoreLabel(response.score),
+                  })}
             </div>
           </div>
           <div className={styles.responseBody}>
@@ -1112,7 +1171,7 @@ function ResponseList({
           </div>
           {response.feedback?.trim() ? (
             <div className={styles.responseFeedback}>
-              <div className={styles.responseFeedbackLabel}>批改評語</div>
+              <div className={styles.responseFeedbackLabel}>{t("statistics.feedback", "批改評語")}</div>
               <div className={styles.responseFeedbackBody}>
                 <MarkdownRenderer enableMath enableHighlight>
                   {response.feedback}
@@ -1133,7 +1192,8 @@ function ResponseAnswerContent({
   questionKind: QuestionSummaryMock["kind"];
   answer: unknown;
 }) {
-  const text = formatAnswerContent(questionKind, answer);
+  const { t } = useTranslation("contest");
+  const text = formatAnswerContent(questionKind, answer, t);
   const isMarkdown =
     questionKind === "essay" || questionKind === "short_answer";
 
@@ -1222,6 +1282,7 @@ function statusTone(status: string): "default" | "success" | "warning" {
 
 function buildScoreFilterOptions(
   responses: QuestionDetailMock["responses"],
+  t: ReturnType<typeof useTranslation<"contest">>["t"],
 ): Array<{ label: string; value: string; count: number }> {
   const counts = new Map<string, number>();
   let ungraded = 0;
@@ -1243,22 +1304,25 @@ function buildScoreFilterOptions(
     }));
 
   return [
-    { label: "全部", value: "all", count: responses.length },
+    { label: t("statistics.all", "全部"), value: "all", count: responses.length },
     ...gradedOptions,
-    ...(ungraded > 0 ? [{ label: "未批改", value: "ungraded", count: ungraded }] : []),
+    ...(ungraded > 0
+      ? [{ label: t("statistics.ungraded", "未批改"), value: "ungraded", count: ungraded }]
+      : []),
   ];
 }
 
 function formatScoreLabel(score: number | null): string {
-  if (score == null) return "未批改";
+  if (score == null) return "";
   return Number.isInteger(score) ? String(score) : score.toFixed(1).replace(/\.0$/, "");
 }
 
 function formatAnswerContent(
   questionKind: QuestionSummaryMock["kind"],
   answer: unknown,
+  t: ReturnType<typeof useTranslation<"contest">>["t"],
 ): string {
-  if (answer == null) return "無作答內容";
+  if (answer == null) return t("statistics.noAnswerContent", "無作答內容");
 
   if (
     questionKind === "essay" ||
@@ -1278,7 +1342,7 @@ function formatAnswerContent(
       return selected.map(String).join(", ");
     }
     if (selected == null) {
-      return "未選擇";
+      return t("statistics.notSelected", "未選擇");
     }
     return String(selected);
   }
