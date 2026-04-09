@@ -1,0 +1,455 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+/* ── Root two-column layout ── */
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-05 layout.$spacing-06;
+  background: var(--cds-background);
+  border-bottom: 1px solid var(--cds-border-subtle);
+  flex-shrink: 0;
+}
+
+.titleMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: layout.$spacing-03;
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+}
+
+.panelTitle {
+  color: var(--cds-text-primary);
+  font-weight: 600;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: layout.$spacing-05;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Left column: summary (sticky via overflow) ── */
+.summaryColumn {
+  padding: layout.$spacing-05;
+  overflow-y: auto;
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: layout.$spacing-04;
+  margin-bottom: layout.$spacing-05;
+}
+
+.kpiCard {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.kpiLabel {
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.kpiValue {
+  color: var(--cds-text-primary);
+  @include type.type-style("heading-03");
+}
+
+.kpiCaption {
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+}
+
+.chartCard {
+  padding: layout.$spacing-05;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+  margin-bottom: layout.$spacing-04;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--cds-text-primary);
+  @include type.type-style("heading-compact-02");
+}
+
+.referenceBadges {
+  display: flex;
+  gap: layout.$spacing-02;
+  flex-wrap: wrap;
+}
+
+.referenceBadge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--cds-layer-02);
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.chartWrap {
+  min-height: 14rem;
+}
+
+/* ── Right column: question grid ── */
+.questionColumn {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: layout.$spacing-05;
+}
+
+.questionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: layout.$spacing-04;
+  flex-shrink: 0;
+}
+
+.questionHeaderTitle {
+  @include type.type-style("heading-compact-02");
+  color: var(--cds-text-primary);
+  margin: 0;
+}
+
+.questionCount {
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+  font-weight: 400;
+  margin-left: layout.$spacing-03;
+}
+
+.questionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: layout.$spacing-04;
+}
+
+/* ── Preview card ── */
+.previewCard {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  width: 100%;
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+}
+
+.previewCardActive {
+  border-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected-01);
+}
+
+.previewCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.previewCardMeta {
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.previewCardTitle {
+  color: var(--cds-text-primary);
+  @include type.type-style("body-compact-01");
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.previewCardBody {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+}
+
+.donutWrap {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+}
+
+.donutLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  @include type.type-style("label-01");
+  font-weight: 700;
+  color: var(--cds-text-primary);
+}
+
+.previewScore {
+  color: var(--cds-text-primary);
+  @include type.type-style("heading-03");
+}
+
+.previewScoreMax {
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+}
+
+/* ── Drawer overlay ── */
+.drawerBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  z-index: 7000;
+}
+
+.drawerBackdropVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 50%;
+  min-width: 400px;
+  max-width: 640px;
+  background: var(--cds-layer);
+  border-left: 1px solid var(--cds-border-subtle);
+  transform: translateX(100%);
+  transition: transform 200ms ease;
+  z-index: 7001;
+  overflow-y: auto;
+  padding: layout.$spacing-06;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+}
+
+.drawerOpen {
+  transform: translateX(0);
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+}
+
+.drawerTitle {
+  margin: 0;
+  @include type.type-style("heading-03");
+  color: var(--cds-text-primary);
+}
+
+.drawerMeta {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  flex-wrap: wrap;
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+}
+
+.drawerSection {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.drawerSectionTitle {
+  margin: 0;
+  color: var(--cds-text-primary);
+  @include type.type-style("heading-compact-01");
+}
+
+.drawerSectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+}
+
+.sectionMeta {
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+}
+
+/* ── MiniBarList (reused in drawer) ── */
+.miniBarList {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.miniBarRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.miniBarLabel {
+  width: 7rem;
+  flex-shrink: 0;
+  color: var(--cds-text-primary);
+  @include type.type-style("body-compact-01");
+}
+
+.miniBarTrack {
+  flex: 1;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: var(--cds-layer-02);
+  overflow: hidden;
+}
+
+.miniBarFill {
+  height: 100%;
+  min-width: 0;
+  background: linear-gradient(90deg, #60a5fa 0%, #1e40af 100%);
+}
+
+.miniBarFillSuccess {
+  background: linear-gradient(90deg, #42be65 0%, #198038 100%);
+}
+
+.miniBarFillWarning {
+  background: linear-gradient(90deg, #f1c21b 0%, #b28600 100%);
+}
+
+.miniBarCount {
+  width: 4.75rem;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.infoCallout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: layout.$spacing-04;
+  border-left: 3px solid var(--cds-border-interactive);
+  background: var(--cds-layer-01);
+}
+
+.detailMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: layout.$spacing-03;
+}
+
+.detailMetricCard {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.detailMetricLabel {
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+/* ── Coding-only & empty states ── */
+.basicInfoCard {
+  padding: layout.$spacing-05;
+  border: 1px solid var(--cds-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-04;
+}
+
+.basicInfoCopy {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+}
+
+.emptyGrid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-06;
+  text-align: center;
+  color: var(--cds-text-secondary);
+  @include type.type-style("body-compact-01");
+}
+
+/* ── Responsive ── */
+@media (max-width: 1179px) {
+  .questionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .body {
+    grid-template-columns: 300px 1fr;
+  }
+}
+
+@media (max-width: 899px) {
+  .body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .summaryColumn {
+    border-right: none;
+    border-bottom: 1px solid var(--cds-border-subtle);
+    overflow-y: visible;
+  }
+
+  .questionColumn {
+    overflow-y: visible;
+  }
+
+  .drawer {
+    width: 85%;
+    min-width: 0;
+  }
+}
