@@ -1,0 +1,11 @@
+@use "@carbon/layout";
+
+.landing-pricing-section__grid {
+  row-gap: layout.$spacing-05;
+}
+
+.landing-pricing-section__disclaimer {
+  margin: layout.$spacing-05 0 0;
+  text-align: center;
+  color: var(--cds-text-helper);
+}
