@@ -9,44 +9,10 @@
   overflow: hidden;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-05;
-  padding: layout.$spacing-05 layout.$spacing-06;
-  background: var(--cds-background);
-  border-bottom: 1px solid var(--cds-border-subtle);
-  flex-shrink: 0;
-}
 
-.titleMeta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: layout.$spacing-03;
-  color: var(--cds-text-secondary);
-  @include type.type-style("body-compact-01");
-}
-
-.panelTitle {
-  color: var(--cds-text-primary);
-  font-weight: 600;
-}
-
-.body {
-  display: grid;
-  grid-template-columns: 420px 1fr;
-  gap: layout.$spacing-05;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* ── Left column: summary (sticky via overflow) ── */
+/* ── Left column: summary ── */
 .summaryColumn {
   padding: layout.$spacing-05;
-  overflow-y: auto;
-  border-right: 1px solid var(--cds-border-subtle);
 }
 
 .kpiGrid {
@@ -354,44 +320,14 @@
   font-weight: 600;
 }
 
-/* ── Drawer overlay ── */
-.drawerBackdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 200ms ease;
-  z-index: 7000;
-}
-
-.drawerBackdropVisible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.drawer {
-  position: fixed;
-  top: 3rem; // below Carbon UI Shell header
-  right: 0;
-  bottom: 0;
-  width: 50%;
-  min-width: 400px;
-  max-width: 640px;
-  background: var(--cds-layer);
-  border-left: 1px solid var(--cds-border-subtle);
-  transform: translateX(100%);
-  transition: transform 200ms ease;
-  z-index: 7001;
-  overflow-y: auto;
-  padding: layout.$spacing-06;
+/* ── Right pane (question detail) ── */
+.rightPaneInner {
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-05;
-}
-
-.drawerOpen {
-  transform: translateX(0);
+  padding: layout.$spacing-05;
+  overflow-y: auto;
+  height: 100%;
 }
 
 .drawerHeader {
@@ -611,6 +547,19 @@
   gap: layout.$spacing-05;
 }
 
+.optionDistributionCard {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.optionParticipantsSection {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+  padding-left: layout.$spacing-02;
+}
+
 .optionRow {
   display: flex;
   flex-direction: column;
@@ -792,6 +741,29 @@
   }
 }
 
+.responseFeedback {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-02;
+  padding-top: layout.$spacing-02;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.responseFeedbackLabel {
+  color: var(--cds-text-secondary);
+  @include type.type-style("label-01");
+}
+
+.responseFeedbackBody {
+  color: var(--cds-text-primary);
+  min-width: 0;
+
+  :global(.markdown-body) {
+    color: var(--cds-text-primary);
+    @include type.type-style("body-compact-01");
+  }
+}
+
 .responsePlainText {
   color: var(--cds-text-primary);
   @include type.type-style("body-compact-01");
@@ -853,31 +825,4 @@
   height: 1.5rem;
 }
 
-/* ── Responsive ── */
-@media (max-width: 1179px) {
-  .body {
-    grid-template-columns: 360px 1fr;
-  }
-}
-
-@media (max-width: 899px) {
-  .body {
-    grid-template-columns: 1fr;
-    overflow-y: auto;
-  }
-
-  .summaryColumn {
-    border-right: none;
-    border-bottom: 1px solid var(--cds-border-subtle);
-    overflow-y: visible;
-  }
-
-  .questionColumn {
-    overflow-y: visible;
-  }
-
-  .drawer {
-    width: 85%;
-    min-width: 0;
-  }
-}
+/* ── Responsive handled by AdminSplitLayout ── */

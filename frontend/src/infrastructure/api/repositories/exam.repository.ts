@@ -114,6 +114,7 @@ export interface ExamDashboardQuestionDetailDto {
     display_name: string;
     score: number | null;
     graded_at: string | null;
+    feedback: string;
     answer: unknown;
   }>;
   option_distribution?: Array<{
@@ -121,6 +122,12 @@ export interface ExamDashboardQuestionDetailDto {
     count: number;
     percent: number;
     is_correct: boolean;
+    participants: Array<{
+      participant_id: number;
+      username: string;
+      nickname: string | null;
+      display_name: string;
+    }>;
   }>;
   omitted_count?: number;
   omitted_participants?: Array<{

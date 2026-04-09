@@ -132,8 +132,10 @@ describe("ContestResultDashboardPanel", () => {
     const card = screen.getByText("基礎語法與觀念檢核").closest("button")!;
     fireEvent.click(card);
 
-    expect(screen.getByRole("complementary")).toBeInTheDocument();
+    expect(screen.getByText("Q1 ·")).toBeInTheDocument();
     expect(screen.getByText("選項分布")).toBeInTheDocument();
+    expect(screen.getAllByText(/作答學生/).length).toBeGreaterThan(0);
+    expect(screen.queryByText("所有回答")).not.toBeInTheDocument();
   });
 
   it("closes drawer on Escape key", () => {
@@ -145,7 +147,7 @@ describe("ContestResultDashboardPanel", () => {
 
     const card = screen.getByText("基礎語法與觀念檢核").closest("button")!;
     fireEvent.click(card);
-    expect(screen.getByRole("complementary")).toBeInTheDocument();
+    expect(screen.getByText("選項分布")).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByText("選項分布")).not.toBeInTheDocument();

@@ -130,7 +130,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         return any(str(value) in normalized for value in selected_values)
 
     @classmethod
-    def _build_option_distribution(cls, question, answers):
+    def _build_option_distribution(cls, question, answers, participants_by_id):
         options = question.options or []
         correct_answer = question.correct_answer
         total = len(answers) or 1
@@ -138,10 +138,19 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         for index, option in enumerate(options):
             count = 0
+            participants = []
             for answer in answers:
                 selected_values = cls._extract_selected_values(answer.get('answer'))
                 if cls._matches_option(selected_values, option, index):
                     count += 1
+                    participant = participants_by_id.get(answer['participant_id'])
+                    if participant is not None:
+                        participants.append({
+                            'participant_id': participant.id,
+                            'username': participant.user.username,
+                            'nickname': participant.nickname or None,
+                            'display_name': participant.nickname or participant.user.username,
+                        })
 
             if isinstance(correct_answer, list):
                 correct_values = correct_answer
@@ -156,6 +165,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 'count': count,
                 'percent': round((count / total) * 100),
                 'is_correct': is_correct,
+                'participants': participants,
             })
 
         return distribution
@@ -465,7 +475,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             ExamAnswer.objects.filter(
                 participant_id__in=participant_ids,
                 question=question,
-            ).values('participant_id', 'answer', 'score', 'graded_at')
+            ).values('participant_id', 'answer', 'score', 'graded_at', 'feedback')
         )
         graded_scores = [float(answer['score']) for answer in answers if answer['score'] is not None]
         missing_count = max(participant_count - len(answers), 0)
@@ -496,6 +506,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                     ),
                     'score': float(answer['score']) if answer['score'] is not None else None,
                     'graded_at': answer['graded_at'],
+                    'feedback': answer.get('feedback') or '',
                     'answer': answer['answer'],
                 }
                 for answer in answers
@@ -507,7 +518,11 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             ExamQuestionType.MULTIPLE_CHOICE,
             ExamQuestionType.TRUE_FALSE,
         }:
-            payload['option_distribution'] = self._build_option_distribution(question, answers)
+            payload['option_distribution'] = self._build_option_distribution(
+                question,
+                answers,
+                participants_by_id,
+            )
             payload['omitted_count'] = missing_count
             payload['omitted_participants'] = omitted_participants
         else:

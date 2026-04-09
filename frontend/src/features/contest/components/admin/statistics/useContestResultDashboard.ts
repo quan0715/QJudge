@@ -186,6 +186,7 @@ function mapQuestionDetail(dto: ExamDashboardQuestionDetailDto): QuestionDetailM
         displayName: response.display_name,
         score: response.score,
         gradedAt: response.graded_at,
+        feedback: response.feedback,
         answer: response.answer,
       })),
       optionDistribution: (dto.option_distribution ?? []).map((item) => ({
@@ -193,6 +194,12 @@ function mapQuestionDetail(dto: ExamDashboardQuestionDetailDto): QuestionDetailM
         count: item.count,
         percent: item.percent,
         isCorrect: item.is_correct,
+        participants: (item.participants ?? []).map((participant) => ({
+          participantId: participant.participant_id,
+          username: participant.username,
+          nickname: participant.nickname,
+          displayName: participant.display_name,
+        })),
       })),
       omittedCount: dto.omitted_count ?? 0,
       omittedParticipants: (dto.omitted_participants ?? []).map((item) => ({
@@ -215,6 +222,7 @@ function mapQuestionDetail(dto: ExamDashboardQuestionDetailDto): QuestionDetailM
       displayName: response.display_name,
       score: response.score,
       gradedAt: response.graded_at,
+      feedback: response.feedback,
       answer: response.answer,
     })),
     gradingProgress: {

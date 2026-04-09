@@ -83,6 +83,7 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
         displayName: answer.participant_nickname || answer.participant_username,
         score: answer.score,
         gradedAt: answer.graded_at,
+        feedback: answer.feedback || "",
         answer: answer.answer,
       }));
 
@@ -92,7 +93,10 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
           kind,
           scoreBands,
           responses,
-          optionDistribution: buildOptionDistribution(examQ, answers),
+          optionDistribution: buildOptionDistribution(examQ, answers).map((item) => ({
+            ...item,
+            participants: [],
+          })),
           omittedCount: missingCount,
         };
       } else if (kind === "short_answer" || kind === "essay") {
