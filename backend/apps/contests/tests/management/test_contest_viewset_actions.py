@@ -946,7 +946,7 @@ def test_download_returns_400_on_export_validation_error(
     response = api_client.get(f"/api/v1/contests/{contest.id}/download/?scale=1.0")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data["error"] == "invalid export options"
+    assert response.data["error"] == "Export validation failed"
 
 
 @pytest.mark.django_db

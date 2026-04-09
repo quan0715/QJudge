@@ -11,7 +11,7 @@ import type {
   ContestTypeModule,
 } from "@/features/contest/modules/types";
 import ExamEditorLayout from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
-import ExamStatisticsPanel from "@/features/contest/components/admin/statistics/ExamStatisticsPanel";
+import ContestResultDashboardPanel from "@/features/contest/components/admin/statistics/ContestResultDashboardPanel";
 import PaperExamAnsweringScreen from "@/features/contest/screens/paperExam/PaperExamAnsweringScreen";
 import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 
@@ -85,7 +85,7 @@ export const paperExamContestModule: ContestTypeModule = {
           />
         );
       },
-      statistics: () => <ExamStatisticsPanel />,
+      statistics: (props) => <ContestResultDashboardPanel {...props} />,
     }),
     getExportTargets: () => ["exam-question", "exam-answer", "exam-json"],
     shouldShowJsonActions: (activePanel) => activePanel === "problem_editor",

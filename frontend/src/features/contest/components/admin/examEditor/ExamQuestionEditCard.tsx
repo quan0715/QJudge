@@ -28,6 +28,7 @@ import {
   EXAM_QUESTION_TYPE_ICON as TYPE_ICON,
   EXAM_QUESTION_TYPE_TAG_COLOR as TYPE_TAG_COLOR,
 } from "@/shared/ui/examQuestionTypeVisual";
+import ExamQuestionPrompt from "@/features/contest/components/exam/ExamQuestionPrompt";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import styles from "./ExamQuestionEditCard.module.scss";
@@ -571,13 +572,10 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               </div>
             </div>
 
-            {question.prompt ? (
-              <div className={styles.prompt}>
-                <MarkdownRenderer enableHighlight enableCopy>{question.prompt}</MarkdownRenderer>
-              </div>
-            ) : (
-              <div className={styles.promptEmpty}>{t("examEditor.promptEmpty", "（尚未填寫題目敘述）")}</div>
-            )}
+            <ExamQuestionPrompt
+              content={question.prompt}
+              emptyText={t("examEditor.promptEmpty", "（尚未填寫題目敘述）")}
+            />
 
             <div className={styles.answerArea}>
               <div className={styles.answerLabel}>{t("examEditor.correctAnswer", "正確答案")}</div>

@@ -38,6 +38,110 @@ export interface RecordExamEventOptions {
   eventIdempotencyKey?: string;
 }
 
+export interface ExamAnswerDto {
+  id: string;
+  question_id: string;
+  question_prompt: string;
+  question_type: string;
+  question_options: string[] | null;
+  max_score: number;
+  answer: unknown;
+  is_correct: boolean | null;
+  score: number | null;
+  feedback: string;
+  graded_by_username: string | null;
+  graded_at: string | null;
+  participant_user_id: number;
+  participant_username: string;
+  participant_nickname: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExamDashboardQuestionSummaryDto {
+  question_id: string;
+  order: number;
+  title: string;
+  kind: string;
+  max_score: number;
+  answer_count: number;
+  missing_count: number;
+  average_score: number;
+  score_rate: number;
+  zero_rate: number;
+  full_rate: number;
+  status: "stable" | "attention" | "grading";
+  objective_stats?: {
+    correct_rate: number;
+  };
+  subjective_stats?: {
+    graded_count: number;
+    pending_count: number;
+    grading_rate: number;
+  };
+}
+
+export interface ExamDashboardSummaryDto {
+  contest: {
+    id: string;
+    name: string;
+    course: string;
+    contest_type: "paper_exam" | "coding";
+    participant_count: number;
+    completed_count: number;
+    results_published: boolean;
+  };
+  summary: {
+    average_score: number;
+    median_score: number;
+    max_total_score: number;
+  };
+  score_distribution: Array<{
+    range_label: string;
+    count: number;
+  }>;
+  questions: ExamDashboardQuestionSummaryDto[];
+}
+
+export interface ExamDashboardQuestionDetailDto {
+  question_id: string;
+  kind: string;
+  score_bands: Array<{ label: string; count: number }>;
+  responses: Array<{
+    participant_id: number;
+    username: string;
+    nickname: string | null;
+    display_name: string;
+    score: number | null;
+    graded_at: string | null;
+    feedback: string;
+    answer: unknown;
+  }>;
+  option_distribution?: Array<{
+    label: string;
+    count: number;
+    percent: number;
+    is_correct: boolean;
+    participants: Array<{
+      participant_id: number;
+      username: string;
+      nickname: string | null;
+      display_name: string;
+    }>;
+  }>;
+  omitted_count?: number;
+  omitted_participants?: Array<{
+    participant_id: number;
+    username: string;
+    nickname: string | null;
+    display_name: string;
+  }>;
+  grading_progress?: {
+    graded: number;
+    total: number;
+  };
+}
+
 const RETRYABLE_EVENT_STATUSES = new Set([502, 503, 504]);
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -163,6 +267,35 @@ export const getContestActivities = async (
   // Handle both array and paginated response format for backward compatibility
   const results = Array.isArray(data) ? data : data.results || [];
   return results.map(mapActivityToExamEvent);
+};
+
+export const getAllExamAnswers = async (
+  contestId: string,
+): Promise<ExamAnswerDto[]> => {
+  return requestJson<ExamAnswerDto[]>(
+    httpClient.get(`/api/v1/contests/${contestId}/exam-answers/all-answers/`),
+    "Failed to fetch all exam answers",
+  );
+};
+
+export const getExamDashboardSummary = async (
+  contestId: string,
+): Promise<ExamDashboardSummaryDto> => {
+  return requestJson<ExamDashboardSummaryDto>(
+    httpClient.get(`/api/v1/contests/${contestId}/exam-answers/dashboard-summary/`),
+    "Failed to fetch exam dashboard summary",
+  );
+};
+
+export const getExamDashboardQuestionDetail = async (
+  contestId: string,
+  questionId: string,
+): Promise<ExamDashboardQuestionDetailDto> => {
+  const search = new URLSearchParams({ question_id: questionId });
+  return requestJson<ExamDashboardQuestionDetailDto>(
+    httpClient.get(`/api/v1/contests/${contestId}/exam-answers/question-detail/?${search.toString()}`),
+    "Failed to fetch exam dashboard question detail",
+  );
 };
 
 export interface AnticheatUploadItem {

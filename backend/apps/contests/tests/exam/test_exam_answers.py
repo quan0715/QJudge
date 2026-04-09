@@ -1,4 +1,5 @@
 from django.urls import reverse
+from django.core.cache import cache
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
@@ -17,6 +18,7 @@ class ExamAnswerTestBase(APITestCase):
     """Shared setup for exam answer tests."""
 
     def setUp(self):
+        cache.clear()
         self.student = User.objects.create_user(
             username='student', email='student@test.com', password='pass'
         )
@@ -362,3 +364,188 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         )
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_teacher_view_dashboard_summary(self):
+        second_student = User.objects.create_user(
+            username='student2',
+            email='student2@test.com',
+            password='pass',
+            role='student',
+        )
+        second_participant = ContestParticipant.objects.create(
+            contest=self.contest,
+            user=second_student,
+            exam_status=ExamStatus.SUBMITTED,
+            started_at=timezone.now(),
+        )
+        ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_single,
+            answer={'selected': 'B'},
+            is_correct=True,
+            score=5,
+        )
+        ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'draft'},
+            score=None,
+        )
+        ExamAnswer.objects.create(
+            participant=second_participant,
+            question=self.q_single,
+            answer={'selected': 'A'},
+            is_correct=False,
+            score=0,
+        )
+        ExamAnswer.objects.create(
+            participant=second_participant,
+            question=self.q_essay,
+            answer={'text': 'graded'},
+            score=18,
+            graded_at=timezone.now(),
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse(
+            'contests:contest-exam-answers-dashboard-summary',
+            kwargs={'contest_pk': self.contest.id},
+        )
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data['contest']['participant_count'], 2)
+        self.assertEqual(resp.data['contest']['completed_count'], 1)
+        self.assertEqual(resp.data['summary']['max_total_score'], 35)
+        self.assertEqual(len(resp.data['questions']), 3)
+
+        single_summary = next(item for item in resp.data['questions'] if item['question_id'] == str(self.q_single.id))
+        essay_summary = next(item for item in resp.data['questions'] if item['question_id'] == str(self.q_essay.id))
+
+        self.assertEqual(single_summary['objective_stats']['correct_rate'], 50)
+        self.assertEqual(single_summary['answer_count'], 2)
+        self.assertEqual(essay_summary['subjective_stats']['graded_count'], 1)
+        self.assertEqual(essay_summary['subjective_stats']['pending_count'], 1)
+
+    def test_dashboard_summary_cache_invalidates_on_submission(self):
+        self.client.force_authenticate(user=self.teacher)
+        summary_url = reverse(
+            'contests:contest-exam-answers-dashboard-summary',
+            kwargs={'contest_pk': self.contest.id},
+        )
+
+        first = self.client.get(summary_url)
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        initial_single = next(
+            item for item in first.data['questions']
+            if item['question_id'] == str(self.q_single.id)
+        )
+        self.assertEqual(initial_single['answer_count'], 0)
+
+        self.client.force_authenticate(user=self.student)
+        submit_url = reverse(
+            'contests:contest-exam-answers-submit-answer',
+            kwargs={'contest_pk': self.contest.id},
+        )
+        submit = self.client.post(
+            submit_url,
+            {
+                'question_id': self.q_single.id,
+                'answer': {'selected': 'B'},
+            },
+            format='json',
+        )
+        self.assertEqual(submit.status_code, status.HTTP_201_CREATED)
+
+        self.client.force_authenticate(user=self.teacher)
+        second = self.client.get(summary_url)
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        updated_single = next(
+            item for item in second.data['questions']
+            if item['question_id'] == str(self.q_single.id)
+        )
+        self.assertEqual(updated_single['answer_count'], 1)
+        self.assertEqual(updated_single['objective_stats']['correct_rate'], 100)
+
+    def test_teacher_view_question_detail(self):
+        second_student = User.objects.create_user(
+            username='student3',
+            email='student3@test.com',
+            password='pass',
+            role='student',
+        )
+        second_participant = ContestParticipant.objects.create(
+            contest=self.contest,
+            user=second_student,
+            exam_status=ExamStatus.SUBMITTED,
+            started_at=timezone.now(),
+        )
+        ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_single,
+            answer={'selected': 'B'},
+            is_correct=True,
+            score=5,
+        )
+        ExamAnswer.objects.create(
+            participant=second_participant,
+            question=self.q_single,
+            answer={'selected': 'A'},
+            is_correct=False,
+            score=0,
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse(
+            'contests:contest-exam-answers-question-detail',
+            kwargs={'contest_pk': self.contest.id},
+        )
+        resp = self.client.get(url, {'question_id': str(self.q_single.id)})
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data['kind'], ExamQuestionType.SINGLE_CHOICE)
+        self.assertEqual(resp.data['omitted_count'], 0)
+        self.assertEqual(
+            resp.data['score_bands'],
+            [
+                {'label': '0', 'count': 1},
+                {'label': '5', 'count': 1},
+            ],
+        )
+        option_b = next(item for item in resp.data['option_distribution'] if item['label'].startswith('B.'))
+        self.assertEqual(option_b['count'], 1)
+        self.assertTrue(option_b['is_correct'])
+        self.assertEqual(resp.data['omitted_participants'], [])
+
+    def test_question_detail_cache_invalidates_on_grading(self):
+        answer = ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'draft'},
+            score=None,
+            graded_at=None,
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        detail_url = reverse(
+            'contests:contest-exam-answers-question-detail',
+            kwargs={'contest_pk': self.contest.id},
+        )
+        first = self.client.get(detail_url, {'question_id': str(self.q_essay.id)})
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(first.data['grading_progress']['graded'], 0)
+
+        grade_url = reverse(
+            'contests:contest-exam-answers-grade-answer',
+            kwargs={'contest_pk': self.contest.id, 'pk': answer.id},
+        )
+        grade = self.client.post(
+            grade_url,
+            {'score': 18, 'feedback': 'ok'},
+            format='json',
+        )
+        self.assertEqual(grade.status_code, status.HTTP_200_OK)
+
+        second = self.client.get(detail_url, {'question_id': str(self.q_essay.id)})
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.data['grading_progress']['graded'], 1)

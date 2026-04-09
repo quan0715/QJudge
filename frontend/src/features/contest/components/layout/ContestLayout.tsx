@@ -34,7 +34,6 @@ import {
   getClassroomContestSolvePath,
 } from "@/features/contest/domain/contestRoutePolicy";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
-import { useClassroomName } from "@/features/classroom/hooks/useClassroomName";
 import { SideMenu } from "@/features/app/components/SideMenu";
 import { SideMenuToggle } from "@/features/app/components/SideMenuToggle";
 import styles from "./ContestLayout.module.scss";
@@ -61,7 +60,6 @@ const ContestLayout = () => {
   } = useContestLayoutState();
 
   const boundClassroomId = classroomId || contest?.boundClassroomId || undefined;
-  const classroomName = useClassroomName(boundClassroomId);
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
   const dashboardPath =
@@ -269,7 +267,7 @@ const ContestLayout = () => {
                       </BreadcrumbItem>
                       <BreadcrumbItem>
                         <Link to={`/classrooms/${boundClassroomId}`}>
-                          {classroomName || tc("nav.classrooms", "教室")}
+                          {tc("nav.classrooms", "教室")}
                         </Link>
                       </BreadcrumbItem>
                       <BreadcrumbItem isCurrentPage>

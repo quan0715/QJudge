@@ -3,7 +3,8 @@
 @use "../../../styles/card-tile" as card;
 
 .contest-preview-card {
-  min-height: layout.rem(160px);
+  min-height: layout.rem(176px);
+  height: 100%;
   position: relative;
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease;
@@ -23,7 +24,7 @@
 
 .contest-preview-card__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: layout.$spacing-04;
 }
@@ -31,6 +32,16 @@
 .contest-preview-card__title {
   @include type.type-style("heading-03");
   margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.contest-preview-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: layout.$spacing-02;
+  flex: 0 0 auto;
 }
 
 .contest-preview-card__meta {

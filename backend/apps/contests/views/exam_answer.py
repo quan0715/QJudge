@@ -1,8 +1,10 @@
 """ExamAnswerViewSet — student answer submission and TA grading."""
 from decimal import Decimal, ROUND_HALF_UP
+from statistics import median
 
 from django.utils import timezone
 from django.db.models import Sum
+from django.core.cache import cache
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -15,6 +17,7 @@ from ..models import (
     ExamQuestion,
     ExamAnswer,
     ExamStatus,
+    ExamQuestionType,
 )
 from ..serializers import (
     ExamAnswerSerializer,
@@ -37,6 +40,135 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
     def _get_contest(self, contest_pk):
         return get_object_or_404(Contest, pk=contest_pk)
+
+    @staticmethod
+    def _dashboard_summary_cache_key(contest_id):
+        return f"contest:{contest_id}:exam_dashboard_summary:v1"
+
+    @staticmethod
+    def _question_detail_cache_key(contest_id, question_id):
+        return f"contest:{contest_id}:exam_question_detail:{question_id}:v2"
+
+    def _invalidate_dashboard_cache(self, contest_id, question_id=None):
+        keys = [self._dashboard_summary_cache_key(contest_id)]
+        if question_id is not None:
+            keys.append(self._question_detail_cache_key(contest_id, question_id))
+        cache.delete_many(keys)
+
+    def _student_participants_qs(self, contest):
+        return ContestParticipant.objects.filter(
+            contest=contest,
+            user__role='student',
+        ).select_related('user')
+
+    @staticmethod
+    def _build_score_distribution(scores, max_score):
+        buckets = [
+            {
+                'range_label': f'{index * 10}-{index * 10 + 9}%',
+                'count': 0,
+            }
+            for index in range(9)
+        ]
+        buckets.append({
+            'range_label': '90-100%',
+            'count': 0,
+        })
+
+        if max_score <= 0:
+            buckets[0]['count'] = len(scores)
+            return buckets
+
+        for score in scores:
+            normalized = max(0.0, min((float(score or 0) / float(max_score)) * 100, 100.0))
+            bucket_index = 9 if normalized >= 90 else int(normalized // 10)
+            buckets[bucket_index]['count'] += 1
+
+        return buckets
+
+    @staticmethod
+    def _build_question_score_bands(scores, max_score):
+        if not scores:
+            return []
+
+        counts = {}
+        for score in scores:
+            decimal_score = Decimal(str(score or 0)).quantize(
+                Decimal('0.01'),
+                rounding=ROUND_HALF_UP,
+            ).normalize()
+            label = format(decimal_score, 'f').rstrip('0').rstrip('.')
+            if '.' in label:
+                label = label.rstrip('0').rstrip('.')
+            if label == '':
+                label = '0'
+            counts[label] = counts.get(label, 0) + 1
+
+        def _score_sort_key(label):
+            return Decimal(label)
+
+        return [
+            {'label': label, 'count': counts[label]}
+            for label in sorted(counts.keys(), key=_score_sort_key)
+        ]
+
+    @staticmethod
+    def _extract_selected_values(answer):
+        if not isinstance(answer, dict):
+            return []
+        selected = answer.get('selected')
+        if selected is None:
+            return []
+        if isinstance(selected, list):
+            return selected
+        return [selected]
+
+    @classmethod
+    def _matches_option(cls, selected_values, option_value, option_index):
+        option_letter = chr(65 + option_index)
+        normalized = {str(option_value), str(option_index), option_letter}
+        return any(str(value) in normalized for value in selected_values)
+
+    @classmethod
+    def _build_option_distribution(cls, question, answers, participants_by_id):
+        options = question.options or []
+        correct_answer = question.correct_answer
+        total = len(answers) or 1
+        distribution = []
+
+        for index, option in enumerate(options):
+            count = 0
+            participants = []
+            for answer in answers:
+                selected_values = cls._extract_selected_values(answer.get('answer'))
+                if cls._matches_option(selected_values, option, index):
+                    count += 1
+                    participant = participants_by_id.get(answer['participant_id'])
+                    if participant is not None:
+                        participants.append({
+                            'participant_id': participant.id,
+                            'username': participant.user.username,
+                            'nickname': participant.nickname or None,
+                            'display_name': participant.nickname or participant.user.username,
+                        })
+
+            if isinstance(correct_answer, list):
+                correct_values = correct_answer
+            elif correct_answer is None:
+                correct_values = []
+            else:
+                correct_values = [correct_answer]
+
+            is_correct = cls._matches_option(correct_values, option, index)
+            distribution.append({
+                'label': f'{chr(65 + index)}. {option}',
+                'count': count,
+                'percent': round((count / total) * 100),
+                'is_correct': is_correct,
+                'participants': participants,
+            })
+
+        return distribution
 
     # ── Student endpoints ──
 
@@ -81,6 +213,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         answer_obj.auto_grade()
         answer_obj.save()
         maybe_lock_from_exam_answer(exam_answer=answer_obj)
+        self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
         return Response(
             ExamAnswerSerializer(answer_obj).data,
@@ -164,6 +297,244 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         return Response(ExamAnswerDetailSerializer(answers, many=True).data)
 
+    @action(detail=False, methods=['get'], url_path='dashboard-summary')
+    def dashboard_summary(self, request, contest_pk=None):
+        """Contest result dashboard summary (teacher/admin only)."""
+        contest = self._get_contest(contest_pk)
+        if not can_manage_contest(request.user, contest):
+            raise PermissionDenied('Only contest staff can view dashboard summary.')
+
+        cache_key = self._dashboard_summary_cache_key(contest.id)
+        cached_payload = cache.get(cache_key)
+        if cached_payload is not None:
+            return Response(cached_payload)
+
+        participants = list(
+            self._student_participants_qs(contest).values('id', 'exam_status')
+        )
+        participant_ids = [item['id'] for item in participants]
+        participant_count = len(participant_ids)
+        completed_count = sum(
+            1 for item in participants if item['exam_status'] == ExamStatus.SUBMITTED
+        )
+
+        questions = list(
+            ExamQuestion.objects.filter(contest=contest).order_by('order', 'created_at')
+        )
+        max_total_score = sum(question.score for question in questions)
+
+        answers = list(
+            ExamAnswer.objects.filter(participant_id__in=participant_ids)
+            .select_related('question')
+            .values(
+                'participant_id',
+                'question_id',
+                'score',
+                'is_correct',
+                'graded_at',
+            )
+        )
+
+        participant_scores = {participant_id: 0 for participant_id in participant_ids}
+        question_stats = {
+            str(question.id): {
+                'answer_count': 0,
+                'graded_count': 0,
+                'score_sum': 0.0,
+                'zero_count': 0,
+                'full_count': 0,
+                'correct_count': 0,
+            }
+            for question in questions
+        }
+
+        question_lookup = {str(question.id): question for question in questions}
+
+        for answer in answers:
+            question_id = str(answer['question_id'])
+            question = question_lookup.get(question_id)
+            if question is None:
+                continue
+            stats = question_stats[question_id]
+            stats['answer_count'] += 1
+
+            score = answer['score']
+            if score is not None:
+                numeric_score = float(score)
+                stats['graded_count'] += 1
+                stats['score_sum'] += numeric_score
+                participant_scores[answer['participant_id']] += numeric_score
+                if numeric_score == 0:
+                    stats['zero_count'] += 1
+                if numeric_score >= float(question.score):
+                    stats['full_count'] += 1
+
+            if answer['is_correct'] is True:
+                stats['correct_count'] += 1
+
+        total_scores = list(participant_scores.values())
+        average_score = round(sum(total_scores) / participant_count, 1) if participant_count else 0
+        median_score = round(median(total_scores)) if total_scores else 0
+
+        question_summaries = []
+        for question in questions:
+            question_id = str(question.id)
+            stats = question_stats[question_id]
+            answer_count = stats['answer_count']
+            graded_count = stats['graded_count']
+            missing_count = max(participant_count - answer_count, 0)
+            average_question_score = (
+                round(stats['score_sum'] / graded_count, 1) if graded_count else 0
+            )
+            score_rate = round((average_question_score / question.score) * 100) if question.score else 0
+            zero_rate = round((stats['zero_count'] / graded_count) * 100) if graded_count else 0
+            full_rate = round((stats['full_count'] / graded_count) * 100) if graded_count else 0
+
+            summary = {
+                'question_id': question_id,
+                'order': question.order,
+                'title': question.prompt,
+                'kind': question.question_type,
+                'max_score': question.score,
+                'answer_count': answer_count,
+                'missing_count': missing_count,
+                'average_score': average_question_score,
+                'score_rate': score_rate,
+                'zero_rate': zero_rate,
+                'full_rate': full_rate,
+                'status': 'grading' if question.question_type in {ExamQuestionType.SHORT_ANSWER, ExamQuestionType.ESSAY} and graded_count < answer_count else 'stable',
+            }
+
+            if question.question_type in {
+                ExamQuestionType.SINGLE_CHOICE,
+                ExamQuestionType.MULTIPLE_CHOICE,
+                ExamQuestionType.TRUE_FALSE,
+            }:
+                correct_rate = round((stats['correct_count'] / answer_count) * 100) if answer_count else 0
+                summary['objective_stats'] = {
+                    'correct_rate': correct_rate,
+                }
+            else:
+                pending_count = max(answer_count - graded_count, 0)
+                grading_rate = round((graded_count / answer_count) * 100) if answer_count else 0
+                summary['subjective_stats'] = {
+                    'graded_count': graded_count,
+                    'pending_count': pending_count,
+                    'grading_rate': grading_rate,
+                }
+
+            question_summaries.append(summary)
+
+        payload = {
+            'contest': {
+                'id': str(contest.id),
+                'name': contest.name,
+                'course': '',
+                'contest_type': 'paper_exam',
+                'participant_count': participant_count,
+                'completed_count': completed_count,
+                'results_published': contest.results_published,
+            },
+            'summary': {
+                'average_score': average_score,
+                'median_score': median_score,
+                'max_total_score': max_total_score,
+            },
+            'score_distribution': self._build_score_distribution(total_scores, max_total_score),
+            'questions': question_summaries,
+        }
+        cache.set(cache_key, payload, timeout=60)
+        return Response(payload)
+
+    @action(detail=False, methods=['get'], url_path='question-detail')
+    def question_detail(self, request, contest_pk=None):
+        """Single-question dashboard detail (teacher/admin only)."""
+        contest = self._get_contest(contest_pk)
+        if not can_manage_contest(request.user, contest):
+            raise PermissionDenied('Only contest staff can view question detail.')
+
+        question_id = request.query_params.get('question_id')
+        if not question_id:
+            return Response(
+                {'error': 'question_id is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cache_key = self._question_detail_cache_key(contest.id, question_id)
+        cached_payload = cache.get(cache_key)
+        if cached_payload is not None:
+            return Response(cached_payload)
+
+        question = get_object_or_404(ExamQuestion, pk=question_id, contest=contest)
+        participants = list(self._student_participants_qs(contest))
+        participant_ids = [participant.id for participant in participants]
+        participants_by_id = {participant.id: participant for participant in participants}
+        participant_count = len(participant_ids)
+
+        answers = list(
+            ExamAnswer.objects.filter(
+                participant_id__in=participant_ids,
+                question=question,
+            ).values('participant_id', 'answer', 'score', 'graded_at', 'feedback')
+        )
+        graded_scores = [float(answer['score']) for answer in answers if answer['score'] is not None]
+        missing_count = max(participant_count - len(answers), 0)
+        answered_participant_ids = {answer['participant_id'] for answer in answers}
+        omitted_participants = [
+            {
+                'participant_id': participant.id,
+                'username': participant.user.username,
+                'nickname': participant.nickname or None,
+                'display_name': participant.nickname or participant.user.username,
+            }
+            for participant in participants
+            if participant.id not in answered_participant_ids
+        ]
+
+        payload = {
+            'question_id': str(question.id),
+            'kind': question.question_type,
+            'score_bands': self._build_question_score_bands(graded_scores, question.score),
+            'responses': [
+                {
+                    'participant_id': answer['participant_id'],
+                    'username': participants_by_id[answer['participant_id']].user.username,
+                    'nickname': participants_by_id[answer['participant_id']].nickname or None,
+                    'display_name': (
+                        participants_by_id[answer['participant_id']].nickname
+                        or participants_by_id[answer['participant_id']].user.username
+                    ),
+                    'score': float(answer['score']) if answer['score'] is not None else None,
+                    'graded_at': answer['graded_at'],
+                    'feedback': answer.get('feedback') or '',
+                    'answer': answer['answer'],
+                }
+                for answer in answers
+            ],
+        }
+
+        if question.question_type in {
+            ExamQuestionType.SINGLE_CHOICE,
+            ExamQuestionType.MULTIPLE_CHOICE,
+            ExamQuestionType.TRUE_FALSE,
+        }:
+            payload['option_distribution'] = self._build_option_distribution(
+                question,
+                answers,
+                participants_by_id,
+            )
+            payload['omitted_count'] = missing_count
+            payload['omitted_participants'] = omitted_participants
+        else:
+            graded_count = sum(1 for answer in answers if answer['graded_at'] is not None)
+            payload['grading_progress'] = {
+                'graded': graded_count,
+                'total': len(answers),
+            }
+
+        cache.set(cache_key, payload, timeout=60)
+        return Response(payload)
+
     @action(detail=True, methods=['post'], url_path='grade')
     def grade_answer(self, request, contest_pk=None, pk=None):
         """Grade a single answer (TA/admin only)."""
@@ -185,6 +556,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         answer_obj.graded_at = timezone.now()
         answer_obj.is_correct = answer_obj.score > 0
         answer_obj.save()
+        self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
         # Update participant total score
         total = ExamAnswer.objects.filter(
@@ -215,6 +587,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         answer_obj.graded_at = None
         answer_obj.is_correct = None
         answer_obj.save()
+        self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
         # Recalculate participant total score
         total = ExamAnswer.objects.filter(

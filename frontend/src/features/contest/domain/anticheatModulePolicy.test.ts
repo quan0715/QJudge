@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import {
   buildExamEntryDeviceMetadata,
   computeEffectiveRequiredModules,
+  detectAnticheatCapability,
   resolveDeviceMonitoringPlan,
 } from "./anticheatModulePolicy";
 
@@ -187,5 +188,101 @@ describe("computeEffectiveRequiredModules", () => {
     expect(plan.allowed).toBe(false);
     expect(plan.missingEnabledSources).toContain("screen_share");
     expect(plan.runtime.enableScreenShareCapture).toBe(false);
+  });
+});
+
+describe("detectAnticheatCapability — iPad vs touch Mac", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const mockNavigator = (overrides: Record<string, unknown>) => {
+    Object.defineProperty(globalThis, "navigator", {
+      value: {
+        userAgent: "",
+        platform: "",
+        maxTouchPoints: 0,
+        ...overrides,
+      },
+      writable: true,
+      configurable: true,
+    });
+  };
+
+  const mockMatchMedia = (results: Record<string, boolean>) => {
+    vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
+      matches: results[query] ?? false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  };
+
+  it("touch Mac with hover capability is NOT detected as tablet", () => {
+    mockNavigator({
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      platform: "MacIntel",
+      maxTouchPoints: 10,
+    });
+    mockMatchMedia({
+      "(pointer: coarse)": true,
+      "(hover: hover)": true,
+    });
+
+    const result = detectAnticheatCapability();
+    expect(result.isTablet).toBe(false);
+    expect(result.isIPadLike).toBe(false);
+  });
+
+  it("iPad (no hover) IS detected as tablet", () => {
+    mockNavigator({
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      platform: "MacIntel",
+      maxTouchPoints: 5,
+    });
+    mockMatchMedia({
+      "(pointer: coarse)": true,
+      "(hover: hover)": false,
+    });
+
+    const result = detectAnticheatCapability();
+    expect(result.isIPadLike).toBe(true);
+    expect(result.isTablet).toBe(true);
+  });
+
+  it("desktop Mac (no touch, has hover) is NOT detected as tablet", () => {
+    mockNavigator({
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      platform: "MacIntel",
+      maxTouchPoints: 0,
+    });
+    mockMatchMedia({
+      "(pointer: coarse)": false,
+      "(hover: hover)": true,
+    });
+
+    const result = detectAnticheatCapability();
+    expect(result.isTablet).toBe(false);
+    expect(result.isIPadLike).toBe(false);
+  });
+
+  it("explicit iPad UA is always detected regardless of hover", () => {
+    mockNavigator({
+      userAgent: "Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X)",
+      platform: "iPad",
+      maxTouchPoints: 5,
+    });
+    mockMatchMedia({
+      "(pointer: coarse)": true,
+      "(hover: hover)": false,
+    });
+
+    const result = detectAnticheatCapability();
+    expect(result.isIPadLike).toBe(true);
+    expect(result.isTablet).toBe(true);
   });
 });

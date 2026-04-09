@@ -10,7 +10,6 @@ import {
   TaskComplete,
   ChartColumn,
   Chat,
-  Renew,
 } from "@carbon/icons-react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { AdminPanelId } from "@/features/contest/modules/types";
@@ -149,15 +148,6 @@ export default function AdminDashboardLayout({
       }
       headerActions={
         <>
-          {onRefresh && (
-            <HeaderGlobalAction
-              aria-label={t("adminLayout.header.refresh")}
-              tooltipAlignment="end"
-              onClick={onRefresh}
-            >
-              <Renew size={20} />
-            </HeaderGlobalAction>
-          )}
           {onSettingsOpen && (
             <HeaderGlobalAction
               aria-label={t("adminLayout.nav.settings")}

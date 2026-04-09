@@ -1277,8 +1277,9 @@ class ContestViewSet(viewsets.ModelViewSet):
                 layout=layout,
             )
         except ExportValidationError as exc:
+            logger.warning("Export validation error: %s", exc)
             return Response(
-                {'error': str(exc)},
+                {'error': 'Export validation failed'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:

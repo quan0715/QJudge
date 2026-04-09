@@ -145,9 +145,12 @@ def build_paper_exam_results_csv_response(contest):
     total_questions = len(questions)
     full_score = sum(q.score for q in questions)
 
+    # Filter out admins/co-admins — only export student participants
+    students = [p for p in participants if p.user_id not in admin_user_ids]
+
     # Header
     writer = csv.writer(response)
-    header = ['帳號', '顯示名稱', 'Email', '身份', '考試狀態', '已批改/總題數', '總分', '滿分']
+    header = ['帳號', '顯示名稱', 'Email', '考試狀態', '已批改/總題數', '總分', '滿分']
     for idx, q in enumerate(questions, 1):
         type_label = ExamQuestionType(q.question_type).label
         header.append(f'Q{idx} ({type_label}, {q.score}分)')
@@ -157,12 +160,11 @@ def build_paper_exam_results_csv_response(contest):
     score_sums = [0.0] * total_questions
     score_counts = [0] * total_questions
     total_score_sum = 0.0
-    participant_count = len(participants)
+    participant_count = len(students)
 
-    for p in participants:
+    for p in students:
         display_name = p.nickname or p.user.username
         status_label = p.get_exam_status_display()
-        role = '管理者' if p.user_id in admin_user_ids else '參賽者'
         p_answers = answer_lookup.get(p.id, {})
         graded_count = sum(
             1 for q in questions
@@ -173,7 +175,6 @@ def build_paper_exam_results_csv_response(contest):
             p.user.username,
             display_name,
             p.user.email,
-            role,
             status_label,
             f'{graded_count}/{total_questions}',
             p.score,
@@ -191,7 +192,7 @@ def build_paper_exam_results_csv_response(contest):
         writer.writerow(row)
 
     # Average row
-    avg_row = ['', '', '', '', '', '平均']
+    avg_row = ['', '', '', '', '平均']
     avg_row.append(f'{total_score_sum / participant_count:.2f}' if participant_count else '-')
     avg_row.append(full_score)
     for i in range(total_questions):

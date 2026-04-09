@@ -1,0 +1,38 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.prompt {
+  margin-bottom: layout.$spacing-06;
+  font-size: var(--cds-heading-compact-02-font-size, 1.125rem);
+  line-height: 1.8;
+  color: var(--cds-text-primary);
+
+  :global(.markdown-body) {
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+
+    p,
+    li,
+    td,
+    th {
+      font-size: inherit;
+      line-height: inherit;
+    }
+  }
+}
+
+.promptNoMargin {
+  margin-bottom: 0;
+}
+
+.promptEmpty {
+  @include type.type-style("body-01");
+  color: var(--cds-text-placeholder);
+  margin-bottom: layout.$spacing-06;
+  font-style: italic;
+}
+
+.promptEmptyNoMargin {
+  margin-bottom: 0;
+}

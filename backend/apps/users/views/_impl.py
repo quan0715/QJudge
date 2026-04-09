@@ -699,7 +699,7 @@ class UserAPIKeyView(SchemaAPIView):
                 'success': False,
                 'error': {
                     'code': 'VALIDATION_FAILED',
-                    'message': f'API Key 驗證失敗: {error_msg}'
+                    'message': 'API Key 驗證失敗',
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -773,7 +773,7 @@ class ValidateAPIKeyView(SchemaAPIView):
             'success': True,
             'data': {
                 'valid': is_valid,
-                'error': error_msg if not is_valid else None
+                'error': 'API Key validation failed' if not is_valid else None
             }
         })
 

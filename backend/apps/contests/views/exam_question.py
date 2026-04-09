@@ -754,7 +754,8 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 include_answer_area=include_answer_area,
             )
         except ExportValidationError as exc:
-            raise DRFValidationError(str(exc))
+            logger.warning("Paper exam export validation error: %s", exc)
+            raise DRFValidationError("Export validation failed")
         except Exception as exc:
             logger.exception("Failed to generate paper exam sheet: %s", exc)
             raise APIException("Failed to generate paper exam sheet")

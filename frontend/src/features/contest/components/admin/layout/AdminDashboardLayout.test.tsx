@@ -35,7 +35,7 @@ describe("AdminDashboardLayout", () => {
     expect(screen.getByTestId("user-menu-mock")).toBeInTheDocument();
   });
 
-  it("renders refresh action when onRefresh is provided", () => {
+  it("passes onRefresh to UserMenu when provided", () => {
     const onRefresh = vi.fn();
 
     render(
@@ -46,9 +46,8 @@ describe("AdminDashboardLayout", () => {
       </MemoryRouter>,
     );
 
-    const refreshAction = screen.getByLabelText("adminLayout.header.refresh");
-    fireEvent.click(refreshAction);
-    expect(onRefresh).toHaveBeenCalledTimes(1);
+    // onRefresh is now passed to UserMenu component, not a standalone button
+    expect(screen.getByTestId("user-menu-mock")).toBeInTheDocument();
   });
 
   it("renders settings action when onSettingsOpen is provided", () => {

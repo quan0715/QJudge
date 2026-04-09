@@ -1,5 +1,7 @@
 """Teacher activation invite views."""
 
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
@@ -18,6 +20,7 @@ from ..services import EmailAuthService, JWTService
 from .common import SchemaAPIView, record_login, token_cookie_response
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class TeacherActivationInviteIssueView(SchemaAPIView):
@@ -46,12 +49,13 @@ class TeacherActivationInviteIssueView(SchemaAPIView):
                 created_by=request.user,
             )
         except ValueError as exc:
+            logger.warning("Teacher activation invite not allowed: %s", exc)
             return Response(
                 {
                     "success": False,
                     "error": {
                         "code": "INVITE_NOT_ALLOWED",
-                        "message": str(exc),
+                        "message": "Invite not allowed",
                     },
                 },
                 status=status.HTTP_400_BAD_REQUEST,

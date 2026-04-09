@@ -142,9 +142,13 @@ const detectIPadLike = (): boolean => {
     typeof window !== "undefined" &&
     typeof window.matchMedia === "function" &&
     window.matchMedia("(pointer: coarse)").matches;
+  const hasHoverCapability =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(hover: hover)").matches;
   const isIPadUA = /iPad/i.test(ua);
-  const isTouchMac = /Mac/i.test(platform) && maxTouchPoints > 0;
-  const isDesktopLikeIpadUA = /Macintosh/i.test(ua) && (maxTouchPoints > 0 || hasCoarsePointer);
+  const isTouchMac = /Mac/i.test(platform) && maxTouchPoints > 0 && !hasHoverCapability;
+  const isDesktopLikeIpadUA = /Macintosh/i.test(ua) && (maxTouchPoints > 0 || hasCoarsePointer) && !hasHoverCapability;
   const isIOSUAData = typeof uaDataPlatform === "string" && /iOS/i.test(uaDataPlatform);
   return isIPadUA || isTouchMac || isDesktopLikeIpadUA || isIOSUAData;
 };
