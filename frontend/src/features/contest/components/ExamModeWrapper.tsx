@@ -15,7 +15,7 @@ import {
 } from "@/features/contest/domain/contestRoutePolicy";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { createFullscreenAdapter } from "@/features/contest/anticheat/fullscreenAdapter";
-import { syncAnticheatPhaseWithExamStatus } from "@/features/contest/anticheat/orchestrator";
+import { syncAnticheatPhaseWithExamStatus, resetAnticheatOrchestrator } from "@/features/contest/anticheat/orchestrator";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
 import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatScreenCapture";
@@ -440,6 +440,12 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       syncAnticheatPhaseWithExamStatus(contestId, examStatus);
     }
   }, [contestId, examStatus]);
+
+  useEffect(() => {
+    return () => {
+      resetAnticheatOrchestrator(contestId);
+    };
+  }, [contestId]);
 
   useEffect(() => {
     if (initialFullscreenCheckDone.current || !cheatDetectionEnabled) return;
