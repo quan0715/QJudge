@@ -7,7 +7,7 @@ import type { SupportedLanguage } from "@/i18n";
 import "./LandingHeader.scss";
 
 interface LandingHeaderProps {
-  items: Array<{ id: string; label: string }>;
+  items: Array<{ id: string; label: string; href?: string }>;
   onLogin: () => void;
   languageValue: SupportedLanguage;
   languageOptions: TextModeOption<SupportedLanguage>[];
@@ -31,13 +31,13 @@ const LandingHeader: FC<LandingHeaderProps> = ({
     <header className="landing-header">
       <div className="landing-header__inner">
         <a className="landing-header__brand" href="#top" aria-label="QJudge home">
-          <TaskComplete size={20} />
+          <TaskComplete size={18} />
           <span>QJudge</span>
         </a>
 
         <nav className="landing-header__nav" aria-label="Landing sections">
           {items.map((item) => (
-            <a key={item.id} href={`#${item.id}`}>
+            <a key={item.id} href={item.href ?? `#${item.id}`}>
               {item.label}
             </a>
           ))}
@@ -59,7 +59,7 @@ const LandingHeader: FC<LandingHeaderProps> = ({
               tooltipPosition="bottom"
             />
           </div>
-          <Button kind="ghost" size="md" onClick={onLogin}>
+          <Button kind="ghost" size="sm" onClick={onLogin}>
             登入
           </Button>
         </div>

@@ -35,7 +35,7 @@ import { changelogRoutes } from "@/features/changelog";
 import { errorRoutes, fallbackRoute } from "@/features/app";
 import { adminRoutes, draftProblemsRoute } from "@/features/admin";
 import { landingRoute } from "@/features/landing";
-import { checkoutSuccessRoute } from "@/features/pricing";
+import { checkoutSuccessRoute, pricingRoute } from "@/features/pricing";
 import RecurProviderBridge from "@/features/pricing/components/RecurProviderBridge";
 import { classroomDetailRoute, classroomJoinRoute } from "@/features/classroom";
 import { questionBankListRoute, questionBankDetailRoute } from "@/features/question-banks";
@@ -115,6 +115,7 @@ function App() {
 
                         {/* Public Landing Page */}
                         {landingRoute}
+                        {pricingRoute}
 
                         {/* Public Checkout Success */}
                         {checkoutSuccessRoute}
