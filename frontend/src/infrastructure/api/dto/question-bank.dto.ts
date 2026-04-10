@@ -69,6 +69,7 @@ export interface QuestionBankDto {
   reviewed_by_username?: string;
   owner_username?: string;
   question_count?: number;
+  is_subscribed?: boolean;
   created_at?: string;
   updated_at?: string;
 }

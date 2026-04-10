@@ -70,6 +70,7 @@ export interface QuestionBank {
   reviewedByUsername?: string;
   ownerUsername?: string;
   questionCount: number;
+  isSubscribed?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
