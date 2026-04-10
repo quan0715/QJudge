@@ -8,16 +8,12 @@ import {
   Column,
   Grid,
   Loading,
-  StructuredListBody,
-  StructuredListCell,
-  StructuredListHead,
-  StructuredListRow,
-  StructuredListWrapper,
   Tag,
   Tile,
 } from "@carbon/react";
 import { PageHeader } from "@/shared/layout/PageHeader";
 import { useToast } from "@/shared/contexts";
+import { useAuth } from "@/features/auth";
 import type { QuestionBank, BankQuestion } from "@/core/entities/question-bank.entity";
 import {
   getBank,
@@ -25,17 +21,21 @@ import {
   subscribe,
   unsubscribe,
 } from "@/infrastructure/api/repositories/questionBank.repository";
+import { QuestionBankPreviewCard } from "@/features/question-banks/components/QuestionBankPreviewCard";
 
 const MarketplaceBankPreviewScreen = () => {
   const { bankId } = useParams<{ bankId: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation("common");
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [bank, setBank] = useState<QuestionBank | null>(null);
   const [questions, setQuestions] = useState<BankQuestion[]>([]);
   const [subscribing, setSubscribing] = useState(false);
+
+  const isOwner = bank?.ownerUsername === user?.username;
 
   const loadBank = useCallback(async () => {
     if (!bankId) return;
@@ -71,15 +71,16 @@ const MarketplaceBankPreviewScreen = () => {
       } else {
         await subscribe(bank.id);
       }
+      const nextSubscribed = !bank.isSubscribed;
       setBank((prev) =>
-        prev ? { ...prev, isSubscribed: !prev.isSubscribed } : prev
+        prev ? { ...prev, isSubscribed: nextSubscribed } : prev,
       );
       showToast({
         kind: "success",
         title: t("message.success"),
-        subtitle: bank.isSubscribed
-          ? t("questionBank.unsubscribed", "已取消訂閱")
-          : t("questionBank.subscribed", "已訂閱"),
+        subtitle: nextSubscribed
+          ? t("questionBank.subscribed", "已訂閱")
+          : t("questionBank.unsubscribed", "已取消訂閱"),
       });
     } catch (err: any) {
       showToast({
@@ -126,16 +127,18 @@ const MarketplaceBankPreviewScreen = () => {
           title={bank.name}
           subtitle={bank.description}
           action={
-            <Button
-              kind={bank.isSubscribed ? "secondary" : "primary"}
-              size="sm"
-              disabled={subscribing}
-              onClick={handleToggleSubscribe}
-            >
-              {bank.isSubscribed
-                ? t("questionBank.subscribedBtn", "已訂閱")
-                : t("questionBank.subscribeBtn", "訂閱")}
-            </Button>
+            !isOwner ? (
+              <Button
+                kind={bank.isSubscribed ? "secondary" : "primary"}
+                size="sm"
+                disabled={subscribing}
+                onClick={handleToggleSubscribe}
+              >
+                {bank.isSubscribed
+                  ? t("questionBank.subscribedBtn", "已訂閱")
+                  : t("questionBank.subscribeBtn", "訂閱")}
+              </Button>
+            ) : undefined
           }
         />
       </Column>
@@ -150,7 +153,7 @@ const MarketplaceBankPreviewScreen = () => {
           <Tag type="gray">
             {t("questionBank.questionCountLabel", "{{count}} 題").replace(
               "{{count}}",
-              String(bank.questionCount)
+              String(bank.questionCount),
             )}
           </Tag>
           {bank.verified && <Tag type="green">{t("questionBank.verified", "已認證")}</Tag>}
@@ -164,30 +167,13 @@ const MarketplaceBankPreviewScreen = () => {
         {questions.length === 0 ? (
           <Tile>{t("questionBank.emptyQuestions", "此題庫目前沒有題目。")}</Tile>
         ) : (
-          <StructuredListWrapper>
-            <StructuredListHead>
-              <StructuredListRow head>
-                <StructuredListCell head>{t("table.title")}</StructuredListCell>
-                <StructuredListCell head>{t("questionBank.difficulty", "難度")}</StructuredListCell>
-                <StructuredListCell head>{t("questionBank.type", "類型")}</StructuredListCell>
-              </StructuredListRow>
-            </StructuredListHead>
-            <StructuredListBody>
-              {questions.map((q) => (
-                <StructuredListRow key={q.id}>
-                  <StructuredListCell>{q.title || t("questionBank.untitled", "未命名")}</StructuredListCell>
-                  <StructuredListCell>
-                    <Tag size="sm" type="gray">{q.difficulty}</Tag>
-                  </StructuredListCell>
-                  <StructuredListCell>
-                    {q.questionType === "coding"
-                      ? t("questionBank.categoryCoding", "程式題")
-                      : t("questionBank.categoryExam", "考卷題")}
-                  </StructuredListCell>
-                </StructuredListRow>
-              ))}
-            </StructuredListBody>
-          </StructuredListWrapper>
+          <Grid fullWidth>
+            {questions.map((q) => (
+              <Column key={q.id} lg={4} md={4} sm={4}>
+                <QuestionBankPreviewCard question={q} bank={bank} />
+              </Column>
+            ))}
+          </Grid>
         )}
       </Column>
     </Grid>
