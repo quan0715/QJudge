@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { TextInput, TextArea, Select, SelectItem } from "@carbon/react";
+import { TextInput, TextArea, Select, SelectItem, Button, Tag as CarbonTag } from "@carbon/react";
 import type { BankVisibility, QuestionBank } from "@/core/entities/question-bank.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { Section, FieldRow, ActionRow } from "@/shared/layout/SettingsPanel";
@@ -9,6 +9,7 @@ import { PRESET_COVER_IMAGES } from "@/shared/ui/image/presetCoverImages";
 import {
   update as updateQuestionBank,
   uploadCover,
+  submitForReview,
 } from "@/infrastructure/api/repositories/questionBank.repository";
 import { CLASSROOM_ICON_OPTIONS } from "@/features/classroom/constants/classroomIcons";
 
@@ -33,6 +34,7 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
   );
   const [coverPreview, setCoverPreview] = useState(bank.coverUrl ?? "");
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const latestRef = useRef({
     name: settingName,
@@ -191,6 +193,27 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
     }
   };
 
+  const handleSubmitForReview = async () => {
+    setSubmitting(true);
+    try {
+      await submitForReview(bank.id);
+      await onRefresh();
+      showToast({
+        kind: "success",
+        title: t("message.success"),
+        subtitle: t("questionBank.submitForReviewSuccess", "已提交審核申請"),
+      });
+    } catch (err: any) {
+      showToast({
+        kind: "error",
+        title: t("message.error"),
+        subtitle: err?.message || t("message.error"),
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <>
       <Section title={t("questionBank.basicInfo", "基本資訊")}>
@@ -300,6 +323,52 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
         <ActionRow label={t("questionBank.createdAt", "建立時間")}>
           <span>{bank.createdAt ? new Date(bank.createdAt).toLocaleString() : "—"}</span>
         </ActionRow>
+      </Section>
+
+      <Section title={t("questionBank.marketplace", "Marketplace")}>
+        <ActionRow label={t("questionBank.reviewStatusLabel", "上架狀態")}>
+          {bank.reviewStatus === "draft" && (
+            <Button
+              kind="primary"
+              size="sm"
+              disabled={submitting || bank.questionCount === 0}
+              onClick={handleSubmitForReview}
+            >
+              {t("questionBank.applyToMarketplace", "申請上架")}
+            </Button>
+          )}
+          {bank.reviewStatus === "rejected" && (
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <CarbonTag type="red">{t("questionBank.rejected", "已被退回")}</CarbonTag>
+              <Button
+                kind="primary"
+                size="sm"
+                disabled={submitting || bank.questionCount === 0}
+                onClick={handleSubmitForReview}
+              >
+                {t("questionBank.reapply", "重新申請")}
+              </Button>
+            </div>
+          )}
+          {bank.reviewStatus === "pending" && (
+            <CarbonTag type="blue">{t("questionBank.pendingReview", "審核中")}</CarbonTag>
+          )}
+          {bank.reviewStatus === "approved" && (
+            <CarbonTag type="green">{t("questionBank.published", "已上架")}</CarbonTag>
+          )}
+        </ActionRow>
+        {bank.reviewNote && (
+          <ActionRow label={t("questionBank.reviewNoteLabel", "審核備註")}>
+            <span>{bank.reviewNote}</span>
+          </ActionRow>
+        )}
+        {bank.reviewStatus === "draft" && bank.questionCount === 0 && (
+          <ActionRow label="">
+            <span style={{ color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
+              {t("questionBank.needQuestionsToApply", "至少需要 1 題才能申請上架")}
+            </span>
+          </ActionRow>
+        )}
       </Section>
     </>
   );
