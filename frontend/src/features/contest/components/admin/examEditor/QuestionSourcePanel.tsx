@@ -14,7 +14,7 @@ import { Draggable } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
-import { listMine, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
+import { listMine, listSubscribed, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
 import { QuestionBankPreviewCard } from "@/features/question-banks/components/QuestionBankPreviewCard";
 import { getQuestionDisplayTitle } from "@/features/question-banks/screens/questionBankProblemManagement.utils";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
@@ -83,11 +83,16 @@ const QuestionSourcePanel = ({
     setLoadingBanks(true);
     setError(null);
     try {
-      const mine = await listMine();
-      const filtered = mine.filter((bank) => bank.category === bankCategory);
-      setBanks(filtered);
-      if (filtered.length > 0) {
-        setSelectedBankId((prev) => prev || filtered[0].id);
+      const [mine, subscribed] = await Promise.all([listMine(), listSubscribed()]);
+      const filteredMine = mine.filter((bank) => bank.category === bankCategory);
+      const filteredSubscribed = subscribed.filter((bank) => bank.category === bankCategory);
+      const merged = [
+        ...filteredMine.map((b) => ({ ...b, _source: "mine" as const })),
+        ...filteredSubscribed.map((b) => ({ ...b, _source: "subscribed" as const })),
+      ];
+      setBanks(merged);
+      if (merged.length > 0) {
+        setSelectedBankId((prev) => prev || merged[0].id);
       } else {
         setSelectedBankId("");
       }
@@ -95,12 +100,12 @@ const QuestionSourcePanel = ({
       setError(
         fetchError instanceof Error
           ? fetchError.message
-          : t("examEditor.sourceLoadFailed", "載入題庫來源失敗")
+          : "載入題庫來源失敗"
       );
     } finally {
       setLoadingBanks(false);
     }
-  }, [bankCategory, t]);
+  }, [bankCategory]);
 
   const loadBankQuestions = useCallback(
     async (bankId: string) => {
@@ -159,7 +164,11 @@ const QuestionSourcePanel = ({
           label={t("examEditor.sourceSelectBank", "選擇題庫")}
           size="sm"
           items={banks}
-          itemToString={(item) => (item ? item.name : "")}
+          itemToString={(item) =>
+            item
+              ? `${item.name}${(item as any)._source === "subscribed" ? " (Subscribed)" : ""}`
+              : ""
+          }
           selectedItem={banks.find((bank) => bank.id === selectedBankId) ?? null}
           onChange={(selection) => setSelectedBankId(selection.selectedItem?.id || "")}
           disabled={loadingBanks || banks.length === 0}
