@@ -146,7 +146,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         if self.action == "review":
             return QuestionBank.objects.filter(is_archived=False)
 
-        if self.action in ("subscribe", "unsubscribe"):
+        if self.action == "subscribe":
             return (
                 QuestionBank.objects.filter(is_archived=False)
                 .annotate(question_count=Count("questions", distinct=True))
@@ -311,7 +311,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                 "updated_at",
             ]
         )
-        return Response(QuestionBankSerializer(bank).data, status=status.HTTP_200_OK)
+        return Response(QuestionBankSerializer(bank, context={"request": request}).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"], url_path="review")
     def review(self, request, uuid=None, pk=None):
@@ -347,7 +347,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                 "updated_at",
             ]
         )
-        return Response(QuestionBankSerializer(bank).data, status=status.HTTP_200_OK)
+        return Response(QuestionBankSerializer(bank, context={"request": request}).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post", "delete"], url_path="subscribe")
     def subscribe(self, request, uuid=None, pk=None):
