@@ -30,6 +30,7 @@ export function mapQuestionBankDto(dto: QuestionBankDto): QuestionBank {
     reviewedByUsername: dto.reviewed_by_username,
     ownerUsername: dto.owner_username,
     questionCount: dto.question_count || 0,
+    isSubscribed: dto.is_subscribed ?? false,
     createdAt: dto.created_at,
     updatedAt: dto.updated_at,
   };

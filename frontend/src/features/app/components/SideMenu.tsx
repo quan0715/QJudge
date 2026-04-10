@@ -127,24 +127,14 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
           </button>
 
           {isTeacherOrAdmin && (
-            <>
-              <button
-                type="button"
-                className={`side-menu__link${isActive("/question-banks") ? " side-menu__link--active" : ""}`}
-                onClick={() => go("/question-banks")}
-              >
-                <Book size={16} />
-                <span>{t("nav.questionBanks")}</span>
-              </button>
-              <button
-                type="button"
-                className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
-                onClick={() => go("/marketplace")}
-              >
-                <Globe size={16} />
-                <span>{t("nav.marketplace", "Marketplace")}</span>
-              </button>
-            </>
+            <button
+              type="button"
+              className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
+              onClick={() => go("/marketplace")}
+            >
+              <Globe size={16} />
+              <span>{t("nav.marketplace", "Marketplace")}</span>
+            </button>
           )}
         </div>
 

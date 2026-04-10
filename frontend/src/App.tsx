@@ -38,7 +38,7 @@ import { landingRoute } from "@/features/landing";
 import { checkoutSuccessRoute, pricingRoute } from "@/features/pricing";
 import RecurProviderBridge from "@/features/pricing/components/RecurProviderBridge";
 import { classroomDetailRoute, classroomJoinRoute } from "@/features/classroom";
-import { questionBankListRoute, questionBankDetailRoute } from "@/features/question-banks";
+import { questionBankMarketplaceRoute, questionBankDetailRoute } from "@/features/question-banks";
 
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
@@ -158,7 +158,7 @@ function App() {
                         <Route element={<RequireTeacherOrAdmin />}>
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
-                              {questionBankListRoute}
+                              {questionBankMarketplaceRoute}
                               {draftProblemsRoute}
                             </Route>
 

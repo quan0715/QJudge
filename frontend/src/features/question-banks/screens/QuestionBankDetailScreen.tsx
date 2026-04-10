@@ -398,7 +398,7 @@ const QuestionBankDetailScreen = () => {
           />
           <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
             <BreadcrumbItem>
-              <Link to="/question-banks">{t("questionBank.title", "題庫")}</Link>
+              <Link to="/marketplace">{t("nav.marketplace", "Marketplace")}</Link>
             </BreadcrumbItem>
             <BreadcrumbItem isCurrentPage>
               {bank.name}

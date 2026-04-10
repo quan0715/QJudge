@@ -1,12 +1,12 @@
 import { Route } from "react-router-dom";
-import QuestionBanksScreen from "./screens/QuestionBanksScreen";
 import QuestionBankDetailScreen from "./screens/QuestionBankDetailScreen";
 import QuestionBankMarketplaceScreen from "./screens/QuestionBankMarketplaceScreen";
+import MarketplaceBankPreviewScreen from "./screens/MarketplaceBankPreviewScreen";
 
-export const questionBankListRoute = (
+export const questionBankMarketplaceRoute = (
   <>
-    <Route path="/question-banks" element={<QuestionBanksScreen />} />
     <Route path="/marketplace" element={<QuestionBankMarketplaceScreen />} />
+    <Route path="/marketplace/:bankId" element={<MarketplaceBankPreviewScreen />} />
   </>
 );
 

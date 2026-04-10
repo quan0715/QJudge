@@ -18,21 +18,20 @@ interface BentoFeaturesSectionProps {
 
 const MultiExamMock = () => (
   <div className="landing-bento-section__mock landing-bento-section__mock--exam" aria-hidden="true">
-    <div className="landing-bento-section__mock-toolbar">
-      <span>期末測驗</span>
-      <span>剩餘 42:18</span>
-    </div>
     <div className="landing-bento-section__exam-layout">
       <div className="landing-bento-section__question-card">
-        <div className="landing-bento-section__mock-label">單選題</div>
-        <strong>哪一個選項符合題目條件？</strong>
-        <div className="landing-bento-section__choice is-selected">A. 正確答案</div>
-        <div className="landing-bento-section__choice">B. 干擾選項</div>
-        <div className="landing-bento-section__choice">C. 干擾選項</div>
+        <div className="landing-bento-section__question-meta">
+          <span className="landing-bento-section__mock-label">單選題</span>
+          <em>2 pts</em>
+        </div>
+        <strong>哪一個選項符合遞迴的定義？</strong>
+        <div className="landing-bento-section__choice is-selected">A. 函式直接或間接呼叫自身</div>
+        <div className="landing-bento-section__choice">B. 使用迴圈重複執行</div>
+        <div className="landing-bento-section__choice">C. 設定全域變數</div>
       </div>
       <div className="landing-bento-section__code-panel">
         <div className="landing-bento-section__code-tabs">
-          <span>main.py</span>
+          <span className="is-active">main.py</span>
           <span>judge</span>
         </div>
         <div className="landing-bento-section__code-lines">
@@ -46,18 +45,25 @@ const MultiExamMock = () => (
   </div>
 );
 
+const PROCTOR_EVENTS = [
+  { label: "視窗切換", count: "3 次", status: "需複核", warn: true },
+  { label: "閒置過久", count: "1 次", status: "已記錄", warn: false },
+  { label: "裝置變更", count: "1 次", status: "已記錄", warn: false },
+] as const;
+
 const ProctoringMock = () => (
   <div className="landing-bento-section__mock landing-bento-section__mock--proctoring" aria-hidden="true">
-    <div className="landing-bento-section__mock-toolbar">
+    <div className="landing-bento-section__event-header">
       <span>監考事件</span>
       <span className="landing-bento-section__status-tag">風險中</span>
     </div>
     <div className="landing-bento-section__event-list">
-      {["視窗切換", "閒置過久", "裝置變更"].map((label, index) => (
+      {PROCTOR_EVENTS.map(({ label, count, status, warn }, index) => (
         <div key={label} className="landing-bento-section__event-row">
-          <span>{`0${index + 1}`}</span>
+          <span className="landing-bento-section__event-index">{`0${index + 1}`}</span>
           <strong>{label}</strong>
-          <small>{index === 0 ? "需複核" : "已記錄"}</small>
+          <em>{count}</em>
+          <small className={warn ? "is-warn" : ""}>{status}</small>
         </div>
       ))}
     </div>
@@ -67,23 +73,37 @@ const ProctoringMock = () => (
   </div>
 );
 
+const BANK_CATEGORIES = [
+  { label: "資料結構", active: true },
+  { label: "基礎數學", active: false },
+  { label: "英文閱讀", active: false },
+] as const;
+
+const BANK_TYPES = [
+  { type: "選擇題", count: "58" },
+  { type: "Coding", count: "32" },
+  { type: "問答題", count: "24" },
+  { type: "填空題", count: "14" },
+] as const;
+
 const QuestionBankMock = () => (
   <div className="landing-bento-section__mock landing-bento-section__mock--bank" aria-hidden="true">
-    <div className="landing-bento-section__mock-toolbar">
-      <span>個人題庫</span>
-      <span>128 題</span>
-    </div>
     <div className="landing-bento-section__bank-layout">
       <div className="landing-bento-section__filter-list">
-        <span className="is-active">資料結構</span>
-        <span>基礎數學</span>
-        <span>英文閱讀</span>
+        <div className="landing-bento-section__filter-header">
+          <small>分類</small>
+          <small>128 題</small>
+        </div>
+        {BANK_CATEGORIES.map(({ label, active }) => (
+          <span key={label} className={active ? "is-active" : ""}>{label}</span>
+        ))}
       </div>
       <div className="landing-bento-section__table-lines">
-        {["選擇題", "Coding", "問答題", "填空題"].map((type) => (
+        {BANK_TYPES.map(({ type, count }) => (
           <div key={type}>
             <strong>{type}</strong>
-            <span />
+            <span className="landing-bento-section__table-bar" />
+            <em>{count}</em>
           </div>
         ))}
       </div>
@@ -105,22 +125,29 @@ const AiMock = () => (
   </div>
 );
 
+const ANALYTICS_OPTIONS = [
+  { label: "A", pct: 36, correct: false },
+  { label: "B", pct: 46, correct: true },
+  { label: "C", pct: 12, correct: false },
+  { label: "D", pct: 6, correct: false },
+] as const;
+
 const AnalyticsMock = () => (
   <div className="landing-bento-section__mock landing-bento-section__mock--analytics" aria-hidden="true">
-    <div className="landing-bento-section__mock-toolbar">
-      <span>考後分析</span>
-      <span>完成率 94%</span>
-    </div>
-    <div className="landing-bento-section__chart-grid">
-      {[72, 56, 84, 41].map((value, index) => (
-        <div key={value} className="landing-bento-section__bar-row">
-          <span>{`Q${index + 1}`}</span>
-          <div>
-            <i style={{ width: `${value}%` }} />
+    <div className="landing-bento-section__bento-card landing-bento-section__bento-card--dist">
+      <div className="landing-bento-section__bento-qhead">
+        <em>Q40 · 單選題</em>
+        <strong>Which strategy prevents deadlock?</strong>
+      </div>
+      <div className="landing-bento-section__bento-options">
+        {ANALYTICS_OPTIONS.map(({ label, pct, correct }) => (
+          <div key={label} className={`landing-bento-section__bento-option${correct ? " is-correct" : ""}`}>
+            <span>{label}</span>
+            <div><i style={{ width: `${pct}%` }} /></div>
+            <strong>{pct}%</strong>
           </div>
-          <strong>{value}</strong>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   </div>
 );

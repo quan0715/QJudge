@@ -178,6 +178,29 @@ export const ingestInbox = async (params: {
   );
 };
 
+// Subscriptions
+export const subscribe = async (bankId: string): Promise<void> => {
+  await requestJson(
+    httpClient.post(`/api/v1/question-banks/${bankId}/subscribe/`),
+    "Failed to subscribe"
+  );
+};
+
+export const unsubscribe = async (bankId: string): Promise<void> => {
+  await requestJson(
+    httpClient.delete(`/api/v1/question-banks/${bankId}/subscribe/`),
+    "Failed to unsubscribe"
+  );
+};
+
+export const listSubscribed = async (): Promise<QuestionBank[]> => {
+  const responseData = await requestJson<{ results: QuestionBankDto[] }>(
+    httpClient.get("/api/v1/question-banks/subscribed/"),
+    "Failed to list subscribed banks"
+  );
+  return responseData.results.map(mapQuestionBankDto);
+};
+
 // ============================================================================
 // Repository Export
 // ============================================================================
@@ -200,6 +223,9 @@ export const questionBankRepository = {
   clone,
   listInbox,
   ingestInbox,
+  subscribe,
+  unsubscribe,
+  listSubscribed,
 };
 
 export default questionBankRepository;

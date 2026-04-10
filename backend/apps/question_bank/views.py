@@ -24,7 +24,7 @@ from apps.core.services import (
 
 from apps.contests.models import ExamQuestion
 
-from .models import QuestionBank, Question, QuestionBankMembership
+from .models import QuestionBank, Question, QuestionBankMembership, QuestionBankSubscription
 from .read_models import (
     build_read_row_for_membership,
     build_read_row_for_question,
@@ -146,6 +146,12 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         if self.action == "review":
             return QuestionBank.objects.filter(is_archived=False)
 
+        if self.action == "subscribe":
+            return (
+                QuestionBank.objects.filter(is_archived=False)
+                .annotate(question_count=Count("questions", distinct=True))
+            )
+
         return (
             QuestionBank.objects.filter(
                 owner=self.request.user,
@@ -178,7 +184,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="explore")
     def explore(self, request):
         queryset = self.filter_queryset(self.get_queryset())
-        serializer = ExploreBankItemSerializer(queryset, many=True)
+        serializer = ExploreBankItemSerializer(queryset, many=True, context={"request": request})
         return Response({
             "count": len(serializer.data),
             "results": serializer.data,
@@ -189,7 +195,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         if not self._is_admin_user(request.user):
             raise PermissionDenied('Admin only.')
         queryset = self.filter_queryset(self.get_queryset())
-        serializer = QuestionBankSerializer(queryset, many=True)
+        serializer = QuestionBankSerializer(queryset, many=True, context={"request": request})
         return Response({"count": len(serializer.data), "results": serializer.data})
 
     @action(detail=False, methods=["get"], url_path="inbox")
@@ -305,7 +311,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                 "updated_at",
             ]
         )
-        return Response(QuestionBankSerializer(bank).data, status=status.HTTP_200_OK)
+        return Response(QuestionBankSerializer(bank, context={"request": request}).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"], url_path="review")
     def review(self, request, uuid=None, pk=None):
@@ -341,7 +347,43 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                 "updated_at",
             ]
         )
-        return Response(QuestionBankSerializer(bank).data, status=status.HTTP_200_OK)
+        return Response(QuestionBankSerializer(bank, context={"request": request}).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post", "delete"], url_path="subscribe")
+    def subscribe(self, request, uuid=None, pk=None):
+        bank = self.get_object()
+        if request.method == "DELETE":
+            deleted, _ = QuestionBankSubscription.objects.filter(
+                user=request.user, bank=bank,
+            ).delete()
+            if not deleted:
+                raise DRFValidationError("Not subscribed.")
+            return Response({"subscribed": False}, status=status.HTTP_200_OK)
+        # POST
+        if not is_publicly_accessible_bank(bank):
+            raise PermissionDenied("Bank is not available for subscription.")
+        if bank.owner_id == request.user.id:
+            raise DRFValidationError("Cannot subscribe to your own bank.")
+        _, created = QuestionBankSubscription.objects.get_or_create(
+            user=request.user, bank=bank,
+        )
+        if not created:
+            raise DRFValidationError("Already subscribed.")
+        return Response({"subscribed": True}, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["get"], url_path="subscribed")
+    def subscribed(self, request):
+        bank_ids = QuestionBankSubscription.objects.filter(
+            user=request.user,
+        ).values_list("bank_id", flat=True)
+        queryset = (
+            QuestionBank.objects.filter(id__in=bank_ids, is_archived=False)
+            .annotate(question_count=Count("questions", distinct=True))
+        )
+        serializer = QuestionBankSerializer(
+            queryset, many=True, context={"request": request}
+        )
+        return Response({"count": len(serializer.data), "results": serializer.data})
 
     @action(detail=True, methods=["get", "post"], url_path="questions")
     def questions(self, request, uuid=None, pk=None):

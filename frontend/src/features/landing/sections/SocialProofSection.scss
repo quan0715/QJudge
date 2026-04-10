@@ -5,67 +5,117 @@
   background: color-mix(in srgb, var(--cds-layer-01) 55%, transparent);
 }
 
-.landing-social-proof-section__metrics,
-.landing-social-proof-section__cases {
+.landing-social-proof-section__gallery {
   display: grid;
   gap: layout.$spacing-05;
 }
 
-.landing-social-proof-section__metrics {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-bottom: layout.$spacing-06;
+/* 大卡片：左文字 + 右圖片 */
+.landing-social-proof-section__card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  min-height: 22rem;
+  overflow: hidden;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 8px;
+  background: var(--cds-layer-01);
 
   @media (max-width: 1055px) {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
 }
 
-.landing-social-proof-section__cases {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-
-  @media (max-width: 1055px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.landing-social-proof-section__metric-card,
-.landing-social-proof-section__case-card {
+.landing-social-proof-section__card-content {
   display: flex;
   flex-direction: column;
-  gap: layout.$spacing-04;
-  padding: layout.$spacing-06;
-  border-radius: 1rem;
-}
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-08;
+  border-right: 1px solid var(--cds-border-subtle-01);
 
-.landing-social-proof-section__metric-card {
-  background: var(--cds-layer-inverse);
-  color: var(--cds-text-inverse);
-
-  strong {
-    @include type.type-style("productive-heading-06");
-  }
-
-  h3,
-  p {
-    margin: 0;
-    color: inherit;
+  @media (max-width: 1055px) {
+    padding: layout.$spacing-06;
+    border-right: none;
+    border-bottom: 1px solid var(--cds-border-subtle-01);
   }
 }
 
-.landing-social-proof-section__case-card dl {
-  display: grid;
-  gap: layout.$spacing-04;
+.landing-social-proof-section__card-tag {
+  @include type.type-style("label-02");
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
   margin: 0;
-}
-
-.landing-social-proof-section__case-card :is(dt, dd, p) {
-  margin: 0;
-}
-
-.landing-social-proof-section__case-label {
-  color: var(--cds-link-primary);
-}
-
-.landing-social-proof-section__case-card dd {
   color: var(--cds-text-secondary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  span {
+    color: var(--cds-link-primary);
+    font-weight: 600;
+  }
+}
+
+.landing-social-proof-section__card-context {
+  @include type.type-style("body-long-02");
+  margin: 0;
+  color: var(--cds-text-secondary);
+  max-width: 36rem;
+}
+
+.landing-social-proof-section__card-outcome {
+  @include type.type-style("productive-heading-03");
+  margin: 0 0 0 0;
+  padding: layout.$spacing-05;
+  border-left: 3px solid var(--cds-link-primary);
+  color: var(--cds-text-primary);
+  font-weight: 400;
+  font-style: normal;
+  background: color-mix(in srgb, var(--cds-link-primary) 6%, transparent);
+}
+
+/* 右側圖片佔位區 */
+.landing-social-proof-section__card-image {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(color-mix(in srgb, var(--cds-border-subtle-00) 60%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--cds-border-subtle-00) 60%, transparent) 1px, transparent 1px),
+    var(--cds-layer-02);
+  background-size: 3rem 3rem;
+
+  span {
+    @include type.type-style("label-01");
+    color: var(--cds-text-placeholder);
+    border: 1px dashed var(--cds-border-subtle-01);
+    padding: layout.$spacing-03 layout.$spacing-05;
+    border-radius: 4px;
+  }
+
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+  }
+}
+
+[data-carbon-theme="g100"] .landing-social-proof-section__card,
+[data-carbon-theme="g90"] .landing-social-proof-section__card {
+  border-color: rgba(163, 191, 240, 0.18);
+  background: rgba(17, 27, 45, 0.96);
+}
+
+[data-carbon-theme="g100"] .landing-social-proof-section__card-content,
+[data-carbon-theme="g90"] .landing-social-proof-section__card-content {
+  border-color: rgba(163, 191, 240, 0.18);
+}
+
+[data-carbon-theme="g100"] .landing-social-proof-section,
+[data-carbon-theme="g90"] .landing-social-proof-section {
+  background: color-mix(in srgb, #0f1f35 62%, transparent);
 }

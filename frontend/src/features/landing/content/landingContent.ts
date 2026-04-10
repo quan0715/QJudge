@@ -166,11 +166,6 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
         title: t("whyChoose.items.questionBank.title"),
         description: t("whyChoose.items.questionBank.description"),
       },
-      {
-        label: t("whyChoose.items.onboarding.label"),
-        title: t("whyChoose.items.onboarding.title"),
-        description: t("whyChoose.items.onboarding.description"),
-      },
     ],
     workflow: [
       {
@@ -196,12 +191,6 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
         title: t("flow.items.3.title"),
         description: t("flow.items.3.description"),
         output: t("flow.items.3.output"),
-      },
-      {
-        step: "05",
-        title: t("flow.items.4.title"),
-        description: t("flow.items.4.description"),
-        output: t("flow.items.4.output"),
       },
     ],
     audiences: [

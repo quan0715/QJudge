@@ -7,7 +7,7 @@
 
 .landing-why-section__grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid var(--cds-border-subtle-01);
   border-left: 1px solid var(--cds-border-subtle-01);
 }

@@ -8,7 +8,7 @@ import {
   SelectItem,
 } from "@carbon/react";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
-import { listMine, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
+import { listMine, listSubscribed, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
 import { getQuestionDisplayTitle } from "@/features/question-banks/screens/questionBankProblemManagement.utils";
 import QuestionBankPreviewCard from "@/features/question-banks/components/QuestionBankPreviewCard";
 import styles from "./QuestionBankImportModal.module.scss";
@@ -66,7 +66,13 @@ const QuestionBankImportModal: React.FC<QuestionBankImportModalProps> = ({
     setLoadingBanks(true);
     setError(null);
     try {
-      const merged = (await listMine()).filter((bank) => bank.category === category);
+      const [mine, subscribed] = await Promise.all([listMine(), listSubscribed()]);
+      const filteredMine = mine.filter((bank) => bank.category === category);
+      const filteredSubscribed = subscribed.filter((bank) => bank.category === category);
+      const merged = [
+        ...filteredMine.map((b) => ({ ...b, _source: "mine" as const })),
+        ...filteredSubscribed.map((b) => ({ ...b, _source: "subscribed" as const })),
+      ];
       setBanks(merged);
       if (merged.length > 0) {
         setSelectedBankId((prev) => prev || merged[0].id);
@@ -210,7 +216,13 @@ const QuestionBankImportModal: React.FC<QuestionBankImportModalProps> = ({
                 <SelectItem
                   key={bank.id}
                   value={bank.id}
-                  text={bank.ownerUsername ? `${bank.name} (${bank.ownerUsername})` : bank.name}
+                  text={
+                    (bank as any)._source === "subscribed"
+                      ? `${bank.name} (Subscribed)`
+                      : bank.ownerUsername
+                      ? `${bank.name} (${bank.ownerUsername})`
+                      : bank.name
+                  }
                 />
               ))
             )}

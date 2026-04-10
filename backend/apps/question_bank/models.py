@@ -443,3 +443,30 @@ class QuestionCodingExt(models.Model):
 
     def __str__(self):
         return f"coding_ext:{self.question_id}"
+
+
+class QuestionBankSubscription(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="bank_subscriptions",
+    )
+    bank = models.ForeignKey(
+        QuestionBank,
+        on_delete=models.CASCADE,
+        related_name="subscriptions",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "question_bank_subscriptions"
+        constraints = [
+            UniqueConstraint(
+                fields=["user", "bank"],
+                name="unique_subscription_per_user_bank",
+            ),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.bank_id}"
