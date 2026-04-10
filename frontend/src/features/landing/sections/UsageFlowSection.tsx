@@ -15,39 +15,34 @@ interface FlowScreenshot {
   src: string;
   alt: string;
   caption: string;
+  variant?: "wide" | "portrait" | "document";
 }
 
 interface FlowDetail {
   valueTitle: string;
   highlights: string[];
-  screenshots: FlowScreenshot[];
+  screenshots: Array<FlowScreenshot | FlowScreenshot[]>;
 }
 
 const FLOW_DETAILS: FlowDetail[] = [
   {
-    valueTitle: "快速建立正式考試規則與題型配置",
-    highlights: ["設定考試時間、題型與配分", "指定班級與作答規則", "考前確認發布摘要"],
+    valueTitle: "快速建立正式考試，並完成題目配置",
+    highlights: ["設定考試時間、題型與配分", "精修題目內容並納入考試", "指定班級與作答規則"],
     screenshots: [
       {
-        src: "/illustrations/flow_create-exam_admin-overview.png",
+        src: "/illustrations/flow_create_exam_overview.png",
         alt: "QJudge 考試管理後台總覽",
-        caption: "考試狀態與規則總覽",
-      },
-    ],
-  },
-  {
-    valueTitle: "依課程主題生成初稿，教師再精修",
-    highlights: ["輸入主題、難度與題型", "產生可編輯的題目初稿", "教師審核後再納入考試"],
-    screenshots: [
-      {
-        src: "/illustrations/flow_create-exam_question-management.png",
-        alt: "QJudge 考試題目管理介面",
-        caption: "題目管理與編輯",
+        caption: "建立考試後先確認狀態、時間與可見性",
       },
       {
         src: "/illustrations/flow_ai-create_generation-interface.png",
         alt: "QJudge AI 輔助出題介面",
-        caption: "AI 題目生成工作區",
+        caption: "依主題與難度產生可編輯的題目初稿",
+      },
+      {
+        src: "/illustrations/flow_exam_question_management.png",
+        alt: "QJudge 題目管理介面",
+        caption: "教師檢查題目內容後再放入正式考試",
       },
     ],
   },
@@ -56,31 +51,40 @@ const FLOW_DETAILS: FlowDetail[] = [
     highlights: ["查看學生作答狀態", "追蹤繳交與剩餘時間", "標記需要處理的異常事件"],
     screenshots: [
       {
-        src: "/illustrations/flow_proctor_event-log.png",
+        src: "/illustrations/flow_proctor_event_log.png",
         alt: "QJudge 監考事件紀錄",
-        caption: "異常事件追蹤",
-      },
-      {
-        src: "/illustrations/flow_proctor_participants.png",
-        alt: "QJudge 考生狀態總覽",
-        caption: "學生作答進度監控",
+        caption: "需要處理的事件集中在同一個紀錄中",
       },
     ],
   },
   {
-    valueTitle: "快速產出分數、弱點與趨勢洞察",
-    highlights: ["自動整理成績與答題狀態", "比較題目答對率與班級趨勢", "找出需要補強的學習弱點"],
+    valueTitle: "快速完成批改，並將成績與回饋發布",
+    highlights: ["自動整理成績與答題狀態", "檢查逐題批改結果", "發布可追蹤的成績與回饋"],
     screenshots: [
       {
         src: "/illustrations/flow_grading_matrix.png",
         alt: "QJudge 成績批改矩陣",
-        caption: "逐題批改總覽",
+        caption: "用矩陣快速檢查每位學生與每題狀態",
       },
       {
-        src: "/illustrations/flow_grading_answer-results.png",
+        src: "/illustrations/flow_answer_results.png",
         alt: "QJudge 逐題作答結果",
-        caption: "學生作答詳細結果",
+        caption: "展開單題作答，確認答案與得分依據",
       },
+      [
+        {
+          src: "/illustrations/flow_statistics_report_first_page.png",
+          alt: "QJudge 個人成績報告第一頁",
+          caption: "輸出個人成績報告，讓考後回饋可被保存與追蹤",
+          variant: "document",
+        },
+        {
+          src: "/illustrations/flow_statistics_report_page_3.png",
+          alt: "QJudge 個人成績報告第三頁",
+          caption: "補充題目表現細節，協助教師定位需要加強的觀念",
+          variant: "document",
+        },
+      ],
     ],
   },
   {
@@ -88,61 +92,80 @@ const FLOW_DETAILS: FlowDetail[] = [
     highlights: ["累積可複用的題庫", "標記主題、難度與使用紀錄", "用考後數據改善題目品質"],
     screenshots: [
       {
-        src: "/illustrations/flow_question-bank_statistics-detail.png",
-        alt: "QJudge 題目統計詳細分析",
-        caption: "考後數據驅動題目改善",
+        src: "/illustrations/flow_exam_statistics.png",
+        alt: "QJudge 考後統計分析總覽",
+        caption: "從考試總覽快速掌握整體表現與題目分佈",
+      },
+      {
+        src: "/illustrations/flow_statistics_lowest_score_rate.png",
+        alt: "QJudge 最低得分率題目列表",
+        caption: "自動標記得分率最低的題目，優先回收檢討",
       },
     ],
   },
 ];
+
 
 const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, description, items }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const chapterRefs = useRef<Array<HTMLElement | null>>([]);
 
   useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") {
+    if (typeof window === "undefined") {
       return;
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntry = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    let animationFrame = 0;
 
-        if (!visibleEntry) {
-          return;
-        }
+    const updateActiveChapter = () => {
+      animationFrame = 0;
+      const chapters = chapterRefs.current.filter((chapter): chapter is HTMLElement => chapter !== null);
+      if (chapters.length === 0) {
+        return;
+      }
 
-        const index = Number((visibleEntry.target as HTMLElement).dataset.flowIndex);
-        if (!Number.isNaN(index)) {
-          setActiveIndex(index);
-        }
-      },
-      {
-        root: null,
-        rootMargin: "-38% 0px -38% 0px",
-        threshold: [0.2, 0.45, 0.7],
-      },
-    );
+      const focusLine = window.innerHeight * 0.5;
+      const activeChapterIndex = chapters.findIndex((chapter) => {
+        const rect = chapter.getBoundingClientRect();
+        return rect.top <= focusLine && rect.bottom >= focusLine;
+      });
 
-    const chapters = chapterRefs.current.filter((chapter): chapter is HTMLElement => chapter !== null);
-    chapters.forEach((chapter) => observer.observe(chapter));
+      if (activeChapterIndex >= 0) {
+        setActiveIndex(activeChapterIndex);
+        return;
+      }
 
-    return () => observer.disconnect();
+      const nearest = chapters.reduce(
+        (current, chapter, index) => {
+          const rect = chapter.getBoundingClientRect();
+          const distance = Math.min(Math.abs(rect.top - focusLine), Math.abs(rect.bottom - focusLine));
+          return distance < current.distance ? { index, distance } : current;
+        },
+        { index: 0, distance: Number.POSITIVE_INFINITY },
+      );
+
+      setActiveIndex(nearest.index);
+    };
+
+    const requestUpdate = () => {
+      if (animationFrame !== 0) {
+        return;
+      }
+      animationFrame = window.requestAnimationFrame(updateActiveChapter);
+    };
+
+    updateActiveChapter();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+
+    return () => {
+      if (animationFrame !== 0) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+    };
   }, []);
-
-  const scrollToChapter = (index: number) => {
-    const chapter = chapterRefs.current[index];
-    if (!chapter) {
-      return;
-    }
-
-    const prefersReducedMotion =
-      typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    chapter.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "center" });
-  };
 
   return (
     <section className="landing-flow-section landing-section" data-testid="landing-section-flow">
@@ -164,25 +187,12 @@ const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, descripti
         </div>
 
         <div className="landing-flow-section__story">
-          <div className="landing-flow-section__progress" aria-label="目前探索步驟">
-            {items.map((item, index) => (
-              <button
-                key={item.step}
-                type="button"
-                className="landing-flow-section__progress-step"
-                aria-label={`前往 ${item.step} ${item.title}`}
-                aria-current={activeIndex === index ? "step" : undefined}
-                onClick={() => scrollToChapter(index)}
-              >
-                <span>{item.step}</span>
-                <strong>{item.title}</strong>
-              </button>
-            ))}
-          </div>
-
           <div className="landing-flow-section__chapters">
             {items.map((item, index) => {
               const detail = FLOW_DETAILS[index] ?? FLOW_DETAILS[0];
+              const screenshots = detail.screenshots.flatMap((screenshotStage) =>
+                Array.isArray(screenshotStage) ? screenshotStage : [screenshotStage],
+              );
               const isActive = activeIndex === index;
 
               return (
@@ -208,15 +218,27 @@ const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, descripti
                   </div>
 
                   <div className="landing-flow-section__screens" aria-label={`${item.title} 產品畫面`}>
-                    {detail.screenshots.map((screenshot, screenshotIndex) => (
-                      <figure
-                        key={screenshot.src}
-                        className={`landing-flow-section__screen landing-flow-section__screen--${screenshotIndex + 1}`}
-                      >
-                        <img src={screenshot.src} alt={screenshot.alt} loading="lazy" />
-                        <figcaption>{screenshot.caption}</figcaption>
-                      </figure>
-                    ))}
+                    <div className="landing-flow-section__screens-head">
+                      <span>產品畫面</span>
+                    </div>
+                    {screenshots.length > 0 ? (
+                      <div className="landing-flow-section__screen-track">
+                        {screenshots.map((screenshot, screenshotIndex) => (
+                          <figure
+                            key={screenshot.src}
+                            className={`landing-flow-section__screen landing-flow-section__screen--${
+                              screenshot.variant ?? "wide"
+                            }`}
+                          >
+                            <img src={screenshot.src} alt={screenshot.alt} loading="lazy" />
+                            <figcaption>
+                              <span>{`${screenshotIndex + 1}`.padStart(2, "0")}</span>
+                              {screenshot.caption}
+                            </figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </article>
               );
@@ -226,7 +248,7 @@ const UsageFlowSection: FC<UsageFlowSectionProps> = ({ eyebrow, title, descripti
 
         <div className="landing-flow-section__summary" aria-label="QJudge 流程總結">
           <p>完整旅程</p>
-          <strong>從建立考試、AI 出題、監考、批改分析到題庫沉澱，QJudge 將正式評量流程收斂成可持續運作的一條龍系統。</strong>
+          <strong>從建立考試、題目配置、監考、批改發佈到考後改進，QJudge 將正式評量流程收斂成可持續運作的一條龍系統。</strong>
         </div>
       </div>
     </section>
