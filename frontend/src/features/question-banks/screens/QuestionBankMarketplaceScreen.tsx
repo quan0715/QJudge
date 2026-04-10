@@ -81,7 +81,7 @@ const QuestionBankMarketplaceScreen = () => {
                   downloads={buildMetric(Math.max(300, bank.questionCount * 96))}
                   coverUrl={bank.coverUrl || undefined}
                   icon={bank.icon || undefined}
-                  onClick={() => navigate(`/question-banks/${bank.id}?from=explore`)}
+                  onClick={() => navigate(`/marketplace/${bank.id}`)}
                 />
               </Column>
             ))}
