@@ -20,7 +20,8 @@
 .landing-header__inner {
   width: min(112rem, 100%);
   margin: 0 auto;
-  padding: layout.$spacing-04 layout.$spacing-06;
+  min-height: 3.5rem;
+  padding: layout.$spacing-02 layout.$spacing-06;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -44,7 +45,7 @@
   flex-shrink: 0;
 
   span {
-    @include type.type-style("heading-03");
+    @include type.type-style("heading-compact-02");
     font-weight: 600;
   }
 }
@@ -52,9 +53,10 @@
 .landing-header__nav {
   display: flex;
   align-items: center;
-  gap: layout.$spacing-05;
+  gap: layout.$spacing-04;
 
   a {
+    @include type.type-style("body-compact-01");
     position: relative;
     color: var(--cds-text-secondary);
     text-decoration: none;
@@ -98,7 +100,7 @@
 .landing-header__switchers {
   display: flex;
   align-items: center;
-  gap: layout.$spacing-03;
+  gap: layout.$spacing-02;
 
   @media (max-width: 671px) {
     gap: layout.$spacing-02;

@@ -1,17 +1,21 @@
 import type { FC } from "react";
+import { Button } from "@carbon/react";
+import { ArrowUpRight, ArrowRight } from "@carbon/icons-react";
 import "./FooterCtaSection.scss";
-
-const NOTION_DEMO_FORM_URL = "https://bedecked-griffin-98f.notion.site/ebd/b532286e832b4846a8f08298b6942fcc";
 
 interface FooterCtaSectionProps {
   content: {
     title: string;
     subtitle: string;
+    primaryCta: string;
+    secondaryCta: string;
     productLinks: Array<{ label: string; href: string }>;
     contactLinks: Array<{ label: string; href: string }>;
     legalLinks: Array<{ label: string; href: string }>;
     attribution: string;
   };
+  onPrimary: () => void;
+  onSecondary: () => void;
 }
 
 const FooterLinkList = ({
@@ -26,14 +30,20 @@ const FooterLinkList = ({
     <ul>
       {items.map((item) => (
         <li key={item.label}>
-          <a href={item.href}>{item.label}</a>
+          <a
+            href={item.href}
+            target={item.href.startsWith("http") ? "_blank" : undefined}
+            rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+          >
+            {item.label}
+          </a>
         </li>
       ))}
     </ul>
   </div>
 );
 
-const FooterCtaSection: FC<FooterCtaSectionProps> = ({ content }) => {
+const FooterCtaSection: FC<FooterCtaSectionProps> = ({ content, onPrimary, onSecondary }) => {
   return (
     <footer id="landing-footer-cta" className="landing-footer-section" data-testid="landing-section-footer">
       <div className="landing-footer-section__cta">
@@ -42,23 +52,13 @@ const FooterCtaSection: FC<FooterCtaSectionProps> = ({ content }) => {
           <h2>{content.title}</h2>
           <p>{content.subtitle}</p>
         </div>
-      </div>
-
-      <div className="landing-footer-section__form-block" id="landing-demo-form">
-        <div className="landing-footer-section__form-copy">
-          <p className="landing-footer-section__form-eyebrow">預約 Demo</p>
-          <h3>直接留下需求，我們會盡快與你聯繫</h3>
-          <p>適合想了解校內導入、題庫遷移、正式考試流程與客製合作的團隊。</p>
-        </div>
-        <div className="landing-footer-section__form-frame">
-          <iframe
-            src={NOTION_DEMO_FORM_URL}
-            title="QJudge Demo Reservation Form"
-            width="100%"
-            height="600"
-            frameBorder="0"
-            allowFullScreen
-          />
+        <div className="landing-footer-section__actions">
+          <Button kind="primary" size="lg" renderIcon={ArrowRight} onClick={onPrimary}>
+            {content.primaryCta}
+          </Button>
+          <Button kind="tertiary" size="lg" renderIcon={ArrowUpRight} onClick={onSecondary}>
+            {content.secondaryCta}
+          </Button>
         </div>
       </div>
 

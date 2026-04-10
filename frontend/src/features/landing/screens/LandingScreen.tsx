@@ -7,11 +7,10 @@ import { getLandingContent } from "@/features/landing/content/landingContent";
 import LandingHeader from "@/features/landing/sections/LandingHeader";
 import HeroSection from "@/features/landing/sections/HeroSection";
 import BentoFeaturesSection from "@/features/landing/sections/BentoFeaturesSection";
-import FeatureDetailsSection from "@/features/landing/sections/FeatureDetailsSection";
+import WhyChooseSection from "@/features/landing/sections/WhyChooseSection";
 import UsageFlowSection from "@/features/landing/sections/UsageFlowSection";
 import AudienceSection from "@/features/landing/sections/AudienceSection";
 import SocialProofSection from "@/features/landing/sections/SocialProofSection";
-import PricingSection from "@/features/landing/sections/PricingSection";
 import FaqSection from "@/features/landing/sections/FaqSection";
 import FooterCtaSection from "@/features/landing/sections/FooterCtaSection";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -20,6 +19,8 @@ import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/i18n";
 import type { TextModeOption } from "@/shared/ui/navigation/TextModeSwitcher";
 import type { IconModeOption } from "@/shared/ui/navigation/IconModeSwitcher";
 import "@/features/landing/styles/LandingPage.scss";
+
+const DEMO_FORM_URL = "https://bedecked-griffin-98f.notion.site/b532286e832b4846a8f08298b6942fcc?pvs=105";
 
 const LandingScreen = () => {
   const navigate = useNavigate();
@@ -44,9 +45,8 @@ const LandingScreen = () => {
 
   const handleRegister = () => navigate("/register");
   const handleLogin = () => navigate("/login");
-  const handlePricing = () => navigate("/pricing");
   const handleContact = () => {
-    document.getElementById("landing-footer-cta")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.open(DEMO_FORM_URL, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -77,20 +77,17 @@ const LandingScreen = () => {
           description={t("bento.description")}
           cards={content.bento}
         />
-        <FeatureDetailsSection
-          eyebrow={t("details.eyebrow")}
-          title={t("details.title")}
-          description={t("details.description")}
-          items={content.details}
+        <WhyChooseSection
+          eyebrow={t("whyChoose.eyebrow")}
+          title={t("whyChoose.title")}
+          description={t("whyChoose.description")}
+          items={content.whyChoose}
         />
         <UsageFlowSection
           eyebrow={t("flow.eyebrow")}
           title={t("flow.title")}
           description={t("flow.description")}
-          quickStartTitle={t("flow.quickStart.title")}
-          flywheelTitle={t("flow.flywheel.title")}
-          quickStart={content.quickStart}
-          flywheel={content.flywheel}
+          items={content.workflow}
         />
         <AudienceSection
           eyebrow={t("audience.eyebrow")}
@@ -105,16 +102,6 @@ const LandingScreen = () => {
           metrics={content.metrics}
           caseStudies={content.caseStudies}
         />
-        <PricingSection
-          eyebrow={t("pricing.eyebrow")}
-          title={t("pricing.title")}
-          description={t("pricing.description")}
-          cards={content.pricing}
-          onRegister={handleRegister}
-          onPricing={handlePricing}
-          onContact={handleContact}
-          disclaimer={t("pricing.disclaimer")}
-        />
         <FaqSection
           eyebrow={t("faq.eyebrow")}
           title={t("faq.title")}
@@ -123,7 +110,7 @@ const LandingScreen = () => {
         />
       </main>
 
-      <FooterCtaSection content={content.footer} />
+      <FooterCtaSection content={content.footer} onPrimary={handleRegister} onSecondary={handleContact} />
     </div>
   );
 };

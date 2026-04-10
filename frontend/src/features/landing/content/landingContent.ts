@@ -15,22 +15,21 @@ export interface LandingBentoCard {
   eyebrow: string;
   title: string;
   description: string;
-  metric?: string;
-  variant: "half" | "third" | "full";
+  variant: "half" | "third";
   preview: "multiExam" | "proctoring" | "questionBank" | "ai" | "analytics";
 }
 
-export interface LandingDetailItem {
+export interface LandingWhyChooseItem {
+  label: string;
   title: string;
   description: string;
-  points: string[];
-  preview: "proctoring" | "ai" | "questionBank" | "analytics" | "exam";
 }
 
-export interface LandingStepItem {
+export interface LandingWorkflowItem {
   step: string;
   title: string;
   description: string;
+  output: string;
 }
 
 export interface LandingAudienceItem {
@@ -73,12 +72,11 @@ export interface LandingFaqItem {
 }
 
 export interface LandingContent {
-  nav: Array<{ id: string; label: string }>;
+  nav: Array<{ id: string; label: string; href?: string }>;
   hero: LandingHeroContent;
   bento: LandingBentoCard[];
-  details: LandingDetailItem[];
-  quickStart: LandingStepItem[];
-  flywheel: LandingStepItem[];
+  whyChoose: LandingWhyChooseItem[];
+  workflow: LandingWorkflowItem[];
   audiences: LandingAudienceItem[];
   metrics: LandingMetricItem[];
   caseStudies: LandingCaseStudy[];
@@ -100,8 +98,9 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
   return {
     nav: [
       { id: "landing-features", label: t("nav.features") },
+      { id: "landing-why", label: t("nav.why") },
       { id: "landing-audience", label: t("nav.audience") },
-      { id: "landing-pricing", label: t("nav.pricing") },
+      { id: "pricing", label: t("nav.pricing"), href: "/pricing" },
       { id: "landing-faq", label: t("nav.faq") },
     ],
     hero: {
@@ -140,7 +139,6 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
         eyebrow: t("bento.cards.ai.eyebrow"),
         title: t("bento.cards.ai.title"),
         description: t("bento.cards.ai.description"),
-        metric: t("bento.cards.ai.metric"),
         variant: "third",
         preview: "ai",
       },
@@ -148,99 +146,62 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
         eyebrow: t("bento.cards.analytics.eyebrow"),
         title: t("bento.cards.analytics.title"),
         description: t("bento.cards.analytics.description"),
-        variant: "full",
+        variant: "third",
         preview: "analytics",
       },
     ],
-    details: [
+    whyChoose: [
       {
-        title: t("details.items.proctoring.title"),
-        description: t("details.items.proctoring.description"),
-        points: [
-          t("details.items.proctoring.points.0"),
-          t("details.items.proctoring.points.1"),
-          t("details.items.proctoring.points.2"),
-        ],
-        preview: "proctoring",
+        label: t("whyChoose.items.proctoring.label"),
+        title: t("whyChoose.items.proctoring.title"),
+        description: t("whyChoose.items.proctoring.description"),
       },
       {
-        title: t("details.items.ai.title"),
-        description: t("details.items.ai.description"),
-        points: [
-          t("details.items.ai.points.0"),
-          t("details.items.ai.points.1"),
-          t("details.items.ai.points.2"),
-        ],
-        preview: "ai",
+        label: t("whyChoose.items.flexibility.label"),
+        title: t("whyChoose.items.flexibility.title"),
+        description: t("whyChoose.items.flexibility.description"),
       },
       {
-        title: t("details.items.questionBank.title"),
-        description: t("details.items.questionBank.description"),
-        points: [
-          t("details.items.questionBank.points.0"),
-          t("details.items.questionBank.points.1"),
-          t("details.items.questionBank.points.2"),
-        ],
-        preview: "questionBank",
+        label: t("whyChoose.items.questionBank.label"),
+        title: t("whyChoose.items.questionBank.title"),
+        description: t("whyChoose.items.questionBank.description"),
       },
       {
-        title: t("details.items.analytics.title"),
-        description: t("details.items.analytics.description"),
-        points: [
-          t("details.items.analytics.points.0"),
-          t("details.items.analytics.points.1"),
-          t("details.items.analytics.points.2"),
-        ],
-        preview: "analytics",
-      },
-      {
-        title: t("details.items.examExperience.title"),
-        description: t("details.items.examExperience.description"),
-        points: [
-          t("details.items.examExperience.points.0"),
-          t("details.items.examExperience.points.1"),
-          t("details.items.examExperience.points.2"),
-        ],
-        preview: "exam",
+        label: t("whyChoose.items.onboarding.label"),
+        title: t("whyChoose.items.onboarding.title"),
+        description: t("whyChoose.items.onboarding.description"),
       },
     ],
-    quickStart: [
+    workflow: [
       {
         step: "01",
-        title: t("flow.quickStart.items.0.title"),
-        description: t("flow.quickStart.items.0.description"),
+        title: t("flow.items.0.title"),
+        description: t("flow.items.0.description"),
+        output: t("flow.items.0.output"),
       },
       {
         step: "02",
-        title: t("flow.quickStart.items.1.title"),
-        description: t("flow.quickStart.items.1.description"),
+        title: t("flow.items.1.title"),
+        description: t("flow.items.1.description"),
+        output: t("flow.items.1.output"),
       },
       {
         step: "03",
-        title: t("flow.quickStart.items.2.title"),
-        description: t("flow.quickStart.items.2.description"),
-      },
-    ],
-    flywheel: [
-      {
-        step: "01",
-        title: t("flow.flywheel.items.0.title"),
-        description: t("flow.flywheel.items.0.description"),
-      },
-      {
-        step: "02",
-        title: t("flow.flywheel.items.1.title"),
-        description: t("flow.flywheel.items.1.description"),
-      },
-      {
-        step: "03",
-        title: t("flow.flywheel.items.2.title"),
-        description: t("flow.flywheel.items.2.description"),
+        title: t("flow.items.2.title"),
+        description: t("flow.items.2.description"),
+        output: t("flow.items.2.output"),
       },
       {
         step: "04",
-        title: t("flow.flywheel.items.3.title"),
-        description: t("flow.flywheel.items.3.description"),
+        title: t("flow.items.3.title"),
+        description: t("flow.items.3.description"),
+        output: t("flow.items.3.output"),
+      },
+      {
+        step: "05",
+        title: t("flow.items.4.title"),
+        description: t("flow.items.4.description"),
+        output: t("flow.items.4.output"),
       },
     ],
     audiences: [
@@ -385,12 +346,15 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
       secondaryCta: t("footer.secondaryCta"),
       productLinks: [
         { label: t("footer.links.product.0.label"), href: "#landing-features" },
-        { label: t("footer.links.product.1.label"), href: "#landing-pricing" },
+        { label: t("footer.links.product.1.label"), href: "/pricing" },
         { label: t("footer.links.product.2.label"), href: "#landing-faq" },
       ],
       contactLinks: [
         { label: t("footer.links.contact.0.label"), href: "mailto:contact@qjudge.app" },
-        { label: t("footer.links.contact.1.label"), href: "mailto:contact@qjudge.app?subject=QJudge%20Demo" },
+        {
+          label: t("footer.links.contact.1.label"),
+          href: "https://bedecked-griffin-98f.notion.site/b532286e832b4846a8f08298b6942fcc?pvs=105",
+        },
       ],
       legalLinks: [
         { label: t("footer.links.legal.0.label"), href: "/docs/terms" },
