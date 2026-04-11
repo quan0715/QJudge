@@ -3,14 +3,11 @@ Views for problems app.
 """
 from uuid import UUID
 
-from django.contrib.auth import get_user_model
 from rest_framework import viewsets, permissions, filters, status, serializers
-from rest_framework.exceptions import NotFound, ValidationError as DRFValidationError
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as django_filters
-from django.db import transaction
 from django.db.models import QuerySet
 
 from .models import (
@@ -22,17 +19,11 @@ from .serializers import (
     ProblemDetailSerializer,
     ProblemAdminSerializer,
     OrphanProblemSerializer,
-    ResolveOrphanProblemSerializer,
     TagSerializer,
     TestRunSerializer,
 )
 from .test_run_service import ProblemTestRunService, TestRunSetupError
 from apps.contests.services.question_edit_lock import ensure_contest_question_editable
-from apps.question_bank.question_assets import write_coding_content_to_asset, sync_asset_to_problem
-from apps.question_bank.bank_workflows import upsert_problem_into_bank
-from apps.question_bank.models import QuestionBank
-
-User = get_user_model()
 
 
 class ProblemFilter(django_filters.FilterSet):
@@ -203,22 +194,6 @@ class ProblemViewSet(viewsets.ModelViewSet):
         )
         instance.delete()
 
-    def _iter_unresolved_orphan_problems(self):
-        queryset = (
-            Problem.objects.filter(question_asset__isnull=True, created_by__isnull=True)
-            .select_related("created_by", "question_asset")
-            .order_by("created_at", "id")
-        )
-        yield from queryset
-
-    @action(detail=False, methods=['get'], permission_classes=[IsAdminOnly], url_path='orphan-queue')
-    def orphan_queue(self, request):
-        serializer = OrphanProblemSerializer(
-            list(self._iter_unresolved_orphan_problems()),
-            many=True,
-        )
-        return Response(serializer.data)
-
     @action(detail=False, methods=['get'], permission_classes=[IsProblemManager], url_path='drafts')
     def drafts(self, request):
         """
@@ -254,90 +229,6 @@ class ProblemViewSet(viewsets.ModelViewSet):
         serializer = OrphanProblemSerializer(qs, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAdminOnly], url_path='resolve-orphan')
-    def resolve_orphan(self, request, id=None):
-        problem = Problem.objects.filter(id=id).select_related(
-            "created_by",
-            "question_asset",
-        ).first()
-        if problem is None:
-            raise NotFound('Problem not found')
-
-        payload = ResolveOrphanProblemSerializer(data=request.data)
-        payload.is_valid(raise_exception=True)
-
-        owner = User.objects.filter(id=payload.validated_data['owner_id']).first()
-        if owner is None:
-            raise NotFound('Owner not found')
-
-        if not (owner.is_staff or getattr(owner, 'role', None) in ['admin', 'teacher']):
-            raise DRFValidationError('Owner must be a teacher or admin')
-
-        bank_uuid = payload.validated_data.get('question_bank_uuid')
-        bank = None
-        bank_question_id = None
-        if bank_uuid:
-            bank = QuestionBank.objects.filter(
-                uuid=bank_uuid,
-                owner=owner,
-                is_archived=False,
-                category=QuestionBank.Category.CODING,
-            ).first()
-            if bank is None:
-                raise NotFound('Target bank not found')
-
-        with transaction.atomic():
-            problem.created_by = owner
-            problem.save(update_fields=['created_by', 'updated_at'])
-
-            # Build asset content from Problem's current state
-            translation = problem.translations.filter(
-                language__in=["zh-TW", "zh-hant", "zh-Hant"]
-            ).first() or problem.translations.first()
-            prompt = translation.description if translation else ""
-            translations_list = list(
-                problem.translations.values(
-                    "language", "title", "description",
-                    "input_description", "output_description", "hint",
-                )
-            )
-            question_asset, question_version = write_coding_content_to_asset(
-                owner=owner,
-                title=problem.title,
-                prompt=prompt,
-                difficulty=problem.difficulty,
-                translations=translations_list,
-                time_limit=problem.time_limit,
-                memory_limit=problem.memory_limit,
-                test_cases=list(problem.test_cases.values(
-                    "input_data", "output_data", "is_sample",
-                    "score", "weight_percent", "order", "is_hidden",
-                )),
-                language_configs=list(problem.language_configs.values(
-                    "language", "template_code", "is_enabled", "order",
-                )),
-                forbidden_keywords=problem.forbidden_keywords or [],
-                required_keywords=problem.required_keywords or [],
-                legacy_problem_id=str(problem.id),
-                existing_asset=problem.question_asset,
-                actor=owner,
-            )
-            sync_asset_to_problem(question_asset=question_asset, problem=problem)
-
-            if bank is not None:
-                bank_question = upsert_problem_into_bank(problem=problem, bank=bank, created_by=owner)
-                bank_question_id = str(bank_question.id)
-
-        return Response(
-            {
-                'problem': OrphanProblemSerializer(problem).data,
-                'question_asset_id': str(question_asset.id),
-                'question_version_id': str(question_version.id),
-                'bank_question_id': bank_question_id,
-            },
-            status=status.HTTP_200_OK,
-        )
-    
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def test_run(self, request, id=None):
         """

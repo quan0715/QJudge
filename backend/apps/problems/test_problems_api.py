@@ -7,7 +7,6 @@ from rest_framework import status
 from .models import Problem, Tag, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
 from apps.contests.models import Contest, ContestProblem
-from apps.question_bank.models import QuestionBank
 
 
 
@@ -588,71 +587,3 @@ class ProblemTestRunTests(TestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['status'], 'CE')
         self.assertEqual(mock_judge.execute.call_count, 1)
-
-
-class ProblemOrphanQueueTests(TestCase):
-    def setUp(self):
-        User = get_user_model()
-        self.client = APIClient()
-        self.admin = User.objects.create_user(
-            username='orphan_admin',
-            email='orphan_admin@example.com',
-            password='password',
-            role='admin',
-            is_staff=True,
-        )
-        self.teacher = User.objects.create_user(
-            username='orphan_teacher',
-            email='orphan_teacher@example.com',
-            password='password',
-            role='teacher',
-        )
-        self.orphan_problem = Problem.objects.create(
-            title='Orphan Problem',
-            slug='orphan-problem',
-            difficulty='easy',
-            created_by=None,
-        )
-        self.teacher_problem = Problem.objects.create(
-            title='Teacher Problem',
-            slug='teacher-problem',
-            difficulty='medium',
-            created_by=self.teacher,
-        )
-        self.bank = QuestionBank.objects.create(
-            owner=self.teacher,
-            name='Teacher Coding Bank',
-            category=QuestionBank.Category.CODING,
-            visibility=QuestionBank.Visibility.PRIVATE,
-        )
-
-    def test_admin_can_list_unresolved_orphans(self):
-        self.client.force_authenticate(user=self.admin)
-        response = self.client.get('/api/v1/problems/orphan-queue/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        ids = [item['id'] for item in response.data]
-        self.assertIn(str(self.orphan_problem.id), ids)
-        self.assertNotIn(str(self.teacher_problem.id), ids)
-
-    def test_teacher_cannot_access_orphan_queue(self):
-        self.client.force_authenticate(user=self.teacher)
-        response = self.client.get('/api/v1/problems/orphan-queue/')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_admin_can_resolve_orphan_and_ingest_to_bank(self):
-        self.client.force_authenticate(user=self.admin)
-        response = self.client.post(
-            f'/api/v1/problems/{self.orphan_problem.id}/resolve-orphan/',
-            {
-                'owner_id': self.teacher.id,
-                'question_bank_uuid': str(self.bank.uuid),
-            },
-            format='json',
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        self.orphan_problem.refresh_from_db()
-        self.assertEqual(self.orphan_problem.created_by_id, self.teacher.id)
-        self.assertIsNotNone(self.orphan_problem.question_asset_id)
-        self.assertIsNotNone(self.orphan_problem.question_version_id)
-        self.assertIsNotNone(response.data['bank_question_id'])

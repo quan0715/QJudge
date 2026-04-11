@@ -422,11 +422,6 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
         return list(seen.values())
 
 
-class ResolveOrphanProblemSerializer(serializers.Serializer):
-    owner_id = serializers.IntegerField(required=True)
-    question_bank_uuid = serializers.UUIDField(required=False)
-
-
 class ProblemAdminSerializer(serializers.ModelSerializer):
     """Serializer for admin/teacher to manage problems."""
     translations = ProblemTranslationSerializer(many=True, required=False)
