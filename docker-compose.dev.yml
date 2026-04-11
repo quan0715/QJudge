@@ -363,7 +363,7 @@ services:
       context: ./mcp-server
     container_name: oj_mcp_dev
     ports:
-      - "9000:9000"
+      - "9002:9000"
     environment:
       - DJANGO_BASE_URL=http://backend:8000
     depends_on:
