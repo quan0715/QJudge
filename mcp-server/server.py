@@ -22,9 +22,11 @@ async def django_api(
     to Django. Returns the response body as a string for the AI to read.
     """
     headers: dict[str, str] = {}
-    request_context = ctx.request_context
-    if request_context and hasattr(request_context, "headers"):
-        auth_header = request_context.headers.get("authorization", "")
+    # ctx.request_context.request is the Starlette Request object
+    # set by StreamableHTTPServerTransport
+    transport_request = getattr(ctx.request_context, "request", None)
+    if transport_request and hasattr(transport_request, "headers"):
+        auth_header = transport_request.headers.get("authorization", "")
         if auth_header:
             headers["Authorization"] = auth_header
 
