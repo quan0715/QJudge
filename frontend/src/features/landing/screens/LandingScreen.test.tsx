@@ -1,11 +1,29 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 import { ContentLanguageProvider } from "@/shared/contexts/ContentLanguageContext";
 import landingZhTW from "@/i18n/locales/zh-TW/landing.json";
 import LandingScreen from "./LandingScreen";
+
+// IntersectionObserver is not available in jsdom/happy-dom
+beforeAll(() => {
+  if (!globalThis.IntersectionObserver) {
+    globalThis.IntersectionObserver = class IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "0px";
+      readonly thresholds: readonly number[] = [0];
+      constructor(private cb: IntersectionObserverCallback) {}
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return [];
+      }
+    } as unknown as typeof globalThis.IntersectionObserver;
+  }
+});
 
 function translateKey(key: string, source: Record<string, unknown>) {
   return key.split(".").reduce<unknown>((value, segment) => {
