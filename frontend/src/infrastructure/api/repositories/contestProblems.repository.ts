@@ -2,7 +2,6 @@ import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.cli
 import type {
   Problem,
   ProblemDetail,
-  ProblemUpsertPayload,
 } from "@/core/entities/problem.entity";
 import {
   mapProblemDto,
@@ -39,17 +38,6 @@ export const addContestProblem = async (
   return mapProblemDto(responseData);
 };
 
-export const createContestProblem = async (
-  contestId: string,
-  data: ProblemUpsertPayload
-): Promise<Problem> => {
-  const responseData = await requestJson<any>(
-    httpClient.post(`/api/v1/contests/${contestId}/problems/`, data),
-    "Failed to create problem"
-  );
-  return mapProblemDto(responseData);
-};
-
 export const removeContestProblem = async (
   contestId: string,
   problemId: string
@@ -74,32 +62,3 @@ export const reorderContestProblems = async (
   );
 };
 
-export const updateContestProblemScore = async (
-  contestId: string,
-  contestProblemId: string,
-  maxScore: number
-): Promise<void> => {
-  await ensureOk(
-    httpClient.patch(`/api/v1/contests/${contestId}/problems/${contestProblemId}/score/`, {
-      max_score: maxScore,
-    }),
-    "Failed to update contest problem score"
-  );
-};
-
-export const publishContestProblemsToPractice = async (
-  contestId: string,
-  problemIds?: string[]
-): Promise<{ created_problem_ids: string[]; skipped_problem_ids: string[] }> => {
-  const payload: any = {};
-  if (problemIds && problemIds.length > 0) {
-    payload.problem_ids = problemIds;
-  }
-  return requestJson<{ created_problem_ids: string[]; skipped_problem_ids: string[] }>(
-    httpClient.post(
-      `/api/v1/contests/${contestId}/publish_to_practice/`,
-      payload
-    ),
-    "Failed to publish problems"
-  );
-};
