@@ -1,0 +1,13 @@
+[project]
+name = "qjudge-mcp-server"
+version = "0.1.0"
+description = "QJudge MCP Server for exam question management"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]>=1.9.0",
+    "httpx>=0.27.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
