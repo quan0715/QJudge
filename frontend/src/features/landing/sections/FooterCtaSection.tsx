@@ -99,7 +99,7 @@ const FooterCtaSection: FC<FooterCtaSectionProps> = ({ content, onPrimary, onSec
       {/* 底部 */}
       <div className="landing-footer-section__wrap">
         <div className="landing-footer-section__bottom">
-          <span>© {new Date().getFullYear()} QJudge. All rights reserved.</span>
+          <span>{content.attribution}</span>
         </div>
       </div>
 

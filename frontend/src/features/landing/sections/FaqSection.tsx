@@ -29,6 +29,7 @@ const FaqItem: FC<{
         className="landing-faq-section__question"
         onClick={onToggle}
         aria-expanded={isOpen}
+        aria-controls={`faq-answer-${index}`}
       >
         <span className="landing-faq-section__index">{String(index + 1).padStart(2, "0")}</span>
         <span className="landing-faq-section__question-text">{question}</span>
@@ -44,6 +45,7 @@ const FaqItem: FC<{
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
+            id={`faq-answer-${index}`}
             className="landing-faq-section__answer-wrap"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
