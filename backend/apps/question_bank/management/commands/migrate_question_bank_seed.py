@@ -73,7 +73,7 @@ class Command(BaseCommand):
         skipped_exam: list[dict] = []
 
         practice_qs = (
-            Problem.objects.filter(contests__isnull=True)
+            Problem.objects.filter(contest_bindings__isnull=True)
             .order_by("id")
             .distinct()
         )

@@ -1,15 +1,16 @@
-"""ContestProblemViewSet — reads and writes via ContestQuestionBinding."""
+"""ContestProblemViewSet -- reads and writes via ContestQuestionBinding."""
+from django.db import transaction
 from django.utils import timezone
 from django.db.models import Max, Sum
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
 from ..models import (
     Contest,
     ContestParticipant,
-    ContestProblem,
     ExamStatus,
 )
 from ..serializers import ContestProblemSerializer
@@ -22,25 +23,33 @@ from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for contest coding problems.
-    Primary model is ContestQuestionBinding; ContestProblem is kept as
-    a backward-compat dual-write shell.
+    Primary model is ContestQuestionBinding.
     """
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ContestProblemSerializer
 
     def get_queryset(self):
         contest_id = self.kwargs.get('contest_pk')
+        from django.db.models import Exists, OuterRef
+        from apps.question_bank.models import QuestionBankMembership
         return (
             ContestQuestionBinding.objects.filter(
                 contest_id=contest_id,
                 binding_type=QuestionAsset.AssetType.CODING,
             )
             .select_related('coding_problem', 'question_asset', 'question_version')
+            .annotate(
+                _in_question_bank=Exists(
+                    QuestionBankMembership.objects.filter(
+                        question_asset_id=OuterRef('question_asset_id'),
+                    )
+                ),
+            )
             .order_by('order')
         )
 
     def _resolve_binding(self, *, contest_id, lookup_value):
-        """Resolve a binding by UUID (binding id, coding_problem id) or legacy integer ContestProblem id."""
+        """Resolve a binding by UUID (binding id or coding_problem id)."""
         import uuid as _uuid
         lookup_str = str(lookup_value)
         qs = ContestQuestionBinding.objects.filter(
@@ -62,12 +71,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                 return binding
             # Try coding_problem_id
             binding = qs.filter(coding_problem_id=lookup_str).first()
-            if binding:
-                return binding
-
-        # Try legacy ContestProblem integer ID
-        if lookup_str.isdigit():
-            binding = qs.filter(legacy_contest_problem_id=int(lookup_str)).first()
             if binding:
                 return binding
 
@@ -119,7 +122,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         data['score'] = binding.score
         data['max_score'] = binding.score
         data['label'] = binding.label
-        data['contest_problem_id'] = binding.legacy_contest_problem_id or str(binding.id)
+        data['contest_problem_id'] = str(binding.id)
         data['binding_id'] = str(binding.id)
         data['source_bank'] = (
             {'id': str(binding.source_bank_id), 'name': binding.source_bank_name or ''}
@@ -177,20 +180,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             created_by=user,
         )
 
-        # Backward-compat dual-write: ContestProblem (skip auto binding sync)
-        cp = ContestProblem(
-            contest=contest,
-            problem=problem,
-            order=next_order,
-            max_score=max_score,
-            question_asset=problem.question_asset,
-            question_version=problem.question_version,
-        )
-        cp._skip_binding_sync = True
-        cp.save()
-        binding.legacy_contest_problem = cp
-        binding.save(update_fields=['legacy_contest_problem', 'updated_at'])
-
         response_data = serializer.data
         response_data['contest_id'] = contest.id
         response_data['binding_id'] = str(binding.id)
@@ -219,11 +208,14 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'detail': 'Problem not found in this contest.'}, status=status.HTTP_404_NOT_FOUND)
 
         label = binding.coding_problem.title if binding.coding_problem else str(binding.question_asset_id)
+        question_asset = binding.question_asset
+        coding_problem = binding.coding_problem
 
-        # Delete legacy ContestProblem if exists
-        if binding.legacy_contest_problem_id:
-            ContestProblem.objects.filter(pk=binding.legacy_contest_problem_id).delete()
         binding.delete()
+
+        # Clean up orphaned asset + problem if no other bindings or bank memberships
+        from apps.question_bank.question_assets import cleanup_orphan_asset_if_needed
+        cleanup_orphan_asset_if_needed(question_asset, coding_problem=coding_problem)
 
         ContestActivityViewSet.log_activity(
             contest, user, 'update_problem', f"Removed problem {label} from contest",
@@ -258,10 +250,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         binding.score = max_score
         binding.save(update_fields=["score", "updated_at"])
 
-        # Sync to legacy ContestProblem
-        if binding.legacy_contest_problem_id:
-            ContestProblem.objects.filter(pk=binding.legacy_contest_problem_id).update(max_score=max_score)
-
         title = binding.coding_problem.title if binding.coding_problem else str(binding.question_asset_id)
         ContestActivityViewSet.log_activity(
             contest, request.user, 'update_problem', f"Updated problem {title} score to {max_score}",
@@ -272,3 +260,197 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             "max_score": binding.score,
             "score": binding.score,
         })
+
+    @action(detail=False, methods=["post"], url_path="import-from-bank")
+    def import_from_bank(self, request, *args, **kwargs):
+        """Batch-import coding problems from a question bank.
+
+        Payload: {"items": [{"question_bank_id": "...", "question_id": "..."}, ...]}
+        Same contract as exam-questions/import-from-bank/ for consistency.
+        """
+        contest_id = self.kwargs.get("contest_pk")
+        contest = get_object_or_404(Contest, pk=contest_id)
+        user = request.user
+
+        if not can_manage_contest(user, contest):
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        ensure_contest_question_editable(
+            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.import_from_bank",
+        )
+
+        items = request.data.get("items", [])
+        if not isinstance(items, list) or not items:
+            raise DRFValidationError("items must be a non-empty list")
+
+        from apps.contests.services.contest_problem_service import (
+            resolve_bank_question_for_import,
+            materialize_problem_from_bank_question,
+        )
+
+        last_order = (
+            ContestQuestionBinding.objects.filter(
+                contest=contest, binding_type=QuestionAsset.AssetType.CODING,
+            ).aggregate(max_order=Max("order"))["max_order"]
+        )
+        next_order = (last_order if last_order is not None else -1) + 1
+        created_bindings = []
+
+        with transaction.atomic():
+            for item in items:
+                if not isinstance(item, dict):
+                    raise DRFValidationError("Invalid item payload")
+
+                question_bank_id = item.get("question_bank_id")
+                question_id = item.get("question_id")
+                if not question_bank_id or question_id is None:
+                    raise DRFValidationError("Each item requires question_bank_id and question_id")
+
+                bank, bank_question = resolve_bank_question_for_import(
+                    user=user, question_bank_id=question_bank_id, question_id=question_id,
+                )
+
+                problem = materialize_problem_from_bank_question(
+                    contest=contest, question=bank_question, user=user, request=request,
+                )
+
+                if not problem.question_asset_id:
+                    from apps.question_bank.question_assets import sync_problem_question_asset
+                    sync_problem_question_asset(problem=problem, actor=user)
+                    problem.refresh_from_db(fields=["question_asset", "question_version"])
+
+                default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
+                requested = item.get("max_score")
+                max_score = max(1, int(requested)) if requested is not None else default_max_score
+
+                binding = ContestQuestionBinding.objects.create(
+                    contest=contest,
+                    question_asset=problem.question_asset,
+                    question_version=problem.question_version,
+                    coding_problem=problem,
+                    binding_type=QuestionAsset.AssetType.CODING,
+                    order=next_order,
+                    score=max_score,
+                    source_bank_id=bank.uuid,
+                    source_bank_name=bank.name,
+                    source_question_id=bank_question.id,
+                    source_mode="copy",
+                    created_by=user,
+                )
+
+                created_bindings.append(binding)
+                next_order += 1
+
+        ContestActivityViewSet.log_activity(
+            contest, user, "update_problem",
+            f"Imported {len(created_bindings)} coding problems from bank",
+        )
+
+        serializer = ContestProblemSerializer(
+            self.get_queryset(), many=True, context={"request": request},
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="duplicate")
+    def duplicate(self, request, *args, **kwargs):
+        """Clone an existing coding problem within the contest."""
+        contest_id = self.kwargs.get("contest_pk")
+        contest = get_object_or_404(Contest, pk=contest_id)
+        user = request.user
+
+        if not can_manage_contest(user, contest):
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        ensure_contest_question_editable(
+            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.duplicate",
+        )
+
+        problem_id = request.data.get("problem_id")
+        if not problem_id:
+            raise DRFValidationError("problem_id is required")
+
+        from apps.problems.models import CodingProblem
+        source = CodingProblem.objects.filter(id=problem_id).first()
+        if not source:
+            return Response({"detail": "Problem not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.problems.services import ProblemService
+        problem = ProblemService.clone_problem(source, contest, user)
+
+        if not problem.question_asset_id:
+            from apps.question_bank.question_assets import sync_problem_question_asset
+            sync_problem_question_asset(problem=problem, actor=user)
+            problem.refresh_from_db(fields=["question_asset", "question_version"])
+
+        last_order = ContestQuestionBinding.objects.filter(
+            contest=contest, binding_type=QuestionAsset.AssetType.CODING,
+        ).aggregate(max_order=Max("order"))["max_order"]
+        next_order = (last_order if last_order is not None else -1) + 1
+
+        default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
+        requested = request.data.get("max_score")
+        max_score = max(1, int(requested)) if requested is not None else default_max_score
+
+        binding = ContestQuestionBinding.objects.create(
+            contest=contest, question_asset=problem.question_asset,
+            question_version=problem.question_version, coding_problem=problem,
+            binding_type=QuestionAsset.AssetType.CODING,
+            order=next_order, score=max_score, source_mode="copy", created_by=user,
+        )
+
+        ContestActivityViewSet.log_activity(
+            contest, user, "update_problem", f"Duplicated problem {source.title or source.id}",
+        )
+
+        from apps.problems.serializers import ProblemListSerializer
+        data = ProblemListSerializer(problem, context={"request": request}).data
+        data["binding_id"] = str(binding.id)
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="reorder")
+    def reorder(self, request, *args, **kwargs):
+        """Reorder coding problems. Payload: {"orders": [{"id": "...", "order": N}, ...]}"""
+        contest_id = self.kwargs.get("contest_pk")
+        contest = get_object_or_404(Contest, pk=contest_id)
+        user = request.user
+
+        if not can_manage_contest(user, contest):
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        ensure_contest_question_editable(
+            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.reorder",
+        )
+
+        orders = request.data.get("orders", [])
+        if not orders:
+            raise DRFValidationError("No orders provided")
+
+        import uuid as _uuid
+        for item in orders:
+            item_id = item.get("id")
+            new_order = item.get("order")
+            if item_id is None or new_order is None:
+                continue
+            item_str = str(item_id)
+            try:
+                _uuid.UUID(item_str)
+                is_uuid = True
+            except (ValueError, AttributeError):
+                is_uuid = False
+
+            if is_uuid:
+                updated = ContestQuestionBinding.objects.filter(
+                    contest=contest, id=item_str,
+                ).update(order=new_order)
+                if not updated:
+                    ContestQuestionBinding.objects.filter(
+                        contest=contest, coding_problem_id=item_str,
+                    ).update(order=new_order)
+
+        # Normalize to sequential 0, 1, 2...
+        bindings = ContestQuestionBinding.objects.filter(
+            contest=contest, binding_type=QuestionAsset.AssetType.CODING,
+        ).order_by("order", "created_at")
+        for i, b in enumerate(bindings):
+            if b.order != i:
+                b.order = i
+                b.save(update_fields=["order", "updated_at"])
+        ContestActivityViewSet.log_activity(contest, user, "update_problem", "Reordered coding problems")
+        return Response({"status": "reordered"})

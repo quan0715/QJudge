@@ -289,18 +289,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
                 type="button"
                 className="user-menu-link"
                 onClick={() => {
-                  navigate("/admin/contest-bindings");
-                  setIsExpandedInternal(false);
-                  onExpandedChange?.(false);
-                }}
-              >
-                <Book size={16} />
-                {t("header.legacyContestBinding", "舊競賽綁定")}
-              </button>
-              <button
-                type="button"
-                className="user-menu-link"
-                onClick={() => {
                   navigate("/admin/review-queue");
                   setIsExpandedInternal(false);
                   onExpandedChange?.(false);

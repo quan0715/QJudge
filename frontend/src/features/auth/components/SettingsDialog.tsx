@@ -1,5 +1,5 @@
 import React from "react";
-import { UserAvatar, Settings, Password, Catalog } from "@carbon/icons-react";
+import { UserAvatar, Settings, Password, Catalog, Connect } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useSettingsDialog } from "@/features/auth/contexts/SettingsDialogContext";
@@ -8,11 +8,13 @@ import { ProfilePanel } from "@/features/auth/components/ProfilePanel";
 import { PreferencesPanel } from "@/features/auth/components/PreferencesPanel";
 import { APIKeyPanel } from "@/features/auth/components/APIKeyPanel";
 import { PlansPanel } from "@/features/auth/components/PlansPanel";
+import { MCPSetupPanel } from "@/features/auth/components/settings/MCPSetupPanel";
 
 const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { tKey: string; adminOnly?: boolean })[] = [
   { id: "profile",     tKey: "settings.tabs.profile",     icon: UserAvatar },
   { id: "preferences", tKey: "settings.tabs.preferences", icon: Settings },
   { id: "apikey",      tKey: "settings.tabs.apiKey",      icon: Password, adminOnly: true },
+  { id: "mcp",         tKey: "settings.tabs.mcp",         icon: Connect, adminOnly: true },
   { id: "plans",       tKey: "settings.tabs.plans",       icon: Catalog },
 ];
 
@@ -20,6 +22,7 @@ const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { tKey: string; admi
 const MemoProfilePanel = React.memo(ProfilePanel);
 const MemoPreferencesPanel = React.memo(PreferencesPanel);
 const MemoAPIKeyPanel = React.memo(APIKeyPanel);
+const MemoMCPSetupPanel = React.memo(MCPSetupPanel);
 const MemoPlansPanel = React.memo(PlansPanel);
 
 export const SettingsDialog: React.FC = () => {
@@ -48,6 +51,8 @@ export const SettingsDialog: React.FC = () => {
         return <MemoPreferencesPanel />;
       case "apikey":
         return isTeacherOrAdmin ? <MemoAPIKeyPanel /> : null;
+      case "mcp":
+        return isTeacherOrAdmin ? <MemoMCPSetupPanel /> : null;
       case "plans":
         return <MemoPlansPanel />;
       default:
@@ -75,6 +80,14 @@ export const SettingsDialog: React.FC = () => {
             {t("settings.tabs.apiKey", "API Key")}
           </h2>
           <MemoAPIKeyPanel hideUsageDetails />
+        </div>
+      )}
+      {isTeacherOrAdmin && (
+        <div id="settings-section-mcp">
+          <h2 className="settings-modal__content-title">
+            {t("settings.tabs.mcp", "MCP 連線")}
+          </h2>
+          <MemoMCPSetupPanel />
         </div>
       )}
     </>

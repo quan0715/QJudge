@@ -17,6 +17,7 @@ if not settings.DEBUG:
 urlpatterns = [
     path('api/health/', health_check, name='health-check'),
     path('django-admin/', admin.site.urls),  # Django backend admin (use only when frontend cannot handle it)
+    path('', include('apps.oauth.urls')),  # Custom OAuth views (must be before oauth2_provider)
     path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),  # OAuth 2.1
     path('api/v1/auth/', include('apps.users.urls')),
     path('api/v1/markdown/', include('apps.core.urls')),

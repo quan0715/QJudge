@@ -1,7 +1,7 @@
 // Auth Feature - Main exports
 
 // Routes
-export { guestRoutes, oauthCallbackRoute, onboardingRoute, teacherActivationRoute } from "./routes";
+export { guestRoutes, oauthCallbackRoute, onboardingRoute, teacherActivationRoute, oauthAuthorizeRoute } from "./routes";
 
 // Screens
 export { default as LoginScreen } from "./screens/LoginScreen";

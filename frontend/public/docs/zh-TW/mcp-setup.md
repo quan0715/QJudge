@@ -13,14 +13,8 @@ QJudge 支援透過 [MCP (Model Context Protocol)](https://modelcontextprotocol.
 
 - QJudge 帳號，且具有 **教師** 或 **助教** 權限
 - 已安裝上述任一 AI 工具
-- QJudge MCP Server 的連線 URL 與授權 Token（由平台管理員提供）
 
-## 取得連線資訊
-
-1. 登入 QJudge 平台
-2. 進入 **設定 > MCP 連線**
-3. 點擊「產生 Token」取得您的專屬授權憑證
-4. 複製對應工具的安裝指令
+MCP Server 將使用 OAuth 2.1 自動進行授權，無需手動產生 Token。
 
 ## 安裝指南
 
@@ -29,11 +23,8 @@ QJudge 支援透過 [MCP (Model Context Protocol)](https://modelcontextprotocol.
 在終端機執行：
 
 ```bash
-claude mcp add --transport http qjudge <MCP_SERVER_URL> \
-  --header "Authorization: Bearer <YOUR_TOKEN>"
+claude mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 ```
-
-將 `<MCP_SERVER_URL>` 替換為平台提供的 MCP Server URL，`<YOUR_TOKEN>` 替換為您的授權 Token。
 
 重啟 Claude Code 後，輸入 `/mcp` 確認 `qjudge` 出現在伺服器列表中。
 
@@ -45,10 +36,8 @@ claude mcp add --transport http qjudge <MCP_SERVER_URL> \
 {
   "mcpServers": {
     "qjudge": {
-      "url": "<MCP_SERVER_URL>",
-      "headers": {
-        "Authorization": "Bearer <YOUR_TOKEN>"
-      }
+      "type": "http",
+      "url": "https://mcp.q-judge.com/mcp"
     }
   }
 }
@@ -58,27 +47,30 @@ claude mcp add --transport http qjudge <MCP_SERVER_URL> \
 
 ### Codex CLI
 
-先設定環境變數，再新增伺服器：
+在終端機執行：
 
 ```bash
-export QJUDGE_MCP_TOKEN="<YOUR_TOKEN>"
-codex mcp add qjudge --url <MCP_SERVER_URL> \
-  --bearer-token-env-var QJUDGE_MCP_TOKEN
+codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 ```
 
-建議將 `export QJUDGE_MCP_TOKEN="..."` 加入您的 `~/.zshrc` 或 `~/.bashrc`。
+## 自動授權流程
+
+加入 MCP Server 後，您在第一次呼叫工具時，瀏覽器會自動開啟 QJudge 登入頁面。完成授權後，您的身份令牌將被安全地保存在系統 Keychain（macOS）或 Credential Manager（Windows）中，後續使用無需重複授權。
 
 ## 可用功能
 
-連線成功後，您的 AI 工具將獲得以下三組功能：
+連線成功後，您的 AI 工具將獲得以下四組功能：
 
-### 查詢教室與競賽 (`qjudge_discover`)
+### 查詢與瀏覽 (`qjudge_discover`)
 
 | 操作 | 說明 |
 |------|------|
 | `list_classrooms` | 列出您管理的所有教室 |
 | `list_contests` | 搜尋競賽（支援名稱搜尋與狀態篩選） |
 | `get_contest` | 查看競賽詳情 |
+| `browse_banks` | 列出您的題庫 |
+| `browse_bank_questions` | 列出題庫中的題目 |
+| `create_bank_question` | 在題庫中新增題目（支援程式題） |
 
 ### 管理考試題目 (`qjudge_exam`)
 
@@ -90,6 +82,19 @@ codex mcp add qjudge --url <MCP_SERVER_URL> \
 | `update` | 修改題目內容 |
 | `delete` | 刪除題目 |
 | `reorder` | 重新排列題目順序 |
+| `import_from_bank` | 從題庫匯入題目 |
+
+### 管理程式題 (`qjudge_coding`)
+
+| 操作 | 說明 |
+|------|------|
+| `list` | 列出競賽中所有程式題 |
+| `get` | 查看程式題詳情 |
+| `create` | 新增程式題 |
+| `import_from_bank` | 從題庫匯入程式題 |
+| `update_score` | 更新程式題配分 |
+| `delete` | 刪除程式題 |
+| `test_run` | 執行程式碼並測試（支援自訂測資） |
 
 ### 查看與批改作答 (`qjudge_grading`)
 
@@ -110,10 +115,18 @@ codex mcp add qjudge --url <MCP_SERVER_URL> \
 - 「列出我的所有教室」
 - 「找到演算法這門課的期中考」
 - 「看一下第三題的內容」
+- 「瀏覽我的題庫有哪些題目」
 
 **出題**
 - 「幫我在期中考新增一題關於二元樹的是非題，配分 5 分」
 - 「新增一題多選題，問 TCP 三向交握的步驟，選項有四個」
+- 「從題庫匯入 A+B Problem 到這場競賽」
+- 「在題庫裡建一題新的程式題」
+
+**程式題**
+- 「列出這場競賽的所有程式題」
+- 「幫我跑一下這段 Python 程式，用預設測資測試」
+- 「把第二題的配分改成 20 分」
 
 **批改**
 - 「看一下第五題的作答情況」
@@ -122,19 +135,20 @@ codex mcp add qjudge --url <MCP_SERVER_URL> \
 
 ## 安全性說明
 
-- MCP 連線使用 **OAuth 2.1** 標準授權，Token 代表您的身份
+- MCP 連線使用 **OAuth 2.1 with PKCE** 標準授權，無需手動產生或儲存 Token
+- 存取令牌由您的 AI 工具自動儲存在系統 Keychain 中，確保安全
+- 存取令牌（Access Token）有效期為 1 小時，過期後會自動更新
+- 更新令牌（Refresh Token）有效期為 30 天，需重新授權
 - AI 工具只能存取您有管理權限的教室與競賽
 - 所有操作（出題、批改等）都會記錄在競賽活動日誌中
-- Token 有效期為 30 天，過期後需重新產生
-- 建議不要將 Token 提交到版本控制（已自動加入 `.gitignore`）
 
 ## 疑難排解
 
 ### 連線失敗
 
-- 確認 MCP Server URL 正確且可存取
-- 確認 Token 未過期（可在設定頁面查看）
+- 確認 MCP Server URL 正確且可存取（應為 `https://mcp.q-judge.com/mcp`）
 - 確認您的帳號具有教師或助教權限
+- 若授權過期（Refresh Token 逾期），請重新執行安裝指令以重新授權
 
 ### 權限被拒絕 (403)
 

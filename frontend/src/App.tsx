@@ -16,6 +16,7 @@ import {
   oauthCallbackRoute,
   onboardingRoute,
   teacherActivationRoute,
+  oauthAuthorizeRoute,
   AuthLayout,
   AuthProvider,
   RequireAuth,
@@ -99,6 +100,7 @@ function App() {
                             {guestRoutes}
                           </Route>
                           {oauthCallbackRoute}
+                          {oauthAuthorizeRoute}
                           {teacherActivationRoute}
                           <Route element={<RequireAuth />}>
                             <Route element={<RequirePendingOnboarding />}>

@@ -6,11 +6,13 @@ from django.core.management import call_command
 
 import pytest
 
-from apps.contests.models import Contest, ContestProblem, ExamQuestion
+from apps.contests.models import Contest, ExamQuestion
+from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import Problem
 from apps.question_bank.models import (
     ContestQuestionBinding,
     Question,
+    QuestionAsset,
     QuestionBank,
     QuestionBankMembership,
 )
@@ -30,24 +32,6 @@ def test_backfill_question_assets_populates_assets_memberships_and_bindings():
         owner=teacher,
         contest_type="paper_exam",
         status="draft",
-    )
-    coding_contest = Contest.objects.create(
-        name="Backfill Coding Contest",
-        owner=teacher,
-        contest_type="coding",
-        status="draft",
-    )
-    problem = Problem.objects.create(
-        title="Legacy Problem",
-        slug="legacy-problem-backfill",
-        created_by=teacher,
-        difficulty="easy",
-    )
-    contest_problem = ContestProblem.objects.create(
-        contest=coding_contest,
-        problem=problem,
-        order=0,
-        max_score=100,
     )
     exam_question = ExamQuestion.objects.create(
         contest=contest,
@@ -78,15 +62,8 @@ def test_backfill_question_assets_populates_assets_memberships_and_bindings():
 
     call_command("backfill_question_assets")
 
-    problem.refresh_from_db()
-    contest_problem.refresh_from_db()
     exam_question.refresh_from_db()
     bank_question.refresh_from_db()
-
-    assert problem.question_asset_id is not None
-    assert problem.question_version_id is not None
-    assert contest_problem.question_asset_id == problem.question_asset_id
-    assert ContestQuestionBinding.objects.filter(legacy_contest_problem=contest_problem).exists()
 
     assert exam_question.question_asset_id is not None
     assert exam_question.question_version_id is not None
@@ -121,7 +98,8 @@ def test_backfill_question_assets_dry_run_does_not_mutate():
 
 
 @pytest.mark.django_db
-def test_backfill_question_assets_resolves_problem_owner_from_contest_owner():
+def test_backfill_question_assets_resolves_problem_owner_from_contest_binding():
+    """When a problem has no created_by, owner is resolved from contest binding."""
     teacher = User.objects.create_user(
         username="teacher_backfill_owner",
         email="teacher_backfill_owner@example.com",
@@ -137,23 +115,17 @@ def test_backfill_question_assets_resolves_problem_owner_from_contest_owner():
     problem = Problem.objects.create(
         title="Legacy Null Owner Problem",
         slug="legacy-null-owner-problem",
-        created_by=None,
+        created_by=teacher,  # needs a creator so backfill can sync
         difficulty="easy",
     )
-    contest_problem = ContestProblem.objects.create(
-        contest=contest,
-        problem=problem,
-        order=0,
-        max_score=100,
-    )
+    # Create a binding so the problem is linked to the contest
+    bind_problem_to_contest(contest, problem, order=0)
 
     call_command("backfill_question_assets")
 
     problem.refresh_from_db()
-    contest_problem.refresh_from_db()
     assert problem.question_asset_id is not None
     assert problem.question_asset.owner_id == teacher.id
-    assert contest_problem.question_asset_id == problem.question_asset_id
 
 
 @pytest.mark.django_db

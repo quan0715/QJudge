@@ -48,6 +48,7 @@ class ExamAnswerTestBase(APITestCase):
             prompt='Pick one',
             options=['A', 'B', 'C'],
             correct_answer='B',
+            explanation='Single-choice explanation',
             score=5,
             order=1,
         )
@@ -57,6 +58,7 @@ class ExamAnswerTestBase(APITestCase):
             prompt='Pick many',
             options=['X', 'Y', 'Z'],
             correct_answer=['X', 'Z'],
+            explanation='Multiple-choice explanation',
             score=10,
             order=2,
         )
@@ -64,6 +66,7 @@ class ExamAnswerTestBase(APITestCase):
             contest=self.contest,
             question_type=ExamQuestionType.ESSAY,
             prompt='Explain something',
+            explanation='Essay explanation',
             score=20,
             order=3,
         )
@@ -136,6 +139,16 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         ).count(), 1)
         ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_single)
         self.assertEqual(ans.answer['selected'], 'B')
+
+    def test_submit_creates_snapshot_with_explanation(self):
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post(self._url(), {
+            'question_id': self.q_essay.id,
+            'answer': {'text': 'My essay answer'},
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_essay)
+        self.assertEqual(ans.question_snapshot['explanation'], 'Essay explanation')
 
     def test_submit_requires_in_progress(self):
         """Cannot submit when exam is not in progress."""
@@ -246,6 +259,7 @@ class ExamAnswerResultsTests(ExamAnswerTestBase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(len(resp.data), 1)
         self.assertEqual(float(resp.data[0]['score']), 5.0)
+        self.assertEqual(resp.data[0]['question_explanation'], 'Single-choice explanation')
 
     def test_teacher_can_view_before_publish(self):
         self.client.force_authenticate(user=self.teacher)

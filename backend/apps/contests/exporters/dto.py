@@ -38,7 +38,7 @@ class ProblemDTO:
 @dataclass
 class ContestProblemDTO:
     """Contest problem with order and score info."""
-    id: int  # ContestProblem ID
+    id: object  # ContestQuestionBinding UUID
     problem_id: str
     order: int
     label: str

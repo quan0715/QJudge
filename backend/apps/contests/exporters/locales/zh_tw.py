@@ -126,6 +126,7 @@ LABELS = {
     'your_answer': '你的答案',
     'your_choice': '你的選擇',
     'reference_answer': '參考答案',
+    'explanation': '詳解',
     'selected': '你的選擇',
     'time_axis_label': '時間 (時:分)',
     'cumulative_score': '累計分數',

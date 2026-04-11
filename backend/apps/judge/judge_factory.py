@@ -1,75 +1,22 @@
-"""
-Judge factory for multi-language support
-"""
-from typing import Union
-from .base_judge import BaseJudge
-from .docker_runner import CppJudge
-from .python_judge import PythonJudge
+"""Judge factory — returns an IOJudge for the requested language."""
+from .io_judge import IOJudge, SUPPORTED_LANGUAGES, resolve_language, _LANG_SPECS
 
 
-def get_judge(language: str) -> BaseJudge:
+def get_judge(language: str) -> IOJudge:
     """
-    根據語言取得對應的 Judge 實例
-    
-    Args:
-        language: 語言名稱（不區分大小寫）
-                 支援: 'cpp', 'c++', 'python', 'py'
-    
-    Returns:
-        BaseJudge: 對應語言的 Judge 實例
-    
-    Raises:
-        ValueError: 不支援的語言
-    
-    Examples:
-        >>> judge = get_judge('cpp')
-        >>> result = judge.execute(code, input, expected, 1000, 128)
-        
-        >>> judge = get_judge('python')
-        >>> result = judge.execute(code, input, expected, 1000, 128)
+    Return an IOJudge configured for *language*.
+
+    Raises ValueError for unsupported languages so callers can surface SE.
     """
-    language_map = {
-        'cpp': CppJudge,
-        'c++': CppJudge,
-        'c': CppJudge,  # 暫時也用 C++ judge
-        'python': PythonJudge,
-        'py': PythonJudge,
-        'python3': PythonJudge,
-    }
-    
-    language_lower = language.lower().strip()
-    judge_class = language_map.get(language_lower)
-    
-    if not judge_class:
-        supported = ', '.join(sorted(set(language_map.keys())))
+    canon = resolve_language(language)
+    if canon not in _LANG_SPECS:
+        supported = ", ".join(sorted(_LANG_SPECS))
         raise ValueError(
-            f"Unsupported language: '{language}'. "
-            f"Supported languages: {supported}"
+            f"Unsupported language: '{language}'. Supported: {supported}"
         )
-    
-    return judge_class()
+    return IOJudge(canon)
 
 
-def get_supported_languages():
-    """
-    取得所有支援的語言列表
-    
-    Returns:
-        List[Dict]: 語言資訊列表
-    """
-    return [
-        {
-            'id': 'cpp',
-            'name': 'C++',
-            'display_name': 'C++ (C++20)',
-            'aliases': ['c++', 'cpp', 'c'],
-            'judge_class': 'CppJudge'
-        },
-        {
-            'id': 'python',
-            'name': 'Python',
-            'display_name': 'Python 3.11',
-            'aliases': ['python', 'py', 'python3'],
-            'judge_class': 'PythonJudge'
-        },
-    ]
+def get_supported_languages() -> list[dict]:
+    """Return the list of supported language descriptors."""
+    return SUPPORTED_LANGUAGES

@@ -5,7 +5,6 @@ from rest_framework import serializers
 from django.utils import timezone
 from .models import (
     Contest,
-    ContestProblem,
     ExamQuestion,
     ExamQuestionType,
     ContestParticipant,
@@ -555,6 +554,7 @@ class ContestProblemSerializer(serializers.ModelSerializer):
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
+    in_question_bank = serializers.SerializerMethodField()
 
     class Meta:
         from apps.question_bank.models import ContestQuestionBinding
@@ -575,6 +575,7 @@ class ContestProblemSerializer(serializers.ModelSerializer):
             'binding_id',
             'difficulty',
             'user_status',
+            'in_question_bank',
         ]
 
     def get_problem_id(self, obj):
@@ -655,6 +656,17 @@ class ContestProblemSerializer(serializers.ModelSerializer):
     def get_binding_id(self, obj):
         return str(obj.id)
 
+    def get_in_question_bank(self, obj):
+        # Prefer the annotated value (O(1)) over a per-row query.
+        if hasattr(obj, '_in_question_bank'):
+            return obj._in_question_bank
+        if not obj.question_asset_id:
+            return False
+        from apps.question_bank.models import QuestionBankMembership
+        return QuestionBankMembership.objects.filter(
+            question_asset_id=obj.question_asset_id,
+        ).exists()
+
 
 
 # ============================================================================
@@ -711,6 +723,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'prompt',
             'options',
             'correct_answer',
+            'explanation',
             'score',
             'order',
             'source_bank',
@@ -1044,24 +1057,30 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         # Fallback (Slow path)
         from apps.submissions.models import Submission
         from django.db.models import Max
-        
-        # 取得競賽的所有題目
-        contest_problems = obj.contest.contest_problems.all()
+        from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+        # 取得競賽的所有 coding bindings
+        bindings = ContestQuestionBinding.objects.filter(
+            contest=obj.contest,
+            binding_type=QuestionAsset.AssetType.CODING,
+        ).select_related('coding_problem')
         total = 0
-        
-        for cp in contest_problems:
+
+        for binding in bindings:
+            if not binding.coding_problem_id:
+                continue
             # 取得該用戶在此題目的最高分（排除測試提交）
             best_submission = Submission.objects.filter(
                 contest=obj.contest,
-                problem=cp.problem,
+                problem=binding.coding_problem,
                 user=obj.user,
                 source_type='contest',
                 is_test=False
             ).aggregate(max_score=Max('score'))
-            
+
             if best_submission['max_score']:
                 total += best_submission['max_score']
-        
+
         return total
 
     def get_display_name(self, obj):
@@ -1135,6 +1154,7 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
     question_id = serializers.UUIDField(source='question.id', read_only=True)
     question_prompt = serializers.SerializerMethodField()
     question_type = serializers.SerializerMethodField()
+    question_explanation = serializers.SerializerMethodField()
     max_score = serializers.SerializerMethodField()
     question_options = serializers.SerializerMethodField()
     graded_by_username = serializers.CharField(
@@ -1148,7 +1168,7 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
         model = ExamAnswer
         fields = [
             'id', 'question_id', 'question_prompt', 'question_type',
-            'question_options', 'max_score',
+            'question_options', 'question_explanation', 'max_score',
             'answer', 'is_correct', 'score', 'feedback',
             'question_snapshot',
             'graded_by_username', 'graded_at',
@@ -1166,6 +1186,11 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
         if obj.question_snapshot:
             return obj.question_snapshot.get('question_type', '')
         return obj.question.question_type
+
+    def get_question_explanation(self, obj):
+        if obj.question_snapshot:
+            return obj.question_snapshot.get('explanation', '')
+        return obj.question.explanation
 
     def get_max_score(self, obj):
         if obj.question_snapshot:

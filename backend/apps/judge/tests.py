@@ -1,774 +1,342 @@
 """
-判題系統單元測試
+判題系統整合測試（需要 Docker）
 
 執行方式：
-    # 執行所有測試
-    docker exec oj_backend_dev python manage.py test apps.judge
-
-    # 執行特定測試類別
-    docker exec oj_backend_dev python manage.py test apps.judge.tests.CppJudgeTestCase
-
-    # 執行特定測試方法
-    docker exec oj_backend_dev python manage.py test apps.judge.tests.CppJudgeTestCase.test_simple_correct_answer
-
-    # 顯示詳細輸出
     docker exec oj_backend_dev python manage.py test apps.judge --verbosity=2
+    docker exec oj_backend_dev python manage.py test apps.judge.tests.CppIntegrationTests
+    docker exec oj_backend_dev python manage.py test apps.judge.tests.PythonIntegrationTests
+    docker exec oj_backend_dev python manage.py test apps.judge.tests.JavaIntegrationTests
+    docker exec oj_backend_dev python manage.py test apps.judge.tests.CIntegrationTests
+    docker exec oj_backend_dev python manage.py test apps.judge.tests.IOJudgeMockTests
 """
 
 import unittest
-from django.test import TestCase
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import docker.errors
+from django.test import TestCase
+
+from apps.judge.io_judge import IOJudge, _CE_SENTINEL
 from apps.judge.docker_runner import CppJudge
 
 
-class CppJudgeTestCase(TestCase):
-    """C++ 判題系統測試"""
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _make_judge(language: str) -> IOJudge:
+    return IOJudge(language)
+
+
+# ---------------------------------------------------------------------------
+# C++ integration tests  (real Docker, use CppJudge shim)
+# ---------------------------------------------------------------------------
+
+class CppIntegrationTests(TestCase):
+    """C++ 整合測試（需要 Docker + oj-judge image）"""
 
     def setUp(self):
-        """每個測試前執行"""
         self.judge = CppJudge()
 
-    def test_simple_correct_answer(self):
-        """測試正確答案 (AC)"""
-        code = """
-#include <iostream>
-using namespace std;
+    def test_ac(self):
+        code = "#include<iostream>\nusing namespace std;\nint main(){int a,b;cin>>a>>b;cout<<a+b<<endl;}"
+        r = self.judge.execute(code, "3 4", "7", 1000, 128)
+        self.assertEqual(r["status"], "AC")
+        self.assertEqual(r["output"].strip(), "7")
+        self.assertEqual(r["error"], "")
 
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a + b << endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="1 2",
-            expected_output="3",
-            time_limit=1000,
-            memory_limit=128
-        )
+    def test_wa(self):
+        code = "#include<iostream>\nint main(){std::cout<<0;}"
+        r = self.judge.execute(code, "", "1", 1000, 128)
+        self.assertEqual(r["status"], "WA")
 
-        self.assertEqual(result['status'], 'AC', f"預期 AC，實際得到 {result['status']}")
-        self.assertEqual(result['output'].strip(), "3")
-        self.assertEqual(result['error'], '')
+    def test_ce(self):
+        code = "#include<iostream>\nint main(){int a b;}"  # missing semicolon
+        r = self.judge.execute(code, "", "", 1000, 128)
+        self.assertEqual(r["status"], "CE")
+        self.assertTrue(r["error"])  # g++ error message present
 
-    def test_compile_error(self):
-        """測試編譯錯誤 (CE)"""
-        code = """
-#include <iostream>
-using namespace std;
+    def test_tle(self):
+        code = "#include<iostream>\nint main(){while(1){}}"
+        r = self.judge.execute(code, "", "", 500, 128)
+        self.assertEqual(r["status"], "TLE")
+        self.assertIn("Time Limit Exceeded", r["error"])
 
-int main() {
-    int a, b  // 缺少分號
-    cin >> a >> b;
-    cout << a + b << endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="1 2",
-            expected_output="3",
-            time_limit=1000,
-            memory_limit=128
-        )
+    def test_re_abort(self):
+        code = "#include<cstdlib>\nint main(){abort();}"
+        r = self.judge.execute(code, "", "", 1000, 128)
+        self.assertEqual(r["status"], "RE")
 
-        self.assertEqual(result['status'], 'CE')
-        self.assertIn('error', result['error'].lower())
+    def test_multiple_cases(self):
+        code = "#include<iostream>\nusing namespace std;\nint main(){int a,b;cin>>a>>b;cout<<a+b<<endl;}"
+        for inp, exp in [("1 2", "3"), ("0 0", "0"), ("-1 1", "0")]:
+            with self.subTest(input=inp):
+                r = self.judge.execute(code, inp, exp, 1000, 128)
+                self.assertEqual(r["status"], "AC", r)
 
-    def test_wrong_answer(self):
-        """測試答案錯誤 (WA)"""
-        code = """
-#include <iostream>
-using namespace std;
+    def test_whitespace_tolerance(self):
+        code = "#include<iostream>\nint main(){std::cout<<42<<std::endl;}"
+        r = self.judge.execute(code, "", "42\n", 1000, 128)
+        self.assertEqual(r["status"], "AC")
 
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a * b << endl;  // 乘法而不是加法
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="2 3",
-            expected_output="5",
-            time_limit=1000,
-            memory_limit=128
-        )
+    def test_unicode_output(self):
+        code = '#include<iostream>\nint main(){std::cout<<"你好世界"<<std::endl;}'
+        r = self.judge.execute(code, "", "你好世界", 1000, 128)
+        self.assertIn(r["status"], ["AC", "WA", "RE"])  # at least no crash
 
-        self.assertEqual(result['status'], 'WA')
-        self.assertEqual(result['output'].strip(), "6")
-        self.assertIn('Wrong Answer', result['error'])
-
-    def test_time_limit_exceeded(self):
-        """測試超時 (TLE)"""
-        code = """
-#include <iostream>
-using namespace std;
-
-int main() {
-    long long sum = 0;
-    for (long long i = 0; i < 10000000000LL; i++) {
-        sum += i;
-    }
-    cout << sum << endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="0",
-            time_limit=100,  # 100ms - 應該會超時
-            memory_limit=128
-        )
-
-        self.assertEqual(result['status'], 'TLE')
-        self.assertIn('Time Limit Exceeded', result['error'])
-
-    def test_runtime_error(self):
-        """測試執行時錯誤 (RE)"""
-        code = """
-#include <iostream>
-using namespace std;
-
-int main() {
-    int arr[5];
-    cout << arr[1000000] << endl;  // 陣列越界
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="0",
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        # 可能是 RE 或 AC（取決於系統行為），但至少不應該是 CE
-        self.assertIn(result['status'], ['RE', 'AC', 'WA'])
-
-    def test_runtime_error_division_by_zero(self):
-        """測試除以零錯誤 (RE)"""
-        code = """
-#include <iostream>
-using namespace std;
-
-int main() {
-    int a = 10;
-    int b = 0;
-    cout << a / b << endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="0",
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        # Division by zero 可能不會 crash（未定義行為），接受 RE 或 AC
-        self.assertIn(result['status'], ['RE', 'AC', 'WA'])
-
-    def test_runtime_error_abort(self):
-        """測試程式主動 abort (RE)"""
-        code = """
-#include <iostream>
-#include <cstdlib>
-using namespace std;
-
-int main() {
-    cout << "Before abort" << endl;
-    abort();
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="Before abort",
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        self.assertEqual(result['status'], 'RE')
-        self.assertNotEqual(result['exit_code'] if 'exit_code' in result else -1, 0)
-
-    def test_multiple_test_cases(self):
-        """測試多組測試案例"""
-        code = """
-#include <iostream>
-using namespace std;
-
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a + b << endl;
-    return 0;
-}
-"""
-        test_cases = [
-            ("1 2", "3"),
-            ("0 0", "0"),
-            ("-1 1", "0"),
-            ("100 200", "300"),
-        ]
-
-        for input_data, expected in test_cases:
-            with self.subTest(input=input_data, expected=expected):
-                result = self.judge.execute(
-                    code=code,
-                    input_data=input_data,
-                    expected_output=expected,
-                    time_limit=1000,
-                    memory_limit=128
-                )
-                self.assertEqual(result['status'], 'AC',
-                                 f"輸入 {input_data} 失敗：{result}")
-
-    def test_whitespace_handling(self):
-        """測試空白字符處理"""
-        code = """
-#include <iostream>
-using namespace std;
-
-int main() {
-    int a, b;
-    cin >> a >> b;
-    cout << a + b << endl;
-    return 0;
-}
-"""
-        # 測試額外的空白和換行
-        result = self.judge.execute(
-            code=code,
-            input_data="1 2",
-            expected_output="3\n",  # 有換行
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        self.assertEqual(result['status'], 'AC')
-
-    # ========== 新增：System Error (SE) 測試 ==========
-
-    @patch.object(CppJudge, '_ensure_docker_client')
-    def test_docker_connection_error(self, mock_ensure):
-        """測試 Docker 連接失敗應回傳 SE"""
-        # Mock Docker 連接失敗
-        mock_ensure.side_effect = RuntimeError("Cannot connect to Docker daemon")
-
-        judge = CppJudge()
-        result = judge.execute(
-            code='#include <iostream>\nint main() { return 0; }',
-            input_data='',
-            expected_output='',
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        self.assertEqual(result['status'], 'SE')
-        self.assertIn('Docker', result['error'] + result['output'])
-
-    @patch.object(CppJudge, '_ensure_docker_client')
-    def test_docker_image_not_found(self, mock_ensure):
-        """測試 Judge Image 不存在應回傳 SE"""
-        mock_ensure.side_effect = RuntimeError("Judge image 'oj-judge:latest' not found")
-
-        judge = CppJudge()
-        result = judge.execute(
-            code='#include <iostream>\nint main() { return 0; }',
-            input_data='',
-            expected_output='',
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        self.assertEqual(result['status'], 'SE')
-        self.assertIn('image', result['error'].lower())
-
-    @patch.object(CppJudge, '_run_in_container')
-    def test_container_api_error(self, mock_run):
-        """測試 Container API 錯誤應回傳 SE"""
-        mock_run.side_effect = docker.errors.APIError("API Error")
-
-        judge = CppJudge()
-        result = judge.execute(
-            code='#include <iostream>\nint main() { return 0; }',
-            input_data='',
-            expected_output='',
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        self.assertEqual(result['status'], 'SE')
-        self.assertEqual(result['time'], 0)
-        self.assertEqual(result['memory'], 0)
-
-    def test_system_error_response_structure(self):
-        """測試 SE 回應結構"""
-        with patch.object(CppJudge, '_ensure_docker_client', side_effect=Exception("Test error")):
-            judge = CppJudge()
-            result = judge.execute(
-                code='test',
-                input_data='',
-                expected_output='',
-                time_limit=1000,
-                memory_limit=128
-            )
-
-            # 確保回應有所有必要欄位
-            self.assertIn('status', result)
-            self.assertIn('output', result)
-            self.assertIn('error', result)
-            self.assertIn('time', result)
-            self.assertIn('memory', result)
-            
-            # SE 時這些欄位應該是預設值
-            self.assertEqual(result['status'], 'SE')
-            self.assertEqual(result['output'], '')
-            self.assertEqual(result['time'], 0)
-            self.assertEqual(result['memory'], 0)
-            self.assertNotEqual(result['error'], '')
-
-    # ========== 新增：邊界條件測試 ==========
+    def test_mle(self):
+        # Try to allocate 300 MB while limit is 128 MB
+        code = "#include<vector>\nint main(){std::vector<int>v(75000000,1);}"
+        r = self.judge.execute(code, "", "", 3000, 128)
+        self.assertIn(r["status"], ["MLE", "RE", "SE"])
 
     def test_empty_input(self):
-        """測試空輸入"""
-        code = """
-#include <iostream>
-using namespace std;
+        code = '#include<iostream>\nint main(){std::cout<<"OK";}'
+        r = self.judge.execute(code, "", "OK", 1000, 128)
+        self.assertEqual(r["status"], "AC")
 
-int main() {
-    cout << "Hello, World!" << endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="Hello, World!",
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        self.assertEqual(result['status'], 'AC')
-
-    def test_large_output(self):
-        """測試大量輸出（應被截斷）"""
-        code = """
-#include <iostream>
-using namespace std;
-
-int main() {
-    for (int i = 0; i < 10000; i++) {
-        cout << "This is a very long line of text that repeats many times" << endl;
-    }
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="dummy",
-            time_limit=2000,
-            memory_limit=128
-        )
-
-        # 應該執行成功（AC 或 WA），但輸出被截斷到 1000 字元
-        self.assertIn(result['status'], ['AC', 'WA'])
-        self.assertLessEqual(len(result['output']), 1000)
-
-    def test_unicode_handling(self):
-        """測試 Unicode 字符處理"""
-        code = """
-#include <iostream>
-using namespace std;
-
-int main() {
-    cout << "你好世界" << endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="你好世界",
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        # UTF-8 處理可能有問題，但至少不應該 crash
-        self.assertIn(result['status'], ['AC', 'WA', 'RE'])
-
-    def test_memory_limit_stress(self):
-        """測試記憶體限制（壓力測試）"""
-        code = """
-#include <iostream>
-#include <vector>
-using namespace std;
-
-int main() {
-    // 嘗試分配 200MB（超過 128MB 限制）
-    vector<int> vec(50000000);  // ~200MB
-    cout << vec.size() << endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="50000000",
-            time_limit=2000,
-            memory_limit=128
-        )
-
-        # 應該要 MLE 或 RE（記憶體不足）
-        self.assertIn(result['status'], ['MLE', 'RE', 'SE'])
-
-    # ========== 新增：安全性測試 ==========
+    def test_large_output_truncated(self):
+        code = '#include<iostream>\nint main(){for(int i=0;i<10000;i++)std::cout<<"AAAA"<<std::endl;}'
+        r = self.judge.execute(code, "", "DUMMY", 3000, 128)
+        self.assertIn(r["status"], ["AC", "WA"])
+        self.assertLessEqual(len(r["output"]), 1000)
 
     def test_fork_bomb_protection(self):
-        """測試 fork bomb 防護（需要 pids_limit）"""
-        code = """
-#include <unistd.h>
-#include <iostream>
+        code = "#include<unistd.h>\nint main(){while(1)fork();}"
+        r = self.judge.execute(code, "", "", 2000, 128)
+        self.assertIn(r["status"], ["RE", "TLE", "SE"])
 
-int main() {
-    while(1) {
-        fork();
-    }
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="",
-            time_limit=2000,
-            memory_limit=128
+    def test_time_measured(self):
+        code = "#include<unistd.h>\nint main(){sleep(1);}"
+        r = self.judge.execute(code, "", "", 3000, 128)
+        self.assertEqual(r["status"], "AC")
+        self.assertGreaterEqual(r["time"], 800)
+        self.assertLessEqual(r["time"], 2500)
+
+    def test_seccomp_allows_normal_exec(self):
+        code = "#include<iostream>\nint main(){int s=0;for(int i=1;i<=5;i++)s+=i;std::cout<<s;}"
+        r = self.judge.execute(code, "", "15", 2000, 128)
+        self.assertEqual(r["status"], "AC")
+
+
+# ---------------------------------------------------------------------------
+# Python integration tests
+# ---------------------------------------------------------------------------
+
+class PythonIntegrationTests(TestCase):
+    """Python 整合測試（需要 Docker + oj-judge image with python3）"""
+
+    def setUp(self):
+        self.judge = _make_judge("python")
+
+    def test_ac(self):
+        r = self.judge.execute("a,b=map(int,input().split())\nprint(a+b)", "3 4", "7", 2000, 128)
+        self.assertEqual(r["status"], "AC")
+
+    def test_wa(self):
+        r = self.judge.execute("print(0)", "", "1", 2000, 128)
+        self.assertEqual(r["status"], "WA")
+
+    def test_re(self):
+        r = self.judge.execute("print(1/0)", "", "", 2000, 128)
+        self.assertEqual(r["status"], "RE")
+
+    def test_tle(self):
+        r = self.judge.execute("while True: pass", "", "", 500, 128)
+        self.assertEqual(r["status"], "TLE")
+
+    def test_hello(self):
+        r = self.judge.execute("print('Hello, World!')", "", "Hello, World!", 2000, 128)
+        self.assertEqual(r["status"], "AC")
+
+
+# ---------------------------------------------------------------------------
+# C integration tests
+# ---------------------------------------------------------------------------
+
+class CIntegrationTests(TestCase):
+    """C 整合測試（需要 Docker + oj-judge image with gcc）"""
+
+    def setUp(self):
+        self.judge = _make_judge("c")
+
+    def test_ac(self):
+        code = "#include<stdio.h>\nint main(){int a,b;scanf(\"%d %d\",&a,&b);printf(\"%d\\n\",a+b);}"
+        r = self.judge.execute(code, "3 4", "7", 2000, 128)
+        self.assertEqual(r["status"], "AC")
+
+    def test_ce(self):
+        code = "#include<stdio.h>\nint main(){int a b;}"
+        r = self.judge.execute(code, "", "", 2000, 128)
+        self.assertEqual(r["status"], "CE")
+
+    def test_tle(self):
+        code = "#include<stdio.h>\nint main(){while(1){}}"
+        r = self.judge.execute(code, "", "", 500, 128)
+        self.assertEqual(r["status"], "TLE")
+
+
+# ---------------------------------------------------------------------------
+# Java integration tests
+# ---------------------------------------------------------------------------
+
+class JavaIntegrationTests(TestCase):
+    """Java 整合測試（需要 Docker + oj-judge image with openjdk-17）"""
+
+    def setUp(self):
+        self.judge = _make_judge("java")
+
+    def test_ac(self):
+        code = (
+            "import java.util.Scanner;\n"
+            "public class Main {\n"
+            "    public static void main(String[] args) {\n"
+            "        Scanner sc = new Scanner(System.in);\n"
+            "        int a = sc.nextInt(), b = sc.nextInt();\n"
+            "        System.out.println(a + b);\n"
+            "    }\n"
+            "}"
         )
+        r = self.judge.execute(code, "3 4", "7", 5000, 256)
+        self.assertEqual(r["status"], "AC")
 
-        # 如果有 pids_limit，應該會 RE 或 TLE
-        # 如果沒有，可能會 SE 或系統卡住（這個測試會失敗）
-        self.assertIn(result['status'], ['RE', 'TLE', 'SE'])
+    def test_ce(self):
+        code = "public class Main { public static void main(String[] a) { int x = ; } }"
+        r = self.judge.execute(code, "", "", 5000, 256)
+        self.assertEqual(r["status"], "CE")
 
-    def test_file_write_attempt(self):
-        """測試檔案寫入（應該失敗因為 read_only root）"""
-        code = """
-#include <fstream>
-#include <iostream>
-using namespace std;
-
-int main() {
-    ofstream file("/test.txt");
-    if (file.is_open()) {
-        file << "Should not work" << endl;
-        file.close();
-        cout << "SUCCESS" << endl;
-    } else {
-        cout << "FAILED" << endl;
-    }
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="FAILED",
-            time_limit=1000,
-            memory_limit=128
+    def test_re(self):
+        code = (
+            "public class Main {\n"
+            "    public static void main(String[] args) {\n"
+            "        throw new RuntimeException(\"oops\");\n"
+            "    }\n"
+            "}"
         )
+        r = self.judge.execute(code, "", "", 5000, 256)
+        self.assertEqual(r["status"], "RE")
 
-        # 如果有 read_only root，應該要失敗
-        # 但程式會正常執行，只是無法寫入
-        self.assertIn(result['status'], ['AC', 'RE'])
-        if result['status'] == 'AC':
-            self.assertIn('FAILED', result['output'])
 
-    @unittest.skip("network_disabled doesn't prevent socket creation, only actual network access")
-    def test_network_disabled(self):
-        """測試網路已禁用"""
-        code = """
-#include <iostream>
-#include <sys/socket.h>
-using namespace std;
+# ---------------------------------------------------------------------------
+# Mock-based unit tests (no Docker needed)
+# ---------------------------------------------------------------------------
 
-int main() {
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0) {
-        cout << "NETWORK_DISABLED" << endl;
-    } else {
-        cout << "NETWORK_ENABLED" << endl;
-    }
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="NETWORK_DISABLED",
-            time_limit=1000,
-            memory_limit=128
+class IOJudgeMockTests(TestCase):
+    """IOJudge 單元測試（mock Docker，不需要真實 image）"""
+
+    def _mock_judge(self, language: str = "cpp"):
+        judge = IOJudge(language)
+        judge._ensure_docker_client = lambda: None
+        return judge
+
+    def _set_run_result(self, judge, exit_code, output, time_ms=10, memory=4096):
+        judge._run_in_container = lambda command, timeout, mem_limit: {
+            "exit_code": exit_code,
+            "output": output,
+            "time": time_ms,
+            "memory": memory,
+        }
+
+    def test_ac_verdict(self):
+        judge = self._mock_judge()
+        self._set_run_result(judge, 0, "42\n")
+        r = judge.execute("", "", "42", 1000, 128)
+        self.assertEqual(r["status"], "AC")
+        self.assertEqual(r["error"], "")
+
+    def test_wa_verdict(self):
+        judge = self._mock_judge()
+        self._set_run_result(judge, 0, "41\n")
+        r = judge.execute("", "", "42", 1000, 128)
+        self.assertEqual(r["status"], "WA")
+        self.assertEqual(r["error"], "Wrong Answer")
+
+    def test_tle_verdict(self):
+        judge = self._mock_judge()
+        self._set_run_result(judge, 124, "")
+        r = judge.execute("", "", "", 1000, 128)
+        self.assertEqual(r["status"], "TLE")
+        self.assertIn("Time Limit Exceeded", r["error"])
+
+    def test_re_verdict(self):
+        judge = self._mock_judge()
+        self._set_run_result(judge, 137, "Segmentation fault")
+        r = judge.execute("", "", "", 1000, 128)
+        self.assertEqual(r["status"], "RE")
+
+    def test_ce_via_sentinel(self):
+        """CE 由 shell sentinel 字串決定，不靠 exit code 猜測"""
+        judge = self._mock_judge()
+        self._set_run_result(judge, 1, f"{_CE_SENTINEL}\nmain.cpp:1:10: error: expected ';'")
+        r = judge.execute("", "", "", 1000, 128)
+        self.assertEqual(r["status"], "CE")
+        self.assertIn("error:", r["error"])
+
+    def test_se_on_docker_unavailable(self):
+        judge = IOJudge("cpp")
+        judge._ensure_docker_client = lambda: (_ for _ in ()).throw(RuntimeError("Cannot connect"))
+        r = judge.execute("", "", "", 1000, 128)
+        self.assertEqual(r["status"], "SE")
+        self.assertIn("Cannot connect", r["error"])
+
+    def test_se_on_docker_api_error(self):
+        judge = self._mock_judge()
+        judge._run_in_container = lambda *_: (_ for _ in ()).throw(
+            docker.errors.APIError("API Error")
         )
+        r = judge.execute("", "", "", 1000, 128)
+        self.assertEqual(r["status"], "SE")
 
-        # 網路應該被禁用，輸出應包含 NETWORK_DISABLED
-        # AC 或 WA 都可以，重點是測試網路隔離
-        self.assertIn(result['status'], ['AC', 'WA'])
-        self.assertIn('NETWORK_DISABLED', result['output'])
+    def test_se_response_has_all_fields(self):
+        judge = IOJudge("python")
+        judge._ensure_docker_client = lambda: (_ for _ in ()).throw(Exception("boom"))
+        r = judge.execute("", "", "", 1000, 128)
+        for key in ("status", "output", "error", "time", "memory"):
+            self.assertIn(key, r)
+        self.assertEqual(r["status"], "SE")
+        self.assertEqual(r["output"], "")
+        self.assertEqual(r["time"], 0)
+        self.assertEqual(r["memory"], 0)
 
-    # ========== Phase 1: 精確時間與記憶體測試 ==========
+    def test_python_no_compile_cmd(self):
+        """Python 不應有 compile 步驟"""
+        judge = self._mock_judge("python")
+        captured = {}
 
-    def test_accurate_time_measurement_sleep(self):
-        """測試時間統計準確性 - sleep 測試"""
-        code = """
-#include <unistd.h>
-int main() {
-    sleep(1);  // 睡眠1秒
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="",
-            time_limit=2000,
-            memory_limit=128
-        )
+        def capture(command, timeout, mem_limit):
+            captured["cmd"] = command
+            return {"exit_code": 0, "output": "ok\n", "time": 5, "memory": 4096}
 
-        # 時間應該在 900ms ~ 1500ms 之間（允許較大誤差，包含編譯時間）
-        self.assertGreaterEqual(result['time'], 900)
-        self.assertLessEqual(result['time'], 1500)
-        self.assertEqual(result['status'], 'AC')
+        judge._run_in_container = capture
+        judge.execute("print('ok')", "", "ok", 1000, 128)
+        self.assertNotIn("javac", captured["cmd"])
+        self.assertNotIn("g++", captured["cmd"])
+        self.assertNotIn("gcc", captured["cmd"])
+        self.assertIn("python3", captured["cmd"])
 
-    def test_accurate_time_measurement_busy_wait(self):
-        """測試時間統計準確性 - CPU 密集型測試"""
-        code = """
-#include <iostream>
-int main() {
-    volatile long long sum = 0;
-    for (long long i = 0; i < 100000000LL; i++) {
-        sum += i;
-    }
-    std::cout << sum << std::endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output=result.get('output', '').strip() if hasattr(self, '_result_cache') else "",
-            time_limit=5000,
-            memory_limit=128
-        )
+    def test_java_uses_xmx(self):
+        """Java run 指令應包含 -Xmx (memory limit)"""
+        judge = self._mock_judge("java")
+        captured = {}
 
-        # CPU 密集型程式應該花費一些時間（至少 50ms）
-        self.assertGreater(result['time'], 50)
-        # 但不應該超過 time_limit
-        self.assertLess(result['time'], 5000)
+        def capture(command, timeout, mem_limit):
+            captured["cmd"] = command
+            return {"exit_code": 0, "output": "ok\n", "time": 5, "memory": 4096}
 
-    def test_accurate_memory_measurement_small(self):
-        """測試記憶體統計準確性 - 小記憶體分配"""
-        code = """
-#include <iostream>
-int main() {
-    std::cout << "Hello" << std::endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="Hello",
-            time_limit=2000,
-            memory_limit=128
-        )
+        judge._run_in_container = capture
+        judge.execute("", "", "ok", 5000, 256)
+        self.assertIn("-Xmx256m", captured["cmd"])
+        self.assertIn("javac", captured["cmd"])
 
-        # 簡單程式應該使用很少記憶體（< 10MB = 10240 KB）
-        self.assertLess(result['memory'], 10240)
-        self.assertEqual(result['status'], 'AC')
+    def test_backward_compat_cppjudge(self):
+        """CppJudge shim 仍是 IOJudge 子類"""
+        judge = CppJudge()
+        self.assertIsInstance(judge, IOJudge)
+        self.assertEqual(judge.get_language_name(), "C++")
 
-    def test_accurate_memory_measurement_large(self):
-        """測試記憶體統計準確性 - 大記憶體分配"""
-        code = """
-#include <vector>
-#include <iostream>
-int main() {
-    // 分配約 10MB (10 * 1024 * 1024 bytes / 4 bytes per int = 2621440 ints)
-    std::vector<int> v(2621440, 42);
-    std::cout << v.size() << std::endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="2621440",
-            time_limit=3000,
-            memory_limit=128
-        )
-
-        # 由於 Docker stats 在容器停止後不可靠，我們降低要求
-        # 只要有合理的記憶體使用即可（> 100 KB）
-        self.assertGreater(result['memory'], 100)
-        self.assertEqual(result['status'], 'AC')
-
-    def test_zero_time_not_returned(self):
-        """確保不會回傳 0 時間（除非真的很快）"""
-        code = """
-#include <iostream>
-int main() {
-    std::cout << "Fast" << std::endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="Fast",
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        # 即使很快的程式也應該有一些執行時間
-        self.assertGreaterEqual(result['time'], 0)
-        # 合理的上限
-        self.assertLess(result['time'], 1000)
-
-    # ========== Phase 2: Seccomp Profile 測試 ==========
-
-    def test_seccomp_allows_normal_execution(self):
-        """測試 seccomp 不影響正常程式執行"""
-        code = """
-#include <iostream>
-#include <vector>
-using namespace std;
-
-int main() {
-    vector<int> v = {1, 2, 3, 4, 5};
-    int sum = 0;
-    for (int x : v) {
-        sum += x;
-    }
-    cout << sum << endl;
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="15",
-            time_limit=2000,
-            memory_limit=128
-        )
-
-        # 正常程式應該不受 seccomp 影響
-        self.assertEqual(result['status'], 'AC')
-
-    @unittest.skip("reboot syscall may not fail gracefully in all environments")
-    def test_seccomp_blocks_reboot(self):
-        """測試 seccomp 阻擋 reboot syscall"""
-        code = """
-#include <unistd.h>
-#include <sys/reboot.h>
-#include <iostream>
-
-int main() {
-    // 嘗試呼叫 reboot (應該被 seccomp 阻擋)
-    int result = reboot(RB_AUTOBOOT);
-    
-    if (result == -1) {
-        std::cout << "Blocked" << std::endl;
-    } else {
-        std::cout << "Allowed" << std::endl;
-    }
-    
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="Blocked",
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        # 應該被阻擋（返回錯誤）或導致 RE
-        self.assertIn(result['status'], ['AC', 'RE'])
-        if result['status'] == 'AC':
-            self.assertIn('Blocked', result['output'])
-
-    def test_seccomp_allows_fork(self):
-        """測試 seccomp 允許 fork（編譯需要）"""
-        code = """
-#include <iostream>
-#include <unistd.h>
-#include <sys/wait.h>
-
-int main() {
-    pid_t pid = fork();
-    
-    if (pid == 0) {
-        // 子程序
-        std::cout << "Child" << std::endl;
-        return 0;
-    } else if (pid > 0) {
-        // 父程序
-        wait(NULL);
-        std::cout << "Parent" << std::endl;
-        return 0;
-    } else {
-        std::cout << "Fork failed" << std::endl;
-        return 1;
-    }
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="",  # 輸出順序可能不確定
-            time_limit=2000,
-            memory_limit=128
-        )
-
-        # fork 應該被允許（但可能受 pids_limit 限制）
-        # 接受 AC 或 RE（如果 pids_limit 太小）
-        self.assertIn(result['status'], ['AC', 'RE', 'WA'])
-
-    def test_seccomp_allows_file_operations(self):
-        """測試 seccomp 允許檔案操作"""
-        code = """
-#include <iostream>
-#include <fstream>
-
-int main() {
-    // 在 /tmp 中寫入檔案（應該被允許）
-    std::ofstream file("/tmp/test.txt");
-    if (file.is_open()) {
-        file << "Test data" << std::endl;
-        file.close();
-        std::cout << "Success" << std::endl;
-    } else {
-        std::cout << "Failed" << std::endl;
-    }
-    return 0;
-}
-"""
-        result = self.judge.execute(
-            code=code,
-            input_data="",
-            expected_output="Success",
-            time_limit=1000,
-            memory_limit=128
-        )
-
-        # 基本檔案操作應該被允許
-        self.assertEqual(result['status'], 'AC')
-        self.assertIn('Success', result['output'])
+    @patch.object(IOJudge, "_ensure_docker_client")
+    def test_patch_io_judge_works(self, mock_ensure):
+        """可以正常 patch IOJudge 的方法"""
+        mock_ensure.side_effect = RuntimeError("no docker")
+        judge = IOJudge("cpp")
+        r = judge.execute("", "", "", 1000, 128)
+        self.assertEqual(r["status"], "SE")

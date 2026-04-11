@@ -8,7 +8,8 @@ import pytest
 import re
 from pathlib import Path
 
-from apps.contests.models import Contest, ContestProblem, ContestParticipant, ExamStatus
+from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.tests import bind_problem_to_contest
 from apps.contests.exporters import (
     MarkdownRenderer,
     PDFRenderer,
@@ -95,11 +96,7 @@ class TestMarkdownRendererSnapshots:
             score=10
         )
 
-        ContestProblem.objects.create(
-            contest=contest,
-            problem=problem,
-            order=0
-        )
+        bind_problem_to_contest(contest, problem, order=0)
 
         return contest
 
@@ -188,11 +185,7 @@ class TestPDFRendererSnapshots:
             score=50
         )
 
-        ContestProblem.objects.create(
-            contest=contest,
-            problem=problem,
-            order=0
-        )
+        bind_problem_to_contest(contest, problem, order=0)
 
         return contest
 
@@ -275,11 +268,7 @@ class TestStudentReportSnapshots:
                     score=10
                 )
 
-            ContestProblem.objects.create(
-                contest=contest,
-                problem=problem,
-                order=i
-            )
+            bind_problem_to_contest(contest, problem, order=i)
             problems.append(problem)
 
         participant = ContestParticipant.objects.create(

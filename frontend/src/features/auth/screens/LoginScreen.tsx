@@ -7,7 +7,7 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { ArrowRight, LogoGithub, Education } from "@carbon/icons-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   getOAuthUrl,
@@ -20,6 +20,7 @@ const LoginPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { buildAuthLink } = usePendingActions();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,7 +36,18 @@ const LoginPage = () => {
         // Extract user profile only — do not persist tokens in localStorage
         const { access_token: _a, refresh_token: _r, ...safeData } = response.data;
         localStorage.setItem("user", JSON.stringify(safeData.user));
-        window.location.href = getAuthedLandingPath(safeData.user);
+        // If there's a next param (e.g. from OAuth flow), redirect there
+        const nextUrl = searchParams.get("next");
+        if (
+          nextUrl &&
+          !nextUrl.startsWith("http://") &&
+          !nextUrl.startsWith("https://") &&
+          !nextUrl.startsWith("//")
+        ) {
+          window.location.href = nextUrl;
+        } else {
+          window.location.href = getAuthedLandingPath(safeData.user);
+        }
       } else {
         setError(t("auth.login.failed"));
       }

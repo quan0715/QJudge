@@ -11,8 +11,9 @@ from datetime import timedelta
 from apps.users.models import UserProfile
 from apps.problems.models import Problem, TestCase, ProblemTranslation, LanguageConfig
 from apps.contests.models import (
-    Contest, ContestProblem, ContestParticipant, ExamQuestion, ExamAnswer, ExamEvent, ExamStatus,
+    Contest, ContestParticipant, ExamQuestion, ExamAnswer, ExamEvent, ExamStatus,
 )
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 
 User = get_user_model()
@@ -27,6 +28,28 @@ CODING_CONTEST_NAME = "Load Test Coding"
 
 class Command(BaseCommand):
     help = "Seed load-test data: 200 students, 1 teacher, 1 exam contest"
+
+    @staticmethod
+    def _bind_problem(contest, problem, order):
+        """Create a ContestQuestionBinding for a coding problem."""
+        from apps.question_bank.question_assets import sync_problem_question_asset
+        if not problem.question_asset_id:
+            sync_problem_question_asset(problem=problem, actor=problem.created_by or contest.owner)
+            problem.refresh_from_db(fields=["question_asset", "question_version"])
+        from django.db.models import Sum
+        score = max(1, int(problem.test_cases.aggregate(total=Sum('score'))['total'] or 100))
+        ContestQuestionBinding.objects.get_or_create(
+            contest=contest,
+            coding_problem=problem,
+            defaults={
+                "question_asset": problem.question_asset,
+                "question_version": problem.question_version,
+                "binding_type": QuestionAsset.AssetType.CODING,
+                "order": order,
+                "score": score,
+                "source_mode": "manual",
+            },
+        )
 
     def handle(self, *args, **options):
         self.stdout.write("=== Seeding load-test data ===")
@@ -193,8 +216,8 @@ class Command(BaseCommand):
         for idx, title in enumerate(["A+B Problem", "Hello World", "Factorial"]):
             prob = Problem.objects.filter(title=title).first()
             if prob:
-                ContestProblem.objects.get_or_create(contest=paper_contest, problem=prob, defaults={"order": idx})
-                ContestProblem.objects.get_or_create(contest=coding_contest, problem=prob, defaults={"order": idx})
+                self._bind_problem(paper_contest, prob, idx)
+                self._bind_problem(coding_contest, prob, idx)
 
         # Paper exam questions
         paper_questions = [

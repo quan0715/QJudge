@@ -9,11 +9,12 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ContestActivity, ContestProblem, ExamStatus
+from apps.contests.models import Contest, ContestParticipant, ContestActivity, ExamStatus
+from apps.contests.tests import bind_problem_to_contest
+from apps.question_bank.models import ContestQuestionBinding
 from apps.classrooms.models import Classroom, ClassroomContest
-from apps.contests import views as contest_views
 from apps.contests.views import contest as contest_view_module
-from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
+from apps.problems.models import Problem
 from apps.question_bank.models import Question, QuestionBank, QuestionCodingExt
 from apps.users.models import User, UserProfile
 
@@ -504,12 +505,13 @@ def test_enter_privileged_user_and_leave_without_registration(
 
 
 @pytest.mark.django_db
-def test_add_problem_supports_existing_problem_and_title_mode(
+def test_create_problem_via_title_and_duplicate_via_problem_id(
     api_client: APIClient,
     owner: User,
     contest: Contest,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """ContestProblemViewSet: POST /problems/ (title mode) and POST /problems/duplicate/ (binding-based)."""
     source_problem = _create_problem("Source Problem", owner)
     cloned_problem = _create_problem("Cloned Problem", owner)
     titled_problem = _create_problem("Created By Title", owner)
@@ -529,72 +531,30 @@ def test_add_problem_supports_existing_problem_and_title_mode(
 
     api_client.force_authenticate(user=owner)
 
+    # Duplicate via problem_id
     by_problem_id = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_problem/",
-        {"problem_id": source_problem.id},
+        f"/api/v1/contests/{contest.id}/problems/duplicate/",
+        {"problem_id": str(source_problem.id)},
         format="json",
     )
     assert by_problem_id.status_code == status.HTTP_201_CREATED
-    assert by_problem_id.data["contest_id"] == contest.id
 
+    # Create via title
     by_title = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_problem/",
+        f"/api/v1/contests/{contest.id}/problems/",
         {"title": "new title problem"},
         format="json",
     )
     assert by_title.status_code == status.HTTP_201_CREATED
 
-    missing_payload = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_problem/",
-        {},
-        format="json",
-    )
-    assert missing_payload.status_code == status.HTTP_400_BAD_REQUEST
-
 
 @pytest.mark.django_db
-def test_add_problem_returns_404_when_problem_id_not_found(
+def test_import_from_bank_creates_problem_copy(
     api_client: APIClient,
     owner: User,
     contest: Contest,
 ) -> None:
-    api_client.force_authenticate(user=owner)
-
-    response = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_problem/",
-        {"problem_id": str(uuid4())},
-        format="json",
-    )
-
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.data["success"] is False
-
-
-@pytest.mark.django_db
-def test_add_problem_returns_400_when_problem_id_is_not_uuid(
-    api_client: APIClient,
-    owner: User,
-    contest: Contest,
-) -> None:
-    api_client.force_authenticate(user=owner)
-
-    response = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_problem/",
-        {"problem_id": "not-a-uuid"},
-        format="json",
-    )
-
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "problem_id" in response.data.get("error", {}).get("details", {})
-
-
-@pytest.mark.django_db
-def test_add_problem_supports_question_bank_copy(
-    api_client: APIClient,
-    owner: User,
-    contest: Contest,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+    """ContestProblemViewSet: POST /problems/import-from-bank/ with items array (binding-based)."""
     platform_admin = User.objects.create_user(
         username="platform_admin_for_bank_import",
         email="platform_admin_for_bank_import@example.com",
@@ -640,31 +600,39 @@ def test_add_problem_supports_question_bank_copy(
     api_client.force_authenticate(user=owner)
 
     copied = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_problem/",
+        f"/api/v1/contests/{contest.id}/problems/import-from-bank/",
         {
-            "question_bank_id": str(bank.uuid),
-            "question_id": question.id,
-            "max_score": 45,
+            "items": [
+                {
+                    "question_bank_id": str(bank.uuid),
+                    "question_id": question.id,
+                    "max_score": 45,
+                },
+            ],
         },
         format="json",
     )
     assert copied.status_code == status.HTTP_201_CREATED
 
-    copied_cp = contest.contest_problems.get(source_question_id=question.id)
-    assert copied_cp.problem.title == "Bank Coding Question"
-    assert copied_cp.max_score == 45
-    assert copied_cp.source_question_id == question.id
-    assert copied_cp.source_mode == "copy"
-    assert str(copied_cp.source_bank_id) == str(bank.uuid)
-    assert copied_cp.source_bank_name == bank.name
+    from apps.question_bank.models import ContestQuestionBinding
+    binding = ContestQuestionBinding.objects.get(
+        contest=contest, source_question_id=question.id,
+    )
+    assert binding.coding_problem.title == "Bank Coding Question"
+    assert binding.score == 45
+    assert binding.source_question_id == question.id
+    assert binding.source_mode == "copy"
+    assert str(binding.source_bank_id) == str(bank.uuid)
+    assert binding.source_bank_name == bank.name
 
 
 @pytest.mark.django_db
-def test_add_problem_materializes_coding_ext_when_bank_question_has_no_source_problem(
+def test_import_from_bank_materializes_coding_ext(
     api_client: APIClient,
     owner: User,
     contest: Contest,
 ) -> None:
+    """ContestProblemViewSet: POST /problems/import-from-bank/ materializes coding extension data (binding-based)."""
     platform_admin = User.objects.create_user(
         username="platform_admin_for_materialize",
         email="platform_admin_for_materialize@example.com",
@@ -710,18 +678,27 @@ def test_add_problem_materializes_coding_ext_when_bank_question_has_no_source_pr
 
     api_client.force_authenticate(user=owner)
     response = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_problem/",
+        f"/api/v1/contests/{contest.id}/problems/import-from-bank/",
         {
-            "question_bank_id": str(bank.uuid),
-            "question_id": question.id,
+            "items": [
+                {
+                    "question_bank_id": str(bank.uuid),
+                    "question_id": question.id,
+                },
+            ],
         },
         format="json",
     )
     assert response.status_code == status.HTTP_201_CREATED
-    contest_problem = contest.contest_problems.latest("id")
-    assert contest_problem.source_question_id == question.id
-    assert contest_problem.source_mode == "copy"
-    weights = list(contest_problem.problem.test_cases.order_by("order").values_list("weight_percent", flat=True))
+
+    from apps.question_bank.models import ContestQuestionBinding
+    binding = ContestQuestionBinding.objects.get(
+        contest=contest, source_question_id=question.id,
+    )
+    assert binding.source_mode == "copy"
+    weights = list(
+        binding.coding_problem.test_cases.order_by("order").values_list("weight_percent", flat=True)
+    )
     assert weights == [40, 60]
 
 
@@ -732,20 +709,20 @@ def test_update_contest_problem_score_action(
     contest: Contest,
 ) -> None:
     problem = _create_problem("Score Update", owner)
-    contest_problem = contest.contest_problems.create(problem=problem, order=0, max_score=20)
+    binding = bind_problem_to_contest(contest, problem, order=0, score=20)
 
     api_client.force_authenticate(user=owner)
     response = api_client.patch(
-        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        f"/api/v1/contests/{contest.id}/problems/{binding.id}/score/",
         {"max_score": 35},
         format="json",
     )
     assert response.status_code == status.HTTP_200_OK
-    contest_problem.refresh_from_db()
-    assert contest_problem.max_score == 35
+    assert response.data["max_score"] == 35
+    assert response.data["score"] == 35
 
     invalid = api_client.patch(
-        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        f"/api/v1/contests/{contest.id}/problems/{binding.id}/score/",
         {"max_score": 0},
         format="json",
     )
@@ -753,36 +730,117 @@ def test_update_contest_problem_score_action(
 
 
 @pytest.mark.django_db
-def test_contest_problem_retrieve_prefers_contest_problem_id(
+def test_contest_problem_retrieve_by_binding_id(
     api_client: APIClient,
     owner: User,
     contest: Contest,
 ) -> None:
-    problem = _create_problem("Retrieve via contest problem id", owner)
-    contest_problem = ContestProblem.objects.create(contest=contest, problem=problem, order=0)
+    problem = _create_problem("Retrieve via binding id", owner)
+    binding = bind_problem_to_contest(contest, problem, order=0)
 
     api_client.force_authenticate(user=owner)
-    response = api_client.get(f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/")
+    response = api_client.get(f"/api/v1/contests/{contest.id}/problems/{binding.id}/")
 
     assert response.status_code == status.HTTP_200_OK
-    assert str(response.data["contest_problem_id"]) == str(contest_problem.id)
+    assert str(response.data["contest_problem_id"]) == str(binding.id)
     assert response.data["id"] == str(problem.id)
 
 
 @pytest.mark.django_db
-def test_contest_problem_destroy_accepts_legacy_problem_id_fallback(
+def test_contest_problem_destroy_accepts_coding_problem_id_fallback(
     api_client: APIClient,
     owner: User,
     contest: Contest,
 ) -> None:
-    problem = _create_problem("Destroy via legacy problem id", owner)
-    contest_problem = ContestProblem.objects.create(contest=contest, problem=problem, order=0)
+    problem = _create_problem("Destroy via coding problem id", owner)
+    binding = bind_problem_to_contest(contest, problem, order=0)
 
     api_client.force_authenticate(user=owner)
     response = api_client.delete(f"/api/v1/contests/{contest.id}/problems/{problem.id}/")
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert not ContestProblem.objects.filter(id=contest_problem.id).exists()
+    assert not ContestQuestionBinding.objects.filter(id=binding.id).exists()
+
+
+@pytest.mark.django_db
+def test_contest_problem_destroy_cleans_orphan_asset(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    """When a coding problem has no bank membership and its last binding is
+    removed, both the CodingProblem and QuestionAsset should be deleted."""
+    from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionBankMembership
+
+    problem = _create_problem("Orphan cleanup test", owner)
+    # Create QuestionAsset for the problem
+    asset = QuestionAsset.objects.create(
+        owner=owner,
+        asset_type=QuestionAsset.AssetType.CODING,
+        title=problem.title,
+    )
+    problem.question_asset = asset
+    problem.save(update_fields=["question_asset"])
+
+    binding = ContestQuestionBinding.objects.create(
+        contest=contest,
+        question_asset=asset,
+        coding_problem=problem,
+        binding_type=QuestionAsset.AssetType.CODING,
+        order=0,
+        score=100,
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.delete(f"/api/v1/contests/{contest.id}/problems/{binding.id}/")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not ContestQuestionBinding.objects.filter(id=binding.id).exists()
+    assert not Problem.objects.filter(id=problem.id).exists()
+    assert not QuestionAsset.objects.filter(id=asset.id).exists()
+
+
+@pytest.mark.django_db
+def test_contest_problem_destroy_keeps_asset_when_in_bank(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    """When a coding problem belongs to a question bank, destroy only removes
+    the binding; the CodingProblem and QuestionAsset must survive."""
+    from apps.question_bank.models import (
+        ContestQuestionBinding, QuestionAsset, QuestionBank, QuestionBankMembership,
+    )
+
+    problem = _create_problem("Bank member test", owner)
+    asset = QuestionAsset.objects.create(
+        owner=owner,
+        asset_type=QuestionAsset.AssetType.CODING,
+        title=problem.title,
+    )
+    problem.question_asset = asset
+    problem.save(update_fields=["question_asset"])
+
+    bank = QuestionBank.objects.create(name="Test Bank", owner=owner)
+    QuestionBankMembership.objects.create(bank=bank, question_asset=asset)
+
+    binding = ContestQuestionBinding.objects.create(
+        contest=contest,
+        question_asset=asset,
+        coding_problem=problem,
+        binding_type=QuestionAsset.AssetType.CODING,
+        order=0,
+        score=100,
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.delete(f"/api/v1/contests/{contest.id}/problems/{binding.id}/")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not ContestQuestionBinding.objects.filter(id=binding.id).exists()
+    # Problem and asset should still exist
+    assert Problem.objects.filter(id=problem.id).exists()
+    assert QuestionAsset.objects.filter(id=asset.id).exists()
 
 
 @pytest.mark.django_db
@@ -802,12 +860,12 @@ def test_contest_question_mutations_blocked_when_question_edit_locked(
         ]
     )
     problem = _create_problem("Locked Contest Problem", owner)
-    contest_problem = contest.contest_problems.create(problem=problem, order=0, max_score=20)
+    binding = bind_problem_to_contest(contest, problem, order=0, score=20)
 
     api_client.force_authenticate(user=owner)
 
     add_resp = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_problem/",
+        f"/api/v1/contests/{contest.id}/problems/",
         {"title": "Should Fail"},
         format="json",
     )
@@ -815,15 +873,15 @@ def test_contest_question_mutations_blocked_when_question_edit_locked(
     assert "CONTEST_QUESTION_EDIT_LOCKED" in str(add_resp.data)
 
     reorder_resp = api_client.post(
-        f"/api/v1/contests/{contest.id}/reorder_problems/",
-        {"orders": [{"id": contest_problem.id, "order": 0}]},
+        f"/api/v1/contests/{contest.id}/problems/reorder/",
+        {"orders": [{"id": binding.id, "order": 0}]},
         format="json",
     )
     assert reorder_resp.status_code == status.HTTP_409_CONFLICT
     assert "CONTEST_QUESTION_EDIT_LOCKED" in str(reorder_resp.data)
 
     score_resp = api_client.patch(
-        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        f"/api/v1/contests/{contest.id}/problems/{binding.id}/score/",
         {"max_score": 30},
         format="json",
     )
@@ -837,29 +895,46 @@ def test_reorder_problems_updates_and_normalizes_order(
     owner: User,
     contest: Contest,
 ) -> None:
+    from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
     p1 = _create_problem("P1", owner)
     p2 = _create_problem("P2", owner)
-    cp1 = contest.contest_problems.create(problem=p1, order=0)
-    cp2 = contest.contest_problems.create(problem=p2, order=1)
+
+    asset1 = QuestionAsset.objects.create(
+        owner=owner, asset_type=QuestionAsset.AssetType.CODING, title="P1",
+    )
+    asset2 = QuestionAsset.objects.create(
+        owner=owner, asset_type=QuestionAsset.AssetType.CODING, title="P2",
+    )
+
+    # Create bindings via ContestQuestionBinding (primary store)
+    b1 = ContestQuestionBinding.objects.create(
+        contest=contest, question_asset=asset1, coding_problem=p1,
+        binding_type=QuestionAsset.AssetType.CODING, order=0, score=100,
+    )
+    b2 = ContestQuestionBinding.objects.create(
+        contest=contest, question_asset=asset2, coding_problem=p2,
+        binding_type=QuestionAsset.AssetType.CODING, order=1, score=100,
+    )
     api_client.force_authenticate(user=owner)
 
     no_orders = api_client.post(
-        f"/api/v1/contests/{contest.id}/reorder_problems/",
+        f"/api/v1/contests/{contest.id}/problems/reorder/",
         {"orders": []},
         format="json",
     )
     assert no_orders.status_code == status.HTTP_400_BAD_REQUEST
 
     reordered = api_client.post(
-        f"/api/v1/contests/{contest.id}/reorder_problems/",
-        {"orders": [{"id": cp1.id, "order": 1}, {"id": cp2.id, "order": 0}]},
+        f"/api/v1/contests/{contest.id}/problems/reorder/",
+        {"orders": [{"id": str(b1.id), "order": 1}, {"id": str(b2.id), "order": 0}]},
         format="json",
     )
     assert reordered.status_code == status.HTTP_200_OK
-    cp1.refresh_from_db()
-    cp2.refresh_from_db()
-    assert cp2.order == 0
-    assert cp1.order == 1
+    b1.refresh_from_db()
+    b2.refresh_from_db()
+    assert b2.order == 0
+    assert b1.order == 1
 
 
 @pytest.mark.django_db
@@ -1436,3 +1511,76 @@ def test_overview_metrics_handles_exam_status_and_time_progress_boundaries(
     assert ended.data["time_progress"]["progress_percent"] == 100
     assert ended.data["time_progress"]["remaining_seconds"] == 0
     assert ended.data["time_progress"]["is_ended"] is True
+
+
+# ---------------------------------------------------------------------------
+# ContestProblemViewSet: duplicate & reorder actions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_contest_problem_duplicate_creates_clone(api_client, owner, contest):
+    from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+    problem = _create_problem("Original for dup", owner)
+    asset = QuestionAsset.objects.create(
+        owner=owner, asset_type=QuestionAsset.AssetType.CODING, title="Original for dup",
+    )
+    problem.question_asset = asset
+    problem.save(update_fields=["question_asset"])
+    ContestQuestionBinding.objects.create(
+        contest=contest, question_asset=asset, coding_problem=problem,
+        binding_type=QuestionAsset.AssetType.CODING, order=0, score=100,
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/problems/duplicate/",
+        {"problem_id": str(problem.id)},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    bindings = ContestQuestionBinding.objects.filter(
+        contest=contest, binding_type=QuestionAsset.AssetType.CODING,
+    )
+    assert bindings.count() == 2
+    assert "binding_id" in response.data
+
+
+@pytest.mark.django_db
+def test_contest_problem_reorder_via_problems_endpoint(api_client, owner, contest):
+    from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+    bindings = []
+    for i, title in enumerate(["A", "B", "C"]):
+        p = _create_problem(f"Reorder {title}", owner)
+        asset = QuestionAsset.objects.create(
+            owner=owner, asset_type=QuestionAsset.AssetType.CODING, title=title,
+        )
+        p.question_asset = asset
+        p.save(update_fields=["question_asset"])
+        b = ContestQuestionBinding.objects.create(
+            contest=contest, question_asset=asset, coding_problem=p,
+            binding_type=QuestionAsset.AssetType.CODING, order=i, score=100,
+        )
+        bindings.append(b)
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/problems/reorder/",
+        {"orders": [
+            {"id": str(bindings[2].id), "order": 0},
+            {"id": str(bindings[0].id), "order": 1},
+            {"id": str(bindings[1].id), "order": 2},
+        ]},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    bindings[2].refresh_from_db()
+    bindings[0].refresh_from_db()
+    bindings[1].refresh_from_db()
+    assert bindings[2].order == 0
+    assert bindings[0].order == 1
+    assert bindings[1].order == 2

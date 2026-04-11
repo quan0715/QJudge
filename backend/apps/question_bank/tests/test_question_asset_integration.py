@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestProblem, ExamQuestion
+from apps.contests.models import Contest, ExamQuestion
 from apps.problems.models import Problem
 from apps.question_bank.models import (
     ContestQuestionBinding,
@@ -143,7 +143,7 @@ def test_exam_question_api_dual_writes_asset_and_binding(
 
 
 @pytest.mark.django_db
-def test_contest_add_problem_title_mode_creates_asset_and_binding(
+def test_contest_create_problem_title_mode_creates_asset_and_binding(
     api_client: APIClient,
     teacher: User,
 ):
@@ -156,7 +156,7 @@ def test_contest_add_problem_title_mode_creates_asset_and_binding(
     api_client.force_authenticate(user=teacher)
 
     resp = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_problem/",
+        f"/api/v1/contests/{contest.id}/problems/",
         {"title": "Contest-created coding problem"},
         format="json",
     )
@@ -164,12 +164,10 @@ def test_contest_add_problem_title_mode_creates_asset_and_binding(
     assert resp.data["question_asset_id"] is not None
     assert resp.data["question_version_id"] is not None
 
-    contest_problem = ContestProblem.objects.get(contest=contest)
-    assert contest_problem.problem.question_asset_id is not None
-    assert contest_problem.question_asset_id == contest_problem.problem.question_asset_id
-    binding = ContestQuestionBinding.objects.get(legacy_contest_problem=contest_problem)
-    assert binding.question_asset_id == contest_problem.problem.question_asset_id
-    assert binding.question_version_id == contest_problem.problem.question_version_id
+    binding = ContestQuestionBinding.objects.get(contest=contest)
+    assert binding.question_asset_id is not None
+    assert binding.coding_problem is not None
+    assert binding.coding_problem.question_asset_id == binding.question_asset_id
 
 
 @pytest.mark.django_db

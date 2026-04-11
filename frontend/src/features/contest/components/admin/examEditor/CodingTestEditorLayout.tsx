@@ -1,16 +1,17 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@carbon/react";
-import { Add, Close, Menu, Upload, View } from "@carbon/icons-react";
+import { Add, Close, Menu, View } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type {
   ContestDetail,
   ContestProblemSummary,
 } from "@/core/entities/contest.entity";
 import {
-  addContestProblem,
+  createContestProblem,
+  duplicateContestProblem,
+  importContestProblemsFromBank,
   getContest,
   removeContestProblem,
   reorderContestProblems,
@@ -30,13 +31,6 @@ import type { QuestionSourceDragItem } from "./questionSource.types";
 import useToolbarSaveStatus from "./hooks/useToolbarSaveStatus";
 import { useEditorPaneScrollSelection } from "./hooks/useEditorPaneScrollSelection";
 import { labelForContestProblemOrder } from "@/features/contest/domain/contestProblemOrderLabel";
-import ProblemImportModal from "@/features/problems/components/modals/ProblemImportModal";
-import type { ProblemYAML } from "@/shared/utils/problemYamlParser";
-import {
-  formSchemaToApiPayload,
-  yamlToFormSchema,
-} from "@/features/problems/forms/problemFormAdapters";
-import { patchProblem } from "@/infrastructure/api/repositories/problem.repository";
 import styles from "./ExamEditorLayout.module.scss";
 
 interface CodingTestEditorLayoutProps {
@@ -96,7 +90,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   contest,
 }) => {
   const { t } = useTranslation("contest");
-  const queryClient = useQueryClient();
   const { classroomId } = useParams<{ classroomId?: string }>();
   const { showToast } = useToast();
   const { refreshContest, loading: contestLoading } = useContest();
@@ -114,7 +107,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   const [sourcePanelExpanded, setSourcePanelExpanded] = useState(true);
   const [sourceModalOpen, setSourceModalOpen] = useState(false);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
-  const [yamlImportOpen, setYamlImportOpen] = useState(false);
   const [viewReorderPointerDepth, setViewReorderPointerDepth] = useState(0);
 
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -296,16 +288,16 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       if (sourceItem.kind === "bank_question") {
         await insertImportedProblemAt(targetIndex, async () => {
           await listSave.track(() =>
-            addContestProblem(contestId, {
+            importContestProblemsFromBank(contestId, [{
               question_bank_id: sourceItem.questionBankId,
               question_id: sourceItem.questionId,
-            })
+            }])
           );
         });
       } else if (sourceItem.kind === "coding_template") {
         await insertImportedProblemAt(targetIndex, async () => {
           await listSave.track(() =>
-            addContestProblem(contestId, { title: sourceItem.title })
+            createContestProblem(contestId, { title: sourceItem.title })
           );
         });
       }
@@ -329,7 +321,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       const beforeIds = new Set(orderedProblems.map((p) => p.id));
       try {
         await listSave.track(() =>
-          addContestProblem(contestId, { problem_id: problemId })
+          duplicateContestProblem(contestId, { problem_id: problemId })
         );
         await refreshContest();
         const latest = await fetchLatestProblems();
@@ -363,74 +355,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       t,
     ],
   );
-
-  const handleYamlPopulate = useCallback(
-    (parsedData: ProblemYAML) => {
-      const cp = orderedProblems.find((p) => p.id === selectedId);
-      const problemId = cp?.problemId;
-      if (!problemId) {
-        showToast({
-          kind: "warning",
-          title: t("examEditor.yamlImportNeedSelection", "請先選取程式題"),
-        });
-        return;
-      }
-      void (async () => {
-        try {
-          const formData = yamlToFormSchema(parsedData);
-          const apiPayload = formSchemaToApiPayload(formData);
-          await listSave.track(() => patchProblem(problemId, apiPayload));
-          await refreshContest();
-          await queryClient.invalidateQueries({
-            queryKey: ["contestProblemEditor", contestId, selectedId],
-          });
-          showToast({
-            kind: "success",
-            title: t("examEditor.yamlImportSuccess", "YAML 已套用"),
-          });
-        } catch (err) {
-          showToast({
-            kind: "error",
-            title: t("examEditor.yamlImportFailed", "YAML 匯入失敗"),
-            subtitle: err instanceof Error ? err.message : undefined,
-          });
-        }
-      })();
-    },
-    [
-      contestId,
-      listSave,
-      orderedProblems,
-      queryClient,
-      refreshContest,
-      selectedId,
-      showToast,
-      t,
-    ],
-  );
-
-  const openYamlImport = useCallback(() => {
-    if (questionEditLocked) {
-      showToast({ kind: "warning", title: lockedReason });
-      return;
-    }
-    const cp = orderedProblems.find((p) => p.id === selectedId);
-    if (!selectedId || !cp?.problemId) {
-      showToast({
-        kind: "warning",
-        title: t("examEditor.yamlImportNeedSelection", "請先選取程式題"),
-      });
-      return;
-    }
-    setYamlImportOpen(true);
-  }, [
-    lockedReason,
-    orderedProblems,
-    questionEditLocked,
-    selectedId,
-    showToast,
-    t,
-  ]);
 
   const aiPanelContent = (
     <ChatbotWidget
@@ -526,14 +450,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
             )}
             actions={
               <>
-                <Button
-                  kind="ghost"
-                  size="md"
-                  hasIconOnly
-                  renderIcon={Upload}
-                  iconDescription={t("examEditor.importYaml", "匯入 YAML")}
-                  onClick={openYamlImport}
-                />
                 {effectiveClassroomId && (
                   <Button
                     kind="ghost"
@@ -676,13 +592,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
           {sourcePanelContent}
         </div>
       )}
-
-      <ProblemImportModal
-        open={yamlImportOpen}
-        onClose={() => setYamlImportOpen(false)}
-        mode="populateForm"
-        onPopulate={handleYamlPopulate}
-      />
     </>
   );
 };
