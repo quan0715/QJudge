@@ -255,5 +255,98 @@ async def reorder_exam_questions(
     )
 
 
+@mcp.tool()
+async def list_exam_answers(
+    contest_id: str,
+    ctx: Context,
+    participant_id: str | None = None,
+) -> str:
+    """列出競賽中所有學生的作答紀錄（含評分結果），僅限老師/助教。
+
+    Args:
+        contest_id: 競賽 ID (UUID)
+        participant_id: 篩選特定學生的參與者 ID（可選）
+    """
+    params = ""
+    if participant_id:
+        params = f"?participant_id={participant_id}"
+    return await django_api(
+        "GET",
+        f"/api/v1/contests/{contest_id}/exam-answers/all-answers/{params}",
+        ctx,
+    )
+
+
+@mcp.tool()
+async def get_exam_question_detail(contest_id: str, question_id: str, ctx: Context) -> str:
+    """取得某道題目的作答分析（答題分佈、批改進度、各學生作答與得分），僅限老師/助教。
+
+    Args:
+        contest_id: 競賽 ID (UUID)
+        question_id: 題目 ID (UUID)
+    """
+    return await django_api(
+        "GET",
+        f"/api/v1/contests/{contest_id}/exam-answers/question-detail/?question_id={question_id}",
+        ctx,
+    )
+
+
+@mcp.tool()
+async def get_grading_dashboard(contest_id: str, ctx: Context) -> str:
+    """取得競賽的批改總覽（分數分佈、通過率、各題正確率），僅限老師/助教。
+
+    Args:
+        contest_id: 競賽 ID (UUID)
+    """
+    return await django_api(
+        "GET",
+        f"/api/v1/contests/{contest_id}/exam-answers/dashboard-summary/",
+        ctx,
+    )
+
+
+@mcp.tool()
+async def grade_exam_answer(
+    contest_id: str,
+    exam_answer_id: str,
+    score: float,
+    ctx: Context,
+    feedback: str | None = None,
+) -> str:
+    """批改一份學生的作答，給予分數和回饋意見。
+
+    Args:
+        contest_id: 競賽 ID (UUID)
+        exam_answer_id: 作答紀錄 ID (UUID)
+        score: 給分（0 以上的數字，最多兩位小數）
+        feedback: 批改回饋意見（可選）
+    """
+    body: dict[str, Any] = {"score": score}
+    if feedback is not None:
+        body["feedback"] = feedback
+    return await django_api(
+        "POST",
+        f"/api/v1/contests/{contest_id}/exam-answers/{exam_answer_id}/grade/",
+        ctx,
+        json_body=body,
+    )
+
+
+@mcp.tool()
+async def ungrade_exam_answer(contest_id: str, exam_answer_id: str, ctx: Context) -> str:
+    """撤銷一份作答的批改結果（清除分數和回饋），僅限老師/助教。
+
+    Args:
+        contest_id: 競賽 ID (UUID)
+        exam_answer_id: 作答紀錄 ID (UUID)
+    """
+    return await django_api(
+        "POST",
+        f"/api/v1/contests/{contest_id}/exam-answers/{exam_answer_id}/ungrade/",
+        ctx,
+    )
+
+
 if __name__ == "__main__":
     mcp.run(transport="streamable-http")
