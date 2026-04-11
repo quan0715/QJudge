@@ -200,10 +200,6 @@ class ContestAccessPolicy(permissions.BasePermission):
         'toggle_status': 'manage_contest_lifecycle',
         'archive': 'manage_contest_lifecycle',
 
-        # Problem Management
-        'add_problem': 'manage_problems',
-        'reorder_problems': 'manage_problems',
-
         # Participant Management
         'participants': 'view_participants',
         'unlock_participant': 'manage_participants',

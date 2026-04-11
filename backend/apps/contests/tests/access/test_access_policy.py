@@ -406,10 +406,6 @@ class TestPermissionMatrix:
         ('teacher', 'unlock_participant', True),
         ('student', 'unlock_participant', False),
 
-        # Manage problems
-        ('admin', 'add_problem', True),
-        ('teacher', 'add_problem', True),
-        ('student', 'add_problem', False),
     ])
     def test_role_action_permissions(self, setup_contest, role, action, expected):
         """Test role × action permission combinations."""
@@ -524,7 +520,6 @@ class TestActionPermissionMapCompleteness:
             'my_report',
             'standings',
             'toggle_status',
-            'add_problem',
             'participants',
         ]
 
