@@ -460,6 +460,7 @@ async def qjudge_coding(
     ctx: Context,
     contest_id: str | None = None,
     problem_id: str | None = None,
+    title: str | None = None,
     question_bank_id: str | None = None,
     question_id: str | None = None,
     max_score: int | None = None,
@@ -473,8 +474,9 @@ async def qjudge_coding(
     Actions:
       list         — List coding problems in a contest (required: contest_id)
       get          — Get problem detail (required: contest_id, problem_id)
+      create       — Create a new problem in contest (auto-added to personal bank) (required: contest_id, title)
       add_from_bank — Import from question bank (required: contest_id, question_bank_id, question_id)
-      duplicate    — Duplicate an existing contest problem (required: contest_id, problem_id)
+      duplicate    — Clone an existing problem into the contest (required: contest_id, problem_id = source Problem UUID)
       update_score — Update contest-level score (required: contest_id, problem_id, max_score)
       delete       — Remove problem from contest (required: contest_id, problem_id)
       test_run     — Execute code against test cases (required: problem_id, language, code)
@@ -490,6 +492,16 @@ async def qjudge_coding(
         if not problem_id:
             return _error("problem_id is required")
         return await django_api("GET", f"/api/v1/contests/{contest_id}/problems/{problem_id}/", ctx)
+
+    if action == "create":
+        if not contest_id:
+            return _error("contest_id is required")
+        if not title:
+            return _error("title is required")
+        body: dict[str, Any] = {"title": title}
+        if max_score is not None:
+            body["max_score"] = max_score
+        return await django_api("POST", f"/api/v1/contests/{contest_id}/add_problem/", ctx, json_body=body)
 
     if action == "add_from_bank":
         if not contest_id:
