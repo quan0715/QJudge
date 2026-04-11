@@ -380,5 +380,130 @@ async def qjudge_grading(
     return _error(f"Unknown action: {action}")
 
 
+# ---------------------------------------------------------------------------
+# Tool 4: qjudge_coding — 程式題目 CRUD + test_run
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+async def qjudge_coding(
+    action: str,
+    ctx: Context,
+    problem_id: str | None = None,
+    search: str | None = None,
+    difficulty: str | None = None,
+    tags: str | None = None,
+    title: str | None = None,
+    slug: str | None = None,
+    time_limit: int | None = None,
+    memory_limit: int | None = None,
+    forbidden_keywords: list[str] | None = None,
+    required_keywords: list[str] | None = None,
+    test_cases: list[dict] | None = None,
+    language_configs: list[dict] | None = None,
+    translations: list[dict] | None = None,
+    existing_tag_ids: list[str] | None = None,
+    new_tag_names: list[str] | None = None,
+    language: str | None = None,
+    code: str | None = None,
+    use_samples: bool = True,
+    custom_test_cases: list[dict] | None = None,
+) -> Any:
+    """Manage coding problems: list, view, create, edit, delete, and test-run code.
+
+    Actions:
+      list        — Browse problems (optional: search, difficulty, tags)
+      get         — Get full problem detail including test cases and language configs
+      create      — Create a new problem (required: title)
+      update      — Update problem fields (required: problem_id + at least one field)
+      delete      — Delete a problem (required: problem_id)
+      test_run    — Execute code against test cases (required: problem_id, language, code)
+    """
+    base = "/api/v1/problems"
+
+    if action == "list":
+        query: dict[str, str] = {"scope": "manage"}
+        if search:
+            query["search"] = search
+        if difficulty:
+            query["difficulty"] = difficulty
+        if tags:
+            query["tags"] = tags
+        return await django_api("GET", f"{base}/?{urlencode(query)}", ctx)
+
+    if action == "get":
+        if not problem_id:
+            return _error("problem_id is required")
+        return await django_api("GET", f"{base}/{problem_id}/", ctx)
+
+    if action == "create":
+        if not title:
+            return _error("title is required")
+        body: dict[str, Any] = {"title": title}
+        for key, val in [
+            ("difficulty", difficulty),
+            ("slug", slug),
+            ("time_limit", time_limit),
+            ("memory_limit", memory_limit),
+            ("forbidden_keywords", forbidden_keywords),
+            ("required_keywords", required_keywords),
+            ("test_cases", test_cases),
+            ("language_configs", language_configs),
+            ("translations", translations),
+            ("existing_tag_ids", existing_tag_ids),
+            ("new_tag_names", new_tag_names),
+        ]:
+            if val is not None:
+                body[key] = val
+        return await django_api("POST", f"{base}/", ctx, json_body=body)
+
+    if action == "update":
+        if not problem_id:
+            return _error("problem_id is required")
+        body = {}
+        for key, val in [
+            ("title", title),
+            ("difficulty", difficulty),
+            ("slug", slug),
+            ("time_limit", time_limit),
+            ("memory_limit", memory_limit),
+            ("forbidden_keywords", forbidden_keywords),
+            ("required_keywords", required_keywords),
+            ("test_cases", test_cases),
+            ("language_configs", language_configs),
+            ("translations", translations),
+            ("existing_tag_ids", existing_tag_ids),
+            ("new_tag_names", new_tag_names),
+        ]:
+            if val is not None:
+                body[key] = val
+        if not body:
+            return _error("No fields to update")
+        return await django_api("PATCH", f"{base}/{problem_id}/", ctx, json_body=body)
+
+    if action == "delete":
+        if not problem_id:
+            return _error("problem_id is required")
+        await django_api("DELETE", f"{base}/{problem_id}/", ctx)
+        return {"status": "deleted", "problem_id": problem_id}
+
+    if action == "test_run":
+        if not problem_id:
+            return _error("problem_id is required")
+        if not language:
+            return _error("language is required")
+        if not code:
+            return _error("code is required")
+        body = {
+            "language": language,
+            "code": code,
+            "use_samples": use_samples,
+        }
+        if custom_test_cases is not None:
+            body["custom_test_cases"] = custom_test_cases
+        return await django_api("POST", f"{base}/{problem_id}/test_run/", ctx, json_body=body)
+
+    return _error(f"Unknown action: {action}")
+
+
 if __name__ == "__main__":
     mcp.run(transport="streamable-http")
