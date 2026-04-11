@@ -9,8 +9,6 @@ from .models import (
     TestCase,
     LanguageConfig,
     Tag,
-    ProblemDiscussion,
-    ProblemDiscussionComment,
 )
 from .services import ProblemService
 
@@ -139,108 +137,6 @@ class TestRunSerializer(serializers.Serializer):
         required=False,
         help_text='Custom test cases (input only)'
     )
-
-
-class SimpleUserSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    username = serializers.CharField()
-    role = serializers.CharField(required=False, allow_blank=True)
-
-
-class ProblemDiscussionSerializer(serializers.ModelSerializer):
-    user = SimpleUserSerializer(read_only=True)
-    comments_count = serializers.SerializerMethodField()
-    comments = serializers.SerializerMethodField()
-    like_count = serializers.SerializerMethodField()
-    is_liked = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ProblemDiscussion
-        fields = [
-            "id",
-            "problem",
-            "title",
-            "content",
-            "is_deleted",
-            "created_at",
-            "updated_at",
-            "user",
-            "comments_count",
-            "comments",
-            "like_count",
-            "is_liked",
-        ]
-        read_only_fields = [
-            "id",
-            "problem",
-            "is_deleted",
-            "created_at",
-            "updated_at",
-            "user",
-            "comments_count",
-            "comments",
-            "like_count",
-            "is_liked",
-        ]
-
-    def get_comments_count(self, obj):
-        return obj.comments.count()
-
-    def get_comments(self, obj):
-        """Return all comments for this discussion with nested structure."""
-        comments = obj.comments.select_related("user").order_by("created_at")
-        return ProblemDiscussionCommentSerializer(
-            comments, many=True, context=self.context
-        ).data
-
-    def get_like_count(self, obj):
-        return obj.likes.count()
-
-    def get_is_liked(self, obj):
-        request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
-            return False
-        return obj.likes.filter(user=request.user).exists()
-
-
-class ProblemDiscussionCommentSerializer(serializers.ModelSerializer):
-    user = SimpleUserSerializer(read_only=True)
-    like_count = serializers.SerializerMethodField()
-    is_liked = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ProblemDiscussionComment
-        fields = [
-            "id",
-            "discussion",
-            "parent",
-            "content",
-            "is_deleted",
-            "created_at",
-            "updated_at",
-            "user",
-            "like_count",
-            "is_liked",
-        ]
-        read_only_fields = [
-            "id",
-            "discussion",
-            "is_deleted",
-            "created_at",
-            "updated_at",
-            "user",
-            "like_count",
-            "is_liked",
-        ]
-
-    def get_like_count(self, obj):
-        return obj.likes.count()
-
-    def get_is_liked(self, obj):
-        request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
-            return False
-        return obj.likes.filter(user=request.user).exists()
 
 
 class ProblemListSerializer(serializers.ModelSerializer):
