@@ -20,20 +20,35 @@ export const getContestProblem = async (
   return mapProblemDetailDto(data);
 };
 
-export const addContestProblem = async (
+export const createContestProblem = async (
   contestId: string,
-  data: {
-    title?: string;
-    problem_id?: string;
-    question_bank_id?: string;
-    question_id?: string;
-    import_mode?: "copy" | "reference";
-    max_score?: number;
-  }
+  data: { title: string; max_score?: number }
 ): Promise<Problem> => {
   const responseData = await requestJson<any>(
-    httpClient.post(`/api/v1/contests/${contestId}/add_problem/`, data),
-    "Failed to add problem"
+    httpClient.post(`/api/v1/contests/${contestId}/problems/`, data),
+    "Failed to create problem"
+  );
+  return mapProblemDto(responseData);
+};
+
+export const duplicateContestProblem = async (
+  contestId: string,
+  data: { problem_id: string; max_score?: number }
+): Promise<Problem> => {
+  const responseData = await requestJson<any>(
+    httpClient.post(`/api/v1/contests/${contestId}/problems/duplicate/`, data),
+    "Failed to duplicate problem"
+  );
+  return mapProblemDto(responseData);
+};
+
+export const importContestProblemsFromBank = async (
+  contestId: string,
+  items: { question_bank_id: string; question_id: string }[]
+): Promise<Problem> => {
+  const responseData = await requestJson<any>(
+    httpClient.post(`/api/v1/contests/${contestId}/problems/import-from-bank/`, { items }),
+    "Failed to import problems from bank"
   );
   return mapProblemDto(responseData);
 };
@@ -55,9 +70,7 @@ export const reorderContestProblems = async (
   orders: { id: string | number; order: number }[]
 ): Promise<void> => {
   await ensureOk(
-    httpClient.post(`/api/v1/contests/${contestId}/reorder_problems/`, {
-      orders,
-    }),
+    httpClient.post(`/api/v1/contests/${contestId}/problems/reorder/`, { orders }),
     "Failed to reorder problems"
   );
 };
