@@ -2,7 +2,7 @@ import json
 import secrets
 import string
 from datetime import timedelta
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -28,6 +28,7 @@ def oauth_authorization_server_metadata(request):
             "response_types_supported": ["code"],
             "grant_types_supported": ["authorization_code"],
             "code_challenge_methods_supported": ["S256"],
+            "scopes_supported": ["mcp"],
             "token_endpoint_auth_methods_supported": ["none"],
         }
     )
@@ -82,6 +83,18 @@ def dynamic_client_registration(request):
             status=400,
         )
 
+    allowed_schemes = {"http", "https"}
+    for uri in redirect_uris:
+        parsed = urlparse(uri)
+        if parsed.scheme not in allowed_schemes or not parsed.netloc:
+            return JsonResponse(
+                {
+                    "error": "invalid_client_metadata",
+                    "error_description": f"Invalid redirect_uri: {uri}",
+                },
+                status=400,
+            )
+
     client_id = _generate_client_id()
 
     Application.objects.create(
@@ -112,10 +125,17 @@ def authorize_redirect(request):
     """Redirect to frontend OAuth authorize page with all query params."""
     frontend_url = getattr(settings, "FRONTEND_URL", settings.OAUTH_ISSUER_URL)
     params = request.GET.urlencode()
+    # Look up client name from Application for the consent page
+    client_id = request.GET.get("client_id")
+    if client_id:
+        try:
+            app = Application.objects.get(client_id=client_id)
+            params += f"&client_name={app.name}"
+        except Application.DoesNotExist:
+            pass
     return redirect(f"{frontend_url}/oauth/authorize?{params}")
 
 
-@csrf_exempt
 @require_POST
 def approve_authorization(request):
     """Create authorization code and return redirect URL."""

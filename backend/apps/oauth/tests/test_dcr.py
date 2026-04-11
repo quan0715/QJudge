@@ -84,3 +84,15 @@ class DynamicClientRegistrationTest(TestCase):
     def test_reject_get_method(self):
         response = self.client.get("/o/register/")
         self.assertEqual(response.status_code, 405)
+
+    def test_reject_invalid_redirect_uri_scheme(self):
+        response = self._register(
+            {
+                "client_name": "Bad Client",
+                "grant_types": ["authorization_code"],
+                "token_endpoint_auth_method": "none",
+                "redirect_uris": ["javascript:alert(1)"],
+            }
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.json())

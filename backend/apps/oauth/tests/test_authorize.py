@@ -55,6 +55,7 @@ class AuthorizeRedirectTest(TestCase):
         location = response["Location"]
         self.assertIn("/oauth/authorize", location)
         self.assertIn("client_id=test-client-id", location)
+        self.assertIn("client_name=Test", location)
 
     def test_redirects_to_login_when_not_authenticated(self):
         _, challenge = _pkce_pair()
