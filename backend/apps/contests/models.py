@@ -485,6 +485,12 @@ class ExamQuestion(models.Model):
         verbose_name='標準答案',
         help_text='是非/選擇題可存標準答案，問答題可留空'
     )
+    explanation = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='詳解',
+        help_text='題目詳解，於成績公布後提供學生查看',
+    )
     score = models.PositiveIntegerField(default=1, verbose_name='配分')
     order = models.IntegerField(default=0, verbose_name='排序')
     source_bank_id = models.UUIDField(null=True, blank=True, verbose_name='來源題庫 UUID')
@@ -534,47 +540,10 @@ class ExamQuestion(models.Model):
             'prompt': self.prompt,
             'options': self.options,
             'correct_answer': self.correct_answer,
+            'explanation': self.explanation,
             'question_type': self.question_type,
             'score': self.score,
         }
-
-
-class ExamQuestionImportSession(models.Model):
-    """Audit and rollback snapshot for exam question imports."""
-
-    class ImportMode(models.TextChoices):
-        APPEND = "append", "Append"
-        REPLACE_ALL = "replace_all", "Replace All"
-        REPLACE_MANUAL_ONLY = "replace_manual_only", "Replace Manual Only"
-
-    id = models.UUIDField(primary_key=True, default=uuid_lib.uuid4, editable=False)
-    contest = models.ForeignKey(
-        Contest,
-        on_delete=models.CASCADE,
-        related_name="exam_question_import_sessions",
-    )
-    actor = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="exam_question_import_sessions",
-    )
-    import_mode = models.CharField(max_length=32, choices=ImportMode.choices)
-    before_snapshot = models.JSONField(default=list, blank=True)
-    after_snapshot = models.JSONField(default=list, blank=True)
-    summary = models.JSONField(default=dict, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = "exam_question_import_sessions"
-        ordering = ["-created_at"]
-        indexes = [
-            models.Index(
-                fields=["contest", "created_at"],
-                name="exam_qis_contest_created_idx",
-            ),
-        ]
 
 
 class ExamStatus(models.TextChoices):

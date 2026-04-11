@@ -126,6 +126,7 @@ LABELS = {
     'your_answer': 'Your Answer',
     'your_choice': 'Your Choice',
     'reference_answer': 'Reference Answer',
+    'explanation': 'Explanation',
     'selected': 'Selected',
     'time_axis_label': 'Time (h:mm)',
     'cumulative_score': 'Cumulative Score',

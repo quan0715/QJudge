@@ -101,17 +101,20 @@ class TestCRUDLifecycle:
             "prompt": "What is 1+1?",
             "options": ["1", "2", "3"],
             "correct_answer": 1,
+            "explanation": "Because 1 + 1 = 2.",
             "score": 3,
             "order": 0,
         }, format="json")
         assert res.status_code == status.HTTP_201_CREATED
         qid = res.data["id"]
         assert res.data["prompt"] == "What is 1+1?"
+        assert res.data["explanation"] == "Because 1 + 1 = 2."
         assert res.data["score"] == 3
 
         detail = api_client.get(url(contest.id, qid))
         assert detail.status_code == status.HTTP_200_OK
         assert detail.data["id"] == qid
+        assert detail.data["explanation"] == "Because 1 + 1 = 2."
 
     def test_list_returns_ordered(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)
@@ -458,137 +461,6 @@ class TestReorder:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# Import Flow (preview/apply/rollback)
-# ═══════════════════════════════════════════════════════════════════
-
-@pytest.mark.django_db
-class TestImportFlow:
-    def _payload_json(self):
-        return {
-            "version": "qjudge.exam.v1",
-            "meta": {
-                "exported_at": "2026-04-04T00:00:00.000Z",
-                "contest_name": "EQ Test Contest",
-            },
-            "questions": [
-                {
-                    "question_type": "single_choice",
-                    "prompt": "Pick B",
-                    "options": ["A", "B", "C"],
-                    "correct_answer": 1,
-                    "score": 3,
-                },
-                {
-                    "question_type": "essay",
-                    "prompt": "Explain CAP theorem",
-                    "score": 5,
-                },
-            ],
-        }
-
-    def test_batch_import_route_removed(self, api_client, teacher, contest):
-        api_client.force_authenticate(user=teacher)
-        res = api_client.post(url(contest.id) + "batch-import/", {"questions": []}, format="json")
-        assert res.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
-
-    def test_preview_apply_and_rollback_replace_all(self, api_client, teacher, contest):
-        api_client.force_authenticate(user=teacher)
-        old = ExamQuestion.objects.create(
-            contest=contest,
-            question_type="essay",
-            prompt="Legacy question",
-            score=1,
-            order=0,
-            source_mode="manual",
-        )
-        payload_json = self._payload_json()
-
-        preview = api_client.post(
-            url(contest.id) + "import/preview/",
-            {"payload_json": payload_json, "import_mode": "replace_all"},
-            format="json",
-        )
-        assert preview.status_code == status.HTTP_200_OK
-        assert preview.data["summary"]["will_add"] == 2
-        assert preview.data["summary"]["will_delete"] == 1
-        fingerprint = preview.data["fingerprint"]
-
-        apply_res = api_client.post(
-            url(contest.id) + "import/apply/",
-            {
-                "payload_json": payload_json,
-                "import_mode": "replace_all",
-                "fingerprint": fingerprint,
-            },
-            format="json",
-        )
-        assert apply_res.status_code == status.HTTP_201_CREATED
-        session_id = apply_res.data["session_id"]
-        assert ExamQuestion.objects.filter(contest=contest).count() == 2
-        assert not ExamQuestion.objects.filter(id=old.id).exists()
-
-        rollback = api_client.post(
-            url(contest.id) + "import/rollback/",
-            {"session_id": session_id},
-            format="json",
-        )
-        assert rollback.status_code == status.HTTP_200_OK
-        assert rollback.data["rolled_back"] is True
-        rows = list(ExamQuestion.objects.filter(contest=contest).order_by("order", "id"))
-        assert len(rows) == 1
-        assert rows[0].prompt == "Legacy question"
-
-    def test_replace_manual_only_keeps_bank_copied_questions(self, api_client, teacher, contest):
-        api_client.force_authenticate(user=teacher)
-        kept = ExamQuestion.objects.create(
-            contest=contest,
-            question_type="essay",
-            prompt="Bank copied question",
-            score=4,
-            order=0,
-            source_mode="copy",
-        )
-        removed = ExamQuestion.objects.create(
-            contest=contest,
-            question_type="essay",
-            prompt="Manual question",
-            score=2,
-            order=1,
-            source_mode="manual",
-        )
-        payload_json = self._payload_json()
-
-        apply_res = api_client.post(
-            url(contest.id) + "import/apply/",
-            {
-                "payload_json": payload_json,
-                "import_mode": "replace_manual_only",
-            },
-            format="json",
-        )
-        assert apply_res.status_code == status.HTTP_201_CREATED
-        assert ExamQuestion.objects.filter(contest=contest, id=kept.id).exists()
-        assert not ExamQuestion.objects.filter(contest=contest, id=removed.id).exists()
-        rows = list(ExamQuestion.objects.filter(contest=contest).order_by("order", "id"))
-        assert len(rows) == 3
-        assert rows[0].prompt == "Bank copied question"
-        assert rows[1].source_mode == "json"
-
-    def test_fingerprint_mismatch_rejected(self, api_client, teacher, contest):
-        api_client.force_authenticate(user=teacher)
-        res = api_client.post(
-            url(contest.id) + "import/apply/",
-            {
-                "payload_json": self._payload_json(),
-                "import_mode": "append",
-                "fingerprint": "not-the-same",
-            },
-            format="json",
-        )
-        assert res.status_code == status.HTTP_409_CONFLICT
-
-
-# ═══════════════════════════════════════════════════════════════════
 # Permissions
 # ═══════════════════════════════════════════════════════════════════
 
@@ -606,7 +478,7 @@ class TestPermissions:
 
     def test_student_can_list_after_exam_started(self, api_client, student, contest):
         ExamQuestion.objects.create(
-            contest=contest, question_type="essay", prompt="Q", score=1, order=0,
+            contest=contest, question_type="essay", prompt="Q", explanation="Teacher notes", score=1, order=0,
         )
         participant = ContestParticipant.objects.create(
             contest=contest, user=student, exam_status="in_progress"
@@ -617,6 +489,8 @@ class TestPermissions:
         res = api_client.get(url(contest.id))
         assert res.status_code == status.HTTP_200_OK
         assert len(res.data) == 1
+        assert "correct_answer" not in res.data[0]
+        assert "explanation" not in res.data[0]
 
     def test_student_cannot_list_before_contest_start(self, api_client, student, teacher):
         future_contest = Contest.objects.create(
@@ -829,45 +703,6 @@ class TestQuestionEditLockGuard:
         )
         assert import_res.status_code == status.HTTP_409_CONFLICT
         assert import_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
-
-        payload_json = {
-            "version": "qjudge.exam.v1",
-            "meta": {
-                "exported_at": "2026-04-04T00:00:00.000Z",
-                "contest_name": "Locked",
-            },
-            "questions": [
-                {
-                    "question_type": "essay",
-                    "prompt": "Locked import",
-                    "score": 3,
-                }
-            ],
-        }
-        preview_res = api_client.post(
-            url(contest.id) + "import/preview/",
-            {"payload_json": payload_json, "import_mode": "append"},
-            format="json",
-        )
-        assert preview_res.status_code == status.HTTP_409_CONFLICT
-        assert preview_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
-
-        apply_res = api_client.post(
-            url(contest.id) + "import/apply/",
-            {"payload_json": payload_json, "import_mode": "append"},
-            format="json",
-        )
-        assert apply_res.status_code == status.HTTP_409_CONFLICT
-        assert apply_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
-
-        rollback_res = api_client.post(
-            url(contest.id) + "import/rollback/",
-            {"session_id": "00000000-0000-0000-0000-000000000000"},
-            format="json",
-        )
-        assert rollback_res.status_code == status.HTTP_409_CONFLICT
-        assert rollback_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
-
 
 # ═══════════════════════════════════════════════════════════════════
 # Export Paper

@@ -87,14 +87,17 @@ class ParticipantDashboardApiTests(APITestCase):
             question_type=ExamQuestionType.SHORT_ANSWER,
             prompt="Explain gravity.",
             correct_answer="A force of attraction.",
+            explanation="Current explanation.",
             score=10,
             order=0,
         )
+        snapshot = question.to_snapshot()
+        snapshot["explanation"] = "Snapshot explanation."
         ExamAnswer.objects.create(
             participant=participant,
             question=question,
             answer={"text": "It pulls objects together."},
-            question_snapshot=question.to_snapshot(),
+            question_snapshot=snapshot,
             score=Decimal("8.0"),
             feedback="Reasonable answer.",
             is_correct=False,
@@ -134,6 +137,7 @@ class ParticipantDashboardApiTests(APITestCase):
         self.assertEqual(len(response.data["report"]["overview_rows"]), 1)
         self.assertEqual(len(response.data["report"]["question_details"]), 1)
         self.assertEqual(response.data["report"]["question_details"][0]["feedback"], "Reasonable answer.")
+        self.assertEqual(response.data["report"]["question_details"][0]["explanation"], "Snapshot explanation.")
         self.assertEqual(len(response.data["timeline"]), 2)
         self.assertEqual(response.data["evidence"][0]["upload_session_id"], "paper-session-1")
 

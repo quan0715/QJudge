@@ -307,6 +307,12 @@ class PaperExamReportRenderer(BaseRenderer):
         lines.append('</div>')
         return '\n'.join(lines)
 
+    @staticmethod
+    def _get_snapshot_value(answer, key, fallback=None):
+        if answer and answer.question_snapshot:
+            return answer.question_snapshot.get(key, fallback)
+        return fallback
+
     def _get_question_status(self, question, answer, has_answer, is_graded):
         """Return status dict: icon, label, status_class, color."""
         if not has_answer:
@@ -430,6 +436,16 @@ class PaperExamReportRenderer(BaseRenderer):
             student_str = ', '.join(sorted(student_letters))
             lines.append(f'<div class="choice-answer-summary">{your_label}: <strong>{student_str}</strong></div>')
 
+        explanation = self._get_snapshot_value(answer, 'explanation', question.explanation)
+        if self.include_grading and explanation:
+            explanation_label = self.get_label('explanation', '詳解')
+            lines.append(
+                f'<div class="answer-block answer-block-reference">'
+                f'<div class="answer-block-label">{explanation_label}</div>'
+                f'<div class="answer-block-content">{render_markdown(explanation)}</div>'
+                f'</div>'
+            )
+
         return '\n'.join(lines)
 
     def _render_choice_answer_summary(self, student_letters, correct_letters, is_match):
@@ -473,14 +489,25 @@ class PaperExamReportRenderer(BaseRenderer):
             )
 
         # Reference answer — only when grading is included
-        if self.include_grading and question.correct_answer:
+        reference_answer = self._get_snapshot_value(answer, 'correct_answer', question.correct_answer)
+        if self.include_grading and reference_answer:
             ref_label = self.get_label('reference_answer')
-            ref_text = question.correct_answer
+            ref_text = reference_answer
             ref_html = render_markdown(ref_text) if isinstance(ref_text, str) else str(ref_text)
             lines.append(
                 f'<div class="answer-block answer-block-reference">'
                 f'<div class="answer-block-label">{ref_label}</div>'
                 f'<div class="answer-block-content">{ref_html}</div>'
+                f'</div>'
+            )
+
+        explanation = self._get_snapshot_value(answer, 'explanation', question.explanation)
+        if self.include_grading and explanation:
+            explanation_label = self.get_label('explanation', '詳解')
+            lines.append(
+                f'<div class="answer-block answer-block-reference">'
+                f'<div class="answer-block-label">{explanation_label}</div>'
+                f'<div class="answer-block-content">{render_markdown(explanation)}</div>'
                 f'</div>'
             )
 

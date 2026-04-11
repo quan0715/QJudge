@@ -2,10 +2,12 @@ import json
 import hashlib
 import base64
 import secrets
+from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from oauth2_provider.models import Application
+from rest_framework.test import APIClient
 
 User = get_user_model()
 
@@ -38,8 +40,9 @@ class AuthorizeRedirectTest(TestCase):
             redirect_uris="http://localhost:3000/callback",
         )
 
-    def test_redirects_to_frontend_when_authenticated(self):
-        self.client.force_login(self.user)
+    @patch("apps.oauth.views._get_user_from_jwt_cookie")
+    def test_redirects_to_frontend_when_authenticated(self, mock_get_user):
+        mock_get_user.return_value = self.user
         _, challenge = _pkce_pair()
         response = self.client.get(
             "/o/authorize/",
@@ -71,7 +74,6 @@ class AuthorizeRedirectTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         location = response["Location"]
-        # Should redirect to frontend login with next= param
         self.assertIn("https://qjudge.com/login", location)
         self.assertIn("next=", location)
 
@@ -96,22 +98,22 @@ class ApproveAuthorizationTest(TestCase):
             redirect_uris="http://localhost:3000/callback",
         )
         self.verifier, self.challenge = _pkce_pair()
+        # Use DRF APIClient for authenticated requests
+        self.api_client = APIClient()
+        self.api_client.force_authenticate(user=self.user)
 
     def test_approve_returns_redirect_url_with_code(self):
-        self.client.force_login(self.user)
-        response = self.client.post(
+        response = self.api_client.post(
             "/api/oauth/approve/",
-            data=json.dumps(
-                {
-                    "client_id": "test-client-id-2",
-                    "redirect_uri": "http://localhost:3000/callback",
-                    "response_type": "code",
-                    "code_challenge": self.challenge,
-                    "code_challenge_method": "S256",
-                    "scope": "mcp",
-                }
-            ),
-            content_type="application/json",
+            data={
+                "client_id": "test-client-id-2",
+                "redirect_uri": "http://localhost:3000/callback",
+                "response_type": "code",
+                "code_challenge": self.challenge,
+                "code_challenge_method": "S256",
+                "scope": "mcp",
+            },
+            format="json",
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -119,6 +121,7 @@ class ApproveAuthorizationTest(TestCase):
         self.assertIn("code=", data["redirect_uri"])
 
     def test_approve_requires_authentication(self):
+        # Use default client (not authenticated)
         response = self.client.post(
             "/api/oauth/approve/",
             data=json.dumps(
@@ -132,23 +135,20 @@ class ApproveAuthorizationTest(TestCase):
             ),
             content_type="application/json",
         )
-        self.assertIn(response.status_code, [401, 403, 302])
+        self.assertIn(response.status_code, [401, 403])
 
     def test_deny_returns_error_redirect(self):
-        self.client.force_login(self.user)
-        response = self.client.post(
+        response = self.api_client.post(
             "/api/oauth/approve/",
-            data=json.dumps(
-                {
-                    "client_id": "test-client-id-2",
-                    "redirect_uri": "http://localhost:3000/callback",
-                    "response_type": "code",
-                    "code_challenge": self.challenge,
-                    "code_challenge_method": "S256",
-                    "deny": True,
-                }
-            ),
-            content_type="application/json",
+            data={
+                "client_id": "test-client-id-2",
+                "redirect_uri": "http://localhost:3000/callback",
+                "response_type": "code",
+                "code_challenge": self.challenge,
+                "code_challenge_method": "S256",
+                "deny": True,
+            },
+            format="json",
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()

@@ -721,6 +721,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'prompt',
             'options',
             'correct_answer',
+            'explanation',
             'score',
             'order',
             'source_bank',
@@ -1145,6 +1146,7 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
     question_id = serializers.UUIDField(source='question.id', read_only=True)
     question_prompt = serializers.SerializerMethodField()
     question_type = serializers.SerializerMethodField()
+    question_explanation = serializers.SerializerMethodField()
     max_score = serializers.SerializerMethodField()
     question_options = serializers.SerializerMethodField()
     graded_by_username = serializers.CharField(
@@ -1158,7 +1160,7 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
         model = ExamAnswer
         fields = [
             'id', 'question_id', 'question_prompt', 'question_type',
-            'question_options', 'max_score',
+            'question_options', 'question_explanation', 'max_score',
             'answer', 'is_correct', 'score', 'feedback',
             'question_snapshot',
             'graded_by_username', 'graded_at',
@@ -1176,6 +1178,11 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
         if obj.question_snapshot:
             return obj.question_snapshot.get('question_type', '')
         return obj.question.question_type
+
+    def get_question_explanation(self, obj):
+        if obj.question_snapshot:
+            return obj.question_snapshot.get('explanation', '')
+        return obj.question.explanation
 
     def get_max_score(self, obj):
         if obj.question_snapshot:
