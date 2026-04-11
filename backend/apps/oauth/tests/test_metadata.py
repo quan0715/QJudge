@@ -27,6 +27,10 @@ class OAuthAuthorizationServerMetadataTest(TestCase):
         self.assertEqual(
             data["token_endpoint_auth_methods_supported"], ["none"]
         )
+        self.assertEqual(
+            data["revocation_endpoint"],
+            "https://qjudge.com/o/revoke/",
+        )
 
     def test_returns_cors_headers(self):
         response = self.client.get(
