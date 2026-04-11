@@ -266,6 +266,19 @@
     "saveFailed": "儲存失敗",
     "success": "操作成功"
   },
+  "mcp": {
+    "setup": {
+      "title": "連接 AI 工具",
+      "description": "使用 MCP 協定將 QJudge 連接到你的 AI 開發工具。加入後第一次使用會自動開啟瀏覽器登入授權。",
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "codex": "Codex CLI",
+      "copySuccess": "已複製",
+      "step1": "在終端機執行以下指令：",
+      "step1Cursor": "將以下設定加入 .cursor/mcp.json：",
+      "verifyHint": "加入後第一次呼叫工具時，瀏覽器會自動開啟登入並授權。"
+    }
+  },
   "nav": {
     "back": "返回",
     "backToProblemList": "題目列表",
@@ -605,6 +618,7 @@
     },
     "tabs": {
       "apiKey": "API Key",
+      "mcp": "MCP 連線",
       "plans": "探索方案",
       "preferences": "偏好設定",
       "profile": "個人檔案",

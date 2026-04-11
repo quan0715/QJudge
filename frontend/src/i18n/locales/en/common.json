@@ -266,6 +266,19 @@
     "saveFailed": "Save failed",
     "success": "Action completed successfully"
   },
+  "mcp": {
+    "setup": {
+      "title": "Connect AI Tools",
+      "description": "Connect QJudge to your AI development tools using the MCP protocol. On first use after setup, your browser will automatically open for login and authorization.",
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "codex": "Codex CLI",
+      "copySuccess": "Copied",
+      "step1": "Run the following command in your terminal:",
+      "step1Cursor": "Add the following configuration to .cursor/mcp.json:",
+      "verifyHint": "On first tool invocation after setup, your browser will automatically open for login and authorization."
+    }
+  },
   "nav": {
     "back": "Back",
     "backToProblemList": "Back to Problems",
@@ -604,6 +617,7 @@
     },
     "tabs": {
       "apiKey": "API Key",
+      "mcp": "MCP Connection",
       "plans": "Explore Plans",
       "preferences": "Preferences",
       "profile": "Profile",
