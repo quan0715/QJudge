@@ -13,14 +13,8 @@ QJudge 支援透過 [MCP (Model Context Protocol)](https://modelcontextprotocol.
 
 - QJudge 帳號，且具有 **教師** 或 **助教** 權限
 - 已安裝上述任一 AI 工具
-- QJudge MCP Server 的連線 URL 與授權 Token（由平台管理員提供）
 
-## 取得連線資訊
-
-1. 登入 QJudge 平台
-2. 進入 **設定 > MCP 連線**
-3. 點擊「產生 Token」取得您的專屬授權憑證
-4. 複製對應工具的安裝指令
+MCP Server 將使用 OAuth 2.1 自動進行授權，無需手動產生 Token。
 
 ## 安裝指南
 
@@ -29,11 +23,8 @@ QJudge 支援透過 [MCP (Model Context Protocol)](https://modelcontextprotocol.
 在終端機執行：
 
 ```bash
-claude mcp add --transport http qjudge <MCP_SERVER_URL> \
-  --header "Authorization: Bearer <YOUR_TOKEN>"
+claude mcp add --transport http qjudge https://mcp.qjudge.com/mcp
 ```
-
-將 `<MCP_SERVER_URL>` 替換為平台提供的 MCP Server URL，`<YOUR_TOKEN>` 替換為您的授權 Token。
 
 重啟 Claude Code 後，輸入 `/mcp` 確認 `qjudge` 出現在伺服器列表中。
 
@@ -45,10 +36,8 @@ claude mcp add --transport http qjudge <MCP_SERVER_URL> \
 {
   "mcpServers": {
     "qjudge": {
-      "url": "<MCP_SERVER_URL>",
-      "headers": {
-        "Authorization": "Bearer <YOUR_TOKEN>"
-      }
+      "type": "http",
+      "url": "https://mcp.qjudge.com/mcp"
     }
   }
 }
@@ -58,15 +47,15 @@ claude mcp add --transport http qjudge <MCP_SERVER_URL> \
 
 ### Codex CLI
 
-先設定環境變數，再新增伺服器：
+在終端機執行：
 
 ```bash
-export QJUDGE_MCP_TOKEN="<YOUR_TOKEN>"
-codex mcp add qjudge --url <MCP_SERVER_URL> \
-  --bearer-token-env-var QJUDGE_MCP_TOKEN
+codex mcp add --transport http qjudge https://mcp.qjudge.com/mcp
 ```
 
-建議將 `export QJUDGE_MCP_TOKEN="..."` 加入您的 `~/.zshrc` 或 `~/.bashrc`。
+## 自動授權流程
+
+加入 MCP Server 後，您在第一次呼叫工具時，瀏覽器會自動開啟 QJudge 登入頁面。完成授權後，您的身份令牌將被安全地保存在系統 Keychain（macOS）或 Credential Manager（Windows）中，後續使用無需重複授權。
 
 ## 可用功能
 
@@ -122,19 +111,20 @@ codex mcp add qjudge --url <MCP_SERVER_URL> \
 
 ## 安全性說明
 
-- MCP 連線使用 **OAuth 2.1** 標準授權，Token 代表您的身份
+- MCP 連線使用 **OAuth 2.1 with PKCE** 標準授權，無需手動產生或儲存 Token
+- 存取令牌由您的 AI 工具自動儲存在系統 Keychain 中，確保安全
+- 存取令牌（Access Token）有效期為 1 小時，過期後會自動更新
+- 更新令牌（Refresh Token）有效期為 30 天，需重新授權
 - AI 工具只能存取您有管理權限的教室與競賽
 - 所有操作（出題、批改等）都會記錄在競賽活動日誌中
-- Token 有效期為 30 天，過期後需重新產生
-- 建議不要將 Token 提交到版本控制（已自動加入 `.gitignore`）
 
 ## 疑難排解
 
 ### 連線失敗
 
-- 確認 MCP Server URL 正確且可存取
-- 確認 Token 未過期（可在設定頁面查看）
+- 確認 MCP Server URL 正確且可存取（應為 `https://mcp.qjudge.com/mcp`）
 - 確認您的帳號具有教師或助教權限
+- 若授權過期（Refresh Token 逾期），請重新執行安裝指令以重新授權
 
 ### 權限被拒絕 (403)
 
