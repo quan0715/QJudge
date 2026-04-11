@@ -58,6 +58,31 @@ async def django_api(
     return json.dumps(body, ensure_ascii=False)
 
 
+def _strip_snapshots(raw: str) -> str:
+    """Remove question_snapshot from exam answer responses to reduce size."""
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return raw
+
+    def strip(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            obj.pop("question_snapshot", None)
+            obj.pop("correct_answer_snapshot", None)
+            return obj
+        if isinstance(obj, list):
+            for item in obj:
+                strip(item)
+        return obj
+
+    if isinstance(data, dict) and "responses" in data:
+        strip(data.get("responses", []))
+    elif isinstance(data, list):
+        strip(data)
+
+    return json.dumps(data, ensure_ascii=False)
+
+
 mcp = FastMCP(
     "QJudge",
     host=MCP_HOST,
@@ -270,11 +295,12 @@ async def list_exam_answers(
     params = ""
     if participant_id:
         params = f"?participant_id={participant_id}"
-    return await django_api(
+    raw = await django_api(
         "GET",
         f"/api/v1/contests/{contest_id}/exam-answers/all-answers/{params}",
         ctx,
     )
+    return _strip_snapshots(raw)
 
 
 @mcp.tool()
@@ -285,11 +311,12 @@ async def get_exam_question_detail(contest_id: str, question_id: str, ctx: Conte
         contest_id: 競賽 ID (UUID)
         question_id: 題目 ID (UUID)
     """
-    return await django_api(
+    raw = await django_api(
         "GET",
         f"/api/v1/contests/{contest_id}/exam-answers/question-detail/?question_id={question_id}",
         ctx,
     )
+    return _strip_snapshots(raw)
 
 
 @mcp.tool()
