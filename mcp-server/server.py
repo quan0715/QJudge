@@ -21,7 +21,10 @@ class DjangoTokenVerifier(TokenVerifier):
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
                     f"{DJANGO_BASE_URL}/api/v1/auth/me",
-                    headers={"Authorization": f"Bearer {token}"},
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "X-Forwarded-Proto": "https",
+                    },
                 )
         except (httpx.RequestError, httpx.TimeoutException):
             return None
@@ -42,7 +45,7 @@ async def django_api(
     json_body: dict | None = None,
 ) -> Any:
     """Call Django API with OAuth token passthrough."""
-    headers: dict[str, str] = {}
+    headers: dict[str, str] = {"X-Forwarded-Proto": "https"}
     transport_request = getattr(ctx.request_context, "request", None)
     if transport_request and hasattr(transport_request, "headers"):
         auth_header = transport_request.headers.get("authorization", "")
