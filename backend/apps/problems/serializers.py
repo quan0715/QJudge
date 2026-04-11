@@ -304,17 +304,6 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
                 "status": contest.status,
             }
 
-        for contest_problem in obj.contestproblem_set.select_related("contest").all():
-            contest = contest_problem.contest
-            seen.setdefault(
-                str(contest.id),
-                {
-                    "id": str(contest.id),
-                    "name": contest.name,
-                    "status": contest.status,
-                },
-            )
-
         return list(seen.values())
 
 

@@ -13,7 +13,7 @@ from uuid import UUID
 from django.db import IntegrityError, transaction
 from django.db.models import Max, Q, Sum
 
-from apps.contests.models import ContestProblem, ExamQuestion, ExamQuestionType
+from apps.contests.models import ExamQuestion, ExamQuestionType
 from apps.problems.models import CodingProblem, Problem  # Problem = CodingProblem alias
 
 from .models import QuestionBank, Question
@@ -154,22 +154,24 @@ def _build_coding_ext_payload(problem: Problem) -> dict[str, Any]:
 
 
 def _resolve_problem_source_context(problem: Problem) -> tuple[str | None, str]:
-    contest_problem = (
-        ContestProblem.objects.select_related("contest")
-        .filter(problem=problem)
+    from apps.question_bank.models import ContestQuestionBinding
+    binding = (
+        ContestQuestionBinding.objects.select_related("contest")
+        .filter(coding_problem=problem)
         .order_by("contest__created_at", "contest__id", "order", "id")
         .first()
     )
-    if contest_problem is None:
+    if binding is None:
         return None, ""
-    return str(contest_problem.contest_id), contest_problem.contest.name
+    return str(binding.contest_id), binding.contest.name
 
 
 def _user_may_ingest_coding_problem(*, user, problem: Problem) -> bool:
     """Allow creator or any contest owner/admin that links this problem in a contest."""
     if getattr(problem, "created_by_id", None) == user.id:
         return True
-    return ContestProblem.objects.filter(problem=problem).filter(
+    from apps.question_bank.models import ContestQuestionBinding
+    return ContestQuestionBinding.objects.filter(coding_problem=problem).filter(
         Q(contest__owner=user) | Q(contest__admins=user)
     ).exists()
 
@@ -456,14 +458,18 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
 
     if category in (None, "coding"):
         synced = _get_effective_synced_ids_for_user(user=user, metadata_key="legacy_problem_id")
+        from apps.question_bank.models import ContestQuestionBinding
         bank_imported = set(
-            ContestProblem.objects.filter(
+            ContestQuestionBinding.objects.filter(
                 source_bank_id__isnull=False,
-            ).values_list("problem_id", flat=True)
+                coding_problem__isnull=False,
+            ).values_list("coding_problem_id", flat=True)
         )
-        managed_problem_ids = ContestProblem.objects.filter(
+        managed_problem_ids = ContestQuestionBinding.objects.filter(
+            coding_problem__isnull=False,
+        ).filter(
             Q(contest__owner=user) | Q(contest__admins=user)
-        ).values_list("problem_id", flat=True)
+        ).values_list("coding_problem_id", flat=True)
         coding_rows = (
             Problem.objects.filter(Q(created_by=user) | Q(id__in=managed_problem_ids))
             .exclude(id__in=synced | bank_imported)

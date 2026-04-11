@@ -11,7 +11,6 @@ from django.shortcuts import get_object_or_404
 from ..models import (
     Contest,
     ContestParticipant,
-    ContestProblem,
     ExamStatus,
 )
 from ..serializers import ContestProblemSerializer
@@ -179,20 +178,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             created_by=user,
         )
 
-        # Backward-compat dual-write: ContestProblem (skip auto binding sync)
-        cp = ContestProblem(
-            contest=contest,
-            problem=problem,
-            order=next_order,
-            max_score=max_score,
-            question_asset=problem.question_asset,
-            question_version=problem.question_version,
-        )
-        cp._skip_binding_sync = True
-        cp.save()
-        binding.legacy_contest_problem = cp
-        binding.save(update_fields=['legacy_contest_problem', 'updated_at'])
-
         response_data = serializer.data
         response_data['contest_id'] = contest.id
         response_data['binding_id'] = str(binding.id)
@@ -224,9 +209,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         question_asset = binding.question_asset
         coding_problem = binding.coding_problem
 
-        # Delete legacy ContestProblem if exists
-        if binding.legacy_contest_problem_id:
-            ContestProblem.objects.filter(pk=binding.legacy_contest_problem_id).delete()
         binding.delete()
 
         # Clean up orphaned asset + problem if no other bindings or bank memberships
@@ -265,10 +247,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
         binding.score = max_score
         binding.save(update_fields=["score", "updated_at"])
-
-        # Sync to legacy ContestProblem
-        if binding.legacy_contest_problem_id:
-            ContestProblem.objects.filter(pk=binding.legacy_contest_problem_id).update(max_score=max_score)
 
         title = binding.coding_problem.title if binding.coding_problem else str(binding.question_asset_id)
         ContestActivityViewSet.log_activity(
@@ -357,17 +335,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                     created_by=user,
                 )
 
-                cp = ContestProblem(
-                    contest=contest, problem=problem, order=next_order, max_score=max_score,
-                    question_asset=problem.question_asset, question_version=problem.question_version,
-                    source_bank_id=bank.uuid, source_bank_name=bank.name,
-                    source_question_id=bank_question.id, source_mode="copy",
-                )
-                cp._skip_binding_sync = True
-                cp.save()
-                binding.legacy_contest_problem = cp
-                binding.save(update_fields=["legacy_contest_problem", "updated_at"])
-
                 created_bindings.append(binding)
                 next_order += 1
 
@@ -426,16 +393,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             binding_type=QuestionAsset.AssetType.CODING,
             order=next_order, score=max_score, source_mode="copy", created_by=user,
         )
-
-        # Legacy dual-write (Phase 3 will remove this)
-        cp = ContestProblem(
-            contest=contest, problem=problem, order=next_order, max_score=max_score,
-            question_asset=problem.question_asset, question_version=problem.question_version,
-        )
-        cp._skip_binding_sync = True
-        cp.save()
-        binding.legacy_contest_problem = cp
-        binding.save(update_fields=["legacy_contest_problem", "updated_at"])
 
         ContestActivityViewSet.log_activity(
             contest, user, "update_problem", f"Duplicated problem {source.title or source.id}",
@@ -497,9 +454,5 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             if b.order != i:
                 b.order = i
                 b.save(update_fields=["order", "updated_at"])
-            # Legacy sync
-            if b.legacy_contest_problem_id:
-                ContestProblem.objects.filter(pk=b.legacy_contest_problem_id).update(order=i)
-
         ContestActivityViewSet.log_activity(contest, user, "update_problem", "Reordered coding problems")
         return Response({"status": "reordered"})

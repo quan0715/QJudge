@@ -716,8 +716,8 @@ def test_update_contest_problem_score_action(
         format="json",
     )
     assert response.status_code == status.HTTP_200_OK
-    contest_problem.refresh_from_db()
-    assert contest_problem.max_score == 35
+    assert response.data["max_score"] == 35
+    assert response.data["score"] == 35
 
     invalid = api_client.patch(
         f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
