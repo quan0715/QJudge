@@ -103,10 +103,10 @@ def dynamic_client_registration(request):
             status=400,
         )
 
-    allowed_schemes = {"http", "https"}
+    allowed_schemes = {"http", "https", "cursor", "vscode"}
     for uri in redirect_uris:
         parsed = urlparse(uri)
-        if parsed.scheme not in allowed_schemes or not parsed.netloc:
+        if parsed.scheme not in allowed_schemes:
             return JsonResponse(
                 {
                     "error": "invalid_client_metadata",

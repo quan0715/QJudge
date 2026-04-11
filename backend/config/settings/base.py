@@ -212,7 +212,7 @@ OAUTH2_PROVIDER = {
     "REFRESH_TOKEN_EXPIRE_SECONDS": 2592000,    # 30 days
     "ROTATE_REFRESH_TOKENS": True,
     "PKCE_REQUIRED": True,
-    "ALLOWED_REDIRECT_URI_SCHEMES": ["http", "https"],
+    "ALLOWED_REDIRECT_URI_SCHEMES": ["http", "https", "cursor", "vscode"],
 }
 
 OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", "http://localhost:8000")

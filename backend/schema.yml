@@ -5134,45 +5134,6 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/problems/{id}/import_yaml/:
-    post:
-      operationId: v1_problems_import_yaml_create
-      description: |-
-        Update existing problem from YAML data.
-        Uses merge strategy: only updates provided fields.
-        Nested arrays (translations, test_cases, language_configs) are fully replaced.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
   /api/v1/problems/{id}/statistics/:
     get:
       operationId: v1_problems_statistics_retrieve

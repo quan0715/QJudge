@@ -367,58 +367,6 @@ class ProblemViewSet(viewsets.ModelViewSet):
 
         return Response(result)
     
-    @action(detail=True, methods=['post'], permission_classes=[IsProblemManager])
-    def import_yaml(self, request, id=None):
-        """
-        Update existing problem from YAML data.
-        Uses merge strategy: only updates provided fields.
-        Nested arrays (translations, test_cases, language_configs) are fully replaced.
-        """
-        problem = self.get_object()
-        self._ensure_problem_editable_under_contest_lock(
-            problem,
-            action="problem.import_yaml",
-        )
-        
-        # Parse YAML from request
-        yaml_content = request.data.get('yaml_content', '')
-        if not yaml_content:
-            return Response(
-                {'error': 'yaml_content is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            import yaml
-            data = yaml.safe_load(yaml_content)
-        except yaml.YAMLError:
-            return Response(
-                {'error': 'Invalid YAML syntax'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Use ProblemAdminSerializer for validation and updating
-        serializer = ProblemAdminSerializer(
-            problem,
-            data=data,
-            partial=True,  # Allow partial updates
-            context={'request': request}
-        )
-        
-        try:
-            serializer.is_valid(raise_exception=True)
-            problem = serializer.save()
-
-            return Response({
-                'message': 'Problem updated successfully from YAML',
-                'problem_id': problem.id
-            })
-        except serializers.ValidationError as e:
-            return Response(
-                {'error': 'Validation failed', 'details': e.detail},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
     @action(detail=True, methods=['get'])
     def statistics(self, request, id=None):
         """
