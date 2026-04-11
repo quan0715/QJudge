@@ -5,7 +5,6 @@ from rest_framework import serializers
 from django.utils import timezone
 from .models import (
     Contest,
-    ContestProblem,
     ExamQuestion,
     ExamQuestionType,
     ContestParticipant,
@@ -658,6 +657,9 @@ class ContestProblemSerializer(serializers.ModelSerializer):
         return str(obj.id)
 
     def get_in_question_bank(self, obj):
+        # Prefer the annotated value (O(1)) over a per-row query.
+        if hasattr(obj, '_in_question_bank'):
+            return obj._in_question_bank
         if not obj.question_asset_id:
             return False
         from apps.question_bank.models import QuestionBankMembership

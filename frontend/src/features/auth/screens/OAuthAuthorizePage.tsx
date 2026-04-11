@@ -22,7 +22,12 @@ export default function OAuthAuthorizePage() {
   const state = searchParams.get("state");
   const scope = searchParams.get("scope") || "mcp";
 
-  const isValid = clientId && redirectUri && responseType === "code";
+  const isValid =
+    clientId &&
+    redirectUri &&
+    responseType === "code" &&
+    codeChallenge &&
+    codeChallengeMethod;
 
   useEffect(() => {
     const name = searchParams.get("client_name");
@@ -42,9 +47,18 @@ export default function OAuthAuthorizePage() {
         state: state || undefined,
         scope,
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setError(errData.error_description || errData.error || t("oauth.authorize.error"));
+        setLoading(false);
+        return;
+      }
       const data = await res.json();
       if (data.redirect_uri) {
         window.location.href = data.redirect_uri;
+      } else {
+        setError(t("oauth.authorize.error"));
+        setLoading(false);
       }
     } catch {
       setError(t("oauth.authorize.error"));
@@ -54,6 +68,7 @@ export default function OAuthAuthorizePage() {
 
   const handleDeny = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await httpClient.post("/api/oauth/approve/", {
         client_id: clientId,
@@ -64,9 +79,18 @@ export default function OAuthAuthorizePage() {
         state: state || undefined,
         deny: true,
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setError(errData.error_description || errData.error || t("oauth.authorize.error"));
+        setLoading(false);
+        return;
+      }
       const data = await res.json();
       if (data.redirect_uri) {
         window.location.href = data.redirect_uri;
+      } else {
+        setError(t("oauth.authorize.error"));
+        setLoading(false);
       }
     } catch {
       setError(t("oauth.authorize.error"));

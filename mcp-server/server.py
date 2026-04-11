@@ -17,11 +17,14 @@ class DjangoTokenVerifier(TokenVerifier):
 
     async def verify_token(self, token: str) -> AccessToken | None:
         """Check token against Django. Return AccessToken if valid, None if not."""
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                f"{DJANGO_BASE_URL}/api/v1/auth/me",
-                headers={"Authorization": f"Bearer {token}"},
-            )
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    f"{DJANGO_BASE_URL}/api/v1/auth/me",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+        except (httpx.RequestError, httpx.TimeoutException):
+            return None
         if response.status_code != 200:
             return None
         return AccessToken(

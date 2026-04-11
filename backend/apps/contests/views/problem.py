@@ -1,4 +1,4 @@
-"""ContestProblemViewSet — reads and writes via ContestQuestionBinding."""
+"""ContestProblemViewSet -- reads and writes via ContestQuestionBinding."""
 from django.db import transaction
 from django.utils import timezone
 from django.db.models import Max, Sum
@@ -23,25 +23,33 @@ from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for contest coding problems.
-    Primary model is ContestQuestionBinding; ContestProblem is kept as
-    a backward-compat dual-write shell.
+    Primary model is ContestQuestionBinding.
     """
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ContestProblemSerializer
 
     def get_queryset(self):
         contest_id = self.kwargs.get('contest_pk')
+        from django.db.models import Exists, OuterRef
+        from apps.question_bank.models import QuestionBankMembership
         return (
             ContestQuestionBinding.objects.filter(
                 contest_id=contest_id,
                 binding_type=QuestionAsset.AssetType.CODING,
             )
             .select_related('coding_problem', 'question_asset', 'question_version')
+            .annotate(
+                _in_question_bank=Exists(
+                    QuestionBankMembership.objects.filter(
+                        question_asset_id=OuterRef('question_asset_id'),
+                    )
+                ),
+            )
             .order_by('order')
         )
 
     def _resolve_binding(self, *, contest_id, lookup_value):
-        """Resolve a binding by UUID (binding id, coding_problem id) or legacy integer ContestProblem id."""
+        """Resolve a binding by UUID (binding id or coding_problem id)."""
         import uuid as _uuid
         lookup_str = str(lookup_value)
         qs = ContestQuestionBinding.objects.filter(
@@ -63,12 +71,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                 return binding
             # Try coding_problem_id
             binding = qs.filter(coding_problem_id=lookup_str).first()
-            if binding:
-                return binding
-
-        # Try legacy ContestProblem integer ID
-        if lookup_str.isdigit():
-            binding = qs.filter(legacy_contest_problem_id=int(lookup_str)).first()
             if binding:
                 return binding
 
@@ -120,7 +122,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         data['score'] = binding.score
         data['max_score'] = binding.score
         data['label'] = binding.label
-        data['contest_problem_id'] = binding.legacy_contest_problem_id or str(binding.id)
+        data['contest_problem_id'] = str(binding.id)
         data['binding_id'] = str(binding.id)
         data['source_bank'] = (
             {'id': str(binding.source_bank_id), 'name': binding.source_bank_name or ''}
@@ -441,10 +443,6 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                     ContestQuestionBinding.objects.filter(
                         contest=contest, coding_problem_id=item_str,
                     ).update(order=new_order)
-            elif item_str.isdigit():
-                ContestQuestionBinding.objects.filter(
-                    contest=contest, legacy_contest_problem_id=int(item_str),
-                ).update(order=new_order)
 
         # Normalize to sequential 0, 1, 2...
         bindings = ContestQuestionBinding.objects.filter(

@@ -104,6 +104,7 @@ def dynamic_client_registration(request):
         )
 
     allowed_schemes = {"http", "https", "cursor", "vscode"}
+    loopback_hosts = {"localhost", "127.0.0.1", "[::1]"}
     for uri in redirect_uris:
         parsed = urlparse(uri)
         if parsed.scheme not in allowed_schemes:
@@ -111,6 +112,17 @@ def dynamic_client_registration(request):
                 {
                     "error": "invalid_client_metadata",
                     "error_description": f"Invalid redirect_uri: {uri}",
+                },
+                status=400,
+            )
+        if parsed.scheme in {"http", "https"} and parsed.hostname not in loopback_hosts:
+            return JsonResponse(
+                {
+                    "error": "invalid_client_metadata",
+                    "error_description": (
+                        f"http/https redirect_uris must use a loopback address "
+                        f"(localhost, 127.0.0.1, [::1]): {uri}"
+                    ),
                 },
                 status=400,
             )
@@ -181,9 +193,35 @@ class ApproveAuthorizationView(APIView):
         scope = body.get("scope", "mcp")
         deny = body.get("deny", False)
 
+        response_type = body.get("response_type")
+
         if not client_id or not redirect_uri:
             return Response(
                 {"error": "invalid_request", "error_description": "client_id and redirect_uri are required"},
+                status=400,
+            )
+
+        if response_type != "code":
+            return Response(
+                {"error": "unsupported_response_type", "error_description": "Only response_type=code is supported"},
+                status=400,
+            )
+
+        if scope != "mcp":
+            return Response(
+                {"error": "invalid_scope", "error_description": "Only scope=mcp is supported"},
+                status=400,
+            )
+
+        if not code_challenge:
+            return Response(
+                {"error": "invalid_request", "error_description": "code_challenge is required (PKCE)"},
+                status=400,
+            )
+
+        if code_challenge_method != "S256":
+            return Response(
+                {"error": "invalid_request", "error_description": "code_challenge_method must be S256"},
                 status=400,
             )
 

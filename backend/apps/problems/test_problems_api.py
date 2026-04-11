@@ -6,7 +6,8 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from .models import Problem, Tag, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
-from apps.contests.models import Contest, ContestProblem
+from apps.contests.models import Contest
+from apps.contests.tests import bind_problem_to_contest
 
 
 
@@ -424,12 +425,7 @@ class ProblemContestLockGuardTests(TestCase):
             slug="locked-contest-problem",
             created_by=self.owner,
         )
-        ContestProblem.objects.create(
-            contest=self.contest,
-            problem=self.problem,
-            order=0,
-            max_score=10,
-        )
+        bind_problem_to_contest(self.contest, self.problem, order=0, score=10)
 
     def test_patch_problem_blocked_when_linked_contest_locked(self):
         self.client.force_authenticate(user=self.owner)
@@ -518,16 +514,27 @@ class ProblemTestRunTests(TestCase):
 
     def test_test_run_custom_input_without_expected_marks_info(self):
         """Custom input without expected output should return info status."""
-        response = self.client.post(
-            f'/api/v1/problems/{self.problem.id}/test_run/',
-            {
-                'language': 'python',
-                'code': 'print(input())',
-                'use_samples': False,
-                'custom_test_cases': [{'input': 'hello'}],
-            },
-            format='json',
-        )
+        with patch('apps.judge.judge_factory.get_judge') as mock_get_judge:
+            mock_judge = MagicMock()
+            mock_judge.execute.return_value = {
+                'status': 'AC',
+                'time': 10,
+                'memory': 1024,
+                'output': 'hello',
+                'error': '',
+            }
+            mock_get_judge.return_value = mock_judge
+
+            response = self.client.post(
+                f'/api/v1/problems/{self.problem.id}/test_run/',
+                {
+                    'language': 'python',
+                    'code': 'print(input())',
+                    'use_samples': False,
+                    'custom_test_cases': [{'input': 'hello'}],
+                },
+                format='json',
+            )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data

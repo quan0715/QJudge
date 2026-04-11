@@ -38,7 +38,12 @@ const LoginPage = () => {
         localStorage.setItem("user", JSON.stringify(safeData.user));
         // If there's a next param (e.g. from OAuth flow), redirect there
         const nextUrl = searchParams.get("next");
-        if (nextUrl && (nextUrl.startsWith("http://") || nextUrl.startsWith("https://"))) {
+        if (
+          nextUrl &&
+          !nextUrl.startsWith("http://") &&
+          !nextUrl.startsWith("https://") &&
+          !nextUrl.startsWith("//")
+        ) {
           window.location.href = nextUrl;
         } else {
           window.location.href = getAuthedLandingPath(safeData.user);

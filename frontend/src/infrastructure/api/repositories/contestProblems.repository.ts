@@ -45,12 +45,12 @@ export const duplicateContestProblem = async (
 export const importContestProblemsFromBank = async (
   contestId: string,
   items: { question_bank_id: string; question_id: string }[]
-): Promise<Problem> => {
-  const responseData = await requestJson<any>(
+): Promise<Problem[]> => {
+  const responseData = await requestJson<any[]>(
     httpClient.post(`/api/v1/contests/${contestId}/problems/import-from-bank/`, { items }),
     "Failed to import problems from bank"
   );
-  return mapProblemDto(responseData);
+  return responseData.map(mapProblemDto);
 };
 
 export const removeContestProblem = async (
