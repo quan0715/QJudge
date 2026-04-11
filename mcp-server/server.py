@@ -1,7 +1,8 @@
-"""QJudge MCP Server — exam question management tools."""
+"""QJudge MCP Server tools."""
 
 import json
 from typing import Any
+from urllib.parse import urlencode
 
 import httpx
 from mcp.server.fastmcp import FastMCP, Context
@@ -15,7 +16,7 @@ async def django_api(
     ctx: Context,
     *,
     json_body: dict | None = None,
-) -> str:
+) -> Any:
     """Call Django API with OAuth token passthrough."""
     headers: dict[str, str] = {}
     transport_request = getattr(ctx.request_context, "request", None)
@@ -35,7 +36,7 @@ async def django_api(
         )
 
     if response.status_code == 204:
-        return json.dumps({"status": "success"})
+        return {"status": "success"}
 
     try:
         body = response.json()
@@ -43,19 +44,37 @@ async def django_api(
         body = {"raw": response.text}
 
     if response.status_code >= 400:
-        return json.dumps({
+        return {
             "error": True,
             "status": response.status_code,
             "detail": body,
-        }, ensure_ascii=False)
+        }
 
-    return json.dumps(body, ensure_ascii=False)
+    return body
 
 
-def _strip_snapshots(raw: str) -> str:
-    """Remove question_snapshot from exam answer responses to reduce size."""
+def _error(detail: str, *, status: int | None = None) -> dict[str, Any]:
+    payload: dict[str, Any] = {"error": True, "detail": detail}
+    if status is not None:
+        payload["status"] = status
+    return payload
+
+
+def _truncate_text(value: str, limit: int = 120) -> str:
+    if len(value) <= limit:
+        return value
+    return value[: limit - 1].rstrip() + "…"
+
+
+def _strip_snapshots(raw: Any) -> Any:
+    """Remove large answer snapshot fields from grading payloads."""
+    parsed_from_string = False
     try:
-        data = json.loads(raw)
+        if isinstance(raw, str):
+            data = json.loads(raw)
+            parsed_from_string = True
+        else:
+            data = raw
     except (json.JSONDecodeError, TypeError):
         return raw
 
@@ -74,7 +93,86 @@ def _strip_snapshots(raw: str) -> str:
     elif isinstance(data, list):
         strip(data)
 
-    return json.dumps(data, ensure_ascii=False)
+    if parsed_from_string:
+        return json.dumps(data, ensure_ascii=False)
+    return data
+
+
+def _compact_answers(raw: Any) -> Any:
+    """Project all-answers response down to grading essentials."""
+    data = _strip_snapshots(raw)
+    if not isinstance(data, list):
+        return data
+
+    compact_rows = []
+    for item in data:
+        if not isinstance(item, dict):
+            compact_rows.append(item)
+            continue
+        compact_rows.append({
+            "exam_answer_id": item.get("id"),
+            "question_id": item.get("question_id"),
+            "question_prompt": item.get("question_prompt"),
+            "question_type": item.get("question_type"),
+            "max_score": item.get("max_score"),
+            "participant_id": item.get("participant_user_id") or item.get("participant_id"),
+            "username": item.get("participant_username"),
+            "display_name": item.get("participant_nickname") or item.get("participant_username"),
+            "answer": item.get("answer"),
+            "is_correct": item.get("is_correct"),
+            "score": item.get("score"),
+            "feedback": item.get("feedback"),
+            "graded_at": item.get("graded_at"),
+        })
+    return compact_rows
+
+
+def _compact_question_detail(
+    raw: Any,
+    *,
+    include_participants: bool = False,
+    include_omitted: bool = False,
+) -> Any:
+    """Trim question detail payload for MCP usage."""
+    data = _strip_snapshots(raw)
+    if not isinstance(data, dict):
+        return data
+
+    option_distribution = data.get("option_distribution")
+    if isinstance(option_distribution, list) and not include_participants:
+        for item in option_distribution:
+            if isinstance(item, dict):
+                item.pop("participants", None)
+
+    if not include_omitted:
+        data.pop("omitted_participants", None)
+
+    return data
+
+
+def _compact_dashboard(raw: Any, *, include_full_titles: bool = False) -> Any:
+    """Trim dashboard payload to avoid sending full prompt text by default."""
+    if not isinstance(raw, dict):
+        return raw
+
+    questions = raw.get("questions")
+    if not isinstance(questions, list):
+        return raw
+
+    compact_questions = []
+    for item in questions:
+        if not isinstance(item, dict):
+            compact_questions.append(item)
+            continue
+        compact_item = dict(item)
+        title = compact_item.get("title")
+        if isinstance(title, str) and not include_full_titles:
+            compact_item["title"] = _truncate_text(title)
+        compact_questions.append(compact_item)
+
+    data = dict(raw)
+    data["questions"] = compact_questions
+    return data
 
 
 mcp = FastMCP(
@@ -97,41 +195,29 @@ async def qjudge_discover(
     search: str | None = None,
     status: str | None = None,
     contest_id: str | None = None,
-) -> str:
-    """查詢 QJudge 教室與競賽。
-
-    Actions:
-      - list_classrooms: 列出教室（可用 search 篩選名稱）
-      - list_contests: 列出競賽（可用 search 篩選名稱，status 篩選狀態 draft/published/archived）
-      - get_contest: 取得競賽詳情（需要 contest_id）
-
-    Args:
-        action: 操作類型（list_classrooms / list_contests / get_contest）
-        search: 搜尋關鍵字
-        status: 競賽狀態篩選（draft / published / archived）
-        contest_id: 競賽 ID（get_contest 時必填）
-    """
+) -> Any:
+    """Discover classrooms and contests. Actions: list_classrooms, list_contests, get_contest."""
     if action == "list_classrooms":
-        params = "?scope=manage"
+        query = {"scope": "manage"}
         if search:
-            params += f"&search={search}"
-        return await django_api("GET", f"/api/v1/classrooms/{params}", ctx)
+            query["search"] = search
+        return await django_api("GET", f"/api/v1/classrooms/?{urlencode(query)}", ctx)
 
     if action == "list_contests":
-        parts = []
+        query: dict[str, str] = {}
         if search:
-            parts.append(f"search={search}")
+            query["search"] = search
         if status:
-            parts.append(f"status={status}")
-        query = "?" + "&".join(parts) if parts else ""
-        return await django_api("GET", f"/api/v1/contests/{query}", ctx)
+            query["status"] = status
+        suffix = f"?{urlencode(query)}" if query else ""
+        return await django_api("GET", f"/api/v1/contests/{suffix}", ctx)
 
     if action == "get_contest":
         if not contest_id:
-            return json.dumps({"error": True, "detail": "contest_id is required"})
+            return _error("contest_id is required")
         return await django_api("GET", f"/api/v1/contests/{contest_id}/", ctx)
 
-    return json.dumps({"error": True, "detail": f"Unknown action: {action}"})
+    return _error(f"Unknown action: {action}")
 
 
 # ---------------------------------------------------------------------------
@@ -150,28 +236,8 @@ async def qjudge_exam(
     options: list[str] | None = None,
     correct_answer: Any | None = None,
     question_ids: list[str] | None = None,
-) -> str:
-    """管理競賽考試題目（CRUD + 排序）。
-
-    Actions:
-      - list: 列出所有題目
-      - get: 取得單一題目（需要 question_id）
-      - create: 新增題目（需要 question_type, prompt, score；選擇題需要 options, correct_answer）
-      - update: 修改題目（需要 question_id，加上要改的欄位）
-      - delete: 刪除題目（需要 question_id）
-      - reorder: 重新排序（需要 question_ids，按新順序排列）
-
-    Args:
-        action: 操作類型（list / get / create / update / delete / reorder）
-        contest_id: 競賽 ID (UUID)
-        question_id: 題目 ID（get/update/delete 時必填）
-        question_type: 題型（true_false / single_choice / multiple_choice / short_answer / essay）
-        prompt: 題目內容（支援 Markdown）
-        score: 配分（正整數）
-        options: 選項列表（選擇題用，如 ["A", "B", "C", "D"]）
-        correct_answer: 正確答案（是非題: true/false, 單選: int, 多選: [0,2], 簡答/申論: null）
-        question_ids: 重新排序用的題目 ID 列表
-    """
+) -> Any:
+    """Manage exam questions. Actions: list, get, create, update, delete, reorder."""
     base = f"/api/v1/contests/{contest_id}/exam-questions"
 
     if action == "list":
@@ -179,7 +245,7 @@ async def qjudge_exam(
 
     if action == "get":
         if not question_id:
-            return json.dumps({"error": True, "detail": "question_id is required"})
+            return _error("question_id is required")
         return await django_api("GET", f"{base}/{question_id}/", ctx)
 
     if action == "create":
@@ -198,7 +264,7 @@ async def qjudge_exam(
 
     if action == "update":
         if not question_id:
-            return json.dumps({"error": True, "detail": "question_id is required"})
+            return _error("question_id is required")
         body = {}
         if prompt is not None:
             body["prompt"] = prompt
@@ -211,21 +277,21 @@ async def qjudge_exam(
         if question_type is not None:
             body["question_type"] = question_type
         if not body:
-            return json.dumps({"error": True, "detail": "No fields to update"})
+            return _error("No fields to update")
         return await django_api("PATCH", f"{base}/{question_id}/", ctx, json_body=body)
 
     if action == "delete":
         if not question_id:
-            return json.dumps({"error": True, "detail": "question_id is required"})
+            return _error("question_id is required")
         return await django_api("DELETE", f"{base}/{question_id}/", ctx)
 
     if action == "reorder":
         if not question_ids:
-            return json.dumps({"error": True, "detail": "question_ids is required"})
+            return _error("question_ids is required")
         orders = [{"id": qid, "order": idx} for idx, qid in enumerate(question_ids)]
         return await django_api("POST", f"{base}/reorder/", ctx, json_body={"orders": orders})
 
-    return json.dumps({"error": True, "detail": f"Unknown action: {action}"})
+    return _error(f"Unknown action: {action}")
 
 
 # ---------------------------------------------------------------------------
@@ -243,69 +309,76 @@ async def qjudge_grading(
     score: float | None = None,
     feedback: str | None = None,
     grades: list[dict] | None = None,
-) -> str:
-    """查看學生作答與批改考試。
-
-    Actions:
-      - list_answers: 列出作答（建議用 question_id 篩選單題，避免回應過大）
-      - question_detail: 某題的作答分析，回傳含 exam_answer_id 可直接用於批改
-      - dashboard: 競賽批改總覽
-      - grade: 批改單一作答（需要 exam_answer_id, score）
-      - batch_grade: 批量批改（需要 grades 陣列，格式 [{"exam_answer_id": 123, "score": 8.5, "feedback": "..."}]）
-      - ungrade: 撤銷批改（需要 exam_answer_id）
-
-    Args:
-        action: 操作類型（list_answers / question_detail / dashboard / grade / batch_grade / ungrade）
-        contest_id: 競賽 ID (UUID)
-        question_id: 題目 ID（question_detail 和 list_answers 篩選用）
-        participant_id: 學生參與者 ID（list_answers 篩選用）
-        exam_answer_id: 作答紀錄 ID（grade/ungrade 時必填，可從 question_detail 的 responses[].exam_answer_id 取得）
-        score: 給分（grade 時必填，0 以上，最多兩位小數）
-        feedback: 批改回饋意見（grade 時可選）
-        grades: 批量批改陣列（batch_grade 時必填，如 [{"exam_answer_id": 123, "score": 8}, {"exam_answer_id": 456, "score": 5}]）
-    """
+    include_participants: bool = False,
+    include_omitted: bool = False,
+    include_full_titles: bool = False,
+) -> Any:
+    """Grade exam answers. Actions: list_answers, question_detail, dashboard, grade, batch_grade, ungrade."""
     base = f"/api/v1/contests/{contest_id}/exam-answers"
 
     if action == "list_answers":
-        parts = []
+        query: dict[str, str] = {}
         if participant_id:
-            parts.append(f"participant_id={participant_id}")
+            query["participant_id"] = participant_id
         if question_id:
-            parts.append(f"question_id={question_id}")
-        params = "?" + "&".join(parts) if parts else ""
-        raw = await django_api("GET", f"{base}/all-answers/{params}", ctx)
-        return _strip_snapshots(raw)
+            query["question_id"] = question_id
+        suffix = f"?{urlencode(query)}" if query else ""
+        raw = await django_api("GET", f"{base}/all-answers/{suffix}", ctx)
+        return _compact_answers(raw)
 
     if action == "question_detail":
         if not question_id:
-            return json.dumps({"error": True, "detail": "question_id is required"})
+            return _error("question_id is required")
         raw = await django_api("GET", f"{base}/question-detail/?question_id={question_id}", ctx)
-        return _strip_snapshots(raw)
+        return _compact_question_detail(
+            raw,
+            include_participants=include_participants,
+            include_omitted=include_omitted,
+        )
 
     if action == "dashboard":
-        return await django_api("GET", f"{base}/dashboard-summary/", ctx)
+        raw = await django_api("GET", f"{base}/dashboard-summary/", ctx)
+        return _compact_dashboard(raw, include_full_titles=include_full_titles)
 
     if action == "grade":
         if not exam_answer_id:
-            return json.dumps({"error": True, "detail": "exam_answer_id is required"})
+            return _error("exam_answer_id is required")
         if score is None:
-            return json.dumps({"error": True, "detail": "score is required"})
+            return _error("score is required")
         body: dict[str, Any] = {"score": score}
         if feedback is not None:
             body["feedback"] = feedback
-        return await django_api("POST", f"{base}/{exam_answer_id}/grade/", ctx, json_body=body)
+        result = await django_api("POST", f"{base}/{exam_answer_id}/grade/", ctx, json_body=body)
+        if isinstance(result, dict) and result.get("error"):
+            return result
+        return {"status": "success", "exam_answer_id": exam_answer_id, "score": score}
 
     if action == "batch_grade":
         if not grades:
-            return json.dumps({"error": True, "detail": "grades array is required"})
-        return await django_api("POST", f"{base}/batch-grade/", ctx, json_body={"grades": grades})
+            return _error("grades array is required")
+        result = await django_api("POST", f"{base}/batch-grade/", ctx, json_body={"grades": grades})
+        if isinstance(result, dict) and result.get("error"):
+            return result
+        if not isinstance(result, dict):
+            return {"status": "success"}
+        results = result.get("results", [])
+        if not isinstance(results, list):
+            results = []
+        return {
+            "status": "success",
+            "graded_count": result.get("graded_count", 0),
+            "error_count": sum(1 for item in results if item.get("status") != "ok"),
+        }
 
     if action == "ungrade":
         if not exam_answer_id:
-            return json.dumps({"error": True, "detail": "exam_answer_id is required"})
-        return await django_api("POST", f"{base}/{exam_answer_id}/ungrade/", ctx)
+            return _error("exam_answer_id is required")
+        result = await django_api("POST", f"{base}/{exam_answer_id}/ungrade/", ctx)
+        if isinstance(result, dict) and result.get("error"):
+            return result
+        return {"status": "success", "exam_answer_id": exam_answer_id}
 
-    return json.dumps({"error": True, "detail": f"Unknown action: {action}"})
+    return _error(f"Unknown action: {action}")
 
 
 if __name__ == "__main__":
