@@ -604,6 +604,18 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'exam_answer_id and score required'})
                 continue
 
+            serializer = ExamAnswerGradeSerializer(data={'score': score_val, 'feedback': feedback_val})
+            if not serializer.is_valid():
+                results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': serializer.errors})
+                continue
+
+            validated_score = serializer.validated_data['score']
+            validated_feedback = serializer.validated_data.get('feedback', '')
+
+            if validated_score < 0:
+                results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': {'score': ['Ensure this value is greater than or equal to 0.']}})
+                continue
+
             answer_obj = ExamAnswer.objects.filter(
                 participant__contest=contest, pk=answer_id,
             ).first()
@@ -611,16 +623,16 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'not found'})
                 continue
 
-            answer_obj.score = score_val
-            answer_obj.feedback = feedback_val
+            answer_obj.score = validated_score
+            answer_obj.feedback = validated_feedback
             answer_obj.graded_by = request.user
             answer_obj.graded_at = now
-            answer_obj.is_correct = Decimal(str(score_val)) > 0
+            answer_obj.is_correct = validated_score > 0
             answer_obj.save()
 
             affected_participants.add(answer_obj.participant_id)
             affected_question_ids.add(answer_obj.question_id)
-            results.append({'exam_answer_id': answer_id, 'status': 'ok', 'score': float(score_val)})
+            results.append({'exam_answer_id': answer_id, 'status': 'ok', 'score': float(validated_score)})
 
         # Recalculate affected participant total scores
         for pid in affected_participants:
