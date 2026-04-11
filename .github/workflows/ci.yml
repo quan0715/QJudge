@@ -299,11 +299,6 @@ jobs:
             -v --tb=short
         working-directory: backend
 
-      - name: Run MCP Server Tests
-        run: |
-          pip install "mcp[cli]>=1.9.0" "httpx>=0.27.0" pytest
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest mcp-server/tests/test_server.py -q
-
       - name: Coverage Report
         if: success()
         run: |
@@ -342,7 +337,7 @@ jobs:
           cache-dependency-path: mcp-server/pyproject.toml
 
       - name: Install MCP Server dependencies
-        run: pip install -e .
+        run: pip install "mcp[cli]>=1.9.0" "httpx>=0.27.0" pytest
         working-directory: mcp-server
 
       - name: Run MCP Server Tests
