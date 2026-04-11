@@ -33,7 +33,7 @@ export default function OAuthAuthorizePage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await httpClient.post("/api/oauth/approve/", {
+      const res = await httpClient.post("/api/oauth/approve/", {
         client_id: clientId,
         redirect_uri: redirectUri,
         response_type: responseType,
@@ -42,8 +42,9 @@ export default function OAuthAuthorizePage() {
         state: state || undefined,
         scope,
       });
-      if (response.redirect_uri) {
-        window.location.href = response.redirect_uri;
+      const data = await res.json();
+      if (data.redirect_uri) {
+        window.location.href = data.redirect_uri;
       }
     } catch {
       setError(t("oauth.authorize.error"));
@@ -54,7 +55,7 @@ export default function OAuthAuthorizePage() {
   const handleDeny = async () => {
     setLoading(true);
     try {
-      const response = await httpClient.post("/api/oauth/approve/", {
+      const res = await httpClient.post("/api/oauth/approve/", {
         client_id: clientId,
         redirect_uri: redirectUri,
         response_type: responseType,
@@ -63,8 +64,9 @@ export default function OAuthAuthorizePage() {
         state: state || undefined,
         deny: true,
       });
-      if (response.redirect_uri) {
-        window.location.href = response.redirect_uri;
+      const data = await res.json();
+      if (data.redirect_uri) {
+        window.location.href = data.redirect_uri;
       }
     } catch {
       setError(t("oauth.authorize.error"));
