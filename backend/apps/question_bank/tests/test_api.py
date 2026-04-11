@@ -586,12 +586,14 @@ class TestQuestionBankAPI:
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
 
         # Ensure asset exists (required by Phase 1 invariant)
-        from apps.question_bank.question_assets import write_coding_content_to_asset, sync_asset_to_problem
+        from apps.question_bank.question_assets import write_coding_content_to_asset
         asset, version = write_coding_content_to_asset(
             owner=teacher, title="Legacy Problem", prompt="legacy description",
             difficulty="medium", translations=[], actor=teacher,
         )
-        sync_asset_to_problem(question_asset=asset, problem=problem)
+        problem.question_asset = asset
+        problem.question_version = version
+        problem.save(update_fields=["question_asset", "question_version"])
 
         synced_problem_q = upsert_problem_into_bank(problem, bank=bank_coding, created_by=teacher)
         assert synced_problem_q is not None
@@ -818,12 +820,14 @@ class TestQuestionBankAPI:
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
 
         # Ensure asset exists (required by Phase 1 invariant)
-        from apps.question_bank.question_assets import write_coding_content_to_asset, sync_asset_to_problem
+        from apps.question_bank.question_assets import write_coding_content_to_asset
         asset, version = write_coding_content_to_asset(
             owner=teacher, title="Needs Ingest", prompt="desc",
             difficulty="medium", translations=[], actor=teacher,
         )
-        sync_asset_to_problem(question_asset=asset, problem=problem)
+        problem.question_asset = asset
+        problem.question_version = version
+        problem.save(update_fields=["question_asset", "question_version"])
 
         api_client.force_authenticate(user=teacher)
         resp = api_client.post(
@@ -877,7 +881,7 @@ class TestQuestionBankAPI:
         )
         bind_problem_to_contest(contest, problem, order=0)
 
-        from apps.question_bank.question_assets import write_coding_content_to_asset, sync_asset_to_problem
+        from apps.question_bank.question_assets import write_coding_content_to_asset
 
         asset, _version = write_coding_content_to_asset(
             owner=teacher,
@@ -887,7 +891,9 @@ class TestQuestionBankAPI:
             translations=[],
             actor=teacher,
         )
-        sync_asset_to_problem(question_asset=asset, problem=problem)
+        problem.question_asset = asset
+        problem.question_version = _version
+        problem.save(update_fields=["question_asset", "question_version"])
 
         api_client.force_authenticate(user=teacher)
         inbox_resp = api_client.get("/api/v1/question-banks/inbox/?category=coding")

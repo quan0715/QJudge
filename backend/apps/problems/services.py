@@ -286,8 +286,8 @@ class ProblemService:
         Source problem must already have a QuestionAsset (guaranteed by Phase 0).
         """
         if not source_problem.question_asset_id:
-            from apps.question_bank.question_assets import sync_problem_question_asset
-            sync_problem_question_asset(problem=source_problem, actor=created_by)
+            from apps.question_bank.question_assets import ensure_problem_question_asset
+            ensure_problem_question_asset(problem=source_problem, actor=created_by)
 
         new_problem = CodingProblem.objects.create(
             title=f"{(source_problem.question_asset.title if source_problem.question_asset_id else 'Problem')} (Copy)",

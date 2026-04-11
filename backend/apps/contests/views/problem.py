@@ -153,8 +153,8 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
         # Ensure asset exists
         if not problem.question_asset_id:
-            from apps.question_bank.question_assets import sync_problem_question_asset
-            sync_problem_question_asset(problem=problem, actor=user)
+            from apps.question_bank.question_assets import ensure_problem_question_asset
+            ensure_problem_question_asset(problem=problem, actor=user)
             problem.refresh_from_db(fields=["question_asset", "question_version"])
 
         # Determine next order
@@ -314,8 +314,8 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                 )
 
                 if not problem.question_asset_id:
-                    from apps.question_bank.question_assets import sync_problem_question_asset
-                    sync_problem_question_asset(problem=problem, actor=user)
+                    from apps.question_bank.question_assets import ensure_problem_question_asset
+                    ensure_problem_question_asset(problem=problem, actor=user)
                     problem.refresh_from_db(fields=["question_asset", "question_version"])
 
                 default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
@@ -376,8 +376,8 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         problem = ProblemService.clone_problem(source, contest, user)
 
         if not problem.question_asset_id:
-            from apps.question_bank.question_assets import sync_problem_question_asset
-            sync_problem_question_asset(problem=problem, actor=user)
+            from apps.question_bank.question_assets import ensure_problem_question_asset
+            ensure_problem_question_asset(problem=problem, actor=user)
             problem.refresh_from_db(fields=["question_asset", "question_version"])
 
         last_order = ContestQuestionBinding.objects.filter(

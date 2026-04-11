@@ -203,10 +203,10 @@ def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=No
     }
 
     # Problem should already have a QuestionAsset (Phase 0 invariant).
-    # Fallback: sync on the fly for legacy data that hasn't been backfilled.
+    # Fallback: create on the fly for legacy data that hasn't been backfilled.
     if not problem.question_asset_id:
-        from .question_assets import sync_problem_question_asset
-        sync_problem_question_asset(problem=problem, actor=created_by or problem.created_by)
+        from .question_assets import ensure_problem_question_asset
+        ensure_problem_question_asset(problem=problem, actor=created_by or problem.created_by)
         problem.refresh_from_db(fields=["question_asset", "question_version"])
     question_asset = problem.question_asset
     question_version = problem.question_version
@@ -571,8 +571,8 @@ def ingest_question_bank_inbox_items(
                     raise ValueError(f"Problem {source_id} not found")
 
                 if not source.question_asset_id:
-                    from .question_assets import sync_problem_question_asset
-                    sync_problem_question_asset(problem=source, actor=user)
+                    from .question_assets import ensure_problem_question_asset
+                    ensure_problem_question_asset(problem=source, actor=user)
                     source.refresh_from_db(fields=["question_asset", "question_version"])
 
                 existing_filters = Q(metadata__legacy_problem_id=str(source.id))

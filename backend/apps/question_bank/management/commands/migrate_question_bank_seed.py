@@ -77,10 +77,10 @@ class Command(BaseCommand):
             .order_by("id")
             .distinct()
         )
-        from apps.question_bank.question_assets import sync_problem_question_asset
+        from apps.question_bank.question_assets import ensure_problem_question_asset
         for problem in practice_qs:
             if not problem.question_asset_id:
-                sync_problem_question_asset(problem=problem, actor=platform_owner)
+                ensure_problem_question_asset(problem=problem, actor=platform_owner)
                 problem.refresh_from_db(fields=["question_asset", "question_version"])
             upsert_problem_into_bank(problem=problem, bank=coding_bank, created_by=platform_owner)
             migrated_practice += 1
