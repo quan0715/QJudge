@@ -100,7 +100,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         filters.OrderingFilter
     ]
     filterset_class = ProblemFilter
-    search_fields = ['title', 'translations__title']
+    search_fields = ['title', 'question_asset__title']
     ordering_fields = ['id', 'difficulty', 'submission_count', 'acceptance_rate']
     ordering = ['id']
     lookup_field = 'id'

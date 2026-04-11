@@ -292,6 +292,8 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
     created_by_username = serializers.CharField(source='created_by.username', read_only=True, default=None)
     contests = serializers.SerializerMethodField()
     draft_state = serializers.SerializerMethodField()
+    title = serializers.SerializerMethodField()
+    difficulty = serializers.SerializerMethodField()
 
     class Meta:
         model = Problem
@@ -310,6 +312,22 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
             'draft_state',
             'contests',
         ]
+
+    def get_title(self, obj):
+        if obj.question_asset_id:
+            try:
+                return obj.question_asset.title or f"Problem {obj.id}"
+            except Exception:
+                pass
+        return getattr(obj, 'title', None) or f"Problem {obj.id}"
+
+    def get_difficulty(self, obj):
+        if obj.question_asset_id:
+            try:
+                return (obj.question_asset.payload or {}).get("difficulty", "medium")
+            except Exception:
+                pass
+        return getattr(obj, 'difficulty', 'medium')
 
     def get_draft_state(self, obj):
         return "draft" if obj.question_asset_id else "orphan"

@@ -584,26 +584,29 @@ class ContestProblemSerializer(serializers.ModelSerializer):
         return str(obj.question_asset_id) if obj.question_asset_id else None
 
     def get_title(self, obj):
-        if obj.coding_problem_id:
-            try:
-                return obj.coding_problem.effective_title
-            except Exception:
-                pass
         if obj.question_asset_id:
             try:
                 return obj.question_asset.title
             except Exception:
                 pass
+        if obj.coding_problem_id:
+            try:
+                return obj.coding_problem.title
+            except Exception:
+                pass
         return None
 
     def get_difficulty(self, obj):
-        if obj.coding_problem_id:
+        if obj.question_asset_id:
             try:
-                return obj.coding_problem.effective_difficulty
+                return (obj.question_asset.payload or {}).get("difficulty", "medium")
             except Exception:
                 pass
-        if obj.question_asset_id:
-            return (obj.question_asset.payload or {}).get("difficulty", "medium")
+        if obj.coding_problem_id:
+            try:
+                return obj.coding_problem.difficulty
+            except Exception:
+                pass
         return "medium"
 
     def get_user_status(self, obj):

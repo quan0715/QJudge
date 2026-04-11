@@ -43,7 +43,7 @@ class ProblemQuerySet(models.QuerySet):
             for slug in tag_slugs:
                 queryset = queryset.filter(tags__slug=slug)
 
-        return queryset.prefetch_related("translations", "test_cases", "tags").distinct()
+        return queryset.select_related("question_asset").prefetch_related("test_cases", "tags").distinct()
 
 
 ProblemManager = ProblemQuerySet.as_manager
