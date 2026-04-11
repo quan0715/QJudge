@@ -258,7 +258,12 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             action="exam_question.delete",
         )
         question_id = instance.id
+        question_asset = instance.question_asset
         instance.delete()
+
+        # Clean up orphaned asset if no other bindings or bank memberships
+        from apps.question_bank.question_assets import cleanup_orphan_asset_if_needed
+        cleanup_orphan_asset_if_needed(question_asset)
 
         ContestActivityViewSet.log_activity(
             contest,

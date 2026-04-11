@@ -555,6 +555,7 @@ class ContestProblemSerializer(serializers.ModelSerializer):
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
+    in_question_bank = serializers.SerializerMethodField()
 
     class Meta:
         from apps.question_bank.models import ContestQuestionBinding
@@ -575,6 +576,7 @@ class ContestProblemSerializer(serializers.ModelSerializer):
             'binding_id',
             'difficulty',
             'user_status',
+            'in_question_bank',
         ]
 
     def get_problem_id(self, obj):
@@ -654,6 +656,14 @@ class ContestProblemSerializer(serializers.ModelSerializer):
 
     def get_binding_id(self, obj):
         return str(obj.id)
+
+    def get_in_question_bank(self, obj):
+        if not obj.question_asset_id:
+            return False
+        from apps.question_bank.models import QuestionBankMembership
+        return QuestionBankMembership.objects.filter(
+            question_asset_id=obj.question_asset_id,
+        ).exists()
 
 
 

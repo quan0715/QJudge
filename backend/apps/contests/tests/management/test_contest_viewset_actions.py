@@ -786,6 +786,87 @@ def test_contest_problem_destroy_accepts_legacy_problem_id_fallback(
 
 
 @pytest.mark.django_db
+def test_contest_problem_destroy_cleans_orphan_asset(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    """When a coding problem has no bank membership and its last binding is
+    removed, both the CodingProblem and QuestionAsset should be deleted."""
+    from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionBankMembership
+
+    problem = _create_problem("Orphan cleanup test", owner)
+    # Create QuestionAsset for the problem
+    asset = QuestionAsset.objects.create(
+        owner=owner,
+        asset_type=QuestionAsset.AssetType.CODING,
+        title=problem.title,
+    )
+    problem.question_asset = asset
+    problem.save(update_fields=["question_asset"])
+
+    binding = ContestQuestionBinding.objects.create(
+        contest=contest,
+        question_asset=asset,
+        coding_problem=problem,
+        binding_type=QuestionAsset.AssetType.CODING,
+        order=0,
+        score=100,
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.delete(f"/api/v1/contests/{contest.id}/problems/{binding.id}/")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not ContestQuestionBinding.objects.filter(id=binding.id).exists()
+    assert not Problem.objects.filter(id=problem.id).exists()
+    assert not QuestionAsset.objects.filter(id=asset.id).exists()
+
+
+@pytest.mark.django_db
+def test_contest_problem_destroy_keeps_asset_when_in_bank(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    """When a coding problem belongs to a question bank, destroy only removes
+    the binding; the CodingProblem and QuestionAsset must survive."""
+    from apps.question_bank.models import (
+        ContestQuestionBinding, QuestionAsset, QuestionBank, QuestionBankMembership,
+    )
+
+    problem = _create_problem("Bank member test", owner)
+    asset = QuestionAsset.objects.create(
+        owner=owner,
+        asset_type=QuestionAsset.AssetType.CODING,
+        title=problem.title,
+    )
+    problem.question_asset = asset
+    problem.save(update_fields=["question_asset"])
+
+    bank = QuestionBank.objects.create(name="Test Bank", owner=owner)
+    QuestionBankMembership.objects.create(bank=bank, question_asset=asset)
+
+    binding = ContestQuestionBinding.objects.create(
+        contest=contest,
+        question_asset=asset,
+        coding_problem=problem,
+        binding_type=QuestionAsset.AssetType.CODING,
+        order=0,
+        score=100,
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.delete(f"/api/v1/contests/{contest.id}/problems/{binding.id}/")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not ContestQuestionBinding.objects.filter(id=binding.id).exists()
+    # Problem and asset should still exist
+    assert Problem.objects.filter(id=problem.id).exists()
+    assert QuestionAsset.objects.filter(id=asset.id).exists()
+
+
+@pytest.mark.django_db
 def test_contest_question_mutations_blocked_when_question_edit_locked(
     api_client: APIClient,
     owner: User,

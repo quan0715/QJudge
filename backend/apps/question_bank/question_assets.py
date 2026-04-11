@@ -705,6 +705,36 @@ def ensure_question_asset_for_bank_question(
     return asset, version
 
 
+def cleanup_orphan_asset_if_needed(question_asset, *, coding_problem=None):
+    """Delete QuestionAsset (+ CodingProblem) if no contest bindings or bank memberships remain.
+
+    Call after removing a contest binding to avoid leaving orphaned records
+    that have no UI entry point for management or deletion.
+    """
+    if question_asset is None:
+        return False
+
+    has_bindings = ContestQuestionBinding.objects.filter(
+        question_asset=question_asset,
+    ).exists()
+    if has_bindings:
+        return False
+
+    has_bank = QuestionBankMembership.objects.filter(
+        question_asset=question_asset,
+    ).exists()
+    if has_bank:
+        return False
+
+    # Orphaned — delete CodingProblem first (SET_NULL FK won't cascade)
+    if coding_problem is not None:
+        coding_problem.delete()
+
+    # CASCADE deletes QuestionVersions
+    question_asset.delete()
+    return True
+
+
 def ensure_contest_binding_for_problem(
     *,
     contest_problem: ContestProblem,

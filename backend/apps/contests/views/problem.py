@@ -219,11 +219,17 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'detail': 'Problem not found in this contest.'}, status=status.HTTP_404_NOT_FOUND)
 
         label = binding.coding_problem.title if binding.coding_problem else str(binding.question_asset_id)
+        question_asset = binding.question_asset
+        coding_problem = binding.coding_problem
 
         # Delete legacy ContestProblem if exists
         if binding.legacy_contest_problem_id:
             ContestProblem.objects.filter(pk=binding.legacy_contest_problem_id).delete()
         binding.delete()
+
+        # Clean up orphaned asset + problem if no other bindings or bank memberships
+        from apps.question_bank.question_assets import cleanup_orphan_asset_if_needed
+        cleanup_orphan_asset_if_needed(question_asset, coding_problem=coding_problem)
 
         ContestActivityViewSet.log_activity(
             contest, user, 'update_problem', f"Removed problem {label} from contest",
