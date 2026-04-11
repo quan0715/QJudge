@@ -204,13 +204,12 @@ async def qjudge_discover(
         return await django_api("GET", f"/api/v1/classrooms/?{urlencode(query)}", ctx)
 
     if action == "list_contests":
-        query: dict[str, str] = {}
+        query: dict[str, str] = {"scope": "manage"}
         if search:
             query["search"] = search
         if status:
             query["status"] = status
-        suffix = f"?{urlencode(query)}" if query else ""
-        return await django_api("GET", f"/api/v1/contests/{suffix}", ctx)
+        return await django_api("GET", f"/api/v1/contests/?{urlencode(query)}", ctx)
 
     if action == "get_contest":
         if not contest_id:
