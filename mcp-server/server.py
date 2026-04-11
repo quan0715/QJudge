@@ -7,7 +7,9 @@ from urllib.parse import urlencode
 import httpx
 from mcp.server.fastmcp import FastMCP, Context
 
-from config import DJANGO_BASE_URL, MCP_HOST, MCP_PORT
+from starlette.responses import JSONResponse
+
+from config import DJANGO_BASE_URL, MCP_HOST, MCP_PORT, MCP_PUBLIC_URL, OAUTH_ISSUER_URL
 
 
 async def django_api(
@@ -182,6 +184,17 @@ mcp = FastMCP(
     stateless_http=True,
     json_response=True,
 )
+
+
+@mcp.custom_route("/.well-known/oauth-protected-resource", methods=["GET"])
+async def protected_resource_metadata(request):
+    """RFC 9728 — OAuth 2.0 Protected Resource Metadata."""
+    return JSONResponse(
+        {
+            "resource": MCP_PUBLIC_URL,
+            "authorization_servers": [OAUTH_ISSUER_URL],
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
