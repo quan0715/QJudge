@@ -23,7 +23,7 @@ MCP Server 將使用 OAuth 2.1 自動進行授權，無需手動產生 Token。
 在終端機執行：
 
 ```bash
-claude mcp add --transport http qjudge https://mcp.qjudge.com/mcp
+claude mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 ```
 
 重啟 Claude Code 後，輸入 `/mcp` 確認 `qjudge` 出現在伺服器列表中。
@@ -37,7 +37,7 @@ claude mcp add --transport http qjudge https://mcp.qjudge.com/mcp
   "mcpServers": {
     "qjudge": {
       "type": "http",
-      "url": "https://mcp.qjudge.com/mcp"
+      "url": "https://mcp.q-judge.com/mcp"
     }
   }
 }
@@ -50,7 +50,7 @@ claude mcp add --transport http qjudge https://mcp.qjudge.com/mcp
 在終端機執行：
 
 ```bash
-codex mcp add --transport http qjudge https://mcp.qjudge.com/mcp
+codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 ```
 
 ## 自動授權流程
@@ -122,7 +122,7 @@ codex mcp add --transport http qjudge https://mcp.qjudge.com/mcp
 
 ### 連線失敗
 
-- 確認 MCP Server URL 正確且可存取（應為 `https://mcp.qjudge.com/mcp`）
+- 確認 MCP Server URL 正確且可存取（應為 `https://mcp.q-judge.com/mcp`）
 - 確認您的帳號具有教師或助教權限
 - 若授權過期（Refresh Token 逾期），請重新執行安裝指令以重新授權
 
