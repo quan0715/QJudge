@@ -208,8 +208,17 @@ async def qjudge_discover(
     search: str | None = None,
     status: str | None = None,
     contest_id: str | None = None,
+    bank_id: str | None = None,
 ) -> Any:
-    """Discover classrooms and contests. Actions: list_classrooms, list_contests, get_contest."""
+    """Discover classrooms, contests, and question banks.
+
+    Actions:
+      list_classrooms      — List classrooms you manage
+      list_contests        — List contests you manage (optional: search, status)
+      get_contest          — Get contest detail (required: contest_id)
+      browse_banks         — List your question banks
+      browse_bank_questions — List questions in a bank (required: bank_id)
+    """
     if action == "list_classrooms":
         query = {"scope": "manage"}
         if search:
@@ -228,6 +237,14 @@ async def qjudge_discover(
         if not contest_id:
             return _error("contest_id is required")
         return await django_api("GET", f"/api/v1/contests/{contest_id}/", ctx)
+
+    if action == "browse_banks":
+        return await django_api("GET", "/api/v1/question-banks/", ctx)
+
+    if action == "browse_bank_questions":
+        if not bank_id:
+            return _error("bank_id is required")
+        return await django_api("GET", f"/api/v1/question-banks/{bank_id}/questions/", ctx)
 
     return _error(f"Unknown action: {action}")
 
@@ -248,8 +265,9 @@ async def qjudge_exam(
     options: list[str] | None = None,
     correct_answer: Any | None = None,
     question_ids: list[str] | None = None,
+    items: list[dict] | None = None,
 ) -> Any:
-    """Manage exam questions. Actions: list, get, create, update, delete, reorder."""
+    """Manage exam questions. Actions: list, get, create, update, delete, reorder, import_from_bank."""
     base = f"/api/v1/contests/{contest_id}/exam-questions"
 
     if action == "list":
@@ -302,6 +320,11 @@ async def qjudge_exam(
             return _error("question_ids is required")
         orders = [{"id": qid, "order": idx} for idx, qid in enumerate(question_ids)]
         return await django_api("POST", f"{base}/reorder/", ctx, json_body={"orders": orders})
+
+    if action == "import_from_bank":
+        if not items:
+            return _error("items is required (list of {question_bank_id, question_id})")
+        return await django_api("POST", f"{base}/import-from-bank/", ctx, json_body={"items": items})
 
     return _error(f"Unknown action: {action}")
 
@@ -394,110 +417,81 @@ async def qjudge_grading(
 
 
 # ---------------------------------------------------------------------------
-# Tool 4: qjudge_coding — 程式題目 CRUD + test_run
+# Tool 4: qjudge_coding — 競賽程式題目管理 + test_run
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
 async def qjudge_coding(
     action: str,
     ctx: Context,
+    contest_id: str | None = None,
     problem_id: str | None = None,
-    search: str | None = None,
-    difficulty: str | None = None,
-    tags: str | None = None,
     title: str | None = None,
-    slug: str | None = None,
-    time_limit: int | None = None,
-    memory_limit: int | None = None,
-    forbidden_keywords: list[str] | None = None,
-    required_keywords: list[str] | None = None,
-    test_cases: list[dict] | None = None,
-    language_configs: list[dict] | None = None,
-    translations: list[dict] | None = None,
-    existing_tag_ids: list[str] | None = None,
-    new_tag_names: list[str] | None = None,
+    question_bank_id: str | None = None,
+    question_id: str | None = None,
+    max_score: int | None = None,
     language: str | None = None,
     code: str | None = None,
     use_samples: bool = True,
     custom_test_cases: list[dict] | None = None,
 ) -> Any:
-    """Manage coding problems: list, view, create, edit, delete, and test-run code.
+    """Manage coding problems within a contest.
 
     Actions:
-      list        — Browse problems (optional: search, difficulty, tags)
-      get         — Get full problem detail including test cases and language configs
-      create      — Create a new problem (required: title)
-      update      — Update problem fields (required: problem_id + at least one field)
-      delete      — Delete a problem (required: problem_id)
-      test_run    — Execute code against test cases (required: problem_id, language, code)
+      list         — List coding problems in a contest (required: contest_id)
+      get          — Get problem detail (required: contest_id, problem_id)
+      create       — Add a new problem or import from bank (required: contest_id + title or question_bank_id/question_id)
+      update_score — Update contest-level score (required: contest_id, problem_id, max_score)
+      delete       — Remove problem from contest (required: contest_id, problem_id)
+      test_run     — Execute code against test cases (required: problem_id, language, code)
     """
-    base = "/api/v1/problems"
-
     if action == "list":
-        query: dict[str, str] = {"scope": "manage"}
-        if search:
-            query["search"] = search
-        if difficulty:
-            query["difficulty"] = difficulty
-        if tags:
-            query["tags"] = tags
-        return await django_api("GET", f"{base}/?{urlencode(query)}", ctx)
+        if not contest_id:
+            return _error("contest_id is required")
+        return await django_api("GET", f"/api/v1/contests/{contest_id}/problems/", ctx)
 
     if action == "get":
+        if not contest_id:
+            return _error("contest_id is required")
         if not problem_id:
             return _error("problem_id is required")
-        return await django_api("GET", f"{base}/{problem_id}/", ctx)
+        return await django_api("GET", f"/api/v1/contests/{contest_id}/problems/{problem_id}/", ctx)
 
     if action == "create":
-        if not title:
-            return _error("title is required")
-        body: dict[str, Any] = {"title": title}
-        for key, val in [
-            ("difficulty", difficulty),
-            ("slug", slug),
-            ("time_limit", time_limit),
-            ("memory_limit", memory_limit),
-            ("forbidden_keywords", forbidden_keywords),
-            ("required_keywords", required_keywords),
-            ("test_cases", test_cases),
-            ("language_configs", language_configs),
-            ("translations", translations),
-            ("existing_tag_ids", existing_tag_ids),
-            ("new_tag_names", new_tag_names),
-        ]:
-            if val is not None:
-                body[key] = val
-        return await django_api("POST", f"{base}/", ctx, json_body=body)
+        if not contest_id:
+            return _error("contest_id is required")
+        body: dict[str, Any] = {}
+        if question_bank_id and question_id:
+            body["question_bank_id"] = question_bank_id
+            body["question_id"] = question_id
+        elif title:
+            body["title"] = title
+        else:
+            return _error("title or question_bank_id/question_id is required")
+        if max_score is not None:
+            body["max_score"] = max_score
+        return await django_api("POST", f"/api/v1/contests/{contest_id}/add_problem/", ctx, json_body=body)
 
-    if action == "update":
+    if action == "update_score":
+        if not contest_id:
+            return _error("contest_id is required")
         if not problem_id:
             return _error("problem_id is required")
-        body = {}
-        for key, val in [
-            ("title", title),
-            ("difficulty", difficulty),
-            ("slug", slug),
-            ("time_limit", time_limit),
-            ("memory_limit", memory_limit),
-            ("forbidden_keywords", forbidden_keywords),
-            ("required_keywords", required_keywords),
-            ("test_cases", test_cases),
-            ("language_configs", language_configs),
-            ("translations", translations),
-            ("existing_tag_ids", existing_tag_ids),
-            ("new_tag_names", new_tag_names),
-        ]:
-            if val is not None:
-                body[key] = val
-        if not body:
-            return _error("No fields to update")
-        return await django_api("PATCH", f"{base}/{problem_id}/", ctx, json_body=body)
+        if max_score is None:
+            return _error("max_score is required")
+        return await django_api(
+            "PATCH",
+            f"/api/v1/contests/{contest_id}/problems/{problem_id}/score/",
+            ctx,
+            json_body={"max_score": max_score},
+        )
 
     if action == "delete":
+        if not contest_id:
+            return _error("contest_id is required")
         if not problem_id:
             return _error("problem_id is required")
-        await django_api("DELETE", f"{base}/{problem_id}/", ctx)
-        return {"status": "deleted", "problem_id": problem_id}
+        return await django_api("DELETE", f"/api/v1/contests/{contest_id}/problems/{problem_id}/", ctx)
 
     if action == "test_run":
         if not problem_id:
@@ -513,7 +507,7 @@ async def qjudge_coding(
         }
         if custom_test_cases is not None:
             body["custom_test_cases"] = custom_test_cases
-        return await django_api("POST", f"{base}/{problem_id}/test_run/", ctx, json_body=body)
+        return await django_api("POST", f"/api/v1/problems/{problem_id}/test_run/", ctx, json_body=body)
 
     return _error(f"Unknown action: {action}")
 
