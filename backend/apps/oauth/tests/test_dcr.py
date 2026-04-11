@@ -60,6 +60,17 @@ class DynamicClientRegistrationTest(TestCase):
         data = response.json()
         self.assertIn("error", data)
 
+    def test_accept_authorization_code_with_refresh_token(self):
+        response = self._register(
+            {
+                "client_name": "Claude Code",
+                "grant_types": ["authorization_code", "refresh_token"],
+                "token_endpoint_auth_method": "none",
+                "redirect_uris": ["http://localhost:3000/callback"],
+            }
+        )
+        self.assertEqual(response.status_code, 201)
+
     def test_reject_non_authorization_code_grant(self):
         response = self._register(
             {

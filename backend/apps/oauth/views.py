@@ -56,11 +56,11 @@ def dynamic_client_registration(request):
     redirect_uris = body.get("redirect_uris", [])
     client_name = body.get("client_name", "MCP Client")
 
-    if grant_types != ["authorization_code"]:
+    if "authorization_code" not in grant_types:
         return JsonResponse(
             {
                 "error": "invalid_client_metadata",
-                "error_description": "Only authorization_code grant type is supported",
+                "error_description": "authorization_code grant type is required",
             },
             status=400,
         )
