@@ -265,9 +265,6 @@ CSRF_COOKIE_HTTPONLY = False  # Frontend needs to read this for X-CSRFToken head
 CSRF_COOKIE_NAME = "csrftoken"
 CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 
-# Frontend URL
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-
 # Feature flags
 # Contest ACL role source:
 # - False: legacy contest-scoped owner/co_owner/participant resolution
