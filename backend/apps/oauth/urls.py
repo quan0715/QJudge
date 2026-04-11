@@ -13,14 +13,4 @@ urlpatterns = [
         views.dynamic_client_registration,
         name="oauth-dcr",
     ),
-    path(
-        "o/authorize/",
-        views.authorize_redirect,
-        name="oauth-authorize-redirect",
-    ),
-    path(
-        "api/oauth/approve/",
-        views.approve_authorization,
-        name="oauth-approve",
-    ),
 ]

@@ -217,6 +217,7 @@ OAUTH2_PROVIDER = {
 
 OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", "http://localhost:8000")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+LOGIN_URL = "/django-admin/login/"
 
 # Spectacular settings
 SPECTACULAR_SETTINGS = {
