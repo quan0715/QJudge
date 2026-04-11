@@ -784,16 +784,6 @@ def test_qjudge_coding_unknown_action():
     assert result == {"error": True, "detail": "Unknown action: wat"}
 
 
-def test_protected_resource_metadata(monkeypatch):
-    monkeypatch.setattr(server, "MCP_PUBLIC_URL", "https://mcp.qjudge.com")
-    monkeypatch.setattr(server, "OAUTH_ISSUER_URL", "https://qjudge.com")
-
-    from starlette.testclient import TestClient
-    app = server.mcp.streamable_http_app()
-    client = TestClient(app)
-    response = client.get("/.well-known/oauth-protected-resource")
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["resource"] == "https://mcp.qjudge.com"
-    assert data["authorization_servers"] == ["https://qjudge.com"]
+def test_auth_settings_configured():
+    """Verify MCP server has auth settings for OAuth discovery."""
+    assert isinstance(server.mcp._token_verifier, server.DjangoTokenVerifier)

@@ -5,11 +5,30 @@ from typing import Any
 from urllib.parse import urlencode
 
 import httpx
+from mcp.server.auth.provider import AccessToken, TokenVerifier
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP, Context
 
-from starlette.responses import JSONResponse
-
 from config import DJANGO_BASE_URL, MCP_HOST, MCP_PORT, MCP_PUBLIC_URL, OAUTH_ISSUER_URL
+
+
+class DjangoTokenVerifier(TokenVerifier):
+    """Verify OAuth tokens by forwarding to Django backend."""
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        """Check token against Django. Return AccessToken if valid, None if not."""
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"{DJANGO_BASE_URL}/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        if response.status_code != 200:
+            return None
+        return AccessToken(
+            token=token,
+            client_id="qjudge",
+            scopes=["mcp"],
+        )
 
 
 async def django_api(
@@ -183,18 +202,12 @@ mcp = FastMCP(
     port=MCP_PORT,
     stateless_http=True,
     json_response=True,
+    auth=AuthSettings(
+        issuer_url=OAUTH_ISSUER_URL,
+        resource_server_url=MCP_PUBLIC_URL,
+    ),
+    token_verifier=DjangoTokenVerifier(),
 )
-
-
-@mcp.custom_route("/.well-known/oauth-protected-resource", methods=["GET"])
-async def protected_resource_metadata(request):
-    """RFC 9728 — OAuth 2.0 Protected Resource Metadata."""
-    return JSONResponse(
-        {
-            "resource": MCP_PUBLIC_URL,
-            "authorization_servers": [OAUTH_ISSUER_URL],
-        }
-    )
 
 
 # ---------------------------------------------------------------------------
