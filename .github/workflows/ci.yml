@@ -281,10 +281,14 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
-          cache-dependency-path: backend/requirements/dev.txt
+          cache-dependency-path: |
+            backend/requirements/dev.txt
+            mcp-server/pyproject.toml
 
       - name: Install dependencies
-        run: pip install -r requirements/dev.txt
+        run: |
+          pip install -r requirements/dev.txt
+          pip install -e ../mcp-server
         working-directory: backend
 
       - name: Migrate
@@ -298,6 +302,12 @@ jobs:
             --ignore=apps/submissions/tests/test_performance.py \
             -v --tb=short
         working-directory: backend
+
+      - name: Run MCP Server Tests
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: python -m pytest mcp-server/tests/test_server.py -q
+        working-directory: .
 
       - name: Coverage Report
         if: success()
