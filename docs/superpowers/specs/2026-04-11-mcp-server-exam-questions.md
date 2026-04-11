@@ -85,78 +85,25 @@ dev 環境需在 Django 建立一個 OAuth Application：
 
 ## MCP Tools
 
-6 個 tools，全部操作 `/api/v1/contests/{contest_id}/exam-questions/`：
+3 個合併 tools，透過 `action` 參數區分操作（減少 schema token 佔用）：
 
-### list_exam_questions
+### qjudge_discover
 
-```
-Parameters: contest_id (str)
-Django API: GET /api/v1/contests/{contest_id}/exam-questions/
-```
+查詢教室與競賽。Actions: `list_classrooms`, `list_contests`, `get_contest`
 
-列出指定競賽的所有 exam questions。
+### qjudge_exam
 
-### get_exam_question
+管理考試題目 CRUD + 排序。Actions: `list`, `get`, `create`, `update`, `delete`, `reorder`
 
-```
-Parameters: contest_id (str), question_id (str)
-Django API: GET /api/v1/contests/{contest_id}/exam-questions/{question_id}/
-```
+### qjudge_grading
 
-取得單一題目詳情，含 correct_answer。
-
-### create_exam_question
-
-```
-Parameters:
-  contest_id (str)
-  question_type (str)     # true_false|single_choice|multiple_choice|short_answer|essay
-  prompt (str)
-  score (int)
-  options (list[str]?)    # 選擇題用
-  correct_answer (Any?)
-Django API: POST /api/v1/contests/{contest_id}/exam-questions/
-```
-
-新增一道題目。
-
-### update_exam_question
-
-```
-Parameters:
-  contest_id (str)
-  question_id (str)
-  prompt (str?)
-  options (list[str]?)
-  correct_answer (Any?)
-  score (int?)
-Django API: PATCH /api/v1/contests/{contest_id}/exam-questions/{question_id}/
-```
-
-修改題目。只傳有變更的欄位。
-
-### delete_exam_question
-
-```
-Parameters: contest_id (str), question_id (str)
-Django API: DELETE /api/v1/contests/{contest_id}/exam-questions/{question_id}/
-```
-
-刪除題目。
-
-### reorder_exam_questions
-
-```
-Parameters: contest_id (str), question_ids (list[str])
-Django API: POST /api/v1/contests/{contest_id}/exam-questions/reorder/
-```
-
-按 question_ids 的順序重新排列題目。
+查看作答與批改。Actions: `list_answers`, `question_detail`, `dashboard`, `grade`, `batch_grade`, `ungrade`
 
 ### 回傳格式
 
-- 成功：回傳 Django API 的 JSON response（序列化為字串）
-- 失敗：回傳 Django 的 error message，讓 AI 理解並告知使用者
+- 成功：回傳精簡後的 Django API JSON response（移除 snapshot、截斷長欄位）
+- 失敗：回傳 `{error: true, status: N, detail: ...}`
+- 批改：回傳最小 ack `{status: "success", graded_count: N}`
 
 ## Error Handling
 
