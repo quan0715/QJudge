@@ -119,7 +119,7 @@ class TestRunSerializer(serializers.Serializer):
         )
 
     language = serializers.ChoiceField(
-        choices=['cpp', 'python', 'java', 'c'],
+        choices=['cpp', 'c', 'python', 'java'],
         required=True,
         help_text='Programming language'
     )
