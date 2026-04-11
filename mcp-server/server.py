@@ -68,6 +68,46 @@ mcp = FastMCP(
 
 
 @mcp.tool()
+async def list_classrooms(ctx: Context, search: str | None = None) -> str:
+    """列出目前使用者的所有教室。可用關鍵字搜尋教室名稱。
+
+    Args:
+        search: 搜尋關鍵字（比對教室名稱）
+    """
+    params = "?scope=manage"
+    if search:
+        params += f"&search={search}"
+    return await django_api("GET", f"/api/v1/classrooms/{params}", ctx)
+
+
+@mcp.tool()
+async def list_contests(ctx: Context, search: str | None = None, status: str | None = None) -> str:
+    """列出目前使用者可管理的競賽/考試。可用關鍵字搜尋或依狀態篩選。
+
+    Args:
+        search: 搜尋關鍵字（比對競賽名稱）
+        status: 篩選狀態，可選值：draft, published, archived
+    """
+    params = []
+    if search:
+        params.append(f"search={search}")
+    if status:
+        params.append(f"status={status}")
+    query = "?" + "&".join(params) if params else ""
+    return await django_api("GET", f"/api/v1/contests/{query}", ctx)
+
+
+@mcp.tool()
+async def get_contest(contest_id: str, ctx: Context) -> str:
+    """取得指定競賽/考試的詳細資訊（名稱、時間、狀態、題目數等）。
+
+    Args:
+        contest_id: 競賽 ID (UUID)
+    """
+    return await django_api("GET", f"/api/v1/contests/{contest_id}/", ctx)
+
+
+@mcp.tool()
 async def list_exam_questions(contest_id: str, ctx: Context) -> str:
     """列出指定競賽的所有考試題目（含正確答案，僅限老師/助教）。
 
