@@ -461,8 +461,7 @@ async def qjudge_coding(
     contest_id: str | None = None,
     problem_id: str | None = None,
     title: str | None = None,
-    question_bank_id: str | None = None,
-    question_id: str | None = None,
+    items: list[dict] | None = None,
     max_score: int | None = None,
     language: str | None = None,
     code: str | None = None,
@@ -474,9 +473,9 @@ async def qjudge_coding(
     Actions:
       list         — List coding problems in a contest (required: contest_id)
       get          — Get problem detail (required: contest_id, problem_id)
-      create       — Create a new problem in contest (auto-added to personal bank) (required: contest_id, title)
-      add_from_bank — Import from question bank (required: contest_id, question_bank_id, question_id)
-      duplicate    — Clone an existing problem into the contest (required: contest_id, problem_id = source Problem UUID)
+      create       — Create a new problem in contest (required: contest_id, title)
+      import_from_bank — Import from question bank (required: contest_id, items [{question_bank_id, question_id}])
+      duplicate    — Clone an existing problem into the contest (required: contest_id, problem_id)
       update_score — Update contest-level score (required: contest_id, problem_id, max_score)
       delete       — Remove problem from contest (required: contest_id, problem_id)
       test_run     — Execute code against test cases (required: problem_id, language, code)
@@ -503,18 +502,15 @@ async def qjudge_coding(
             body["max_score"] = max_score
         return await django_api("POST", f"/api/v1/contests/{contest_id}/add_problem/", ctx, json_body=body)
 
-    if action == "add_from_bank":
+    if action == "import_from_bank":
         if not contest_id:
             return _error("contest_id is required")
-        if not question_bank_id or not question_id:
-            return _error("question_bank_id and question_id are required")
-        body: dict[str, Any] = {
-            "question_bank_id": question_bank_id,
-            "question_id": question_id,
-        }
-        if max_score is not None:
-            body["max_score"] = max_score
-        return await django_api("POST", f"/api/v1/contests/{contest_id}/add_problem/", ctx, json_body=body)
+        if not items:
+            return _error("items is required (list of {question_bank_id, question_id})")
+        return await django_api(
+            "POST", f"/api/v1/contests/{contest_id}/problems/import-from-bank/",
+            ctx, json_body={"items": items},
+        )
 
     if action == "duplicate":
         if not contest_id:

@@ -1,8 +1,10 @@
 """ContestProblemViewSet — reads and writes via ContestQuestionBinding."""
+from django.db import transaction
 from django.utils import timezone
 from django.db.models import Max, Sum
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
@@ -278,3 +280,107 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             "max_score": binding.score,
             "score": binding.score,
         })
+
+    @action(detail=False, methods=["post"], url_path="import-from-bank")
+    def import_from_bank(self, request, *args, **kwargs):
+        """Batch-import coding problems from a question bank.
+
+        Payload: {"items": [{"question_bank_id": "...", "question_id": "..."}, ...]}
+        Same contract as exam-questions/import-from-bank/ for consistency.
+        """
+        contest_id = self.kwargs.get("contest_pk")
+        contest = get_object_or_404(Contest, pk=contest_id)
+        user = request.user
+
+        if not can_manage_contest(user, contest):
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        ensure_contest_question_editable(
+            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.import_from_bank",
+        )
+
+        items = request.data.get("items", [])
+        if not isinstance(items, list) or not items:
+            raise DRFValidationError("items must be a non-empty list")
+
+        # Delegate to ContestViewSet helpers for bank resolution + materialization
+        from .contest import ContestViewSet
+        contest_vs = ContestViewSet()
+        contest_vs.request = request
+        contest_vs.kwargs = {"pk": contest_id}
+        contest_vs.format_kwarg = None
+
+        last_order = (
+            ContestQuestionBinding.objects.filter(
+                contest=contest, binding_type=QuestionAsset.AssetType.CODING,
+            ).aggregate(max_order=Max("order"))["max_order"]
+        )
+        next_order = (last_order if last_order is not None else -1) + 1
+        created_bindings = []
+
+        with transaction.atomic():
+            for item in items:
+                if not isinstance(item, dict):
+                    raise DRFValidationError("Invalid item payload")
+
+                question_bank_id = item.get("question_bank_id")
+                question_id = item.get("question_id")
+                if not question_bank_id or question_id is None:
+                    raise DRFValidationError("Each item requires question_bank_id and question_id")
+
+                bank, bank_question, error_response = contest_vs._resolve_bank_question_for_import(
+                    user=user, question_bank_id=question_bank_id, question_id=question_id,
+                )
+                if error_response:
+                    raise DRFValidationError(error_response.data)
+
+                problem = contest_vs._materialize_problem_from_bank_question(
+                    contest=contest, question=bank_question, user=user, request=request,
+                )
+
+                if not problem.question_asset_id:
+                    from apps.question_bank.question_assets import sync_problem_question_asset
+                    sync_problem_question_asset(problem=problem, actor=user)
+                    problem.refresh_from_db(fields=["question_asset", "question_version"])
+
+                default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
+                requested = item.get("max_score")
+                max_score = max(1, int(requested)) if requested is not None else default_max_score
+
+                binding = ContestQuestionBinding.objects.create(
+                    contest=contest,
+                    question_asset=problem.question_asset,
+                    question_version=problem.question_version,
+                    coding_problem=problem,
+                    binding_type=QuestionAsset.AssetType.CODING,
+                    order=next_order,
+                    score=max_score,
+                    source_bank_id=bank.uuid,
+                    source_bank_name=bank.name,
+                    source_question_id=bank_question.id,
+                    source_mode="copy",
+                    created_by=user,
+                )
+
+                cp = ContestProblem(
+                    contest=contest, problem=problem, order=next_order, max_score=max_score,
+                    question_asset=problem.question_asset, question_version=problem.question_version,
+                    source_bank_id=bank.uuid, source_bank_name=bank.name,
+                    source_question_id=bank_question.id, source_mode="copy",
+                )
+                cp._skip_binding_sync = True
+                cp.save()
+                binding.legacy_contest_problem = cp
+                binding.save(update_fields=["legacy_contest_problem", "updated_at"])
+
+                created_bindings.append(binding)
+                next_order += 1
+
+        ContestActivityViewSet.log_activity(
+            contest, user, "update_problem",
+            f"Imported {len(created_bindings)} coding problems from bank",
+        )
+
+        serializer = ContestProblemSerializer(
+            self.get_queryset(), many=True, context={"request": request},
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

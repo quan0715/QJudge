@@ -615,39 +615,34 @@ def test_qjudge_coding_create_requires_fields():
     assert run(server.qjudge_coding("create", DummyContext(), contest_id="c-1"))["detail"] == "title is required"
 
 
-def test_qjudge_coding_add_from_bank(monkeypatch):
+def test_qjudge_coding_import_from_bank(monkeypatch):
     captured = {}
 
     async def fake_django_api(method, path, ctx, *, json_body=None):
         captured["method"] = method
         captured["path"] = path
         captured["json_body"] = json_body
-        return {"id": "p-imported"}
+        return [{"id": "b-1"}]
 
     monkeypatch.setattr(server, "django_api", fake_django_api)
 
-    result = run(
-        server.qjudge_coding(
-            "add_from_bank", DummyContext(),
-            contest_id="c-1",
-            question_bank_id="bank-1",
-            question_id="q-1",
-            max_score=50,
-        )
-    )
+    items = [
+        {"question_bank_id": "bank-1", "question_id": "q-1"},
+        {"question_bank_id": "bank-1", "question_id": "q-2"},
+    ]
+    result = run(server.qjudge_coding("import_from_bank", DummyContext(), contest_id="c-1", items=items))
 
-    assert result == {"id": "p-imported"}
+    assert result == [{"id": "b-1"}]
     assert captured == {
         "method": "POST",
-        "path": "/api/v1/contests/c-1/add_problem/",
-        "json_body": {"question_bank_id": "bank-1", "question_id": "q-1", "max_score": 50},
+        "path": "/api/v1/contests/c-1/problems/import-from-bank/",
+        "json_body": {"items": items},
     }
 
 
-def test_qjudge_coding_add_from_bank_requires_fields():
-    assert run(server.qjudge_coding("add_from_bank", DummyContext()))["detail"] == "contest_id is required"
-    assert run(server.qjudge_coding("add_from_bank", DummyContext(), contest_id="c-1"))["detail"] == "question_bank_id and question_id are required"
-    assert run(server.qjudge_coding("add_from_bank", DummyContext(), contest_id="c-1", question_bank_id="b"))["detail"] == "question_bank_id and question_id are required"
+def test_qjudge_coding_import_from_bank_requires_fields():
+    assert run(server.qjudge_coding("import_from_bank", DummyContext()))["detail"] == "contest_id is required"
+    assert run(server.qjudge_coding("import_from_bank", DummyContext(), contest_id="c-1"))["detail"] == "items is required (list of {question_bank_id, question_id})"
 
 
 def test_qjudge_coding_duplicate(monkeypatch):
