@@ -6,7 +6,7 @@ from typing import List, Optional, Dict, Any
 
 from django.utils import timezone
 
-from ..models import Contest, ContestProblem, ContestParticipant
+from ..models import Contest, ContestParticipant
 from apps.problems.models import Problem
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission

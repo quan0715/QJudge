@@ -12,7 +12,8 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from PIL import Image
 
-from apps.contests.models import Contest, ContestProblem, ExamQuestion
+from apps.contests.models import Contest, ExamQuestion
+from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
 from apps.question_bank.bank_workflows import (
     clone_question_to_bank,
@@ -874,7 +875,7 @@ class TestQuestionBankAPI:
             owner=teacher,
             contest_type="coding",
         )
-        ContestProblem.objects.create(contest=contest, problem=problem, order=0)
+        bind_problem_to_contest(contest, problem, order=0)
 
         from apps.question_bank.question_assets import write_coding_content_to_asset, sync_asset_to_problem
 

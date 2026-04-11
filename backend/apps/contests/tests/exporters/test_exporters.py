@@ -5,7 +5,8 @@ import pytest
 from io import BytesIO
 from datetime import timedelta
 from django.utils import timezone
-from apps.contests.models import Contest, ContestProblem, ContestParticipant, ExamStatus
+from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.tests import bind_problem_to_contest
 from apps.contests.exporters import MarkdownRenderer, PDFRenderer, StudentReportRenderer
 from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
@@ -72,11 +73,7 @@ class TestContestExporters:
         )
         
         # Add to contest
-        ContestProblem.objects.create(
-            contest=contest,
-            problem=problem,
-            order=0
-        )
+        bind_problem_to_contest(contest, problem, order=0)
         
         return problem
     
@@ -113,11 +110,7 @@ class TestContestExporters:
             description='第二題描述'
         )
 
-        ContestProblem.objects.create(
-            contest=contest,
-            problem=second_problem,
-            order=1
-        )
+        bind_problem_to_contest(contest, second_problem, order=1)
 
         exporter = MarkdownRenderer(contest, 'zh-TW')
         content = exporter.export()
@@ -246,11 +239,7 @@ class TestStudentReportRenderer:
                     score=10
                 )
             
-            ContestProblem.objects.create(
-                contest=contest_with_times,
-                problem=problem,
-                order=i
-            )
+            bind_problem_to_contest(contest_with_times, problem, order=i)
             
             problems.append(problem)
         

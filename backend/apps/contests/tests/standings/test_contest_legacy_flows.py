@@ -8,8 +8,10 @@ import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ContestProblem, ExamStatus
+from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import Problem, TestCase as ProblemTestCase
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
 
@@ -65,13 +67,36 @@ class ContestParticipantFactory(factory.django.DjangoModelFactory):
     nickname = ""
 
 
-class ContestProblemFactory(factory.django.DjangoModelFactory):
+class ContestProblemBindingFactory(factory.django.DjangoModelFactory):
+    """Factory that creates a ContestQuestionBinding for a coding problem."""
     class Meta:
-        model = ContestProblem
+        model = ContestQuestionBinding
+        exclude = ["_problem"]
 
+    _problem = factory.SubFactory(ProblemFactory)
     contest = factory.SubFactory(ContestFactory)
-    problem = factory.SubFactory(ProblemFactory)
+    question_asset = None
+    question_version = None
+    coding_problem = factory.LazyAttribute(lambda o: o._problem)
+    binding_type = QuestionAsset.AssetType.CODING
     order = 0
+    score = 100
+    source_mode = "manual"
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        problem = kwargs.get("coding_problem") or kwargs.pop("_problem", None)
+        if problem and not problem.question_asset_id:
+            from apps.question_bank.question_assets import sync_problem_question_asset
+            contest = kwargs.get("contest")
+            sync_problem_question_asset(
+                problem=problem, actor=problem.created_by or (contest.owner if contest else None),
+            )
+            problem.refresh_from_db(fields=["question_asset", "question_version"])
+        kwargs["question_asset"] = problem.question_asset
+        kwargs["question_version"] = problem.question_version
+        kwargs["coding_problem"] = problem
+        return super()._create(model_class, *args, **kwargs)
 
 
 class ProblemTestCaseFactory(factory.django.DjangoModelFactory):
@@ -109,7 +134,7 @@ def create_contest_with_problem(owner: User, **contest_kwargs: object) -> Tuple[
     contest = ContestFactory(owner=owner, **contest_kwargs)
     problem = ProblemFactory(created_by=owner)
     ProblemTestCaseFactory(problem=problem, score=100)
-    ContestProblemFactory(contest=contest, problem=problem, order=0)
+    bind_problem_to_contest(contest, problem, order=0)
     return contest, problem
 
 

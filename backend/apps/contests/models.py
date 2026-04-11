@@ -3,7 +3,6 @@ Models for contests and exams.
 """
 import uuid as uuid_lib
 from django.db import models
-from django.db.models import Sum
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password, identify_hasher, make_password
 from django.utils import timezone
@@ -226,13 +225,6 @@ class Contest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
     
-    problems = models.ManyToManyField(
-        Problem,
-        through='ContestProblem',
-        related_name='contests',
-        verbose_name='題目'
-    )
-    
     participants = models.ManyToManyField(
         User,
         through='ContestParticipant',
@@ -323,126 +315,12 @@ class Contest(models.Model):
 
 
 
-class ContestProblem(models.Model):
-    """
-    DEPRECATED — Use ContestQuestionBinding instead.
-
-    This model is kept as a dual-write shell. All reads should go through
-    ContestQuestionBinding. On save(), this model auto-syncs to a binding.
-    Will be removed in a future migration.
-    """
-    contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='contest_problems')
-    problem = models.ForeignKey(Problem, on_delete=models.CASCADE)
-    
-    # label = models.CharField(max_length=10, default='A', verbose_name='標籤', help_text='例如: A, B, C')
-    order = models.IntegerField(default=0, verbose_name='排序')
-    max_score = models.PositiveIntegerField(default=100, verbose_name='題目配分')
-    source_bank_id = models.UUIDField(null=True, blank=True, verbose_name='來源題庫 UUID')
-    source_bank_name = models.CharField(max_length=255, blank=True, default='', verbose_name='來源題庫名稱')
-    source_question_id = models.UUIDField(null=True, blank=True, verbose_name='來源題庫題目 UUID')
-
-    class SourceMode(models.TextChoices):
-        MANUAL = "manual", "Manual"
-        JSON = "json", "JSON"
-        COPY = "copy", "Copy"
-        REFERENCE = "reference", "Reference"
-
-    source_mode = models.CharField(
-        max_length=20,
-        choices=SourceMode.choices,
-        default=SourceMode.MANUAL,
-        verbose_name='來源模式',
-    )
-    question_asset = models.ForeignKey(
-        'question_bank.QuestionAsset',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='legacy_contest_problem_links',
-        verbose_name='對應題目資產',
-    )
-    question_version = models.ForeignKey(
-        'question_bank.QuestionVersion',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='legacy_contest_problem_links',
-        verbose_name='對應題目版本',
-    )
-
-    # Set to True to skip auto-sync to ContestQuestionBinding (when caller manages binding explicitly).
-    _skip_binding_sync = False
-
-    def save(self, *args, **kwargs):
-        if self._state.adding and self.problem_id and (self.max_score is None or self.max_score == 100):
-            score_sum = self.problem.test_cases.aggregate(total=Sum('score')).get('total') or 0
-            if score_sum > 0:
-                self.max_score = max(1, int(score_sum))
-        super().save(*args, **kwargs)
-        if not self._skip_binding_sync:
-            self._sync_to_binding()
-
-    def delete(self, *args, **kwargs):
-        # Also delete the corresponding ContestQuestionBinding
-        from apps.question_bank.models import ContestQuestionBinding
-        ContestQuestionBinding.objects.filter(legacy_contest_problem=self).delete()
-        super().delete(*args, **kwargs)
-
-    def _sync_to_binding(self):
-        """Ensure a ContestQuestionBinding mirrors this ContestProblem."""
-        from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
-
-        asset_id = self.question_asset_id or (self.problem.question_asset_id if self.problem_id else None)
-        version_id = self.question_version_id or (self.problem.question_version_id if self.problem_id else None)
-
-        # Auto-sync asset if Problem doesn't have one yet
-        if not asset_id and self.problem_id:
-            try:
-                from apps.question_bank.question_assets import sync_problem_question_asset
-                asset, version = sync_problem_question_asset(
-                    problem=self.problem,
-                    actor=self.problem.created_by or (self.contest.owner if self.contest_id else None),
-                )
-                asset_id = asset.pk
-                version_id = version.pk
-            except Exception:
-                return
-
-        if not asset_id:
-            return
-
-        ContestQuestionBinding.objects.update_or_create(
-            legacy_contest_problem=self,
-            defaults={
-                "contest": self.contest,
-                "question_asset_id": asset_id,
-                "question_version_id": version_id,
-                "coding_problem_id": self.problem_id,
-                "binding_type": QuestionAsset.AssetType.CODING,
-                "order": self.order,
-                "score": self.max_score or 100,
-                "source_bank_id": self.source_bank_id,
-                "source_bank_name": self.source_bank_name,
-                "source_question_id": self.source_question_id,
-                "source_mode": self.source_mode,
-            },
-        )
-
-    @property
-    def label(self):
-        if self.order < 26:
-            return chr(65 + self.order)
-        return f"P{self.order + 1}"
-    
-    class Meta:
-        db_table = 'contest_problems'
-        verbose_name = '考試題目'
-        verbose_name_plural = '考試題目'
-        ordering = ['order']
-        unique_together = ['contest', 'problem']
-        indexes = [
-            models.Index(fields=['source_question_id']),
-        ]
+class SourceMode(models.TextChoices):
+    """Source mode for contest questions."""
+    MANUAL = "manual", "Manual"
+    JSON = "json", "JSON"
+    COPY = "copy", "Copy"
+    REFERENCE = "reference", "Reference"
 
 
 class ExamQuestionType(models.TextChoices):
@@ -498,8 +376,8 @@ class ExamQuestion(models.Model):
     source_question_id = models.UUIDField(null=True, blank=True, verbose_name='來源題庫題目 UUID')
     source_mode = models.CharField(
         max_length=20,
-        choices=ContestProblem.SourceMode.choices,
-        default=ContestProblem.SourceMode.MANUAL,
+        choices=SourceMode.choices,
+        default=SourceMode.MANUAL,
         verbose_name='來源模式',
     )
     question_asset = models.ForeignKey(

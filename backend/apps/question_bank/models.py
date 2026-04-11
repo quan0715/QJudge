@@ -366,13 +366,6 @@ class ContestQuestionBinding(models.Model):
     )
 
     # -- Legacy bridges (to be retired) --
-    legacy_contest_problem = models.OneToOneField(
-        "contests.ContestProblem",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="question_binding",
-    )
     legacy_exam_question = models.OneToOneField(
         "contests.ExamQuestion",
         on_delete=models.SET_NULL,
@@ -385,7 +378,7 @@ class ContestQuestionBinding(models.Model):
     order = models.IntegerField(default=0)
     score = models.PositiveIntegerField(default=100)
 
-    # -- Source tracking (from ContestProblem) --
+    # -- Source tracking --
     source_bank_id = models.UUIDField(null=True, blank=True)
     source_bank_name = models.CharField(max_length=255, blank=True, default="")
     source_question_id = models.UUIDField(null=True, blank=True)

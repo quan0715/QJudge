@@ -15,8 +15,9 @@ from rest_framework import status
 
 from apps.users.models import User
 from apps.contests.models import (
-    Contest, ContestParticipant, ContestProblem, ExamStatus
+    Contest, ContestParticipant, ExamStatus
 )
+from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import Problem, TestCase as ProblemTestCase
 
 
@@ -86,16 +87,8 @@ class StandingsAPITests(APITestCase):
         )
 
         # Add problems to contest
-        self.contest_problem_a = ContestProblem.objects.create(
-            contest=self.contest,
-            problem=self.problem_a,
-            order=0  # Label: A
-        )
-        self.contest_problem_b = ContestProblem.objects.create(
-            contest=self.contest,
-            problem=self.problem_b,
-            order=1  # Label: B
-        )
+        self.contest_problem_a = bind_problem_to_contest(self.contest, self.problem_a, order=0)
+        self.contest_problem_b = bind_problem_to_contest(self.contest, self.problem_b, order=1)
 
         # Register participants
         ContestParticipant.objects.create(
@@ -306,11 +299,7 @@ class StandingsDataIntegrityTests(APITestCase):
             score=100
         )
 
-        ContestProblem.objects.create(
-            contest=self.contest,
-            problem=self.problem,
-            order=0
-        )
+        bind_problem_to_contest(self.contest, self.problem, order=0)
 
         ContestParticipant.objects.create(
             contest=self.contest,
@@ -418,11 +407,7 @@ class StandingsTestSubmissionFilterTests(APITestCase):
             score=100
         )
 
-        ContestProblem.objects.create(
-            contest=self.contest,
-            problem=self.problem,
-            order=0
-        )
+        bind_problem_to_contest(self.contest, self.problem, order=0)
 
         ContestParticipant.objects.create(
             contest=self.contest,
@@ -624,16 +609,8 @@ class StandingsRankingOrderTests(APITestCase):
             score=50
         )
 
-        ContestProblem.objects.create(
-            contest=self.contest,
-            problem=self.problem1,
-            order=0
-        )
-        ContestProblem.objects.create(
-            contest=self.contest,
-            problem=self.problem2,
-            order=1
-        )
+        bind_problem_to_contest(self.contest, self.problem1, order=0)
+        bind_problem_to_contest(self.contest, self.problem2, order=1)
 
         # Register both students
         ContestParticipant.objects.create(

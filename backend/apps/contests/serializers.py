@@ -1057,24 +1057,30 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         # Fallback (Slow path)
         from apps.submissions.models import Submission
         from django.db.models import Max
-        
-        # 取得競賽的所有題目
-        contest_problems = obj.contest.contest_problems.all()
+        from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+        # 取得競賽的所有 coding bindings
+        bindings = ContestQuestionBinding.objects.filter(
+            contest=obj.contest,
+            binding_type=QuestionAsset.AssetType.CODING,
+        ).select_related('coding_problem')
         total = 0
-        
-        for cp in contest_problems:
+
+        for binding in bindings:
+            if not binding.coding_problem_id:
+                continue
             # 取得該用戶在此題目的最高分（排除測試提交）
             best_submission = Submission.objects.filter(
                 contest=obj.contest,
-                problem=cp.problem,
+                problem=binding.coding_problem,
                 user=obj.user,
                 source_type='contest',
                 is_test=False
             ).aggregate(max_score=Max('score'))
-            
+
             if best_submission['max_score']:
                 total += best_submission['max_score']
-        
+
         return total
 
     def get_display_name(self, obj):

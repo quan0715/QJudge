@@ -23,7 +23,6 @@ TARGET_ROW_COUNT_TABLES = (
     "questions",
     "questions_coding_ext",
     "problems",
-    "contest_problems",
     "contest_clarifications",
     "exam_questions",
     "exam_answers",
@@ -40,26 +39,6 @@ TARGET_FK_COLUMN_NAMES = (
 INTEGER_UDT_NAMES = {"int2", "int4", "int8"}
 
 ORPHAN_CHECKS = (
-    (
-        "contest_problems.problem_id -> problems.id",
-        """
-        SELECT COUNT(*)
-        FROM contest_problems cp
-        LEFT JOIN problems p ON p.id = cp.problem_id
-        WHERE cp.problem_id IS NOT NULL
-          AND p.id IS NULL
-        """,
-    ),
-    (
-        "contest_problems.source_question_id -> questions.id",
-        """
-        SELECT COUNT(*)
-        FROM contest_problems cp
-        LEFT JOIN questions q ON q.id = cp.source_question_id
-        WHERE cp.source_question_id IS NOT NULL
-          AND q.id IS NULL
-        """,
-    ),
     (
         "contest_clarifications.problem_id -> problems.id",
         """

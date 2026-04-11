@@ -4,7 +4,7 @@ from typing import Any
 
 from django.db.models import Max
 
-from apps.contests.models import ContestProblem, ExamQuestion, ExamQuestionType
+from apps.contests.models import ExamQuestion, ExamQuestionType
 from apps.problems.models import CodingProblem, Problem  # Problem = CodingProblem alias
 
 from .models import (
@@ -565,14 +565,15 @@ def resolve_problem_asset_owner(*, problem: Problem, actor=None):
         return problem.created_by
     if problem.question_asset_id and problem.question_asset and problem.question_asset.owner_id:
         return problem.question_asset.owner
-    contest_problem = (
-        ContestProblem.objects.select_related("contest__owner")
-        .filter(problem=problem, contest__owner__isnull=False)
+    # Try to find owner from contest bindings
+    binding = (
+        ContestQuestionBinding.objects.select_related("contest__owner")
+        .filter(coding_problem=problem, contest__owner__isnull=False)
         .order_by("contest__created_at", "contest__id", "order", "id")
         .first()
     )
-    if contest_problem is not None and contest_problem.contest.owner_id:
-        return contest_problem.contest.owner
+    if binding is not None and binding.contest.owner_id:
+        return binding.contest.owner
     if problem.question_asset_id and problem.question_asset and problem.question_asset.owner_id:
         return problem.question_asset.owner
     return None
@@ -733,45 +734,6 @@ def cleanup_orphan_asset_if_needed(question_asset, *, coding_problem=None):
     # CASCADE deletes QuestionVersions
     question_asset.delete()
     return True
-
-
-def ensure_contest_binding_for_problem(
-    *,
-    contest_problem: ContestProblem,
-    actor=None,
-) -> ContestQuestionBinding:
-    question_asset = contest_problem.problem.question_asset
-    question_version = contest_problem.problem.question_version
-    if not question_asset or not question_version:
-        # Fallback for legacy data: sync on the fly
-        question_asset, question_version = sync_problem_question_asset(
-            problem=contest_problem.problem,
-            actor=actor or contest_problem.problem.created_by,
-        )
-    binding, _ = ContestQuestionBinding.objects.update_or_create(
-        legacy_contest_problem=contest_problem,
-        defaults={
-            "contest": contest_problem.contest,
-            "question_asset": question_asset,
-            "question_version": question_version,
-            "coding_problem": contest_problem.problem,
-            "binding_type": QuestionAsset.AssetType.CODING,
-            "order": contest_problem.order,
-            "score": contest_problem.max_score,
-            "source_bank_id": contest_problem.source_bank_id,
-            "source_bank_name": contest_problem.source_bank_name,
-            "source_question_id": contest_problem.source_question_id,
-            "source_mode": contest_problem.source_mode,
-            "created_by": actor,
-        },
-    )
-    ContestProblem.objects.filter(pk=contest_problem.pk).update(
-        question_asset=question_asset,
-        question_version=question_version,
-    )
-    contest_problem.question_asset = question_asset
-    contest_problem.question_version = question_version
-    return binding
 
 
 def ensure_contest_binding_for_exam_question(

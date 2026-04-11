@@ -15,7 +15,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.contests.models import Contest, ContestParticipant, ContestProblem
+from apps.contests.models import Contest, ContestParticipant
+from apps.contests.tests import bind_problem_to_contest
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.problems.models import Problem
 
@@ -81,16 +82,8 @@ class DraftContestAccessTests(APITestCase):
             difficulty='easy',
             created_by=self.teacher
         )
-        ContestProblem.objects.create(
-            contest=self.draft_contest,
-            problem=self.problem,
-            order=0
-        )
-        ContestProblem.objects.create(
-            contest=self.active_contest,
-            problem=self.problem,
-            order=0
-        )
+        bind_problem_to_contest(self.draft_contest, self.problem, order=0)
+        bind_problem_to_contest(self.active_contest, self.problem, order=0)
 
         # Register student as participant in draft contest
         ContestParticipant.objects.create(
@@ -334,11 +327,7 @@ class ContestNotStartedAccessTests(APITestCase):
             difficulty='easy',
             created_by=self.teacher
         )
-        ContestProblem.objects.create(
-            contest=self.future_contest,
-            problem=self.problem,
-            order=0
-        )
+        bind_problem_to_contest(self.future_contest, self.problem, order=0)
 
         # Register student
         ContestParticipant.objects.create(
@@ -408,11 +397,7 @@ class ContestEndedAccessTests(APITestCase):
             difficulty='easy',
             created_by=self.teacher
         )
-        ContestProblem.objects.create(
-            contest=self.ended_contest,
-            problem=self.problem,
-            order=0
-        )
+        bind_problem_to_contest(self.ended_contest, self.problem, order=0)
 
         # Register student
         ContestParticipant.objects.create(

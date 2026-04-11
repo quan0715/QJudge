@@ -8,7 +8,8 @@ from django.utils import timezone
 from datetime import timedelta
 from apps.users.models import UserProfile
 from apps.problems.models import Problem, TestCase, ProblemTranslation, LanguageConfig
-from apps.contests.models import Contest, ContestProblem, ContestParticipant, ExamQuestion
+from apps.contests.models import Contest, ContestParticipant, ExamQuestion
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.question_bank.models import Question, QuestionBank
 from apps.question_bank.bank_workflows import upsert_exam_question_into_bank, upsert_problem_into_bank
@@ -19,6 +20,28 @@ User = get_user_model()
 
 class Command(BaseCommand):
     help = '建立 E2E 測試資料（用戶、題目、競賽）'
+
+    @staticmethod
+    def _bind_problem(contest, problem, order):
+        """Create a ContestQuestionBinding for a coding problem."""
+        from apps.question_bank.question_assets import sync_problem_question_asset
+        if not problem.question_asset_id:
+            sync_problem_question_asset(problem=problem, actor=problem.created_by or contest.owner)
+            problem.refresh_from_db(fields=["question_asset", "question_version"])
+        from django.db.models import Sum
+        score = max(1, int(problem.test_cases.aggregate(total=Sum('score'))['total'] or 100))
+        ContestQuestionBinding.objects.get_or_create(
+            contest=contest,
+            coding_problem=problem,
+            defaults={
+                "question_asset": problem.question_asset,
+                "question_version": problem.question_version,
+                "binding_type": QuestionAsset.AssetType.CODING,
+                "order": order,
+                "score": score,
+                "source_mode": "manual",
+            },
+        )
 
     def handle(self, *args, **options):
         self.stdout.write('開始建立 E2E 測試資料...')
@@ -343,11 +366,7 @@ int main() {
             # Add problems to contest
             problems = Problem.objects.filter(title__in=['A+B Problem', 'Hello World'])
             for idx, problem in enumerate(problems):
-                ContestProblem.objects.create(
-                    contest=contest1,
-                    problem=problem,
-                    order=idx
-                )
+                self._bind_problem(contest1, problem, idx)
             self.stdout.write('  ✓ 建立競賽: E2E Test Contest')
         else:
             # Always refresh times so contests don't expire between seed runs
@@ -372,11 +391,7 @@ int main() {
         if created:
             problems = Problem.objects.filter(title='Factorial')
             for idx, problem in enumerate(problems):
-                ContestProblem.objects.create(
-                    contest=contest2,
-                    problem=problem,
-                    order=idx
-                )
+                self._bind_problem(contest2, problem, idx)
             self.stdout.write('  ✓ 建立競賽: Upcoming Contest')
         else:
             contest2.start_time = now + timedelta(days=1)
@@ -403,11 +418,7 @@ int main() {
         if created:
             problems = Problem.objects.filter(title='A+B Problem')
             for idx, problem in enumerate(problems):
-                ContestProblem.objects.create(
-                    contest=contest3,
-                    problem=problem,
-                    order=idx
-                )
+                self._bind_problem(contest3, problem, idx)
             self.stdout.write('  ✓ 建立競賽: E2E Exam Mode Contest')
         else:
             contest3.start_time = now - timedelta(hours=1)

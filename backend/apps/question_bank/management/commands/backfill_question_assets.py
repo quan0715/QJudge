@@ -3,12 +3,11 @@ from __future__ import annotations
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from apps.contests.models import ContestProblem, ExamQuestion
+from apps.contests.models import ExamQuestion
 from apps.problems.models import Problem
 from apps.question_bank.models import Question
 from apps.question_bank.question_assets import (
     ensure_contest_binding_for_exam_question,
-    ensure_contest_binding_for_problem,
     ensure_question_asset_for_bank_question,
     sync_exam_question_question_asset,
     sync_problem_question_asset,
@@ -33,7 +32,6 @@ class Command(BaseCommand):
             "problems_skipped_missing_owner": 0,
             "exam_questions_synced": 0,
             "bank_questions_synced": 0,
-            "contest_problem_bindings_synced": 0,
             "exam_question_bindings_synced": 0,
         }
 
@@ -62,18 +60,6 @@ class Command(BaseCommand):
                         actor=question.created_by or question.bank.owner,
                     )
                 stats["bank_questions_synced"] += 1
-
-            for contest_problem in ContestProblem.objects.select_related("problem", "contest").order_by("id"):
-                if not dry_run:
-                    try:
-                        ensure_contest_binding_for_problem(
-                            contest_problem=contest_problem,
-                            actor=contest_problem.problem.created_by,
-                        )
-                    except ValueError as exc:
-                        self.stdout.write(self.style.WARNING(str(exc)))
-                        continue
-                stats["contest_problem_bindings_synced"] += 1
 
             for exam_question in ExamQuestion.objects.select_related("contest").order_by("created_at", "id"):
                 if not dry_run:

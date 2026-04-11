@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestProblem, ExamQuestion
+from apps.contests.models import Contest, ExamQuestion
 from apps.problems.models import Problem
 from apps.question_bank.models import (
     ContestQuestionBinding,

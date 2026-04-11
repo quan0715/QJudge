@@ -10,7 +10,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestProblem, ContestParticipant, ExamStatus
+from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
 from apps.users.models import User
@@ -134,11 +135,7 @@ class TestStudentReportEndpoints:
             score=20
         )
         
-        ContestProblem.objects.create(
-            contest=active_contest,
-            problem=problem,
-            order=0
-        )
+        bind_problem_to_contest(active_contest, problem, order=0)
         
         return problem
     
@@ -358,11 +355,7 @@ class TestStudentReportEndpoints:
             language='zh-TW',
             title='結束考試題目'
         )
-        ContestProblem.objects.create(
-            contest=ended_contest,
-            problem=problem,
-            order=0
-        )
+        bind_problem_to_contest(ended_contest, problem, order=0)
         ContestParticipant.objects.create(
             contest=ended_contest,
             user=student,
@@ -595,11 +588,7 @@ class TestStudentReportScoreCalculation:
             score=100
         )
         
-        ContestProblem.objects.create(
-            contest=contest,
-            problem=problem,
-            order=0
-        )
+        bind_problem_to_contest(contest, problem, order=0)
         
         return problem
     

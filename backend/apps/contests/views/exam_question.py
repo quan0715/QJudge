@@ -20,7 +20,6 @@ from apps.question_bank.bank_workflows import is_publicly_accessible_bank
 
 from ..models import (
     Contest,
-    ContestProblem,
     ExamQuestion,
     ExamStatus,
     ExamQuestionType,

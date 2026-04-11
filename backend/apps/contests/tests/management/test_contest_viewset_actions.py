@@ -9,7 +9,9 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ContestActivity, ContestProblem, ExamStatus
+from apps.contests.models import Contest, ContestParticipant, ContestActivity, ExamStatus
+from apps.contests.tests import bind_problem_to_contest
+from apps.question_bank.models import ContestQuestionBinding
 from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests.views import contest as contest_view_module
 from apps.problems.models import Problem
@@ -509,7 +511,7 @@ def test_create_problem_via_title_and_duplicate_via_problem_id(
     contest: Contest,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """ContestProblemViewSet: POST /problems/ (title mode) and POST /problems/duplicate/."""
+    """ContestProblemViewSet: POST /problems/ (title mode) and POST /problems/duplicate/ (binding-based)."""
     source_problem = _create_problem("Source Problem", owner)
     cloned_problem = _create_problem("Cloned Problem", owner)
     titled_problem = _create_problem("Created By Title", owner)
@@ -552,7 +554,7 @@ def test_import_from_bank_creates_problem_copy(
     owner: User,
     contest: Contest,
 ) -> None:
-    """ContestProblemViewSet: POST /problems/import-from-bank/ with items array."""
+    """ContestProblemViewSet: POST /problems/import-from-bank/ with items array (binding-based)."""
     platform_admin = User.objects.create_user(
         username="platform_admin_for_bank_import",
         email="platform_admin_for_bank_import@example.com",
@@ -630,7 +632,7 @@ def test_import_from_bank_materializes_coding_ext(
     owner: User,
     contest: Contest,
 ) -> None:
-    """ContestProblemViewSet: POST /problems/import-from-bank/ materializes coding extension data."""
+    """ContestProblemViewSet: POST /problems/import-from-bank/ materializes coding extension data (binding-based)."""
     platform_admin = User.objects.create_user(
         username="platform_admin_for_materialize",
         email="platform_admin_for_materialize@example.com",
@@ -707,11 +709,11 @@ def test_update_contest_problem_score_action(
     contest: Contest,
 ) -> None:
     problem = _create_problem("Score Update", owner)
-    contest_problem = contest.contest_problems.create(problem=problem, order=0, max_score=20)
+    binding = bind_problem_to_contest(contest, problem, order=0, score=20)
 
     api_client.force_authenticate(user=owner)
     response = api_client.patch(
-        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        f"/api/v1/contests/{contest.id}/problems/{binding.id}/score/",
         {"max_score": 35},
         format="json",
     )
@@ -720,7 +722,7 @@ def test_update_contest_problem_score_action(
     assert response.data["score"] == 35
 
     invalid = api_client.patch(
-        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        f"/api/v1/contests/{contest.id}/problems/{binding.id}/score/",
         {"max_score": 0},
         format="json",
     )
@@ -728,36 +730,36 @@ def test_update_contest_problem_score_action(
 
 
 @pytest.mark.django_db
-def test_contest_problem_retrieve_prefers_contest_problem_id(
+def test_contest_problem_retrieve_by_binding_id(
     api_client: APIClient,
     owner: User,
     contest: Contest,
 ) -> None:
-    problem = _create_problem("Retrieve via contest problem id", owner)
-    contest_problem = ContestProblem.objects.create(contest=contest, problem=problem, order=0)
+    problem = _create_problem("Retrieve via binding id", owner)
+    binding = bind_problem_to_contest(contest, problem, order=0)
 
     api_client.force_authenticate(user=owner)
-    response = api_client.get(f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/")
+    response = api_client.get(f"/api/v1/contests/{contest.id}/problems/{binding.id}/")
 
     assert response.status_code == status.HTTP_200_OK
-    assert str(response.data["contest_problem_id"]) == str(contest_problem.id)
+    assert str(response.data["contest_problem_id"]) == str(binding.id)
     assert response.data["id"] == str(problem.id)
 
 
 @pytest.mark.django_db
-def test_contest_problem_destroy_accepts_legacy_problem_id_fallback(
+def test_contest_problem_destroy_accepts_coding_problem_id_fallback(
     api_client: APIClient,
     owner: User,
     contest: Contest,
 ) -> None:
-    problem = _create_problem("Destroy via legacy problem id", owner)
-    contest_problem = ContestProblem.objects.create(contest=contest, problem=problem, order=0)
+    problem = _create_problem("Destroy via coding problem id", owner)
+    binding = bind_problem_to_contest(contest, problem, order=0)
 
     api_client.force_authenticate(user=owner)
     response = api_client.delete(f"/api/v1/contests/{contest.id}/problems/{problem.id}/")
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert not ContestProblem.objects.filter(id=contest_problem.id).exists()
+    assert not ContestQuestionBinding.objects.filter(id=binding.id).exists()
 
 
 @pytest.mark.django_db
@@ -858,7 +860,7 @@ def test_contest_question_mutations_blocked_when_question_edit_locked(
         ]
     )
     problem = _create_problem("Locked Contest Problem", owner)
-    contest_problem = contest.contest_problems.create(problem=problem, order=0, max_score=20)
+    binding = bind_problem_to_contest(contest, problem, order=0, score=20)
 
     api_client.force_authenticate(user=owner)
 
@@ -872,14 +874,14 @@ def test_contest_question_mutations_blocked_when_question_edit_locked(
 
     reorder_resp = api_client.post(
         f"/api/v1/contests/{contest.id}/problems/reorder/",
-        {"orders": [{"id": contest_problem.id, "order": 0}]},
+        {"orders": [{"id": binding.id, "order": 0}]},
         format="json",
     )
     assert reorder_resp.status_code == status.HTTP_409_CONFLICT
     assert "CONTEST_QUESTION_EDIT_LOCKED" in str(reorder_resp.data)
 
     score_resp = api_client.patch(
-        f"/api/v1/contests/{contest.id}/problems/{contest_problem.id}/score/",
+        f"/api/v1/contests/{contest.id}/problems/{binding.id}/score/",
         {"max_score": 30},
         format="json",
     )

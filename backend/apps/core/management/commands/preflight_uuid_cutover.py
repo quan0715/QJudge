@@ -23,7 +23,6 @@ TARGET_ROW_COUNT_TABLES = (
     "questions",
     "questions_coding_ext",
     "problems",
-    "contest_problems",
     "exam_questions",
     "exam_answers",
     "submissions",
