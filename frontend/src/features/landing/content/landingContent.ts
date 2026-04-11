@@ -49,9 +49,16 @@ export interface LandingMetricItem {
 
 export interface LandingCaseStudy {
   title: string;
-  background: string;
-  solution: string;
-  outcome: string;
+  institution: string;
+  department: string;
+  course: string;
+  summary: string;
+  contextLabel: string;
+  context: string;
+  challengeLabel: string;
+  challenge: string;
+  imageSrc: string;
+  imageAlt: string;
 }
 
 export interface LandingPricingCard {
@@ -78,7 +85,6 @@ export interface LandingContent {
   whyChoose: LandingWhyChooseItem[];
   workflow: LandingWorkflowItem[];
   audiences: LandingAudienceItem[];
-  metrics: LandingMetricItem[];
   caseStudies: LandingCaseStudy[];
   pricing: LandingPricingCard[];
   faqs: LandingFaqItem[];
@@ -227,35 +233,32 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
         illustration: "codingWorkshop",
       },
     ],
-    metrics: [
-      {
-        value: t("socialProof.metrics.users.value"),
-        label: t("socialProof.metrics.users.label"),
-        description: t("socialProof.metrics.users.description"),
-      },
-      {
-        value: t("socialProof.metrics.capacity.value"),
-        label: t("socialProof.metrics.capacity.label"),
-        description: t("socialProof.metrics.capacity.description"),
-      },
-      {
-        value: t("socialProof.metrics.validation.value"),
-        label: t("socialProof.metrics.validation.label"),
-        description: t("socialProof.metrics.validation.description"),
-      },
-    ],
     caseStudies: [
       {
-        title: t("socialProof.caseStudies.midterm.title"),
-        background: t("socialProof.caseStudies.midterm.background"),
-        solution: t("socialProof.caseStudies.midterm.solution"),
-        outcome: t("socialProof.caseStudies.midterm.outcome"),
+        title: t("socialProof.caseStudies.coding.title"),
+        institution: t("socialProof.caseStudies.coding.institution"),
+        department: t("socialProof.caseStudies.coding.department"),
+        course: t("socialProof.caseStudies.coding.course"),
+        summary: t("socialProof.caseStudies.coding.summary"),
+        contextLabel: t("socialProof.caseStudies.coding.contextLabel"),
+        context: t("socialProof.caseStudies.coding.context"),
+        challengeLabel: t("socialProof.caseStudies.coding.challengeLabel"),
+        challenge: t("socialProof.caseStudies.coding.challenge"),
+        imageSrc: "/illustrations/usecase-nycu-operating-systems.jpeg",
+        imageAlt: t("socialProof.caseStudies.coding.imageAlt"),
       },
       {
-        title: t("socialProof.caseStudies.coding.title"),
-        background: t("socialProof.caseStudies.coding.background"),
-        solution: t("socialProof.caseStudies.coding.solution"),
-        outcome: t("socialProof.caseStudies.coding.outcome"),
+        title: t("socialProof.caseStudies.midterm.title"),
+        institution: t("socialProof.caseStudies.midterm.institution"),
+        department: t("socialProof.caseStudies.midterm.department"),
+        course: t("socialProof.caseStudies.midterm.course"),
+        summary: t("socialProof.caseStudies.midterm.summary"),
+        contextLabel: t("socialProof.caseStudies.midterm.contextLabel"),
+        context: t("socialProof.caseStudies.midterm.context"),
+        challengeLabel: t("socialProof.caseStudies.midterm.challengeLabel"),
+        challenge: t("socialProof.caseStudies.midterm.challenge"),
+        imageSrc: "/illustrations/usecase-nycu-intro-computer-science.jpeg",
+        imageAlt: t("socialProof.caseStudies.midterm.imageAlt"),
       },
     ],
     pricing: [
@@ -339,7 +342,7 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
         { label: t("footer.links.product.2.label"), href: "#landing-faq" },
       ],
       contactLinks: [
-        { label: t("footer.links.contact.0.label"), href: "mailto:contact@qjudge.app" },
+        { label: t("footer.links.contact.0.label"), href: "mailto:quan787887@gmail.com" },
         {
           label: t("footer.links.contact.1.label"),
           href: "https://bedecked-griffin-98f.notion.site/b532286e832b4846a8f08298b6942fcc?pvs=105",
