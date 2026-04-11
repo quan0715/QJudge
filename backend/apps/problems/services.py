@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.utils.text import slugify
 
-from .models import CodingProblem, Problem, ProblemTranslation, TestCase, LanguageConfig, Tag
+from .models import CodingProblem, Problem, TestCase, LanguageConfig, Tag
 import uuid
 
 
@@ -34,18 +34,6 @@ def _split_content_execution(validated_data: dict) -> tuple[dict, dict]:
 class ProblemService:
     @staticmethod
     def _clone_related(source_problem: CodingProblem, new_problem: CodingProblem) -> None:
-        translations = source_problem.translations.all()
-        for trans in translations:
-            ProblemTranslation.objects.create(
-                problem=new_problem,
-                language=trans.language,
-                title=trans.title,
-                description=trans.description,
-                input_description=trans.input_description,
-                output_description=trans.output_description,
-                hint=trans.hint
-            )
-
         test_cases = source_problem.test_cases.all()
         for tc in test_cases:
             TestCase.objects.create(
@@ -123,15 +111,9 @@ class ProblemService:
     def replace_related(
         problem: CodingProblem,
         *,
-        translations_data=None,
         test_cases_data=None,
         language_configs_data=None,
     ) -> None:
-        if translations_data is not None:
-            problem.translations.all().delete()
-            for trans_data in translations_data:
-                ProblemTranslation.objects.create(problem=problem, **trans_data)
-
         if test_cases_data is not None:
             problem.test_cases.all().delete()
             for tc_data in test_cases_data:
@@ -153,10 +135,7 @@ class ProblemService:
         existing_tag_ids=None,
         new_tag_names=None,
     ) -> CodingProblem:
-        from apps.question_bank.question_assets import (
-            write_coding_content_to_asset,
-            sync_asset_to_problem,
-        )
+        from apps.question_bank.question_assets import write_coding_content_to_asset
 
         translations_data = translations_data or []
         test_cases_data = test_cases_data or []
@@ -199,7 +178,6 @@ class ProblemService:
         # 4. Create execution-related objects
         ProblemService.replace_related(
             problem,
-            translations_data=translations_data,
             test_cases_data=test_cases_data,
             language_configs_data=language_configs_data,
         )
@@ -210,9 +188,6 @@ class ProblemService:
         )
         if tags is not None:
             problem.tags.set(tags)
-
-        # 5. Backward compat: sync asset back to problem local fields
-        sync_asset_to_problem(question_asset=question_asset, problem=problem)
 
         return problem
 
@@ -228,10 +203,7 @@ class ProblemService:
         existing_tag_ids=None,
         new_tag_names=None,
     ) -> CodingProblem:
-        from apps.question_bank.question_assets import (
-            write_coding_content_to_asset,
-            sync_asset_to_problem,
-        )
+        from apps.question_bank.question_assets import write_coding_content_to_asset
 
         if 'slug' in validated_data and not validated_data.get('slug'):
             title_base = instance.title
@@ -246,7 +218,6 @@ class ProblemService:
 
         ProblemService.replace_related(
             instance,
-            translations_data=translations_data if translations_data else None,
             test_cases_data=test_cases_data if test_cases_data else None,
             language_configs_data=language_configs_data if language_configs_data else None,
         )
@@ -264,11 +235,8 @@ class ProblemService:
         owner = instance.created_by
 
         prompt = ""
-        effective_translations = translations_data if translations_data else list(
-            instance.translations.values(
-                "language", "title", "description",
-                "input_description", "output_description", "hint",
-            )
+        effective_translations = translations_data if translations_data else (
+            (instance.question_asset.payload or {}).get("translations", []) if instance.question_asset_id else []
         )
         if effective_translations:
             first = effective_translations[0]
@@ -303,8 +271,10 @@ class ProblemService:
             actor=owner,
         )
 
-        # 3. Backward compat: sync asset back to problem local fields
-        sync_asset_to_problem(question_asset=question_asset, problem=instance)
+        # Update the problem's asset link to the new version
+        instance.question_asset = question_asset
+        instance.question_version = question_version
+        instance.save(update_fields=["question_asset", "question_version"])
 
         return instance
 
@@ -320,7 +290,7 @@ class ProblemService:
             sync_problem_question_asset(problem=source_problem, actor=created_by)
 
         new_problem = CodingProblem.objects.create(
-            title=f"{source_problem.title} (Copy)",
+            title=f"{(source_problem.question_asset.title if source_problem.question_asset_id else 'Problem')} (Copy)",
             slug=f"{source_problem.slug}-{contest.id}-copy",
             difficulty=source_problem.difficulty,
             time_limit=source_problem.time_limit,
@@ -345,10 +315,8 @@ class ProblemService:
         Create a new empty problem for a contest.
         Creates the QuestionAsset first (source of truth), then the Problem.
         """
-        from apps.question_bank.question_assets import (
-            write_coding_content_to_asset,
-            sync_asset_to_problem,
-        )
+        from apps.question_bank.question_assets import write_coding_content_to_asset
+
         slug = f"contest-{contest.id}-problem-{uuid.uuid4().hex[:8]}"
 
         question_asset, question_version = write_coding_content_to_asset(
@@ -368,5 +336,4 @@ class ProblemService:
             question_asset=question_asset,
             question_version=question_version,
         )
-        sync_asset_to_problem(question_asset=question_asset, problem=problem)
         return problem
