@@ -488,7 +488,6 @@ async def qjudge_coding(
       get          — Get problem detail (required: contest_id, problem_id)
       create       — Create a new problem in contest (required: contest_id, title)
       import_from_bank — Import from question bank (required: contest_id, items [{question_bank_id, question_id}])
-      duplicate    — Clone an existing problem into the contest (required: contest_id, problem_id)
       update_score — Update contest-level score (required: contest_id, problem_id, max_score)
       delete       — Remove problem from contest (required: contest_id, problem_id)
       test_run     — Execute code against test cases (required: problem_id, language, code)
@@ -524,16 +523,6 @@ async def qjudge_coding(
             "POST", f"/api/v1/contests/{contest_id}/problems/import-from-bank/",
             ctx, json_body={"items": items},
         )
-
-    if action == "duplicate":
-        if not contest_id:
-            return _error("contest_id is required")
-        if not problem_id:
-            return _error("problem_id is required")
-        body = {"problem_id": problem_id}
-        if max_score is not None:
-            body["max_score"] = max_score
-        return await django_api("POST", f"/api/v1/contests/{contest_id}/problems/duplicate/", ctx, json_body=body)
 
     if action == "update_score":
         if not contest_id:

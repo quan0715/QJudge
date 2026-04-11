@@ -59,15 +59,18 @@ codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 
 ## 可用功能
 
-連線成功後，您的 AI 工具將獲得以下三組功能：
+連線成功後，您的 AI 工具將獲得以下四組功能：
 
-### 查詢教室與競賽 (`qjudge_discover`)
+### 查詢與瀏覽 (`qjudge_discover`)
 
 | 操作 | 說明 |
 |------|------|
 | `list_classrooms` | 列出您管理的所有教室 |
 | `list_contests` | 搜尋競賽（支援名稱搜尋與狀態篩選） |
 | `get_contest` | 查看競賽詳情 |
+| `browse_banks` | 列出您的題庫 |
+| `browse_bank_questions` | 列出題庫中的題目 |
+| `create_bank_question` | 在題庫中新增題目（支援程式題） |
 
 ### 管理考試題目 (`qjudge_exam`)
 
@@ -79,6 +82,19 @@ codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 | `update` | 修改題目內容 |
 | `delete` | 刪除題目 |
 | `reorder` | 重新排列題目順序 |
+| `import_from_bank` | 從題庫匯入題目 |
+
+### 管理程式題 (`qjudge_coding`)
+
+| 操作 | 說明 |
+|------|------|
+| `list` | 列出競賽中所有程式題 |
+| `get` | 查看程式題詳情 |
+| `create` | 新增程式題 |
+| `import_from_bank` | 從題庫匯入程式題 |
+| `update_score` | 更新程式題配分 |
+| `delete` | 刪除程式題 |
+| `test_run` | 執行程式碼並測試（支援自訂測資） |
 
 ### 查看與批改作答 (`qjudge_grading`)
 
@@ -99,10 +115,18 @@ codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 - 「列出我的所有教室」
 - 「找到演算法這門課的期中考」
 - 「看一下第三題的內容」
+- 「瀏覽我的題庫有哪些題目」
 
 **出題**
 - 「幫我在期中考新增一題關於二元樹的是非題，配分 5 分」
 - 「新增一題多選題，問 TCP 三向交握的步驟，選項有四個」
+- 「從題庫匯入 A+B Problem 到這場競賽」
+- 「在題庫裡建一題新的程式題」
+
+**程式題**
+- 「列出這場競賽的所有程式題」
+- 「幫我跑一下這段 Python 程式，用預設測資測試」
+- 「把第二題的配分改成 20 分」
 
 **批改**
 - 「看一下第五題的作答情況」
