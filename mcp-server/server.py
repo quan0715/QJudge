@@ -513,7 +513,7 @@ async def qjudge_coding(
         body: dict[str, Any] = {"title": title}
         if max_score is not None:
             body["max_score"] = max_score
-        return await django_api("POST", f"/api/v1/contests/{contest_id}/add_problem/", ctx, json_body=body)
+        return await django_api("POST", f"/api/v1/contests/{contest_id}/problems/", ctx, json_body=body)
 
     if action == "import_from_bank":
         if not contest_id:
@@ -533,7 +533,7 @@ async def qjudge_coding(
         body = {"problem_id": problem_id}
         if max_score is not None:
             body["max_score"] = max_score
-        return await django_api("POST", f"/api/v1/contests/{contest_id}/add_problem/", ctx, json_body=body)
+        return await django_api("POST", f"/api/v1/contests/{contest_id}/problems/duplicate/", ctx, json_body=body)
 
     if action == "update_score":
         if not contest_id:

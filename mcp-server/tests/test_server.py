@@ -605,7 +605,7 @@ def test_qjudge_coding_create(monkeypatch):
     assert result == {"id": "p-new"}
     assert captured == {
         "method": "POST",
-        "path": "/api/v1/contests/c-1/add_problem/",
+        "path": "/api/v1/contests/c-1/problems/",
         "json_body": {"title": "New Problem"},
     }
 
@@ -663,7 +663,7 @@ def test_qjudge_coding_duplicate(monkeypatch):
     assert result == {"id": "p-dup"}
     assert captured == {
         "method": "POST",
-        "path": "/api/v1/contests/c-1/add_problem/",
+        "path": "/api/v1/contests/c-1/problems/duplicate/",
         "json_body": {"problem_id": "p-1", "max_score": 80},
     }
 
