@@ -465,6 +465,51 @@ def test_qjudge_discover_browse_bank_questions_requires_bank_id():
     assert result == {"error": True, "detail": "bank_id is required"}
 
 
+def test_qjudge_discover_create_bank_question(monkeypatch):
+    captured = {}
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        captured["method"] = method
+        captured["path"] = path
+        captured["json_body"] = json_body
+        return {"id": "q-new"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    coding_ext = {
+        "translations": [{"language": "zh-TW", "title": "A+B", "description": "求和"}],
+        "test_cases": [{"input_data": "1 2", "output_data": "3", "is_sample": True, "weight_percent": 100}],
+        "language_configs": [{"language": "python", "is_enabled": True}],
+    }
+    result = run(
+        server.qjudge_discover(
+            "create_bank_question", DummyContext(),
+            bank_id="bank-1",
+            question_type="coding",
+            title="A+B Problem",
+            difficulty="easy",
+            score=100,
+            coding_ext=coding_ext,
+        )
+    )
+
+    assert result == {"id": "q-new"}
+    assert captured["method"] == "POST"
+    assert captured["path"] == "/api/v1/question-banks/bank-1/questions/"
+    body = captured["json_body"]
+    assert body["question_type"] == "coding"
+    assert body["title"] == "A+B Problem"
+    assert body["difficulty"] == "easy"
+    assert body["score"] == 100
+    assert body["coding_ext"] == coding_ext
+
+
+def test_qjudge_discover_create_bank_question_requires_fields():
+    assert run(server.qjudge_discover("create_bank_question", DummyContext()))["detail"] == "bank_id is required"
+    assert run(server.qjudge_discover("create_bank_question", DummyContext(), bank_id="b"))["detail"] == "question_type is required"
+    assert run(server.qjudge_discover("create_bank_question", DummyContext(), bank_id="b", question_type="coding"))["detail"] == "title is required"
+
+
 # ---------- qjudge_exam import_from_bank tests ----------
 
 
@@ -544,41 +589,20 @@ def test_qjudge_coding_get_requires_ids():
     assert run(server.qjudge_coding("get", DummyContext(), contest_id="c-1"))["detail"] == "problem_id is required"
 
 
-def test_qjudge_coding_create_with_title(monkeypatch):
+def test_qjudge_coding_add_from_bank(monkeypatch):
     captured = {}
 
     async def fake_django_api(method, path, ctx, *, json_body=None):
         captured["method"] = method
         captured["path"] = path
         captured["json_body"] = json_body
-        return {"id": "p-new"}
-
-    monkeypatch.setattr(server, "django_api", fake_django_api)
-
-    result = run(server.qjudge_coding("create", DummyContext(), contest_id="c-1", title="New Problem"))
-
-    assert result == {"id": "p-new"}
-    assert captured == {
-        "method": "POST",
-        "path": "/api/v1/contests/c-1/add_problem/",
-        "json_body": {"title": "New Problem"},
-    }
-
-
-def test_qjudge_coding_create_from_bank(monkeypatch):
-    captured = {}
-
-    async def fake_django_api(method, path, ctx, *, json_body=None):
-        captured["method"] = method
-        captured["path"] = path
-        captured["json_body"] = json_body
-        return {"id": "p-copied"}
+        return {"id": "p-imported"}
 
     monkeypatch.setattr(server, "django_api", fake_django_api)
 
     result = run(
         server.qjudge_coding(
-            "create", DummyContext(),
+            "add_from_bank", DummyContext(),
             contest_id="c-1",
             question_bank_id="bank-1",
             question_id="q-1",
@@ -586,7 +610,7 @@ def test_qjudge_coding_create_from_bank(monkeypatch):
         )
     )
 
-    assert result == {"id": "p-copied"}
+    assert result == {"id": "p-imported"}
     assert captured == {
         "method": "POST",
         "path": "/api/v1/contests/c-1/add_problem/",
@@ -594,15 +618,38 @@ def test_qjudge_coding_create_from_bank(monkeypatch):
     }
 
 
-def test_qjudge_coding_create_requires_title_or_bank():
-    result = run(server.qjudge_coding("create", DummyContext(), contest_id="c-1"))
-    assert result["error"] is True
-    assert "title" in result["detail"]
+def test_qjudge_coding_add_from_bank_requires_fields():
+    assert run(server.qjudge_coding("add_from_bank", DummyContext()))["detail"] == "contest_id is required"
+    assert run(server.qjudge_coding("add_from_bank", DummyContext(), contest_id="c-1"))["detail"] == "question_bank_id and question_id are required"
+    assert run(server.qjudge_coding("add_from_bank", DummyContext(), contest_id="c-1", question_bank_id="b"))["detail"] == "question_bank_id and question_id are required"
 
 
-def test_qjudge_coding_create_requires_contest_id():
-    result = run(server.qjudge_coding("create", DummyContext(), title="X"))
-    assert result == {"error": True, "detail": "contest_id is required"}
+def test_qjudge_coding_duplicate(monkeypatch):
+    captured = {}
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        captured["method"] = method
+        captured["path"] = path
+        captured["json_body"] = json_body
+        return {"id": "p-dup"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    result = run(
+        server.qjudge_coding("duplicate", DummyContext(), contest_id="c-1", problem_id="p-1", max_score=80)
+    )
+
+    assert result == {"id": "p-dup"}
+    assert captured == {
+        "method": "POST",
+        "path": "/api/v1/contests/c-1/add_problem/",
+        "json_body": {"problem_id": "p-1", "max_score": 80},
+    }
+
+
+def test_qjudge_coding_duplicate_requires_fields():
+    assert run(server.qjudge_coding("duplicate", DummyContext()))["detail"] == "contest_id is required"
+    assert run(server.qjudge_coding("duplicate", DummyContext(), contest_id="c-1"))["detail"] == "problem_id is required"
 
 
 def test_qjudge_coding_update_score(monkeypatch):
