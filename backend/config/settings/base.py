@@ -215,8 +215,9 @@ OAUTH2_PROVIDER = {
     "ALLOWED_REDIRECT_URI_SCHEMES": ["http", "https", "cursor", "vscode"],
 }
 
-OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", "http://localhost:8000")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+# OAuth issuer defaults to FRONTEND_URL (same domain in production)
+OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", FRONTEND_URL)
 
 # Spectacular settings
 SPECTACULAR_SETTINGS = {
