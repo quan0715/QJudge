@@ -677,5 +677,16 @@
       "student": "學生",
       "teacher": "教師"
     }
+  },
+  "oauth": {
+    "authorize": {
+      "title": "授權請求",
+      "description": "{{clientName}} 正在請求存取你的 QJudge 帳號",
+      "allow": "允許",
+      "deny": "拒絕",
+      "loading": "處理中...",
+      "error": "授權失敗，請稍後再試",
+      "invalidRequest": "無效的授權請求"
+    }
   }
 }

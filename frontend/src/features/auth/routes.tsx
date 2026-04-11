@@ -5,6 +5,7 @@ import CampusSsoScreen from "./screens/CampusSsoScreen";
 import OAuthCallbackScreen from "./screens/OAuthCallbackScreen";
 import OnboardingScreen from "./screens/OnboardingScreen";
 import TeacherActivationScreen from "./screens/TeacherActivationScreen";
+import OAuthAuthorizePage from "./screens/OAuthAuthorizePage";
 
 /**
  * Guest 路由（需在 RequireGuest + AuthLayout 內使用）
@@ -31,4 +32,8 @@ export const onboardingRoute = (
 
 export const teacherActivationRoute = (
   <Route path="/teacher-activation" element={<TeacherActivationScreen />} />
+);
+
+export const oauthAuthorizeRoute = (
+  <Route path="/oauth/authorize" element={<OAuthAuthorizePage />} />
 );

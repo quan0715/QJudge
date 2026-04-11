@@ -676,5 +676,16 @@
       "student": "Student",
       "teacher": "Teacher"
     }
+  },
+  "oauth": {
+    "authorize": {
+      "title": "Authorization Request",
+      "description": "{{clientName}} is requesting access to your QJudge account",
+      "allow": "Allow",
+      "deny": "Deny",
+      "loading": "Processing...",
+      "error": "Authorization failed. Please try again.",
+      "invalidRequest": "Invalid authorization request"
+    }
   }
 }
