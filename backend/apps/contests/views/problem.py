@@ -380,3 +380,126 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             self.get_queryset(), many=True, context={"request": request},
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="duplicate")
+    def duplicate(self, request, *args, **kwargs):
+        """Clone an existing coding problem within the contest."""
+        contest_id = self.kwargs.get("contest_pk")
+        contest = get_object_or_404(Contest, pk=contest_id)
+        user = request.user
+
+        if not can_manage_contest(user, contest):
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        ensure_contest_question_editable(
+            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.duplicate",
+        )
+
+        problem_id = request.data.get("problem_id")
+        if not problem_id:
+            raise DRFValidationError("problem_id is required")
+
+        from apps.problems.models import CodingProblem
+        source = CodingProblem.objects.filter(id=problem_id).first()
+        if not source:
+            return Response({"detail": "Problem not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.problems.services import ProblemService
+        problem = ProblemService.clone_problem(source, contest, user)
+
+        if not problem.question_asset_id:
+            from apps.question_bank.question_assets import sync_problem_question_asset
+            sync_problem_question_asset(problem=problem, actor=user)
+            problem.refresh_from_db(fields=["question_asset", "question_version"])
+
+        last_order = ContestQuestionBinding.objects.filter(
+            contest=contest, binding_type=QuestionAsset.AssetType.CODING,
+        ).aggregate(max_order=Max("order"))["max_order"]
+        next_order = (last_order if last_order is not None else -1) + 1
+
+        default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
+        requested = request.data.get("max_score")
+        max_score = max(1, int(requested)) if requested is not None else default_max_score
+
+        binding = ContestQuestionBinding.objects.create(
+            contest=contest, question_asset=problem.question_asset,
+            question_version=problem.question_version, coding_problem=problem,
+            binding_type=QuestionAsset.AssetType.CODING,
+            order=next_order, score=max_score, source_mode="copy", created_by=user,
+        )
+
+        # Legacy dual-write (Phase 3 will remove this)
+        cp = ContestProblem(
+            contest=contest, problem=problem, order=next_order, max_score=max_score,
+            question_asset=problem.question_asset, question_version=problem.question_version,
+        )
+        cp._skip_binding_sync = True
+        cp.save()
+        binding.legacy_contest_problem = cp
+        binding.save(update_fields=["legacy_contest_problem", "updated_at"])
+
+        ContestActivityViewSet.log_activity(
+            contest, user, "update_problem", f"Duplicated problem {source.title or source.id}",
+        )
+
+        from apps.problems.serializers import ProblemListSerializer
+        data = ProblemListSerializer(problem, context={"request": request}).data
+        data["binding_id"] = str(binding.id)
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="reorder")
+    def reorder(self, request, *args, **kwargs):
+        """Reorder coding problems. Payload: {"orders": [{"id": "...", "order": N}, ...]}"""
+        contest_id = self.kwargs.get("contest_pk")
+        contest = get_object_or_404(Contest, pk=contest_id)
+        user = request.user
+
+        if not can_manage_contest(user, contest):
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        ensure_contest_question_editable(
+            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.reorder",
+        )
+
+        orders = request.data.get("orders", [])
+        if not orders:
+            raise DRFValidationError("No orders provided")
+
+        import uuid as _uuid
+        for item in orders:
+            item_id = item.get("id")
+            new_order = item.get("order")
+            if item_id is None or new_order is None:
+                continue
+            item_str = str(item_id)
+            try:
+                _uuid.UUID(item_str)
+                is_uuid = True
+            except (ValueError, AttributeError):
+                is_uuid = False
+
+            if is_uuid:
+                updated = ContestQuestionBinding.objects.filter(
+                    contest=contest, id=item_str,
+                ).update(order=new_order)
+                if not updated:
+                    ContestQuestionBinding.objects.filter(
+                        contest=contest, coding_problem_id=item_str,
+                    ).update(order=new_order)
+            elif item_str.isdigit():
+                ContestQuestionBinding.objects.filter(
+                    contest=contest, legacy_contest_problem_id=int(item_str),
+                ).update(order=new_order)
+
+        # Normalize to sequential 0, 1, 2...
+        bindings = ContestQuestionBinding.objects.filter(
+            contest=contest, binding_type=QuestionAsset.AssetType.CODING,
+        ).order_by("order", "created_at")
+        for i, b in enumerate(bindings):
+            if b.order != i:
+                b.order = i
+                b.save(update_fields=["order", "updated_at"])
+            # Legacy sync
+            if b.legacy_contest_problem_id:
+                ContestProblem.objects.filter(pk=b.legacy_contest_problem_id).update(order=i)
+
+        ContestActivityViewSet.log_activity(contest, user, "update_problem", "Reordered coding problems")
+        return Response({"status": "reordered"})

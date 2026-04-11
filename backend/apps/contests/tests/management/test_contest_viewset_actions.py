@@ -1517,3 +1517,76 @@ def test_overview_metrics_handles_exam_status_and_time_progress_boundaries(
     assert ended.data["time_progress"]["progress_percent"] == 100
     assert ended.data["time_progress"]["remaining_seconds"] == 0
     assert ended.data["time_progress"]["is_ended"] is True
+
+
+# ---------------------------------------------------------------------------
+# ContestProblemViewSet: duplicate & reorder actions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_contest_problem_duplicate_creates_clone(api_client, owner, contest):
+    from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+    problem = _create_problem("Original for dup", owner)
+    asset = QuestionAsset.objects.create(
+        owner=owner, asset_type=QuestionAsset.AssetType.CODING, title="Original for dup",
+    )
+    problem.question_asset = asset
+    problem.save(update_fields=["question_asset"])
+    ContestQuestionBinding.objects.create(
+        contest=contest, question_asset=asset, coding_problem=problem,
+        binding_type=QuestionAsset.AssetType.CODING, order=0, score=100,
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/problems/duplicate/",
+        {"problem_id": str(problem.id)},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    bindings = ContestQuestionBinding.objects.filter(
+        contest=contest, binding_type=QuestionAsset.AssetType.CODING,
+    )
+    assert bindings.count() == 2
+    assert "binding_id" in response.data
+
+
+@pytest.mark.django_db
+def test_contest_problem_reorder_via_problems_endpoint(api_client, owner, contest):
+    from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+
+    bindings = []
+    for i, title in enumerate(["A", "B", "C"]):
+        p = _create_problem(f"Reorder {title}", owner)
+        asset = QuestionAsset.objects.create(
+            owner=owner, asset_type=QuestionAsset.AssetType.CODING, title=title,
+        )
+        p.question_asset = asset
+        p.save(update_fields=["question_asset"])
+        b = ContestQuestionBinding.objects.create(
+            contest=contest, question_asset=asset, coding_problem=p,
+            binding_type=QuestionAsset.AssetType.CODING, order=i, score=100,
+        )
+        bindings.append(b)
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/problems/reorder/",
+        {"orders": [
+            {"id": str(bindings[2].id), "order": 0},
+            {"id": str(bindings[0].id), "order": 1},
+            {"id": str(bindings[1].id), "order": 2},
+        ]},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    bindings[2].refresh_from_db()
+    bindings[0].refresh_from_db()
+    bindings[1].refresh_from_db()
+    assert bindings[2].order == 0
+    assert bindings[0].order == 1
+    assert bindings[1].order == 2
