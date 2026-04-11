@@ -71,7 +71,9 @@ class AuthorizeRedirectTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         location = response["Location"]
-        self.assertIn("login", location.lower())
+        # Should redirect to frontend login with next= param
+        self.assertIn("https://qjudge.com/login", location)
+        self.assertIn("next=", location)
 
 
 @override_settings(

@@ -119,11 +119,16 @@ def dynamic_client_registration(request):
     )
 
 
-@login_required(login_url="/login")
 @require_GET
 def authorize_redirect(request):
     """Redirect to frontend OAuth authorize page with all query params."""
     frontend_url = getattr(settings, "FRONTEND_URL", settings.OAUTH_ISSUER_URL)
+
+    # If not logged in, redirect to frontend login with next= back to this URL
+    if not request.user.is_authenticated:
+        current_url = request.get_full_path()
+        return redirect(f"{frontend_url}/login?next={current_url}")
+
     params = request.GET.urlencode()
     # Look up client name from Application for the consent page
     client_id = request.GET.get("client_id")
