@@ -155,9 +155,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # REST Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",  # MCP OAuth (first: returns None for non-OAuth tokens)
         "apps.users.authentication.CookieJWTAuthentication",  # Cookie-based JWT (more secure)
         "rest_framework_simplejwt.authentication.JWTAuthentication",  # Header-based JWT (fallback for API clients)
-        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",  # MCP OAuth
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
