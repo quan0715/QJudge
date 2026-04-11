@@ -1048,20 +1048,22 @@ class ContestViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 if question_bank_id and question_id:
-                    bank, bank_question, error_response = self._resolve_bank_question_for_import(
+                    from apps.contests.services.contest_problem_service import (
+                        resolve_bank_question_for_import,
+                        materialize_problem_from_bank_question,
+                    )
+                    bank, bank_question = resolve_bank_question_for_import(
                         user=user,
                         question_bank_id=question_bank_id,
                         question_id=question_id,
                     )
-                    if error_response:
-                        return error_response
 
                     source_bank_id = bank.uuid
                     source_bank_name = bank.name
                     source_question_id = bank_question.id
                     source_mode = "copy"
 
-                    problem = self._materialize_problem_from_bank_question(
+                    problem = materialize_problem_from_bank_question(
                         contest=contest,
                         question=bank_question,
                         user=user,

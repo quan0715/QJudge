@@ -302,12 +302,10 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         if not isinstance(items, list) or not items:
             raise DRFValidationError("items must be a non-empty list")
 
-        # Delegate to ContestViewSet helpers for bank resolution + materialization
-        from .contest import ContestViewSet
-        contest_vs = ContestViewSet()
-        contest_vs.request = request
-        contest_vs.kwargs = {"pk": contest_id}
-        contest_vs.format_kwarg = None
+        from apps.contests.services.contest_problem_service import (
+            resolve_bank_question_for_import,
+            materialize_problem_from_bank_question,
+        )
 
         last_order = (
             ContestQuestionBinding.objects.filter(
@@ -327,13 +325,11 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                 if not question_bank_id or question_id is None:
                     raise DRFValidationError("Each item requires question_bank_id and question_id")
 
-                bank, bank_question, error_response = contest_vs._resolve_bank_question_for_import(
+                bank, bank_question = resolve_bank_question_for_import(
                     user=user, question_bank_id=question_bank_id, question_id=question_id,
                 )
-                if error_response:
-                    raise DRFValidationError(error_response.data)
 
-                problem = contest_vs._materialize_problem_from_bank_question(
+                problem = materialize_problem_from_bank_question(
                     contest=contest, question=bank_question, user=user, request=request,
                 )
 
