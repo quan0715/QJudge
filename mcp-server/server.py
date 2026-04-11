@@ -242,31 +242,37 @@ async def qjudge_grading(
     exam_answer_id: str | None = None,
     score: float | None = None,
     feedback: str | None = None,
+    grades: list[dict] | None = None,
 ) -> str:
     """查看學生作答與批改考試。
 
     Actions:
-      - list_answers: 列出所有學生作答（可用 participant_id 篩選特定學生）
-      - question_detail: 某題的作答分析與答題分佈（需要 question_id）
-      - dashboard: 競賽批改總覽（分數分佈、通過率、各題正確率）
-      - grade: 批改一份作答（需要 exam_answer_id, score；可加 feedback）
+      - list_answers: 列出作答（建議用 question_id 篩選單題，避免回應過大）
+      - question_detail: 某題的作答分析，回傳含 exam_answer_id 可直接用於批改
+      - dashboard: 競賽批改總覽
+      - grade: 批改單一作答（需要 exam_answer_id, score）
+      - batch_grade: 批量批改（需要 grades 陣列，格式 [{"exam_answer_id": 123, "score": 8.5, "feedback": "..."}]）
       - ungrade: 撤銷批改（需要 exam_answer_id）
 
     Args:
-        action: 操作類型（list_answers / question_detail / dashboard / grade / ungrade）
+        action: 操作類型（list_answers / question_detail / dashboard / grade / batch_grade / ungrade）
         contest_id: 競賽 ID (UUID)
-        question_id: 題目 ID（question_detail 時必填）
+        question_id: 題目 ID（question_detail 和 list_answers 篩選用）
         participant_id: 學生參與者 ID（list_answers 篩選用）
-        exam_answer_id: 作答紀錄 ID（grade/ungrade 時必填）
+        exam_answer_id: 作答紀錄 ID（grade/ungrade 時必填，可從 question_detail 的 responses[].exam_answer_id 取得）
         score: 給分（grade 時必填，0 以上，最多兩位小數）
         feedback: 批改回饋意見（grade 時可選）
+        grades: 批量批改陣列（batch_grade 時必填，如 [{"exam_answer_id": 123, "score": 8}, {"exam_answer_id": 456, "score": 5}]）
     """
     base = f"/api/v1/contests/{contest_id}/exam-answers"
 
     if action == "list_answers":
-        params = ""
+        parts = []
         if participant_id:
-            params = f"?participant_id={participant_id}"
+            parts.append(f"participant_id={participant_id}")
+        if question_id:
+            parts.append(f"question_id={question_id}")
+        params = "?" + "&".join(parts) if parts else ""
         raw = await django_api("GET", f"{base}/all-answers/{params}", ctx)
         return _strip_snapshots(raw)
 
@@ -288,6 +294,11 @@ async def qjudge_grading(
         if feedback is not None:
             body["feedback"] = feedback
         return await django_api("POST", f"{base}/{exam_answer_id}/grade/", ctx, json_body=body)
+
+    if action == "batch_grade":
+        if not grades:
+            return json.dumps({"error": True, "detail": "grades array is required"})
+        return await django_api("POST", f"{base}/batch-grade/", ctx, json_body={"grades": grades})
 
     if action == "ungrade":
         if not exam_answer_id:
