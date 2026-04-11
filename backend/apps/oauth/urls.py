@@ -8,4 +8,9 @@ urlpatterns = [
         views.oauth_authorization_server_metadata,
         name="oauth-as-metadata",
     ),
+    path(
+        "o/register/",
+        views.dynamic_client_registration,
+        name="oauth-dcr",
+    ),
 ]
