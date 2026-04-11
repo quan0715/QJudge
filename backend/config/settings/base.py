@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",  # Token 黑名單支援
+    "oauth2_provider",  # OAuth 2.1 Authorization Server
     "corsheaders",
     "django_ratelimit",  # API 速率限制
     "channels",  # WebSocket support
@@ -154,6 +155,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # REST Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",  # MCP OAuth (first: returns None for non-OAuth tokens)
         "apps.users.authentication.CookieJWTAuthentication",  # Cookie-based JWT (more secure)
         "rest_framework_simplejwt.authentication.JWTAuthentication",  # Header-based JWT (fallback for API clients)
     ],
@@ -200,6 +202,20 @@ JWT_AUTH_COOKIE_HTTP_ONLY = True  # Prevent XSS attacks
 JWT_AUTH_COOKIE_SAMESITE = "Lax"  # CSRF protection
 JWT_AUTH_COOKIE_PATH = "/"
 JWT_AUTH_COOKIE_DOMAIN = None  # Use default domain
+
+# OAuth 2.1 Provider settings (for MCP Server)
+OAUTH2_PROVIDER = {
+    "SCOPES": {
+        "mcp:exam:read": "Read exam questions",
+        "mcp:exam:write": "Create, update, delete exam questions",
+    },
+    "DEFAULT_SCOPES": ["mcp:exam:read"],
+    "ACCESS_TOKEN_EXPIRE_SECONDS": 3600,  # 1 hour
+    "REFRESH_TOKEN_EXPIRE_SECONDS": 2592000,  # 30 days
+    "ROTATE_REFRESH_TOKENS": True,
+    "PKCE_REQUIRED": True,
+    "ALLOWED_REDIRECT_URI_SCHEMES": ["http", "https"],
+}
 
 # Spectacular settings
 SPECTACULAR_SETTINGS = {

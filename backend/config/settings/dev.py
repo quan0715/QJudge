@@ -40,6 +40,7 @@ REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
 # The frontend uses HttpOnly cookies and does not attach Authorization header.
 # Removing CookieJWTAuthentication causes every authenticated API call to return 401.
 REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = [
+    'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  # MCP OAuth
     'apps.users.authentication.CookieJWTAuthentication',
     'rest_framework_simplejwt.authentication.JWTAuthentication',
 ]

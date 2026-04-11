@@ -287,13 +287,16 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             participant__contest=contest
         ).select_related('participant__user', 'question', 'graded_by')
 
-        # Optional filter by participant (supports both participant_id and user_id)
+        # Optional filters
         participant_id = request.query_params.get('participant_id')
         user_id = request.query_params.get('user_id')
+        question_id = request.query_params.get('question_id')
         if participant_id:
             answers = answers.filter(participant_id=participant_id)
         elif user_id:
             answers = answers.filter(participant__user_id=user_id)
+        if question_id:
+            answers = answers.filter(question_id=question_id)
 
         return Response(ExamAnswerDetailSerializer(answers, many=True).data)
 
@@ -475,7 +478,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             ExamAnswer.objects.filter(
                 participant_id__in=participant_ids,
                 question=question,
-            ).values('participant_id', 'answer', 'score', 'graded_at', 'feedback')
+            ).values('id', 'participant_id', 'answer', 'score', 'graded_at', 'feedback')
         )
         graded_scores = [float(answer['score']) for answer in answers if answer['score'] is not None]
         missing_count = max(participant_count - len(answers), 0)
@@ -497,6 +500,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             'score_bands': self._build_question_score_bands(graded_scores, question.score),
             'responses': [
                 {
+                    'exam_answer_id': answer['id'],
                     'participant_id': answer['participant_id'],
                     'username': participants_by_id[answer['participant_id']].user.username,
                     'nickname': participants_by_id[answer['participant_id']].nickname or None,
@@ -568,6 +572,83 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         answer_obj.participant.save(update_fields=['score'])
 
         return Response(ExamAnswerDetailSerializer(answer_obj).data)
+
+    @action(detail=False, methods=['post'], url_path='batch-grade')
+    def batch_grade(self, request, contest_pk=None):
+        """Batch grade multiple answers at once (TA/admin only).
+
+        Request body: {"grades": [{"exam_answer_id": 123, "score": 8.5, "feedback": "..."}]}
+        """
+        contest = self._get_contest(contest_pk)
+        if not can_manage_contest(request.user, contest):
+            raise PermissionDenied('Only contest staff can grade answers.')
+
+        grades = request.data.get('grades', [])
+        if not isinstance(grades, list) or not grades:
+            return Response(
+                {'error': 'grades must be a non-empty array'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        now = timezone.now()
+        results = []
+        affected_participants = set()
+        affected_question_ids = set()
+
+        for entry in grades:
+            answer_id = entry.get('exam_answer_id')
+            score_val = entry.get('score')
+            feedback_val = entry.get('feedback', '')
+
+            if answer_id is None or score_val is None:
+                results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'exam_answer_id and score required'})
+                continue
+
+            serializer = ExamAnswerGradeSerializer(data={'score': score_val, 'feedback': feedback_val})
+            if not serializer.is_valid():
+                results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': serializer.errors})
+                continue
+
+            validated_score = serializer.validated_data['score']
+            validated_feedback = serializer.validated_data.get('feedback', '')
+
+            if validated_score < 0:
+                results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': {'score': ['Ensure this value is greater than or equal to 0.']}})
+                continue
+
+            answer_obj = ExamAnswer.objects.filter(
+                participant__contest=contest, pk=answer_id,
+            ).first()
+            if not answer_obj:
+                results.append({'exam_answer_id': answer_id, 'status': 'error', 'detail': 'not found'})
+                continue
+
+            answer_obj.score = validated_score
+            answer_obj.feedback = validated_feedback
+            answer_obj.graded_by = request.user
+            answer_obj.graded_at = now
+            answer_obj.is_correct = validated_score > 0
+            answer_obj.save()
+
+            affected_participants.add(answer_obj.participant_id)
+            affected_question_ids.add(answer_obj.question_id)
+            results.append({'exam_answer_id': answer_id, 'status': 'ok', 'score': float(validated_score)})
+
+        # Recalculate affected participant total scores
+        for pid in affected_participants:
+            participant = ContestParticipant.objects.get(pk=pid)
+            total = ExamAnswer.objects.filter(
+                participant=participant, score__isnull=False,
+            ).aggregate(total=Sum('score'))['total'] or 0
+            rounded_total = Decimal(total).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+            participant.score = int(rounded_total)
+            participant.save(update_fields=['score'])
+
+        # Invalidate caches
+        for qid in affected_question_ids:
+            self._invalidate_dashboard_cache(contest.id, qid)
+
+        return Response({'results': results, 'graded_count': sum(1 for r in results if r['status'] == 'ok')})
 
     @action(detail=True, methods=['post'], url_path='ungrade')
     def ungrade_answer(self, request, contest_pk=None, pk=None):

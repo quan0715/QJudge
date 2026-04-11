@@ -1,11 +1,146 @@
 @use "@carbon/layout";
+@use "@carbon/type";
+
+.landing-faq-section {
+  background: color-mix(in srgb, var(--cds-layer-01) 55%, transparent);
+}
 
 .landing-faq-section__inner {
   display: grid;
   grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
-  gap: layout.$spacing-07;
+  gap: layout.$spacing-09;
+  align-items: start;
 
   @media (max-width: 1055px) {
     grid-template-columns: 1fr;
+    gap: layout.$spacing-07;
+  }
+}
+
+/* ── 左欄 ─────────────────────────────────────────────── */
+
+.landing-faq-section__sidebar {
+  position: sticky;
+  top: calc(3.5rem + layout.$spacing-07);
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-07;
+
+  @media (max-width: 1055px) {
+    position: static;
+  }
+}
+
+
+/* ── 問題列表 ────────────────────────────────────────────── */
+
+.landing-faq-section__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-faq-section__item {
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  transition: background 200ms ease;
+
+  &:first-child {
+    border-top: 1px solid var(--cds-border-subtle-01);
+  }
+}
+
+.landing-faq-section__item--open {
+  background: color-mix(in srgb, var(--cds-layer-01) 80%, transparent);
+}
+
+/* ── 問題按鈕 ────────────────────────────────────────────── */
+
+.landing-faq-section__question {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto;
+  gap: layout.$spacing-04;
+  align-items: center;
+  width: 100%;
+  min-height: 4rem;
+  padding: layout.$spacing-05 layout.$spacing-05 layout.$spacing-05 layout.$spacing-06;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: color-mix(in srgb, var(--cds-link-primary) 4%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+}
+
+.landing-faq-section__index {
+  @include type.type-style("label-01");
+  color: var(--cds-link-primary);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+
+  .landing-faq-section__item--open & {
+    opacity: 1;
+  }
+}
+
+.landing-faq-section__question-text {
+  @include type.type-style("body-compact-02");
+  color: var(--cds-text-primary);
+  font-weight: 400;
+
+  .landing-faq-section__item--open & {
+    font-weight: 500;
+    color: var(--cds-text-primary);
+  }
+}
+
+.landing-faq-section__chevron {
+  display: flex;
+  align-items: center;
+  color: var(--cds-icon-secondary);
+  flex-shrink: 0;
+
+  .landing-faq-section__item--open & {
+    color: var(--cds-link-primary);
+  }
+}
+
+/* ── 答案 ─────────────────────────────────────────────── */
+
+.landing-faq-section__answer-wrap {
+  overflow: hidden;
+}
+
+.landing-faq-section__answer {
+  @include type.type-style("body-long-02");
+  margin: 0;
+  padding: 0 layout.$spacing-05 layout.$spacing-06 calc(2.5rem + layout.$spacing-04 + layout.$spacing-06);
+  color: var(--cds-text-secondary);
+  line-height: 1.75;
+}
+
+/* ── Dark theme ───────────────────────────────────────── */
+
+[data-carbon-theme="g100"] .landing-faq-section,
+[data-carbon-theme="g90"] .landing-faq-section {
+  background: color-mix(in srgb, #0f1f35 62%, transparent);
+}
+
+[data-carbon-theme="g100"] .landing-faq-section__item--open,
+[data-carbon-theme="g90"] .landing-faq-section__item--open {
+  background: rgba(15, 98, 254, 0.06);
+}
+
+/* ── Reduced motion ───────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-faq-section__answer-wrap {
+    transition: none;
   }
 }

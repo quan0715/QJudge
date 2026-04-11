@@ -51,7 +51,12 @@ class CookieJWTAuthentication(JWTAuthentication):
 
     def authenticate(self, request):
         # First, check Authorization header (no CSRF needed for header auth)
-        header_result = super().authenticate(request)
+        try:
+            header_result = super().authenticate(request)
+        except (InvalidToken, TokenError, exceptions.AuthenticationFailed):
+            # Token is not a valid JWT — return None so DRF tries the next
+            # authentication class (e.g. OAuth2Authentication for MCP tokens).
+            header_result = None
         if header_result is not None:
             # Mark that we used header authentication (no CSRF needed)
             request._jwt_auth_type = 'header'

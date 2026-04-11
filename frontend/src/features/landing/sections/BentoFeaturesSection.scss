@@ -64,8 +64,6 @@
 .landing-bento-section__mock {
   min-height: 11.5rem;
   overflow: hidden;
-  border: 1px solid var(--cds-border-subtle-01);
-  background: var(--cds-layer-02);
   color: var(--cds-text-primary);
 }
 
@@ -94,7 +92,7 @@
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   gap: layout.$spacing-04;
-  padding: layout.$spacing-04;
+  padding: layout.$spacing-04 0;
 }
 
 .landing-bento-section__question-card {
@@ -102,7 +100,9 @@
   gap: layout.$spacing-03;
   padding: layout.$spacing-04;
   border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 6px;
   background: var(--cds-layer-01);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--cds-background-inverse) 10%, transparent);
 
   strong {
     @include type.type-style("body-compact-01");
@@ -140,7 +140,9 @@
   grid-template-rows: auto 1fr;
   min-height: 10rem;
   border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 6px;
   background: #161616;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--cds-background-inverse) 12%, transparent);
 }
 
 .landing-bento-section__code-tabs {
@@ -178,6 +180,14 @@
 }
 
 /* ── 監考 ─────────────────────────────────────────────── */
+
+.landing-bento-section__mock--proctoring {
+  padding: layout.$spacing-04 0;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 6px;
+  background: var(--cds-layer-01);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--cds-background-inverse) 10%, transparent);
+}
 
 .landing-bento-section__event-header {
   @include type.type-style("label-01");
@@ -231,6 +241,7 @@
 
 .landing-bento-section__risk-line {
   padding: layout.$spacing-04;
+  border-top: 1px solid var(--cds-border-subtle-01);
 
   span {
     display: block;
@@ -246,6 +257,10 @@
   display: grid;
   grid-template-columns: 7.5rem 1fr;
   min-height: 9rem;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 6px;
+  background: var(--cds-layer-01);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--cds-background-inverse) 10%, transparent);
 }
 
 .landing-bento-section__filter-list {
@@ -321,7 +336,7 @@
 .landing-bento-section__mock--ai {
   display: grid;
   gap: layout.$spacing-03;
-  padding: layout.$spacing-04;
+  padding: layout.$spacing-04 0;
 }
 
 .landing-bento-section__chat-bubble {
@@ -329,7 +344,9 @@
   gap: layout.$spacing-02;
   padding: layout.$spacing-03;
   border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 6px;
   background: var(--cds-layer-01);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--cds-background-inverse) 8%, transparent);
 
   span {
     @include type.type-style("label-01");
@@ -363,14 +380,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: layout.$spacing-05;
+  padding: layout.$spacing-04 0;
   min-height: 13rem;
   overflow: clip;
-  background:
-    linear-gradient(color-mix(in srgb, var(--cds-border-subtle-00) 55%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--cds-border-subtle-00) 55%, transparent) 1px, transparent 1px),
-    var(--cds-layer-02);
-  background-size: 3rem 3rem;
 }
 
 .landing-bento-section__bento-card {
@@ -487,8 +499,8 @@
 
 [data-carbon-theme="g100"] .landing-bento-section__mock,
 [data-carbon-theme="g90"] .landing-bento-section__mock {
-  border-color: rgba(163, 191, 240, 0.18);
-  background: rgba(10, 18, 32, 0.88);
+  border-color: transparent;
+  background: transparent;
 }
 
 [data-carbon-theme="g100"] .landing-bento-section__question-card,

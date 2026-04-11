@@ -21,7 +21,8 @@
         "exam-statistics",
         "exam-proctoring",
         "exam-json-import-export",
-        "problem-import"
+        "problem-import",
+        "mcp-setup"
       ]
     },
     {

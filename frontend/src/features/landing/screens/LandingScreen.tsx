@@ -27,7 +27,7 @@ const LandingScreen = () => {
   const { t } = useTranslation("landing");
   const { preference, setPreference } = useTheme();
   const { contentLanguage, setContentLanguage } = useContentLanguage();
-  const content = useMemo(() => getLandingContent(t), [t]);
+  const content = useMemo(() => getLandingContent(t), [t, contentLanguage]);
   const languageOptions = useMemo<TextModeOption<SupportedLanguage>[]>(
     () =>
       SUPPORTED_LANGUAGES.map((lang) => ({
@@ -99,7 +99,6 @@ const LandingScreen = () => {
           eyebrow={t("socialProof.eyebrow")}
           title={t("socialProof.title")}
           description={t("socialProof.description")}
-          metrics={content.metrics}
           caseStudies={content.caseStudies}
         />
         <FaqSection
