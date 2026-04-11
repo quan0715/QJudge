@@ -163,6 +163,8 @@ services:
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
       - DB_HOST=pgbouncer
       - DB_PORT=5432
+      - OAUTH_ISSUER_URL=http://localhost:8000
+      - FRONTEND_URL=http://localhost:5173
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_PUBLIC_ENDPOINT_URL=${ANTICHEAT_S3_PUBLIC_ENDPOINT_URL:-}
       - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
@@ -366,6 +368,8 @@ services:
       - "9002:9000"
     environment:
       - DJANGO_BASE_URL=http://backend:8000
+      - MCP_PUBLIC_URL=http://localhost:9002
+      - OAUTH_ISSUER_URL=http://localhost:8000
     depends_on:
       - backend
     networks:

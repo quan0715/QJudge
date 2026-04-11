@@ -174,6 +174,8 @@ services:
       - AI_SERVICE_URL=http://ai-service:8001
       - HMAC_SECRET=${HMAC_SECRET}
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN}
+      - OAUTH_ISSUER_URL=${OAUTH_ISSUER_URL:-https://qjudge.com}
+      - FRONTEND_URL=${FRONTEND_URL:-https://qjudge.com}
       - JUDGE_TMP_DIR=/judge_tmp
       - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
       - ANTICHEAT_S3_PUBLIC_ENDPOINT_URL=${ANTICHEAT_S3_PUBLIC_ENDPOINT_URL:-}
@@ -349,6 +351,21 @@ services:
         condition: service_healthy
     networks:
       - oj_network
+
+  # MCP Server (OAuth 2.1 + tool proxy)
+  qjudge-mcp:
+    build:
+      context: ./mcp-server
+    container_name: oj_mcp
+    environment:
+      - DJANGO_BASE_URL=http://backend:8000
+      - MCP_PUBLIC_URL=${MCP_PUBLIC_URL:-https://mcp.qjudge.com}
+      - OAUTH_ISSUER_URL=${OAUTH_ISSUER_URL:-https://qjudge.com}
+    depends_on:
+      - backend
+    networks:
+      - oj_network
+    restart: unless-stopped
 
   # Frontend (React + Nginx)
   frontend:
