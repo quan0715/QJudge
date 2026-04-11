@@ -142,9 +142,10 @@ class TestRunSerializer(serializers.Serializer):
 class ProblemListSerializer(serializers.ModelSerializer):
     """Serializer for problem list (minimal info)."""
     title = serializers.SerializerMethodField()
+    difficulty = serializers.SerializerMethodField()
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
-    
+
     class Meta:
         model = Problem
         fields = [
@@ -168,57 +169,50 @@ class ProblemListSerializer(serializers.ModelSerializer):
             'is_solved',
             'tags',
         ]
-    
+
     is_solved = serializers.BooleanField(read_only=True, default=False)
-    
+
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
-    
-    created_by = serializers.ReadOnlyField(source='created_by.username')
-    
-    def get_title(self, obj):
-        """Get title in requested language, preferring QuestionAsset as source of truth."""
-        lang = self.context.get('language', 'zh-TW')
 
-        # Try Asset payload translations first
+    created_by = serializers.ReadOnlyField(source='created_by.username')
+
+    def get_title(self, obj):
+        """Get title from QuestionAsset (source of truth)."""
         if obj.question_asset_id:
             try:
-                translations = (obj.question_asset.payload or {}).get("translations", [])
-                if translations:
-                    match_langs = ['zh-TW', 'zh-hant'] if lang == 'zh-TW' else [lang]
-                    for t in translations:
-                        if t.get("language") in match_langs:
-                            return t.get("title") or obj.effective_title
-                    return translations[0].get("title") or obj.effective_title
+                return obj.question_asset.title or f"Problem {obj.id}"
             except Exception:
                 pass
+        return getattr(obj, 'title', None) or f"Problem {obj.id}"
 
-        # Fallback to ProblemTranslation rows
-        if lang == 'zh-TW':
-            translation = obj.translations.filter(language__in=['zh-TW', 'zh-hant']).first()
-        else:
-            translation = obj.translations.filter(language=lang).first()
-        if translation:
-            return translation.title
-        translation = obj.translations.first()
-        return translation.title if translation else f"Problem {obj.id}"
+    def get_difficulty(self, obj):
+        """Get difficulty from QuestionAsset (source of truth)."""
+        if obj.question_asset_id:
+            try:
+                return (obj.question_asset.payload or {}).get("difficulty", "medium")
+            except Exception:
+                pass
+        return getattr(obj, 'difficulty', 'medium')
 
 class ProblemDetailSerializer(serializers.ModelSerializer):
     """Serializer for problem detail (full info)."""
+    title = serializers.SerializerMethodField()
+    difficulty = serializers.SerializerMethodField()
     translation = serializers.SerializerMethodField()
     samples = serializers.SerializerMethodField()
-    translations = ProblemTranslationSerializer(many=True, read_only=True)
+    translations = serializers.SerializerMethodField()
     test_cases = TestCaseSerializer(many=True, read_only=True)
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
-    
+
     class Meta:
         model = Problem
         fields = [
             'id',
-            'title',  # Original title (fallback)
+            'title',
             'slug',
             'difficulty',
             'time_limit',
@@ -242,24 +236,51 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             'forbidden_keywords',
             'required_keywords',
         ]
-    
+
+    def get_title(self, obj):
+        """Get title from QuestionAsset (source of truth)."""
+        if obj.question_asset_id:
+            try:
+                return obj.question_asset.title or f"Problem {obj.id}"
+            except Exception:
+                pass
+        return getattr(obj, 'title', None) or f"Problem {obj.id}"
+
+    def get_difficulty(self, obj):
+        """Get difficulty from QuestionAsset (source of truth)."""
+        if obj.question_asset_id:
+            try:
+                return (obj.question_asset.payload or {}).get("difficulty", "medium")
+            except Exception:
+                pass
+        return getattr(obj, 'difficulty', 'medium')
+
+    def get_translations(self, obj):
+        """Get translations from QuestionAsset (source of truth)."""
+        if obj.question_asset_id:
+            try:
+                return (obj.question_asset.payload or {}).get("translations", [])
+            except Exception:
+                return []
+        return []
+
     def get_translation(self, obj):
-        """Get translation for requested language."""
+        """Get translation for requested language from QuestionAsset."""
+        if not obj.question_asset_id:
+            return None
+        try:
+            translations = (obj.question_asset.payload or {}).get("translations", [])
+        except Exception:
+            return None
+        if not translations:
+            return None
         lang = self.context.get('language', 'zh-TW')
-        # Support both zh-TW and zh-hant for backward compatibility
-        if lang == 'zh-TW':
-            translation = obj.translations.filter(language__in=['zh-TW', 'zh-hant']).first()
-        else:
-            translation = obj.translations.filter(language=lang).first()
-        
-        if not translation:
-            # Fallback to first available
-            translation = obj.translations.first()
-            
-        if translation:
-            return ProblemTranslationSerializer(translation).data
-        return None
-    
+        match_langs = ['zh-TW', 'zh-hant'] if lang == 'zh-TW' else [lang]
+        for t in translations:
+            if t.get("language") in match_langs:
+                return t
+        return translations[0]
+
     def get_samples(self, obj):
         """Get sample test cases."""
         samples = obj.test_cases.filter(is_sample=True).order_by('order')
@@ -450,3 +471,16 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             existing_tag_ids=existing_tag_ids,
             new_tag_names=new_tag_names,
         )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Override content fields from QuestionAsset (source of truth)
+        if instance.question_asset_id:
+            try:
+                asset = instance.question_asset
+                data['title'] = asset.title or data.get('title', '')
+                data['difficulty'] = (asset.payload or {}).get("difficulty", data.get('difficulty', 'medium'))
+                data['translations'] = (asset.payload or {}).get("translations", [])
+            except Exception:
+                pass
+        return data
