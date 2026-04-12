@@ -86,7 +86,7 @@
       flex: 1.2;
       border-radius: 4px; /* Much smaller border radius */
       overflow: hidden;
-      background: var(--cds-layer-02);
+      background: var(--cds-layer-01);
       border: 1px solid var(--cds-border-subtle);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 
@@ -95,6 +95,7 @@
         height: 100%;
         object-fit: cover;
         display: block;
+        mix-blend-mode: darken; /* Fix video background color shift */
       }
 
       .placeholder-media {
@@ -103,7 +104,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--cds-layer-02);
+        background: var(--cds-layer-01);
         color: var(--cds-text-secondary);
         @include type.type-style("heading-03");
       }
