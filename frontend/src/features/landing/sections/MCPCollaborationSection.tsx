@@ -28,39 +28,56 @@ const MCPCollaborationSection: FC<MCPCollaborationSectionProps> = ({ content }) 
           align="center"
         />
 
-        {/* Tools Logo Grid */}
-        <div className="landing-mcp-section__tools">
-          {TOOLS.map(({ Icon, name, mono }) => (
-            <div key={name} className={`landing-mcp-section__tool-item${mono ? " landing-mcp-section__tool-item--mono" : ""}`}>
-              <Icon size={64} />
-            </div>
-          ))}
+        {/* Tools Logo Marquee */}
+        <div className="landing-mcp-section__tools-wrapper">
+          <div className="landing-mcp-section__tools">
+            {[...TOOLS, ...TOOLS].map(({ Icon, name, mono }, idx) => (
+              <div key={`${name}-${idx}`} className={`landing-mcp-section__tool-item${mono ? " landing-mcp-section__tool-item--mono" : ""}`}>
+                <Icon size={64} />
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Examples Grid */}
-        <div className="landing-mcp-section__examples">
-          {content.examples.map((example, index) => (
-            <div
-              key={example.title}
-              className="landing-mcp-section__example-card"
-            >
-              <div className="landing-mcp-section__example-header">
-                <span className="landing-mcp-section__example-number">{String(index + 1).padStart(2, '0')}</span>
-                <h3 className="landing-mcp-section__example-title">{example.title}</h3>
-                <p className="landing-mcp-section__example-description">{example.description}</p>
-              </div>
-
-              {example.image && (
-                <div className="landing-mcp-section__example-image">
-                  <img
-                    src={example.image}
-                    alt={example.title}
-                    className="landing-mcp-section__image-content"
-                  />
+        {/* Alternating Features Layout */}
+        <div className="landing-mcp-showcase">
+          {content.examples.map((example, index) => {
+            const isReversed = index % 2 !== 0;
+            return (
+              <div
+                key={example.title}
+                className={`landing-mcp-feature-row ${
+                  isReversed ? "landing-mcp-feature-row--reversed" : ""
+                }`}
+              >
+                {/* Media Side */}
+                <div className="landing-mcp-feature-row__media">
+                  {example.videoSrc && (
+                    <video
+                      src={example.videoSrc}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Content Side */}
+                <div className="landing-mcp-feature-row__content">
+                  <span className="landing-mcp-feature-row__eyebrow">
+                    {example.eyebrow || String(index + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="landing-mcp-feature-row__title">
+                    {example.title}
+                  </h3>
+                  <p className="landing-mcp-feature-row__description">
+                    {example.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

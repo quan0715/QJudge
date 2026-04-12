@@ -79,9 +79,11 @@ export interface LandingFaqItem {
 }
 
 export interface MCPCollaborationExample {
+  eyebrow?: string;
   title: string;
   description: string;
   image?: string;
+  videoSrc?: string;
   userMessage?: string;
   aiMessage?: string;
   feedback?: string;
@@ -94,7 +96,7 @@ export interface MCPCollaborationContent {
   description: string;
   features: string[];
   featuresDescription: string[];
-  examples: [MCPCollaborationExample, MCPCollaborationExample];
+  examples: MCPCollaborationExample[];
   tools: {
     claude: string;
     chatgpt: string;
@@ -303,14 +305,22 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
       ],
       examples: [
         {
-          title: t("mcp.examples.0.title"),
-          description: t("mcp.examples.0.description"),
-          image: "/example-1.png",
+          eyebrow: t("mcp.examples.0.eyebrow", { defaultValue: "AI 出題與 Review" }),
+          title: t("mcp.examples.0.title", { defaultValue: "智慧生成，精準審題" }),
+          description: t("mcp.examples.0.description", { defaultValue: "透過 AI 快速建立題庫與考卷，並自動檢查題目邏輯與難易度，大幅節省命題時間。" }),
+          videoSrc: "/videos/usecase-1.mp4",
         },
         {
-          title: t("mcp.examples.1.title"),
-          description: t("mcp.examples.1.description"),
-          image: "/example-2.png",
+          eyebrow: t("mcp.examples.1.eyebrow", { defaultValue: "考試數據分析與整合" }),
+          title: t("mcp.examples.1.title", { defaultValue: "宏觀數據洞察，掌握全局表現" }),
+          description: t("mcp.examples.1.description", { defaultValue: "匯整整場考試的作答數據，生成全班成績分佈與錯題統計報表。協助教師從宏觀視角精準評估教學成效與學生學習盲點。" }),
+          videoSrc: "/videos/usecase-2.mp4",
+        },
+        {
+          eyebrow: t("mcp.examples.2.eyebrow", { defaultValue: "AI 助教批改" }),
+          title: t("mcp.examples.2.title", { defaultValue: "開放式問答，精準語義評分" }),
+          description: t("mcp.examples.2.description", { defaultValue: "突破傳統腳本限制，AI 能深度理解並批改學生的開放式回答。即時給出精準評分、具體評語與優化建議，大幅減輕批改負擔。" }),
+          videoSrc: "/videos/usecase-3.mp4",
         },
       ],
       tools: {
