@@ -82,8 +82,7 @@ describe("LandingScreen", () => {
 
     const sections = [
       "landing-section-hero",
-      "landing-section-features",
-      "landing-section-why",
+      "landing-section-proposition",
       "landing-section-flow",
       "landing-section-audience",
       "landing-section-social-proof",
