@@ -13,7 +13,6 @@ from apps.users.models import User
 
 def _create_problem(owner: User, title: str) -> Problem:
     return Problem.objects.create(
-        title=title,
         slug=f"{title.lower().replace(' ', '-')}-{uuid4().hex[:8]}",
         created_by=owner,
     )

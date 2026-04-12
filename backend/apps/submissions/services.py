@@ -207,7 +207,7 @@ class SubmissionService:
                 contest,
                 user,
                 "submit_code",
-                f"Submitted code for problem: {problem.title if problem else 'Unknown'}",
+                f"Submitted code for problem: {problem.id if problem else 'Unknown'}",
             )
         except Exception:
             logger.debug("Failed to log contest activity", exc_info=True)

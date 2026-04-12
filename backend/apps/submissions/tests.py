@@ -5,7 +5,7 @@ from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
-from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
+from apps.problems.models import Problem, TestCase as ProblemTestCase
 from apps.submissions.models import Submission, SubmissionResult
 
 User = get_user_model()
@@ -33,9 +33,7 @@ class SubmissionAPITestCase(TestCase):
         
         # Create a test problem
         self.problem = Problem.objects.create(
-            title='Test A+B',
             slug='test-a-plus-b',
-            difficulty='easy',
             time_limit=1000,
             memory_limit=128,
             created_by=self.teacher
@@ -162,9 +160,7 @@ int main() {
         """Test filtering submissions by problem"""
         # Create another problem
         problem2 = Problem.objects.create(
-            title='Test Problem 2',
             slug='test-problem-2',
-            difficulty='medium',
             created_by=self.teacher
         )
         
@@ -238,9 +234,7 @@ class SubmissionModelTestCase(TestCase):
         )
         
         self.problem = Problem.objects.create(
-            title='Test Problem',
             slug='test-problem',
-            difficulty='easy',
             time_limit=1000,
             memory_limit=128
         )
@@ -270,7 +264,7 @@ class SubmissionModelTestCase(TestCase):
             code='test code'
         )
         
-        expected = f"Submission {submission.id} by {self.user.username} for {self.problem.title}"
+        expected = f"Submission {submission.id} by {self.user.username} for {self.problem.id}"
         self.assertEqual(str(submission), expected)
 
 
@@ -309,9 +303,7 @@ class SubmissionExecutionTestCase(TestCase):
         )
         
         self.problem = Problem.objects.create(
-            title='A+B Problem',
             slug='a-plus-b',
-            difficulty='easy',
             time_limit=1000,
             memory_limit=128,
             created_by=self.user

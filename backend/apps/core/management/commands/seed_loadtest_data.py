@@ -9,7 +9,8 @@ from django.utils import timezone
 from datetime import timedelta
 
 from apps.users.models import UserProfile
-from apps.problems.models import Problem, TestCase, ProblemTranslation, LanguageConfig
+from apps.problems.models import Problem, TestCase, LanguageConfig
+from apps.question_bank.question_assets import write_coding_content_to_asset
 from apps.contests.models import (
     Contest, ContestParticipant, ExamQuestion, ExamAnswer, ExamEvent, ExamStatus,
 )
@@ -32,9 +33,9 @@ class Command(BaseCommand):
     @staticmethod
     def _bind_problem(contest, problem, order):
         """Create a ContestQuestionBinding for a coding problem."""
-        from apps.question_bank.question_assets import sync_problem_question_asset
+        from apps.question_bank.question_assets import ensure_problem_question_asset
         if not problem.question_asset_id:
-            sync_problem_question_asset(problem=problem, actor=problem.created_by or contest.owner)
+            ensure_problem_question_asset(problem=problem, actor=problem.created_by or contest.owner)
             problem.refresh_from_db(fields=["question_asset", "question_version"])
         from django.db.models import Sum
         score = max(1, int(problem.test_cases.aggregate(total=Sum('score'))['total'] or 100))
@@ -139,23 +140,28 @@ class Command(BaseCommand):
 
         for spec in problems_spec:
             prob, created = Problem.objects.get_or_create(
-                title=spec["title"],
+                slug=spec["slug"],
                 defaults={
-                    "slug": spec["slug"],
-                    "difficulty": spec["difficulty"],
                     "time_limit": 1000,
                     "memory_limit": 128,
                     "created_by": admin,
-                    "visibility": "private",
                     "order": spec["order"],
                 },
             )
             if created:
-                ProblemTranslation.objects.create(
-                    problem=prob, language="zh-TW",
-                    title=spec["title"], description=f"{spec['title']} 壓測用",
-                    input_description="", output_description="",
+                asset, version = write_coding_content_to_asset(
+                    owner=admin, title=spec["title"], prompt=f"{spec['title']} 壓測用",
+                    difficulty=spec["difficulty"],
+                    translations=[{
+                        "language": "zh-TW", "title": spec["title"],
+                        "description": f"{spec['title']} 壓測用",
+                        "input_description": "", "output_description": "", "hint": "",
+                    }],
+                    actor=admin,
                 )
+                prob.question_asset = asset
+                prob.question_version = version
+                prob.save(update_fields=["question_asset", "question_version"])
                 for idx, (inp, out, sample, score) in enumerate(spec["tests"]):
                     TestCase.objects.create(
                         problem=prob, input_data=inp, output_data=out,
@@ -214,7 +220,7 @@ class Command(BaseCommand):
 
         # Attach coding problems
         for idx, title in enumerate(["A+B Problem", "Hello World", "Factorial"]):
-            prob = Problem.objects.filter(title=title).first()
+            prob = Problem.objects.filter(question_asset__title=title).first()
             if prob:
                 self._bind_problem(paper_contest, prob, idx)
                 self._bind_problem(coding_contest, prob, idx)

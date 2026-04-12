@@ -226,6 +226,13 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    "OAUTH2_FLOWS": {
+        "authorizationCode": {
+            "authorizationUrl": "/api/oauth/authorize/",
+            "tokenUrl": "/api/oauth/token/",
+            "scopes": {"mcp": "MCP server access"},
+        }
+    },
 }
 
 # CORS settings (important for HttpOnly cookie authentication)

@@ -27,57 +27,6 @@ def _asset_type_for_exam_question_type(question_type: str) -> str:
     return mapping.get(question_type, QuestionAsset.AssetType.ESSAY)
 
 
-def _asset_visibility_for_problem(problem: Problem) -> str:
-    return QuestionAsset.Visibility.PRIVATE
-
-
-def _pick_problem_translation(problem: Problem):
-    translation = problem.translations.filter(language__in=["zh-TW", "zh-hant", "zh-Hant"]).first()
-    if translation:
-        return translation
-    return problem.translations.first()
-
-
-def _build_problem_asset_payload(problem: Problem) -> dict[str, Any]:
-    return {
-        "difficulty": problem.difficulty or "medium",
-        "time_limit": problem.time_limit,
-        "memory_limit": problem.memory_limit,
-        "legacy_problem_id": str(problem.id),
-        "translations": list(
-            problem.translations.values(
-                "language",
-                "title",
-                "description",
-                "input_description",
-                "output_description",
-                "hint",
-            )
-        ),
-        "test_cases": list(
-            problem.test_cases.values(
-                "input_data",
-                "output_data",
-                "is_sample",
-                "score",
-                "weight_percent",
-                "order",
-                "is_hidden",
-            )
-        ),
-        "language_configs": list(
-            problem.language_configs.values(
-                "language",
-                "template_code",
-                "is_enabled",
-                "order",
-            )
-        ),
-        "forbidden_keywords": problem.forbidden_keywords or [],
-        "required_keywords": problem.required_keywords or [],
-    }
-
-
 def _build_exam_question_asset_payload(exam_question: ExamQuestion) -> dict[str, Any]:
     return {
         "question_type": exam_question.question_type,
@@ -462,121 +411,53 @@ def write_coding_content_to_asset(
     )
 
 
-def sync_asset_to_problem(
-    *,
-    question_asset: QuestionAsset,
-    problem: Problem,
-) -> None:
+def ensure_problem_question_asset(*, problem: Problem, actor=None) -> tuple[QuestionAsset, QuestionVersion]:
+    """Ensure a CodingProblem has a QuestionAsset.
+
+    If the problem already has one, return it.  Otherwise create a new asset
+    via ``write_coding_content_to_asset`` (the canonical write path) and link
+    it back to the problem row.
     """
-    Backward-compat bridge: write content from QuestionAsset back to
-    Problem's local fields and ProblemTranslation rows.
-    This is a TRANSITIONAL function — will be removed in Phase 2.
-    """
-    from apps.problems.models import ProblemTranslation
+    if problem.question_asset_id:
+        return problem.question_asset, problem.question_version
 
-    payload = question_asset.payload or {}
-    update_fields = ["question_asset", "question_version", "updated_at"]
-
-    problem.question_asset = question_asset
-    problem.question_version = question_asset.latest_version
-
-    # Sync title
-    if question_asset.title:
-        problem.title = question_asset.title
-        update_fields.append("title")
-
-    # Sync difficulty
-    difficulty = payload.get("difficulty")
-    if difficulty:
-        problem.difficulty = difficulty
-        update_fields.append("difficulty")
-
-    problem.save(update_fields=update_fields)
-
-    # Sync translations
-    translations = payload.get("translations")
-    if translations and isinstance(translations, list):
-        problem.translations.all().delete()
-        for t in translations:
-            ProblemTranslation.objects.create(
-                problem=problem,
-                language=t.get("language", "zh-TW"),
-                title=t.get("title", ""),
-                description=t.get("description", ""),
-                input_description=t.get("input_description", ""),
-                output_description=t.get("output_description", ""),
-                hint=t.get("hint", ""),
-            )
-
-
-# ── Legacy sync (DEPRECATED — will be removed after Phase 1 migration) ──
-
-
-def sync_problem_question_asset(*, problem: Problem, actor=None) -> tuple[QuestionAsset, QuestionVersion]:
-    owner = resolve_problem_asset_owner(problem=problem, actor=actor)
+    owner = actor or problem.created_by
     if owner is None:
         raise ValueError(f"Cannot resolve owner for problem {problem.id}")
-    asset_payload = _build_problem_asset_payload(problem)
-    title = problem.title
-    prompt = ""
-    translation = _pick_problem_translation(problem)
-    if translation:
-        prompt = translation.description or ""
 
-    if problem.question_asset_id:
-        question_asset = problem.question_asset
-        QuestionAsset.objects.filter(pk=question_asset.pk).update(
-            owner=owner or question_asset.owner,
-            asset_type=QuestionAsset.AssetType.CODING,
-            visibility=_asset_visibility_for_problem(problem),
-            status=QuestionAsset.Status.ACTIVE,
-        )
-        question_asset.refresh_from_db(fields=["owner", "asset_type", "visibility", "status"])
-        version = publish_question_version(
-            question_asset=question_asset,
-            title=title,
-            prompt=prompt,
-            payload=asset_payload,
-            actor=owner,
-        )
-    else:
-        question_asset, version = create_question_asset(
-            owner=owner,
-            asset_type=QuestionAsset.AssetType.CODING,
-            title=title,
-            prompt=prompt,
-            visibility=_asset_visibility_for_problem(problem),
-            payload=asset_payload,
-            actor=owner,
-        )
+    # No translations on model anymore; create a minimal asset
+    question_asset, question_version = write_coding_content_to_asset(
+        owner=owner,
+        title="",
+        prompt="",
+        difficulty="medium",
+        translations=[],
+        time_limit=problem.time_limit,
+        memory_limit=problem.memory_limit,
+        test_cases=list(
+            problem.test_cases.values(
+                "input_data", "output_data", "is_sample",
+                "score", "weight_percent", "order", "is_hidden",
+            )
+        ),
+        language_configs=list(
+            problem.language_configs.values(
+                "language", "template_code", "is_enabled", "order",
+            )
+        ),
+        forbidden_keywords=problem.forbidden_keywords or [],
+        required_keywords=problem.required_keywords or [],
+        legacy_problem_id=str(problem.id),
+        actor=owner,
+    )
+
     Problem.objects.filter(pk=problem.pk).update(
         question_asset=question_asset,
-        question_version=version,
+        question_version=question_version,
     )
     problem.question_asset = question_asset
-    problem.question_version = version
-    return question_asset, version
-
-
-def resolve_problem_asset_owner(*, problem: Problem, actor=None):
-    if actor is not None:
-        return actor
-    if problem.created_by is not None:
-        return problem.created_by
-    if problem.question_asset_id and problem.question_asset and problem.question_asset.owner_id:
-        return problem.question_asset.owner
-    # Try to find owner from contest bindings
-    binding = (
-        ContestQuestionBinding.objects.select_related("contest__owner")
-        .filter(coding_problem=problem, contest__owner__isnull=False)
-        .order_by("contest__created_at", "contest__id", "order", "id")
-        .first()
-    )
-    if binding is not None and binding.contest.owner_id:
-        return binding.contest.owner
-    if problem.question_asset_id and problem.question_asset and problem.question_asset.owner_id:
-        return problem.question_asset.owner
-    return None
+    problem.question_version = question_version
+    return question_asset, question_version
 
 
 def sync_exam_question_question_asset(

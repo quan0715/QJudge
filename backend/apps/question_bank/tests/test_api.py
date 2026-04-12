@@ -14,14 +14,14 @@ from PIL import Image
 
 from apps.contests.models import Contest, ExamQuestion
 from apps.contests.tests import bind_problem_to_contest
-from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
+from apps.problems.models import Problem, TestCase as ProblemTestCase
 from apps.question_bank.bank_workflows import (
     clone_question_to_bank,
     is_publicly_accessible_bank,
     upsert_exam_question_into_bank,
     upsert_problem_into_bank,
 )
-from apps.question_bank.models import Question, QuestionBank, QuestionBankMembership
+from apps.question_bank.models import Question, QuestionAsset, QuestionBank, QuestionBankMembership
 from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
 from apps.users.models import User
 
@@ -569,29 +569,24 @@ class TestQuestionBankAPI:
             visibility=QuestionBank.Visibility.PRIVATE,
         )
         problem = Problem.objects.create(
-            title="Legacy Problem",
             slug="legacy-problem",
-            difficulty="easy",
             created_by=teacher,
-        )
-        ProblemTranslation.objects.create(
-            problem=problem,
-            language="zh-TW",
-            title="Legacy Problem",
-            description="legacy description",
-            input_description="in",
-            output_description="out",
-            hint="",
         )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
 
-        # Ensure asset exists (required by Phase 1 invariant)
-        from apps.question_bank.question_assets import write_coding_content_to_asset, sync_asset_to_problem
+        # Create asset (source of truth for content)
+        from apps.question_bank.question_assets import write_coding_content_to_asset
         asset, version = write_coding_content_to_asset(
             owner=teacher, title="Legacy Problem", prompt="legacy description",
-            difficulty="medium", translations=[], actor=teacher,
+            difficulty="easy", translations=[{
+                "language": "zh-TW", "title": "Legacy Problem",
+                "description": "legacy description",
+                "input_description": "in", "output_description": "out", "hint": "",
+            }], actor=teacher,
         )
-        sync_asset_to_problem(question_asset=asset, problem=problem)
+        problem.question_asset = asset
+        problem.question_version = version
+        problem.save(update_fields=["question_asset", "question_version"])
 
         synced_problem_q = upsert_problem_into_bank(problem, bank=bank_coding, created_by=teacher)
         assert synced_problem_q is not None
@@ -715,7 +710,6 @@ class TestQuestionBankAPI:
         admin_user: User,
     ):
         Problem.objects.create(
-            title="Public P",
             slug="public-p",
             created_by=admin_user,
         )
@@ -739,19 +733,19 @@ class TestQuestionBankAPI:
         assert len(report["skipped_exam_questions"]) >= 1
 
     def test_inbox_lists_unsynced_sources(self, api_client: APIClient, teacher: User):
-        problem = Problem.objects.create(
+        asset = QuestionAsset.objects.create(
+            owner=teacher, asset_type=QuestionAsset.AssetType.CODING,
             title="Inbox Coding",
+            payload={"difficulty": "medium", "translations": [{
+                "language": "zh-TW", "title": "Inbox Coding",
+                "description": "desc", "input_description": "in",
+                "output_description": "out", "hint": "",
+            }]},
+        )
+        problem = Problem.objects.create(
             slug="inbox-coding",
             created_by=teacher,
-        )
-        ProblemTranslation.objects.create(
-            problem=problem,
-            language="zh-TW",
-            title="Inbox Coding",
-            description="desc",
-            input_description="in",
-            output_description="out",
-            hint="",
+            question_asset=asset,
         )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
 
@@ -802,28 +796,23 @@ class TestQuestionBankAPI:
             verified=False,
         )
         problem = Problem.objects.create(
-            title="Needs Ingest",
             slug="needs-ingest",
             created_by=teacher,
         )
-        ProblemTranslation.objects.create(
-            problem=problem,
-            language="zh-TW",
-            title="Needs Ingest",
-            description="desc",
-            input_description="in",
-            output_description="out",
-            hint="",
-        )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
 
-        # Ensure asset exists (required by Phase 1 invariant)
-        from apps.question_bank.question_assets import write_coding_content_to_asset, sync_asset_to_problem
+        from apps.question_bank.question_assets import write_coding_content_to_asset
         asset, version = write_coding_content_to_asset(
             owner=teacher, title="Needs Ingest", prompt="desc",
-            difficulty="medium", translations=[], actor=teacher,
+            difficulty="medium", translations=[{
+                "language": "zh-TW", "title": "Needs Ingest",
+                "description": "desc", "input_description": "in",
+                "output_description": "out", "hint": "",
+            }], actor=teacher,
         )
-        sync_asset_to_problem(question_asset=asset, problem=problem)
+        problem.question_asset = asset
+        problem.question_version = version
+        problem.save(update_fields=["question_asset", "question_version"])
 
         api_client.force_authenticate(user=teacher)
         resp = api_client.post(
@@ -855,18 +844,8 @@ class TestQuestionBankAPI:
             verified=False,
         )
         problem = Problem.objects.create(
-            title="Contest Linked No Creator",
             slug="contest-linked-no-creator",
             created_by=None,
-        )
-        ProblemTranslation.objects.create(
-            problem=problem,
-            language="zh-TW",
-            title="Contest Linked No Creator",
-            description="desc",
-            input_description="in",
-            output_description="out",
-            hint="",
         )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
 
@@ -877,7 +856,7 @@ class TestQuestionBankAPI:
         )
         bind_problem_to_contest(contest, problem, order=0)
 
-        from apps.question_bank.question_assets import write_coding_content_to_asset, sync_asset_to_problem
+        from apps.question_bank.question_assets import write_coding_content_to_asset
 
         asset, _version = write_coding_content_to_asset(
             owner=teacher,
@@ -887,7 +866,9 @@ class TestQuestionBankAPI:
             translations=[],
             actor=teacher,
         )
-        sync_asset_to_problem(question_asset=asset, problem=problem)
+        problem.question_asset = asset
+        problem.question_version = _version
+        problem.save(update_fields=["question_asset", "question_version"])
 
         api_client.force_authenticate(user=teacher)
         inbox_resp = api_client.get("/api/v1/question-banks/inbox/?category=coding")
@@ -933,19 +914,19 @@ class TestQuestionBankAPI:
             category=QuestionBank.Category.CODING,
             visibility=QuestionBank.Visibility.PRIVATE,
         )
-        problem = Problem.objects.create(
+        asset = QuestionAsset.objects.create(
+            owner=teacher, asset_type=QuestionAsset.AssetType.CODING,
             title="Needs Re-ingest",
+            payload={"difficulty": "medium", "translations": [{
+                "language": "zh-TW", "title": "Needs Re-ingest",
+                "description": "desc", "input_description": "in",
+                "output_description": "out", "hint": "",
+            }]},
+        )
+        problem = Problem.objects.create(
             slug="needs-re-ingest",
             created_by=teacher,
-        )
-        ProblemTranslation.objects.create(
-            problem=problem,
-            language="zh-TW",
-            title="Needs Re-ingest",
-            description="desc",
-            input_description="in",
-            output_description="out",
-            hint="",
+            question_asset=asset,
         )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
         Question.objects.create(
@@ -1245,9 +1226,7 @@ class TestCategoryValidation:
             category=QuestionBank.Category.EXAM,
         )
         problem = Problem.objects.create(
-            title="Code Q",
             created_by=teacher,
-            difficulty="easy",
             time_limit=1000,
             memory_limit=128,
         )
@@ -1456,18 +1435,21 @@ class TestUpsertIdempotency:
             name="Coding Bank",
             category=QuestionBank.Category.CODING,
         )
+        asset = QuestionAsset.objects.create(
+            owner=teacher, asset_type=QuestionAsset.AssetType.CODING,
+            title="Prob", payload={"difficulty": "easy", "translations": []},
+        )
         problem = Problem.objects.create(
-            title="Prob",
             created_by=teacher,
-            difficulty="easy",
             time_limit=1000,
             memory_limit=128,
+            question_asset=asset,
         )
         q1 = upsert_problem_into_bank(problem=problem, bank=bank)
         assert bank.questions.count() == 1
 
-        problem.title = "Updated Prob"
-        problem.save()
+        asset.title = "Updated Prob"
+        asset.save()
         q2 = upsert_problem_into_bank(problem=problem, bank=bank)
 
         assert q1.id == q2.id  # same row updated

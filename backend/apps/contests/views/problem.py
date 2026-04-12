@@ -153,8 +153,8 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
         # Ensure asset exists
         if not problem.question_asset_id:
-            from apps.question_bank.question_assets import sync_problem_question_asset
-            sync_problem_question_asset(problem=problem, actor=user)
+            from apps.question_bank.question_assets import ensure_problem_question_asset
+            ensure_problem_question_asset(problem=problem, actor=user)
             problem.refresh_from_db(fields=["question_asset", "question_version"])
 
         # Determine next order
@@ -186,7 +186,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
 
         ContestActivityViewSet.log_activity(
             contest, user, 'update_problem',
-            f"Created new problem {problem.title or problem.id} in contest",
+            f"Created new problem {problem.id} in contest",
         )
         return Response(response_data, status=status.HTTP_201_CREATED)
 
@@ -207,7 +207,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         if not binding:
             return Response({'detail': 'Problem not found in this contest.'}, status=status.HTTP_404_NOT_FOUND)
 
-        label = binding.coding_problem.title if binding.coding_problem else str(binding.question_asset_id)
+        label = str(binding.question_asset.title) if binding.question_asset else str(binding.coding_problem_id or binding.question_asset_id)
         question_asset = binding.question_asset
         coding_problem = binding.coding_problem
 
@@ -250,7 +250,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         binding.score = max_score
         binding.save(update_fields=["score", "updated_at"])
 
-        title = binding.coding_problem.title if binding.coding_problem else str(binding.question_asset_id)
+        title = str(binding.question_asset.title) if binding.question_asset else str(binding.coding_problem_id or binding.question_asset_id)
         ContestActivityViewSet.log_activity(
             contest, request.user, 'update_problem', f"Updated problem {title} score to {max_score}",
         )
@@ -314,8 +314,8 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
                 )
 
                 if not problem.question_asset_id:
-                    from apps.question_bank.question_assets import sync_problem_question_asset
-                    sync_problem_question_asset(problem=problem, actor=user)
+                    from apps.question_bank.question_assets import ensure_problem_question_asset
+                    ensure_problem_question_asset(problem=problem, actor=user)
                     problem.refresh_from_db(fields=["question_asset", "question_version"])
 
                 default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
@@ -376,8 +376,8 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         problem = ProblemService.clone_problem(source, contest, user)
 
         if not problem.question_asset_id:
-            from apps.question_bank.question_assets import sync_problem_question_asset
-            sync_problem_question_asset(problem=problem, actor=user)
+            from apps.question_bank.question_assets import ensure_problem_question_asset
+            ensure_problem_question_asset(problem=problem, actor=user)
             problem.refresh_from_db(fields=["question_asset", "question_version"])
 
         last_order = ContestQuestionBinding.objects.filter(
@@ -397,7 +397,7 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         ContestActivityViewSet.log_activity(
-            contest, user, "update_problem", f"Duplicated problem {source.title or source.id}",
+            contest, user, "update_problem", f"Duplicated problem {source.id}",
         )
 
         from apps.problems.serializers import ProblemListSerializer

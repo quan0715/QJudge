@@ -2,12 +2,7 @@
 Admin configuration for problems app.
 """
 from django.contrib import admin
-from .models import Problem, ProblemTranslation, TestCase, LanguageConfig, Tag
-
-
-class ProblemTranslationInline(admin.StackedInline):
-    model = ProblemTranslation
-    extra = 1
+from .models import Problem, TestCase, LanguageConfig, Tag
 
 
 class TestCaseInline(admin.TabularInline):
@@ -20,16 +15,15 @@ class TestCaseInline(admin.TabularInline):
 class LanguageConfigAdmin(admin.ModelAdmin):
     list_display = ['problem', 'language', 'is_enabled', 'order']
     list_filter = ['language', 'is_enabled']
-    search_fields = ['problem__title']
+    search_fields = ['problem__question_asset__title']
 
 
 @admin.register(Problem)
 class ProblemAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'difficulty', 'submission_count', 'acceptance_rate']
-    list_filter = ['difficulty', 'created_at']
-    search_fields = ['title', 'translations__title']
-    inlines = [ProblemTranslationInline, TestCaseInline]
-    prepopulated_fields = {'slug': ('title',)}
+    list_display = ['id', 'slug', 'submission_count', 'acceptance_rate']
+    list_filter = ['created_at']
+    search_fields = ['question_asset__title']
+    inlines = [TestCaseInline]
 
 
 @admin.register(Tag)

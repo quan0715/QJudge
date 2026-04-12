@@ -96,6 +96,44 @@ class DynamicClientRegistrationTest(TestCase):
         response = self.client.get("/o/register/")
         self.assertEqual(response.status_code, 405)
 
+    def test_accept_https_non_loopback_redirect_uri(self):
+        """Third-party apps (ChatGPT, Notion AI) use non-loopback HTTPS URIs."""
+        response = self._register(
+            {
+                "client_name": "ChatGPT",
+                "grant_types": ["authorization_code"],
+                "token_endpoint_auth_method": "none",
+                "redirect_uris": ["https://chatgpt.com/aip/g-abc123/oauth/callback"],
+            }
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["client_name"], "ChatGPT")
+
+    def test_reject_http_non_loopback_redirect_uri(self):
+        """HTTP non-loopback is still rejected for security."""
+        response = self._register(
+            {
+                "client_name": "Bad Client",
+                "grant_types": ["authorization_code"],
+                "token_endpoint_auth_method": "none",
+                "redirect_uris": ["http://evil.com/callback"],
+            }
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("loopback", response.json()["error_description"])
+
+    def test_accept_omitted_grant_types(self):
+        """RFC 7591: grant_types defaults to authorization_code when omitted."""
+        response = self._register(
+            {
+                "client_name": "Minimal Client",
+                "token_endpoint_auth_method": "none",
+                "redirect_uris": ["http://localhost:3000/callback"],
+            }
+        )
+        self.assertEqual(response.status_code, 201)
+
     def test_reject_invalid_redirect_uri_scheme(self):
         response = self._register(
             {

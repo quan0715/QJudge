@@ -8,9 +8,9 @@ from apps.problems.models import Problem
 from apps.question_bank.models import Question
 from apps.question_bank.question_assets import (
     ensure_contest_binding_for_exam_question,
+    ensure_problem_question_asset,
     ensure_question_asset_for_bank_question,
     sync_exam_question_question_asset,
-    sync_problem_question_asset,
 )
 
 
@@ -39,7 +39,7 @@ class Command(BaseCommand):
             for problem in Problem.objects.order_by("created_at", "id"):
                 try:
                     if not dry_run:
-                        sync_problem_question_asset(problem=problem, actor=problem.created_by)
+                        ensure_problem_question_asset(problem=problem, actor=problem.created_by)
                     stats["problems_synced"] += 1
                 except ValueError as exc:
                     stats["problems_skipped_missing_owner"] += 1

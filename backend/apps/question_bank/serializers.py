@@ -1,6 +1,7 @@
 """
 Serializers for question bank API.
 """
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import QuestionBank, Question, QuestionCodingExt
@@ -156,6 +157,7 @@ class QuestionBankSerializer(serializers.ModelSerializer):
             return obj.question_count
         return obj.questions.count()
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_subscribed(self, obj):
         request = self.context.get("request")
         if not request or not request.user or not request.user.is_authenticated:
@@ -203,6 +205,7 @@ class ExploreBankItemSerializer(serializers.ModelSerializer):
             return obj.question_count
         return obj.questions.count()
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_subscribed(self, obj):
         request = self.context.get("request")
         if not request or not request.user or not request.user.is_authenticated:

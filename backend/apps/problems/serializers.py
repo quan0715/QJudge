@@ -5,7 +5,6 @@ from rest_framework import serializers
 from .models import (
     CodingProblem,
     Problem,  # backward-compat alias for CodingProblem
-    ProblemTranslation,
     TestCase,
     LanguageConfig,
     Tag,
@@ -13,18 +12,14 @@ from .models import (
 from .services import ProblemService
 
 
-class ProblemTranslationSerializer(serializers.ModelSerializer):
-    """Serializer for problem translations."""
-    class Meta:
-        model = ProblemTranslation
-        fields = [
-            'language',
-            'title',
-            'description',
-            'input_description',
-            'output_description',
-            'hint',
-        ]
+class TranslationInputSerializer(serializers.Serializer):
+    """Plain serializer for accepting translation data on the write path."""
+    language = serializers.CharField()
+    title = serializers.CharField(allow_blank=True, required=False, default='')
+    description = serializers.CharField(allow_blank=True, required=False, default='')
+    input_description = serializers.CharField(allow_blank=True, required=False, default='')
+    output_description = serializers.CharField(allow_blank=True, required=False, default='')
+    hint = serializers.CharField(allow_blank=True, required=False, default='')
 
 
 class TestCaseSerializer(serializers.ModelSerializer):
@@ -142,9 +137,10 @@ class TestRunSerializer(serializers.Serializer):
 class ProblemListSerializer(serializers.ModelSerializer):
     """Serializer for problem list (minimal info)."""
     title = serializers.SerializerMethodField()
+    difficulty = serializers.SerializerMethodField()
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
-    
+
     class Meta:
         model = Problem
         fields = [
@@ -168,57 +164,50 @@ class ProblemListSerializer(serializers.ModelSerializer):
             'is_solved',
             'tags',
         ]
-    
+
     is_solved = serializers.BooleanField(read_only=True, default=False)
-    
+
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
-    
-    created_by = serializers.ReadOnlyField(source='created_by.username')
-    
-    def get_title(self, obj):
-        """Get title in requested language, preferring QuestionAsset as source of truth."""
-        lang = self.context.get('language', 'zh-TW')
 
-        # Try Asset payload translations first
+    created_by = serializers.ReadOnlyField(source='created_by.username')
+
+    def get_title(self, obj):
+        """Get title from QuestionAsset (source of truth)."""
         if obj.question_asset_id:
             try:
-                translations = (obj.question_asset.payload or {}).get("translations", [])
-                if translations:
-                    match_langs = ['zh-TW', 'zh-hant'] if lang == 'zh-TW' else [lang]
-                    for t in translations:
-                        if t.get("language") in match_langs:
-                            return t.get("title") or obj.effective_title
-                    return translations[0].get("title") or obj.effective_title
+                return obj.question_asset.title or f"Problem {obj.id}"
             except Exception:
                 pass
+        return getattr(obj, 'title', None) or f"Problem {obj.id}"
 
-        # Fallback to ProblemTranslation rows
-        if lang == 'zh-TW':
-            translation = obj.translations.filter(language__in=['zh-TW', 'zh-hant']).first()
-        else:
-            translation = obj.translations.filter(language=lang).first()
-        if translation:
-            return translation.title
-        translation = obj.translations.first()
-        return translation.title if translation else f"Problem {obj.id}"
+    def get_difficulty(self, obj):
+        """Get difficulty from QuestionAsset (source of truth)."""
+        if obj.question_asset_id:
+            try:
+                return (obj.question_asset.payload or {}).get("difficulty", "medium")
+            except Exception:
+                pass
+        return getattr(obj, 'difficulty', 'medium')
 
 class ProblemDetailSerializer(serializers.ModelSerializer):
     """Serializer for problem detail (full info)."""
+    title = serializers.SerializerMethodField()
+    difficulty = serializers.SerializerMethodField()
     translation = serializers.SerializerMethodField()
     samples = serializers.SerializerMethodField()
-    translations = ProblemTranslationSerializer(many=True, read_only=True)
+    translations = serializers.SerializerMethodField()
     test_cases = TestCaseSerializer(many=True, read_only=True)
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
-    
+
     class Meta:
         model = Problem
         fields = [
             'id',
-            'title',  # Original title (fallback)
+            'title',
             'slug',
             'difficulty',
             'time_limit',
@@ -242,24 +231,51 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             'forbidden_keywords',
             'required_keywords',
         ]
-    
+
+    def get_title(self, obj):
+        """Get title from QuestionAsset (source of truth)."""
+        if obj.question_asset_id:
+            try:
+                return obj.question_asset.title or f"Problem {obj.id}"
+            except Exception:
+                pass
+        return getattr(obj, 'title', None) or f"Problem {obj.id}"
+
+    def get_difficulty(self, obj):
+        """Get difficulty from QuestionAsset (source of truth)."""
+        if obj.question_asset_id:
+            try:
+                return (obj.question_asset.payload or {}).get("difficulty", "medium")
+            except Exception:
+                pass
+        return getattr(obj, 'difficulty', 'medium')
+
+    def get_translations(self, obj):
+        """Get translations from QuestionAsset (source of truth)."""
+        if obj.question_asset_id:
+            try:
+                return (obj.question_asset.payload or {}).get("translations", [])
+            except Exception:
+                return []
+        return []
+
     def get_translation(self, obj):
-        """Get translation for requested language."""
+        """Get translation for requested language from QuestionAsset."""
+        if not obj.question_asset_id:
+            return None
+        try:
+            translations = (obj.question_asset.payload or {}).get("translations", [])
+        except Exception:
+            return None
+        if not translations:
+            return None
         lang = self.context.get('language', 'zh-TW')
-        # Support both zh-TW and zh-hant for backward compatibility
-        if lang == 'zh-TW':
-            translation = obj.translations.filter(language__in=['zh-TW', 'zh-hant']).first()
-        else:
-            translation = obj.translations.filter(language=lang).first()
-        
-        if not translation:
-            # Fallback to first available
-            translation = obj.translations.first()
-            
-        if translation:
-            return ProblemTranslationSerializer(translation).data
-        return None
-    
+        match_langs = ['zh-TW', 'zh-hant'] if lang == 'zh-TW' else [lang]
+        for t in translations:
+            if t.get("language") in match_langs:
+                return t
+        return translations[0]
+
     def get_samples(self, obj):
         """Get sample test cases."""
         samples = obj.test_cases.filter(is_sample=True).order_by('order')
@@ -271,6 +287,8 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
     created_by_username = serializers.CharField(source='created_by.username', read_only=True, default=None)
     contests = serializers.SerializerMethodField()
     draft_state = serializers.SerializerMethodField()
+    title = serializers.SerializerMethodField()
+    difficulty = serializers.SerializerMethodField()
 
     class Meta:
         model = Problem
@@ -289,6 +307,22 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
             'draft_state',
             'contests',
         ]
+
+    def get_title(self, obj):
+        if obj.question_asset_id:
+            try:
+                return obj.question_asset.title or f"Problem {obj.id}"
+            except Exception:
+                pass
+        return getattr(obj, 'title', None) or f"Problem {obj.id}"
+
+    def get_difficulty(self, obj):
+        if obj.question_asset_id:
+            try:
+                return (obj.question_asset.payload or {}).get("difficulty", "medium")
+            except Exception:
+                pass
+        return getattr(obj, 'difficulty', 'medium')
 
     def get_draft_state(self, obj):
         return "draft" if obj.question_asset_id else "orphan"
@@ -309,13 +343,15 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
 
 class ProblemAdminSerializer(serializers.ModelSerializer):
     """Serializer for admin/teacher to manage problems."""
-    translations = ProblemTranslationSerializer(many=True, required=False)
+    title = serializers.CharField(required=False, default='')
+    difficulty = serializers.CharField(required=False, default='medium')
+    translations = TranslationInputSerializer(many=True, required=False)
     test_cases = TestCaseSerializer(many=True, required=False)
     language_configs = LanguageConfigSerializer(many=True, required=False)
     tags = TagSerializer(many=True, read_only=True)  # Read: return full tag objects
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
-    
+
     # New Tag UX fields (write-only)
     existing_tag_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -327,7 +363,7 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         required=False,
         write_only=True
     )
-    
+
     class Meta:
         model = Problem
         fields = [
@@ -450,3 +486,16 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             existing_tag_ids=existing_tag_ids,
             new_tag_names=new_tag_names,
         )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Override content fields from QuestionAsset (source of truth)
+        if instance.question_asset_id:
+            try:
+                asset = instance.question_asset
+                data['title'] = asset.title or data.get('title', '')
+                data['difficulty'] = (asset.payload or {}).get("difficulty", data.get('difficulty', 'medium'))
+                data['translations'] = (asset.payload or {}).get("translations", [])
+            except Exception:
+                pass
+        return data

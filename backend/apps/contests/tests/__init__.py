@@ -8,11 +8,11 @@ def bind_problem_to_contest(contest, problem, order=0, score=None):
     Ensures the problem has a question_asset (creates one if missing).
     Returns the binding.
     """
-    from apps.question_bank.question_assets import sync_problem_question_asset
+    from apps.question_bank.question_assets import ensure_problem_question_asset
     from django.db.models import Sum
 
     if not problem.question_asset_id:
-        sync_problem_question_asset(
+        ensure_problem_question_asset(
             problem=problem,
             actor=problem.created_by or contest.owner,
         )

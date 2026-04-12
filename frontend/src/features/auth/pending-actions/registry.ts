@@ -10,6 +10,14 @@ import type { PendingActionConfig } from "./types";
  */
 export const PENDING_ACTIONS: PendingActionConfig[] = [
   {
+    key: "oauth_next",
+    storageKey: "qjudge.oauth_next",
+    priority: -20,
+    queryParam: "next",
+    banner: null,
+    getRedirectPath: (url) => url,
+  },
+  {
     key: "teacher_activation",
     storageKey: "qjudge.teacher_activation_token",
     priority: -10,

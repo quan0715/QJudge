@@ -48,9 +48,7 @@ class ProblemFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Problem
 
-    title = factory.Sequence(lambda n: f"SvcProblem {n}")
     slug = factory.Sequence(lambda n: f"svc-problem-{n}")
-    difficulty = "easy"
     created_by = factory.SubFactory(UserFactory, role="teacher")
     forbidden_keywords = factory.LazyFunction(list)
     required_keywords = factory.LazyFunction(list)
@@ -323,12 +321,12 @@ def test_contest_submission_sets_binding_fk_from_problem_instance(judge_mock: Mo
     asset = QuestionAsset.objects.create(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
-        title=problem.title,
+        title="test",
     )
     version = QuestionVersion.objects.create(
         question_asset=asset,
         version_number=1,
-        title=problem.title,
+        title="test",
         created_by=teacher,
     )
     asset.latest_version = version

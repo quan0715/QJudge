@@ -12,7 +12,6 @@ def problem(user_factory):
     """Create a test problem."""
     owner = user_factory(username="problem-owner", email="problem@example.com")
     return Problem.objects.create(
-        title="Test Problem",
         slug="test-problem",
         created_by=owner,
     )

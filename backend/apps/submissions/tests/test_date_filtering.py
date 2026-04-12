@@ -26,8 +26,6 @@ class DateRangeFilteringTestCase(TestCase):
         )
         
         cls.problem = Problem.objects.create(
-            title='Test Problem',
-            difficulty='easy',
             time_limit=1000,
             memory_limit=256,
             created_by=cls.admin_user

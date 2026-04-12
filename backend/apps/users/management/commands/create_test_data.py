@@ -4,7 +4,8 @@ Django management command to create test data for development.
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
-from apps.problems.models import Problem, ProblemTranslation, TestCase, LanguageConfig
+from apps.problems.models import Problem, TestCase, LanguageConfig
+from apps.question_bank.question_assets import write_coding_content_to_asset
 
 User = get_user_model()
 
@@ -86,35 +87,33 @@ class Command(BaseCommand):
         self.stdout.write('\n📚 建立測試題目...')
         
         # 題目 1: A + B Problem
-        problem1_data = {
-            'title': 'A + B Problem',
-            'slug': 'a-plus-b',
-            'difficulty': 'easy',
-            'time_limit': 1000,
-            'memory_limit': 128,
-            'visibility': 'public',
-            'order': 1,
-            'created_by': creator
-        }
-        
         problem1, created = Problem.objects.get_or_create(
-            slug=problem1_data['slug'],
-            defaults=problem1_data
+            slug='a-plus-b',
+            defaults={
+                'time_limit': 1000,
+                'memory_limit': 128,
+                'order': 1,
+                'created_by': creator,
+            }
         )
-        
+
         if created:
-            self.stdout.write(self.style.SUCCESS(f'  ✓ 建立題目: {problem1.title}'))
-            
-            # 建立翻譯
-            ProblemTranslation.objects.create(
-                problem=problem1,
-                language='zh-TW',
-                title='A + B 問題',
-                description='給定兩個整數 A 和 B，請計算 A + B 的值。',
-                input_description='一行包含兩個整數 A 和 B，以空格分隔。(-10^9 ≤ A, B ≤ 10^9)',
-                output_description='輸出一行，包含一個整數，表示 A + B 的結果。',
-                hint='這是一個簡單的加法問題。'
+            asset, version = write_coding_content_to_asset(
+                owner=creator, title='A + B Problem', prompt='給定兩個整數 A 和 B，請計算 A + B 的值。',
+                difficulty='easy',
+                translations=[{
+                    'language': 'zh-TW', 'title': 'A + B 問題',
+                    'description': '給定兩個整數 A 和 B，請計算 A + B 的值。',
+                    'input_description': '一行包含兩個整數 A 和 B，以空格分隔。(-10^9 ≤ A, B ≤ 10^9)',
+                    'output_description': '輸出一行，包含一個整數，表示 A + B 的結果。',
+                    'hint': '這是一個簡單的加法問題。',
+                }],
+                actor=creator,
             )
+            problem1.question_asset = asset
+            problem1.question_version = version
+            problem1.save(update_fields=['question_asset', 'question_version'])
+            self.stdout.write(self.style.SUCCESS('  ✓ 建立題目: A + B Problem'))
             
             # 建立語言配置
             LanguageConfig.objects.create(
@@ -160,43 +159,42 @@ print(a + b)''',
                     order=idx + 1
                 )
         else:
-            self.stdout.write(self.style.WARNING(f'  ⚠ 題目已存在: {problem1.title}'))
-        
+            self.stdout.write(self.style.WARNING('  ⚠ 題目已存在: A + B Problem'))
+
         # 題目 2: Fibonacci 數列
-        problem2_data = {
-            'title': 'Fibonacci Sequence',
-            'slug': 'fibonacci-sequence',
-            'difficulty': 'medium',
-            'time_limit': 2000,
-            'memory_limit': 256,
-            'visibility': 'public',
-            'order': 2,
-            'created_by': creator
-        }
-        
         problem2, created = Problem.objects.get_or_create(
-            slug=problem2_data['slug'],
-            defaults=problem2_data
+            slug='fibonacci-sequence',
+            defaults={
+                'time_limit': 2000,
+                'memory_limit': 256,
+                'order': 2,
+                'created_by': creator,
+            }
         )
-        
+
         if created:
-            self.stdout.write(self.style.SUCCESS(f'  ✓ 建立題目: {problem2.title}'))
-            
-            # 建立翻譯
-            ProblemTranslation.objects.create(
-                problem=problem2,
-                language='zh-TW',
-                title='Fibonacci 數列',
-                description='''Fibonacci 數列定義如下：
+            asset, version = write_coding_content_to_asset(
+                owner=creator, title='Fibonacci Sequence',
+                prompt='Fibonacci 數列定義如下：\nF(0) = 0\nF(1) = 1\nF(n) = F(n-1) + F(n-2) for n >= 2\n\n給定一個整數 n，請計算第 n 個 Fibonacci 數。',
+                difficulty='medium',
+                translations=[{
+                    'language': 'zh-TW', 'title': 'Fibonacci 數列',
+                    'description': '''Fibonacci 數列定義如下：
 F(0) = 0
 F(1) = 1
 F(n) = F(n-1) + F(n-2) for n ≥ 2
 
 給定一個整數 n，請計算第 n 個 Fibonacci 數。''',
-                input_description='一個整數 n (0 ≤ n ≤ 30)',
-                output_description='輸出一行，包含一個整數，表示第 n 個 Fibonacci 數。',
-                hint='可以使用遞迴或迴圈來解決。注意效率問題！'
+                    'input_description': '一個整數 n (0 ≤ n ≤ 30)',
+                    'output_description': '輸出一行，包含一個整數，表示第 n 個 Fibonacci 數。',
+                    'hint': '可以使用遞迴或迴圈來解決。注意效率問題！',
+                }],
+                actor=creator,
             )
+            problem2.question_asset = asset
+            problem2.question_version = version
+            problem2.save(update_fields=['question_asset', 'question_version'])
+            self.stdout.write(self.style.SUCCESS('  ✓ 建立題目: Fibonacci Sequence'))
             
             # 建立語言配置
             LanguageConfig.objects.create(
@@ -253,4 +251,4 @@ print(fibonacci(n))''',
                     order=idx + 1
                 )
         else:
-            self.stdout.write(self.style.WARNING(f'  ⚠ 題目已存在: {problem2.title}'))
+            self.stdout.write(self.style.WARNING('  ⚠ 題目已存在: Fibonacci Sequence'))

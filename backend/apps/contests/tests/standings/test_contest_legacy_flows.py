@@ -38,9 +38,7 @@ class ProblemFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Problem
 
-    title = factory.Sequence(lambda n: f"Problem {n}")
     slug = factory.Sequence(lambda n: f"problem-{n}")
-    difficulty = "easy"
     created_by = factory.SubFactory(UserFactory, role="teacher")
 
 
@@ -87,11 +85,8 @@ class ContestProblemBindingFactory(factory.django.DjangoModelFactory):
     def _create(cls, model_class, *args, **kwargs):
         problem = kwargs.get("coding_problem") or kwargs.pop("_problem", None)
         if problem and not problem.question_asset_id:
-            from apps.question_bank.question_assets import sync_problem_question_asset
-            contest = kwargs.get("contest")
-            sync_problem_question_asset(
-                problem=problem, actor=problem.created_by or (contest.owner if contest else None),
-            )
+            from apps.question_bank.question_assets import ensure_problem_question_asset
+            ensure_problem_question_asset(problem=problem, actor=problem.created_by)
             problem.refresh_from_db(fields=["question_asset", "question_version"])
         kwargs["question_asset"] = problem.question_asset
         kwargs["question_version"] = problem.question_version

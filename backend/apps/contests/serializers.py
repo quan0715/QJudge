@@ -1,6 +1,7 @@
 """
 Serializers for contests app.
 """
+from drf_spectacular.utils import extend_schema_field, inline_serializer
 from rest_framework import serializers
 from django.utils import timezone
 from .models import (
@@ -536,8 +537,7 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
 class ContestProblemSerializer(serializers.ModelSerializer):
     """
     Serializer for coding problems within a contest.
-    Reads from ContestQuestionBinding (the unified binding model).
-    API response shape is unchanged for backward compatibility.
+    Reads from ContestQuestionBinding. The ``id`` field is the binding UUID.
     """
     from apps.question_bank.models import ContestQuestionBinding
 
@@ -578,34 +578,41 @@ class ContestProblemSerializer(serializers.ModelSerializer):
             'in_question_bank',
         ]
 
+    @extend_schema_field(serializers.UUIDField(allow_null=True))
     def get_problem_id(self, obj):
         if obj.coding_problem_id:
             return str(obj.coding_problem_id)
         return str(obj.question_asset_id) if obj.question_asset_id else None
 
+    @extend_schema_field(serializers.CharField())
     def get_title(self, obj):
-        if obj.coding_problem_id:
-            try:
-                return obj.coding_problem.effective_title
-            except Exception:
-                pass
         if obj.question_asset_id:
             try:
                 return obj.question_asset.title
             except Exception:
                 pass
-        return None
-
-    def get_difficulty(self, obj):
         if obj.coding_problem_id:
             try:
-                return obj.coding_problem.effective_difficulty
+                return obj.coding_problem.question_asset.title if obj.coding_problem.question_asset_id else None
             except Exception:
                 pass
+        return None
+
+    @extend_schema_field(serializers.CharField())
+    def get_difficulty(self, obj):
         if obj.question_asset_id:
-            return (obj.question_asset.payload or {}).get("difficulty", "medium")
+            try:
+                return (obj.question_asset.payload or {}).get("difficulty", "medium")
+            except Exception:
+                pass
+        if obj.coding_problem_id:
+            try:
+                return (obj.coding_problem.question_asset.payload or {}).get("difficulty", "medium") if obj.coding_problem.question_asset_id else "medium"
+            except Exception:
+                pass
         return "medium"
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_user_status(self, obj):
         """Get submission status for current user."""
         request = self.context.get('request')
@@ -639,12 +646,22 @@ class ContestProblemSerializer(serializers.ModelSerializer):
 
         return None
 
+    @extend_schema_field(serializers.IntegerField())
     def get_score(self, obj):
         return obj.score
 
+    @extend_schema_field(serializers.IntegerField())
     def get_max_score(self, obj):
         return obj.score
 
+    @extend_schema_field(inline_serializer(
+        name="SourceBankInfo",
+        fields={
+            "id": serializers.CharField(),
+            "name": serializers.CharField(),
+        },
+        allow_null=True,
+    ))
     def get_source_bank(self, obj):
         if not obj.source_bank_id:
             return None
@@ -653,9 +670,11 @@ class ContestProblemSerializer(serializers.ModelSerializer):
             'name': obj.source_bank_name or '',
         }
 
+    @extend_schema_field(serializers.CharField())
     def get_binding_id(self, obj):
         return str(obj.id)
 
+    @extend_schema_field(serializers.BooleanField())
     def get_in_question_bank(self, obj):
         # Prefer the annotated value (O(1)) over a per-row query.
         if hasattr(obj, '_in_question_bank'):
@@ -815,7 +834,15 @@ class ClarificationSerializer(serializers.ModelSerializer):
     """
     author_username = serializers.CharField(source='author.username', read_only=True)
     author_display_name = serializers.SerializerMethodField()
-    problem_title = serializers.CharField(source='problem.title', read_only=True, allow_null=True)
+    problem_title = serializers.SerializerMethodField()
+
+    def get_problem_title(self, obj):
+        if obj.problem_id and obj.problem.question_asset_id:
+            try:
+                return obj.problem.question_asset.title
+            except Exception:
+                pass
+        return None
     
     class Meta:
         model = Clarification

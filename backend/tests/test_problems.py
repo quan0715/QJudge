@@ -27,7 +27,8 @@ def test_teacher_can_create_problem(api_client, user_factory):
     assert response.status_code == status.HTTP_201_CREATED
     problem = Problem.objects.get(slug="two-sum")
     assert problem.created_by == teacher
-    assert problem.difficulty == "easy"
+    # difficulty is now in QuestionAsset
+    assert (problem.question_asset.payload or {}).get("difficulty") == "easy"
 
 
 @pytest.mark.django_db
@@ -68,5 +69,6 @@ def test_teacher_can_update_own_problem(api_client, user_factory):
 
     assert update_response.status_code == status.HTTP_200_OK
     problem = Problem.objects.get(id=problem_id)
-    assert problem.title == "Updated Title"
+    # title is now in QuestionAsset
+    assert problem.question_asset.title == "Updated Title"
     assert problem.created_by == teacher

@@ -21,7 +21,6 @@ from apps.users.models import User, UserProfile
 
 def _create_problem(title: str, owner: User, **kwargs) -> Problem:
     return Problem.objects.create(
-        title=title,
         slug=f"{title.lower().replace(' ', '-')}-{uuid4().hex[:8]}",
         created_by=owner,
         **kwargs,
@@ -618,7 +617,7 @@ def test_import_from_bank_creates_problem_copy(
     binding = ContestQuestionBinding.objects.get(
         contest=contest, source_question_id=question.id,
     )
-    assert binding.coding_problem.title == "Bank Coding Question"
+    assert binding.coding_problem.question_asset.title == "Bank Coding Question"
     assert binding.score == 45
     assert binding.source_question_id == question.id
     assert binding.source_mode == "copy"
@@ -777,7 +776,7 @@ def test_contest_problem_destroy_cleans_orphan_asset(
     asset = QuestionAsset.objects.create(
         owner=owner,
         asset_type=QuestionAsset.AssetType.CODING,
-        title=problem.title,
+        title="Orphan cleanup test",
     )
     problem.question_asset = asset
     problem.save(update_fields=["question_asset"])
@@ -816,7 +815,7 @@ def test_contest_problem_destroy_keeps_asset_when_in_bank(
     asset = QuestionAsset.objects.create(
         owner=owner,
         asset_type=QuestionAsset.AssetType.CODING,
-        title=problem.title,
+        title="Bank member test",
     )
     problem.question_asset = asset
     problem.save(update_fields=["question_asset"])

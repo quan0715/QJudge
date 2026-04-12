@@ -32,10 +32,17 @@ class ProblemFilter(django_filters.FilterSet):
     Supports multiple difficulty values and tag filtering with OR logic.
     """
     difficulty = django_filters.MultipleChoiceFilter(
-        choices=Problem.DIFFICULTY_CHOICES,
-        conjoined=False  # OR logic: match any of the selected difficulties
+        choices=[('easy', 'easy'), ('medium', 'medium'), ('hard', 'hard')],
+        method='filter_difficulty',
+        conjoined=False,
     )
     tags = django_filters.CharFilter(method='filter_tags')
+
+    def filter_difficulty(self, queryset, name, value):
+        """Filter by difficulty from QuestionAsset payload (OR logic)."""
+        if not value:
+            return queryset
+        return queryset.filter(question_asset__payload__difficulty__in=value)
 
     def filter_tags(self, queryset, name, value):
         """
@@ -51,7 +58,7 @@ class ProblemFilter(django_filters.FilterSet):
 
     class Meta:
         model = Problem
-        fields = ['difficulty']
+        fields = []
 
 
 class IsAdminOnly(permissions.BasePermission):
@@ -100,8 +107,8 @@ class ProblemViewSet(viewsets.ModelViewSet):
         filters.OrderingFilter
     ]
     filterset_class = ProblemFilter
-    search_fields = ['title', 'translations__title']
-    ordering_fields = ['id', 'difficulty', 'submission_count', 'acceptance_rate']
+    search_fields = ['question_asset__title']
+    ordering_fields = ['id', 'submission_count', 'acceptance_rate']
     ordering = ['id']
     lookup_field = 'id'
     

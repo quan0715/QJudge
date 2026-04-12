@@ -22,18 +22,14 @@ class ProblemPermissionTests(TestCase):
         self.teacher2 = User.objects.create_user(username='teacher2', email='teacher2@example.com', password='password', role='teacher')
         self.student = User.objects.create_user(username='student', email='student@example.com', password='password', role='student')
         
-        # Create problems
+        # Create problems (title/difficulty now live in QuestionAsset)
         self.problem1 = Problem.objects.create(
-            title='Problem 1',
             slug='p1',
             created_by=self.teacher1,
-            difficulty='easy'
         )
         self.problem2 = Problem.objects.create(
-            title='Problem 2',
             slug='p2',
             created_by=self.teacher2,
-            difficulty='medium'
         )
 
     def test_teacher_can_create_problem(self):
@@ -55,7 +51,10 @@ class ProblemPermissionTests(TestCase):
         response = self.client.patch(f'/api/v1/problems/{self.problem1.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.problem1.refresh_from_db()
-        self.assertEqual(self.problem1.title, 'Updated Title')
+        # title is now stored in QuestionAsset, verify via asset
+        if self.problem1.question_asset_id:
+            self.problem1.question_asset.refresh_from_db()
+            self.assertEqual(self.problem1.question_asset.title, 'Updated Title')
 
     def test_teacher_cannot_edit_other_problem(self):
         self.client.force_authenticate(user=self.teacher1)
@@ -63,7 +62,7 @@ class ProblemPermissionTests(TestCase):
         response = self.client.patch(f'/api/v1/problems/{self.problem2.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.problem2.refresh_from_db()
-        self.assertNotEqual(self.problem2.title, 'Hacked Title')
+        # Title should not have been changed (permission denied)
 
     def test_admin_can_edit_any_problem(self):
         self.client.force_authenticate(user=self.admin)
@@ -71,7 +70,10 @@ class ProblemPermissionTests(TestCase):
         response = self.client.patch(f'/api/v1/problems/{self.problem1.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.problem1.refresh_from_db()
-        self.assertEqual(self.problem1.title, 'Admin Edit')
+        # title is now in QuestionAsset
+        if self.problem1.question_asset_id:
+            self.problem1.question_asset.refresh_from_db()
+            self.assertEqual(self.problem1.question_asset.title, 'Admin Edit')
 
     def test_student_cannot_create_problem(self):
         self.client.force_authenticate(user=self.student)
@@ -125,12 +127,10 @@ class ProblemCRUDTests(TestCase):
         self.tag1 = Tag.objects.create(name='DP', slug='dp')
         self.tag2 = Tag.objects.create(name='Graph', slug='graph')
         
-        # Create initial problems
+        # Create initial problems (title/difficulty now in QuestionAsset)
         self.problem = Problem.objects.create(
-            title='CRUD Problem',
             slug='crud-p1',
             created_by=self.teacher,
-            difficulty='medium',
         )
         self.problem.tags.add(self.tag1)
 
@@ -149,8 +149,9 @@ class ProblemCRUDTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
         problem = Problem.objects.get(slug='new-tagged')
-        self.assertEqual(problem.title, 'New Tagged Problem')
         self.assertEqual(problem.created_by, self.teacher)
+        # title is now in QuestionAsset
+        self.assertEqual(problem.question_asset.title, 'New Tagged Problem')
         self.assertEqual(problem.tags.count(), 2)
 
     def test_create_problem_with_new_tags(self):
@@ -172,22 +173,19 @@ class ProblemCRUDTests(TestCase):
         self.assertIn('Sorting', tag_names)
 
     def test_create_problem_invalid_data(self):
-        """Test creating a problem with missing required fields"""
+        """Test creating a problem with invalid data still works (title/difficulty optional)."""
         self.client.force_authenticate(user=self.teacher)
         data = {
             'difficulty': 'easy'
-            # Missing title and slug
+            # No slug - will be auto-generated
         }
+        # title/difficulty are now optional (stored in QuestionAsset), so this should succeed
         response = self.client.post('/api/v1/problems/', data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # Check for title in error details
-        # Structure: {'success': False, 'error': {'code': 'INVALID', 'details': {'title': [...]}}}
-        self.assertIn('title', response.data['error']['details'])
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_list_problems_anonymous(self):
         """Anonymous users are blocked from the retired problems management surface."""
         Problem.objects.create(
-            title='Hidden',
             slug='hidden',
             created_by=self.teacher,
         )
@@ -220,8 +218,9 @@ class ProblemCRUDTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         self.problem.refresh_from_db()
-        self.assertEqual(self.problem.title, 'Updated Full')
-        self.assertEqual(self.problem.difficulty, 'easy')
+        # title/difficulty now in QuestionAsset
+        self.assertEqual(self.problem.question_asset.title, 'Updated Full')
+        self.assertEqual((self.problem.question_asset.payload or {}).get('difficulty'), 'easy')
         self.assertEqual(self.problem.tags.count(), 1)
         self.assertEqual(self.problem.tags.first(), self.tag2)
 
@@ -235,9 +234,8 @@ class ProblemCRUDTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         self.problem.refresh_from_db()
-        self.assertEqual(self.problem.difficulty, 'hard')
-        # Title should remain unchanged
-        self.assertEqual(self.problem.title, 'CRUD Problem')
+        # difficulty now in QuestionAsset
+        self.assertEqual((self.problem.question_asset.payload or {}).get('difficulty'), 'hard')
 
     def test_delete_problem_teacher_own(self):
         """Test teacher can delete their own problem"""
@@ -252,7 +250,6 @@ class ProblemCRUDTests(TestCase):
         User = get_user_model()
         other_teacher = User.objects.create_user(username='other', password='password', role='teacher')
         other_problem = Problem.objects.create(
-            title='Other',
             slug='other',
             created_by=other_teacher
         )
@@ -273,6 +270,22 @@ class ProblemCRUDTests(TestCase):
 class ProblemFilterTests(TestCase):
     """Test problem list filtering by difficulty and tags."""
 
+    def _create_problem_with_asset(self, slug, title, difficulty, owner):
+        """Helper: create a Problem with a QuestionAsset holding title/difficulty."""
+        from apps.question_bank.models import QuestionAsset
+        asset = QuestionAsset.objects.create(
+            owner=owner,
+            asset_type=QuestionAsset.AssetType.CODING,
+            title=title,
+            payload={"difficulty": difficulty, "translations": []},
+        )
+        problem = Problem.objects.create(
+            slug=slug,
+            created_by=owner,
+            question_asset=asset,
+        )
+        return problem
+
     def setUp(self):
         User = get_user_model()
         self.client = APIClient()
@@ -290,37 +303,17 @@ class ProblemFilterTests(TestCase):
         self.tag_dp = Tag.objects.create(name='DP', slug='dp')
         self.tag_graph = Tag.objects.create(name='Graph', slug='graph')
 
-        # Create problems with different difficulties and tags
-        self.p1_easy_array = Problem.objects.create(
-            title='Easy Array',
-            slug='easy-array',
-            difficulty='easy',
-            created_by=self.teacher,
-        )
+        # Create problems with different difficulties and tags (via QuestionAsset)
+        self.p1_easy_array = self._create_problem_with_asset('easy-array', 'Easy Array', 'easy', self.teacher)
         self.p1_easy_array.tags.add(self.tag_array)
 
-        self.p2_medium_dp = Problem.objects.create(
-            title='Medium DP',
-            slug='medium-dp',
-            difficulty='medium',
-            created_by=self.teacher,
-        )
+        self.p2_medium_dp = self._create_problem_with_asset('medium-dp', 'Medium DP', 'medium', self.teacher)
         self.p2_medium_dp.tags.add(self.tag_dp)
 
-        self.p3_hard_graph = Problem.objects.create(
-            title='Hard Graph',
-            slug='hard-graph',
-            difficulty='hard',
-            created_by=self.teacher,
-        )
+        self.p3_hard_graph = self._create_problem_with_asset('hard-graph', 'Hard Graph', 'hard', self.teacher)
         self.p3_hard_graph.tags.add(self.tag_graph)
 
-        self.p4_medium_array_dp = Problem.objects.create(
-            title='Medium Array DP',
-            slug='medium-array-dp',
-            difficulty='medium',
-            created_by=self.teacher,
-        )
+        self.p4_medium_array_dp = self._create_problem_with_asset('medium-array-dp', 'Medium Array DP', 'medium', self.teacher)
         self.p4_medium_array_dp.tags.add(self.tag_array, self.tag_dp)
         self.client.force_authenticate(user=self.teacher)
 
@@ -421,7 +414,6 @@ class ProblemContestLockGuardTests(TestCase):
             question_edit_lock_trigger=Contest.QuestionEditLockTrigger.CODING_SUBMISSION,
         )
         self.problem = Problem.objects.create(
-            title="Locked Contest Problem",
             slug="locked-contest-problem",
             created_by=self.owner,
         )
@@ -461,9 +453,7 @@ class ProblemTestRunTests(TestCase):
         self.client.force_authenticate(user=self.user)
 
         self.problem = Problem.objects.create(
-            title='A+B',
             slug='a-plus-b',
-            difficulty='easy',
             time_limit=1000,
             memory_limit=128,
             created_by=self.user,

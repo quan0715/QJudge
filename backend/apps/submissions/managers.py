@@ -33,10 +33,10 @@ class SubmissionQuerySet(models.QuerySet):
             "user__id",
             "user__username",
             "problem__id",
-            "problem__title",
+            "problem__question_asset__title",
             "contest__id",
             "contest__anonymous_mode_enabled",
-        ).select_related("user", "problem", "contest")
+        ).select_related("user", "problem", "problem__question_asset", "contest")
 
     def visible_to(
         self,
