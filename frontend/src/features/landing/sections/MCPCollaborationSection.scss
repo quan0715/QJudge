@@ -86,6 +86,7 @@
       flex: 1.2;
       border-radius: 4px; /* Much smaller border radius */
       overflow: hidden;
+      background: var(--cds-layer-01);
       border: 1px solid var(--cds-border-subtle);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 
@@ -94,6 +95,13 @@
         height: 100%;
         object-fit: cover;
         display: block;
+        mix-blend-mode: darken;
+
+        [data-carbon-theme='g100'] &,
+        [data-carbon-theme='g90'] & {
+          filter: invert(1) hue-rotate(180deg);
+          mix-blend-mode: screen;
+        }
       }
 
       .placeholder-media {
