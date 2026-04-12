@@ -278,11 +278,11 @@ export async function isAuthenticated(page: Page): Promise<boolean> {
     if (!hasUser) return false;
 
     // Try to access a protected route
-    await page.goto("/problems");
-    await page.waitForURL(/\/problems/, { timeout: 5000 });
+    await page.goto("/dashboard");
+    await page.waitForURL(/\/dashboard/, { timeout: 5000 });
 
     const path = new URL(page.url()).pathname;
-    return path.startsWith("/problems");
+    return path.startsWith("/dashboard");
   } catch {
     return false;
   }

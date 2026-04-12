@@ -6,8 +6,7 @@ import { Asleep, Light } from "@carbon/icons-react";
 import { getLandingContent } from "@/features/landing/content/landingContent";
 import LandingHeader from "@/features/landing/sections/LandingHeader";
 import HeroSection from "@/features/landing/sections/HeroSection";
-import BentoFeaturesSection from "@/features/landing/sections/BentoFeaturesSection";
-import WhyChooseSection from "@/features/landing/sections/WhyChooseSection";
+import ProductPropositionSection from "@/features/landing/sections/ProductPropositionSection";
 import UsageFlowSection from "@/features/landing/sections/UsageFlowSection";
 import AudienceSection from "@/features/landing/sections/AudienceSection";
 import SocialProofSection from "@/features/landing/sections/SocialProofSection";
@@ -72,19 +71,13 @@ const LandingScreen = () => {
 
       <main className="landing-page__main">
         <HeroSection content={content.hero} onPrimary={handleRegister} onSecondary={handleContact} />
-        <BentoFeaturesSection
-          eyebrow={t("bento.eyebrow")}
-          title={t("bento.title")}
-          description={t("bento.description")}
-          cards={content.bento}
+        <ProductPropositionSection
+          eyebrow={t("proposition.eyebrow")}
+          title={t("proposition.title")}
+          description={t("proposition.description")}
+          items={content.proposition}
         />
         <MCPCollaborationSection content={content.mcp} />
-        <WhyChooseSection
-          eyebrow={t("whyChoose.eyebrow")}
-          title={t("whyChoose.title")}
-          description={t("whyChoose.description")}
-          items={content.whyChoose}
-        />
         <UsageFlowSection
           eyebrow={t("flow.eyebrow")}
           title={t("flow.title")}
