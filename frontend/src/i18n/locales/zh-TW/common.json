@@ -287,22 +287,22 @@
     },
     "landing": {
       "eyebrow": "無痛協作",
-      "title": "與現有 AI 工具無痛協作",
-      "description": "直接在 Claude、ChatGPT、Google Gemini、Notion 中建立、批改、評論",
+      "title": "與你的 AI 工具無痛協作",
+      "description": "在 Claude、ChatGPT、Google Gemini、Notion 中出題、批改、反饋",
       "features": {
         "0": "快速生成競賽題目",
-        "1": "自動批改學生作答",
+        "1": "自動評分與分析",
         "2": "提供個性化評論"
       },
       "features_description": {
         "0": "與 AI 協商題目需求，直接建立到 QJudge",
-        "1": "取得批改結果和統計數據",
+        "1": "取得批改結果、通過率統計和常見錯誤分析",
         "2": "AI 分析常見錯誤並給改進建議"
       },
       "examples": {
         "0": {
           "title": "快速生成題目",
-          "description": "教師在 Claude 中與 AI 協商題目需求，Claude 直接在 QJudge 中建立題目",
+          "description": "教師在 Claude 中與 AI 討論題目需求，Claude 直接在 QJudge 中建立題目",
           "userMessage": "幫我設計一套 C++ 迴圈的競賽題目",
           "aiMessage": "我為你設計了 3 道題目。已直接建立到你的 QJudge 題庫。",
           "feedback": "✓ 已建立"

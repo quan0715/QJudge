@@ -288,14 +288,14 @@
     "landing": {
       "eyebrow": "Seamless Collaboration",
       "title": "Collaborate Seamlessly with Your Favorite AI Tools",
-      "description": "Create, grade, and review directly in Claude, ChatGPT, Google Gemini, and Notion",
+      "description": "Create, grade, and provide feedback directly in Claude, ChatGPT, Google Gemini, and Notion",
       "features": {
         "0": "Generate competition problems quickly",
         "1": "Automatically grade student submissions",
         "2": "Provide personalized feedback"
       },
       "features_description": {
-        "0": "Brainstorm with AI and create problems directly in QJudge",
+        "0": "Specify requirements and AI creates problems directly in your bank",
         "1": "Get grading results and statistics automatically",
         "2": "AI analyzes common errors and suggests improvements"
       },
