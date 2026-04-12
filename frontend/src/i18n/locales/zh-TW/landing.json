@@ -1,7 +1,6 @@
 {
   "nav": {
-    "features": "功能亮點",
-    "why": "為何選擇",
+    "features": "產品主軸",
     "audience": "適用對象",
     "pricing": "定價方案",
     "faq": "常見問題"
@@ -25,75 +24,26 @@
       "validation": "NYCU 課程合作驗證"
     }
   },
-  "bento": {
-    "eyebrow": "功能亮點",
-    "title": "多類型考試、可信考場與教學分析，一個平台整合",
-    "description": "用更輕量的產品示意圖快速理解 QJudge 的核心能力，細節可在流程與案例中延伸閱讀。",
-    "cards": {
-      "dualMode": {
-        "eyebrow": "雙模式",
-        "title": "多類型考試，一個平台搞定",
-        "description": "選擇題、填空題、問答題、Coding 上機考——無論什麼科系、什麼題型，一個平台全部覆蓋。"
-      },
-      "proctoring": {
-        "eyebrow": "可信考場",
-        "title": "安全可信的考試環境",
-        "description": "視窗跳離偵測、行為分析、環境鎖定，考後產出證據鏈報告，成績具備公信力。"
-      },
-      "questionBank": {
-        "eyebrow": "題庫資產",
-        "title": "個人題庫系統",
-        "description": "教師專屬題庫，按課程、難度、題型分類，跨學期複用、AI 擴充，題目就是你的智慧資產。"
-      },
-      "ai": {
-        "eyebrow": "效率提升",
-        "title": "AI 智慧出題",
-        "description": "輸入課程主題、程度與題型需求，AI 先產生題目草稿，教師再審核、修改並收入題庫。"
-      },
-      "analytics": {
-        "eyebrow": "教學回饋",
-        "title": "考試數據分析",
-        "description": "鑑別度、難度指標、學生弱點偵測、班級趨勢報告，考試不只打分，更驅動教學改進。"
-      }
-    }
-  },
-  "whyChoose": {
-    "eyebrow": "為何選擇我們",
-    "title": "為正式考試而設計，不只支援作答，更支撐完整導入",
-    "description": "",
+  "proposition": {
+    "eyebrow": "產品主軸",
+    "title": "為正式考試而設計，不只支援作答，更讓結果真正可用",
+    "description": "QJudge 從考場控管、題型配置到數據分析，讓每一場考試都有依據、有彈性、有後續價值。",
     "items": {
-      "proctoring": {
-        "label": "",
+      "control": {
         "title": "正式考試更可控",
-        "description": "記錄異常事件、保留考試脈絡，讓結果不只可查看，也更能被說明與佐證。"
+        "description": "能記錄異常事件、保留完整考試脈絡，讓結果不只是可查看，也更有依據可以說明與佐證。"
       },
       "flexibility": {
-        "label": "",
         "title": "不同考試場景都能配置",
-        "description": "選擇題、問答題、Coding 上機考都能依課程需求調整流程與規則，不必更換工具。"
+        "description": "選擇題、問答題、Coding 上機考等不同題型與流程需求，都可在同一平台完成配置，不需要一直切換工具。"
       },
-      "ai": {
-        "label": "AI 效率",
-        "title": "縮短出題時間，保留教師審核權",
-        "description": "AI 協助產生題目初稿與變化題，教師仍能審核、修改與控管標準，兼顧效率與教學品質。"
-      },
-      "questionBank": {
-        "label": "",
-        "title": "每次考試都能累積長期價值",
-        "description": "題目、結果與分析不會停留在單次考試，而能持續沉澱為後續教學與題庫資產。"
-      },
-      "analytics": {
-        "label": "數據洞察",
-        "title": "考試結果能回到教學決策",
-        "description": "提供難度、鑑別度、學生弱點與班級趨勢分析，讓考試不只用於評分，也能協助改善後續教學。"
-      },
-      "onboarding": {
-        "label": "快速導入",
-        "title": "從第一場考試開始，逐步擴大使用",
-        "description": "教師可先以免費方案建立核心考試流程，再依班級規模、題庫需求與分析深度擴充使用。"
+      "value": {
+        "title": "每次考試都能留下價值",
+        "description": "題目、結果與分析不只停在單次施測，而能成為後續教學調整與題庫迭代的基礎。"
       }
     }
   },
+  "_whyChoose_deprecated": true,
   "flow": {
     "eyebrow": "完整考試流程",
     "title": "從出題到分析，正式考試一次串接",

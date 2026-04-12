@@ -11,16 +11,7 @@ export interface LandingHeroContent {
   panelCaption: string;
 }
 
-export interface LandingBentoCard {
-  eyebrow: string;
-  title: string;
-  description: string;
-  variant: "half" | "third";
-  preview: "multiExam" | "proctoring" | "questionBank" | "ai" | "analytics";
-}
-
-export interface LandingWhyChooseItem {
-  label: string;
+export interface LandingPropositionItem {
   title: string;
   description: string;
 }
@@ -108,8 +99,7 @@ export interface MCPCollaborationContent {
 export interface LandingContent {
   nav: Array<{ id: string; label: string; href?: string }>;
   hero: LandingHeroContent;
-  bento: LandingBentoCard[];
-  whyChoose: LandingWhyChooseItem[];
+  proposition: LandingPropositionItem[];
   workflow: LandingWorkflowItem[];
   audiences: LandingAudienceItem[];
   caseStudies: LandingCaseStudy[];
@@ -131,8 +121,7 @@ export interface LandingContent {
 export function getLandingContent(t: TFunction<"landing">): LandingContent {
   return {
     nav: [
-      { id: "landing-features", label: t("nav.features") },
-      { id: "landing-why", label: t("nav.why") },
+      { id: "landing-proposition", label: t("nav.features") },
       { id: "landing-audience", label: t("nav.audience") },
       { id: "pricing", label: t("nav.pricing"), href: "/pricing" },
       { id: "landing-faq", label: t("nav.faq") },
@@ -147,58 +136,18 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
       panelTitle: t("hero.panelTitle"),
       panelCaption: t("hero.panelCaption"),
     },
-    bento: [
+    proposition: [
       {
-        eyebrow: t("bento.cards.dualMode.eyebrow"),
-        title: t("bento.cards.dualMode.title"),
-        description: t("bento.cards.dualMode.description"),
-        variant: "half",
-        preview: "multiExam",
+        title: t("proposition.items.control.title"),
+        description: t("proposition.items.control.description"),
       },
       {
-        eyebrow: t("bento.cards.proctoring.eyebrow"),
-        title: t("bento.cards.proctoring.title"),
-        description: t("bento.cards.proctoring.description"),
-        variant: "half",
-        preview: "proctoring",
+        title: t("proposition.items.flexibility.title"),
+        description: t("proposition.items.flexibility.description"),
       },
       {
-        eyebrow: t("bento.cards.questionBank.eyebrow"),
-        title: t("bento.cards.questionBank.title"),
-        description: t("bento.cards.questionBank.description"),
-        variant: "third",
-        preview: "questionBank",
-      },
-      {
-        eyebrow: t("bento.cards.ai.eyebrow"),
-        title: t("bento.cards.ai.title"),
-        description: t("bento.cards.ai.description"),
-        variant: "third",
-        preview: "ai",
-      },
-      {
-        eyebrow: t("bento.cards.analytics.eyebrow"),
-        title: t("bento.cards.analytics.title"),
-        description: t("bento.cards.analytics.description"),
-        variant: "third",
-        preview: "analytics",
-      },
-    ],
-    whyChoose: [
-      {
-        label: t("whyChoose.items.proctoring.label"),
-        title: t("whyChoose.items.proctoring.title"),
-        description: t("whyChoose.items.proctoring.description"),
-      },
-      {
-        label: t("whyChoose.items.flexibility.label"),
-        title: t("whyChoose.items.flexibility.title"),
-        description: t("whyChoose.items.flexibility.description"),
-      },
-      {
-        label: t("whyChoose.items.questionBank.label"),
-        title: t("whyChoose.items.questionBank.title"),
-        description: t("whyChoose.items.questionBank.description"),
+        title: t("proposition.items.value.title"),
+        description: t("proposition.items.value.description"),
       },
     ],
     workflow: [
@@ -406,7 +355,7 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
       primaryCta: t("footer.primaryCta"),
       secondaryCta: t("footer.secondaryCta"),
       productLinks: [
-        { label: t("footer.links.product.0.label"), href: "#landing-features" },
+        { label: t("footer.links.product.0.label"), href: "#landing-proposition" },
         { label: t("footer.links.product.1.label"), href: "/pricing" },
         { label: t("footer.links.product.2.label"), href: "#landing-faq" },
       ],
