@@ -48,7 +48,7 @@ urlpatterns = [
     path('logout', LogoutView.as_view(), name='logout'),
     
     # Current user
-    path('me', CurrentUserView.as_view(), name='current-user'),
+    path('me/', CurrentUserView.as_view(), name='current-user'),
     path('me/stats', UserStatsView.as_view(), name='current-user-stats'),
     path('me/preferences', UserPreferencesView.as_view(), name='user-preferences'),
     path('me/avatar/upload', UserAvatarUploadView.as_view(), name='user-avatar-upload'),
