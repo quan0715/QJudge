@@ -5,6 +5,15 @@ import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 import { ContentLanguageProvider } from "@/shared/contexts/ContentLanguageContext";
 import landingZhTW from "@/i18n/locales/zh-TW/landing.json";
+
+// @lobehub/icons depends on @lobehub/ui which has broken ESM imports for @base-ui/react/*
+// Mock the entire module so vitest doesn't try to resolve the broken dependency chain
+vi.mock("@lobehub/icons", () => {
+  const stub = () => null;
+  const withColor = Object.assign(stub, { Color: stub });
+  return { Claude: withColor, OpenAI: stub, Cursor: stub, Perplexity: withColor, Gemini: withColor, Notion: stub };
+});
+
 import LandingScreen from "./LandingScreen";
 
 // IntersectionObserver is not available in jsdom/happy-dom
