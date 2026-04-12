@@ -1,4 +1,5 @@
 import importlib
+from unittest.mock import patch
 
 
 TEST_ENV_KEYS = [
@@ -33,14 +34,16 @@ def load_test_settings(monkeypatch, **env):
 
 
 def test_test_settings_use_db_env_vars_for_dev_compose(monkeypatch):
-    settings_module = load_test_settings(
-        monkeypatch,
-        DB_HOST="postgres",
-        DB_NAME="online_judge",
-        DB_USER="postgres",
-        DB_PASSWORD="postgres",
-        DB_PORT="5432",
-    )
+    # Simulate Docker environment so the host isn't overridden to localhost
+    with patch("os.path.exists", side_effect=lambda p: p == "/.dockerenv"):
+        settings_module = load_test_settings(
+            monkeypatch,
+            DB_HOST="postgres",
+            DB_NAME="online_judge",
+            DB_USER="postgres",
+            DB_PASSWORD="postgres",
+            DB_PORT="5432",
+        )
 
     database = settings_module.DATABASES["default"]
 
@@ -52,14 +55,16 @@ def test_test_settings_use_db_env_vars_for_dev_compose(monkeypatch):
 
 
 def test_test_settings_bypass_pgbouncer_for_database_creation(monkeypatch):
-    settings_module = load_test_settings(
-        monkeypatch,
-        DB_HOST="pgbouncer",
-        DB_NAME="online_judge",
-        DB_USER="postgres",
-        DB_PASSWORD="postgres",
-        DB_PORT="5432",
-    )
+    # Simulate Docker environment so the host isn't overridden to localhost
+    with patch("os.path.exists", side_effect=lambda p: p == "/.dockerenv"):
+        settings_module = load_test_settings(
+            monkeypatch,
+            DB_HOST="pgbouncer",
+            DB_NAME="online_judge",
+            DB_USER="postgres",
+            DB_PASSWORD="postgres",
+            DB_PORT="5432",
+        )
 
     database = settings_module.DATABASES["default"]
 
