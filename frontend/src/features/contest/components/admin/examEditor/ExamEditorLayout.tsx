@@ -4,7 +4,6 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useImperativeHandle,
 } from "react";
 import { Button, Modal } from "@carbon/react";
 import {
@@ -12,7 +11,6 @@ import {
   Close,
   Menu,
   DocumentDownload,
-  Upload,
   View,
 } from "@carbon/icons-react";
 import { CardListEditor } from "@/shared/ui/cardListEditor";
@@ -23,8 +21,6 @@ import {
   updateExamQuestion,
   deleteExamQuestion,
   reorderExamQuestions,
-  previewExamQuestionsImport,
-  applyExamQuestionsImport,
   importExamQuestionsFromBank,
   type ExamQuestionUpsertPayload,
 } from "@/infrastructure/api/repositories";
@@ -34,7 +30,6 @@ import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSp
 import WorkTree from "./WorkTree";
 import ExamQuestionEditCard from "./ExamQuestionEditCard";
 import { useTranslation } from "react-i18next";
-import ExamQuestionJsonImportModal from "./ExamQuestionJsonImportModal";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import QuestionBankImportModal, { type BankImportSelectionItem } from "./QuestionBankImportModal";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
@@ -63,10 +58,6 @@ interface ExamEditorLayoutProps {
   contest: ContestDetail;
   onExport?: () => void;
   onPreview?: () => void;
-}
-
-export interface ExamEditorLayoutHandle {
-  openJsonImportModal: () => void;
 }
 
 const useCompactScreen = (query = "(max-width: 900px)") => {
@@ -105,12 +96,12 @@ const resolveInsertedQuestionId = (
   return inserted?.id ?? null;
 };
 
-const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayoutProps>(({
+const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   contestId,
   contest,
   onExport,
   onPreview,
-}, ref) => {
+}) => {
   const { showToast } = useToast();
   const { t } = useTranslation("contest");
   const { confirm, modalProps } = useConfirmModal();
@@ -129,7 +120,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
 
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [insertAtOrder, setInsertAtOrder] = useState<number | null>(null);
-  const [jsonImportOpen, setJsonImportOpen] = useState(false);
   const [bankImportOpen, setBankImportOpen] = useState(false);
   const [saveToBankQuestion, setSaveToBankQuestion] = useState<ExamQuestion | null>(null);
 
@@ -224,55 +214,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       }
     },
     [frozen, loadQuestions, lockedReason, persistOrder, questions, showToast, t]
-  );
-
-  const handleJsonImportPreview = useCallback(
-    async (payload: { payloadJson: string; importMode: "append" | "replace_all" | "replace_manual_only" }) => {
-      if (frozen) {
-        throw new Error(lockedReason);
-      }
-      return previewExamQuestionsImport(contestId, {
-        payload_json: payload.payloadJson,
-        import_mode: payload.importMode,
-      });
-    },
-    [contestId, frozen, lockedReason],
-  );
-
-  const handleJsonImportApply = useCallback(
-    async (payload: {
-      payloadJson: string;
-      importMode: "append" | "replace_all" | "replace_manual_only";
-      fingerprint?: string;
-    }) => {
-      if (frozen) {
-        throw new Error(lockedReason);
-      }
-
-      const result = await toolbarSave.track(() =>
-        applyExamQuestionsImport(contestId, {
-          payload_json: payload.payloadJson,
-          import_mode: payload.importMode,
-          fingerprint: payload.fingerprint,
-        }),
-      );
-      await loadQuestions();
-      setSelectedId(null);
-      showToast({
-        kind: "success",
-        title: t("examEditor.importSuccess", "匯入成功"),
-        subtitle: t("examEditor.importSuccessDetail", { count: result.applied_summary.will_add }),
-      });
-    },
-    [contestId, frozen, loadQuestions, lockedReason, showToast, t, toolbarSave],
-  );
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      openJsonImportModal: () => setJsonImportOpen(true),
-    }),
-    [],
   );
 
   const handleImportFromBank = useCallback(
@@ -399,6 +340,7 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         const payload: ExamQuestionUpsertPayload = {
           question_type: source.questionType,
           prompt: source.prompt,
+          explanation: source.explanation,
           score: source.score,
           order: source.order + 1,
         };
@@ -567,14 +509,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
             )}
             actions={
               <>
-                <Button
-                  kind="ghost"
-                  size="md"
-                  hasIconOnly
-                  renderIcon={Upload}
-                  iconDescription={t("examJson.importAction", "匯入 JSON")}
-                  onClick={() => setJsonImportOpen(true)}
-                />
                 {onExport && (
                   <Button
                     kind="ghost"
@@ -693,14 +627,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
         </div>
       </Modal>
 
-      <ExamQuestionJsonImportModal
-        open={jsonImportOpen}
-        contestName={contest.name}
-        onClose={() => setJsonImportOpen(false)}
-        onPreviewImport={handleJsonImportPreview}
-        onApplyImport={handleJsonImportApply}
-      />
-
       <QuestionBankImportModal
         open={bankImportOpen}
         category="exam"
@@ -721,8 +647,6 @@ const ExamEditorLayout = React.forwardRef<ExamEditorLayoutHandle, ExamEditorLayo
       />
     </>
   );
-});
-
-ExamEditorLayout.displayName = "ExamEditorLayout";
+};
 
 export default ExamEditorLayout;

@@ -55,6 +55,7 @@ const buildQuestion = (partial: Partial<ExamQuestion>): ExamQuestion => ({
   questionType: partial.questionType ?? "single_choice",
   prompt: partial.prompt ?? "Question prompt",
   options: partial.options ?? ["A", "B"],
+  explanation: partial.explanation ?? "",
   score: partial.score ?? 5,
   order: partial.order ?? 0,
   createdAt: partial.createdAt ?? "2026-01-01T00:00:00Z",

@@ -369,6 +369,7 @@ export default function GradingSplitPanelScreen({
             answerContent={answer.answerContent}
             options={answer.questionOptions}
             correctAnswer={answer.correctAnswer}
+            explanation={answer.questionExplanation}
           />
 
           {readOnly ? (

@@ -18,14 +18,14 @@ class DjangoTokenVerifier(TokenVerifier):
     async def verify_token(self, token: str) -> AccessToken | None:
         """Check token against Django. Return AccessToken if valid, None if not."""
         try:
-            # Always send X-Forwarded-Proto: https because external clients connect via HTTPS
-            # Django's SECURE_PROXY_SSL_HEADER expects https value to permit internal HTTP requests
+            # Derive proto from DJANGO_BASE_URL for correct request.is_secure() behavior
+            proto = "https" if DJANGO_BASE_URL.startswith("https://") else "http"
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
-                    f"{DJANGO_BASE_URL}/api/v1/auth/me/",
+                    f"{DJANGO_BASE_URL}/api/v1/auth/me",
                     headers={
                         "Authorization": f"Bearer {token}",
-                        "X-Forwarded-Proto": "https",
+                        "X-Forwarded-Proto": proto,
                     },
                 )
         except (httpx.RequestError, httpx.TimeoutException):
@@ -47,8 +47,9 @@ async def django_api(
     json_body: dict | None = None,
 ) -> Any:
     """Call Django API with OAuth token passthrough."""
-    # Always send X-Forwarded-Proto: https because external clients connect via HTTPS
-    headers: dict[str, str] = {"X-Forwarded-Proto": "https"}
+    # Derive proto from DJANGO_BASE_URL for correct request.is_secure() behavior
+    proto = "https" if DJANGO_BASE_URL.startswith("https://") else "http"
+    headers: dict[str, str] = {"X-Forwarded-Proto": proto}
     transport_request = getattr(ctx.request_context, "request", None)
     if transport_request and hasattr(transport_request, "headers"):
         auth_header = transport_request.headers.get("authorization", "")

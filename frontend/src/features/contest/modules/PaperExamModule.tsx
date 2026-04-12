@@ -79,7 +79,6 @@ export const paperExamContestModule: ContestTypeModule = {
           <ExamEditorLayout
             contestId={props.contestId}
             contest={props.contest}
-            ref={props.panelRef}
             onExport={props.onExport}
             onPreview={props.onPreview}
           />
@@ -87,7 +86,6 @@ export const paperExamContestModule: ContestTypeModule = {
       },
       statistics: (props) => <ContestResultDashboardPanel {...props} />,
     }),
-    getExportTargets: () => ["exam-question", "exam-answer", "exam-json"],
-    shouldShowJsonActions: (activePanel) => activePanel === "problem_editor",
+    getExportTargets: () => ["exam-question", "exam-answer"],
   },
 };

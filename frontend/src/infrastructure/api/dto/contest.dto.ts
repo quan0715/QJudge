@@ -20,6 +20,26 @@ export interface ContestProblemSummaryDto {
   difficulty?: string;
 }
 
+export interface ExamQuestionDto {
+  id?: number | string;
+  contest?: number | string;
+  question_type?: string;
+  prompt?: string;
+  options?: unknown[];
+  correct_answer?: unknown;
+  explanation?: string;
+  score?: number;
+  order?: number;
+  source_bank?: {
+    id?: number | string;
+    name?: string;
+  } | null;
+  source_question_id?: number | string | null;
+  source_mode?: "manual" | "json" | "copy" | "reference";
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ContestDto {
   id: number | string;
   name?: string;

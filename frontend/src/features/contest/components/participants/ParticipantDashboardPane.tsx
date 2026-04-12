@@ -568,6 +568,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                               answerContent={row.answer}
                               options={row.options}
                               correctAnswer={row.correctAnswer}
+                              explanation={row.explanation}
                             />
                             {row.feedback ? (
                               <div>

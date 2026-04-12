@@ -18,6 +18,8 @@ import {
 } from "@/features/contest/domain/contestRuntimePolicy";
 import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 import PaperQuestionOverviewTable from "./PaperQuestionOverviewTable";
+import AnswerDisplay from "./AnswerDisplay";
+import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 
 const canOpenPaperAnsweringFromDashboard = (contest: ContestDetail | null | undefined): boolean => {
   if (!contest) return false;
@@ -207,33 +209,98 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
             )}
 
             {canQueryExamData && (
-              <PaperQuestionOverviewTable
-                rows={rows.map((row) => ({
-                  id: row.id,
-                  index: row.index,
-                  prompt: row.prompt,
-                  typeLabel: row.type,
-                  maxScore: row.maxScore,
-                  scoreDisplay: row.score,
-                  feedbackDisplay: row.feedback,
-                }))}
-                showScore={resultsPublished}
-                showFeedback={resultsPublished}
-                onRowClick={
-                  canOpenAnswering
-                    ? (questionId) =>
-                        contest.boundClassroomId
-                          ? navigate(
-                              getClassroomContestSolvePath(
-                                contest.boundClassroomId,
-                                contestId,
-                                questionId,
-                              ),
-                            )
-                          : navigate("/dashboard")
-                    : undefined
-                }
-              />
+              <>
+                <PaperQuestionOverviewTable
+                  rows={rows.map((row) => ({
+                    id: row.id,
+                    index: row.index,
+                    prompt: row.prompt,
+                    typeLabel: row.type,
+                    maxScore: row.maxScore,
+                    scoreDisplay: row.score,
+                    feedbackDisplay: row.feedback,
+                  }))}
+                  showScore={resultsPublished}
+                  showFeedback={resultsPublished}
+                  onRowClick={
+                    canOpenAnswering
+                      ? (questionId) =>
+                          contest.boundClassroomId
+                            ? navigate(
+                                getClassroomContestSolvePath(
+                                  contest.boundClassroomId,
+                                  contestId,
+                                  questionId,
+                                ),
+                              )
+                            : navigate("/dashboard")
+                      : undefined
+                  }
+                />
+
+                {resultsPublished && results.length > 0 ? (
+                  <div style={{ marginTop: "1.5rem", display: "grid", gap: "1rem" }}>
+                    {questions.map((question, index) => {
+                      const result = resultMap.get(String(question.id));
+                      if (!result) return null;
+                      return (
+                        <section
+                          key={question.id}
+                          style={{
+                            border: "1px solid var(--cds-border-subtle-01)",
+                            borderRadius: "0.5rem",
+                            padding: "1rem",
+                            background: "var(--cds-layer-01)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: "1rem",
+                              marginBottom: "0.75rem",
+                              alignItems: "baseline",
+                            }}
+                          >
+                            <strong>
+                              {t("answering.submit.questionPreview", { index: index + 1 })}
+                            </strong>
+                            <span>
+                              {result.score ?? 0} / {question.score}
+                            </span>
+                          </div>
+                          <div style={{ marginBottom: "1rem" }}>
+                            <MarkdownRenderer enableMath enableHighlight>
+                              {question.prompt}
+                            </MarkdownRenderer>
+                          </div>
+                          <AnswerDisplay
+                            questionType={question.questionType}
+                            answerContent={result.answer}
+                            options={question.options}
+                            correctAnswer={result.questionSnapshot?.correctAnswer ?? question.correctAnswer}
+                            explanation={
+                              result.questionExplanation ??
+                              result.questionSnapshot?.explanation ??
+                              question.explanation
+                            }
+                          />
+                          {result.feedback ? (
+                            <div style={{ marginTop: "0.75rem" }}>
+                              <div style={{ fontSize: "0.75rem", color: "var(--cds-text-secondary)", marginBottom: "0.25rem" }}>
+                                {t("paperExamProblems.feedbackLabel", "批改評語")}
+                              </div>
+                              <MarkdownRenderer enableMath enableHighlight>
+                                {result.feedback}
+                              </MarkdownRenderer>
+                            </div>
+                          ) : null}
+                        </section>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </>
             )}
 
             {!loading && rows.length === 0 && (

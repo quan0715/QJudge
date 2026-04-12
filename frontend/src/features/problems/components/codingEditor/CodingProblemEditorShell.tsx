@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@carbon/react";
-import { Download, Upload, View } from "@carbon/icons-react";
-import type { ProblemYAML } from "@/shared/utils/problemYamlParser";
+import { Download, View } from "@carbon/icons-react";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
 import { GlobalSaveStatus } from "@/features/problems/components/edit/common";
 import { TriggerModal, type TriggerModalHandle } from "@/shared/ui/modal";
-import { ProblemImportModal } from "@/features/problems/components/modals";
 import ProblemEditHeader from "@/features/problems/screens/problemsIdEdit/components/ProblemEditHeader";
 import ProblemEditSections from "@/features/problems/screens/problemsIdEdit/components/ProblemEditSections";
 import ProblemEditPreviewModal from "@/features/problems/screens/problemsIdEdit/components/ProblemEditPreviewModal";
@@ -22,7 +20,6 @@ interface CodingProblemEditorShellProps {
   hideBackButton?: boolean;
   hideHeader?: boolean;
   onBack?: () => void;
-  onImportYaml?: (yamlData: ProblemYAML) => void;
   onExportConfirm?: (args: {
     exportFormat: "pdf" | "yaml";
     pdfScale: number;
@@ -42,7 +39,6 @@ const CodingProblemEditorShell: React.FC<CodingProblemEditorShellProps> = ({
   hideBackButton = true,
   hideHeader = false,
   onBack,
-  onImportYaml,
   onExportConfirm,
   showPreview = true,
   showGlobalSaveStatus = true,
@@ -64,23 +60,6 @@ const CodingProblemEditorShell: React.FC<CodingProblemEditorShellProps> = ({
   const actionButtons = useMemo(
     () => (
       <>
-        {onImportYaml ? (
-          <TriggerModal
-            trigger={
-              <Button kind="ghost" renderIcon={Upload} size="sm" hasIconOnly iconDescription="Import">
-                Import
-              </Button>
-            }
-            renderModal={({ open, onClose }) => (
-              <ProblemImportModal
-                open={open}
-                onClose={onClose}
-                onPopulate={onImportYaml}
-                mode="populateForm"
-              />
-            )}
-          />
-        ) : null}
         {onExportConfirm ? (
           <TriggerModal
             trigger={
@@ -110,7 +89,7 @@ const CodingProblemEditorShell: React.FC<CodingProblemEditorShellProps> = ({
         {extraActions}
       </>
     ),
-    [onImportYaml, onExportConfirm, exportFormat, pdfScale, extraActions]
+    [onExportConfirm, exportFormat, pdfScale, extraActions]
   );
 
   useEffect(() => {

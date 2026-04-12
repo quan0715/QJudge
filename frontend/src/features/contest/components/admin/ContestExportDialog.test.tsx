@@ -1,11 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity";
+import type { ContestDetail } from "@/core/entities/contest.entity";
 import ContestExportDialog from "./ContestExportDialog";
 
 const downloadContestFileMock = vi.fn();
 const downloadExamPaperFileMock = vi.fn();
-const getExamQuestionsMock = vi.fn();
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -16,7 +15,6 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/infrastructure/api/repositories", () => ({
-  getExamQuestions: (...args: unknown[]) => getExamQuestionsMock(...args),
   downloadContestFile: (...args: unknown[]) => downloadContestFileMock(...args),
   downloadExamPaperFile: (...args: unknown[]) => downloadExamPaperFileMock(...args),
 }));
@@ -61,27 +59,12 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail => 
   ...overrides,
 });
 
-const buildExamQuestion = (partial: Partial<ExamQuestion> = {}): ExamQuestion => ({
-  id: partial.id ?? "q-1",
-  contestId: partial.contestId ?? "contest-1",
-  questionType: partial.questionType ?? "single_choice",
-  prompt: partial.prompt ?? "Question",
-  options: partial.options ?? ["A", "B"],
-  correctAnswer: partial.correctAnswer ?? 0,
-  score: partial.score ?? 5,
-  order: partial.order ?? 0,
-  createdAt: partial.createdAt ?? "2026-01-01T00:00:00Z",
-  updatedAt: partial.updatedAt ?? "2026-01-01T00:00:00Z",
-});
-
 describe("ContestExportDialog", () => {
   beforeEach(() => {
     downloadContestFileMock.mockReset();
     downloadExamPaperFileMock.mockReset();
-    getExamQuestionsMock.mockReset();
     downloadContestFileMock.mockResolvedValue(new Blob(["x"], { type: "text/plain" }));
     downloadExamPaperFileMock.mockResolvedValue(undefined);
-    getExamQuestionsMock.mockResolvedValue([]);
     Object.defineProperty(window.URL, "createObjectURL", {
       configurable: true,
       writable: true,
@@ -138,8 +121,6 @@ describe("ContestExportDialog", () => {
   });
 
   it("shows language and includeAnswerArea only for exam-question target", async () => {
-    getExamQuestionsMock.mockResolvedValue([buildExamQuestion()]);
-
     render(
       <ContestExportDialog
         open
@@ -157,8 +138,6 @@ describe("ContestExportDialog", () => {
   });
 
   it("hides includeAnswerArea for exam-answer target", async () => {
-    getExamQuestionsMock.mockResolvedValue([buildExamQuestion()]);
-
     render(
       <ContestExportDialog
         open
@@ -176,8 +155,6 @@ describe("ContestExportDialog", () => {
   });
 
   it("exports answer pdf when answer target is selected", async () => {
-    getExamQuestionsMock.mockResolvedValue([buildExamQuestion()]);
-
     render(
       <ContestExportDialog
         open
@@ -203,8 +180,6 @@ describe("ContestExportDialog", () => {
   });
 
   it("still exports backend exam paper when local question list is empty", async () => {
-    getExamQuestionsMock.mockResolvedValue([]);
-
     render(
       <ContestExportDialog
         open

@@ -14,6 +14,7 @@ export interface QuestionSnapshotDto {
   prompt: string;
   options: string[];
   correct_answer: unknown;
+  explanation?: string;
   question_type: string;
   score: number;
 }
@@ -27,6 +28,7 @@ export interface ExamAnswerDetailDto extends ExamAnswerDto {
   question_prompt?: string;
   question_type?: string;
   question_options?: string[];
+  question_explanation?: string;
   max_score?: string | number | null;
   question_snapshot?: QuestionSnapshotDto | null;
   participant_user_id?: number;
@@ -46,6 +48,7 @@ export interface QuestionSnapshot {
   prompt: string;
   options: string[];
   correctAnswer: unknown;
+  explanation?: string;
   questionType: string;
   score: number;
 }
@@ -59,6 +62,7 @@ export interface ExamAnswerDetail extends ExamAnswer {
   questionPrompt?: string;
   questionType?: string;
   questionOptions?: string[];
+  questionExplanation?: string;
   maxScore?: number | null;
   questionSnapshot?: QuestionSnapshot | null;
   participantUserId?: string;
@@ -86,12 +90,14 @@ const mapAnswerDetailDto = (dto: ExamAnswerDetailDto): ExamAnswerDetail => ({
   questionPrompt: dto.question_prompt,
   questionType: dto.question_type,
   questionOptions: dto.question_options,
+  questionExplanation: dto.question_explanation,
   maxScore: dto.max_score != null ? Number(dto.max_score) : null,
   questionSnapshot: dto.question_snapshot
     ? {
         prompt: dto.question_snapshot.prompt,
         options: dto.question_snapshot.options ?? [],
         correctAnswer: dto.question_snapshot.correct_answer,
+        explanation: dto.question_snapshot.explanation,
         questionType: dto.question_snapshot.question_type,
         score: dto.question_snapshot.score,
       }

@@ -12,6 +12,7 @@ export interface AnswerDisplayProps {
   answerContent: Record<string, unknown>;
   options: string[];
   correctAnswer: unknown;
+  explanation?: string | null;
 }
 
 function isSelected(answerContent: Record<string, unknown>, idx: number): boolean {
@@ -49,6 +50,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
   answerContent,
   options,
   correctAnswer,
+  explanation,
 }) => {
   const { t } = useTranslation("contest");
   const subjective = isSubjectiveType(questionType);
@@ -78,6 +80,14 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
             </div>
           </div>
         )}
+        {explanation?.trim() ? (
+          <div className={`${styles.group} ${styles.reference}`}>
+            <span className={styles.label}>{t("grading.explanation", "詳解")}</span>
+            <div className={styles.referenceText}>
+              <MarkdownContent.Simple>{explanation}</MarkdownContent.Simple>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -126,6 +136,14 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
           </span>
         </div>
       )}
+      {explanation?.trim() ? (
+        <div className={`${styles.group} ${styles.reference}`}>
+          <span className={styles.label}>{t("grading.explanation", "詳解")}</span>
+          <div className={styles.referenceText}>
+            <MarkdownContent.Simple>{explanation}</MarkdownContent.Simple>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

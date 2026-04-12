@@ -20,8 +20,6 @@
         "exam-grading",
         "exam-statistics",
         "exam-proctoring",
-        "exam-json-import-export",
-        "problem-import",
         "mcp-setup"
       ]
     },

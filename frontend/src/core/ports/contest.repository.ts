@@ -157,6 +157,7 @@ export interface IExamQuestionRepository {
       prompt: string;
       options?: string[];
       correct_answer?: unknown;
+      explanation?: string;
       score: number;
       order?: number;
     }
@@ -169,6 +170,7 @@ export interface IExamQuestionRepository {
       prompt?: string;
       options?: string[];
       correct_answer?: unknown;
+      explanation?: string;
       score?: number;
       order?: number;
     }

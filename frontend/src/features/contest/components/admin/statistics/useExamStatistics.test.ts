@@ -22,6 +22,7 @@ function buildAnswerRow(partial: Partial<GradingAnswerRow> = {}): GradingAnswerR
     questionId: partial.questionId ?? "q-1",
     questionIndex: partial.questionIndex ?? 1,
     questionPrompt: partial.questionPrompt ?? "Question 1",
+    questionExplanation: partial.questionExplanation ?? "",
     questionType: partial.questionType ?? "single_choice",
     questionOptions: partial.questionOptions ?? ["A", "B"],
     maxScore: partial.maxScore ?? 2,
@@ -123,4 +124,3 @@ describe("useExamStatistics", () => {
     expect(distribution[1]).toMatchObject({ count: 1, percent: 50, isCorrect: false });
   });
 });
-

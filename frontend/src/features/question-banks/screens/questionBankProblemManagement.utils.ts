@@ -201,6 +201,7 @@ export const toExamQuestion = (bankId: string, question: BankQuestion): ExamQues
   prompt: question.prompt || "",
   options: Array.isArray(question.options) ? question.options.map((item) => String(item)) : [],
   correctAnswer: question.correctAnswer,
+  explanation: "",
   // Question bank does not expose scoring semantics; keep a safe internal placeholder.
   score: Number(question.score || 1),
   order: Number(question.order || 0),

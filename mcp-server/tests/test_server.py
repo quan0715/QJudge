@@ -85,7 +85,7 @@ def test_django_api_forwards_auth_header_and_json_body(monkeypatch):
     assert calls == [{
         "method": "POST",
         "url": f"{server.DJANGO_BASE_URL}/api/v1/demo/",
-        "headers": {"X-Forwarded-Proto": "https", "Authorization": "Bearer token"},
+        "headers": {"X-Forwarded-Proto": "https" if server.DJANGO_BASE_URL.startswith("https://") else "http", "Authorization": "Bearer token"},
         "json": {"hello": "world"},
     }]
 

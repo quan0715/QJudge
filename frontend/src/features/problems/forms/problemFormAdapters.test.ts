@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import type { ProblemDetail } from "@/core/entities/problem.entity";
-import type { ProblemYAML } from "@/shared/utils/problemYamlParser";
 import {
   DEFAULT_PROBLEM_FORM_VALUES,
   type ProblemFormSchema,
@@ -8,8 +7,6 @@ import {
 import {
   formSchemaToApiPayload,
   problemDetailToFormSchema,
-  yamlToApiPayload,
-  yamlToFormSchema,
 } from "./problemFormAdapters";
 
 describe("problemFormAdapters", () => {
@@ -58,58 +55,6 @@ describe("problemFormAdapters", () => {
       expect(result?.translationZh.title).toBe("中文標題");
       expect(result?.translationEn.title).toBe("");
       expect(result?.forbiddenKeywords).toEqual(["goto"]);
-    });
-  });
-
-  describe("yamlToFormSchema", () => {
-    it("maps YAML translations, test cases, and language configs", () => {
-      const yaml: ProblemYAML = {
-        title: "YAML Problem",
-        difficulty: "medium",
-        time_limit: 1200,
-        memory_limit: 128,
-        translations: [
-          {
-            language: "zh-TW",
-            title: "題目",
-            description: "描述",
-            input_description: "輸入",
-            output_description: "輸出",
-          },
-          {
-            language: "en",
-            title: "Title",
-            description: "Description",
-            input_description: "Input",
-            output_description: "Output",
-          },
-        ],
-        test_cases: [
-          {
-            input_data: "1 2",
-            output_data: "3",
-            is_sample: true,
-            is_hidden: true,
-          },
-        ],
-        language_configs: [
-          {
-            language: "cpp",
-            template_code: "#include <iostream>",
-            is_enabled: false,
-          },
-        ],
-        forbidden_keywords: ["goto"],
-        required_keywords: ["for"],
-      };
-
-      const result = yamlToFormSchema(yaml);
-
-      expect(result.title).toBe("YAML Problem");
-      expect(result.translationZh.title).toBe("題目");
-      expect(result.translationEn.title).toBe("Title");
-      expect(result.testCases[0].isHidden).toBe(true);
-      expect(result.languageConfigs[0].language).toBe("cpp");
     });
   });
 
@@ -174,32 +119,6 @@ describe("problemFormAdapters", () => {
           order: 0,
         },
       ]);
-    });
-  });
-
-  describe("yamlToApiPayload", () => {
-    it("sets defaults and converts arrays", () => {
-      const yaml: ProblemYAML = {
-        title: "YAML Problem",
-        difficulty: "easy",
-        time_limit: 1000,
-        memory_limit: 256,
-        translations: [
-          {
-            language: "en",
-            title: "Title",
-            description: "Desc",
-            input_description: "In",
-            output_description: "Out",
-          },
-        ],
-      };
-
-      const payload = yamlToApiPayload(yaml);
-
-      expect(payload.test_cases).toEqual([]);
-      expect(payload.language_configs).toEqual([]);
-      expect(payload.required_keywords).toEqual([]);
     });
   });
 });

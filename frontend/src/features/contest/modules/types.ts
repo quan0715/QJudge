@@ -50,7 +50,6 @@ export type ContestSolveRenderer = (
 export interface AdminPanelProps {
   contestId: string;
   contest: ContestDetail | null;
-  panelRef?: React.RefObject<any>;
   onExport?: () => void;
   onPreview?: () => void;
   onOpenSettings?: () => void;
@@ -61,7 +60,6 @@ export type AdminPanelRenderer = React.ComponentType<AdminPanelProps>;
 export type ContestExportTarget =
   | "exam-question"
   | "exam-answer"
-  | "exam-json"
   | "coding-pdf"
   | "coding-markdown";
 
@@ -82,7 +80,6 @@ export interface ContestAdminModule {
   getAvailablePanels: (contest?: ContestDetail | null) => AdminPanelId[];
   getPanelRenderers?: () => Partial<Record<AdminPanelId, AdminPanelRenderer>>;
   getExportTargets: (contest?: ContestDetail | null) => ContestExportTarget[];
-  shouldShowJsonActions: (activePanel: AdminPanelId) => boolean;
 }
 
 export interface ContestTypeModule {

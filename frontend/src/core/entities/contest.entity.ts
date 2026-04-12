@@ -179,6 +179,7 @@ export interface ParticipantPaperQuestionDetail {
   prompt: string;
   options: string[];
   correctAnswer: unknown;
+  explanation: string;
   answer: Record<string, unknown>;
   score: number | null;
   maxScore: number;
@@ -579,6 +580,7 @@ export interface ExamQuestion {
   prompt: string;
   options: string[];
   correctAnswer?: unknown;
+  explanation: string;
   score: number;
   order: number;
   sourceBank?: {

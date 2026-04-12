@@ -25,7 +25,6 @@
   - 使用可能なパネルを決定（`getAvailablePanels`）。
   - 特定パネルのレンダリングコンポーネントを決定（`getPanelRenderers`）。
   - エディタの種類（`editorKind`）とエクスポートオプション（`getExportTargets`）を決定。
-  - JSON インポートアクションの表示タイミングを決定（`shouldShowJsonActions`）。
 
 ### 2) レンダリング分担層 (Renderer Registries)
 

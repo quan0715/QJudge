@@ -118,6 +118,5 @@ export const codingContestModule: ContestTypeModule = {
       statistics: (props) => <ContestResultDashboardPanel {...props} />,
     }),
     getExportTargets: () => ["coding-pdf", "coding-markdown"],
-    shouldShowJsonActions: () => false,
   },
 };
