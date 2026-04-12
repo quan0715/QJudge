@@ -269,14 +269,21 @@
   "mcp": {
     "setup": {
       "title": "Connect AI Tools",
-      "description": "Connect QJudge to your AI development tools using the MCP protocol. On first use after setup, your browser will automatically open for login and authorization.",
+      "description": "Connect QJudge to your AI tools using MCP. If your tool supports remote MCP servers, you can paste the server URL directly and complete OAuth in your browser on first use.",
+      "directConnect": "Direct Connect",
+      "directConnectIntro": "If your AI tool has built-in MCP or Connectors settings, add this remote MCP server URL:",
+      "directConnectStep1": "Open your AI tool's Connectors, MCP, or Integrations settings and add a custom or remote MCP server.",
+      "directConnectStep2": "Paste the server URL above, save the configuration, then reload or restart the tool.",
+      "directConnectStep3": "The first time you invoke a QJudge tool, follow the browser OAuth flow to sign in and grant access.",
+      "directConnectExamples": "This usually works with tools like ChatGPT, Claude Desktop, VS Code, and other clients that support remote MCP.",
       "claudeCode": "Claude Code",
       "cursor": "Cursor",
       "codex": "Codex CLI",
       "copySuccess": "Copied",
       "step1": "Run the following command in your terminal:",
       "step1Cursor": "Add the following configuration to .cursor/mcp.json:",
-      "verifyHint": "On first tool invocation after setup, your browser will automatically open for login and authorization."
+      "verifyHint": "OAuth runs automatically on first connection",
+      "verifyHintDetail": "You do not need to create an API token manually. After the browser sign-in flow completes, your AI tool will store and reuse the credentials."
     }
   },
   "nav": {

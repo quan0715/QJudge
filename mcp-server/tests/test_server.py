@@ -60,6 +60,10 @@ class FakeAsyncClient:
         self._recorder.append(kwargs)
         return self._response
 
+    async def get(self, url, **kwargs):
+        self._recorder.append({"url": url, **kwargs})
+        return self._response
+
 
 def test_django_api_forwards_auth_header_and_json_body(monkeypatch):
     calls = []
@@ -85,7 +89,7 @@ def test_django_api_forwards_auth_header_and_json_body(monkeypatch):
     assert calls == [{
         "method": "POST",
         "url": f"{server.DJANGO_BASE_URL}/api/v1/demo/",
-        "headers": {"X-Forwarded-Proto": "https" if server.DJANGO_BASE_URL.startswith("https://") else "http", "Authorization": "Bearer token"},
+        "headers": {"X-Forwarded-Proto": server.DJANGO_FORWARDED_PROTO, "Authorization": "Bearer token"},
         "json": {"hello": "world"},
     }]
 
@@ -229,6 +233,28 @@ def test_qjudge_exam_reorder_generates_orders(monkeypatch):
             ]
         },
     }
+
+
+def test_verify_token_uses_forwarded_proto_and_slash(monkeypatch):
+    calls = []
+    response = FakeResponse(200, payload={"id": "user-1"})
+    monkeypatch.setattr(
+        server.httpx,
+        "AsyncClient",
+        lambda timeout: FakeAsyncClient(response, calls, timeout=timeout),
+    )
+
+    token = run(server.DjangoTokenVerifier().verify_token("token-123"))
+
+    assert token is not None
+    assert token.token == "token-123"
+    assert calls == [{
+        "url": f"{server.DJANGO_BASE_URL}/api/v1/auth/me/",
+        "headers": {
+            "Authorization": "Bearer token-123",
+            "X-Forwarded-Proto": server.DJANGO_FORWARDED_PROTO,
+        },
+    }]
 
 
 def test_qjudge_exam_returns_fixed_errors():

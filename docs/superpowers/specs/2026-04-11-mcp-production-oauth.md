@@ -132,12 +132,17 @@ React 頁面，OAuth 流程中使用者被導到此處：
 純靜態教學頁，放在 Settings 底下：
 
 1. **什麼是 MCP** — 一句話說明
-2. **安裝步驟** — 分 tab 顯示三個 client：
+2. **快速連接** — 第一個 tab 採用類似 Notion MCP onboarding 的「Connect through your AI tool」模式：
+   - 顯示 remote MCP server URL：`https://mcp.q-judge.com/mcp`
+   - 說明在支援 MCP / Connectors 的 AI 工具中直接貼上 URL
+   - 提示第一次實際呼叫工具時才會進入 OAuth flow
+   - 適用於 ChatGPT、Claude Desktop、VS Code 與其他支援 remote MCP 的客戶端
+3. **安裝步驟** — 其餘 tab 顯示三個 client：
    - **Claude Code**：`claude mcp add --transport http qjudge https://mcp.qjudge.com/mcp`
    - **Cursor**：`.cursor/mcp.json` 設定範例
    - **Codex CLI**：對應指令
-3. 每個 tab 都有複製按鈕
-4. **驗證方式** — 「加入後第一次使用會自動開啟瀏覽器登入授權」
+4. 每個 tab 都有複製按鈕
+5. **驗證方式** — 「加入後第一次使用會自動開啟瀏覽器登入授權」
 
 內容來自現有 `frontend/public/docs/zh-TW/mcp-setup.md` 的結構化版本。
 

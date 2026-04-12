@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Section } from "@/shared/layout/SettingsPanel";
 
 const MCP_URL = import.meta.env.VITE_MCP_PUBLIC_URL || "https://mcp.q-judge.com/mcp";
+const DIRECT_CONNECT_URL = MCP_URL;
 
 const CLAUDE_CODE_CMD = `claude mcp add --transport http qjudge ${MCP_URL}`;
 
@@ -36,11 +37,24 @@ export const MCPSetupPanel: React.FC = () => {
       >
         <Tabs>
           <TabList aria-label="MCP client setup">
+            <Tab>{t("mcp.setup.directConnect")}</Tab>
             <Tab>{t("mcp.setup.claudeCode")}</Tab>
             <Tab>{t("mcp.setup.cursor")}</Tab>
             <Tab>{t("mcp.setup.codex")}</Tab>
           </TabList>
           <TabPanels>
+            <TabPanel>
+              <p style={{ marginBottom: "0.5rem" }}>{t("mcp.setup.directConnectIntro")}</p>
+              <CodeSnippet type="single" feedback={t("mcp.setup.copySuccess")}>
+                {DIRECT_CONNECT_URL}
+              </CodeSnippet>
+              <ol style={{ marginTop: "0.75rem", paddingInlineStart: "1.25rem" }}>
+                <li>{t("mcp.setup.directConnectStep1")}</li>
+                <li>{t("mcp.setup.directConnectStep2")}</li>
+                <li>{t("mcp.setup.directConnectStep3")}</li>
+              </ol>
+              <p style={{ marginTop: "0.75rem" }}>{t("mcp.setup.directConnectExamples")}</p>
+            </TabPanel>
             <TabPanel>
               <p style={{ marginBottom: "0.5rem" }}>{t("mcp.setup.step1")}</p>
               <CodeSnippet type="single" feedback={t("mcp.setup.copySuccess")}>
@@ -65,6 +79,7 @@ export const MCPSetupPanel: React.FC = () => {
         <InlineNotification
           kind="info"
           title={t("mcp.setup.verifyHint")}
+          subtitle={t("mcp.setup.verifyHintDetail")}
           hideCloseButton
           lowContrast
           style={{ marginTop: "1rem" }}

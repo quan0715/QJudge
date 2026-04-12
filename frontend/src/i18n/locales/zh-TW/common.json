@@ -269,14 +269,21 @@
   "mcp": {
     "setup": {
       "title": "連接 AI 工具",
-      "description": "使用 MCP 協定將 QJudge 連接到你的 AI 開發工具。加入後第一次使用會自動開啟瀏覽器登入授權。",
+      "description": "使用 MCP 協定將 QJudge 連接到你的 AI 工具。若工具支援 remote MCP server，可直接貼上 server URL；第一次使用時會自動開啟瀏覽器完成 OAuth 授權。",
+      "directConnect": "Direct Connect",
+      "directConnectIntro": "若你的 AI 工具有內建 MCP / Connectors 設定頁，直接加入以下 remote MCP server URL：",
+      "directConnectStep1": "在 AI 工具的 Connectors、MCP 或 Integrations 設定中新增 custom / remote MCP server。",
+      "directConnectStep2": "貼上上方的 server URL，儲存後重新整理或重啟工具。",
+      "directConnectStep3": "第一次呼叫 QJudge 工具時，依照瀏覽器中的 OAuth 畫面登入並授權。",
+      "directConnectExamples": "常見支援此流程的工具包含 ChatGPT、Claude Desktop、VS Code 與其他支援 remote MCP 的客戶端。",
       "claudeCode": "Claude Code",
       "cursor": "Cursor",
       "codex": "Codex CLI",
       "copySuccess": "已複製",
       "step1": "在終端機執行以下指令：",
       "step1Cursor": "將以下設定加入 .cursor/mcp.json：",
-      "verifyHint": "加入後第一次呼叫工具時，瀏覽器會自動開啟登入並授權。"
+      "verifyHint": "首次連線會觸發 OAuth 授權",
+      "verifyHintDetail": "不需要手動建立 API token。只要完成瀏覽器登入授權，之後就會由 AI 工具自動保存並重用憑證。"
     }
   },
   "nav": {
