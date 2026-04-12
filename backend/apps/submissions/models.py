@@ -115,7 +115,7 @@ class Submission(models.Model):
         ]
     
     def __str__(self):
-        return f"Submission {self.id} by {self.user.username} for {self.problem.title}"
+        return f"Submission {self.id} by {self.user.username} for {self.problem_id}"
 
 
 class SubmissionResult(models.Model):

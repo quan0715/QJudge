@@ -56,7 +56,6 @@ class ScoreboardService:
             {
                 "id": str(b.coding_problem_id) if b.coding_problem_id else str(b.question_asset_id),
                 "title": (
-                    b.coding_problem.title if show_problem_details and b.coding_problem else
                     b.question_asset.title if show_problem_details and b.question_asset else None
                 ),
                 "order": b.order,

@@ -77,9 +77,7 @@ class DraftContestAccessTests(APITestCase):
 
         # Create a problem and add to both contests
         self.problem = Problem.objects.create(
-            title='Test Problem',
             slug='test-problem-inactive',
-            difficulty='easy',
             created_by=self.teacher
         )
         bind_problem_to_contest(self.draft_contest, self.problem, order=0)
@@ -322,9 +320,7 @@ class ContestNotStartedAccessTests(APITestCase):
 
         # Create a problem and add to contest
         self.problem = Problem.objects.create(
-            title='Future Problem',
             slug='future-problem-test',
-            difficulty='easy',
             created_by=self.teacher
         )
         bind_problem_to_contest(self.future_contest, self.problem, order=0)
@@ -392,9 +388,7 @@ class ContestEndedAccessTests(APITestCase):
 
         # Create a problem and add to contest
         self.problem = Problem.objects.create(
-            title='Ended Problem',
             slug='ended-problem-test',
-            difficulty='easy',
             created_by=self.teacher
         )
         bind_problem_to_contest(self.ended_contest, self.problem, order=0)

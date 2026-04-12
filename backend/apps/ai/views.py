@@ -653,17 +653,10 @@ class InternalProblemContextView(SchemaAPIView):
             )
 
         # Build all translations
-        translations_data = [
-            {
-                "language": t.language,
-                "title": t.title,
-                "description": t.description,
-                "input_description": t.input_description,
-                "output_description": t.output_description,
-                "hint": t.hint or "",
-            }
-            for t in problem.translations.order_by("language")
-        ]
+        translations_data = (
+            (problem.question_asset.payload or {}).get("translations", [])
+            if problem.question_asset_id else []
+        )
 
         # Sample test cases only
         sample_cases = [
@@ -671,10 +664,20 @@ class InternalProblemContextView(SchemaAPIView):
             for tc in problem.test_cases.filter(is_sample=True).order_by("order")
         ]
 
+        # Read title/difficulty from QuestionAsset
+        title = ""
+        difficulty = "medium"
+        if problem.question_asset_id:
+            try:
+                title = problem.question_asset.title or ""
+                difficulty = (problem.question_asset.payload or {}).get("difficulty", "medium")
+            except Exception:
+                pass
+
         return Response({
             "id": problem.id,
-            "title": problem.title,
-            "difficulty": problem.difficulty,
+            "title": title,
+            "difficulty": difficulty,
             "time_limit": problem.time_limit,
             "memory_limit": problem.memory_limit,
             "translations": translations_data,

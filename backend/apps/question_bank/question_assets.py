@@ -425,22 +425,13 @@ def ensure_problem_question_asset(*, problem: Problem, actor=None) -> tuple[Ques
     if owner is None:
         raise ValueError(f"Cannot resolve owner for problem {problem.id}")
 
-    translation = problem.translations.filter(
-        language__in=["zh-TW", "zh-hant", "zh-Hant"]
-    ).first() or problem.translations.first()
-    prompt = (translation.description if translation else "") or ""
-
+    # No translations on model anymore; create a minimal asset
     question_asset, question_version = write_coding_content_to_asset(
         owner=owner,
-        title=problem.title or "",
-        prompt=prompt,
-        difficulty=problem.difficulty or "medium",
-        translations=list(
-            problem.translations.values(
-                "language", "title", "description",
-                "input_description", "output_description", "hint",
-            )
-        ),
+        title="",
+        prompt="",
+        difficulty="medium",
+        translations=[],
         time_limit=problem.time_limit,
         memory_limit=problem.memory_limit,
         test_cases=list(

@@ -7,7 +7,8 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 from apps.users.models import UserProfile
-from apps.problems.models import Problem, TestCase, ProblemTranslation, LanguageConfig
+from apps.problems.models import Problem, TestCase, LanguageConfig
+from apps.question_bank.question_assets import write_coding_content_to_asset
 from apps.contests.models import Contest, ContestParticipant, ExamQuestion
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
@@ -148,27 +149,31 @@ class Command(BaseCommand):
         
         # Problem 1: A+B Problem
         prob1, created = Problem.objects.get_or_create(
-            title="A+B Problem",
+            slug='a-plus-b',
             defaults={
-                'slug': 'a-plus-b',
-                'difficulty': 'easy',
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
                 'order': 1
             }
         )
-        
+
         if created:
-            ProblemTranslation.objects.create(
-                problem=prob1,
-                language='zh-TW',
-                title="A+B Problem",
-                description="計算兩個整數 $a$ 和 $b$ 的和。",
-                input_description="輸入包含兩個整數 $a$ 和 $b$，用空格分隔。",
-                output_description="輸出一個整數，即 $a$ 和 $b$ 的和。",
-                hint="使用標準輸入輸出。"
+            asset, version = write_coding_content_to_asset(
+                owner=admin, title="A+B Problem", prompt="計算兩個整數 $a$ 和 $b$ 的和。",
+                difficulty="easy",
+                translations=[{
+                    "language": "zh-TW", "title": "A+B Problem",
+                    "description": "計算兩個整數 $a$ 和 $b$ 的和。",
+                    "input_description": "輸入包含兩個整數 $a$ 和 $b$，用空格分隔。",
+                    "output_description": "輸出一個整數，即 $a$ 和 $b$ 的和。",
+                    "hint": "使用標準輸入輸出。",
+                }],
+                actor=admin,
             )
+            prob1.question_asset = asset
+            prob1.question_version = version
+            prob1.save(update_fields=["question_asset", "question_version"])
             
             TestCase.objects.create(
                 problem=prob1,
@@ -219,27 +224,31 @@ int main() {
 
         # Problem 2: Hello World
         prob2, created = Problem.objects.get_or_create(
-            title="Hello World",
+            slug='hello-world',
             defaults={
-                'slug': 'hello-world',
-                'difficulty': 'easy',
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
                 'order': 2
             }
         )
-        
+
         if created:
-            ProblemTranslation.objects.create(
-                problem=prob2,
-                language='zh-TW',
-                title="Hello World",
-                description='撰寫一個程式輸出 "Hello, World!"。',
-                input_description="無輸入。",
-                output_description='輸出字串 "Hello, World!"。',
-                hint=""
+            asset, version = write_coding_content_to_asset(
+                owner=admin, title="Hello World", prompt='撰寫一個程式輸出 "Hello, World!"。',
+                difficulty="easy",
+                translations=[{
+                    "language": "zh-TW", "title": "Hello World",
+                    "description": '撰寫一個程式輸出 "Hello, World!"。',
+                    "input_description": "無輸入。",
+                    "output_description": '輸出字串 "Hello, World!"。',
+                    "hint": "",
+                }],
+                actor=admin,
             )
+            prob2.question_asset = asset
+            prob2.question_version = version
+            prob2.save(update_fields=["question_asset", "question_version"])
 
             TestCase.objects.create(
                 problem=prob2,
@@ -270,27 +279,31 @@ int main() {
 
         # Problem 3: Factorial
         prob3, created = Problem.objects.get_or_create(
-            title="Factorial",
+            slug='factorial',
             defaults={
-                'slug': 'factorial',
-                'difficulty': 'medium',
                 'time_limit': 1000,
                 'memory_limit': 128,
                 'created_by': admin,
                 'order': 3
             }
         )
-        
+
         if created:
-            ProblemTranslation.objects.create(
-                problem=prob3,
-                language='zh-TW',
-                title="階乘計算",
-                description='計算給定整數 $n$ 的階乘 $n!$。',
-                input_description="輸入一個整數 $n$ ($0 \\leq n \\leq 10$)。",
-                output_description='輸出 $n!$ 的值。',
-                hint="$0! = 1$, $n! = n \\times (n-1) \\times ... \\times 1$"
+            asset, version = write_coding_content_to_asset(
+                owner=admin, title="Factorial", prompt='計算給定整數 $n$ 的階乘 $n!$。',
+                difficulty="medium",
+                translations=[{
+                    "language": "zh-TW", "title": "階乘計算",
+                    "description": '計算給定整數 $n$ 的階乘 $n!$。',
+                    "input_description": "輸入一個整數 $n$ ($0 \\leq n \\leq 10$)。",
+                    "output_description": '輸出 $n!$ 的值。',
+                    "hint": "$0! = 1$, $n! = n \\times (n-1) \\times ... \\times 1$",
+                }],
+                actor=admin,
             )
+            prob3.question_asset = asset
+            prob3.question_version = version
+            prob3.save(update_fields=["question_asset", "question_version"])
 
             TestCase.objects.create(
                 problem=prob3,

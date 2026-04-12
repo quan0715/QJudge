@@ -66,9 +66,8 @@ class ContestDataService:
                 contest=self.contest,
                 binding_type=QuestionAsset.AssetType.CODING,
             )
-            .select_related('coding_problem')
+            .select_related('coding_problem', 'coding_problem__question_asset')
             .prefetch_related(
-                'coding_problem__translations',
                 'coding_problem__test_cases',
                 'coding_problem__tags',
             )
@@ -346,12 +345,44 @@ class ContestDataService:
 
     def _format_problem(self, problem: Problem, label: str) -> ProblemDTO:
         """Format a problem's content for export."""
-        # Find translation for the specified language
-        translation = problem.translations.filter(language=self.language).first()
+        # Read translations from QuestionAsset (source of truth)
+        title = ""
+        description = ""
+        input_description = ""
+        output_description = ""
+        hint = ""
+        difficulty = "medium"
+        difficulty_display = "中等"
 
-        # Fallback to first available translation if language not found
-        if not translation and problem.translations.exists():
-            translation = problem.translations.first()
+        difficulty_display_map = {"easy": "簡單", "medium": "中等", "hard": "困難"}
+
+        if problem.question_asset_id:
+            try:
+                asset = problem.question_asset
+                title = asset.title or ""
+                payload = asset.payload or {}
+                difficulty = payload.get("difficulty", "medium")
+                difficulty_display = difficulty_display_map.get(difficulty, difficulty)
+                translations = payload.get("translations", [])
+
+                # Find translation for the specified language
+                match_langs = ['zh-TW', 'zh-hant'] if self.language == 'zh-TW' else [self.language]
+                translation = None
+                for t in translations:
+                    if t.get("language") in match_langs:
+                        translation = t
+                        break
+                if not translation and translations:
+                    translation = translations[0]
+
+                if translation:
+                    title = translation.get("title", title)
+                    description = translation.get("description", "")
+                    input_description = translation.get("input_description", "")
+                    output_description = translation.get("output_description", "")
+                    hint = translation.get("hint", "")
+            except Exception:
+                pass
 
         # Get sample test cases
         sample_cases = problem.test_cases.filter(is_sample=True).order_by('id')
@@ -359,15 +390,15 @@ class ContestDataService:
         return ProblemDTO(
             id=str(problem.id),
             label=label,
-            title=translation.title if translation else problem.title,
-            description=translation.description if translation else '',
-            input_description=translation.input_description if translation else '',
-            output_description=translation.output_description if translation else '',
-            hint=translation.hint if translation else '',
+            title=title,
+            description=description,
+            input_description=input_description,
+            output_description=output_description,
+            hint=hint,
             time_limit=problem.time_limit,
             memory_limit=problem.memory_limit,
-            difficulty=problem.difficulty or 'medium',
-            difficulty_display=problem.get_difficulty_display(),
+            difficulty=difficulty,
+            difficulty_display=difficulty_display,
             sample_cases=[
                 SampleCaseDTO(input=tc.input_data, output=tc.output_data)
                 for tc in sample_cases

@@ -5,7 +5,6 @@ from rest_framework import serializers
 from .models import (
     CodingProblem,
     Problem,  # backward-compat alias for CodingProblem
-    ProblemTranslation,
     TestCase,
     LanguageConfig,
     Tag,
@@ -13,18 +12,14 @@ from .models import (
 from .services import ProblemService
 
 
-class ProblemTranslationSerializer(serializers.ModelSerializer):
-    """Serializer for problem translations."""
-    class Meta:
-        model = ProblemTranslation
-        fields = [
-            'language',
-            'title',
-            'description',
-            'input_description',
-            'output_description',
-            'hint',
-        ]
+class TranslationInputSerializer(serializers.Serializer):
+    """Plain serializer for accepting translation data on the write path."""
+    language = serializers.CharField()
+    title = serializers.CharField(allow_blank=True, required=False, default='')
+    description = serializers.CharField(allow_blank=True, required=False, default='')
+    input_description = serializers.CharField(allow_blank=True, required=False, default='')
+    output_description = serializers.CharField(allow_blank=True, required=False, default='')
+    hint = serializers.CharField(allow_blank=True, required=False, default='')
 
 
 class TestCaseSerializer(serializers.ModelSerializer):
@@ -348,13 +343,15 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
 
 class ProblemAdminSerializer(serializers.ModelSerializer):
     """Serializer for admin/teacher to manage problems."""
-    translations = ProblemTranslationSerializer(many=True, required=False)
+    title = serializers.CharField(required=False, default='')
+    difficulty = serializers.CharField(required=False, default='medium')
+    translations = TranslationInputSerializer(many=True, required=False)
     test_cases = TestCaseSerializer(many=True, required=False)
     language_configs = LanguageConfigSerializer(many=True, required=False)
     tags = TagSerializer(many=True, read_only=True)  # Read: return full tag objects
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
-    
+
     # New Tag UX fields (write-only)
     existing_tag_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -366,7 +363,7 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         required=False,
         write_only=True
     )
-    
+
     class Meta:
         model = Problem
         fields = [

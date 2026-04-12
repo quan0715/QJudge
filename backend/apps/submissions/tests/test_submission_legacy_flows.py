@@ -40,9 +40,7 @@ class ProblemFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Problem
 
-    title = factory.Sequence(lambda n: f"Problem {n}")
     slug = factory.Sequence(lambda n: f"problem-{n}")
-    difficulty = "easy"
     created_by = factory.SubFactory(UserFactory, role="teacher")
     forbidden_keywords = factory.LazyFunction(list)
     required_keywords = factory.LazyFunction(list)

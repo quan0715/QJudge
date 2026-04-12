@@ -37,10 +37,8 @@ def student(db):
 def problem(db, owner):
     suffix = uuid.uuid4().hex[:8]
     return Problem.objects.create(
-        title="Sum",
         slug=f"sum-ctg-{suffix}",
         created_by=owner,
-        difficulty="easy",
         time_limit=1000,
         memory_limit=262144,
     )

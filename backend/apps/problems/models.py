@@ -1,5 +1,5 @@
 """
-Models for coding problems, translations, and test cases.
+Models for coding problems and test cases.
 
 The canonical content (title, difficulty, translations) is owned by
 QuestionAsset.  CodingProblem is the *execution adapter* that owns
@@ -23,22 +23,10 @@ class CodingProblem(models.Model):
 
     DB table stays ``problems`` for backward compatibility.
     """
-    DIFFICULTY_CHOICES = [
-        ('easy', '簡單'),
-        ('medium', '中等'),
-        ('hard', '困難'),
-    ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Basic info
-    title = models.CharField(max_length=255, verbose_name='標題')
     slug = models.SlugField(max_length=255, unique=True, blank=True, verbose_name='Slug')
-    difficulty = models.CharField(
-        max_length=10,
-        choices=DIFFICULTY_CHOICES,
-        default='medium',
-        verbose_name='難度'
-    )
     
     # Limits
     time_limit = models.IntegerField(default=1000, verbose_name='時間限制 (ms)')
@@ -113,49 +101,20 @@ class CodingProblem(models.Model):
         verbose_name = '題目'
         verbose_name_plural = '題目'
         ordering = ['order', 'created_at']
-        indexes = [
-            models.Index(fields=['difficulty']),
-        ]
-    
+
     def __str__(self):
-        return f"{self.id}. {self.title}"
-    
+        if self.question_asset_id:
+            try:
+                return f"{self.id}. {self.question_asset.title}"
+            except Exception:
+                pass
+        return f"{self.id}"
+
     @property
     def acceptance_rate(self):
         if self.submission_count == 0:
             return 0.0
         return (self.accepted_count / self.submission_count) * 100
-
-    # -- Asset-delegated content properties (Phase 0 prep) --
-    # These read from the linked QuestionAsset when available,
-    # falling back to local fields during the transition period.
-
-    @property
-    def effective_title(self) -> str:
-        if self.question_asset_id:
-            try:
-                return self.question_asset.title or self.title
-            except Exception:
-                pass
-        return self.title
-
-    @property
-    def effective_difficulty(self) -> str:
-        if self.question_asset_id:
-            try:
-                return self.question_asset.payload.get("difficulty") or self.difficulty
-            except Exception:
-                pass
-        return self.difficulty
-
-    @property
-    def effective_owner(self):
-        if self.question_asset_id:
-            try:
-                return self.question_asset.owner
-            except Exception:
-                pass
-        return self.created_by
 
 
 # Backward-compat alias — allows existing imports to keep working during transition.
@@ -208,36 +167,7 @@ class LanguageConfig(models.Model):
         ordering = ['order', 'language']
     
     def __str__(self):
-        return f"{self.problem.title} - {self.get_language_display()}"
-
-
-class ProblemTranslation(models.Model):
-    """
-    Translations for problem content.
-    """
-    problem = models.ForeignKey(
-        CodingProblem,
-        on_delete=models.CASCADE,
-        related_name='translations',
-        verbose_name='題目'
-    )
-    language = models.CharField(max_length=10, verbose_name='語言代碼')  # e.g., 'zh-TW', 'zh-hant', 'en'
-    
-    # Content
-    title = models.CharField(max_length=255, verbose_name='標題')
-    description = models.TextField(verbose_name='題目描述')
-    input_description = models.TextField(verbose_name='輸入說明')
-    output_description = models.TextField(verbose_name='輸出說明')
-    hint = models.TextField(blank=True, verbose_name='提示')
-    
-    class Meta:
-        db_table = 'problem_translations'
-        verbose_name = '題目翻譯'
-        verbose_name_plural = '題目翻譯'
-        unique_together = ['problem', 'language']
-    
-    def __str__(self):
-        return f"{self.problem.title} ({self.language})"
+        return f"{self.problem_id} - {self.get_language_display()}"
 
 
 class TestCase(models.Model):
@@ -273,7 +203,7 @@ class TestCase(models.Model):
         ordering = ['order', 'id']
     
     def __str__(self):
-        return f"TestCase {self.id} for {self.problem.title}"
+        return f"TestCase {self.id} for {self.problem_id}"
 
 
 class Tag(models.Model):

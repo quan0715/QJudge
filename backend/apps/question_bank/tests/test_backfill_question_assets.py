@@ -83,10 +83,8 @@ def test_backfill_question_assets_dry_run_does_not_mutate():
         role="teacher",
     )
     problem = Problem.objects.create(
-        title="Dry Run Problem",
         slug="dry-run-problem",
         created_by=teacher,
-        difficulty="easy",
     )
     stdout = StringIO()
 
@@ -113,10 +111,8 @@ def test_backfill_question_assets_resolves_problem_owner_from_contest_binding():
         status="draft",
     )
     problem = Problem.objects.create(
-        title="Legacy Null Owner Problem",
         slug="legacy-null-owner-problem",
         created_by=teacher,  # needs a creator so backfill can sync
-        difficulty="easy",
     )
     # Create a binding so the problem is linked to the contest
     bind_problem_to_contest(contest, problem, order=0)
@@ -137,10 +133,8 @@ def test_backfill_question_assets_skips_unresolvable_problem_but_continues():
         role="teacher",
     )
     unresolved_problem = Problem.objects.create(
-        title="Unowned Legacy Problem",
         slug="unowned-legacy-problem",
         created_by=None,
-        difficulty="easy",
     )
     bank = QuestionBank.objects.create(
         owner=teacher,

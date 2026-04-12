@@ -62,12 +62,10 @@ class StandingsAPITests(APITestCase):
 
         # Create problems
         self.problem_a = Problem.objects.create(
-            title='Problem A - Secret Title',
             slug='problem-a',
             created_by=self.teacher
         )
         self.problem_b = Problem.objects.create(
-            title='Problem B - Secret Title',
             slug='problem-b',
             created_by=self.teacher
         )
@@ -287,7 +285,6 @@ class StandingsDataIntegrityTests(APITestCase):
         )
 
         self.problem = Problem.objects.create(
-            title='Test Problem',
             slug='test-problem',
             created_by=self.teacher
         )
@@ -396,7 +393,6 @@ class StandingsTestSubmissionFilterTests(APITestCase):
 
         # Create problem with 100 points
         self.problem = Problem.objects.create(
-            title='Test Problem',
             slug='filter-test-problem',
             created_by=self.teacher
         )
@@ -586,12 +582,10 @@ class StandingsRankingOrderTests(APITestCase):
 
         # Create two problems: problem1 worth 100 points, problem2 worth 50 points
         self.problem1 = Problem.objects.create(
-            title='Problem 1',
             slug='ranking-problem-1',
             created_by=self.teacher
         )
         self.problem2 = Problem.objects.create(
-            title='Problem 2',
             slug='ranking-problem-2',
             created_by=self.teacher
         )

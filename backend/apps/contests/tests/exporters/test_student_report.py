@@ -12,7 +12,8 @@ from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
-from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
+from apps.problems.models import Problem, TestCase as ProblemTestCase
+from apps.question_bank.models import QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
 
@@ -111,22 +112,26 @@ class TestStudentReportEndpoints:
         )
     
     @pytest.fixture
-    def problem(self, active_contest):
+    def problem(self, active_contest, teacher):
         """Create a problem for the contest."""
-        problem = Problem.objects.create(
+        asset = QuestionAsset.objects.create(
+            owner=teacher,
+            asset_type=QuestionAsset.AssetType.CODING,
             title='Test Problem',
+            payload={"difficulty": "easy", "translations": [{
+                "language": "zh-TW", "title": "測試題目",
+                "description": "測試題目描述",
+                "input_description": "", "output_description": "", "hint": "",
+            }]},
+        )
+        problem = Problem.objects.create(
+            slug='test-problem-sr',
             time_limit=1000,
             memory_limit=128,
-            difficulty='easy'
+            question_asset=asset,
+            created_by=teacher,
         )
-        
-        ProblemTranslation.objects.create(
-            problem=problem,
-            language='zh-TW',
-            title='測試題目',
-            description='測試題目描述'
-        )
-        
+
         ProblemTestCase.objects.create(
             problem=problem,
             input_data='1',
@@ -134,9 +139,9 @@ class TestStudentReportEndpoints:
             is_sample=True,
             score=20
         )
-        
+
         bind_problem_to_contest(active_contest, problem, order=0)
-        
+
         return problem
     
     @pytest.fixture
@@ -344,16 +349,21 @@ class TestStudentReportEndpoints:
     ):
         """Test that submitted student can download after contest ends."""
         # Create participant and submission for ended contest
-        problem = Problem.objects.create(
+        asset = QuestionAsset.objects.create(
+            owner=teacher,
+            asset_type=QuestionAsset.AssetType.CODING,
             title='Ended Contest Problem',
+            payload={"difficulty": "easy", "translations": [{
+                "language": "zh-TW", "title": "結束考試題目",
+                "description": "", "input_description": "", "output_description": "", "hint": "",
+            }]},
+        )
+        problem = Problem.objects.create(
+            slug='ended-contest-problem',
             time_limit=1000,
             memory_limit=128,
-            difficulty='easy'
-        )
-        ProblemTranslation.objects.create(
-            problem=problem,
-            language='zh-TW',
-            title='結束考試題目'
+            question_asset=asset,
+            created_by=teacher,
         )
         bind_problem_to_contest(ended_contest, problem, order=0)
         ContestParticipant.objects.create(
@@ -564,22 +574,26 @@ class TestStudentReportScoreCalculation:
         )
     
     @pytest.fixture
-    def problem(self, contest):
+    def problem(self, contest, teacher):
         """Create a problem worth 100 points."""
-        problem = Problem.objects.create(
+        asset = QuestionAsset.objects.create(
+            owner=teacher,
+            asset_type=QuestionAsset.AssetType.CODING,
             title='Score Test Problem',
+            payload={"difficulty": "easy", "translations": [{
+                "language": "zh-TW", "title": "分數測試題目",
+                "description": "測試分數計算",
+                "input_description": "", "output_description": "", "hint": "",
+            }]},
+        )
+        problem = Problem.objects.create(
+            slug='score-test-problem',
             time_limit=1000,
             memory_limit=128,
-            difficulty='easy'
+            question_asset=asset,
+            created_by=teacher,
         )
-        
-        ProblemTranslation.objects.create(
-            problem=problem,
-            language='zh-TW',
-            title='分數測試題目',
-            description='測試分數計算'
-        )
-        
+
         ProblemTestCase.objects.create(
             problem=problem,
             input_data='1',
@@ -587,9 +601,9 @@ class TestStudentReportScoreCalculation:
             is_sample=True,
             score=100
         )
-        
+
         bind_problem_to_contest(contest, problem, order=0)
-        
+
         return problem
     
     @pytest.fixture

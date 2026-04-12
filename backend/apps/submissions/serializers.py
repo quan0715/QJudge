@@ -87,7 +87,15 @@ class SubmissionListSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField()
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     problem_id = serializers.UUIDField(source='problem.id', read_only=True)
-    problem_title = serializers.CharField(source='problem.title', read_only=True)
+    problem_title = serializers.SerializerMethodField()
+
+    def get_problem_title(self, obj):
+        if obj.problem_id and obj.problem.question_asset_id:
+            try:
+                return obj.problem.question_asset.title or f"Problem {obj.problem_id}"
+            except Exception:
+                pass
+        return f"Problem {obj.problem_id}"
     contest_id = serializers.UUIDField(source='contest.id', read_only=True, allow_null=True)
     
     def get_username(self, obj):

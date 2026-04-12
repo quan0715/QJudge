@@ -591,7 +591,7 @@ class ContestProblemSerializer(serializers.ModelSerializer):
                 pass
         if obj.coding_problem_id:
             try:
-                return obj.coding_problem.title
+                return obj.coding_problem.question_asset.title if obj.coding_problem.question_asset_id else None
             except Exception:
                 pass
         return None
@@ -604,7 +604,7 @@ class ContestProblemSerializer(serializers.ModelSerializer):
                 pass
         if obj.coding_problem_id:
             try:
-                return obj.coding_problem.difficulty
+                return (obj.coding_problem.question_asset.payload or {}).get("difficulty", "medium") if obj.coding_problem.question_asset_id else "medium"
             except Exception:
                 pass
         return "medium"
@@ -818,7 +818,15 @@ class ClarificationSerializer(serializers.ModelSerializer):
     """
     author_username = serializers.CharField(source='author.username', read_only=True)
     author_display_name = serializers.SerializerMethodField()
-    problem_title = serializers.CharField(source='problem.title', read_only=True, allow_null=True)
+    problem_title = serializers.SerializerMethodField()
+
+    def get_problem_title(self, obj):
+        if obj.problem_id and obj.problem.question_asset_id:
+            try:
+                return obj.problem.question_asset.title
+            except Exception:
+                pass
+        return None
     
     class Meta:
         model = Clarification

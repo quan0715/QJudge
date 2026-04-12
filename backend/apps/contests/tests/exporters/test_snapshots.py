@@ -15,7 +15,8 @@ from apps.contests.exporters import (
     PDFRenderer,
     StudentReportRenderer,
 )
-from apps.problems.models import Problem, ProblemTranslation, TestCase as ProblemTestCase
+from apps.problems.models import Problem, TestCase as ProblemTestCase
+from apps.question_bank.models import QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
 
@@ -70,22 +71,24 @@ class TestMarkdownRendererSnapshots:
             status='published',
         )
 
-        problem = Problem.objects.create(
+        asset = QuestionAsset.objects.create(
+            owner=user,
+            asset_type=QuestionAsset.AssetType.CODING,
             title='Test Problem',
+            payload={"difficulty": "medium", "translations": [{
+                "language": "zh-TW", "title": "測試題目",
+                "description": "這是一個測試題目描述",
+                "input_description": "輸入一個整數 N",
+                "output_description": "輸出 N 的平方",
+                "hint": "使用乘法",
+            }]},
+        )
+        problem = Problem.objects.create(
             slug='snapshot-test-problem',
             time_limit=1000,
             memory_limit=128,
-            difficulty='medium'
-        )
-
-        ProblemTranslation.objects.create(
-            problem=problem,
-            language='zh-TW',
-            title='測試題目',
-            description='這是一個測試題目描述',
-            input_description='輸入一個整數 N',
-            output_description='輸出 N 的平方',
-            hint='使用乘法'
+            question_asset=asset,
+            created_by=user,
         )
 
         ProblemTestCase.objects.create(
@@ -160,21 +163,24 @@ class TestPDFRendererSnapshots:
             cheat_detection_enabled=True,
         )
 
-        problem = Problem.objects.create(
+        asset = QuestionAsset.objects.create(
+            owner=user,
+            asset_type=QuestionAsset.AssetType.CODING,
             title='PDF Test Problem',
+            payload={"difficulty": "hard", "translations": [{
+                "language": "zh-TW", "title": "PDF 測試題",
+                "description": "這是 PDF 測試題目",
+                "input_description": "輸入說明",
+                "output_description": "輸出說明",
+                "hint": "",
+            }]},
+        )
+        problem = Problem.objects.create(
             slug='pdf-snapshot-test',
             time_limit=2000,
             memory_limit=256,
-            difficulty='hard'
-        )
-
-        ProblemTranslation.objects.create(
-            problem=problem,
-            language='zh-TW',
-            title='PDF 測試題',
-            description='這是 PDF 測試題目',
-            input_description='輸入說明',
-            output_description='輸出說明',
+            question_asset=asset,
+            created_by=user,
         )
 
         ProblemTestCase.objects.create(
@@ -244,19 +250,22 @@ class TestStudentReportSnapshots:
             ('medium', 'Medium Problem'),
             ('hard', 'Hard Problem'),
         ]):
-            problem = Problem.objects.create(
+            asset = QuestionAsset.objects.create(
+                owner=owner,
+                asset_type=QuestionAsset.AssetType.CODING,
                 title=title,
+                payload={"difficulty": diff, "translations": [{
+                    "language": "zh-TW", "title": f"{diff.capitalize()} 題目",
+                    "description": f"{diff} 描述",
+                    "input_description": "", "output_description": "", "hint": "",
+                }]},
+            )
+            problem = Problem.objects.create(
                 slug=f'report-snapshot-{diff}',
                 time_limit=1000,
                 memory_limit=128,
-                difficulty=diff
-            )
-
-            ProblemTranslation.objects.create(
-                problem=problem,
-                language='zh-TW',
-                title=f'{diff.capitalize()} 題目',
-                description=f'{diff} 描述',
+                question_asset=asset,
+                created_by=owner,
             )
 
             for j in range(2):

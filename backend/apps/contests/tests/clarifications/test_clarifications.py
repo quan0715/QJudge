@@ -71,9 +71,7 @@ def contest(teacher: User) -> Contest:
 @pytest.fixture
 def problem(teacher: User) -> Problem:
     return Problem.objects.create(
-        title="Clarification Problem",
         slug="clarification-problem",
-        difficulty="easy",
         created_by=teacher,
     )
 

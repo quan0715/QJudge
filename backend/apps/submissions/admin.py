@@ -23,6 +23,6 @@ class ScreenEventInline(admin.TabularInline):
 class SubmissionAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'problem', 'status', 'score', 'language', 'created_at']
     list_filter = ['status', 'language', 'created_at']
-    search_fields = ['user__username', 'problem__title']
+    search_fields = ['user__username', 'problem__question_asset__title']
     inlines = [SubmissionResultInline, ScreenEventInline]
     readonly_fields = ['code', 'error_message']

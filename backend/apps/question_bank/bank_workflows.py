@@ -110,25 +110,29 @@ def get_or_create_personal_bank(
     return _resolve_or_create_active_personal_bank(user=user, category=category)
 
 
-def _pick_problem_translation(problem: Problem):
-    translation = problem.translations.filter(language__in=["zh-TW", "zh-hant", "zh-Hant"]).first()
-    if translation:
-        return translation
-    return problem.translations.first()
+def _pick_asset_translation(problem: Problem) -> dict | None:
+    """Pick the best translation dict from the QuestionAsset payload."""
+    if not problem.question_asset_id:
+        return None
+    try:
+        translations = (problem.question_asset.payload or {}).get("translations", [])
+    except Exception:
+        return None
+    for t in translations:
+        if t.get("language") in ["zh-TW", "zh-hant", "zh-Hant"]:
+            return t
+    return translations[0] if translations else None
 
 
 def _build_coding_ext_payload(problem: Problem) -> dict[str, Any]:
+    translations = []
+    if problem.question_asset_id:
+        try:
+            translations = (problem.question_asset.payload or {}).get("translations", [])
+        except Exception:
+            pass
     return {
-        "translations": list(
-            problem.translations.values(
-                "language",
-                "title",
-                "description",
-                "input_description",
-                "output_description",
-                "hint",
-            )
-        ),
+        "translations": translations,
         "test_cases": list(
             problem.test_cases.values(
                 "input_data",
@@ -182,9 +186,17 @@ def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=No
             f"Cannot add a coding problem to a '{bank.category}' bank "
             f"(bank '{bank.name}' only accepts '{QuestionBank.Category.CODING}' questions)."
         )
-    translation = _pick_problem_translation(problem)
-    title = (translation.title if translation else problem.title) or problem.title
-    prompt = (translation.description if translation else "") or ""
+    translation = _pick_asset_translation(problem)
+    asset_title = ""
+    asset_difficulty = "medium"
+    if problem.question_asset_id:
+        try:
+            asset_title = problem.question_asset.title or ""
+            asset_difficulty = (problem.question_asset.payload or {}).get("difficulty", "medium")
+        except Exception:
+            pass
+    title = (translation.get("title") if translation else asset_title) or asset_title or "Untitled"
+    prompt = (translation.get("description") if translation else "") or ""
 
     score_sum = problem.test_cases.aggregate(total=Sum("score")).get("total") or 100
 
@@ -193,7 +205,7 @@ def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=No
         "title": title,
         "prompt": prompt,
         "score": int(score_sum),
-        "difficulty": problem.difficulty or "medium",
+        "difficulty": asset_difficulty,
         "time_limit": problem.time_limit,
         "memory_limit": problem.memory_limit,
         "created_by": created_by or problem.created_by,
@@ -473,6 +485,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
         coding_rows = (
             Problem.objects.filter(Q(created_by=user) | Q(id__in=managed_problem_ids))
             .exclude(id__in=synced | bank_imported)
+            .select_related("question_asset")
             .distinct()
             .order_by("-updated_at", "-id")
         )
@@ -483,7 +496,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
                 {
                     "source_type": "problem",
                     "source_id": str(row.id),
-                    "title": row.title,
+                    "title": (row.question_asset.title if row.question_asset_id else "") or str(row.id),
                     "contest_id": contest_id,
                     "contest_name": contest_name,
                     "question_type": "coding",

@@ -5,32 +5,6 @@ from .models import CodingProblem, Problem, TestCase, LanguageConfig, Tag
 import uuid
 
 
-# ── Content vs Execution field classification ──
-# Content fields (owned by QuestionAsset): title, difficulty, translations, tags
-# Execution fields (owned by Problem/CodingProblem): slug, time_limit, memory_limit,
-#   test_cases, language_configs, forbidden_keywords, required_keywords
-
-CONTENT_FIELDS = {"title", "difficulty"}
-EXECUTION_FIELDS = {
-    "slug", "time_limit", "memory_limit",
-    "forbidden_keywords", "required_keywords", "order",
-}
-
-
-def _split_content_execution(validated_data: dict) -> tuple[dict, dict]:
-    """Split validated_data into content fields (for Asset) and execution fields (for Problem)."""
-    content = {}
-    execution = {}
-    for k, v in validated_data.items():
-        if k in CONTENT_FIELDS:
-            content[k] = v
-        else:
-            execution[k] = v
-    # Execution also needs content fields for backward compat (Problem still has them)
-    execution.update(content)
-    return content, execution
-
-
 class ProblemService:
     @staticmethod
     def _clone_related(source_problem: CodingProblem, new_problem: CodingProblem) -> None:
@@ -141,12 +115,14 @@ class ProblemService:
         test_cases_data = test_cases_data or []
         language_configs_data = language_configs_data or []
 
+        # Pop content fields (owned by QuestionAsset, not CodingProblem)
+        title = validated_data.pop("title", "")
+        difficulty = validated_data.pop("difficulty", "medium")
+
         if not validated_data.get('slug'):
-            validated_data['slug'] = ProblemService.build_slug_from_title(validated_data.get('title'))
+            validated_data['slug'] = ProblemService.build_slug_from_title(title)
 
         # 1. Resolve content for Asset
-        title = validated_data.get("title", "")
-        difficulty = validated_data.get("difficulty", "medium")
         owner = validated_data.get("created_by")
 
         # Pick prompt from translations
@@ -205,10 +181,26 @@ class ProblemService:
     ) -> CodingProblem:
         from apps.question_bank.question_assets import write_coding_content_to_asset
 
+        # Pop content fields (owned by QuestionAsset, not CodingProblem)
+        title = validated_data.pop("title", None)
+        difficulty = validated_data.pop("difficulty", None)
+
+        # Resolve current title/difficulty from asset for fallback
+        current_title = ""
+        current_difficulty = "medium"
+        if instance.question_asset_id:
+            try:
+                current_title = instance.question_asset.title or ""
+                current_difficulty = (instance.question_asset.payload or {}).get("difficulty", "medium")
+            except Exception:
+                pass
+        title = title if title is not None else current_title
+        difficulty = difficulty if difficulty is not None else current_difficulty
+
         if 'slug' in validated_data and not validated_data.get('slug'):
-            title_base = instance.title
+            title_base = title
             if translations_data:
-                title_base = translations_data[0].get('title', instance.title)
+                title_base = translations_data[0].get('title', title)
             validated_data['slug'] = ProblemService.build_slug_from_title(title_base)
 
         # 1. Update Problem's local execution fields
@@ -230,8 +222,6 @@ class ProblemService:
             instance.tags.set(tags)
 
         # 2. Write content to QuestionAsset (source of truth)
-        title = validated_data.get("title", instance.title)
-        difficulty = validated_data.get("difficulty", instance.difficulty)
         owner = instance.created_by
 
         prompt = ""
@@ -290,9 +280,7 @@ class ProblemService:
             ensure_problem_question_asset(problem=source_problem, actor=created_by)
 
         new_problem = CodingProblem.objects.create(
-            title=f"{(source_problem.question_asset.title if source_problem.question_asset_id else 'Problem')} (Copy)",
             slug=f"{source_problem.slug}-{contest.id}-copy",
-            difficulty=source_problem.difficulty,
             time_limit=source_problem.time_limit,
             memory_limit=source_problem.memory_limit,
             created_by=created_by,
@@ -329,9 +317,7 @@ class ProblemService:
         )
 
         problem = CodingProblem.objects.create(
-            title=title,
             slug=slug,
-            difficulty='medium',
             created_by=created_by,
             question_asset=question_asset,
             question_version=question_version,
