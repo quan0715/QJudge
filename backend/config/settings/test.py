@@ -22,6 +22,14 @@ DB_OPTIONS = {
     'connect_timeout': 10,
 }
 
+
+def _env_first(*keys: str, default: str | None = None) -> str | None:
+    for key in keys:
+        value = os.getenv(key)
+        if value:
+            return value
+    return default
+
 if DATABASE_URL:
     # Parse DATABASE_URL (e.g., postgresql://user:pass@host:port/dbname)
     url = urlparse(DATABASE_URL)
@@ -41,7 +49,11 @@ if DATABASE_URL:
 else:
     # 回退到個別環境變數
     # 注意：postgres_test 是 Docker 內部服務名，本地應使用 localhost
-    db_host = os.getenv('POSTGRES_HOST', os.getenv('DB_HOST', 'localhost'))
+    db_host = _env_first('POSTGRES_HOST', 'DB_HOST', 'DATABASE_HOST', default='localhost')
+    # Django test runner 需要直連 PostgreSQL 來建立/刪除 test_* 資料庫；
+    # pgbouncer 只代理既有資料庫，不能承接這段流程。
+    if db_host == 'pgbouncer':
+        db_host = _env_first('POSTGRES_DIRECT_HOST', 'POSTGRES_HOST', default='postgres')
     # 如果是 Docker 服務名但不在 Docker 網路內，回退到 localhost
     if db_host in ('postgres_test', 'postgres') and not os.path.exists('/.dockerenv'):
         db_host = 'localhost'
@@ -49,11 +61,11 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('POSTGRES_DB', os.getenv('DATABASE_NAME', 'test_oj')),
-            'USER': os.getenv('POSTGRES_USER', os.getenv('DATABASE_USER', 'test_user')),
-            'PASSWORD': os.getenv('POSTGRES_PASSWORD', os.getenv('DATABASE_PASSWORD', 'test_password')),
+            'NAME': _env_first('POSTGRES_DB', 'DB_NAME', 'DATABASE_NAME', default='test_oj'),
+            'USER': _env_first('POSTGRES_USER', 'DB_USER', 'DATABASE_USER', default='test_user'),
+            'PASSWORD': _env_first('POSTGRES_PASSWORD', 'DB_PASSWORD', 'DATABASE_PASSWORD', default='test_password'),
             'HOST': db_host,
-            'PORT': os.getenv('POSTGRES_PORT', os.getenv('DATABASE_PORT', '5432')),
+            'PORT': _env_first('POSTGRES_PORT', 'DB_PORT', 'DATABASE_PORT', default='5432'),
             'CONN_MAX_AGE': DB_CONN_MAX_AGE,
             'CONN_HEALTH_CHECKS': True,
             'OPTIONS': DB_OPTIONS,
