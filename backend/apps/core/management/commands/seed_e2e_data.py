@@ -377,7 +377,7 @@ int main() {
         
         if created:
             # Add problems to contest
-            problems = Problem.objects.filter(title__in=['A+B Problem', 'Hello World'])
+            problems = Problem.objects.filter(question_asset__title__in=['A+B Problem', 'Hello World'])
             for idx, problem in enumerate(problems):
                 self._bind_problem(contest1, problem, idx)
             self.stdout.write('  ✓ 建立競賽: E2E Test Contest')
@@ -402,7 +402,7 @@ int main() {
         )
 
         if created:
-            problems = Problem.objects.filter(title='Factorial')
+            problems = Problem.objects.filter(question_asset__title='Factorial')
             for idx, problem in enumerate(problems):
                 self._bind_problem(contest2, problem, idx)
             self.stdout.write('  ✓ 建立競賽: Upcoming Contest')
@@ -429,7 +429,7 @@ int main() {
         )
 
         if created:
-            problems = Problem.objects.filter(title='A+B Problem')
+            problems = Problem.objects.filter(question_asset__title='A+B Problem')
             for idx, problem in enumerate(problems):
                 self._bind_problem(contest3, problem, idx)
             self.stdout.write('  ✓ 建立競賽: E2E Exam Mode Contest')
@@ -528,7 +528,7 @@ int main() {
             self.stdout.write('  - 題庫已存在: E2E Test Bank')
 
         # At least one coding row for QuestionSourcePanel (coding mode)
-        prob_ab = Problem.objects.filter(title="A+B Problem").first()
+        prob_ab = Problem.objects.filter(question_asset__title="A+B Problem").first()
         if prob_ab and teacher:
             upsert_problem_into_bank(problem=prob_ab, bank=bank, created_by=teacher)
             self.stdout.write('  ✓ 題庫題目: A+B Problem → E2E Test Bank')

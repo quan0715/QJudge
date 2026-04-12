@@ -220,7 +220,7 @@ class Command(BaseCommand):
 
         # Attach coding problems
         for idx, title in enumerate(["A+B Problem", "Hello World", "Factorial"]):
-            prob = Problem.objects.filter(title=title).first()
+            prob = Problem.objects.filter(question_asset__title=title).first()
             if prob:
                 self._bind_problem(paper_contest, prob, idx)
                 self._bind_problem(coding_contest, prob, idx)
