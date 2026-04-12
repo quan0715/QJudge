@@ -26,7 +26,7 @@
     background: var(--cds-background);
     border: 1px solid var(--cds-border-subtle);
     border-radius: 4px;
-    font-size: type.$body-01;
+    @include type.type-style("body-01");
     font-weight: 600;
     color: var(--cds-text-primary);
     min-width: 100px;
@@ -48,13 +48,13 @@
     text-align: center;
 
     h4 {
-      @include type.body-02;
+      @include type.type-style("heading-04");
       color: var(--cds-text-primary);
       margin-bottom: layout.$spacing-02;
     }
 
     p {
-      @include type.body-01;
+      @include type.type-style("body-01");
       color: var(--cds-text-secondary);
       line-height: 1.5;
     }
@@ -91,14 +91,14 @@
     margin-bottom: layout.$spacing-04;
 
     h3 {
-      @include type.heading-02;
+      @include type.type-style("heading-02");
       color: var(--cds-text-primary);
       margin-bottom: layout.$spacing-02;
     }
   }
 
   &__example-description {
-    @include type.body-01;
+    @include type.type-style("body-01");
     color: var(--cds-text-secondary);
     line-height: 1.5;
   }
@@ -112,7 +112,7 @@
   &__chat-message {
     padding: layout.$spacing-03;
     border-radius: 6px;
-    @include type.body-01;
+    @include type.type-style("body-01");
     line-height: 1.5;
 
     &--user {
@@ -128,7 +128,7 @@
 
   &__chat-sender {
     display: block;
-    @include type.label-01;
+    @include type.type-style("label-01");
     font-weight: 600;
     color: var(--cds-text-primary);
     margin-bottom: layout.$spacing-01;
@@ -141,7 +141,7 @@
     color: var(--cds-success);
     font-weight: 600;
     border-radius: 4px;
-    @include type.label-01;
+    @include type.type-style("label-01");
   }
 
   &__stats {
@@ -151,6 +151,6 @@
     color: var(--cds-interactive-01);
     font-weight: 600;
     border-radius: 4px;
-    @include type.label-01;
+    @include type.type-style("label-01");
   }
 }
