@@ -12,6 +12,7 @@ dependencies = [
     "langgraph-checkpoint-postgres>=3.0.0",
     "langchain-anthropic>=0.3.0",
     "langchain-core>=0.3.0",
+    "mcp>=1.9.0",
     "psycopg[binary]>=3.1.0",
     "pydantic>=2.6.0",
     "pydantic-settings>=2.2.0",

@@ -234,6 +234,41 @@
     "signIn": "Sign in",
     "docs": "Learn more"
   },
+  "mcp": {
+    "eyebrow": "Seamless Collaboration",
+    "title": "Collaborate Seamlessly with Your Favorite AI Tools",
+    "description": "Create, grade, and provide feedback directly in Claude, ChatGPT, Cursor, Perplexity, Gemini, and Notion",
+    "features": {
+      "0": "Generate competition problems quickly",
+      "1": "Automatically grade student submissions",
+      "2": "Provide personalized feedback"
+    },
+    "features_description": {
+      "0": "Specify requirements and AI creates problems directly in your bank",
+      "1": "Get grading results, statistics, and common error analysis automatically",
+      "2": "AI analyzes common errors and suggests improvements"
+    },
+    "examples": {
+      "0": {
+        "title": "Exam Analytics",
+        "description": "AI automatically analyzes exam results and provides comprehensive grading insights",
+        "image": "/example-1.png"
+      },
+      "1": {
+        "title": "Smart Grading Review",
+        "description": "Claude reviews submissions and provides targeted improvement suggestions for each student",
+        "image": "/example-2.png"
+      }
+    },
+    "tools": {
+      "claude": "Claude",
+      "chatgpt": "ChatGPT",
+      "cursor": "Cursor",
+      "perplexity": "Perplexity",
+      "gemini": "Gemini",
+      "notion": "Notion"
+    }
+  },
   "footer": {
     "copyright": "© 2024 QJudge. Built with IBM Carbon Design System."
   },

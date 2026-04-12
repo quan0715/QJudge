@@ -13,7 +13,6 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
 from services.event_adapter import (
-    ApprovalRequired,
     RunCompleted,
     RunFailed,
     RunStarted,
@@ -21,9 +20,9 @@ from services.event_adapter import (
     adapt_langgraph_event,
     to_sse_dict,
 )
+from models.schemas import RequestContext
+from services.mcp_tool_provider import MCPToolProvider
 from services.model_factory import ModelFactory
-from services.tool_client import InternalToolClient
-from services.tool_registry import create_read_tools, create_write_tools
 
 logger = logging.getLogger(__name__)
 
@@ -39,28 +38,24 @@ _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師�
 
 工作原則：
 - 內容設計階段優先使用 `contest-problem-authoring-guide`。
-- 資料落地階段（payload/patch/prepare-commit）優先使用 `qjudge-code-problem-format-and-ops`。
+- 資料落地階段（MCP payload/action）優先使用 `qjudge-code-problem-format-and-ops`。
 - 題目資料先讀取再回答，不要臆測。
-- 任何 commit 都必須先展示 preview，且得到使用者確認。
+- 若工具本身會直接寫入，先明確告知將執行的變更內容，再呼叫工具。
 
 可用工具：
-- load_problem_context：讀題目與翻譯內容（sample test cases）。
-- get_test_cases：讀取所有測資（含 hidden），用於檢視完整測資集。
-- run_code：沙箱執行程式碼，驗證解答正確性（支援 cpp/python，最多 20 筆測資/次）。**必須實際呼叫此工具驗證，禁止跳過或自行推導 expected output。**
-- prepare_problem_create / prepare_problem_patch：準備題目變更並產生 preview。
-- prepare_test_cases_update：準備替換全部測資（sample + hidden），產生 preview。
-- commit_problem_action：提交變更（需用戶審核）。
-- 既有題目的 hidden 測資可透過 `/test_cases`（或 `prepare_test_cases_update`）更新，不要誤判為不支援。
-- 測資欄位命名：CRUD payload 用 `input_data`/`output_data`；patch（`/sample_test_cases`、`/test_cases`）用 `input`/`output`。
+- qjudge_discover：查教室、競賽、題庫與題庫題。
+- qjudge_exam：管理試題型題目。
+- qjudge_grading：查看與批改作答。
+- qjudge_coding：管理程式題、匯入題庫題、調整分數、test run。
+- 所有寫入都直接走 MCP tool；先讀現況再修改，不要臆測。
 
 測資生成工作流（當用戶要求生成或驗證測資時遵循）：
-1. load_problem_context 讀題目描述與限制。
-2. get_test_cases 讀現有測資。
+1. qjudge_coding(action="get") 讀題目描述與限制。
+2. 視需要讀取題目細節中的 sample cases，或基於既有內容整理測資需求。
 3. 撰寫 reference solution（使用題目指定語言或 Python）。
 4. 設計測資集：sample cases（基本範例）+ hidden cases（邊界、壓力測試）。
-5. **必須**使用 run_code 工具實際執行 reference solution 驗證全部測資 AC。絕對不可跳過此步驟或聲稱沙箱不可用而改用手動推導。若 run_code 回傳錯誤，應報告具體錯誤訊息讓用戶排查，而非自行猜測結果。
-6. prepare_test_cases_update 提交測資（產生 preview 供用戶審閱）。
-7. commit_problem_action 執行（需用戶確認）。
+5. **必須**使用 qjudge_coding(action="test_run") 實際執行 reference solution 驗證。絕對不可跳過此步驟或自行手推 expected output。
+6. 若 MCP 目前不支援直接更新測資，必須明確告知限制，不要假裝已寫入。
 """
 
 
@@ -69,12 +64,12 @@ class DeepAgentRunner:
 
     def __init__(
         self,
-        tool_client: InternalToolClient,
         checkpoint_db_url: str,
+        mcp_server_url: str,
         skills_dir: str = "skills",
     ) -> None:
-        self._tool_client = tool_client
         self._checkpoint_db_url = checkpoint_db_url
+        self._mcp_server_url = mcp_server_url
         self._checkpointer: AsyncPostgresSaver | None = None
         self._checkpointer_cm: Any = None  # context manager
         service_root = Path(__file__).resolve().parent.parent
@@ -100,8 +95,6 @@ class DeepAgentRunner:
         """Clean up resources."""
         if self._checkpointer_cm:
             await self._checkpointer_cm.__aexit__(None, None, None)
-        if self._tool_client:
-            await self._tool_client.close()
         logger.info("DeepAgent runner shut down.")
 
     def _build_agent(
@@ -109,22 +102,11 @@ class DeepAgentRunner:
         model_id: str,
         api_key: str | None,
         system_prompt: str | None,
-        session_id: str | None,
-        user_id: int | None,
+        tools: list[Any],
     ):
         """Build a DeepAgent with tools and optional interrupt_on."""
         model = ModelFactory.create_model(model_id=model_id, api_key=api_key)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
-
-        # Always include read tools
-        tools = create_read_tools(self._tool_client)
-
-        # Include write tools only if session_id and user_id are provided
-        interrupt_on = None
-        if session_id and user_id:
-            write_tools = create_write_tools(self._tool_client, session_id, user_id)
-            tools = tools + write_tools
-            interrupt_on = {"commit_problem_action": True}
 
         agent = create_deep_agent(
             model=model,
@@ -132,7 +114,6 @@ class DeepAgentRunner:
             system_prompt=prompt,
             skills=[self._skills_source],
             checkpointer=self._checkpointer,
-            interrupt_on=interrupt_on,
         )
         return agent
 
@@ -195,6 +176,7 @@ class DeepAgentRunner:
         system_prompt: str | None = None,
         session_id: str | None = None,
         user_id: int | None = None,
+        request_context: RequestContext | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Run the agent and stream SSE events.
 
@@ -214,81 +196,79 @@ class DeepAgentRunner:
         if thread_id is None:
             thread_id = uuid.uuid4().hex
 
-        agent = self._build_agent(model_id, api_key, system_prompt, session_id, user_id)
+        async with MCPToolProvider(
+            server_url=self._mcp_server_url,
+            authorization_header=(
+                request_context.user_authorization if request_context else None
+            ),
+        ) as tool_provider:
+            tools = await tool_provider.load_tools()
+            agent = self._build_agent(model_id, api_key, system_prompt, tools)
 
-        config = {
-            "configurable": {
-                "thread_id": thread_id,
-            },
-            "metadata": {
-                "thread_id": thread_id,
-                "run_id": run_id,
-            },
-            "recursion_limit": 80,
-        }
+            config = {
+                "configurable": {
+                    "thread_id": thread_id,
+                },
+                "metadata": {
+                    "thread_id": thread_id,
+                    "run_id": run_id,
+                },
+                "recursion_limit": 80,
+            }
 
-        agent_input = {"messages": messages}
-        skill_files = self._build_skill_state_files()
-        if skill_files:
-            agent_input["files"] = skill_files
+            agent_input = {"messages": messages}
+            skill_files = self._build_skill_state_files()
+            if skill_files:
+                agent_input["files"] = skill_files
 
-        # Emit run_started
-        yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
+            # Emit run_started
+            yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
 
-        # Stream events
-        total_input_tokens = 0
-        total_output_tokens = 0
+            total_input_tokens = 0
+            total_output_tokens = 0
 
-        try:
-            async for event in agent.astream_events(
-                agent_input,
-                config=config,
-                version="v2",
-            ):
-                # Track token usage from metadata
-                if event.get("event") == "on_chat_model_end":
-                    usage_meta = event.get("data", {}).get("output", None)
-                    if usage_meta and hasattr(usage_meta, "usage_metadata"):
-                        um = usage_meta.usage_metadata
-                        total_input_tokens += um.get("input_tokens", 0)
-                        total_output_tokens += um.get("output_tokens", 0)
+            try:
+                async for event in agent.astream_events(
+                    agent_input,
+                    config=config,
+                    version="v2",
+                ):
+                    if event.get("event") == "on_chat_model_end":
+                        usage_meta = event.get("data", {}).get("output", None)
+                        if usage_meta and hasattr(usage_meta, "usage_metadata"):
+                            um = usage_meta.usage_metadata
+                            total_input_tokens += um.get("input_tokens", 0)
+                            total_output_tokens += um.get("output_tokens", 0)
 
-                # Adapt event through Layer 1
-                internal_event = adapt_langgraph_event(event)
-                if internal_event is None:
-                    continue
+                    internal_event = adapt_langgraph_event(event)
+                    if internal_event is None:
+                        continue
 
-                yield to_sse_dict(internal_event)
+                    yield to_sse_dict(internal_event)
 
-            # After streaming, check for pending interrupt
-            async for ev in self._check_interrupt(agent, config):
-                yield ev
-
-            # Emit usage report
-            cost_cents = self._calculate_cost(
-                model_id, total_input_tokens, total_output_tokens
-            )
-            yield to_sse_dict(
-                UsageReport(
-                    input_tokens=total_input_tokens,
-                    output_tokens=total_output_tokens,
-                    cost_cents=cost_cents,
-                    model_used=model_id,
+                cost_cents = self._calculate_cost(
+                    model_id, total_input_tokens, total_output_tokens
                 )
-            )
-
-            # Emit run_completed
-            yield to_sse_dict(RunCompleted(run_id=run_id))
-
-        except Exception as exc:
-            logger.exception("DeepAgent run failed: %s", exc)
-            yield to_sse_dict(
-                RunFailed(
-                    run_id=run_id,
-                    error_code="AGENT_ERROR",
-                    message="Agent execution failed",
+                yield to_sse_dict(
+                    UsageReport(
+                        input_tokens=total_input_tokens,
+                        output_tokens=total_output_tokens,
+                        cost_cents=cost_cents,
+                        model_used=model_id,
+                    )
                 )
-            )
+
+                yield to_sse_dict(RunCompleted(run_id=run_id))
+
+            except Exception as exc:
+                logger.exception("DeepAgent run failed: %s", exc)
+                yield to_sse_dict(
+                    RunFailed(
+                        run_id=run_id,
+                        error_code="AGENT_ERROR",
+                        message="Agent execution failed",
+                    )
+                )
 
     async def resume_stream(
         self,
@@ -299,6 +279,7 @@ class DeepAgentRunner:
         system_prompt: str | None = None,
         session_id: str | None = None,
         user_id: int | None = None,
+        request_context: RequestContext | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Resume an interrupted agent with a user decision and stream events.
 
@@ -316,129 +297,75 @@ class DeepAgentRunner:
         """
         run_id = uuid.uuid4().hex
 
-        agent = self._build_agent(model_id, api_key, system_prompt, session_id, user_id)
+        async with MCPToolProvider(
+            server_url=self._mcp_server_url,
+            authorization_header=(
+                request_context.user_authorization if request_context else None
+            ),
+        ) as tool_provider:
+            tools = await tool_provider.load_tools()
+            agent = self._build_agent(model_id, api_key, system_prompt, tools)
 
-        config = {
-            "configurable": {
-                "thread_id": thread_id,
-            },
-            "metadata": {
-                "thread_id": thread_id,
-                "run_id": run_id,
-            },
-            "recursion_limit": 80,
-        }
+            config = {
+                "configurable": {
+                    "thread_id": thread_id,
+                },
+                "metadata": {
+                    "thread_id": thread_id,
+                    "run_id": run_id,
+                },
+                "recursion_limit": 80,
+            }
 
-        # Build resume command — deepagents interrupt_on expects:
-        # {"decisions": [{"type": "approve"|"reject"}]}
-        resume_value = Command(resume={"decisions": [{"type": decision}]})
+            resume_value = Command(resume={"decisions": [{"type": decision}]})
 
-        yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
+            yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
 
-        total_input_tokens = 0
-        total_output_tokens = 0
+            total_input_tokens = 0
+            total_output_tokens = 0
 
-        try:
-            async for event in agent.astream_events(
-                resume_value,
-                config=config,
-                version="v2",
-            ):
-                if event.get("event") == "on_chat_model_end":
-                    usage_meta = event.get("data", {}).get("output", None)
-                    if usage_meta and hasattr(usage_meta, "usage_metadata"):
-                        um = usage_meta.usage_metadata
-                        total_input_tokens += um.get("input_tokens", 0)
-                        total_output_tokens += um.get("output_tokens", 0)
+            try:
+                async for event in agent.astream_events(
+                    resume_value,
+                    config=config,
+                    version="v2",
+                ):
+                    if event.get("event") == "on_chat_model_end":
+                        usage_meta = event.get("data", {}).get("output", None)
+                        if usage_meta and hasattr(usage_meta, "usage_metadata"):
+                            um = usage_meta.usage_metadata
+                            total_input_tokens += um.get("input_tokens", 0)
+                            total_output_tokens += um.get("output_tokens", 0)
 
-                internal_event = adapt_langgraph_event(event)
-                if internal_event is None:
-                    continue
+                    internal_event = adapt_langgraph_event(event)
+                    if internal_event is None:
+                        continue
 
-                yield to_sse_dict(internal_event)
+                    yield to_sse_dict(internal_event)
 
-            cost_cents = self._calculate_cost(
-                model_id, total_input_tokens, total_output_tokens
-            )
-            yield to_sse_dict(
-                UsageReport(
-                    input_tokens=total_input_tokens,
-                    output_tokens=total_output_tokens,
-                    cost_cents=cost_cents,
-                    model_used=model_id,
+                cost_cents = self._calculate_cost(
+                    model_id, total_input_tokens, total_output_tokens
                 )
-            )
-
-            yield to_sse_dict(RunCompleted(run_id=run_id))
-
-        except Exception as exc:
-            logger.exception("DeepAgent resume failed: %s", exc)
-            yield to_sse_dict(
-                RunFailed(
-                    run_id=run_id,
-                    error_code="AGENT_ERROR",
-                    message="Agent execution failed",
-                )
-            )
-
-    async def _check_interrupt(
-        self,
-        agent,
-        config: dict[str, Any],
-    ) -> AsyncGenerator[dict[str, Any], None]:
-        """Check if the agent has a pending interrupt and emit ApprovalRequired.
-
-        deepagents interrupt_on produces an interrupt value shaped like:
-        {
-            "action_requests": [
-                {"name": "commit_problem_action", "args": {"action_id": "..."}, ...}
-            ],
-            "review_configs": [...]
-        }
-        """
-        try:
-            state = await agent.aget_state(config)
-            if not state.interrupts:
-                return
-
-            for intr in state.interrupts:
-                intr_value = intr.value if hasattr(intr, "value") else {}
-                if not isinstance(intr_value, dict):
-                    logger.warning("Unexpected interrupt value type: %s", type(intr_value))
-                    continue
-
-                # Extract action_id from deepagents' action_requests format
-                action_id = None
-                action_requests = intr_value.get("action_requests", [])
-                for req in action_requests:
-                    if isinstance(req, dict) and req.get("name") == "commit_problem_action":
-                        args = req.get("args", {})
-                        action_id = args.get("action_id")
-                        break
-
-                if action_id:
-                    # Fetch pending action details for preview
-                    try:
-                        action_detail = await self._tool_client.get_pending_action(action_id)
-                        preview = action_detail.get("preview", {})
-                        action_type = action_detail.get("action_type", "unknown")
-                    except Exception:
-                        logger.warning("Could not fetch pending action %s", action_id)
-                        preview = {}
-                        action_type = "unknown"
-
-                    yield to_sse_dict(
-                        ApprovalRequired(
-                            action_id=action_id,
-                            action_type=action_type,
-                            preview=preview,
-                        )
+                yield to_sse_dict(
+                    UsageReport(
+                        input_tokens=total_input_tokens,
+                        output_tokens=total_output_tokens,
+                        cost_cents=cost_cents,
+                        model_used=model_id,
                     )
-                else:
-                    logger.warning("Interrupt detected but no action_id found: %s", intr_value)
+                )
 
-        except Exception as exc:
-            logger.warning("Failed to check interrupt state: %s", exc)
+                yield to_sse_dict(RunCompleted(run_id=run_id))
+
+            except Exception as exc:
+                logger.exception("DeepAgent resume failed: %s", exc)
+                yield to_sse_dict(
+                    RunFailed(
+                        run_id=run_id,
+                        error_code="AGENT_ERROR",
+                        message="Agent execution failed",
+                    )
+                )
 
     @staticmethod
     def _calculate_cost(

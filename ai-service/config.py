@@ -39,6 +39,9 @@ class Settings(BaseSettings):
         ),
     )
 
+    # MCP tool source
+    qjudge_mcp_url: str = "http://qjudge-mcp:9000/mcp"
+
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
 

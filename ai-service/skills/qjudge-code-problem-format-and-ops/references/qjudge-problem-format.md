@@ -60,40 +60,21 @@
 
 `language` 目前僅支援：`cpp|python|java|javascript`
 
-## E. DeepAgent 寫入限制（重要）
+## E. MCP 工具限制（重要）
 
-### `prepare_problem_create` + commit
+### `qjudge_coding`
 
-- `translations[]` 是**必填**欄位，至少需包含一筆 `zh-TW` 翻譯。
-- `slug` 不需提供，後端會從 title 自動生成（支援中文），重複時自動加後綴。
-- 目前 commit 實際落地以 Problem 基本欄位與 `translations[]` 為主；其他欄位請優先考慮 CRUD 或 YAML import。
+- 目前支援：`list`、`get`、`create`、`import_from_bank`、`update_score`、`delete`、`test_run`
+- 適合做競賽程式題管理與驗證 reference solution。
+- `test_run` 需要既有 `problem_id`，且以題目既有 sample cases 或自訂測資執行。
 
-### `prepare_problem_patch` + commit
+目前限制：
 
-目前支援：
-
-- `/title`, `/difficulty`, `/time_limit`, `/memory_limit`
-- `/translations`（整包或索引路徑）
-- `/sample_test_cases`
-- `/test_cases`（整包覆蓋，含 sample + hidden）
-
-`/test_cases` 每筆需使用 patch 欄位：
-
-- `input`
-- `output`
-- `is_sample`
-- `is_hidden`
-- `score`
-- `order`
-
-目前不支援直接 patch：
-
-- `required_keywords`
-- `forbidden_keywords`
-- `language_configs`
+- 尚未提供直接更新題目內容或整包替換測資的 MCP action。
+- 若需求涉及 `translations`、hidden test cases、`language_configs` 等內容編修，必須明確說明目前 MCP 能力不足。
 
 建議：
 
-- 需要整包替換測資時，優先使用 `prepare_test_cases_update`（底層即產生 `/test_cases` patch）。
-- 使用 `/test_cases` 時必須提供完整陣列（sample + hidden），否則未提供的舊測資會被刪除。
-- 使用 `/test_cases` 或 `/sample_test_cases` 時，請用 `input`/`output`，不要用 `input_data`/`output_data`。
+- 讀題先用 `qjudge_coding(action="get")`。
+- 驗證解法必須用 `qjudge_coding(action="test_run")`，不要手推 expected output。
+- 若需要改題目敘述或測資，先整理成明確變更清單，再告知使用者目前需補 MCP 能力或改走其他管理介面。

@@ -81,8 +81,9 @@ export interface LandingFaqItem {
 export interface MCPCollaborationExample {
   title: string;
   description: string;
-  userMessage: string;
-  aiMessage: string;
+  image?: string;
+  userMessage?: string;
+  aiMessage?: string;
   feedback?: string;
   stats?: string;
 }
@@ -304,16 +305,12 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
         {
           title: t("mcp.examples.0.title"),
           description: t("mcp.examples.0.description"),
-          userMessage: t("mcp.examples.0.userMessage"),
-          aiMessage: t("mcp.examples.0.aiMessage"),
-          feedback: t("mcp.examples.0.feedback"),
+          image: "/example-1.png",
         },
         {
           title: t("mcp.examples.1.title"),
           description: t("mcp.examples.1.description"),
-          userMessage: t("mcp.examples.1.userMessage"),
-          aiMessage: t("mcp.examples.1.aiMessage"),
-          stats: t("mcp.examples.1.stats"),
+          image: "/example-2.png",
         },
       ],
       tools: {

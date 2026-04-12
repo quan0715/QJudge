@@ -11,7 +11,6 @@ from models.schemas import HealthResponse, ModelsResponse
 from routers import chat_router
 from services.deepagent_runner import DeepAgentRunner
 from services.model_factory import MODEL_INFO
-from services.tool_client import InternalToolClient
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,22 +26,13 @@ async def lifespan(app: FastAPI):
 
     if not settings.anthropic_api_key:
         logger.warning("ANTHROPIC_API_KEY not set — LLM calls will fail")
-    if not settings.hmac_secret.strip():
-        raise RuntimeError("HMAC_SECRET must be set and non-empty")
     if not settings.ai_internal_token.strip():
         raise RuntimeError("AI_INTERNAL_TOKEN must be set and non-empty")
 
-    # Initialize tool client for internal API calls
-    tool_client = InternalToolClient(
-        backend_url=settings.backend_internal_url,
-        service_id=settings.ai_service_id,
-        hmac_secret=settings.hmac_secret,
-    )
-
     # Initialize DeepAgent runner with Postgres checkpointer
     runner = DeepAgentRunner(
-        tool_client=tool_client,
         checkpoint_db_url=settings.ai_state_postgres_url,
+        mcp_server_url=settings.qjudge_mcp_url,
         skills_dir=settings.skills_dir,
     )
 

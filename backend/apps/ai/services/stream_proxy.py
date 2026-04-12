@@ -3,18 +3,22 @@
 import logging
 
 from django.conf import settings
+from rest_framework_simplejwt.tokens import AccessToken
 
 from ..models import AIExecutionLog, AISession
 
 logger = logging.getLogger(__name__)
 
 
-def build_ai_service_headers() -> dict[str, str]:
+def build_ai_service_headers(user=None) -> dict[str, str]:
     """Build required auth headers for ai-service calls."""
     token = getattr(settings, "AI_SERVICE_INTERNAL_TOKEN", "").strip()
     if not token:
         raise RuntimeError("AI_SERVICE_INTERNAL_TOKEN is not configured")
-    return {"X-AI-Internal-Token": token}
+    headers = {"X-AI-Internal-Token": token}
+    if user and getattr(user, "is_authenticated", False):
+        headers["X-QJudge-User-Authorization"] = f"Bearer {AccessToken.for_user(user)}"
+    return headers
 
 
 def ai_service_base_url() -> str:
@@ -40,5 +44,4 @@ def complete_execution_log(log, ai_response, raw_log=None, metadata=None):
     if metadata:
         log.metadata = metadata
     log.save()
-
 

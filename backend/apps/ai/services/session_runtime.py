@@ -78,7 +78,7 @@ class BaseAIStreamRuntime:
         error_prefix: str,
     ) -> Generator[str, None, None]:
         try:
-            ai_headers = build_ai_service_headers()
+            ai_headers = build_ai_service_headers(getattr(self, "user", None))
         except RuntimeError as exc:
             self.stream_error = str(exc)
             logger.error(self.stream_error)
