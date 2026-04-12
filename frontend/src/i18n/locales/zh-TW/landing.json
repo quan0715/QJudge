@@ -43,7 +43,6 @@
       }
     }
   },
-  "_whyChoose_deprecated": true,
   "flow": {
     "eyebrow": "完整考試流程",
     "title": "從出題到分析，正式考試一次串接",
