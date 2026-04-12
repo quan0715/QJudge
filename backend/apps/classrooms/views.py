@@ -5,7 +5,8 @@ from io import BytesIO
 from uuid import UUID
 
 from PIL import Image, UnidentifiedImageError
-from rest_framework import viewsets, permissions, status, filters
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import viewsets, permissions, serializers as drf_serializers, status, filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -534,6 +535,16 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             raise NotFound('Announcement not found.')
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @extend_schema(
+        request=None,
+        responses={200: inline_serializer(
+            name="NotifyAnnouncementResponse",
+            fields={
+                "detail": drf_serializers.CharField(),
+                "count": drf_serializers.IntegerField(),
+            },
+        )},
+    )
     @action(detail=True, methods=['post'], url_path=r'announcements/(?P<ann_id>\d+)/notify',
             permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
     def notify_announcement(self, request, id=None, ann_id=None):
