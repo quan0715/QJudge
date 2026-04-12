@@ -311,8 +311,8 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
           videoSrc: "/videos/usecase-1.mp4",
         },
         {
-          eyebrow: t("mcp.examples.1.eyebrow", { defaultValue: "考試數據分析與整合" }),
-          title: t("mcp.examples.1.title", { defaultValue: "宏觀數據洞察，掌握全局表現" }),
+          eyebrow: t("mcp.examples.1.eyebrow", { defaultValue: "全局考試分析" }),
+          title: t("mcp.examples.1.title", { defaultValue: "請 AI 做進階考試數據分析、整合" }),
           description: t("mcp.examples.1.description", { defaultValue: "匯整整場考試的作答數據，生成全班成績分佈與錯題統計報表。協助教師從宏觀視角精準評估教學成效與學生學習盲點。" }),
           videoSrc: "/videos/usecase-2.mp4",
         },
