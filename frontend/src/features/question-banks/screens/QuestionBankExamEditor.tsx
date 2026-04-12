@@ -105,6 +105,7 @@ const toExamQuestion = (bankId: string, question: BankQuestion): ExamQuestion =>
   prompt: question.prompt || "",
   options: Array.isArray(question.options) ? question.options.map((item) => String(item)) : [],
   correctAnswer: question.correctAnswer,
+  explanation: "",
   score: Number(question.score || 0),
   order: Number(question.order || 0),
   createdAt: question.createdAt || "",

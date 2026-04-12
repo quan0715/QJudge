@@ -21,7 +21,6 @@ This is the Single Source of Truth for frontend routing and rendering decisions.
   - Determine available panels (`getAvailablePanels`).
   - Determine specific panel rendering components (`getPanelRenderers`).
   - Determine editor type (`editorKind`) and export options (`getExportTargets`).
-  - Determine when to show JSON import actions (`shouldShowJsonActions`).
 
 ### 2) Rendering Dispatch Layer (Renderer Registries)
 

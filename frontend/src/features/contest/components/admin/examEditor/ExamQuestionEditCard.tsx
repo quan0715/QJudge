@@ -51,6 +51,7 @@ const ALLOWED_TYPE_SWITCHES: Record<ExamQuestionType, ExamQuestionType[]> = {
 interface QuestionFormState {
   questionType: ExamQuestionType;
   prompt: string;
+  explanation: string;
   score: string;
   options: string[];
   singleAnswerIndex: string;
@@ -108,6 +109,7 @@ const toFormState = (question: ExamQuestion): QuestionFormState => {
   const base: QuestionFormState = {
     questionType: question.questionType,
     prompt: question.prompt,
+    explanation: question.explanation || "",
     score: String(question.score || 0),
     options: [],
     singleAnswerIndex: "",
@@ -161,6 +163,7 @@ const buildPayload = (
   const payload: ExamQuestionUpsertPayload = {
     question_type: form.questionType,
     prompt: form.prompt.trim(),
+    explanation: form.explanation.trim(),
     score: includeScore ? Number(form.score || 0) : 1,
   };
   if (form.questionType === "essay") {
@@ -202,6 +205,7 @@ const isFormDirty = (
 ): boolean => {
   if (a.questionType !== b.questionType) return true;
   if (a.prompt !== b.prompt) return true;
+  if (a.explanation !== b.explanation) return true;
   if (includeScore && a.score !== b.score) return true;
   if (a.singleAnswerIndex !== b.singleAnswerIndex) return true;
   if (a.essayReferenceAnswer !== b.essayReferenceAnswer) return true;
@@ -653,6 +657,17 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 )}
               </div>
             </div>
+
+            <div className={styles.answerArea}>
+              <div className={styles.answerLabel}>{t("examEditor.explanation", "詳解")}</div>
+              <div className={styles.previewAnswers}>
+                <div className={styles.answerText}>
+                  {question.explanation
+                    ? <MarkdownRenderer>{question.explanation}</MarkdownRenderer>
+                    : <span className={styles.answerEmpty}>{t("examEditor.explanationNotSet", "（未設定詳解）")}</span>}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </Layer>
@@ -916,6 +931,21 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 />
               </div>
             )}
+          </div>
+
+          <div className={styles.answerArea}>
+            <div className={styles.answerLabel}>{t("examEditor.explanation", "詳解")}</div>
+            <div className={styles.essayArea}>
+              <MarkdownField
+                id={`eqc-explanation-${question.id}`}
+                labelText={t("examEditor.explanation", "詳解")}
+                value={form.explanation}
+                onChange={(val) => setForm((p) => ({ ...p, explanation: val }))}
+                placeholder={t("examEditor.explanationPlaceholder", "補充解題思路、評分重點或觀念解析（支援 Markdown）")}
+                minHeight="112px"
+                disabled={!!frozen}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -25,7 +25,6 @@
   - 사용 가능한 패널 결정(`getAvailablePanels`).
   - 특정 패널의 렌더링 컴포넌트 결정(`getPanelRenderers`).
   - 편집기 종류(`editorKind`) 및 내보내기 옵션(`getExportTargets`) 결정.
-  - JSON 가져오기 액션 표시 시점 결정(`shouldShowJsonActions`).
 
 ### 2) 렌더링 분배 계층 (Renderer Registries)
 

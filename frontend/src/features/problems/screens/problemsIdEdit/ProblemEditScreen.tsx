@@ -4,10 +4,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@carbon/react";
-import { Upload, Download, View } from "@carbon/icons-react";
+import { Download, View } from "@carbon/icons-react";
 import type { ProblemDetail } from "@/core/entities/problem.entity";
 import {
-  patchProblem,
   deleteProblem,
 } from "@/infrastructure/api/repositories/problem.repository";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -18,7 +17,6 @@ import {
 import { MarkdownEditorProvider } from "@/shared/ui/markdown/markdownEditor";
 import { TriggerModal, type TriggerModalHandle } from "@/shared/ui/modal";
 import { ChatbotWidget } from "@/features/chatbot";
-import { ProblemImportModal } from "@/features/problems/components/modals";
 import { GlobalSaveStatus } from "@/features/problems/components/edit/common";
 import { useProblemDetail } from "@/features/problems/hooks";
 import { useToast } from "@/shared/contexts";
@@ -27,11 +25,6 @@ import {
   type ProblemFormSchema,
 } from "@/features/problems/forms/problemFormSchema";
 import { problemFormSchema } from "@/features/problems/forms/problemFormValidation";
-import {
-  yamlToFormSchema,
-  formSchemaToApiPayload,
-} from "@/features/problems/forms/problemFormAdapters";
-import type { ProblemYAML } from "@/shared/utils/problemYamlParser";
 import ProblemEditHeader from "./components/ProblemEditHeader";
 import ProblemEditSections from "./components/ProblemEditSections";
 import ProblemEditPreviewModal from "./components/ProblemEditPreviewModal";
@@ -50,7 +43,6 @@ import "./screen.scss";
 
 interface ProblemEditScreenContentProps {
   problem: ProblemDetail;
-  handleYAMLImport: (yamlData: ProblemYAML) => void;
   handleDelete: () => Promise<void>;
   handleExportConfirm: (onClose: () => void) => void;
   onBack: () => void;
@@ -59,7 +51,6 @@ interface ProblemEditScreenContentProps {
 
 const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
   problem,
-  handleYAMLImport,
   handleDelete,
   handleExportConfirm,
   onBack,
@@ -87,21 +78,6 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
         globalSaveStatus={<GlobalSaveStatus status={autoSave.globalStatus} />}
         actions={
           <>
-            <TriggerModal
-              trigger={
-                <Button kind="ghost" renderIcon={Upload}>
-                  {t("edit.actions.import")}
-                </Button>
-              }
-              renderModal={({ open, onClose }) => (
-                <ProblemImportModal
-                  open={open}
-                  onClose={onClose}
-                  onPopulate={handleYAMLImport}
-                  mode="populateForm"
-                />
-              )}
-            />
             <TriggerModal
               trigger={
                 <Button kind="ghost" renderIcon={Download}>
@@ -202,9 +178,7 @@ const ProblemEditPageInner: React.FC = () => {
     mode: "onBlur", // Validate on blur for better UX
   });
 
-  const {
-    reset,
-  } = methods;
+  const { reset } = methods;
 
   const { problem, formSchema, isLoading, error, refetch } = useProblemDetail(id, {
     scope: "manage",
@@ -220,34 +194,6 @@ const ProblemEditPageInner: React.FC = () => {
     if (!formSchema) return;
     reset(formSchema, { keepDefaultValues: false });
   }, [formSchema, reset]);
-
-  // Handle YAML import
-  const handleYAMLImport = useCallback(
-    async (yamlData: ProblemYAML) => {
-      if (!id) return;
-
-      const formData = yamlToFormSchema(yamlData);
-      reset(formData, { keepDefaultValues: false });
-
-      // Auto-save the imported data
-      try {
-        const apiPayload = formSchemaToApiPayload(formData);
-        await patchProblem(id, apiPayload);
-        showToast({
-          kind: "success",
-          title: t("edit.messages.importSuccess"),
-          subtitle: t("edit.messages.importSuccessDetail"),
-        });
-      } catch (err) {
-        showToast({
-          kind: "warning",
-          title: t("edit.messages.importSuccessSaveFailed"),
-          subtitle: err instanceof Error ? err.message : t('button.save'),
-        });
-      }
-    },
-    [id, reset, showToast],
-  );
 
   // Handle delete
   const handleDelete = async () => {
@@ -357,7 +303,6 @@ const ProblemEditPageInner: React.FC = () => {
         <ProblemEditProvider problemId={id || ""}>
           <ProblemEditScreenContent
             problem={problem}
-            handleYAMLImport={handleYAMLImport}
             handleDelete={handleDelete}
             handleExportConfirm={handleExportConfirm}
             onBack={() => navigate(-1)}

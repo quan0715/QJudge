@@ -28,7 +28,6 @@
   - 決定可用 panel（`getAvailablePanels`）。
   - 決定特定 panel 的渲染元件（`getPanelRenderers`）。
   - 決定編輯器種類（`editorKind`）與匯出選項（`getExportTargets`）。
-  - 決定 JSON 匯入動作顯示時機（`shouldShowJsonActions`）。
 
 ### 2) 渲染分發層 (Renderer Registries)
 

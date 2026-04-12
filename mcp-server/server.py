@@ -9,7 +9,14 @@ from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP, Context
 
-from config import DJANGO_BASE_URL, MCP_HOST, MCP_PORT, MCP_PUBLIC_URL, OAUTH_ISSUER_URL
+from config import (
+    DJANGO_BASE_URL,
+    DJANGO_FORWARDED_PROTO,
+    MCP_HOST,
+    MCP_PORT,
+    MCP_PUBLIC_URL,
+    OAUTH_ISSUER_URL,
+)
 
 
 class DjangoTokenVerifier(TokenVerifier):
@@ -18,14 +25,12 @@ class DjangoTokenVerifier(TokenVerifier):
     async def verify_token(self, token: str) -> AccessToken | None:
         """Check token against Django. Return AccessToken if valid, None if not."""
         try:
-            # Derive proto from DJANGO_BASE_URL for correct request.is_secure() behavior
-            proto = "https" if DJANGO_BASE_URL.startswith("https://") else "http"
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
-                    f"{DJANGO_BASE_URL}/api/v1/auth/me",
+                    f"{DJANGO_BASE_URL}/api/v1/auth/me/",
                     headers={
                         "Authorization": f"Bearer {token}",
-                        "X-Forwarded-Proto": proto,
+                        "X-Forwarded-Proto": DJANGO_FORWARDED_PROTO,
                     },
                 )
         except (httpx.RequestError, httpx.TimeoutException):
@@ -47,9 +52,7 @@ async def django_api(
     json_body: dict | None = None,
 ) -> Any:
     """Call Django API with OAuth token passthrough."""
-    # Derive proto from DJANGO_BASE_URL for correct request.is_secure() behavior
-    proto = "https" if DJANGO_BASE_URL.startswith("https://") else "http"
-    headers: dict[str, str] = {"X-Forwarded-Proto": proto}
+    headers: dict[str, str] = {"X-Forwarded-Proto": DJANGO_FORWARDED_PROTO}
     transport_request = getattr(ctx.request_context, "request", None)
     if transport_request and hasattr(transport_request, "headers"):
         auth_header = transport_request.headers.get("authorization", "")

@@ -37,12 +37,10 @@
     "@hookform/resolvers": "^5.2.2",
     "@monaco-editor/react": "^4.7.0",
     "@tanstack/react-query": "^5.90.12",
-    "@types/js-yaml": "^4.0.9",
     "d3": "^7.9.0",
     "github-markdown-css": "^5.8.1",
     "github-slugger": "^2.0.0",
     "i18next": "^25.7.2",
-    "js-yaml": "^4.1.1",
     "katex": "^0.16.25",
     "motion": "^12.34.3",
     "react": "^19.2.0",
@@ -67,6 +65,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.57.0",
+    "@storybook/addon-docs": "9.1.20",
     "@storybook/react-vite": "9.1.20",
     "@testing-library/dom": "^10.0.0",
     "@testing-library/jest-dom": "^6.9.1",
@@ -80,6 +79,7 @@
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "eslint-plugin-storybook": "9.1.20",
     "globals": "^16.5.0",
     "jsdom": "^27.3.0",
     "monaco-editor": "^0.55.1",
@@ -88,9 +88,7 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
     "vite-plugin-sitemap": "^0.8.2",
-    "vitest": "^4.0.15",
-    "eslint-plugin-storybook": "9.1.20",
-    "@storybook/addon-docs": "9.1.20"
+    "vitest": "^4.0.15"
   },
   "overrides": {
     "react-router": "^7.12.1",

@@ -22,7 +22,7 @@ export { default as ProblemTabs } from "./layout/ProblemTabs";
 export { TestCaseList, type TestCaseItem } from "./common/TestCaseList";
 
 // Modal components
-export { CreateProblemModal, ProblemImportModal } from "./modals";
+export { CreateProblemModal } from "./modals";
 
 // Other components
 export { default as ProblemLink } from "./ProblemLink";

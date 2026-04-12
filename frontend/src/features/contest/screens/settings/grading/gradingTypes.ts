@@ -27,6 +27,7 @@ export interface GradingAnswerRow {
   questionId: string;
   questionIndex: number; // 1-based
   questionPrompt: string;
+  questionExplanation?: string;
   questionType: QuestionType;
   questionOptions: string[];
   maxScore: number;

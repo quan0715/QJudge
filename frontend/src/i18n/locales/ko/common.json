@@ -266,6 +266,26 @@
     "saveFailed": "저장 실패",
     "success": "작업이 완료되었습니다"
   },
+  "mcp": {
+    "setup": {
+      "title": "AI 도구 연결",
+      "description": "MCP를 사용해 QJudge를 AI 도구에 연결합니다. remote MCP server를 지원하는 도구라면 server URL을 바로 붙여 넣을 수 있고, 처음 사용할 때 브라우저에서 OAuth를 완료하면 됩니다.",
+      "directConnect": "Direct Connect",
+      "directConnectIntro": "AI 도구에 MCP 또는 Connectors 설정 화면이 있다면 아래 remote MCP server URL을 추가하세요.",
+      "directConnectStep1": "AI 도구의 Connectors, MCP 또는 Integrations 설정에서 custom / remote MCP server를 추가합니다.",
+      "directConnectStep2": "위 server URL을 붙여 넣고 저장한 뒤 도구를 새로고침하거나 다시 시작합니다.",
+      "directConnectStep3": "처음 QJudge 도구를 호출할 때 브라우저 OAuth 흐름에 따라 로그인하고 권한을 승인합니다.",
+      "directConnectExamples": "이 방식은 ChatGPT, Claude Desktop, VS Code 등 remote MCP를 지원하는 클라이언트에서 주로 사용됩니다.",
+      "claudeCode": "Claude Code",
+      "cursor": "Cursor",
+      "codex": "Codex CLI",
+      "copySuccess": "복사됨",
+      "step1": "터미널에서 다음 명령을 실행하세요.",
+      "step1Cursor": "다음 설정을 .cursor/mcp.json에 추가하세요.",
+      "verifyHint": "첫 연결 시 OAuth가 자동으로 시작됩니다",
+      "verifyHintDetail": "API token을 수동으로 만들 필요가 없습니다. 브라우저 로그인 흐름이 끝나면 AI 도구가 자격 증명을 저장하고 재사용합니다."
+    }
+  },
   "nav": {
     "back": "뒤로",
     "backToProblemList": "문제 목록으로",

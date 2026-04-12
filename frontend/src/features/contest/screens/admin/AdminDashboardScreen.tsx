@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
 
@@ -12,7 +12,6 @@ import {
 } from "@/features/contest/contexts";
 import AdminDashboardLayout from "@/features/contest/components/admin/layout/AdminDashboardLayout";
 import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
-import type { ExamEditorLayoutHandle } from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
 
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
@@ -67,7 +66,6 @@ const AdminDashboardInner = () => {
       navigate(fallbackPath, { replace: true });
     }
   }, [loading, contest, canAccessAdminPanel, contestId, effectiveClassroomId, navigate]);
-  const examEditorRef = useRef<ExamEditorLayoutHandle | null>(null);
   const contestModule = useMemo(
     () => getContestTypeModule(contest?.contestType),
     [contest?.contestType],
@@ -165,7 +163,6 @@ const AdminDashboardInner = () => {
         contestModule={contestModule}
         contestId={contestId || ""}
         contest={contest}
-        panelRef={examEditorRef}
         onExport={() => setExportOpen(true)}
         onPreview={handlePreview}
         onOpenSettings={() => setSettingsOpen(true)}

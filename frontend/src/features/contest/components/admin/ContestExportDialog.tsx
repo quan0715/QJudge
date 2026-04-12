@@ -13,12 +13,10 @@ import {
 } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import {
-  getExamQuestions,
   downloadContestFile,
   downloadExamPaperFile,
 } from "@/infrastructure/api/repositories";
-import type { ContestDetail, ExamQuestion } from "@/core/entities/contest.entity";
-import { stringifyExamQuestionJsonV1 } from "@/features/contest/components/admin/examEditor/examQuestionJson";
+import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import type { ContestExportTarget } from "@/features/contest/modules/types";
 import s from "./ContestExportDialog.module.scss";
@@ -43,7 +41,6 @@ interface ContestExportDialogProps {
 const ALL_EXPORT_TARGETS: readonly ExportTarget[] = [
   "exam-question",
   "exam-answer",
-  "exam-json",
   "coding-pdf",
   "coding-markdown",
 ];
@@ -83,8 +80,6 @@ const getExportLoadingDescription = (target: ExportTarget): string => {
       return "正在產生題目卷 PDF...";
     case "exam-answer":
       return "正在產生答案卷 PDF...";
-    case "exam-json":
-      return "正在匯出 Exam JSON...";
     case "coding-pdf":
       return "正在產生 PDF...";
     case "coding-markdown":
@@ -107,15 +102,10 @@ export default function ContestExportDialog({
   const { t } = useTranslation("contest");
   const contestModule = getContestTypeModule(contest.contestType);
   const availableTargets = contestModule.admin.getExportTargets(contest);
-  const hasExamJsonTarget = availableTargets.includes("exam-json");
 
   // --- Shared state ---
   const [target, setTarget] = useState<ExportTarget | null>(null);
   const [busy, setBusy] = useState(false);
-
-  // --- Exam-specific ---
-  const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
-  const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [includeAnswerArea, setIncludeAnswerArea] = useState(true);
 
   // --- Coding-specific ---
@@ -155,24 +145,6 @@ export default function ContestExportDialog({
     setLayout("normal");
   }, [open]);
 
-  // Load exam questions lazily only when exam-json target is selected.
-  useEffect(() => {
-    if (!open || !hasExamJsonTarget || target !== "exam-json") return;
-    let cancelled = false;
-    (async () => {
-      setLoadingQuestions(true);
-      try {
-        const list = await getExamQuestions(contestId);
-        if (!cancelled) setExamQuestions(list.sort((a, b) => a.order - b.order));
-      } catch {
-        if (!cancelled) setExamQuestions([]);
-      } finally {
-        if (!cancelled) setLoadingQuestions(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [open, hasExamJsonTarget, target, contestId]);
-
   // --- Export handler ---
   const handleExport = useCallback(async () => {
     if (!target) return;
@@ -187,18 +159,6 @@ export default function ContestExportDialog({
           scale,
           includeAnswerArea
         );
-      } else if (target === "exam-json") {
-        const safeName = sanitizeFilename(contest.name);
-        const content = stringifyExamQuestionJsonV1(examQuestions, contest.name);
-        const blob = new Blob([content], { type: "application/json;charset=utf-8" });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${safeName}_exam_questions.json`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
       } else {
         const format = target === "coding-pdf" ? "pdf" as const : "markdown" as const;
         const blob = await downloadContestFile(contestId, format, language, scale, layout);
@@ -219,7 +179,6 @@ export default function ContestExportDialog({
     }
   }, [
     target,
-    examQuestions,
     contestId,
     language,
     scale,
@@ -234,19 +193,12 @@ export default function ContestExportDialog({
     target === "exam-question" || target === "exam-answer";
   const isCodingPdf = target === "coding-pdf";
   const hasSelectedTarget = target !== null;
-  const noExamQuestions =
-    target === "exam-json" && hasExamJsonTarget && !loadingQuestions && examQuestions.length === 0;
   const exporting = busy;
 
   return (
     <ComposedModal open={open} onClose={onClose} size="md">
       <ModalHeader title="匯出檔案" />
       <ModalBody className={s.modalBody}>
-        {/* Loading state for exam questions */}
-        {target === "exam-json" && loadingQuestions && (
-          <InlineLoading description="載入題目中..." />
-        )}
-
         {/* Target selection */}
         <div className={s.fieldGroup}>
           <p className={s.sectionTitle}>{t("download.exportType")}</p>
@@ -282,17 +234,6 @@ export default function ContestExportDialog({
                   />
                 );
               }
-              if (value === "exam-json") {
-                return (
-                  <RadioButton
-                    key="export-exam-json"
-                    id="export-exam-json"
-                    labelText={`${t("examJson.exportOption")} — 匯出可重新匯入的題目檔`}
-                    value="exam-json"
-                    disabled={exporting}
-                  />
-                );
-              }
               if (value === "coding-markdown") {
                 return (
                   <RadioButton
@@ -316,12 +257,6 @@ export default function ContestExportDialog({
             })}
           </RadioButtonGroup>
         </div>
-
-        {isExamTarget && noExamQuestions && (
-          <p className={s.emptyNotice}>
-            目前沒有題目，請先新增題目後再匯出。
-          </p>
-        )}
 
         {hasSelectedTarget && (
           <div className={s.section}>
@@ -418,7 +353,7 @@ export default function ContestExportDialog({
         </Button>
         <Button
           kind="primary"
-          disabled={exporting || !hasSelectedTarget || noExamQuestions}
+          disabled={exporting || !hasSelectedTarget}
           onClick={handleExport}
         >
           {exporting ? "匯出中..." : "匯出"}

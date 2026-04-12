@@ -4,10 +4,12 @@ QJudge 支援透過 [MCP (Model Context Protocol)](https://modelcontextprotocol.
 
 | 工具 | 支援狀態 |
 |------|---------|
+| 支援 remote MCP 的 AI 工具 | 完整支援，直接貼上 `https://mcp.q-judge.com/mcp` |
 | [Claude Code](https://claude.ai/claude-code) | 完整支援（Streamable HTTP） |
 | [Cursor](https://cursor.com) | 完整支援 |
 | [Codex CLI](https://github.com/openai/codex) | 完整支援 |
-| 其他 MCP 相容工具 | 應可使用（需支援 Streamable HTTP transport） |
+| [ChatGPT](https://chatgpt.com/) / Claude Desktop / VS Code 等支援 remote MCP 的工具 | 應可使用，流程類似 Notion 官方 MCP onboarding |
+| 其他 MCP 相容工具 | 應可使用（需支援 remote MCP 或 Streamable HTTP transport） |
 
 ## 前置條件
 
@@ -15,6 +17,21 @@ QJudge 支援透過 [MCP (Model Context Protocol)](https://modelcontextprotocol.
 - 已安裝上述任一 AI 工具
 
 MCP Server 將使用 OAuth 2.1 自動進行授權，無需手動產生 Token。
+
+## 快速連接
+
+如果您的 AI 工具有內建 MCP、Connectors 或 Integrations 設定頁，請優先使用這種方式，流程和 Notion 官方的「Connect through your AI tool」類似：
+
+1. 在工具設定中新增 custom / remote MCP server
+2. 貼上 QJudge MCP server URL
+3. 儲存設定並重新載入工具
+4. 第一次呼叫 QJudge 工具時，在瀏覽器完成 OAuth 登入與授權
+
+```text
+https://mcp.q-judge.com/mcp
+```
+
+這類流程通常適用於 ChatGPT、Claude Desktop、VS Code，以及其他支援 remote MCP 的客戶端。
 
 ## 安裝指南
 
@@ -53,9 +70,17 @@ claude mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 ```
 
+## 如果你的工具不支援 remote MCP
+
+若您的 AI 工具只能讀取本地 JSON 設定或 CLI 命令，請使用本頁提供的 Claude Code、Cursor、Codex CLI 範例。核心原則不變：所有客戶端最終都應指向同一個遠端 server URL：
+
+```text
+https://mcp.q-judge.com/mcp
+```
+
 ## 自動授權流程
 
-加入 MCP Server 後，您在第一次呼叫工具時，瀏覽器會自動開啟 QJudge 登入頁面。完成授權後，您的身份令牌將被安全地保存在系統 Keychain（macOS）或 Credential Manager（Windows）中，後續使用無需重複授權。
+加入 MCP Server 後，您在第一次呼叫工具時，瀏覽器會自動開啟 QJudge 登入頁面。完成授權後，您的身份令牌將由 AI 工具安全保存；後續使用通常無需重複授權。
 
 ## 可用功能
 
@@ -136,7 +161,7 @@ codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 ## 安全性說明
 
 - MCP 連線使用 **OAuth 2.1 with PKCE** 標準授權，無需手動產生或儲存 Token
-- 存取令牌由您的 AI 工具自動儲存在系統 Keychain 中，確保安全
+- 存取令牌由您的 AI 工具自動儲存與管理；實際儲存位置依工具而定
 - 存取令牌（Access Token）有效期為 1 小時，過期後會自動更新
 - 更新令牌（Refresh Token）有效期為 30 天，需重新授權
 - AI 工具只能存取您有管理權限的教室與競賽

@@ -579,6 +579,7 @@ const mapPaperQuestionDetailDto = (dto: any): ParticipantPaperQuestionDetail => 
   prompt: dto?.prompt || "",
   options: Array.isArray(dto?.options) ? dto.options.map((item: unknown) => String(item)) : [],
   correctAnswer: dto?.correct_answer,
+  explanation: dto?.explanation || "",
   answer: dto?.answer || {},
   score: dto?.score != null ? Number(dto.score) : null,
   maxScore: Number(dto?.max_score ?? 0),
@@ -845,6 +846,7 @@ export function mapExamQuestionDto(dto: any): ExamQuestion {
       ? dto.options.map((item: unknown) => String(item))
       : [],
     correctAnswer: dto.correct_answer,
+    explanation: dto.explanation || "",
     score: Number(dto.score || 0),
     order: Number(dto.order || 0),
     sourceBank: dto.source_bank
