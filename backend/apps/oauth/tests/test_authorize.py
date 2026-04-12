@@ -76,6 +76,8 @@ class AuthorizeRedirectTest(TestCase):
         location = response["Location"]
         self.assertIn("https://qjudge.com/login", location)
         self.assertIn("next=", location)
+        # next must be a relative path (not absolute) so the frontend accepts it
+        self.assertNotIn("next=http", location)
 
 
 @override_settings(

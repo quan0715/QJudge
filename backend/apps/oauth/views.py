@@ -11,7 +11,9 @@ from django.shortcuts import redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
+from drf_spectacular.utils import extend_schema, inline_serializer
 from oauth2_provider.models import Application, Grant
+from rest_framework import serializers as drf_serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -71,7 +73,7 @@ def dynamic_client_registration(request):
             status=400,
         )
 
-    grant_types = body.get("grant_types", [])
+    grant_types = body.get("grant_types", ["authorization_code"])
     auth_method = body.get("token_endpoint_auth_method", "none")
     redirect_uris = body.get("redirect_uris", [])
     client_name = body.get("client_name", "MCP Client")
@@ -115,12 +117,14 @@ def dynamic_client_registration(request):
                 },
                 status=400,
             )
-        if parsed.scheme in {"http", "https"} and parsed.hostname not in loopback_hosts:
+        # HTTPS: allow any host (third-party apps like ChatGPT, Notion AI)
+        # HTTP: restrict to loopback only (local dev safety)
+        if parsed.scheme == "http" and parsed.hostname not in loopback_hosts:
             return JsonResponse(
                 {
                     "error": "invalid_client_metadata",
                     "error_description": (
-                        f"http/https redirect_uris must use a loopback address "
+                        f"http redirect_uris must use a loopback address "
                         f"(localhost, 127.0.0.1, [::1]): {uri}"
                     ),
                 },
@@ -158,8 +162,9 @@ def authorize_redirect(request):
     user = _get_user_from_jwt_cookie(request)
 
     if not user:
-        # Not logged in — redirect to frontend login with next= full backend URL
-        full_url = request.build_absolute_uri()
+        # Not logged in — redirect to frontend login with next= relative path
+        # Use relative path so the frontend open-redirect guard accepts it
+        full_url = request.get_full_path()
         return redirect(f"{frontend_url}/login?next={quote(full_url, safe='')}")
 
     params = request.GET.urlencode()
@@ -182,6 +187,23 @@ class ApproveAuthorizationView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="OAuthApproveRequest",
+            fields={
+                "client_id": drf_serializers.CharField(),
+                "redirect_uri": drf_serializers.CharField(),
+                "response_type": drf_serializers.CharField(required=False),
+                "state": drf_serializers.CharField(required=False),
+                "code_challenge": drf_serializers.CharField(required=False),
+                "code_challenge_method": drf_serializers.CharField(required=False),
+            },
+        ),
+        responses={200: inline_serializer(
+            name="OAuthApproveResponse",
+            fields={"redirect_uri": drf_serializers.CharField()},
+        )},
+    )
     def post(self, request):
         body = request.data
 

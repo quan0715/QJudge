@@ -14,11 +14,11 @@ export interface PendingActionConfig {
    * null means this action only uses sessionStorage (e.g. classroom join).
    */
   queryParam: string | null;
-  /** i18n keys for the info banner shown on login/register screens */
+  /** i18n keys for the info banner shown on login/register screens (null = no banner) */
   banner: {
     titleKey: string;
     subtitleKey: string;
-  };
+  } | null;
   /** Given the stored value, return the redirect path */
   getRedirectPath: (value: string) => string;
 }
