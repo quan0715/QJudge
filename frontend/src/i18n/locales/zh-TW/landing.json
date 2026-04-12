@@ -277,6 +277,41 @@
       }
     ]
   },
+  "mcp": {
+    "eyebrow": "無痛協作",
+    "title": "與你的 AI 工具無痛協作",
+    "description": "在 Claude、ChatGPT、Cursor、Perplexity、Gemini、Notion 中出題、批改、反饋",
+    "features": {
+      "0": "快速生成競賽題目",
+      "1": "自動評分與分析",
+      "2": "提供個性化評論"
+    },
+    "features_description": {
+      "0": "與 AI 協商題目需求，直接建立到 QJudge",
+      "1": "取得批改結果、通過率統計和常見錯誤分析",
+      "2": "AI 分析常見錯誤並給改進建議"
+    },
+    "examples": {
+      "0": {
+        "title": "考試分析",
+        "description": "AI 自動分析考試結果，提供完整的評分洞察和統計分析",
+        "image": "/example-1.png"
+      },
+      "1": {
+        "title": "智慧批改建議",
+        "description": "Claude 檢閱學生作業，為每位學生提供針對性的改進建議",
+        "image": "/example-2.png"
+      }
+    },
+    "tools": {
+      "claude": "Claude",
+      "chatgpt": "ChatGPT",
+      "cursor": "Cursor",
+      "perplexity": "Perplexity",
+      "gemini": "Gemini",
+      "notion": "Notion"
+    }
+  },
   "footer": {
     "title": "把時間還給教學，從這裡開始",
     "subtitle": "立即體驗 QJudge 的線上考試流程，從建立試卷、執行考試到查看分析，快速評估是否符合你的教學需求。",

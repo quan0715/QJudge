@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Request
 from sse_starlette.sse import EventSourceResponse
 
 from config import get_settings
-from models.schemas import ChatRequest, ResumeRequest
+from models.schemas import ChatRequest, RequestContext, ResumeRequest
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +87,9 @@ async def generate_sse_events(
 
     # Determine API key (override takes priority, never logged)
     api_key = request.api_key_override  # None falls back to env var in ModelFactory
+    request_context = RequestContext(
+        user_authorization=app_request.headers.get("X-QJudge-User-Authorization"),
+    )
 
     try:
         async for sse_dict in runner.run_stream(
@@ -97,6 +100,7 @@ async def generate_sse_events(
             system_prompt=system_prompt,
             session_id=request.session_id,
             user_id=request.user_id,
+            request_context=request_context,
         ):
             yield {"data": json.dumps(sse_dict, ensure_ascii=False)}
     except Exception as e:
@@ -135,6 +139,10 @@ async def generate_resume_events(
     """Generate SSE events by resuming an interrupted DeepAgent."""
     runner = app_request.app.state.deepagent_runner
 
+    request_context = RequestContext(
+        user_authorization=app_request.headers.get("X-QJudge-User-Authorization"),
+    )
+
     try:
         async for sse_dict in runner.resume_stream(
             thread_id=request.thread_id,
@@ -142,6 +150,7 @@ async def generate_resume_events(
             api_key=request.api_key_override,
             session_id=request.session_id,
             user_id=request.user_id,
+            request_context=request_context,
         ):
             yield {"data": json.dumps(sse_dict, ensure_ascii=False)}
     except Exception as e:

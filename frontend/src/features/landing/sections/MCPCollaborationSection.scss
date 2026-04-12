@@ -1,0 +1,96 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.landing-mcp-section {
+  padding: layout.$spacing-08 0;
+
+  &__tools {
+    display: flex;
+    justify-content: center;
+    gap: layout.$spacing-09;
+    margin: layout.$spacing-07 0 layout.$spacing-08;
+    flex-wrap: wrap;
+  }
+
+  &__tool-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: layout.$spacing-03;
+    transition: opacity 150ms ease;
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &--mono svg {
+      color: var(--cds-text-primary);
+    }
+  }
+
+  &__tool-name {
+    @include type.type-style("body-01");
+    color: var(--cds-text-primary);
+    text-align: center;
+  }
+
+  &__examples {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: layout.$spacing-05;
+    margin-top: layout.$spacing-06;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__example-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--cds-background);
+    border: 1px solid var(--cds-border-subtle);
+    border-radius: 8px;
+    transition: all 150ms ease;
+    overflow: hidden;
+
+    &:hover {
+      border-color: var(--cds-border-strong);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  &__example-header {
+    padding: layout.$spacing-05;
+  }
+
+  &__example-number {
+    display: inline-block;
+    @include type.type-style("heading-01");
+    font-weight: 700;
+    color: var(--cds-interactive-01);
+    margin-bottom: layout.$spacing-03;
+  }
+
+  &__example-title {
+    @include type.type-style("heading-04");
+    color: var(--cds-text-primary);
+    margin-bottom: layout.$spacing-02;
+  }
+
+  &__example-description {
+    @include type.type-style("body-01");
+    color: var(--cds-text-secondary);
+    line-height: 1.6;
+  }
+
+  &__example-image {
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+
+  &__image-content {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+}

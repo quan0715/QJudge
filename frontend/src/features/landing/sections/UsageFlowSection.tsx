@@ -35,11 +35,6 @@ const FLOW_DETAILS: FlowDetail[] = [
         caption: "建立考試後先確認狀態、時間與可見性",
       },
       {
-        src: "/illustrations/flow_ai-create_generation-interface.png",
-        alt: "QJudge AI 輔助出題介面",
-        caption: "依主題與難度產生可編輯的題目初稿",
-      },
-      {
         src: "/illustrations/flow_exam_question_management.png",
         alt: "QJudge 題目管理介面",
         caption: "教師檢查題目內容後再放入正式考試",

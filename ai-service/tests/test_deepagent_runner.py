@@ -1,11 +1,5 @@
 """Unit tests for DeepAgentRunner local skill-file handling."""
-
 from services.deepagent_runner import DeepAgentRunner
-
-
-class _DummyToolClient:
-    async def close(self):
-        return None
 
 
 def test_build_skill_state_files_uses_configured_skills_dir(tmp_path):
@@ -17,8 +11,8 @@ def test_build_skill_state_files_uses_configured_skills_dir(tmp_path):
     (skill_dir / "config.json").write_text('{"name": "sample"}', encoding="utf-8")
 
     runner = DeepAgentRunner(
-        tool_client=_DummyToolClient(),
         checkpoint_db_url="",
+        mcp_server_url="http://qjudge-mcp:9000/mcp",
         skills_dir=str(skills_dir),
     )
 
@@ -38,8 +32,8 @@ def test_build_skill_state_files_filters_unwanted_or_oversized_files(tmp_path):
     (skill_dir / "too-large.md").write_text("x" * (256 * 1024 + 1), encoding="utf-8")
 
     runner = DeepAgentRunner(
-        tool_client=_DummyToolClient(),
         checkpoint_db_url="",
+        mcp_server_url="http://qjudge-mcp:9000/mcp",
         skills_dir=str(skills_dir),
     )
 

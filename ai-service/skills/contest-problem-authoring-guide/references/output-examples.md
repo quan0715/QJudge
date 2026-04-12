@@ -25,4 +25,5 @@
 
 - 不產生 `/api/v1/problems/` payload
 - 不產生 JSON Patch
-- 不提 `prepare_problem_create` 或 `commit_problem_action` 實作步驟
+- 不提舊版 `prepare_problem_create` / `commit_problem_action` 實作步驟
+- 不假裝 MCP 已支援尚未提供的寫入 action

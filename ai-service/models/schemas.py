@@ -121,3 +121,8 @@ class HealthResponse(BaseModel):
     status: str
     version: str = "2.0.0"
     checkpoint_db: str = "unknown"
+
+
+class RequestContext(BaseModel):
+    """Request-scoped context derived from trusted backend headers."""
+    user_authorization: str | None = None

@@ -73,3 +73,17 @@ class CurrentUserProfileUpdateTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["success"])
         self.assertEqual(response.data["data"]["username"], self.email_user.username)
+
+    def test_get_current_user_works_on_canonical_path(self):
+        self.client.force_authenticate(user=self.email_user)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(response.data["data"]["username"], self.email_user.username)
+
+    def test_get_current_user_with_trailing_slash_returns_404(self):
+        self.client.force_authenticate(user=self.email_user)
+        response = self.client.get(f"{self.url}/")
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

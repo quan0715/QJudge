@@ -13,6 +13,7 @@ import AudienceSection from "@/features/landing/sections/AudienceSection";
 import SocialProofSection from "@/features/landing/sections/SocialProofSection";
 import FaqSection from "@/features/landing/sections/FaqSection";
 import FooterCtaSection from "@/features/landing/sections/FooterCtaSection";
+import MCPCollaborationSection from "@/features/landing/sections/MCPCollaborationSection";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/i18n";
@@ -77,6 +78,7 @@ const LandingScreen = () => {
           description={t("bento.description")}
           cards={content.bento}
         />
+        <MCPCollaborationSection content={content.mcp} />
         <WhyChooseSection
           eyebrow={t("whyChoose.eyebrow")}
           title={t("whyChoose.title")}

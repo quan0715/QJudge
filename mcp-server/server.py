@@ -27,7 +27,7 @@ class DjangoTokenVerifier(TokenVerifier):
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
-                    f"{DJANGO_BASE_URL}/api/v1/auth/me/",
+                    f"{DJANGO_BASE_URL}/api/v1/auth/me",
                     headers={
                         "Authorization": f"Bearer {token}",
                         "X-Forwarded-Proto": DJANGO_FORWARDED_PROTO,

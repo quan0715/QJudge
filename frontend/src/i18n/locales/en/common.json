@@ -284,11 +284,49 @@
       "step1Cursor": "Add the following configuration to .cursor/mcp.json:",
       "verifyHint": "OAuth runs automatically on first connection",
       "verifyHintDetail": "You do not need to create an API token manually. After the browser sign-in flow completes, your AI tool will store and reuse the credentials."
+    },
+    "landing": {
+      "eyebrow": "Seamless Collaboration",
+      "title": "Collaborate Seamlessly with Your Favorite AI Tools",
+      "description": "Create, grade, and provide feedback directly in Claude, ChatGPT, Google Gemini, and Notion",
+      "features": {
+        "0": "Generate competition problems quickly",
+        "1": "Automatically grade student submissions",
+        "2": "Provide personalized feedback"
+      },
+      "features_description": {
+        "0": "Specify requirements and AI creates problems directly in your bank",
+        "1": "Get grading results and statistics automatically",
+        "2": "AI analyzes common errors and suggests improvements"
+      },
+      "examples": {
+        "0": {
+          "title": "Quick Problem Generation",
+          "description": "Teachers brainstorm with AI in Claude, and problems are created directly in QJudge",
+          "userMessage": "Design a set of C++ loop competition problems",
+          "aiMessage": "I've designed 3 problems for you. Created directly in your QJudge library.",
+          "feedback": "✓ Created"
+        },
+        "1": {
+          "title": "Automatic Grading & Review",
+          "description": "Teachers request grading results in Claude, AI fetches data and provides analysis",
+          "userMessage": "Help me grade problem 3",
+          "aiMessage": "Problem 3 has a 45% pass rate. Common issue: improper boundary handling. I've provided improvement suggestions.",
+          "stats": "Pass rate 45%"
+        }
+      },
+      "tools": {
+        "claude": "Claude",
+        "chatgpt": "ChatGPT",
+        "gemini": "Google Gemini",
+        "notion": "Notion"
+      }
     }
   },
   "nav": {
     "back": "Back",
     "backToProblemList": "Back to Problems",
+    "changelog": "Changelog",
     "classrooms": "Classrooms",
     "contests": "Contests",
     "dashboard": "Dashboard",

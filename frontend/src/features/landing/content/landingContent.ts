@@ -78,6 +78,31 @@ export interface LandingFaqItem {
   answer: string;
 }
 
+export interface MCPCollaborationExample {
+  title: string;
+  description: string;
+  image?: string;
+  userMessage?: string;
+  aiMessage?: string;
+  feedback?: string;
+  stats?: string;
+}
+
+export interface MCPCollaborationContent {
+  eyebrow: string;
+  title: string;
+  description: string;
+  features: string[];
+  featuresDescription: string[];
+  examples: [MCPCollaborationExample, MCPCollaborationExample];
+  tools: {
+    claude: string;
+    chatgpt: string;
+    gemini: string;
+    notion: string;
+  };
+}
+
 export interface LandingContent {
   nav: Array<{ id: string; label: string; href?: string }>;
   hero: LandingHeroContent;
@@ -86,6 +111,7 @@ export interface LandingContent {
   workflow: LandingWorkflowItem[];
   audiences: LandingAudienceItem[];
   caseStudies: LandingCaseStudy[];
+  mcp: MCPCollaborationContent;
   pricing: LandingPricingCard[];
   faqs: LandingFaqItem[];
   footer: {
@@ -261,6 +287,39 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
         imageAlt: t("socialProof.caseStudies.midterm.imageAlt"),
       },
     ],
+    mcp: {
+      eyebrow: t("mcp.eyebrow"),
+      title: t("mcp.title"),
+      description: t("mcp.description"),
+      features: [
+        t("mcp.features.0"),
+        t("mcp.features.1"),
+        t("mcp.features.2"),
+      ],
+      featuresDescription: [
+        t("mcp.features_description.0"),
+        t("mcp.features_description.1"),
+        t("mcp.features_description.2"),
+      ],
+      examples: [
+        {
+          title: t("mcp.examples.0.title"),
+          description: t("mcp.examples.0.description"),
+          image: "/example-1.png",
+        },
+        {
+          title: t("mcp.examples.1.title"),
+          description: t("mcp.examples.1.description"),
+          image: "/example-2.png",
+        },
+      ],
+      tools: {
+        claude: t("mcp.tools.claude"),
+        chatgpt: t("mcp.tools.chatgpt"),
+        gemini: t("mcp.tools.gemini"),
+        notion: t("mcp.tools.notion"),
+      },
+    },
     pricing: [
       {
         name: t("pricing.cards.free.name"),

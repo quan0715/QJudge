@@ -284,6 +284,43 @@
       "step1Cursor": "將以下設定加入 .cursor/mcp.json：",
       "verifyHint": "首次連線會觸發 OAuth 授權",
       "verifyHintDetail": "不需要手動建立 API token。只要完成瀏覽器登入授權，之後就會由 AI 工具自動保存並重用憑證。"
+    },
+    "landing": {
+      "eyebrow": "無痛協作",
+      "title": "與你的 AI 工具無痛協作",
+      "description": "在 Claude、ChatGPT、Google Gemini、Notion 中出題、批改、反饋",
+      "features": {
+        "0": "快速生成競賽題目",
+        "1": "自動評分與分析",
+        "2": "提供個性化評論"
+      },
+      "features_description": {
+        "0": "與 AI 協商題目需求，直接建立到 QJudge",
+        "1": "取得批改結果、通過率統計和常見錯誤分析",
+        "2": "AI 分析常見錯誤並給改進建議"
+      },
+      "examples": {
+        "0": {
+          "title": "快速生成題目",
+          "description": "教師在 Claude 中與 AI 討論題目需求，Claude 直接在 QJudge 中建立題目",
+          "userMessage": "幫我設計一套 C++ 迴圈的競賽題目",
+          "aiMessage": "我為你設計了 3 道題目。已直接建立到你的 QJudge 題庫。",
+          "feedback": "✓ 已建立"
+        },
+        "1": {
+          "title": "自動批改評論",
+          "description": "教師在 Claude 中請求批改結果，Claude 自動從 QJudge 取得批改數據並提供分析",
+          "userMessage": "請協助批改第三題",
+          "aiMessage": "第三題通過率 45%。常見問題是邊界條件處理不當。我提供了改進建議。",
+          "stats": "通過率 45%"
+        }
+      },
+      "tools": {
+        "claude": "Claude",
+        "chatgpt": "ChatGPT",
+        "gemini": "Google Gemini",
+        "notion": "Notion"
+      }
     }
   },
   "nav": {
