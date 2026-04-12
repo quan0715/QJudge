@@ -4999,15 +4999,14 @@ paths:
           type: array
           items:
             type: string
-            title: 難度
             enum:
             - easy
             - hard
             - medium
         description: |-
-          * `easy` - 簡單
-          * `medium` - 中等
-          * `hard` - 困難
+          * `easy` - easy
+          * `medium` - medium
+          * `hard` - hard
         explode: true
         style: form
       - name: ordering
@@ -5060,7 +5059,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProblemDetailRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5119,7 +5117,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProblemDetailRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5239,7 +5236,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProblemDetailRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5462,15 +5458,14 @@ paths:
           type: array
           items:
             type: string
-            title: 難度
             enum:
             - easy
             - hard
             - medium
         description: |-
-          * `easy` - 簡單
-          * `medium` - 中等
-          * `hard` - 困難
+          * `easy` - easy
+          * `medium` - medium
+          * `hard` - hard
         explode: true
         style: form
       - name: ordering
@@ -5523,7 +5518,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProblemDetailRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5582,7 +5576,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProblemDetailRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5702,7 +5695,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProblemDetailRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -6987,7 +6979,6 @@ components:
         problem_title:
           type: string
           readOnly: true
-          nullable: true
         author:
           type: integer
           readOnly: true
@@ -8397,16 +8388,6 @@ components:
       description: |-
         * `exam` - Exam
         * `practice` - Practice
-    DifficultyEnum:
-      enum:
-      - easy
-      - medium
-      - hard
-      type: string
-      description: |-
-        * `easy` - 簡單
-        * `medium` - 中等
-        * `hard` - 困難
     ExamEventCreate:
       type: object
       description: Serializer for creating exam events.
@@ -9281,19 +9262,10 @@ components:
       type: object
       description: Serializer for problem detail (full info).
       properties:
-        title:
-          type: string
-          minLength: 1
-          title: 標題
-          maxLength: 255
         slug:
           type: string
           maxLength: 255
           pattern: ^[-a-zA-Z0-9_]+$
-        difficulty:
-          allOf:
-          - $ref: '#/components/schemas/DifficultyEnum'
-          title: 難度
         time_limit:
           type: integer
           maximum: 2147483647
@@ -9614,16 +9586,14 @@ components:
           readOnly: true
         title:
           type: string
-          title: 標題
-          maxLength: 255
+          readOnly: true
         slug:
           type: string
           maxLength: 255
           pattern: ^[-a-zA-Z0-9_]+$
         difficulty:
-          allOf:
-          - $ref: '#/components/schemas/DifficultyEnum'
-          title: 難度
+          type: string
+          readOnly: true
         time_limit:
           type: integer
           maximum: 2147483647
@@ -9687,9 +9657,7 @@ components:
           type: string
           readOnly: true
         translations:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProblemTranslation'
+          type: string
           readOnly: true
         test_cases:
           type: array
@@ -9714,6 +9682,7 @@ components:
           description: 提交代碼中必須包含的關鍵字列表 (substring match)
       required:
       - acceptance_rate
+      - difficulty
       - id
       - language_configs
       - question_asset_id
@@ -9728,19 +9697,10 @@ components:
       type: object
       description: Serializer for problem detail (full info).
       properties:
-        title:
-          type: string
-          minLength: 1
-          title: 標題
-          maxLength: 255
         slug:
           type: string
           maxLength: 255
           pattern: ^[-a-zA-Z0-9_]+$
-        difficulty:
-          allOf:
-          - $ref: '#/components/schemas/DifficultyEnum'
-          title: 難度
         time_limit:
           type: integer
           maximum: 2147483647
@@ -9792,8 +9752,6 @@ components:
         required_keywords:
           title: 必須關鍵字
           description: 提交代碼中必須包含的關鍵字列表 (substring match)
-      required:
-      - title
     ProblemList:
       type: object
       description: Serializer for problem list (minimal info).
@@ -9810,9 +9768,8 @@ components:
           maxLength: 255
           pattern: ^[-a-zA-Z0-9_]+$
         difficulty:
-          allOf:
-          - $ref: '#/components/schemas/DifficultyEnum'
-          title: 難度
+          type: string
+          readOnly: true
         submission_count:
           type: integer
           maximum: 2147483647
@@ -9887,77 +9844,13 @@ components:
       - acceptance_rate
       - created_at
       - created_by
+      - difficulty
       - id
       - is_solved
       - language_configs
       - question_asset_id
       - question_version_id
       - tags
-      - title
-    ProblemTranslation:
-      type: object
-      description: Serializer for problem translations.
-      properties:
-        language:
-          type: string
-          title: 語言代碼
-          maxLength: 10
-        title:
-          type: string
-          title: 標題
-          maxLength: 255
-        description:
-          type: string
-          title: 題目描述
-        input_description:
-          type: string
-          title: 輸入說明
-        output_description:
-          type: string
-          title: 輸出說明
-        hint:
-          type: string
-          title: 提示
-      required:
-      - description
-      - input_description
-      - language
-      - output_description
-      - title
-    ProblemTranslationRequest:
-      type: object
-      description: Serializer for problem translations.
-      properties:
-        language:
-          type: string
-          minLength: 1
-          title: 語言代碼
-          maxLength: 10
-        title:
-          type: string
-          minLength: 1
-          title: 標題
-          maxLength: 255
-        description:
-          type: string
-          minLength: 1
-          title: 題目描述
-        input_description:
-          type: string
-          minLength: 1
-          title: 輸入說明
-        output_description:
-          type: string
-          minLength: 1
-          title: 輸出說明
-        hint:
-          type: string
-          title: 提示
-      required:
-      - description
-      - input_description
-      - language
-      - output_description
       - title
     QuestionBank:
       type: object
