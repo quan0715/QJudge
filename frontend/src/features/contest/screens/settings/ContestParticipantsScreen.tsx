@@ -17,7 +17,6 @@ import { useContest } from "@/features/contest/contexts/ContestContext";
 import { AddParticipantModal } from "@/features/contest/components/modals/AddParticipantModal";
 import {
   addContestParticipant,
-  approveTakeover,
   downloadParticipantReport,
   exportContestResults,
   removeParticipant,
@@ -336,33 +335,6 @@ const ContestParticipantsScreen = () => {
     }
   };
 
-  const handleApproveTakeover = async () => {
-    if (!contestId || !selectedUserId) return;
-    const confirmed = await confirm({
-      title: t("dashboard.confirmTakeover", "確定要核可此學生的裝置接管嗎？"),
-      confirmLabel: t("dashboard.approveTakeover", "核可裝置接管"),
-      cancelLabel: t("button.cancel", "取消"),
-      danger: true,
-    });
-    if (!confirmed) return;
-    try {
-      await approveTakeover(contestId, Number(selectedUserId));
-      await refreshBoth();
-      showToast({
-        kind: "success",
-        title: t("common.success", "成功"),
-        subtitle: t("dashboard.takeoverApproved", "已核可裝置接管"),
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t("dashboard.takeoverApproveFailed", "核可裝置接管失敗");
-      showToast({
-        kind: "error",
-        title: t("common.error", "錯誤"),
-        subtitle: message,
-      });
-    }
-  };
-
   const handleReopenExam = async () => {
     if (!contestId || !selectedUserId) return;
     const confirmed = await confirm({
@@ -434,7 +406,7 @@ const ContestParticipantsScreen = () => {
       setSaving(true);
       await updateParticipant(contestId, Number(editingParticipant.userId), {
         exam_status: editExamStatus,
-        lock_reason: editExamStatus === "locked" || editExamStatus === "locked_takeover" ? editLockReason : "",
+        lock_reason: editExamStatus === "locked" ? editLockReason : "",
       });
       setEditModalOpen(false);
       await refreshBoth();
@@ -584,7 +556,6 @@ const ContestParticipantsScreen = () => {
             onDownloadReport={handleDownloadReport}
             onEditStatus={openEditModal}
             onUnlock={handleUnlock}
-            onApproveTakeover={handleApproveTakeover}
             onReopenExam={handleReopenExam}
             onRemoveParticipant={rosterManagedByClassroom ? undefined : handleRemoveParticipant}
             canDeleteExamVideos={canDeleteExamVideos}

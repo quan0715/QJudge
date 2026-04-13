@@ -717,7 +717,6 @@ export function mapParticipantDashboardDto(dto: ParticipantDashboardDto): Partic
       canRemoveParticipant: !!dto?.actions?.can_remove_participant,
       canUnlock: !!dto?.actions?.can_unlock,
       canReopenExam: !!dto?.actions?.can_reopen_exam,
-      canApproveTakeover: !!dto?.actions?.can_approve_takeover,
       canViewEvidence: !!dto?.actions?.can_view_evidence,
       canOpenGrading: !!dto?.actions?.can_open_grading,
     },

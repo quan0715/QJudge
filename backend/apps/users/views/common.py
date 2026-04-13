@@ -1,20 +1,18 @@
 """Shared helpers for split user view modules."""
 
-from django.utils import timezone
 from rest_framework import generics, serializers, status
 from rest_framework.response import Response
-
-from rest_framework_simplejwt.tokens import AccessToken
 
 from ..authentication import set_jwt_cookies
 from ..services import JWTService
 from ..models import UserLoginRecord
-from apps.contests.models import ContestActivity, ContestParticipant, ExamEvent, ExamStatus
+from apps.contests.models import ContestActivity, ExamEvent
+from apps.contests.services.exam_takeover import build_exam_recovery_context
 from apps.contests.services.anti_cheat_session import (
     consume_conflict_token,
+    create_conflict_token_payload,
     find_exam_conflict,
     get_device_id,
-    set_active_session,
 )
 
 class SchemaAPIView(generics.GenericAPIView):
@@ -78,10 +76,10 @@ def record_login(user, request, login_method: str, jti: str = "") -> UserLoginRe
 
 
 def build_conflict_response(user, request, provider: str):
-    """Block login when the user has an active exam on another device.
+    """Return takeover-required response when the user has an active exam elsewhere.
 
-    Always returns 403 — no takeover option.  The attempt is recorded as
-    an ExamEvent + ContestActivity for the invigilator dashboard.
+    Returns 403 plus a short-lived conflict token so the client can request a
+    device takeover recovery flow. The attempt is recorded for the audit trail.
     """
     device_id = get_device_id(request)
     conflict = find_exam_conflict(user, device_id)
@@ -89,12 +87,18 @@ def build_conflict_response(user, request, provider: str):
         return None
 
     contest = conflict.contest
+    conflict_token, _payload = create_conflict_token_payload(
+        conflict,
+        request,
+        device_id=device_id,
+        provider=provider,
+    )
 
     # Record the attempt
     ExamEvent.objects.create(
         contest=contest,
         user=user,
-        event_type="concurrent_login_blocked",
+        event_type="concurrent_login_detected",
         metadata={
             "source": f"auth_{provider}",
             "incoming_device_id": device_id,
@@ -104,7 +108,7 @@ def build_conflict_response(user, request, provider: str):
     ContestActivity.objects.create(
         contest=contest,
         user=user,
-        action_type="concurrent_login_blocked",
+        action_type="concurrent_login_detected",
         details=(
             f"Blocked login from another device during exam "
             f"(provider={provider}, device_id={device_id})"
@@ -114,17 +118,15 @@ def build_conflict_response(user, request, provider: str):
     return Response(
         {
             "success": False,
-            "code": "EXAM_LOGIN_BLOCKED",
-            "message": "考試進行中，無法從其他裝置登入。請在原裝置完成考試後再試。",
-            "active_exam": {
-                "contest_id": contest.id,
-                "contest_name": contest.name,
-                "exam_status": conflict.participant.exam_status,
-                "started_at": conflict.participant.started_at,
-            },
+            "code": "EXAM_TAKEOVER_REQUIRED",
+            "message": "偵測到你有未完成的考試，可在此裝置接管並恢復。",
+            "conflict_token": conflict_token,
+            "active_exam": build_exam_recovery_context(contest, conflict.participant),
         },
         status=status.HTTP_403_FORBIDDEN,
     )
+
+
 def consume_conflict_payload_or_error(conflict_token: str):
     payload = consume_conflict_token(conflict_token)
     if payload:
@@ -139,82 +141,3 @@ def consume_conflict_payload_or_error(conflict_token: str):
         },
         status=status.HTTP_400_BAD_REQUEST,
     )
-
-
-def perform_takeover_lock(*, user_model, request, payload: dict):
-    user_id = payload.get("user_id")
-    participant_id = payload.get("participant_id")
-    if not user_id or not participant_id:
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": "INVALID_CONFLICT_PAYLOAD",
-                    "message": "Malformed conflict payload.",
-                },
-            },
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    from django.db import transaction
-
-    try:
-        with transaction.atomic():
-            user = user_model.objects.get(id=user_id, is_active=True)
-            participant = ContestParticipant.objects.select_related("contest").select_for_update().get(
-                id=participant_id,
-                user_id=user_id,
-            )
-            contest = participant.contest
-
-            if participant.exam_status in [
-                ExamStatus.IN_PROGRESS,
-                ExamStatus.PAUSED,
-                ExamStatus.LOCKED,
-            ]:
-                participant.exam_status = ExamStatus.LOCKED_TAKEOVER
-                participant.locked_at = timezone.now()
-                participant.lock_reason = "Device takeover requested during login conflict"
-                participant.save(update_fields=["exam_status", "locked_at", "lock_reason"])
-
-                ExamEvent.objects.create(
-                    contest=contest,
-                    user=user,
-                    event_type="takeover_locked",
-                    metadata={
-                        "source": "resolve_conflict",
-                        "requested_device_id": payload.get("device_id", ""),
-                    },
-                )
-                ContestActivity.objects.create(
-                    contest=contest,
-                    user=user,
-                    action_type="takeover_lock",
-                    details=(
-                        "Locked exam session due to device takeover request "
-                        f"(device_id={payload.get('device_id', '')})"
-                    ),
-                )
-
-            set_active_session(
-                contest=contest,
-                participant=participant,
-                request=request,
-                device_id=str(payload.get("device_id") or get_device_id(request)),
-            )
-
-            tokens = JWTService.generate_tokens(user)
-            access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
-            record_login(user, request, login_method="takeover", jti=access_jti)
-            return token_cookie_response(user, tokens)
-    except (user_model.DoesNotExist, ContestParticipant.DoesNotExist):
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": "CONFLICT_TARGET_NOT_FOUND",
-                    "message": "Target session no longer exists.",
-                },
-            },
-            status=status.HTTP_404_NOT_FOUND,
-        )

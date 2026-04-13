@@ -185,9 +185,9 @@ class TokenRefreshSerializer(serializers.Serializer):
 
 
 class ResolveConflictSerializer(serializers.Serializer):
-    """Serializer for login conflict resolution (device takeover lock)."""
+    """Serializer for login conflict resolution (device takeover recovery)."""
     conflict_token = serializers.CharField(required=True, max_length=256)
-    action = serializers.ChoiceField(required=True, choices=["takeover_lock"])
+    action = serializers.ChoiceField(required=True, choices=["takeover_recovery"])
 
 
 class UserSearchSerializer(serializers.ModelSerializer):

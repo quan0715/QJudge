@@ -8,7 +8,6 @@ const EXAM_STATUS_KEYS: ExamStatusType[] = [
   "in_progress",
   "paused",
   "locked",
-  "locked_takeover",
   "submitted",
 ];
 
@@ -70,7 +69,7 @@ const ParticipantStatusEditModal = ({
           }
         />
 
-        {(examStatus === "locked" || examStatus === "locked_takeover") ? (
+        {examStatus === "locked" ? (
           <TextArea
             id="edit-participant-lock-reason"
             labelText={t("participants.editModal.lockReason", "鎖定原因")}

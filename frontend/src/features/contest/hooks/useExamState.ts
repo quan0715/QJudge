@@ -34,8 +34,7 @@ const isSkippedDispatchResult = (
 const isMonitoredExamStatus = (status?: ExamStatusType) =>
   status === "in_progress" ||
   status === "paused" ||
-  status === "locked" ||
-  status === "locked_takeover";
+  status === "locked";
 
 export function useExamState({
   contestId,
@@ -160,7 +159,7 @@ export function useExamState({
   useEffect(() => {
     syncAnticheatPhaseWithExamStatus(contestId, examStatus);
 
-    const effectiveIsLocked = examStatus === "locked" || examStatus === "locked_takeover";
+    const effectiveIsLocked = examStatus === "locked";
     const effectiveIsActive = examStatus === "in_progress";
 
     setExamState((prev) => ({

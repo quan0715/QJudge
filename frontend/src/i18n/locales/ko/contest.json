@@ -594,7 +594,6 @@
   "examStatus": {
     "in_progress": "진행 중",
     "locked": "잠금",
-    "locked_takeover": "인수 잠금",
     "not_started": "미시작",
     "paused": "일시 정지",
     "submitted": "제출 완료"
@@ -904,8 +903,6 @@
       "submit_code": "코드 제출",
       "tab_hidden": "탭 숨김",
       "tab_switch": "탭 전환",
-      "takeover_approved": "기기 takeover 승인",
-      "takeover_locked": "기기 takeover 잠금",
       "unlock": "잠금 해제",
       "unlock_user": "사용자 잠금 해제",
       "unregister": "등록 취소",

@@ -37,9 +37,15 @@
         "verifying": "본인 확인 중입니다..."
       },
       "takeover": "인계받고 이전 장치 잠금",
+      "takeoverExpired": "인수 토큰이 만료되었습니다. 다시 로그인하세요.",
       "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오.",
       "takingOver": "처리 중...",
       "verifyingSession": "同步作業階段中..."
+    },
+    "takeover": {
+      "stepInvalidate": "다른 기기의 로그인 세션을 정리하는 중...",
+      "stepRegister": "시험 연결을 재등록하는 중...",
+      "stepRedirect": "시험으로 돌아가는 중..."
     },
     "campusSso": {
       "backToLogin": "로그인으로 돌아가기",
@@ -88,6 +94,8 @@
     "pendingAction": {
       "classroomJoinSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 자동으로 교실에 참여합니다.",
       "classroomJoinTitle": "교실 참여",
+      "examTakeoverSubtitle": "미완료 시험이 감지되었습니다. 이 기기에서 인수하여 재개하세요.",
+      "examTakeoverTitle": "시험 기기 인수",
       "teacherActivationSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 자동으로 교사 권한이 활성화됩니다.",
       "teacherActivationTitle": "교사 권한 활성화"
     },

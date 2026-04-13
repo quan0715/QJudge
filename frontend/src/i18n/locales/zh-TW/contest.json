@@ -295,9 +295,7 @@
   "dashboard": {
     "acceptedRate": "通過率",
     "answerLabel": "作答",
-    "approveTakeover": "核可裝置接管",
     "bestSubmission": "最佳提交",
-    "confirmTakeover": "確定要核可此學生的裝置接管嗎？",
     "correctAnswer": "正確答案",
     "correctRate": "正確率",
     "detailSubtitle": "以 student report 為藍本的互動式檢視",
@@ -355,8 +353,6 @@
       "report": "報告",
       "submissions": "提交"
     },
-    "takeoverApproveFailed": "核可裝置接管失敗",
-    "takeoverApproved": "已核可裝置接管",
     "totalScore": "總分",
     "transcodeIssue": "轉檔訊息",
     "trendCharts": "提交趨勢",
@@ -596,7 +592,6 @@
   "examStatus": {
     "in_progress": "進行中",
     "locked": "已鎖定",
-    "locked_takeover": "接管鎖定",
     "not_started": "未開始",
     "paused": "已暫停",
     "submitted": "已交卷"
@@ -918,8 +913,6 @@
       "submit_code": "提交程式碼",
       "tab_hidden": "隱藏分頁",
       "tab_switch": "切換分頁",
-      "takeover_approved": "裝置接管核可",
-      "takeover_locked": "裝置接管鎖定",
       "unlock": "解鎖",
       "unlock_user": "解鎖用戶",
       "unregister": "取消註冊",

@@ -246,6 +246,40 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(event.metadata["device_kind"], "tablet")
         self.assertIn("iPad", event.metadata["user_agent"])
 
+    def test_exam_entered_preserves_device_classification_metadata(self):
+        self.client.force_authenticate(user=self.student)
+        payload = {
+            "event_type": "exam_entered",
+            "metadata": {
+                "upload_session_id": "session-device-classification-1",
+                "pointer_profile": "touch_plus_pointer",
+                "supports_fine_pointer": True,
+                "primary_source_module": "webcam",
+                "active_sources": ["webcam"],
+            },
+        }
+
+        response = self.client.post(
+            self.events_url,
+            payload,
+            format="json",
+            HTTP_USER_AGENT=(
+                "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) "
+                "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            ),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        event = ExamEvent.objects.get(
+            contest=self.contest,
+            user=self.student,
+            event_type="exam_entered",
+        )
+        self.assertEqual(event.metadata["device_kind"], "tablet")
+        self.assertEqual(event.metadata["pointer_profile"], "touch_plus_pointer")
+        self.assertTrue(event.metadata["supports_fine_pointer"])
+        self.assertEqual(event.metadata["primary_source_module"], "webcam")
+
     def test_screen_share_stopped_in_terminating_phase_does_not_lock(self):
         self.client.force_authenticate(user=self.student)
 
@@ -392,6 +426,81 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertTrue(resp.data["locked"])
         self.assertIsNotNone(resp.data.get("auto_unlock_at"))
+
+    def test_webcam_stopped_uses_exam_entered_tablet_metadata_as_primary(self):
+        ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exam_entered",
+            metadata={
+                "device_kind": "tablet",
+                "primary_source_module": "webcam",
+                "active_sources": ["webcam"],
+                "upload_session_id": "session-tablet-webcam-1",
+            },
+        )
+
+        self.client.force_authenticate(user=self.student)
+        response = self.client.post(
+            self.events_url,
+            {
+                "event_type": "webcam_stopped",
+                "metadata": {
+                    "upload_session_id": "session-tablet-webcam-1",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["locked"])
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
+
+        event = ExamEvent.objects.filter(
+            contest=self.contest,
+            user=self.student,
+            event_type="webcam_stopped",
+        ).latest("created_at")
+        self.assertEqual(event.metadata["module_role"], "primary")
+
+    def test_webcam_stopped_uses_exam_entered_dual_source_metadata_as_secondary(self):
+        ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exam_entered",
+            metadata={
+                "device_kind": "desktop",
+                "primary_source_module": "screen_share",
+                "active_sources": ["screen_share", "webcam"],
+                "upload_session_id": "session-desktop-dual-1",
+            },
+        )
+
+        self.client.force_authenticate(user=self.student)
+        response = self.client.post(
+            self.events_url,
+            {
+                "event_type": "webcam_stopped",
+                "metadata": {
+                    "upload_session_id": "session-desktop-dual-1",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["locked"])
+        self.assertEqual(response.data["violation_count"], 1)
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+
+        event = ExamEvent.objects.filter(
+            contest=self.contest,
+            user=self.student,
+            event_type="webcam_stopped",
+        ).latest("created_at")
+        self.assertEqual(event.metadata["module_role"], "secondary")
 
     # ------------------------------------------------------------------
     # 7. force_submit_locked_participant transitions to SUBMITTED

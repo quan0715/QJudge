@@ -9,15 +9,19 @@ from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from ..authentication import clear_jwt_cookies, get_refresh_token_from_cookie, set_jwt_cookies
 from ..serializers import ResolveConflictSerializer, TokenRefreshSerializer
+from ..services import JWTService
 from .common import (
     SchemaAPIView,
     consume_conflict_payload_or_error,
-    perform_takeover_lock,
+    record_login,
+    token_cookie_response,
 )
+from apps.contests.models import ContestParticipant
+from apps.contests.services.exam_takeover import perform_exam_takeover
 
 User = get_user_model()
 
@@ -81,7 +85,59 @@ class ResolveConflictView(SchemaAPIView):
         )
         if error_response is not None:
             return error_response
-        return perform_takeover_lock(user_model=User, request=request, payload=payload)
+
+        user_id = payload.get("user_id")
+        participant_id = payload.get("participant_id")
+        if not user_id or not participant_id:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "INVALID_CONFLICT_PAYLOAD",
+                        "message": "Malformed conflict payload.",
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(id=user_id, is_active=True)
+            participant = ContestParticipant.objects.select_related("contest").get(
+                id=participant_id,
+                user_id=user_id,
+            )
+        except (User.DoesNotExist, ContestParticipant.DoesNotExist):
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "CONFLICT_TARGET_NOT_FOUND",
+                        "message": "Target session no longer exists.",
+                    },
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        tokens = JWTService.generate_tokens(user)
+        access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
+        refresh_jti = str(RefreshToken(tokens["refresh"]).get("jti", ""))
+        takeover = perform_exam_takeover(
+            user=user,
+            participant=participant,
+            request=request,
+            access_jti=access_jti,
+            refresh_jti=refresh_jti,
+            requested_device_id=str(payload.get("device_id") or ""),
+        )
+        record_login(user, request, login_method="takeover", jti=access_jti)
+        return token_cookie_response(
+            user,
+            tokens,
+            extra_data={
+                "resume_required": True,
+                "active_exam": takeover["active_exam"],
+            },
+        )
 
 
 class LogoutView(SchemaAPIView):

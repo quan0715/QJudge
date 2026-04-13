@@ -24,8 +24,7 @@ export const computeParticipantStatusKpi = (
   const pausedOrLockedCount = filtered.filter(
     (p) =>
       p.examStatus === "paused" ||
-      p.examStatus === "locked" ||
-      p.examStatus === "locked_takeover"
+      p.examStatus === "locked"
   ).length;
   const notStartedCount = filtered.filter(
     (p) => p.examStatus === "not_started"

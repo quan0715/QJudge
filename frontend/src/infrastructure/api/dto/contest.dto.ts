@@ -298,7 +298,6 @@ export interface ParticipantDashboardDto {
     can_remove_participant?: boolean;
     can_unlock?: boolean;
     can_reopen_exam?: boolean;
-    can_approve_takeover?: boolean;
     can_view_evidence?: boolean;
     can_open_grading?: boolean;
   };

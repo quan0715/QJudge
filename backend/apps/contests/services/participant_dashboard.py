@@ -538,7 +538,6 @@ def build_participant_dashboard(contest: Contest, participant: ContestParticipan
         "can_remove_participant": True,
         "can_unlock": participant.exam_status == ExamStatus.LOCKED,
         "can_reopen_exam": participant.exam_status == ExamStatus.SUBMITTED,
-        "can_approve_takeover": participant.exam_status == ExamStatus.LOCKED_TAKEOVER,
         "can_view_evidence": contest.contest_type == "paper_exam",
         "can_open_grading": contest.contest_type == "paper_exam",
     }
