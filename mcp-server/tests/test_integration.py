@@ -13,6 +13,7 @@ Run:
 """
 
 import asyncio
+import json
 import os
 import sys
 from pathlib import Path
@@ -259,3 +260,84 @@ class TestGrading:
     def test_list_answers(self, teacher_ctx, contest_id):
         result = run(server.qjudge_grading("list_answers", contest_id, teacher_ctx))
         assert isinstance(result, (list, dict))
+
+
+# ---------------------------------------------------------------------------
+# MCP Protocol — in-memory client ↔ server session
+# ---------------------------------------------------------------------------
+
+class TestMCPProtocol:
+    """Verify the MCP server works at protocol level via in-memory transport."""
+
+    EXPECTED_TOOLS = {"qjudge_discover", "qjudge_exam", "qjudge_grading", "qjudge_coding"}
+
+    def test_list_tools(self):
+        from mcp.shared.memory import create_connected_server_and_client_session
+
+        async def _test():
+            async with create_connected_server_and_client_session(server.mcp) as client:
+                await client.initialize()
+                result = await client.list_tools()
+                tool_names = {t.name for t in result.tools}
+                return tool_names
+
+        names = run(_test())
+        assert self.EXPECTED_TOOLS.issubset(names), f"Missing tools: {self.EXPECTED_TOOLS - names}"
+
+    def test_tool_schemas_have_required_fields(self):
+        from mcp.shared.memory import create_connected_server_and_client_session
+
+        async def _test():
+            async with create_connected_server_and_client_session(server.mcp) as client:
+                await client.initialize()
+                result = await client.list_tools()
+                return result.tools
+
+        tools = run(_test())
+        for tool in tools:
+            if tool.name not in self.EXPECTED_TOOLS:
+                continue
+            schema = tool.inputSchema
+            assert "properties" in schema, f"{tool.name} missing properties in schema"
+            assert "action" in schema["properties"], f"{tool.name} missing 'action' param"
+
+    def test_call_tool_with_invalid_action_returns_error(self):
+        from mcp.shared.memory import create_connected_server_and_client_session
+
+        async def _test():
+            async with create_connected_server_and_client_session(
+                server.mcp, raise_exceptions=True
+            ) as client:
+                await client.initialize()
+                result = await client.call_tool(
+                    "qjudge_discover",
+                    arguments={"action": "nonexistent_action"},
+                )
+                return result
+
+        result = run(_test())
+        text = result.content[0].text if result.content else ""
+        parsed = json.loads(text) if text else {}
+        assert parsed.get("error"), f"Expected error response, got: {text[:200]}"
+
+    def test_call_tool_discover_list_classrooms(self, teacher_token):
+        from mcp.shared.memory import create_connected_server_and_client_session
+
+        async def _test():
+            async with create_connected_server_and_client_session(server.mcp) as client:
+                await client.initialize()
+                result = await client.call_tool(
+                    "qjudge_discover",
+                    arguments={"action": "list_classrooms"},
+                )
+                return result
+
+        # Note: without auth context, the tool will fail with auth error.
+        # This verifies the MCP protocol round-trip works, even if the
+        # tool returns an API error (no auth header in in-memory transport).
+        result = run(_test())
+        assert result.content, "Expected non-empty content from tool call"
+        text = result.content[0].text
+        # Should be valid JSON (either data or error)
+        parsed = json.loads(text)
+        assert isinstance(parsed, (list, dict))
