@@ -26,8 +26,11 @@
     }
   },
   "seo": {
-    "title": "QJudge | Secure & Stable Online Exam Platform",
-    "description": "QJudge is an online exam and evaluation platform designed for education, supporting 20+ programming languages, diverse question types, and strict anti-cheating monitoring."
+    "title": "QJudge | AI-Powered Online Exam Platform - Anti-Cheat & Coding Tests",
+    "description": "QJudge is an AI-powered online exam platform for educators. Supports coding tests, multiple question types, strict anti-cheat monitoring, and AI-assisted question generation. Free to start.",
+    "keywords": "online exam, online exam system, online test, AI exam, coding test, anti-cheat, online judge, question bank, exam analysis, QJudge",
+    "ogTitle": "QJudge | AI-Powered Online Exam Platform",
+    "ogDescription": "Online exam platform for educators. Coding tests, anti-cheat monitoring, AI question generation. Free to start."
   },
   "modes": {
     "eyebrow": "Diverse Modes",

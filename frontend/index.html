@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/pwa-192x192.png" />
@@ -15,9 +15,60 @@
       rel="stylesheet"
     />
     <!-- JetBrains Mono font is self-hosted (see src/styles/fonts.css) -->
-    <title>QJudge | 最安全穩定的線上考試平台</title>
-    <meta name="description" content="QJudge 是一個專為教學現場設計的線上考試與評測平台，支援多元題型、嚴格防作弊監控與 AI 輔助出題。" />
-    <meta name="keywords" content="線上考試, 程式評測, Online Judge, 防作弊, QJudge" />
+    <title>QJudge 線上考試平台｜AI 出題・防作弊・Coding 上機考</title>
+    <meta name="description" content="QJudge 是專為教師設計的 AI 線上考試平台，支援 Coding 上機考、多元題型、嚴格防作弊監控與 AI 輔助出題，協助學校與補習班快速舉辦安全可靠的線上測驗。" />
+    <meta name="keywords" content="線上考試, 線上考試系統, 線上測驗, AI 出題, AI 考試, Coding 上機考, 防作弊, 程式評測, Online Judge, 題庫系統, 教學分析, QJudge" />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://qjudge.app/" />
+    <meta property="og:site_name" content="QJudge" />
+    <meta property="og:title" content="QJudge 線上考試平台｜AI 出題・防作弊・Coding 上機考" />
+    <meta property="og:description" content="QJudge 是專為教師設計的 AI 線上考試平台，支援 Coding 上機考、多元題型、嚴格防作弊監控與 AI 輔助出題。" />
+    <meta property="og:image" content="https://qjudge.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="zh_TW" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="QJudge 線上考試平台｜AI 出題・防作弊・Coding 上機考" />
+    <meta name="twitter:description" content="QJudge 是專為教師設計的 AI 線上考試平台，支援 Coding 上機考、多元題型、防作弊與 AI 輔助出題。" />
+    <meta name="twitter:image" content="https://qjudge.app/og-image.png" />
+    <!-- Canonical -->
+    <link rel="canonical" href="https://qjudge.app/" />
+    <!-- JSON-LD: Organization + WebSite -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://qjudge.app/#organization",
+          "name": "QJudge",
+          "url": "https://qjudge.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://qjudge.app/pwa-192x192.png"
+          },
+          "description": "QJudge 是專為教師設計的 AI 線上考試平台",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "quan787887@gmail.com",
+            "contactType": "customer support"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://qjudge.app/#website",
+          "url": "https://qjudge.app/",
+          "name": "QJudge",
+          "description": "AI 線上考試平台",
+          "publisher": { "@id": "https://qjudge.app/#organization" },
+          "inLanguage": ["zh-TW", "en", "ja", "ko"]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

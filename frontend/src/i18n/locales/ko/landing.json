@@ -223,7 +223,10 @@
     "copyright": "© 2024 QJudge. Built with IBM Carbon Design System."
   },
   "seo": {
-    "description": "QJudge는 교육을 위해 설계된 온라인 시험 및 평가 플랫폼입니다. 20개 이상의 프로그래밍 언어, 다양한 문제 유형, 엄격한 부정행위 방지 모니터링을 지원합니다.",
-    "title": "QJudge | 안전하고 안정적인 온라인 시험 플랫폼"
+    "title": "QJudge | AI 온라인 시험 플랫폼 - 부정행위 방지 & 코딩 테스트",
+    "description": "QJudge는 교육자를 위한 AI 온라인 시험 플랫폼입니다. 코딩 테스트, 다양한 문제 유형, 엄격한 부정행위 방지, AI 문제 생성을 지원합니다.",
+    "keywords": "온라인 시험, 온라인 시험 시스템, AI 시험, 코딩 테스트, 부정행위 방지, Online Judge, 문제 은행, QJudge",
+    "ogTitle": "QJudge | AI 온라인 시험 플랫폼",
+    "ogDescription": "교육자를 위한 AI 온라인 시험 플랫폼. 코딩 테스트, 부정행위 방지, AI 문제 생성. 무료로 시작하세요."
   }
 }
