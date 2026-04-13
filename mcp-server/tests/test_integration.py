@@ -76,8 +76,8 @@ def _get_token(role: str = "teacher") -> str:
         return inner.get("access_token") or inner.get("access")
 
     seed_credentials = {
-        "teacher": ("teacher@test.com", "teacher123"),
-        "student": ("student@test.com", "student123"),
+        "teacher": ("teacher@example.com", "teacher123"),
+        "student": ("student@example.com", "student123"),
     }
     cred = seed_credentials.get(role)
     assert cred, f"No credentials for role={role}"
@@ -228,10 +228,12 @@ class TestCoding:
 
     def test_list_problems(self, teacher_ctx, contest_id):
         result = run(server.qjudge_coding("list", teacher_ctx, contest_id=contest_id))
-        assert isinstance(result, list)
+        items = _unwrap_paginated(result)
+        assert isinstance(items, list)
 
     def test_get_problem(self, teacher_ctx, contest_id):
-        problems = run(server.qjudge_coding("list", teacher_ctx, contest_id=contest_id))
+        raw = run(server.qjudge_coding("list", teacher_ctx, contest_id=contest_id))
+        problems = _unwrap_paginated(raw)
         if not problems:
             pytest.skip("No problems")
         pid = str(problems[0]["id"])
