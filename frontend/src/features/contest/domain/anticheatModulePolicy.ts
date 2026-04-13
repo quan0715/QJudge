@@ -4,25 +4,23 @@ import type {
   AnticheatDetectorKind,
 } from "@/core/entities/contest.entity";
 import {
-  supportsDisplayMediaApi,
-  supportsUserMediaApi,
-} from "@/features/contest/anticheat/mediaApi";
+  classifyAnticheatDevice,
+  type DeviceClass,
+  type OsFamily,
+  type PointerProfile,
+} from "./deviceClassification";
 
 export interface AnticheatCapability {
+  deviceClass: DeviceClass;
+  osFamily: OsFamily;
   screenShareSupported: boolean;
   webcamSupported: boolean;
   isTablet: boolean;
   isIPadLike: boolean;
   isPwaMode: boolean;
-}
-
-export interface EffectiveAnticheatModules {
-  screenShareEnabled: boolean;
-  webcamEnabled: boolean;
-  roles: {
-    screenShare: "primary" | "secondary" | null;
-    webcam: "primary" | "secondary" | null;
-  };
+  supportsFinePointer: boolean;
+  supportsHover: boolean;
+  pointerProfile: PointerProfile;
 }
 
 export interface DeviceMonitoringPlan {
@@ -61,6 +59,7 @@ export interface DeviceMonitoringPlan {
     enableWebcam: boolean;
     requireFullscreen: boolean;
     requirePwaMode: boolean;
+    requireSingleMonitor: boolean;
   };
   runtime: {
     enableScreenShareCapture: boolean;
@@ -77,6 +76,8 @@ export interface ExamEntryDeviceMetadata {
   is_tablet: boolean;
   is_ipad_like: boolean;
   is_pwa_mode: boolean;
+  pointer_profile: PointerProfile;
+  supports_fine_pointer: boolean;
   screen_share_supported: boolean;
   webcam_supported: boolean;
   primary_source_module: "screen_share" | "webcam";
@@ -99,8 +100,8 @@ export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
     detectors: {
       pwaMode: false,
       fullscreen: true,
-      focus: true,
-      tabVisibility: true,
+      focus: false,
+      tabVisibility: false,
       multiDisplay: true,
       mouseLeave: true,
       viewportIntegrity: false,
@@ -121,8 +122,8 @@ export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
     detectors: {
       pwaMode: true,
       fullscreen: false,
-      focus: true,
-      tabVisibility: true,
+      focus: false,
+      tabVisibility: false,
       multiDisplay: false,
       mouseLeave: true,
       viewportIntegrity: true,
@@ -130,93 +131,8 @@ export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
   },
 };
 
-const detectIPadLike = (): boolean => {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  const platform = navigator.platform || "";
-  const maxTouchPoints = navigator.maxTouchPoints || 0;
-  const uaDataPlatform = (
-    navigator as Navigator & { userAgentData?: { platform?: string } }
-  ).userAgentData?.platform;
-  const hasCoarsePointer =
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(pointer: coarse)").matches;
-  const hasHoverCapability =
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(hover: hover)").matches;
-  const isIPadUA = /iPad/i.test(ua);
-  const isTouchMac = /Mac/i.test(platform) && maxTouchPoints > 0 && !hasHoverCapability;
-  const isDesktopLikeIpadUA = /Macintosh/i.test(ua) && (maxTouchPoints > 0 || hasCoarsePointer) && !hasHoverCapability;
-  const isIOSUAData = typeof uaDataPlatform === "string" && /iOS/i.test(uaDataPlatform);
-  return isIPadUA || isTouchMac || isDesktopLikeIpadUA || isIOSUAData;
-};
-
-const detectTablet = (): boolean => {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  const isIPadLike = detectIPadLike();
-  const isAndroidTablet =
-    /Android/i.test(ua) &&
-    (!/Mobile/i.test(ua) || /Tablet/i.test(ua));
-  return isIPadLike || isAndroidTablet;
-};
-
 export const detectAnticheatCapability = (): AnticheatCapability => {
-  if (typeof navigator === "undefined") {
-    return {
-      screenShareSupported: false,
-      webcamSupported: false,
-      isTablet: false,
-      isIPadLike: false,
-      isPwaMode: false,
-    };
-  }
-  const standaloneByDisplayMode =
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    (window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches);
-  const standaloneByIOS = Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
-  return {
-    screenShareSupported: supportsDisplayMediaApi(),
-    webcamSupported: supportsUserMediaApi(),
-    isTablet: detectTablet(),
-    isIPadLike: detectIPadLike(),
-    isPwaMode: standaloneByDisplayMode || standaloneByIOS,
-  };
-};
-
-export const computeEffectiveRequiredModules = (
-  capability: AnticheatCapability,
-  devicePolicy: ContestAnticheatDevicePolicy
-): EffectiveAnticheatModules => {
-  const deviceKind: AnticheatDeviceKind = capability.isTablet ? "tablet" : "desktop";
-  const selectedDevicePolicy = devicePolicy[deviceKind];
-
-  const screenShareEnabled =
-    selectedDevicePolicy.sources.screenShare.enabled && capability.screenShareSupported;
-  const webcamEnabled = selectedDevicePolicy.sources.webcam.enabled && capability.webcamSupported;
-
-  const roles: EffectiveAnticheatModules["roles"] = {
-    screenShare: null,
-    webcam: null,
-  };
-  if (screenShareEnabled) {
-    roles.screenShare = "primary";
-    if (webcamEnabled) {
-      roles.webcam = "secondary";
-    }
-  } else if (webcamEnabled) {
-    roles.webcam = "primary";
-  }
-
-  return {
-    screenShareEnabled,
-    webcamEnabled,
-    roles,
-  };
+  return classifyAnticheatDevice();
 };
 
 export const resolveDeviceMonitoringPlan = (
@@ -270,10 +186,12 @@ export const resolveDeviceMonitoringPlan = (
   const detectors = {
     pwaMode: !!selected.detectors.pwaMode,
     fullscreen: !!selected.detectors.fullscreen,
-    focus: !!selected.detectors.focus,
-    tabVisibility: !!selected.detectors.tabVisibility,
+    // Legacy focus detectors stay in schema for compatibility, but no longer
+    // participate in the primary runtime path.
+    focus: false,
+    tabVisibility: false,
     multiDisplay: !!selected.detectors.multiDisplay,
-    mouseLeave: !!selected.detectors.mouseLeave,
+    mouseLeave: !!selected.detectors.mouseLeave && (!capability.isTablet || capability.supportsFinePointer),
     viewportIntegrity: !!selected.detectors.viewportIntegrity && capability.isTablet,
   };
 
@@ -298,8 +216,9 @@ export const resolveDeviceMonitoringPlan = (
       requireScreenShare: screenShareActive,
       requireWebcam: webcamActive,
       enableWebcam: webcamActive,
-      requireFullscreen: detectors.fullscreen,
+      requireFullscreen: detectors.fullscreen && !detectors.pwaMode,
       requirePwaMode: detectors.pwaMode,
+      requireSingleMonitor: detectors.multiDisplay,
     },
     runtime: {
       enableScreenShareCapture: screenShareActive,
@@ -329,6 +248,8 @@ export const buildExamEntryDeviceMetadata = (
     is_tablet: capability.isTablet,
     is_ipad_like: capability.isIPadLike,
     is_pwa_mode: capability.isPwaMode,
+    pointer_profile: capability.pointerProfile,
+    supports_fine_pointer: capability.supportsFinePointer,
     screen_share_supported: capability.screenShareSupported,
     webcam_supported: capability.webcamSupported,
     primary_source_module: monitoringPlan.primarySourceModule,

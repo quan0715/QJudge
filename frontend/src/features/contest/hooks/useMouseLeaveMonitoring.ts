@@ -12,10 +12,19 @@ import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
 
 const IME_COMPOSITION_GUARD_MS = 900;
 
+/**
+ * iPadOS hides the pointer after ~2-3 seconds of inactivity, firing a
+ * mouseleave with relatedTarget=null. We track the last mousemove timestamp
+ * and suppress any mouseleave that arrives after the pointer has been idle
+ * longer than this threshold — it's an auto-hide, not a real window exit.
+ */
+const POINTER_IDLE_THRESHOLD_MS = 2_000;
+
 export interface UseMouseLeaveMonitoringConfig {
   contestId: string;
   enabled: boolean;
   isTablet?: boolean;
+  supportsFinePointer?: boolean;
   examSubmitted: boolean;
   recoveryGraceMs?: number;
   cooldownMs?: number;
@@ -33,13 +42,14 @@ export function useMouseLeaveMonitoring({
   contestId,
   enabled,
   isTablet = false,
+  supportsFinePointer = false,
   examSubmitted,
   recoveryGraceMs,
   cooldownMs = 3000,
   onViolation,
   requestForceSubmit,
 }: UseMouseLeaveMonitoringConfig): UseMouseLeaveMonitoringReturn {
-  const effectiveEnabled = enabled && !isTablet;
+  const effectiveEnabled = enabled && (!isTablet || supportsFinePointer);
   const pipeline = useViolationPipeline({
     route: mouseLeaveRoute,
     contestId,
@@ -54,12 +64,25 @@ export function useMouseLeaveMonitoring({
   const isComposingRef = useRef(false);
   const lastCompositionEndAtRef = useRef(0);
   const lastTriggerAtRef = useRef(0);
+  const lastMouseMoveAtRef = useRef(Date.now());
 
   useEffect(() => {
     if (!effectiveEnabled || examSubmitted) return;
 
+    // Track pointer movement to distinguish real exits from iPadOS idle hide.
+    const handleMouseMove = () => {
+      lastMouseMoveAtRef.current = Date.now();
+    };
+
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.relatedTarget !== null) return;
+
+      // iPadOS auto-hides the cursor after ~2-3s of inactivity and fires a
+      // synthetic mouseleave. If the pointer has been idle longer than the
+      // threshold, this is almost certainly an auto-hide — not a real exit.
+      const idleMs = Date.now() - lastMouseMoveAtRef.current;
+      if (idleMs > POINTER_IDLE_THRESHOLD_MS) return;
+
       if (isComposingRef.current) return;
       if (Date.now() - lastCompositionEndAtRef.current < IME_COMPOSITION_GUARD_MS) return;
       if (pipeline.isInterrupted) return;
@@ -72,6 +95,7 @@ export function useMouseLeaveMonitoring({
     };
 
     const handleMouseEnter = () => {
+      lastMouseMoveAtRef.current = Date.now();
       pipeline.recover("mouse_returned");
     };
 
@@ -84,12 +108,14 @@ export function useMouseLeaveMonitoring({
       lastCompositionEndAtRef.current = Date.now();
     };
 
+    document.documentElement.addEventListener("mousemove", handleMouseMove, { passive: true });
     document.documentElement.addEventListener("mouseleave", handleMouseLeave);
     document.documentElement.addEventListener("mouseenter", handleMouseEnter);
     document.addEventListener("compositionstart", handleCompositionStart, true);
     document.addEventListener("compositionend", handleCompositionEnd, true);
 
     return () => {
+      document.documentElement.removeEventListener("mousemove", handleMouseMove);
       document.documentElement.removeEventListener("mouseleave", handleMouseLeave);
       document.documentElement.removeEventListener("mouseenter", handleMouseEnter);
       document.removeEventListener("compositionstart", handleCompositionStart, true);

@@ -28,6 +28,7 @@ export interface AnticheatDecision {
   reasonCode: string;
   dedupeHit: boolean;
   eventIdempotencyKey: string;
+  incidentFamily: string | null;
 }
 
 interface ArbitrationWindow {
@@ -55,14 +56,35 @@ const priorityRank: Record<AnticheatSignalPriority, number> = {
   TERMINAL_GUARD: 4,
 };
 
-const HARD_SECURITY_EVENTS = new Set(["screen_share_stopped", "warning_timeout", "viewport_stopped"]);
+// ---------------------------------------------------------------------------
+// Incident families — mirrors backend INCIDENT_FAMILY in constants.py.
+// Same family within the dedup window produces only one penalty.
+// ---------------------------------------------------------------------------
+const INCIDENT_FAMILY: Record<string, string> = {
+  screen_share_stopped: "capture_loss",
+  webcam_stopped: "capture_loss",
+  exit_fullscreen: "display_escape",
+  multiple_displays: "display_escape",
+  split_view_detected: "display_escape",
+  forbidden_focus_event: "display_escape",
+  mouse_leave: "pointer_escape",
+  viewport_stopped: "viewport_loss",
+  // P0 / immediate-lock — each is its own family.
+  warning_timeout: "warning_timeout",
+  heartbeat_timeout: "heartbeat_timeout",
+  listener_tampered: "listener_tampered",
+};
+
+export const getIncidentFamily = (eventType: string): string | null =>
+  INCIDENT_FAMILY[eventType] ?? null;
+
+const HARD_SECURITY_EVENTS = new Set(["screen_share_stopped", "warning_timeout"]);
 const WARNING_EVENTS = new Set([
-  "tab_hidden",
-  "window_blur",
   "exit_fullscreen",
   "multiple_displays",
   "mouse_leave",
   "forbidden_focus_event",
+  "viewport_stopped",
 ]);
 
 const TERMINAL_BLOCK_EVENTS = new Set([...HARD_SECURITY_EVENTS, ...WARNING_EVENTS]);
@@ -125,9 +147,13 @@ export const classifyAnticheatPriority = (
   return "INFO";
 };
 
+// Dedup key uses incident family so that e.g. exit_fullscreen + mouse_leave
+// (both in "display_escape" / "pointer_escape" respectively) don't double-penalise,
+// while truly different families can each fire.
 const toDedupeKey = (signal: AnticheatSignal, phase: AnticheatPhase, time: number) => {
+  const family = INCIDENT_FAMILY[signal.eventType] ?? signal.eventType;
   const bucket = Math.floor(time / DEDUPE_WINDOW_MS);
-  return `${signal.eventType}:${signal.source}:${phase}:${bucket}`;
+  return `${family}:${signal.source}:${phase}:${bucket}`;
 };
 
 export const setAnticheatPhase = (contestId: string, phase: AnticheatPhase) => {
@@ -155,8 +181,7 @@ export const syncAnticheatPhaseWithExamStatus = (
     if (examStatus === "in_progress") return "ACTIVE";
     if (
       examStatus === "paused" ||
-      examStatus === "locked" ||
-      examStatus === "locked_takeover"
+      examStatus === "locked"
     ) {
       return "DEGRADED";
     }
@@ -184,6 +209,7 @@ export const decideAnticheatSignal = (
   const now = nowMs();
   const phase = state.phase;
   const priority = classifyAnticheatPriority(signal, phase);
+  const incidentFamily = getIncidentFamily(signal.eventType);
 
   const dedupeKey = toDedupeKey(signal, phase, now);
   compactDedupeMap(state.dedupe, now);
@@ -199,6 +225,7 @@ export const decideAnticheatSignal = (
       reasonCode: "dedupe_window",
       dedupeHit: true,
       eventIdempotencyKey,
+      incidentFamily,
     };
   }
 
@@ -211,6 +238,7 @@ export const decideAnticheatSignal = (
       reasonCode: "terminal_phase_block",
       dedupeHit: false,
       eventIdempotencyKey,
+      incidentFamily,
     };
   }
 
@@ -228,6 +256,7 @@ export const decideAnticheatSignal = (
       reasonCode: "arbitration_window",
       dedupeHit: false,
       eventIdempotencyKey,
+      incidentFamily,
     };
   } else {
     state.window.topPriority = priorityRank[priority];
@@ -243,6 +272,7 @@ export const decideAnticheatSignal = (
     reasonCode: "accepted",
     dedupeHit: false,
     eventIdempotencyKey,
+    incidentFamily,
   };
 };
 
@@ -258,6 +288,7 @@ export const buildAnticheatMetadata = (
     reason_code: decision.reasonCode,
     dedupe_hit: decision.dedupeHit,
     event_idempotency_key: decision.eventIdempotencyKey,
+    incident_family: decision.incidentFamily,
     ...extras,
   };
 };

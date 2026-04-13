@@ -132,4 +132,12 @@ describe("useMouseLeaveMonitoring", () => {
     act(() => { fireMouseLeave(null); });
     expect(result.current.recoveryCountdown).toBeNull();
   });
+
+  it("isTablet=true with fine pointer enables mouse-leave trigger", () => {
+    const config = makeConfig({ isTablet: true, supportsFinePointer: true });
+    const { result } = renderHook(() => useMouseLeaveMonitoring(config));
+
+    act(() => { fireMouseLeave(null); });
+    expect(result.current.recoveryCountdown).toBe(3);
+  });
 });

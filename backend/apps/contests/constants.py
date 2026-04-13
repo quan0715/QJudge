@@ -1,5 +1,26 @@
 """Shared constants for contest event taxonomy and penalty logic."""
 
+# ---------------------------------------------------------------------------
+# Incident families — group raw event types into semantic categories.
+# The orchestrator and penalty logic use families for dedup / arbitration
+# so that a single user action doesn't produce multiple penalties.
+# ---------------------------------------------------------------------------
+
+INCIDENT_FAMILY: dict[str, str] = {
+    'screen_share_stopped': 'capture_loss',
+    'webcam_stopped': 'capture_loss',
+    'exit_fullscreen': 'display_escape',
+    'multiple_displays': 'display_escape',
+    'mouse_leave': 'pointer_escape',
+    'viewport_stopped': 'viewport_loss',
+    'split_view_detected': 'display_escape',
+    'forbidden_focus_event': 'display_escape',
+    # P0 / immediate-lock events: each is its own family (no cross-dedup).
+    'warning_timeout': 'warning_timeout',
+    'heartbeat_timeout': 'heartbeat_timeout',
+    'listener_tampered': 'listener_tampered',
+}
+
 # Priority levels: P0=critical, P1=violation, P2=info, P3=system
 EVENT_PRIORITY: dict[str, int] = {
     # P0: Immediate lock level
@@ -8,8 +29,6 @@ EVENT_PRIORITY: dict[str, int] = {
     'heartbeat_timeout': 0,
     'listener_tampered': 0,
     # P1: Penalized violations
-    'tab_hidden': 1,
-    'window_blur': 1,
     'exit_fullscreen': 1,
     'multiple_displays': 1,
     'mouse_leave': 1,
@@ -30,8 +49,11 @@ EVENT_PRIORITY: dict[str, int] = {
     'viewport_restored': 2,
     'exit_fullscreen_triggered': 2,
     'mouse_leave_triggered': 2,
+    # Legacy focus events — kept for historical event display, no longer penalized.
+    'tab_hidden': 2,
     'tab_hidden_triggered': 2,
     'tab_hidden_restored': 2,
+    'window_blur': 2,
     'window_blur_triggered': 2,
     'window_blur_restored': 2,
     'multi_display_triggered': 2,
@@ -40,8 +62,6 @@ EVENT_PRIORITY: dict[str, int] = {
     # P3: Lifecycle / management
     'exam_entered': 3,
     'exam_submit_initiated': 3,
-    'takeover_locked': 3,
-    'takeover_approved': 3,
     'force_submit_locked': 3,
     'concurrent_login_detected': 3,
     'heartbeat': 3,
@@ -55,8 +75,6 @@ EVENT_CATEGORY: dict[int, str] = {
 }
 
 PENALIZED_EVENT_TYPES = {
-    'tab_hidden',
-    'window_blur',
     'exit_fullscreen',
     'multiple_displays',
     'mouse_leave',
@@ -66,6 +84,13 @@ PENALIZED_EVENT_TYPES = {
     'split_view_detected',
     'warning_timeout',
     'forbidden_focus_event',
+    'heartbeat_timeout',
+    'listener_tampered',
+}
+
+IMMEDIATE_LOCK_EVENT_TYPES = {
+    'warning_timeout',
+    'screen_share_stopped',
     'heartbeat_timeout',
     'listener_tampered',
 }

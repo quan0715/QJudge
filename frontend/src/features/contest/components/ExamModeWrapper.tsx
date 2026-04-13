@@ -47,7 +47,6 @@ import { useWebcamMonitoring } from "@/features/contest/hooks/useWebcamMonitorin
 import { useScreenShareMonitoring } from "@/features/contest/hooks/useScreenShareMonitoring";
 import { useFullscreenMonitoring } from "@/features/contest/hooks/useFullscreenMonitoring";
 import { useMouseLeaveMonitoring } from "@/features/contest/hooks/useMouseLeaveMonitoring";
-import { useFocusMonitoring } from "@/features/contest/hooks/useFocusMonitoring";
 import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisplayMonitoring";
 import { selectPrimaryCountdownFromRegistry } from "@/features/contest/domain/violationRoutes";
 
@@ -66,8 +65,7 @@ interface ExamModeWrapperProps {
 const isMonitoredStatus = (status?: ExamStatusType) =>
   status === "in_progress" ||
   status === "paused" ||
-  status === "locked" ||
-  status === "locked_takeover";
+  status === "locked";
 
 const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   contestId,
@@ -101,12 +99,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     anticheatConfig?.devicePolicy ?? anticheatEffective?.anticheatDevicePolicy
   );
   const effectiveRequiresFullscreen =
-    requiresFullscreen &&
-    monitoringPlan.detectors.fullscreen &&
-    !monitoringPlan.precheck.requirePwaMode;
+    requiresFullscreen && monitoringPlan.precheck.requireFullscreen;
+  const { primarySourceModule } = monitoringPlan;
   const screenModuleRole = monitoringPlan.sources.screenShare.role ?? "secondary";
   const webcamModuleRole = monitoringPlan.sources.webcam.role ?? "secondary";
-  const primarySourceModule: "screen_share" | "webcam" = monitoringPlan.primarySourceModule;
   const policyRequired = cheatDetectionEnabled && (isExamMonitored || isMonitoredStatus(examStatus));
   const policyUnavailable =
     policyRequired &&
@@ -301,7 +297,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     contestId,
     enabled: viewportMonitorEnabled,
     examSubmitted: examStatus === "submitted",
-    recoveryGraceMs: anticheatEffective?.monitoringRecoveryGraceMs,
     isTablet: capability.isTablet,
     primarySourceModule,
     requestForceSubmit,
@@ -320,6 +315,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     contestId,
     enabled: effectiveMonitoringEnabled && monitoringPlan.detectors.mouseLeave,
     isTablet: capability.isTablet,
+    supportsFinePointer: capability.supportsFinePointer,
     examSubmitted: examStatus === "submitted",
     recoveryGraceMs: anticheatEffective?.monitoringRecoveryGraceMs,
     cooldownMs: anticheatEffective?.mouseLeaveCooldownMs,
@@ -334,18 +330,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     recoveryGraceMs: anticheatEffective?.monitoringRecoveryGraceMs,
     onViolation: handleViolation,
     requestForceSubmit,
-  });
-
-  const focus = useFocusMonitoring({
-    contestId,
-    enabled: effectiveMonitoringEnabled && (monitoringPlan.detectors.focus || monitoringPlan.detectors.tabVisibility),
-    examSubmitted: examStatus === "submitted",
-    enableFocus: monitoringPlan.detectors.focus,
-    enableTabVisibility: monitoringPlan.detectors.tabVisibility,
-    recoveryGraceMs: anticheatEffective?.monitoringRecoveryGraceMs,
-    onViolation: handleViolation,
-    requestForceSubmit,
-    onInteraction: multiDisplay.triggerCheck,
   });
 
   const runtimeReauthActive = screenShare.reauth.active;
@@ -374,11 +358,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     m.set("viewport", viewport.recoveryCountdown);
     m.set("fullscreen", fullscreen.recoveryCountdown);
     m.set("mouse_leave", mouseLeave.recoveryCountdown);
-    m.set("tab_hidden", focus.tabHiddenCountdown);
-    m.set("window_blur", focus.windowBlurCountdown);
     m.set("multiple_displays", multiDisplay.recoveryCountdown);
     return m;
-  }, [screenShare.reauth, webcam.recoveryCountdown, viewport.recoveryCountdown, fullscreen.recoveryCountdown, mouseLeave.recoveryCountdown, focus.tabHiddenCountdown, focus.windowBlurCountdown, multiDisplay.recoveryCountdown]);
+  }, [screenShare.reauth, webcam.recoveryCountdown, viewport.recoveryCountdown, fullscreen.recoveryCountdown, mouseLeave.recoveryCountdown, multiDisplay.recoveryCountdown]);
   const primaryCountdown = selectPrimaryCountdownFromRegistry(countdownMap);
 
   const [isRequestingScreenShare, setIsRequestingScreenShare] = useState(false);
@@ -678,8 +660,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           recoveryCountdown={
             primaryCountdown.source === "fullscreen" ||
             primaryCountdown.source === "mouse_leave" ||
-            primaryCountdown.source === "tab_hidden" ||
-            primaryCountdown.source === "window_blur" ||
             primaryCountdown.source === "multiple_displays"
               ? primaryCountdown.value
               : null

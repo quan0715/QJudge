@@ -89,6 +89,7 @@ export const createEligibilityChecks = (t: TranslateFn): CheckItem[] => [
 
 export interface EnvironmentCheckFilter {
   requireScreenShare: boolean;
+  requireSingleMonitor: boolean;
   enableWebcam: boolean;
   requirePwaMode: boolean;
   skipFullscreen: boolean;
@@ -99,9 +100,13 @@ export const createEnvironmentChecks = (
   filter?: EnvironmentCheckFilter
 ): CheckItem[] => {
   const checks: CheckItem[] = [];
-  if (!filter || filter.requireScreenShare) {
+  if (!filter || filter.requireSingleMonitor) {
     checks.push(
       { id: "singleMonitor", label: t("precheck.environment.checks.monitor"), status: "pending" },
+    );
+  }
+  if (!filter || filter.requireScreenShare) {
+    checks.push(
       { id: "shareScreen", label: t("precheck.environment.checks.sharing"), status: "pending" },
     );
   }
@@ -211,6 +216,7 @@ export const runStartPreflightValidation = async (
   t: TranslateFn,
   options: {
     requireScreenShare: boolean;
+    requireSingleMonitor: boolean;
     requireWebcam: boolean;
     enableWebcam?: boolean;
     requirePwaOnTablet: boolean;
@@ -220,13 +226,14 @@ export const runStartPreflightValidation = async (
 ): Promise<PreflightValidationFailure | null> => {
   const {
     requireScreenShare,
+    requireSingleMonitor,
     requireWebcam,
     enableWebcam,
     requirePwaOnTablet,
     isPwaMode,
     skipFullscreenCheck,
   } = options;
-  if (requireScreenShare) {
+  if (requireSingleMonitor) {
     const diagnostics = await displayService.check();
     if (!diagnostics.supportsScreenDetails) {
       return {
@@ -249,7 +256,9 @@ export const runStartPreflightValidation = async (
         clearShareHandoff: true,
       };
     }
+  }
 
+  if (requireScreenShare) {
     const handoffStream = peekPrecheckScreenShareHandoff();
     if (!handoffStream) {
       return {
@@ -311,6 +320,7 @@ interface RunEnvChecksOptions {
   t: TranslateFn;
   envTestRunning: boolean;
   requireScreenShare: boolean;
+  requireSingleMonitor: boolean;
   requireWebcam: boolean;
   enableWebcam: boolean;
   requirePwaOnTablet: boolean;
@@ -337,6 +347,7 @@ export const runEnvChecks = async ({
   t,
   envTestRunning,
   requireScreenShare,
+  requireSingleMonitor,
   requireWebcam,
   enableWebcam,
   requirePwaOnTablet,
@@ -405,7 +416,7 @@ export const runEnvChecks = async ({
   };
 
   try {
-    if (requireScreenShare) {
+    if (requireSingleMonitor) {
       markRunning("singleMonitor", t("precheck.environment.status.checking"));
       const diagnostics = await displayService.check();
 
@@ -436,7 +447,9 @@ export const runEnvChecks = async ({
         "pass",
         t("precheck.environment.status.monitorCount", { count: 1 })
       );
+    }
 
+    if (requireScreenShare) {
       markRunning("shareScreen", t("precheck.environment.requirements.sharing"));
       const shareResult = await requestMonitorScreenShare();
       if (!shareResult.granted) {
@@ -444,17 +457,19 @@ export const runEnvChecks = async ({
         return;
       }
 
-      await sleep(PRECHECK_SHARE_RECHECK_DELAY_MS);
-      const diagnosticsAfterShare = await displayService.check();
-      if (diagnosticsAfterShare.screenCount === null) {
-        await failShareAndBlock(t("precheck.environment.errors.noScreenDetails"));
-        return;
-      }
-      if (diagnosticsAfterShare.isExtended || diagnosticsAfterShare.screenCount > 1) {
-        await failShareAndBlock(
-          t("precheck.environment.errors.multiMonitor", { count: diagnosticsAfterShare.screenCount })
-        );
-        return;
+      if (requireSingleMonitor) {
+        await sleep(PRECHECK_SHARE_RECHECK_DELAY_MS);
+        const diagnosticsAfterShare = await displayService.check();
+        if (diagnosticsAfterShare.screenCount === null) {
+          await failShareAndBlock(t("precheck.environment.errors.noScreenDetails"));
+          return;
+        }
+        if (diagnosticsAfterShare.isExtended || diagnosticsAfterShare.screenCount > 1) {
+          await failShareAndBlock(
+            t("precheck.environment.errors.multiMonitor", { count: diagnosticsAfterShare.screenCount })
+          );
+          return;
+        }
       }
 
       if (shareResult.displaySurface !== "monitor") {

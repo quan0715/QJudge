@@ -30,8 +30,8 @@ def default_anticheat_device_policy():
             "detectors": {
                 "pwa_mode": False,
                 "fullscreen": True,
-                "focus": True,
-                "tab_visibility": True,
+                "focus": False,
+                "tab_visibility": False,
                 "multi_display": True,
                 "mouse_leave": True,
                 "viewport_integrity": False,
@@ -52,8 +52,8 @@ def default_anticheat_device_policy():
             "detectors": {
                 "pwa_mode": True,
                 "fullscreen": False,
-                "focus": True,
-                "tab_visibility": True,
+                "focus": False,
+                "tab_visibility": False,
                 "multi_display": False,
                 "mouse_leave": True,
                 "viewport_integrity": True,
@@ -430,7 +430,6 @@ class ExamStatus(models.TextChoices):
     IN_PROGRESS = 'in_progress', '進行中'
     PAUSED = 'paused', '暫停'
     LOCKED = 'locked', '已鎖定'
-    LOCKED_TAKEOVER = 'locked_takeover', '接管鎖定'
     SUBMITTED = 'submitted', '已交卷'
 
 
@@ -489,7 +488,7 @@ class ContestParticipant(models.Model):
         choices=ExamStatus.choices,
         default=ExamStatus.NOT_STARTED,
         verbose_name='考試狀態',
-        help_text='學生考試狀態：未開始/進行中/暫停/已鎖定/接管鎖定/已交卷'
+        help_text='學生考試狀態：未開始/進行中/暫停/已鎖定/已交卷'
     )
     assignment_state = models.CharField(
         max_length=20,
@@ -661,8 +660,6 @@ class ExamEvent(models.Model):
         ('exam_entered', 'Exam Entered'),
         ('exam_submit_initiated', 'Exam Submit Initiated'),
         ('concurrent_login_detected', 'Concurrent Login Detected'),
-        ('takeover_locked', 'Takeover Locked'),
-        ('takeover_approved', 'Takeover Approved'),
         ('heartbeat', 'Heartbeat'),
         ('heartbeat_timeout', 'Heartbeat Timeout'),
         ('listener_tampered', 'Listener Tampered'),
@@ -957,8 +954,6 @@ class ContestActivity(models.Model):
         ('update_problem', 'Update Problem'),
         ('update_participant', 'Update Participant'),
         ('concurrent_login_detected', 'Concurrent Login Detected'),
-        ('takeover_lock', 'Takeover Lock'),
-        ('takeover_approve', 'Takeover Approve'),
         ('announce', 'Announce'),
         ('other', 'Other'),
     ]

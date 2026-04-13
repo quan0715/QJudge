@@ -99,6 +99,16 @@ def normalize_anticheat_device_policy(raw_policy) -> dict:
             "detectors": detectors,
         }
 
+    # High-level policy constraints — single source of truth.
+    # focus / tab_visibility are legacy, always off.
+    for device in DEVICE_KINDS:
+        normalized[device]["detectors"]["focus"] = False
+        normalized[device]["detectors"]["tab_visibility"] = False
+    # tablet cannot use screen_share, fullscreen, or multi_display.
+    normalized["tablet"]["sources"]["screen_share"]["enabled"] = False
+    normalized["tablet"]["detectors"]["fullscreen"] = False
+    normalized["tablet"]["detectors"]["multi_display"] = False
+
     return normalized
 
 

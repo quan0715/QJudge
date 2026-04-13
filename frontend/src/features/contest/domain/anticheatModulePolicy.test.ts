@@ -1,7 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import {
   buildExamEntryDeviceMetadata,
-  computeEffectiveRequiredModules,
   detectAnticheatCapability,
   resolveDeviceMonitoringPlan,
 } from "./anticheatModulePolicy";
@@ -53,69 +52,20 @@ const basePolicy = {
   },
 };
 
-describe("computeEffectiveRequiredModules", () => {
-  it("keeps screen-share as primary on desktop when both sources are enabled", () => {
-    const result = computeEffectiveRequiredModules(
-      {
-        screenShareSupported: true,
-        webcamSupported: true,
-        isTablet: false,
-        isIPadLike: false,
-        isPwaMode: false,
-      },
-      basePolicy
-    );
-
-    expect(result.screenShareEnabled).toBe(true);
-    expect(result.webcamEnabled).toBe(true);
-    expect(result.roles.screenShare).toBe("primary");
-    expect(result.roles.webcam).toBe("secondary");
-  });
-
-  it("uses webcam as primary on tablet when screen-share is disabled", () => {
-    const result = computeEffectiveRequiredModules(
-      {
-        screenShareSupported: false,
-        webcamSupported: true,
-        isTablet: true,
-        isIPadLike: true,
-        isPwaMode: false,
-      },
-      basePolicy
-    );
-
-    expect(result.screenShareEnabled).toBe(false);
-    expect(result.webcamEnabled).toBe(true);
-    expect(result.roles.webcam).toBe("primary");
-    expect(result.roles.screenShare).toBeNull();
-  });
-
-  it("does not require webcam when unsupported", () => {
-    const result = computeEffectiveRequiredModules(
-      {
-        screenShareSupported: false,
-        webcamSupported: false,
-        isTablet: true,
-        isIPadLike: true,
-        isPwaMode: false,
-      },
-      basePolicy
-    );
-
-    expect(result.screenShareEnabled).toBe(false);
-    expect(result.webcamEnabled).toBe(false);
-    expect(result.webcamEnabled).toBe(false);
-    expect(result.roles.webcam).toBeNull();
-  });
-
+describe("resolveDeviceMonitoringPlan", () => {
   it("resolves tablet runtime plan with webcam primary and fullscreen disabled", () => {
     const plan = resolveDeviceMonitoringPlan(
       {
+        deviceClass: "tablet",
+        osFamily: "ipados",
         screenShareSupported: false,
         webcamSupported: true,
         isTablet: true,
         isIPadLike: true,
         isPwaMode: false,
+        supportsFinePointer: false,
+        supportsHover: false,
+        pointerProfile: "touch_only",
       },
       basePolicy
     );
@@ -125,17 +75,25 @@ describe("computeEffectiveRequiredModules", () => {
     expect(plan.sources.webcam.role).toBe("primary");
     expect(plan.precheck.requireFullscreen).toBe(false);
     expect(plan.precheck.requirePwaMode).toBe(true);
+    expect(plan.detectors.focus).toBe(false);
+    expect(plan.detectors.tabVisibility).toBe(false);
+    expect(plan.detectors.mouseLeave).toBe(false);
     expect(plan.runtime.enableViewportIntegrity).toBe(true);
   });
 
   it("enables viewport integrity for generic tablet capability", () => {
     const plan = resolveDeviceMonitoringPlan(
       {
+        deviceClass: "tablet",
+        osFamily: "android_tablet",
         screenShareSupported: false,
         webcamSupported: true,
         isTablet: true,
         isIPadLike: false,
         isPwaMode: false,
+        supportsFinePointer: false,
+        supportsHover: false,
+        pointerProfile: "touch_only",
       },
       basePolicy
     );
@@ -146,11 +104,16 @@ describe("computeEffectiveRequiredModules", () => {
 
   it("builds exam entry metadata with active source list", () => {
     const capability = {
+      deviceClass: "desktop" as const,
+      osFamily: "macos" as const,
       screenShareSupported: true,
       webcamSupported: true,
       isTablet: false,
       isIPadLike: false,
       isPwaMode: false,
+      supportsFinePointer: true,
+      supportsHover: true,
+      pointerProfile: "mouse_like_pointer" as const,
     };
     const plan = resolveDeviceMonitoringPlan(capability, basePolicy);
     const metadata = buildExamEntryDeviceMetadata(capability, plan);
@@ -159,16 +122,23 @@ describe("computeEffectiveRequiredModules", () => {
     expect(metadata.primary_source_module).toBe("screen_share");
     expect(metadata.active_sources).toEqual(["screen_share", "webcam"]);
     expect(metadata.is_tablet).toBe(false);
+    expect(metadata.supports_fine_pointer).toBe(true);
+    expect(metadata.pointer_profile).toBe("mouse_like_pointer");
   });
 
   it("treats enabled-but-unsupported source as missing", () => {
     const plan = resolveDeviceMonitoringPlan(
       {
+        deviceClass: "desktop",
+        osFamily: "macos",
         screenShareSupported: false,
         webcamSupported: true,
         isTablet: false,
         isIPadLike: false,
         isPwaMode: false,
+        supportsFinePointer: true,
+        supportsHover: true,
+        pointerProfile: "mouse_like_pointer",
       },
       {
         ...basePolicy,
@@ -188,6 +158,42 @@ describe("computeEffectiveRequiredModules", () => {
     expect(plan.allowed).toBe(false);
     expect(plan.missingEnabledSources).toContain("screen_share");
     expect(plan.runtime.enableScreenShareCapture).toBe(false);
+  });
+
+  it("enables tablet mouse_leave only when fine pointer is available", () => {
+    const touchOnlyPlan = resolveDeviceMonitoringPlan(
+      {
+        deviceClass: "tablet",
+        osFamily: "ipados",
+        screenShareSupported: false,
+        webcamSupported: true,
+        isTablet: true,
+        isIPadLike: true,
+        isPwaMode: true,
+        supportsFinePointer: false,
+        supportsHover: false,
+        pointerProfile: "touch_only",
+      },
+      basePolicy
+    );
+    const pointerPlan = resolveDeviceMonitoringPlan(
+      {
+        deviceClass: "tablet",
+        osFamily: "ipados",
+        screenShareSupported: false,
+        webcamSupported: true,
+        isTablet: true,
+        isIPadLike: true,
+        isPwaMode: true,
+        supportsFinePointer: true,
+        supportsHover: true,
+        pointerProfile: "touch_plus_pointer",
+      },
+      basePolicy
+    );
+
+    expect(touchOnlyPlan.detectors.mouseLeave).toBe(false);
+    expect(pointerPlan.detectors.mouseLeave).toBe(true);
   });
 });
 
