@@ -159,7 +159,7 @@ class TestDiscover:
         result = run(server.qjudge_discover("list_contests", teacher_ctx))
         items = _unwrap_paginated(result)
         if not items:
-            pytest.skip("No contests available")
+            pytest.fail("No contests available")
         cid = str(items[0]["id"])
         detail = run(server.qjudge_discover("get_contest", teacher_ctx, contest_id=cid))
         assert not (isinstance(detail, dict) and detail.get("error"))
@@ -193,7 +193,7 @@ class TestExam:
             items[0] if items else None,
         )
         if not target:
-            pytest.skip("No contests available")
+            pytest.fail("No contests available")
         return str(target["id"])
 
     def test_list_questions(self, teacher_ctx, contest_id):
@@ -203,7 +203,7 @@ class TestExam:
     def test_get_question(self, teacher_ctx, contest_id):
         questions = run(server.qjudge_exam("list", contest_id, teacher_ctx))
         if not questions:
-            pytest.skip("No exam questions")
+            pytest.fail("No exam questions")
         qid = str(questions[0]["id"])
         detail = run(server.qjudge_exam("get", contest_id, teacher_ctx, question_id=qid))
         assert not (isinstance(detail, dict) and detail.get("error"))
@@ -215,30 +215,28 @@ class TestExam:
 
 class TestCoding:
     @pytest.fixture(scope="class")
-    def contest_id(self, teacher_ctx):
+    def contest_with_problems(self, teacher_ctx):
+        """Find a coding contest that has at least one problem."""
         result = run(server.qjudge_discover("list_contests", teacher_ctx))
-        items = _unwrap_paginated(result)
-        target = next(
-            (c for c in items if c.get("contest_type") == "coding"),
-            items[0] if items else None,
-        )
-        if not target:
-            pytest.skip("No contests available")
-        return str(target["id"])
+        contests = _unwrap_paginated(result)
+        for c in contests:
+            if c.get("contest_type") != "coding":
+                continue
+            cid = str(c["id"])
+            problems = _unwrap_paginated(
+                run(server.qjudge_coding("list", teacher_ctx, contest_id=cid))
+            )
+            if problems:
+                return cid, problems
+        pytest.fail("No coding contest with problems found in seed data")
 
-    def test_list_problems(self, teacher_ctx, contest_id):
-        result = run(server.qjudge_coding("list", teacher_ctx, contest_id=contest_id))
-        items = _unwrap_paginated(result)
-        assert isinstance(items, list)
-
-    def test_get_problem(self, teacher_ctx, contest_id):
-        raw = run(server.qjudge_coding("list", teacher_ctx, contest_id=contest_id))
-        problems = _unwrap_paginated(raw)
-        if not problems:
-            pytest.skip("No problems")
+    def test_list_and_get_problem(self, teacher_ctx, contest_with_problems):
+        contest_id, problems = contest_with_problems
+        assert len(problems) >= 1
         pid = str(problems[0]["id"])
         detail = run(server.qjudge_coding("get", teacher_ctx, contest_id=contest_id, problem_id=pid))
         assert not (isinstance(detail, dict) and detail.get("error"))
+        assert detail.get("id") is not None
 
 
 # ---------------------------------------------------------------------------
@@ -251,7 +249,7 @@ class TestGrading:
         result = run(server.qjudge_discover("list_contests", teacher_ctx))
         items = _unwrap_paginated(result)
         if not items:
-            pytest.skip("No contests")
+            pytest.fail("No contests")
         return str(items[0]["id"])
 
     def test_dashboard(self, teacher_ctx, contest_id):
