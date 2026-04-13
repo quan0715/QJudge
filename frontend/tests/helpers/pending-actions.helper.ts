@@ -120,7 +120,10 @@ export async function fillAndSubmitLoginForm(
 export async function registerFreshAccount(
   page: Page,
 ): Promise<{ email: string; password: string; username: string }> {
-  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const randomBytes = new Uint8Array(4);
+  crypto.getRandomValues(randomBytes);
+  const hex = Array.from(randomBytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  const suffix = `${Date.now()}-${hex}`;
   const email = `e2e-test-${suffix}@example.com`;
   const username = `e2e_${suffix}`;
   const password = "TestPass123!";
