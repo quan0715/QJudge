@@ -216,19 +216,16 @@ class TestExam:
 class TestCoding:
     @pytest.fixture(scope="class")
     def contest_with_problems(self, teacher_ctx):
-        """Find a coding contest that has at least one problem."""
+        """Find any contest that has at least one coding problem."""
         result = run(server.qjudge_discover("list_contests", teacher_ctx))
         contests = _unwrap_paginated(result)
         for c in contests:
-            if c.get("contest_type") != "coding":
-                continue
             cid = str(c["id"])
-            problems = _unwrap_paginated(
-                run(server.qjudge_coding("list", teacher_ctx, contest_id=cid))
-            )
-            if problems:
+            raw = run(server.qjudge_coding("list", teacher_ctx, contest_id=cid))
+            problems = _unwrap_paginated(raw)
+            if isinstance(problems, list) and problems:
                 return cid, problems
-        pytest.fail("No coding contest with problems found in seed data")
+        pytest.fail("No contest with coding problems found in seed data")
 
     def test_list_and_get_problem(self, teacher_ctx, contest_with_problems):
         contest_id, problems = contest_with_problems
