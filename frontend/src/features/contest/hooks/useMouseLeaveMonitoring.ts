@@ -64,10 +64,11 @@ export function useMouseLeaveMonitoring({
   const isComposingRef = useRef(false);
   const lastCompositionEndAtRef = useRef(0);
   const lastTriggerAtRef = useRef(0);
-  const lastMouseMoveAtRef = useRef(Date.now());
+  const lastMouseMoveAtRef = useRef(0);
 
   useEffect(() => {
     if (!effectiveEnabled || examSubmitted) return;
+    lastMouseMoveAtRef.current = Date.now();
 
     // Track pointer movement to distinguish real exits from iPadOS idle hide.
     const handleMouseMove = () => {
