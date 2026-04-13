@@ -280,11 +280,58 @@ jobs:
         run: pip install "mcp[cli]>=1.9.0" "httpx>=0.27.0" pytest
         working-directory: mcp-server
 
-      - name: Run MCP Server Tests
+      - name: Run MCP Server Unit Tests
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: python -m pytest tests/test_server.py -q
         working-directory: mcp-server
+
+  mcp-server-integration:
+    name: MCP Server Integration Tests
+    needs: static-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start test stack
+        run: docker compose -f docker-compose.test.yml up -d --build
+
+      - name: Wait for backend readiness
+        uses: ./.github/actions/wait-test-stack
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install MCP Server dependencies
+        run: pip install "mcp[cli]>=1.9.0" "httpx>=0.27.0" pytest
+        working-directory: mcp-server
+
+      - name: Run MCP Integration Tests
+        env:
+          DJANGO_BASE_URL: http://localhost:8002
+          DJANGO_FORWARDED_PROTO: http
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: python -m pytest tests/test_integration.py -v
+        working-directory: mcp-server
+
+      - name: Collect compose logs
+        if: failure()
+        run: docker compose -f docker-compose.test.yml logs --no-color > mcp-integration.log
+
+      - name: Upload artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-integration-artifacts
+          path: mcp-integration.log
+          retention-days: 14
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v
 
   # ============================================
   # Judge System Tests (needs Docker)
