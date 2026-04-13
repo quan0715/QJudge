@@ -1,6 +1,6 @@
 # Playwright E2E：僅允許手動觸發。
 # 使用方式：GitHub → Actions → 選本 workflow → 「Run workflow」。
-# 四組測試平行執行，共用同一個 docker-compose stack。
+# 五組測試平行執行，各自啟動獨立 docker-compose stack。
 name: E2E (manual only)
 
 on:
@@ -16,7 +16,8 @@ on:
           - auth
           - exam
           - contest
-          - features
+          - coding
+          - settings
       grep:
         description: "Optional grep pattern"
         required: false
@@ -31,7 +32,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # Shared setup: build docker stack once, then run test groups in parallel
   e2e-auth:
     name: "E2E: Auth & Pending Actions"
     if: inputs.group == '' || inputs.group == 'auth'
@@ -137,9 +137,9 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.test.yml down -v
 
-  e2e-features:
-    name: "E2E: Features"
-    if: inputs.group == '' || inputs.group == 'features'
+  e2e-coding:
+    name: "E2E: Coding (Problems & Submissions)"
+    if: inputs.group == '' || inputs.group == 'coding'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -148,25 +148,60 @@ jobs:
         run: docker compose -f docker-compose.test.yml up -d --build
       - name: Wait for readiness
         uses: ./.github/actions/wait-test-stack
-      - name: Run Features E2E
+      - name: Run Coding E2E
         run: |
           set -euo pipefail
-          SPECS="tests/e2e/problems.e2e.spec.ts tests/e2e/submission.e2e.spec.ts tests/e2e/tag-management.e2e.spec.ts tests/e2e/api-key.e2e.spec.ts tests/e2e/announcement-management.e2e.spec.ts tests/e2e/preferences-i18n-theme.e2e.spec.ts"
+          SPECS="tests/e2e/problems.e2e.spec.ts tests/e2e/submission.e2e.spec.ts tests/e2e/tag-management.e2e.spec.ts"
           cmd=(npm run test:e2e -- $SPECS)
           if [[ -n "${{ inputs.grep }}" ]]; then cmd+=("--grep" "${{ inputs.grep }}"); fi
           docker compose -f docker-compose.test.yml exec -T -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"
       - name: Collect logs
         if: always()
-        run: docker compose -f docker-compose.test.yml logs --no-color > e2e-features.log
+        run: docker compose -f docker-compose.test.yml logs --no-color > e2e-coding.log
       - name: Upload artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-features-artifacts
+          name: e2e-coding-artifacts
           path: |
             frontend/playwright-report-e2e
             frontend/test-results
-            e2e-features.log
+            e2e-coding.log
+          retention-days: 14
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v
+
+  e2e-settings:
+    name: "E2E: Settings & Preferences"
+    if: inputs.group == '' || inputs.group == 'settings'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start test stack
+        run: docker compose -f docker-compose.test.yml up -d --build
+      - name: Wait for readiness
+        uses: ./.github/actions/wait-test-stack
+      - name: Run Settings E2E
+        run: |
+          set -euo pipefail
+          SPECS="tests/e2e/api-key.e2e.spec.ts tests/e2e/preferences-i18n-theme.e2e.spec.ts"
+          cmd=(npm run test:e2e -- $SPECS)
+          if [[ -n "${{ inputs.grep }}" ]]; then cmd+=("--grep" "${{ inputs.grep }}"); fi
+          docker compose -f docker-compose.test.yml exec -T -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"
+      - name: Collect logs
+        if: always()
+        run: docker compose -f docker-compose.test.yml logs --no-color > e2e-settings.log
+      - name: Upload artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-settings-artifacts
+          path: |
+            frontend/playwright-report-e2e
+            frontend/test-results
+            e2e-settings.log
           retention-days: 14
       - name: Cleanup
         if: always()
