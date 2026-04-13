@@ -13,8 +13,10 @@
 import { expect, test } from "@playwright/test";
 import { loginViaAPI, clearAuth } from "../helpers/auth.helper";
 import { API_ENDPOINTS, TEST_USERS } from "../helpers/data.helper";
+import { prepareStudentPaperExamInProgress } from "../helpers/exam-lifecycle.helper";
 import {
   prepareExamTakeoverScenario,
+  resetStudentParticipant,
   fillAndSubmitLoginForm,
   getSessionStorageItem,
   type TakeoverScenario,
@@ -107,22 +109,23 @@ test.describe("Exam takeover via pending actions", () => {
       process.env.E2E_BASE_URL ||
       "http://localhost:5174";
 
-    // Device A — log in and grab the token
-    const deviceA = `e2e-takeover-oldA-${Date.now()}`;
+    // Re-prepare: reset participant and restart exam so we have a clean active session
+    await resetStudentParticipant(scenario.teacherPage, scenario.contestId);
+
+    const deviceA = `e2e-invalidate-a-${Date.now()}`;
+    const deviceB = `e2e-invalidate-b-${Date.now()}`;
+
     const ctxA = await browser.newContext({
       baseURL,
       extraHTTPHeaders: { "X-Device-Id": deviceA },
     });
-
-    // Device B — will perform the takeover
-    const deviceB = `e2e-takeover-oldB-${Date.now()}`;
     const ctxB = await browser.newContext({
       baseURL,
       extraHTTPHeaders: { "X-Device-Id": deviceB },
     });
 
     try {
-      // ── Prepare: device A logs in and starts the exam ──────────────────────
+      // Device A: login and start exam
       const pageA = await ctxA.newPage();
       await pageA.goto("/", { waitUntil: "domcontentloaded" });
       await pageA.evaluate(
@@ -130,42 +133,35 @@ test.describe("Exam takeover via pending actions", () => {
         [DEVICE_KEY, deviceA] as [string, string],
       );
       await loginViaAPI(pageA, "student");
+      await prepareStudentPaperExamInProgress(pageA, scenario.teacherPage, scenario.contestId);
 
       const oldToken = await pageA.evaluate(() => localStorage.getItem("token"));
       expect(oldToken).toBeTruthy();
 
-      // ── Device B: call login API to get 403 + conflict_token ───────────────
+      // Device B: login → 403 conflict → resolve takeover
       const pageB = await ctxB.newPage();
-      await pageB.goto("/", { waitUntil: "domcontentloaded" });
-
-      const loginResp = await pageB.request.post(API_ENDPOINTS.auth.login, {
+      const loginRespB = await pageB.request.post(API_ENDPOINTS.auth.login, {
         data: {
           email: TEST_USERS.student.email,
           password: TEST_USERS.student.password,
         },
       });
-      // Accept both 403 (EXAM_TAKEOVER_REQUIRED) and 409 (EXAM_CONFLICT_ACTIVE_SESSION)
-      expect([403, 409]).toContain(loginResp.status());
-      const loginBody = (await loginResp.json()) as {
-        conflict_token?: string;
-        code?: string;
-      };
-      const conflictToken = loginBody.conflict_token;
-      expect(conflictToken).toBeTruthy();
+      expect([403, 409]).toContain(loginRespB.status());
+      const bodyB = (await loginRespB.json()) as { conflict_token?: string };
+      expect(bodyB.conflict_token).toBeTruthy();
 
-      // ── Device B: call resolve-conflict to complete the takeover ───────────
       const resolveResp = await pageB.request.post(
         API_ENDPOINTS.auth.resolveConflict,
         {
           data: {
-            conflict_token: conflictToken,
+            conflict_token: bodyB.conflict_token,
             action: "takeover_recovery",
           },
         },
       );
       expect(resolveResp.ok()).toBeTruthy();
 
-      // ── Verify: device A's old token is now rejected ───────────────────────
+      // Verify: device A's old token is now rejected
       const meResp = await pageA.request.get(API_ENDPOINTS.auth.me, {
         headers: { Authorization: `Bearer ${oldToken}` },
       });
@@ -184,15 +180,31 @@ test.describe("Exam takeover via pending actions", () => {
       process.env.E2E_BASE_URL ||
       "http://localhost:5174";
 
-    // Use the same device ID that started the exam in the scenario
+    // Re-prepare a clean exam session with a known device
+    await resetStudentParticipant(scenario.teacherPage, scenario.contestId);
+    const sameDevice = `e2e-same-device-${Date.now()}`;
+    const setupCtx = await browser.newContext({
+      baseURL,
+      extraHTTPHeaders: { "X-Device-Id": sameDevice },
+    });
+    const setupPage = await setupCtx.newPage();
+    await setupPage.goto("/", { waitUntil: "domcontentloaded" });
+    await setupPage.evaluate(
+      ([k, v]) => localStorage.setItem(k, v),
+      [DEVICE_KEY, sameDevice] as [string, string],
+    );
+    await loginViaAPI(setupPage, "student");
+    await prepareStudentPaperExamInProgress(setupPage, scenario.teacherPage, scenario.contestId);
+    await setupPage.close();
+    await setupCtx.close();
+
+    // Now login from the SAME device — should succeed without conflict
     const ctx = await browser.newContext({
       baseURL,
-      extraHTTPHeaders: { "X-Device-Id": scenario.deviceA },
+      extraHTTPHeaders: { "X-Device-Id": sameDevice },
     });
     try {
       const page = await ctx.newPage();
-      await page.goto("/", { waitUntil: "domcontentloaded" });
-
       const loginResp = await page.request.post(API_ENDPOINTS.auth.login, {
         data: {
           email: TEST_USERS.student.email,
@@ -210,8 +222,8 @@ test.describe("Exam takeover via pending actions", () => {
 
   // ── Case 4 ──────────────────────────────────────────────────────────────────
   test("no active exam does not trigger takeover", async ({ page }) => {
-    await clearAuth(page);
     await page.goto("/login", { waitUntil: "domcontentloaded" });
+    await clearAuth(page);
 
     // student2 has no active exam
     await fillAndSubmitLoginForm(page, "student2");

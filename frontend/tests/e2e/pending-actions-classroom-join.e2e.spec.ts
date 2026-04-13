@@ -59,6 +59,7 @@ test.describe("Classroom join via pending actions", () => {
   test("unauth visit to /classrooms/join/CODE → login → auto-join", async ({
     page,
   }) => {
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
     await clearAuth(page);
 
     // Visit the join URL without being authenticated
@@ -95,6 +96,7 @@ test.describe("Classroom join via pending actions", () => {
 
   // ── Case 2 ──────────────────────────────────────────────────────────────────
   test("pending action banner shows on login page", async ({ page }) => {
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
     await clearAuth(page);
 
     // Visit the join URL without being authenticated

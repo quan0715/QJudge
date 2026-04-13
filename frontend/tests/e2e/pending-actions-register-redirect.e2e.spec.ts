@@ -4,8 +4,8 @@ import { registerFreshAccount } from "../helpers/pending-actions.helper";
 
 test.describe("Registration + pending actions", () => {
   test("register goes directly to onboarding without re-login", async ({ page }) => {
-    await clearAuth(page);
     await page.goto("/register", { waitUntil: "domcontentloaded" });
+    await clearAuth(page);
 
     await registerFreshAccount(page);
 
@@ -16,8 +16,8 @@ test.describe("Registration + pending actions", () => {
   });
 
   test("pending classroom join survives login→register navigation", async ({ page }) => {
-    await clearAuth(page);
     await page.goto("/login", { waitUntil: "domcontentloaded" });
+    await clearAuth(page);
 
     await page.evaluate(() => {
       sessionStorage.setItem("qjudge.classroom_join_code", "FAKECODE");
