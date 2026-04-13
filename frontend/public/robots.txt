@@ -1,4 +1,9 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /django-admin/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /settings/
 
 Sitemap: https://qjudge.app/sitemap.xml

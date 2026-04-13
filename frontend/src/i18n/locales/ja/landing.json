@@ -223,7 +223,10 @@
     "copyright": "© 2024 QJudge. Built with IBM Carbon Design System."
   },
   "seo": {
-    "description": "QJudgeは教育向けに設計されたオンライン試験・評価プラットフォームです。20以上のプログラミング言語、多様な問題形式、厳格な不正防止監視をサポートしています。",
-    "title": "QJudge | 安全で安定したオンライン試験プラットフォーム"
+    "title": "QJudge | AIオンライン試験プラットフォーム - 不正防止・コーディングテスト",
+    "description": "QJudgeは教育者向けのAIオンライン試験プラットフォームです。コーディングテスト、多様な問題形式、厳格な不正防止監視、AIによる問題生成をサポート。",
+    "keywords": "オンライン試験, オンライン試験システム, AI試験, コーディングテスト, 不正防止, Online Judge, 問題バンク, QJudge",
+    "ogTitle": "QJudge | AIオンライン試験プラットフォーム",
+    "ogDescription": "教育者向けのAIオンライン試験プラットフォーム。コーディングテスト、不正防止、AI問題生成。無料で始める。"
   }
 }

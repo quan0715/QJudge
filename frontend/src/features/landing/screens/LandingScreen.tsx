@@ -28,6 +28,54 @@ const LandingScreen = () => {
   const { preference, setPreference } = useTheme();
   const { contentLanguage, setContentLanguage } = useContentLanguage();
   const content = useMemo(() => getLandingContent(t), [t, contentLanguage]);
+
+  const htmlLang = contentLanguage === "zh-TW" ? "zh-TW"
+    : contentLanguage === "ja" ? "ja"
+    : contentLanguage === "ko" ? "ko"
+    : "en";
+
+  const ogLocale = contentLanguage === "zh-TW" ? "zh_TW"
+    : contentLanguage === "ja" ? "ja_JP"
+    : contentLanguage === "ko" ? "ko_KR"
+    : "en_US";
+
+  const faqJsonLd = useMemo(() => ({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": content.faqs.map((item) => ({
+      "@type": "Question",
+      "name": item.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": item.answer,
+      },
+    })),
+  }), [content.faqs]);
+
+  const softwareJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "QJudge",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "Web",
+    "url": "https://qjudge.app/",
+    "description": t("seo.description"),
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "TWD",
+      "availability": "https://schema.org/InStock",
+    },
+    "featureList": [
+      "線上考試", "AI 出題", "Coding 上機考", "防作弊監控", "題庫管理", "自動批改"
+    ],
+    "publisher": {
+      "@type": "Organization",
+      "@id": "https://qjudge.app/#organization",
+      "name": "QJudge",
+    },
+  };
+
   const languageOptions = useMemo<TextModeOption<SupportedLanguage>[]>(
     () =>
       SUPPORTED_LANGUAGES.map((lang) => ({
@@ -52,10 +100,29 @@ const LandingScreen = () => {
   return (
     <div className="landing-page">
       <Helmet>
+        <html lang={htmlLang} />
         <title>{t("seo.title")}</title>
         <meta name="description" content={t("seo.description")} />
         <meta name="keywords" content={t("seo.keywords")} />
         <link rel="canonical" href="https://qjudge.app/" />
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://qjudge.app/" />
+        <meta property="og:site_name" content="QJudge" />
+        <meta property="og:title" content={t("seo.ogTitle")} />
+        <meta property="og:description" content={t("seo.ogDescription")} />
+        <meta property="og:image" content="https://qjudge.app/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:locale" content={ogLocale} />
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={t("seo.ogTitle")} />
+        <meta name="twitter:description" content={t("seo.ogDescription")} />
+        <meta name="twitter:image" content="https://qjudge.app/og-image.png" />
+        {/* JSON-LD */}
+        <script type="application/ld+json">{JSON.stringify(softwareJsonLd)}</script>
+        <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
       </Helmet>
 
       <LandingHeader

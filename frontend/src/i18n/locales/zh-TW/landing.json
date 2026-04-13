@@ -6,9 +6,11 @@
     "faq": "常見問題"
   },
   "seo": {
-    "title": "QJudge | 專為教師打造的智慧考試平台",
-    "description": "從出題、防作弊到數據分析，QJudge 讓教師用一個平台完成考卷與 Coding 線上考試。",
-    "keywords": "QJudge, 線上考試, 防作弊, AI 出題, 題庫系統, Coding 測驗, 教學分析"
+    "title": "QJudge 線上考試平台｜AI 出題・防作弊・Coding 上機考",
+    "description": "QJudge 是專為教師設計的 AI 線上考試平台，支援 Coding 上機考、選擇題、問答題等多元題型，具備嚴格防作弊監控與 AI 輔助出題功能，協助學校與補習班快速舉辦安全可靠的線上測驗。",
+    "keywords": "線上考試, 線上考試系統, 線上測驗, AI 出題, AI 考試, Coding 上機考, 程式評測, 防作弊, Online Judge, 題庫系統, 教學分析, 期末考, APCS 模擬考, 線上閱卷, QJudge",
+    "ogTitle": "QJudge 線上考試平台｜AI 出題・防作弊・Coding 上機考",
+    "ogDescription": "專為教師設計的 AI 線上考試平台。支援 Coding 上機考、多元題型、AI 輔助出題與嚴格防作弊機制。免費開始使用。"
   },
   "hero": {
     "eyebrow": "QJudge",
