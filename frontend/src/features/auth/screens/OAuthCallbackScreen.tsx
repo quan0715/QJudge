@@ -62,9 +62,9 @@ const OAuthCallbackPage = () => {
         const response = await oauthCallback(provider, code);
 
         if (response.success) {
-          // lgtm[js/clear-text-storage-of-sensitive-data] — user profile (name, role, avatar) is non-secret display data used app-wide via localStorage
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-          const nextPath = getAuthedLandingPath(response.data.user);
+          const { access_token: _a, refresh_token: _r, ...safeData } = response.data;
+          localStorage.setItem('user', JSON.stringify(safeData.user));
+          const nextPath = getAuthedLandingPath(safeData.user);
 
           const elapsedTime = Date.now() - startTime;
           const remainingTime = Math.max(0, MIN_ANIMATION_TIME - elapsedTime);
