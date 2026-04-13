@@ -16,6 +16,8 @@ from apps.contests.models import Contest, ContestParticipant, ExamStatus
 ACTIVE_SESSION_KEY_PREFIX = "exam:active"
 CONFLICT_TOKEN_KEY_PREFIX = "exam:conflict"
 EVENT_IDEMPOTENCY_KEY_PREFIX = "exam:event:idempotency"
+INCIDENT_FAMILY_KEY_PREFIX = "exam:incident_family"
+INCIDENT_FAMILY_TTL_SECONDS = 2
 HEARTBEAT_KEY_PREFIX = "exam:heartbeat"
 HEARTBEAT_TIMEOUT_SECONDS = 60
 # Key TTL must outlive the check interval to prevent false positives
@@ -139,7 +141,6 @@ def find_exam_conflict(user, device_id: str) -> SessionConflict | None:
                 ExamStatus.IN_PROGRESS,
                 ExamStatus.PAUSED,
                 ExamStatus.LOCKED,
-                ExamStatus.LOCKED_TAKEOVER,
             ],
         )
         .order_by("-started_at", "-id")
@@ -217,6 +218,25 @@ def is_duplicate_exam_event(
     key = exam_event_idempotency_key(contest_id, user_id, event_type, token)
     # cache.add returns False when key already exists.
     return not cache.add(key, timezone.now().isoformat(), timeout=max(1, ttl_seconds))
+
+
+def is_duplicate_incident_family(
+    *,
+    contest_id: int,
+    user_id: int,
+    family: str,
+    ttl_seconds: int = INCIDENT_FAMILY_TTL_SECONDS,
+) -> bool:
+    """Return True if the same incident family was already penalized recently.
+
+    Uses Redis SETNX so that the first event in a family window passes
+    and subsequent ones (e.g. exit_fullscreen + mouse_leave both in
+    ``display_escape``) are de-duplicated.
+    """
+    if not family:
+        return False
+    key = f"{INCIDENT_FAMILY_KEY_PREFIX}:{contest_id}:{user_id}:{family}"
+    return not cache.add(key, "1", timeout=max(1, ttl_seconds))
 
 
 def heartbeat_key(contest_id: int, user_id: int) -> str:
@@ -328,7 +348,6 @@ def is_access_token_allowed(user_id: int, jti: str) -> bool:
                 ExamStatus.IN_PROGRESS,
                 ExamStatus.PAUSED,
                 ExamStatus.LOCKED,
-                ExamStatus.LOCKED_TAKEOVER,
             ],
         ).values_list("contest_id", flat=True)
     )

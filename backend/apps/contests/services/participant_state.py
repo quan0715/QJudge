@@ -17,7 +17,6 @@ ACTIVE_EXAM_STATUSES = {
     ExamStatus.IN_PROGRESS,
     ExamStatus.PAUSED,
     ExamStatus.LOCKED,
-    ExamStatus.LOCKED_TAKEOVER,
 }
 
 
@@ -58,6 +57,17 @@ def unlock_participant(
             details=activity_details,
         )
 
+    return participant
+
+
+def pause_participant_for_takeover_recovery(
+    participant: ContestParticipant,
+) -> ContestParticipant:
+    """Pause an exam attempt so the student can resume on a replacement device."""
+    update_fields = ["exam_status"]
+    participant.exam_status = ExamStatus.PAUSED
+    update_fields.extend(_clear_lock_metadata(participant))
+    participant.save(update_fields=update_fields)
     return participant
 
 
@@ -106,7 +116,7 @@ def admin_update_participant(
         participant.exam_status = exam_status
         update_fields.append("exam_status")
         # If transitioning away from a locked state, clear lock metadata
-        if exam_status not in (ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER):
+        if exam_status != ExamStatus.LOCKED:
             update_fields.extend(_clear_lock_metadata(participant))
         if exam_status == ExamStatus.NOT_STARTED:
             update_fields.extend(_clear_attempt_metadata(participant))

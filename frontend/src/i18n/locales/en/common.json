@@ -37,9 +37,15 @@
         "verifying": "Verifying your identity..."
       },
       "takeover": "Take over and lock old device",
+      "takeoverExpired": "Takeover token expired. Please log in again.",
       "takeoverFailed": "Takeover failed, please contact the proctor.",
       "takingOver": "Processing...",
       "verifyingSession": "Synchronizing session..."
+    },
+    "takeover": {
+      "stepInvalidate": "Clearing login sessions on other devices...",
+      "stepRegister": "Re-registering exam connection...",
+      "stepRedirect": "Returning to exam..."
     },
     "campusSso": {
       "backToLogin": "Back to login",
@@ -88,6 +94,8 @@
     "pendingAction": {
       "classroomJoinSubtitle": "Please log in or register first. You'll be automatically added to the classroom afterwards.",
       "classroomJoinTitle": "Join Classroom",
+      "examTakeoverSubtitle": "An unfinished exam was detected. Please take over and resume on this device.",
+      "examTakeoverTitle": "Exam Device Takeover",
       "teacherActivationSubtitle": "Please log in or register first. Teacher access will be activated automatically afterwards.",
       "teacherActivationTitle": "Teacher Activation"
     },

@@ -264,6 +264,9 @@ describe("useViolationPipeline", () => {
     expect(onViolation).toHaveBeenCalledTimes(1);
     expect(result.current.isInterrupted).toBe(false);
 
+    // Advance past escalation cooldown (10s)
+    act(() => { vi.advanceTimersByTime(10_000); });
+
     // Second trigger should work (not be blocked by stale interruptedRef)
     mockRecordExamEvent.mockClear();
     act(() => { result.current.trigger(); });
@@ -290,6 +293,9 @@ describe("useViolationPipeline", () => {
     act(() => { vi.advanceTimersByTime(10000); });
     expect(result.current.isInterrupted).toBe(false);
 
+    // Advance past escalation cooldown (10s)
+    act(() => { vi.advanceTimersByTime(10_000); });
+
     // Second trigger should work
     mockRecordExamEvent.mockClear();
     act(() => { result.current.trigger(); });
@@ -314,6 +320,9 @@ describe("useViolationPipeline", () => {
     // Simulate onFinally callback to clear isSubmittingRef
     const forceSubmitCall = (config.requestForceSubmit as ReturnType<typeof vi.fn>).mock.calls[0][0];
     act(() => { forceSubmitCall.onFinally(); });
+
+    // Advance past escalation cooldown (10s)
+    act(() => { vi.advanceTimersByTime(10_000); });
 
     // Second trigger should work
     mockRecordExamEvent.mockClear();

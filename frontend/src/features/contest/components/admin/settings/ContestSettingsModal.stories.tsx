@@ -209,7 +209,7 @@ export const CheatDetection: Story = {
   parameters: {
     docs: {
       description: {
-        story: "作弊檢查 panel：主開關、警告冷卻、螢幕共享恢復、裝置政策 (Desktop/Tablet)、偵測器矩陣、自動解鎖。",
+        story: "作弊檢查 panel：主開關、警告冷卻、螢幕共享恢復、裝置政策 (Desktop/Tablet)、核心偵測器、自動解鎖。",
       },
     },
   },

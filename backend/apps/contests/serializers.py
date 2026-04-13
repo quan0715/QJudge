@@ -312,8 +312,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         return obj.exam_questions.count()
 
     # -- SSoT computed flags --
-    MONITORED_STATUSES = {"in_progress", "paused", "locked", "locked_takeover"}
-    SUBMITTABLE_STATUSES = {"in_progress", "paused", "locked", "locked_takeover"}
+    MONITORED_STATUSES = {"in_progress", "paused", "locked"}
+    SUBMITTABLE_STATUSES = {"in_progress", "paused", "locked"}
     FULLSCREEN_STATUSES = {"in_progress", "locked"}
 
     def get_is_exam_monitored(self, obj):
@@ -974,10 +974,6 @@ class AnticheatUrlsQuerySerializer(serializers.Serializer):
 
 
 class ActiveSessionClearSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField(required=True, min_value=1)
-
-
-class ExamTakeoverApproveSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(required=True, min_value=1)
 
 

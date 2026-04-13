@@ -9,7 +9,6 @@ export const EXAM_STATUS_KEYS: ExamStatusType[] = [
   "in_progress",
   "paused",
   "locked",
-  "locked_takeover",
   "submitted",
 ];
 
@@ -28,7 +27,6 @@ export const STATUS_TAG_TYPE: Record<string, string> = {
   in_progress: "blue",
   paused: "purple",
   locked: "red",
-  locked_takeover: "red",
 };
 
 export const getParticipantDisplayName = (

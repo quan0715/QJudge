@@ -139,7 +139,19 @@ export const requestJson = async <T>(
   const response = await request;
   if (!response.ok) {
     const errorData = await readJson(response);
-    throw new Error(getErrorMessage(errorData, fallbackError));
+    const error = new Error(getErrorMessage(errorData, fallbackError)) as Error & {
+      status?: number;
+      response?: {
+        status: number;
+        data: any;
+      };
+    };
+    error.status = response.status;
+    error.response = {
+      status: response.status,
+      data: errorData,
+    };
+    throw error;
   }
   return (await readJson(response)) as T;
 };
@@ -151,7 +163,19 @@ export const ensureOk = async (
   const response = await request;
   if (!response.ok) {
     const errorData = await readJson(response);
-    throw new Error(getErrorMessage(errorData, fallbackError));
+    const error = new Error(getErrorMessage(errorData, fallbackError)) as Error & {
+      status?: number;
+      response?: {
+        status: number;
+        data: any;
+      };
+    };
+    error.status = response.status;
+    error.response = {
+      status: response.status,
+      data: errorData,
+    };
+    throw error;
   }
 };
 

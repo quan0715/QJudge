@@ -120,8 +120,6 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         >
           {/* Event type */}
           <p className={styles.eventType}>
-            {warningEventType === "tab_hidden" && t("exam.tabHidden")}
-            {warningEventType === "window_blur" && t("exam.windowBlur")}
             {warningEventType === "exit_fullscreen" && t("exam.exitedFullscreen")}
             {warningEventType === "forbidden_action" && t("exam.forbiddenAction")}
             {warningEventType === "multiple_displays" && t("exam.multipleDisplaysDetected")}
@@ -361,15 +359,15 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         >
           {viewportRecoveryCountdown != null && viewportRecoveryCountdown > 0 && (
             <p className={styles.countdown}>
-              {t("exam.viewportForceSubmitIn", {
-                defaultValue: "將在 {{seconds}} 秒後自動交卷",
+              {t("exam.viewportPenaltyIn", {
+                defaultValue: "將在 {{seconds}} 秒後記錄違規",
                 seconds: viewportRecoveryCountdown,
               })}
             </p>
           )}
           <div className={styles.warningBox}>
             <p className={styles.warningBoxText}>
-              {t("exam.viewportTimeoutWarning", "若未在時限內恢復，系統將自動交卷。")}
+              {t("exam.viewportTimeoutWarning", "若未在時限內恢復，系統將記錄一次違規。")}
             </p>
           </div>
         </ModalAlertContent>

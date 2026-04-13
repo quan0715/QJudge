@@ -594,7 +594,6 @@
   "examStatus": {
     "in_progress": "進行中",
     "locked": "ロック中",
-    "locked_takeover": "引き継ぎロック",
     "not_started": "未開始",
     "paused": "一時停止",
     "submitted": "提出済み"
@@ -904,8 +903,6 @@
       "submit_code": "コード提出",
       "tab_hidden": "タブ非表示",
       "tab_switch": "タブ切替",
-      "takeover_approved": "デバイス引き継ぎ承認",
-      "takeover_locked": "デバイス引き継ぎロック",
       "unlock": "ロック解除",
       "unlock_user": "ユーザーロック解除",
       "unregister": "登録解除",

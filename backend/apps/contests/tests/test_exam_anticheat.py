@@ -35,6 +35,13 @@ class ExamAntiCheatTests(APITestCase):
     """API-level tests for exam anti-cheat event logging and locking."""
 
     def setUp(self):
+        # Disable incident family dedup so penalty tests focus on core logic.
+        patcher = patch(
+            "apps.contests.views.exam_events.is_duplicate_incident_family",
+            return_value=False,
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.teacher = User.objects.create_user(
             username="teacher",
             email="teacher@test.com",
@@ -84,7 +91,7 @@ class ExamAntiCheatTests(APITestCase):
     # ------------------------------------------------------------------
     def test_violation_increments_count(self):
         self.client.force_authenticate(user=self.student)
-        resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+        resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["violation_count"], 1)
@@ -101,7 +108,7 @@ class ExamAntiCheatTests(APITestCase):
         self.client.force_authenticate(user=self.student)
 
         for i in range(3):
-            resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+            resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
             self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
         # Third violation should trigger lock
@@ -121,7 +128,7 @@ class ExamAntiCheatTests(APITestCase):
                 resp = self.client.post(
                     self.events_url,
                     {
-                        "event_type": "tab_hidden",
+                        "event_type": "exit_fullscreen",
                         "metadata": {"upload_session_id": "session-paused-1"},
                     },
                     format="json",
@@ -150,7 +157,7 @@ class ExamAntiCheatTests(APITestCase):
 
         with patch("apps.contests.services.exam_submission.enqueue_compile_video") as mock_compile:
             with self.captureOnCommitCallbacks(execute=True):
-                resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+                resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["exam_status"], ExamStatus.SUBMITTED)
         mock_compile.assert_not_called()
@@ -246,6 +253,40 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(event.metadata["device_kind"], "tablet")
         self.assertIn("iPad", event.metadata["user_agent"])
 
+    def test_exam_entered_preserves_device_classification_metadata(self):
+        self.client.force_authenticate(user=self.student)
+        payload = {
+            "event_type": "exam_entered",
+            "metadata": {
+                "upload_session_id": "session-device-classification-1",
+                "pointer_profile": "touch_plus_pointer",
+                "supports_fine_pointer": True,
+                "primary_source_module": "webcam",
+                "active_sources": ["webcam"],
+            },
+        }
+
+        response = self.client.post(
+            self.events_url,
+            payload,
+            format="json",
+            HTTP_USER_AGENT=(
+                "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) "
+                "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            ),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        event = ExamEvent.objects.get(
+            contest=self.contest,
+            user=self.student,
+            event_type="exam_entered",
+        )
+        self.assertEqual(event.metadata["device_kind"], "tablet")
+        self.assertEqual(event.metadata["pointer_profile"], "touch_plus_pointer")
+        self.assertTrue(event.metadata["supports_fine_pointer"])
+        self.assertEqual(event.metadata["primary_source_module"], "webcam")
+
     def test_screen_share_stopped_in_terminating_phase_does_not_lock(self):
         self.client.force_authenticate(user=self.student)
 
@@ -272,7 +313,7 @@ class ExamAntiCheatTests(APITestCase):
     def test_duplicate_event_idempotency_key_counts_once(self):
         self.client.force_authenticate(user=self.student)
         payload = {
-            "event_type": "tab_hidden",
+            "event_type": "exit_fullscreen",
             "metadata": {"event_idempotency_key": "same-key-1"},
         }
 
@@ -290,7 +331,7 @@ class ExamAntiCheatTests(APITestCase):
             ExamEvent.objects.filter(
                 contest=self.contest,
                 user=self.student,
-                event_type="tab_hidden",
+                event_type="exit_fullscreen",
             ).count(),
             1,
         )
@@ -362,7 +403,7 @@ class ExamAntiCheatTests(APITestCase):
         )
 
         self.client.force_authenticate(user=self.teacher)
-        resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+        resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertIn("violation_count", resp.data)
@@ -372,7 +413,7 @@ class ExamAntiCheatTests(APITestCase):
             ExamEvent.objects.filter(
                 contest=self.contest,
                 user=self.teacher,
-                event_type="tab_hidden",
+                event_type="exit_fullscreen",
             ).count(),
             1,
         )
@@ -392,6 +433,81 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertTrue(resp.data["locked"])
         self.assertIsNotNone(resp.data.get("auto_unlock_at"))
+
+    def test_webcam_stopped_uses_exam_entered_tablet_metadata_as_primary(self):
+        ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exam_entered",
+            metadata={
+                "device_kind": "tablet",
+                "primary_source_module": "webcam",
+                "active_sources": ["webcam"],
+                "upload_session_id": "session-tablet-webcam-1",
+            },
+        )
+
+        self.client.force_authenticate(user=self.student)
+        response = self.client.post(
+            self.events_url,
+            {
+                "event_type": "webcam_stopped",
+                "metadata": {
+                    "upload_session_id": "session-tablet-webcam-1",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["locked"])
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
+
+        event = ExamEvent.objects.filter(
+            contest=self.contest,
+            user=self.student,
+            event_type="webcam_stopped",
+        ).latest("created_at")
+        self.assertEqual(event.metadata["module_role"], "primary")
+
+    def test_webcam_stopped_uses_exam_entered_dual_source_metadata_as_secondary(self):
+        ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exam_entered",
+            metadata={
+                "device_kind": "desktop",
+                "primary_source_module": "screen_share",
+                "active_sources": ["screen_share", "webcam"],
+                "upload_session_id": "session-desktop-dual-1",
+            },
+        )
+
+        self.client.force_authenticate(user=self.student)
+        response = self.client.post(
+            self.events_url,
+            {
+                "event_type": "webcam_stopped",
+                "metadata": {
+                    "upload_session_id": "session-desktop-dual-1",
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["locked"])
+        self.assertEqual(response.data["violation_count"], 1)
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+
+        event = ExamEvent.objects.filter(
+            contest=self.contest,
+            user=self.student,
+            event_type="webcam_stopped",
+        ).latest("created_at")
+        self.assertEqual(event.metadata["module_role"], "secondary")
 
     # ------------------------------------------------------------------
     # 7. force_submit_locked_participant transitions to SUBMITTED

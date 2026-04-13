@@ -10,54 +10,24 @@ import { API_ENDPOINTS, TEST_USERS } from "./data.helper";
 export type UserRole = keyof typeof TEST_USERS;
 
 /**
- * 考試進行中若 Redis 仍記錄 active session，學生再次 login 會 403 EXAM_LOGIN_BLOCKED。
- * 以教師身份清除該場考試的 session 後重試登入（E2E / 本機反覆跑測時需要）。
+ * 考試進行中若已存在進行中的 session，學生再次 login 會進入 takeover recovery。
+ * E2E 測試直接呼叫 resolve-conflict，避免走任何舊的人工 / fallback 流程。
  */
 async function tryRecoverExamLoginBlock(
   page: Page,
-  role: UserRole,
   blockBody: Record<string, unknown>,
 ): Promise<boolean> {
-  if (role !== "student" && role !== "student2") return false;
-  const exam = blockBody.active_exam as Record<string, unknown> | undefined;
-  const contestId = exam?.contest_id;
-  if (contestId === undefined || contestId === null || contestId === "") return false;
+  const conflictToken =
+    typeof blockBody.conflict_token === "string" ? blockBody.conflict_token : "";
+  if (!conflictToken) return false;
 
-  const tResp = await page.request.post(API_ENDPOINTS.auth.login, {
+  const resolveResp = await page.request.post("/api/v1/auth/resolve-conflict", {
     data: {
-      email: TEST_USERS.teacher.email,
-      password: TEST_USERS.teacher.password,
+      conflict_token: conflictToken,
+      action: "takeover_recovery",
     },
   });
-  if (!tResp.ok()) return false;
-  const tJson = (await tResp.json()) as Record<string, unknown>;
-  const tToken = (tJson?.data as Record<string, unknown> | undefined)?.access_token as
-    | string
-    | undefined;
-  if (!tToken) return false;
-  const headers = { Authorization: `Bearer ${tToken}` };
-
-  const pResp = await page.request.get(`/api/v1/contests/${contestId}/participants/`, {
-    headers,
-  });
-  if (!pResp.ok()) return false;
-  const pJson = (await pResp.json()) as Record<string, unknown> | unknown[];
-  const list: Record<string, unknown>[] = Array.isArray(pJson)
-    ? (pJson as Record<string, unknown>[])
-    : ((pJson as { results?: Record<string, unknown>[] }).results ?? []);
-
-  const want = TEST_USERS[role].username;
-  const row = list.find((item) => item.username === want);
-  const userId = row?.user_id;
-  if (userId === undefined || userId === null) return false;
-
-  // 僅 clear Redis 時，後端 `find_exam_conflict` 在 active session 為空仍會視為衝突而 403；
-  // 須將考生狀態自進行中狀態拉回 `not_started` 才能恢復登入（E2E 中斷／殘留 in_progress）。
-  const resetResp = await page.request.patch(
-    `/api/v1/contests/${contestId}/update_participant/`,
-    { headers, data: { user_id: Number(userId), exam_status: "not_started" } },
-  );
-  return resetResp.ok();
+  return resolveResp.ok();
 }
 
 /** Carbon TextInput / PasswordInput forward `data-testid` to the real `<input>`. */
@@ -374,12 +344,12 @@ export async function loginViaAPI(page: Page, role: UserRole = "student") {
       response = await page.request.post("/api/v1/auth/resolve-conflict", {
         data: {
           conflict_token: conflictToken,
-          action: "takeover_lock",
+          action: "takeover_recovery",
         },
       });
       data = null;
-    } else if (response.status() === 403 && conflictCode === "EXAM_LOGIN_BLOCKED" && data) {
-      const recovered = await tryRecoverExamLoginBlock(page, role, data);
+    } else if (response.status() === 403 && conflictCode === "EXAM_TAKEOVER_REQUIRED" && data) {
+      const recovered = await tryRecoverExamLoginBlock(page, data);
       if (recovered) {
         response = await page.request.post("/api/v1/auth/email/login", {
           data: {

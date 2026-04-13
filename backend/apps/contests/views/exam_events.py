@@ -19,9 +19,11 @@ from ..serializers import (
     ExamEventCreateSerializer,
 )
 from ..permissions import can_manage_contest
+from ..constants import INCIDENT_FAMILY
 from ..services.anti_cheat_session import (
     get_device_id,
     is_duplicate_exam_event,
+    is_duplicate_incident_family,
     touch_heartbeat,
 )
 from ..services.exam_submission import finalize_submission, normalize_source_module
@@ -39,6 +41,10 @@ class ExamEventsMixin:
     MODULE_ROLE_SECONDARY = "secondary"
     WEBCAM_STOPPED_EVENT = "webcam_stopped"
     VIEWPORT_STOPPED_EVENT = "viewport_stopped"
+
+    def _normalize_upload_session_id(self, value) -> str:
+        normalized = str(value or "").strip()
+        return normalized or "default"
 
     def _infer_entry_device_kind(self, metadata: dict, user_agent: str) -> str:
         explicit_kind = str(metadata.get("device_kind") or "").strip().lower()
@@ -63,7 +69,56 @@ class ExamEventsMixin:
         enriched["device_kind"] = self._infer_entry_device_kind(enriched, user_agent)
         return enriched
 
-    def _resolve_module_context(self, contest, event_type: str, metadata: dict) -> tuple[str, str]:
+    def _extract_active_sources(self, metadata: dict) -> list[str]:
+        if not isinstance(metadata, dict):
+            return []
+        raw_sources = metadata.get("active_sources")
+        if not isinstance(raw_sources, list):
+            return []
+        sources: list[str] = []
+        for item in raw_sources:
+            normalized = normalize_source_module(item if isinstance(item, str) else None)
+            if normalized not in sources:
+                sources.append(normalized)
+        return sources
+
+    def _get_latest_exam_entered_metadata(self, contest, user, upload_session_id: str | None) -> dict:
+        entry_events = ExamEvent.objects.filter(
+            contest=contest,
+            user=user,
+            event_type="exam_entered",
+        ).order_by("-created_at")
+        target_session = self._normalize_upload_session_id(upload_session_id)
+
+        for entry_event in entry_events:
+            metadata = entry_event.metadata if isinstance(entry_event.metadata, dict) else {}
+            event_session = self._normalize_upload_session_id(metadata.get("upload_session_id"))
+            if event_session != target_session:
+                continue
+            return metadata
+
+        latest = entry_events.first()
+        if latest and isinstance(latest.metadata, dict):
+            return latest.metadata
+        return {}
+
+    def _infer_primary_module_from_entry(self, metadata: dict) -> str:
+        active_sources = self._extract_active_sources(metadata)
+        primary_source_module = str(metadata.get("primary_source_module") or "").strip().lower()
+        if primary_source_module in {"screen_share", "webcam"} and primary_source_module in active_sources:
+            return primary_source_module
+        if active_sources == ["webcam"]:
+            return "webcam"
+        if "screen_share" in active_sources:
+            return "screen_share"
+        if "webcam" in active_sources:
+            return "webcam"
+        device_kind = str(metadata.get("device_kind") or "").strip().lower()
+        if device_kind == "tablet":
+            return "webcam"
+        return "screen_share"
+
+    def _resolve_module_context(self, contest, user, event_type: str, metadata: dict) -> tuple[str, str]:
         module = normalize_source_module(metadata.get("module"))
         if event_type.startswith("webcam_"):
             module = "webcam"
@@ -74,32 +129,30 @@ class ExamEventsMixin:
         if module_role_raw in {self.MODULE_ROLE_PRIMARY, self.MODULE_ROLE_SECONDARY}:
             return module, module_role_raw
 
+        entry_metadata = self._get_latest_exam_entered_metadata(
+            contest,
+            user,
+            metadata.get("upload_session_id"),
+        )
+        primary_module = self._infer_primary_module_from_entry(entry_metadata)
+
         if event_type == self.WEBCAM_STOPPED_EVENT:
-            policy = contest.anticheat_device_policy if isinstance(contest.anticheat_device_policy, dict) else {}
-            desktop_policy = policy.get("desktop") if isinstance(policy.get("desktop"), dict) else {}
-            desktop_sources = (
-                desktop_policy.get("sources")
-                if isinstance(desktop_policy.get("sources"), dict)
-                else {}
-            )
-            screen_share_policy = (
-                desktop_sources.get("screen_share")
-                if isinstance(desktop_sources.get("screen_share"), dict)
-                else {}
-            )
-            webcam_policy = (
-                desktop_sources.get("webcam")
-                if isinstance(desktop_sources.get("webcam"), dict)
-                else {}
-            )
-            screen_enabled = bool(screen_share_policy.get("enabled"))
-            webcam_enabled = bool(webcam_policy.get("enabled"))
-            if webcam_enabled and not screen_enabled:
+            if primary_module == "webcam":
                 return module, self.MODULE_ROLE_PRIMARY
             return module, self.MODULE_ROLE_SECONDARY
 
         if event_type == "screen_share_stopped":
-            return module, self.MODULE_ROLE_PRIMARY
+            if primary_module == "screen_share":
+                return module, self.MODULE_ROLE_PRIMARY
+            return module, self.MODULE_ROLE_SECONDARY
+
+        if event_type == self.VIEWPORT_STOPPED_EVENT:
+            device_kind = str(
+                entry_metadata.get("device_kind") or metadata.get("device_kind") or ""
+            ).strip().lower()
+            if device_kind == "tablet" or primary_module == "webcam":
+                return module, self.MODULE_ROLE_PRIMARY
+            return module, self.MODULE_ROLE_SECONDARY
 
         return module, self.MODULE_ROLE_SECONDARY
 
@@ -118,7 +171,7 @@ class ExamEventsMixin:
             'exam_status': participant.exam_status,
             'violation_count': participant.violation_count,
             'max_cheat_warnings': contest.max_cheat_warnings,
-            'locked': participant.exam_status in {ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER},
+            'locked': participant.exam_status == ExamStatus.LOCKED,
             'submit_reason': participant.submit_reason or "",
             'auto_unlock_at': auto_unlock_at,
         }
@@ -265,7 +318,12 @@ class ExamEventsMixin:
         metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
         if event_type == "exam_entered":
             metadata = self._enrich_exam_entered_metadata(request, metadata)
-        source_module, module_role = self._resolve_module_context(contest, event_type, metadata)
+        source_module, module_role = self._resolve_module_context(
+            contest,
+            request.user,
+            event_type,
+            metadata,
+        )
         metadata.setdefault("module", source_module)
         metadata.setdefault("module_role", module_role)
         upload_session_id = str(metadata.get("upload_session_id") or "").strip() or None
@@ -330,23 +388,32 @@ class ExamEventsMixin:
         )
 
         if event_type in self.PENALIZED_EVENT_TYPES and not terminal_phase_guard:
+            family = INCIDENT_FAMILY.get(event_type)
+            family_dup = family and is_duplicate_incident_family(
+                contest_id=contest.id,
+                user_id=request.user.id,
+                family=family,
+            )
             with transaction.atomic():
+                metadata["incident_family"] = family
+                metadata["incident_family_dup"] = bool(family_dup)
                 ExamEvent.objects.create(
                     contest=contest,
                     user=request.user,
                     event_type=event_type,
                     metadata=metadata
                 )
-                participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
-                participant = self._process_penalized_event(
-                    participant=participant,
-                    contest=contest,
-                    actor=request.user,
-                    event_type=event_type,
-                    upload_session_id=upload_session_id,
-                    source_module=source_module,
-                    module_role=module_role,
-                )
+                if not family_dup:
+                    participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
+                    participant = self._process_penalized_event(
+                        participant=participant,
+                        contest=contest,
+                        actor=request.user,
+                        event_type=event_type,
+                        upload_session_id=upload_session_id,
+                        source_module=source_module,
+                        module_role=module_role,
+                    )
         else:
             ExamEvent.objects.create(
                 contest=contest,

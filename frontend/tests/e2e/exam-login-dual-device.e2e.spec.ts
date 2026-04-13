@@ -125,7 +125,7 @@ test.describe("Exam login blocked — dual device (Playwright)", () => {
     expect(loginResp.status()).toBe(403);
     const body = (await loginResp.json()) as { code?: string; success?: boolean };
     expect(body.success).not.toBe(true);
-    expect(body.code).toBe("EXAM_LOGIN_BLOCKED");
+    expect(body.code).toBe("EXAM_TAKEOVER_REQUIRED");
 
     if (studentUserId != null) {
       const token = await teacherPage.evaluate(() => localStorage.getItem("token"));

@@ -594,7 +594,6 @@
   "examStatus": {
     "in_progress": "In Progress",
     "locked": "Locked",
-    "locked_takeover": "Takeover Locked",
     "not_started": "Not Started",
     "paused": "Paused",
     "submitted": "Submitted"
@@ -916,8 +915,6 @@
       "submit_code": "Submit Code",
       "tab_hidden": "Tab Hidden",
       "tab_switch": "Tab Switch",
-      "takeover_approved": "Takeover Approved",
-      "takeover_locked": "Takeover Locked",
       "unlock": "Unlock",
       "unlock_user": "Unlock User",
       "unregister": "Unregister",

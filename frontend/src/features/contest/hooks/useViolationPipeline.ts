@@ -79,6 +79,7 @@ export function useViolationPipeline({
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const interruptedRef = useRef(false);
   const isSubmittingRef = useRef(false);
+  const lastEscalatedAtRef = useRef(0);
 
   // Keep latest props in refs to avoid stale closures
   const contestIdRef = useRef(contestId);
@@ -124,12 +125,17 @@ export function useViolationPipeline({
     return fn();
   }, [defaultIsSuppressed]);
 
+  const ESCALATION_COOLDOWN_MS = 10_000;
+
   const trigger = useCallback(
     (metadata?: Record<string, unknown>) => {
       if (!enabled || examSubmitted) return;
       if (isSubmittingRef.current) return;
       if (interruptedRef.current) return;
       if (checkSuppressed()) return;
+      // After an escalation, suppress re-triggers for a cooldown period to
+      // prevent the same ongoing condition from firing repeatedly.
+      if (Date.now() - lastEscalatedAtRef.current < ESCALATION_COOLDOWN_MS) return;
 
       interruptedRef.current = true;
       setIsInterrupted(true);
@@ -235,7 +241,9 @@ export function useViolationPipeline({
           }).catch(() => null);
         }
 
-        // Reset interrupted state after escalation so pipeline can retrigger
+        // Reset interrupted state after escalation so pipeline can retrigger,
+        // but record the time so the cooldown guard prevents immediate re-fire.
+        lastEscalatedAtRef.current = Date.now();
         interruptedRef.current = false;
         setIsInterrupted(false);
       }, effectiveGraceMs);

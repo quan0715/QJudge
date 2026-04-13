@@ -11,6 +11,10 @@ from ..models import (
     ExamStatus,
 )
 from ..serializers import ExamEventCreateSerializer
+from ..constants import (
+    IMMEDIATE_LOCK_EVENT_TYPES as IMMEDIATE_LOCK_EVENT_TYPES_CONST,
+    PENALIZED_EVENT_TYPES as PENALIZED_EVENT_TYPES_CONST,
+)
 from ..permissions import can_manage_contest
 from ..services.anti_cheat_session import (
     blacklist_other_tokens,
@@ -52,15 +56,9 @@ class ExamLifecycleMixin:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if locked
-        if participant.exam_status in {ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER}:
-            message = (
-                'Exam session has been locked due to device takeover. '
-                'Please wait for invigilator approval.'
-                if participant.exam_status == ExamStatus.LOCKED_TAKEOVER
-                else 'You have been locked out of this contest.'
-            )
+        if participant.exam_status == ExamStatus.LOCKED:
             return Response(
-                {'error': message},
+                {'error': 'You have been locked out of this contest.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -158,12 +156,10 @@ class ExamLifecycleMixin:
                 'already_submitted': True,
             })
 
-        # Check if exam can be submitted (must be in_progress, locked, paused, or takeover-locked)
         submittable_states = [
             ExamStatus.IN_PROGRESS,
             ExamStatus.LOCKED,
             ExamStatus.PAUSED,
-            ExamStatus.LOCKED_TAKEOVER,
         ]
         if participant.exam_status not in submittable_states:
             return Response(
@@ -224,24 +220,6 @@ class ExamViewSet(
     """Composed ExamViewSet — all actions preserved, URL unchanged."""
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ExamEventCreateSerializer
-    PENALIZED_EVENT_TYPES = {
-        'tab_hidden',
-        'window_blur',
-        'exit_fullscreen',
-        'multiple_displays',
-        'mouse_leave',
-        'screen_share_stopped',
-        'webcam_stopped',
-        'viewport_stopped',
-        'warning_timeout',
-        'forbidden_focus_event',
-        'heartbeat_timeout',
-        'listener_tampered',
-    }
-    IMMEDIATE_LOCK_EVENT_TYPES = {
-        'warning_timeout',
-        'screen_share_stopped',
-        'heartbeat_timeout',
-        'listener_tampered',
-    }
-    MONITORED_STATUSES = {ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER}
+    PENALIZED_EVENT_TYPES = PENALIZED_EVENT_TYPES_CONST
+    IMMEDIATE_LOCK_EVENT_TYPES = IMMEDIATE_LOCK_EVENT_TYPES_CONST
+    MONITORED_STATUSES = {ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED}

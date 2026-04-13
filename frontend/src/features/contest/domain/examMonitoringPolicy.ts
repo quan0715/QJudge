@@ -1,49 +1,50 @@
 /**
- * Shared anti-cheat monitoring rhythm for runtime + precheck.
- * Keep these constants as the single source of truth.
+ * Shared anti-cheat monitoring timing config.
+ *
+ * All backend-overridable timing values live in a single object.
+ * Backend-provided overrides are applied once via applyExamMonitoringPolicyOverrides();
+ * consumers read the current snapshot via getTimingConfig().
  */
-const DEFAULT_EXAM_MONITORING_BLUR_DEBOUNCE_MS = 450;
-const DEFAULT_EXAM_MONITORING_FOCUS_CHECK_DELAY_MS = 50;
-const DEFAULT_EXAM_MONITORING_BLUR_CONFIRM_DELAY_MS = 700;
-const DEFAULT_EXAM_MONITORING_BLUR_SUPPRESSION_AFTER_TAB_HIDDEN_MS = 1200;
-const DEFAULT_EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS = 5000;
-const DEFAULT_EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS = 15000;
-const DEFAULT_EXAM_MONITORING_SCREEN_DETAILS_TIMEOUT_MS = 2500;
-const DEFAULT_EXAM_MONITORING_DISPLAY_API_FAILURE_THRESHOLD = 3;
-const DEFAULT_EXAM_MONITORING_DISPLAY_CONFIRM_COUNT = 2;
-const DEFAULT_EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS = 2500;
-const DEFAULT_EXAM_MONITORING_RECOVERY_GRACE_MS = 3000;
-const DEFAULT_EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS = 3000;
-const DEFAULT_SCREEN_SHARE_RECOVERY_GRACE_MS = 30_000;
-const DEFAULT_WEBCAM_RECOVERY_GRACE_MS = 10_000;
 
-export const EXAM_MONITORING_BLUR_DEBOUNCE_MS = DEFAULT_EXAM_MONITORING_BLUR_DEBOUNCE_MS;
-export const EXAM_MONITORING_FOCUS_CHECK_DELAY_MS = DEFAULT_EXAM_MONITORING_FOCUS_CHECK_DELAY_MS;
-export const EXAM_MONITORING_BLUR_CONFIRM_DELAY_MS = DEFAULT_EXAM_MONITORING_BLUR_CONFIRM_DELAY_MS;
-export const EXAM_MONITORING_BLUR_SUPPRESSION_AFTER_TAB_HIDDEN_MS =
-  DEFAULT_EXAM_MONITORING_BLUR_SUPPRESSION_AFTER_TAB_HIDDEN_MS;
-export let EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS =
-  DEFAULT_EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS;
-export let EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS =
-  DEFAULT_EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS;
-export const EXAM_MONITORING_SCREEN_DETAILS_TIMEOUT_MS =
-  DEFAULT_EXAM_MONITORING_SCREEN_DETAILS_TIMEOUT_MS;
-export const EXAM_MONITORING_DISPLAY_API_FAILURE_THRESHOLD =
-  DEFAULT_EXAM_MONITORING_DISPLAY_API_FAILURE_THRESHOLD;
-export const EXAM_MONITORING_DISPLAY_CONFIRM_COUNT =
-  DEFAULT_EXAM_MONITORING_DISPLAY_CONFIRM_COUNT;
-export const EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS =
-  DEFAULT_EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS;
-export let EXAM_MONITORING_RECOVERY_GRACE_MS = DEFAULT_EXAM_MONITORING_RECOVERY_GRACE_MS;
-export let EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS =
-  DEFAULT_EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS;
-export let SCREEN_SHARE_RECOVERY_GRACE_MS = DEFAULT_SCREEN_SHARE_RECOVERY_GRACE_MS;
-export let WEBCAM_RECOVERY_GRACE_MS = DEFAULT_WEBCAM_RECOVERY_GRACE_MS;
+export interface ExamMonitoringTimingConfig {
+  recoveryGraceMs: number;
+  mouseLeaveCooldownMs: number;
+  screenShareRecoveryGraceMs: number;
+  webcamRecoveryGraceMs: number;
+  multiDisplayCheckIntervalMs: number;
+  multiDisplayReportCooldownMs: number;
+}
 
-export let EXAM_MONITORING_FOCUS_STABILIZE_WINDOW_MS =
+const DEFAULTS: Readonly<ExamMonitoringTimingConfig> = {
+  recoveryGraceMs: 3000,
+  mouseLeaveCooldownMs: 3000,
+  screenShareRecoveryGraceMs: 30_000,
+  webcamRecoveryGraceMs: 10_000,
+  multiDisplayCheckIntervalMs: 5000,
+  multiDisplayReportCooldownMs: 15000,
+};
+
+let current: ExamMonitoringTimingConfig = { ...DEFAULTS };
+
+export const getTimingConfig = (): Readonly<ExamMonitoringTimingConfig> => current;
+
+// --- Immutable constants (never overridden by backend) ---
+
+export const EXAM_MONITORING_BLUR_DEBOUNCE_MS = 450;
+export const EXAM_MONITORING_FOCUS_CHECK_DELAY_MS = 50;
+export const EXAM_MONITORING_BLUR_CONFIRM_DELAY_MS = 700;
+export const EXAM_MONITORING_BLUR_SUPPRESSION_AFTER_TAB_HIDDEN_MS = 1200;
+export const EXAM_MONITORING_SCREEN_DETAILS_TIMEOUT_MS = 2500;
+export const EXAM_MONITORING_DISPLAY_API_FAILURE_THRESHOLD = 3;
+export const EXAM_MONITORING_DISPLAY_CONFIRM_COUNT = 2;
+export const EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS = 2500;
+
+export const EXAM_MONITORING_FOCUS_STABILIZE_WINDOW_MS =
   EXAM_MONITORING_BLUR_DEBOUNCE_MS +
   EXAM_MONITORING_FOCUS_CHECK_DELAY_MS +
   EXAM_MONITORING_BLUR_CONFIRM_DELAY_MS;
+
+// --- Override application ---
 
 const positiveNumber = (value: unknown): number | null => {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
@@ -61,36 +62,31 @@ export interface ExamMonitoringPolicyOverrides {
 }
 
 export function applyExamMonitoringPolicyOverrides(
-  overrides?: ExamMonitoringPolicyOverrides
+  overrides?: ExamMonitoringPolicyOverrides,
 ): void {
   if (!overrides) return;
 
+  const next = { ...current };
+
   const recovery = positiveNumber(overrides.monitoringRecoveryGraceMs);
-  if (recovery != null) EXAM_MONITORING_RECOVERY_GRACE_MS = recovery;
+  if (recovery != null) next.recoveryGraceMs = recovery;
 
   const mouseCooldown = positiveNumber(overrides.mouseLeaveCooldownMs);
-  if (mouseCooldown != null) EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS = mouseCooldown;
+  if (mouseCooldown != null) next.mouseLeaveCooldownMs = mouseCooldown;
 
   const screenShareRecovery = positiveNumber(overrides.screenShareRecoveryGraceMs);
-  if (screenShareRecovery != null) SCREEN_SHARE_RECOVERY_GRACE_MS = screenShareRecovery;
+  if (screenShareRecovery != null) next.screenShareRecoveryGraceMs = screenShareRecovery;
 
   const webcamRecovery = positiveNumber(overrides.webcamRecoveryGraceMs);
-  if (webcamRecovery != null) WEBCAM_RECOVERY_GRACE_MS = webcamRecovery;
+  if (webcamRecovery != null) next.webcamRecoveryGraceMs = webcamRecovery;
 
   const multiDisplayInterval = positiveNumber(overrides.multiDisplayCheckIntervalMs);
-  if (multiDisplayInterval != null) {
-    EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS = multiDisplayInterval;
-  }
+  if (multiDisplayInterval != null) next.multiDisplayCheckIntervalMs = multiDisplayInterval;
 
   const multiDisplayCooldown = positiveNumber(overrides.multiDisplayReportCooldownMs);
-  if (multiDisplayCooldown != null) {
-    EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS = multiDisplayCooldown;
-  }
+  if (multiDisplayCooldown != null) next.multiDisplayReportCooldownMs = multiDisplayCooldown;
 
-  EXAM_MONITORING_FOCUS_STABILIZE_WINDOW_MS =
-    EXAM_MONITORING_BLUR_DEBOUNCE_MS +
-    EXAM_MONITORING_FOCUS_CHECK_DELAY_MS +
-    EXAM_MONITORING_BLUR_CONFIRM_DELAY_MS;
+  current = next;
 }
 
 // --- Screen Details API shared utilities ---

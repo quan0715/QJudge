@@ -37,9 +37,15 @@
         "verifying": "本人確認を行っています..."
       },
       "takeover": "引き継いで古いデバイスをロックする",
+      "takeoverExpired": "引き継ぎトークンが期限切れです。再度ログインしてください。",
       "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。",
       "takingOver": "処理中...",
       "verifyingSession": "同步作業階段中..."
+    },
+    "takeover": {
+      "stepInvalidate": "他のデバイスのログインセッションをクリア中...",
+      "stepRegister": "試験接続を再登録中...",
+      "stepRedirect": "試験に戻ります..."
     },
     "campusSso": {
       "backToLogin": "ログインに戻る",
@@ -88,6 +94,8 @@
     "pendingAction": {
       "classroomJoinSubtitle": "まずログインまたは登録してください。完了後、自動的にクラスルームに参加します。",
       "classroomJoinTitle": "クラスルームに参加",
+      "examTakeoverSubtitle": "未完了の試験が検出されました。このデバイスで引き継いで再開してください。",
+      "examTakeoverTitle": "試験デバイス引き継ぎ",
       "teacherActivationSubtitle": "まずログインまたは登録してください。完了後、自動的に教師権限が有効になります。",
       "teacherActivationTitle": "教師権限の有効化"
     },

@@ -26,7 +26,7 @@ const ExamStatusBadge: React.FC<ExamStatusBadgeProps> = ({
 
   if (!cheatDetectionEnabled) return null;
 
-  if (examStatus === "locked" || examStatus === "locked_takeover") {
+  if (examStatus === "locked") {
     const title = `${lockReason || t("exam.lockedReason")}${
       autoUnlockAt
         ? `\n${t("exam.expectedUnlock")}: ${new Date(autoUnlockAt).toLocaleTimeString()}`

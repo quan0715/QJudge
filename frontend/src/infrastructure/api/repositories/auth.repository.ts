@@ -201,6 +201,16 @@ export const oauthCallback = async (provider: string, code: string): Promise<Aut
   );
 };
 
+export const resolveLoginConflict = async (conflictToken: string): Promise<AuthResponseDto> => {
+  return requestJson<AuthResponseDto>(
+    httpClient.post("/api/v1/auth/resolve-conflict", {
+      conflict_token: conflictToken,
+      action: "takeover_recovery",
+    }),
+    "Failed to resolve login conflict"
+  );
+};
+
 // ============================================================================
 // Login Records
 // ============================================================================

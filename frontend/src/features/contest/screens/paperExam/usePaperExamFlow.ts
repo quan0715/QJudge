@@ -99,7 +99,9 @@ export const usePaperExamFlow = () => {
     if (monitoringPlan.runtime.enableWebcamCapture) {
       enabledCaptureModules.push("webcam");
     }
-    const moduleRole = "primary";
+    const moduleRole = sourceModule === "screen_share"
+      ? monitoringPlan.sources.screenShare.role ?? "primary"
+      : monitoringPlan.sources.webcam.role ?? "primary";
     setLoading(true);
     setError(null);
     try {

@@ -71,7 +71,7 @@ const ExamPrecheckScreen: React.FC = () => {
   const { contestId, contest, loading, error, clearError, startSession } =
     usePaperExamFlow();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
-  const { config: anticheatConfig } = useContestAnticheatConfig(contestId);
+  const { config: anticheatConfig, refresh: refreshAnticheatConfig } = useContestAnticheatConfig(contestId);
 
   const capability = detectAnticheatCapability();
   const monitoringPlan = resolveDeviceMonitoringPlan(
@@ -119,6 +119,7 @@ const ExamPrecheckScreen: React.FC = () => {
   const [checks, setChecks] = useState<CheckItem[]>(() => createEligibilityChecks(t));
   const checkFilter: EnvironmentCheckFilter = {
     requireScreenShare: monitoringPlan.precheck.requireScreenShare,
+    requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
     enableWebcam: monitoringPlan.precheck.enableWebcam,
     requirePwaMode: monitoringPlan.precheck.requirePwaMode,
     skipFullscreen: skipFullscreenCheck,
@@ -126,6 +127,22 @@ const ExamPrecheckScreen: React.FC = () => {
   const [envChecks, setEnvChecks] = useState<CheckItem[]>(() => createEnvironmentChecks(t, checkFilter));
   const [envTestDone, setEnvTestDone] = useState(false);
   const [envTestRunning, setEnvTestRunning] = useState(false);
+
+  // Re-derive the check list when the anticheat config loads (filter changes),
+  // but only before the user starts the environment test.
+  useEffect(() => {
+    if (!envTestDone && !envTestRunning) {
+      setEnvChecks(createEnvironmentChecks(t, checkFilter));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    checkFilter.requireScreenShare,
+    checkFilter.requireSingleMonitor,
+    checkFilter.enableWebcam,
+    checkFilter.requirePwaMode,
+    checkFilter.skipFullscreen,
+    t,
+  ]);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [startGuardError, setStartGuardError] = useState<string | null>(null);
   const countdownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -271,6 +288,9 @@ const ExamPrecheckScreen: React.FC = () => {
   }, []);
 
   const runEnvironmentChecks = useCallback(async () => {
+    // Force-refresh anticheat config so precheck always uses the latest policy.
+    await refreshAnticheatConfig();
+
     if (!monitoringPlan.allowed) {
       const firstMissing = monitoringPlan.missingEnabledSources[0];
       const detail =
@@ -293,6 +313,7 @@ const ExamPrecheckScreen: React.FC = () => {
       t,
       envTestRunning,
       requireScreenShare: monitoringPlan.precheck.requireScreenShare,
+      requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
       requireWebcam: monitoringPlan.precheck.requireWebcam,
       enableWebcam: monitoringPlan.precheck.enableWebcam,
       requirePwaOnTablet: monitoringPlan.precheck.requirePwaMode,
@@ -315,7 +336,9 @@ const ExamPrecheckScreen: React.FC = () => {
     monitoringPlan.precheck.enableWebcam,
     monitoringPlan.precheck.requirePwaMode,
     monitoringPlan.precheck.requireScreenShare,
+    monitoringPlan.precheck.requireSingleMonitor,
     monitoringPlan.precheck.requireWebcam,
+    refreshAnticheatConfig,
     requestMonitorScreenShare,
     requestWebcamCapture,
     skipFullscreenCheck,
@@ -338,6 +361,7 @@ const ExamPrecheckScreen: React.FC = () => {
     }
     const validationFailure = await runStartPreflightValidation(t, {
       requireScreenShare: monitoringPlan.precheck.requireScreenShare,
+      requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
       requireWebcam: monitoringPlan.precheck.requireWebcam,
       enableWebcam: monitoringPlan.precheck.enableWebcam,
       requirePwaOnTablet: monitoringPlan.precheck.requirePwaMode,
@@ -377,6 +401,7 @@ const ExamPrecheckScreen: React.FC = () => {
     (async () => {
       const validationFailure = await runStartPreflightValidation(t, {
         requireScreenShare: monitoringPlan.precheck.requireScreenShare,
+        requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
         requireWebcam: monitoringPlan.precheck.requireWebcam,
         requirePwaOnTablet: monitoringPlan.precheck.requirePwaMode,
         isPwaMode: capability.isPwaMode,

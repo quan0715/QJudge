@@ -123,9 +123,16 @@ export const sanitizeAnticheatPolicy = (
     tablet: normalizeDevice(raw.tablet, DEFAULT_DEVICE_POLICY.tablet),
   };
 
-  // Enforce device-specific detector constraints
+  // High-level policy constraints — mirrors backend normalize_anticheat_device_policy().
+  // focus / tab_visibility are legacy, always off.
+  sanitized.desktop.detectors.focus = false;
+  sanitized.desktop.detectors.tabVisibility = false;
+  sanitized.tablet.detectors.focus = false;
+  sanitized.tablet.detectors.tabVisibility = false;
+  // Device-specific constraints.
   sanitized.desktop.detectors.pwaMode = false;
   sanitized.desktop.detectors.viewportIntegrity = false;
+  sanitized.tablet.sources.screenShare.enabled = false;
   sanitized.tablet.detectors.fullscreen = false;
   sanitized.tablet.detectors.multiDisplay = false;
 

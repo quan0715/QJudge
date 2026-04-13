@@ -135,6 +135,9 @@ describe("useViewportMonitoring", () => {
     act(() => {
       viewportState.width = 700; // split view style narrow viewport
       viewportState.height = 768;
+      // getViewportSnapshot reads window.innerWidth/innerHeight
+      Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: 700 });
+      Object.defineProperty(window, "innerHeight", { configurable: true, writable: true, value: 768 });
       resizeListeners.forEach((listener) => listener());
       vi.advanceTimersByTime(1100);
     });

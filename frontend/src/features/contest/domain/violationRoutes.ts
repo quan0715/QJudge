@@ -38,8 +38,8 @@ export const VIOLATION_ROUTES: ViolationRouteConfig[] = [
   {
     id: "viewport",
     events: { triggered: "viewport_interrupted", escalated: "viewport_stopped", restored: "viewport_restored" },
-    defaultGraceMs: 3_000,
-    escalation: "force_submit",
+    defaultGraceMs: 5_000,
+    escalation: "penalized_event",
     countdownPriority: 2,
     eventSource: "anticheat:viewport_integrity",
   },
@@ -59,6 +59,8 @@ export const VIOLATION_ROUTES: ViolationRouteConfig[] = [
     countdownPriority: 4,
     eventSource: "anticheat:mouse_leave",
   },
+  // Legacy focus routes remain for compatibility with historical events/tests.
+  // The primary runtime no longer mounts these detectors.
   {
     id: "tab_hidden",
     events: { triggered: "tab_hidden_triggered", escalated: "tab_hidden", restored: "tab_hidden_restored" },

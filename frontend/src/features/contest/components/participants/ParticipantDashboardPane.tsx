@@ -70,7 +70,6 @@ interface ParticipantDashboardPaneProps {
   onDownloadReport: () => void;
   onEditStatus: () => void;
   onUnlock: () => void;
-  onApproveTakeover: () => void;
   onReopenExam: () => void;
   /** When undefined, roster removal is hidden (e.g. classroom-managed contests). */
   onRemoveParticipant?: () => void;
@@ -103,7 +102,6 @@ const toExamStatusTagType = (examStatus: string | null | undefined) => {
     case "paused":
       return "purple";
     case "locked":
-    case "locked_takeover":
       return "red";
     default:
       return "cool-gray";
@@ -131,7 +129,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   onDownloadReport,
   onEditStatus,
   onUnlock,
-  onApproveTakeover,
   onReopenExam,
   onRemoveParticipant,
   canDeleteExamVideos,
@@ -437,13 +434,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                               label={t("participants.actions.unlock", "解除鎖定")}
                               renderIcon={Locked}
                               onClick={onUnlock}
-                            />
-                          ) : null}
-                          {dashboard.actions.canApproveTakeover ? (
-                            <MenuItem
-                              label={t("dashboard.approveTakeover", "核可裝置接管")}
-                              renderIcon={View}
-                              onClick={onApproveTakeover}
                             />
                           ) : null}
                           {dashboard.actions.canReopenExam && !primaryAction ? (

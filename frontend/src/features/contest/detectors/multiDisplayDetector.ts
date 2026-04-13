@@ -1,6 +1,5 @@
 import {
-  EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS,
-  EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS,
+  getTimingConfig,
   EXAM_MONITORING_DISPLAY_API_FAILURE_THRESHOLD,
   EXAM_MONITORING_DISPLAY_CONFIRM_COUNT,
   type ScreenDetailsLike,
@@ -49,7 +48,7 @@ export class MultiDisplayDetector implements ExamDetector {
     void this.ensureSingleDisplay();
     this.pollInterval = setInterval(() => {
       void this.ensureSingleDisplay();
-    }, EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS);
+    }, getTimingConfig().multiDisplayCheckIntervalMs);
   }
 
   stop(): void {
@@ -106,7 +105,7 @@ export class MultiDisplayDetector implements ExamDetector {
 
   private reportViolation(): void {
     const now = Date.now();
-    if (now - this.lastReportAt < EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS) return;
+    if (now - this.lastReportAt < getTimingConfig().multiDisplayReportCooldownMs) return;
     this.lastReportAt = now;
     this.onViolation?.({
       detectorId: this.id,

@@ -11,13 +11,11 @@ from django.shortcuts import get_object_or_404
 from ..models import (
     Contest,
     ContestParticipant,
-    ExamEvent,
     ExamStatus,
 )
 from ..serializers import (
     AnticheatUrlsQuerySerializer,
     ActiveSessionClearSerializer,
-    ExamTakeoverApproveSerializer,
 )
 from ..permissions import can_manage_contest
 from ..services.anti_cheat_session import (
@@ -160,7 +158,7 @@ class ExamAnticheatMixin:
 
         participants = ContestParticipant.objects.filter(
             contest=contest,
-            exam_status__in=[ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED, ExamStatus.LOCKED_TAKEOVER],
+            exam_status__in=[ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED],
         ).select_related("user")
         rows = []
         for participant in participants:
@@ -197,39 +195,3 @@ class ExamAnticheatMixin:
             f"Cleared active session for user_id={user_id}",
         )
         return Response({"status": "cleared", "user_id": user_id})
-
-    @action(detail=False, methods=["post"], url_path="takeover-approve")
-    def takeover_approve(self, request, contest_pk=None):
-        contest = get_object_or_404(Contest, id=contest_pk)
-        if not can_manage_contest(request.user, contest):
-            return Response(
-                {'detail': 'You do not have permission to perform this action.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        serializer = ExamTakeoverApproveSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user_id = serializer.validated_data["user_id"]
-        participant = get_object_or_404(ContestParticipant, contest=contest, user_id=user_id)
-        if participant.exam_status != ExamStatus.LOCKED_TAKEOVER:
-            return Response(
-                {"error": "Participant is not in takeover-locked state."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        participant.exam_status = ExamStatus.PAUSED
-        participant.lock_reason = ""
-        participant.locked_at = None
-        participant.save(update_fields=["exam_status", "lock_reason", "locked_at"])
-        ExamEvent.objects.create(
-            contest=contest,
-            user=participant.user,
-            event_type="takeover_approved",
-            metadata={"approved_by": request.user.id},
-        )
-        ContestActivityViewSet.log_activity(
-            contest,
-            request.user,
-            "takeover_approve",
-            f"Approved takeover for user_id={participant.user_id}",
-        )
-        return Response({"status": "approved", "exam_status": participant.exam_status})

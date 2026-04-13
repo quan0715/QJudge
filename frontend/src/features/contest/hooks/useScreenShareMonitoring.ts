@@ -7,7 +7,7 @@
  * Countdown and timeout-triggered force submit remain driven by runtimeReauthState.
  */
 import { useCallback, useEffect, useRef } from "react";
-import { SCREEN_SHARE_RECOVERY_GRACE_MS } from "@/features/contest/domain/examMonitoringPolicy";
+import { getTimingConfig } from "@/features/contest/domain/examMonitoringPolicy";
 import { VIOLATION_ROUTES_MAP } from "@/features/contest/domain/violationRoutes";
 import {
   beginRuntimeScreenShareReauth,
@@ -88,7 +88,7 @@ export function useScreenShareMonitoring({
 
     const recoveryMs = Math.max(
       1,
-      recoveryGraceMsRef.current ?? SCREEN_SHARE_RECOVERY_GRACE_MS,
+      recoveryGraceMsRef.current ?? getTimingConfig().screenShareRecoveryGraceMs,
     );
     pipeline.trigger({ reason: "stream_ended" });
     beginRuntimeScreenShareReauth(contestIdRef.current, recoveryMs);

@@ -5,6 +5,7 @@ import CampusSsoScreen from "./screens/CampusSsoScreen";
 import OAuthCallbackScreen from "./screens/OAuthCallbackScreen";
 import OnboardingScreen from "./screens/OnboardingScreen";
 import TeacherActivationScreen from "./screens/TeacherActivationScreen";
+import ExamTakeoverScreen from "./screens/ExamTakeoverScreen";
 import OAuthAuthorizePage from "./screens/OAuthAuthorizePage";
 
 /**
@@ -15,6 +16,7 @@ export const guestRoutes = (
     <Route path="/login" element={<LoginScreen />} />
     <Route path="/login/campus-sso" element={<CampusSsoScreen />} />
     <Route path="/register" element={<RegisterScreen />} />
+    <Route path="/exam-takeover" element={<ExamTakeoverScreen />} />
   </>
 );
 

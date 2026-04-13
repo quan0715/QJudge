@@ -34,8 +34,6 @@ export type ExamViolationType =
   | "exam_entered"
   | "exam_submit_initiated"
   | "concurrent_login_detected"
-  | "takeover_locked"
-  | "takeover_approved"
   | "heartbeat"
   | "heartbeat_timeout"
   | "listener_tampered";
@@ -56,8 +54,6 @@ export type ContestActivityType =
   | "update_problem"
   | "update_participant"
   | "concurrent_login_detected"
-  | "takeover_lock"
-  | "takeover_approve"
   | "announce"
   | "other";
 
@@ -143,7 +139,6 @@ export interface ParticipantDashboardActions {
   canRemoveParticipant: boolean;
   canUnlock: boolean;
   canReopenExam: boolean;
-  canApproveTakeover: boolean;
   canViewEvidence: boolean;
   canOpenGrading: boolean;
 }
@@ -318,7 +313,6 @@ export type ExamStatusType =
   | "in_progress"
   | "paused"
   | "locked"
-  | "locked_takeover"
   | "submitted";
 
 export interface ContestDetail extends Contest {

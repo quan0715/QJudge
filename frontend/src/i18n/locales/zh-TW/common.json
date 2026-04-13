@@ -36,10 +36,16 @@
         "stats": "正在同步您的戰績...",
         "verifying": "確認是本人無誤（你看起來很棒！）"
       },
-      "takeover": "接管並鎖定舊裝置",
-      "takeoverFailed": "接管失敗，請聯繫監考老師。",
+      "takeover": "接管並恢復考試",
+      "takeoverExpired": "接管憑證已過期，請重新登入。",
+      "takeoverFailed": "接管失敗，請重新登入後再試。",
       "takingOver": "處理中...",
       "verifyingSession": "同步作業階段中..."
+    },
+    "takeover": {
+      "stepInvalidate": "正在清除其他裝置的登入狀態...",
+      "stepRegister": "正在重新註冊考試連線...",
+      "stepRedirect": "即將返回考試現場..."
     },
     "campusSso": {
       "backToLogin": "返回登入",
@@ -109,6 +115,8 @@
     "pendingAction": {
       "classroomJoinSubtitle": "請先登入或註冊，完成後會自動加入教室。",
       "classroomJoinTitle": "加入教室",
+      "examTakeoverSubtitle": "偵測到你有未完成的考試，請在此裝置接管並恢復。",
+      "examTakeoverTitle": "考試裝置接管",
       "teacherActivationSubtitle": "請先登入或註冊，完成後會自動開通教師權限。",
       "teacherActivationTitle": "教師開通"
     }

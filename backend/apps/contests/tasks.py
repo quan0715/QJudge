@@ -130,7 +130,6 @@ def check_contest_end():
             ExamStatus.IN_PROGRESS,
             ExamStatus.PAUSED,
             ExamStatus.LOCKED,
-            ExamStatus.LOCKED_TAKEOVER,
         ],
     ).distinct()
     
@@ -160,7 +159,6 @@ def auto_submit_participants(contest_id):
                 ExamStatus.IN_PROGRESS,
                 ExamStatus.PAUSED,
                 ExamStatus.LOCKED,
-                ExamStatus.LOCKED_TAKEOVER,
             ]
         )
         )

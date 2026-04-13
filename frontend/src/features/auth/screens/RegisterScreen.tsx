@@ -7,7 +7,7 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { ArrowRight } from "@carbon/icons-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { register } from "@/infrastructure/api/repositories/auth.repository";
 import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
@@ -17,7 +17,6 @@ type FieldErrors = Record<string, string[]>;
 
 const RegisterPage = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { buildAuthLink } = usePendingActions();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -60,10 +59,9 @@ const RegisterPage = () => {
         password_confirm: confirmPassword,
       });
       if (response.success) {
-        // Extract user profile only — do not persist tokens in localStorage
         const { access_token: _a, refresh_token: _r, ...safeData } = response.data;
         localStorage.setItem("user", JSON.stringify(safeData.user));
-        navigate(getAuthedLandingPath(safeData.user), { replace: true });
+        window.location.href = getAuthedLandingPath(safeData.user);
       } else {
         setError(t("auth.register.failed"));
       }
