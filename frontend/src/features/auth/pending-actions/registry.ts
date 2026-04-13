@@ -10,6 +10,17 @@ import type { PendingActionConfig } from "./types";
  */
 export const PENDING_ACTIONS: PendingActionConfig[] = [
   {
+    key: "exam_takeover",
+    storageKey: "qjudge.exam_takeover_token",
+    priority: -30,
+    queryParam: null,
+    banner: {
+      titleKey: "auth.pendingAction.examTakeoverTitle",
+      subtitleKey: "auth.pendingAction.examTakeoverSubtitle",
+    },
+    getRedirectPath: () => "/exam-takeover",
+  },
+  {
     key: "oauth_next",
     storageKey: "qjudge.oauth_next",
     priority: -20,
