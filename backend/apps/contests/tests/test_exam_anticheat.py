@@ -35,6 +35,13 @@ class ExamAntiCheatTests(APITestCase):
     """API-level tests for exam anti-cheat event logging and locking."""
 
     def setUp(self):
+        # Disable incident family dedup so penalty tests focus on core logic.
+        patcher = patch(
+            "apps.contests.views.exam_events.is_duplicate_incident_family",
+            return_value=False,
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.teacher = User.objects.create_user(
             username="teacher",
             email="teacher@test.com",
@@ -84,7 +91,7 @@ class ExamAntiCheatTests(APITestCase):
     # ------------------------------------------------------------------
     def test_violation_increments_count(self):
         self.client.force_authenticate(user=self.student)
-        resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+        resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["violation_count"], 1)
@@ -101,7 +108,7 @@ class ExamAntiCheatTests(APITestCase):
         self.client.force_authenticate(user=self.student)
 
         for i in range(3):
-            resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+            resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
             self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
         # Third violation should trigger lock
@@ -121,7 +128,7 @@ class ExamAntiCheatTests(APITestCase):
                 resp = self.client.post(
                     self.events_url,
                     {
-                        "event_type": "tab_hidden",
+                        "event_type": "exit_fullscreen",
                         "metadata": {"upload_session_id": "session-paused-1"},
                     },
                     format="json",
@@ -150,7 +157,7 @@ class ExamAntiCheatTests(APITestCase):
 
         with patch("apps.contests.services.exam_submission.enqueue_compile_video") as mock_compile:
             with self.captureOnCommitCallbacks(execute=True):
-                resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+                resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["exam_status"], ExamStatus.SUBMITTED)
         mock_compile.assert_not_called()
@@ -306,7 +313,7 @@ class ExamAntiCheatTests(APITestCase):
     def test_duplicate_event_idempotency_key_counts_once(self):
         self.client.force_authenticate(user=self.student)
         payload = {
-            "event_type": "tab_hidden",
+            "event_type": "exit_fullscreen",
             "metadata": {"event_idempotency_key": "same-key-1"},
         }
 
@@ -324,7 +331,7 @@ class ExamAntiCheatTests(APITestCase):
             ExamEvent.objects.filter(
                 contest=self.contest,
                 user=self.student,
-                event_type="tab_hidden",
+                event_type="exit_fullscreen",
             ).count(),
             1,
         )
@@ -396,7 +403,7 @@ class ExamAntiCheatTests(APITestCase):
         )
 
         self.client.force_authenticate(user=self.teacher)
-        resp = self.client.post(self.events_url, {"event_type": "tab_hidden"})
+        resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertIn("violation_count", resp.data)
@@ -406,7 +413,7 @@ class ExamAntiCheatTests(APITestCase):
             ExamEvent.objects.filter(
                 contest=self.contest,
                 user=self.teacher,
-                event_type="tab_hidden",
+                event_type="exit_fullscreen",
             ).count(),
             1,
         )
