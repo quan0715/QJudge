@@ -2,13 +2,13 @@
 
 **Date:** 2026-04-11
 **Status:** Draft
-**Scope:** MCP Server with OAuth 2.1, exam question CRUD + reorder
+**Scope:** MCP Server with OAuth 2.1, paper-exam question CRUD + reorder + batch create
 
 ---
 
 ## Overview
 
-建立一個獨立的 MCP Server，讓老師/助教透過 AI 工具（Claude Code、Cursor 等）編輯競賽的 exam questions。MCP Server 作為 stateless thin proxy，所有業務邏輯和權限檢查由 Django backend 處理。
+建立一個獨立的 MCP Server，讓老師/助教透過 AI 工具（Claude Code、Cursor 等）編輯 `paper_exam` 競賽的 exam questions。MCP Server 作為 stateless thin proxy，所有業務邏輯和權限檢查由 Django backend 處理；MCP 只補工具導向的 orchestration 與 contest 類型防呆。
 
 ## Architecture
 
@@ -93,7 +93,17 @@ dev 環境需在 Django 建立一個 OAuth Application：
 
 ### qjudge_exam
 
-管理考試題目 CRUD + 排序。Actions: `list`, `get`, `create`, `update`, `delete`, `reorder`
+管理 `paper_exam` contest 的考試題目。Actions: `list`, `get`, `create`, `update`, `delete`, `reorder`, `import_from_bank`, `batch_create`
+
+- `create` / `update` 支援 `explanation`
+- `batch_create` 支援：
+  - `mode="append"`：逐筆新增
+  - `mode="overwrite"`：先刪除 contest 既有 exam 題目，再逐筆新增
+- 如果 contest 實際上是 `coding`，MCP 直接回錯誤，提示改用 `qjudge_coding`
+
+### qjudge_coding
+
+管理 `coding` contest 的程式題目。若 contest 實際上是 `paper_exam`，MCP 直接回錯誤，提示改用 `qjudge_exam`。
 
 ### qjudge_grading
 
@@ -115,6 +125,7 @@ MCP Server 直接轉發 Django 的回應：
 | 400 | 回傳 validation error message |
 | 401 | 提示使用者重新授權 |
 | 403 | 回傳權限拒絕原因（question_edit_locked、not owner 等） |
+| 400 | 回傳固定工具錯誤（如 contest type 不符、batch mode 無效） |
 | 404 | 回傳 "contest or question not found" |
 | 5xx | 回傳 "QJudge 服務暫時不可用" |
 
@@ -171,7 +182,5 @@ qjudge-mcp:
 ## Out of Scope
 
 - list_contests tool（contest ID 由使用者提供）
-- Batch 操作
-- import-from-bank
 - 學生端功能
 - MCP Resources（第一版只用 Tools）

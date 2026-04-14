@@ -83,13 +83,8 @@
         "loginMethod": "Login Method",
         "username": "Username"
       },
-      "confirmDeleteMessage": "Are you sure you want to delete user {{email}}?",
-      "confirmDeleteUser": "Confirm Delete User",
       "confirmRoleChange": "Confirm Role Change",
       "confirmRoleChangeMessage": "Are you sure you want to change {{username}}'s role from {{oldRole}} to {{newRole}}?",
-      "deleteError": "An error occurred while deleting user",
-      "deleteUser": "Delete User",
-      "deleteWarning": "This action cannot be undone! All user data will be permanently deleted.",
       "description": "View all users and manage roles (use search to filter)",
       "loadFailed": "Failed to load users",
       "loginMethods": {
@@ -109,8 +104,7 @@
       "searchResults": "Search Results ({{count}})",
       "title": "User Management",
       "updateFailed": "Update failed",
-      "updateFailedRetry": "Update failed. Please try again later.",
-      "userDeleted": "User {{email}} has been deleted"
+      "updateFailedRetry": "Update failed. Please try again later."
     },
     "role": {
       "admin": "Admin",

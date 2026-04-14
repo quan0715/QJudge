@@ -4,8 +4,6 @@ import {
   Search,
   CheckmarkFilled,
   Copy,
-  TrashCan,
-  WarningAlt,
 } from "@carbon/icons-react";
 import {
   TextInput,
@@ -29,7 +27,6 @@ import { PageHeader } from "@/shared/layout/PageHeader";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import styles from "./AdminScreens.module.scss";
 import {
-  deleteUser,
   issueTeacherActivationInvite,
   searchUsers,
   updateUserRole,
@@ -50,8 +47,6 @@ const UserManagementScreen = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [issuingInvite, setIssuingInvite] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<ManagedUser | null>(null);
   const [roleFilter, setRoleFilter] = useState<"all" | ManagedUser["role"]>("all");
   const [latestInviteUrl, setLatestInviteUrl] = useState("");
   const [latestInviteExpiresAt, setLatestInviteExpiresAt] = useState<string | null>(null);
@@ -154,29 +149,6 @@ const UserManagementScreen = () => {
       }
     } finally {
       setUpdating(false);
-    }
-  };
-
-  const handleDeleteClick = (user: ManagedUser) => {
-    setUserToDelete(user);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!userToDelete) return;
-
-    try {
-      await deleteUser(userToDelete.id);
-      setSuccess(
-        t("user.management.userDeleted", { email: userToDelete.email })
-      );
-      // Refresh user list
-      loadAllUsers();
-    } catch {
-      setError(t("user.management.deleteError"));
-    } finally {
-      setIsDeleteModalOpen(false);
-      setUserToDelete(null);
     }
   };
 
@@ -565,18 +537,6 @@ const UserManagementScreen = () => {
                                   text={t("user.role.adminTA")}
                                 />
                               </Select>
-                              <Button
-                                kind="danger--ghost"
-                                size="sm"
-                                renderIcon={TrashCan}
-                                onClick={() => handleDeleteClick(user)}
-                                hasIconOnly
-                                iconDescription={t(
-                                  "user.management.deleteUser"
-                                )}
-                              >
-                                {tc("button.delete")}
-                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -622,34 +582,6 @@ const UserManagementScreen = () => {
             )}
           </p>
         )}
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        open={isDeleteModalOpen}
-        modalHeading={t("user.management.confirmDeleteUser")}
-        primaryButtonText={tc("button.delete")}
-        secondaryButtonText={tc("button.cancel")}
-        onRequestClose={() => setIsDeleteModalOpen(false)}
-        onRequestSubmit={handleDeleteConfirm}
-        danger
-      >
-        <p>
-          {t("user.management.confirmDeleteMessage", {
-            email: userToDelete?.email,
-          })}
-        </p>
-        <p
-          style={{
-            marginTop: "1rem",
-            color: "var(--cds-text-error)",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.25rem",
-          }}
-        >
-          <WarningAlt size={16} /> {t("user.management.deleteWarning")}
-        </p>
       </Modal>
     </div>
   );

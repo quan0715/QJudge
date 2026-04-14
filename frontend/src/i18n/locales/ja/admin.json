@@ -83,13 +83,8 @@
         "loginMethod": "ログイン方法",
         "username": "ユーザー名"
       },
-      "confirmDeleteMessage": "ユーザー{{email}}を削除してもよろしいですか？",
-      "confirmDeleteUser": "ユーザー削除の確認",
       "confirmRoleChange": "役割変更の確認",
       "confirmRoleChangeMessage": "{{username}}の役割を{{oldRole}}から{{newRole}}に変更してもよろしいですか？",
-      "deleteError": "ユーザーの削除中にエラーが発生しました",
-      "deleteUser": "ユーザー削除",
-      "deleteWarning": "この操作は取り消せません！ユーザーのすべてのデータが完全に削除されます。",
       "description": "すべてのユーザーを表示し、役割を管理（検索機能でフィルタリング可能）",
       "loadFailed": "ユーザーを読み込めません",
       "loginMethods": {
@@ -109,8 +104,7 @@
       "searchResults": "検索結果（{{count}}件）",
       "title": "ユーザー管理",
       "updateFailed": "更新に失敗しました",
-      "updateFailedRetry": "更新に失敗しました。後でもう一度お試しください",
-      "userDeleted": "ユーザー{{email}}を削除しました"
+      "updateFailedRetry": "更新に失敗しました。後でもう一度お試しください"
     },
     "role": {
       "admin": "管理者",

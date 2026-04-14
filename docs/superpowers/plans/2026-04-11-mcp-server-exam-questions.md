@@ -2,13 +2,20 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build an MCP Server that lets teachers/TAs edit exam questions via AI tools, with OAuth 2.1 authentication through Django.
+**Goal:** Build an MCP Server that lets teachers/TAs edit `paper_exam` questions via AI tools, with OAuth 2.1 authentication through Django, explicit contest-type guardrails, and batch create support.
 
-**Architecture:** Standalone FastMCP service (`:9000`) acts as stateless proxy to Django backend (`:8000`). Django gains `django-oauth-toolkit` as Authorization Server. OAuth token passthrough — MCP Server forwards Bearer token to Django API, which handles all auth and business logic.
+**Architecture:** Standalone FastMCP service (`:9000`) acts as stateless proxy to Django backend (`:8000`). Django gains `django-oauth-toolkit` as Authorization Server. OAuth token passthrough — MCP Server forwards Bearer token to Django API, which handles all auth and business logic. MCP additionally enforces tool-level contest-type guardrails so AI clients do not mix up `paper_exam` and `coding` contests.
 
 **Tech Stack:** Python `mcp[cli]` (FastMCP), `httpx` (async HTTP), `django-oauth-toolkit` (OAuth AS), Docker Compose
 
 **Spec:** `docs/superpowers/specs/2026-04-11-mcp-server-exam-questions.md`
+
+## Current Notes
+
+- `qjudge_exam` should only operate on `paper_exam` contests.
+- `qjudge_coding` should only operate on `coding` contests.
+- `qjudge_exam.create` / `qjudge_exam.update` must support `explanation`.
+- `qjudge_exam.batch_create` must support `mode="append"` and `mode="overwrite"`.
 
 ---
 
