@@ -60,7 +60,7 @@ class TestContestExporters:
     def problem(self, contest, user):
         """Create a test problem with translation and test cases."""
         problem = _create_problem_with_asset(
-            slug='test-problem-main', title='Test Problem', difficulty='medium',
+            slug='test-problem-main', title='測試題目', difficulty='medium',
             translations=[{
                 'language': 'zh-TW', 'title': '測試題目',
                 'description': '這是一個測試題目描述',
@@ -162,7 +162,7 @@ class TestContestExporters:
         """Test problem content formatting."""
         exporter = MarkdownRenderer(contest, 'zh-TW')
         problem_data = exporter.format_problem_content(problem, 'A')
-        
+
         assert problem_data['label'] == 'A'
         assert problem_data['title'] == '測試題目'
         assert problem_data['description'] == '這是一個測試題目描述'
@@ -218,7 +218,7 @@ class TestStudentReportRenderer:
         for i, (difficulty, title) in enumerate(difficulties):
             problem = _create_problem_with_asset(
                 slug=f'test-problem-{i+1}-{difficulty}',
-                title=f'Problem {i+1}',
+                title=title,
                 difficulty=difficulty,
                 translations=[{
                     'language': 'zh-TW', 'title': title,
