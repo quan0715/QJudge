@@ -21,21 +21,30 @@ function isSelected(answerContent: Record<string, unknown>, idx: number): boolea
   return selected === idx;
 }
 
+function resolveCorrectIndex(correctAnswer: unknown): number | number[] | null {
+  if (correctAnswer == null) return null;
+  if (Array.isArray(correctAnswer)) return correctAnswer.map(Number);
+  // true_false: boolean true → index 0 (True), false → index 1 (False)
+  if (typeof correctAnswer === "boolean") return correctAnswer ? 0 : 1;
+  return Number(correctAnswer);
+}
+
 function isCorrect(correctAnswer: unknown, idx: number): boolean {
-  if (correctAnswer == null) return false;
-  if (Array.isArray(correctAnswer)) return correctAnswer.includes(idx);
-  return correctAnswer === idx;
+  const resolved = resolveCorrectIndex(correctAnswer);
+  if (resolved == null) return false;
+  if (Array.isArray(resolved)) return resolved.includes(idx);
+  return resolved === idx;
 }
 
 function formatCorrectLabel(correctAnswer: unknown, options: string[]): string {
-  if (correctAnswer == null) return "";
-  if (Array.isArray(correctAnswer)) {
-    return correctAnswer
-      .map((i) => `${String.fromCharCode(65 + Number(i))}. ${options[Number(i)] ?? ""}`)
+  const resolved = resolveCorrectIndex(correctAnswer);
+  if (resolved == null) return "";
+  if (Array.isArray(resolved)) {
+    return resolved
+      .map((i) => `${String.fromCharCode(65 + i)}. ${options[i] ?? ""}`)
       .join(", ");
   }
-  const i = Number(correctAnswer);
-  return `${String.fromCharCode(65 + i)}. ${options[i] ?? ""}`;
+  return `${String.fromCharCode(65 + resolved)}. ${options[resolved] ?? ""}`;
 }
 
 function getTextAnswer(answerContent: Record<string, unknown>): string {
