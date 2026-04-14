@@ -33,7 +33,7 @@ class TagAPITests(TestCase):
     def test_admin_can_create_tag(self):
         self.client.force_authenticate(user=self.admin)
         response = self.client.post(
-            "/api/v1/problems/tags/",
+            "/api/v1/management/problems/tags/",
             {"name": "Graph", "color": "#198038"},
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -42,7 +42,7 @@ class TagAPITests(TestCase):
     def test_admin_can_update_tag(self):
         self.client.force_authenticate(user=self.admin)
         response = self.client.patch(
-            f"/api/v1/problems/tags/{self.tag1.slug}/",
+            f"/api/v1/management/problems/tags/{self.tag1.slug}/",
             {"name": "Dynamic Programming"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -50,7 +50,7 @@ class TagAPITests(TestCase):
 
     def test_admin_can_delete_tag(self):
         self.client.force_authenticate(user=self.admin)
-        response = self.client.delete(f"/api/v1/problems/tags/{self.tag1.slug}/")
+        response = self.client.delete(f"/api/v1/management/problems/tags/{self.tag1.slug}/")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Tag.objects.filter(slug=self.tag1.slug).exists())
 
@@ -59,7 +59,7 @@ class TagAPITests(TestCase):
     def test_teacher_can_create_tag(self):
         self.client.force_authenticate(user=self.teacher)
         response = self.client.post(
-            "/api/v1/problems/tags/",
+            "/api/v1/management/problems/tags/",
             {"name": "Sorting"},
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -67,14 +67,14 @@ class TagAPITests(TestCase):
     def test_teacher_can_update_tag(self):
         self.client.force_authenticate(user=self.teacher)
         response = self.client.patch(
-            f"/api/v1/problems/tags/{self.tag1.slug}/",
+            f"/api/v1/management/problems/tags/{self.tag1.slug}/",
             {"color": "#da1e28"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_teacher_cannot_delete_tag(self):
         self.client.force_authenticate(user=self.teacher)
-        response = self.client.delete(f"/api/v1/problems/tags/{self.tag1.slug}/")
+        response = self.client.delete(f"/api/v1/management/problems/tags/{self.tag1.slug}/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertTrue(Tag.objects.filter(slug=self.tag1.slug).exists())
 
@@ -82,13 +82,13 @@ class TagAPITests(TestCase):
 
     def test_student_can_list_tags(self):
         self.client.force_authenticate(user=self.student)
-        response = self.client.get("/api/v1/problems/tags/")
+        response = self.client.get("/api/v1/management/problems/tags/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_student_cannot_create_tag(self):
         self.client.force_authenticate(user=self.student)
         response = self.client.post(
-            "/api/v1/problems/tags/",
+            "/api/v1/management/problems/tags/",
             {"name": "BFS"},
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -98,7 +98,7 @@ class TagAPITests(TestCase):
     def test_slug_auto_generated(self):
         self.client.force_authenticate(user=self.admin)
         response = self.client.post(
-            "/api/v1/problems/tags/",
+            "/api/v1/management/problems/tags/",
             {"name": "Binary Search"},
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -110,7 +110,7 @@ class TagAPITests(TestCase):
         Tag.objects.create(name="Greedy Algo", slug="greedy-algo")
         self.client.force_authenticate(user=self.admin)
         response = self.client.post(
-            "/api/v1/problems/tags/",
+            "/api/v1/management/problems/tags/",
             {"name": "Greedy Algo"},
         )
         # Should succeed (unique constraint on name may cause 400,
@@ -124,7 +124,7 @@ class TagAPITests(TestCase):
         self.client.force_authenticate(user=self.admin)
         # Create first
         resp1 = self.client.post(
-            "/api/v1/problems/tags/",
+            "/api/v1/management/problems/tags/",
             {"name": "Two Pointers"},
         )
         self.assertEqual(resp1.status_code, status.HTTP_201_CREATED)
@@ -133,7 +133,7 @@ class TagAPITests(TestCase):
         # Create second with different name but same slug base
         Tag.objects.filter(slug=slug1).update(name="two-pointers-original")
         resp2 = self.client.post(
-            "/api/v1/problems/tags/",
+            "/api/v1/management/problems/tags/",
             {"name": "Two  Pointers"},  # extra space, same slug
         )
         if resp2.status_code == status.HTTP_201_CREATED:

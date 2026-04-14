@@ -8,7 +8,7 @@ import { test, expect } from "@playwright/test";
 import { loginViaAPI, clearAuth } from "../helpers/auth.helper";
 import { TEST_USERS } from "../helpers/data.helper";
 
-const TAG_API = "/api/v1/problems/tags/";
+const TAG_API = "/api/v1/management/problems/tags/";
 
 /**
  * Get a fresh admin token via raw API call.

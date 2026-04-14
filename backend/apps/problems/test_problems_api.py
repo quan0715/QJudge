@@ -41,14 +41,14 @@ class ProblemPermissionTests(TestCase):
             'time_limit': 1000,
             'memory_limit': 128
         }
-        response = self.client.post('/api/v1/problems/', data)
+        response = self.client.post('/api/v1/management/problems/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Problem.objects.get(slug='new-prob').created_by, self.teacher1)
 
     def test_teacher_can_edit_own_problem(self):
         self.client.force_authenticate(user=self.teacher1)
         data = {'title': 'Updated Title'}
-        response = self.client.patch(f'/api/v1/problems/{self.problem1.id}/', data)
+        response = self.client.patch(f'/api/v1/management/problems/{self.problem1.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.problem1.refresh_from_db()
         # title is now stored in QuestionAsset, verify via asset
@@ -59,7 +59,7 @@ class ProblemPermissionTests(TestCase):
     def test_teacher_cannot_edit_other_problem(self):
         self.client.force_authenticate(user=self.teacher1)
         data = {'title': 'Hacked Title'}
-        response = self.client.patch(f'/api/v1/problems/{self.problem2.id}/', data)
+        response = self.client.patch(f'/api/v1/management/problems/{self.problem2.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.problem2.refresh_from_db()
         # Title should not have been changed (permission denied)
@@ -67,7 +67,7 @@ class ProblemPermissionTests(TestCase):
     def test_admin_can_edit_any_problem(self):
         self.client.force_authenticate(user=self.admin)
         data = {'title': 'Admin Edit'}
-        response = self.client.patch(f'/api/v1/problems/{self.problem1.id}/', data)
+        response = self.client.patch(f'/api/v1/management/problems/{self.problem1.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.problem1.refresh_from_db()
         # title is now in QuestionAsset
@@ -82,13 +82,13 @@ class ProblemPermissionTests(TestCase):
             'slug': 'student-prob',
             'difficulty': 'easy'
         }
-        response = self.client.post('/api/v1/problems/', data)
+        response = self.client.post('/api/v1/management/problems/', data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_teacher_scope_manage_filtering(self):
         """Test that teacher only sees their own problems with scope=manage"""
         self.client.force_authenticate(user=self.teacher1)
-        response = self.client.get('/api/v1/problems/?scope=manage')
+        response = self.client.get('/api/v1/management/problems/?scope=manage')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data['results']
         # Should see problem1 (own) but not problem2 (teacher2's)
@@ -98,7 +98,7 @@ class ProblemPermissionTests(TestCase):
     def test_admin_scope_manage_filtering(self):
         """Test that admin sees all problems with scope=manage"""
         self.client.force_authenticate(user=self.admin)
-        response = self.client.get('/api/v1/problems/?scope=manage')
+        response = self.client.get('/api/v1/management/problems/?scope=manage')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data['results']
         # Should see both
@@ -145,7 +145,7 @@ class ProblemCRUDTests(TestCase):
             'memory_limit': 256,
             'existing_tag_ids': [self.tag1.id, self.tag2.id]
         }
-        response = self.client.post('/api/v1/problems/', data)
+        response = self.client.post('/api/v1/management/problems/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
         problem = Problem.objects.get(slug='new-tagged')
@@ -163,7 +163,7 @@ class ProblemCRUDTests(TestCase):
             'difficulty': 'medium',
             'new_tag_names': ['Greedy', 'Sorting']
         }
-        response = self.client.post('/api/v1/problems/', data)
+        response = self.client.post('/api/v1/management/problems/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
         problem = Problem.objects.get(slug='new-tags')
@@ -180,7 +180,7 @@ class ProblemCRUDTests(TestCase):
             # No slug - will be auto-generated
         }
         # title/difficulty are now optional (stored in QuestionAsset), so this should succeed
-        response = self.client.post('/api/v1/problems/', data)
+        response = self.client.post('/api/v1/management/problems/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_list_problems_anonymous(self):
@@ -190,17 +190,17 @@ class ProblemCRUDTests(TestCase):
             created_by=self.teacher,
         )
 
-        response = self.client.get('/api/v1/problems/')
+        response = self.client.get('/api/v1/management/problems/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_retrieve_problem_detail(self):
         """Anonymous users are blocked from the retired problems management surface."""
-        response = self.client.get(f'/api/v1/problems/{self.problem.id}/')
+        response = self.client.get(f'/api/v1/management/problems/{self.problem.id}/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_retrieve_problem_not_found(self):
         """Anonymous access is rejected before malformed lookups are resolved."""
-        response = self.client.get('/api/v1/problems/99999/')
+        response = self.client.get('/api/v1/management/problems/99999/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_update_problem_full(self):
@@ -214,7 +214,7 @@ class ProblemCRUDTests(TestCase):
             'memory_limit': 64,
             'existing_tag_ids': [self.tag2.id]
         }
-        response = self.client.put(f'/api/v1/problems/{self.problem.id}/', data)
+        response = self.client.put(f'/api/v1/management/problems/{self.problem.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         self.problem.refresh_from_db()
@@ -230,7 +230,7 @@ class ProblemCRUDTests(TestCase):
         data = {
             'difficulty': 'hard'
         }
-        response = self.client.patch(f'/api/v1/problems/{self.problem.id}/', data)
+        response = self.client.patch(f'/api/v1/management/problems/{self.problem.id}/', data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         self.problem.refresh_from_db()
@@ -240,7 +240,7 @@ class ProblemCRUDTests(TestCase):
     def test_delete_problem_teacher_own(self):
         """Test teacher can delete their own problem"""
         self.client.force_authenticate(user=self.teacher)
-        response = self.client.delete(f'/api/v1/problems/{self.problem.id}/')
+        response = self.client.delete(f'/api/v1/management/problems/{self.problem.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Problem.objects.filter(id=self.problem.id).exists())
 
@@ -255,14 +255,14 @@ class ProblemCRUDTests(TestCase):
         )
         
         self.client.force_authenticate(user=self.teacher)
-        response = self.client.delete(f'/api/v1/problems/{other_problem.id}/')
+        response = self.client.delete(f'/api/v1/management/problems/{other_problem.id}/')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Problem.objects.filter(id=other_problem.id).exists())
 
     def test_delete_problem_admin(self):
         """Test admin can delete any problem"""
         self.client.force_authenticate(user=self.admin)
-        response = self.client.delete(f'/api/v1/problems/{self.problem.id}/')
+        response = self.client.delete(f'/api/v1/management/problems/{self.problem.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Problem.objects.filter(id=self.problem.id).exists())
 
@@ -319,7 +319,7 @@ class ProblemFilterTests(TestCase):
 
     def test_filter_single_difficulty(self):
         """Filter by single difficulty returns matching problems."""
-        response = self.client.get('/api/v1/problems/?difficulty=easy')
+        response = self.client.get('/api/v1/management/problems/?difficulty=easy')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         results = response.data.get('results', response.data)
@@ -329,7 +329,7 @@ class ProblemFilterTests(TestCase):
     def test_filter_multiple_difficulties(self):
         """Filter by multiple difficulties returns all matching problems (OR logic)."""
         response = self.client.get(
-            '/api/v1/problems/?difficulty=easy&difficulty=medium'
+            '/api/v1/management/problems/?difficulty=easy&difficulty=medium'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -340,7 +340,7 @@ class ProblemFilterTests(TestCase):
 
     def test_filter_single_tag(self):
         """Filter by single tag returns matching problems."""
-        response = self.client.get('/api/v1/problems/?tags=array')
+        response = self.client.get('/api/v1/management/problems/?tags=array')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         results = response.data.get('results', response.data)
@@ -348,7 +348,7 @@ class ProblemFilterTests(TestCase):
 
     def test_filter_multiple_tags_or_logic(self):
         """Filter by multiple tags uses OR logic."""
-        response = self.client.get('/api/v1/problems/?tags=array,graph')
+        response = self.client.get('/api/v1/management/problems/?tags=array,graph')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         results = response.data.get('results', response.data)
@@ -357,7 +357,7 @@ class ProblemFilterTests(TestCase):
     def test_combined_difficulty_and_tags(self):
         """Filter by both difficulty and tags."""
         response = self.client.get(
-            '/api/v1/problems/?difficulty=medium&tags=dp'
+            '/api/v1/management/problems/?difficulty=medium&tags=dp'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -367,7 +367,7 @@ class ProblemFilterTests(TestCase):
     def test_search_with_filters(self):
         """Search combined with filters."""
         response = self.client.get(
-            '/api/v1/problems/?search=Array&difficulty=medium'
+            '/api/v1/management/problems/?search=Array&difficulty=medium'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -379,7 +379,7 @@ class ProblemFilterTests(TestCase):
 
     def test_filter_no_results(self):
         """Filter with no matches returns empty list."""
-        response = self.client.get('/api/v1/problems/?difficulty=easy&tags=graph')
+        response = self.client.get('/api/v1/management/problems/?difficulty=easy&tags=graph')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         results = response.data.get('results', response.data)
@@ -388,7 +388,7 @@ class ProblemFilterTests(TestCase):
     def test_filter_all_difficulties(self):
         """Filter with all difficulties returns all problems."""
         response = self.client.get(
-            '/api/v1/problems/?difficulty=easy&difficulty=medium&difficulty=hard'
+            '/api/v1/management/problems/?difficulty=easy&difficulty=medium&difficulty=hard'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -422,7 +422,7 @@ class ProblemContestLockGuardTests(TestCase):
     def test_patch_problem_blocked_when_linked_contest_locked(self):
         self.client.force_authenticate(user=self.owner)
         response = self.client.patch(
-            f"/api/v1/problems/{self.problem.id}/",
+            f"/api/v1/management/problems/{self.problem.id}/",
             {"title": "Should Not Update"},
             format="json",
         )
@@ -432,7 +432,7 @@ class ProblemContestLockGuardTests(TestCase):
 
     def test_delete_problem_blocked_when_linked_contest_locked(self):
         self.client.force_authenticate(user=self.owner)
-        response = self.client.delete(f"/api/v1/problems/{self.problem.id}/")
+        response = self.client.delete(f"/api/v1/management/problems/{self.problem.id}/")
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertIn("CONTEST_QUESTION_EDIT_LOCKED", str(response.data))
         self.assertEqual(response.data["error"]["details"]["message"], "已有學生正式作答，競賽題目已鎖定")
@@ -481,7 +481,7 @@ class ProblemTestRunTests(TestCase):
             mock_get_judge.return_value = mock_judge
 
             response = self.client.post(
-                f'/api/v1/problems/{self.problem.id}/test_run/',
+                f'/api/v1/management/problems/{self.problem.id}/test_run/',
                 {
                     'language': 'python',
                     'code': 'print(sum(map(int,input().split())))',
@@ -516,7 +516,7 @@ class ProblemTestRunTests(TestCase):
             mock_get_judge.return_value = mock_judge
 
             response = self.client.post(
-                f'/api/v1/problems/{self.problem.id}/test_run/',
+                f'/api/v1/management/problems/{self.problem.id}/test_run/',
                 {
                     'language': 'python',
                     'code': 'print(input())',
@@ -569,7 +569,7 @@ class ProblemTestRunTests(TestCase):
             mock_get_judge.return_value = mock_judge
 
             response = self.client.post(
-                f'/api/v1/problems/{self.problem.id}/test_run/',
+                f'/api/v1/management/problems/{self.problem.id}/test_run/',
                 {
                     'language': 'python',
                     'code': 'broken code',

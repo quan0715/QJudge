@@ -161,11 +161,11 @@ export const API_ENDPOINTS = {
     resolveConflict: "/api/v1/auth/resolve-conflict",
   },
   problems: {
-    list: "/api/v1/problems/",
-    detail: (id: string | number) => `/api/v1/problems/${id}/`,
-    statistics: (id: string | number) => `/api/v1/problems/${id}/statistics/`,
-    tags: "/api/v1/problems/tags/",
-    tagDetail: (slug: string) => `/api/v1/problems/tags/${slug}/`,
+    list: "/api/v1/management/problems/",
+    detail: (id: string | number) => `/api/v1/management/problems/${id}/`,
+    statistics: (id: string | number) => `/api/v1/management/problems/${id}/statistics/`,
+    tags: "/api/v1/management/problems/tags/",
+    tagDetail: (slug: string) => `/api/v1/management/problems/tags/${slug}/`,
   },
   submissions: {
     list: "/api/v1/submissions/",
