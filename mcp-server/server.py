@@ -236,6 +236,66 @@ async def _ensure_contest_type(
     )
 
 
+def _normalize_newlines(value: str) -> str:
+    """Convert literal backslash-n sequences to real newlines.
+
+    AI models often send ``\\n`` as two-char escape sequences instead of actual
+    line breaks.  This helper normalises them so that stored content renders
+    correctly in the UI.
+    """
+    return value.replace("\\n", "\n")
+
+
+def _normalize_text_fields(body: dict[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
+    """In-place normalise newline escapes for the given string-valued *keys*."""
+    for k in keys:
+        v = body.get(k)
+        if isinstance(v, str):
+            body[k] = _normalize_newlines(v)
+    return body
+
+
+def _normalize_test_cases(test_cases: list[dict]) -> list[dict]:
+    """Normalise newline escapes inside test-case input/output data."""
+    for tc in test_cases:
+        for field in ("input_data", "output_data"):
+            if isinstance(tc.get(field), str):
+                tc[field] = _normalize_newlines(tc[field])
+    return test_cases
+
+
+def _normalize_translations(translations: list[dict]) -> list[dict]:
+    """Normalise newline escapes inside translation text fields."""
+    text_fields = ("title", "description", "input_description", "output_description", "hint")
+    for tr in translations:
+        for field in text_fields:
+            if isinstance(tr.get(field), str):
+                tr[field] = _normalize_newlines(tr[field])
+    return translations
+
+
+def _normalize_body_text(body: dict[str, Any]) -> dict[str, Any]:
+    """Normalise escaped newlines across all text-bearing fields in a request body.
+
+    Handles top-level ``prompt``, nested ``coding_ext.translations`` /
+    ``coding_ext.test_cases``, and top-level ``translations`` / ``test_cases``.
+    """
+    _normalize_text_fields(body, ("prompt",))
+    # Top-level (qjudge_coding create)
+    if isinstance(body.get("translations"), list):
+        _normalize_translations(body["translations"])
+    if isinstance(body.get("test_cases"), list):
+        _normalize_test_cases(body["test_cases"])
+    # Nested in coding_ext (qjudge_discover create/update_bank_question)
+    ext = body.get("coding_ext")
+    if isinstance(ext, dict):
+        if isinstance(ext.get("translations"), list):
+            _normalize_translations(ext["translations"])
+        if isinstance(ext.get("test_cases"), list):
+            _normalize_test_cases(ext["test_cases"])
+    return body
+
+
 def _build_exam_question_body(
     *,
     question_type: str | None = None,
@@ -249,9 +309,9 @@ def _build_exam_question_body(
     if question_type is not None:
         body["question_type"] = question_type
     if prompt is not None:
-        body["prompt"] = prompt
+        body["prompt"] = _normalize_newlines(prompt)
     if explanation is not None:
-        body["explanation"] = explanation
+        body["explanation"] = _normalize_newlines(explanation)
     if score is not None:
         body["score"] = score
     if options is not None:
@@ -374,6 +434,7 @@ async def qjudge_discover(
         ]:
             if val is not None:
                 body[key] = val
+        _normalize_body_text(body)
         return await django_api("POST", f"/api/v1/question-banks/{bank_id}/questions/", ctx, json_body=body)
 
     if action == "update_bank_question":
@@ -396,6 +457,7 @@ async def qjudge_discover(
                 body[key] = val
         if not body:
             return _error("No fields to update")
+        _normalize_body_text(body)
         return await django_api("PATCH", f"/api/v1/question-bank-items/{question_id}/", ctx, json_body=body)
 
     if action == "delete_bank_question":
@@ -754,6 +816,7 @@ async def qjudge_coding(
         ]:
             if val is not None:
                 body[key] = val
+        _normalize_body_text(body)
         return await django_api("POST", f"/api/v1/contests/{contest_id}/problems/", ctx, json_body=body)
 
     if action == "import_from_bank":

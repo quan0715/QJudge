@@ -992,6 +992,52 @@ def test_qjudge_coding_rejects_paper_exam_contest(monkeypatch):
     }
 
 
+# ---------------------------------------------------------------------------
+# Newline normalisation helpers
+# ---------------------------------------------------------------------------
+
+def test_normalize_newlines_converts_literal_backslash_n():
+    assert server._normalize_newlines("line1\\nline2\\n") == "line1\nline2\n"
+
+
+def test_normalize_newlines_preserves_real_newlines():
+    assert server._normalize_newlines("line1\nline2\n") == "line1\nline2\n"
+
+
+def test_normalize_test_cases():
+    cases = [{"input_data": "1 2\\n3 4\\n", "output_data": "5\\n"}]
+    result = server._normalize_test_cases(cases)
+    assert result[0]["input_data"] == "1 2\n3 4\n"
+    assert result[0]["output_data"] == "5\n"
+
+
+def test_normalize_translations():
+    trs = [{"description": "desc\\nline2", "input_description": "in\\nformat", "title": "t"}]
+    result = server._normalize_translations(trs)
+    assert result[0]["description"] == "desc\nline2"
+    assert result[0]["input_description"] == "in\nformat"
+    assert result[0]["title"] == "t"
+
+
+def test_normalize_body_text_handles_coding_ext():
+    body = {
+        "prompt": "hello\\nworld",
+        "coding_ext": {
+            "translations": [{"description": "a\\nb"}],
+            "test_cases": [{"input_data": "1\\n", "output_data": "2\\n"}],
+        },
+    }
+    server._normalize_body_text(body)
+    assert body["prompt"] == "hello\nworld"
+    assert body["coding_ext"]["translations"][0]["description"] == "a\nb"
+    assert body["coding_ext"]["test_cases"][0]["input_data"] == "1\n"
+
+
+def test_build_exam_question_body_normalizes_prompt():
+    body = server._build_exam_question_body(prompt="line1\\nline2", question_type="single_choice")
+    assert body["prompt"] == "line1\nline2"
+
+
 def test_auth_settings_configured():
     """Verify MCP server has auth settings for OAuth discovery."""
     assert isinstance(server.mcp._token_verifier, server.DjangoTokenVerifier)
