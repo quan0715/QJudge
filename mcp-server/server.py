@@ -209,6 +209,58 @@ def _compact_dashboard(raw: Any, *, include_full_titles: bool = False) -> Any:
     return data
 
 
+async def _ensure_contest_type(
+    *,
+    contest_id: str,
+    ctx: Context,
+    expected_type: str,
+    tool_name: str,
+    allowed_label: str,
+    disallowed_tool_name: str,
+) -> dict[str, Any] | None:
+    contest = await django_api("GET", f"/api/v1/contests/{contest_id}/", ctx)
+    if isinstance(contest, dict) and contest.get("error"):
+        return contest
+    if not isinstance(contest, dict):
+        return _error("Unable to determine contest type", status=500)
+
+    actual_type = contest.get("contest_type")
+    if actual_type == expected_type:
+        return None
+
+    actual_label = "coding" if actual_type == "coding" else "paper_exam"
+    return _error(
+        f"{tool_name} only supports {allowed_label} contests. "
+        f"This contest is {actual_label}. Use {disallowed_tool_name} instead.",
+        status=400,
+    )
+
+
+def _build_exam_question_body(
+    *,
+    question_type: str | None = None,
+    prompt: str | None = None,
+    explanation: str | None = None,
+    score: int | None = None,
+    options: list[str] | None = None,
+    correct_answer: Any | None = None,
+) -> dict[str, Any]:
+    body: dict[str, Any] = {}
+    if question_type is not None:
+        body["question_type"] = question_type
+    if prompt is not None:
+        body["prompt"] = prompt
+    if explanation is not None:
+        body["explanation"] = explanation
+    if score is not None:
+        body["score"] = score
+    if options is not None:
+        body["options"] = options
+    if correct_answer is not None:
+        body["correct_answer"] = correct_answer
+    return body
+
+
 mcp = FastMCP(
     "QJudge",
     host=MCP_HOST,
@@ -321,70 +373,133 @@ async def qjudge_exam(
     question_id: str | None = None,
     question_type: str | None = None,
     prompt: str | None = None,
+    explanation: str | None = None,
     score: int | None = None,
     options: list[str] | None = None,
     correct_answer: Any | None = None,
     question_ids: list[str] | None = None,
     items: list[dict] | None = None,
+    mode: str | None = None,
 ) -> Any:
-    """Manage exam questions. Actions: list, get, create, update, delete, reorder, import_from_bank."""
+    """Manage paper-exam questions within a paper_exam contest.
+
+    Use this tool only for contests whose ``contest_type`` is ``paper_exam``.
+    Coding contests must use ``qjudge_coding`` instead.
+
+    Actions: list, get, create, update, delete, reorder, import_from_bank, batch_create.
+    """
     base = f"/api/v1/contests/{contest_id}/exam-questions"
+    valid_actions = {"list", "get", "create", "update", "delete", "reorder", "import_from_bank", "batch_create"}
+    if action not in valid_actions:
+        return _error(f"Unknown action: {action}")
+    if action in {"get", "update", "delete"} and not question_id:
+        return _error("question_id is required")
+    if action == "reorder" and not question_ids:
+        return _error("question_ids is required")
+    if action == "import_from_bank" and not items:
+        return _error("items is required (list of {question_bank_id, question_id})")
+    if action == "update":
+        body = _build_exam_question_body(
+            question_type=question_type,
+            prompt=prompt,
+            explanation=explanation,
+            score=score,
+            options=options,
+            correct_answer=correct_answer,
+        )
+        if not body:
+            return _error("No fields to update")
+    normalized_mode = mode or "append"
+    if action == "batch_create":
+        if not items:
+            return _error("items is required")
+        if normalized_mode not in {"append", "overwrite"}:
+            return _error("mode must be one of: append, overwrite")
+
+    type_error = await _ensure_contest_type(
+        contest_id=contest_id,
+        ctx=ctx,
+        expected_type="paper_exam",
+        tool_name="qjudge_exam",
+        allowed_label="paper_exam",
+        disallowed_tool_name="qjudge_coding",
+    )
+    if type_error:
+        return type_error
 
     if action == "list":
         return await django_api("GET", f"{base}/", ctx)
 
     if action == "get":
-        if not question_id:
-            return _error("question_id is required")
         return await django_api("GET", f"{base}/{question_id}/", ctx)
 
     if action == "create":
-        body: dict[str, Any] = {}
-        if question_type:
-            body["question_type"] = question_type
-        if prompt:
-            body["prompt"] = prompt
-        if score is not None:
-            body["score"] = score
-        if options is not None:
-            body["options"] = options
-        if correct_answer is not None:
-            body["correct_answer"] = correct_answer
+        body = _build_exam_question_body(
+            question_type=question_type,
+            prompt=prompt,
+            explanation=explanation,
+            score=score,
+            options=options,
+            correct_answer=correct_answer,
+        )
         return await django_api("POST", f"{base}/", ctx, json_body=body)
 
     if action == "update":
-        if not question_id:
-            return _error("question_id is required")
-        body = {}
-        if prompt is not None:
-            body["prompt"] = prompt
-        if options is not None:
-            body["options"] = options
-        if correct_answer is not None:
-            body["correct_answer"] = correct_answer
-        if score is not None:
-            body["score"] = score
-        if question_type is not None:
-            body["question_type"] = question_type
-        if not body:
-            return _error("No fields to update")
         return await django_api("PATCH", f"{base}/{question_id}/", ctx, json_body=body)
 
     if action == "delete":
-        if not question_id:
-            return _error("question_id is required")
         return await django_api("DELETE", f"{base}/{question_id}/", ctx)
 
     if action == "reorder":
-        if not question_ids:
-            return _error("question_ids is required")
         orders = [{"id": qid, "order": idx} for idx, qid in enumerate(question_ids)]
         return await django_api("POST", f"{base}/reorder/", ctx, json_body={"orders": orders})
 
     if action == "import_from_bank":
-        if not items:
-            return _error("items is required (list of {question_bank_id, question_id})")
         return await django_api("POST", f"{base}/import-from-bank/", ctx, json_body={"items": items})
+
+    if action == "batch_create":
+        deleted_count = 0
+        if normalized_mode == "overwrite":
+            existing = await django_api("GET", f"{base}/", ctx)
+            if isinstance(existing, dict) and existing.get("error"):
+                return existing
+            if not isinstance(existing, list):
+                return _error("Expected exam question list during overwrite", status=500)
+            for existing_item in existing:
+                if not isinstance(existing_item, dict):
+                    continue
+                existing_id = existing_item.get("id")
+                if not existing_id:
+                    continue
+                deleted = await django_api("DELETE", f"{base}/{existing_id}/", ctx)
+                if isinstance(deleted, dict) and deleted.get("error"):
+                    return deleted
+                deleted_count += 1
+
+        created_items: list[Any] = []
+        for item in items:
+            if not isinstance(item, dict):
+                return _error("Each batch item must be an object")
+            body = _build_exam_question_body(
+                question_type=item.get("question_type"),
+                prompt=item.get("prompt"),
+                explanation=item.get("explanation"),
+                score=item.get("score"),
+                options=item.get("options"),
+                correct_answer=item.get("correct_answer"),
+            )
+            created = await django_api("POST", f"{base}/", ctx, json_body=body)
+            if isinstance(created, dict) and created.get("error"):
+                return created
+            created_items.append(created)
+
+        return {
+            "status": "success",
+            "mode": normalized_mode,
+            "deleted_count": deleted_count,
+            "created_count": len(created_items),
+            "items": created_items,
+        }
 
     return _error(f"Unknown action: {action}")
 
@@ -494,7 +609,10 @@ async def qjudge_coding(
     use_samples: bool = True,
     custom_test_cases: list[dict] | None = None,
 ) -> Any:
-    """Manage coding problems within a contest.
+    """Manage coding problems within a coding contest.
+
+    Use this tool only for contests whose ``contest_type`` is ``coding``.
+    Paper-exam contests must use ``qjudge_exam`` instead.
 
     Actions:
       list         — List coding problems in a contest (required: contest_id)
@@ -505,45 +623,57 @@ async def qjudge_coding(
       delete       — Remove problem from contest (required: contest_id, problem_id)
       test_run     — Execute code against test cases (required: problem_id, language, code)
     """
+    valid_actions = {"list", "get", "create", "import_from_bank", "update_score", "delete", "test_run"}
+    if action not in valid_actions:
+        return _error(f"Unknown action: {action}")
+    if action in {"list", "get", "create", "import_from_bank", "update_score", "delete"} and not contest_id:
+        return _error("contest_id is required")
+    if action in {"get", "update_score", "delete"} and not problem_id:
+        return _error("problem_id is required")
+    if action == "create" and not title:
+        return _error("title is required")
+    if action == "import_from_bank" and not items:
+        return _error("items is required (list of {question_bank_id, question_id})")
+    if action == "update_score" and max_score is None:
+        return _error("max_score is required")
+    if action == "test_run" and not problem_id:
+        return _error("problem_id is required")
+    if action == "test_run" and not language:
+        return _error("language is required")
+    if action == "test_run" and not code:
+        return _error("code is required")
+
+    if contest_id is not None:
+        type_error = await _ensure_contest_type(
+            contest_id=contest_id,
+            ctx=ctx,
+            expected_type="coding",
+            tool_name="qjudge_coding",
+            allowed_label="coding",
+            disallowed_tool_name="qjudge_exam",
+        )
+        if type_error:
+            return type_error
+
     if action == "list":
-        if not contest_id:
-            return _error("contest_id is required")
         return await django_api("GET", f"/api/v1/contests/{contest_id}/problems/", ctx)
 
     if action == "get":
-        if not contest_id:
-            return _error("contest_id is required")
-        if not problem_id:
-            return _error("problem_id is required")
         return await django_api("GET", f"/api/v1/contests/{contest_id}/problems/{problem_id}/", ctx)
 
     if action == "create":
-        if not contest_id:
-            return _error("contest_id is required")
-        if not title:
-            return _error("title is required")
         body: dict[str, Any] = {"title": title}
         if max_score is not None:
             body["max_score"] = max_score
         return await django_api("POST", f"/api/v1/contests/{contest_id}/problems/", ctx, json_body=body)
 
     if action == "import_from_bank":
-        if not contest_id:
-            return _error("contest_id is required")
-        if not items:
-            return _error("items is required (list of {question_bank_id, question_id})")
         return await django_api(
             "POST", f"/api/v1/contests/{contest_id}/problems/import-from-bank/",
             ctx, json_body={"items": items},
         )
 
     if action == "update_score":
-        if not contest_id:
-            return _error("contest_id is required")
-        if not problem_id:
-            return _error("problem_id is required")
-        if max_score is None:
-            return _error("max_score is required")
         return await django_api(
             "PATCH",
             f"/api/v1/contests/{contest_id}/problems/{problem_id}/score/",
@@ -552,19 +682,9 @@ async def qjudge_coding(
         )
 
     if action == "delete":
-        if not contest_id:
-            return _error("contest_id is required")
-        if not problem_id:
-            return _error("problem_id is required")
         return await django_api("DELETE", f"/api/v1/contests/{contest_id}/problems/{problem_id}/", ctx)
 
     if action == "test_run":
-        if not problem_id:
-            return _error("problem_id is required")
-        if not language:
-            return _error("language is required")
-        if not code:
-            return _error("code is required")
         body = {
             "language": language,
             "code": code,
