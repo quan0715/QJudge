@@ -287,6 +287,7 @@ async def qjudge_discover(
     status: str | None = None,
     contest_id: str | None = None,
     bank_id: str | None = None,
+    question_id: str | None = None,
     question_type: str | None = None,
     title: str | None = None,
     prompt: str | None = None,
@@ -298,28 +299,33 @@ async def qjudge_discover(
     correct_answer: Any | None = None,
     coding_ext: dict | None = None,
 ) -> Any:
-    """Discover classrooms, contests, question banks, and create bank questions.
+    """Discover classrooms, contests, question banks, and manage bank questions.
 
     Actions:
-      list_classrooms       — List classrooms you manage
-      list_contests         — List contests you manage (optional: search, status)
-      get_contest           — Get contest detail (required: contest_id)
-      browse_banks          — List your question banks
-      browse_bank_questions — List questions in a bank (required: bank_id)
-      create_bank_question  — Create a question in a bank (required: bank_id, question_type, title)
-                              For coding: include coding_ext {translations, test_cases, language_configs, ...}
+      list_classrooms        — List classrooms you manage (optional: search)
+      list_contests          — List contests you manage (optional: search, status)
+      get_contest            — Get contest detail (required: contest_id)
+      browse_banks           — List your question banks
+      browse_bank_questions  — List questions in a bank (required: bank_id)
+      create_bank_question   — Create a question in a bank (required: bank_id, question_type, title;
+                               optional: prompt, difficulty, score, time_limit, memory_limit, options,
+                               correct_answer, coding_ext)
+      update_bank_question   — Update a bank question (required: question_id;
+                               optional: any field from create — only supplied fields are changed)
+      delete_bank_question   — Delete a bank question (required: question_id)
 
-    Field format guide (create_bank_question):
-      question_type — "exam" for non-coding questions, "coding" for coding problems.
-      options       — Plain text list WITHOUT letter prefixes. The UI adds A/B/C/D automatically.
-                      Good: ["台北", "台中", "高雄"]
-                      Bad:  ["A. 台北", "B. 台中", "C. 高雄"]
+    Field format guide (create/update_bank_question):
+      question_type  — "exam" for non-coding questions, "coding" for coding problems.
+      options        — Plain text list WITHOUT letter prefixes. The UI adds A/B/C/D automatically.
+                       Good: ["台北", "台中", "高雄"]
+                       Bad:  ["A. 台北", "B. 台中", "C. 高雄"]
       correct_answer — For single_choice: 0-based integer index (e.g. 0 for the first option).
                        For multiple_choice: list of 0-based integer indices (e.g. [0, 2]).
                        For true_false: boolean (true/false). options should be ["True", "False"].
                        For short_answer/essay: string.
-      metadata      — Must include {"exam_question_type": "<type>"} where <type> is one of:
+      metadata       — Must include {"exam_question_type": "<type>"} where <type> is one of:
                        single_choice, multiple_choice, true_false, short_answer, essay.
+      coding_ext     — For coding: {translations, test_cases, language_configs, forbidden_keywords, required_keywords}
     """
     if action == "list_classrooms":
         query = {"scope": "manage"}
@@ -369,6 +375,33 @@ async def qjudge_discover(
             if val is not None:
                 body[key] = val
         return await django_api("POST", f"/api/v1/question-banks/{bank_id}/questions/", ctx, json_body=body)
+
+    if action == "update_bank_question":
+        if not question_id:
+            return _error("question_id is required")
+        body: dict[str, Any] = {}
+        for key, val in [
+            ("question_type", question_type),
+            ("title", title),
+            ("prompt", prompt),
+            ("difficulty", difficulty),
+            ("score", score),
+            ("time_limit", time_limit),
+            ("memory_limit", memory_limit),
+            ("options", options),
+            ("correct_answer", correct_answer),
+            ("coding_ext", coding_ext),
+        ]:
+            if val is not None:
+                body[key] = val
+        if not body:
+            return _error("No fields to update")
+        return await django_api("PATCH", f"/api/v1/question-bank-items/{question_id}/", ctx, json_body=body)
+
+    if action == "delete_bank_question":
+        if not question_id:
+            return _error("question_id is required")
+        return await django_api("DELETE", f"/api/v1/question-bank-items/{question_id}/", ctx)
 
     return _error(f"Unknown action: {action}")
 
@@ -630,6 +663,14 @@ async def qjudge_coding(
     contest_id: str | None = None,
     problem_id: str | None = None,
     title: str | None = None,
+    difficulty: str | None = None,
+    time_limit: int | None = None,
+    memory_limit: int | None = None,
+    translations: list[dict] | None = None,
+    test_cases: list[dict] | None = None,
+    language_configs: list[dict] | None = None,
+    forbidden_keywords: list[str] | None = None,
+    required_keywords: list[str] | None = None,
     items: list[dict] | None = None,
     max_score: int | None = None,
     language: str | None = None,
@@ -643,13 +684,22 @@ async def qjudge_coding(
     Paper-exam contests must use ``qjudge_exam`` instead.
 
     Actions:
-      list         — List coding problems in a contest (required: contest_id)
-      get          — Get problem detail (required: contest_id, problem_id)
-      create       — Create a new problem in contest (required: contest_id, title)
+      list             — List coding problems in a contest (required: contest_id)
+      get              — Get problem detail (required: contest_id, problem_id)
+      create           — Create a new problem in contest (required: contest_id, title;
+                         optional: difficulty, time_limit, memory_limit, translations, test_cases,
+                         language_configs, forbidden_keywords, required_keywords)
       import_from_bank — Import from question bank (required: contest_id, items [{question_bank_id, question_id}])
-      update_score — Update contest-level score (required: contest_id, problem_id, max_score)
-      delete       — Remove problem from contest (required: contest_id, problem_id)
-      test_run     — Execute code against test cases (required: problem_id, language, code)
+      update_score     — Update contest-level score (required: contest_id, problem_id, max_score)
+      delete           — Remove problem from contest (required: contest_id, problem_id)
+      test_run         — Execute code against test cases (required: problem_id, language, code)
+
+    Field format guide (create):
+      translations     — [{language: "zh-hant", title: "...", description: "...",
+                           input_description: "...", output_description: "...", hint: "..."}]
+      test_cases       — [{input_data: "...", output_data: "...", is_sample: true/false,
+                           score: 0, weight_percent: 25}]
+      language_configs — [{language: "python", template_code: "", is_enabled: true, order: 0}]
     """
     valid_actions = {"list", "get", "create", "import_from_bank", "update_score", "delete", "test_run"}
     if action not in valid_actions:
@@ -691,8 +741,19 @@ async def qjudge_coding(
 
     if action == "create":
         body: dict[str, Any] = {"title": title}
-        if max_score is not None:
-            body["max_score"] = max_score
+        for key, val in [
+            ("difficulty", difficulty),
+            ("time_limit", time_limit),
+            ("memory_limit", memory_limit),
+            ("translations", translations),
+            ("test_cases", test_cases),
+            ("language_configs", language_configs),
+            ("forbidden_keywords", forbidden_keywords),
+            ("required_keywords", required_keywords),
+            ("max_score", max_score),
+        ]:
+            if val is not None:
+                body[key] = val
         return await django_api("POST", f"/api/v1/contests/{contest_id}/problems/", ctx, json_body=body)
 
     if action == "import_from_bank":
