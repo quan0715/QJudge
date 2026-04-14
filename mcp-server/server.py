@@ -308,6 +308,18 @@ async def qjudge_discover(
       browse_bank_questions — List questions in a bank (required: bank_id)
       create_bank_question  — Create a question in a bank (required: bank_id, question_type, title)
                               For coding: include coding_ext {translations, test_cases, language_configs, ...}
+
+    Field format guide (create_bank_question):
+      question_type — "exam" for non-coding questions, "coding" for coding problems.
+      options       — Plain text list WITHOUT letter prefixes. The UI adds A/B/C/D automatically.
+                      Good: ["台北", "台中", "高雄"]
+                      Bad:  ["A. 台北", "B. 台中", "C. 高雄"]
+      correct_answer — For single_choice: 0-based integer index (e.g. 0 for the first option).
+                       For multiple_choice: list of 0-based integer indices (e.g. [0, 2]).
+                       For true_false: boolean (true/false). options should be ["True", "False"].
+                       For short_answer/essay: string.
+      metadata      — Must include {"exam_question_type": "<type>"} where <type> is one of:
+                       single_choice, multiple_choice, true_false, short_answer, essay.
     """
     if action == "list_classrooms":
         query = {"scope": "manage"}
@@ -386,7 +398,23 @@ async def qjudge_exam(
     Use this tool only for contests whose ``contest_type`` is ``paper_exam``.
     Coding contests must use ``qjudge_coding`` instead.
 
-    Actions: list, get, create, update, delete, reorder, import_from_bank, batch_create.
+    Actions:
+      list             — List all questions in the contest (no extra params)
+      get              — Get one question (required: question_id)
+      create           — Create ONE question (required: question_type, prompt; optional: explanation, score, options, correct_answer)
+      update           — Update ONE question (required: question_id; optional: question_type, prompt, explanation, score, options, correct_answer)
+      delete           — Delete ONE question (required: question_id). No batch delete — call once per question.
+      reorder          — Reorder all questions (required: question_ids — ordered list of ALL question IDs)
+      import_from_bank — Import from question bank (required: items — list of {question_bank_id, question_id})
+      batch_create     — Create multiple questions at once (required: items — list of question objects;
+                         optional: mode — "append" (default) adds to existing, "overwrite" deletes all existing first)
+                         Each item in items: {question_type, prompt, options, correct_answer, explanation?, score?}
+
+    Parameter-action mapping (do NOT mix these up):
+      question_id  → get, update, delete only
+      question_ids → reorder only
+      items        → batch_create, import_from_bank only
+      mode         → batch_create only
     """
     base = f"/api/v1/contests/{contest_id}/exam-questions"
     valid_actions = {"list", "get", "create", "update", "delete", "reorder", "import_from_bank", "batch_create"}
