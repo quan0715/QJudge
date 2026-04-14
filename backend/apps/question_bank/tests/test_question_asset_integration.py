@@ -52,7 +52,7 @@ def contest(teacher: User) -> Contest:
 def test_problem_api_create_and_update_dual_write_question_asset(api_client: APIClient, teacher: User):
     api_client.force_authenticate(user=teacher)
     create_resp = api_client.post(
-        "/api/v1/problems/",
+        "/api/v1/management/problems/",
         {
             "title": "Canonical Coding Problem",
             "slug": "canonical-coding-problem",
@@ -96,7 +96,7 @@ def test_problem_api_create_and_update_dual_write_question_asset(api_client: API
     assert problem.question_asset.versions.count() == 1
 
     update_resp = api_client.patch(
-        f"/api/v1/problems/{problem.id}/",
+        f"/api/v1/management/problems/{problem.id}/",
         {"title": "Canonical Coding Problem v2"},
         format="json",
     )

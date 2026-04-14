@@ -25,7 +25,7 @@ describe("infrastructure http client integration", () => {
 
   it("requests json from api", async () => {
     const data = await requestJson<any>(
-      httpClient.get("/api/v1/problems/"),
+      httpClient.get("/api/v1/management/problems/"),
       "Failed to fetch problems"
     );
     const results = Array.isArray(data?.results) ? data.results : data;
@@ -36,7 +36,7 @@ describe("infrastructure http client integration", () => {
 
   it("ensureOk resolves for successful responses", async () => {
     await expect(
-      ensureOk(httpClient.get("/api/v1/problems/"), "Failed to fetch problems")
+      ensureOk(httpClient.get("/api/v1/management/problems/"), "Failed to fetch problems")
     ).resolves.toBeUndefined();
   });
 });

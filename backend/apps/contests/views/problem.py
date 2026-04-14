@@ -20,11 +20,13 @@ from .activity import ContestActivityViewSet
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
 
-class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
+class ContestProblemViewSet(viewsets.ModelViewSet):
     """
     ViewSet for contest coding problems.
     Primary model is ContestQuestionBinding.
+    Supports: list, retrieve, create, update (partial), destroy.
     """
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ContestProblemSerializer
 
@@ -189,6 +191,55 @@ class ContestProblemViewSet(viewsets.ReadOnlyModelViewSet):
             f"Created new problem {problem.id} in contest",
         )
         return Response(response_data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """Update a coding problem within the contest (partial update)."""
+        contest_id = self.kwargs.get('contest_pk')
+        lookup_value = self.kwargs.get('pk')
+        contest = get_object_or_404(Contest, pk=contest_id)
+        user = request.user
+
+        if not can_manage_contest(user, contest):
+            return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+        ensure_contest_question_editable(
+            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.update",
+        )
+
+        binding = self._resolve_binding(contest_id=contest.id, lookup_value=lookup_value)
+        if not binding:
+            return Response({'detail': 'Problem not found in this contest.'}, status=status.HTTP_404_NOT_FOUND)
+
+        problem = binding.coding_problem
+        if not problem:
+            return Response({'detail': 'Coding problem not linked.'}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.problems.serializers import ProblemAdminSerializer
+        serializer = ProblemAdminSerializer(problem, data=request.data, partial=True, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        # Sync question asset after update
+        from apps.question_bank.question_assets import ensure_problem_question_asset
+        ensure_problem_question_asset(problem=problem, actor=user)
+        problem.refresh_from_db()
+
+        if problem.question_asset_id and problem.question_version_id:
+            ContestQuestionBinding.objects.filter(pk=binding.pk).update(
+                question_version=problem.question_version,
+            )
+
+        response_data = serializer.data
+        response_data['binding_id'] = str(binding.id)
+
+        ContestActivityViewSet.log_activity(
+            contest, user, 'update_problem',
+            f"Updated problem {problem.id} in contest",
+        )
+        return Response(response_data)
+
+    def partial_update(self, request, *args, **kwargs):
+        """PATCH support — delegates to update with partial=True."""
+        return self.update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         """Remove a problem from the contest."""

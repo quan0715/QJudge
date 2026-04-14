@@ -57,7 +57,7 @@ interface DraftProblem {
 
 const fetchDrafts = async (): Promise<DraftProblem[]> =>
   requestJson<DraftProblem[]>(
-    httpClient.get("/api/v1/problems/drafts/"),
+    httpClient.get("/api/v1/management/problems/drafts/"),
     "Failed to fetch draft problems",
   );
 

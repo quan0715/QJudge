@@ -44,6 +44,48 @@ class DjangoTokenVerifier(TokenVerifier):
         )
 
 
+def _format_django_errors(detail: Any) -> dict[str, Any]:
+    """Convert Django error response into AI-friendly errors list.
+
+    Handles two formats:
+    - DRF custom_exception_handler: {success: false, error: {code, message, details: {field: [...]}}}
+    - Plain DRF ValidationError: {field: ["msg1", "msg2"]}
+    """
+    if not isinstance(detail, dict):
+        return {"error": True, "detail": detail}
+
+    # Handle custom_exception_handler wrapper: {success: false, error: {...}}
+    inner_error = detail.get("error")
+    if isinstance(inner_error, dict) and "message" in inner_error:
+        errors = []
+        message = inner_error.get("message", "")
+        details = inner_error.get("details")
+        if isinstance(details, dict):
+            for field, messages in details.items():
+                if isinstance(messages, list):
+                    for msg in messages:
+                        errors.append(f"{field}: {msg}")
+                elif isinstance(messages, str):
+                    errors.append(f"{field}: {messages}")
+        if errors:
+            return {"error": True, "errors": errors}
+        if message:
+            return {"error": True, "errors": [message]}
+
+    # Handle plain DRF ValidationError: {field: ["msg"]}
+    errors = []
+    for field, messages in detail.items():
+        if isinstance(messages, list):
+            for msg in messages:
+                errors.append(f"{field}: {msg}")
+        elif isinstance(messages, str):
+            errors.append(f"{field}: {messages}")
+    if errors:
+        return {"error": True, "errors": errors}
+
+    return {"error": True, "detail": detail}
+
+
 async def django_api(
     method: str,
     path: str,
@@ -78,13 +120,12 @@ async def django_api(
         body = {"raw": response.text}
 
     if response.status_code >= 400:
-        return {
-            "error": True,
-            "status": response.status_code,
-            "detail": body,
-        }
+        result = _format_django_errors(body)
+        result["status"] = response.status_code
+        return result
 
     return body
+
 
 
 def _error(detail: str, *, status: int | None = None) -> dict[str, Any]:
@@ -286,7 +327,7 @@ def _normalize_body_text(body: dict[str, Any]) -> dict[str, Any]:
         _normalize_translations(body["translations"])
     if isinstance(body.get("test_cases"), list):
         _normalize_test_cases(body["test_cases"])
-    # Nested in coding_ext (qjudge_discover create/update_bank_question)
+    # Nested in coding_ext (qjudge_bank create/update)
     ext = body.get("coding_ext")
     if isinstance(ext, dict):
         if isinstance(ext.get("translations"), list):
@@ -321,6 +362,71 @@ def _build_exam_question_body(
     return body
 
 
+_TOOL_HELP = {
+    "tools": {
+        "qjudge_browse": "Read-only queries: list_classrooms, list_contests, get_contest, browse_banks, browse_bank_questions, get_help",
+        "qjudge_bank": "Question bank CRUD: create, get, update, delete",
+        "qjudge_exam": "Paper-exam contest questions: list, get, create, update, delete, reorder, batch_create, import_from_bank",
+        "qjudge_coding": "Coding contest problems: list, get, create, update, delete, import_from_bank, update_score, test_run",
+        "qjudge_grading": "Grading: list_answers, question_detail, dashboard, grade, batch_grade, ungrade",
+    },
+    "coding_problem_example": {
+        "_tool": "qjudge_coding",
+        "_action": "create",
+        "_note": "translations/test_cases/language_configs are TOP-LEVEL params, NOT wrapped in coding_ext",
+        "contest_id": "<uuid>",
+        "title": "A+B Problem",
+        "difficulty": "easy",
+        "time_limit": 1000,
+        "memory_limit": 128,
+        "translations": [{
+            "language": "zh-hant",
+            "title": "A+B Problem",
+            "description": "Markdown 題目敘述",
+            "input_description": "輸入格式",
+            "output_description": "輸出格式",
+            "hint": "",
+        }],
+        "test_cases": [
+            {"input_data": "1 2\n", "output_data": "3\n", "is_sample": True, "weight_percent": 0, "order": 0},
+            {"input_data": "100 200\n", "output_data": "300\n", "is_sample": False, "weight_percent": 50, "order": 1},
+            {"input_data": "-1 1\n", "output_data": "0\n", "is_sample": False, "weight_percent": 50, "order": 2},
+        ],
+        "language_configs": [
+            {"language": "cpp", "template_code": "", "is_enabled": True, "order": 0},
+            {"language": "python", "template_code": "", "is_enabled": True, "order": 1},
+        ],
+    },
+    "exam_question_example": {
+        "_tool": "qjudge_exam or qjudge_bank",
+        "_action": "create",
+        "question_type": "single_choice",
+        "prompt": "台灣的首都是哪裡？",
+        "options": ["台北", "台中", "高雄", "台南"],
+        "correct_answer": 0,
+        "explanation": "台北是台灣的首都。",
+        "score": 10,
+        "_options_note": "Do NOT add A/B/C/D prefixes — the UI adds them automatically",
+        "_correct_answer_formats": {
+            "single_choice": "0-based int index (e.g. 0)",
+            "multiple_choice": "list of int indices (e.g. [0, 2])",
+            "true_false": "boolean (true/false), options should be ['True', 'False']",
+            "short_answer": "string",
+        },
+    },
+    "common_mistakes": {
+        "coding_ext wrapper": "Do NOT wrap translations/test_cases in coding_ext — pass them as top-level params",
+        "prompt for coding": "Do NOT use prompt for coding problems — use translations[].description instead",
+        "score vs weight_percent": "Use weight_percent (not score) in test_cases — total must equal 100",
+        "option prefixes": "Do NOT add A/B/C/D prefixes to options — the UI adds them",
+        "question_ids for delete": "delete only accepts single question_id — no batch delete",
+        "items for create": "create is single-item — use batch_create for multiple items",
+        "browse for writes": "qjudge_browse is read-only — use qjudge_bank for bank CRUD",
+        "language_configs values": "Valid languages: cpp, python, java, javascript",
+    },
+}
+
+
 mcp = FastMCP(
     "QJudge",
     host=MCP_HOST,
@@ -336,30 +442,19 @@ mcp = FastMCP(
 
 
 # ---------------------------------------------------------------------------
-# Tool 1: qjudge_discover — 查詢教室、競賽
+# Tool 1: qjudge_browse — 唯讀查詢教室、競賽、題庫
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
-async def qjudge_discover(
+async def qjudge_browse(
     action: str,
     ctx: Context,
     search: str | None = None,
     status: str | None = None,
     contest_id: str | None = None,
     bank_id: str | None = None,
-    question_id: str | None = None,
-    question_type: str | None = None,
-    title: str | None = None,
-    prompt: str | None = None,
-    difficulty: str | None = None,
-    score: int | None = None,
-    time_limit: int | None = None,
-    memory_limit: int | None = None,
-    options: list[str] | None = None,
-    correct_answer: Any | None = None,
-    coding_ext: dict | None = None,
 ) -> Any:
-    """Discover classrooms, contests, question banks, and manage bank questions.
+    """Browse classrooms, contests, and question banks (read-only).
 
     Actions:
       list_classrooms        — List classrooms you manage (optional: search)
@@ -367,26 +462,11 @@ async def qjudge_discover(
       get_contest            — Get contest detail (required: contest_id)
       browse_banks           — List your question banks
       browse_bank_questions  — List questions in a bank (required: bank_id)
-      create_bank_question   — Create a question in a bank (required: bank_id, question_type, title;
-                               optional: prompt, difficulty, score, time_limit, memory_limit, options,
-                               correct_answer, coding_ext)
-      update_bank_question   — Update a bank question (required: question_id;
-                               optional: any field from create — only supplied fields are changed)
-      delete_bank_question   — Delete a bank question (required: question_id)
-
-    Field format guide (create/update_bank_question):
-      question_type  — "exam" for non-coding questions, "coding" for coding problems.
-      options        — Plain text list WITHOUT letter prefixes. The UI adds A/B/C/D automatically.
-                       Good: ["台北", "台中", "高雄"]
-                       Bad:  ["A. 台北", "B. 台中", "C. 高雄"]
-      correct_answer — For single_choice: 0-based integer index (e.g. 0 for the first option).
-                       For multiple_choice: list of 0-based integer indices (e.g. [0, 2]).
-                       For true_false: boolean (true/false). options should be ["True", "False"].
-                       For short_answer/essay: string.
-      metadata       — Must include {"exam_question_type": "<type>"} where <type> is one of:
-                       single_choice, multiple_choice, true_false, short_answer, essay.
-      coding_ext     — For coding: {translations, test_cases, language_configs, forbidden_keywords, required_keywords}
+      get_help               — Get full usage guide for all QJudge MCP tools
     """
+    if action == "get_help":
+        return _TOOL_HELP
+
     if action == "list_classrooms":
         query = {"scope": "manage"}
         if search:
@@ -414,13 +494,86 @@ async def qjudge_discover(
             return _error("bank_id is required")
         return await django_api("GET", f"/api/v1/question-banks/{bank_id}/questions/", ctx)
 
-    if action == "create_bank_question":
+    return _error(f"Unknown action: {action}")
+
+
+# ---------------------------------------------------------------------------
+# Tool 2: qjudge_bank — 題庫題目 CRUD
+# ---------------------------------------------------------------------------
+
+@mcp.tool()
+async def qjudge_bank(
+    action: str,
+    ctx: Context,
+    bank_id: str | None = None,
+    question_id: str | None = None,
+    question_type: str | None = None,
+    title: str | None = None,
+    prompt: str | None = None,
+    difficulty: str | None = None,
+    score: int | None = None,
+    time_limit: int | None = None,
+    memory_limit: int | None = None,
+    options: list[str] | None = None,
+    correct_answer: Any | None = None,
+    translations: list[dict] | None = None,
+    test_cases: list[dict] | None = None,
+    language_configs: list[dict] | None = None,
+    forbidden_keywords: list[str] | None = None,
+    required_keywords: list[str] | None = None,
+) -> Any:
+    """CRUD operations for question bank items.
+
+    Actions:
+      create — Create a question in a bank (required: bank_id, question_type, title)
+      get    — Get a bank question (required: question_id)
+      update — Update a bank question (required: question_id)
+      delete — Delete a bank question (required: question_id)
+
+    Field format guide (exam questions):
+      question_type  — "exam" for non-coding questions, "coding" for coding problems.
+      options        — Plain text list WITHOUT letter prefixes. The UI adds A/B/C/D automatically.
+                       Good: ["台北", "台中", "高雄"]
+                       Bad:  ["A. 台北", "B. 台中", "C. 高雄"]
+      correct_answer — For single_choice: 0-based integer index (e.g. 0 for the first option).
+                       For multiple_choice: list of 0-based integer indices (e.g. [0, 2]).
+                       For true_false: boolean (true/false). options should be ["True", "False"].
+                       For short_answer/essay: string.
+
+    Field format guide (coding questions):
+      translations     — [{language: "zh-hant", title: "...", description: "...",
+                           input_description: "...", output_description: "...", hint: "..."}]
+      test_cases       — [{input_data: "...", output_data: "...", is_sample: true/false,
+                           score: 0, weight_percent: 25}]
+      language_configs — [{language: "python", template_code: "", is_enabled: true, order: 0}]
+      forbidden_keywords — ["os.system", "subprocess"]
+      required_keywords  — ["def solve"]
+
+    Note: For coding questions, translations/test_cases/language_configs/forbidden_keywords/required_keywords
+    are passed as top-level parameters and assembled into coding_ext before sending to the Django API.
+    """
+    valid_actions = {"create", "get", "update", "delete"}
+    if action not in valid_actions:
+        return _error(f"Unknown action: {action}")
+
+    if action == "create":
         if not bank_id:
             return _error("bank_id is required")
         if not question_type:
             return _error("question_type is required")
         if not title:
             return _error("title is required")
+
+        # MCP-level validation warnings for coding questions
+        warnings: list[str] = []
+        if question_type == "coding":
+            if not translations:
+                warnings.append("missing translations — problem will have no description")
+            if not test_cases:
+                warnings.append("missing test_cases — problem will have no test cases")
+            if not language_configs:
+                warnings.append("missing language_configs — problem will have no language enabled")
+
         body: dict[str, Any] = {"question_type": question_type, "title": title}
         for key, val in [
             ("prompt", prompt),
@@ -430,17 +583,53 @@ async def qjudge_discover(
             ("memory_limit", memory_limit),
             ("options", options),
             ("correct_answer", correct_answer),
-            ("coding_ext", coding_ext),
         ]:
             if val is not None:
                 body[key] = val
-        _normalize_body_text(body)
-        return await django_api("POST", f"/api/v1/question-banks/{bank_id}/questions/", ctx, json_body=body)
 
-    if action == "update_bank_question":
+        # Assemble coding_ext from top-level params for coding questions
+        if question_type == "coding":
+            coding_ext: dict[str, Any] = {}
+            if translations is not None:
+                coding_ext["translations"] = translations
+            if test_cases is not None:
+                coding_ext["test_cases"] = test_cases
+            if language_configs is not None:
+                coding_ext["language_configs"] = language_configs
+            if forbidden_keywords is not None:
+                coding_ext["forbidden_keywords"] = forbidden_keywords
+            if required_keywords is not None:
+                coding_ext["required_keywords"] = required_keywords
+            if coding_ext:
+                body["coding_ext"] = coding_ext
+
+        _normalize_body_text(body)
+        result = await django_api("POST", f"/api/v1/question-banks/{bank_id}/questions/", ctx, json_body=body)
+
+        if warnings and isinstance(result, dict) and not result.get("error"):
+            result["warnings"] = warnings
+        return result
+
+    if action == "get":
         if not question_id:
             return _error("question_id is required")
-        body: dict[str, Any] = {}
+        return await django_api("GET", f"/api/v1/question-bank-items/{question_id}/", ctx)
+
+    if action == "update":
+        if not question_id:
+            return _error("question_id is required")
+
+        # MCP-level validation warnings for coding questions
+        warnings = []
+        if question_type == "coding":
+            if not translations:
+                warnings.append("missing translations — problem will have no description")
+            if not test_cases:
+                warnings.append("missing test_cases — problem will have no test cases")
+            if not language_configs:
+                warnings.append("missing language_configs — problem will have no language enabled")
+
+        body = {}
         for key, val in [
             ("question_type", question_type),
             ("title", title),
@@ -451,16 +640,39 @@ async def qjudge_discover(
             ("memory_limit", memory_limit),
             ("options", options),
             ("correct_answer", correct_answer),
-            ("coding_ext", coding_ext),
         ]:
             if val is not None:
                 body[key] = val
+
+        # Assemble coding_ext from top-level params only for coding questions.
+        # For update without question_type, infer from presence of coding-specific fields.
+        is_coding = question_type == "coding"
+        has_coding_fields = any(v is not None for v in [translations, test_cases, language_configs, forbidden_keywords, required_keywords])
+        if is_coding or (action == "update" and has_coding_fields):
+            coding_ext = {}
+            if translations is not None:
+                coding_ext["translations"] = translations
+            if test_cases is not None:
+                coding_ext["test_cases"] = test_cases
+            if language_configs is not None:
+                coding_ext["language_configs"] = language_configs
+            if forbidden_keywords is not None:
+                coding_ext["forbidden_keywords"] = forbidden_keywords
+            if required_keywords is not None:
+                coding_ext["required_keywords"] = required_keywords
+            if coding_ext:
+                body["coding_ext"] = coding_ext
+
         if not body:
             return _error("No fields to update")
         _normalize_body_text(body)
-        return await django_api("PATCH", f"/api/v1/question-bank-items/{question_id}/", ctx, json_body=body)
+        result = await django_api("PATCH", f"/api/v1/question-bank-items/{question_id}/", ctx, json_body=body)
 
-    if action == "delete_bank_question":
+        if warnings and isinstance(result, dict) and not result.get("error"):
+            result["warnings"] = warnings
+        return result
+
+    if action == "delete":
         if not question_id:
             return _error("question_id is required")
         return await django_api("DELETE", f"/api/v1/question-bank-items/{question_id}/", ctx)
@@ -469,7 +681,7 @@ async def qjudge_discover(
 
 
 # ---------------------------------------------------------------------------
-# Tool 2: qjudge_exam — 題目 CRUD + reorder
+# Tool 3: qjudge_exam — 競賽筆試題目 CRUD + reorder
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
@@ -628,7 +840,7 @@ async def qjudge_exam(
 
 
 # ---------------------------------------------------------------------------
-# Tool 3: qjudge_grading — 作答查看 + 批改
+# Tool 4: qjudge_grading — 作答查看 + 批改
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
@@ -715,7 +927,7 @@ async def qjudge_grading(
 
 
 # ---------------------------------------------------------------------------
-# Tool 4: qjudge_coding — 競賽程式題目管理 + test_run
+# Tool 5: qjudge_coding — 競賽程式題目管理 + test_run
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
@@ -733,6 +945,7 @@ async def qjudge_coding(
     language_configs: list[dict] | None = None,
     forbidden_keywords: list[str] | None = None,
     required_keywords: list[str] | None = None,
+    coding_ext: dict | None = None,
     items: list[dict] | None = None,
     max_score: int | None = None,
     language: str | None = None,
@@ -751,24 +964,31 @@ async def qjudge_coding(
       create           — Create a new problem in contest (required: contest_id, title;
                          optional: difficulty, time_limit, memory_limit, translations, test_cases,
                          language_configs, forbidden_keywords, required_keywords)
+      update           — Update a problem (required: contest_id, problem_id;
+                         optional: same fields as create — only supplied fields are changed)
       import_from_bank — Import from question bank (required: contest_id, items [{question_bank_id, question_id}])
       update_score     — Update contest-level score (required: contest_id, problem_id, max_score)
       delete           — Remove problem from contest (required: contest_id, problem_id)
       test_run         — Execute code against test cases (required: problem_id, language, code)
 
-    Field format guide (create):
+    Field format guide (create/update):
       translations     — [{language: "zh-hant", title: "...", description: "...",
                            input_description: "...", output_description: "...", hint: "..."}]
       test_cases       — [{input_data: "...", output_data: "...", is_sample: true/false,
                            score: 0, weight_percent: 25}]
       language_configs — [{language: "python", template_code: "", is_enabled: true, order: 0}]
+      forbidden_keywords — ["os.system", "subprocess"]
+      required_keywords  — ["def solve"]
+
+    Note: Pass translations, test_cases, language_configs as top-level params.
+    Do NOT wrap them in coding_ext — that is only used by qjudge_bank for the Django API.
     """
-    valid_actions = {"list", "get", "create", "import_from_bank", "update_score", "delete", "test_run"}
+    valid_actions = {"list", "get", "create", "update", "import_from_bank", "update_score", "delete", "test_run"}
     if action not in valid_actions:
         return _error(f"Unknown action: {action}")
-    if action in {"list", "get", "create", "import_from_bank", "update_score", "delete"} and not contest_id:
+    if action in {"list", "get", "create", "update", "import_from_bank", "update_score", "delete"} and not contest_id:
         return _error("contest_id is required")
-    if action in {"get", "update_score", "delete"} and not problem_id:
+    if action in {"get", "update", "update_score", "delete"} and not problem_id:
         return _error("problem_id is required")
     if action == "create" and not title:
         return _error("title is required")
@@ -783,6 +1003,30 @@ async def qjudge_coding(
     if action == "test_run" and not code:
         return _error("code is required")
 
+    # Auto-unwrap coding_ext if provided
+    warnings: list[str] = []
+    if coding_ext is not None and isinstance(coding_ext, dict):
+        warnings.append("coding_ext is not needed for qjudge_coding — pass translations, test_cases, language_configs as top-level params")
+        if translations is None and "translations" in coding_ext:
+            translations = coding_ext["translations"]
+        if test_cases is None and "test_cases" in coding_ext:
+            test_cases = coding_ext["test_cases"]
+        if language_configs is None and "language_configs" in coding_ext:
+            language_configs = coding_ext["language_configs"]
+        if forbidden_keywords is None and "forbidden_keywords" in coding_ext:
+            forbidden_keywords = coding_ext["forbidden_keywords"]
+        if required_keywords is None and "required_keywords" in coding_ext:
+            required_keywords = coding_ext["required_keywords"]
+
+    # MCP-level validation warnings for create/update
+    if action in {"create", "update"}:
+        if not translations:
+            warnings.append("missing translations — problem will have no description")
+        if not test_cases:
+            warnings.append("missing test_cases — problem will have no test cases")
+        if not language_configs:
+            warnings.append("missing language_configs — problem will have no language enabled")
+
     if contest_id is not None:
         type_error = await _ensure_contest_type(
             contest_id=contest_id,
@@ -794,6 +1038,12 @@ async def qjudge_coding(
         )
         if type_error:
             return type_error
+
+    def _attach_warnings(result: Any) -> Any:
+        """Merge warnings into the response if there are any."""
+        if warnings and isinstance(result, dict) and not result.get("error"):
+            result["warnings"] = warnings
+        return result
 
     if action == "list":
         return await django_api("GET", f"/api/v1/contests/{contest_id}/problems/", ctx)
@@ -817,7 +1067,30 @@ async def qjudge_coding(
             if val is not None:
                 body[key] = val
         _normalize_body_text(body)
-        return await django_api("POST", f"/api/v1/contests/{contest_id}/problems/", ctx, json_body=body)
+        result = await django_api("POST", f"/api/v1/contests/{contest_id}/problems/", ctx, json_body=body)
+        return _attach_warnings(result)
+
+    if action == "update":
+        body = {}
+        for key, val in [
+            ("title", title),
+            ("difficulty", difficulty),
+            ("time_limit", time_limit),
+            ("memory_limit", memory_limit),
+            ("translations", translations),
+            ("test_cases", test_cases),
+            ("language_configs", language_configs),
+            ("forbidden_keywords", forbidden_keywords),
+            ("required_keywords", required_keywords),
+            ("max_score", max_score),
+        ]:
+            if val is not None:
+                body[key] = val
+        if not body:
+            return _error("No fields to update")
+        _normalize_body_text(body)
+        result = await django_api("PATCH", f"/api/v1/contests/{contest_id}/problems/{problem_id}/", ctx, json_body=body)
+        return _attach_warnings(result)
 
     if action == "import_from_bank":
         return await django_api(
@@ -844,7 +1117,7 @@ async def qjudge_coding(
         }
         if custom_test_cases is not None:
             body["custom_test_cases"] = custom_test_cases
-        return await django_api("POST", f"/api/v1/problems/{problem_id}/test_run/", ctx, json_body=body)
+        return await django_api("POST", f"/api/v1/management/problems/{problem_id}/test_run/", ctx, json_body=body)
 
     return _error(f"Unknown action: {action}")
 

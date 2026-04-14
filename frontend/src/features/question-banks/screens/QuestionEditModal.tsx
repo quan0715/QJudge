@@ -45,11 +45,16 @@ const CorrectAnswerSection = ({ question }: { question: BankQuestion }) => {
   const answer = question.correctAnswer;
   const isChoice = examType === "single_choice" || examType === "multiple_choice" || examType === "true_false";
 
+  const resolveIndex = (val: unknown): number => {
+    if (typeof val === "boolean") return val ? 0 : 1;
+    return Number(val);
+  };
+
   const formatChoiceAnswer = (val: unknown): string => {
     if (Array.isArray(val)) {
-      return val.map((i) => `${String.fromCharCode(65 + Number(i))}. ${options[Number(i)] ?? ""}`).join(", ");
+      return val.map((i) => { const idx = resolveIndex(i); return `${String.fromCharCode(65 + idx)}. ${options[idx] ?? ""}`; }).join(", ");
     }
-    const i = Number(val);
+    const i = resolveIndex(val);
     return `${String.fromCharCode(65 + i)}. ${options[i] ?? ""}`;
   };
 

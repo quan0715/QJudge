@@ -14,7 +14,7 @@ def test_teacher_can_create_problem(api_client, user_factory):
     api_client.force_authenticate(user=teacher)
 
     response = api_client.post(
-        "/api/v1/problems/",
+        "/api/v1/management/problems/",
         {
             "title": "Two Sum",
             "slug": "two-sum",
@@ -36,7 +36,7 @@ def test_student_cannot_create_problem(authenticated_client):
     client, _user = authenticated_client
 
     response = client.post(
-        "/api/v1/problems/",
+        "/api/v1/management/problems/",
         {"title": "Forbidden", "slug": "forbidden"},
         format="json",
     )
@@ -54,7 +54,7 @@ def test_teacher_can_update_own_problem(api_client, user_factory):
     api_client.force_authenticate(user=teacher)
 
     create_response = api_client.post(
-        "/api/v1/problems/",
+        "/api/v1/management/problems/",
         {"title": "Original Title", "slug": "original-title"},
         format="json",
     )
@@ -62,7 +62,7 @@ def test_teacher_can_update_own_problem(api_client, user_factory):
     problem_id = create_response.json()["id"]
 
     update_response = api_client.patch(
-        f"/api/v1/problems/{problem_id}/",
+        f"/api/v1/management/problems/{problem_id}/",
         {"title": "Updated Title"},
         format="json",
     )
