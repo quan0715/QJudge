@@ -68,19 +68,24 @@ Exam 題欄位維持現狀（`question_type`, `prompt`, `explanation`, `options`
 
 #### MCP 前置檢查（結構層級）
 
-| 檢查項 | 類型 |
-|---|---|
-| 必填欄位缺失（如 create 缺 title） | error |
-| 未知參數（如 `coding_ext` 傳給 `qjudge_coding`） | error + hint 提示正確欄位 |
-| 錯用欄位名（如 `prompt` 傳給 coding 工具，應用 `translations[].description`） | error + hint |
-| `score` 出現在 test_cases（應為 `weight_percent`） | error + hint |
-| 缺少 translations | warning（"problem will have no description"） |
-| 缺少 language_configs | warning（"problem will have no language enabled"） |
-| 缺少 test_cases | warning（"problem will have no test cases"） |
+| 檢查項 | 類型 | 實作狀態 |
+|---|---|---|
+| 必填欄位缺失（如 create 缺 title） | error (via `_error()`) | Done |
+| `coding_ext` 傳給 `qjudge_coding` | auto-unwrap + warning | Done |
+| 缺少 translations | warning | Done |
+| 缺少 language_configs | warning | Done |
+| 缺少 test_cases | warning | Done |
+
+**未實作的前置檢查（依賴 Django 驗證）：**
+- `score` vs `weight_percent` 辨識 → Django 400 回傳後由 `_format_django_errors` 轉譯
+- `prompt` 傳給 coding 工具 → 目前不攔截，Django 會忽略此欄位
 
 #### Django 錯誤後處理
 
-Django 回傳的 ValidationError（400 response）轉譯成 `errors[]` + 適當的 `hint`。
+Django 回傳的錯誤由 `_format_django_errors()` 轉譯：
+- 偵測 `custom_exception_handler` 包裝格式 `{success: false, error: {message, details}}`
+- 展開 `details` 為 `errors[]` list
+- 退化為 plain DRF dict → `errors[]` list
 
 ### 4. `qjudge_coding` 補 update action
 

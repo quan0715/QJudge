@@ -141,37 +141,37 @@ class TestTokenVerification:
 
 
 # ---------------------------------------------------------------------------
-# qjudge_discover
+# qjudge_browse
 # ---------------------------------------------------------------------------
 
-class TestDiscover:
+class TestBrowse:
     def test_list_classrooms_returns_list(self, teacher_ctx):
-        result = run(server.qjudge_discover("list_classrooms", teacher_ctx))
+        result = run(server.qjudge_browse("list_classrooms", teacher_ctx))
         items = _unwrap_paginated(result)
         assert isinstance(items, list)
 
     def test_list_contests_returns_list(self, teacher_ctx):
-        result = run(server.qjudge_discover("list_contests", teacher_ctx))
+        result = run(server.qjudge_browse("list_contests", teacher_ctx))
         items = _unwrap_paginated(result)
         assert isinstance(items, list)
 
     def test_get_contest_by_id(self, teacher_ctx):
-        result = run(server.qjudge_discover("list_contests", teacher_ctx))
+        result = run(server.qjudge_browse("list_contests", teacher_ctx))
         items = _unwrap_paginated(result)
         if not items:
             pytest.fail("No contests available")
         cid = str(items[0]["id"])
-        detail = run(server.qjudge_discover("get_contest", teacher_ctx, contest_id=cid))
+        detail = run(server.qjudge_browse("get_contest", teacher_ctx, contest_id=cid))
         assert not (isinstance(detail, dict) and detail.get("error"))
         assert detail.get("id") is not None
 
     def test_browse_banks_returns_list(self, teacher_ctx):
-        result = run(server.qjudge_discover("browse_banks", teacher_ctx))
+        result = run(server.qjudge_browse("browse_banks", teacher_ctx))
         items = _unwrap_paginated(result)
         assert isinstance(items, list)
 
     def test_student_classroom_scope(self, student_ctx):
-        result = run(server.qjudge_discover("list_classrooms", student_ctx))
+        result = run(server.qjudge_browse("list_classrooms", student_ctx))
         items = _unwrap_paginated(result)
         # Student has no manage scope — should be empty list
         assert isinstance(items, list)
@@ -185,7 +185,7 @@ class TestDiscover:
 class TestExam:
     @pytest.fixture(scope="class")
     def contest_id(self, teacher_ctx):
-        result = run(server.qjudge_discover("list_contests", teacher_ctx))
+        result = run(server.qjudge_browse("list_contests", teacher_ctx))
         items = _unwrap_paginated(result)
         # Find a paper_exam contest, or any contest
         target = next(
@@ -217,7 +217,7 @@ class TestCoding:
     @pytest.fixture(scope="class")
     def contest_with_problems(self, teacher_ctx):
         """Find any contest that has at least one coding problem."""
-        result = run(server.qjudge_discover("list_contests", teacher_ctx))
+        result = run(server.qjudge_browse("list_contests", teacher_ctx))
         contests = _unwrap_paginated(result)
         for c in contests:
             cid = str(c["id"])
@@ -243,7 +243,7 @@ class TestCoding:
 class TestGrading:
     @pytest.fixture(scope="class")
     def contest_id(self, teacher_ctx):
-        result = run(server.qjudge_discover("list_contests", teacher_ctx))
+        result = run(server.qjudge_browse("list_contests", teacher_ctx))
         items = _unwrap_paginated(result)
         if not items:
             pytest.fail("No contests")
@@ -266,7 +266,7 @@ class TestGrading:
 class TestMCPProtocol:
     """Verify the MCP server works at protocol level via in-memory transport."""
 
-    EXPECTED_TOOLS = {"qjudge_discover", "qjudge_exam", "qjudge_grading", "qjudge_coding"}
+    EXPECTED_TOOLS = {"qjudge_browse", "qjudge_bank", "qjudge_exam", "qjudge_grading", "qjudge_coding"}
 
     def test_list_tools(self):
         from mcp.shared.memory import create_connected_server_and_client_session
@@ -307,7 +307,7 @@ class TestMCPProtocol:
             ) as client:
                 await client.initialize()
                 result = await client.call_tool(
-                    "qjudge_discover",
+                    "qjudge_browse",
                     arguments={"action": "nonexistent_action"},
                 )
                 return result
@@ -324,7 +324,7 @@ class TestMCPProtocol:
             async with create_connected_server_and_client_session(server.mcp) as client:
                 await client.initialize()
                 result = await client.call_tool(
-                    "qjudge_discover",
+                    "qjudge_browse",
                     arguments={"action": "list_classrooms"},
                 )
                 return result

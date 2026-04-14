@@ -149,6 +149,57 @@ def test_django_api_wraps_non_json_error_payload(monkeypatch):
     }
 
 
+def test_django_api_handles_custom_exception_handler_format(monkeypatch):
+    """Django's custom_exception_handler wraps errors as {success: false, error: {message, details}}."""
+    payload = {
+        "success": False,
+        "error": {
+            "code": "INVALID",
+            "message": "Validation failed",
+            "details": {
+                "title": ["This field is required."],
+                "test_cases": ["weight_percent total must equal 100"],
+            },
+        },
+    }
+    response = FakeResponse(400, payload=payload)
+    monkeypatch.setattr(
+        server.httpx,
+        "AsyncClient",
+        lambda timeout: FakeAsyncClient(response, [], timeout=timeout),
+    )
+
+    result = run(server.django_api("POST", "/api/v1/demo/", DummyContext()))
+
+    assert result["error"] is True
+    assert result["status"] == 400
+    assert "title: This field is required." in result["errors"]
+    assert "test_cases: weight_percent total must equal 100" in result["errors"]
+
+
+def test_django_api_handles_custom_exception_handler_message_only(monkeypatch):
+    """Custom exception handler with message but no field-level details."""
+    payload = {
+        "success": False,
+        "error": {
+            "code": "PERMISSION_DENIED",
+            "message": "You do not have permission to perform this action.",
+        },
+    }
+    response = FakeResponse(403, payload=payload)
+    monkeypatch.setattr(
+        server.httpx,
+        "AsyncClient",
+        lambda timeout: FakeAsyncClient(response, [], timeout=timeout),
+    )
+
+    result = run(server.django_api("GET", "/api/v1/demo/", DummyContext()))
+
+    assert result["error"] is True
+    assert result["status"] == 403
+    assert result["errors"] == ["You do not have permission to perform this action."]
+
+
 def test_strip_snapshots_handles_list_and_string_inputs():
     raw_list = [{
         "id": "1",

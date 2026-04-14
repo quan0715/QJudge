@@ -45,17 +45,44 @@ class DjangoTokenVerifier(TokenVerifier):
 
 
 def _format_django_errors(detail: Any) -> dict[str, Any]:
-    """Convert Django ValidationError response into AI-friendly errors list."""
-    if isinstance(detail, dict):
+    """Convert Django error response into AI-friendly errors list.
+
+    Handles two formats:
+    - DRF custom_exception_handler: {success: false, error: {code, message, details: {field: [...]}}}
+    - Plain DRF ValidationError: {field: ["msg1", "msg2"]}
+    """
+    if not isinstance(detail, dict):
+        return {"error": True, "detail": detail}
+
+    # Handle custom_exception_handler wrapper: {success: false, error: {...}}
+    inner_error = detail.get("error")
+    if isinstance(inner_error, dict) and "message" in inner_error:
         errors = []
-        for field, messages in detail.items():
-            if isinstance(messages, list):
-                for msg in messages:
-                    errors.append(f"{field}: {msg}")
-            elif isinstance(messages, str):
-                errors.append(f"{field}: {messages}")
+        message = inner_error.get("message", "")
+        details = inner_error.get("details")
+        if isinstance(details, dict):
+            for field, messages in details.items():
+                if isinstance(messages, list):
+                    for msg in messages:
+                        errors.append(f"{field}: {msg}")
+                elif isinstance(messages, str):
+                    errors.append(f"{field}: {messages}")
         if errors:
             return {"error": True, "errors": errors}
+        if message:
+            return {"error": True, "errors": [message]}
+
+    # Handle plain DRF ValidationError: {field: ["msg"]}
+    errors = []
+    for field, messages in detail.items():
+        if isinstance(messages, list):
+            for msg in messages:
+                errors.append(f"{field}: {msg}")
+        elif isinstance(messages, str):
+            errors.append(f"{field}: {messages}")
+    if errors:
+        return {"error": True, "errors": errors}
+
     return {"error": True, "detail": detail}
 
 
@@ -99,22 +126,6 @@ async def django_api(
 
     return body
 
-
-def _tool_response(
-    *,
-    errors: list[str] | None = None,
-    warnings: list[str] | None = None,
-    hint: str | None = None,
-) -> dict[str, Any]:
-    """Build an error/warning response with optional hint."""
-    payload: dict[str, Any] = {"error": True}
-    if errors:
-        payload["errors"] = errors
-    if warnings:
-        payload["warnings"] = warnings
-    if hint:
-        payload["hint"] = hint
-    return payload
 
 
 def _error(detail: str, *, status: int | None = None) -> dict[str, Any]:
