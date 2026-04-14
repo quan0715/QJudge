@@ -1,7 +1,7 @@
 # QJudge MCP Server — Exam Question Editing
 
 **Date:** 2026-04-11
-**Status:** Draft
+**Status:** Superseded by `2026-04-14-mcp-tool-restructure.md` (tool names and response format changed)
 **Scope:** MCP Server with OAuth 2.1, paper-exam question CRUD + reorder + batch create
 
 ---

@@ -1,7 +1,7 @@
 # QJudge MCP Server — Coding Problem CRUD
 
 **Date:** 2026-04-11
-**Status:** Draft
+**Status:** Superseded by `2026-04-14-mcp-tool-restructure.md` (params unified, update action added)
 **Scope:** 新增 `qjudge_coding` MCP 工具，支援 coding problem 完整 CRUD + test_run
 
 ---
