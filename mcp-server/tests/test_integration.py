@@ -266,7 +266,7 @@ class TestGrading:
 class TestMCPProtocol:
     """Verify the MCP server works at protocol level via in-memory transport."""
 
-    EXPECTED_TOOLS = {"qjudge_browse", "qjudge_bank", "qjudge_exam", "qjudge_grading", "qjudge_coding"}
+    EXPECTED_TOOLS = {"qjudge_browse", "qjudge_bank", "qjudge_exam", "qjudge_grading", "qjudge_coding", "qjudge_code_runner"}
 
     def test_list_tools(self):
         from mcp.shared.memory import create_connected_server_and_client_session
@@ -291,12 +291,18 @@ class TestMCPProtocol:
                 return result.tools
 
         tools = run(_test())
+        # Tools that use action-based routing
+        action_tools = self.EXPECTED_TOOLS - {"qjudge_code_runner"}
         for tool in tools:
             if tool.name not in self.EXPECTED_TOOLS:
                 continue
             schema = tool.inputSchema
             assert "properties" in schema, f"{tool.name} missing properties in schema"
-            assert "action" in schema["properties"], f"{tool.name} missing 'action' param"
+            if tool.name in action_tools:
+                assert "action" in schema["properties"], f"{tool.name} missing 'action' param"
+            else:
+                # qjudge_code_runner has direct params, no action
+                assert "problem_id" in schema["properties"], f"{tool.name} missing 'problem_id' param"
 
     def test_call_tool_with_invalid_action_returns_error(self):
         from mcp.shared.memory import create_connected_server_and_client_session

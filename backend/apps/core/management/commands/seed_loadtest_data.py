@@ -152,11 +152,10 @@ class Command(BaseCommand):
                 asset, version = write_coding_content_to_asset(
                     owner=admin, title=spec["title"], prompt=f"{spec['title']} 壓測用",
                     difficulty=spec["difficulty"],
-                    translations=[{
-                        "language": "zh-TW", "title": spec["title"],
+                    content_fields={
                         "description": f"{spec['title']} 壓測用",
                         "input_description": "", "output_description": "", "hint": "",
-                    }],
+                    },
                     actor=admin,
                 )
                 prob.question_asset = asset

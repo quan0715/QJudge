@@ -19,16 +19,10 @@ def test_problem_admin_serializer_accepts_weight_percent_total_100():
         "difficulty": "easy",
         "time_limit": 1000,
         "memory_limit": 128,
-        "translations": [
-            {
-                "language": "zh-TW",
-                "title": "Weighted Problem",
-                "description": "desc",
-                "input_description": "in",
-                "output_description": "out",
-                "hint": "",
-            }
-        ],
+        "description": "desc",
+        "input_description": "in",
+        "output_description": "out",
+        "hint": "",
         "test_cases": [
             {"input_data": "1", "output_data": "1", "is_sample": True, "weight_percent": 30, "order": 0},
             {"input_data": "2", "output_data": "2", "is_sample": False, "weight_percent": 70, "order": 1},
@@ -58,16 +52,10 @@ def test_problem_admin_serializer_rejects_weight_percent_total_not_100():
         "difficulty": "easy",
         "time_limit": 1000,
         "memory_limit": 128,
-        "translations": [
-            {
-                "language": "zh-TW",
-                "title": "Invalid Weighted Problem",
-                "description": "desc",
-                "input_description": "in",
-                "output_description": "out",
-                "hint": "",
-            }
-        ],
+        "description": "desc",
+        "input_description": "in",
+        "output_description": "out",
+        "hint": "",
         "test_cases": [
             {"input_data": "1", "output_data": "1", "is_sample": True, "weight_percent": 40, "order": 0},
             {"input_data": "2", "output_data": "2", "is_sample": False, "weight_percent": 40, "order": 1},

@@ -60,7 +60,7 @@ class TestContestExporters:
     def problem(self, contest, user):
         """Create a test problem with translation and test cases."""
         problem = _create_problem_with_asset(
-            slug='test-problem-main', title='Test Problem', difficulty='medium',
+            slug='test-problem-main', title='測試題目', difficulty='medium',
             translations=[{
                 'language': 'zh-TW', 'title': '測試題目',
                 'description': '這是一個測試題目描述',
@@ -124,21 +124,17 @@ class TestContestExporters:
         assert '<div class="page-break"></div>' in content
     
     def test_markdown_exporter_english(self, contest, problem):
-        """Test markdown export with English language."""
-        # Add English translation to asset payload
+        """Test markdown export reads flat content fields from payload."""
+        # Update asset payload to use flat content fields
         asset = problem.question_asset
         payload = asset.payload or {}
-        translations = payload.get("translations", [])
-        translations.append({
-            'language': 'en', 'title': 'Test Problem Title',
-            'description': 'This is a test problem',
-            'input_description': 'Input description',
-            'output_description': 'Output description',
-            'hint': '',
-        })
-        payload['translations'] = translations
+        payload['description'] = 'This is a test problem'
+        payload['input_description'] = 'Input description'
+        payload['output_description'] = 'Output description'
+        payload['hint'] = ''
+        asset.title = 'Test Problem Title'
         asset.payload = payload
-        asset.save(update_fields=['payload'])
+        asset.save(update_fields=['payload', 'title'])
 
         exporter = MarkdownRenderer(contest, 'en')
         content = exporter.export()
@@ -166,7 +162,7 @@ class TestContestExporters:
         """Test problem content formatting."""
         exporter = MarkdownRenderer(contest, 'zh-TW')
         problem_data = exporter.format_problem_content(problem, 'A')
-        
+
         assert problem_data['label'] == 'A'
         assert problem_data['title'] == '測試題目'
         assert problem_data['description'] == '這是一個測試題目描述'
@@ -222,7 +218,7 @@ class TestStudentReportRenderer:
         for i, (difficulty, title) in enumerate(difficulties):
             problem = _create_problem_with_asset(
                 slug=f'test-problem-{i+1}-{difficulty}',
-                title=f'Problem {i+1}',
+                title=title,
                 difficulty=difficulty,
                 translations=[{
                     'language': 'zh-TW', 'title': title,

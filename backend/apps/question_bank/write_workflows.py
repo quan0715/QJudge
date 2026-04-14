@@ -16,6 +16,25 @@ from .question_assets import (
 )
 
 
+def _coding_ext_to_model_defaults(ext: dict) -> dict:
+    """Convert flat coding_ext dict to QuestionCodingExt model field defaults.
+
+    The QuestionCodingExt model stores content in a ``translations`` JSONField (list),
+    while the API now uses flat fields (description, input_description, etc.).
+    This helper bridges the two formats.
+    """
+    content_keys = ("description", "input_description", "output_description", "hint")
+    translation_entry = {k: ext.get(k, "") for k in content_keys}
+    has_content = any(translation_entry.values())
+    return {
+        "translations": [translation_entry] if has_content else [],
+        "test_cases": ext.get("test_cases", []),
+        "language_configs": ext.get("language_configs", []),
+        "forbidden_keywords": ext.get("forbidden_keywords", []),
+        "required_keywords": ext.get("required_keywords", []),
+    }
+
+
 @transaction.atomic
 def create_bank_question(*, bank, created_by, validated_data) -> Question:
     payload = dict(validated_data)
@@ -79,7 +98,7 @@ def update_bank_question(*, question: Question, validated_data, actor=None) -> Q
     if coding_ext is not None:
         QuestionCodingExt.objects.update_or_create(
             question=question,
-            defaults=coding_ext,
+            defaults=_coding_ext_to_model_defaults(coding_ext),
         )
 
     ensure_question_bank_membership(
@@ -150,13 +169,7 @@ def materialize_bank_question_adapter(
     if question.question_type == Question.QuestionType.CODING:
         QuestionCodingExt.objects.update_or_create(
             question=question,
-            defaults=coding_ext or {
-                "translations": [],
-                "test_cases": [],
-                "language_configs": [],
-                "forbidden_keywords": [],
-                "required_keywords": [],
-            },
+            defaults=_coding_ext_to_model_defaults(coding_ext or {}),
         )
 
     ensure_question_bank_membership(
@@ -185,8 +198,10 @@ def materialize_bank_question_adapter_for_membership(*, membership, actor=None) 
     )
     coding_ext = None
     if question_type == Question.QuestionType.CODING:
+        from .question_assets import extract_content_from_payload
+        content = extract_content_from_payload(payload)
         coding_ext = {
-            "translations": payload.get("translations") or [],
+            **content,
             "test_cases": payload.get("test_cases") or [],
             "language_configs": payload.get("language_configs") or [],
             "forbidden_keywords": payload.get("forbidden_keywords") or [],

@@ -101,13 +101,12 @@ class Command(BaseCommand):
             asset, version = write_coding_content_to_asset(
                 owner=creator, title='A + B Problem', prompt='給定兩個整數 A 和 B，請計算 A + B 的值。',
                 difficulty='easy',
-                translations=[{
-                    'language': 'zh-TW', 'title': 'A + B 問題',
+                content_fields={
                     'description': '給定兩個整數 A 和 B，請計算 A + B 的值。',
                     'input_description': '一行包含兩個整數 A 和 B，以空格分隔。(-10^9 ≤ A, B ≤ 10^9)',
                     'output_description': '輸出一行，包含一個整數，表示 A + B 的結果。',
                     'hint': '這是一個簡單的加法問題。',
-                }],
+                },
                 actor=creator,
             )
             problem1.question_asset = asset
@@ -177,8 +176,7 @@ print(a + b)''',
                 owner=creator, title='Fibonacci Sequence',
                 prompt='Fibonacci 數列定義如下：\nF(0) = 0\nF(1) = 1\nF(n) = F(n-1) + F(n-2) for n >= 2\n\n給定一個整數 n，請計算第 n 個 Fibonacci 數。',
                 difficulty='medium',
-                translations=[{
-                    'language': 'zh-TW', 'title': 'Fibonacci 數列',
+                content_fields={
                     'description': '''Fibonacci 數列定義如下：
 F(0) = 0
 F(1) = 1
@@ -188,7 +186,7 @@ F(n) = F(n-1) + F(n-2) for n ≥ 2
                     'input_description': '一個整數 n (0 ≤ n ≤ 30)',
                     'output_description': '輸出一行，包含一個整數，表示第 n 個 Fibonacci 數。',
                     'hint': '可以使用遞迴或迴圈來解決。注意效率問題！',
-                }],
+                },
                 actor=creator,
             )
             problem2.question_asset = asset

@@ -582,7 +582,8 @@ def test_qjudge_bank_create_coding(monkeypatch):
             title="A+B Problem",
             difficulty="easy",
             score=100,
-            translations=[{"language": "zh-TW", "title": "A+B", "description": "求和"}],
+            description="求和",
+            input_description="兩個整數",
             test_cases=[{"input_data": "1 2", "output_data": "3", "is_sample": True, "weight_percent": 100}],
             language_configs=[{"language": "python", "is_enabled": True}],
         )
@@ -596,7 +597,7 @@ def test_qjudge_bank_create_coding(monkeypatch):
     assert body["title"] == "A+B Problem"
     assert body["difficulty"] == "easy"
     assert body["score"] == 100
-    assert body["coding_ext"]["translations"][0]["language"] == "zh-TW"
+    assert body["coding_ext"]["description"] == "求和"
     assert body["coding_ext"]["test_cases"][0]["input_data"] == "1 2"
 
 
@@ -622,7 +623,7 @@ def test_qjudge_bank_create_coding_warnings(monkeypatch):
 
     assert result["id"] == "q-new"
     assert "warnings" in result
-    assert any("translations" in w for w in result["warnings"])
+    assert any("description" in w for w in result["warnings"])
     assert any("test_cases" in w for w in result["warnings"])
     assert any("language_configs" in w for w in result["warnings"])
 
@@ -956,7 +957,9 @@ def test_qjudge_coding_create_full(monkeypatch):
     result = run(
         server.qjudge_coding(
             "create", DummyContext(), contest_id="c-1", title="Full Problem",
-            translations=[{"language": "zh-hant", "title": "Full", "description": "desc"}],
+            description="desc",
+            input_description="in",
+            output_description="out",
             test_cases=[{"input_data": "1", "output_data": "1", "weight_percent": 100}],
             language_configs=[{"language": "cpp", "is_enabled": True}],
         )
@@ -964,7 +967,7 @@ def test_qjudge_coding_create_full(monkeypatch):
 
     assert result == {"id": "p-new"}
     assert "warnings" not in result
-    assert captured["json_body"]["translations"][0]["language"] == "zh-hant"
+    assert captured["json_body"]["description"] == "desc"
 
 
 def test_qjudge_coding_update(monkeypatch):
@@ -983,7 +986,7 @@ def test_qjudge_coding_update(monkeypatch):
     result = run(
         server.qjudge_coding(
             "update", DummyContext(), contest_id="c-1", problem_id="p-1",
-            translations=[{"language": "zh-hant", "title": "Updated", "description": "new desc"}],
+            description="new desc",
         )
     )
 
@@ -991,7 +994,7 @@ def test_qjudge_coding_update(monkeypatch):
     assert captured == {
         "method": "PATCH",
         "path": "/api/v1/contests/c-1/problems/p-1/",
-        "json_body": {"translations": [{"language": "zh-hant", "title": "Updated", "description": "new desc"}]},
+        "json_body": {"description": "new desc"},
     }
 
 
@@ -1016,7 +1019,8 @@ def test_qjudge_coding_coding_ext_auto_unwrap(monkeypatch):
         server.qjudge_coding(
             "create", DummyContext(), contest_id="c-1", title="Test",
             coding_ext={
-                "translations": [{"language": "zh-hant", "title": "T", "description": "D"}],
+                "description": "D",
+                "input_description": "I",
                 "test_cases": [{"input_data": "1", "output_data": "1", "weight_percent": 100}],
                 "language_configs": [{"language": "cpp", "is_enabled": True}],
             },
@@ -1027,7 +1031,7 @@ def test_qjudge_coding_coding_ext_auto_unwrap(monkeypatch):
     # Should warn about coding_ext usage
     assert any("coding_ext" in w for w in result.get("warnings", []))
     # Should have unwrapped into top-level
-    assert "translations" in captured["json_body"]
+    assert "description" in captured["json_body"]
     assert "coding_ext" not in captured["json_body"]
 
 
@@ -1122,7 +1126,18 @@ def test_qjudge_coding_delete_requires_ids():
     assert run(server.qjudge_coding("delete", DummyContext(), contest_id="c-1"))["detail"] == "problem_id is required"
 
 
-def test_qjudge_coding_test_run(monkeypatch):
+def test_qjudge_coding_unknown_action():
+    result = run(server.qjudge_coding("wat", DummyContext(), contest_id="c-1"))
+    assert result["error"] is True
+    assert "Unknown action: wat" in result["detail"]
+    assert "qjudge_code_runner" in result["detail"]
+
+
+# ---------------------------------------------------------------------------
+# qjudge_code_runner tests
+# ---------------------------------------------------------------------------
+
+def test_qjudge_code_runner(monkeypatch):
     captured = {}
 
     async def fake_django_api(method, path, ctx, *, json_body=None):
@@ -1134,11 +1149,11 @@ def test_qjudge_coding_test_run(monkeypatch):
     monkeypatch.setattr(server, "django_api", fake_django_api)
 
     result = run(
-        server.qjudge_coding(
-            "test_run", DummyContext(),
+        server.qjudge_code_runner(
             problem_id="p-1",
             language="python",
             code="print(1+2)",
+            ctx=DummyContext(),
         )
     )
 
@@ -1150,7 +1165,7 @@ def test_qjudge_coding_test_run(monkeypatch):
     }
 
 
-def test_qjudge_coding_test_run_with_custom_cases(monkeypatch):
+def test_qjudge_code_runner_with_custom_cases(monkeypatch):
     captured = {}
 
     async def fake_django_api(method, path, ctx, *, json_body=None):
@@ -1161,9 +1176,9 @@ def test_qjudge_coding_test_run_with_custom_cases(monkeypatch):
 
     custom = [{"input": "5", "expected_output": "25"}]
     run(
-        server.qjudge_coding(
-            "test_run", DummyContext(),
+        server.qjudge_code_runner(
             problem_id="p-1", language="cpp", code="#include",
+            ctx=DummyContext(),
             use_samples=False, custom_test_cases=custom,
         )
     )
@@ -1172,15 +1187,10 @@ def test_qjudge_coding_test_run_with_custom_cases(monkeypatch):
     assert captured["json_body"]["custom_test_cases"] == custom
 
 
-def test_qjudge_coding_test_run_requires_fields():
-    assert run(server.qjudge_coding("test_run", DummyContext(), language="py", code="x"))["detail"] == "problem_id is required"
-    assert run(server.qjudge_coding("test_run", DummyContext(), problem_id="p-1", code="x"))["detail"] == "language is required"
-    assert run(server.qjudge_coding("test_run", DummyContext(), problem_id="p-1", language="py"))["detail"] == "code is required"
-
-
-def test_qjudge_coding_unknown_action():
-    result = run(server.qjudge_coding("wat", DummyContext()))
-    assert result == {"error": True, "detail": "Unknown action: wat"}
+def test_qjudge_code_runner_requires_fields():
+    assert run(server.qjudge_code_runner(problem_id="", language="py", code="x", ctx=DummyContext()))["detail"] == "problem_id is required"
+    assert run(server.qjudge_code_runner(problem_id="p-1", language="", code="x", ctx=DummyContext()))["detail"] == "language is required"
+    assert run(server.qjudge_code_runner(problem_id="p-1", language="py", code="", ctx=DummyContext()))["detail"] == "code is required"
 
 
 def test_qjudge_coding_rejects_paper_exam_contest(monkeypatch):

@@ -162,13 +162,12 @@ class Command(BaseCommand):
             asset, version = write_coding_content_to_asset(
                 owner=admin, title="A+B Problem", prompt="計算兩個整數 $a$ 和 $b$ 的和。",
                 difficulty="easy",
-                translations=[{
-                    "language": "zh-TW", "title": "A+B Problem",
+                content_fields={
                     "description": "計算兩個整數 $a$ 和 $b$ 的和。",
                     "input_description": "輸入包含兩個整數 $a$ 和 $b$，用空格分隔。",
                     "output_description": "輸出一個整數，即 $a$ 和 $b$ 的和。",
                     "hint": "使用標準輸入輸出。",
-                }],
+                },
                 actor=admin,
             )
             prob1.question_asset = asset
@@ -237,13 +236,12 @@ int main() {
             asset, version = write_coding_content_to_asset(
                 owner=admin, title="Hello World", prompt='撰寫一個程式輸出 "Hello, World!"。',
                 difficulty="easy",
-                translations=[{
-                    "language": "zh-TW", "title": "Hello World",
+                content_fields={
                     "description": '撰寫一個程式輸出 "Hello, World!"。',
                     "input_description": "無輸入。",
                     "output_description": '輸出字串 "Hello, World!"。',
                     "hint": "",
-                }],
+                },
                 actor=admin,
             )
             prob2.question_asset = asset
@@ -292,13 +290,12 @@ int main() {
             asset, version = write_coding_content_to_asset(
                 owner=admin, title="Factorial", prompt='計算給定整數 $n$ 的階乘 $n!$。',
                 difficulty="medium",
-                translations=[{
-                    "language": "zh-TW", "title": "階乘計算",
+                content_fields={
                     "description": '計算給定整數 $n$ 的階乘 $n!$。',
                     "input_description": "輸入一個整數 $n$ ($0 \\leq n \\leq 10$)。",
                     "output_description": '輸出 $n!$ 的值。',
                     "hint": "$0! = 1$, $n! = n \\times (n-1) \\times ... \\times 1$",
-                }],
+                },
                 actor=admin,
             )
             prob3.question_asset = asset

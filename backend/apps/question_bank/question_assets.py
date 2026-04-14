@@ -4,6 +4,37 @@ from typing import Any
 
 from django.db.models import Max
 
+
+def extract_content_from_payload(payload: dict) -> dict[str, str]:
+    """Extract description/input_description/output_description/hint from payload.
+
+    Supports both new flat format and legacy translations[] format.
+    """
+    if not payload:
+        return {"description": "", "input_description": "", "output_description": "", "hint": ""}
+
+    # New flat format
+    if "description" in payload:
+        return {
+            "description": payload.get("description", ""),
+            "input_description": payload.get("input_description", ""),
+            "output_description": payload.get("output_description", ""),
+            "hint": payload.get("hint", ""),
+        }
+
+    # Legacy translations[] format
+    translations = payload.get("translations", [])
+    if translations and isinstance(translations, list):
+        t = translations[0] if isinstance(translations[0], dict) else {}
+        return {
+            "description": t.get("description", ""),
+            "input_description": t.get("input_description", ""),
+            "output_description": t.get("output_description", ""),
+            "hint": t.get("hint", ""),
+        }
+
+    return {"description": "", "input_description": "", "output_description": "", "hint": ""}
+
 from apps.contests.models import ExamQuestion, ExamQuestionType
 from apps.problems.models import CodingProblem, Problem  # Problem = CodingProblem alias
 
@@ -51,13 +82,26 @@ def _build_bank_question_asset_payload(question: Question) -> dict[str, Any]:
         "metadata": question.metadata or {},
     }
     if question.question_type == Question.QuestionType.CODING and hasattr(question, "coding_ext"):
+        ext = question.coding_ext
+        # Flatten legacy translations[0] to top-level content fields
+        legacy_translations = ext.translations or []
+        if legacy_translations and isinstance(legacy_translations, list):
+            t = legacy_translations[0] if isinstance(legacy_translations[0], dict) else {}
+            payload["description"] = t.get("description", "")
+            payload["input_description"] = t.get("input_description", "")
+            payload["output_description"] = t.get("output_description", "")
+            payload["hint"] = t.get("hint", "")
+        else:
+            payload["description"] = ""
+            payload["input_description"] = ""
+            payload["output_description"] = ""
+            payload["hint"] = ""
         payload.update(
             {
-                "translations": question.coding_ext.translations or [],
-                "test_cases": question.coding_ext.test_cases or [],
-                "language_configs": question.coding_ext.language_configs or [],
-                "forbidden_keywords": question.coding_ext.forbidden_keywords or [],
-                "required_keywords": question.coding_ext.required_keywords or [],
+                "test_cases": ext.test_cases or [],
+                "language_configs": ext.language_configs or [],
+                "forbidden_keywords": ext.forbidden_keywords or [],
+                "required_keywords": ext.required_keywords or [],
             }
         )
     return payload
@@ -88,9 +132,14 @@ def _build_bank_question_asset_payload_from_components(
     }
     if question_type == Question.QuestionType.CODING:
         coding_payload = coding_ext or {}
+        # Support both flat content fields and legacy translations[]
+        content = extract_content_from_payload(coding_payload)
+        payload["description"] = content["description"]
+        payload["input_description"] = content["input_description"]
+        payload["output_description"] = content["output_description"]
+        payload["hint"] = content["hint"]
         payload.update(
             {
-                "translations": coding_payload.get("translations") or [],
                 "test_cases": coding_payload.get("test_cases") or [],
                 "language_configs": coding_payload.get("language_configs") or [],
                 "forbidden_keywords": coding_payload.get("forbidden_keywords") or [],
@@ -103,18 +152,38 @@ def _build_bank_question_asset_payload_from_components(
 def _existing_bank_question_coding_ext_payload(question: Question) -> dict[str, Any]:
     if question.question_type != Question.QuestionType.CODING or not hasattr(question, "coding_ext"):
         return {
-            "translations": [],
+            "description": "",
+            "input_description": "",
+            "output_description": "",
+            "hint": "",
             "test_cases": [],
             "language_configs": [],
             "forbidden_keywords": [],
             "required_keywords": [],
         }
+    ext = question.coding_ext
+    # Flatten legacy translations[0] to top-level content fields
+    legacy_translations = ext.translations or []
+    if legacy_translations and isinstance(legacy_translations, list):
+        t = legacy_translations[0] if isinstance(legacy_translations[0], dict) else {}
+        description = t.get("description", "")
+        input_description = t.get("input_description", "")
+        output_description = t.get("output_description", "")
+        hint = t.get("hint", "")
+    else:
+        description = ""
+        input_description = ""
+        output_description = ""
+        hint = ""
     return {
-        "translations": question.coding_ext.translations or [],
-        "test_cases": question.coding_ext.test_cases or [],
-        "language_configs": question.coding_ext.language_configs or [],
-        "forbidden_keywords": question.coding_ext.forbidden_keywords or [],
-        "required_keywords": question.coding_ext.required_keywords or [],
+        "description": description,
+        "input_description": input_description,
+        "output_description": output_description,
+        "hint": hint,
+        "test_cases": ext.test_cases or [],
+        "language_configs": ext.language_configs or [],
+        "forbidden_keywords": ext.forbidden_keywords or [],
+        "required_keywords": ext.required_keywords or [],
     }
 
 
@@ -355,7 +424,7 @@ def write_coding_content_to_asset(
     title: str,
     prompt: str,
     difficulty: str,
-    translations: list[dict[str, Any]],
+    content_fields: dict[str, str] | None = None,
     time_limit: int = 1000,
     memory_limit: int = 128,
     test_cases: list[dict[str, Any]] | None = None,
@@ -370,11 +439,15 @@ def write_coding_content_to_asset(
     Write coding problem content to QuestionAsset (source of truth).
     Creates a new asset or publishes a new version on an existing one.
     """
+    cf = content_fields or {}
     payload = {
         "difficulty": difficulty or "medium",
         "time_limit": time_limit,
         "memory_limit": memory_limit,
-        "translations": translations or [],
+        "description": cf.get("description", ""),
+        "input_description": cf.get("input_description", ""),
+        "output_description": cf.get("output_description", ""),
+        "hint": cf.get("hint", ""),
         "test_cases": test_cases or [],
         "language_configs": language_configs or [],
         "forbidden_keywords": forbidden_keywords or [],
@@ -431,7 +504,7 @@ def ensure_problem_question_asset(*, problem: Problem, actor=None) -> tuple[Ques
         title="",
         prompt="",
         difficulty="medium",
-        translations=[],
+        content_fields={},
         time_limit=problem.time_limit,
         memory_limit=problem.memory_limit,
         test_cases=list(

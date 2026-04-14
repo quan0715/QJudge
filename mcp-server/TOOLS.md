@@ -7,15 +7,16 @@
 
 ## Overview
 
-QJudge MCP Server 提供 5 個工具，透過 `action` 參數路由到不同操作。
+QJudge MCP Server 提供 6 個工具，每個工具有明確的職責邊界。
 
-| Tool | Purpose | Scope |
+| Tool | Purpose | Do NOT use for |
 |---|---|---|
-| `qjudge_browse` | 唯讀查詢 | classrooms, contests, banks |
-| `qjudge_bank` | 題庫題目 CRUD | question bank items |
-| `qjudge_exam` | 競賽筆試題管理 | paper_exam contests |
-| `qjudge_coding` | 競賽程式題管理 + test_run | coding contests |
-| `qjudge_grading` | 改卷 | exam answers |
+| `qjudge_browse` | 唯讀查詢 | 任何寫入操作 |
+| `qjudge_bank` | 題庫題目 CRUD | 競賽題目管理 |
+| `qjudge_exam` | 競賽筆試題管理 | coding contests, code execution |
+| `qjudge_coding` | 競賽程式題管理 | code execution, paper_exam contests |
+| `qjudge_code_runner` | 程式碼執行驗證 | 題目 CRUD |
+| `qjudge_grading` | 改卷 | 題目 CRUD |
 
 ---
 
@@ -104,7 +105,10 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 | `memory_limit` | int? | create, update | MB |
 | `options` | list[str]? | create, update | exam 選項，**不要加 A/B/C/D 前綴** |
 | `correct_answer` | any? | create, update | 見下方格式說明 |
-| `translations` | list[dict]? | create, update | coding 題翻譯 |
+| `description` | string? | create, update | coding 題目敘述（Markdown） |
+| `input_description` | string? | create, update | 輸入格式說明 |
+| `output_description` | string? | create, update | 輸出格式說明 |
+| `hint` | string? | create, update | 提示 |
 | `test_cases` | list[dict]? | create, update | coding 題測資 |
 | `language_configs` | list[dict]? | create, update | coding 題語言設定 |
 | `forbidden_keywords` | list[str]? | create, update | |
@@ -152,14 +156,10 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
   "difficulty": "easy",
   "time_limit": 1000,
   "memory_limit": 128,
-  "translations": [{
-    "language": "zh-hant",
-    "title": "A+B Problem",
-    "description": "給定兩個整數 A 和 B，輸出 A+B。",
-    "input_description": "一行，包含兩個整數 A 和 B。",
-    "output_description": "輸出 A+B 的結果。",
-    "hint": ""
-  }],
+  "description": "給定兩個整數 A 和 B，輸出 A+B。",
+  "input_description": "一行，包含兩個整數 A 和 B。",
+  "output_description": "輸出 A+B 的結果。",
+  "hint": "",
   "test_cases": [
     {"input_data": "1 2\n", "output_data": "3\n", "is_sample": true, "weight_percent": 0, "order": 0},
     {"input_data": "100 200\n", "output_data": "300\n", "is_sample": false, "weight_percent": 50, "order": 1},
@@ -176,7 +176,7 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 - `weight_percent`（不是 `score`）：所有 test_cases 的 weight_percent 總和必須 = 100
 - sample 測資的 weight_percent 設 `0`（不計分）
 - `language` 可選值：`cpp`, `python`, `java`, `javascript`
-- translations/test_cases/language_configs 放**頂層**，不要用 `coding_ext` 包裝
+- description/test_cases/language_configs 放**頂層**，不要用 `coding_ext` 或 `translations[]` 包裝
 
 ---
 
@@ -240,17 +240,16 @@ mode         → batch_create only
 | `difficulty` | string? | create, update |
 | `time_limit` | int? | create, update |
 | `memory_limit` | int? | create, update |
-| `translations` | list[dict]? | create, update |
+| `description` | string? | create, update |
+| `input_description` | string? | create, update |
+| `output_description` | string? | create, update |
+| `hint` | string? | create, update |
 | `test_cases` | list[dict]? | create, update |
 | `language_configs` | list[dict]? | create, update |
 | `forbidden_keywords` | list[str]? | create, update |
 | `required_keywords` | list[str]? | create, update |
 | `items` | list[dict]? | import_from_bank |
 | `max_score` | int? | update_score |
-| `language` | string? | test_run |
-| `code` | string? | test_run |
-| `use_samples` | bool | test_run (default: true) |
-| `custom_test_cases` | list[dict]? | test_run |
 
 ### Actions
 
@@ -258,12 +257,11 @@ mode         → batch_create only
 |---|---|---|
 | `list` | contest_id | — |
 | `get` | contest_id, problem_id | — |
-| `create` | contest_id, title | difficulty, time_limit, memory_limit, translations, test_cases, language_configs, forbidden_keywords, required_keywords |
+| `create` | contest_id, title | difficulty, time_limit, memory_limit, description, input_description, output_description, hint, test_cases, language_configs, forbidden_keywords, required_keywords |
 | `update` | contest_id, problem_id | same as create |
 | `import_from_bank` | contest_id, items | — |
 | `update_score` | contest_id, problem_id, max_score | — |
 | `delete` | contest_id, problem_id | — |
-| `test_run` | problem_id, language, code | use_samples, custom_test_cases |
 
 ### Create 完整範例
 
@@ -275,14 +273,10 @@ mode         → batch_create only
   "difficulty": "easy",
   "time_limit": 1000,
   "memory_limit": 256,
-  "translations": [{
-    "language": "zh-hant",
-    "title": "島嶼數量",
-    "description": "給定一個由 0 與 1 組成的二維網格...",
-    "input_description": "第一行包含兩個整數 R 與 C...",
-    "output_description": "輸出一個整數，表示島嶼的總數量。",
-    "hint": "使用 BFS 或 DFS。"
-  }],
+  "description": "給定一個由 0 與 1 組成的二維網格...",
+  "input_description": "第一行包含兩個整數 R 與 C...",
+  "output_description": "輸出一個整數，表示島嶼的總數量。",
+  "hint": "使用 BFS 或 DFS。",
   "test_cases": [
     {"input_data": "4 5\n1 1 0 0 0\n1 1 0 0 1\n0 0 0 1 1\n0 1 0 0 0\n", "output_data": "3\n", "is_sample": true, "weight_percent": 0, "order": 0},
     {"input_data": "1 1\n0\n", "output_data": "0\n", "is_sample": false, "weight_percent": 50, "order": 1},
@@ -297,7 +291,7 @@ mode         → batch_create only
 
 **注意：**
 - 不要用 `coding_ext` 包裝（如果傳了會自動展開，但會收到棄用 warning）
-- 不要用 `prompt`（題目內容透過 `translations[].description` 傳入）
+- 不要用 `prompt`（題目內容透過 `description` 傳入）
 - `weight_percent` 非 sample 測資總和必須 = 100
 - `language_configs` 可選值：`cpp`, `python`, `java`, `javascript`
 
@@ -349,14 +343,45 @@ mode         → batch_create only
 
 ---
 
+## qjudge_code_runner
+
+**程式碼執行驗證**。對一道 coding 題跑程式碼，取得執行結果。
+
+不需要 `action` 參數 — 這個工具只做一件事。
+
+### Parameters
+
+| Param | Type | Required | Notes |
+|---|---|---|---|
+| `problem_id` | string | yes | 要測試的 coding problem ID |
+| `language` | string | yes | `cpp`, `python`, `java`, `javascript` |
+| `code` | string | yes | 要執行的原始碼 |
+| `use_samples` | bool | no | 是否跑 sample test cases（default: true） |
+| `custom_test_cases` | list[dict]? | no | 自訂測資 [{input, expected_output}] |
+
+### 範例
+
+```json
+{
+  "problem_id": "...",
+  "language": "python",
+  "code": "a, b = map(int, input().split())\nprint(a + b)"
+}
+```
+
+---
+
 ## Common Mistakes
 
 | 錯誤 | 正確做法 |
 |---|---|
-| `coding_ext: {translations: [...]}` 包裝 | translations 放頂層 |
-| `prompt: "題目敘述"` 傳給 coding 題 | 用 `translations[].description` |
+| `coding_ext: {description: ...}` 包裝 | description 放頂層 |
+| `translations: [{...}]` 陣列包裝 | 直接用 `description`、`input_description` 等頂層欄位 |
+| `prompt: "題目敘述"` 傳給 coding 題 | 用 `description` |
 | `score: 50` 在 test_cases 裡 | 用 `weight_percent: 50` |
 | options 加 `"A. 台北"` 前綴 | 純文字 `"台北"`，UI 自動加前綴 |
 | `question_ids` 傳給 delete | delete 只接受單一 `question_id` |
 | `items` 傳給 create | create 是單題，批量用 `batch_create` |
 | 用 `qjudge_browse` 建題目 | browse 是唯讀，建題用 `qjudge_bank` |
+| 用 `qjudge_coding` 跑程式碼 | 用 `qjudge_code_runner`，coding 只管題目 CRUD |
+| exam 欄位傳給 coding 題 | coding 題用 description/test_cases，不用 options/correct_answer |

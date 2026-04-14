@@ -358,29 +358,17 @@ class ContestDataService:
 
         if problem.question_asset_id:
             try:
+                from apps.question_bank.question_assets import extract_content_from_payload
                 asset = problem.question_asset
                 title = asset.title or ""
                 payload = asset.payload or {}
                 difficulty = payload.get("difficulty", "medium")
                 difficulty_display = difficulty_display_map.get(difficulty, difficulty)
-                translations = payload.get("translations", [])
-
-                # Find translation for the specified language
-                match_langs = ['zh-TW', 'zh-hant'] if self.language == 'zh-TW' else [self.language]
-                translation = None
-                for t in translations:
-                    if t.get("language") in match_langs:
-                        translation = t
-                        break
-                if not translation and translations:
-                    translation = translations[0]
-
-                if translation:
-                    title = translation.get("title", title)
-                    description = translation.get("description", "")
-                    input_description = translation.get("input_description", "")
-                    output_description = translation.get("output_description", "")
-                    hint = translation.get("hint", "")
+                content = extract_content_from_payload(payload)
+                description = content.get("description", "")
+                input_description = content.get("input_description", "")
+                output_description = content.get("output_description", "")
+                hint = content.get("hint", "")
             except Exception:
                 pass
 

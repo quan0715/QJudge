@@ -4,9 +4,8 @@
       "type": "http",
       "url": "https://mcp.q-judge.com/mcp"
     },
-    "qjudge-dev": {
-      "type": "http",
-      "url": "http://localhost:9000/mcp"
-    }
+    "qjudge-local": {                                                                                                                
+        "url": "http://localhost:9002/mcp"                                                                                       
+      }        
   }
 }
