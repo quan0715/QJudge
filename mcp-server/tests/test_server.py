@@ -460,6 +460,15 @@ def test_qjudge_grading_returns_fixed_errors(kwargs, detail):
     assert result == {"error": True, "detail": detail}
 
 
+def test_qjudge_browse_get_help():
+    result = run(server.qjudge_browse("get_help", DummyContext()))
+    assert "tools" in result
+    assert "common_mistakes" in result
+    assert "coding_problem_example" in result
+    assert "qjudge_browse" in result["tools"]
+    assert "qjudge_coding" in result["tools"]
+
+
 # ---------- qjudge_browse tests ----------
 
 

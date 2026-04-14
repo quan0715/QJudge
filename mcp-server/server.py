@@ -351,6 +351,71 @@ def _build_exam_question_body(
     return body
 
 
+_TOOL_HELP = {
+    "tools": {
+        "qjudge_browse": "Read-only queries: list_classrooms, list_contests, get_contest, browse_banks, browse_bank_questions, get_help",
+        "qjudge_bank": "Question bank CRUD: create, get, update, delete",
+        "qjudge_exam": "Paper-exam contest questions: list, get, create, update, delete, reorder, batch_create, import_from_bank",
+        "qjudge_coding": "Coding contest problems: list, get, create, update, delete, import_from_bank, update_score, test_run",
+        "qjudge_grading": "Grading: list_answers, question_detail, dashboard, grade, batch_grade, ungrade",
+    },
+    "coding_problem_example": {
+        "_tool": "qjudge_coding",
+        "_action": "create",
+        "_note": "translations/test_cases/language_configs are TOP-LEVEL params, NOT wrapped in coding_ext",
+        "contest_id": "<uuid>",
+        "title": "A+B Problem",
+        "difficulty": "easy",
+        "time_limit": 1000,
+        "memory_limit": 128,
+        "translations": [{
+            "language": "zh-hant",
+            "title": "A+B Problem",
+            "description": "Markdown 題目敘述",
+            "input_description": "輸入格式",
+            "output_description": "輸出格式",
+            "hint": "",
+        }],
+        "test_cases": [
+            {"input_data": "1 2\n", "output_data": "3\n", "is_sample": True, "weight_percent": 0, "order": 0},
+            {"input_data": "100 200\n", "output_data": "300\n", "is_sample": False, "weight_percent": 50, "order": 1},
+            {"input_data": "-1 1\n", "output_data": "0\n", "is_sample": False, "weight_percent": 50, "order": 2},
+        ],
+        "language_configs": [
+            {"language": "cpp", "template_code": "", "is_enabled": True, "order": 0},
+            {"language": "python", "template_code": "", "is_enabled": True, "order": 1},
+        ],
+    },
+    "exam_question_example": {
+        "_tool": "qjudge_exam or qjudge_bank",
+        "_action": "create",
+        "question_type": "single_choice",
+        "prompt": "台灣的首都是哪裡？",
+        "options": ["台北", "台中", "高雄", "台南"],
+        "correct_answer": 0,
+        "explanation": "台北是台灣的首都。",
+        "score": 10,
+        "_options_note": "Do NOT add A/B/C/D prefixes — the UI adds them automatically",
+        "_correct_answer_formats": {
+            "single_choice": "0-based int index (e.g. 0)",
+            "multiple_choice": "list of int indices (e.g. [0, 2])",
+            "true_false": "boolean (true/false), options should be ['True', 'False']",
+            "short_answer": "string",
+        },
+    },
+    "common_mistakes": {
+        "coding_ext wrapper": "Do NOT wrap translations/test_cases in coding_ext — pass them as top-level params",
+        "prompt for coding": "Do NOT use prompt for coding problems — use translations[].description instead",
+        "score vs weight_percent": "Use weight_percent (not score) in test_cases — total must equal 100",
+        "option prefixes": "Do NOT add A/B/C/D prefixes to options — the UI adds them",
+        "question_ids for delete": "delete only accepts single question_id — no batch delete",
+        "items for create": "create is single-item — use batch_create for multiple items",
+        "browse for writes": "qjudge_browse is read-only — use qjudge_bank for bank CRUD",
+        "language_configs values": "Valid languages: cpp, python, java, javascript",
+    },
+}
+
+
 mcp = FastMCP(
     "QJudge",
     host=MCP_HOST,
@@ -386,7 +451,11 @@ async def qjudge_browse(
       get_contest            — Get contest detail (required: contest_id)
       browse_banks           — List your question banks
       browse_bank_questions  — List questions in a bank (required: bank_id)
+      get_help               — Get full usage guide for all QJudge MCP tools
     """
+    if action == "get_help":
+        return _TOOL_HELP
+
     if action == "list_classrooms":
         query = {"scope": "manage"}
         if search:
