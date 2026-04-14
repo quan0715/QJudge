@@ -124,21 +124,17 @@ class TestContestExporters:
         assert '<div class="page-break"></div>' in content
     
     def test_markdown_exporter_english(self, contest, problem):
-        """Test markdown export with English language."""
-        # Add English translation to asset payload
+        """Test markdown export reads flat content fields from payload."""
+        # Update asset payload to use flat content fields
         asset = problem.question_asset
         payload = asset.payload or {}
-        translations = payload.get("translations", [])
-        translations.append({
-            'language': 'en', 'title': 'Test Problem Title',
-            'description': 'This is a test problem',
-            'input_description': 'Input description',
-            'output_description': 'Output description',
-            'hint': '',
-        })
-        payload['translations'] = translations
+        payload['description'] = 'This is a test problem'
+        payload['input_description'] = 'Input description'
+        payload['output_description'] = 'Output description'
+        payload['hint'] = ''
+        asset.title = 'Test Problem Title'
         asset.payload = payload
-        asset.save(update_fields=['payload'])
+        asset.save(update_fields=['payload', 'title'])
 
         exporter = MarkdownRenderer(contest, 'en')
         content = exporter.export()

@@ -110,29 +110,22 @@ def get_or_create_personal_bank(
     return _resolve_or_create_active_personal_bank(user=user, category=category)
 
 
-def _pick_asset_translation(problem: Problem) -> dict | None:
-    """Pick the best translation dict from the QuestionAsset payload."""
+def _get_asset_description(problem: Problem) -> dict[str, str]:
+    """Read flat content fields from QuestionAsset payload with legacy fallback."""
+    from .question_assets import extract_content_from_payload
     if not problem.question_asset_id:
-        return None
+        return {"description": "", "input_description": "", "output_description": "", "hint": ""}
     try:
-        translations = (problem.question_asset.payload or {}).get("translations", [])
+        payload = problem.question_asset.payload or {}
+        return extract_content_from_payload(payload)
     except Exception:
-        return None
-    for t in translations:
-        if t.get("language") in ["zh-TW", "zh-hant", "zh-Hant"]:
-            return t
-    return translations[0] if translations else None
+        return {"description": "", "input_description": "", "output_description": "", "hint": ""}
 
 
 def _build_coding_ext_payload(problem: Problem) -> dict[str, Any]:
-    translations = []
-    if problem.question_asset_id:
-        try:
-            translations = (problem.question_asset.payload or {}).get("translations", [])
-        except Exception:
-            pass
+    content = _get_asset_description(problem)
     return {
-        "translations": translations,
+        **content,
         "test_cases": list(
             problem.test_cases.values(
                 "input_data",
@@ -186,7 +179,7 @@ def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=No
             f"Cannot add a coding problem to a '{bank.category}' bank "
             f"(bank '{bank.name}' only accepts '{QuestionBank.Category.CODING}' questions)."
         )
-    translation = _pick_asset_translation(problem)
+    content = _get_asset_description(problem)
     asset_title = ""
     asset_difficulty = "medium"
     if problem.question_asset_id:
@@ -195,8 +188,8 @@ def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=No
             asset_difficulty = (problem.question_asset.payload or {}).get("difficulty", "medium")
         except Exception:
             pass
-    title = (translation.get("title") if translation else asset_title) or asset_title or "Untitled"
-    prompt = (translation.get("description") if translation else "") or ""
+    title = asset_title or "Untitled"
+    prompt = content.get("description", "") or ""
 
     score_sum = problem.test_cases.aggregate(total=Sum("score")).get("total") or 100
 
@@ -359,8 +352,15 @@ def clone_question_to_bank(source_question: Question, target_bank: QuestionBank,
         coding_ext = None
         if source_question.question_type == Question.QuestionType.CODING and hasattr(source_question, "coding_ext"):
             ext = source_question.coding_ext
+            # Flatten legacy translations[0] to top-level content fields
+            legacy_translations = ext.translations or []
+            if legacy_translations and isinstance(legacy_translations, list):
+                t = legacy_translations[0] if isinstance(legacy_translations[0], dict) else {}
+                content = {k: t.get(k, "") for k in ("description", "input_description", "output_description", "hint")}
+            else:
+                content = {"description": "", "input_description": "", "output_description": "", "hint": ""}
             coding_ext = {
-                "translations": ext.translations,
+                **content,
                 "test_cases": ext.test_cases,
                 "language_configs": ext.language_configs,
                 "forbidden_keywords": ext.forbidden_keywords,

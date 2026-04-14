@@ -151,7 +151,10 @@ def materialize_bank_question_adapter(
         QuestionCodingExt.objects.update_or_create(
             question=question,
             defaults=coding_ext or {
-                "translations": [],
+                "description": "",
+                "input_description": "",
+                "output_description": "",
+                "hint": "",
                 "test_cases": [],
                 "language_configs": [],
                 "forbidden_keywords": [],
@@ -185,8 +188,10 @@ def materialize_bank_question_adapter_for_membership(*, membership, actor=None) 
     )
     coding_ext = None
     if question_type == Question.QuestionType.CODING:
+        from .question_assets import extract_content_from_payload
+        content = extract_content_from_payload(payload)
         coding_ext = {
-            "translations": payload.get("translations") or [],
+            **content,
             "test_cases": payload.get("test_cases") or [],
             "language_configs": payload.get("language_configs") or [],
             "forbidden_keywords": payload.get("forbidden_keywords") or [],

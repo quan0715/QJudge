@@ -59,16 +59,10 @@ def test_problem_api_create_and_update_dual_write_question_asset(api_client: API
             "difficulty": "easy",
             "time_limit": 1000,
             "memory_limit": 128,
-            "translations": [
-                {
-                    "language": "zh-TW",
-                    "title": "Canonical Coding Problem",
-                    "description": "desc v1",
-                    "input_description": "in",
-                    "output_description": "out",
-                    "hint": "",
-                }
-            ],
+            "description": "desc v1",
+            "input_description": "in",
+            "output_description": "out",
+            "hint": "",
             "test_cases": [
                 {
                     "input_data": "1",
@@ -191,7 +185,10 @@ def test_question_bank_question_create_builds_asset_and_membership(
             "score": 100,
             "order": 0,
             "coding_ext": {
-                "translations": [],
+                "description": "",
+                "input_description": "",
+                "output_description": "",
+                "hint": "",
                 "test_cases": [],
                 "language_configs": [],
                 "forbidden_keywords": [],
@@ -209,7 +206,7 @@ def test_question_bank_question_create_builds_asset_and_membership(
     assert question.question_asset.latest_version_id == question.question_version_id
     assert question.question_asset.versions.count() == 1
     assert question.question_asset.asset_type == QuestionAsset.AssetType.CODING
-    assert question.question_asset.latest_version.payload["translations"] == []
+    assert question.question_asset.latest_version.payload["description"] == ""
     assert question.question_asset.latest_version.payload["test_cases"] == []
     assert membership.bank_id == bank.id
     assert membership.question_asset_id == question.question_asset_id
@@ -246,7 +243,10 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
         {
             "title": "Patch Me v2",
             "coding_ext": {
-                "translations": [],
+                "description": "",
+                "input_description": "",
+                "output_description": "",
+                "hint": "",
                 "test_cases": [],
                 "language_configs": [],
                 "forbidden_keywords": ["scanf"],
@@ -515,7 +515,10 @@ def test_question_viewset_can_patch_canonical_only_membership(
         {
             "title": "After Patch",
             "coding_ext": {
-                "translations": [],
+                "description": "",
+                "input_description": "",
+                "output_description": "",
+                "hint": "",
                 "test_cases": [],
                 "language_configs": [],
                 "forbidden_keywords": ["scanf"],

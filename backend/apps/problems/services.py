@@ -103,7 +103,7 @@ class ProblemService:
     def create_problem_adapter(
         *,
         validated_data,
-        translations_data=None,
+        content_fields=None,
         test_cases_data=None,
         language_configs_data=None,
         existing_tag_ids=None,
@@ -111,7 +111,7 @@ class ProblemService:
     ) -> CodingProblem:
         from apps.question_bank.question_assets import write_coding_content_to_asset
 
-        translations_data = translations_data or []
+        content_fields = content_fields or {}
         test_cases_data = test_cases_data or []
         language_configs_data = language_configs_data or []
 
@@ -125,10 +125,7 @@ class ProblemService:
         # 1. Resolve content for Asset
         owner = validated_data.get("created_by")
 
-        # Pick prompt from translations
-        prompt = ""
-        if translations_data:
-            prompt = translations_data[0].get("description", "")
+        prompt = content_fields.get("description", "")
 
         # 2. Write content to QuestionAsset first (source of truth)
         question_asset, question_version = write_coding_content_to_asset(
@@ -136,7 +133,7 @@ class ProblemService:
             title=title,
             prompt=prompt,
             difficulty=difficulty,
-            translations=translations_data,
+            content_fields=content_fields,
             time_limit=validated_data.get("time_limit", 1000),
             memory_limit=validated_data.get("memory_limit", 128),
             test_cases=[dict(tc) for tc in test_cases_data],
@@ -173,13 +170,18 @@ class ProblemService:
         instance: CodingProblem,
         *,
         validated_data,
-        translations_data=None,
+        content_fields=None,
         test_cases_data=None,
         language_configs_data=None,
         existing_tag_ids=None,
         new_tag_names=None,
     ) -> CodingProblem:
-        from apps.question_bank.question_assets import write_coding_content_to_asset
+        from apps.question_bank.question_assets import (
+            extract_content_from_payload,
+            write_coding_content_to_asset,
+        )
+
+        content_fields = content_fields or {}
 
         # Pop content fields (owned by QuestionAsset, not CodingProblem)
         title = validated_data.pop("title", None)
@@ -198,10 +200,7 @@ class ProblemService:
         difficulty = difficulty if difficulty is not None else current_difficulty
 
         if 'slug' in validated_data and not validated_data.get('slug'):
-            title_base = title
-            if translations_data:
-                title_base = translations_data[0].get('title', title)
-            validated_data['slug'] = ProblemService.build_slug_from_title(title_base)
+            validated_data['slug'] = ProblemService.build_slug_from_title(title)
 
         # 1. Update Problem's local execution fields
         for attr, value in validated_data.items():
@@ -224,13 +223,12 @@ class ProblemService:
         # 2. Write content to QuestionAsset (source of truth)
         owner = instance.created_by
 
-        prompt = ""
-        effective_translations = translations_data if translations_data else (
-            (instance.question_asset.payload or {}).get("translations", []) if instance.question_asset_id else []
-        )
-        if effective_translations:
-            first = effective_translations[0]
-            prompt = first.get("description", "") if isinstance(first, dict) else ""
+        # Merge provided content_fields with existing payload (backward compat)
+        existing_payload = (instance.question_asset.payload or {}) if instance.question_asset_id else {}
+        effective_content = extract_content_from_payload(existing_payload)
+        # Merge: provided fields override existing
+        merged_content = {**effective_content, **{k: v for k, v in content_fields.items() if v}}
+        prompt = merged_content.get("description", "")
 
         effective_test_cases = test_cases_data if test_cases_data else list(
             instance.test_cases.values(
@@ -249,7 +247,7 @@ class ProblemService:
             title=title,
             prompt=prompt,
             difficulty=difficulty,
-            translations=effective_translations,
+            content_fields=merged_content,
             time_limit=instance.time_limit,
             memory_limit=instance.memory_limit,
             test_cases=effective_test_cases,
@@ -312,7 +310,7 @@ class ProblemService:
             title=title,
             prompt="",
             difficulty="medium",
-            translations=[],
+            content_fields={},
             actor=created_by,
         )
 

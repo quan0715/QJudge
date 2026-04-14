@@ -559,7 +559,7 @@ class TestQuestionBankAPI:
         assert resp.data[0]["title"] == "Canonical Only"
         assert resp.data[0]["question_asset_id"] == str(asset.id)
         assert resp.data[0]["question_version_id"] == str(version.id)
-        assert resp.data[0]["coding_ext"]["translations"] == []
+        assert resp.data[0]["coding_ext"]["description"] == ""
 
     def test_upsert_problem_and_exam_question_into_bank(self, teacher: User):
         bank_coding = QuestionBank.objects.create(
@@ -578,11 +578,10 @@ class TestQuestionBankAPI:
         from apps.question_bank.question_assets import write_coding_content_to_asset
         asset, version = write_coding_content_to_asset(
             owner=teacher, title="Legacy Problem", prompt="legacy description",
-            difficulty="easy", translations=[{
-                "language": "zh-TW", "title": "Legacy Problem",
+            difficulty="easy", content_fields={
                 "description": "legacy description",
                 "input_description": "in", "output_description": "out", "hint": "",
-            }], actor=teacher,
+            }, actor=teacher,
         )
         problem.question_asset = asset
         problem.question_version = version
@@ -804,11 +803,10 @@ class TestQuestionBankAPI:
         from apps.question_bank.question_assets import write_coding_content_to_asset
         asset, version = write_coding_content_to_asset(
             owner=teacher, title="Needs Ingest", prompt="desc",
-            difficulty="medium", translations=[{
-                "language": "zh-TW", "title": "Needs Ingest",
+            difficulty="medium", content_fields={
                 "description": "desc", "input_description": "in",
                 "output_description": "out", "hint": "",
-            }], actor=teacher,
+            }, actor=teacher,
         )
         problem.question_asset = asset
         problem.question_version = version
@@ -863,7 +861,7 @@ class TestQuestionBankAPI:
             title="Contest Linked No Creator",
             prompt="desc",
             difficulty="medium",
-            translations=[],
+            content_fields={},
             actor=teacher,
         )
         problem.question_asset = asset

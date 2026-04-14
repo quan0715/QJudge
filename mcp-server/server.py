@@ -373,20 +373,16 @@ _TOOL_HELP = {
     "coding_problem_example": {
         "_tool": "qjudge_coding",
         "_action": "create",
-        "_note": "translations/test_cases/language_configs are TOP-LEVEL params, NOT wrapped in coding_ext",
+        "_note": "description/input_description/output_description/hint are TOP-LEVEL params",
         "contest_id": "<uuid>",
         "title": "A+B Problem",
         "difficulty": "easy",
         "time_limit": 1000,
         "memory_limit": 128,
-        "translations": [{
-            "language": "zh-hant",
-            "title": "A+B Problem",
-            "description": "Markdown 題目敘述",
-            "input_description": "輸入格式",
-            "output_description": "輸出格式",
-            "hint": "",
-        }],
+        "description": "Markdown 題目敘述",
+        "input_description": "輸入格式",
+        "output_description": "輸出格式",
+        "hint": "",
         "test_cases": [
             {"input_data": "1 2\n", "output_data": "3\n", "is_sample": True, "weight_percent": 0, "order": 0},
             {"input_data": "100 200\n", "output_data": "300\n", "is_sample": False, "weight_percent": 50, "order": 1},
@@ -415,8 +411,8 @@ _TOOL_HELP = {
         },
     },
     "common_mistakes": {
-        "coding_ext wrapper": "Do NOT wrap translations/test_cases in coding_ext — pass them as top-level params",
-        "prompt for coding": "Do NOT use prompt for coding problems — use translations[].description instead",
+        "coding_ext wrapper": "Do NOT wrap fields in coding_ext — pass description, test_cases, language_configs as top-level params",
+        "prompt for coding": "Do NOT use prompt for coding problems — use description instead",
         "score vs weight_percent": "Use weight_percent (not score) in test_cases — total must equal 100",
         "option prefixes": "Do NOT add A/B/C/D prefixes to options — the UI adds them",
         "question_ids for delete": "delete only accepts single question_id — no batch delete",
@@ -516,7 +512,10 @@ async def qjudge_bank(
     memory_limit: int | None = None,
     options: list[str] | None = None,
     correct_answer: Any | None = None,
-    translations: list[dict] | None = None,
+    description: str | None = None,
+    input_description: str | None = None,
+    output_description: str | None = None,
+    hint: str | None = None,
     test_cases: list[dict] | None = None,
     language_configs: list[dict] | None = None,
     forbidden_keywords: list[str] | None = None,
@@ -541,16 +540,15 @@ async def qjudge_bank(
                        For short_answer/essay: string.
 
     Field format guide (coding questions):
-      translations     — [{language: "zh-hant", title: "...", description: "...",
-                           input_description: "...", output_description: "...", hint: "..."}]
-      test_cases       — [{input_data: "...", output_data: "...", is_sample: true/false,
-                           score: 0, weight_percent: 25}]
-      language_configs — [{language: "python", template_code: "", is_enabled: true, order: 0}]
-      forbidden_keywords — ["os.system", "subprocess"]
-      required_keywords  — ["def solve"]
-
-    Note: For coding questions, translations/test_cases/language_configs/forbidden_keywords/required_keywords
-    are passed as top-level parameters and assembled into coding_ext before sending to the Django API.
+      description          — Problem description (Markdown)
+      input_description    — Input format description
+      output_description   — Output format description
+      hint                 — Hint text
+      test_cases           — [{input_data: "...", output_data: "...", is_sample: true/false,
+                              weight_percent: 25, order: 0}]
+      language_configs     — [{language: "python", template_code: "", is_enabled: true, order: 0}]
+      forbidden_keywords   — ["os.system", "subprocess"]
+      required_keywords    — ["def solve"]
     """
     valid_actions = {"create", "get", "update", "delete"}
     if action not in valid_actions:
@@ -567,8 +565,8 @@ async def qjudge_bank(
         # MCP-level validation warnings for coding questions
         warnings: list[str] = []
         if question_type == "coding":
-            if not translations:
-                warnings.append("missing translations — problem will have no description")
+            if not description:
+                warnings.append("missing description — problem will have no description")
             if not test_cases:
                 warnings.append("missing test_cases — problem will have no test cases")
             if not language_configs:
@@ -590,8 +588,14 @@ async def qjudge_bank(
         # Assemble coding_ext from top-level params for coding questions
         if question_type == "coding":
             coding_ext: dict[str, Any] = {}
-            if translations is not None:
-                coding_ext["translations"] = translations
+            for key, val in [
+                ("description", description),
+                ("input_description", input_description),
+                ("output_description", output_description),
+                ("hint", hint),
+            ]:
+                if val is not None:
+                    coding_ext[key] = val
             if test_cases is not None:
                 coding_ext["test_cases"] = test_cases
             if language_configs is not None:
@@ -622,8 +626,8 @@ async def qjudge_bank(
         # MCP-level validation warnings for coding questions
         warnings = []
         if question_type == "coding":
-            if not translations:
-                warnings.append("missing translations — problem will have no description")
+            if not description:
+                warnings.append("missing description — problem will have no description")
             if not test_cases:
                 warnings.append("missing test_cases — problem will have no test cases")
             if not language_configs:
@@ -647,11 +651,17 @@ async def qjudge_bank(
         # Assemble coding_ext from top-level params only for coding questions.
         # For update without question_type, infer from presence of coding-specific fields.
         is_coding = question_type == "coding"
-        has_coding_fields = any(v is not None for v in [translations, test_cases, language_configs, forbidden_keywords, required_keywords])
+        has_coding_fields = any(v is not None for v in [description, input_description, output_description, hint, test_cases, language_configs, forbidden_keywords, required_keywords])
         if is_coding or (action == "update" and has_coding_fields):
             coding_ext = {}
-            if translations is not None:
-                coding_ext["translations"] = translations
+            for key, val in [
+                ("description", description),
+                ("input_description", input_description),
+                ("output_description", output_description),
+                ("hint", hint),
+            ]:
+                if val is not None:
+                    coding_ext[key] = val
             if test_cases is not None:
                 coding_ext["test_cases"] = test_cases
             if language_configs is not None:
@@ -940,7 +950,10 @@ async def qjudge_coding(
     difficulty: str | None = None,
     time_limit: int | None = None,
     memory_limit: int | None = None,
-    translations: list[dict] | None = None,
+    description: str | None = None,
+    input_description: str | None = None,
+    output_description: str | None = None,
+    hint: str | None = None,
     test_cases: list[dict] | None = None,
     language_configs: list[dict] | None = None,
     forbidden_keywords: list[str] | None = None,
@@ -962,7 +975,8 @@ async def qjudge_coding(
       list             — List coding problems in a contest (required: contest_id)
       get              — Get problem detail (required: contest_id, problem_id)
       create           — Create a new problem in contest (required: contest_id, title;
-                         optional: difficulty, time_limit, memory_limit, translations, test_cases,
+                         optional: difficulty, time_limit, memory_limit, description,
+                         input_description, output_description, hint, test_cases,
                          language_configs, forbidden_keywords, required_keywords)
       update           — Update a problem (required: contest_id, problem_id;
                          optional: same fields as create — only supplied fields are changed)
@@ -972,16 +986,15 @@ async def qjudge_coding(
       test_run         — Execute code against test cases (required: problem_id, language, code)
 
     Field format guide (create/update):
-      translations     — [{language: "zh-hant", title: "...", description: "...",
-                           input_description: "...", output_description: "...", hint: "..."}]
-      test_cases       — [{input_data: "...", output_data: "...", is_sample: true/false,
-                           score: 0, weight_percent: 25}]
-      language_configs — [{language: "python", template_code: "", is_enabled: true, order: 0}]
-      forbidden_keywords — ["os.system", "subprocess"]
-      required_keywords  — ["def solve"]
-
-    Note: Pass translations, test_cases, language_configs as top-level params.
-    Do NOT wrap them in coding_ext — that is only used by qjudge_bank for the Django API.
+      description          — Problem description (Markdown)
+      input_description    — Input format description
+      output_description   — Output format description
+      hint                 — Hint text
+      test_cases           — [{input_data: "...", output_data: "...", is_sample: true/false,
+                              weight_percent: 25, order: 0}]
+      language_configs     — [{language: "python", template_code: "", is_enabled: true, order: 0}]
+      forbidden_keywords   — ["os.system", "subprocess"]
+      required_keywords    — ["def solve"]
     """
     valid_actions = {"list", "get", "create", "update", "import_from_bank", "update_score", "delete", "test_run"}
     if action not in valid_actions:
@@ -1003,12 +1016,18 @@ async def qjudge_coding(
     if action == "test_run" and not code:
         return _error("code is required")
 
-    # Auto-unwrap coding_ext if provided
+    # Auto-unwrap coding_ext if provided (backward compat)
     warnings: list[str] = []
     if coding_ext is not None and isinstance(coding_ext, dict):
-        warnings.append("coding_ext is not needed for qjudge_coding — pass translations, test_cases, language_configs as top-level params")
-        if translations is None and "translations" in coding_ext:
-            translations = coding_ext["translations"]
+        warnings.append("coding_ext is deprecated — pass description, test_cases, language_configs as top-level params")
+        if description is None and "description" in coding_ext:
+            description = coding_ext["description"]
+        if input_description is None and "input_description" in coding_ext:
+            input_description = coding_ext["input_description"]
+        if output_description is None and "output_description" in coding_ext:
+            output_description = coding_ext["output_description"]
+        if hint is None and "hint" in coding_ext:
+            hint = coding_ext["hint"]
         if test_cases is None and "test_cases" in coding_ext:
             test_cases = coding_ext["test_cases"]
         if language_configs is None and "language_configs" in coding_ext:
@@ -1020,8 +1039,8 @@ async def qjudge_coding(
 
     # MCP-level validation warnings for create/update
     if action in {"create", "update"}:
-        if not translations:
-            warnings.append("missing translations — problem will have no description")
+        if not description:
+            warnings.append("missing description — problem will have no description")
         if not test_cases:
             warnings.append("missing test_cases — problem will have no test cases")
         if not language_configs:
@@ -1057,7 +1076,10 @@ async def qjudge_coding(
             ("difficulty", difficulty),
             ("time_limit", time_limit),
             ("memory_limit", memory_limit),
-            ("translations", translations),
+            ("description", description),
+            ("input_description", input_description),
+            ("output_description", output_description),
+            ("hint", hint),
             ("test_cases", test_cases),
             ("language_configs", language_configs),
             ("forbidden_keywords", forbidden_keywords),
@@ -1077,7 +1099,10 @@ async def qjudge_coding(
             ("difficulty", difficulty),
             ("time_limit", time_limit),
             ("memory_limit", memory_limit),
-            ("translations", translations),
+            ("description", description),
+            ("input_description", input_description),
+            ("output_description", output_description),
+            ("hint", hint),
             ("test_cases", test_cases),
             ("language_configs", language_configs),
             ("forbidden_keywords", forbidden_keywords),

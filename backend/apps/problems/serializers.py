@@ -12,16 +12,6 @@ from .models import (
 from .services import ProblemService
 
 
-class TranslationInputSerializer(serializers.Serializer):
-    """Plain serializer for accepting translation data on the write path."""
-    language = serializers.CharField()
-    title = serializers.CharField(allow_blank=True, required=False, default='')
-    description = serializers.CharField(allow_blank=True, required=False, default='')
-    input_description = serializers.CharField(allow_blank=True, required=False, default='')
-    output_description = serializers.CharField(allow_blank=True, required=False, default='')
-    hint = serializers.CharField(allow_blank=True, required=False, default='')
-
-
 class TestCaseSerializer(serializers.ModelSerializer):
     """Serializer for test cases."""
     # Explicitly define fields to preserve whitespace
@@ -194,9 +184,11 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
     """Serializer for problem detail (full info)."""
     title = serializers.SerializerMethodField()
     difficulty = serializers.SerializerMethodField()
-    translation = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    input_description = serializers.SerializerMethodField()
+    output_description = serializers.SerializerMethodField()
+    hint = serializers.SerializerMethodField()
     samples = serializers.SerializerMethodField()
-    translations = serializers.SerializerMethodField()
     test_cases = TestCaseSerializer(many=True, read_only=True)
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
@@ -222,9 +214,11 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
             'acceptance_rate',
             'question_asset_id',
             'question_version_id',
-            'translation',
+            'description',
+            'input_description',
+            'output_description',
+            'hint',
             'samples',
-            'translations',
             'test_cases',
             'language_configs',
             'tags',
@@ -250,31 +244,29 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
                 pass
         return getattr(obj, 'difficulty', 'medium')
 
-    def get_translations(self, obj):
-        """Get translations from QuestionAsset (source of truth)."""
-        if obj.question_asset_id:
-            try:
-                return (obj.question_asset.payload or {}).get("translations", [])
-            except Exception:
-                return []
-        return []
-
-    def get_translation(self, obj):
-        """Get translation for requested language from QuestionAsset."""
+    def _get_content_field(self, obj, field_name):
         if not obj.question_asset_id:
-            return None
+            return ''
         try:
-            translations = (obj.question_asset.payload or {}).get("translations", [])
+            from apps.question_bank.question_assets import extract_content_from_payload
+            payload = obj.question_asset.payload or {}
+            content = extract_content_from_payload(payload)
+            return content.get(field_name, '')
         except Exception:
-            return None
-        if not translations:
-            return None
-        lang = self.context.get('language', 'zh-TW')
-        match_langs = ['zh-TW', 'zh-hant'] if lang == 'zh-TW' else [lang]
-        for t in translations:
-            if t.get("language") in match_langs:
-                return t
-        return translations[0]
+            pass
+        return ''
+
+    def get_description(self, obj):
+        return self._get_content_field(obj, 'description')
+
+    def get_input_description(self, obj):
+        return self._get_content_field(obj, 'input_description')
+
+    def get_output_description(self, obj):
+        return self._get_content_field(obj, 'output_description')
+
+    def get_hint(self, obj):
+        return self._get_content_field(obj, 'hint')
 
     def get_samples(self, obj):
         """Get sample test cases."""
@@ -345,7 +337,10 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     """Serializer for admin/teacher to manage problems."""
     title = serializers.CharField(required=False, default='')
     difficulty = serializers.CharField(required=False, default='medium')
-    translations = TranslationInputSerializer(many=True, required=False)
+    description = serializers.CharField(allow_blank=True, required=False, default='')
+    input_description = serializers.CharField(allow_blank=True, required=False, default='')
+    output_description = serializers.CharField(allow_blank=True, required=False, default='')
+    hint = serializers.CharField(allow_blank=True, required=False, default='')
     test_cases = TestCaseSerializer(many=True, required=False)
     language_configs = LanguageConfigSerializer(many=True, required=False)
     tags = TagSerializer(many=True, read_only=True)  # Read: return full tag objects
@@ -387,7 +382,10 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             'acceptance_rate',
             'question_asset_id',
             'question_version_id',
-            'translations',
+            'description',
+            'input_description',
+            'output_description',
+            'hint',
             'test_cases',
             'language_configs',
             'tags',
@@ -451,7 +449,12 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
             )
 
     def create(self, validated_data):
-        translations_data = validated_data.pop('translations', [])
+        content_fields = {
+            'description': validated_data.pop('description', ''),
+            'input_description': validated_data.pop('input_description', ''),
+            'output_description': validated_data.pop('output_description', ''),
+            'hint': validated_data.pop('hint', ''),
+        }
         test_cases_data = validated_data.pop('test_cases', [])
         language_configs_data = validated_data.pop('language_configs', [])
         existing_tag_ids = validated_data.pop('existing_tag_ids', None)
@@ -461,7 +464,7 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
 
         return ProblemService.create_problem_adapter(
             validated_data=validated_data,
-            translations_data=translations_data,
+            content_fields=content_fields,
             test_cases_data=test_cases_data,
             language_configs_data=language_configs_data,
             existing_tag_ids=existing_tag_ids,
@@ -469,7 +472,12 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         )
     
     def update(self, instance, validated_data):
-        translations_data = validated_data.pop('translations', [])
+        content_fields = {
+            'description': validated_data.pop('description', ''),
+            'input_description': validated_data.pop('input_description', ''),
+            'output_description': validated_data.pop('output_description', ''),
+            'hint': validated_data.pop('hint', ''),
+        }
         test_cases_data = validated_data.pop('test_cases', [])
         language_configs_data = validated_data.pop('language_configs', [])
         existing_tag_ids = validated_data.pop('existing_tag_ids', None)
@@ -480,7 +488,7 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         return ProblemService.update_problem_adapter(
             instance,
             validated_data=validated_data,
-            translations_data=translations_data,
+            content_fields=content_fields,
             test_cases_data=test_cases_data,
             language_configs_data=language_configs_data,
             existing_tag_ids=existing_tag_ids,
@@ -492,10 +500,16 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         # Override content fields from QuestionAsset (source of truth)
         if instance.question_asset_id:
             try:
+                from apps.question_bank.question_assets import extract_content_from_payload
                 asset = instance.question_asset
                 data['title'] = asset.title or data.get('title', '')
                 data['difficulty'] = (asset.payload or {}).get("difficulty", data.get('difficulty', 'medium'))
-                data['translations'] = (asset.payload or {}).get("translations", [])
+                payload = asset.payload or {}
+                content = extract_content_from_payload(payload)
+                data['description'] = content['description']
+                data['input_description'] = content['input_description']
+                data['output_description'] = content['output_description']
+                data['hint'] = content['hint']
             except Exception:
                 pass
         return data

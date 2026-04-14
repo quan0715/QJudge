@@ -11,27 +11,35 @@ from apps.problems.models import Problem, TestCase
 from apps.problems.services import ProblemService
 
 PROBLEM_EXECUTION_FIELDS = {"time_limit", "memory_limit"}
-TRANSLATION_FIELDS = {"title", "description", "input_description", "output_description", "hint"}
+CONTENT_FIELDS = {"description", "input_description", "output_description", "hint"}
 
 
 def execute_create_action(action_obj):
-    """Create problem and translations from canonical payload via ProblemService."""
+    """Create problem from canonical payload via ProblemService."""
     payload = action_obj.payload or {}
 
+    # Read content fields (flat format preferred, legacy translations[] as fallback)
+    content_fields = {}
     translations_data = payload.get("translations")
-    if not isinstance(translations_data, list) or not translations_data:
-        # Fallback: construct translations from top-level fields if present
-        if payload.get("description") or payload.get("title"):
-            translations_data = [{
-                "language": payload.get("language", "zh-TW"),
-                "title": payload.get("title", "Untitled"),
-                "description": payload.get("description", ""),
-                "input_description": payload.get("input_description", ""),
-                "output_description": payload.get("output_description", ""),
-                "hint": payload.get("hint", ""),
-            }]
-        else:
-            raise ValueError("payload.translations is required and must be a non-empty list")
+    if isinstance(translations_data, list) and translations_data:
+        # Legacy format: extract from translations[0]
+        t = translations_data[0] if isinstance(translations_data[0], dict) else {}
+        content_fields = {
+            "description": t.get("description", ""),
+            "input_description": t.get("input_description", ""),
+            "output_description": t.get("output_description", ""),
+            "hint": t.get("hint", ""),
+        }
+    elif payload.get("description") or payload.get("title"):
+        # Flat format
+        content_fields = {
+            "description": payload.get("description", ""),
+            "input_description": payload.get("input_description", ""),
+            "output_description": payload.get("output_description", ""),
+            "hint": payload.get("hint", ""),
+        }
+    else:
+        raise ValueError("payload must contain description or title fields")
 
     # Generate unique slug from title
     title = payload.get("title", "Untitled")
@@ -67,7 +75,7 @@ def execute_create_action(action_obj):
             "memory_limit": payload.get("memory_limit", 128),
             "created_by": action_obj.user,
         },
-        translations_data=translations_data,
+        content_fields=content_fields,
         test_cases_data=tc_list,
     )
 
@@ -81,14 +89,15 @@ def execute_patch_action(action_obj):
     # Build current doc from QuestionAsset (source of truth)
     current_title = ""
     current_difficulty = "medium"
-    current_translations = []
+    current_content = {"description": "", "input_description": "", "output_description": "", "hint": ""}
     if problem.question_asset_id:
         try:
+            from apps.question_bank.question_assets import extract_content_from_payload
             asset = problem.question_asset
             current_title = asset.title or ""
             payload = asset.payload or {}
             current_difficulty = payload.get("difficulty", "medium")
-            current_translations = payload.get("translations", [])
+            current_content = extract_content_from_payload(payload)
         except Exception:
             pass
 
@@ -97,7 +106,10 @@ def execute_patch_action(action_obj):
         "difficulty": current_difficulty,
         "time_limit": problem.time_limit,
         "memory_limit": problem.memory_limit,
-        "translations": current_translations,
+        "description": current_content["description"],
+        "input_description": current_content["input_description"],
+        "output_description": current_content["output_description"],
+        "hint": current_content["hint"],
         "sample_test_cases": [
             {"input": tc.input_data, "output": tc.output_data, "order": tc.order}
             for tc in TestCase.objects.filter(problem=problem, is_sample=True).order_by("order")
@@ -165,22 +177,24 @@ def execute_patch_action(action_obj):
     # Write content changes to QuestionAsset (source of truth)
     title = patched_doc.get("title", current_title)
     difficulty = patched_doc.get("difficulty", current_difficulty)
-    translations = patched_doc.get("translations", current_translations)
+    patched_content = {
+        "description": patched_doc.get("description", current_content["description"]),
+        "input_description": patched_doc.get("input_description", current_content["input_description"]),
+        "output_description": patched_doc.get("output_description", current_content["output_description"]),
+        "hint": patched_doc.get("hint", current_content["hint"]),
+    }
 
     if problem.question_asset_id:
         from apps.question_bank.question_assets import write_coding_content_to_asset
         owner = problem.created_by
-        prompt = ""
-        if translations:
-            first = translations[0]
-            prompt = first.get("description", "") if isinstance(first, dict) else ""
+        prompt = patched_content.get("description", "")
 
         question_asset, question_version = write_coding_content_to_asset(
             owner=owner,
             title=title,
             prompt=prompt,
             difficulty=difficulty,
-            translations=translations,
+            content_fields=patched_content,
             time_limit=problem.time_limit,
             memory_limit=problem.memory_limit,
             test_cases=tc_list or list(problem.test_cases.values(

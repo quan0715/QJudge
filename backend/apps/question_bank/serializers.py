@@ -8,10 +8,18 @@ from .models import QuestionBank, Question, QuestionCodingExt
 
 
 class QuestionCodingExtSerializer(serializers.ModelSerializer):
+    description = serializers.CharField(allow_blank=True, required=False, default='')
+    input_description = serializers.CharField(allow_blank=True, required=False, default='')
+    output_description = serializers.CharField(allow_blank=True, required=False, default='')
+    hint = serializers.CharField(allow_blank=True, required=False, default='')
+
     class Meta:
         model = QuestionCodingExt
         fields = [
-            "translations",
+            "description",
+            "input_description",
+            "output_description",
+            "hint",
             "test_cases",
             "language_configs",
             "forbidden_keywords",
@@ -20,7 +28,10 @@ class QuestionCodingExtSerializer(serializers.ModelSerializer):
 
 
 class QuestionCodingExtReadSerializer(serializers.Serializer):
-    translations = serializers.ListField(required=False)
+    description = serializers.CharField(allow_blank=True, required=False, default='')
+    input_description = serializers.CharField(allow_blank=True, required=False, default='')
+    output_description = serializers.CharField(allow_blank=True, required=False, default='')
+    hint = serializers.CharField(allow_blank=True, required=False, default='')
     test_cases = serializers.ListField(required=False)
     language_configs = serializers.ListField(required=False)
     forbidden_keywords = serializers.ListField(required=False)
@@ -56,7 +67,10 @@ class QuestionBankItemWriteSerializer(serializers.ModelSerializer):
         if question_type == Question.QuestionType.CODING and coding_ext is None and self.instance is None:
             # Keep payload contract explicit for coding question creation.
             attrs["coding_ext"] = {
-                "translations": [],
+                "description": "",
+                "input_description": "",
+                "output_description": "",
+                "hint": "",
                 "test_cases": [],
                 "language_configs": [],
                 "forbidden_keywords": [],

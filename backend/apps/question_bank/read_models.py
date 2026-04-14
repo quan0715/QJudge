@@ -99,19 +99,30 @@ def _question_type_for_asset_type(asset_type: str) -> str:
 
 
 def _coding_ext_from_membership(membership: QuestionBankMembership, payload: dict) -> dict | None:
+    from .question_assets import extract_content_from_payload
+
     legacy_question = membership.legacy_question
     if legacy_question and hasattr(legacy_question, "coding_ext"):
+        ext = legacy_question.coding_ext
+        # Flatten legacy translations[0] to top-level content fields
+        legacy_translations = ext.translations or []
+        if legacy_translations and isinstance(legacy_translations, list):
+            t = legacy_translations[0] if isinstance(legacy_translations[0], dict) else {}
+            content = {k: t.get(k, "") for k in ("description", "input_description", "output_description", "hint")}
+        else:
+            content = {"description": "", "input_description": "", "output_description": "", "hint": ""}
         return {
-            "translations": legacy_question.coding_ext.translations or [],
-            "test_cases": legacy_question.coding_ext.test_cases or [],
-            "language_configs": legacy_question.coding_ext.language_configs or [],
-            "forbidden_keywords": legacy_question.coding_ext.forbidden_keywords or [],
-            "required_keywords": legacy_question.coding_ext.required_keywords or [],
+            **content,
+            "test_cases": ext.test_cases or [],
+            "language_configs": ext.language_configs or [],
+            "forbidden_keywords": ext.forbidden_keywords or [],
+            "required_keywords": ext.required_keywords or [],
         }
     if membership.question_asset.asset_type != QuestionAsset.AssetType.CODING:
         return None
+    content = extract_content_from_payload(payload)
     return {
-        "translations": payload.get("translations") or [],
+        **content,
         "test_cases": payload.get("test_cases") or [],
         "language_configs": payload.get("language_configs") or [],
         "forbidden_keywords": payload.get("forbidden_keywords") or [],
@@ -196,16 +207,26 @@ def _build_legacy_bank_question_read_row(
     coding_ext = None
     if question.question_type == Question.QuestionType.CODING:
         if hasattr(question, "coding_ext"):
+            ext = question.coding_ext
+            legacy_translations = ext.translations or []
+            if legacy_translations and isinstance(legacy_translations, list):
+                t = legacy_translations[0] if isinstance(legacy_translations[0], dict) else {}
+                content = {k: t.get(k, "") for k in ("description", "input_description", "output_description", "hint")}
+            else:
+                content = {"description": "", "input_description": "", "output_description": "", "hint": ""}
             coding_ext = {
-                "translations": question.coding_ext.translations or [],
-                "test_cases": question.coding_ext.test_cases or [],
-                "language_configs": question.coding_ext.language_configs or [],
-                "forbidden_keywords": question.coding_ext.forbidden_keywords or [],
-                "required_keywords": question.coding_ext.required_keywords or [],
+                **content,
+                "test_cases": ext.test_cases or [],
+                "language_configs": ext.language_configs or [],
+                "forbidden_keywords": ext.forbidden_keywords or [],
+                "required_keywords": ext.required_keywords or [],
             }
         else:
             coding_ext = {
-                "translations": [],
+                "description": "",
+                "input_description": "",
+                "output_description": "",
+                "hint": "",
                 "test_cases": [],
                 "language_configs": [],
                 "forbidden_keywords": [],
