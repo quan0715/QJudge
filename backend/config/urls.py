@@ -25,7 +25,6 @@ urlpatterns = [
         'api/v1/management/problems/',
         include(('apps.problems.urls', 'problems'), namespace='management-problems'),
     ),
-    path('api/v1/problems/', include('apps.problems.urls')),
     path('api/v1/submissions/', include('apps.submissions.urls')),
     path('api/v1/contests/', include('apps.contests.urls')),
     path('api/v1/classrooms/', include('apps.classrooms.urls')),

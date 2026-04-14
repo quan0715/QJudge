@@ -1145,7 +1145,7 @@ def test_qjudge_coding_test_run(monkeypatch):
     assert result == {"results": [{"status": "AC"}]}
     assert captured == {
         "method": "POST",
-        "path": "/api/v1/problems/p-1/test_run/",
+        "path": "/api/v1/management/problems/p-1/test_run/",
         "json_body": {"language": "python", "code": "print(1+2)", "use_samples": True},
     }
 

@@ -644,20 +644,24 @@ async def qjudge_bank(
             if val is not None:
                 body[key] = val
 
-        # Assemble coding_ext from top-level params
-        coding_ext = {}
-        if translations is not None:
-            coding_ext["translations"] = translations
-        if test_cases is not None:
-            coding_ext["test_cases"] = test_cases
-        if language_configs is not None:
-            coding_ext["language_configs"] = language_configs
-        if forbidden_keywords is not None:
-            coding_ext["forbidden_keywords"] = forbidden_keywords
-        if required_keywords is not None:
-            coding_ext["required_keywords"] = required_keywords
-        if coding_ext:
-            body["coding_ext"] = coding_ext
+        # Assemble coding_ext from top-level params only for coding questions.
+        # For update without question_type, infer from presence of coding-specific fields.
+        is_coding = question_type == "coding"
+        has_coding_fields = any(v is not None for v in [translations, test_cases, language_configs, forbidden_keywords, required_keywords])
+        if is_coding or (action == "update" and has_coding_fields):
+            coding_ext = {}
+            if translations is not None:
+                coding_ext["translations"] = translations
+            if test_cases is not None:
+                coding_ext["test_cases"] = test_cases
+            if language_configs is not None:
+                coding_ext["language_configs"] = language_configs
+            if forbidden_keywords is not None:
+                coding_ext["forbidden_keywords"] = forbidden_keywords
+            if required_keywords is not None:
+                coding_ext["required_keywords"] = required_keywords
+            if coding_ext:
+                body["coding_ext"] = coding_ext
 
         if not body:
             return _error("No fields to update")
@@ -1113,7 +1117,7 @@ async def qjudge_coding(
         }
         if custom_test_cases is not None:
             body["custom_test_cases"] = custom_test_cases
-        return await django_api("POST", f"/api/v1/problems/{problem_id}/test_run/", ctx, json_body=body)
+        return await django_api("POST", f"/api/v1/management/problems/{problem_id}/test_run/", ctx, json_body=body)
 
     return _error(f"Unknown action: {action}")
 
