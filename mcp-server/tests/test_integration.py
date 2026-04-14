@@ -266,7 +266,7 @@ class TestGrading:
 class TestMCPProtocol:
     """Verify the MCP server works at protocol level via in-memory transport."""
 
-    EXPECTED_TOOLS = {"qjudge_browse", "qjudge_bank", "qjudge_exam", "qjudge_grading", "qjudge_coding"}
+    EXPECTED_TOOLS = {"qjudge_browse", "qjudge_bank", "qjudge_exam", "qjudge_grading", "qjudge_coding", "qjudge_code_runner"}
 
     def test_list_tools(self):
         from mcp.shared.memory import create_connected_server_and_client_session

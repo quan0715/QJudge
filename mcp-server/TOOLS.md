@@ -7,15 +7,16 @@
 
 ## Overview
 
-QJudge MCP Server 提供 5 個工具，透過 `action` 參數路由到不同操作。
+QJudge MCP Server 提供 6 個工具，每個工具有明確的職責邊界。
 
-| Tool | Purpose | Scope |
+| Tool | Purpose | Do NOT use for |
 |---|---|---|
-| `qjudge_browse` | 唯讀查詢 | classrooms, contests, banks |
-| `qjudge_bank` | 題庫題目 CRUD | question bank items |
-| `qjudge_exam` | 競賽筆試題管理 | paper_exam contests |
-| `qjudge_coding` | 競賽程式題管理 + test_run | coding contests |
-| `qjudge_grading` | 改卷 | exam answers |
+| `qjudge_browse` | 唯讀查詢 | 任何寫入操作 |
+| `qjudge_bank` | 題庫題目 CRUD | 競賽題目管理 |
+| `qjudge_exam` | 競賽筆試題管理 | coding contests, code execution |
+| `qjudge_coding` | 競賽程式題管理 | code execution, paper_exam contests |
+| `qjudge_code_runner` | 程式碼執行驗證 | 題目 CRUD |
+| `qjudge_grading` | 改卷 | 題目 CRUD |
 
 ---
 
@@ -249,10 +250,6 @@ mode         → batch_create only
 | `required_keywords` | list[str]? | create, update |
 | `items` | list[dict]? | import_from_bank |
 | `max_score` | int? | update_score |
-| `language` | string? | test_run |
-| `code` | string? | test_run |
-| `use_samples` | bool | test_run (default: true) |
-| `custom_test_cases` | list[dict]? | test_run |
 
 ### Actions
 
@@ -265,7 +262,6 @@ mode         → batch_create only
 | `import_from_bank` | contest_id, items | — |
 | `update_score` | contest_id, problem_id, max_score | — |
 | `delete` | contest_id, problem_id | — |
-| `test_run` | problem_id, language, code | use_samples, custom_test_cases |
 
 ### Create 完整範例
 
@@ -347,6 +343,34 @@ mode         → batch_create only
 
 ---
 
+## qjudge_code_runner
+
+**程式碼執行驗證**。對一道 coding 題跑程式碼，取得執行結果。
+
+不需要 `action` 參數 — 這個工具只做一件事。
+
+### Parameters
+
+| Param | Type | Required | Notes |
+|---|---|---|---|
+| `problem_id` | string | yes | 要測試的 coding problem ID |
+| `language` | string | yes | `cpp`, `python`, `java`, `javascript` |
+| `code` | string | yes | 要執行的原始碼 |
+| `use_samples` | bool | no | 是否跑 sample test cases（default: true） |
+| `custom_test_cases` | list[dict]? | no | 自訂測資 [{input, expected_output}] |
+
+### 範例
+
+```json
+{
+  "problem_id": "...",
+  "language": "python",
+  "code": "a, b = map(int, input().split())\nprint(a + b)"
+}
+```
+
+---
+
 ## Common Mistakes
 
 | 錯誤 | 正確做法 |
@@ -359,3 +383,5 @@ mode         → batch_create only
 | `question_ids` 傳給 delete | delete 只接受單一 `question_id` |
 | `items` 傳給 create | create 是單題，批量用 `batch_create` |
 | 用 `qjudge_browse` 建題目 | browse 是唯讀，建題用 `qjudge_bank` |
+| 用 `qjudge_coding` 跑程式碼 | 用 `qjudge_code_runner`，coding 只管題目 CRUD |
+| exam 欄位傳給 coding 題 | coding 題用 description/test_cases，不用 options/correct_answer |
