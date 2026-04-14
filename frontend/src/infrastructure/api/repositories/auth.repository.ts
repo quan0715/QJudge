@@ -122,19 +122,25 @@ export const uploadAvatar = async (file: File): Promise<UploadAvatarResponseDto>
 // ============================================================================
 
 export const searchUsers = async (query: string): Promise<UserSearchResponseDto> => {
+  const trimmedQuery = query.trim();
+  const searchParams = new URLSearchParams();
+  if (trimmedQuery) {
+    searchParams.set("q", trimmedQuery);
+  }
+
   return requestJson<UserSearchResponseDto>(
-    httpClient.get(`/api/v1/management/users/?search=${encodeURIComponent(query)}`),
+    httpClient.get(
+      searchParams.size > 0
+        ? `/api/v1/auth/search?${searchParams.toString()}`
+        : "/api/v1/auth/search"
+    ),
     "Failed to search users"
   );
 };
 
-export const deleteUser = async (id: number | string): Promise<void> => {
-  await ensureOk(httpClient.delete(`/api/v1/management/users/${id}/`), "Failed to delete user");
-};
-
 export const updateUserRole = async (id: number | string, role: string): Promise<any> => {
   return requestJson<any>(
-    httpClient.patch(`/api/v1/management/users/${id}/`, { role }),
+    httpClient.patch(`/api/v1/auth/${id}/role`, { role }),
     "Failed to update user role"
   );
 };
@@ -151,7 +157,7 @@ export const issueTeacherActivationInvite = async (
   email: string
 ): Promise<TeacherActivationIssueResponseDto> => {
   return requestJson<TeacherActivationIssueResponseDto>(
-    httpClient.post("/api/v1/management/teacher-invites/", { email }),
+    httpClient.post("/api/v1/auth/teacher-activations", { email }),
     "Failed to issue invite"
   );
 };
@@ -272,7 +278,6 @@ export const authRepository = {
   updatePreferences,
   uploadAvatar,
   searchUsers,
-  deleteUser,
   updateUserRole,
   logoutOtherDevices,
   issueTeacherActivationInvite,
