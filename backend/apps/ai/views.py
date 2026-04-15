@@ -13,7 +13,6 @@ from .services.session_runtime import (
     ChatStreamRuntime,
     ResumeStreamRuntime,
     build_sse_response,
-    get_active_user_api_key,
     submit_pending_answer,
 )
 from .serializers import (
@@ -109,14 +108,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        # 取得使用者的 API Key（若有設定）
-        user_api_key = get_active_user_api_key(request.user)
-        if not user_api_key:
-            return Response(
-                {"error": "請先在設定頁面設定您的 API Key"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         # 獲取或創建 session
         session = None
 
@@ -156,7 +147,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
             content=content,
             validated_data=serializer.validated_data,
             skill=skill,
-            user_api_key=user_api_key,
         )
         return build_sse_response(runtime.generate())
 
@@ -256,6 +246,20 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+    @action(detail=False, methods=["get"], url_path="credit")
+    def credit(self, request):
+        """GET /api/v1/ai/sessions/credit/ — return current user's AI usage."""
+        from .models import UserAICredit
+        credit_obj, _ = UserAICredit.objects.get_or_create(user=request.user)
+        return Response({
+            "total_input_tokens": credit_obj.total_input_tokens,
+            "total_output_tokens": credit_obj.total_output_tokens,
+            "total_requests": credit_obj.total_requests,
+            "total_cost_cents": credit_obj.total_cost_cents,
+            "total_cost_usd": str(credit_obj.total_cost_usd),
+            "updated_at": credit_obj.updated_at,
+        })
+
     @action(detail=True, methods=["post"])
     def resume_stream(self, request, pk=None):
         """Resume an interrupted agent and stream the result.
@@ -278,14 +282,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # 取得使用者的 API Key（若有設定）
-        user_api_key = get_active_user_api_key(request.user)
-        if not user_api_key:
-            return Response(
-                {"error": "請先在設定頁面設定您的 API Key"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         # Look up existing session
         try:
             session = AISession.objects.get(session_id=pk, user=request.user)
@@ -299,7 +295,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
             user=request.user,
             session=session,
             decision=decision,
-            user_api_key=user_api_key,
         )
         return build_sse_response(runtime.generate())
 
@@ -317,22 +312,10 @@ class ModelListView(SchemaAPIView):
 
     MODELS = [
         {
-            "model_id": "claude-haiku",
-            "display_name": "Claude Haiku",
-            "description": "快速、低成本",
-            "is_default": False,
-        },
-        {
-            "model_id": "claude-sonnet",
-            "display_name": "Claude Sonnet",
-            "description": "平衡效能與成本",
+            "model_id": "deepseek-r1",
+            "display_name": "DeepSeek R1",
+            "description": "推理能力強，支援 thinking",
             "is_default": True,
-        },
-        {
-            "model_id": "claude-opus",
-            "display_name": "Claude Opus",
-            "description": "最強推理能力",
-            "is_default": False,
         },
     ]
 

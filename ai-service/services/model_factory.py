@@ -1,45 +1,42 @@
-"""Model factory for mapping canonical model IDs to Anthropic model strings."""
+"""Model factory — abstraction layer for LLM provider switching.
+
+To switch models, change _MODEL_MAP and PRICING. Everything else
+(deepagent_runner, routers, config) reads from here.
+"""
 
 import logging
 
-from langchain_anthropic import ChatAnthropic
+from langchain_deepseek import ChatDeepSeek
+
+from config import get_settings
 
 logger = logging.getLogger(__name__)
 
-# Canonical model ID -> Anthropic model string
+# Canonical model ID -> provider model string
 _MODEL_MAP: dict[str, str] = {
-    "claude-haiku": "claude-haiku-4-5-20251001",
-    "claude-sonnet": "claude-sonnet-4-6",
-    "claude-opus": "claude-opus-4-6",
+    "deepseek-r1": "deepseek-reasoner",
 }
 
-_DEFAULT_MODEL_ID = "claude-sonnet"
+_DEFAULT_MODEL_ID = "deepseek-r1"
+
+# Pricing in cents per million tokens (single source of truth)
+PRICING: dict[str, dict[str, int]] = {
+    "deepseek-r1": {"input": 28, "output": 42},
+}
 
 # Model display info for the /models API
 MODEL_INFO = [
     {
-        "model_id": "claude-haiku",
-        "display_name": "Haiku 4.5",
-        "description": "快速、低成本",
-        "is_default": False,
-    },
-    {
-        "model_id": "claude-sonnet",
-        "display_name": "Sonnet 4.6",
-        "description": "平衡效能與成本",
+        "model_id": "deepseek-r1",
+        "display_name": "DeepSeek R1",
+        "description": "推理能力強，支援 thinking",
         "is_default": True,
-    },
-    {
-        "model_id": "claude-opus",
-        "display_name": "Opus 4.6",
-        "description": "最強推理能力",
-        "is_default": False,
     },
 ]
 
 
 class ModelFactory:
-    """Factory for creating LangChain ChatAnthropic model instances."""
+    """Factory for creating LLM model instances."""
 
     @staticmethod
     def resolve_model_string(model_id: str) -> str:
@@ -54,22 +51,14 @@ class ModelFactory:
         return resolved
 
     @staticmethod
-    def create_model(
-        model_id: str = _DEFAULT_MODEL_ID,
-        api_key: str | None = None,
-    ) -> ChatAnthropic:
-        """Create a ChatAnthropic instance.
-
-        If api_key is None, ChatAnthropic reads from ANTHROPIC_API_KEY env var.
-        """
+    def create_model(model_id: str = _DEFAULT_MODEL_ID):
+        """Create a ChatDeepSeek instance using the platform API key."""
         model_string = ModelFactory.resolve_model_string(model_id)
-        logger.info("Creating ChatAnthropic model=%s (from '%s')", model_string, model_id)
+        api_key = get_settings().deepseek_api_key
+        logger.info("Creating ChatDeepSeek model=%s (from '%s')", model_string, model_id)
 
-        kwargs: dict = {
-            "model": model_string,
-            "streaming": True,
-        }
-        if api_key is not None:
-            kwargs["api_key"] = api_key
-
-        return ChatAnthropic(**kwargs)
+        return ChatDeepSeek(
+            model=model_string,
+            api_key=api_key or None,
+            streaming=True,
+        )

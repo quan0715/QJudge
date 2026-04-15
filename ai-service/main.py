@@ -24,8 +24,8 @@ async def lifespan(app: FastAPI):
     """Application lifespan — init DeepAgent runner on startup."""
     settings = get_settings()
 
-    if not settings.anthropic_api_key:
-        logger.warning("ANTHROPIC_API_KEY not set — LLM calls will fail")
+    if not settings.deepseek_api_key:
+        logger.warning("DEEPSEEK_API_KEY not set — LLM calls will fail")
     if not settings.ai_internal_token.strip():
         raise RuntimeError("AI_INTERNAL_TOKEN must be set and non-empty")
 
@@ -81,7 +81,7 @@ app = create_app()
 async def health_check() -> HealthResponse:
     settings = get_settings()
     checkpoint_status = "connected" if settings.ai_state_postgres_url else "not_configured"
-    overall = "healthy" if settings.anthropic_api_key else "degraded"
+    overall = "healthy" if settings.deepseek_api_key else "degraded"
     return HealthResponse(
         status=overall,
         version=settings.app_version,

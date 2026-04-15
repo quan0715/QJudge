@@ -3,7 +3,6 @@ import i18n from "i18next";
 import type {
   BackgroundInformation,
   ChatMessage,
-  ChatModel,
   ChatSession,
   UserInputRequest,
   ChatContext,
@@ -23,7 +22,7 @@ interface UseChatbotReturn {
   deleteSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
-  sendMessage: (content: string, modelId?: ChatModel) => Promise<void>;
+  sendMessage: (content: string) => Promise<void>;
   stopStreaming: () => void;
   refreshSessions: () => Promise<void>;
   submitUserInput: (
@@ -283,7 +282,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
    * 發送訊息（使用串流）
    */
   const sendMessage = useCallback(
-    async (content: string, modelId?: ChatModel) => {
+    async (content: string) => {
       if (!content.trim() || !currentSessionId) return;
 
       const trimmedContent = content.trim();
@@ -436,7 +435,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
           },
           {
-            model: modelId,
             context: effectiveContext ?? undefined,
             skill: undefined,
             signal: abortController.signal,

@@ -103,15 +103,9 @@ class SendMessageStreamSerializer(serializers.Serializer):
 
     content = serializers.CharField(max_length=10000)
     model_id = serializers.ChoiceField(
-        choices=["claude-haiku", "claude-sonnet", "claude-opus"],
+        choices=["deepseek-r1"],
         required=False,
-        default="claude-sonnet",
-    )
-    api_key_override = serializers.CharField(
-        max_length=200,
-        required=False,
-        allow_null=True,
-        write_only=True,
+        default="deepseek-r1",
     )
     skill = serializers.CharField(max_length=100, required=False, allow_null=True)
 

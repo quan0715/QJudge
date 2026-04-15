@@ -85,8 +85,6 @@ async def generate_sse_events(
         messages.append({"role": msg.role.value, "content": msg.content})
     messages.append({"role": "user", "content": user_content})
 
-    # Determine API key (override takes priority, never logged)
-    api_key = request.api_key_override  # None falls back to env var in ModelFactory
     request_context = RequestContext(
         user_authorization=app_request.headers.get("X-QJudge-User-Authorization"),
     )
@@ -96,7 +94,6 @@ async def generate_sse_events(
             thread_id=request.thread_id,
             messages=messages,
             model_id=request.model_id,
-            api_key=api_key,
             system_prompt=system_prompt,
             session_id=request.session_id,
             user_id=request.user_id,
@@ -147,7 +144,6 @@ async def generate_resume_events(
         async for sse_dict in runner.resume_stream(
             thread_id=request.thread_id,
             decision=request.decision,
-            api_key=request.api_key_override,
             session_id=request.session_id,
             user_id=request.user_id,
             request_context=request_context,

@@ -1,5 +1,7 @@
 """AI Chat models for session and message storage."""
 
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 
@@ -186,7 +188,7 @@ class AIExecutionLog(models.Model):
     )
     model_used = models.CharField(
         max_length=50,
-        default='haiku',
+        default='deepseek-r1',
         verbose_name="使用的模型",
         help_text="使用的 Claude 模型版本"
     )
@@ -203,3 +205,29 @@ class AIExecutionLog(models.Model):
     def __str__(self):
         user_str = self.user.username if self.user else "Anonymous"
         return f"AILog #{self.pk} - {user_str} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+
+
+class UserAICredit(models.Model):
+    """Per-user cumulative AI usage tracking."""
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ai_credit",
+        verbose_name="用戶",
+    )
+    total_input_tokens = models.BigIntegerField(default=0, verbose_name="累計輸入 tokens")
+    total_output_tokens = models.BigIntegerField(default=0, verbose_name="累計輸出 tokens")
+    total_requests = models.IntegerField(default=0, verbose_name="累計請求數")
+    total_cost_cents = models.BigIntegerField(default=0, verbose_name="累計費用 (cents)")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="最後更新")
+
+    class Meta:
+        verbose_name = "AI Credit 使用紀錄"
+        verbose_name_plural = "AI Credit 使用紀錄"
+
+    @property
+    def total_cost_usd(self):
+        return Decimal(self.total_cost_cents) / 100
+
+    def __str__(self):
+        return f"AICredit {self.user} - {self.total_requests} reqs, ${self.total_cost_usd}"

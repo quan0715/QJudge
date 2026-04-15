@@ -26,7 +26,6 @@ from .teacher_activation import (
     TeacherActivationInviteIssueView,
     TeacherActivationInvitePreviewView,
 )
-from .api_key import UserAPIKeyView, ValidateAPIKeyView, GetUsageStatsView
 from ._impl import LoginRecordsView, LogoutOtherDevicesView
 
 __all__ = [
@@ -53,9 +52,6 @@ __all__ = [
     "ChangePasswordView",
     "ForgotPasswordView",
     "ResetPasswordView",
-    "UserAPIKeyView",
-    "ValidateAPIKeyView",
-    "GetUsageStatsView",
     "LoginRecordsView",
     "LogoutOtherDevicesView",
 ]

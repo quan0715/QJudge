@@ -105,12 +105,11 @@ class DeepAgentRunner:
     def _build_agent(
         self,
         model_id: str,
-        api_key: str | None,
         system_prompt: str | None,
         tools: list[Any],
     ):
-        """Build a DeepAgent with tools and interrupt_on for commit gates."""
-        model = ModelFactory.create_model(model_id=model_id, api_key=api_key)
+        """Build a DeepAgent with tools."""
+        model = ModelFactory.create_model(model_id=model_id)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
 
         agent = create_deep_agent(
@@ -125,24 +124,17 @@ class DeepAgentRunner:
     def _get_or_build_agent(
         self,
         model_id: str,
-        api_key: str | None,
         system_prompt: str | None,
         tools: list[Any],
     ):
-        """Return a cached agent graph, or build and cache a new one.
-
-        Agents with api_key override always bypass the cache.
-        """
-        if api_key:
-            return self._build_agent(model_id, api_key, system_prompt, tools)
-
+        """Return a cached agent graph, or build and cache a new one."""
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
         prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()
         cache_key: _AgentCacheKey = (model_id, prompt_hash)
 
         if cache_key not in self._agent_cache:
             self._agent_cache[cache_key] = self._build_agent(
-                model_id, None, system_prompt, tools
+                model_id, system_prompt, tools
             )
         return self._agent_cache[cache_key]
 
@@ -270,8 +262,7 @@ class DeepAgentRunner:
         self,
         thread_id: str | None,
         messages: list[dict[str, str]],
-        model_id: str = "claude-sonnet",
-        api_key: str | None = None,
+        model_id: str = "deepseek-r1",
         system_prompt: str | None = None,
         session_id: str | None = None,
         user_id: int | None = None,
@@ -282,11 +273,10 @@ class DeepAgentRunner:
         Args:
             thread_id: Existing thread ID to resume, or None for new thread.
             messages: List of {"role": ..., "content": ...} messages.
-            model_id: Canonical model ID (claude-haiku/sonnet/opus).
-            api_key: Optional API key override (not persisted).
+            model_id: Canonical model ID.
             system_prompt: Optional system prompt override.
-            session_id: Backend session ID (for write tool binding).
-            user_id: Backend user ID (for write tool binding).
+            session_id: Backend session ID.
+            user_id: Backend user ID.
 
         Yields:
             SSE-serialisable dicts matching the v2 event contract.
@@ -302,7 +292,7 @@ class DeepAgentRunner:
             ),
         ) as tool_provider:
             tools = await tool_provider.load_tools()
-            agent = self._get_or_build_agent(model_id, api_key, system_prompt, tools)
+            agent = self._get_or_build_agent(model_id, system_prompt, tools)
 
             config = {
                 "configurable": {"thread_id": thread_id},
@@ -324,8 +314,7 @@ class DeepAgentRunner:
         self,
         thread_id: str,
         decision: str,
-        model_id: str = "claude-sonnet",
-        api_key: str | None = None,
+        model_id: str = "deepseek-r1",
         system_prompt: str | None = None,
         session_id: str | None = None,
         user_id: int | None = None,
@@ -337,10 +326,9 @@ class DeepAgentRunner:
             thread_id: The thread ID of the interrupted agent.
             decision: "approve" or "reject".
             model_id: Canonical model ID.
-            api_key: Optional API key override.
             system_prompt: Optional system prompt override.
-            session_id: Backend session ID (for write tool binding).
-            user_id: Backend user ID (for write tool binding).
+            session_id: Backend session ID.
+            user_id: Backend user ID.
 
         Yields:
             SSE-serialisable dicts.
@@ -354,7 +342,7 @@ class DeepAgentRunner:
             ),
         ) as tool_provider:
             tools = await tool_provider.load_tools()
-            agent = self._get_or_build_agent(model_id, api_key, system_prompt, tools)
+            agent = self._get_or_build_agent(model_id, system_prompt, tools)
 
             config = {
                 "configurable": {"thread_id": thread_id},
@@ -376,11 +364,8 @@ class DeepAgentRunner:
         output_tokens: int,
     ) -> int:
         """Calculate cost in cents based on model pricing."""
-        pricing = {
-            "claude-haiku": {"input": 100, "output": 500},
-            "claude-sonnet": {"input": 300, "output": 1500},
-            "claude-opus": {"input": 500, "output": 2500},
-        }
-        rates = pricing.get(model_id, pricing["claude-sonnet"])
+        from services.model_factory import PRICING, _DEFAULT_MODEL_ID
+
+        rates = PRICING.get(model_id, PRICING[_DEFAULT_MODEL_ID])
         cost = (input_tokens * rates["input"] + output_tokens * rates["output"]) / 1_000_000
         return round(cost)

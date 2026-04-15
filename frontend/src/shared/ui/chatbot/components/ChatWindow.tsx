@@ -12,7 +12,6 @@ import {
 import { Edit, ChevronRight, Idea, DocumentAdd, CheckmarkOutline, Edit as EditIcon } from "@carbon/icons-react";
 import type {
   ChatMessage,
-  ChatModel,
   ChatSession,
   BackgroundInformation,
   UserInputRequest,
@@ -30,7 +29,7 @@ export interface ChatWindowProps {
   isLoading: boolean;
   isStreaming: boolean;
   error: string | null;
-  onSend: (message: string, modelId?: ChatModel) => void;
+  onSend: (message: string) => void;
   onStopStreaming?: () => void;
   onCreateSession: () => void;
   onSwitchSession: (sessionId: string) => void;

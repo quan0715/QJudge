@@ -24,18 +24,6 @@ from .stream_proxy import (
 logger = logging.getLogger(__name__)
 
 
-def get_active_user_api_key(user) -> str | None:
-    """Return the user's active API key, if one is configured."""
-    try:
-        user_api_key = user.api_key
-    except Exception:
-        return None
-
-    if not user_api_key.is_active:
-        return None
-    return user_api_key.get_key()
-
-
 def submit_pending_answer(request_id: str, answers: dict[str, str]) -> dict[str, Any]:
     """Submit answers for a pending user-input request."""
     submit_coro = get_ai_client().submit_user_answer
@@ -140,7 +128,6 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
         content: str,
         validated_data: dict[str, Any],
         skill: str | None,
-        user_api_key: str,
     ) -> None:
         self.user = user
         self.backend_session_id = backend_session_id
@@ -148,7 +135,6 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
         self.content = content
         self.validated_data = validated_data
         self.skill = skill
-        self.user_api_key = user_api_key
 
         self.full_response = ""
         self.stream_error: str | None = None
@@ -163,7 +149,6 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
         payload: dict[str, Any] = {
             "content": self.content,
             "conversation": [],
-            "api_key_override": self.user_api_key,
             "user_id": self.user.id,
         }
 
@@ -290,10 +275,25 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
             raw_log=log_metadata,
             metadata=log_metadata,
         )
-        self.log.input_tokens = self.collected_usage.get("input_tokens", 0) if self.collected_usage else 0
-        self.log.output_tokens = self.collected_usage.get("output_tokens", 0) if self.collected_usage else 0
-        self.log.cost_cents = self.collected_usage.get("cost_cents", 0) if self.collected_usage else 0
+        input_tokens = self.collected_usage.get("input_tokens", 0) if self.collected_usage else 0
+        output_tokens = self.collected_usage.get("output_tokens", 0) if self.collected_usage else 0
+        cost_cents = self.collected_usage.get("cost_cents", 0) if self.collected_usage else 0
+
+        self.log.input_tokens = input_tokens
+        self.log.output_tokens = output_tokens
+        self.log.cost_cents = cost_cents
         self.log.save()
+
+        from apps.ai.models import UserAICredit
+        from django.db.models import F
+
+        UserAICredit.objects.get_or_create(user=self.user)
+        UserAICredit.objects.filter(user=self.user).update(
+            total_input_tokens=F("total_input_tokens") + (input_tokens or 0),
+            total_output_tokens=F("total_output_tokens") + (output_tokens or 0),
+            total_requests=F("total_requests") + 1,
+            total_cost_cents=F("total_cost_cents") + (cost_cents or 0),
+        )
 
     def generate(self) -> Generator[str, None, None]:
         if self.session:
@@ -334,12 +334,10 @@ class ResumeStreamRuntime(BaseAIStreamRuntime):
         user,
         session: AISession,
         decision: str,
-        user_api_key: str,
     ) -> None:
         self.user = user
         self.session = session
         self.decision = decision
-        self.user_api_key = user_api_key
 
         self.full_response = ""
         self.collected_usage: dict[str, Any] | None = None
@@ -364,7 +362,6 @@ class ResumeStreamRuntime(BaseAIStreamRuntime):
             "decision": self.decision,
             "session_id": self.session.session_id,
             "user_id": self.user.id,
-            "api_key_override": self.user_api_key,
         }
 
     def _persist_response(self) -> None:
@@ -383,6 +380,22 @@ class ResumeStreamRuntime(BaseAIStreamRuntime):
 
         self.session.updated_at = timezone.now()
         self.session.save(update_fields=["updated_at"])
+
+        if self.collected_usage:
+            from apps.ai.models import UserAICredit
+            from django.db.models import F
+
+            input_tokens = self.collected_usage.get("input_tokens") or 0
+            output_tokens = self.collected_usage.get("output_tokens") or 0
+            cost_cents = self.collected_usage.get("cost_cents") or 0
+
+            UserAICredit.objects.get_or_create(user=self.user)
+            UserAICredit.objects.filter(user=self.user).update(
+                total_input_tokens=F("total_input_tokens") + input_tokens,
+                total_output_tokens=F("total_output_tokens") + output_tokens,
+                total_requests=F("total_requests") + 1,
+                total_cost_cents=F("total_cost_cents") + cost_cents,
+            )
 
     def generate(self) -> Generator[str, None, None]:
         yield from self._proxy_stream(

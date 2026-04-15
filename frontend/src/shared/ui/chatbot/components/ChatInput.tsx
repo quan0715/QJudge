@@ -1,35 +1,12 @@
 import type { FC, KeyboardEvent } from "react";
-import { useState, useCallback, useRef, useEffect } from "react";
-import { IconButton, Dropdown, Tag } from "@carbon/react";
+import { useState, useCallback, useRef } from "react";
+import { IconButton, Tag } from "@carbon/react";
 import { ArrowUp, StopFilled, Information } from "@carbon/icons-react";
-import type { BackgroundInformation, ChatModel } from "@/core/types/chatbot.types";
+import type { BackgroundInformation } from "@/core/types/chatbot.types";
 import styles from "./ChatInput.module.scss";
 
-const AVAILABLE_MODELS: { id: ChatModel; label: string }[] = [
-  { id: "claude-sonnet", label: "Sonnet 4.6" },
-  { id: "claude-haiku", label: "Haiku 4.5" },
-  { id: "claude-opus", label: "Opus 4.6" },
-];
-const LAST_MODEL_KEY = "chatbot_last_model";
-const DEFAULT_MODEL: ChatModel = "claude-sonnet";
-
-function resolveInitialModel(): ChatModel {
-  if (typeof window === "undefined") {
-    return DEFAULT_MODEL;
-  }
-  const saved = localStorage.getItem(LAST_MODEL_KEY);
-  if (
-    saved === "claude-sonnet" ||
-    saved === "claude-haiku" ||
-    saved === "claude-opus"
-  ) {
-    return saved;
-  }
-  return DEFAULT_MODEL;
-}
-
 export interface ChatInputProps {
-  onSend: (message: string, modelId: ChatModel) => void;
+  onSend: (message: string) => void;
   onStop?: () => void;
   disabled?: boolean;
   isStreaming?: boolean;
@@ -58,24 +35,11 @@ export const ChatInput: FC<ChatInputProps> = ({
   hasMessages = false,
 }) => {
   const [value, setValue] = useState("");
-  const [selectedModelId, setSelectedModelId] =
-    useState<ChatModel>(resolveInitialModel);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const selectedModel =
-    AVAILABLE_MODELS.find((m) => m.id === selectedModelId) ??
-    AVAILABLE_MODELS[0];
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LAST_MODEL_KEY, selectedModelId);
-    } catch {
-      // Ignore storage failures (private mode / quota).
-    }
-  }, [selectedModelId]);
 
   const handleSend = useCallback(() => {
     if (value.trim() && !disabled) {
-      onSend(value, selectedModelId);
+      onSend(value);
       setValue("");
       // 重置 textarea 到初始高度
       if (textareaRef.current) {
@@ -87,7 +51,7 @@ export const ChatInput: FC<ChatInputProps> = ({
         }, 0);
       }
     }
-  }, [value, disabled, onSend, selectedModelId]);
+  }, [value, disabled, onSend]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -160,26 +124,8 @@ export const ChatInput: FC<ChatInputProps> = ({
           rows={3}
         />
 
-        {/* Row 2: 控制區 - 模型選擇 + 送出按鈕 */}
+        {/* Row 2: 控制區 - 送出按鈕 */}
         <div className={styles.chatInputControls}>
-          <Dropdown
-            id="model-selector"
-            titleText=""
-            label={selectedModel.label}
-            items={AVAILABLE_MODELS}
-            itemToString={(item) => (item ? item.label : "")}
-            selectedItem={selectedModel}
-            onChange={({ selectedItem }) => {
-              if (selectedItem) {
-                setSelectedModelId(selectedItem.id);
-              }
-            }}
-            size="sm"
-            light
-            direction="top"
-            className={styles.modelDropdownInline}
-          />
-
           {isStreaming ? (
             <IconButton
               label="停止生成"

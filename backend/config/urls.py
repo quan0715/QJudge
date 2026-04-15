@@ -8,8 +8,6 @@ from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework.permissions import IsAdminUser
 from apps.core.views.health import health_check
-from apps.users.views import UserAPIKeyView, ValidateAPIKeyView, GetUsageStatsView
-
 schema_view_kwargs = {}
 if not settings.DEBUG:
     schema_view_kwargs = {"permission_classes": [IsAdminUser]}
@@ -33,10 +31,6 @@ urlpatterns = [
     path('api/v1/management/announcements/', include('apps.announcements.urls')),
     path('api/v1/ai/', include('apps.ai.urls')),
     path('api/v1/subscriptions/', include('apps.subscriptions.urls')),
-    # User API Key management
-    path('api/v1/users/me/api-key', UserAPIKeyView.as_view(), name='api-key'),
-    path('api/v1/users/me/api-key/validate', ValidateAPIKeyView.as_view(), name='validate-api-key'),
-    path('api/v1/users/me/api-key/usage', GetUsageStatsView.as_view(), name='api-key-usage'),
     # OpenAPI Schema
     path('api/schema/', SpectacularAPIView.as_view(**schema_view_kwargs), name='schema'),
     # Optional UI:

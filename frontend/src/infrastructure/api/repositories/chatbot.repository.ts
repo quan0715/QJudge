@@ -397,10 +397,6 @@ const chatbotRepository: ChatbotRepository = {
       // v2 payload
       const payload: Record<string, unknown> = {
         content,
-        model_id: options?.model || "claude-sonnet",
-        system_prompt: options?.context
-          ? JSON.stringify(options.context)
-          : undefined,
         skill: options?.skill,
       };
 

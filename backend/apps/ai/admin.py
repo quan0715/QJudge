@@ -3,7 +3,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import AIExecutionLog, AIMessage, AISession
+from .models import AIExecutionLog, AIMessage, AISession, UserAICredit
 
 
 class AIMessageInline(admin.TabularInline):
@@ -123,3 +123,10 @@ class AIExecutionLogAdmin(admin.ModelAdmin):
         return msg[:50] + "..." if len(msg) > 50 else msg
 
     short_user_message.short_description = "用戶訊息"
+
+
+@admin.register(UserAICredit)
+class UserAICreditAdmin(admin.ModelAdmin):
+    list_display = ["user", "total_requests", "total_input_tokens", "total_output_tokens", "total_cost_cents", "updated_at"]
+    readonly_fields = ["user", "total_input_tokens", "total_output_tokens", "total_requests", "total_cost_cents", "updated_at"]
+    search_fields = ["user__username"]

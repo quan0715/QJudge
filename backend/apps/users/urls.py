@@ -24,9 +24,6 @@ from .views import (
     ChangePasswordView,
     ForgotPasswordView,
     ResetPasswordView,
-    UserAPIKeyView,
-    ValidateAPIKeyView,
-    GetUsageStatsView,
     LoginRecordsView,
     LogoutOtherDevicesView,
 )
@@ -61,11 +58,6 @@ urlpatterns = [
     # Login records & device management
     path('me/login-records', LoginRecordsView.as_view(), name='login-records'),
     path('me/logout-other-devices', LogoutOtherDevicesView.as_view(), name='logout-other-devices'),
-
-    # API Key management
-    path('me/api-key', UserAPIKeyView.as_view(), name='api-key'),
-    path('me/api-key/validate', ValidateAPIKeyView.as_view(), name='validate-api-key'),
-    path('me/api-key/usage', GetUsageStatsView.as_view(), name='api-key-usage'),
 
     # User management (admin only)
     path('search', UserSearchView.as_view(), name='user-search'),

@@ -123,7 +123,8 @@ services:
     environment:
       - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-online_judge}
       - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
-      - DEFAULT_MODEL_ID=${DEFAULT_MODEL_ID:-claude-sonnet}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEFAULT_MODEL_ID=${DEFAULT_MODEL_ID:-deepseek-r1}
     volumes:
       - ./ai-service:/app
     networks:

@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 # Ensure required env vars before app import.
 os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
-os.environ.setdefault("ANTHROPIC_API_KEY", "test-anthropic-key")
+os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
 
 from config import get_settings  # noqa: E402
 from main import app  # noqa: E402

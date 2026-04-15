@@ -10,7 +10,6 @@ from django.utils import timezone
 
 from apps.users.models import User, UserProfile
 from apps.users.services import (
-    APIKeyService,
     EmailAuthService,
     GitHubOAuthService,
     GoogleOAuthService,
@@ -551,50 +550,3 @@ class GoogleOAuthServiceTests(TestCase):
         )
 
 
-class APIKeyServiceTests(TestCase):
-    def test_calculate_cost_uses_model_pricing(self):
-        haiku_cost = APIKeyService.calculate_cost(1_000_000, 1_000_000, "haiku")
-        sonnet_cost = APIKeyService.calculate_cost(1_000_000, 1_000_000, "sonnet")
-        unknown_cost = APIKeyService.calculate_cost(1_000_000, 1_000_000, "unknown")
-
-        self.assertEqual(haiku_cost, 480)
-        self.assertEqual(sonnet_cost, 1800)
-        self.assertEqual(unknown_cost, haiku_cost)
-
-    def test_validate_anthropic_key_success(self):
-        class FakeMessages:
-            @staticmethod
-            def create(**kwargs):
-                return {"ok": True}
-
-        class FakeClient:
-            def __init__(self, api_key):
-                self.api_key = api_key
-                self.messages = FakeMessages()
-
-        fake_module = types.SimpleNamespace(Anthropic=FakeClient)
-
-        with patch.dict(sys.modules, {"anthropic": fake_module}):
-            valid, error = APIKeyService.validate_anthropic_key("sk-test")
-
-        self.assertTrue(valid)
-        self.assertEqual(error, "")
-
-    def test_validate_anthropic_key_invalid(self):
-        class FakeMessages:
-            @staticmethod
-            def create(**kwargs):
-                raise Exception("authentication failed")
-
-        class FakeClient:
-            def __init__(self, api_key):
-                self.api_key = api_key
-                self.messages = FakeMessages()
-
-        fake_module = types.SimpleNamespace(Anthropic=FakeClient)
-
-        with patch.dict(sys.modules, {"anthropic": fake_module}):
-            valid, error = APIKeyService.validate_anthropic_key("invalid")
-
-        self.assertFalse(valid)
-        self.assertEqual(error, "Invalid API key")

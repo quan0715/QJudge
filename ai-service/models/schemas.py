@@ -32,13 +32,8 @@ class ChatRequest(BaseModel):
         description="User message content",
     )
     model_id: str = Field(
-        default="claude-sonnet",
-        pattern=r"^claude-(haiku|sonnet|opus)$",
+        default="deepseek-r1",
         description="Canonical model ID",
-    )
-    api_key_override: str | None = Field(
-        default=None,
-        description="Single-use API key override (never persisted)",
     )
     system_prompt: str | None = Field(
         default=None,
@@ -86,10 +81,6 @@ class ResumeRequest(BaseModel):
         ...,
         pattern=r"^(approve|reject)$",
         description="User decision: 'approve' or 'reject'",
-    )
-    api_key_override: str | None = Field(
-        default=None,
-        description="Single-use API key override (never persisted)",
     )
     session_id: str | None = Field(
         default=None,

@@ -1,6 +1,6 @@
 // ===== Base Types =====
 export type ChatRole = "user" | "assistant";
-export type ChatModel = "claude-haiku" | "claude-sonnet" | "claude-opus";
+
 
 // ===== v2 SSE Event Types =====
 export type StreamEventType =
@@ -43,7 +43,7 @@ export interface VerificationReport {
 }
 
 export interface ModelInfo {
-  model_id: ChatModel;
+  model_id: string;
   display_name: string;
   description: string;
   is_default: boolean;
@@ -137,7 +137,6 @@ export interface ProblemReference {
 
 // ===== Request/Response Options =====
 export interface SendMessageOptions {
-  model?: ChatModel;
   context?: ChatContext;
   reference?: ProblemReference;
   skill?: string;
