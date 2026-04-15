@@ -155,7 +155,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     };
   }, []);
 
-  const selectedProblem = selectedId
+  const _selectedProblem = selectedId
     ? orderedProblems.find((problem) => problem.id === selectedId) ?? null
     : null;
 

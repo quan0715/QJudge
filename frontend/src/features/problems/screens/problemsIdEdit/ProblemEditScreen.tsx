@@ -53,10 +53,9 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
   handleDelete,
   handleExportConfirm,
   onBack,
-  onProblemUpdated,
+  onProblemUpdated: _onProblemUpdated,
 }) => {
   const { t } = useTranslation("problem");
-  const { user } = useAuth();
   const { autoSave } = useProblemEdit();
   const { exportFormat, setExportFormat, pdfScale, setPdfScale } =
     useProblemEditUI();
