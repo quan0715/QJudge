@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@carbon/ai-chat": "^1.10.0",
+    "@carbon/ai-chat-components": "^1.0.0",
     "@carbon/charts": "^1.27.0",
     "@carbon/charts-react": "^1.27.0",
     "@carbon/icons-react": "^11.70.0",

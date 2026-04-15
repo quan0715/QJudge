@@ -7,10 +7,19 @@ const MainLayout = () => {
   return (
     <>
       <GlobalHeader />
-      <Content>
-        <Outlet />
-      </Content>
-      <ChatbotWidget />
+      <div
+        style={{
+          display: "flex",
+          height: "calc(100vh - 48px)", // below Carbon header
+          marginTop: "48px",
+          overflow: "hidden",
+        }}
+      >
+        <Content style={{ flex: 1, overflow: "auto", marginTop: 0 }}>
+          <Outlet />
+        </Content>
+        <ChatbotWidget />
+      </div>
     </>
   );
 };

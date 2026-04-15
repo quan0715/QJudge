@@ -20,7 +20,6 @@ import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useToast } from "@/shared/contexts";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
-import { ChatbotWidget } from "@/features/chatbot/components/ChatbotWidget";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import CodingProblemListPanel from "./CodingProblemListPanel";
 import { CardListEditor } from "@/shared/ui/cardListEditor";
@@ -545,13 +544,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         </div>
       )}
 
-      <ChatbotWidget
-        problemContext={
-          selectedProblem
-            ? { id: selectedProblem.problemId ?? selectedProblem.id, title: selectedProblem.title }
-            : null
-        }
-      />
     </>
   );
 };

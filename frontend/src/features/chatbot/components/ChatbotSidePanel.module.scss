@@ -1,92 +1,60 @@
-/* ChatbotSidePanel — resizable right-side panel below navbar */
+/* ChatbotSidePanel — split-view sidebar following Carbon workspace-sidebar pattern */
 
-$header-height: 48px; // Carbon header default
-$panel-min-width: 320px;
-$panel-max-width: 720px;
-$panel-default-width: 400px;
-$toggle-size: 48px;
-$toggle-margin: 1rem;
-$resize-handle-width: 5px;
+$sidebar-width: 400px;
+$header-height: 48px;
+$toggle-size: 44px;
+$toggle-bottom: 1.25rem;
+$toggle-right: 1.25rem;
+/* Carbon motion: duration-moderate-01 (240ms) + standard productive easing */
+$motion-duration: 240ms;
+$motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
 
-.overlay {
-  position: fixed;
-  top: $header-height;
-  right: 0;
-  bottom: 0;
-  width: var(--panel-width, #{$panel-default-width});
-  min-width: $panel-min-width;
-  max-width: $panel-max-width;
-  z-index: 8000; // below Carbon header (9000)
-  display: flex;
-  flex-direction: row;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.12);
-  transition: transform 0.2s ease;
-
-  &[data-open="false"] {
-    transform: translateX(100%);
-    pointer-events: none;
-  }
-}
-
-.resizeHandle {
-  width: $resize-handle-width;
-  cursor: col-resize;
-  background: var(--cds-border-subtle-01, #e0e0e0);
+.sidebar {
   flex-shrink: 0;
-  transition: background 0.15s;
-
-  &:hover,
-  &:active {
-    background: var(--cds-interactive, #0f62fe);
-  }
-}
-
-.panelBody {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--cds-layer, #fff);
+  width: $sidebar-width;
+  height: 100%;
   overflow: hidden;
-
-  // ChatCustomElement fills the panel
-  :global(.ChatCustomElement),
-  :global([class*="ChatCustomElement"]) {
-    width: 100% !important;
-    height: 100% !important;
-  }
+  border-left: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  transition: width $motion-duration $motion-easing;
 }
 
+.sidebar .chatElement {
+  width: 100%;
+  height: 100%;
+}
+
+.sidebarClosing {
+  width: 0;
+  border-left: none;
+}
+
+.sidebarClosed {
+  width: 0;
+  border-left: none;
+  visibility: hidden;
+}
+
+/* Toggle FAB — only visible when sidebar is closed */
 .toggleButton {
   position: fixed;
-  bottom: $toggle-margin;
-  right: $toggle-margin;
+  bottom: $toggle-bottom;
+  right: $toggle-right;
   z-index: 8001;
-  width: $toggle-size;
-  height: $toggle-size;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: $toggle-size;
+  height: $toggle-size;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
   background: var(--cds-interactive, #0f62fe);
   color: var(--cds-text-on-color, #fff);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: background 0.15s, transform 0.15s;
+  cursor: pointer;
+  transition: background $motion-duration $motion-easing;
 
   &:hover {
     background: var(--cds-interactive-hover, #0043ce);
-    transform: scale(1.05);
-  }
-
-  &[data-open="true"] {
-    background: var(--cds-layer-selected-inverse, #393939);
-  }
-
-  svg {
-    width: 20px;
-    height: 20px;
-    fill: currentColor;
   }
 }

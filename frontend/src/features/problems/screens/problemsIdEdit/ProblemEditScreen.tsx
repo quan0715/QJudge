@@ -16,7 +16,6 @@ import {
 } from "@/features/problems/contexts/ProblemEditContext";
 import { MarkdownEditorProvider } from "@/shared/ui/markdown/markdownEditor";
 import { TriggerModal, type TriggerModalHandle } from "@/shared/ui/modal";
-import { ChatbotWidget } from "@/features/chatbot";
 import { GlobalSaveStatus } from "@/features/problems/components/edit/common";
 import { useProblemDetail } from "@/features/problems/hooks";
 import { useToast } from "@/shared/contexts";
@@ -115,25 +114,6 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
           />
         </div>
 
-        <ChatbotWidget
-          defaultExpanded={false}
-          problemContext={{
-            id: problem.id,
-            title: problem.title || "未命名題目",
-          }}
-          backgroundInfo={{
-            user: user ? {
-              username: user.username,
-              role: user.role,
-            } : undefined,
-            problem: {
-              id: problem.id,
-              title: problem.title || "未命名題目",
-              difficulty: watchedValues.difficulty,
-            },
-          }}
-          onProblemUpdated={onProblemUpdated}
-        />
       </div>
 
       <TriggerModal
