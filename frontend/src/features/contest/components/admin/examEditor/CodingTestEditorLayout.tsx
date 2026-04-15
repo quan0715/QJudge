@@ -155,10 +155,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     };
   }, []);
 
-  const _selectedProblem = selectedId
-    ? orderedProblems.find((problem) => problem.id === selectedId) ?? null
-    : null;
-
   const fetchLatestProblems = useCallback(async (): Promise<ContestProblemSummary[]> => {
     const latest = await getContest(contestId);
     return sortProblems(latest?.problems ?? []);
