@@ -28,7 +28,6 @@ class Settings(BaseSettings):
 
     # DeepAgent / LangGraph Settings
     ai_state_postgres_url: str = ""  # Postgres URL for checkpoint store (ai_state schema)
-    default_model_id: str = "deepseek-r1"
 
     # Backend→AI-Service auth token
     ai_internal_token: str = Field(
