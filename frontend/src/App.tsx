@@ -37,7 +37,6 @@ import { errorRoutes, fallbackRoute } from "@/features/app";
 import { adminRoutes, draftProblemsRoute } from "@/features/admin";
 import { landingRoute } from "@/features/landing";
 import { checkoutSuccessRoute, pricingRoute } from "@/features/pricing";
-import CarbonChatPocPage from "@/features/chatbot/poc/CarbonChatPocPage";
 import RecurProviderBridge from "@/features/pricing/components/RecurProviderBridge";
 import { classroomDetailRoute, classroomJoinRoute } from "@/features/classroom";
 import { questionBankMarketplaceRoute, questionBankDetailRoute } from "@/features/question-banks";
@@ -119,9 +118,6 @@ function App() {
                         {/* Public Landing Page */}
                         {landingRoute}
                         {pricingRoute}
-
-                        {/* Dev PoC — Carbon AI Chat spike (no auth required) */}
-                        <Route path="/dev/carbon-chat" element={<CarbonChatPocPage />} />
 
                         {/* Public Checkout Success */}
                         {checkoutSuccessRoute}
