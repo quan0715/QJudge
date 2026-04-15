@@ -6,7 +6,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Ensure required internal auth secrets exist before app import.
-os.environ.setdefault("HMAC_SECRET", "test-hmac-secret")
 os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
 os.environ.setdefault("ANTHROPIC_API_KEY", "test-anthropic-key")
 

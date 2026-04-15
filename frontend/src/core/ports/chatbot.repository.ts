@@ -1,7 +1,6 @@
 import type {
   ChatSession,
   ModelInfo,
-  PendingAction,
   SendMessageOptions,
   StreamCallbacks,
 } from "@/core/types/chatbot.types";
@@ -28,11 +27,6 @@ export interface ChatbotRepository {
 
   // v2: Model list
   getModels(): Promise<ModelInfo[]>;
-
-  // v2: Pending actions
-  getActivePendingAction(sessionId: string | number): Promise<PendingAction | null>;
-  confirmAction(sessionId: string | number, actionId: string): Promise<PendingAction>;
-  cancelAction(sessionId: string | number, actionId: string): Promise<PendingAction>;
 
   // v2: Resume interrupted agent stream
   resumeAgentStream(

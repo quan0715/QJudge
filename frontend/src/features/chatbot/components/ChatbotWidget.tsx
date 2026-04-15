@@ -50,7 +50,6 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
     isInitializing,
     error,
     pendingUserInput,
-    pendingApproval,
     createSession,
     switchSession,
     deleteSession,
@@ -59,8 +58,6 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
     stopStreaming,
     submitUserInput,
     cancelUserInput,
-    confirmAction,
-    cancelAction,
     clearError,
   } = useChatbot({ enabled: hasBeenExpanded, backgroundInfo, onProblemUpdated });
 
@@ -121,9 +118,6 @@ export const ChatbotWidget: FC<ChatbotWidgetProps> = ({
               pendingUserInput={pendingUserInput}
               onSubmitUserInput={submitUserInput}
               onCancelUserInput={cancelUserInput}
-              pendingApproval={pendingApproval}
-              onConfirmAction={confirmAction}
-              onCancelAction={cancelAction}
             />
           )}
         </div>

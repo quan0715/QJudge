@@ -71,7 +71,6 @@ GitHub (push to main)
 | `CORS_ALLOWED_ORIGINS` | 後端允許的跨域來源（含前端網址） |
 | `CSRF_TRUSTED_ORIGINS` | Django CSRF 信任來源（含前端網址） |
 | `REDIS_URL` | Redis 連線位址 |
-| `HMAC_SECRET` | AI service 內部 HMAC 驗證 |
 | `AI_SERVICE_INTERNAL_TOKEN` | Backend ↔ AI service 內部 token |
 | `MINIO_ROOT_USER` | MinIO 管理帳號（勿用預設值） |
 | `MINIO_ROOT_PASSWORD` | MinIO 管理密碼（勿用預設值） |

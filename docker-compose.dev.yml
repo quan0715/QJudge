@@ -122,9 +122,6 @@ services:
       - .env
     environment:
       - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-online_judge}
-      - BACKEND_INTERNAL_URL=http://backend:8000/api/v1/ai
-      - AI_SERVICE_ID=${AI_SERVICE_ID:-ai-service-dev}
-      - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
       - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
       - DEFAULT_MODEL_ID=${DEFAULT_MODEL_ID:-claude-sonnet}
     volumes:
@@ -159,7 +156,6 @@ services:
     environment:
       - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
       - AI_SERVICE_URL=http://ai-service:8001
-      - HMAC_SECRET=${HMAC_SECRET:-dev-hmac-secret-change-me}
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
       - DB_HOST=pgbouncer
       - DB_PORT=5432

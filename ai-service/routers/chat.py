@@ -121,8 +121,8 @@ async def generate_sse_events(
 async def chat_stream(request: ChatRequest, app_request: Request) -> EventSourceResponse:
     """Process a chat request with streaming SSE response (v2 contract).
 
-    Event types: run_started, agent_message_delta, tool_call_started,
-    tool_call_finished, verification_report, approval_required,
+    Event types: run_started, agent_message_delta, thinking_delta,
+    tool_call_started, tool_call_finished, verification_report,
     usage_report, run_completed, run_failed.
     """
     validate_internal_auth(app_request)

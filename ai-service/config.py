@@ -27,10 +27,7 @@ class Settings(BaseSettings):
     ai_state_postgres_url: str = ""  # Postgres URL for checkpoint store (ai_state schema)
     default_model_id: str = "claude-sonnet"
 
-    # Internal API (Tool Gateway)
-    backend_internal_url: str = "http://backend:8000"
-    ai_service_id: str = "ai-service-1"
-    hmac_secret: str = ""
+    # Backend→AI-Service auth token
     ai_internal_token: str = Field(
         default="",
         validation_alias=AliasChoices(

@@ -152,7 +152,6 @@ DB_PASSWORD=<強密碼>
 DB_SSLMODE=disable  # Docker 內部 postgres 不需要 SSL
 
 # AI Service 內部驗證
-HMAC_SECRET=<openssl rand -hex 32>
 AI_SERVICE_INTERNAL_TOKEN=<openssl rand -hex 32>
 
 # Redis

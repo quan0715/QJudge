@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import uuid
 from pathlib import Path
@@ -25,6 +26,9 @@ from services.mcp_tool_provider import MCPToolProvider
 from services.model_factory import ModelFactory
 
 logger = logging.getLogger(__name__)
+
+# Cache key: (model_id, sha256 of system_prompt)
+_AgentCacheKey = tuple[str, str]
 
 _ALLOWED_SKILL_FILE_EXTENSIONS = {".md", ".json", ".yaml", ".yml", ".txt"}
 _MAX_SKILL_FILE_BYTES = 256 * 1024
@@ -81,6 +85,7 @@ class DeepAgentRunner:
         )
         self._skills_source = "/skills/"
         self._skill_content_cache: dict[str, str] | None = None
+        self._agent_cache: dict[_AgentCacheKey, Any] = {}
 
     async def setup(self) -> None:
         """Initialize the Postgres checkpointer and create tables if needed."""
@@ -104,7 +109,7 @@ class DeepAgentRunner:
         system_prompt: str | None,
         tools: list[Any],
     ):
-        """Build a DeepAgent with tools and optional interrupt_on."""
+        """Build a DeepAgent with tools and interrupt_on for commit gates."""
         model = ModelFactory.create_model(model_id=model_id, api_key=api_key)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
 
@@ -116,6 +121,30 @@ class DeepAgentRunner:
             checkpointer=self._checkpointer,
         )
         return agent
+
+    def _get_or_build_agent(
+        self,
+        model_id: str,
+        api_key: str | None,
+        system_prompt: str | None,
+        tools: list[Any],
+    ):
+        """Return a cached agent graph, or build and cache a new one.
+
+        Agents with api_key override always bypass the cache.
+        """
+        if api_key:
+            return self._build_agent(model_id, api_key, system_prompt, tools)
+
+        prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
+        prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()
+        cache_key: _AgentCacheKey = (model_id, prompt_hash)
+
+        if cache_key not in self._agent_cache:
+            self._agent_cache[cache_key] = self._build_agent(
+                model_id, None, system_prompt, tools
+            )
+        return self._agent_cache[cache_key]
 
     def _load_skill_contents(self) -> dict[str, str]:
         """Load and cache text skill files from disk."""
@@ -167,6 +196,76 @@ class DeepAgentRunner:
             for virtual_path, content in contents.items()
         }
 
+    # ------------------------------------------------------------------
+    # Shared streaming loop
+    # ------------------------------------------------------------------
+
+    async def _stream_events(
+        self,
+        agent: Any,
+        agent_input: dict[str, Any] | Command,
+        config: dict[str, Any],
+        run_id: str,
+        thread_id: str,
+        model_id: str,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Stream agent execution events as SSE-serialisable dicts.
+
+        Shared by both run_stream and resume_stream.
+        """
+        yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
+
+        total_input_tokens = 0
+        total_output_tokens = 0
+
+        try:
+            async for event in agent.astream_events(
+                agent_input,
+                config=config,
+                version="v2",
+            ):
+                if event.get("event") == "on_chat_model_end":
+                    usage_meta = event.get("data", {}).get("output", None)
+                    if usage_meta and hasattr(usage_meta, "usage_metadata"):
+                        um = usage_meta.usage_metadata
+                        total_input_tokens += um.get("input_tokens", 0)
+                        total_output_tokens += um.get("output_tokens", 0)
+
+                internal_events = adapt_langgraph_event(event)
+                if internal_events is None:
+                    continue
+
+                for internal_event in internal_events:
+                    yield to_sse_dict(internal_event)
+
+            cost_cents = self._calculate_cost(
+                model_id, total_input_tokens, total_output_tokens
+            )
+            yield to_sse_dict(
+                UsageReport(
+                    input_tokens=total_input_tokens,
+                    output_tokens=total_output_tokens,
+                    cost_cents=cost_cents,
+                    model_used=model_id,
+                )
+            )
+
+            yield to_sse_dict(RunCompleted(run_id=run_id))
+
+        except Exception as exc:
+            logger.exception("DeepAgent execution failed: %s", exc)
+            yield to_sse_dict(
+                RunFailed(
+                    run_id=run_id,
+                    error_code="AGENT_ERROR",
+                    message="Agent execution failed",
+                )
+            )
+
+    # ------------------------------------------------------------------
+    # Public streaming API
+    # ------------------------------------------------------------------
+
     async def run_stream(
         self,
         thread_id: str | None,
@@ -203,72 +302,23 @@ class DeepAgentRunner:
             ),
         ) as tool_provider:
             tools = await tool_provider.load_tools()
-            agent = self._build_agent(model_id, api_key, system_prompt, tools)
+            agent = self._get_or_build_agent(model_id, api_key, system_prompt, tools)
 
             config = {
-                "configurable": {
-                    "thread_id": thread_id,
-                },
-                "metadata": {
-                    "thread_id": thread_id,
-                    "run_id": run_id,
-                },
+                "configurable": {"thread_id": thread_id},
+                "metadata": {"thread_id": thread_id, "run_id": run_id},
                 "recursion_limit": 80,
             }
 
-            agent_input = {"messages": messages}
+            agent_input: dict[str, Any] = {"messages": messages}
             skill_files = self._build_skill_state_files()
             if skill_files:
                 agent_input["files"] = skill_files
 
-            # Emit run_started
-            yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
-
-            total_input_tokens = 0
-            total_output_tokens = 0
-
-            try:
-                async for event in agent.astream_events(
-                    agent_input,
-                    config=config,
-                    version="v2",
-                ):
-                    if event.get("event") == "on_chat_model_end":
-                        usage_meta = event.get("data", {}).get("output", None)
-                        if usage_meta and hasattr(usage_meta, "usage_metadata"):
-                            um = usage_meta.usage_metadata
-                            total_input_tokens += um.get("input_tokens", 0)
-                            total_output_tokens += um.get("output_tokens", 0)
-
-                    internal_event = adapt_langgraph_event(event)
-                    if internal_event is None:
-                        continue
-
-                    yield to_sse_dict(internal_event)
-
-                cost_cents = self._calculate_cost(
-                    model_id, total_input_tokens, total_output_tokens
-                )
-                yield to_sse_dict(
-                    UsageReport(
-                        input_tokens=total_input_tokens,
-                        output_tokens=total_output_tokens,
-                        cost_cents=cost_cents,
-                        model_used=model_id,
-                    )
-                )
-
-                yield to_sse_dict(RunCompleted(run_id=run_id))
-
-            except Exception as exc:
-                logger.exception("DeepAgent run failed: %s", exc)
-                yield to_sse_dict(
-                    RunFailed(
-                        run_id=run_id,
-                        error_code="AGENT_ERROR",
-                        message="Agent execution failed",
-                    )
-                )
+            async for sse_dict in self._stream_events(
+                agent, agent_input, config, run_id, thread_id, model_id
+            ):
+                yield sse_dict
 
     async def resume_stream(
         self,
@@ -304,68 +354,20 @@ class DeepAgentRunner:
             ),
         ) as tool_provider:
             tools = await tool_provider.load_tools()
-            agent = self._build_agent(model_id, api_key, system_prompt, tools)
+            agent = self._get_or_build_agent(model_id, api_key, system_prompt, tools)
 
             config = {
-                "configurable": {
-                    "thread_id": thread_id,
-                },
-                "metadata": {
-                    "thread_id": thread_id,
-                    "run_id": run_id,
-                },
+                "configurable": {"thread_id": thread_id},
+                "metadata": {"thread_id": thread_id, "run_id": run_id},
                 "recursion_limit": 80,
             }
 
             resume_value = Command(resume={"decisions": [{"type": decision}]})
 
-            yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
-
-            total_input_tokens = 0
-            total_output_tokens = 0
-
-            try:
-                async for event in agent.astream_events(
-                    resume_value,
-                    config=config,
-                    version="v2",
-                ):
-                    if event.get("event") == "on_chat_model_end":
-                        usage_meta = event.get("data", {}).get("output", None)
-                        if usage_meta and hasattr(usage_meta, "usage_metadata"):
-                            um = usage_meta.usage_metadata
-                            total_input_tokens += um.get("input_tokens", 0)
-                            total_output_tokens += um.get("output_tokens", 0)
-
-                    internal_event = adapt_langgraph_event(event)
-                    if internal_event is None:
-                        continue
-
-                    yield to_sse_dict(internal_event)
-
-                cost_cents = self._calculate_cost(
-                    model_id, total_input_tokens, total_output_tokens
-                )
-                yield to_sse_dict(
-                    UsageReport(
-                        input_tokens=total_input_tokens,
-                        output_tokens=total_output_tokens,
-                        cost_cents=cost_cents,
-                        model_used=model_id,
-                    )
-                )
-
-                yield to_sse_dict(RunCompleted(run_id=run_id))
-
-            except Exception as exc:
-                logger.exception("DeepAgent resume failed: %s", exc)
-                yield to_sse_dict(
-                    RunFailed(
-                        run_id=run_id,
-                        error_code="AGENT_ERROR",
-                        message="Agent execution failed",
-                    )
-                )
+            async for sse_dict in self._stream_events(
+                agent, resume_value, config, run_id, thread_id, model_id
+            ):
+                yield sse_dict
 
     @staticmethod
     def _calculate_cost(

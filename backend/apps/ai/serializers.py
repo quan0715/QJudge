@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from .models import AIMessage, AIPendingAction, AISession
+from .models import AIMessage, AISession
 
 
 class AIMessageSerializer(serializers.ModelSerializer):
@@ -123,59 +123,3 @@ class ModelInfoSerializer(serializers.Serializer):
     display_name = serializers.CharField()
     description = serializers.CharField()
     is_default = serializers.BooleanField()
-
-
-class PendingActionSerializer(serializers.ModelSerializer):
-    """Serializer for AIPendingAction."""
-
-    class Meta:
-        model = AIPendingAction
-        fields = [
-            "id",
-            "session",
-            "action_type",
-            "target_problem",
-            "payload",
-            "preview",
-            "status",
-            "created_at",
-            "expires_at",
-        ]
-        read_only_fields = fields
-
-
-class PrepareActionSerializer(serializers.Serializer):
-    """Serializer for internal prepare action request."""
-
-    session_id = serializers.CharField(max_length=100)
-    user_id = serializers.IntegerField()
-    action_type = serializers.ChoiceField(choices=["create", "patch"])
-    payload = serializers.JSONField()
-
-
-class CommitActionSerializer(serializers.Serializer):
-    """Serializer for internal commit action request."""
-
-    action_id = serializers.UUIDField()
-
-
-# ============================================================
-# Code Run Serializers
-# ============================================================
-
-
-class CodeRunTestCaseSerializer(serializers.Serializer):
-    """Single test case for code execution."""
-
-    input = serializers.CharField(allow_blank=True)
-    expected_output = serializers.CharField(allow_blank=True)
-
-
-class CodeRunRequestSerializer(serializers.Serializer):
-    """Request body for POST /internal/code/run."""
-
-    code = serializers.CharField(max_length=100_000)
-    language = serializers.ChoiceField(choices=["cpp", "c++", "python", "py"])
-    test_cases = CodeRunTestCaseSerializer(many=True)
-    time_limit = serializers.IntegerField(min_value=100, max_value=10_000, default=1000)
-    memory_limit = serializers.IntegerField(min_value=16, max_value=512, default=128)

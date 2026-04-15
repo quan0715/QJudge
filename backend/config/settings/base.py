@@ -434,12 +434,6 @@ MARKDOWN_IMAGE_PUBLIC_BASE_URL = os.getenv(
     os.getenv("FRONTEND_URL", ""),
 ).strip()
 
-# HMAC secret for internal API authentication between ai-service and backend
-AI_SERVICE_HMAC_SECRET = os.getenv("HMAC_SECRET", "")
-
-# Allowed service IDs for internal API
-AI_SERVICE_ALLOWED_IDS = os.getenv("AI_SERVICE_ALLOWED_IDS", "ai-service-01,ai-service-dev").split(",")
-
 # API Key Encryption settings
 # Fernet symmetric encryption key for storing user API keys
 # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"

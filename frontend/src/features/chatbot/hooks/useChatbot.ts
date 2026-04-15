@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import i18n from "i18next";
 import type {
-  ApprovalRequest,
   BackgroundInformation,
   ChatMessage,
   ChatModel,
@@ -20,7 +19,6 @@ interface UseChatbotReturn {
   isInitializing: boolean;
   error: string | null;
   pendingUserInput: UserInputRequest | null;
-  pendingApproval: ApprovalRequest | null;
   createSession: () => Promise<string | null>;
   deleteSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
@@ -33,8 +31,6 @@ interface UseChatbotReturn {
     answers: Record<string, string>,
   ) => Promise<void>;
   cancelUserInput: () => void;
-  confirmAction: () => Promise<void>;
-  cancelAction: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -80,8 +76,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const [error, setError] = useState<string | null>(null);
   const [pendingUserInput, setPendingUserInput] =
     useState<UserInputRequest | null>(null);
-  const [pendingApproval, setPendingApproval] =
-    useState<ApprovalRequest | null>(null);
 
   // AbortController for cancelling streaming
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -440,12 +434,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               setPendingUserInput(request);
             },
 
-            // v2: Approval required (preview-then-confirm)
-            onApprovalRequired: (request) => {
-              setPendingApproval(request);
-              setIsStreaming(false);
-              setIsLoading(false);
-            },
           },
           {
             model: modelId,
@@ -493,8 +481,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
 
   /**
-   * Resume interrupted agent stream after approval/rejection.
-   * Shared logic for confirmAction and cancelAction.
+   * Resume interrupted agent stream after user input submission.
    */
   const resumeAgent = useCallback(
     async (decision: "approve" | "reject") => {
@@ -579,50 +566,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   );
 
   /**
-   * 確認 pending action（human-in-the-loop 流程）
-   * 1. Confirm action on backend
-   * 2. Resume agent stream with "approve" decision
-   */
-  const confirmAction = useCallback(async () => {
-    if (!currentSessionId || !pendingApproval) return;
-
-    const { actionId } = pendingApproval;
-    setPendingApproval(null); // 立刻隱藏 banner
-    setError(null);
-
-    try {
-      await chatbotRepository.confirmAction(currentSessionId, actionId);
-      await resumeAgent("approve");
-      // Commit 成功，通知父頁面重新載入資料
-      onProblemUpdated?.();
-    } catch (err) {
-      console.error("Failed to confirm action:", err);
-      setError(i18n.t("chatbot:errors.confirmActionFailed"));
-    }
-  }, [currentSessionId, pendingApproval, resumeAgent, onProblemUpdated]);
-
-  /**
-   * 取消 pending action
-   * 1. Cancel action on backend
-   * 2. Resume agent stream with "reject" decision
-   */
-  const cancelAction = useCallback(async () => {
-    if (!currentSessionId || !pendingApproval) return;
-
-    const { actionId } = pendingApproval;
-    setPendingApproval(null); // 立刻隱藏 banner
-    setError(null);
-
-    try {
-      await chatbotRepository.cancelAction(currentSessionId, actionId);
-      await resumeAgent("reject");
-    } catch (err) {
-      console.error("Failed to cancel action:", err);
-      setError(i18n.t("chatbot:errors.cancelActionFailed"));
-    }
-  }, [currentSessionId, pendingApproval, resumeAgent]);
-
-  /**
    * 提交用戶回答（回應 AskUserQuestion）
    */
   const submitUserInput = useCallback(
@@ -689,7 +632,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     isInitializing,
     error,
     pendingUserInput,
-    pendingApproval,
     createSession,
     deleteSession,
     switchSession,
@@ -699,8 +641,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     refreshSessions,
     submitUserInput,
     cancelUserInput,
-    confirmAction,
-    cancelAction,
     clearError,
   };
 }
