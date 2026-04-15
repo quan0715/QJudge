@@ -9,16 +9,10 @@ const buildProblemPayload = (title: string): ProblemUpsertPayload => ({
   difficulty: "easy",
   time_limit: 1000,
   memory_limit: 128,
-  translations: [
-    {
-      language: "en",
-      title,
-      description: "Given two integers a and b, output a + b.",
-      input_description: "Two integers a and b",
-      output_description: "The sum of a and b",
-      hint: "",
-    },
-  ],
+  description: "Given two integers a and b, output a + b.",
+  input_description: "Two integers a and b",
+  output_description: "The sum of a and b",
+  hint: "",
   test_cases: [
     {
       input_data: "1 2\n",
