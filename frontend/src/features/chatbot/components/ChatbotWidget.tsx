@@ -180,7 +180,7 @@ export interface ChatbotWidgetProps {
 export const ChatbotWidget = ({
   defaultExpanded = false,
   backgroundInfo = null,
-  onProblemUpdated,
+  onProblemUpdated = undefined,
 }: ChatbotWidgetProps) => {
   const instanceRef = useRef<ChatInstance | null>(null);
   const backendSessionIdRef = useRef<string | null>(null);
@@ -238,36 +238,92 @@ export const ChatbotWidget = ({
       const decoder = new TextDecoder();
       let buffer = "";
       let accumulatedText = "";
+      let accumulatedThinking = "";
       const cotSteps: ChainOfThoughtStep[] = [];
+      const reasoningSteps: ReasoningStep[] = [];
+      let isCanceled = false;
 
-      // Send a partial chunk (delta text or just a CoT update with no new text)
+      // Listen for abort (stop button / conversation restart)
+      const abortHandler = () => { isCanceled = true; };
+      opts.signal?.addEventListener("abort", abortHandler);
+
+      // Build message_options snapshot for partial/final chunks
+      const buildMessageOptions = () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const opts: Record<string, any> = {};
+        if (cotSteps.length > 0) opts.chain_of_thought = [...cotSteps];
+        if (reasoningSteps.length > 0) opts.reasoning = { steps: [...reasoningSteps] };
+        else if (accumulatedThinking) opts.reasoning = { content: accumulatedThinking };
+        return Object.keys(opts).length > 0 ? opts : undefined;
+      };
+
+      // Send a partial chunk (delta text or just a CoT/reasoning update)
       const sendPartial = async (delta?: string) => {
         if (delta) accumulatedText += delta;
+        const msgOpts = buildMessageOptions();
         await instance.messaging.addMessageChunk({
           partial_item: {
             response_type: MessageResponseTypes.TEXT,
             text: delta ?? "",
             streaming_metadata: { id: textItemId, cancellable: true },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any,
+          },
           streaming_metadata: { response_id: responseId },
-          ...(cotSteps.length > 0
-            ? {
-                partial_response: {
-                  message_options: { chain_of_thought: [...cotSteps] },
-                },
-              }
-            : {}),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any);
+          ...(msgOpts ? { partial_response: { message_options: msgOpts } } : {}),
+        } as StreamChunk);
+      };
+
+      // Finalize the message (complete_item → final_response)
+      const sendFinal = async (stopped: boolean) => {
+        const msgOpts = buildMessageOptions();
+        const completeItem = {
+          response_type: MessageResponseTypes.TEXT,
+          text: accumulatedText,
+          streaming_metadata: { id: textItemId, ...(stopped ? { stream_stopped: true } : {}) },
+        };
+
+        // Step 1: complete_item
+        await instance.messaging.addMessageChunk({
+          complete_item: completeItem,
+          streaming_metadata: { response_id: responseId },
+        } as StreamChunk);
+
+        // Step 2: final_response
+        const finalChunk: StreamChunk = {
+          final_response: {
+            id: responseId,
+            output: { generic: [completeItem] },
+            ...(msgOpts ? { message_options: msgOpts } : {}),
+          },
+        };
+        await instance.messaging.addMessageChunk(finalChunk);
       };
 
       const handleEvent = async (event: V2StreamEvent) => {
+        if (isCanceled) return;
+
         switch (event.type) {
           case "run_started":
             if (event.thread_id) {
               backendSessionIdRef.current = event.thread_id;
               currentSessionIdRef.current = event.thread_id;
+            }
+            break;
+
+          case "thinking_delta":
+            if (event.content) {
+              accumulatedThinking += event.content;
+              // Stream thinking as reasoning content
+              await instance.messaging.addMessageChunk({
+                partial_item: {
+                  response_type: MessageResponseTypes.TEXT,
+                  text: "",
+                  streaming_metadata: { id: textItemId, cancellable: true },
+                },
+                partial_response: {
+                  message_options: { reasoning: { content: accumulatedThinking } },
+                },
+                streaming_metadata: { response_id: responseId },
+              } as StreamChunk);
             }
             break;
 
@@ -290,7 +346,6 @@ export const ChatbotWidget = ({
             break;
 
           case "tool_call_finished": {
-            // Find last PROCESSING step (most recent tool call)
             let idx = -1;
             for (let i = cotSteps.length - 1; i >= 0; i--) {
               if (cotSteps[i].status === ChainOfThoughtStepStatus.PROCESSING) { idx = i; break; }
@@ -316,29 +371,8 @@ export const ChatbotWidget = ({
           }
 
           case "run_completed": {
-            await instance.messaging.addMessageChunk({
-              final_response: {
-                id: responseId,
-                output: {
-                  generic: [
-                    {
-                      response_type: MessageResponseTypes.TEXT,
-                      text: accumulatedText,
-                      streaming_metadata: { id: textItemId },
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    } as any,
-                  ],
-                },
-                ...(cotSteps.length > 0
-                  ? { message_options: { chain_of_thought: cotSteps } }
-                  : {}),
-              },
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any);
-
+            await sendFinal(false);
             onProblemUpdated?.();
-
-            // Refresh session list silently
             chatbotRepository.getSessions().then((sessions) => {
               sessionsRef.current = sessions.map((s) => ({
                 id: s.id,
@@ -354,28 +388,36 @@ export const ChatbotWidget = ({
         }
       };
 
-      // Parse SSE stream
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-        for (const rawLine of lines) {
-          const line = rawLine.trimEnd();
-          if (!line.startsWith("data: ")) continue;
-          try {
+      try {
+        // Parse SSE stream
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const rawLine of lines) {
+            const line = rawLine.trimEnd();
+            if (!line.startsWith("data: ")) continue;
             await handleEvent(JSON.parse(line.slice(6)));
-          } catch (err) {
-            if (err instanceof Error && cotSteps !== undefined) throw err;
           }
         }
-      }
-      // Flush any remaining buffer
-      if (buffer.trim().startsWith("data: ")) {
-        try {
-          await handleEvent(JSON.parse(buffer.trim().slice(6)));
-        } catch { /* ignore */ }
+        // Flush remaining buffer
+        if (buffer.trim().startsWith("data: ")) {
+          try {
+            await handleEvent(JSON.parse(buffer.trim().slice(6)));
+          } catch { /* ignore trailing parse errors */ }
+        }
+      } catch (err) {
+        // If aborted (stop button / restart), finalize with stream_stopped
+        if (isCanceled) {
+          await sendFinal(true);
+          return;
+        }
+        throw err;
+      } finally {
+        opts.signal?.removeEventListener("abort", abortHandler);
       }
     },
     [backgroundInfo, onProblemUpdated],
@@ -434,20 +476,16 @@ export const ChatbotWidget = ({
 
   const handleBeforeRender = useCallback((instance: ChatInstance) => {
     instanceRef.current = instance;
-    // Only register event listener once
-    if (!instance.__qjudge_listener_registered) {
-      instance.on({
-        type: BusEventType.SEND,
-        handler: () => {
-          try {
-            if (backendSessionIdRef.current) {
-              localStorage.setItem("chatbot_last_session_id", backendSessionIdRef.current);
-            }
-          } catch { /* ignore */ }
-        },
-      });
-      (instance as any).__qjudge_listener_registered = true;
-    }
+    instance.on({
+      type: BusEventType.SEND,
+      handler: () => {
+        try {
+          if (backendSessionIdRef.current) {
+            localStorage.setItem("chatbot_last_session_id", backendSessionIdRef.current);
+          }
+        } catch { /* ignore */ }
+      },
+    });
   }, []);
 
   return createPortal(

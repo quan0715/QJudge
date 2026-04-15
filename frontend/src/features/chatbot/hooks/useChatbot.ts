@@ -55,7 +55,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     enabled = true,
     backgroundInfo = null,
     context = null,
-    onProblemUpdated,
+    onProblemUpdated: _onProblemUpdated,
   } = options;
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, _setCurrentSessionId] = useState<string | null>(null);
