@@ -397,7 +397,6 @@ const chatbotRepository: ChatbotRepository = {
       // v2 payload
       const payload: Record<string, unknown> = {
         content,
-        skill: options?.skill,
       };
 
       const response = await httpClient.request(

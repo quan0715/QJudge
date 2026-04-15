@@ -436,7 +436,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           },
           {
             context: effectiveContext ?? undefined,
-            skill: undefined,
             signal: abortController.signal,
           },
         );

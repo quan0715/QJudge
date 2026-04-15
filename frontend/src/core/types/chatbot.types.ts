@@ -139,7 +139,6 @@ export interface ProblemReference {
 export interface SendMessageOptions {
   context?: ChatContext;
   reference?: ProblemReference;
-  skill?: string;
   modelOverride?: string;
   signal?: AbortSignal;
 }

@@ -127,18 +127,6 @@ class TestChatStreamEndpoint:
         )
         assert response.status_code == 422
 
-    def test_stream_validates_skill_existence(self, client):
-        response = client.post(
-            "/api/chat/stream",
-            headers=AUTH_HEADERS,
-            json={
-                "content": "test",
-                "conversation": [],
-                "skill": "nonexistent-skill",
-            },
-        )
-        assert response.status_code == 400
-
     def test_stream_accepts_valid_request(self, client):
         response = client.post(
             "/api/chat/stream",
@@ -146,18 +134,6 @@ class TestChatStreamEndpoint:
             json={
                 "content": "Hello",
                 "conversation": [{"role": "user", "content": "Hi"}],
-            },
-        )
-        assert response.status_code == 200
-
-    def test_stream_accepts_valid_skill(self, client):
-        response = client.post(
-            "/api/chat/stream",
-            headers=AUTH_HEADERS,
-            json={
-                "content": "Generate a contest problem",
-                "conversation": [],
-                "skill": "contest-problem-authoring-guide",
             },
         )
         assert response.status_code == 200
@@ -181,8 +157,6 @@ class TestChatStreamEndpoint:
             json={
                 "thread_id": "thread-1",
                 "decision": "approve",
-                "session_id": "s1",
-                "user_id": 1,
             },
         )
         assert response.status_code == 401
@@ -194,8 +168,6 @@ class TestChatStreamEndpoint:
             json={
                 "thread_id": "",
                 "decision": "approve",
-                "session_id": "s1",
-                "user_id": 1,
             },
         )
         assert response.status_code == 422
@@ -207,8 +179,6 @@ class TestChatStreamEndpoint:
             json={
                 "thread_id": "thread-1",
                 "decision": "approve",
-                "session_id": "s1",
-                "user_id": 1,
             },
         )
         assert response.status_code == 200
@@ -220,8 +190,6 @@ class TestChatStreamEndpoint:
             json={
                 "thread_id": "thread-1",
                 "decision": "approve",
-                "session_id": "s1",
-                "user_id": 1,
             },
         )
         assert response.status_code == 200

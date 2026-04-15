@@ -46,16 +46,6 @@ class ChatRequest(BaseModel):
         max_length=100,
         description="DeepAgent thread ID for resume (None = new thread)",
     )
-    session_id: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=200,
-        description="Backend session ID (for write tool binding)",
-    )
-    user_id: int | None = Field(
-        default=None,
-        description="Backend user ID (for write tool binding)",
-    )
     conversation: list[ChatMessage] = Field(
         default_factory=list,
         max_length=50,
@@ -75,16 +65,6 @@ class ResumeRequest(BaseModel):
         ...,
         pattern=r"^(approve|reject)$",
         description="User decision: 'approve' or 'reject'",
-    )
-    session_id: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=200,
-        description="Backend session ID (for write tool binding on resume)",
-    )
-    user_id: int | None = Field(
-        default=None,
-        description="Backend user ID (for write tool binding on resume)",
     )
 
 
