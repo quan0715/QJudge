@@ -277,7 +277,7 @@ class ProblemFilterTests(TestCase):
             owner=owner,
             asset_type=QuestionAsset.AssetType.CODING,
             title=title,
-            payload={"difficulty": difficulty, "translations": []},
+            payload={"difficulty": difficulty},
         )
         problem = Problem.objects.create(
             slug=slug,

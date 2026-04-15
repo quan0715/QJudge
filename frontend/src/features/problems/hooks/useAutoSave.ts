@@ -295,9 +295,9 @@ const FIELD_NAME_MAP: Record<string, string> = {
   timeLimit: "time_limit",
   memoryLimit: "memory_limit",
   existingTagIds: "existing_tag_ids",
-  // Translation fields - need special handling
-  translationZh: "translations",
-  translationEn: "translations",
+  // Content fields - sent as flat fields
+  translationZh: "content",
+  translationEn: "content",
   // Test cases
   testCases: "test_cases",
   // Language config
@@ -307,33 +307,16 @@ const FIELD_NAME_MAP: Record<string, string> = {
 };
 
 /**
- * Convert a form translation object to API format
- */
-function convertTranslationToApi(
-  translation: Record<string, string>,
-  language: string
-): Record<string, string> {
-  return {
-    language,
-    title: translation.title || "",
-    description: translation.description || "",
-    input_description: translation.inputDescription || "",
-    output_description: translation.outputDescription || "",
-    hint: translation.hint || "",
-  };
-}
-
-/**
  * Build a PATCH payload from a field path and value.
  * Handles nested paths and converts camelCase to snake_case.
- * 
- * For translation fields, merges with existing form values to send complete translations.
- * This is necessary because the backend replaces ALL translations on update.
- * 
+ *
+ * For content fields (translationZh/translationEn), sends flat fields
+ * (description, input_description, etc.) directly.
+ *
  * Examples:
  * - "title" -> { title: "value" }
  * - "timeLimit" -> { time_limit: 1000 }
- * - "translationZh.description" -> { translations: [{ language: "zh-TW", ...fullZhTranslation }, { language: "en", ...fullEnTranslation }] }
+ * - "translationZh.description" -> { description: "value", input_description: "...", ... }
  */
 function buildPatchPayload(
   fieldPath: string,
@@ -342,52 +325,30 @@ function buildPatchPayload(
 ): Partial<ProblemUpsertPayload> {
   const parts = fieldPath.split(".");
 
-  // Handle translation fields specially - need to send ALL translations
+  // Handle content fields — send as flat fields
   if (parts[0] === "translationZh" || parts[0] === "translationEn") {
-    const isZh = parts[0] === "translationZh";
-    
-    // Get both translations from form values
-    const zhTranslation = (formValues?.translationZh as Record<string, string>) || {};
-    const enTranslation = (formValues?.translationEn as Record<string, string>) || {};
-    
-    // If updating a specific field, merge the new value
+    const translation = {
+      ...((formValues?.[parts[0]] as Record<string, string>) || {}),
+    };
+
     if (parts.length > 1) {
-      const fieldName = parts[1];
-      if (isZh) {
-        zhTranslation[fieldName] = value as string;
-      } else {
-        enTranslation[fieldName] = value as string;
-      }
+      translation[parts[1]] = value as string;
     } else {
-      // Full translation object replacement
-      if (isZh) {
-        Object.assign(zhTranslation, value as Record<string, string>);
-      } else {
-        Object.assign(enTranslation, value as Record<string, string>);
-      }
+      Object.assign(translation, value as Record<string, string>);
     }
-    
-    // Build translations array with both languages
-    const translations: Record<string, string>[] = [];
-    
-    // Always include Chinese translation if it has content
-    if (zhTranslation.title || zhTranslation.description) {
-      translations.push(convertTranslationToApi(zhTranslation, "zh-TW"));
+
+    const payload: Partial<ProblemUpsertPayload> = {
+      description: translation.description || "",
+      input_description: translation.inputDescription || "",
+      output_description: translation.outputDescription || "",
+      hint: translation.hint || "",
+    };
+
+    if (translation.title) {
+      payload.title = translation.title;
     }
-    
-    // Include English translation if it has content
-    if (enTranslation.title || enTranslation.description) {
-      translations.push(convertTranslationToApi(enTranslation, "en"));
-    }
-    
-    // If no translations yet, still send the one being edited
-    if (translations.length === 0) {
-      const targetTranslation = isZh ? zhTranslation : enTranslation;
-      const language = isZh ? "zh-TW" : "en";
-      translations.push(convertTranslationToApi(targetTranslation, language));
-    }
-    
-    return { translations } as unknown as Partial<ProblemUpsertPayload>;
+
+    return payload;
   }
 
   // Handle test cases - need to convert field names to match backend model

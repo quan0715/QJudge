@@ -75,13 +75,12 @@ class TestMarkdownRendererSnapshots:
             owner=user,
             asset_type=QuestionAsset.AssetType.CODING,
             title='Test Problem',
-            payload={"difficulty": "medium", "translations": [{
-                "language": "zh-TW", "title": "測試題目",
+            payload={"difficulty": "medium",
                 "description": "這是一個測試題目描述",
                 "input_description": "輸入一個整數 N",
                 "output_description": "輸出 N 的平方",
                 "hint": "使用乘法",
-            }]},
+            },
         )
         problem = Problem.objects.create(
             slug='snapshot-test-problem',
@@ -167,13 +166,12 @@ class TestPDFRendererSnapshots:
             owner=user,
             asset_type=QuestionAsset.AssetType.CODING,
             title='PDF Test Problem',
-            payload={"difficulty": "hard", "translations": [{
-                "language": "zh-TW", "title": "PDF 測試題",
+            payload={"difficulty": "hard",
                 "description": "這是 PDF 測試題目",
                 "input_description": "輸入說明",
                 "output_description": "輸出說明",
                 "hint": "",
-            }]},
+            },
         )
         problem = Problem.objects.create(
             slug='pdf-snapshot-test',
@@ -254,11 +252,10 @@ class TestStudentReportSnapshots:
                 owner=owner,
                 asset_type=QuestionAsset.AssetType.CODING,
                 title=title,
-                payload={"difficulty": diff, "translations": [{
-                    "language": "zh-TW", "title": f"{diff.capitalize()} 題目",
+                payload={"difficulty": diff,
                     "description": f"{diff} 描述",
                     "input_description": "", "output_description": "", "hint": "",
-                }]},
+                },
             )
             problem = Problem.objects.create(
                 slug=f'report-snapshot-{diff}',

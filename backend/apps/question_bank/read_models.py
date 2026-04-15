@@ -159,7 +159,7 @@ def _build_bank_question_read_row(
         bank=str(bank.uuid),
         question_type=question_type,
         title=(version.title if version else membership.question_asset.title) or "",
-        prompt=(version.prompt if version else membership.question_asset.prompt) or "",
+        prompt=version.prompt if version else "",
         options=(payload.get("options") or []),
         correct_answer=payload.get("correct_answer"),
         score=int(payload.get("score") or 0),

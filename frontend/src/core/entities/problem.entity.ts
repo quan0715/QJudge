@@ -123,7 +123,10 @@ export interface ProblemUpsertPayload {
   difficulty: Difficulty;
   time_limit: number;
   memory_limit: number;
-  translations: ProblemUpsertTranslation[];
+  description: string;
+  input_description: string;
+  output_description: string;
+  hint: string;
   test_cases?: ProblemUpsertTestCase[];
   language_configs?: ProblemUpsertLanguageConfig[];
   forbidden_keywords?: string[];

@@ -392,7 +392,7 @@ def test_question_viewset_can_retrieve_canonical_only_membership(
             "options": [],
             "correct_answer": None,
             "metadata": {},
-            "translations": [],
+
             "test_cases": [],
             "language_configs": [],
             "forbidden_keywords": [],
@@ -444,7 +444,7 @@ def test_question_bank_item_route_can_retrieve_canonical_membership(
             "options": [],
             "correct_answer": None,
             "metadata": {},
-            "translations": [],
+
             "test_cases": [],
             "language_configs": [],
             "forbidden_keywords": [],
@@ -494,7 +494,7 @@ def test_question_viewset_can_patch_canonical_only_membership(
             "options": [],
             "correct_answer": None,
             "metadata": {},
-            "translations": [],
+
             "test_cases": [],
             "language_configs": [],
             "forbidden_keywords": [],
@@ -563,7 +563,7 @@ def test_question_viewset_can_delete_canonical_only_membership(
             "options": [],
             "correct_answer": None,
             "metadata": {},
-            "translations": [],
+
             "test_cases": [],
             "language_configs": [],
             "forbidden_keywords": [],
