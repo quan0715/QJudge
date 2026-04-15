@@ -1,15 +1,14 @@
 /**
- * ChatbotWidget — Carbon AI Chat replacement
+ * ChatbotWidget — Global resizable side panel powered by @carbon/ai-chat.
  *
- * Wraps @carbon/ai-chat ChatContainer and bridges to the QJudge
- * backend SSE stream (DeepAgents / LangGraph).
- *
- * Props are backward-compatible with the old ChatbotWidget.
+ * Uses ChatCustomElement (not ChatContainer) so we control the panel layout.
+ * Renders a floating toggle button + right-side panel below the navbar.
+ * Only visible for teacher/admin roles.
  */
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  ChatContainer,
+  ChatCustomElement,
   BusEventType,
   WriteableElementName,
   MessageResponseTypes,
@@ -24,7 +23,9 @@ import {
 } from "@carbon/ai-chat";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { httpClient } from "@/infrastructure/api/http.client";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import type { BackgroundInformation, ChatSession } from "@/core/types/chatbot.types";
+import styles from "./ChatbotSidePanel.module.scss";
 
 // ── SSE event shape from ai-service ──────────────────────────────────────
 interface V2StreamEvent {
@@ -47,6 +48,9 @@ interface V2StreamEvent {
 }
 
 const BASE_URL = "/api/v1/ai/sessions";
+const PANEL_DEFAULT_WIDTH = 400;
+const PANEL_MIN_WIDTH = 320;
+const PANEL_MAX_WIDTH = 720;
 
 // ── Map backend session messages to Carbon HistoryItem[] ─────────────────
 function sessionToHistoryItems(session: ChatSession): HistoryItem[] {
@@ -60,9 +64,8 @@ function sessionToHistoryItems(session: ChatSession): HistoryItem[] {
               generic: [
                 {
                   response_type: MessageResponseTypes.TEXT,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   text: msg.content,
-                } as any,
+                } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
               ],
             },
           },
@@ -108,13 +111,7 @@ function HistoryPanelContent({
 
   if (sessions.length === 0) {
     return (
-      <div
-        style={{
-          padding: "1rem",
-          fontSize: "0.875rem",
-          color: "var(--cds-text-secondary, #525252)",
-        }}
-      >
+      <div style={{ padding: "1rem", fontSize: "0.875rem", color: "var(--cds-text-secondary, #525252)" }}>
         尚無對話記錄
       </div>
     );
@@ -132,32 +129,17 @@ function HistoryPanelContent({
             textAlign: "left",
             padding: "0.75rem 1rem",
             borderBottom: "1px solid var(--cds-border-subtle-01, #e0e0e0)",
-            background:
-              s.id === currentSessionIdRef.current
-                ? "var(--cds-layer-selected, #e8e8e8)"
-                : "transparent",
+            background: s.id === currentSessionIdRef.current
+              ? "var(--cds-layer-selected, #e8e8e8)"
+              : "transparent",
             border: "none",
             cursor: "pointer",
           }}
         >
-          <div
-            style={{
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <div style={{ fontSize: "0.875rem", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {s.title || "新對話"}
           </div>
-          <div
-            style={{
-              fontSize: "0.75rem",
-              color: "var(--cds-text-secondary, #525252)",
-              marginTop: "0.125rem",
-            }}
-          >
+          <div style={{ fontSize: "0.75rem", color: "var(--cds-text-secondary, #525252)", marginTop: "0.125rem" }}>
             {s.updatedAt.toLocaleDateString("zh-TW")}
           </div>
         </button>
@@ -166,11 +148,27 @@ function HistoryPanelContent({
   );
 }
 
-// ── Props (backward-compatible) ───────────────────────────────────────────
+// ── Toggle button SVG icons ──────────────────────────────────────────────
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.74 30L16 29l4-7h6a2 2 0 002-2V8a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2h9v2H6a4 4 0 01-4-4V8a4 4 0 014-4h20a4 4 0 014 4v12a4 4 0 01-4 4h-4.84z" />
+      <path d="M8 12h16v2H8zM8 16h10v2H8z" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 9.4L22.6 8 16 14.6 9.4 8 8 9.4l6.6 6.6L8 22.6 9.4 24l6.6-6.6 6.6 6.6 1.4-1.4-6.6-6.6L24 9.4z" />
+    </svg>
+  );
+}
+
+// ── Props ─────────────────────────────────────────────────────────────────
 export interface ChatbotWidgetProps {
   defaultExpanded?: boolean;
-  /** Ignored in Carbon mode — both usages render as a float widget */
-  embedded?: boolean;
   problemContext?: { id: number | string; title: string } | null;
   backgroundInfo?: BackgroundInformation | null;
   onProblemUpdated?: () => void;
@@ -182,10 +180,39 @@ export const ChatbotWidget = ({
   backgroundInfo = null,
   onProblemUpdated = undefined,
 }: ChatbotWidgetProps) => {
+  const { user } = useAuth();
+  const [isOpen, setIsOpen] = useState(defaultExpanded);
+  const [panelWidth, setPanelWidth] = useState(PANEL_DEFAULT_WIDTH);
   const instanceRef = useRef<ChatInstance | null>(null);
   const backendSessionIdRef = useRef<string | null>(null);
   const sessionsRef = useRef<{ id: string; title: string; updatedAt: Date }[]>([]);
   const currentSessionIdRef = useRef<string | null>(null);
+  const isDraggingRef = useRef(false);
+
+  // Role guard: only teacher/admin
+  const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
+
+  // ── Resize logic ───────────────────────────────────────────────────────
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    const startX = e.clientX;
+    const startWidth = panelWidth;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const delta = startX - ev.clientX; // dragging left = wider
+      const newWidth = Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, startWidth + delta));
+      setPanelWidth(newWidth);
+    };
+    const onUp = () => {
+      isDraggingRef.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [panelWidth]);
 
   // ── customSendMessage: SSE bridge ─────────────────────────────────────
   const customSendMessage = useCallback(
@@ -209,9 +236,7 @@ export const ChatbotWidget = ({
         currentSessionIdRef.current = sessionId;
       }
 
-      const payload: Record<string, unknown> = {
-        content: text,
-      };
+      const payload: Record<string, unknown> = { content: text };
 
       const response = await httpClient.request(
         `${BASE_URL}/${sessionId}/send_message_stream/`,
@@ -227,9 +252,7 @@ export const ChatbotWidget = ({
       );
 
       if (!response.ok) {
-        throw new Error(
-          response.status === 401 ? "請先登入" : `HTTP ${response.status}`,
-        );
+        throw new Error(response.status === 401 ? "請先登入" : `HTTP ${response.status}`);
       }
 
       const reader = response.body?.getReader();
@@ -240,24 +263,18 @@ export const ChatbotWidget = ({
       let accumulatedText = "";
       let accumulatedThinking = "";
       const cotSteps: ChainOfThoughtStep[] = [];
-      const reasoningSteps: ReasoningStep[] = [];
       let isCanceled = false;
 
-      // Listen for abort (stop button / conversation restart)
       const abortHandler = () => { isCanceled = true; };
       opts.signal?.addEventListener("abort", abortHandler);
 
-      // Build message_options snapshot for partial/final chunks
       const buildMessageOptions = () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const opts: Record<string, any> = {};
-        if (cotSteps.length > 0) opts.chain_of_thought = [...cotSteps];
-        if (reasoningSteps.length > 0) opts.reasoning = { steps: [...reasoningSteps] };
-        else if (accumulatedThinking) opts.reasoning = { content: accumulatedThinking };
-        return Object.keys(opts).length > 0 ? opts : undefined;
+        const mopts: Record<string, any> = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
+        if (cotSteps.length > 0) mopts.chain_of_thought = [...cotSteps];
+        if (accumulatedThinking) mopts.reasoning = { content: accumulatedThinking };
+        return Object.keys(mopts).length > 0 ? mopts : undefined;
       };
 
-      // Send a partial chunk (delta text or just a CoT/reasoning update)
       const sendPartial = async (delta?: string) => {
         if (delta) accumulatedText += delta;
         const msgOpts = buildMessageOptions();
@@ -272,7 +289,6 @@ export const ChatbotWidget = ({
         } as StreamChunk);
       };
 
-      // Finalize the message (complete_item → final_response)
       const sendFinal = async (stopped: boolean) => {
         const msgOpts = buildMessageOptions();
         const completeItem = {
@@ -280,22 +296,17 @@ export const ChatbotWidget = ({
           text: accumulatedText,
           streaming_metadata: { id: textItemId, ...(stopped ? { stream_stopped: true } : {}) },
         };
-
-        // Step 1: complete_item
         await instance.messaging.addMessageChunk({
           complete_item: completeItem,
           streaming_metadata: { response_id: responseId },
         } as StreamChunk);
-
-        // Step 2: final_response
-        const finalChunk: StreamChunk = {
+        await instance.messaging.addMessageChunk({
           final_response: {
             id: responseId,
             output: { generic: [completeItem] },
             ...(msgOpts ? { message_options: msgOpts } : {}),
           },
-        };
-        await instance.messaging.addMessageChunk(finalChunk);
+        } as StreamChunk);
       };
 
       const handleEvent = async (event: V2StreamEvent) => {
@@ -312,7 +323,6 @@ export const ChatbotWidget = ({
           case "thinking_delta":
             if (event.content) {
               accumulatedThinking += event.content;
-              // Stream thinking as reasoning content
               await instance.messaging.addMessageChunk({
                 partial_item: {
                   response_type: MessageResponseTypes.TEXT,
@@ -337,9 +347,7 @@ export const ChatbotWidget = ({
                 title: event.tool_name,
                 tool_name: event.tool_name,
                 status: ChainOfThoughtStepStatus.PROCESSING,
-                request: event.input_data
-                  ? { args: event.input_data }
-                  : undefined,
+                request: event.input_data ? { args: event.input_data } : undefined,
               });
               await sendPartial();
             }
@@ -357,12 +365,7 @@ export const ChatbotWidget = ({
                   ? ChainOfThoughtStepStatus.FAILURE
                   : ChainOfThoughtStepStatus.SUCCESS,
                 response: event.result
-                  ? {
-                      content:
-                        typeof event.result === "string"
-                          ? event.result
-                          : JSON.stringify(event.result, null, 2),
-                    }
+                  ? { content: typeof event.result === "string" ? event.result : JSON.stringify(event.result, null, 2) }
                   : undefined,
               };
             }
@@ -374,11 +377,7 @@ export const ChatbotWidget = ({
             await sendFinal(false);
             onProblemUpdated?.();
             chatbotRepository.getSessions().then((sessions) => {
-              sessionsRef.current = sessions.map((s) => ({
-                id: s.id,
-                title: s.title,
-                updatedAt: s.updatedAt,
-              }));
+              sessionsRef.current = sessions.map((s) => ({ id: s.id, title: s.title, updatedAt: s.updatedAt }));
             }).catch(console.warn);
             break;
           }
@@ -389,7 +388,6 @@ export const ChatbotWidget = ({
       };
 
       try {
-        // Parse SSE stream
         // eslint-disable-next-line no-constant-condition
         while (true) {
           const { done, value } = await reader.read();
@@ -403,14 +401,10 @@ export const ChatbotWidget = ({
             await handleEvent(JSON.parse(line.slice(6)));
           }
         }
-        // Flush remaining buffer
         if (buffer.trim().startsWith("data: ")) {
-          try {
-            await handleEvent(JSON.parse(buffer.trim().slice(6)));
-          } catch { /* ignore trailing parse errors */ }
+          try { await handleEvent(JSON.parse(buffer.trim().slice(6))); } catch { /* ignore */ }
         }
       } catch (err) {
-        // If aborted (stop button / restart), finalize with stream_stopped
         if (isCanceled) {
           await sendFinal(true);
           return;
@@ -423,16 +417,12 @@ export const ChatbotWidget = ({
     [backgroundInfo, onProblemUpdated],
   );
 
-  // ── customLoadHistory: restore most recent session ───────────────────
+  // ── customLoadHistory ──────────────────────────────────────────────────
   const customLoadHistory = useCallback(
     async (_instance: ChatInstance): Promise<HistoryItem[]> => {
       try {
         const sessions = await chatbotRepository.getSessions();
-        sessionsRef.current = sessions.map((s) => ({
-          id: s.id,
-          title: s.title,
-          updatedAt: s.updatedAt,
-        }));
+        sessionsRef.current = sessions.map((s) => ({ id: s.id, title: s.title, updatedAt: s.updatedAt }));
         if (sessions.length === 0) return [];
 
         let targetId: string | null = null;
@@ -451,17 +441,16 @@ export const ChatbotWidget = ({
     [],
   );
 
-  // ── Stable config refs (prevent identity churn) ──────────────────────
+  // ── Stable config refs ─────────────────────────────────────────────────
   const messagingConfig = useRef({
     customSendMessage,
     showStopButtonImmediately: true,
-    messageTimeoutSecs: 60,
+    messageTimeoutSecs: 120,
     customLoadHistory,
   }).current;
 
   const historyConfig = useRef({ isOn: true }).current;
   const headerConfig = useRef({ title: "QJudge AI 助教" }).current;
-  const launcherConfig = useRef({ isOn: true }).current;
 
   const renderWriteableElements = useRef({
     [WriteableElementName.HISTORY_PANEL_ELEMENT]: (
@@ -488,17 +477,42 @@ export const ChatbotWidget = ({
     });
   }, []);
 
+  if (!isTeacherOrAdmin) return null;
+
   return createPortal(
-    <ChatContainer
-      openChatByDefault={defaultExpanded}
-      header={headerConfig}
-      launcher={launcherConfig}
-      messaging={messagingConfig}
-      history={historyConfig}
-      assistantName="QJudge AI"
-      renderWriteableElements={renderWriteableElements}
-      onBeforeRender={handleBeforeRender}
-    />,
+    <>
+      {/* Toggle button */}
+      <button
+        className={styles.toggleButton}
+        data-open={isOpen}
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-label={isOpen ? "關閉 AI 助教" : "開啟 AI 助教"}
+      >
+        {isOpen ? <CloseIcon /> : <ChatIcon />}
+      </button>
+
+      {/* Side panel */}
+      <div
+        className={styles.overlay}
+        data-open={isOpen}
+        style={{ "--panel-width": `${panelWidth}px` } as React.CSSProperties}
+      >
+        {/* Resize handle */}
+        <div className={styles.resizeHandle} onMouseDown={handleResizeStart} />
+
+        {/* Chat body */}
+        <div className={styles.panelBody}>
+          <ChatCustomElement
+            header={headerConfig}
+            messaging={messagingConfig}
+            history={historyConfig}
+            assistantName="QJudge AI"
+            renderWriteableElements={renderWriteableElements}
+            onBeforeRender={handleBeforeRender}
+          />
+        </div>
+      </div>
+    </>,
     document.body,
   );
 };

@@ -1,0 +1,92 @@
+/* ChatbotSidePanel — resizable right-side panel below navbar */
+
+$header-height: 48px; // Carbon header default
+$panel-min-width: 320px;
+$panel-max-width: 720px;
+$panel-default-width: 400px;
+$toggle-size: 48px;
+$toggle-margin: 1rem;
+$resize-handle-width: 5px;
+
+.overlay {
+  position: fixed;
+  top: $header-height;
+  right: 0;
+  bottom: 0;
+  width: var(--panel-width, #{$panel-default-width});
+  min-width: $panel-min-width;
+  max-width: $panel-max-width;
+  z-index: 8000; // below Carbon header (9000)
+  display: flex;
+  flex-direction: row;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease;
+
+  &[data-open="false"] {
+    transform: translateX(100%);
+    pointer-events: none;
+  }
+}
+
+.resizeHandle {
+  width: $resize-handle-width;
+  cursor: col-resize;
+  background: var(--cds-border-subtle-01, #e0e0e0);
+  flex-shrink: 0;
+  transition: background 0.15s;
+
+  &:hover,
+  &:active {
+    background: var(--cds-interactive, #0f62fe);
+  }
+}
+
+.panelBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--cds-layer, #fff);
+  overflow: hidden;
+
+  // ChatCustomElement fills the panel
+  :global(.ChatCustomElement),
+  :global([class*="ChatCustomElement"]) {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+.toggleButton {
+  position: fixed;
+  bottom: $toggle-margin;
+  right: $toggle-margin;
+  z-index: 8001;
+  width: $toggle-size;
+  height: $toggle-size;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cds-interactive, #0f62fe);
+  color: var(--cds-text-on-color, #fff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: background 0.15s, transform 0.15s;
+
+  &:hover {
+    background: var(--cds-interactive-hover, #0043ce);
+    transform: scale(1.05);
+  }
+
+  &[data-open="true"] {
+    background: var(--cds-layer-selected-inverse, #393939);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+}
