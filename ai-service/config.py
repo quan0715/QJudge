@@ -45,8 +45,6 @@ class Settings(BaseSettings):
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
 
-    # Skills directory
-    skills_dir: str = "skills"
 
 
 @lru_cache

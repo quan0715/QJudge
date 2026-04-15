@@ -95,8 +95,6 @@ async def generate_sse_events(
             messages=messages,
             model_id=request.model_id,
             system_prompt=system_prompt,
-            session_id=request.session_id,
-            user_id=request.user_id,
             request_context=request_context,
         ):
             yield {"data": json.dumps(sse_dict, ensure_ascii=False)}
@@ -144,8 +142,6 @@ async def generate_resume_events(
         async for sse_dict in runner.resume_stream(
             thread_id=request.thread_id,
             decision=request.decision,
-            session_id=request.session_id,
-            user_id=request.user_id,
             request_context=request_context,
         ):
             yield {"data": json.dumps(sse_dict, ensure_ascii=False)}

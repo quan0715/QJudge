@@ -79,7 +79,7 @@ class BaseAIStreamRuntime:
                 f"{ai_service_base_url()}{self.endpoint}",
                 json=payload,
                 headers=ai_headers,
-                timeout=120.0,
+                timeout=httpx.Timeout(10.0, read=120.0),
             ) as response:
                 if response.status_code != 200:
                     response.read()
@@ -94,20 +94,24 @@ class BaseAIStreamRuntime:
                     yield self._error_event(self.stream_error)
                     return
 
-                for line in response.iter_lines():
-                    if line.strip():
+                # Use iter_bytes for real-time streaming (iter_lines buffers too aggressively)
+                buffer = ""
+                for chunk in response.iter_bytes():
+                    buffer += chunk.decode("utf-8", errors="replace")
+                    while "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        line = line.strip()
+                        if not line:
+                            continue
                         if line.startswith("data: "):
                             try:
                                 event = json.loads(line[6:])
                                 on_event(event)
-                                yield f"{line}\n\n"
                             except json.JSONDecodeError:
-                                logger.debug("Failed to parse SSE line: %s", line)
-                                yield f"{line}\n\n"
+                                pass
+                            yield f"{line}\n\n"
                         else:
                             yield f"{line}\n"
-                    else:
-                        yield "\n"
         except Exception as exc:
             self.stream_error = str(exc)
             logger.exception("%s: %s", error_prefix, exc)

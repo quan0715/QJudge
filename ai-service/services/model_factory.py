@@ -21,7 +21,7 @@ _DEFAULT_MODEL_ID = "deepseek-r1"
 
 # Pricing in cents per million tokens (single source of truth)
 PRICING: dict[str, dict[str, int]] = {
-    "deepseek-r1": {"input": 28, "output": 42},
+    "deepseek-r1": {"input": 55, "output": 219},
 }
 
 # Model display info for the /models API
