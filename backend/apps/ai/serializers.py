@@ -107,7 +107,6 @@ class SendMessageStreamSerializer(serializers.Serializer):
         required=False,
         default="deepseek-r1",
     )
-    skill = serializers.CharField(max_length=100, required=False, allow_null=True)
 
 
 class ModelInfoSerializer(serializers.Serializer):

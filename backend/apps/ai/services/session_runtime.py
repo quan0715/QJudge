@@ -131,14 +131,12 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
         session: AISession | None,
         content: str,
         validated_data: dict[str, Any],
-        skill: str | None,
     ) -> None:
         self.user = user
         self.backend_session_id = backend_session_id
         self.session = session
         self.content = content
         self.validated_data = validated_data
-        self.skill = skill
 
         self.full_response = ""
         self.stream_error: str | None = None
@@ -163,9 +161,6 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
         if self.session:
             payload["thread_id"] = self.session.session_id
             payload["session_id"] = self.session.session_id
-
-        if self.skill:
-            payload["skill"] = self.skill
 
         return payload
 

@@ -97,9 +97,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
         Request body:
         - content: str (required) - The message content
-        - skill: str (optional) - Skill to use for this message
-        - model: str (optional) - Model to use: 'haiku', 'sonnet', 'opus' (default: 'haiku')
-        - reference: object (optional) - Problem reference context
+        - model_id: str (optional) - Model to use (default: 'deepseek-r1')
         """
         # 必須認證
         if not request.user or not request.user.is_authenticated:
@@ -129,16 +127,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
         serializer = SendMessageStreamSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         content = serializer.validated_data["content"]
-        skill = serializer.validated_data.get("skill")
-
-        if skill and not (
-            request.user.is_staff
-            or getattr(request.user, "role", "") in ("teacher", "admin")
-        ):
-            return Response(
-                {"error": "Only teacher/admin can use skill override"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         runtime = ChatStreamRuntime(
             user=request.user,
@@ -146,7 +134,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
             session=session,
             content=content,
             validated_data=serializer.validated_data,
-            skill=skill,
         )
         return build_sse_response(runtime.generate())
 

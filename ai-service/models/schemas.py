@@ -40,12 +40,6 @@ class ChatRequest(BaseModel):
         max_length=10000,
         description="Optional system prompt override",
     )
-    skill: str | None = Field(
-        default=None,
-        max_length=100,
-        pattern=r"^[a-z0-9][a-z0-9-]{0,99}$",
-        description="Optional skill name",
-    )
     thread_id: str | None = Field(
         default=None,
         min_length=1,

@@ -3,7 +3,6 @@
 import hmac
 import json
 import logging
-from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, HTTPException, Request
@@ -28,39 +27,6 @@ def validate_internal_auth(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
-def _skills_root() -> Path:
-    """DeepAgents skills root directory (configurable via settings.skills_dir)."""
-    base_dir = Path(__file__).resolve().parent.parent
-    configured = Path(get_settings().skills_dir)
-    if configured.is_absolute():
-        return configured
-    return (base_dir / configured).resolve()
-
-
-def list_available_skill_names() -> set[str]:
-    """List available skill directory names under ai-service/skills."""
-    root = _skills_root()
-    if not root.exists() or not root.is_dir():
-        return set()
-
-    names: set[str] = set()
-    for child in root.iterdir():
-        if child.is_dir() and (child / "SKILL.md").exists():
-            names.add(child.name)
-    return names
-
-
-def validate_skill_exists(skill_name: str) -> None:
-    """Validate that a requested skill exists in DeepAgents skill sources."""
-    available = list_available_skill_names()
-    if skill_name not in available:
-        available_list = ", ".join(sorted(available)) if available else "(none)"
-        raise HTTPException(
-            status_code=400,
-            detail=f"Skill not found: {skill_name}. Available skills: {available_list}",
-        )
-
-
 async def generate_sse_events(
     request: ChatRequest,
     app_request: Request,
@@ -68,22 +34,10 @@ async def generate_sse_events(
     """Generate SSE events by running the DeepAgent."""
     runner = app_request.app.state.deepagent_runner
 
-    # Build optional system prompt override
-    system_prompt = request.system_prompt
-
-    # Pass requested skill as a routing hint in user message.
-    user_content = request.content
-    if request.skill:
-        user_content = (
-            f"請優先使用技能 `{request.skill}`（若任務匹配）。\n\n"
-            f"{request.content}"
-        )
-
-    # Build messages from conversation + current content
     messages = []
     for msg in request.conversation:
         messages.append({"role": msg.role.value, "content": msg.content})
-    messages.append({"role": "user", "content": user_content})
+    messages.append({"role": "user", "content": request.content})
 
     request_context = RequestContext(
         user_authorization=app_request.headers.get("X-QJudge-User-Authorization"),
@@ -94,7 +48,7 @@ async def generate_sse_events(
             thread_id=request.thread_id,
             messages=messages,
             model_id=request.model_id,
-            system_prompt=system_prompt,
+            system_prompt=request.system_prompt,
             request_context=request_context,
         ):
             yield {"data": json.dumps(sse_dict, ensure_ascii=False)}
@@ -121,9 +75,6 @@ async def chat_stream(request: ChatRequest, app_request: Request) -> EventSource
     usage_report, run_completed, run_failed.
     """
     validate_internal_auth(app_request)
-    if request.skill:
-        validate_skill_exists(request.skill)  # validate early
-
     return EventSourceResponse(generate_sse_events(request, app_request))
 
 
