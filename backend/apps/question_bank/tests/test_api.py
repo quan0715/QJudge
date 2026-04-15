@@ -535,7 +535,6 @@ class TestQuestionBankAPI:
                 "options": [],
                 "correct_answer": None,
                 "metadata": {},
-                "translations": [],
                 "test_cases": [],
                 "language_configs": [],
                 "forbidden_keywords": [],
@@ -735,11 +734,10 @@ class TestQuestionBankAPI:
         asset = QuestionAsset.objects.create(
             owner=teacher, asset_type=QuestionAsset.AssetType.CODING,
             title="Inbox Coding",
-            payload={"difficulty": "medium", "translations": [{
-                "language": "zh-TW", "title": "Inbox Coding",
+            payload={"difficulty": "medium",
                 "description": "desc", "input_description": "in",
                 "output_description": "out", "hint": "",
-            }]},
+            },
         )
         problem = Problem.objects.create(
             slug="inbox-coding",
@@ -915,11 +913,10 @@ class TestQuestionBankAPI:
         asset = QuestionAsset.objects.create(
             owner=teacher, asset_type=QuestionAsset.AssetType.CODING,
             title="Needs Re-ingest",
-            payload={"difficulty": "medium", "translations": [{
-                "language": "zh-TW", "title": "Needs Re-ingest",
+            payload={"difficulty": "medium",
                 "description": "desc", "input_description": "in",
                 "output_description": "out", "hint": "",
-            }]},
+            },
         )
         problem = Problem.objects.create(
             slug="needs-re-ingest",
@@ -1435,7 +1432,7 @@ class TestUpsertIdempotency:
         )
         asset = QuestionAsset.objects.create(
             owner=teacher, asset_type=QuestionAsset.AssetType.CODING,
-            title="Prob", payload={"difficulty": "easy", "translations": []},
+            title="Prob", payload={"difficulty": "easy"},
         )
         problem = Problem.objects.create(
             created_by=teacher,

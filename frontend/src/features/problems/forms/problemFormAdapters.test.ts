@@ -11,7 +11,7 @@ import {
 
 describe("problemFormAdapters", () => {
   describe("problemDetailToFormSchema", () => {
-    it("maps problem detail into form schema", () => {
+    it("maps problem detail flat fields into form schema", () => {
       const detail: ProblemDetail = {
         id: "1",
         title: "Test Problem",
@@ -26,19 +26,12 @@ describe("problemFormAdapters", () => {
         ceCount: 0,
         tags: [{ id: "10", name: "Math", slug: "math" }],
         isSolved: false,
-        description: "Desc",
+        description: "中文描述",
+        inputDescription: "輸入",
+        outputDescription: "輸出",
+        hint: "提示",
         timeLimit: 500,
         memoryLimit: 64,
-        translations: [
-          {
-            language: "zh-TW",
-            title: "中文標題",
-            description: "中文描述",
-            inputDescription: "輸入",
-            outputDescription: "輸出",
-            hint: "提示",
-          },
-        ],
         testCases: [],
         languageConfigs: [],
         forbiddenKeywords: ["goto"],
@@ -52,14 +45,16 @@ describe("problemFormAdapters", () => {
       expect(result?.timeLimit).toBe(500);
       expect(result?.memoryLimit).toBe(64);
       expect(result?.existingTagIds).toEqual([10]);
-      expect(result?.translationZh.title).toBe("中文標題");
+      expect(result?.translationZh.title).toBe("Test Problem");
+      expect(result?.translationZh.description).toBe("中文描述");
+      expect(result?.translationZh.inputDescription).toBe("輸入");
       expect(result?.translationEn.title).toBe("");
       expect(result?.forbiddenKeywords).toEqual(["goto"]);
     });
   });
 
   describe("formSchemaToApiPayload", () => {
-    it("builds payload with translations and filters disabled languages", () => {
+    it("builds payload with flat content fields and filters disabled languages", () => {
       const schema: ProblemFormSchema = {
         ...DEFAULT_PROBLEM_FORM_VALUES,
         title: "Form Problem",
@@ -87,7 +82,7 @@ describe("problemFormAdapters", () => {
       const payload = formSchemaToApiPayload(schema);
 
       expect(payload.title).toBe("Form Problem");
-      expect(payload.translations).toHaveLength(1);
+      expect(payload.description).toBe("描述");
       expect(payload.language_configs).toHaveLength(1);
       expect(payload.language_configs[0].language).toBe("cpp");
       expect(payload.existing_tag_ids).toEqual([1, 2]);

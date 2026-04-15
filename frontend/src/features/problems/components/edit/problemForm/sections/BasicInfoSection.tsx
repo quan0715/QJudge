@@ -182,7 +182,7 @@ const BasicInfoSection: React.FC = () => {
 
   return (
     <Section title="基本資訊">
-      <ActionRow label="題目名稱 (Internal Title)" description="內部管理用名稱，不會顯示於學生的題目頁面">
+      <ActionRow label="題目標題" description="顯示於題目列表與題目頁面的標題">
         <div style={{ width: "18rem" }}>
           <AutoSaveField name="title">
             {({ field, error, invalid, onAutoSaveChange, onAutoSaveBlur }) => (

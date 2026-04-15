@@ -21,8 +21,5 @@ export { default as ProblemTabs } from "./layout/ProblemTabs";
 // Common components
 export { TestCaseList, type TestCaseItem } from "./common/TestCaseList";
 
-// Modal components
-export { CreateProblemModal } from "./modals";
-
 // Other components
 export { default as ProblemLink } from "./ProblemLink";

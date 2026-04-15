@@ -6,34 +6,16 @@ from django.db.models import Max
 
 
 def extract_content_from_payload(payload: dict) -> dict[str, str]:
-    """Extract description/input_description/output_description/hint from payload.
-
-    Supports both new flat format and legacy translations[] format.
-    """
+    """Extract description/input_description/output_description/hint from payload."""
     if not payload:
         return {"description": "", "input_description": "", "output_description": "", "hint": ""}
 
-    # New flat format
-    if "description" in payload:
-        return {
-            "description": payload.get("description", ""),
-            "input_description": payload.get("input_description", ""),
-            "output_description": payload.get("output_description", ""),
-            "hint": payload.get("hint", ""),
-        }
-
-    # Legacy translations[] format
-    translations = payload.get("translations", [])
-    if translations and isinstance(translations, list):
-        t = translations[0] if isinstance(translations[0], dict) else {}
-        return {
-            "description": t.get("description", ""),
-            "input_description": t.get("input_description", ""),
-            "output_description": t.get("output_description", ""),
-            "hint": t.get("hint", ""),
-        }
-
-    return {"description": "", "input_description": "", "output_description": "", "hint": ""}
+    return {
+        "description": payload.get("description", ""),
+        "input_description": payload.get("input_description", ""),
+        "output_description": payload.get("output_description", ""),
+        "hint": payload.get("hint", ""),
+    }
 
 from apps.contests.models import ExamQuestion, ExamQuestionType
 from apps.problems.models import CodingProblem, Problem  # Problem = CodingProblem alias
@@ -132,7 +114,6 @@ def _build_bank_question_asset_payload_from_components(
     }
     if question_type == Question.QuestionType.CODING:
         coding_payload = coding_ext or {}
-        # Support both flat content fields and legacy translations[]
         content = extract_content_from_payload(coding_payload)
         payload["description"] = content["description"]
         payload["input_description"] = content["input_description"]
@@ -359,7 +340,7 @@ def publish_question_version_for_bank_payload(
 ) -> tuple[QuestionAsset, QuestionVersion]:
     effective_question_type = pending_data.get("question_type", question.question_type)
     effective_title = pending_data.get("title", question.title)
-    effective_prompt = pending_data.get("prompt", question.prompt)
+    effective_prompt = pending_data.get("prompt", "")
     effective_score = pending_data.get("score", question.score)
     effective_order = pending_data.get("order", question.order)
     effective_difficulty = pending_data.get("difficulty", question.difficulty)

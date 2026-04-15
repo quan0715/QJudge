@@ -1,26 +1,20 @@
 import type {
   ProblemDetail,
   ProblemUpsertPayload,
-  Translation,
 } from "@/core/entities/problem.entity";
 import { LANGUAGE_OPTIONS } from "@/features/problems/constants/codeTemplates";
 import type { ProblemFormSchema } from "./problemFormSchema";
 
-const getTranslation = (
-  translations: Translation[] | undefined,
-  lang: string
-): Translation | undefined => translations?.find((t) => t.language === lang);
-
 /**
  * Transform ProblemDetail entity to ProblemFormSchema for react-hook-form.
+ *
+ * Content fields (description, inputDescription, etc.) come from the entity's
+ * flat fields, which the backend reads from QuestionAsset.payload.
  */
 export function problemDetailToFormSchema(
   problem: ProblemDetail | null | undefined
 ): ProblemFormSchema | undefined {
   if (!problem) return undefined;
-
-  const zhTrans = getTranslation(problem.translations, "zh-TW");
-  const enTrans = getTranslation(problem.translations, "en");
 
   return {
     title: problem.title || "",
@@ -30,18 +24,18 @@ export function problemDetailToFormSchema(
     existingTagIds: problem.tags?.map((t) => parseInt(t.id)) || [],
     newTagNames: [],
     translationZh: {
-      title: zhTrans?.title || "",
-      description: zhTrans?.description || "",
-      inputDescription: zhTrans?.inputDescription || "",
-      outputDescription: zhTrans?.outputDescription || "",
-      hint: zhTrans?.hint || "",
+      title: problem.title || "",
+      description: problem.description || "",
+      inputDescription: problem.inputDescription || "",
+      outputDescription: problem.outputDescription || "",
+      hint: problem.hint || "",
     },
     translationEn: {
-      title: enTrans?.title || "",
-      description: enTrans?.description || "",
-      inputDescription: enTrans?.inputDescription || "",
-      outputDescription: enTrans?.outputDescription || "",
-      hint: enTrans?.hint || "",
+      title: "",
+      description: "",
+      inputDescription: "",
+      outputDescription: "",
+      hint: "",
     },
     testCases: problem.testCases || [],
     languageConfigs: problem.languageConfigs || [],
@@ -57,36 +51,19 @@ export function problemDetailToFormSchema(
 export function formSchemaToApiPayload(
   data: ProblemFormSchema
 ): ProblemUpsertPayload {
-  const translations = [];
-
-  if (data.translationZh.title || data.translationZh.description) {
-    translations.push({
-      language: "zh-TW",
-      title: data.translationZh.title,
-      description: data.translationZh.description,
-      input_description: data.translationZh.inputDescription,
-      output_description: data.translationZh.outputDescription,
-      hint: data.translationZh.hint || "",
-    });
-  }
-
-  if (data.translationEn.title || data.translationEn.description) {
-    translations.push({
-      language: "en",
-      title: data.translationEn.title,
-      description: data.translationEn.description,
-      input_description: data.translationEn.inputDescription,
-      output_description: data.translationEn.outputDescription,
-      hint: data.translationEn.hint || "",
-    });
-  }
+  const active = data.translationZh.description
+    ? data.translationZh
+    : data.translationEn;
 
   return {
-    title: data.title || data.translationZh.title || data.translationEn.title,
+    title: data.title || active.title,
     difficulty: data.difficulty,
     time_limit: data.timeLimit,
     memory_limit: data.memoryLimit,
-    translations,
+    description: active.description || "",
+    input_description: active.inputDescription || "",
+    output_description: active.outputDescription || "",
+    hint: active.hint || "",
     test_cases: data.testCases.map((tc, index) => ({
       input_data: tc.input,
       output_data: tc.output,

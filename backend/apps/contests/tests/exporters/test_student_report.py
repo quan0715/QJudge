@@ -118,11 +118,10 @@ class TestStudentReportEndpoints:
             owner=teacher,
             asset_type=QuestionAsset.AssetType.CODING,
             title='Test Problem',
-            payload={"difficulty": "easy", "translations": [{
-                "language": "zh-TW", "title": "測試題目",
+            payload={"difficulty": "easy",
                 "description": "測試題目描述",
                 "input_description": "", "output_description": "", "hint": "",
-            }]},
+            },
         )
         problem = Problem.objects.create(
             slug='test-problem-sr',
@@ -353,10 +352,9 @@ class TestStudentReportEndpoints:
             owner=teacher,
             asset_type=QuestionAsset.AssetType.CODING,
             title='Ended Contest Problem',
-            payload={"difficulty": "easy", "translations": [{
-                "language": "zh-TW", "title": "結束考試題目",
+            payload={"difficulty": "easy",
                 "description": "", "input_description": "", "output_description": "", "hint": "",
-            }]},
+            },
         )
         problem = Problem.objects.create(
             slug='ended-contest-problem',
@@ -580,11 +578,10 @@ class TestStudentReportScoreCalculation:
             owner=teacher,
             asset_type=QuestionAsset.AssetType.CODING,
             title='Score Test Problem',
-            payload={"difficulty": "easy", "translations": [{
-                "language": "zh-TW", "title": "分數測試題目",
+            payload={"difficulty": "easy",
                 "description": "測試分數計算",
                 "input_description": "", "output_description": "", "hint": "",
-            }]},
+            },
         )
         problem = Problem.objects.create(
             slug='score-test-problem',

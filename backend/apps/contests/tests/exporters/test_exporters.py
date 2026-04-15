@@ -16,11 +16,18 @@ from apps.users.models import User
 
 def _create_problem_with_asset(slug, title, difficulty, translations, owner=None):
     """Helper: create Problem + QuestionAsset with content."""
+    t = translations[0] if translations else {}
     asset = QuestionAsset.objects.create(
         owner=owner,
         asset_type=QuestionAsset.AssetType.CODING,
         title=title,
-        payload={"difficulty": difficulty, "translations": translations},
+        payload={
+            "difficulty": difficulty,
+            "description": t.get("description", ""),
+            "input_description": t.get("input_description", ""),
+            "output_description": t.get("output_description", ""),
+            "hint": t.get("hint", ""),
+        },
     )
     problem = Problem.objects.create(
         slug=slug,

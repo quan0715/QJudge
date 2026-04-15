@@ -4,7 +4,6 @@ import type {
   Tag,
   TestCase,
   LanguageConfig,
-  Translation,
 } from "@/core/entities/problem.entity";
 import type {
   ProblemDto,
@@ -12,7 +11,6 @@ import type {
   TagDto,
   TestCaseDto,
   LanguageConfigDto,
-  ProblemTranslationDto,
 } from "@/infrastructure/api/dto/problem.dto";
 
 export function mapTagDto(dto: TagDto): Tag {
@@ -65,16 +63,7 @@ export function mapProblemDetailDto(dto: ProblemDetailDto): ProblemDetail {
           explanation: s.explanation,
         }))
       : [],
-    translations: Array.isArray(dto.translations)
-      ? dto.translations.map((t: ProblemTranslationDto): Translation => ({
-          language: t.language,
-          title: t.title,
-          description: t.description,
-          inputDescription: t.input_description,
-          outputDescription: t.output_description,
-          hint: t.hint,
-        }))
-      : [],
+    translations: [],
     testCases: Array.isArray(dto.test_cases)
       ? dto.test_cases.map((tc: TestCaseDto): TestCase => ({
           input: tc.input_data ?? tc.input ?? "",

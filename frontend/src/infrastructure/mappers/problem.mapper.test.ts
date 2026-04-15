@@ -163,8 +163,7 @@ describe("Problem Mapper", () => {
       expect(result.samples[0].input).toBe("1 2");
       expect(result.samples[0].output).toBe("3");
 
-      expect(result.translations).toHaveLength(1);
-      expect(result.translations[0].language).toBe("zh-TW");
+      expect(result.translations).toHaveLength(0);
 
       expect(result.testCases).toHaveLength(1);
       expect(result.testCases[0].input).toBe("1 2");
