@@ -10,7 +10,7 @@ const MainLayout = () => {
       <div
         style={{
           display: "flex",
-          height: "calc(100vh - 48px)", // below Carbon header
+          height: "calc(100dvh - 48px)", // dvh = dynamic viewport height (mobile-safe)
           marginTop: "48px",
           overflow: "hidden",
         }}

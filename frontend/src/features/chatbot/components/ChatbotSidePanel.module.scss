@@ -16,6 +16,11 @@ $motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
   overflow: hidden;
   border-left: 1px solid var(--cds-border-subtle-01, #e0e0e0);
   transition: width $motion-duration $motion-easing;
+
+  /* Hide sidebar on mobile — use /chat full page instead */
+  @media (max-width: 768px) {
+    display: none;
+  }
 }
 
 .sidebar .chatElement {
