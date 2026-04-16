@@ -1,0 +1,66 @@
+.cot {
+  margin-bottom: 0.5rem;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary, #525252);
+  margin-bottom: 0.25rem;
+}
+
+.accordion {
+  :global(.cds--accordion__content) {
+    padding: 0.5rem 0;
+  }
+}
+
+.stepTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.success { color: var(--cds-support-success, #198038); }
+.failure { color: var(--cds-support-error, #da1e28); }
+.processing {
+  color: var(--cds-interactive, #0f62fe);
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.section {
+  margin-bottom: 0.5rem;
+}
+
+.sectionLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--cds-text-secondary, #525252);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.125rem;
+}
+
+.json {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  background: var(--cds-layer-02, #f4f4f4);
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin: 0;
+  overflow-x: auto;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.processingText {
+  font-size: 0.8125rem;
+  color: var(--cds-text-secondary, #525252);
+  font-style: italic;
+}
