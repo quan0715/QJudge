@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from typing import Any, AsyncGenerator
@@ -19,6 +20,7 @@ from services.event_adapter import (
     RunCompleted,
     RunFailed,
     RunStarted,
+    SummarizationStarted,
     UsageReport,
     adapt_langgraph_event,
     to_sse_dict,
@@ -40,7 +42,14 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
     langchain 1.2.15 already has the fix in _lc_helper._find_safe_cutoff_point.
     This subclass simply wires it up until deepagents releases a fix.
     See: https://github.com/langchain-ai/langchain/issues/34282
+
+    Also emits a SummarizationStarted event via an asyncio.Queue side-channel
+    so callers can surface a visible SSE event when compaction fires.
     """
+
+    def __init__(self, *args: Any, event_queue: asyncio.Queue | None = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._event_queue: asyncio.Queue | None = event_queue
 
     def _partition_messages(
         self,
@@ -51,6 +60,29 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
             conversation_messages, cutoff_index
         )
         return self._lc_helper._partition_messages(conversation_messages, safe_cutoff)
+
+    async def awrap_model_call(self, request: Any, handler: Any) -> Any:
+        logger.info("_SafeSummarizationMiddleware.awrap_model_call called")
+        # Mirror the parent's token-count check (read-only) to detect when
+        # compaction will fire so we can emit a side-channel SSE event.
+        try:
+            counted = ([request.system_message, *request.messages]
+                       if request.system_message is not None
+                       else list(request.messages))
+            try:
+                total_tokens = self.token_counter(counted, tools=request.tools)
+            except TypeError:
+                total_tokens = self.token_counter(counted)
+            should = self._should_summarize(list(request.messages), total_tokens)
+            logger.info("SummarizationMiddleware: total_tokens=%d should_summarize=%s trigger=%s", total_tokens, should, getattr(self, 'trigger', '?'))
+            if should:
+                logger.info("SummarizationMiddleware: compaction triggered")
+                if self._event_queue is not None:
+                    await self._event_queue.put(to_sse_dict(SummarizationStarted()))
+        except Exception as e:
+            logger.warning("SummarizationMiddleware observability error: %s", e)
+
+        return await super().awrap_model_call(request, handler)
 
 
 # Default system prompt for the TA agent
@@ -121,6 +153,7 @@ class DeepAgentRunner:
         model_id: str,
         system_prompt: str | None,
         tools: list[Any],
+        event_queue: asyncio.Queue | None = None,
     ):
         """Build a DeepAgent with tools.
 
@@ -148,7 +181,10 @@ class DeepAgentRunner:
             middleware=[
                 TodoListMiddleware(),
                 FilesystemMiddleware(backend=backend),
-                _SafeSummarizationMiddleware(model=summarization_model, backend=backend),
+                # Trigger at ~95k local tokens ≈ ~108k actual tokens (DeepSeek R1 limit: 131k).
+                # count_tokens_approximately underestimates by ~12%, so 95k local ≈ 108k actual,
+                # giving enough headroom for the summarization LLM call output before hitting the limit.
+                _SafeSummarizationMiddleware(model=summarization_model, backend=backend, event_queue=event_queue, trigger=("tokens", 95000)),
             ],
             checkpointer=self._checkpointer,
         )
@@ -229,6 +265,7 @@ class DeepAgentRunner:
         run_id: str,
         thread_id: str,
         model_id: str,
+        event_queue: asyncio.Queue | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Stream agent execution events as SSE-serialisable dicts.
 
@@ -248,6 +285,12 @@ class DeepAgentRunner:
                 config=config,
                 version="v2",
             ):
+                # Drain side-channel events (e.g. summarization_started) before
+                # each LangGraph event so they arrive in roughly the right order.
+                if event_queue is not None:
+                    while not event_queue.empty():
+                        yield event_queue.get_nowait()
+
                 if event.get("event") == "on_chat_model_end":
                     usage_meta = event.get("data", {}).get("output", None)
                     if usage_meta and hasattr(usage_meta, "usage_metadata"):
@@ -365,6 +408,7 @@ class DeepAgentRunner:
         if thread_id is None:
             thread_id = uuid.uuid4().hex
 
+        event_queue: asyncio.Queue = asyncio.Queue()
         async with MCPToolProvider(
             server_url=self._mcp_server_url,
             authorization_header=(
@@ -372,7 +416,7 @@ class DeepAgentRunner:
             ),
         ) as tool_provider:
             tools = await tool_provider.load_tools()
-            agent = self._build_agent(model_id, system_prompt, tools)
+            agent = self._build_agent(model_id, system_prompt, tools, event_queue=event_queue)
 
             config = {
                 "configurable": {"thread_id": thread_id},
@@ -383,7 +427,7 @@ class DeepAgentRunner:
             agent_input: dict[str, Any] = {"messages": messages}
 
             async for sse_dict in self._stream_events(
-                agent, agent_input, config, run_id, thread_id, model_id
+                agent, agent_input, config, run_id, thread_id, model_id, event_queue=event_queue
             ):
                 yield sse_dict
 
@@ -398,6 +442,7 @@ class DeepAgentRunner:
         """Resume an interrupted agent with a user decision and stream events."""
         run_id = uuid.uuid4().hex
 
+        event_queue: asyncio.Queue = asyncio.Queue()
         async with MCPToolProvider(
             server_url=self._mcp_server_url,
             authorization_header=(
@@ -405,7 +450,7 @@ class DeepAgentRunner:
             ),
         ) as tool_provider:
             tools = await tool_provider.load_tools()
-            agent = self._build_agent(model_id, system_prompt, tools)
+            agent = self._build_agent(model_id, system_prompt, tools, event_queue=event_queue)
 
             config = {
                 "configurable": {"thread_id": thread_id},
@@ -416,7 +461,7 @@ class DeepAgentRunner:
             resume_value = Command(resume={"decisions": [{"type": decision}]})
 
             async for sse_dict in self._stream_events(
-                agent, resume_value, config, run_id, thread_id, model_id
+                agent, resume_value, config, run_id, thread_id, model_id, event_queue=event_queue
             ):
                 yield sse_dict
 
