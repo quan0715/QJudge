@@ -159,7 +159,10 @@ export default function ChatFullPage() {
     messaging: { customSendMessage, showStopButtonImmediately: true, messageTimeoutSecs: 120, customLoadHistory },
     history: { isOn: true },
     header: { isOn: false },
-    layout: { corners: CornersType.SQUARE },
+    layout: {
+      showFrame: false,
+      corners: CornersType.SQUARE,
+    },
     openChatByDefault: true,
     assistantName: "QJudge AI",
   }).current;
@@ -191,13 +194,11 @@ export default function ChatFullPage() {
   }, []);
 
   return (
-    <div className={styles.container}>
-      <ChatCustomElement
-        className={`chat-full-page ${styles.chatElement}`}
-        {...config}
-        onBeforeRender={onBeforeRender}
-        renderWriteableElements={renderWriteableElements}
-      />
-    </div>
+    <ChatCustomElement
+      className={styles.chatElement}
+      {...config}
+      onBeforeRender={onBeforeRender}
+      renderWriteableElements={renderWriteableElements}
+    />
   );
 }

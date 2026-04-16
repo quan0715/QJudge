@@ -1,11 +1,4 @@
-/* ChatFullPage — fills parent with explicit block-size (required by Carbon chat shell) */
-
-.container {
-  position: relative;
-  block-size: 100%;
-  inline-size: 100%;
-  overflow: hidden;
-}
+/* ChatFullPage — ChatCustomElement fills parent directly (no wrapper div) */
 
 .chatElement {
   block-size: 100%;
