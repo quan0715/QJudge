@@ -12,6 +12,7 @@ import {
   MessageResponseTypes,
   ChainOfThoughtStepStatus,
   CornersType,
+  PanelType,
   type ChatInstance,
   type HistoryItem,
   type ChainOfThoughtStep,
@@ -155,13 +156,25 @@ export default function ChatFullPage() {
     } catch { return []; }
   }, []);
 
-  const config = useRef<PublicConfig>({
+  // Build config — menuOptions needs instance ref for history toggle
+  const config = useMemo<PublicConfig>(() => ({
     messaging: { customSendMessage, showStopButtonImmediately: true, messageTimeoutSecs: 120, customLoadHistory },
     history: { isOn: true },
     header: {
       title: "QJudge AI 助教",
       hideMinimizeButton: true,
       showRestartButton: true,
+      menuOptions: [
+        {
+          text: "對話紀錄",
+          handler: () => {
+            const inst = instanceRef.current;
+            if (inst?.customPanels) {
+              inst.customPanels.getPanel(PanelType.HISTORY)?.open();
+            }
+          },
+        },
+      ],
     },
     layout: {
       corners: CornersType.SQUARE,
@@ -171,7 +184,7 @@ export default function ChatFullPage() {
     },
     openChatByDefault: true,
     assistantName: "QJudge AI",
-  }).current;
+  }), [customSendMessage, customLoadHistory]);
 
   const handleSessionSelect = useCallback((sessionId: string) => {
     backendSessionIdRef.current = sessionId;
