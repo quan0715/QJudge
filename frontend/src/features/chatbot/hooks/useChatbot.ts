@@ -124,24 +124,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   }, [setCurrentSessionId]);
 
   /**
-   * Lazy load：載入指定 session 的 messages（若尚未載入）
-   */
-  const loadSessionMessages = useCallback(async (sessionId: string) => {
-    // 檢查是否已載入（temp session 或已有 messages 的 session 不需要再載入）
-    const existing = sessions.find((s) => s.id === sessionId);
-    if (!existing || existing.id.startsWith("temp-") || existing.messages.length > 0) return;
-
-    try {
-      const detailed = await chatbotRepository.getSession(sessionId);
-      setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? detailed : s)),
-      );
-    } catch (err) {
-      console.warn("Failed to load session messages:", err);
-    }
-  }, [sessions]);
-
-  /**
    * 初始化：從後端 API 載入 sessions
    * 只有當 enabled 為 true 時才執行
    *
