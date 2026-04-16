@@ -190,16 +190,20 @@ export const ChatbotWidget = ({
             break;
           case "tool_call_started":
             if (e.tool_name) {
-              const occurrences = cotSteps.filter(s => s.title === e.tool_name || s.title?.startsWith(e.tool_name + " (")).length;
-              const uniqueTitle = occurrences > 0 ? `${e.tool_name} (${occurrences + 1})` : e.tool_name;
-              cotSteps.push({ title: uniqueTitle, tool_name: e.tool_name, status: ChainOfThoughtStepStatus.PROCESSING, request: e.input_data ? { args: e.input_data } : undefined });
+              cotSteps.push({
+                title: e.tool_name,
+                tool_name: e.tool_call_id || `${e.tool_name}-${cotSteps.length}`,
+                status: ChainOfThoughtStepStatus.PROCESSING,
+                request: e.input_data ? { args: e.input_data } : undefined,
+              });
               sendPartial();
             }
             break;
           case "tool_call_finished": {
-            let i = cotSteps.length - 1;
-            for (; i >= 0; i--) if (cotSteps[i].status === ChainOfThoughtStepStatus.PROCESSING) break;
-            if (i >= 0) cotSteps[i] = { ...cotSteps[i], status: e.is_error ? ChainOfThoughtStepStatus.FAILURE : ChainOfThoughtStepStatus.SUCCESS, response: e.result ? { content: typeof e.result === "string" ? e.result : JSON.stringify(e.result, null, 2) } : undefined };
+            const idx = e.tool_call_id
+              ? cotSteps.findIndex(s => s.tool_name === e.tool_call_id)
+              : cotSteps.findLastIndex(s => s.status === ChainOfThoughtStepStatus.PROCESSING);
+            if (idx >= 0) cotSteps[idx] = { ...cotSteps[idx], status: e.is_error ? ChainOfThoughtStepStatus.FAILURE : ChainOfThoughtStepStatus.SUCCESS, response: e.result ? { content: typeof e.result === "string" ? e.result : JSON.stringify(e.result, null, 2) } : undefined };
             sendPartial();
             break;
           }
