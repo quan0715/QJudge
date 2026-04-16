@@ -413,13 +413,15 @@ jobs:
         with:
           context: backend/judge
           file: backend/judge/Dockerfile.judge
-          tags: |
-            oj-judge:latest
-            ghcr.io/quan0715/qjudge/judge:latest
-          load: true
+          tags: ghcr.io/quan0715/qjudge/judge:latest
           push: true
+          load: true
           cache-from: type=registry,ref=ghcr.io/quan0715/qjudge/judge:buildcache
           cache-to: type=registry,ref=ghcr.io/quan0715/qjudge/judge:buildcache,mode=max
+
+      - name: Tag judge image for local use
+        if: steps.pull-judge.outcome == 'failure'
+        run: docker tag ghcr.io/quan0715/qjudge/judge:latest oj-judge:latest
 
       - name: Verify Judge Image
         run: |
