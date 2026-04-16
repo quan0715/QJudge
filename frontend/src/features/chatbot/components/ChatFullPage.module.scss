@@ -1,13 +1,8 @@
-/* ChatFullPage — fills the MainLayout content area exactly */
+/* ChatFullPage — fills parent container exactly */
 
 .container {
   width: 100%;
   height: 100%;
-  /* Override Carbon Content's default padding so chat fills edge-to-edge */
-  margin: -1rem;
-  padding: 0;
-  width: calc(100% + 2rem);
-  height: calc(100% + 2rem);
   overflow: hidden;
 }
 
