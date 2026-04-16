@@ -24,6 +24,7 @@ import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { httpClient } from "@/infrastructure/api/http.client";
 import { ChatHistory } from "./ChatHistory";
 import type { ChatSession } from "@/core/types/chatbot.types";
+import styles from "./ChatFullPage.module.scss";
 
 const BASE_URL = "/api/v1/ai/sessions";
 
@@ -157,7 +158,7 @@ export default function ChatFullPage() {
   const config = useRef<PublicConfig>({
     messaging: { customSendMessage, showStopButtonImmediately: true, messageTimeoutSecs: 120, customLoadHistory },
     history: { isOn: true },
-    header: { title: "QJudge AI 助教" },
+    header: { isOn: false },
     layout: { corners: CornersType.SQUARE },
     openChatByDefault: true,
     assistantName: "QJudge AI",
@@ -178,7 +179,7 @@ export default function ChatFullPage() {
     if (!instance) return {};
     return {
       [WriteableElementName.HISTORY_PANEL_ELEMENT]: (
-        <ChatHistory instance={instance} currentSessionId={currentSessionIdRef.current} onSessionSelect={handleSessionSelect} onNewChat={handleNewChat} />
+        <ChatHistory instance={instance} currentSessionId={currentSessionIdRef.current} onSessionSelect={handleSessionSelect} onNewChat={handleNewChat} showHeader={false} />
       ),
     };
   }, [instance, handleSessionSelect, handleNewChat]);
@@ -190,9 +191,9 @@ export default function ChatFullPage() {
   }, []);
 
   return (
-    <div style={{ width: "100%", height: "100%" }}>
+    <div className={styles.container}>
       <ChatCustomElement
-        className="chat-full-page"
+        className={`chat-full-page ${styles.chatElement}`}
         {...config}
         onBeforeRender={onBeforeRender}
         renderWriteableElements={renderWriteableElements}

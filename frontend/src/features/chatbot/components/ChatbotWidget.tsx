@@ -30,6 +30,7 @@ import {
   type BusEventViewPreChange,
 } from "@carbon/ai-chat";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
+import { useLocation } from "react-router-dom";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { httpClient } from "@/infrastructure/api/http.client";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -82,6 +83,8 @@ export const ChatbotWidget = ({
   onProblemUpdated = undefined,
 }: ChatbotWidgetProps) => {
   const { user } = useAuth();
+  const location = useLocation();
+  const isOnChatPage = location.pathname === "/chat";
   const [instance, setInstance] = useState<ChatInstance | null>(null);
   const [sideBarOpen, setSideBarOpen] = useState(defaultExpanded);
   const [sideBarClosing, setSideBarClosing] = useState(false);
@@ -326,7 +329,7 @@ export const ChatbotWidget = ({
     } finally { setClickInProgress(false); }
   }, [instance, clickInProgress]);
 
-  if (!isTeacherOrAdmin) return null;
+  if (!isTeacherOrAdmin || isOnChatPage) return null;
 
   // Build sidebar className
   let className = styles.sidebar;
@@ -335,7 +338,7 @@ export const ChatbotWidget = ({
 
   return (
     <>
-      {/* Toggle FAB — only when closed */}
+      {/* Toggle FAB — only when closed and not on /chat page */}
       {!sideBarOpen && createPortal(
         <button className={styles.toggleButton} onClick={handleToggle} disabled={clickInProgress} aria-label="開啟 AI 助教">
           <AiLaunch size={20} />

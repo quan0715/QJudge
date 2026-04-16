@@ -94,9 +94,10 @@ interface ChatHistoryProps {
   currentSessionId: string | null;
   onSessionSelect: (sessionId: string) => void;
   onNewChat: () => void;
+  showHeader?: boolean;
 }
 
-export function ChatHistory({ instance, currentSessionId, onSessionSelect, onNewChat }: ChatHistoryProps) {
+export function ChatHistory({ instance, currentSessionId, onSessionSelect, onNewChat, showHeader = true }: ChatHistoryProps) {
   const [sections, setSections] = useState<HistorySection[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDeletePanel, setShowDeletePanel] = useState(false);
@@ -207,11 +208,13 @@ export function ChatHistory({ instance, currentSessionId, onSessionSelect, onNew
 
   return (
     <HistoryShell>
-      <HistoryHeader
-        headerTitle="對話紀錄"
-        onClose={handleClose}
-        showCloseAction
-      />
+      {showHeader && (
+        <HistoryHeader
+          headerTitle="對話紀錄"
+          onClose={handleClose}
+          showCloseAction
+        />
+      )}
       <HistoryToolbar onNewChatClick={handleNewChat} />
       <HistoryContent>
         {loading ? (
