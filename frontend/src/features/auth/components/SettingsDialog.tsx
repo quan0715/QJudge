@@ -1,19 +1,19 @@
 import React from "react";
-import { UserAvatar, Settings, Password, Catalog, Connect } from "@carbon/icons-react";
+import { UserAvatar, Settings, Catalog, Connect, Activity } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useSettingsDialog } from "@/features/auth/contexts/SettingsDialogContext";
 import { SettingsModal, type SettingsModalNavItem } from "@/shared/ui/modal";
 import { ProfilePanel } from "@/features/auth/components/ProfilePanel";
 import { PreferencesPanel } from "@/features/auth/components/PreferencesPanel";
-import { APIKeyPanel } from "@/features/auth/components/APIKeyPanel";
+import { AIUsagePanel } from "@/features/auth/components/AIUsagePanel";
 import { PlansPanel } from "@/features/auth/components/PlansPanel";
 import { MCPSetupPanel } from "@/features/auth/components/settings/MCPSetupPanel";
 
 const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { tKey: string; adminOnly?: boolean })[] = [
   { id: "profile",     tKey: "settings.tabs.profile",     icon: UserAvatar },
   { id: "preferences", tKey: "settings.tabs.preferences", icon: Settings },
-  { id: "apikey",      tKey: "settings.tabs.apiKey",      icon: Password, adminOnly: true },
+  { id: "ai-usage",    tKey: "settings.tabs.aiUsage",     icon: Activity, adminOnly: true },
   { id: "mcp",         tKey: "settings.tabs.mcp",         icon: Connect, adminOnly: true },
   { id: "plans",       tKey: "settings.tabs.plans",       icon: Catalog },
 ];
@@ -21,7 +21,7 @@ const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { tKey: string; admi
 // Memoized panels to prevent re-renders from parent state changes
 const MemoProfilePanel = React.memo(ProfilePanel);
 const MemoPreferencesPanel = React.memo(PreferencesPanel);
-const MemoAPIKeyPanel = React.memo(APIKeyPanel);
+const MemoAIUsagePanel = React.memo(AIUsagePanel);
 const MemoMCPSetupPanel = React.memo(MCPSetupPanel);
 const MemoPlansPanel = React.memo(PlansPanel);
 
@@ -49,8 +49,8 @@ export const SettingsDialog: React.FC = () => {
         return <MemoProfilePanel />;
       case "preferences":
         return <MemoPreferencesPanel />;
-      case "apikey":
-        return isTeacherOrAdmin ? <MemoAPIKeyPanel /> : null;
+      case "ai-usage":
+        return isTeacherOrAdmin ? <MemoAIUsagePanel /> : null;
       case "mcp":
         return isTeacherOrAdmin ? <MemoMCPSetupPanel /> : null;
       case "plans":
@@ -75,11 +75,11 @@ export const SettingsDialog: React.FC = () => {
         <MemoPreferencesPanel />
       </div>
       {isTeacherOrAdmin && (
-        <div id="settings-section-apikey">
+        <div id="settings-section-ai-usage">
           <h2 className="settings-modal__content-title">
-            {t("settings.tabs.apiKey", "API Key")}
+            {t("settings.tabs.aiUsage", "AI 使用量")}
           </h2>
-          <MemoAPIKeyPanel hideUsageDetails />
+          <MemoAIUsagePanel />
         </div>
       )}
       {isTeacherOrAdmin && (

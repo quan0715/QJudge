@@ -113,7 +113,6 @@ Copy `example.env` to `.env` and fill in the values. Key variables:
 | `DB_NAME/USER/PASSWORD/HOST/PORT` | PostgreSQL connection |
 | `REDIS_URL` | Redis connection URL |
 | `NYCU_OAUTH_CLIENT_ID/SECRET` | NYCU OAuth credentials |
-| `HMAC_SECRET` | AI service internal HMAC auth |
 | `AI_SERVICE_INTERNAL_TOKEN` | Backend ↔ AI service auth |
 
 See `example.env` for the complete list with documentation.

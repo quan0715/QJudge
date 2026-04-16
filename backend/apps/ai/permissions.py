@@ -2,8 +2,6 @@
 
 from rest_framework.permissions import BasePermission
 
-from .internal_auth import IsInternalService  # noqa: F401 — re-export
-
 
 class IsTeacherOrAdmin(BasePermission):
     """Only teacher or admin users can use agent write capabilities."""

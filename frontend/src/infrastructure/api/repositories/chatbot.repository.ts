@@ -1,8 +1,6 @@
 import type { ChatbotRepository } from "@/core/ports/chatbot.repository";
 import type {
-  ApprovalRequest,
   ModelInfo,
-  PendingAction,
   SendMessageOptions,
   StreamCallbacks,
   ToolInfo,
@@ -24,7 +22,6 @@ interface V2StreamEvent {
     | "verification_report"
     | "tool_call_started"
     | "tool_call_finished"
-    | "approval_required"
     | "usage_report"
     | "run_completed"
     | "run_failed";
@@ -50,11 +47,6 @@ interface V2StreamEvent {
   // tool_call_finished
   result?: string | Record<string, unknown>;
   is_error?: boolean;
-
-  // approval_required
-  action_id?: string;
-  action_type?: string;
-  preview?: Record<string, unknown>;
 
   // usage_report
   input_tokens?: number;
@@ -277,44 +269,6 @@ const chatbotRepository: ChatbotRepository = {
     return data.models;
   },
 
-  async getActivePendingAction(
-    sessionId: string | number
-  ): Promise<PendingAction | null> {
-    const data = await requestJson<{ active_action: PendingAction | null }>(
-      httpClient.get(
-        `${BASE_URL}/${sessionId.toString()}/pending-actions/active/`
-      ),
-      "無法載入待確認動作"
-    );
-    return data.active_action;
-  },
-
-  async confirmAction(
-    sessionId: string | number,
-    actionId: string
-  ): Promise<PendingAction> {
-    return await requestJson<PendingAction>(
-      httpClient.post(
-        `${BASE_URL}/${sessionId.toString()}/actions/${actionId}/confirm/`,
-        {}
-      ),
-      "無法確認動作"
-    );
-  },
-
-  async cancelAction(
-    sessionId: string | number,
-    actionId: string
-  ): Promise<PendingAction> {
-    return await requestJson<PendingAction>(
-      httpClient.post(
-        `${BASE_URL}/${sessionId.toString()}/actions/${actionId}/cancel/`,
-        {}
-      ),
-      "無法取消動作"
-    );
-  },
-
   // ============================================================
   // v2: Resume interrupted agent stream
   // ============================================================
@@ -443,11 +397,6 @@ const chatbotRepository: ChatbotRepository = {
       // v2 payload
       const payload: Record<string, unknown> = {
         content,
-        model_id: options?.model || "claude-sonnet",
-        system_prompt: options?.context
-          ? JSON.stringify(options.context)
-          : undefined,
-        skill: options?.skill,
       };
 
       const response = await httpClient.request(
@@ -631,17 +580,6 @@ const chatbotRepository: ChatbotRepository = {
         callbacks.onMessageUpdate?.({ ...currentMessage });
         break;
       }
-
-      case "approval_required":
-        if (event.action_id && event.action_type && event.preview) {
-          const approval: ApprovalRequest = {
-            actionId: event.action_id,
-            actionType: event.action_type as "create" | "patch",
-            preview: event.preview,
-          };
-          callbacks.onApprovalRequired?.(approval);
-        }
-        break;
 
       case "usage_report":
         console.debug("SSE: usage_report", {

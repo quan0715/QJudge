@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { Button } from "@carbon/react";
 import { Add, Close, Menu, View } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -20,8 +20,6 @@ import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useToast } from "@/shared/contexts";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
-import { ChatbotWidget } from "@/features/chatbot/components/ChatbotWidget";
-import { AgentAvatar } from "@/shared/ui/chatbot/components/AgentAvatar";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import CodingProblemListPanel from "./CodingProblemListPanel";
 import { CardListEditor } from "@/shared/ui/cardListEditor";
@@ -106,7 +104,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   const [sourceHoverIndex, setSourceHoverIndex] = useState<number | null>(null);
   const [sourcePanelExpanded, setSourcePanelExpanded] = useState(true);
   const [sourceModalOpen, setSourceModalOpen] = useState(false);
-  const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [viewReorderPointerDepth, setViewReorderPointerDepth] = useState(0);
 
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -157,10 +154,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
     };
   }, []);
-
-  const selectedProblem = selectedId
-    ? orderedProblems.find((problem) => problem.id === selectedId) ?? null
-    : null;
 
   const fetchLatestProblems = useCallback(async (): Promise<ContestProblemSummary[]> => {
     const latest = await getContest(contestId);
@@ -356,17 +349,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     ],
   );
 
-  const aiPanelContent = (
-    <ChatbotWidget
-      defaultExpanded
-      embedded
-      problemContext={
-        selectedProblem
-          ? { id: selectedProblem.problemId ?? selectedProblem.id, title: selectedProblem.title }
-          : null
-      }
-    />
-  );
+  // aiPanelContent removed — ChatbotWidget renders as float widget below
 
   const sourcePanelContent = (
     <QuestionSourcePanel
@@ -391,23 +374,11 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
 
   const sourcePanelOpen = isCompactScreen ? sourceModalOpen : sourcePanelExpanded;
   const toggleSourcePanel = () => {
-    if (aiPanelOpen) setAiPanelOpen(false);
     if (isCompactScreen) {
       setSourceModalOpen((prev) => !prev);
       return;
     }
     setSourcePanelExpanded((prev) => !prev);
-  };
-
-  const toggleAiPanel = () => {
-    if (aiPanelOpen) {
-      setAiPanelOpen(false);
-    } else {
-      // Close source panel first, then open AI
-      setSourcePanelExpanded(false);
-      setSourceModalOpen(false);
-      setAiPanelOpen(true);
-    }
   };
 
   const contentPaneClassName = [
@@ -466,15 +437,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
                   />
                 )}
                 <Button
-                  kind={aiPanelOpen ? "secondary" : "ghost"}
-                  size="md"
-                  hasIconOnly
-                  iconDescription={t("examEditor.aiAssistant", "AI 助教")}
-                  onClick={toggleAiPanel}
-                >
-                  <AgentAvatar size="sm" />
-                </Button>
-                <Button
                   kind="primary"
                   size="md"
                   hasIconOnly
@@ -506,33 +468,18 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         sidebarClassName={sidebarScrollLockClass}
         sidebarHidden={!sidebarExpanded}
         rightPane={
-          !isCompactScreen && (aiPanelOpen || sourcePanelExpanded)
+          !isCompactScreen && sourcePanelExpanded
             ? (
-              <AnimatePresence mode="wait">
-                {aiPanelOpen ? (
-                  <motion.div
-                    key="ai"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    style={{ height: "100%", display: "flex", flexDirection: "column" }}
-                  >
-                    {aiPanelContent}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="source"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    style={{ height: "100%", display: "flex", flexDirection: "column" }}
-                  >
-                    {sourcePanelContent}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <motion.div
+                key="source"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                style={{ height: "100%", display: "flex", flexDirection: "column" }}
+              >
+                {sourcePanelContent}
+              </motion.div>
             )
             : undefined
         }
@@ -592,6 +539,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
           {sourcePanelContent}
         </div>
       )}
+
     </>
   );
 };

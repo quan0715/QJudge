@@ -65,12 +65,9 @@ DATABASES['default'] = {
 
 if SECRET_KEY == "django-insecure-default-key-change-in-production":
     raise RuntimeError("SECRET_KEY must be set in production")
-if ENCRYPTION_KEY == DEFAULT_DEV_ENCRYPTION_KEY:
-    raise RuntimeError("ENCRYPTION_KEY must be set in production")
 
 # Security settings
 SECURE_SSL_REDIRECT = True
-SECURE_REDIRECT_EXEMPT = [r'^api/v1/ai/internal/', r'^api/health/']
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True

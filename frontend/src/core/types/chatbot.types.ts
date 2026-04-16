@@ -1,6 +1,6 @@
 // ===== Base Types =====
 export type ChatRole = "user" | "assistant";
-export type ChatModel = "claude-haiku" | "claude-sonnet" | "claude-opus";
+
 
 // ===== v2 SSE Event Types =====
 export type StreamEventType =
@@ -10,7 +10,6 @@ export type StreamEventType =
   | "verification_report"
   | "tool_call_started"
   | "tool_call_finished"
-  | "approval_required"
   | "usage_report"
   | "run_completed"
   | "run_failed";
@@ -43,26 +42,8 @@ export interface VerificationReport {
   summary: string;
 }
 
-export interface ApprovalRequest {
-  actionId: string;
-  actionType: "create" | "patch";
-  preview: Record<string, unknown>;
-}
-
-export interface PendingAction {
-  id: string;
-  session: string;
-  actionType: "create" | "patch";
-  targetProblem?: number | null;
-  payload: Record<string, unknown>;
-  preview: Record<string, unknown>;
-  status: "pending" | "confirmed" | "executed" | "cancelled" | "expired" | "failed";
-  createdAt: string;
-  expiresAt: string;
-}
-
 export interface ModelInfo {
-  model_id: ChatModel;
+  model_id: string;
   display_name: string;
   description: string;
   is_default: boolean;
@@ -104,7 +85,6 @@ export interface StreamEvent extends BaseStreamEvent {
   runId?: string;
   threadId?: string;
   verificationReport?: VerificationReport;
-  approvalRequest?: ApprovalRequest;
   toolName?: string;
 }
 
@@ -157,10 +137,8 @@ export interface ProblemReference {
 
 // ===== Request/Response Options =====
 export interface SendMessageOptions {
-  model?: ChatModel;
   context?: ChatContext;
   reference?: ProblemReference;
-  skill?: string;
   modelOverride?: string;
   signal?: AbortSignal;
 }
@@ -189,7 +167,6 @@ export interface StreamCallbacks {
   onComplete?: (session: ChatSession) => void;
   onError?: (error: string) => void;
   onUserInputRequest?: (request: UserInputRequest) => void;
-  onApprovalRequired?: (request: ApprovalRequest) => void;
   onVerificationReport?: (report: VerificationReport) => void;
 }
 
@@ -200,10 +177,5 @@ export function getCurrentStage(toolExecutions?: ToolInfo[]): string | null {
   const lastTool = [...toolExecutions].reverse().find((tool) => !!tool.toolName);
   if (!lastTool) return null;
 
-  const stageMap: Record<string, string> = {
-    "prepare_problem_action": "Gate 0: 正在建立變更草稿",
-    "internal_problem_actions_commit": "Gate 1: 正在提交變更",
-  };
-
-  return stageMap[lastTool.toolName] || `執行中: ${lastTool.toolName}`;
+  return `執行中: ${lastTool.toolName}`;
 }

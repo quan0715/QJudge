@@ -32,40 +32,19 @@ class ChatRequest(BaseModel):
         description="User message content",
     )
     model_id: str = Field(
-        default="claude-sonnet",
-        pattern=r"^claude-(haiku|sonnet|opus)$",
+        default="deepseek-r1",
         description="Canonical model ID",
-    )
-    api_key_override: str | None = Field(
-        default=None,
-        description="Single-use API key override (never persisted)",
     )
     system_prompt: str | None = Field(
         default=None,
         max_length=10000,
         description="Optional system prompt override",
     )
-    skill: str | None = Field(
-        default=None,
-        max_length=100,
-        pattern=r"^[a-z0-9][a-z0-9-]{0,99}$",
-        description="Optional skill name",
-    )
     thread_id: str | None = Field(
         default=None,
         min_length=1,
         max_length=100,
         description="DeepAgent thread ID for resume (None = new thread)",
-    )
-    session_id: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=200,
-        description="Backend session ID (for write tool binding)",
-    )
-    user_id: int | None = Field(
-        default=None,
-        description="Backend user ID (for write tool binding)",
     )
     conversation: list[ChatMessage] = Field(
         default_factory=list,
@@ -86,20 +65,6 @@ class ResumeRequest(BaseModel):
         ...,
         pattern=r"^(approve|reject)$",
         description="User decision: 'approve' or 'reject'",
-    )
-    api_key_override: str | None = Field(
-        default=None,
-        description="Single-use API key override (never persisted)",
-    )
-    session_id: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=200,
-        description="Backend session ID (for write tool binding on resume)",
-    )
-    user_id: int | None = Field(
-        default=None,
-        description="Backend user ID (for write tool binding on resume)",
     )
 
 

@@ -10,9 +10,6 @@ DEBUG = False
 
 SECRET_KEY = 'test-secret-key-not-for-production'
 
-# Fernet encryption key for API key storage (test-only, not for production)
-ENCRYPTION_KEY = '5CWm28LUn1E789amAyyHhlKpAempbJ7tI08p5FdibrE='
-
 
 # Test database
 # 優先使用 DATABASE_URL（CI 標準格式）

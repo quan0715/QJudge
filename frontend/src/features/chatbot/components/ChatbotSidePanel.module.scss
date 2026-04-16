@@ -1,0 +1,60 @@
+/* ChatbotSidePanel — split-view sidebar following Carbon workspace-sidebar pattern */
+
+$sidebar-width: 400px;
+$header-height: 48px;
+$toggle-size: 44px;
+$toggle-bottom: 1.25rem;
+$toggle-right: 1.25rem;
+/* Carbon motion: duration-moderate-01 (240ms) + standard productive easing */
+$motion-duration: 240ms;
+$motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
+
+.sidebar {
+  flex-shrink: 0;
+  width: $sidebar-width;
+  height: 100%;
+  overflow: hidden;
+  border-left: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  transition: width $motion-duration $motion-easing;
+}
+
+.sidebar .chatElement {
+  width: 100%;
+  height: 100%;
+}
+
+.sidebarClosing {
+  width: 0;
+  border-left: none;
+}
+
+.sidebarClosed {
+  width: 0;
+  border-left: none;
+  visibility: hidden;
+}
+
+/* Toggle FAB — only visible when sidebar is closed */
+.toggleButton {
+  position: fixed;
+  bottom: $toggle-bottom;
+  right: $toggle-right;
+  z-index: 8001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: $toggle-size;
+  height: $toggle-size;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--cds-interactive, #0f62fe);
+  color: var(--cds-text-on-color, #fff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background $motion-duration $motion-easing;
+
+  &:hover {
+    background: var(--cds-interactive-hover, #0043ce);
+  }
+}

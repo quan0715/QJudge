@@ -1,5 +1,10 @@
 import type { FC } from "react";
-import { Claude, OpenAI, Cursor, Perplexity, Gemini, Notion } from "@lobehub/icons";
+import ClaudeColor from "@lobehub/icons/es/Claude/components/Color";
+import OpenAIMono from "@lobehub/icons/es/OpenAI/components/Mono";
+import CursorMono from "@lobehub/icons/es/Cursor/components/Mono";
+import PerplexityColor from "@lobehub/icons/es/Perplexity/components/Color";
+import GeminiColor from "@lobehub/icons/es/Gemini/components/Color";
+import NotionMono from "@lobehub/icons/es/Notion/components/Mono";
 import SectionHeading from "@/features/landing/components/SectionHeading";
 import type { MCPCollaborationContent } from "@/features/landing/content/landingContent";
 import "./MCPCollaborationSection.scss";
@@ -9,12 +14,12 @@ interface MCPCollaborationSectionProps {
 }
 
 const TOOLS = [
-  { Icon: Claude.Color, name: "Claude" },
-  { Icon: OpenAI, name: "ChatGPT", mono: true },
-  { Icon: Cursor, name: "Cursor", mono: true },
-  { Icon: Perplexity.Color, name: "Perplexity" },
-  { Icon: Gemini.Color, name: "Gemini" },
-  { Icon: Notion, name: "Notion", mono: true },
+  { Icon: ClaudeColor, name: "Claude" },
+  { Icon: OpenAIMono, name: "ChatGPT", mono: true },
+  { Icon: CursorMono, name: "Cursor", mono: true },
+  { Icon: PerplexityColor, name: "Perplexity" },
+  { Icon: GeminiColor, name: "Gemini" },
+  { Icon: NotionMono, name: "Notion", mono: true },
 ];
 
 const MCPCollaborationSection: FC<MCPCollaborationSectionProps> = ({ content }) => {

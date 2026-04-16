@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import uuid
-from pathlib import Path
 from typing import Any, AsyncGenerator
 
-from deepagents import create_deep_agent
-from deepagents.backends.utils import create_file_data
+from deepagents.graph import create_agent, TodoListMiddleware
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
@@ -26,9 +25,6 @@ from services.model_factory import ModelFactory
 
 logger = logging.getLogger(__name__)
 
-_ALLOWED_SKILL_FILE_EXTENSIONS = {".md", ".json", ".yaml", ".yml", ".txt"}
-_MAX_SKILL_FILE_BYTES = 256 * 1024
-
 # Default system prompt for the TA agent
 _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師（出題者）。
 
@@ -37,8 +33,6 @@ _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師�
 - 不用 emoji，不要客套開場。
 
 工作原則：
-- 內容設計階段優先使用 `contest-problem-authoring-guide`。
-- 資料落地階段（MCP payload/action）優先使用 `qjudge-code-problem-format-and-ops`。
 - 題目資料先讀取再回答，不要臆測。
 - 若工具本身會直接寫入，先明確告知將執行的變更內容，再呼叫工具。
 
@@ -66,21 +60,11 @@ class DeepAgentRunner:
         self,
         checkpoint_db_url: str,
         mcp_server_url: str,
-        skills_dir: str = "skills",
     ) -> None:
         self._checkpoint_db_url = checkpoint_db_url
         self._mcp_server_url = mcp_server_url
         self._checkpointer: AsyncPostgresSaver | None = None
         self._checkpointer_cm: Any = None  # context manager
-        service_root = Path(__file__).resolve().parent.parent
-        configured_skills_dir = Path(skills_dir)
-        self._skills_root = (
-            configured_skills_dir
-            if configured_skills_dir.is_absolute()
-            else (service_root / configured_skills_dir).resolve()
-        )
-        self._skills_source = "/skills/"
-        self._skill_content_cache: dict[str, str] | None = None
 
     async def setup(self) -> None:
         """Initialize the Postgres checkpointer and create tables if needed."""
@@ -100,98 +84,183 @@ class DeepAgentRunner:
     def _build_agent(
         self,
         model_id: str,
-        api_key: str | None,
         system_prompt: str | None,
         tools: list[Any],
     ):
-        """Build a DeepAgent with tools and optional interrupt_on."""
-        model = ModelFactory.create_model(model_id=model_id, api_key=api_key)
+        """Build a DeepAgent with tools."""
+        model = ModelFactory.create_model(model_id=model_id)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
 
-        agent = create_deep_agent(
+        agent = create_agent(
             model=model,
             tools=tools,
             system_prompt=prompt,
-            skills=[self._skills_source],
+            middleware=[TodoListMiddleware()],
             checkpointer=self._checkpointer,
         )
         return agent
 
-    def _load_skill_contents(self) -> dict[str, str]:
-        """Load and cache text skill files from disk."""
-        if self._skill_content_cache is not None:
-            return self._skill_content_cache
+    # ------------------------------------------------------------------
+    # Shared streaming loop
+    # ------------------------------------------------------------------
 
-        if not self._skills_root.exists() or not self._skills_root.is_dir():
-            logger.warning("Skills directory not found: %s", self._skills_root)
-            self._skill_content_cache = {}
-            return {}
+    @staticmethod
+    async def _repair_dangling_tool_calls(agent: Any, config: dict[str, Any]) -> bool:
+        """Fix checkpoint with tool_calls that lack tool responses.
 
-        contents: dict[str, str] = {}
-        for path in self._skills_root.rglob("*"):
-            if not path.is_file():
-                continue
+        Returns True if a repair was made, False otherwise.
+        """
+        from langchain_core.messages import ToolMessage
 
-            if path.suffix.lower() not in _ALLOWED_SKILL_FILE_EXTENSIONS:
-                continue
+        try:
+            state = await agent.aget_state(config)
+            messages = state.values.get("messages", [])
+            if not messages:
+                return False
 
-            try:
-                if path.stat().st_size > _MAX_SKILL_FILE_BYTES:
-                    logger.warning("Skipping oversized skill file: %s", path)
+            # Find the last AI message with tool_calls
+            last_ai = None
+            for msg in reversed(messages):
+                if hasattr(msg, "tool_calls") and msg.tool_calls:
+                    last_ai = msg
+                    break
+
+            if last_ai is None:
+                return False
+
+            # Collect tool_call_ids that already have responses
+            existing_responses = {
+                msg.tool_call_id
+                for msg in messages
+                if isinstance(msg, ToolMessage) and hasattr(msg, "tool_call_id")
+            }
+
+            # Find dangling tool_calls (no matching response)
+            missing = [
+                tc for tc in last_ai.tool_calls
+                if tc.get("id") and tc["id"] not in existing_responses
+            ]
+
+            if not missing:
+                return False
+
+            # Inject synthetic error responses for each missing tool_call
+            repair_messages = [
+                ToolMessage(
+                    content=f"[Tool call failed: previous session error. Please retry.]",
+                    tool_call_id=tc["id"],
+                    name=tc.get("name", "unknown"),
+                )
+                for tc in missing
+            ]
+
+            logger.warning(
+                "Repairing checkpoint: injecting %d missing tool responses for thread %s",
+                len(repair_messages),
+                config.get("configurable", {}).get("thread_id", "?"),
+            )
+
+            await agent.aupdate_state(config, {"messages": repair_messages})
+            return True
+
+        except Exception as repair_exc:
+            logger.warning("Checkpoint repair failed: %s", repair_exc)
+            return False
+
+    async def _stream_events(
+        self,
+        agent: Any,
+        agent_input: dict[str, Any] | Command,
+        config: dict[str, Any],
+        run_id: str,
+        thread_id: str,
+        model_id: str,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Stream agent execution events as SSE-serialisable dicts.
+
+        If the LLM rejects the checkpoint due to dangling tool_calls,
+        automatically repairs the state and retries once.
+        """
+        yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
+
+        total_input_tokens = 0
+        total_output_tokens = 0
+        retried = False
+
+        async def _run_stream():
+            nonlocal total_input_tokens, total_output_tokens
+            async for event in agent.astream_events(
+                agent_input,
+                config=config,
+                version="v2",
+            ):
+                if event.get("event") == "on_chat_model_end":
+                    usage_meta = event.get("data", {}).get("output", None)
+                    if usage_meta and hasattr(usage_meta, "usage_metadata"):
+                        um = usage_meta.usage_metadata
+                        total_input_tokens += um.get("input_tokens", 0)
+                        total_output_tokens += um.get("output_tokens", 0)
+
+                internal_events = adapt_langgraph_event(event)
+                if internal_events is None:
                     continue
-            except OSError as exc:
-                logger.warning("Skipping unreadable skill file %s: %s", path, exc)
-                continue
+                for internal_event in internal_events:
+                    yield to_sse_dict(internal_event)
 
+        try:
             try:
-                content = path.read_text(encoding="utf-8")
-            except UnicodeDecodeError:
-                logger.warning("Skipping non-utf8 skill file: %s", path)
-                continue
-            except OSError as exc:
-                logger.warning("Skipping unreadable skill file %s: %s", path, exc)
-                continue
+                async for sse_dict in _run_stream():
+                    yield sse_dict
+            except Exception as exc:
+                # Detect dangling tool_calls error → repair and retry once
+                if not retried and "insufficient tool messages" in str(exc):
+                    logger.warning("Dangling tool_calls detected, attempting repair...")
+                    repaired = await self._repair_dangling_tool_calls(agent, config)
+                    if repaired:
+                        retried = True
+                        async for sse_dict in _run_stream():
+                            yield sse_dict
+                    else:
+                        raise
+                else:
+                    raise
 
-            relative = path.relative_to(self._skills_root).as_posix()
-            virtual_path = f"{self._skills_source}{relative}"
-            contents[virtual_path] = content
+            cost_cents = self._calculate_cost(
+                model_id, total_input_tokens, total_output_tokens
+            )
+            yield to_sse_dict(
+                UsageReport(
+                    input_tokens=total_input_tokens,
+                    output_tokens=total_output_tokens,
+                    cost_cents=cost_cents,
+                    model_used=model_id,
+                )
+            )
+            yield to_sse_dict(RunCompleted(run_id=run_id))
 
-        self._skill_content_cache = contents
-        return contents
+        except Exception as exc:
+            logger.exception("DeepAgent execution failed: %s", exc)
+            yield to_sse_dict(
+                RunFailed(
+                    run_id=run_id,
+                    error_code="AGENT_ERROR",
+                    message="Agent execution failed",
+                )
+            )
 
-    def _build_skill_state_files(self) -> dict[str, Any]:
-        """Build `/skills/*` virtual files for DeepAgents SkillsMiddleware."""
-        contents = self._load_skill_contents()
-        return {
-            virtual_path: create_file_data(content)
-            for virtual_path, content in contents.items()
-        }
+    # ------------------------------------------------------------------
+    # Public streaming API
+    # ------------------------------------------------------------------
 
     async def run_stream(
         self,
         thread_id: str | None,
         messages: list[dict[str, str]],
-        model_id: str = "claude-sonnet",
-        api_key: str | None = None,
+        model_id: str = "deepseek-r1",
         system_prompt: str | None = None,
-        session_id: str | None = None,
-        user_id: int | None = None,
         request_context: RequestContext | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
-        """Run the agent and stream SSE events.
-
-        Args:
-            thread_id: Existing thread ID to resume, or None for new thread.
-            messages: List of {"role": ..., "content": ...} messages.
-            model_id: Canonical model ID (claude-haiku/sonnet/opus).
-            api_key: Optional API key override (not persisted).
-            system_prompt: Optional system prompt override.
-            session_id: Backend session ID (for write tool binding).
-            user_id: Backend user ID (for write tool binding).
-
-        Yields:
-            SSE-serialisable dicts matching the v2 event contract.
-        """
+        """Run the agent and stream SSE events."""
         run_id = uuid.uuid4().hex
         if thread_id is None:
             thread_id = uuid.uuid4().hex
@@ -203,98 +272,30 @@ class DeepAgentRunner:
             ),
         ) as tool_provider:
             tools = await tool_provider.load_tools()
-            agent = self._build_agent(model_id, api_key, system_prompt, tools)
+            agent = self._build_agent(model_id, system_prompt, tools)
 
             config = {
-                "configurable": {
-                    "thread_id": thread_id,
-                },
-                "metadata": {
-                    "thread_id": thread_id,
-                    "run_id": run_id,
-                },
-                "recursion_limit": 80,
+                "configurable": {"thread_id": thread_id},
+                "metadata": {"thread_id": thread_id, "run_id": run_id},
+                "recursion_limit": 30,
             }
 
-            agent_input = {"messages": messages}
-            skill_files = self._build_skill_state_files()
-            if skill_files:
-                agent_input["files"] = skill_files
+            agent_input: dict[str, Any] = {"messages": messages}
 
-            # Emit run_started
-            yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
-
-            total_input_tokens = 0
-            total_output_tokens = 0
-
-            try:
-                async for event in agent.astream_events(
-                    agent_input,
-                    config=config,
-                    version="v2",
-                ):
-                    if event.get("event") == "on_chat_model_end":
-                        usage_meta = event.get("data", {}).get("output", None)
-                        if usage_meta and hasattr(usage_meta, "usage_metadata"):
-                            um = usage_meta.usage_metadata
-                            total_input_tokens += um.get("input_tokens", 0)
-                            total_output_tokens += um.get("output_tokens", 0)
-
-                    internal_event = adapt_langgraph_event(event)
-                    if internal_event is None:
-                        continue
-
-                    yield to_sse_dict(internal_event)
-
-                cost_cents = self._calculate_cost(
-                    model_id, total_input_tokens, total_output_tokens
-                )
-                yield to_sse_dict(
-                    UsageReport(
-                        input_tokens=total_input_tokens,
-                        output_tokens=total_output_tokens,
-                        cost_cents=cost_cents,
-                        model_used=model_id,
-                    )
-                )
-
-                yield to_sse_dict(RunCompleted(run_id=run_id))
-
-            except Exception as exc:
-                logger.exception("DeepAgent run failed: %s", exc)
-                yield to_sse_dict(
-                    RunFailed(
-                        run_id=run_id,
-                        error_code="AGENT_ERROR",
-                        message="Agent execution failed",
-                    )
-                )
+            async for sse_dict in self._stream_events(
+                agent, agent_input, config, run_id, thread_id, model_id
+            ):
+                yield sse_dict
 
     async def resume_stream(
         self,
         thread_id: str,
         decision: str,
-        model_id: str = "claude-sonnet",
-        api_key: str | None = None,
+        model_id: str = "deepseek-r1",
         system_prompt: str | None = None,
-        session_id: str | None = None,
-        user_id: int | None = None,
         request_context: RequestContext | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
-        """Resume an interrupted agent with a user decision and stream events.
-
-        Args:
-            thread_id: The thread ID of the interrupted agent.
-            decision: "approve" or "reject".
-            model_id: Canonical model ID.
-            api_key: Optional API key override.
-            system_prompt: Optional system prompt override.
-            session_id: Backend session ID (for write tool binding).
-            user_id: Backend user ID (for write tool binding).
-
-        Yields:
-            SSE-serialisable dicts.
-        """
+        """Resume an interrupted agent with a user decision and stream events."""
         run_id = uuid.uuid4().hex
 
         async with MCPToolProvider(
@@ -304,68 +305,20 @@ class DeepAgentRunner:
             ),
         ) as tool_provider:
             tools = await tool_provider.load_tools()
-            agent = self._build_agent(model_id, api_key, system_prompt, tools)
+            agent = self._build_agent(model_id, system_prompt, tools)
 
             config = {
-                "configurable": {
-                    "thread_id": thread_id,
-                },
-                "metadata": {
-                    "thread_id": thread_id,
-                    "run_id": run_id,
-                },
-                "recursion_limit": 80,
+                "configurable": {"thread_id": thread_id},
+                "metadata": {"thread_id": thread_id, "run_id": run_id},
+                "recursion_limit": 30,
             }
 
             resume_value = Command(resume={"decisions": [{"type": decision}]})
 
-            yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
-
-            total_input_tokens = 0
-            total_output_tokens = 0
-
-            try:
-                async for event in agent.astream_events(
-                    resume_value,
-                    config=config,
-                    version="v2",
-                ):
-                    if event.get("event") == "on_chat_model_end":
-                        usage_meta = event.get("data", {}).get("output", None)
-                        if usage_meta and hasattr(usage_meta, "usage_metadata"):
-                            um = usage_meta.usage_metadata
-                            total_input_tokens += um.get("input_tokens", 0)
-                            total_output_tokens += um.get("output_tokens", 0)
-
-                    internal_event = adapt_langgraph_event(event)
-                    if internal_event is None:
-                        continue
-
-                    yield to_sse_dict(internal_event)
-
-                cost_cents = self._calculate_cost(
-                    model_id, total_input_tokens, total_output_tokens
-                )
-                yield to_sse_dict(
-                    UsageReport(
-                        input_tokens=total_input_tokens,
-                        output_tokens=total_output_tokens,
-                        cost_cents=cost_cents,
-                        model_used=model_id,
-                    )
-                )
-
-                yield to_sse_dict(RunCompleted(run_id=run_id))
-
-            except Exception as exc:
-                logger.exception("DeepAgent resume failed: %s", exc)
-                yield to_sse_dict(
-                    RunFailed(
-                        run_id=run_id,
-                        error_code="AGENT_ERROR",
-                        message="Agent execution failed",
-                    )
-                )
+            async for sse_dict in self._stream_events(
+                agent, resume_value, config, run_id, thread_id, model_id
+            ):
+                yield sse_dict
 
     @staticmethod
     def _calculate_cost(
@@ -374,11 +327,8 @@ class DeepAgentRunner:
         output_tokens: int,
     ) -> int:
         """Calculate cost in cents based on model pricing."""
-        pricing = {
-            "claude-haiku": {"input": 100, "output": 500},
-            "claude-sonnet": {"input": 300, "output": 1500},
-            "claude-opus": {"input": 500, "output": 2500},
-        }
-        rates = pricing.get(model_id, pricing["claude-sonnet"])
+        from services.model_factory import PRICING, _DEFAULT_MODEL_ID
+
+        rates = PRICING.get(model_id, PRICING[_DEFAULT_MODEL_ID])
         cost = (input_tokens * rates["input"] + output_tokens * rates["output"]) / 1_000_000
         return round(cost)

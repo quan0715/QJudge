@@ -27,10 +27,13 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@carbon/ai-chat": "^1.10.0",
+    "@carbon/ai-chat-components": "^1.0.0",
     "@carbon/charts": "^1.27.0",
     "@carbon/charts-react": "^1.27.0",
     "@carbon/icons-react": "^11.70.0",
     "@carbon/react": "^1.96.0",
+    "@carbon/web-components": "^2.52.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

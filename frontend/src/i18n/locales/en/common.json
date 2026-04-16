@@ -754,5 +754,25 @@
       "error": "Authorization failed. Please try again.",
       "invalidRequest": "Invalid authorization request"
     }
+  },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "profile": "Profile",
+      "preferences": "Preferences",
+      "aiUsage": "AI Usage",
+      "mcp": "MCP Connection",
+      "plans": "Plans"
+    },
+    "aiUsage": {
+      "title": "AI Usage",
+      "totalRequests": "Total Requests",
+      "inputTokens": "Input Tokens",
+      "outputTokens": "Output Tokens",
+      "totalCost": "Total Cost",
+      "lastUpdated": "Last Updated",
+      "loadError": "Failed to load usage data",
+      "noData": "No data"
+    }
   }
 }

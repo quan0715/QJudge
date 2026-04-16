@@ -11,7 +11,6 @@ from django.utils import timezone
 from .models import (
     TeacherActivationInvite,
     User,
-    UserAPIKey,
     UserLoginRecord,
     UserProfile,
 )
@@ -414,43 +413,3 @@ class UserLoginRecordSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class SetAPIKeySerializer(serializers.Serializer):
-    """Serializer for setting/updating API Key."""
-    api_key = serializers.CharField(
-        max_length=255,
-        required=True,
-        write_only=True,
-        help_text='Anthropic API Key (sk-ant-...)'
-    )
-    key_name = serializers.CharField(
-        max_length=100,
-        required=False,
-        default='My API Key',
-        help_text='Human-readable name for this API Key'
-    )
-
-    def validate_api_key(self, value):
-        """Validate API key format."""
-        if not value or not value.startswith('sk-ant-'):
-            raise serializers.ValidationError(
-                'Invalid API key format. Please provide a valid Anthropic API key (should start with "sk-ant-")'
-            )
-        return value
-
-
-class ValidateAPIKeySerializer(serializers.Serializer):
-    """Serializer for validating API Key."""
-    api_key = serializers.CharField(
-        max_length=255,
-        required=True,
-        write_only=True,
-        help_text='Anthropic API Key to validate'
-    )
-
-    def validate_api_key(self, value):
-        """Validate API key format."""
-        if not value or not value.startswith('sk-ant-'):
-            raise serializers.ValidationError(
-                'Invalid API key format. Please provide a valid Anthropic API key (should start with "sk-ant-")'
-            )
-        return value

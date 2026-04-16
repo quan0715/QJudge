@@ -20,17 +20,16 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
 
-    # Anthropic Settings
-    anthropic_api_key: str = ""
+    # LLM API Key (platform-managed)
+    deepseek_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("DEEPSEEK_API_KEY"),
+    )
 
     # DeepAgent / LangGraph Settings
     ai_state_postgres_url: str = ""  # Postgres URL for checkpoint store (ai_state schema)
-    default_model_id: str = "claude-sonnet"
 
-    # Internal API (Tool Gateway)
-    backend_internal_url: str = "http://backend:8000"
-    ai_service_id: str = "ai-service-1"
-    hmac_secret: str = ""
+    # Backend→AI-Service auth token
     ai_internal_token: str = Field(
         default="",
         validation_alias=AliasChoices(
@@ -45,8 +44,6 @@ class Settings(BaseSettings):
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
 
-    # Skills directory
-    skills_dir: str = "skills"
 
 
 @lru_cache

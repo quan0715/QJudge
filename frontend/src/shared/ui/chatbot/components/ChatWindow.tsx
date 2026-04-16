@@ -12,11 +12,9 @@ import {
 import { Edit, ChevronRight, Idea, DocumentAdd, CheckmarkOutline, Edit as EditIcon } from "@carbon/icons-react";
 import type {
   ChatMessage,
-  ChatModel,
   ChatSession,
   BackgroundInformation,
   UserInputRequest,
-  ApprovalRequest,
 } from "@/core/types/chatbot.types";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
@@ -31,11 +29,8 @@ export interface ChatWindowProps {
   isLoading: boolean;
   isStreaming: boolean;
   error: string | null;
-  onSend: (message: string, modelId?: ChatModel) => void;
+  onSend: (message: string) => void;
   onStopStreaming?: () => void;
-  pendingApproval?: ApprovalRequest | null;
-  onConfirmAction?: () => void;
-  onCancelAction?: () => void;
   onCreateSession: () => void;
   onSwitchSession: (sessionId: string) => void;
   onDeleteSession?: (sessionId: string) => Promise<void>;
@@ -78,9 +73,6 @@ export const ChatWindow: FC<ChatWindowProps> = ({
   pendingUserInput = null,
   onSubmitUserInput,
   onCancelUserInput,
-  pendingApproval = null,
-  onConfirmAction,
-  onCancelAction,
 }) => {
   const { t } = useTranslation("chatbot");
   const { t: tc } = useTranslation("common");
@@ -253,38 +245,11 @@ export const ChatWindow: FC<ChatWindowProps> = ({
         welcomeScreen={welcomeScreen}
       />
 
-      {/* Approval Banner */}
-      {pendingApproval && onConfirmAction && onCancelAction && (
-        <div className={styles.approvalBanner}>
-          <InlineNotification
-            kind="warning"
-            title={t("approval.title")}
-            subtitle="Agent 已準備好執行操作，請確認或取消。"
-            lowContrast
-            hideCloseButton
-          />
-          <div className={styles.approvalActions}>
-            <button
-              className={styles.approvalConfirmBtn}
-              onClick={onConfirmAction}
-            >
-              {t("approval.confirm")}
-            </button>
-            <button
-              className={styles.approvalCancelBtn}
-              onClick={onCancelAction}
-            >
-              {t('button.cancel')}
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* 輸入區 */}
       <ChatInput
         onSend={onSend}
         onStop={onStopStreaming}
-        disabled={isLoading || !!pendingApproval}
+        disabled={isLoading}
         isStreaming={isStreaming}
         problemContext={problemContext}
         backgroundInfo={backgroundInfo}

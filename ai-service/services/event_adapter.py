@@ -56,13 +56,6 @@ class ToolCallFinished:
 
 
 @dataclass(slots=True)
-class ApprovalRequired:
-    action_id: str
-    action_type: str
-    preview: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass(slots=True)
 class UsageReport:
     input_tokens: int
     output_tokens: int
@@ -89,7 +82,6 @@ InternalEvent = Union[
     VerificationReport,
     ToolCallStarted,
     ToolCallFinished,
-    ApprovalRequired,
     UsageReport,
     RunCompleted,
     RunFailed,
@@ -102,7 +94,6 @@ _TYPE_NAME_MAP: dict[type, str] = {
     VerificationReport: "verification_report",
     ToolCallStarted: "tool_call_started",
     ToolCallFinished: "tool_call_finished",
-    ApprovalRequired: "approval_required",
     UsageReport: "usage_report",
     RunCompleted: "run_completed",
     RunFailed: "run_failed",
@@ -113,10 +104,12 @@ _TYPE_NAME_MAP: dict[type, str] = {
 # ---------------------------------------------------------------------------
 
 
-def adapt_langgraph_event(event: dict[str, Any]) -> InternalEvent | None:
-    """Convert a LangGraph astream_events v2 event to an internal event.
+def adapt_langgraph_event(event: dict[str, Any]) -> list[InternalEvent] | None:
+    """Convert a LangGraph astream_events v2 event to internal event(s).
 
     Returns None if the event is not relevant to our SSE contract.
+    A single LangGraph event may produce multiple internal events
+    (e.g. a chunk containing both thinking and text content).
     """
     kind: str = event.get("event", "")
     data: dict[str, Any] = event.get("data", {})
@@ -138,14 +131,18 @@ def adapt_langgraph_event(event: dict[str, Any]) -> InternalEvent | None:
                         text_parts.append(block.get("text", ""))
                 elif isinstance(block, str):
                     text_parts.append(block)
-            # Prefer thinking delta if present
+            # Emit both thinking and text when both are present in the same chunk
+            results: list[InternalEvent] = []
             if thinking_parts:
                 thinking_content = "".join(thinking_parts)
                 if thinking_content:
-                    return ThinkingDelta(content=thinking_content)
-            content = "".join(text_parts)
+                    results.append(ThinkingDelta(content=thinking_content))
+            text_content = "".join(text_parts)
+            if text_content:
+                results.append(AgentMessageDelta(content=text_content))
+            return results or None
         if content:
-            return AgentMessageDelta(content=content)
+            return [AgentMessageDelta(content=content)]
         return None
 
     # Tool invocation started
@@ -155,11 +152,11 @@ def adapt_langgraph_event(event: dict[str, Any]) -> InternalEvent | None:
         input_data = data.get("input", {})
         if isinstance(input_data, str):
             input_data = {"raw": input_data}
-        return ToolCallStarted(
+        return [ToolCallStarted(
             tool_name=tool_name,
             tool_call_id=run_id,
             input_data=input_data,
-        )
+        )]
 
     # Tool invocation finished
     if kind == "on_tool_end":
@@ -178,18 +175,15 @@ def adapt_langgraph_event(event: dict[str, Any]) -> InternalEvent | None:
             output = output.decode()
         elif not isinstance(output, (str, dict, list, int, float, bool, type(None))):
             output = str(output)
-        return ToolCallFinished(
+        return [ToolCallFinished(
             tool_call_id=run_id,
             result=output,
             is_error=is_error,
-        )
+        )]
 
-    # Graph start -> RunStarted
-    if kind == "on_chain_start" and event.get("name") == "LangGraph":
-        run_id = event.get("run_id", "")
-        metadata = event.get("metadata", {})
-        thread_id = metadata.get("thread_id", "")
-        return RunStarted(run_id=run_id, thread_id=thread_id)
+    # Note: on_chain_start → RunStarted removed.
+    # RunStarted is emitted manually by the runner with a stable run_id,
+    # avoiding duplicate run_started events.
 
     return None
 

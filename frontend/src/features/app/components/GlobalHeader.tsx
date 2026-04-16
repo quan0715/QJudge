@@ -10,6 +10,7 @@ import {
 } from "@carbon/react";
 import {
   Globe,
+  Chat,
 } from "@carbon/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -78,13 +79,23 @@ export const GlobalHeader = () => {
         <HeaderGlobalBar>
           {pageHeaderActions}
           {isTeacherOrAdmin && (
-            <HeaderGlobalAction
-              aria-label={t("nav.marketplace", "Marketplace")}
-              tooltipAlignment="end"
-              onClick={() => navigate("/marketplace")}
-            >
-              <Globe size={20} />
-            </HeaderGlobalAction>
+            <>
+              <HeaderGlobalAction
+                aria-label="AI 助教"
+                tooltipAlignment="end"
+                onClick={() => navigate("/chat")}
+                isActive={location.pathname === "/chat"}
+              >
+                <Chat size={20} />
+              </HeaderGlobalAction>
+              <HeaderGlobalAction
+                aria-label={t("nav.marketplace", "Marketplace")}
+                tooltipAlignment="end"
+                onClick={() => navigate("/marketplace")}
+              >
+                <Globe size={20} />
+              </HeaderGlobalAction>
+            </>
           )}
           <UserMenu />
         </HeaderGlobalBar>

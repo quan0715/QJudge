@@ -6,11 +6,14 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Ensure required internal auth secrets exist before app import.
-os.environ.setdefault("HMAC_SECRET", "test-hmac-secret")
 os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
-os.environ.setdefault("ANTHROPIC_API_KEY", "test-anthropic-key")
+os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
 
-from main import app
+from config import get_settings  # noqa: E402
+from main import app  # noqa: E402
+
+# Use whatever token the running environment has configured.
+_CONFIGURED_TOKEN = get_settings().ai_internal_token.strip()
 
 
 class _FakeRunner:
@@ -53,7 +56,7 @@ def error_client():
         yield test_client
 
 
-AUTH_HEADERS = {"X-AI-Internal-Token": "test-ai-internal-token"}
+AUTH_HEADERS = {"X-AI-Internal-Token": _CONFIGURED_TOKEN}
 
 
 class TestHealthEndpoint:
@@ -124,18 +127,6 @@ class TestChatStreamEndpoint:
         )
         assert response.status_code == 422
 
-    def test_stream_validates_skill_existence(self, client):
-        response = client.post(
-            "/api/chat/stream",
-            headers=AUTH_HEADERS,
-            json={
-                "content": "test",
-                "conversation": [],
-                "skill": "nonexistent-skill",
-            },
-        )
-        assert response.status_code == 400
-
     def test_stream_accepts_valid_request(self, client):
         response = client.post(
             "/api/chat/stream",
@@ -143,18 +134,6 @@ class TestChatStreamEndpoint:
             json={
                 "content": "Hello",
                 "conversation": [{"role": "user", "content": "Hi"}],
-            },
-        )
-        assert response.status_code == 200
-
-    def test_stream_accepts_valid_skill(self, client):
-        response = client.post(
-            "/api/chat/stream",
-            headers=AUTH_HEADERS,
-            json={
-                "content": "Generate a contest problem",
-                "conversation": [],
-                "skill": "contest-problem-authoring-guide",
             },
         )
         assert response.status_code == 200
@@ -178,8 +157,6 @@ class TestChatStreamEndpoint:
             json={
                 "thread_id": "thread-1",
                 "decision": "approve",
-                "session_id": "s1",
-                "user_id": 1,
             },
         )
         assert response.status_code == 401
@@ -191,8 +168,6 @@ class TestChatStreamEndpoint:
             json={
                 "thread_id": "",
                 "decision": "approve",
-                "session_id": "s1",
-                "user_id": 1,
             },
         )
         assert response.status_code == 422
@@ -204,8 +179,6 @@ class TestChatStreamEndpoint:
             json={
                 "thread_id": "thread-1",
                 "decision": "approve",
-                "session_id": "s1",
-                "user_id": 1,
             },
         )
         assert response.status_code == 200
@@ -217,8 +190,6 @@ class TestChatStreamEndpoint:
             json={
                 "thread_id": "thread-1",
                 "decision": "approve",
-                "session_id": "s1",
-                "user_id": 1,
             },
         )
         assert response.status_code == 200

@@ -1259,3 +1259,87 @@ def test_build_exam_question_body_normalizes_prompt():
 def test_auth_settings_configured():
     """Verify MCP server has auth settings for OAuth discovery."""
     assert isinstance(server.mcp._token_verifier, server.DjangoTokenVerifier)
+
+
+# ============================================================
+# Auth chain edge cases
+# ============================================================
+
+
+def test_verify_token_returns_none_on_non_200(monkeypatch):
+    calls = []
+    response = FakeResponse(403)
+    monkeypatch.setattr(
+        server.httpx, "AsyncClient",
+        lambda timeout: FakeAsyncClient(response, calls, timeout=timeout),
+    )
+    token = run(server.DjangoTokenVerifier().verify_token("bad-token"))
+    assert token is None
+
+
+def test_verify_token_returns_none_on_request_error(monkeypatch):
+    class FailingClient:
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *a):
+            return None
+        async def get(self, url, **kwargs):
+            raise server.httpx.RequestError("connection refused")
+
+    monkeypatch.setattr(
+        server.httpx, "AsyncClient",
+        lambda timeout: FailingClient(),
+    )
+    token = run(server.DjangoTokenVerifier().verify_token("some-token"))
+    assert token is None
+
+
+def test_verify_token_returns_none_on_timeout(monkeypatch):
+    class TimeoutClient:
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *a):
+            return None
+        async def get(self, url, **kwargs):
+            raise server.httpx.TimeoutException("timed out")
+
+    monkeypatch.setattr(
+        server.httpx, "AsyncClient",
+        lambda timeout: TimeoutClient(),
+    )
+    token = run(server.DjangoTokenVerifier().verify_token("some-token"))
+    assert token is None
+
+
+def test_django_api_omits_auth_when_no_authorization_header(monkeypatch):
+    calls = []
+    response = FakeResponse(200, payload={"ok": True})
+    monkeypatch.setattr(
+        server.httpx, "AsyncClient",
+        lambda timeout: FakeAsyncClient(response, calls, timeout=timeout),
+    )
+
+    ctx = DummyContext(headers={})  # no authorization header
+    run(server.django_api("GET", "/api/v1/test/", ctx))
+
+    assert len(calls) == 1
+    sent_headers = calls[0]["headers"]
+    assert "Authorization" not in sent_headers
+    assert "X-Forwarded-Proto" in sent_headers
+
+
+def test_django_api_omits_auth_when_request_is_none(monkeypatch):
+    """When ctx.request_context.request is None, django_api should not crash."""
+    calls = []
+    response = FakeResponse(200, payload={"ok": True})
+    monkeypatch.setattr(
+        server.httpx, "AsyncClient",
+        lambda timeout: FakeAsyncClient(response, calls, timeout=timeout),
+    )
+
+    ctx = DummyContext()
+    ctx.request_context.request = None  # simulate missing transport request
+    result = run(server.django_api("GET", "/api/v1/test/", ctx))
+
+    assert result == {"ok": True}
+    assert "Authorization" not in calls[0]["headers"]
