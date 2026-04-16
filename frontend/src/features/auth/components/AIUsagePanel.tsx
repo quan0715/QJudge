@@ -30,7 +30,8 @@ export const AIUsagePanel: React.FC = () => {
     (async () => {
       try {
         const res = await httpClient.get("/api/v1/ai/sessions/credit/");
-        if (!cancelled) setCredit(res as CreditData);
+        const data = await res.json() as CreditData;
+        if (!cancelled) setCredit(data);
       } catch (err) {
         if (!cancelled) setError("無法載入使用量資料");
         console.warn("Failed to load AI credit:", err);
