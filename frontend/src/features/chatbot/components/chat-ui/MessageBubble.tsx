@@ -1,4 +1,5 @@
 import { WatsonxAi } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { ChainOfThought } from "./ChainOfThought";
@@ -9,6 +10,7 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
+  const { t } = useTranslation("chatbot");
   const isUser = message.role === "user";
 
   return (
@@ -46,7 +48,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         {/* Thinking/Reasoning block */}
         {!isUser && message.thinkingInfo?.thinking && (
           <details className={styles.thinking}>
-            <summary>推理過程</summary>
+            <summary>{t("ui.reasoning")}</summary>
             <div className={styles.thinkingContent}>
               <MarkdownRenderer enableHighlight enableMath>
                 {message.thinkingInfo.thinking}

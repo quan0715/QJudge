@@ -44,28 +44,36 @@
     "subtitle": "Assisting with: {{title}}",
     "title": "How can I help you?"
   },
-  "widget": {
-    "addChat": "New Chat",
-    "chatbotTitle": "Qgent TA",
-    "collapse": "Collapse Panel",
-    "delete": "Delete",
-    "deleteModal": {
-      "confirmMessage": "Are you sure you want to delete conversation \"{{title}}\"?",
-      "submitting": "Deleting...",
-      "title": "Confirm Delete",
-      "undoWarning": "This action cannot be undone."
-    },
-    "expandLabel": "Expand Qgent TA",
-    "inputPlaceholder": "Type a message...",
+  "ui": {
+    "chatbotTitle": "QJudge AI Assistant",
+    "collapse": "Collapse panel",
+    "history": "Chat History",
     "newChat": "New Chat",
-    "newChatLabel": "New Chat",
+    "close": "Close",
+    "inputPlaceholder": "Type a message...",
+    "inputAriaLabel": "Message input",
+    "stopGenerating": "Stop generating",
+    "send": "Send",
+    "searchPlaceholder": "Search chats...",
+    "searchLabel": "Search chats",
+    "clear": "Clear",
+    "noHistory": "No chat history",
+    "groupToday": "Today",
+    "groupYesterday": "Yesterday",
+    "groupLast7Days": "Last 7 Days",
+    "groupOlder": "Older",
     "rename": "Rename",
-    "renameModal": {
-      "label": "New Name",
-      "placeholder": "Enter new chat name",
-      "title": "Rename Chat"
-    },
-    "sessions": "Chat History",
-    "thinking": "Thinking..."
+    "delete": "Delete",
+    "defaultSessionTitle": "Chat {{id}}...",
+    "welcome": "Hello! I am QJudge AI Assistant, how can I help you?",
+    "reasoning": "Reasoning Process",
+    "reasoningSteps": "Reasoning Steps",
+    "stepInput": "Input",
+    "stepOutput": "Output",
+    "processing": "Processing...",
+    "toolConfirm": "Tool Call Confirmation",
+    "confirmAction": "Confirm Execution",
+    "cancelAction": "Cancel",
+    "loading": "Loading..."
   }
 }

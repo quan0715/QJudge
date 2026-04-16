@@ -1,5 +1,6 @@
 import { useState, useCallback, useSyncExternalStore } from "react";
 import { Loading } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 import { useChatbot } from "../../hooks/useChatbot";
 import type { ChatContext } from "@/core/types/chatbot.types";
 import { MessageList } from "./MessageList";
@@ -31,6 +32,7 @@ interface ChatContainerProps {
 }
 
 export function ChatContainer({ mode, context, onProblemUpdated, onClose, className }: ChatContainerProps) {
+  const { t } = useTranslation("chatbot");
   const {
     sessions,
     currentSessionId,
@@ -80,7 +82,7 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
     return (
       <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
         <div className={styles.loading}>
-          <Loading withOverlay={false} description="載入中" />
+          <Loading withOverlay={false} description={t("ui.loading")} />
         </div>
       </div>
     );
@@ -90,7 +92,7 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
   // Mobile full-page or sidebar: history as overlay
   const showHistoryOverlay = (isMobile || mode === "sidebar") && historyOpen;
 
-  const sessionTitle = currentSession?.title || "新對話";
+  const sessionTitle = currentSession?.title || t("ui.newChat");
 
   return (
     <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
@@ -134,7 +136,7 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
         {/* Sidebar header with history toggle + close */}
         {mode === "sidebar" && (
           <ChatTopBar
-            title="QJudge AI 助教"
+            title={t("ui.chatbotTitle")}
             historyOpen={historyOpen}
             onToggleHistory={() => setHistoryOpen((v) => !v)}
             onNewChat={handleNewChat}

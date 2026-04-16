@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { Search, IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
 import { Close } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import type { ChatSession } from "@/core/types/chatbot.types";
 import styles from "./ChatHistoryPanel.module.scss";
 
@@ -14,7 +15,7 @@ interface ChatHistoryPanelProps {
 }
 
 interface HistoryGroup {
-  label: string;
+  key: "today" | "yesterday" | "lastWeek" | "older";
   sessions: ChatSession[];
 }
 
@@ -25,23 +26,23 @@ function groupSessions(sessions: ChatSession[]): HistoryGroup[] {
   const weekStart = todayStart - 7 * 86_400_000;
 
   const groups: Record<string, ChatSession[]> = {
-    "今天": [],
-    "昨天": [],
-    "過去 7 天": [],
-    "更早": [],
+    today: [],
+    yesterday: [],
+    lastWeek: [],
+    older: [],
   };
 
   for (const s of sessions) {
     const ts = s.updatedAt.getTime();
-    if (ts >= todayStart) groups["今天"].push(s);
-    else if (ts >= yesterdayStart) groups["昨天"].push(s);
-    else if (ts >= weekStart) groups["過去 7 天"].push(s);
-    else groups["更早"].push(s);
+    if (ts >= todayStart) groups["today"].push(s);
+    else if (ts >= yesterdayStart) groups["yesterday"].push(s);
+    else if (ts >= weekStart) groups["lastWeek"].push(s);
+    else groups["older"].push(s);
   }
 
   return Object.entries(groups)
     .filter(([, list]) => list.length > 0)
-    .map(([label, list]) => ({ label, sessions: list }));
+    .map(([key, list]) => ({ key: key as HistoryGroup["key"], sessions: list }));
 }
 
 export function ChatHistoryPanel({
@@ -52,6 +53,7 @@ export function ChatHistoryPanel({
   onRenameSession,
   onClose,
 }: ChatHistoryPanelProps) {
+  const { t } = useTranslation("chatbot");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,6 +65,13 @@ export function ChatHistoryPanel({
   }, [sessions, searchQuery]);
 
   const groups = useMemo(() => groupSessions(filteredSessions), [filteredSessions]);
+
+  const groupLabels = useMemo(() => ({
+    today: t("ui.groupToday"),
+    yesterday: t("ui.groupYesterday"),
+    lastWeek: t("ui.groupLast7Days"),
+    older: t("ui.groupOlder"),
+  }), [t]);
 
   const startRename = useCallback((session: ChatSession) => {
     setRenamingId(session.id);
@@ -82,15 +91,15 @@ export function ChatHistoryPanel({
       <div className={styles.header}>
         <Search
           size="sm"
-          placeholder="搜尋對話…"
-          labelText="搜尋對話"
+          placeholder={t("ui.searchPlaceholder")}
+          labelText={t("ui.searchLabel")}
           value={searchQuery}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-          closeButtonLabelText="清除"
+          closeButtonLabelText={t("ui.clear")}
           className={styles.search}
         />
         {onClose && (
-          <IconButton kind="ghost" size="sm" label="關閉" onClick={onClose} className={styles.closeBtn}>
+          <IconButton kind="ghost" size="sm" label={t("ui.close")} onClick={onClose} className={styles.closeBtn}>
             <Close size={20} />
           </IconButton>
         )}
@@ -98,12 +107,12 @@ export function ChatHistoryPanel({
 
       <div className={styles.list}>
         {groups.length === 0 && (
-          <div className={styles.empty}>尚無對話記錄</div>
+          <div className={styles.empty}>{t("ui.noHistory")}</div>
         )}
 
         {groups.map((group) => (
-          <div key={group.label} className={styles.group}>
-            <div className={styles.groupLabel}>{group.label}</div>
+          <div key={group.key} className={styles.group}>
+            <div className={styles.groupLabel}>{groupLabels[group.key]}</div>
             {group.sessions.map((session) => (
               <div
                 key={session.id}
@@ -138,7 +147,7 @@ export function ChatHistoryPanel({
                   />
                 ) : (
                   <span className={styles.itemName}>
-                    {session.title || `對話 ${session.id.slice(0, 8)}…`}
+                    {session.title || t("ui.defaultSessionTitle", { id: session.id.slice(0, 8) })}
                   </span>
                 )}
 
@@ -149,11 +158,11 @@ export function ChatHistoryPanel({
                   onClick={(e: React.MouseEvent) => e.stopPropagation()}
                 >
                   <OverflowMenuItem
-                    itemText="重新命名"
+                    itemText={t("ui.rename")}
                     onClick={() => startRename(session)}
                   />
                   <OverflowMenuItem
-                    itemText="刪除"
+                    itemText={t("ui.delete")}
                     isDelete
                     hasDivider
                     onClick={() => onDeleteSession(session.id)}
