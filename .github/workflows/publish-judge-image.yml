@@ -1,10 +1,6 @@
 name: Publish Judge Image
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "backend/judge/Dockerfile.judge"
   workflow_dispatch:
 
 concurrency:

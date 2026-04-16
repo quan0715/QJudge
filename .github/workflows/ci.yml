@@ -340,7 +340,10 @@ jobs:
     name: Judge Tests
     needs: static-checks
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
 
     services:
       postgres:
@@ -390,6 +393,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Pull Judge Image from GHCR
         id: pull-judge
         continue-on-error: true
@@ -397,16 +407,19 @@ jobs:
           docker pull ghcr.io/quan0715/qjudge/judge:latest
           docker tag ghcr.io/quan0715/qjudge/judge:latest oj-judge:latest
 
-      - name: Build Judge Image (fallback if pull failed)
+      - name: Build and push Judge Image (when pull failed or Dockerfile changed)
         if: steps.pull-judge.outcome == 'failure'
         uses: docker/build-push-action@v5
         with:
           context: backend/judge
           file: backend/judge/Dockerfile.judge
-          tags: oj-judge:latest
+          tags: |
+            oj-judge:latest
+            ghcr.io/quan0715/qjudge/judge:latest
           load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          push: true
+          cache-from: type=registry,ref=ghcr.io/quan0715/qjudge/judge:buildcache
+          cache-to: type=registry,ref=ghcr.io/quan0715/qjudge/judge:buildcache,mode=max
 
       - name: Verify Judge Image
         run: |
