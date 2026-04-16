@@ -11,6 +11,7 @@ $motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
 
 .sidebar {
   flex-shrink: 0;
+  position: relative;
   width: $sidebar-width;
   height: 100%;
   overflow: hidden;
@@ -24,6 +25,8 @@ $motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
 }
 
 .sidebar .chatElement {
+  position: absolute;
+  inset: 0;
   block-size: 100%;
   inline-size: 100%;
 }
