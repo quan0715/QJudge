@@ -14,11 +14,15 @@ import { createPortal } from "react-dom";
 import {
   ChatCustomElement,
   BusEventType,
+  ButtonItemType,
   WriteableElementName,
   MessageResponseTypes,
   ChainOfThoughtStepStatus,
   CornersType,
   ViewType,
+  type BusEventMessageItemCustom,
+  type ButtonItem,
+  type CardItem,
   type ChatInstance,
   type HistoryItem,
   type ChainOfThoughtStep,
@@ -30,7 +34,7 @@ import {
   type BusEventViewPreChange,
 } from "@carbon/ai-chat";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { httpClient } from "@/infrastructure/api/http.client";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -49,6 +53,15 @@ interface V2StreamEvent {
   result?: string | Record<string, unknown>;
   is_error?: boolean;
   message?: string;
+  // awaiting_approval fields
+  action_requests?: Array<{ name: string; args?: Record<string, unknown> }>;
+  review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
+}
+
+// user_defined payload embedded in HITL approval buttons
+interface HitlButtonData {
+  decision: "approve" | "reject";
+  sessionId: string;
 }
 
 const BASE_URL = "/api/v1/ai/sessions";
@@ -84,7 +97,9 @@ export const ChatbotWidget = ({
 }: ChatbotWidgetProps) => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isOnChatPage = location.pathname === "/chat";
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
   const [instance, setInstance] = useState<ChatInstance | null>(null);
   const [sideBarOpen, setSideBarOpen] = useState(defaultExpanded);
   const [sideBarClosing, setSideBarClosing] = useState(false);
@@ -93,6 +108,8 @@ export const ChatbotWidget = ({
   const currentSessionIdRef = useRef<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const instanceRef = useRef<ChatInstance | null>(null);
+  // Prevent double-firing when multiple HITL buttons exist in chat history
+  const approvalInProgressRef = useRef(false);
 
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
 
@@ -192,6 +209,46 @@ export const ChatbotWidget = ({
             console.error("[ChatbotWidget] Agent error:", e.message);
             sendFinal(true);
             break;
+          case "awaiting_approval": {
+            // Agent paused for human approval — finalize stream, then inject a
+            // Carbon CardItem with approve/reject buttons into the chat.
+            sendFinal(false);
+            const sid = backendSessionIdRef.current;
+            if (!sid || !e.action_requests?.length) break;
+
+            const toolName = e.action_requests[0].name;
+            const argsStr = JSON.stringify(e.action_requests[0].args ?? {}, null, 2);
+
+            const approveBtn: ButtonItem = {
+              response_type: MessageResponseTypes.BUTTON,
+              button_type: ButtonItemType.CUSTOM_EVENT,
+              custom_event_name: "hitl_decision",
+              label: "確認執行",
+              kind: "primary" as ButtonItem["kind"],
+              user_defined: { decision: "approve", sessionId: sid } as Record<string, unknown>,
+            };
+            const rejectBtn: ButtonItem = {
+              response_type: MessageResponseTypes.BUTTON,
+              button_type: ButtonItemType.CUSTOM_EVENT,
+              custom_event_name: "hitl_decision",
+              label: "取消",
+              kind: "danger" as ButtonItem["kind"],
+              user_defined: { decision: "reject", sessionId: sid } as Record<string, unknown>,
+            };
+            const card: CardItem = {
+              response_type: MessageResponseTypes.CARD,
+              body: [{
+                response_type: MessageResponseTypes.TEXT,
+                text: `**工具呼叫確認：\`${toolName}\`**\n\`\`\`json\n${argsStr}\n\`\`\``,
+              }],
+              footer: [approveBtn, rejectBtn],
+            };
+
+            inst.messaging.addMessage({
+              output: { generic: [card] },
+            });
+            break;
+          }
         }
       };
 
@@ -284,6 +341,70 @@ export const ChatbotWidget = ({
     setCurrentSessionId(null);
   }, []);
 
+  // ── HITL approval handler (called from MESSAGE_ITEM_CUSTOM bus event) ──
+  const handleApproval = useCallback(async (decision: "approve" | "reject", sessionId: string) => {
+    const inst = instanceRef.current;
+    if (!inst || approvalInProgressRef.current) return;
+
+    approvalInProgressRef.current = true;
+
+    const responseId = crypto.randomUUID();
+    const textItemId = "item-text-resume";
+    let accText = "";
+
+    const sendPartial = (delta: string) => {
+      accText += delta;
+      inst.messaging.addMessageChunk({
+        partial_item: { response_type: MessageResponseTypes.TEXT, text: delta, streaming_metadata: { id: textItemId, cancellable: false } },
+        streaming_metadata: { response_id: responseId },
+      } as StreamChunk);
+    };
+
+    const sendFinal = (stopped: boolean) => {
+      const item = { response_type: MessageResponseTypes.TEXT, text: accText, streaming_metadata: { id: textItemId, ...(stopped ? { stream_stopped: true } : {}) } };
+      inst.messaging.addMessageChunk({ complete_item: item, streaming_metadata: { response_id: responseId } } as StreamChunk);
+      inst.messaging.addMessageChunk({ final_response: { id: responseId, output: { generic: [item] } } } as StreamChunk);
+    };
+
+    try {
+      const response = await httpClient.request(`${BASE_URL}/${sessionId}/resume_stream/`, {
+        method: "POST",
+        body: JSON.stringify({ decision }),
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const raw of lines) {
+          const l = raw.trimEnd();
+          if (l.startsWith("data: ")) {
+            try {
+              const ev: V2StreamEvent = JSON.parse(l.slice(6));
+              if (ev.type === "agent_message_delta" && ev.content) sendPartial(ev.content);
+              if (ev.type === "run_completed") { sendFinal(false); onProblemUpdated?.(); }
+              if (ev.type === "run_failed") sendFinal(true);
+            } catch { /* parse error */ }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[ChatbotWidget] Resume error:", err);
+      sendFinal(true);
+    } finally {
+      approvalInProgressRef.current = false;
+    }
+  }, [onProblemUpdated]);
+
   const renderWriteableElements = useMemo(() => {
     if (!instance) return {};
     return {
@@ -299,10 +420,26 @@ export const ChatbotWidget = ({
   }, [instance, currentSessionId, handleSessionSelect, handleNewChat]);
 
   // ── Carbon lifecycle callbacks ─────────────────────────────────────────
+  // Stable ref so the bus event handler always calls the latest handleApproval
+  const handleApprovalRef = useRef(handleApproval);
+  handleApprovalRef.current = handleApproval;
+
   const onBeforeRender = useCallback((inst: ChatInstance) => {
     setInstance(inst);
     instanceRef.current = inst;
-    inst.on({ type: BusEventType.SEND, handler: () => { try { if (backendSessionIdRef.current) localStorage.setItem("chatbot_last_session_id", backendSessionIdRef.current); } catch { /* */ } } });
+
+    inst.on({ type: BusEventType.SEND, handler: () => {
+      try { if (backendSessionIdRef.current) localStorage.setItem("chatbot_last_session_id", backendSessionIdRef.current); } catch { /* */ }
+    }});
+
+    // HITL: listen for approve/reject button clicks from CardItem footers
+    inst.on({ type: BusEventType.MESSAGE_ITEM_CUSTOM, handler: (event) => {
+      const customEvent = event as BusEventMessageItemCustom;
+      if (customEvent.messageItem.custom_event_name === "hitl_decision") {
+        const ud = customEvent.messageItem.user_defined as unknown as HitlButtonData;
+        handleApprovalRef.current(ud.decision, ud.sessionId);
+      }
+    }});
   }, []);
 
   const onViewChange = useCallback((event: BusEventViewChange) => {
@@ -345,7 +482,7 @@ export const ChatbotWidget = ({
     <>
       {/* Toggle FAB — only when closed and not on /chat page */}
       {!sideBarOpen && createPortal(
-        <button className={styles.toggleButton} onClick={handleToggle} disabled={clickInProgress} aria-label="開啟 AI 助教">
+        <button className={styles.toggleButton} onClick={isMobile ? () => navigate("/chat") : handleToggle} disabled={clickInProgress} aria-label="開啟 AI 助教">
           <AiLaunch size={20} />
         </button>,
         document.body,

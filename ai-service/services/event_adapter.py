@@ -75,6 +75,14 @@ class RunFailed:
     message: str
 
 
+@dataclass(slots=True)
+class AwaitingApproval:
+    """Emitted when the agent pauses for human approval before executing a tool."""
+    thread_id: str
+    action_requests: list[dict]   # [{"name": tool_name, "args": {...}}]
+    review_configs: list[dict]    # [{"action_name": ..., "allowed_decisions": [...]}]
+
+
 InternalEvent = Union[
     RunStarted,
     AgentMessageDelta,
@@ -85,6 +93,7 @@ InternalEvent = Union[
     UsageReport,
     RunCompleted,
     RunFailed,
+    AwaitingApproval,
 ]
 
 _TYPE_NAME_MAP: dict[type, str] = {
@@ -97,6 +106,7 @@ _TYPE_NAME_MAP: dict[type, str] = {
     UsageReport: "usage_report",
     RunCompleted: "run_completed",
     RunFailed: "run_failed",
+    AwaitingApproval: "awaiting_approval",
 }
 
 # ---------------------------------------------------------------------------

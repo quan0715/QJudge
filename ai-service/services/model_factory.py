@@ -15,13 +15,16 @@ logger = logging.getLogger(__name__)
 # Canonical model ID -> provider model string
 _MODEL_MAP: dict[str, str] = {
     "deepseek-r1": "deepseek-reasoner",
+    "deepseek-v3": "deepseek-chat",
 }
 
 _DEFAULT_MODEL_ID = "deepseek-r1"
+_SUMMARIZATION_MODEL_ID = "deepseek-v3"
 
 # Pricing in cents per million tokens (single source of truth)
 PRICING: dict[str, dict[str, int]] = {
     "deepseek-r1": {"input": 55, "output": 219},
+    "deepseek-v3": {"input": 7, "output": 28},
 }
 
 # Model display info for the /models API
@@ -29,8 +32,14 @@ MODEL_INFO = [
     {
         "model_id": "deepseek-r1",
         "display_name": "DeepSeek R1",
-        "description": "推理能力強，支援 thinking",
+        "description": "推理能力強，適合複雜操作與測資生成",
         "is_default": True,
+    },
+    {
+        "model_id": "deepseek-v3",
+        "display_name": "DeepSeek V3",
+        "description": "快速，適合簡單查詢",
+        "is_default": False,
     },
 ]
 

@@ -103,7 +103,7 @@ class SendMessageStreamSerializer(serializers.Serializer):
 
     content = serializers.CharField(max_length=10000)
     model_id = serializers.ChoiceField(
-        choices=["deepseek-r1"],
+        choices=["deepseek-r1", "deepseek-v3"],
         required=False,
         default="deepseek-r1",
     )

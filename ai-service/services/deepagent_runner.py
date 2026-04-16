@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import uuid
 from typing import Any, AsyncGenerator
 
+from deepagents.backends import StateBackend
 from deepagents.graph import create_agent, TodoListMiddleware
+from deepagents.middleware.filesystem import FilesystemMiddleware
+from deepagents.middleware.summarization import SummarizationMiddleware
+from langchain_core.messages import AnyMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
 from services.event_adapter import (
+    AwaitingApproval,
     RunCompleted,
     RunFailed,
     RunStarted,
@@ -21,9 +25,33 @@ from services.event_adapter import (
 )
 from models.schemas import RequestContext
 from services.mcp_tool_provider import MCPToolProvider
-from services.model_factory import ModelFactory
+from services.model_factory import ModelFactory, _SUMMARIZATION_MODEL_ID
 
 logger = logging.getLogger(__name__)
+
+
+class _SafeSummarizationMiddleware(SummarizationMiddleware):
+    """Patches deepagents 0.5.3's SummarizationMiddleware tool_call pair bug.
+
+    deepagents calls _lc_helper._partition_messages(messages, cutoff_index) directly
+    without first adjusting the cutoff via _find_safe_cutoff_point. This causes
+    ToolMessages to be split from their parent AIMessage, resulting in 400 errors.
+
+    langchain 1.2.15 already has the fix in _lc_helper._find_safe_cutoff_point.
+    This subclass simply wires it up until deepagents releases a fix.
+    See: https://github.com/langchain-ai/langchain/issues/34282
+    """
+
+    def _partition_messages(
+        self,
+        conversation_messages: list[AnyMessage],
+        cutoff_index: int,
+    ) -> tuple[list[AnyMessage], list[AnyMessage]]:
+        safe_cutoff = self._lc_helper._find_safe_cutoff_point(
+            conversation_messages, cutoff_index
+        )
+        return self._lc_helper._partition_messages(conversation_messages, safe_cutoff)
+
 
 # Default system prompt for the TA agent
 _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師（出題者）。
@@ -87,15 +115,34 @@ class DeepAgentRunner:
         system_prompt: str | None,
         tools: list[Any],
     ):
-        """Build a DeepAgent with tools."""
+        """Build a DeepAgent with tools.
+
+        Keeps create_agent (not create_deep_agent) to avoid the default
+        SubAgentMiddleware / SummarizationMiddleware overhead.
+
+        Middleware stack (in order):
+          1. TodoListMiddleware             — task planning, ~700 tokens
+          2. FilesystemMiddleware           — auto-evicts tool results >20k tokens to StateBackend
+          3. _SafeSummarizationMiddleware   — compresses history at 85% context; patches deepagents
+                                             0.5.3 bug where _partition_messages didn't call
+                                             _find_safe_cutoff_point (langchain#34282)
+          3. SummarizationMiddleware   — compresses conversation at 85% context window,
+                                        prevents long sessions from hitting DeepSeek R1's 131k limit
+        """
         model = ModelFactory.create_model(model_id=model_id)
+        summarization_model = ModelFactory.create_model(model_id=_SUMMARIZATION_MODEL_ID)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
+        backend = StateBackend()
 
         agent = create_agent(
             model=model,
             tools=tools,
             system_prompt=prompt,
-            middleware=[TodoListMiddleware()],
+            middleware=[
+                TodoListMiddleware(),
+                FilesystemMiddleware(backend=backend),
+                _SafeSummarizationMiddleware(model=summarization_model, backend=backend),
+            ],
             checkpointer=self._checkpointer,
         )
         return agent
@@ -228,15 +275,44 @@ class DeepAgentRunner:
             cost_cents = self._calculate_cost(
                 model_id, total_input_tokens, total_output_tokens
             )
-            yield to_sse_dict(
-                UsageReport(
-                    input_tokens=total_input_tokens,
-                    output_tokens=total_output_tokens,
-                    cost_cents=cost_cents,
-                    model_used=model_id,
-                )
+            usage_event = UsageReport(
+                input_tokens=total_input_tokens,
+                output_tokens=total_output_tokens,
+                cost_cents=cost_cents,
+                model_used=model_id,
             )
-            yield to_sse_dict(RunCompleted(run_id=run_id))
+
+            # Check whether the agent paused for human approval.
+            # LangGraph stores pending interrupts on StateSnapshot.interrupts
+            # (tuple of Interrupt objects) after astream_events exhausts.
+            state = await agent.aget_state(config)
+            if state.interrupts:
+                interrupt_val = state.interrupts[0].value
+                action_requests = (
+                    interrupt_val.get("action_requests", [])
+                    if isinstance(interrupt_val, dict)
+                    else []
+                )
+                review_configs = (
+                    interrupt_val.get("review_configs", [])
+                    if isinstance(interrupt_val, dict)
+                    else []
+                )
+                logger.info(
+                    "Agent interrupted for approval: %s",
+                    [r.get("name") for r in action_requests],
+                )
+                yield to_sse_dict(usage_event)
+                yield to_sse_dict(
+                    AwaitingApproval(
+                        thread_id=thread_id,
+                        action_requests=action_requests,
+                        review_configs=review_configs,
+                    )
+                )
+            else:
+                yield to_sse_dict(usage_event)
+                yield to_sse_dict(RunCompleted(run_id=run_id))
 
         except Exception as exc:
             logger.exception("DeepAgent execution failed: %s", exc)
@@ -277,7 +353,7 @@ class DeepAgentRunner:
             config = {
                 "configurable": {"thread_id": thread_id},
                 "metadata": {"thread_id": thread_id, "run_id": run_id},
-                "recursion_limit": 30,
+                "recursion_limit": 60,
             }
 
             agent_input: dict[str, Any] = {"messages": messages}
@@ -310,7 +386,7 @@ class DeepAgentRunner:
             config = {
                 "configurable": {"thread_id": thread_id},
                 "metadata": {"thread_id": thread_id, "run_id": run_id},
-                "recursion_limit": 30,
+                "recursion_limit": 60,
             }
 
             resume_value = Command(resume={"decisions": [{"type": decision}]})

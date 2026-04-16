@@ -7,6 +7,8 @@ from .schemas import (
     MessageRole,
     ModelsResponse,
     ModelInfo,
+    RequestContext,
+    ResumeRequest,
 )
 
 __all__ = [
@@ -16,4 +18,6 @@ __all__ = [
     "MessageRole",
     "ModelsResponse",
     "ModelInfo",
+    "RequestContext",
+    "ResumeRequest",
 ]
