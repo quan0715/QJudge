@@ -5,7 +5,7 @@ import path from "path";
  * Vitest config for API Integration Tests
  *
  * 這些測試需要真實的後端環境運行
- * 執行前需要: docker compose -f docker-compose.test.yml up -d
+ * 執行前需要: docker compose -f docker-compose.test.yml pull --ignore-pull-failures && docker compose -f docker-compose.test.yml up -d
  */
 export default defineConfig({
   test: {

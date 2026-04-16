@@ -40,7 +40,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Start test stack
-        run: docker compose -f docker-compose.test.yml up -d --build
+        run: |
+          docker compose -f docker-compose.test.yml pull --ignore-pull-failures
+          docker compose -f docker-compose.test.yml up -d
       - name: Wait for readiness
         uses: ./.github/actions/wait-test-stack
       - name: Run Auth E2E
@@ -75,7 +77,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Start test stack
-        run: docker compose -f docker-compose.test.yml up -d --build
+        run: |
+          docker compose -f docker-compose.test.yml pull --ignore-pull-failures
+          docker compose -f docker-compose.test.yml up -d
       - name: Wait for readiness
         uses: ./.github/actions/wait-test-stack
       - name: Run Exam E2E
@@ -110,7 +114,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Start test stack
-        run: docker compose -f docker-compose.test.yml up -d --build
+        run: |
+          docker compose -f docker-compose.test.yml pull --ignore-pull-failures
+          docker compose -f docker-compose.test.yml up -d
       - name: Wait for readiness
         uses: ./.github/actions/wait-test-stack
       - name: Run Contest E2E
@@ -145,7 +151,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Start test stack
-        run: docker compose -f docker-compose.test.yml up -d --build
+        run: |
+          docker compose -f docker-compose.test.yml pull --ignore-pull-failures
+          docker compose -f docker-compose.test.yml up -d
       - name: Wait for readiness
         uses: ./.github/actions/wait-test-stack
       - name: Run Coding E2E
@@ -180,7 +188,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Start test stack
-        run: docker compose -f docker-compose.test.yml up -d --build
+        run: |
+          docker compose -f docker-compose.test.yml pull --ignore-pull-failures
+          docker compose -f docker-compose.test.yml up -d
       - name: Wait for readiness
         uses: ./.github/actions/wait-test-stack
       - name: Run Settings E2E

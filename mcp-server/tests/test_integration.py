@@ -2,7 +2,8 @@
 MCP Server integration tests — hit real Django API.
 
 Prerequisites (test stack):
-  docker compose -f docker-compose.test.yml up -d --build
+  docker compose -f docker-compose.test.yml pull --ignore-pull-failures
+  docker compose -f docker-compose.test.yml up -d
 
 Prerequisites (dev stack):
   Already running on localhost:8000
