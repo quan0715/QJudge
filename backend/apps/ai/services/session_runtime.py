@@ -112,6 +112,18 @@ class BaseAIStreamRuntime:
                             yield f"{line}\n\n"
                         else:
                             yield f"{line}\n"
+                # Flush any remaining content in buffer (last line without trailing \n)
+                if buffer.strip():
+                    line = buffer.strip()
+                    if line.startswith("data: "):
+                        try:
+                            event = json.loads(line[6:])
+                            on_event(event)
+                        except json.JSONDecodeError:
+                            pass
+                        yield f"{line}\n\n"
+                    else:
+                        yield f"{line}\n"
         except Exception as exc:
             self.stream_error = str(exc)
             logger.exception("%s: %s", error_prefix, exc)

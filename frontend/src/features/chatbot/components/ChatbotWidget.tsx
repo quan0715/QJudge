@@ -91,6 +91,7 @@ export const ChatbotWidget = ({
   const [clickInProgress, setClickInProgress] = useState(false);
   const backendSessionIdRef = useRef<string | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const instanceRef = useRef<ChatInstance | null>(null);
 
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
@@ -189,6 +190,7 @@ export const ChatbotWidget = ({
             break;
           case "run_failed":
             console.error("[ChatbotWidget] Agent error:", e.message);
+            sendFinal(true);
             break;
         }
       };
@@ -238,6 +240,7 @@ export const ChatbotWidget = ({
       })().catch((err) => {
         if (isCanceled) { sendFinal(true); return; }
         console.error("[ChatbotWidget] Stream error:", err);
+        sendFinal(true);
       }).finally(() => {
         opts.signal?.removeEventListener("abort", abortHandler);
       });
@@ -271,12 +274,14 @@ export const ChatbotWidget = ({
   const handleSessionSelect = useCallback((sessionId: string) => {
     backendSessionIdRef.current = sessionId;
     currentSessionIdRef.current = sessionId;
+    setCurrentSessionId(sessionId);
     try { localStorage.setItem("chatbot_last_session_id", sessionId); } catch { /* */ }
   }, []);
 
   const handleNewChat = useCallback(() => {
     backendSessionIdRef.current = null;
     currentSessionIdRef.current = null;
+    setCurrentSessionId(null);
   }, []);
 
   const renderWriteableElements = useMemo(() => {
@@ -285,13 +290,13 @@ export const ChatbotWidget = ({
       [WriteableElementName.HISTORY_PANEL_ELEMENT]: (
         <ChatHistory
           instance={instance}
-          currentSessionId={currentSessionIdRef.current}
+          currentSessionId={currentSessionId}
           onSessionSelect={handleSessionSelect}
           onNewChat={handleNewChat}
         />
       ),
     };
-  }, [instance, handleSessionSelect, handleNewChat]);
+  }, [instance, currentSessionId, handleSessionSelect, handleNewChat]);
 
   // ── Carbon lifecycle callbacks ─────────────────────────────────────────
   const onBeforeRender = useCallback((inst: ChatInstance) => {

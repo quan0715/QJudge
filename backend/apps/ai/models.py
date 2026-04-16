@@ -190,7 +190,7 @@ class AIExecutionLog(models.Model):
         max_length=50,
         default='deepseek-r1',
         verbose_name="使用的模型",
-        help_text="使用的 Claude 模型版本"
+        help_text="使用的 LLM 模型版本"
     )
 
     class Meta:
