@@ -1,0 +1,26 @@
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.5rem;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  background: transparent;
+  flex-shrink: 0;
+  z-index: 5;
+  position: relative;
+}
+
+.left,
+.right {
+  display: flex;
+  gap: 0.125rem;
+  min-width: 3rem;
+}
+
+.title {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-weight: 400;
+  color: var(--cds-text-secondary, #525252);
+}

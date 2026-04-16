@@ -6,6 +6,7 @@ import type {
   ChatSession,
   UserInputRequest,
   ChatContext,
+  ApprovalRequest,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 
@@ -18,6 +19,7 @@ interface UseChatbotReturn {
   isInitializing: boolean;
   error: string | null;
   pendingUserInput: UserInputRequest | null;
+  pendingApproval: ApprovalRequest | null;
   createSession: () => Promise<string | null>;
   deleteSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
@@ -30,6 +32,8 @@ interface UseChatbotReturn {
     answers: Record<string, string>,
   ) => Promise<void>;
   cancelUserInput: () => void;
+  submitApproval: (decision: "approve" | "reject") => Promise<void>;
+  dismissApproval: () => void;
   clearError: () => void;
 }
 
@@ -75,6 +79,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const [error, setError] = useState<string | null>(null);
   const [pendingUserInput, setPendingUserInput] =
     useState<UserInputRequest | null>(null);
+  const [pendingApproval, setPendingApproval] =
+    useState<ApprovalRequest | null>(null);
 
   // AbortController for cancelling streaming
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -100,23 +106,16 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   }, [backgroundInfo, context]);
 
   /**
-   * 載入所有 sessions
+   * 載入所有 sessions（僅列表，不含 messages）
    */
   const refreshSessions = useCallback(async () => {
     try {
       setError(null);
       const apiSessions = await chatbotRepository.getSessions();
+      setSessions(apiSessions);
 
-      // 取得每個 session 的詳細資料（含 messages）
-      const detailedSessions = await Promise.all(
-        apiSessions.map((session) => chatbotRepository.getSession(session.id)),
-      );
-
-      setSessions(detailedSessions);
-
-      // 如果沒有當前選中的 session，選擇第一個
-      if (detailedSessions.length > 0 && !currentSessionIdRef.current) {
-        setCurrentSessionId(detailedSessions[0].id);
+      if (apiSessions.length > 0 && !currentSessionIdRef.current) {
+        setCurrentSessionId(apiSessions[0].id);
       }
     } catch (err) {
       console.error("Failed to load sessions:", err);
@@ -147,42 +146,33 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       try { savedSessionId = localStorage.getItem(LAST_SESSION_KEY); } catch { /* ignore */ }
 
       try {
+        // 只載入列表（不含 messages），速度快
         const apiSessions = await chatbotRepository.getSessions();
 
         if (apiSessions.length === 0) {
-          // 沒有 session，創建一個新的
           const newSession = await chatbotRepository.createSession();
           setSessions([newSession]);
           setCurrentSessionId(newSession.id);
         } else {
-          // 載入詳細資料
-          const detailedSessions = await Promise.all(
-            apiSessions.map((session) =>
-              chatbotRepository.getSession(session.id),
-            ),
-          );
-
-          // 如果 localStorage 有記住的 session 且仍存在，直接恢復
+          // 選定 active session
           const savedSession = savedSessionId
-            ? detailedSessions.find((s) => s.id === savedSessionId)
+            ? apiSessions.find((s) => s.id === savedSessionId)
             : null;
+          const activeId = savedSession?.id ?? apiSessions[0].id;
 
+          // 建立一個新的空 session 放最前面
+          const newSession = await chatbotRepository.createSession();
+          setSessions([newSession, ...apiSessions]);
+          setCurrentSessionId(newSession.id);
+
+          // 背景 lazy load active session 的 messages（如果選了舊 session）
           if (savedSession) {
-            setSessions(detailedSessions);
-            setCurrentSessionId(savedSession.id);
-          } else {
-            // 沒有記住的 session，走原本的邏輯
-            const latestSession = detailedSessions[0];
-            const isLatestEmpty = latestSession.messages.length === 0;
-
-            if (isLatestEmpty) {
-              setSessions(detailedSessions);
-              setCurrentSessionId(latestSession.id);
-            } else {
-              const newSession = await chatbotRepository.createSession();
-              setSessions([newSession, ...detailedSessions]);
-              setCurrentSessionId(newSession.id);
-            }
+            setCurrentSessionId(activeId);
+            chatbotRepository.getSession(activeId).then((detailed) => {
+              setSessions((prev) =>
+                prev.map((s) => (s.id === activeId ? detailed : s)),
+              );
+            }).catch(() => { /* ignore, will load on click */ });
           }
         }
       } catch (err) {
@@ -248,11 +238,24 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   );
 
   /**
-   * 切換 session
+   * 切換 session（lazy load messages）
    */
-  const switchSession = useCallback((sessionId: string) => {
+  const switchSession = useCallback(async (sessionId: string) => {
     setCurrentSessionId(sessionId);
-  }, []);
+
+    // Lazy load messages if not yet loaded
+    const existing = sessions.find((s) => s.id === sessionId);
+    if (existing && !existing.id.startsWith("temp-") && existing.messages.length === 0) {
+      try {
+        const detailed = await chatbotRepository.getSession(sessionId);
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? detailed : s)),
+        );
+      } catch (err) {
+        console.warn("Failed to load session messages:", err);
+      }
+    }
+  }, [sessions]);
 
   /**
    * 重新命名 session
@@ -433,6 +436,11 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               setPendingUserInput(request);
             },
 
+            // HITL 核准請求（AwaitingApproval）
+            onAwaitingApproval: (request) => {
+              setPendingApproval(request);
+            },
+
           },
           {
             context: effectiveContext ?? undefined,
@@ -605,6 +613,25 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   }, []);
 
   /**
+   * 提交 HITL 核准決定（核准或拒絕）
+   */
+  const submitApproval = useCallback(
+    async (decision: "approve" | "reject") => {
+      if (!currentSessionId) return;
+      setPendingApproval(null);
+      await resumeAgent(decision);
+    },
+    [currentSessionId, resumeAgent],
+  );
+
+  /**
+   * 關閉 HITL 核准彈窗（不提交任何決定）
+   */
+  const dismissApproval = useCallback(() => {
+    setPendingApproval(null);
+  }, []);
+
+  /**
    * 清除錯誤訊息
    */
   const clearError = useCallback(() => {
@@ -629,6 +656,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     isInitializing,
     error,
     pendingUserInput,
+    pendingApproval,
     createSession,
     deleteSession,
     switchSession,
@@ -638,6 +666,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     refreshSessions,
     submitUserInput,
     cancelUserInput,
+    submitApproval,
+    dismissApproval,
     clearError,
   };
 }

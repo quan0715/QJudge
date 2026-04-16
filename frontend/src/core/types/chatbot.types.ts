@@ -12,7 +12,8 @@ export type StreamEventType =
   | "tool_call_finished"
   | "usage_report"
   | "run_completed"
-  | "run_failed";
+  | "run_failed"
+  | "awaiting_approval";
 
 export interface BaseStreamEvent {
   type: StreamEventType;
@@ -161,6 +162,17 @@ export interface UserInputRequest {
   questions: UserInputQuestion[];
 }
 
+// ===== HITL Approval =====
+export interface ApprovalActionRequest {
+  name: string;
+  args?: Record<string, unknown>;
+}
+
+export interface ApprovalRequest {
+  actionRequests: ApprovalActionRequest[];
+  reviewConfigs?: Array<{ actionName: string; allowedDecisions: string[] }>;
+}
+
 // ===== Stream Callbacks =====
 export interface StreamCallbacks {
   onMessageUpdate?: (message: Partial<ChatMessage>) => void;
@@ -168,6 +180,7 @@ export interface StreamCallbacks {
   onError?: (error: string) => void;
   onUserInputRequest?: (request: UserInputRequest) => void;
   onVerificationReport?: (report: VerificationReport) => void;
+  onAwaitingApproval?: (request: ApprovalRequest) => void;
 }
 
 // ===== Helper Functions =====

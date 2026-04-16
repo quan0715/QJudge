@@ -193,8 +193,7 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, './src'),
         '~': path.resolve(__dirname, './node_modules'),
-        // Vite doesn't resolve wildcard package exports (./es/*) properly
-        '@carbon/ai-chat-components/es': path.resolve(__dirname, './node_modules/@carbon/ai-chat-components/es'),
+
       },
     },
   }

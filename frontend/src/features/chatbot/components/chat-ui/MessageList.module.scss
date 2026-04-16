@@ -1,0 +1,32 @@
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem 0 5rem;
+
+  // Center message content within full-width scroll container
+  display: flex;
+  flex-direction: column;
+
+  > * {
+    max-width: 900px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  // Thin scrollbar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--cds-border-subtle-01, #c6c6c6);
+    border-radius: 3px;
+  }
+}
+

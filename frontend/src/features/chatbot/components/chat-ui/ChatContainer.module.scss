@@ -1,0 +1,111 @@
+$history-width: 280px;
+$motion-duration: 240ms;
+$motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
+
+.container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+// Full-page mode: blue gradient background on the main chat area
+.full .main {
+  background:
+    radial-gradient(
+      ellipse at 15% 50%,
+      rgba(69, 137, 255, 0.10) 0%,
+      transparent 55%
+    ),
+    var(--cds-background, #fff);
+}
+
+:global([data-carbon-theme="g100"]) .full .main {
+  background:
+    radial-gradient(
+      ellipse at 15% 50%,
+      rgba(69, 137, 255, 0.15) 0%,
+      transparent 55%
+    ),
+    var(--cds-background, #161616);
+}
+
+// Sidebar mode: same gradient
+.sidebar {
+  background:
+    radial-gradient(
+      ellipse at 15% 50%,
+      rgba(69, 137, 255, 0.10) 0%,
+      transparent 55%
+    ),
+    var(--cds-background, #fff);
+}
+
+:global([data-carbon-theme="g100"]) .sidebar {
+  background:
+    radial-gradient(
+      ellipse at 15% 50%,
+      rgba(69, 137, 255, 0.15) 0%,
+      transparent 55%
+    ),
+    var(--cds-background, #161616);
+}
+
+.historyColumn {
+  width: $history-width;
+  flex-shrink: 0;
+  transition: width $motion-duration $motion-easing;
+  overflow: hidden;
+}
+
+.historyCollapsed {
+  width: 0;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chatBody {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.messagesArea {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.composerFloat {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+}
+
+// Mobile history overlay
+.mobileHistoryOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: var(--cds-background, #fff);
+}

@@ -24,7 +24,8 @@ interface V2StreamEvent {
     | "tool_call_finished"
     | "usage_report"
     | "run_completed"
-    | "run_failed";
+    | "run_failed"
+    | "awaiting_approval";
 
   // run_started
   run_id?: string;
@@ -57,6 +58,10 @@ interface V2StreamEvent {
   // run_failed
   error_code?: string;
   message?: string;
+
+  // awaiting_approval
+  action_requests?: Array<{ name: string; args?: Record<string, unknown> }>;
+  review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
 
 }
 
@@ -609,6 +614,22 @@ const chatbotRepository: ChatbotRepository = {
         });
         callbacks.onError?.(event.message || "Agent 執行失敗");
         break;
+
+      case "awaiting_approval": {
+        if (event.action_requests?.length) {
+          callbacks.onAwaitingApproval?.({
+            actionRequests: event.action_requests.map((a) => ({
+              name: a.name,
+              args: a.args,
+            })),
+            reviewConfigs: event.review_configs?.map((r) => ({
+              actionName: r.action_name,
+              allowedDecisions: r.allowed_decisions,
+            })),
+          });
+        }
+        break;
+      }
 
       default:
         console.debug("SSE: unknown event type", { type: event.type });

@@ -1,0 +1,18 @@
+.pageRoot {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make header participate in layout flow on /chat only. */
+.pageRoot :global(.cds--header) {
+  position: static;
+}
