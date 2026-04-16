@@ -96,14 +96,32 @@ export default function ChatFullPage() {
         inst.messaging.addMessageChunk({ final_response: { id: responseId, output: { generic: [item] }, ...(mo ? { message_options: mo } : {}) } } as StreamChunk);
       };
 
-      const handleEvent = (e: { type: string; thread_id?: string; content?: string; tool_name?: string; input_data?: Record<string, unknown>; result?: string | Record<string, unknown>; is_error?: boolean; message?: string }) => {
+      const handleEvent = (e: { type: string; thread_id?: string; content?: string; tool_name?: string; tool_call_id?: string; input_data?: Record<string, unknown>; result?: string | Record<string, unknown>; is_error?: boolean; message?: string }) => {
         if (isCanceled) return;
         switch (e.type) {
           case "run_started": if (e.thread_id) { backendSessionIdRef.current = e.thread_id; currentSessionIdRef.current = e.thread_id; } break;
           case "thinking_delta": if (e.content) { accThinking += e.content; inst.messaging.addMessageChunk({ partial_item: { response_type: MessageResponseTypes.TEXT, text: "", streaming_metadata: { id: textItemId, cancellable: true } }, partial_response: { message_options: { reasoning: { content: accThinking } } }, streaming_metadata: { response_id: responseId } } as StreamChunk); } break;
           case "agent_message_delta": if (e.content) sendPartial(e.content); break;
-          case "tool_call_started": if (e.tool_name) { cotSteps.push({ title: e.tool_name, tool_name: e.tool_name, status: ChainOfThoughtStepStatus.PROCESSING, request: e.input_data ? { args: e.input_data } : undefined }); sendPartial(); } break;
-          case "tool_call_finished": { let i = cotSteps.length - 1; for (; i >= 0; i--) if (cotSteps[i].status === ChainOfThoughtStepStatus.PROCESSING) break; if (i >= 0) cotSteps[i] = { ...cotSteps[i], status: e.is_error ? ChainOfThoughtStepStatus.FAILURE : ChainOfThoughtStepStatus.SUCCESS, response: e.result ? { content: typeof e.result === "string" ? e.result : JSON.stringify(e.result, null, 2) } : undefined }; sendPartial(); break; }
+          case "tool_call_started":
+            if (e.tool_name) {
+              cotSteps.push({
+                title: e.tool_name,
+                tool_name: e.tool_call_id || `${e.tool_name}-${cotSteps.length}`,
+                status: ChainOfThoughtStepStatus.PROCESSING,
+                request: e.input_data ? { args: e.input_data } : undefined,
+              });
+              sendPartial();
+            }
+            break;
+          case "tool_call_finished": {
+            const lastProcessingIdx = (() => { for (let i = cotSteps.length - 1; i >= 0; i--) { if (cotSteps[i].status === ChainOfThoughtStepStatus.PROCESSING) return i; } return -1; })();
+            const idx = e.tool_call_id
+              ? cotSteps.findIndex(s => s.tool_name === e.tool_call_id)
+              : lastProcessingIdx;
+            if (idx >= 0) cotSteps[idx] = { ...cotSteps[idx], status: e.is_error ? ChainOfThoughtStepStatus.FAILURE : ChainOfThoughtStepStatus.SUCCESS, response: e.result ? { content: typeof e.result === "string" ? e.result : JSON.stringify(e.result, null, 2) } : undefined };
+            sendPartial();
+            break;
+          }
           case "run_completed": sendFinal(false); break;
           case "run_failed": console.error("[ChatFullPage] Agent error:", e.message); break;
         }
@@ -132,7 +150,15 @@ export default function ChatFullPage() {
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n"); buffer = lines.pop() ?? "";
-          for (const raw of lines) { const l = raw.trimEnd(); if (l.startsWith("data: ")) { try { handleEvent(JSON.parse(l.slice(6))); } catch { /* */ } } }
+          for (const raw of lines) {
+            const l = raw.trimEnd();
+            if (l.startsWith("data: ")) {
+              try {
+                handleEvent(JSON.parse(l.slice(6)));
+                await new Promise(r => setTimeout(r, 0));
+              } catch { /* */ }
+            }
+          }
         }
         if (buffer.trim().startsWith("data: ")) { try { handleEvent(JSON.parse(buffer.trim().slice(6))); } catch { /* */ } }
       })().catch((err) => {
@@ -155,7 +181,7 @@ export default function ChatFullPage() {
     } catch { return []; }
   }, []);
 
-  const config = useRef<PublicConfig>({
+  const config = useMemo<PublicConfig>(() => ({
     messaging: { customSendMessage, showStopButtonImmediately: true, messageTimeoutSecs: 120, customLoadHistory },
     history: { isOn: true },
     header: { isOn: false },
@@ -167,7 +193,7 @@ export default function ChatFullPage() {
     },
     openChatByDefault: true,
     assistantName: "QJudge AI",
-  }).current;
+  }), [customSendMessage, customLoadHistory]);
 
   const handleSessionSelect = useCallback((sessionId: string) => {
     backendSessionIdRef.current = sessionId;
@@ -184,6 +210,7 @@ export default function ChatFullPage() {
     if (!instance) return {};
     return {
       [WriteableElementName.HISTORY_PANEL_ELEMENT]: (
+        // eslint-disable-next-line react-hooks/refs
         <ChatHistory instance={instance} currentSessionId={currentSessionIdRef.current} onSessionSelect={handleSessionSelect} onNewChat={handleNewChat} showHeader={false} />
       ),
     };

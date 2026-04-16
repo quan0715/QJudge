@@ -258,6 +258,8 @@ CORS_ALLOW_HEADERS = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
+    "https://q-judge-dev.quan.wtf",
+    "https://q-judge.quan.wtf",
 ]
 
 # Session cookie settings

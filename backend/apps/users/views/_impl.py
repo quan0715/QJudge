@@ -14,6 +14,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 from django.core.cache import cache
 from django.urls import reverse
 from django_ratelimit.decorators import ratelimit
@@ -47,10 +49,11 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 class CurrentUserView(SchemaAPIView):
     """
     Get current authenticated user information.
-    
+
     GET /api/v1/users/me
     """
     permission_classes = [IsAuthenticated]

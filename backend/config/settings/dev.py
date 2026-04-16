@@ -95,6 +95,11 @@ if os.getenv('FRONTEND_URL'):
 CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
 if os.getenv('FRONTEND_URL'):
     CSRF_TRUSTED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
+# Cloudflare Tunnel dev domains
+for _host in os.getenv('ALLOWED_HOSTS', '').split(','):
+    _host = _host.strip()
+    if _host and _host not in ('localhost', '127.0.0.1', '0.0.0.0', '*'):
+        CSRF_TRUSTED_ORIGINS.append(f'https://{_host}')
 
 # Allow all origins in dev if needed (optional, but good for local dev)
 CORS_ALLOW_ALL_ORIGINS = True

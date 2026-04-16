@@ -1,5 +1,5 @@
 """Tests for AI message streaming functionality."""
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -16,6 +16,61 @@ def _create_user(username, email, password="testpass123"):
     return User.objects.create_user(
         username=username, email=email, password=password,
     )
+
+
+def _mock_async_stream(thread_id: str):
+    """Build mock for httpx.AsyncClient.stream (async context manager)."""
+    lines = [
+        f'data: {{"type":"run_started","thread_id":"{thread_id}"}}\n\n',
+        'data: {"type":"agent_message_delta","content":"Hello"}\n\n',
+        'data: {"type":"usage_report","input_tokens":10,"output_tokens":5,"cost_cents":1}\n\n',
+        'data: {"type":"done"}\n\n',
+    ]
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+
+    async def aiter_bytes():
+        for line in lines:
+            yield line.encode("utf-8")
+
+    mock_response.aiter_bytes = aiter_bytes
+
+    # async context manager for client.stream()
+    stream_cm = AsyncMock()
+    stream_cm.__aenter__.return_value = mock_response
+    stream_cm.__aexit__.return_value = None
+
+    # async context manager for AsyncClient()
+    mock_client = MagicMock()
+    mock_client.stream.return_value = stream_cm
+
+    client_cm = AsyncMock()
+    client_cm.__aenter__.return_value = mock_client
+    client_cm.__aexit__.return_value = None
+
+    return client_cm
+
+
+def _mock_async_stream_error():
+    """Build mock for httpx.AsyncClient returning 500."""
+    mock_response = MagicMock()
+    mock_response.status_code = 500
+    mock_response.text = "Internal Server Error"
+    mock_response.aread = AsyncMock(return_value=b"Internal Server Error")
+
+    stream_cm = AsyncMock()
+    stream_cm.__aenter__.return_value = mock_response
+    stream_cm.__aexit__.return_value = None
+
+    mock_client = MagicMock()
+    mock_client.stream.return_value = stream_cm
+
+    client_cm = AsyncMock()
+    client_cm.__aenter__.return_value = mock_client
+    client_cm.__aexit__.return_value = None
+
+    return client_cm
 
 
 class MessageStreamingTestCase(TestCase):
@@ -36,37 +91,22 @@ class MessageStreamingTestCase(TestCase):
             context={"title": "other"},
         )
 
-    def _mock_stream_response(self, thread_id: str):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        lines = [
-            f'data: {{"type":"run_started","thread_id":"{thread_id}"}}\n\n',
-            'data: {"type":"agent_message_delta","content":"Hello"}\n\n',
-            'data: {"type":"usage_report","input_tokens":10,"output_tokens":5,"cost_cents":1}\n\n',
-            'data: {"type":"done"}\n\n',
-        ]
-        mock_response.iter_bytes.return_value = [line.encode("utf-8") for line in lines]
-        return mock_response
-
     def test_send_message_stream_to_own_session(self):
         self.client.force_authenticate(user=self.user)
         with patch(
             "apps.ai.services.session_runtime.build_ai_service_headers",
             return_value={"X-AI-Internal-Token": "test"},
         ), patch(
-            "apps.ai.services.session_runtime.httpx.stream"
-        ) as mock_stream:
-            mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
-                self.session.session_id
-            )
+            "apps.ai.services.session_runtime.httpx.AsyncClient",
+            return_value=_mock_async_stream(self.session.session_id),
+        ):
             response = self.client.post(
                 f"/api/v1/ai/sessions/{self.session.session_id}/send_message_stream/",
                 {"content": "Hello"},
                 format="json",
             )
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            # Consume stream so finally-block persistence runs.
-            _ = b"".join(response.streaming_content)
+            _ = b"".join(response)
 
     def test_send_message_stream_to_other_user_session_returns_404(self):
         self.client.force_authenticate(user=self.user)
@@ -84,18 +124,15 @@ class MessageStreamingTestCase(TestCase):
             "apps.ai.services.session_runtime.build_ai_service_headers",
             return_value={"X-AI-Internal-Token": "test"},
         ), patch(
-            "apps.ai.services.session_runtime.httpx.stream"
-        ) as mock_stream:
-            mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
-                self.session.session_id
-            )
-
+            "apps.ai.services.session_runtime.httpx.AsyncClient",
+            return_value=_mock_async_stream(self.session.session_id),
+        ):
             response = self.client.post(
                 f"/api/v1/ai/sessions/{self.session.session_id}/send_message_stream/",
                 {"content": "User question"},
                 format="json",
             )
-            _ = b"".join(response.streaming_content)
+            _ = b"".join(response)
 
             user_messages = AIMessage.objects.filter(
                 session=self.session,
@@ -118,18 +155,16 @@ class MessageStreamingTestCase(TestCase):
             "apps.ai.services.session_runtime.build_ai_service_headers",
             return_value={"X-AI-Internal-Token": "test"},
         ), patch(
-            "apps.ai.services.session_runtime.httpx.stream"
-        ) as mock_stream:
-            mock_stream.return_value.__enter__.return_value = self._mock_stream_response(
-                ai_thread_id
-            )
+            "apps.ai.services.session_runtime.httpx.AsyncClient",
+            return_value=_mock_async_stream(ai_thread_id),
+        ):
             response = self.client.post(
                 f"/api/v1/ai/sessions/{backend_session_id}/send_message_stream/",
                 {"content": "Hello"},
                 format="json",
             )
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            _ = b"".join(response.streaming_content)
+            _ = b"".join(response)
 
         self.assertTrue(
             AISession.objects.filter(session_id=ai_thread_id, user=self.user).exists()
@@ -142,14 +177,9 @@ class MessageStreamingTestCase(TestCase):
             "apps.ai.services.session_runtime.build_ai_service_headers",
             return_value={"X-AI-Internal-Token": "test"},
         ), patch(
-            "apps.ai.services.session_runtime.httpx.stream"
-        ) as mock_stream:
-            mock_response = MagicMock()
-            mock_response.status_code = 500
-            mock_response.text = "Internal Server Error"
-            mock_response.read.return_value = b"Internal Server Error"
-            mock_stream.return_value.__enter__.return_value = mock_response
-
+            "apps.ai.services.session_runtime.httpx.AsyncClient",
+            return_value=_mock_async_stream_error(),
+        ):
             response = self.client.post(
                 f"/api/v1/ai/sessions/{self.session.session_id}/send_message_stream/",
                 {"content": "Hello"},
@@ -157,8 +187,9 @@ class MessageStreamingTestCase(TestCase):
             )
 
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            payload = b"".join(response.streaming_content).decode("utf-8", errors="ignore")
+            payload = b"".join(response).decode("utf-8", errors="ignore")
             self.assertIn('"type": "error"', payload)
+
 
 class MessagePersistenceTestCase(TestCase):
     """Test message persistence in sessions."""

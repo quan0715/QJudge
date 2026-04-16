@@ -1,6 +1,7 @@
 -r base.txt
 
 # Development tools
+uvicorn[standard]>=0.34,<1.0
 ipython>=8.18,<9.0
 django-debug-toolbar>=4.2,<4.3
 django-extensions>=3.2,<3.3

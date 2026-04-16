@@ -34,6 +34,11 @@ class ThinkingDelta:
 
 
 @dataclass(slots=True)
+class SummarizationStarted:
+    pass
+
+
+@dataclass(slots=True)
 class VerificationReport:
     iteration: int
     passed: bool
@@ -87,6 +92,7 @@ InternalEvent = Union[
     RunStarted,
     AgentMessageDelta,
     ThinkingDelta,
+    SummarizationStarted,
     VerificationReport,
     ToolCallStarted,
     ToolCallFinished,
@@ -100,6 +106,7 @@ _TYPE_NAME_MAP: dict[type, str] = {
     RunStarted: "run_started",
     AgentMessageDelta: "agent_message_delta",
     ThinkingDelta: "thinking_delta",
+    SummarizationStarted: "summarization_started",
     VerificationReport: "verification_report",
     ToolCallStarted: "tool_call_started",
     ToolCallFinished: "tool_call_finished",

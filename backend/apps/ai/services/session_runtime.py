@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Callable, Generator
+from collections.abc import AsyncGenerator, Callable
 from typing import Any
 
 import httpx
+from asgiref.sync import sync_to_async
 from django.http import StreamingHttpResponse
 from django.utils import timezone
 
@@ -22,8 +23,8 @@ from .stream_proxy import (
 logger = logging.getLogger(__name__)
 
 
-def build_sse_response(generator: Generator[str, None, None]) -> StreamingHttpResponse:
-    """Wrap a generator in a standard SSE response."""
+def build_sse_response(generator: AsyncGenerator[str, None]) -> StreamingHttpResponse:
+    """Wrap an async generator in a standard SSE response."""
     response = StreamingHttpResponse(generator, content_type="text/event-stream")
     response["Cache-Control"] = "no-cache"
     response["X-Accel-Buffering"] = "no"
@@ -38,13 +39,13 @@ class BaseAIStreamRuntime:
     def _error_event(self, message: str) -> str:
         return f"data: {json.dumps({'type': 'error', 'content': message})}\n\n"
 
-    def _proxy_stream(
+    async def _proxy_stream(
         self,
         *,
         payload: dict[str, Any],
         on_event: Callable[[dict[str, Any]], None],
         error_prefix: str,
-    ) -> Generator[str, None, None]:
+    ) -> AsyncGenerator[str, None]:
         try:
             ai_headers = build_ai_service_headers(getattr(self, "user", None))
         except RuntimeError as exc:
@@ -54,35 +55,47 @@ class BaseAIStreamRuntime:
             return
 
         try:
-            with httpx.stream(
-                "POST",
-                f"{ai_service_base_url()}{self.endpoint}",
-                json=payload,
-                headers=ai_headers,
-                timeout=httpx.Timeout(10.0, read=120.0),
-            ) as response:
-                if response.status_code != 200:
-                    response.read()
-                    error_text = response.text
-                    logger.error(
-                        "%s: %s - %s",
-                        error_prefix,
-                        response.status_code,
-                        error_text,
-                    )
-                    self.stream_error = f"ai-service error: {response.status_code}"
-                    yield self._error_event(self.stream_error)
-                    return
+            async with httpx.AsyncClient() as client:
+                async with client.stream(
+                    "POST",
+                    f"{ai_service_base_url()}{self.endpoint}",
+                    json=payload,
+                    headers=ai_headers,
+                    timeout=httpx.Timeout(10.0, read=120.0),
+                ) as response:
+                    if response.status_code != 200:
+                        await response.aread()
+                        error_text = response.text
+                        logger.error(
+                            "%s: %s - %s",
+                            error_prefix,
+                            response.status_code,
+                            error_text,
+                        )
+                        self.stream_error = f"ai-service error: {response.status_code}"
+                        yield self._error_event(self.stream_error)
+                        return
 
-                # Use iter_bytes for real-time streaming (iter_lines buffers too aggressively)
-                buffer = ""
-                for chunk in response.iter_bytes():
-                    buffer += chunk.decode("utf-8", errors="replace")
-                    while "\n" in buffer:
-                        line, buffer = buffer.split("\n", 1)
-                        line = line.strip()
-                        if not line:
-                            continue
+                    buffer = ""
+                    async for chunk in response.aiter_bytes():
+                        buffer += chunk.decode("utf-8", errors="replace")
+                        while "\n" in buffer:
+                            line, buffer = buffer.split("\n", 1)
+                            line = line.strip()
+                            if not line:
+                                continue
+                            if line.startswith("data: "):
+                                try:
+                                    event = json.loads(line[6:])
+                                    on_event(event)
+                                except json.JSONDecodeError:
+                                    pass
+                                yield f"{line}\n\n"
+                            else:
+                                yield f"{line}\n"
+                    # Flush remaining buffer
+                    if buffer.strip():
+                        line = buffer.strip()
                         if line.startswith("data: "):
                             try:
                                 event = json.loads(line[6:])
@@ -92,18 +105,6 @@ class BaseAIStreamRuntime:
                             yield f"{line}\n\n"
                         else:
                             yield f"{line}\n"
-                # Flush any remaining content in buffer (last line without trailing \n)
-                if buffer.strip():
-                    line = buffer.strip()
-                    if line.startswith("data: "):
-                        try:
-                            event = json.loads(line[6:])
-                            on_event(event)
-                        except json.JSONDecodeError:
-                            pass
-                        yield f"{line}\n\n"
-                    else:
-                        yield f"{line}\n"
         except Exception as exc:
             self.stream_error = str(exc)
             logger.exception("%s: %s", error_prefix, exc)
@@ -284,15 +285,15 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
             total_cost_cents=F("total_cost_cents") + (cost_cents or 0),
         )
 
-    def generate(self) -> Generator[str, None, None]:
+    async def generate(self) -> AsyncGenerator[str, None]:
         if self.session:
-            AIMessage.objects.create(
+            await sync_to_async(AIMessage.objects.create)(
                 session=self.session,
                 role=AIMessage.Role.USER,
                 content=self.content,
                 message_type=AIMessage.MessageType.TEXT,
             )
-            self._ensure_log()
+            await sync_to_async(self._ensure_log)()
 
         init_event = {
             "type": "init",
@@ -301,15 +302,16 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
         }
         yield f"data: {json.dumps(init_event)}\n\n"
 
-        yield from self._proxy_stream(
+        async for chunk in self._proxy_stream(
             payload=self._build_payload(),
             on_event=self._handle_event,
             error_prefix="Error proxying to ai-service",
-        )
+        ):
+            yield chunk
 
-        self._persist_session()
-        self._persist_response()
-        self._complete_log()
+        await sync_to_async(self._persist_session)()
+        await sync_to_async(self._persist_response)()
+        await sync_to_async(self._complete_log)()
 
 
 class ResumeStreamRuntime(BaseAIStreamRuntime):
@@ -384,10 +386,11 @@ class ResumeStreamRuntime(BaseAIStreamRuntime):
                 total_cost_cents=F("total_cost_cents") + cost_cents,
             )
 
-    def generate(self) -> Generator[str, None, None]:
-        yield from self._proxy_stream(
+    async def generate(self) -> AsyncGenerator[str, None]:
+        async for chunk in self._proxy_stream(
             payload=self._build_payload(),
             on_event=self._handle_event,
             error_prefix="Error proxying resume to ai-service",
-        )
-        self._persist_response()
+        ):
+            yield chunk
+        await sync_to_async(self._persist_response)()

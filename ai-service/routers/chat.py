@@ -110,6 +110,24 @@ async def generate_resume_events(
         }
 
 
+@router.delete("/thread/{thread_id}")
+async def delete_thread(thread_id: str, app_request: Request) -> dict:
+    """Delete all LangGraph checkpoint state for a thread.
+
+    Used when a session becomes unrecoverable (e.g. dangling tool_calls
+    that can't be repaired). Clears the checkpoint so the next message
+    starts from a clean state on the same session ID.
+    """
+    validate_internal_auth(app_request)
+    runner = app_request.app.state.deepagent_runner
+    try:
+        await runner.delete_thread(thread_id)
+        return {"deleted": True, "thread_id": thread_id}
+    except Exception as e:
+        logger.exception("Failed to delete thread %s: %s", thread_id, e)
+        return {"deleted": False, "thread_id": thread_id, "error": str(e)}
+
+
 @router.post("/resume")
 async def chat_resume(request: ResumeRequest, app_request: Request) -> EventSourceResponse:
     """Resume an interrupted agent with a user decision (approve/reject).

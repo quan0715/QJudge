@@ -1,0 +1,53 @@
+@use "@carbon/layout";
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 4px;
+  background-color: var(--cds-layer-01, var(--cds-layer));
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+}
+
+.typeInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--cds-icon-secondary);
+}
+
+.typeLabel {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.prompt {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.meta {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+}

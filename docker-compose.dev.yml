@@ -145,7 +145,7 @@ services:
         DJANGO_ENV: development
     image: oj_backend_dev_img
     container_name: oj_backend_dev
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python -m uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --reload-dir /app
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock

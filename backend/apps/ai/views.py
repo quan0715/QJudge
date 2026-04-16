@@ -153,7 +153,14 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def clear(self, request, pk=None):
-        """Clear all messages in a session."""
+        """Clear all messages in a session and delete the LangGraph checkpoint.
+
+        Deletes both Django messages and the LangGraph checkpoint state so broken
+        threads (e.g. dangling tool_calls) are fully reset on the next message.
+        """
+        import httpx
+        from .services.stream_proxy import ai_service_base_url, build_ai_service_headers
+
         session = self.get_object()
         session.messages.all().delete()
 
@@ -161,6 +168,17 @@ class AISessionViewSet(viewsets.ModelViewSet):
         title = session.context.get("title") if session.context else None
         session.context = {"title": title} if title else {}
         session.save(update_fields=["context", "updated_at"])
+
+        # Delete LangGraph checkpoint so broken state is fully wiped
+        try:
+            ai_headers = build_ai_service_headers(request.user)
+            httpx.delete(
+                f"{ai_service_base_url()}/api/chat/thread/{session.session_id}",
+                headers=ai_headers,
+                timeout=10.0,
+            )
+        except Exception as e:
+            logger.warning("Failed to delete LangGraph thread %s: %s", session.session_id, e)
 
         # Add welcome message
         AIMessage.objects.create(
