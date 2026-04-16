@@ -1,6 +1,5 @@
-/* ChatFullPage — ChatCustomElement with absolute positioning to fill parent */
-
-.chatElement {
-  position: absolute;
-  inset: 0;
+// frontend/src/features/chatbot/components/ChatFullPage.module.scss
+.fullPage {
+  height: 100%;
+  width: 100%;
 }
