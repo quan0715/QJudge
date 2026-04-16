@@ -14,6 +14,7 @@ import {
   CornersType,
   PanelType,
   type ChatInstance,
+  type ToolbarAction,
   type HistoryItem,
   type ChainOfThoughtStep,
   type CustomSendMessageOptions,
@@ -21,6 +22,7 @@ import {
   type StreamChunk,
   type PublicConfig,
 } from "@carbon/ai-chat";
+import RecentlyViewed from "@carbon/icons-react/es/RecentlyViewed.js";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { httpClient } from "@/infrastructure/api/http.client";
 import { ChatHistory } from "./ChatHistory";
@@ -164,16 +166,20 @@ export default function ChatFullPage() {
       title: "QJudge AI 助教",
       hideMinimizeButton: true,
       showRestartButton: true,
-      menuOptions: [
+      actions: [
         {
           text: "對話紀錄",
-          handler: () => {
+          icon: RecentlyViewed,
+          fixed: true,
+          onClick: () => {
             const inst = instanceRef.current;
             if (inst?.customPanels) {
-              inst.customPanels.getPanel(PanelType.HISTORY)?.open();
+              const panel = inst.customPanels.getPanel(PanelType.HISTORY);
+              // Toggle: open if closed, close if open
+              panel?.open();
             }
           },
-        },
+        } as ToolbarAction,
       ],
     },
     layout: {
