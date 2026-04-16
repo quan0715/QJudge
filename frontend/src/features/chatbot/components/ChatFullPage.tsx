@@ -158,9 +158,12 @@ export default function ChatFullPage() {
   const config = useRef<PublicConfig>({
     messaging: { customSendMessage, showStopButtonImmediately: true, messageTimeoutSecs: 120, customLoadHistory },
     history: { isOn: true },
-    header: { title: "QJudge AI 助教" },
+    header: {
+      title: "QJudge AI 助教",
+      hideMinimizeButton: true,
+      showRestartButton: true,
+    },
     layout: {
-      showFrame: false,
       corners: CornersType.SQUARE,
       customProperties: {
         "messages-max-width": "max(60vw, 672px)",
