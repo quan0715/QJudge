@@ -8,6 +8,7 @@ from collections.abc import AsyncGenerator, Callable
 from typing import Any
 
 import httpx
+from asgiref.sync import sync_to_async
 from django.http import StreamingHttpResponse
 from django.utils import timezone
 
@@ -286,13 +287,13 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
 
     async def generate(self) -> AsyncGenerator[str, None]:
         if self.session:
-            AIMessage.objects.create(
+            await sync_to_async(AIMessage.objects.create)(
                 session=self.session,
                 role=AIMessage.Role.USER,
                 content=self.content,
                 message_type=AIMessage.MessageType.TEXT,
             )
-            self._ensure_log()
+            await sync_to_async(self._ensure_log)()
 
         init_event = {
             "type": "init",
@@ -308,9 +309,9 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
         ):
             yield chunk
 
-        self._persist_session()
-        self._persist_response()
-        self._complete_log()
+        await sync_to_async(self._persist_session)()
+        await sync_to_async(self._persist_response)()
+        await sync_to_async(self._complete_log)()
 
 
 class ResumeStreamRuntime(BaseAIStreamRuntime):
@@ -392,4 +393,4 @@ class ResumeStreamRuntime(BaseAIStreamRuntime):
             error_prefix="Error proxying resume to ai-service",
         ):
             yield chunk
-        self._persist_response()
+        await sync_to_async(self._persist_response)()
