@@ -136,6 +136,14 @@ def adapt_langgraph_event(event: dict[str, Any]) -> list[InternalEvent] | None:
         chunk = data.get("chunk")
         if chunk is None:
             return None
+            
+        results: list[InternalEvent] = []
+
+        if hasattr(chunk, "additional_kwargs") and "reasoning_content" in chunk.additional_kwargs:
+            rc = chunk.additional_kwargs.get("reasoning_content")
+            if rc:
+                results.append(ThinkingDelta(content=rc))
+
         content = getattr(chunk, "content", "")
         if isinstance(content, list):
             text_parts: list[str] = []
@@ -149,7 +157,6 @@ def adapt_langgraph_event(event: dict[str, Any]) -> list[InternalEvent] | None:
                 elif isinstance(block, str):
                     text_parts.append(block)
             # Emit both thinking and text when both are present in the same chunk
-            results: list[InternalEvent] = []
             if thinking_parts:
                 thinking_content = "".join(thinking_parts)
                 if thinking_content:
@@ -157,10 +164,11 @@ def adapt_langgraph_event(event: dict[str, Any]) -> list[InternalEvent] | None:
             text_content = "".join(text_parts)
             if text_content:
                 results.append(AgentMessageDelta(content=text_content))
-            return results or None
-        if content:
-            return [AgentMessageDelta(content=content)]
-        return None
+        else:
+            if content:
+                results.append(AgentMessageDelta(content=content))
+                
+        return results or None
 
     # Tool invocation started
     if kind == "on_tool_start":
