@@ -18,7 +18,7 @@ _MODEL_MAP: dict[str, str] = {
     "deepseek-v3": "deepseek-chat",
 }
 
-_DEFAULT_MODEL_ID = "deepseek-r1"
+_DEFAULT_MODEL_ID = "deepseek-v3"
 _SUMMARIZATION_MODEL_ID = "deepseek-v3"
 
 # Pricing in cents per million tokens (single source of truth)
@@ -30,10 +30,16 @@ PRICING: dict[str, dict[str, int]] = {
 # Model display info for the /models API
 MODEL_INFO = [
     {
+        "model_id": "deepseek-v3",
+        "display_name": "DeepSeek V3",
+        "description": "快速，適合一般操作",
+        "is_default": True,
+    },
+    {
         "model_id": "deepseek-r1",
         "display_name": "DeepSeek R1",
-        "description": "推理能力強，支援 thinking",
-        "is_default": True,
+        "description": "推理能力強，適合複雜測資生成",
+        "is_default": False,
     },
 ]
 

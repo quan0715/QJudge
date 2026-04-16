@@ -32,7 +32,7 @@ class ChatRequest(BaseModel):
         description="User message content",
     )
     model_id: str = Field(
-        default="deepseek-r1",
+        default="deepseek-v3",
         description="Canonical model ID",
     )
     system_prompt: str | None = Field(

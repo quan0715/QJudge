@@ -96,7 +96,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
         Request body:
         - content: str (required) - The message content
-        - model_id: str (optional) - Model to use (default: 'deepseek-r1')
+        - model_id: str (optional) - Model to use (default: 'deepseek-v3')
         """
         # 必須認證
         if not request.user or not request.user.is_authenticated:
@@ -261,10 +261,16 @@ class ModelListView(SchemaAPIView):
 
     MODELS = [
         {
+            "model_id": "deepseek-v3",
+            "display_name": "DeepSeek V3",
+            "description": "快速，適合一般操作",
+            "is_default": True,
+        },
+        {
             "model_id": "deepseek-r1",
             "display_name": "DeepSeek R1",
-            "description": "推理能力強，支援 thinking",
-            "is_default": True,
+            "description": "推理能力強，適合複雜測資生成",
+            "is_default": False,
         },
     ]
 
