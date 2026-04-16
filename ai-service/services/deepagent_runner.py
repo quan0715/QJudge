@@ -353,7 +353,7 @@ class DeepAgentRunner:
             config = {
                 "configurable": {"thread_id": thread_id},
                 "metadata": {"thread_id": thread_id, "run_id": run_id},
-                "recursion_limit": 30,
+                "recursion_limit": 60,
             }
 
             agent_input: dict[str, Any] = {"messages": messages}
@@ -386,7 +386,7 @@ class DeepAgentRunner:
             config = {
                 "configurable": {"thread_id": thread_id},
                 "metadata": {"thread_id": thread_id, "run_id": run_id},
-                "recursion_limit": 30,
+                "recursion_limit": 60,
             }
 
             resume_value = Command(resume={"decisions": [{"type": decision}]})
