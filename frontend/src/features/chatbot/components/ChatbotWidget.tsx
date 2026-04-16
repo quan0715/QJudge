@@ -451,12 +451,11 @@ export const ChatbotWidget = ({
 
     inst.on({ type: BusEventType.SEND, handler: () => {
       try { if (backendSessionIdRef.current) localStorage.setItem("chatbot_last_session_id", backendSessionIdRef.current); } catch { /* */ }
-      // Carbon Enter 鍵路徑已先清空 store (rawValue="")，導致 updateRawValue 是 no-op
-      // 直接操作 contenteditable DOM 確保視覺清空，對 Enter 和 button 都有效
-      setTimeout(() => {
-        const inputEl = document.querySelector('[data-testid="input_field"]') as HTMLElement | null;
-        if (inputEl) inputEl.textContent = '';
-      }, 0);
+      // 同步清空 contenteditable innerHTML，須在 input 事件 fire 前執行：
+      // emitChangeFromDom() 讀 DOM 若拿到舊文字，會把 state 寫回舊值，
+      // 再加上 skipNextDomSync=true 導致 useLayoutEffect 跳過 DOM 更新。
+      const inputEl = document.querySelector('[data-testid="input_field"]') as HTMLElement | null;
+      if (inputEl) inputEl.innerHTML = '';
     }});
 
     // HITL: listen for approve/reject button clicks from CardItem footers
