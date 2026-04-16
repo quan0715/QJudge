@@ -9,6 +9,7 @@ from typing import Any, AsyncGenerator
 from deepagents.backends import StateBackend
 from deepagents.graph import create_agent, TodoListMiddleware
 from deepagents.middleware.filesystem import FilesystemMiddleware
+from deepagents.middleware.summarization import SummarizationMiddleware
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
@@ -95,13 +96,14 @@ class DeepAgentRunner:
         SubAgentMiddleware / SummarizationMiddleware overhead.
 
         Middleware stack (in order):
-          1. TodoListMiddleware    — task planning, ~700 tokens
-          2. FilesystemMiddleware  — auto-evicts tool results >20k tokens to StateBackend,
-                                    prevents context saturation from large MCP responses
-                                    (e.g. qjudge_grading listing many submissions)
+          1. TodoListMiddleware        — task planning, ~700 tokens
+          2. FilesystemMiddleware      — auto-evicts tool results >20k tokens to StateBackend
+          3. SummarizationMiddleware   — compresses conversation at 85% context window,
+                                        prevents long sessions from hitting DeepSeek R1's 131k limit
         """
         model = ModelFactory.create_model(model_id=model_id)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
+        backend = StateBackend()
 
         agent = create_agent(
             model=model,
@@ -109,7 +111,8 @@ class DeepAgentRunner:
             system_prompt=prompt,
             middleware=[
                 TodoListMiddleware(),
-                FilesystemMiddleware(backend=StateBackend()),
+                FilesystemMiddleware(backend=backend),
+                SummarizationMiddleware(model=model, backend=backend),
             ],
             checkpointer=self._checkpointer,
         )
