@@ -39,12 +39,13 @@ class MessageStreamingTestCase(TestCase):
     def _mock_stream_response(self, thread_id: str):
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.iter_lines.return_value = [
-            f'data: {{"type":"run_started","thread_id":"{thread_id}"}}',
-            'data: {"type":"agent_message_delta","content":"Hello"}',
-            'data: {"type":"usage_report","input_tokens":10,"output_tokens":5,"cost_cents":1}',
-            'data: {"type":"done"}',
+        lines = [
+            f'data: {{"type":"run_started","thread_id":"{thread_id}"}}\n\n',
+            'data: {"type":"agent_message_delta","content":"Hello"}\n\n',
+            'data: {"type":"usage_report","input_tokens":10,"output_tokens":5,"cost_cents":1}\n\n',
+            'data: {"type":"done"}\n\n',
         ]
+        mock_response.iter_bytes.return_value = [line.encode("utf-8") for line in lines]
         return mock_response
 
     def test_send_message_stream_to_own_session(self):
