@@ -190,7 +190,9 @@ export const ChatbotWidget = ({
             break;
           case "tool_call_started":
             if (e.tool_name) {
-              cotSteps.push({ title: e.tool_name, tool_name: e.tool_name, status: ChainOfThoughtStepStatus.PROCESSING, request: e.input_data ? { args: e.input_data } : undefined });
+              const occurrences = cotSteps.filter(s => s.title === e.tool_name || s.title?.startsWith(e.tool_name + " (")).length;
+              const uniqueTitle = occurrences > 0 ? `${e.tool_name} (${occurrences + 1})` : e.tool_name;
+              cotSteps.push({ title: uniqueTitle, tool_name: e.tool_name, status: ChainOfThoughtStepStatus.PROCESSING, request: e.input_data ? { args: e.input_data } : undefined });
               sendPartial();
             }
             break;
@@ -287,7 +289,12 @@ export const ChatbotWidget = ({
           for (const raw of lines) {
             const l = raw.trimEnd();
             if (l.startsWith("data: ")) {
-              try { handleEvent(JSON.parse(l.slice(6))); } catch { /* parse error */ }
+              try {
+                handleEvent(JSON.parse(l.slice(6)));
+                // Yield to browser so Carbon can render intermediate states
+                // (e.g. tool PROCESSING before SUCCESS when both arrive in one chunk)
+                await new Promise(r => setTimeout(r, 0));
+              } catch { /* parse error */ }
             }
           }
         }
@@ -319,12 +326,22 @@ export const ChatbotWidget = ({
 
   // ── Carbon config (stable refs) ────────────────────────────────────────
   const config = useRef<PublicConfig>({
-    messaging: { customSendMessage, showStopButtonImmediately: true, messageTimeoutSecs: 120, customLoadHistory },
+    messaging: { customSendMessage, messageTimeoutSecs: 120, customLoadHistory },
     history: { isOn: true },
     header: { title: "QJudge AI 助教" },
     layout: { corners: CornersType.SQUARE },
     openChatByDefault: true,
     assistantName: "QJudge AI",
+    strings: {
+      chainOfThought_explainabilityLabel: "推理步驟",
+      chainOfThought_stepTitle: "步驟",
+      chainOfThought_inputLabel: "輸入",
+      chainOfThought_outputLabel: "輸出",
+      chainOfThought_toolLabel: "工具",
+      chainOfThought_statusSucceededLabel: "成功",
+      chainOfThought_statusFailedLabel: "失敗",
+      chainOfThought_statusProcessingLabel: "處理中",
+    },
   }).current;
 
   // Session management for ChatHistory
@@ -430,6 +447,12 @@ export const ChatbotWidget = ({
 
     inst.on({ type: BusEventType.SEND, handler: () => {
       try { if (backendSessionIdRef.current) localStorage.setItem("chatbot_last_session_id", backendSessionIdRef.current); } catch { /* */ }
+      // Carbon Enter 鍵路徑已先清空 store (rawValue="")，導致 updateRawValue 是 no-op
+      // 直接操作 contenteditable DOM 確保視覺清空，對 Enter 和 button 都有效
+      setTimeout(() => {
+        const inputEl = document.querySelector('[data-testid="input_field"]') as HTMLElement | null;
+        if (inputEl) inputEl.textContent = '';
+      }, 0);
     }});
 
     // HITL: listen for approve/reject button clicks from CardItem footers

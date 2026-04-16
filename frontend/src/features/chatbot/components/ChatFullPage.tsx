@@ -132,7 +132,15 @@ export default function ChatFullPage() {
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n"); buffer = lines.pop() ?? "";
-          for (const raw of lines) { const l = raw.trimEnd(); if (l.startsWith("data: ")) { try { handleEvent(JSON.parse(l.slice(6))); } catch { /* */ } } }
+          for (const raw of lines) {
+            const l = raw.trimEnd();
+            if (l.startsWith("data: ")) {
+              try {
+                handleEvent(JSON.parse(l.slice(6)));
+                await new Promise(r => setTimeout(r, 0));
+              } catch { /* */ }
+            }
+          }
         }
         if (buffer.trim().startsWith("data: ")) { try { handleEvent(JSON.parse(buffer.trim().slice(6))); } catch { /* */ } }
       })().catch((err) => {
