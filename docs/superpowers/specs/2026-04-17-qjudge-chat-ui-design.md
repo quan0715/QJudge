@@ -10,7 +10,7 @@
 現有 `ChatbotWidget` 以 Carbon 的 `ChatCustomElement`（web component）為核心，造成以下問題：
 
 - Shadow DOM 封裝導致樣式幾乎無法客製化
-- `ChatInstance` imperative API（`inst.messaging.*`）黑箱、升版容易壞
+- `ChatInstance` imperative API（`inst.messaging.`*）黑箱、升版容易壞
 - Input 由 web component 管理，IME（中文輸入法）問題永遠無法從外部修
 - `forceClear` / `MutationObserver` 等 hack 無法根治
 - bundle size 包含大量未使用功能
@@ -114,6 +114,7 @@ ChatContainer              主容器，組合所有 hooks，管理 layout 模式
 ### ChatFullPage（全頁模式，`/chat` route）
 
 **Desktop（>768px）：**
+
 ```
 ┌─────────────────────────────────────────────┐
 │  ChatHistoryPanel (280px)  │  ChatMain (1fr) │
@@ -132,6 +133,7 @@ ChatContainer              主容器，組合所有 hooks，管理 layout 模式
 - history panel 在 document flow，不用 `position: fixed/absolute`
 
 **Mobile（<=768px）：**
+
 ```
 ┌───────────────────────┐
 │ ChatTopBar            │
@@ -164,6 +166,7 @@ ChatContainer              主容器，組合所有 hooks，管理 layout 模式
 **原則：** CSS Module + Carbon token（`var(--cds-*)`），不引入額外 CSS framework。
 
 ### 背景漸層（複製 Carbon AI 風格）
+
 ```css
 .chatBackground {
   background:
@@ -188,6 +191,7 @@ ChatContainer              主容器，組合所有 hooks，管理 layout 模式
 ```
 
 ### 訊息泡泡
+
 ```css
 .userBubble {
   background: var(--cds-layer-accent-01);
@@ -195,15 +199,18 @@ ChatContainer              主容器，組合所有 hooks，管理 layout 模式
   padding: var(--cds-spacing-03) var(--cds-spacing-04);
 }
 ```
+
 - User：右對齊，accent 背景，圓角泡泡
 - AI：左對齊，無背景框，帶 AI avatar icon
 
 ### Markdown 樣式
+
 - 對 `.markdown-body` 套 Carbon 字型 token（`--cds-body-01`）
 - code block 沿用現有 `github-dark.css` + Carbon `Tag` language label
 - 表格使用 Carbon table token
 
 ### 串流游標
+
 - AI message `streaming: true` 時，末尾加閃爍 cursor（CSS `@keyframes blink`）
 
 ---
@@ -234,25 +241,30 @@ ChatContainer 把三個 hook 組合起來 → props 傳給 UI 元件
 ## 移除清單
 
 **移除套件（`package.json`）：**
+
 - `@carbon/ai-chat`
 - `@carbon/ai-chat-components`
 
 **移除/改寫檔案：**
 
-| 舊檔案 | 處理方式 |
-|--------|---------|
-| `ChatbotWidget.tsx` | 拆成 `ChatContainer.tsx` + hooks |
-| `ChatFullPage.tsx` | 改用 `ChatContainer`（full-page 模式） |
-| `ChatHistory.tsx` | 改寫為 `ChatHistoryPanel.tsx` |
-| `ChatbotSidePanel.module.scss` | sidebar layout 部分沿用 |
+
+| 舊檔案                            | 處理方式                             |
+| ------------------------------ | -------------------------------- |
+| `ChatbotWidget.tsx`            | 拆成 `ChatContainer.tsx` + hooks   |
+| `ChatFullPage.tsx`             | 改用 `ChatContainer`（full-page 模式） |
+| `ChatHistory.tsx`              | 改寫為 `ChatHistoryPanel.tsx`       |
+| `ChatbotSidePanel.module.scss` | sidebar layout 部分沿用              |
+
 
 **保留不動：**
 
-| 檔案 | 原因 |
-|------|------|
-| `AIExamQuestionCard.tsx` | 只換掛載方式（從 `user_defined` → 直接 props） |
-| `extractExamCards.ts` | 邏輯不變 |
-| `shared/ui/markdown/MarkdownRenderer.tsx` | 直接複用 |
+
+| 檔案                                        | 原因                                  |
+| ----------------------------------------- | ----------------------------------- |
+| `AIExamQuestionCard.tsx`                  | 只換掛載方式（從 `user_defined` → 直接 props） |
+| `extractExamCards.ts`                     | 邏輯不變                                |
+| `shared/ui/markdown/MarkdownRenderer.tsx` | 直接複用                                |
+
 
 ---
 
@@ -267,3 +279,4 @@ ChatContainer 把三個 hook 組合起來 → props 傳給 UI 元件
 - 檔案上傳功能（ComposerBar 預留 slot，實作留後）
 - @mention 功能（同上）
 - Storybook story 更新（之後補）
+

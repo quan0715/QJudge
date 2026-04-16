@@ -112,8 +112,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Pull test stack images (best effort)
+        run: docker compose -f docker-compose.test.yml pull --ignore-pull-failures
+
       - name: Start test stack
-        run: docker compose -f docker-compose.test.yml up -d --build
+        run: docker compose -f docker-compose.test.yml up -d
 
       - name: Wait for backend readiness
         run: |

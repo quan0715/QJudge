@@ -4,7 +4,8 @@ $motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
 
 .container {
   display: flex;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   position: relative;
 }
@@ -67,25 +68,38 @@ $motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chatBody {
+  flex: 1;
+  min-height: 0;
+  position: relative;
 }
 
 .messagesArea {
-  flex: 1;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
+}
+
+.composerFloat {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  color: var(--cds-text-secondary, #525252);
-  font-size: 0.875rem;
+  flex: 1;
+  width: 100%;
 }
 
 // Mobile history overlay

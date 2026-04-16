@@ -1,5 +1,6 @@
 services:
   judge-image-test:
+    profiles: ["judge"]
     build:
       context: ./backend/judge
       dockerfile: Dockerfile.judge
@@ -108,8 +109,6 @@ services:
     ports:
       - "8002:8000"
     depends_on:
-      judge-image-test:
-        condition: service_started
       postgres-test:
         condition: service_healthy
       pgbouncer-test:
@@ -145,8 +144,6 @@ services:
       - DEBUG=True
       - JUDGE_TMP_DIR=/judge_tmp
     depends_on:
-      judge-image-test:
-        condition: service_started
       postgres-test:
         condition: service_healthy
       pgbouncer-test:

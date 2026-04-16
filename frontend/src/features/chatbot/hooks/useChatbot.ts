@@ -106,29 +106,40 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   }, [backgroundInfo, context]);
 
   /**
-   * 載入所有 sessions
+   * 載入所有 sessions（僅列表，不含 messages）
    */
   const refreshSessions = useCallback(async () => {
     try {
       setError(null);
       const apiSessions = await chatbotRepository.getSessions();
+      setSessions(apiSessions);
 
-      // 取得每個 session 的詳細資料（含 messages）
-      const detailedSessions = await Promise.all(
-        apiSessions.map((session) => chatbotRepository.getSession(session.id)),
-      );
-
-      setSessions(detailedSessions);
-
-      // 如果沒有當前選中的 session，選擇第一個
-      if (detailedSessions.length > 0 && !currentSessionIdRef.current) {
-        setCurrentSessionId(detailedSessions[0].id);
+      if (apiSessions.length > 0 && !currentSessionIdRef.current) {
+        setCurrentSessionId(apiSessions[0].id);
       }
     } catch (err) {
       console.error("Failed to load sessions:", err);
       setError(i18n.t("chatbot:errors.loadSessionsFailed"));
     }
   }, [setCurrentSessionId]);
+
+  /**
+   * Lazy load：載入指定 session 的 messages（若尚未載入）
+   */
+  const loadSessionMessages = useCallback(async (sessionId: string) => {
+    // 檢查是否已載入（temp session 或已有 messages 的 session 不需要再載入）
+    const existing = sessions.find((s) => s.id === sessionId);
+    if (!existing || existing.id.startsWith("temp-") || existing.messages.length > 0) return;
+
+    try {
+      const detailed = await chatbotRepository.getSession(sessionId);
+      setSessions((prev) =>
+        prev.map((s) => (s.id === sessionId ? detailed : s)),
+      );
+    } catch (err) {
+      console.warn("Failed to load session messages:", err);
+    }
+  }, [sessions]);
 
   /**
    * 初始化：從後端 API 載入 sessions
@@ -153,42 +164,33 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       try { savedSessionId = localStorage.getItem(LAST_SESSION_KEY); } catch { /* ignore */ }
 
       try {
+        // 只載入列表（不含 messages），速度快
         const apiSessions = await chatbotRepository.getSessions();
 
         if (apiSessions.length === 0) {
-          // 沒有 session，創建一個新的
           const newSession = await chatbotRepository.createSession();
           setSessions([newSession]);
           setCurrentSessionId(newSession.id);
         } else {
-          // 載入詳細資料
-          const detailedSessions = await Promise.all(
-            apiSessions.map((session) =>
-              chatbotRepository.getSession(session.id),
-            ),
-          );
-
-          // 如果 localStorage 有記住的 session 且仍存在，直接恢復
+          // 選定 active session
           const savedSession = savedSessionId
-            ? detailedSessions.find((s) => s.id === savedSessionId)
+            ? apiSessions.find((s) => s.id === savedSessionId)
             : null;
+          const activeId = savedSession?.id ?? apiSessions[0].id;
 
+          // 建立一個新的空 session 放最前面
+          const newSession = await chatbotRepository.createSession();
+          setSessions([newSession, ...apiSessions]);
+          setCurrentSessionId(newSession.id);
+
+          // 背景 lazy load active session 的 messages（如果選了舊 session）
           if (savedSession) {
-            setSessions(detailedSessions);
-            setCurrentSessionId(savedSession.id);
-          } else {
-            // 沒有記住的 session，走原本的邏輯
-            const latestSession = detailedSessions[0];
-            const isLatestEmpty = latestSession.messages.length === 0;
-
-            if (isLatestEmpty) {
-              setSessions(detailedSessions);
-              setCurrentSessionId(latestSession.id);
-            } else {
-              const newSession = await chatbotRepository.createSession();
-              setSessions([newSession, ...detailedSessions]);
-              setCurrentSessionId(newSession.id);
-            }
+            setCurrentSessionId(activeId);
+            chatbotRepository.getSession(activeId).then((detailed) => {
+              setSessions((prev) =>
+                prev.map((s) => (s.id === activeId ? detailed : s)),
+              );
+            }).catch(() => { /* ignore, will load on click */ });
           }
         }
       } catch (err) {
@@ -254,11 +256,24 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   );
 
   /**
-   * 切換 session
+   * 切換 session（lazy load messages）
    */
-  const switchSession = useCallback((sessionId: string) => {
+  const switchSession = useCallback(async (sessionId: string) => {
     setCurrentSessionId(sessionId);
-  }, []);
+
+    // Lazy load messages if not yet loaded
+    const existing = sessions.find((s) => s.id === sessionId);
+    if (existing && !existing.id.startsWith("temp-") && existing.messages.length === 0) {
+      try {
+        const detailed = await chatbotRepository.getSession(sessionId);
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? detailed : s)),
+        );
+      } catch (err) {
+        console.warn("Failed to load session messages:", err);
+      }
+    }
+  }, [sessions]);
 
   /**
    * 重新命名 session

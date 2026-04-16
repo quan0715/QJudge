@@ -1,3 +1,4 @@
+import { WatsonxAi } from "@carbon/icons-react";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { ChainOfThought } from "./ChainOfThought";
@@ -14,9 +15,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     <div className={`${styles.bubble} ${isUser ? styles.user : styles.ai}`}>
       {!isUser && (
         <div className={styles.avatar} aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor">
-            <path d="M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2Zm0 5a4.5 4.5 0 1 1-4.5 4.5A4.5 4.5 0 0 1 16 7Zm8 17.92a11.93 11.93 0 0 1-16 0v-.58A5.2 5.2 0 0 1 13 19h6a5.2 5.2 0 0 1 5 5.34Z" />
-          </svg>
+          <WatsonxAi size={20} />
         </div>
       )}
 
@@ -49,7 +48,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <details className={styles.thinking}>
             <summary>推理過程</summary>
             <div className={styles.thinkingContent}>
-              {message.thinkingInfo.thinking}
+              <MarkdownRenderer enableHighlight enableMath>
+                {message.thinkingInfo.thinking}
+              </MarkdownRenderer>
             </div>
           </details>
         )}

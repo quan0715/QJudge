@@ -1,4 +1,5 @@
 import { useState, useCallback, useSyncExternalStore } from "react";
+import { Loading } from "@carbon/react";
 import { useChatbot } from "../../hooks/useChatbot";
 import type { ChatContext } from "@/core/types/chatbot.types";
 import { MessageList } from "./MessageList";
@@ -78,14 +79,17 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
   if (isInitializing) {
     return (
       <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
-        <div className={styles.loading}>載入中…</div>
+        <div className={styles.loading}>
+          <Loading withOverlay={false} description="載入中" />
+        </div>
       </div>
     );
   }
 
   const showDesktopHistory = mode === "full" && !isMobile && historyOpen;
   const showMobileHistory = isMobile && historyOpen;
-  const showTopBar = mode === "full" && isMobile;
+
+  const sessionTitle = currentSession?.title || "新對話";
 
   return (
     <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
@@ -96,11 +100,8 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
             sessions={sessions}
             currentSessionId={currentSessionId}
             onSelectSession={handleSelectSession}
-            onNewChat={handleNewChat}
             onDeleteSession={deleteSession}
             onRenameSession={renameSession}
-            onClose={() => setHistoryOpen(false)}
-            showCloseButton
           />
         </div>
       )}
@@ -112,47 +113,50 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
             sessions={sessions}
             currentSessionId={currentSessionId}
             onSelectSession={handleSelectSession}
-            onNewChat={handleNewChat}
             onDeleteSession={deleteSession}
             onRenameSession={renameSession}
-            onClose={() => setHistoryOpen(false)}
-            showCloseButton
           />
         </div>
       )}
 
       {/* Main chat area */}
       <div className={styles.main}>
-        {/* Mobile full-page header */}
-        {showTopBar && (
+        {/* Unified top bar for full mode (desktop + mobile) */}
+        {mode === "full" && (
           <ChatTopBar
-            title={currentSession?.title || "QJudge AI 助教"}
+            title={sessionTitle}
+            historyOpen={historyOpen}
             onToggleHistory={() => setHistoryOpen((v) => !v)}
             onNewChat={handleNewChat}
           />
         )}
 
         {/* Sidebar header with close button */}
-        {mode === "sidebar" && onClose && (
+        {mode === "sidebar" && (
           <ChatTopBar
             title="QJudge AI 助教"
+            onToggleHistory={() => {}}
+            onNewChat={handleNewChat}
             onClose={onClose}
           />
         )}
 
-        <div className={styles.messagesArea}>
-          <MessageList
-            messages={messages}
-            pendingApproval={pendingApproval}
-            onApprovalDecision={handleApproval}
-          />
+        <div className={styles.chatBody}>
+          <div className={styles.messagesArea}>
+            <MessageList
+              messages={messages}
+              pendingApproval={pendingApproval}
+              onApprovalDecision={handleApproval}
+            />
+            <div className={styles.composerFloat}>
+              <ComposerBar
+                onSend={sendMessage}
+                onStop={stopStreaming}
+                isStreaming={isStreaming}
+              />
+            </div>
+          </div>
         </div>
-
-        <ComposerBar
-          onSend={sendMessage}
-          onStop={stopStreaming}
-          isStreaming={isStreaming}
-        />
       </div>
     </div>
   );

@@ -1,9 +1,21 @@
 .list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1rem 0;
-  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem 0 5rem;
+
+  // Center message content within full-width scroll container
+  display: flex;
+  flex-direction: column;
+
+  > * {
+    max-width: 900px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
 
   // Thin scrollbar
   &::-webkit-scrollbar {
@@ -18,13 +30,3 @@
   }
 }
 
-.empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--cds-text-secondary, #525252);
-  font-size: 0.875rem;
-  text-align: center;
-  padding: 2rem;
-}

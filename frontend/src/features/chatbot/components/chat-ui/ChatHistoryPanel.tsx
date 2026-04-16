@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
-import { Add, Close } from "@carbon/icons-react";
+import { Search, OverflowMenu, OverflowMenuItem } from "@carbon/react";
 import type { ChatSession } from "@/core/types/chatbot.types";
 import styles from "./ChatHistoryPanel.module.scss";
 
@@ -8,11 +7,8 @@ interface ChatHistoryPanelProps {
   sessions: ChatSession[];
   currentSessionId: string | null;
   onSelectSession: (id: string) => void;
-  onNewChat: () => void;
   onDeleteSession: (id: string) => void;
   onRenameSession: (id: string, name: string) => void;
-  onClose?: () => void;
-  showCloseButton?: boolean;
 }
 
 interface HistoryGroup {
@@ -50,16 +46,20 @@ export function ChatHistoryPanel({
   sessions,
   currentSessionId,
   onSelectSession,
-  onNewChat,
   onDeleteSession,
   onRenameSession,
-  onClose,
-  showCloseButton = false,
 }: ChatHistoryPanelProps) {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const groups = useMemo(() => groupSessions(sessions), [sessions]);
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return sessions;
+    const q = searchQuery.trim().toLowerCase();
+    return sessions.filter((s) => s.title?.toLowerCase().includes(q));
+  }, [sessions, searchQuery]);
+
+  const groups = useMemo(() => groupSessions(filteredSessions), [filteredSessions]);
 
   const startRename = useCallback((session: ChatSession) => {
     setRenamingId(session.id);
@@ -77,17 +77,14 @@ export function ChatHistoryPanel({
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
-        <h3 className={styles.title}>對話紀錄</h3>
-        <div className={styles.headerActions}>
-          <IconButton kind="ghost" size="sm" label="新對話" onClick={onNewChat}>
-            <Add size={20} />
-          </IconButton>
-          {showCloseButton && onClose && (
-            <IconButton kind="ghost" size="sm" label="關閉" onClick={onClose}>
-              <Close size={20} />
-            </IconButton>
-          )}
-        </div>
+        <Search
+          size="sm"
+          placeholder="搜尋對話…"
+          labelText="搜尋對話"
+          value={searchQuery}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+          closeButtonLabelText="清除"
+        />
       </div>
 
       <div className={styles.list}>

@@ -13,7 +13,16 @@ import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import rehypeSlug from "rehype-slug";
 import { Copy, Checkmark } from "@carbon/icons-react";
-import { IconButton, Tag } from "@carbon/react";
+import {
+  IconButton,
+  Tag,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+} from "@carbon/react";
 
 // Import highlight.js languages
 import hljs from "highlight.js/lib/core";
@@ -237,15 +246,37 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   }
 
   // Custom components for rendering
-  const components:
-    | Record<string, React.ComponentType<{ children?: React.ReactNode }>>
-    | undefined = enableCopy
-    ? {
-        pre: ({ children }: { children?: React.ReactNode }) => (
-          <CodeBlock enableCopy={enableCopy}>{children}</CodeBlock>
-        ),
-      }
-    : undefined;
+  const baseComponents: Record<string, React.ComponentType<{ children?: React.ReactNode }>> = {
+    table: ({ children }: { children?: React.ReactNode }) => (
+      <Table size="sm" className="markdown-table">{children}</Table>
+    ),
+    thead: ({ children }: { children?: React.ReactNode }) => (
+      <TableHead>{children}</TableHead>
+    ),
+    tbody: ({ children }: { children?: React.ReactNode }) => (
+      <TableBody>{children}</TableBody>
+    ),
+    tr: ({ children }: { children?: React.ReactNode }) => (
+      <TableRow>{children}</TableRow>
+    ),
+    th: ({ children }: { children?: React.ReactNode }) => (
+      <TableHeader>{children}</TableHeader>
+    ),
+    td: ({ children }: { children?: React.ReactNode }) => (
+      <TableCell>{children}</TableCell>
+    ),
+  };
+
+  const components = {
+    ...baseComponents,
+    ...(enableCopy
+      ? {
+          pre: ({ children }: { children?: React.ReactNode }) => (
+            <CodeBlock enableCopy={enableCopy}>{children}</CodeBlock>
+          ),
+        }
+      : {}),
+  };
 
   return (
     <div className={`markdown-body ${className}`.trim()} style={style}>

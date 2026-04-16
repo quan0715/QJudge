@@ -1,17 +1,33 @@
 .cot {
-  margin-bottom: 0.5rem;
+  padding: 0.5rem 0;
+  margin: 0.25rem 0;
 }
 
 .label {
-  font-size: 0.75rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
   font-weight: 600;
+  letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
+  text-transform: uppercase;
   color: var(--cds-text-secondary, #525252);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .accordion {
+  :global(.cds--accordion) {
+    // Remove default Carbon accordion borders to blend with container
+    border: none;
+  }
+
+  :global(.cds--accordion__item) {
+    border-top: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
   :global(.cds--accordion__content) {
-    padding: 0.5rem 0;
+    padding: 0.75rem 0 0.5rem;
   }
 }
 
@@ -19,7 +35,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.8125rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
 
 .success { color: var(--cds-support-success, #198038); }
