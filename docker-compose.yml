@@ -424,12 +424,9 @@ services:
       - oj_network
 
   # Judge Environment Image
-  # This service is only for building the image used by Celery workers.
-  # It exits immediately after starting.
+  # Image is pre-pulled from GHCR by deploy-prod.sh (oj-judge:latest).
+  # This service just ensures the image is present before celery workers start.
   judge-image:
-    build:
-      context: ./backend/judge
-      dockerfile: Dockerfile.judge
     image: oj-judge:latest
     container_name: oj_judge_image
     command: ["true"]

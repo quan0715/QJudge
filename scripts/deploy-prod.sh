@@ -54,6 +54,19 @@ echo "[deploy] fetch and checkout ${GIT_REF}"
 git fetch --all --tags --prune
 git checkout --force "${GIT_REF}"
 
+echo "[deploy] pull judge image from GHCR"
+if docker pull ghcr.io/quan0715/qjudge/judge:latest; then
+  docker tag ghcr.io/quan0715/qjudge/judge:latest oj-judge:latest
+  echo "[deploy] judge image updated from GHCR"
+else
+  echo "[deploy] GHCR pull failed — checking local fallback"
+  if ! docker image inspect oj-judge:latest >/dev/null 2>&1; then
+    echo "[deploy] no local judge image, building from Dockerfile" >&2
+    docker build -t oj-judge:latest \
+      -f backend/judge/Dockerfile.judge backend/judge
+  fi
+fi
+
 echo "[deploy] build images"
 docker compose "${COMPOSE_FILES[@]}" build
 
