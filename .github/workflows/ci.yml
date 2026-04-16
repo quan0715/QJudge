@@ -390,7 +390,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Judge Docker Image
+      - name: Pull Judge Image from GHCR
+        id: pull-judge
+        continue-on-error: true
+        run: |
+          docker pull ghcr.io/quan0715/qjudge/judge:latest
+          docker tag ghcr.io/quan0715/qjudge/judge:latest oj-judge:latest
+
+      - name: Build Judge Image (fallback if pull failed)
+        if: steps.pull-judge.outcome == 'failure'
         uses: docker/build-push-action@v5
         with:
           context: backend/judge
