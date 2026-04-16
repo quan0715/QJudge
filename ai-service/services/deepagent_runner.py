@@ -9,7 +9,6 @@ from typing import Any, AsyncGenerator
 from deepagents.backends import StateBackend
 from deepagents.graph import create_agent, TodoListMiddleware
 from deepagents.middleware.filesystem import FilesystemMiddleware
-from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
@@ -84,14 +83,6 @@ class DeepAgentRunner:
             await self._checkpointer_cm.__aexit__(None, None, None)
         logger.info("DeepAgent runner shut down.")
 
-    # Tools that require human approval before execution.
-    # Read-only tools (qjudge_discover, qjudge_bank, qjudge_browse) are excluded.
-    _INTERRUPT_ON: dict[str, bool] = {
-        "qjudge_coding": True,
-        "qjudge_exam": True,
-        "qjudge_grading": True,
-    }
-
     def _build_agent(
         self,
         model_id: str,
@@ -104,12 +95,10 @@ class DeepAgentRunner:
         SubAgentMiddleware / SummarizationMiddleware overhead.
 
         Middleware stack (in order):
-          1. TodoListMiddleware        — task planning, ~700 tokens
-          2. FilesystemMiddleware      — auto-evicts tool results >20k tokens to StateBackend,
-                                        prevents context saturation from large MCP responses
-                                        (e.g. qjudge_grading listing many submissions)
-          3. HumanInTheLoopMiddleware  — exactly what create_deep_agent appends for interrupt_on,
-                                        added here directly to keep HITL without the rest
+          1. TodoListMiddleware    — task planning, ~700 tokens
+          2. FilesystemMiddleware  — auto-evicts tool results >20k tokens to StateBackend,
+                                    prevents context saturation from large MCP responses
+                                    (e.g. qjudge_grading listing many submissions)
         """
         model = ModelFactory.create_model(model_id=model_id)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
@@ -121,7 +110,6 @@ class DeepAgentRunner:
             middleware=[
                 TodoListMiddleware(),
                 FilesystemMiddleware(backend=StateBackend()),
-                HumanInTheLoopMiddleware(interrupt_on=self._INTERRUPT_ON),
             ],
             checkpointer=self._checkpointer,
         )
