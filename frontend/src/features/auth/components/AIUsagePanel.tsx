@@ -33,14 +33,14 @@ export const AIUsagePanel: React.FC = () => {
         const data = await res.json() as CreditData;
         if (!cancelled) setCredit(data);
       } catch (err) {
-        if (!cancelled) setError("無法載入使用量資料");
+        if (!cancelled) setError(t("settings.aiUsage.loadError", "無法載入使用量資料"));
         console.warn("Failed to load AI credit:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [t]);
 
   if (loading) {
     return (
@@ -54,17 +54,17 @@ export const AIUsagePanel: React.FC = () => {
     return (
       <Section title={t("settings.aiUsage.title", "AI 使用量")}>
         <p style={{ color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
-          {error || "無資料"}
+          {error || t("settings.aiUsage.noData", "無資料")}
         </p>
       </Section>
     );
   }
 
   const stats = [
-    { label: "總請求數", value: credit.total_requests.toLocaleString() },
-    { label: "輸入 Tokens", value: formatNumber(credit.total_input_tokens) },
-    { label: "輸出 Tokens", value: formatNumber(credit.total_output_tokens) },
-    { label: "累計費用", value: `$${credit.total_cost_usd} USD` },
+    { label: t("settings.aiUsage.totalRequests", "總請求數"), value: (credit.total_requests ?? 0).toLocaleString() },
+    { label: t("settings.aiUsage.inputTokens", "輸入 Tokens"), value: formatNumber(credit.total_input_tokens ?? 0) },
+    { label: t("settings.aiUsage.outputTokens", "輸出 Tokens"), value: formatNumber(credit.total_output_tokens ?? 0) },
+    { label: t("settings.aiUsage.totalCost", "累計費用"), value: `$${credit.total_cost_usd ?? "0.00"} USD` },
   ];
 
   return (
@@ -83,7 +83,7 @@ export const AIUsagePanel: React.FC = () => {
       </div>
       {credit.updated_at && (
         <p style={{ fontSize: "0.75rem", color: "var(--cds-text-helper)", marginTop: "0.75rem" }}>
-          最後更新：{new Date(credit.updated_at).toLocaleString("zh-TW")}
+          {t("settings.aiUsage.lastUpdated", "最後更新")}：{new Date(credit.updated_at).toLocaleString("zh-TW")}
         </p>
       )}
     </Section>

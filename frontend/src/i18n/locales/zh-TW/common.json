@@ -754,5 +754,25 @@
       "error": "授權失敗，請稍後再試",
       "invalidRequest": "無效的授權請求"
     }
+  },
+  "settings": {
+    "title": "設定",
+    "tabs": {
+      "profile": "個人檔案",
+      "preferences": "偏好設定",
+      "aiUsage": "AI 使用量",
+      "mcp": "MCP 連線",
+      "plans": "方案"
+    },
+    "aiUsage": {
+      "title": "AI 使用量",
+      "totalRequests": "總請求數",
+      "inputTokens": "輸入 Tokens",
+      "outputTokens": "輸出 Tokens",
+      "totalCost": "累計費用",
+      "lastUpdated": "最後更新",
+      "loadError": "無法載入使用量資料",
+      "noData": "無資料"
+    }
   }
 }
