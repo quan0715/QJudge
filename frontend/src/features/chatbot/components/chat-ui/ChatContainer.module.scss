@@ -4,8 +4,7 @@ $motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
 
 .container {
   display: flex;
-  flex: 1;
-  min-height: 0;
+  height: 100%;
   overflow: hidden;
   position: relative;
 }

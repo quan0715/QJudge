@@ -1,7 +1,8 @@
 .pageRoot {
   display: flex;
-  min-height: 100dvh;
+  height: 100dvh;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .main {
