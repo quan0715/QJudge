@@ -40,6 +40,9 @@ import { checkoutSuccessRoute, pricingRoute } from "@/features/pricing";
 import RecurProviderBridge from "@/features/pricing/components/RecurProviderBridge";
 import { classroomDetailRoute, classroomJoinRoute } from "@/features/classroom";
 import { questionBankMarketplaceRoute, questionBankDetailRoute } from "@/features/question-banks";
+import { lazy, Suspense } from "react";
+
+const ChatFullPage = lazy(() => import("@/features/chatbot/components/ChatFullPage"));
 
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
@@ -162,6 +165,8 @@ function App() {
                             <Route element={<MainLayout />}>
                               {questionBankMarketplaceRoute}
                               {draftProblemsRoute}
+                              {/* Full-screen AI Chat page */}
+                              <Route path="/chat" element={<Suspense fallback={null}><ChatFullPage /></Suspense>} />
                             </Route>
 
                             {/* Question Bank Detail - Standalone with breadcrumb header */}

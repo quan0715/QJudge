@@ -17,6 +17,7 @@ import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
 import { ContestSettingsOverlay } from "@/features/contest/screens/admin/panels/AdminContestSettingsScreen";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import { ChatFab } from "@/features/chatbot/components/ChatFab";
 import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
 import { useTabWithUrlParam } from "@/shared/hooks";
 
@@ -193,6 +194,7 @@ const AdminDashboardScreen = () => {
       <ContestAdminProvider contestId={contestId}>
         <AdminPanelRefreshProvider>
           <AdminDashboardInner />
+          <ChatFab />
         </AdminPanelRefreshProvider>
       </ContestAdminProvider>
     </ContestProvider>
