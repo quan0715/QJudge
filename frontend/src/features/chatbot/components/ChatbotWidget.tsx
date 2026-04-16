@@ -24,10 +24,12 @@ import {
   type ButtonItem,
   type CardItem,
   type ChatInstance,
+  type GenericItem,
   type HistoryItem,
   type ChainOfThoughtStep,
   type CustomSendMessageOptions,
   type MessageRequest,
+  type RenderUserDefinedResponse,
   type StreamChunk,
   type PublicConfig,
   type BusEventViewChange,
@@ -39,6 +41,8 @@ import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { httpClient } from "@/infrastructure/api/http.client";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { ChatHistory } from "./ChatHistory";
+import { AIExamQuestionCard, type AIExamQuestionCardProps } from "./AIExamQuestionCard";
+import { extractExamCards } from "./extractExamCards";
 import type { ChatSession } from "@/core/types/chatbot.types";
 import styles from "./ChatbotSidePanel.module.scss";
 
@@ -110,6 +114,10 @@ export const ChatbotWidget = ({
   const instanceRef = useRef<ChatInstance | null>(null);
   // Prevent double-firing when multiple HITL buttons exist in chat history
   const approvalInProgressRef = useRef(false);
+  // Block Enter for 1 s after compositionend so the composition-ending keystroke
+  // cannot immediately trigger a submit (IME double-Enter protection).
+  const blockEnterUntilRef = useRef<number>(0);
+  const inputElRef = useRef<HTMLElement | null>(null);
 
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
 
@@ -140,6 +148,9 @@ export const ChatbotWidget = ({
       let accText = "";
       let accThinking = "";
       const cotSteps: ChainOfThoughtStep[] = [];
+      const pendingCards: AIExamQuestionCardProps[] = [];
+      // Map tool_call_id → { tool_name, action } for card extraction on tool_call_finished
+      const toolCallMeta = new Map<string, { toolName: string; action?: string }>();
       let isCanceled = false;
 
       const abortHandler = () => { isCanceled = true; };
@@ -190,9 +201,13 @@ export const ChatbotWidget = ({
             break;
           case "tool_call_started":
             if (e.tool_name) {
+              const callId = e.tool_call_id || `${e.tool_name}-${cotSteps.length}`;
+              toolCallMeta.set(callId, { toolName: e.tool_name, action: e.input_data?.action as string | undefined });
+              const action = e.input_data?.action as string | undefined;
+              const stepTitle = action ? `${e.tool_name}.${action}` : e.tool_name;
               cotSteps.push({
-                title: e.tool_name,
-                tool_name: e.tool_call_id || `${e.tool_name}-${cotSteps.length}`,
+                title: `${stepTitle} #${cotSteps.length + 1}`,
+                tool_name: callId,
                 status: ChainOfThoughtStepStatus.PROCESSING,
                 request: e.input_data ? { args: e.input_data } : undefined,
               });
@@ -200,17 +215,47 @@ export const ChatbotWidget = ({
             }
             break;
           case "tool_call_finished": {
-            const idx = e.tool_call_id
-              ? cotSteps.findIndex(s => s.tool_name === e.tool_call_id)
+            const callId = e.tool_call_id;
+            const idx = callId
+              ? cotSteps.findIndex(s => s.tool_name === callId)
               : cotSteps.findLastIndex(s => s.status === ChainOfThoughtStepStatus.PROCESSING);
             if (idx >= 0) cotSteps[idx] = { ...cotSteps[idx], status: e.is_error ? ChainOfThoughtStepStatus.FAILURE : ChainOfThoughtStepStatus.SUCCESS, response: e.result ? { content: typeof e.result === "string" ? e.result : JSON.stringify(e.result, null, 2) } : undefined };
+
+            // Collect exam cards from successful qjudge_exam create/batch_create
+            const meta = callId ? toolCallMeta.get(callId) : undefined;
+            if (meta?.toolName === "qjudge_exam" && !e.is_error && e.result) {
+              let parsed: Record<string, unknown> | null = null;
+              if (typeof e.result === "object") {
+                parsed = e.result as Record<string, unknown>;
+              } else if (typeof e.result === "string") {
+                try { parsed = JSON.parse(e.result) as Record<string, unknown>; } catch { /* not JSON */ }
+              }
+              console.log("[ChatbotWidget] exam tool result parsed:", parsed, "action:", meta.action);
+              if (parsed && !parsed.error) {
+                pendingCards.push(...extractExamCards(parsed, meta.action));
+                console.log("[ChatbotWidget] pendingCards after extract:", [...pendingCards]);
+              }
+            }
+
             sendPartial();
             break;
           }
-          case "run_completed":
+          case "run_completed": {
             sendFinal(false);
+
+            console.log("[ChatbotWidget] run_completed, pendingCards:", pendingCards.length, pendingCards);
+            if (pendingCards.length > 0) {
+              const cardItems: GenericItem[] = pendingCards.map((props) => ({
+                response_type: MessageResponseTypes.USER_DEFINED,
+                user_defined: { type: "ai-exam-question-card" as const, ...props },
+              }));
+              console.log("[ChatbotWidget] injecting user_defined cards:", cardItems);
+              inst.messaging.addMessage({ output: { generic: cardItems } });
+            }
+
             onProblemUpdated?.();
             break;
+          }
           case "run_failed":
             console.error("[ChatbotWidget] Agent error:", e.message);
             sendFinal(true);
@@ -426,6 +471,22 @@ export const ChatbotWidget = ({
     }
   }, [onProblemUpdated]);
 
+  const renderUserDefinedResponse: RenderUserDefinedResponse = useCallback((state) => {
+    console.log("[ChatbotWidget] renderUserDefinedResponse called:", state);
+    const ud = state.messageItem?.user_defined as Record<string, unknown> | undefined;
+    if (ud?.type === "ai-exam-question-card") {
+      return (
+        <AIExamQuestionCard
+          questionType={ud.questionType as AIExamQuestionCardProps["questionType"]}
+          prompt={ud.prompt as string}
+          score={ud.score as number | undefined}
+          optionCount={ud.optionCount as number | undefined}
+        />
+      );
+    }
+    return null;
+  }, []);
+
   const renderWriteableElements = useMemo(() => {
     if (!instance) return {};
     return {
@@ -449,13 +510,81 @@ export const ChatbotWidget = ({
     setInstance(inst);
     instanceRef.current = inst;
 
+    // Carbon 的 input 元素在 onBeforeRender 時可能還沒掛上 DOM，用 MutationObserver
+    // 等它出現再綁事件。
+    const bindCompositionListeners = (el: HTMLElement) => {
+      if (inputElRef.current === el) return; // already bound
+      inputElRef.current = el;
+      // After compositionend (1st Enter in IME), block Enter for 1 s so the
+      // composition-ending keystroke cannot immediately trigger a submit.
+      el.addEventListener('compositionend', () => {
+        blockEnterUntilRef.current = Date.now() + 1000;
+      });
+      // Intercept keydown in capture phase — before Carbon's handler — and
+      // swallow Enter while the 1-second block window is active.
+      el.addEventListener('keydown', (e) => {
+        if ((e as KeyboardEvent).key === 'Enter' && Date.now() < blockEnterUntilRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+    };
+
+    const findAndBindInput = () => {
+      const el = document.querySelector('[data-testid="input_field"]') as HTMLElement | null;
+      if (el) bindCompositionListeners(el);
+      return el;
+    };
+
+    if (!findAndBindInput()) {
+      const observer = new MutationObserver(() => {
+        if (findAndBindInput()) {
+          // We keep observing because Carbon might re-render the input element later
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    } else {
+      // Even if found, keep observing for future re-renders
+      const observer = new MutationObserver(() => {
+        findAndBindInput();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
     inst.on({ type: BusEventType.SEND, handler: () => {
       try { if (backendSessionIdRef.current) localStorage.setItem("chatbot_last_session_id", backendSessionIdRef.current); } catch { /* */ }
-      // 同步清空 contenteditable innerHTML，須在 input 事件 fire 前執行：
-      // emitChangeFromDom() 讀 DOM 若拿到舊文字，會把 state 寫回舊值，
-      // 再加上 skipNextDomSync=true 導致 useLayoutEffect 跳過 DOM 更新。
-      const inputEl = document.querySelector('[data-testid="input_field"]') as HTMLElement | null;
-      if (inputEl) inputEl.innerHTML = '';
+      
+      const forceClear = () => {
+        const inputEl = document.querySelector('[data-testid="input_field"]') as HTMLElement | null;
+        if (!inputEl) return;
+        
+        // 1. 同步清空
+        inputEl.innerHTML = '';
+        inputEl.textContent = '';
+        while (inputEl.firstChild) {
+          inputEl.removeChild(inputEl.firstChild);
+        }
+        
+        // 2. 觸發事件確保 Carbon 內部狀態同步
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        
+        // 3. 強制 blur/focus 以重設 IME 狀態與游標
+        const isFocused = document.activeElement === inputEl;
+        if (isFocused) {
+          inputEl.blur();
+          setTimeout(() => {
+            if (document.querySelector('[data-testid="input_field"]') === inputEl) {
+              inputEl.focus();
+            }
+          }, 10);
+        }
+      };
+
+      forceClear();
+      // 在多個時間點嘗試清空，捕捉可能發生的 IME 延遲 commit 或 React 非同步更新
+      requestAnimationFrame(forceClear);
+      setTimeout(forceClear, 50);
+      setTimeout(forceClear, 150);
     }});
 
     // HITL: listen for approve/reject button clicks from CardItem footers
@@ -523,6 +652,7 @@ export const ChatbotWidget = ({
           onViewChange={onViewChange}
           onViewPreChange={onViewPreChange}
           renderWriteableElements={renderWriteableElements}
+          renderUserDefinedResponse={renderUserDefinedResponse}
         />
       </div>
     </>

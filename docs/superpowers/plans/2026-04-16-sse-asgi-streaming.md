@@ -14,22 +14,24 @@
 
 ## File Map
 
-| File | Action | Responsibility |
-|------|--------|---------------|
-| `docker-compose.dev.yml` | Modify line 148 | Switch backend command from `runserver` to `uvicorn` |
-| `backend/apps/ai/services/session_runtime.py` | Rewrite | Convert `_proxy_stream` + `generate` to async generators using `httpx.AsyncClient` |
-| `backend/apps/ai/views.py` | Modify lines 86-137, 231-266 | Make `send_message_stream` and `resume_stream` actions `async` |
-| `backend/apps/ai/tests/test_message_streaming.py` | Modify | Update mocks from sync `httpx.stream` to async `httpx.AsyncClient.stream` |
-| `frontend/nginx/default.conf` | Modify lines 9-15 | Add SSE-specific proxy headers for production Nginx |
+
+| File                                              | Action                       | Responsibility                                                                     |
+| ------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
+| `docker-compose.dev.yml`                          | Modify line 148              | Switch backend command from `runserver` to `uvicorn`                               |
+| `backend/apps/ai/services/session_runtime.py`     | Rewrite                      | Convert `_proxy_stream` + `generate` to async generators using `httpx.AsyncClient` |
+| `backend/apps/ai/views.py`                        | Modify lines 86-137, 231-266 | Make `send_message_stream` and `resume_stream` actions `async`                     |
+| `backend/apps/ai/tests/test_message_streaming.py` | Modify                       | Update mocks from sync `httpx.stream` to async `httpx.AsyncClient.stream`          |
+| `frontend/nginx/default.conf`                     | Modify lines 9-15            | Add SSE-specific proxy headers for production Nginx                                |
+
 
 ---
 
 ### Task 1: Switch dev backend to uvicorn
 
 **Files:**
-- Modify: `docker-compose.dev.yml:148`
 
-- [ ] **Step 1: Change backend command**
+- Modify: `docker-compose.dev.yml:148`
+- **Step 1: Change backend command**
 
 In `docker-compose.dev.yml`, replace the backend command:
 
@@ -43,7 +45,7 @@ In `docker-compose.dev.yml`, replace the backend command:
 
 `--reload-dir /app` scopes the file watcher to the mounted volume (avoids watching node_modules or venv).
 
-- [ ] **Step 2: Verify uvicorn starts**
+- **Step 2: Verify uvicorn starts**
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d --no-deps backend
@@ -52,7 +54,7 @@ docker compose -f docker-compose.dev.yml logs backend --since=10s
 
 Expected: `INFO: Uvicorn running on http://0.0.0.0:8000` (no import errors).
 
-- [ ] **Step 3: Verify existing REST endpoints still work**
+- **Step 3: Verify existing REST endpoints still work**
 
 ```bash
 curl -s http://localhost:8000/api/v1/auth/me -H "Cookie: access_token=<JWT>" | python3 -m json.tool
@@ -60,7 +62,7 @@ curl -s http://localhost:8000/api/v1/auth/me -H "Cookie: access_token=<JWT>" | p
 
 Expected: 200 OK with user JSON. All sync DRF views work unchanged under ASGI.
 
-- [ ] **Step 4: Commit**
+- **Step 4: Commit**
 
 ```bash
 git add docker-compose.dev.yml
@@ -72,11 +74,12 @@ git commit -m "chore: switch dev backend from runserver to uvicorn for ASGI stre
 ### Task 2: Convert session_runtime to async
 
 **Files:**
+
 - Modify: `backend/apps/ai/services/session_runtime.py`
 
 This is the core change. Convert `_proxy_stream` from sync `httpx.stream()` to async `httpx.AsyncClient.stream()`, and convert `generate()` from `Generator` to `AsyncGenerator`.
 
-- [ ] **Step 1: Rewrite `build_sse_response` for async generators**
+- **Step 1: Rewrite `build_sse_response` for async generators**
 
 Replace the existing function at line 25-30:
 
@@ -94,7 +97,7 @@ def build_sse_response(generator: AsyncGenerator[str, None]) -> StreamingHttpRes
 
 Stays sync (no `async def`) — it just constructs the response object. Django 4.2+ `StreamingHttpResponse` accepts async iterators when running under ASGI.
 
-- [ ] **Step 2: Rewrite `BaseAIStreamRuntime._proxy_stream` to async**
+- **Step 2: Rewrite `BaseAIStreamRuntime._proxy_stream` to async**
 
 Replace the entire `_proxy_stream` method (lines 41-110) with:
 
@@ -172,13 +175,13 @@ async def _proxy_stream(
 ```
 
 Key changes from sync version:
+
 - `httpx.stream()` → `httpx.AsyncClient().stream()`
 - `response.iter_bytes()` → `response.aiter_bytes()`
 - `response.read()` → `await response.aread()`
 - `Generator` → `AsyncGenerator`
 - `yield from` is not allowed in async generators, so callers must use `async for`
-
-- [ ] **Step 3: Convert `ChatStreamRuntime.generate` to async**
+- **Step 3: Convert `ChatStreamRuntime.generate` to async**
 
 Replace the `generate` method (lines 287-312):
 
@@ -214,7 +217,7 @@ async def generate(self) -> AsyncGenerator[str, None]:
 
 Note: `yield from` → `async for ... yield`. The ORM calls (`_persist_*`) are sync but Django 4.2 allows sync ORM in async context (auto-wraps in `sync_to_async`).
 
-- [ ] **Step 4: Convert `ResumeStreamRuntime.generate` to async**
+- **Step 4: Convert `ResumeStreamRuntime.generate` to async**
 
 Replace the `generate` method (lines 387-393):
 
@@ -229,7 +232,7 @@ async def generate(self) -> AsyncGenerator[str, None]:
     self._persist_response()
 ```
 
-- [ ] **Step 5: Update imports at top of file**
+- **Step 5: Update imports at top of file**
 
 Replace the imports (lines 1-12):
 
@@ -258,7 +261,7 @@ from .stream_proxy import (
 
 Remove `Generator` from imports, add `AsyncGenerator`.
 
-- [ ] **Step 6: Commit**
+- **Step 6: Commit**
 
 ```bash
 git add backend/apps/ai/services/session_runtime.py
@@ -270,9 +273,9 @@ git commit -m "feat(ai): convert SSE proxy to async for true ASGI streaming"
 ### Task 3: Make SSE view actions async
 
 **Files:**
-- Modify: `backend/apps/ai/views.py:86-137, 231-266`
 
-- [ ] **Step 1: Make `send_message_stream` async**
+- Modify: `backend/apps/ai/views.py:86-137, 231-266`
+- **Step 1: Make `send_message_stream` async**
 
 Change line 86 from `def` to `async def`, and line 137 to `await`:
 
@@ -294,7 +297,7 @@ async def send_message_stream(self, request, pk=None):
 
 Only one change: `async def` on declaration. `build_sse_response` stays sync (just constructs the response object).
 
-- [ ] **Step 2: Make `resume_stream` async**
+- **Step 2: Make `resume_stream` async**
 
 Change line 231 from `def` to `async def`:
 
@@ -312,7 +315,7 @@ async def resume_stream(self, request, pk=None):
     return build_sse_response(runtime.generate())
 ```
 
-- [ ] **Step 3: Commit**
+- **Step 3: Commit**
 
 ```bash
 git add backend/apps/ai/views.py
@@ -324,11 +327,12 @@ git commit -m "feat(ai): make SSE view actions async for ASGI streaming"
 ### Task 4: Update tests for async
 
 **Files:**
+
 - Modify: `backend/apps/ai/tests/test_message_streaming.py`
 
 The tests mock `httpx.stream` (sync context manager). After the change, the code uses `httpx.AsyncClient.stream` (async context manager). Update the mocks.
 
-- [ ] **Step 1: Rewrite the mock helper and patch targets**
+- **Step 1: Rewrite the mock helper and patch targets**
 
 Replace the `_mock_stream_response` method and update all test methods:
 
@@ -526,7 +530,7 @@ class MessageStreamingTestCase(TestCase):
             self.assertIn('"type": "error"', payload)
 ```
 
-- [ ] **Step 2: Run tests**
+- **Step 2: Run tests**
 
 ```bash
 docker compose -f docker-compose.dev.yml exec -T backend python -m pytest apps/ai/tests/test_message_streaming.py -v --no-cov
@@ -534,7 +538,7 @@ docker compose -f docker-compose.dev.yml exec -T backend python -m pytest apps/a
 
 Expected: All 5 tests pass (plus the 2 persistence tests which don't touch streaming).
 
-- [ ] **Step 3: Commit**
+- **Step 3: Commit**
 
 ```bash
 git add backend/apps/ai/tests/test_message_streaming.py
@@ -547,7 +551,7 @@ git commit -m "test(ai): update streaming tests for async httpx mocks"
 
 **Files:** None (manual verification)
 
-- [ ] **Step 1: Restart backend with uvicorn**
+- **Step 1: Restart backend with uvicorn**
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d --no-deps --build backend
@@ -556,7 +560,7 @@ docker compose -f docker-compose.dev.yml logs backend --since=10s
 
 Expected: `INFO: Uvicorn running on http://0.0.0.0:8000`
 
-- [ ] **Step 2: Verify SSE streams incrementally via curl**
+- **Step 2: Verify SSE streams incrementally via curl**
 
 Generate a fresh CSRF token and JWT, then:
 
@@ -574,24 +578,25 @@ curl -N --no-buffer --max-time 60 -X POST \
 
 Expected: Events arrive at **different timestamps** — `init` immediately, `run_started` within 1s, then `agent_message_delta` tokens spread across seconds. This is the key success criterion.
 
-- [ ] **Step 3: Verify in browser**
+- **Step 3: Verify in browser**
 
 Open the chatbot in the browser and send a message. Verify:
+
 - Reasoning panel opens and shows thinking content incrementally
 - Chain of Thought steps appear one by one with spinners
 - Text response streams character by character
 - "Response stopped" no longer appears for normal completions
-
-- [ ] **Step 4: Verify non-SSE endpoints unaffected**
+- **Step 4: Verify non-SSE endpoints unaffected**
 
 Spot-check a few REST endpoints:
+
 - `GET /api/v1/ai/sessions/` — list sessions
 - `POST /api/v1/ai/sessions/new_session/` — create session
 - `GET /api/v1/auth/me` — user info
 
 Expected: All return correct JSON responses as before.
 
-- [ ] **Step 5: Commit (if any adjustments were needed)**
+- **Step 5: Commit (if any adjustments were needed)**
 
 ```bash
 git add -A
@@ -603,11 +608,12 @@ git commit -m "fix(ai): verified async SSE streaming works end-to-end"
 ### Task 6: Fix production Nginx SSE config
 
 **Files:**
+
 - Modify: `frontend/nginx/default.conf:9-15`
 
 The production Nginx config lacks SSE-specific headers. While the backend sets `X-Accel-Buffering: no` (which Nginx respects), adding explicit SSE configuration is defensive and handles edge cases.
 
-- [ ] **Step 1: Add SSE proxy settings to `/api/` location**
+- **Step 1: Add SSE proxy settings to `/api/` location**
 
 Replace lines 9-15 in `frontend/nginx/default.conf`:
 
@@ -629,14 +635,15 @@ location /api/ {
 ```
 
 Key additions:
+
 - `proxy_http_version 1.1` — required for chunked transfer encoding
 - `proxy_set_header Connection ''` — prevents hop-by-hop Connection header issues
 - `proxy_buffering off` — belt-and-suspenders with `X-Accel-Buffering: no`
 - `proxy_cache off` — no caching of SSE responses
-
-- [ ] **Step 2: Commit**
+- **Step 2: Commit**
 
 ```bash
 git add frontend/nginx/default.conf
 git commit -m "fix(nginx): add SSE streaming proxy headers for production"
 ```
+
