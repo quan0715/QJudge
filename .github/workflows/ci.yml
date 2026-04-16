@@ -387,8 +387,18 @@ jobs:
         run: pip install -r requirements/dev.txt
         working-directory: backend
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Judge Docker Image
-        run: docker build -t oj-judge:latest -f backend/judge/Dockerfile.judge backend/judge
+        uses: docker/build-push-action@v5
+        with:
+          context: backend/judge
+          file: backend/judge/Dockerfile.judge
+          tags: oj-judge:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Verify Judge Image
         run: |
