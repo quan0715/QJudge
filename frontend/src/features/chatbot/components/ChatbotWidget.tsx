@@ -14,7 +14,6 @@ import { createPortal } from "react-dom";
 import {
   ChatCustomElement,
   BusEventType,
-  ButtonItemKind,
   ButtonItemType,
   WriteableElementName,
   MessageResponseTypes,
@@ -225,16 +224,16 @@ export const ChatbotWidget = ({
               button_type: ButtonItemType.CUSTOM_EVENT,
               custom_event_name: "hitl_decision",
               label: "確認執行",
-              kind: ButtonItemKind.DEFAULT,
-              user_defined: { decision: "approve", sessionId: sid } satisfies HitlButtonData,
+              kind: "primary" as ButtonItem["kind"],
+              user_defined: { decision: "approve", sessionId: sid } as Record<string, unknown>,
             };
             const rejectBtn: ButtonItem = {
               response_type: MessageResponseTypes.BUTTON,
               button_type: ButtonItemType.CUSTOM_EVENT,
               custom_event_name: "hitl_decision",
               label: "取消",
-              kind: ButtonItemKind.DANGER,
-              user_defined: { decision: "reject", sessionId: sid } satisfies HitlButtonData,
+              kind: "danger" as ButtonItem["kind"],
+              user_defined: { decision: "reject", sessionId: sid } as Record<string, unknown>,
             };
             const card: CardItem = {
               response_type: MessageResponseTypes.CARD,
@@ -434,9 +433,10 @@ export const ChatbotWidget = ({
     }});
 
     // HITL: listen for approve/reject button clicks from CardItem footers
-    inst.on({ type: BusEventType.MESSAGE_ITEM_CUSTOM, handler: (event: BusEventMessageItemCustom) => {
-      if (event.messageItem.custom_event_name === "hitl_decision") {
-        const ud = event.messageItem.user_defined as HitlButtonData;
+    inst.on({ type: BusEventType.MESSAGE_ITEM_CUSTOM, handler: (event) => {
+      const customEvent = event as BusEventMessageItemCustom;
+      if (customEvent.messageItem.custom_event_name === "hitl_decision") {
+        const ud = customEvent.messageItem.user_defined as unknown as HitlButtonData;
         handleApprovalRef.current(ud.decision, ud.sessionId);
       }
     }});
