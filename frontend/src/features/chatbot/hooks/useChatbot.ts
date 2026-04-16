@@ -154,26 +154,21 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setSessions([newSession]);
           setCurrentSessionId(newSession.id);
         } else {
-          // 選定 active session
+          // 恢復 saved session，或選第一個
           const savedSession = savedSessionId
             ? apiSessions.find((s) => s.id === savedSessionId)
             : null;
           const activeId = savedSession?.id ?? apiSessions[0].id;
 
-          // 建立一個新的空 session 放最前面
-          const newSession = await chatbotRepository.createSession();
-          setSessions([newSession, ...apiSessions]);
-          setCurrentSessionId(newSession.id);
+          setSessions(apiSessions);
+          setCurrentSessionId(activeId);
 
-          // 背景 lazy load active session 的 messages（如果選了舊 session）
-          if (savedSession) {
-            setCurrentSessionId(activeId);
-            chatbotRepository.getSession(activeId).then((detailed) => {
-              setSessions((prev) =>
-                prev.map((s) => (s.id === activeId ? detailed : s)),
-              );
-            }).catch(() => { /* ignore, will load on click */ });
-          }
+          // 背景 lazy load active session 的 messages
+          chatbotRepository.getSession(activeId).then((detailed) => {
+            setSessions((prev) =>
+              prev.map((s) => (s.id === activeId ? detailed : s)),
+            );
+          }).catch(() => { /* ignore, will load on click */ });
         }
       } catch (err) {
         console.error("Failed to initialize chatbot:", err);
@@ -242,6 +237,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
    */
   const switchSession = useCallback(async (sessionId: string) => {
     setCurrentSessionId(sessionId);
+    setPendingApproval(null);
 
     // Lazy load messages if not yet loaded
     const existing = sessions.find((s) => s.id === sessionId);
