@@ -6,6 +6,7 @@ import type {
   ChatSession,
   UserInputRequest,
   ChatContext,
+  ApprovalRequest,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 
@@ -18,6 +19,7 @@ interface UseChatbotReturn {
   isInitializing: boolean;
   error: string | null;
   pendingUserInput: UserInputRequest | null;
+  pendingApproval: ApprovalRequest | null;
   createSession: () => Promise<string | null>;
   deleteSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
@@ -30,6 +32,8 @@ interface UseChatbotReturn {
     answers: Record<string, string>,
   ) => Promise<void>;
   cancelUserInput: () => void;
+  submitApproval: (decision: "approve" | "reject") => Promise<void>;
+  dismissApproval: () => void;
   clearError: () => void;
 }
 
@@ -75,6 +79,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const [error, setError] = useState<string | null>(null);
   const [pendingUserInput, setPendingUserInput] =
     useState<UserInputRequest | null>(null);
+  const [pendingApproval, setPendingApproval] =
+    useState<ApprovalRequest | null>(null);
 
   // AbortController for cancelling streaming
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -433,6 +439,11 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               setPendingUserInput(request);
             },
 
+            // HITL 核准請求（AwaitingApproval）
+            onAwaitingApproval: (request) => {
+              setPendingApproval(request);
+            },
+
           },
           {
             context: effectiveContext ?? undefined,
@@ -605,6 +616,25 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   }, []);
 
   /**
+   * 提交 HITL 核准決定（核准或拒絕）
+   */
+  const submitApproval = useCallback(
+    async (decision: "approve" | "reject") => {
+      if (!currentSessionId) return;
+      setPendingApproval(null);
+      await resumeAgent(decision);
+    },
+    [currentSessionId, resumeAgent],
+  );
+
+  /**
+   * 關閉 HITL 核准彈窗（不提交任何決定）
+   */
+  const dismissApproval = useCallback(() => {
+    setPendingApproval(null);
+  }, []);
+
+  /**
    * 清除錯誤訊息
    */
   const clearError = useCallback(() => {
@@ -629,6 +659,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     isInitializing,
     error,
     pendingUserInput,
+    pendingApproval,
     createSession,
     deleteSession,
     switchSession,
@@ -638,6 +669,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     refreshSessions,
     submitUserInput,
     cancelUserInput,
+    submitApproval,
+    dismissApproval,
     clearError,
   };
 }
