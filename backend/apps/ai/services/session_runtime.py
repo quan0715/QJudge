@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from collections.abc import Callable, Generator
@@ -12,7 +11,6 @@ import httpx
 from django.http import StreamingHttpResponse
 from django.utils import timezone
 
-from ..ai_client import get_ai_client
 from ..models import AIMessage, AISession
 from .stream_proxy import (
     ai_service_base_url,
@@ -22,24 +20,6 @@ from .stream_proxy import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def submit_pending_answer(request_id: str, answers: dict[str, str]) -> dict[str, Any]:
-    """Submit answers for a pending user-input request."""
-    submit_coro = get_ai_client().submit_user_answer
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        new_loop = asyncio.new_event_loop()
-        try:
-            return new_loop.run_until_complete(submit_coro(request_id, answers))
-        finally:
-            new_loop.close()
-
-    return asyncio.run(submit_coro(request_id, answers))
 
 
 def build_sse_response(generator: Generator[str, None, None]) -> StreamingHttpResponse:
@@ -163,7 +143,6 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
         payload: dict[str, Any] = {
             "content": self.content,
             "conversation": [],
-            "user_id": self.user.id,
         }
 
         model_id = self.validated_data.get("model_id")
@@ -172,7 +151,6 @@ class ChatStreamRuntime(BaseAIStreamRuntime):
 
         if self.session:
             payload["thread_id"] = self.session.session_id
-            payload["session_id"] = self.session.session_id
 
         return payload
 
@@ -371,8 +349,6 @@ class ResumeStreamRuntime(BaseAIStreamRuntime):
         return {
             "thread_id": self.session.session_id,
             "decision": self.decision,
-            "session_id": self.session.session_id,
-            "user_id": self.user.id,
         }
 
     def _persist_response(self) -> None:

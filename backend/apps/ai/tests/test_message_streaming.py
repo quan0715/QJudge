@@ -1,5 +1,5 @@
 """Tests for AI message streaming functionality."""
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -159,39 +159,6 @@ class MessageStreamingTestCase(TestCase):
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             payload = b"".join(response.streaming_content).decode("utf-8", errors="ignore")
             self.assertIn('"type": "error"', payload)
-
-    def test_submit_answer_returns_ai_service_payload(self):
-        self.client.force_authenticate(user=self.user)
-        mock_client = MagicMock()
-        mock_client.submit_user_answer = AsyncMock(
-            return_value={"ok": True, "request_id": "req-1"}
-        )
-
-        with patch(
-            "apps.ai.services.session_runtime.get_ai_client",
-            return_value=mock_client,
-        ):
-            response = self.client.post(
-                f"/api/v1/ai/sessions/{self.session.session_id}/submit_answer/",
-                {"request_id": "req-1", "answers": {"Question": "A"}},
-                format="json",
-            )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, {"ok": True, "request_id": "req-1"})
-
-    def test_submit_answer_requires_non_empty_dict(self):
-        self.client.force_authenticate(user=self.user)
-
-        response = self.client.post(
-            f"/api/v1/ai/sessions/{self.session.session_id}/submit_answer/",
-            {"request_id": "req-1", "answers": []},
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error"], "answers must be a non-empty dictionary")
-
 
 class MessagePersistenceTestCase(TestCase):
     """Test message persistence in sessions."""

@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import uuid
 from typing import Any, AsyncGenerator
 
+from deepagents.backends import StateBackend
 from deepagents.graph import create_agent, TodoListMiddleware
+from deepagents.middleware.filesystem import FilesystemMiddleware
+from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
 from services.event_adapter import (
+    AwaitingApproval,
     RunCompleted,
     RunFailed,
     RunStarted,
@@ -81,13 +84,33 @@ class DeepAgentRunner:
             await self._checkpointer_cm.__aexit__(None, None, None)
         logger.info("DeepAgent runner shut down.")
 
+    # Tools that require human approval before execution.
+    # Read-only tools (qjudge_discover, qjudge_bank, qjudge_browse) are excluded.
+    _INTERRUPT_ON: dict[str, bool] = {
+        "qjudge_coding": True,
+        "qjudge_exam": True,
+        "qjudge_grading": True,
+    }
+
     def _build_agent(
         self,
         model_id: str,
         system_prompt: str | None,
         tools: list[Any],
     ):
-        """Build a DeepAgent with tools."""
+        """Build a DeepAgent with tools.
+
+        Keeps create_agent (not create_deep_agent) to avoid the default
+        SubAgentMiddleware / SummarizationMiddleware overhead.
+
+        Middleware stack (in order):
+          1. TodoListMiddleware        — task planning, ~700 tokens
+          2. FilesystemMiddleware      — auto-evicts tool results >20k tokens to StateBackend,
+                                        prevents context saturation from large MCP responses
+                                        (e.g. qjudge_grading listing many submissions)
+          3. HumanInTheLoopMiddleware  — exactly what create_deep_agent appends for interrupt_on,
+                                        added here directly to keep HITL without the rest
+        """
         model = ModelFactory.create_model(model_id=model_id)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
 
@@ -95,7 +118,11 @@ class DeepAgentRunner:
             model=model,
             tools=tools,
             system_prompt=prompt,
-            middleware=[TodoListMiddleware()],
+            middleware=[
+                TodoListMiddleware(),
+                FilesystemMiddleware(backend=StateBackend()),
+                HumanInTheLoopMiddleware(interrupt_on=self._INTERRUPT_ON),
+            ],
             checkpointer=self._checkpointer,
         )
         return agent
@@ -228,15 +255,44 @@ class DeepAgentRunner:
             cost_cents = self._calculate_cost(
                 model_id, total_input_tokens, total_output_tokens
             )
-            yield to_sse_dict(
-                UsageReport(
-                    input_tokens=total_input_tokens,
-                    output_tokens=total_output_tokens,
-                    cost_cents=cost_cents,
-                    model_used=model_id,
-                )
+            usage_event = UsageReport(
+                input_tokens=total_input_tokens,
+                output_tokens=total_output_tokens,
+                cost_cents=cost_cents,
+                model_used=model_id,
             )
-            yield to_sse_dict(RunCompleted(run_id=run_id))
+
+            # Check whether the agent paused for human approval.
+            # LangGraph stores pending interrupts on StateSnapshot.interrupts
+            # (tuple of Interrupt objects) after astream_events exhausts.
+            state = await agent.aget_state(config)
+            if state.interrupts:
+                interrupt_val = state.interrupts[0].value
+                action_requests = (
+                    interrupt_val.get("action_requests", [])
+                    if isinstance(interrupt_val, dict)
+                    else []
+                )
+                review_configs = (
+                    interrupt_val.get("review_configs", [])
+                    if isinstance(interrupt_val, dict)
+                    else []
+                )
+                logger.info(
+                    "Agent interrupted for approval: %s",
+                    [r.get("name") for r in action_requests],
+                )
+                yield to_sse_dict(usage_event)
+                yield to_sse_dict(
+                    AwaitingApproval(
+                        thread_id=thread_id,
+                        action_requests=action_requests,
+                        review_configs=review_configs,
+                    )
+                )
+            else:
+                yield to_sse_dict(usage_event)
+                yield to_sse_dict(RunCompleted(run_id=run_id))
 
         except Exception as exc:
             logger.exception("DeepAgent execution failed: %s", exc)

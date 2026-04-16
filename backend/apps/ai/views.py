@@ -13,7 +13,6 @@ from .services.session_runtime import (
     ChatStreamRuntime,
     ResumeStreamRuntime,
     build_sse_response,
-    submit_pending_answer,
 )
 from .serializers import (
     AISessionListSerializer,
@@ -195,43 +194,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("You do not have permission to delete this session")
 
         return super().destroy(request, *args, **kwargs)
-
-    @action(detail=True, methods=["post"])
-    def submit_answer(self, request, pk=None):
-        """Submit user's answer to a pending AskUserQuestion request.
-
-        Request body:
-        - request_id: str (required) - The request ID from the user_input_request event
-        - answers: dict (required) - Mapping of question text to selected option label(s)
-
-        This endpoint forwards the answer to the AI Service, which will resume
-        the blocked chat_stream.
-        """
-        self.get_object()
-
-        request_id = request.data.get("request_id")
-        answers = request.data.get("answers")
-
-        if not request_id:
-            return Response(
-                {"error": "request_id is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if not answers or not isinstance(answers, dict):
-            return Response(
-                {"error": "answers must be a non-empty dictionary"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            return Response(submit_pending_answer(request_id, answers))
-
-        except Exception as e:
-            logger.exception(f"Error submitting user answer: {e}")
-            return Response(
-                {"error": "Failed to submit answer"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
 
     @action(detail=False, methods=["get"], url_path="credit")
     def credit(self, request):
