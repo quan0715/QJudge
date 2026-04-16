@@ -109,6 +109,13 @@ class DeepAgentRunner:
             await self._checkpointer_cm.__aexit__(None, None, None)
         logger.info("DeepAgent runner shut down.")
 
+    async def delete_thread(self, thread_id: str) -> None:
+        """Delete all checkpoint state for a thread (used to recover broken sessions)."""
+        if self._checkpointer is None:
+            raise RuntimeError("Checkpointer not initialized")
+        await self._checkpointer.adelete_thread(thread_id)
+        logger.info("Deleted LangGraph checkpoint for thread %s", thread_id)
+
     def _build_agent(
         self,
         model_id: str,
@@ -260,13 +267,30 @@ class DeepAgentRunner:
                     yield sse_dict
             except Exception as exc:
                 # Detect dangling tool_calls error → repair and retry once
-                if not retried and "insufficient tool messages" in str(exc):
+                error_str = str(exc)
+                # Also check nested ExceptionGroup sub-exceptions
+                if hasattr(exc, "exceptions"):
+                    error_str += " ".join(str(e) for e in exc.exceptions)
+                if not retried and "insufficient tool messages" in error_str:
                     logger.warning("Dangling tool_calls detected, attempting repair...")
                     repaired = await self._repair_dangling_tool_calls(agent, config)
                     if repaired:
                         retried = True
-                        async for sse_dict in _run_stream():
-                            yield sse_dict
+                        try:
+                            async for sse_dict in _run_stream():
+                                yield sse_dict
+                        except Exception as retry_exc:
+                            # Repair didn't help — nuclear option: delete checkpoint
+                            retry_str = str(retry_exc)
+                            if hasattr(retry_exc, "exceptions"):
+                                retry_str += " ".join(str(e) for e in retry_exc.exceptions)
+                            if "insufficient tool messages" in retry_str:
+                                logger.warning(
+                                    "Repair insufficient, deleting checkpoint for thread %s",
+                                    thread_id,
+                                )
+                                await self._checkpointer.adelete_thread(thread_id)
+                            raise retry_exc
                     else:
                         raise
                 else:
