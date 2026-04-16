@@ -24,8 +24,8 @@ $motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
 }
 
 .sidebar .chatElement {
-  width: 100%;
-  height: 100%;
+  block-size: 100%;
+  inline-size: 100%;
 }
 
 .sidebarClosing {

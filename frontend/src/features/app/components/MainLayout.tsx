@@ -19,7 +19,7 @@ const MainLayout = () => {
         }}
       >
         {isFullBleed ? (
-          <div style={{ flex: 1, overflow: "hidden" }}>
+          <div style={{ flex: 1, overflow: "hidden", position: "relative", height: "100%" }}>
             <Outlet />
           </div>
         ) : (
