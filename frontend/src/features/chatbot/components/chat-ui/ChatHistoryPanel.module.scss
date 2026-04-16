@@ -7,8 +7,20 @@
 }
 
 .header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   padding: 0.5rem;
   border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+}
+
+.closeBtn {
+  flex-shrink: 0;
 }
 
 .list {

@@ -102,10 +102,38 @@ $motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
   width: 100%;
 }
 
-// Mobile history overlay
-.mobileHistoryOverlay {
+// History overlay (mobile + sidebar) — slide in from left
+.historyOverlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: $history-width;
   z-index: 100;
-  background: var(--cds-background, #fff);
+  background: var(--cds-layer-01, #f4f4f4);
+  border-right: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  transform: translateX(-100%);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    transform $motion-duration $motion-easing,
+    opacity $motion-duration $motion-easing,
+    visibility 0s $motion-duration;
+}
+
+.historyOverlayOpen {
+  transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
+  transition:
+    transform $motion-duration $motion-easing,
+    opacity $motion-duration $motion-easing,
+    visibility 0s 0s;
+}
+
+// Mobile: overlay takes full width
+@media (max-width: 768px) {
+  .historyOverlay {
+    width: 100%;
+  }
 }

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
-import { Search, OverflowMenu, OverflowMenuItem } from "@carbon/react";
+import { Search, IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
+import { Close } from "@carbon/icons-react";
 import type { ChatSession } from "@/core/types/chatbot.types";
 import styles from "./ChatHistoryPanel.module.scss";
 
@@ -9,6 +10,7 @@ interface ChatHistoryPanelProps {
   onSelectSession: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onRenameSession: (id: string, name: string) => void;
+  onClose?: () => void;
 }
 
 interface HistoryGroup {
@@ -48,6 +50,7 @@ export function ChatHistoryPanel({
   onSelectSession,
   onDeleteSession,
   onRenameSession,
+  onClose,
 }: ChatHistoryPanelProps) {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -56,7 +59,7 @@ export function ChatHistoryPanel({
   const filteredSessions = useMemo(() => {
     if (!searchQuery.trim()) return sessions;
     const q = searchQuery.trim().toLowerCase();
-    return sessions.filter((s) => s.title?.toLowerCase().includes(q));
+    return sessions.filter((s) => (s.title ?? "").toLowerCase().includes(q));
   }, [sessions, searchQuery]);
 
   const groups = useMemo(() => groupSessions(filteredSessions), [filteredSessions]);
@@ -84,7 +87,13 @@ export function ChatHistoryPanel({
           value={searchQuery}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
           closeButtonLabelText="清除"
+          className={styles.search}
         />
+        {onClose && (
+          <IconButton kind="ghost" size="sm" label="關閉" onClick={onClose} className={styles.closeBtn}>
+            <Close size={20} />
+          </IconButton>
+        )}
       </div>
 
       <div className={styles.list}>
@@ -105,7 +114,10 @@ export function ChatHistoryPanel({
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") onSelectSession(session.id);
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectSession(session.id);
+                  }
                 }}
               >
                 {renamingId === session.id ? (

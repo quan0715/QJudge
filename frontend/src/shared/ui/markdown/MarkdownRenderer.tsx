@@ -248,7 +248,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   // Custom components for rendering
   const baseComponents: Record<string, React.ComponentType<{ children?: React.ReactNode }>> = {
     table: ({ children }: { children?: React.ReactNode }) => (
-      <Table size="sm" className="markdown-table">{children}</Table>
+      <Table size="sm" aria-label="資料表格" className="markdown-table">{children}</Table>
     ),
     thead: ({ children }: { children?: React.ReactNode }) => (
       <TableHead>{children}</TableHead>

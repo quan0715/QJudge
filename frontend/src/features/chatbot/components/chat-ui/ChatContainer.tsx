@@ -87,13 +87,14 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
   }
 
   const showDesktopHistory = mode === "full" && !isMobile && historyOpen;
-  const showMobileHistory = isMobile && historyOpen;
+  // Mobile full-page or sidebar: history as overlay
+  const showHistoryOverlay = (isMobile || mode === "sidebar") && historyOpen;
 
   const sessionTitle = currentSession?.title || "新對話";
 
   return (
     <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
-      {/* Desktop history panel */}
+      {/* Desktop full-page: history as side column */}
       {mode === "full" && !isMobile && (
         <div className={`${styles.historyColumn} ${showDesktopHistory ? "" : styles.historyCollapsed}`}>
           <ChatHistoryPanel
@@ -106,18 +107,17 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
         </div>
       )}
 
-      {/* Mobile history overlay */}
-      {showMobileHistory && (
-        <div className={styles.mobileHistoryOverlay}>
-          <ChatHistoryPanel
-            sessions={sessions}
-            currentSessionId={currentSessionId}
-            onSelectSession={handleSelectSession}
-            onDeleteSession={deleteSession}
-            onRenameSession={renameSession}
-          />
-        </div>
-      )}
+      {/* Mobile / sidebar: history as overlay with slide animation */}
+      <div className={`${styles.historyOverlay} ${showHistoryOverlay ? styles.historyOverlayOpen : ""}`}>
+        <ChatHistoryPanel
+          sessions={sessions}
+          currentSessionId={currentSessionId}
+          onSelectSession={handleSelectSession}
+          onDeleteSession={deleteSession}
+          onRenameSession={renameSession}
+          onClose={() => setHistoryOpen(false)}
+        />
+      </div>
 
       {/* Main chat area */}
       <div className={styles.main}>
@@ -131,11 +131,12 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
           />
         )}
 
-        {/* Sidebar header with close button */}
+        {/* Sidebar header with history toggle + close */}
         {mode === "sidebar" && (
           <ChatTopBar
             title="QJudge AI 助教"
-            onToggleHistory={() => {}}
+            historyOpen={historyOpen}
+            onToggleHistory={() => setHistoryOpen((v) => !v)}
             onNewChat={handleNewChat}
             onClose={onClose}
           />

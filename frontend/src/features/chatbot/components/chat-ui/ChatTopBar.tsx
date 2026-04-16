@@ -5,7 +5,7 @@ import styles from "./ChatTopBar.module.scss";
 interface ChatTopBarProps {
   title?: string;
   historyOpen?: boolean;
-  onToggleHistory: () => void;
+  onToggleHistory?: () => void;
   onNewChat: () => void;
   onClose?: () => void;
 }
@@ -20,9 +20,11 @@ export function ChatTopBar({
   return (
     <div className={styles.bar}>
       <div className={styles.left}>
-        <IconButton kind="ghost" label={historyOpen ? "收合面板" : "對話紀錄"} onClick={onToggleHistory}>
-          {historyOpen ? <Close size={20} /> : <RecentlyViewed size={20} />}
-        </IconButton>
+        {onToggleHistory && (
+          <IconButton kind="ghost" label={historyOpen ? "收合面板" : "對話紀錄"} onClick={onToggleHistory}>
+            {historyOpen ? <Close size={20} /> : <RecentlyViewed size={20} />}
+          </IconButton>
+        )}
       </div>
       <span className={styles.title}>{title}</span>
       <div className={styles.right}>
