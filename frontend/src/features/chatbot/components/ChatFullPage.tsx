@@ -180,7 +180,7 @@ export default function ChatFullPage() {
     } catch { return []; }
   }, []);
 
-  const config = useRef<PublicConfig>({
+  const config = useMemo<PublicConfig>(() => ({
     messaging: { customSendMessage, showStopButtonImmediately: true, messageTimeoutSecs: 120, customLoadHistory },
     history: { isOn: true },
     header: { isOn: false },
@@ -192,7 +192,7 @@ export default function ChatFullPage() {
     },
     openChatByDefault: true,
     assistantName: "QJudge AI",
-  }).current;
+  }), [customSendMessage, customLoadHistory]);
 
   const handleSessionSelect = useCallback((sessionId: string) => {
     backendSessionIdRef.current = sessionId;
@@ -209,6 +209,7 @@ export default function ChatFullPage() {
     if (!instance) return {};
     return {
       [WriteableElementName.HISTORY_PANEL_ELEMENT]: (
+        // eslint-disable-next-line react-hooks/refs
         <ChatHistory instance={instance} currentSessionId={currentSessionIdRef.current} onSessionSelect={handleSessionSelect} onNewChat={handleNewChat} showHeader={false} />
       ),
     };
