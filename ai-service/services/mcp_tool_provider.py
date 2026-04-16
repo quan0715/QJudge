@@ -50,7 +50,12 @@ class MCPToolProvider:
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
         if self._stack is not None:
-            await self._stack.aclose()
+            try:
+                await self._stack.aclose()
+            except Exception as close_exc:
+                # MCP client may send a cleanup request during close; ignore errors
+                # (e.g. 401 on the teardown POST) since the work is already done.
+                logger.debug("MCP session close error (ignored): %s", close_exc)
         self._stack = None
         self._session = None
 
