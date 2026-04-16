@@ -9,6 +9,8 @@ from typing import Any, AsyncGenerator
 from deepagents.backends import StateBackend
 from deepagents.graph import create_agent, TodoListMiddleware
 from deepagents.middleware.filesystem import FilesystemMiddleware
+from deepagents.middleware.summarization import SummarizationMiddleware
+from langchain_core.messages import AnyMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
@@ -23,9 +25,33 @@ from services.event_adapter import (
 )
 from models.schemas import RequestContext
 from services.mcp_tool_provider import MCPToolProvider
-from services.model_factory import ModelFactory
+from services.model_factory import ModelFactory, _SUMMARIZATION_MODEL_ID
 
 logger = logging.getLogger(__name__)
+
+
+class _SafeSummarizationMiddleware(SummarizationMiddleware):
+    """Patches deepagents 0.5.3's SummarizationMiddleware tool_call pair bug.
+
+    deepagents calls _lc_helper._partition_messages(messages, cutoff_index) directly
+    without first adjusting the cutoff via _find_safe_cutoff_point. This causes
+    ToolMessages to be split from their parent AIMessage, resulting in 400 errors.
+
+    langchain 1.2.15 already has the fix in _lc_helper._find_safe_cutoff_point.
+    This subclass simply wires it up until deepagents releases a fix.
+    See: https://github.com/langchain-ai/langchain/issues/34282
+    """
+
+    def _partition_messages(
+        self,
+        conversation_messages: list[AnyMessage],
+        cutoff_index: int,
+    ) -> tuple[list[AnyMessage], list[AnyMessage]]:
+        safe_cutoff = self._lc_helper._find_safe_cutoff_point(
+            conversation_messages, cutoff_index
+        )
+        return self._lc_helper._partition_messages(conversation_messages, safe_cutoff)
+
 
 # Default system prompt for the TA agent
 _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師（出題者）。
@@ -95,13 +121,18 @@ class DeepAgentRunner:
         SubAgentMiddleware / SummarizationMiddleware overhead.
 
         Middleware stack (in order):
-          1. TodoListMiddleware        — task planning, ~700 tokens
-          2. FilesystemMiddleware      — auto-evicts tool results >20k tokens to StateBackend
+          1. TodoListMiddleware             — task planning, ~700 tokens
+          2. FilesystemMiddleware           — auto-evicts tool results >20k tokens to StateBackend
+          3. _SafeSummarizationMiddleware   — compresses history at 85% context; patches deepagents
+                                             0.5.3 bug where _partition_messages didn't call
+                                             _find_safe_cutoff_point (langchain#34282)
           3. SummarizationMiddleware   — compresses conversation at 85% context window,
                                         prevents long sessions from hitting DeepSeek R1's 131k limit
         """
         model = ModelFactory.create_model(model_id=model_id)
+        summarization_model = ModelFactory.create_model(model_id=_SUMMARIZATION_MODEL_ID)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
+        backend = StateBackend()
 
         agent = create_agent(
             model=model,
@@ -109,7 +140,8 @@ class DeepAgentRunner:
             system_prompt=prompt,
             middleware=[
                 TodoListMiddleware(),
-                FilesystemMiddleware(backend=StateBackend()),
+                FilesystemMiddleware(backend=backend),
+                _SafeSummarizationMiddleware(model=summarization_model, backend=backend),
             ],
             checkpointer=self._checkpointer,
         )

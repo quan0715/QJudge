@@ -19,6 +19,7 @@ _MODEL_MAP: dict[str, str] = {
 }
 
 _DEFAULT_MODEL_ID = "deepseek-v3"
+_SUMMARIZATION_MODEL_ID = "deepseek-v3"
 
 # Pricing in cents per million tokens (single source of truth)
 PRICING: dict[str, dict[str, int]] = {
