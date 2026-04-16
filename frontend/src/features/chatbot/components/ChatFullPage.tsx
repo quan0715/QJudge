@@ -14,7 +14,6 @@ import {
   CornersType,
   PanelType,
   type ChatInstance,
-  type ToolbarAction,
   type HistoryItem,
   type ChainOfThoughtStep,
   type CustomSendMessageOptions,
@@ -22,7 +21,6 @@ import {
   type StreamChunk,
   type PublicConfig,
 } from "@carbon/ai-chat";
-import RecentlyViewed from "@carbon/icons-react/es/RecentlyViewed.js";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { httpClient } from "@/infrastructure/api/http.client";
 import { ChatHistory } from "./ChatHistory";
@@ -158,29 +156,13 @@ export default function ChatFullPage() {
     } catch { return []; }
   }, []);
 
-  // Build config — menuOptions needs instance ref for history toggle
   const config = useMemo<PublicConfig>(() => ({
     messaging: { customSendMessage, showStopButtonImmediately: true, messageTimeoutSecs: 120, customLoadHistory },
     history: { isOn: true },
     header: {
       title: "QJudge AI 助教",
       hideMinimizeButton: true,
-      showRestartButton: true,
-      actions: [
-        {
-          text: "對話紀錄",
-          icon: RecentlyViewed,
-          fixed: true,
-          onClick: () => {
-            const inst = instanceRef.current;
-            if (inst?.customPanels) {
-              const panel = inst.customPanels.getPanel(PanelType.HISTORY);
-              // Toggle: open if closed, close if open
-              panel?.open();
-            }
-          },
-        } as ToolbarAction,
-      ],
+      showAiLabel: false,
     },
     layout: {
       corners: CornersType.SQUARE,
@@ -203,19 +185,54 @@ export default function ChatFullPage() {
     currentSessionIdRef.current = null;
   }, []);
 
+  const historyOpenRef = useRef(false);
+
+  const toggleHistory = useCallback(() => {
+    const inst = instanceRef.current;
+    if (!inst?.customPanels) return;
+    const panel = inst.customPanels.getPanel(PanelType.HISTORY);
+    if (!panel) return;
+    if (historyOpenRef.current) {
+      panel.close();
+      historyOpenRef.current = false;
+    } else {
+      panel.open();
+      historyOpenRef.current = true;
+    }
+  }, []);
+
   const renderWriteableElements = useMemo(() => {
     if (!instance) return {};
     return {
       [WriteableElementName.HISTORY_PANEL_ELEMENT]: (
         <ChatHistory instance={instance} currentSessionId={currentSessionIdRef.current} onSessionSelect={handleSessionSelect} onNewChat={handleNewChat} showHeader={false} />
       ),
+      [WriteableElementName.HEADER_FIXED_ACTIONS_ELEMENT]: (
+        <button
+          onClick={toggleHistory}
+          aria-label="對話紀錄"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 32, height: 32, padding: 0, border: "none", borderRadius: 0,
+            background: "transparent", cursor: "pointer", color: "inherit",
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 32 32" fill="currentColor">
+            <path d="M16 2A13.94 13.94 0 008.88 4.49L10.3 5.91A11.95 11.95 0 0116 4a12 12 0 010 24V30A14 14 0 0016 2z" />
+            <path d="M16 8h-2v10l8.06 4.83 1-1.73L16 16.56V8z" />
+            <path d="M6 16a10 10 0 001.74 5.61l-1.46 1.46A11.89 11.89 0 014 16z" />
+          </svg>
+        </button>
+      ),
     };
-  }, [instance, handleSessionSelect, handleNewChat]);
+  }, [instance, handleSessionSelect, handleNewChat, toggleHistory]);
 
   const onBeforeRender = useCallback((inst: ChatInstance) => {
     setInstance(inst);
     instanceRef.current = inst;
     inst.on({ type: BusEventType.SEND, handler: () => { try { if (backendSessionIdRef.current) localStorage.setItem("chatbot_last_session_id", backendSessionIdRef.current); } catch { /* */ } } });
+    // Sync history panel close (user clicks back button inside panel)
+    inst.on({ type: BusEventType.HISTORY_END, handler: () => { historyOpenRef.current = false; } });
   }, []);
 
   return (

@@ -1,14 +1,6 @@
-/*
- * ChatFullPage — className for ChatCustomElement MUST define explicit dimensions.
- * See: https://chat.carbondesignsystem.com/tag/latest/docs/documents/Migration_0.4.0_-__0.5.1.html
- *
- * "className prop is now mandatory and must explicitly define width and height"
- * Using absolute positioning to fill the parent container reliably.
- */
+/* ChatFullPage — ChatCustomElement with absolute positioning to fill parent */
 
 .chatElement {
   position: absolute;
   inset: 0;
-  block-size: 100%;
-  inline-size: 100%;
 }
