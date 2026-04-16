@@ -83,7 +83,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=["post"])
-    def send_message_stream(self, request, pk=None):
+    async def send_message_stream(self, request, pk=None):
         """Send a message and stream AI response (proxied to ai-service).
 
         設計說明：
@@ -228,7 +228,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=["post"])
-    def resume_stream(self, request, pk=None):
+    async def resume_stream(self, request, pk=None):
         """Resume an interrupted agent and stream the result.
 
         Proxies to ai-service /api/chat/resume endpoint.
