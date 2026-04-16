@@ -335,6 +335,16 @@ class DeepAgentRunner:
                                 await self._checkpointer.adelete_thread(thread_id)
                             raise retry_exc
                     else:
+                        # Repair found nothing to fix in raw messages — the problem
+                        # is likely in _summarization_event state (bad cutoff_index).
+                        # Delete the checkpoint so the next request starts clean.
+                        if "insufficient tool messages" in error_str:
+                            logger.warning(
+                                "Cannot repair dangling tool_calls (summarization state corrupt), "
+                                "deleting checkpoint for thread %s",
+                                thread_id,
+                            )
+                            await self._checkpointer.adelete_thread(thread_id)
                         raise
                 else:
                     raise
