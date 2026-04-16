@@ -24,7 +24,7 @@ from services.event_adapter import (
 )
 from models.schemas import RequestContext
 from services.mcp_tool_provider import MCPToolProvider
-from services.model_factory import ModelFactory
+from services.model_factory import ModelFactory, _SUMMARIZATION_MODEL_ID
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +102,7 @@ class DeepAgentRunner:
                                         prevents long sessions from hitting DeepSeek R1's 131k limit
         """
         model = ModelFactory.create_model(model_id=model_id)
+        summarization_model = ModelFactory.create_model(model_id=_SUMMARIZATION_MODEL_ID)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
         backend = StateBackend()
 
@@ -112,7 +113,7 @@ class DeepAgentRunner:
             middleware=[
                 TodoListMiddleware(),
                 FilesystemMiddleware(backend=backend),
-                SummarizationMiddleware(model=model, backend=backend),
+                SummarizationMiddleware(model=summarization_model, backend=backend),
             ],
             checkpointer=self._checkpointer,
         )
