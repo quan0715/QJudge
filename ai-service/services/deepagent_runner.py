@@ -9,7 +9,6 @@ from typing import Any, AsyncGenerator
 from deepagents.backends import StateBackend
 from deepagents.graph import create_agent, TodoListMiddleware
 from deepagents.middleware.filesystem import FilesystemMiddleware
-from deepagents.middleware.summarization import SummarizationMiddleware
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
 
@@ -24,7 +23,7 @@ from services.event_adapter import (
 )
 from models.schemas import RequestContext
 from services.mcp_tool_provider import MCPToolProvider
-from services.model_factory import ModelFactory, _SUMMARIZATION_MODEL_ID
+from services.model_factory import ModelFactory
 
 logger = logging.getLogger(__name__)
 
@@ -102,9 +101,7 @@ class DeepAgentRunner:
                                         prevents long sessions from hitting DeepSeek R1's 131k limit
         """
         model = ModelFactory.create_model(model_id=model_id)
-        summarization_model = ModelFactory.create_model(model_id=_SUMMARIZATION_MODEL_ID)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
-        backend = StateBackend()
 
         agent = create_agent(
             model=model,
@@ -112,8 +109,7 @@ class DeepAgentRunner:
             system_prompt=prompt,
             middleware=[
                 TodoListMiddleware(),
-                FilesystemMiddleware(backend=backend),
-                SummarizationMiddleware(model=summarization_model, backend=backend),
+                FilesystemMiddleware(backend=StateBackend()),
             ],
             checkpointer=self._checkpointer,
         )
