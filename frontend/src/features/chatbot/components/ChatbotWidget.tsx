@@ -216,9 +216,10 @@ export const ChatbotWidget = ({
             break;
           case "tool_call_finished": {
             const callId = e.tool_call_id;
+            const lastProcessingIdx = (() => { for (let i = cotSteps.length - 1; i >= 0; i--) { if (cotSteps[i].status === ChainOfThoughtStepStatus.PROCESSING) return i; } return -1; })();
             const idx = callId
               ? cotSteps.findIndex(s => s.tool_name === callId)
-              : cotSteps.findLastIndex(s => s.status === ChainOfThoughtStepStatus.PROCESSING);
+              : lastProcessingIdx;
             if (idx >= 0) cotSteps[idx] = { ...cotSteps[idx], status: e.is_error ? ChainOfThoughtStepStatus.FAILURE : ChainOfThoughtStepStatus.SUCCESS, response: e.result ? { content: typeof e.result === "string" ? e.result : JSON.stringify(e.result, null, 2) } : undefined };
 
             // Collect exam cards from successful qjudge_exam create/batch_create

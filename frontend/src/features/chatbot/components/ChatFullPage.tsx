@@ -96,7 +96,7 @@ export default function ChatFullPage() {
         inst.messaging.addMessageChunk({ final_response: { id: responseId, output: { generic: [item] }, ...(mo ? { message_options: mo } : {}) } } as StreamChunk);
       };
 
-      const handleEvent = (e: { type: string; thread_id?: string; content?: string; tool_name?: string; input_data?: Record<string, unknown>; result?: string | Record<string, unknown>; is_error?: boolean; message?: string }) => {
+      const handleEvent = (e: { type: string; thread_id?: string; content?: string; tool_name?: string; tool_call_id?: string; input_data?: Record<string, unknown>; result?: string | Record<string, unknown>; is_error?: boolean; message?: string }) => {
         if (isCanceled) return;
         switch (e.type) {
           case "run_started": if (e.thread_id) { backendSessionIdRef.current = e.thread_id; currentSessionIdRef.current = e.thread_id; } break;
@@ -114,9 +114,10 @@ export default function ChatFullPage() {
             }
             break;
           case "tool_call_finished": {
+            const lastProcessingIdx = (() => { for (let i = cotSteps.length - 1; i >= 0; i--) { if (cotSteps[i].status === ChainOfThoughtStepStatus.PROCESSING) return i; } return -1; })();
             const idx = e.tool_call_id
               ? cotSteps.findIndex(s => s.tool_name === e.tool_call_id)
-              : cotSteps.findLastIndex(s => s.status === ChainOfThoughtStepStatus.PROCESSING);
+              : lastProcessingIdx;
             if (idx >= 0) cotSteps[idx] = { ...cotSteps[idx], status: e.is_error ? ChainOfThoughtStepStatus.FAILURE : ChainOfThoughtStepStatus.SUCCESS, response: e.result ? { content: typeof e.result === "string" ? e.result : JSON.stringify(e.result, null, 2) } : undefined };
             sendPartial();
             break;
