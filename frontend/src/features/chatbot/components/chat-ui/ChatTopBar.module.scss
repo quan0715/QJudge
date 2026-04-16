@@ -8,6 +8,13 @@
   flex-shrink: 0;
 }
 
+.left,
+.right {
+  display: flex;
+  gap: 0.125rem;
+  min-width: 2rem;
+}
+
 .title {
   font-size: 0.875rem;
   font-weight: 600;

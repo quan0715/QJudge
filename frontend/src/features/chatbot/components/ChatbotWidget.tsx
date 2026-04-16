@@ -6,7 +6,7 @@
 import { useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { ChatContainer } from "./chat-ui/ChatContainer";
 import styles from "./ChatbotSidePanel.module.scss";
@@ -22,20 +22,18 @@ export const ChatbotWidget = ({
 }: ChatbotWidgetProps) => {
   const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const isOnChatPage = location.pathname === "/chat";
-  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
   const [sideBarOpen, setSideBarOpen] = useState(defaultExpanded);
 
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
 
   const handleToggle = useCallback(() => {
-    if (isMobile) {
-      navigate("/chat");
-      return;
-    }
     setSideBarOpen((prev) => !prev);
-  }, [isMobile, navigate]);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setSideBarOpen(false);
+  }, []);
 
   if (!isTeacherOrAdmin || isOnChatPage) return null;
 
@@ -63,6 +61,7 @@ export const ChatbotWidget = ({
           <ChatContainer
             mode="sidebar"
             onProblemUpdated={onProblemUpdated}
+            onClose={handleClose}
             className={styles.chatElement}
           />
         )}

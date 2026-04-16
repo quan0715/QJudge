@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useSyncExternalStore } from "react";
 import { useChatbot } from "../../hooks/useChatbot";
 import type { ChatContext } from "@/core/types/chatbot.types";
 import { MessageList } from "./MessageList";
@@ -7,14 +7,29 @@ import { ChatHistoryPanel } from "./ChatHistoryPanel";
 import { ChatTopBar } from "./ChatTopBar";
 import styles from "./ChatContainer.module.scss";
 
+// Reactive mobile detection via matchMedia
+const MOBILE_QUERY = "(max-width: 768px)";
+const subscribe = (cb: () => void) => {
+  const mql = window.matchMedia(MOBILE_QUERY);
+  mql.addEventListener("change", cb);
+  return () => mql.removeEventListener("change", cb);
+};
+const getSnapshot = () => window.matchMedia(MOBILE_QUERY).matches;
+const getServerSnapshot = () => false;
+
+function useIsMobile() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
 interface ChatContainerProps {
   mode: "full" | "sidebar";
   context?: ChatContext | null;
   onProblemUpdated?: () => void;
+  onClose?: () => void;
   className?: string;
 }
 
-export function ChatContainer({ mode, context, onProblemUpdated, className }: ChatContainerProps) {
+export function ChatContainer({ mode, context, onProblemUpdated, onClose, className }: ChatContainerProps) {
   const {
     sessions,
     currentSessionId,
@@ -35,8 +50,8 @@ export function ChatContainer({ mode, context, onProblemUpdated, className }: Ch
     onProblemUpdated,
   });
 
-  const [historyOpen, setHistoryOpen] = useState(mode === "full");
-  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+  const isMobile = useIsMobile();
+  const [historyOpen, setHistoryOpen] = useState(mode === "full" && !isMobile);
 
   const handleNewChat = useCallback(() => {
     createSession();
@@ -108,11 +123,20 @@ export function ChatContainer({ mode, context, onProblemUpdated, className }: Ch
 
       {/* Main chat area */}
       <div className={styles.main}>
+        {/* Mobile full-page header */}
         {showTopBar && (
           <ChatTopBar
             title={currentSession?.title || "QJudge AI 助教"}
             onToggleHistory={() => setHistoryOpen((v) => !v)}
             onNewChat={handleNewChat}
+          />
+        )}
+
+        {/* Sidebar header with close button */}
+        {mode === "sidebar" && onClose && (
+          <ChatTopBar
+            title="QJudge AI 助教"
+            onClose={onClose}
           />
         )}
 
