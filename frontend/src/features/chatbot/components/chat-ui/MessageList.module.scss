@@ -1,0 +1,30 @@
+.list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem 0;
+  scroll-behavior: smooth;
+
+  // Thin scrollbar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--cds-border-subtle-01, #c6c6c6);
+    border-radius: 3px;
+  }
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--cds-text-secondary, #525252);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 2rem;
+}
