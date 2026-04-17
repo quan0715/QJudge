@@ -72,8 +72,11 @@ export interface ContestPermissions {
 }
 
 export interface ContestProblemSummary {
-  id: string; // ContestProblem ID
-  problemId: string; // Actual Problem ID
+  // ContestQuestionBinding.id — routing, per-contest problem identity, UI state.
+  // Not valid to pass to /submissions?problem= (that filter expects CodingProblem.id).
+  id: string;
+  // CodingProblem.id — the id /submissions and other cross-feature APIs expect.
+  problemId: string;
   label: string; // A, B, C...
   title: string;
   order?: number;
