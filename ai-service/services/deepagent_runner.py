@@ -33,6 +33,13 @@ from services.model_factory import ModelFactory, _SUMMARIZATION_MODEL_ID
 logger = logging.getLogger(__name__)
 
 
+# LangGraph recursion limit for a single run. A recursive budget covers each
+# agent<->tool round trip plus middleware hops; test-case generation and
+# multi-tool plans routinely burn 30-40 iterations, so keep headroom. Past
+# scratch-space loops (write_file/read_file churn) used to hit 60 easily.
+_AGENT_RECURSION_LIMIT = 100
+
+
 # Write-class MCP tool actions that require human approval before execution.
 # Any tool_call whose name is a key AND whose args["action"] is in the
 # corresponding set triggers an interrupt handled by ActionAwareHITLMiddleware.
@@ -135,13 +142,21 @@ _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師�
 - qjudge_coding：管理程式題、匯入題庫題、調整分數、test run。
 - 所有寫入都直接走 MCP tool；先讀現況再修改，不要臆測。
 
+虛擬檔案工具（write_file / read_file / ls / glob / grep / edit_file）：
+- 僅作為暫存筆記（scratch space），內容存在對話內部 state，外部看不到、也不會被測資系統讀到。
+- 絕對不要把「寫虛擬檔案」當成「更新題目/測資」。真實落地必須走：
+  * qjudge_coding(action="update") 修改題目描述 / test_cases / language_configs
+  * qjudge_code_runner 執行 reference solution（參數是 code 字串，不讀虛擬檔案）
+- 同一個檔案不要連續 read 超過一次；已讀過就從對話記憶取用。
+
 測資生成工作流（當用戶要求生成或驗證測資時遵循）：
 1. qjudge_coding(action="get") 讀題目描述與限制。
 2. 視需要讀取題目細節中的 sample cases，或基於既有內容整理測資需求。
-3. 撰寫 reference solution（使用題目指定語言或 Python）。
+3. 撰寫 reference solution（使用題目指定語言或 Python），直接在訊息或虛擬檔案中暫存。
 4. 設計測資集：sample cases（基本範例）+ hidden cases（邊界、壓力測試）。
-5. **必須**使用 qjudge_coding(action="test_run") 實際執行 reference solution 驗證。絕對不可跳過此步驟或自行手推 expected output。
-6. 若 MCP 目前不支援直接更新測資，必須明確告知限制，不要假裝已寫入。
+5. **必須**使用 qjudge_code_runner 以 code 字串送入實際執行 reference solution 驗證。
+   絕對不可跳過此步驟或自行手推 expected output；test_run 不在 qjudge_coding 裡。
+6. 驗證後用 qjudge_coding(action="update") 把新的 test_cases 寫回題目；不可假裝已寫入。
 
 寫入核准（HITL）：
 下列工具的寫入類 action 會自動中斷等核准，直接呼叫即可：
@@ -247,9 +262,16 @@ class DeepAgentRunner:
 
     @staticmethod
     async def _repair_dangling_tool_calls(agent: Any, config: dict[str, Any]) -> bool:
-        """Fix checkpoint with tool_calls that lack tool responses.
+        """Fix checkpoints whose tool_calls lack matching tool responses.
 
-        Returns True if a repair was made, False otherwise.
+        Scans the **entire** message history (not only the last AIMessage),
+        because multiple AI turns can leave dangling tool_calls behind when an
+        earlier turn is cut short (recursion limit, cancel, HITL abort). If
+        any tool_call_id has no paired ToolMessage, a synthetic error
+        ToolMessage is injected so the next LLM call stops failing with
+        "insufficient tool messages following tool_calls".
+
+        Returns True if at least one repair was injected.
         """
         from langchain_core.messages import ToolMessage
 
@@ -259,45 +281,44 @@ class DeepAgentRunner:
             if not messages:
                 return False
 
-            # Find the last AI message with tool_calls
-            last_ai = None
-            for msg in reversed(messages):
-                if hasattr(msg, "tool_calls") and msg.tool_calls:
-                    last_ai = msg
-                    break
-
-            if last_ai is None:
+            # Gather every AIMessage that carries tool_calls anywhere in history.
+            ai_messages_with_tools = [
+                msg for msg in messages
+                if hasattr(msg, "tool_calls") and msg.tool_calls
+            ]
+            if not ai_messages_with_tools:
                 return False
 
-            # Collect tool_call_ids that already have responses
             existing_responses = {
                 msg.tool_call_id
                 for msg in messages
-                if isinstance(msg, ToolMessage) and hasattr(msg, "tool_call_id")
+                if isinstance(msg, ToolMessage) and getattr(msg, "tool_call_id", None)
             }
 
-            # Find dangling tool_calls (no matching response)
-            missing = [
-                tc for tc in last_ai.tool_calls
-                if tc.get("id") and tc["id"] not in existing_responses
-            ]
+            repair_messages: list[ToolMessage] = []
+            seen: set[str] = set()
+            for ai_msg in ai_messages_with_tools:
+                for tc in ai_msg.tool_calls:
+                    tc_id = tc.get("id")
+                    if not tc_id or tc_id in existing_responses or tc_id in seen:
+                        continue
+                    seen.add(tc_id)
+                    repair_messages.append(
+                        ToolMessage(
+                            content="[Tool call failed: previous session error. Please retry.]",
+                            tool_call_id=tc_id,
+                            name=tc.get("name", "unknown"),
+                        )
+                    )
 
-            if not missing:
+            if not repair_messages:
                 return False
 
-            # Inject synthetic error responses for each missing tool_call
-            repair_messages = [
-                ToolMessage(
-                    content=f"[Tool call failed: previous session error. Please retry.]",
-                    tool_call_id=tc["id"],
-                    name=tc.get("name", "unknown"),
-                )
-                for tc in missing
-            ]
-
             logger.warning(
-                "Repairing checkpoint: injecting %d missing tool responses for thread %s",
+                "Repairing checkpoint: injecting %d missing tool responses "
+                "across %d AIMessage(s) for thread %s",
                 len(repair_messages),
+                len(ai_messages_with_tools),
                 config.get("configurable", {}).get("thread_id", "?"),
             )
 
@@ -482,7 +503,7 @@ class DeepAgentRunner:
             config = {
                 "configurable": {"thread_id": thread_id},
                 "metadata": {"thread_id": thread_id, "run_id": run_id},
-                "recursion_limit": 60,
+                "recursion_limit": _AGENT_RECURSION_LIMIT,
             }
 
             agent_input: dict[str, Any] = {"messages": messages}
@@ -516,7 +537,7 @@ class DeepAgentRunner:
             config = {
                 "configurable": {"thread_id": thread_id},
                 "metadata": {"thread_id": thread_id, "run_id": run_id},
-                "recursion_limit": 60,
+                "recursion_limit": _AGENT_RECURSION_LIMIT,
             }
 
             resume_value = Command(resume={"decisions": [{"type": decision}]})
