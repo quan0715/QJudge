@@ -4,6 +4,8 @@ import { Send, StopFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import styles from "./ComposerBar.module.scss";
 
+const TEXTAREA_MAX_HEIGHT = 160; // sync with $chat-textarea-max-height in _variables.scss
+
 interface ComposerBarProps {
   onSend: (text: string) => void;
   onStop?: () => void;
@@ -55,7 +57,7 @@ export function ComposerBar({
     // Auto-resize
     const ta = e.target;
     ta.style.height = "auto";
-    ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+    ta.style.height = `${Math.min(ta.scrollHeight, TEXTAREA_MAX_HEIGHT)}px`;
   }, []);
 
   const canSend = value.trim().length > 0 && !disabled && !isStreaming;

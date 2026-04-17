@@ -9,7 +9,7 @@ import { ChatHistoryPanel } from "./ChatHistoryPanel";
 import { ChatTopBar } from "./ChatTopBar";
 import styles from "./ChatContainer.module.scss";
 
-// Reactive mobile detection via matchMedia
+// Reactive mobile detection — sync with $chat-mobile-breakpoint in _variables.scss
 const MOBILE_QUERY = "(max-width: 768px)";
 const subscribe = (cb: () => void) => {
   const mql = window.matchMedia(MOBILE_QUERY);

@@ -1,0 +1,7 @@
+// Chat UI shared variables — single source of truth
+$chat-content-max-width: 900px;
+$chat-history-width: 280px;
+$chat-mobile-breakpoint: 768px;
+$chat-motion-duration: 240ms;
+$chat-motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
+$chat-textarea-max-height: 160px;

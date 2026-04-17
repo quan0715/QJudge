@@ -1,9 +1,11 @@
+@use "./variables" as *;
+
 .bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.25rem 0.5rem;
-  max-width: 900px;
+  max-width: $chat-content-max-width;
   width: 100%;
   margin: 0 auto;
   background: transparent;

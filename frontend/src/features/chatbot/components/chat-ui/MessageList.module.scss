@@ -1,3 +1,5 @@
+@use "./variables" as *;
+
 .list {
   flex: 1;
   min-height: 0;
@@ -11,7 +13,7 @@
   flex-direction: column;
 
   > * {
-    max-width: 900px;
+    max-width: $chat-content-max-width;
     width: 100%;
     margin-left: auto;
     margin-right: auto;
