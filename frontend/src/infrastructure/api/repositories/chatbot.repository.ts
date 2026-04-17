@@ -129,6 +129,13 @@ interface BackendRun {
 }
 
 // ===== Helpers =====
+const TODO_TOOL_NAMES = new Set(["write_todos", "update_todos"]);
+const hiddenTodoToolNames = new WeakMap<object, string>();
+
+function isTodoToolName(toolName: string | undefined): boolean {
+  return !!toolName && TODO_TOOL_NAMES.has(toolName);
+}
+
 function normalizeTodoStatus(status: unknown): RunTodoStatus {
   if (status === "success" || status === "completed" || status === "complete" || status === "done") {
     return "success";
@@ -691,6 +698,11 @@ const chatbotRepository: ChatbotRepository = {
 
       case "tool_call_started":
         if (event.tool_name) {
+          if (isTodoToolName(event.tool_name)) {
+            hiddenTodoToolNames.set(currentMessage, event.tool_name);
+            currentMessage.isThinking = false;
+            break;
+          }
           currentMessage.toolName = event.tool_name;
           currentMessage.isThinking = false;
           callbacks.onMessageUpdate?.({ ...currentMessage });
@@ -698,9 +710,17 @@ const chatbotRepository: ChatbotRepository = {
         break;
 
       case "tool_call_finished": {
-        const toolCallId = event.tool_call_id || currentMessage.toolName || "";
+        const hiddenTodoToolName = hiddenTodoToolNames.get(currentMessage);
+        const toolName = event.tool_name || currentMessage.toolName || hiddenTodoToolName || "";
+        if (isTodoToolName(toolName)) {
+          hiddenTodoToolNames.delete(currentMessage);
+          currentMessage.toolName = undefined;
+          currentMessage.isThinking = false;
+          break;
+        }
+        const toolCallId = event.tool_call_id || toolName;
         const toolInfo: ToolInfo = {
-          toolName: currentMessage.toolName || "",
+          toolName,
           toolCallId,
           result: event.result,
           isError: event.is_error,

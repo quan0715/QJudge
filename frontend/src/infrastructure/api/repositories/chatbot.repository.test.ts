@@ -78,6 +78,8 @@ describe("chatbotRepository stream events", () => {
 
   it("updates todos immediately from write_todos tool_call_started input", () => {
     const onTodoItemsUpdate = vi.fn();
+    const onMessageUpdate = vi.fn();
+    const currentMessage: Record<string, unknown> = {};
 
     (chatbotRepository as unknown as {
       _handleStreamEvent: (
@@ -106,10 +108,10 @@ describe("chatbotRepository stream events", () => {
           ],
         },
       },
-      {},
+      currentMessage,
       {
         onTodoItemsUpdate,
-        onMessageUpdate: vi.fn(),
+        onMessageUpdate,
       },
       "session-1",
       vi.fn(),
@@ -120,6 +122,8 @@ describe("chatbotRepository stream events", () => {
       { id: "1-設計系統架構", label: "設計系統架構", status: "in_progress" },
       { id: "2-實作核心功能", label: "實作核心功能", status: "pending" },
     ]);
+    expect(currentMessage.toolName).toBeUndefined();
+    expect(onMessageUpdate).not.toHaveBeenCalled();
   });
 
   it("extracts todo command text from streamed assistant deltas", () => {
@@ -209,10 +213,17 @@ describe("chatbotRepository stream events", () => {
 
   it("updates todos from tool_call_finished Command result", () => {
     const onTodoItemsUpdate = vi.fn();
-
-    (chatbotRepository as unknown as {
+    const onMessageUpdate = vi.fn();
+    const currentMessage: Record<string, unknown> = {};
+    const handleStreamEvent = (chatbotRepository as unknown as {
       _handleStreamEvent: (
-        event: { type: string; result: string; is_error: boolean },
+        event: {
+          type: string;
+          tool_name?: string;
+          input_data?: { todos: Array<{ status: string; content: string }> };
+          result?: string;
+          is_error?: boolean;
+        },
         currentMessage: Record<string, unknown>,
         callbacks: {
           onTodoItemsUpdate?: (items: unknown[] | null) => void;
@@ -221,17 +232,38 @@ describe("chatbotRepository stream events", () => {
         resolvedSessionId: string,
         setResolvedId: (id: string) => void,
       ) => void;
-    })._handleStreamEvent(
+    })._handleStreamEvent;
+
+    handleStreamEvent(
+      {
+        type: "tool_call_started",
+        tool_name: "write_todos",
+        input_data: {
+          todos: [
+            { status: "pending", content: "分析需求規格" },
+          ],
+        },
+      },
+      currentMessage,
+      {
+        onTodoItemsUpdate,
+        onMessageUpdate,
+      },
+      "session-1",
+      vi.fn(),
+    );
+
+    handleStreamEvent(
       {
         type: "tool_call_finished",
         result:
           "Command(update={'todos': [{'content': '分析需求規格', 'status': 'completed'}, {'content': '設計系統架構', 'status': 'in_progress'}, {'content': '實作核心功能', 'status': 'pending'}], 'messages': [ToolMessage(content=\"Updated todo list\", tool_call_id='call_00')]})",
         is_error: false,
       },
-      {},
+      currentMessage,
       {
         onTodoItemsUpdate,
-        onMessageUpdate: vi.fn(),
+        onMessageUpdate,
       },
       "session-1",
       vi.fn(),
@@ -242,5 +274,8 @@ describe("chatbotRepository stream events", () => {
       { id: "1-設計系統架構", label: "設計系統架構", status: "in_progress" },
       { id: "2-實作核心功能", label: "實作核心功能", status: "pending" },
     ]);
+    expect(currentMessage.toolName).toBeUndefined();
+    expect(currentMessage.toolExecutions).toBeUndefined();
+    expect(onMessageUpdate).not.toHaveBeenCalled();
   });
 });
