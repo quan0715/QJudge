@@ -1,5 +1,13 @@
 @use "./variables" as *;
 
+.wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative; // For floating button
+}
+
 .list {
   flex: 1;
   min-height: 0;
@@ -32,3 +40,34 @@
   }
 }
 
+.scrollButton {
+  position: absolute;
+  bottom: 5.5rem; // Just above the composer
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  border-radius: 50% !important;
+  
+  // Subtle background
+  background-color: var(--cds-layer-03, #e0e0e0) !important;
+  border: 1px solid var(--cds-border-subtle-01, #c6c6c6) !important;
+  opacity: 0.8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+
+  &:hover {
+    transform: translateX(-50%) translateY(-2px);
+    opacity: 1;
+    background-color: var(--cds-layer-hover-03, #d1d1d1) !important;
+  }
+
+  &:active {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  // Carbon icons integration
+  svg {
+    fill: var(--cds-icon-secondary, #525252) !important;
+  }
+}

@@ -74,6 +74,7 @@
     "toolConfirm": "Tool Call Confirmation",
     "confirmAction": "Confirm Execution",
     "cancelAction": "Cancel",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "scrollToBottom": "Scroll to bottom"
   }
 }

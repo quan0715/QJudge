@@ -148,6 +148,7 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
           <div className={styles.messagesArea}>
             <MessageList
               messages={messages}
+              currentSessionId={currentSessionId}
               pendingApproval={pendingApproval}
               onApprovalDecision={handleApproval}
             />
