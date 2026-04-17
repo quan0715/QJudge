@@ -1,7 +1,5 @@
-/* ChatbotSidePanel — split-view sidebar following Carbon workspace-sidebar pattern */
+/* ChatFab — Floating action button to navigate to /chat */
 
-$sidebar-width: 400px;
-$header-height: 48px;
 $toggle-size: 44px;
 $toggle-bottom: 1.25rem;
 $toggle-right: 1.25rem;
@@ -9,40 +7,6 @@ $toggle-right: 1.25rem;
 $motion-duration: 240ms;
 $motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
 
-.sidebar {
-  flex-shrink: 0;
-  position: relative;
-  width: $sidebar-width;
-  height: 100%;
-  overflow: hidden;
-  border-left: 1px solid var(--cds-border-subtle-01, #e0e0e0);
-  transition: width $motion-duration $motion-easing;
-
-  /* Hide sidebar on mobile — use /chat full page instead */
-  @media (max-width: 768px) {
-    display: none;
-  }
-}
-
-.sidebar .chatElement {
-  position: absolute;
-  inset: 0;
-  block-size: 100%;
-  inline-size: 100%;
-}
-
-.sidebarClosing {
-  width: 0;
-  border-left: none;
-}
-
-.sidebarClosed {
-  width: 0;
-  border-left: none;
-  visibility: hidden;
-}
-
-/* Toggle FAB — only visible when sidebar is closed */
 .toggleButton {
   position: fixed;
   bottom: $toggle-bottom;

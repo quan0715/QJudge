@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import styles from "./ChatbotSidePanel.module.scss";
+import styles from "./ChatFab.module.scss";
 
 export function ChatFab() {
   const { user } = useAuth();
