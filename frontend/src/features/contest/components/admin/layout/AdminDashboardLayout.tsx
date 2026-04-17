@@ -163,6 +163,7 @@ export default function AdminDashboardLayout({
       sideNavAriaLabel={t("common:header.adminNavigation")}
       sideNavMode={{ variant: "rail" }}
       navItems={navItems}
+      enableAI
     >
       {children}
     </AdminShellLayout>
