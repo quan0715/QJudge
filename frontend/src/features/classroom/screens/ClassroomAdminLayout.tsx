@@ -83,9 +83,9 @@ const ClassroomAdminLayout = ({
         />
       </Header>
 
-      <main className={styles.content}>
-        <WorkspaceShell>{children}</WorkspaceShell>
-      </main>
+      <WorkspaceShell>
+        <main className={styles.content}>{children}</main>
+      </WorkspaceShell>
     </div>
   );
 };

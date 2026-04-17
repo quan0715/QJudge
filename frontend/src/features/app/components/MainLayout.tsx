@@ -31,7 +31,7 @@ const MainLayout = () => {
           </div>
         ) : (
           <WorkspaceShell>
-            <Content style={{ flex: 1, overflow: "auto", marginTop: 0 }}>
+            <Content style={{ height: "100%", overflow: "auto", marginTop: 0 }}>
               <Outlet />
             </Content>
           </WorkspaceShell>
