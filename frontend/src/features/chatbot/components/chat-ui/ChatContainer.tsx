@@ -39,7 +39,10 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
     currentSession,
     isStreaming,
     isInitializing,
+    isSessionLoading,
     pendingApproval,
+    sessionNotice,
+    runTodoItems,
     createSession,
     deleteSession,
     switchSession,
@@ -64,9 +67,9 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
   const handleSelectSession = useCallback(
     (id: string) => {
       switchSession(id);
-      if (isMobile) setHistoryOpen(false);
+      if (isMobile || mode === "sidebar") setHistoryOpen(false);
     },
-    [switchSession, isMobile],
+    [switchSession, isMobile, mode],
   );
 
   const handleApproval = useCallback(
@@ -149,6 +152,7 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
             <MessageList
               messages={messages}
               currentSessionId={currentSessionId}
+              isLoading={isSessionLoading}
               pendingApproval={pendingApproval}
               onApprovalDecision={handleApproval}
             />
@@ -157,6 +161,8 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
                 onSend={sendMessage}
                 onStop={stopStreaming}
                 isStreaming={isStreaming}
+                sessionNotice={sessionNotice}
+                runTodoItems={runTodoItems}
               />
             </div>
           </div>

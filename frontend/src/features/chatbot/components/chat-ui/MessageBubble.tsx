@@ -1,7 +1,9 @@
-import { WatsonxAi } from "@carbon/icons-react";
+import { WatsonxAi, Copy, Checkmark } from "@carbon/icons-react";
+import { IconButton } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import { useCopyText } from "@/shared/hooks/useCopyText";
 import { normalizeChatMarkdownText } from "@/features/chatbot/utils/chatText";
 import { ChainOfThought } from "./ChainOfThought";
 import styles from "./MessageBubble.module.scss";
@@ -12,6 +14,7 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const { t } = useTranslation("chatbot");
+  const { isCopied, copy } = useCopyText();
   const isUser = message.role === "user";
   const thinkingText = message.thinkingInfo?.thinking
     ? normalizeChatMarkdownText(message.thinkingInfo.thinking)
@@ -38,6 +41,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 minute: "2-digit",
               })}
             </span>
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label={isCopied ? t("ui.copied", "已複製") : t("ui.copyMessage", "複製訊息")}
+              onClick={() => copy(message.content)}
+              className={styles.copyButton}
+            >
+              {isCopied ? <Checkmark size={16} /> : <Copy size={16} />}
+            </IconButton>
           </div>
         )}
 
@@ -49,6 +61,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 minute: "2-digit",
               })}
             </span>
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label={isCopied ? t("ui.copied", "已複製") : t("ui.copyMessage", "複製訊息")}
+              onClick={() => copy(message.content)}
+              className={styles.copyButton}
+            >
+              {isCopied ? <Checkmark size={16} /> : <Copy size={16} />}
+            </IconButton>
           </div>
         )}
 

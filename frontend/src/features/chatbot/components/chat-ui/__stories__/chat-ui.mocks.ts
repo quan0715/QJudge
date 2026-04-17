@@ -58,6 +58,24 @@ export const mockAiStreaming: ChatMessage = {
   isThinking: true,
 };
 
+export const mockRunTodoItems = [
+  {
+    id: "summarization",
+    label: "對話過長，截取摘要中",
+    status: "pending" as const,
+  },
+  {
+    id: "tool-qjudge_discover",
+    label: "呼叫 qjudge_discover",
+    status: "success" as const,
+  },
+  {
+    id: "tool-qjudge_submit",
+    label: "呼叫 qjudge_submit",
+    status: "fail" as const,
+  },
+];
+
 export const mockAiWithMarkdown: ChatMessage = {
   id: "msg-ai-md",
   role: "assistant",

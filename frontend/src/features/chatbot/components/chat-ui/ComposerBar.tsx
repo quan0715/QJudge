@@ -1,7 +1,8 @@
 import { useRef, useState, useCallback } from "react";
-import { IconButton } from "@carbon/react";
+import { IconButton, Tag } from "@carbon/react";
 import { Send, StopFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import type { RunTodoItem } from "@/core/types/chatbot.types";
 import styles from "./ComposerBar.module.scss";
 
 const TEXTAREA_MAX_HEIGHT = 160; // sync with $chat-textarea-max-height in _variables.scss
@@ -12,6 +13,8 @@ interface ComposerBarProps {
   isStreaming: boolean;
   disabled?: boolean;
   placeholder?: string;
+  sessionNotice?: string | null;
+  runTodoItems?: RunTodoItem[];
 }
 
 export function ComposerBar({
@@ -20,6 +23,8 @@ export function ComposerBar({
   isStreaming,
   disabled = false,
   placeholder,
+  sessionNotice,
+  runTodoItems = [],
 }: ComposerBarProps) {
   const { t } = useTranslation("chatbot");
   const displayPlaceholder = placeholder || t("ui.inputPlaceholder");
@@ -61,10 +66,43 @@ export function ComposerBar({
   }, []);
 
   const canSend = value.trim().length > 0 && !disabled && !isStreaming;
+  const hasStatusBlock = Boolean(sessionNotice) || runTodoItems.length > 0;
 
   return (
     <div className={styles.bar}>
-      {/* Future: attach button slot goes here */}
+      {hasStatusBlock && (
+        <div className={styles.statusStack}>
+          {sessionNotice && (
+            <div className={styles.noticeRow}>
+              <Tag type="gray" size="sm">
+                {sessionNotice}
+              </Tag>
+            </div>
+          )}
+
+          {runTodoItems.length > 0 && (
+            <div className={styles.todoList} aria-label={t("ui.todoList", "待辦清單")}>
+              {runTodoItems.map((item) => (
+                <div key={item.id} className={styles.todoItem}>
+                  <Tag
+                    type={item.status === "success" ? "green" : item.status === "fail" ? "red" : "gray"}
+                    size="sm"
+                    className={styles.todoStatus}
+                  >
+                    {item.status === "success"
+                      ? t("ui.todoSuccess", "完成")
+                      : item.status === "fail"
+                        ? t("ui.todoFail", "失敗")
+                        : t("ui.todoPending", "進行中")}
+                  </Tag>
+                  <span className={styles.todoLabel}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className={styles.inputWrapper}>
         <textarea
           ref={textareaRef}

@@ -7,6 +7,7 @@ import type {
   ApprovalRequest,
   ChatRun,
   ChatMessage,
+  RunTodoItem,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 
@@ -17,8 +18,11 @@ interface UseChatbotReturn {
   isLoading: boolean;
   isStreaming: boolean;
   isInitializing: boolean;
+  isSessionLoading: boolean;
   error: string | null;
   pendingApproval: ApprovalRequest | null;
+  sessionNotice: string | null;
+  runTodoItems: RunTodoItem[];
   createSession: () => Promise<string | null>;
   deleteSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
@@ -85,6 +89,18 @@ function createAssistantDraft(
   };
 }
 
+function mergeTodoItems(
+  existing: RunTodoItem[] | undefined,
+  incoming: RunTodoItem[] | undefined,
+): RunTodoItem[] | undefined {
+  if (!incoming) return existing;
+  const current = new Map((existing || []).map((item) => [item.id, item]));
+  for (const item of incoming) {
+    current.set(item.id, item);
+  }
+  return Array.from(current.values());
+}
+
 export function applyRunMessageUpdate(
   session: ChatSession,
   run: ChatRun,
@@ -128,6 +144,7 @@ export function applyRunMessageUpdate(
       runId: message.runId ?? run.id,
       runStatus: messageUpdate.runStatus ?? run.status,
       lastEventSeq: messageUpdate.lastEventSeq ?? message.lastEventSeq,
+      todoItems: mergeTodoItems(message.todoItems, messageUpdate.todoItems),
     };
   });
 
@@ -163,9 +180,14 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [loadingSessionIds, setLoadingSessionIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [error, setError] = useState<string | null>(null);
   const [pendingApproval, setPendingApproval] =
     useState<ApprovalRequest | null>(null);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+  const [runTodoItems, setRunTodoItems] = useState<RunTodoItem[]>([]);
   const [activeRuns, setActiveRuns] = useState<ChatRun[]>([]);
 
   // AbortController for cancelling only the local event subscription.
@@ -179,6 +201,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
   const currentSession =
     sessions.find((session) => session.id === currentSessionId) ?? null;
+  const isSessionLoading =
+    currentSessionId !== null && loadingSessionIds.has(currentSessionId);
 
   const effectiveContext = useMemo<ChatContext | null>(() => {
     if (context) return context;
@@ -274,13 +298,26 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
           setSessions(sessionsWithRuns);
           setCurrentSessionId(activeId);
+          setLoadingSessionIds((prev) => new Set(prev).add(activeId));
+          setIsInitializing(false);
 
           // 背景 lazy load active session 的 messages
-          chatbotRepository.getSession(activeId).then((detailed) => {
-            setSessions((prev) =>
-              prev.map((s) => (s.id === activeId ? detailed : s)),
-            );
-          }).catch(() => { /* ignore, will load on click */ });
+          chatbotRepository
+            .getSession(activeId)
+            .then((detailed) => {
+              setSessions((prev) =>
+                prev.map((s) => (s.id === activeId ? detailed : s)),
+              );
+            })
+            .catch(() => { /* ignore, will load on click */ })
+            .finally(() => {
+              setLoadingSessionIds((prev) => {
+                const next = new Set(prev);
+                next.delete(activeId);
+                return next;
+              });
+            });
+          return;
         }
       } catch (err) {
         console.error("Failed to initialize chatbot:", err);
@@ -306,6 +343,11 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
       setSessions((prev) => [...prev, newSession]);
       setCurrentSessionId(newSession.id);
+      setLoadingSessionIds((prev) => {
+        const next = new Set(prev);
+        next.delete(newSession.id);
+        return next;
+      });
       return newSession.id;
     } catch (err) {
       console.error("Failed to create session:", err);
@@ -341,7 +383,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setError(i18n.t("chatbot:errors.deleteSessionFailed"));
       }
     },
-    [currentSessionId, createSession],
+    [currentSessionId, createSession, setCurrentSessionId],
   );
 
   /**
@@ -354,6 +396,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     // Lazy load messages if not yet loaded
     const existing = sessions.find((s) => s.id === sessionId);
     if (existing && !existing.id.startsWith("temp-") && existing.messages.length === 0) {
+      setLoadingSessionIds((prev) => new Set(prev).add(sessionId));
       try {
         const detailed = await chatbotRepository.getSession(sessionId);
         setSessions((prev) =>
@@ -361,9 +404,15 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         );
       } catch (err) {
         console.warn("Failed to load session messages:", err);
+      } finally {
+        setLoadingSessionIds((prev) => {
+          const next = new Set(prev);
+          next.delete(sessionId);
+          return next;
+        });
       }
     }
-  }, [sessions]);
+  }, [sessions, setCurrentSessionId]);
 
   /**
    * 重新命名 session
@@ -402,6 +451,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     if (!activeRun) {
       setIsStreaming(false);
       setIsLoading(false);
+      setSessionNotice(null);
+      setRunTodoItems([]);
       return;
     }
 
@@ -418,6 +469,9 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       activeRun,
       {
         onMessageUpdate: (messageUpdate) => {
+          if (messageUpdate.todoItems) {
+            setRunTodoItems(messageUpdate.todoItems);
+          }
           setSessions((prev) =>
             prev.map((session) =>
               session.id === activeRun.sessionId
@@ -425,6 +479,12 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
                 : session,
             ),
           );
+        },
+        onSessionNotice: (notice) => {
+          setSessionNotice(notice);
+        },
+        onTodoItemsUpdate: (items) => {
+          setRunTodoItems(items || []);
         },
         onComplete: (freshSession) => {
           setSessions((prev) =>
@@ -435,12 +495,16 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setActiveRuns((prev) => prev.filter((run) => run.id !== activeRun.id));
           setIsStreaming(false);
           setIsLoading(false);
+          setSessionNotice(null);
+          setRunTodoItems([]);
         },
         onError: (errorMsg) => {
           setError(errorMsg);
           setActiveRuns((prev) => prev.filter((run) => run.id !== activeRun.id));
           setIsStreaming(false);
           setIsLoading(false);
+          setSessionNotice(null);
+          setRunTodoItems([]);
         },
         onAwaitingApproval: (request) => {
           setPendingApproval(request);
@@ -499,6 +563,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setIsStreaming(true);
       setIsLoading(true);
       setError(null);
+      setSessionNotice(null);
+      setRunTodoItems([]);
 
       try {
         const run = await chatbotRepository.startRun(
@@ -524,6 +590,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setError(i18n.t("chatbot:errors.sendMessageFailed"));
         setIsStreaming(false);
         setIsLoading(false);
+        setSessionNotice(null);
+        setRunTodoItems([]);
       }
     },
     [currentSessionId, effectiveContext, setCurrentSessionId],
@@ -595,6 +663,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       abortControllerRef.current = null;
       setIsStreaming(false);
       setIsLoading(false);
+      setSessionNotice(null);
+      setRunTodoItems([]);
       return;
     }
 
@@ -622,6 +692,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         abortControllerRef.current = null;
         setIsStreaming(false);
         setIsLoading(false);
+        setSessionNotice(null);
+        setRunTodoItems([]);
       });
   }, [activeRuns, currentSessionId]);
 
@@ -632,8 +704,11 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     isLoading,
     isStreaming,
     isInitializing,
+    isSessionLoading,
     error,
     pendingApproval,
+    sessionNotice,
+    runTodoItems,
     createSession,
     deleteSession,
     switchSession,

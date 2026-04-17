@@ -113,4 +113,25 @@ describe("applyRunMessageUpdate", () => {
       runId: "run-1",
     });
   });
+
+  it("merges todo items into the assistant draft", () => {
+    const streamedState: StreamedRunState = { content: "", thinking: "" };
+    const run = baseRun();
+    const initialSession = baseSession();
+    const nextSession = applyRunMessageUpdate(
+      initialSession,
+      run,
+      {
+        todoItems: [
+          { id: "summarization", label: "對話過長，截取摘要中", status: "pending" },
+        ],
+      },
+      streamedState,
+    );
+
+    expect(nextSession.messages).toHaveLength(1);
+    expect(nextSession.messages[0].todoItems).toEqual([
+      { id: "summarization", label: "對話過長，截取摘要中", status: "pending" },
+    ]);
+  });
 });

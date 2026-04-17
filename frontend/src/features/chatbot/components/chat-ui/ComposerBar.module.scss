@@ -14,6 +14,48 @@
   );
 }
 
+.statusStack {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.noticeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.todoList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.todoItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  border-radius: 999px;
+  background: var(--cds-layer-01, #f4f4f4);
+}
+
+.todoStatus {
+  flex-shrink: 0;
+}
+
+.todoLabel {
+  min-width: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--cds-text-secondary, #525252);
+}
+
 .inputWrapper {
   pointer-events: auto;
   display: flex;

@@ -7,6 +7,8 @@ import type {
   ToolInfo,
   ChatMessage,
   ChatSession,
+  RunTodoItem,
+  RunTodoStatus,
   VerificationReport,
 } from "@/core/types/chatbot.types";
 import { httpClient } from "@/infrastructure/api/http.client";
@@ -17,13 +19,14 @@ const AI_BASE = "/api/v1/ai";
 // ===== v2 SSE event shape from ai-service =====
 interface V2StreamEvent {
   type:
-    | "run_started"
-    | "agent_message_delta"
-    | "thinking_delta"
-    | "verification_report"
-    | "tool_call_started"
-    | "tool_call_finished"
-    | "usage_report"
+  | "run_started"
+  | "agent_message_delta"
+  | "thinking_delta"
+  | "summarization_started"
+  | "verification_report"
+  | "tool_call_started"
+  | "tool_call_finished"
+  | "usage_report"
     | "run_completed"
     | "run_failed"
     | "run_cancelled"
@@ -66,6 +69,7 @@ interface V2StreamEvent {
   // awaiting_approval
   action_requests?: Array<{ name: string; args?: Record<string, unknown> }>;
   review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
+  todo_items?: Array<{ id?: string; label?: string; status?: RunTodoStatus }>;
 
 }
 
@@ -151,6 +155,24 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
         })
         .filter((t): t is ToolInfo => t !== null)
     : undefined;
+  const todoItems = Array.isArray(metadata.todo_items)
+    ? metadata.todo_items
+        .map((todo): RunTodoItem | null => {
+          if (!todo || typeof todo !== "object") return null;
+          const t = todo as Record<string, unknown>;
+          const label = typeof t.label === "string" ? t.label : "";
+          const status = t.status === "pending" || t.status === "success" || t.status === "fail"
+            ? t.status
+            : "pending";
+          if (!label) return null;
+          return {
+            id: typeof t.id === "string" && t.id ? t.id : label,
+            label,
+            status,
+          };
+        })
+        .filter((todo): todo is RunTodoItem => todo !== null)
+    : undefined;
 
   return {
     id: backendMsg.id.toString(),
@@ -159,6 +181,7 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
     timestamp: new Date(backendMsg.created_at),
     thinkingInfo: thinking ? { thinking, signature: "" } : undefined,
     toolExecutions: tools,
+    todoItems,
     runId,
     runStatus: runStatus as ChatMessage["runStatus"],
     lastEventSeq,
@@ -362,9 +385,9 @@ const chatbotRepository: ChatbotRepository = {
       let buffer = "";
 
       const currentMessage: Partial<ChatMessage> = {
-        content: "",
-        isThinking: run.status === "running" || run.status === "queued",
-      };
+      content: "",
+      isThinking: run.status === "running" || run.status === "queued",
+    };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -459,6 +482,20 @@ const chatbotRepository: ChatbotRepository = {
         }
         break;
 
+      case "summarization_started": {
+        callbacks.onSessionNotice?.("對話過長，截取摘要中");
+        const todoItems: RunTodoItem[] = [
+          {
+            id: "summarization",
+            label: "對話過長，截取摘要中",
+            status: "pending" as const,
+          },
+        ];
+        currentMessage.todoItems = todoItems;
+        callbacks.onTodoItemsUpdate?.(todoItems);
+        break;
+      }
+
       case "agent_message_delta":
         if (event.content) {
           currentMessage.content = (currentMessage.content || "") + event.content;
@@ -499,14 +536,26 @@ const chatbotRepository: ChatbotRepository = {
         if (event.tool_name) {
           currentMessage.toolName = event.tool_name;
           currentMessage.isThinking = false;
+          const toolTodo: RunTodoItem = {
+            id: event.tool_call_id || event.tool_name,
+            label: `呼叫 ${event.tool_name}`,
+            status: "pending" as const,
+          };
+          const todoItems: RunTodoItem[] = [
+            ...(currentMessage.todoItems || []),
+            toolTodo,
+          ];
+          currentMessage.todoItems = todoItems;
+          callbacks.onTodoItemsUpdate?.(todoItems);
           callbacks.onMessageUpdate?.({ ...currentMessage });
         }
         break;
 
       case "tool_call_finished": {
+        const toolCallId = event.tool_call_id || currentMessage.toolName || "";
         const toolInfo: ToolInfo = {
           toolName: currentMessage.toolName || "",
-          toolCallId: event.tool_call_id || "",
+          toolCallId,
           result: event.result,
           isError: event.is_error,
         };
@@ -515,6 +564,16 @@ const chatbotRepository: ChatbotRepository = {
           toolInfo,
         ];
         currentMessage.toolName = undefined;
+        const todoItems: RunTodoItem[] = (currentMessage.todoItems || []).map((item) =>
+          item.id === toolCallId
+            ? {
+                ...item,
+                status: event.is_error ? "fail" : "success",
+              }
+            : item,
+        );
+        currentMessage.todoItems = todoItems;
+        callbacks.onTodoItemsUpdate?.(todoItems);
         callbacks.onMessageUpdate?.({ ...currentMessage });
         break;
       }
@@ -530,6 +589,8 @@ const chatbotRepository: ChatbotRepository = {
 
       case "run_completed": {
         console.debug("SSE: run_completed", { runId: event.run_id });
+        callbacks.onSessionNotice?.(null);
+        callbacks.onTodoItemsUpdate?.(null);
         // Fetch fresh session
         this.getSession(resolvedSessionId)
           .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
@@ -542,6 +603,8 @@ const chatbotRepository: ChatbotRepository = {
 
       case "run_cancelled": {
         console.debug("SSE: run_cancelled", { runId: event.run_id });
+        callbacks.onSessionNotice?.(null);
+        callbacks.onTodoItemsUpdate?.(null);
         this.getSession(resolvedSessionId)
           .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
           .catch((err: Error) => {
@@ -556,6 +619,8 @@ const chatbotRepository: ChatbotRepository = {
           errorCode: event.error_code,
           message: event.message,
         });
+        callbacks.onSessionNotice?.(null);
+        callbacks.onTodoItemsUpdate?.(null);
         this.getSession(resolvedSessionId)
           .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
           .catch((err: Error) => {
