@@ -63,7 +63,6 @@ export function mapProblemDetailDto(dto: ProblemDetailDto): ProblemDetail {
           explanation: s.explanation,
         }))
       : [],
-    translations: [],
     testCases: Array.isArray(dto.test_cases)
       ? dto.test_cases.map((tc: TestCaseDto): TestCase => ({
           input: tc.input_data ?? tc.input ?? "",

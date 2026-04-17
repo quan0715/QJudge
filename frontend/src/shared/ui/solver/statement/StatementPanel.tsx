@@ -97,7 +97,7 @@ export const StatementPanel: React.FC<StatementPanelProps> = ({
                 <ProblemHeaderCard problem={problem} />
                 <ProblemPreview
                   problem={problem}
-                  showLanguageToggle={(problem.translations?.length ?? 0) > 1}
+                  showLanguageToggle={false}
                   compact
                 />
               </>

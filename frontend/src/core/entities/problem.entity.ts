@@ -26,15 +26,6 @@ export interface TestCase {
   isHidden?: boolean;
 }
 
-export interface Translation {
-  language: string;
-  title: string;
-  description: string;
-  inputDescription: string;
-  outputDescription: string;
-  hint: string;
-}
-
 /**
  * Coding problem summary (list view).
  *
@@ -80,7 +71,6 @@ export interface CodingProblemDetail extends CodingProblem {
     output: string;
     explanation?: string;
   }>;
-  translations?: Translation[];
   testCases?: TestCase[];
   languageConfigs?: LanguageConfig[];
 

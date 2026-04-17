@@ -28,15 +28,6 @@ export interface TestCaseDto {
   is_hidden?: boolean;
 }
 
-export interface ProblemTranslationDto {
-  language: string;
-  title: string;
-  description: string;
-  input_description: string;
-  output_description: string;
-  hint: string;
-}
-
 export interface ProblemDto {
   id: number | string;
   title: string;
@@ -67,7 +58,6 @@ export interface ProblemDetailDto extends ProblemDto {
     output: string;
     explanation?: string;
   }>;
-  translations?: ProblemTranslationDto[];
   test_cases?: TestCaseDto[];
   language_configs?: LanguageConfigDto[];
   forbidden_keywords?: string[];

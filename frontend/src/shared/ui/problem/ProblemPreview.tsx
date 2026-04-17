@@ -1,6 +1,5 @@
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import type { ProblemDetail } from "@/core/entities/problem.entity";
-import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import { useTranslation } from "react-i18next";
 import { Tag, Tile, IconButton } from "@carbon/react";
 import { Copy, Checkmark } from "@carbon/icons-react";
@@ -26,7 +25,6 @@ const ProblemPreview = ({
   showLanguageToggle: _showLanguageToggle = true,
   compact = false,
 }: ProblemPreviewProps) => {
-  const { contentLanguage } = useContentLanguage();
   const { t } = useTranslation(["problem", "common"]);
 
   if (!problem) {
@@ -35,58 +33,55 @@ const ProblemPreview = ({
 
   const {
     title,
-    translations = [],
+    description,
+    inputDescription,
+    outputDescription,
+    hint,
     testCases = [],
     forbiddenKeywords = [],
     requiredKeywords = [],
   } = problem;
 
-  const translation =
-    translations.find((trans) => trans.language === contentLanguage) ||
-    (contentLanguage === "zh-TW"
-      ? translations.find((trans) => trans.language === "zh-hant")
-      : null) ||
-    translations[0];
-
   const sampleCases = testCases.filter((tc) => tc.isSample);
+  const hasContent = !!(description || inputDescription || outputDescription || hint);
 
   return (
     <article className={`${styles.problemPreview} markdown-body`}>
       {/* Problem Title */}
       {!compact && (
         <h2 className={styles.problemTitle}>
-          {translation?.title || title || t("common:message.noData")}
+          {title || t("common:message.noData")}
         </h2>
       )}
 
-      {translation && (
+      {hasContent && (
         <div className={styles.sections}>
           {/* Description Section */}
-          {translation.description && (
+          {description && (
             <section className={styles.section}>
               <h3 className={styles.sectionTitle}>{t("problem:section.description")}</h3>
               <MarkdownRenderer enableMath enableHighlight>
-                {translation.description}
+                {description}
               </MarkdownRenderer>
             </section>
           )}
 
           {/* Input Description Section */}
-          {translation.inputDescription && (
+          {inputDescription && (
             <section className={styles.section}>
               <h3 className={styles.sectionTitle}>{t("problem:section.inputDescription")}</h3>
               <MarkdownRenderer enableMath enableHighlight>
-                {translation.inputDescription}
+                {inputDescription}
               </MarkdownRenderer>
             </section>
           )}
 
           {/* Output Description Section */}
-          {translation.outputDescription && (
+          {outputDescription && (
             <section className={styles.section}>
               <h3 className={styles.sectionTitle}>{t("problem:section.outputDescription")}</h3>
               <MarkdownRenderer enableMath enableHighlight>
-                {translation.outputDescription}
+                {outputDescription}
               </MarkdownRenderer>
             </section>
           )}
@@ -110,11 +105,11 @@ const ProblemPreview = ({
           )}
 
           {/* Hint Section */}
-          {translation.hint && (
+          {hint && (
             <section className={styles.section}>
               <h3 className={styles.sectionTitle}>{t("problem:section.hint")}</h3>
               <MarkdownRenderer enableMath enableHighlight>
-                {translation.hint}
+                {hint}
               </MarkdownRenderer>
             </section>
           )}
@@ -154,7 +149,7 @@ const ProblemPreview = ({
         </div>
       )}
 
-      {!translation && (
+      {!hasContent && (
         <p className={styles.emptyState}>{t("common:message.noData")}</p>
       )}
     </article>

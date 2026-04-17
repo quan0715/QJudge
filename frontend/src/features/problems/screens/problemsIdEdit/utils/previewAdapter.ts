@@ -21,9 +21,6 @@ export const formSchemaToPreview = (
     createdAt: new Date().toISOString(),
     testCases: formData.testCases || [],
     languageConfigs: formData.languageConfigs || [],
-    translations: zhTranslation
-      ? [{ language: "zh-TW", ...zhTranslation, title: zhTranslation.title || "" }]
-      : [],
     tags: [],
     acceptanceRate: 0,
     submissionCount: 0,

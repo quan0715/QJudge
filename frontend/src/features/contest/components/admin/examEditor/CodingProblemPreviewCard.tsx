@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Layer, Tag, IconButton } from "@carbon/react";
 import { Code, Copy, DataBase, Draggable, TrashCan } from "@carbon/icons-react";
-import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import type { ProblemDetail } from "@/core/entities/problem.entity";
@@ -47,7 +46,6 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation("contest");
-  const { contentLanguage } = useContentLanguage();
   const { confirm, modalProps } = useConfirmModal();
   const [saveToBankOpen, setSaveToBankOpen] = useState(false);
 
@@ -75,14 +73,7 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
     if (accepted) await onDelete();
   };
 
-  const translation =
-    problem.translations?.find((tr) => tr.language === contentLanguage) ||
-    (contentLanguage === "zh-TW"
-      ? problem.translations?.find((tr) => tr.language === "zh-hant")
-      : null) ||
-    problem.translations?.[0];
-
-  const description = translation?.description || problem.description;
+  const description = problem.description;
   const difficultyKey = problem.difficulty ?? "";
   const diffMeta =
     difficultyKey && CODING_PROBLEM_DIFFICULTY_TAG[difficultyKey]

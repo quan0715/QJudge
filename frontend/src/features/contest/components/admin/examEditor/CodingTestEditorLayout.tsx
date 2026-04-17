@@ -349,7 +349,6 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
     ],
   );
 
-  // aiPanelContent removed — ChatbotWidget renders as float widget below
 
   const sourcePanelContent = (
     <QuestionSourcePanel

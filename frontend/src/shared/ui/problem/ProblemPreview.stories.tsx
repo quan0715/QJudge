@@ -9,8 +9,7 @@ const createMockProblemDetail = (
   overrides: Partial<ProblemDetail> = {}
 ): ProblemDetail => ({
   id: "1",
-
-  title: "Two Sum",
+  title: "兩數之和",
   difficulty: "easy",
   acceptanceRate: 85.5,
   submissionCount: 1000,
@@ -25,34 +24,14 @@ const createMockProblemDetail = (
     { id: "2", name: "雜湊表", slug: "hash-table" },
   ],
   isSolved: false,
-
-  description: "",
-  translations: [
-    {
-      language: "zh-TW",
-      title: "兩數之和",
-      description: `給定一個整數陣列 \`nums\` 和一個整數目標值 \`target\`，請你在該陣列中找出**和為目標值**的那兩個整數，並回傳它們的陣列索引。
+  description: `給定一個整數陣列 \`nums\` 和一個整數目標值 \`target\`，請你在該陣列中找出**和為目標值**的那兩個整數，並回傳它們的陣列索引。
 
 你可以假設每種輸入只會對應一個答案。但是，陣列中同一個元素在答案裡不能重複出現。`,
-      inputDescription: `第一行包含兩個整數 $n$ 和 $target$，其中 $n$ 是陣列的長度。
+  inputDescription: `第一行包含兩個整數 $n$ 和 $target$，其中 $n$ 是陣列的長度。
 
 第二行包含 $n$ 個整數，代表陣列中的元素。`,
-      outputDescription: `輸出兩個整數，代表兩個元素的索引（從 0 開始）。`,
-      hint: `嘗試使用雜湊表來優化時間複雜度。`,
-    },
-    {
-      language: "en",
-      title: "Two Sum",
-      description: `Given an array of integers \`nums\` and an integer \`target\`, return indices of the two numbers such that they add up to target.
-
-You may assume that each input would have **exactly one solution**, and you may not use the same element twice.`,
-      inputDescription: `The first line contains two integers $n$ and $target$.
-
-The second line contains $n$ integers representing the array elements.`,
-      outputDescription: `Output two integers representing the indices of the two elements (0-indexed).`,
-      hint: `Try using a hash table to optimize time complexity.`,
-    },
-  ],
+  outputDescription: `輸出兩個整數，代表兩個元素的索引（從 0 開始）。`,
+  hint: `嘗試使用雜湊表來優化時間複雜度。`,
   testCases: [
     { input: "4 9\n2 7 11 15", output: "0 1", isSample: true },
     { input: "3 6\n3 2 4", output: "1 2", isSample: true },
@@ -68,19 +47,12 @@ const mockProblemDetails: Record<string, ProblemDetail> = {
 
   withKeywords: createMockProblemDetail({
     id: "2",
-
-    title: "Recursive Sum",
+    title: "遞迴求和",
     difficulty: "medium",
-    translations: [
-      {
-        language: "zh-TW",
-        title: "遞迴求和",
-        description: "使用遞迴方法計算 1 到 n 的總和。",
-        inputDescription: "一個正整數 $n$（$1 \\leq n \\leq 1000$）。",
-        outputDescription: "輸出 1 到 n 的總和。",
-        hint: "注意遞迴的終止條件。",
-      },
-    ],
+    description: "使用遞迴方法計算 1 到 n 的總和。",
+    inputDescription: "一個正整數 $n$（$1 \\leq n \\leq 1000$）。",
+    outputDescription: "輸出 1 到 n 的總和。",
+    hint: "注意遞迴的終止條件。",
     testCases: [
       { input: "5", output: "15", isSample: true },
       { input: "10", output: "55", isSample: true },
@@ -91,25 +63,18 @@ const mockProblemDetails: Record<string, ProblemDetail> = {
 
   hardProblem: createMockProblemDetail({
     id: "3",
-
-    title: "Regular Expression Matching",
+    title: "正規表達式匹配",
     difficulty: "hard",
     acceptanceRate: 18.5,
-    translations: [
-      {
-        language: "zh-TW",
-        title: "正規表達式匹配",
-        description: `實作支援 \`.\` 和 \`*\` 的正規表達式匹配。
+    description: `實作支援 \`.\` 和 \`*\` 的正規表達式匹配。
 
 - \`.\` 匹配任意單個字元
 - \`*\` 匹配零個或多個前一個元素
 
 匹配應該覆蓋**整個**輸入字串（而非部分）。`,
-        inputDescription: "兩行，第一行為字串 s，第二行為模式 p。",
-        outputDescription: "如果匹配成功輸出 `true`，否則輸出 `false`。",
-        hint: "考慮使用動態規劃解決此問題。",
-      },
-    ],
+    inputDescription: "兩行，第一行為字串 s，第二行為模式 p。",
+    outputDescription: "如果匹配成功輸出 `true`，否則輸出 `false`。",
+    hint: "考慮使用動態規劃解決此問題。",
     testCases: [
       { input: "aa\na", output: "false", isSample: true },
       { input: "aa\na*", output: "true", isSample: true },
@@ -123,19 +88,12 @@ const mockProblemDetails: Record<string, ProblemDetail> = {
 
   noSamples: createMockProblemDetail({
     id: "4",
-
-    title: "Hidden Test Problem",
+    title: "隱藏測試題",
     difficulty: "medium",
-    translations: [
-      {
-        language: "zh-TW",
-        title: "隱藏測試題",
-        description: "這題沒有範例測資。",
-        inputDescription: "依題意輸入。",
-        outputDescription: "依題意輸出。",
-        hint: "",
-      },
-    ],
+    description: "這題沒有範例測資。",
+    inputDescription: "依題意輸入。",
+    outputDescription: "依題意輸出。",
+    hint: "",
     testCases: [
       { input: "1", output: "1", isSample: false },
     ],

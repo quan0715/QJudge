@@ -120,16 +120,6 @@ describe("Problem Mapper", () => {
         time_limit: 1000,
         memory_limit: 256,
         samples: [{ input: "1 2", output: "3", explanation: "1+2=3" }],
-        translations: [
-          {
-            language: "zh-TW",
-            title: "測試題目",
-            description: "題目描述",
-            input_description: "輸入格式",
-            output_description: "輸出格式",
-            hint: "使用動態規劃",
-          },
-        ],
         test_cases: [
           {
             input_data: "1 2",
@@ -163,8 +153,6 @@ describe("Problem Mapper", () => {
       expect(result.samples[0].input).toBe("1 2");
       expect(result.samples[0].output).toBe("3");
 
-      expect(result.translations).toHaveLength(0);
-
       expect(result.testCases).toHaveLength(1);
       expect(result.testCases[0].input).toBe("1 2");
       expect(result.testCases[0].isSample).toBe(true);
@@ -186,7 +174,6 @@ describe("Problem Mapper", () => {
       const result = mapProblemDetailDto(dto);
 
       expect(result.samples).toEqual([]);
-      expect(result.translations).toEqual([]);
       expect(result.testCases).toEqual([]);
       expect(result.languageConfigs).toEqual([]);
       expect(result.forbiddenKeywords).toEqual([]);
