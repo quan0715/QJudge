@@ -160,18 +160,66 @@ function normalizeTodoItems(rawTodos: unknown): RunTodoItem[] | undefined {
     .filter((todo): todo is RunTodoItem => todo !== null);
 }
 
+function findMatchingBracket(text: string, openIndex: number): number {
+  let depth = 0;
+  let quote: string | null = null;
+  let escaped = false;
+
+  for (let index = openIndex; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === "\"" || char === "'") {
+      quote = char;
+      continue;
+    }
+
+    if (char === "[") {
+      depth += 1;
+    } else if (char === "]") {
+      depth -= 1;
+      if (depth === 0) return index;
+    }
+  }
+
+  return -1;
+}
+
+function extractTodosListText(commandBody: string): string | undefined {
+  const todosKeyMatch = /["']?todos["']?\s*:/.exec(commandBody);
+  if (!todosKeyMatch) return undefined;
+
+  const listStart = commandBody.indexOf("[", todosKeyMatch.index + todosKeyMatch[0].length);
+  if (listStart === -1) return undefined;
+
+  const listEnd = findMatchingBracket(commandBody, listStart);
+  if (listEnd === -1) return undefined;
+
+  return commandBody.slice(listStart + 1, listEnd);
+}
+
 function parseTodoCommandItems(commandBody: string): RunTodoItem[] | undefined {
-  const todosMatch = commandBody.match(/todos\s*:\s*\[([\s\S]*)\]/);
-  if (!todosMatch?.[1]) return undefined;
+  const todosText = extractTodosListText(commandBody);
+  if (!todosText) return undefined;
 
   const todoItems: RunTodoInputItem[] = [];
   const objectPattern = /\{([^{}]*)\}/g;
   let objectMatch: RegExpExecArray | null;
 
-  while ((objectMatch = objectPattern.exec(todosMatch[1])) !== null) {
+  while ((objectMatch = objectPattern.exec(todosText)) !== null) {
     const objectText = objectMatch[1];
-    const contentMatch = objectText.match(/content\s*:\s*(?:"([^"]*)"|'([^']*)'|([^,}]+))/);
-    const statusMatch = objectText.match(/status\s*:\s*(?:"([^"]*)"|'([^']*)'|([^,}]+))/);
+    const contentMatch = objectText.match(/["']?content["']?\s*:\s*(?:"([^"]*)"|'([^']*)'|([^,}]+))/);
+    const statusMatch = objectText.match(/["']?status["']?\s*:\s*(?:"([^"]*)"|'([^']*)'|([^,}]+))/);
     const content = (contentMatch?.[1] ?? contentMatch?.[2] ?? contentMatch?.[3] ?? "").trim();
     const status = (statusMatch?.[1] ?? statusMatch?.[2] ?? statusMatch?.[3] ?? "pending").trim();
 
@@ -189,16 +237,18 @@ function extractTodoCommands(text: string): {
 } {
   let displayText = text;
   let todoItems: RunTodoItem[] | undefined;
-  const commandStartPattern = "command(update_";
+  const commandStartPattern = /command\s*\(\s*update(?:=|_)/i;
   let searchStart = 0;
 
   while (true) {
-    const start = displayText.indexOf(commandStartPattern, searchStart);
-    if (start === -1) break;
+    const match = commandStartPattern.exec(displayText.slice(searchStart));
+    if (!match) break;
 
-    const bodyStart = start + commandStartPattern.length;
+    const start = searchStart + match.index;
+    const bodyStart = start + match[0].length;
     const end = displayText.indexOf(")", bodyStart);
     if (end === -1) {
+      todoItems = parseTodoCommandItems(displayText.slice(bodyStart)) ?? todoItems;
       displayText = displayText.slice(0, start);
       break;
     }

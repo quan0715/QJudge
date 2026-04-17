@@ -122,4 +122,42 @@ describe("chatbotRepository stream events", () => {
       expect.objectContaining({ content: "" }),
     );
   });
+
+  it("extracts LangGraph Command(update=...) todos as soon as the todo list closes", () => {
+    const onTodoItemsUpdate = vi.fn();
+    const onMessageUpdate = vi.fn();
+    const currentMessage = {};
+    const handleStreamEvent = (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string; content: string },
+        currentMessage: Record<string, unknown>,
+        callbacks: {
+          onTodoItemsUpdate?: (items: unknown[] | null) => void;
+          onMessageUpdate?: (message: Record<string, unknown>) => void;
+        },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent;
+
+    handleStreamEvent(
+      {
+        type: "agent_message_delta",
+        content:
+          "Command(update={'todos': [{'content': '1. 讀取題目資料', 'status': 'pending'}, {'content': '2. 分析題目要求', 'status': 'completed'}], ",
+      },
+      currentMessage,
+      { onTodoItemsUpdate, onMessageUpdate },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onTodoItemsUpdate).toHaveBeenCalledWith([
+      { id: "0-1. 讀取題目資料", label: "1. 讀取題目資料", status: "pending" },
+      { id: "1-2. 分析題目要求", label: "2. 分析題目要求", status: "success" },
+    ]);
+    expect(onMessageUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ content: "" }),
+    );
+  });
 });
