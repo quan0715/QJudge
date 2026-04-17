@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from "react";
 import { IconButton, Tag } from "@carbon/react";
-import { Send, StopFilled } from "@carbon/icons-react";
+import { Checkmark, InProgress, Send, StopFilled, Warning } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { RunTodoItem } from "@/core/types/chatbot.types";
 import styles from "./ComposerBar.module.scss";
@@ -68,6 +68,16 @@ export function ComposerBar({
   const canSend = value.trim().length > 0 && !disabled && !isStreaming;
   const hasStatusBlock = Boolean(sessionNotice) || runTodoItems.length > 0;
 
+  const renderTodoIcon = (item: RunTodoItem) => {
+    if (item.status === "success") {
+      return <Checkmark size={16} className={`${styles.todoIcon} ${styles.todoIconSuccess}`} />;
+    }
+    if (item.status === "fail") {
+      return <Warning size={16} className={`${styles.todoIcon} ${styles.todoIconFail}`} />;
+    }
+    return <InProgress size={16} className={`${styles.todoIcon} ${styles.todoIconPending}`} />;
+  };
+
   return (
     <div className={styles.bar}>
       {hasStatusBlock && (
@@ -84,17 +94,7 @@ export function ComposerBar({
             <div className={styles.todoList} aria-label={t("ui.todoList", "待辦清單")}>
               {runTodoItems.map((item) => (
                 <div key={item.id} className={styles.todoItem}>
-                  <Tag
-                    type={item.status === "success" ? "green" : item.status === "fail" ? "red" : "gray"}
-                    size="sm"
-                    className={styles.todoStatus}
-                  >
-                    {item.status === "success"
-                      ? t("ui.todoSuccess", "success")
-                      : item.status === "fail"
-                        ? t("ui.todoFail", "fail")
-                        : t("ui.todoPending", "pending")}
-                  </Tag>
+                  {renderTodoIcon(item)}
                   <span className={styles.todoLabel}>{item.label}</span>
                 </div>
               ))}
