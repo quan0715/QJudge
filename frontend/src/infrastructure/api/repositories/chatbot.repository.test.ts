@@ -75,4 +75,51 @@ describe("chatbotRepository stream events", () => {
       { id: "2-任務 C", label: "任務 C", status: "fail" },
     ]);
   });
+
+  it("extracts todo command text from streamed assistant deltas", () => {
+    const onTodoItemsUpdate = vi.fn();
+    const onMessageUpdate = vi.fn();
+    const currentMessage = {};
+    const handleStreamEvent = (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string; content: string },
+        currentMessage: Record<string, unknown>,
+        callbacks: {
+          onTodoItemsUpdate?: (items: unknown[] | null) => void;
+          onMessageUpdate?: (message: Record<string, unknown>) => void;
+        },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent;
+
+    handleStreamEvent(
+      {
+        type: "agent_message_delta",
+        content: "command(update_{todos: [{ content: 測試任務 1, status: pending}, ",
+      },
+      currentMessage,
+      { onTodoItemsUpdate, onMessageUpdate },
+      "session-1",
+      vi.fn(),
+    );
+    handleStreamEvent(
+      {
+        type: "agent_message_delta",
+        content: "{ content: 測試任務 2, status: completed}]})",
+      },
+      currentMessage,
+      { onTodoItemsUpdate, onMessageUpdate },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onTodoItemsUpdate).toHaveBeenCalledWith([
+      { id: "0-測試任務 1", label: "測試任務 1", status: "pending" },
+      { id: "1-測試任務 2", label: "測試任務 2", status: "success" },
+    ]);
+    expect(onMessageUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ content: "" }),
+    );
+  });
 });

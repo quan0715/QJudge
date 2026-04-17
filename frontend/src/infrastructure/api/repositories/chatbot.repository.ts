@@ -160,6 +160,58 @@ function normalizeTodoItems(rawTodos: unknown): RunTodoItem[] | undefined {
     .filter((todo): todo is RunTodoItem => todo !== null);
 }
 
+function parseTodoCommandItems(commandBody: string): RunTodoItem[] | undefined {
+  const todosMatch = commandBody.match(/todos\s*:\s*\[([\s\S]*)\]/);
+  if (!todosMatch?.[1]) return undefined;
+
+  const todoItems: RunTodoInputItem[] = [];
+  const objectPattern = /\{([^{}]*)\}/g;
+  let objectMatch: RegExpExecArray | null;
+
+  while ((objectMatch = objectPattern.exec(todosMatch[1])) !== null) {
+    const objectText = objectMatch[1];
+    const contentMatch = objectText.match(/content\s*:\s*(?:"([^"]*)"|'([^']*)'|([^,}]+))/);
+    const statusMatch = objectText.match(/status\s*:\s*(?:"([^"]*)"|'([^']*)'|([^,}]+))/);
+    const content = (contentMatch?.[1] ?? contentMatch?.[2] ?? contentMatch?.[3] ?? "").trim();
+    const status = (statusMatch?.[1] ?? statusMatch?.[2] ?? statusMatch?.[3] ?? "pending").trim();
+
+    if (content) {
+      todoItems.push({ content, status });
+    }
+  }
+
+  return normalizeTodoItems(todoItems);
+}
+
+function extractTodoCommands(text: string): {
+  displayText: string;
+  todoItems?: RunTodoItem[];
+} {
+  let displayText = text;
+  let todoItems: RunTodoItem[] | undefined;
+  const commandStartPattern = "command(update_";
+  let searchStart = 0;
+
+  while (true) {
+    const start = displayText.indexOf(commandStartPattern, searchStart);
+    if (start === -1) break;
+
+    const bodyStart = start + commandStartPattern.length;
+    const end = displayText.indexOf(")", bodyStart);
+    if (end === -1) {
+      displayText = displayText.slice(0, start);
+      break;
+    }
+
+    const commandBody = displayText.slice(bodyStart, end);
+    todoItems = parseTodoCommandItems(commandBody) ?? todoItems;
+    displayText = `${displayText.slice(0, start)}${displayText.slice(end + 1)}`;
+    searchStart = start;
+  }
+
+  return { displayText, todoItems };
+}
+
 function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
   const metadata = backendMsg.metadata ?? {};
   const thinking =
@@ -519,9 +571,23 @@ const chatbotRepository: ChatbotRepository = {
 
       case "agent_message_delta":
         if (event.content) {
-          currentMessage.content = (currentMessage.content || "") + event.content;
+          const messageState = currentMessage as Partial<ChatMessage> & {
+            rawAgentContent?: string;
+          };
+          const rawContent = (messageState.rawAgentContent || currentMessage.content || "") + event.content;
+          messageState.rawAgentContent = rawContent;
+          const commandResult = extractTodoCommands(rawContent);
+          currentMessage.content = commandResult.displayText;
+          if (commandResult.todoItems) {
+            currentMessage.todoItems = commandResult.todoItems;
+            callbacks.onTodoItemsUpdate?.(commandResult.todoItems);
+          }
           currentMessage.isThinking = false;
-          callbacks.onMessageUpdate?.({ ...currentMessage });
+          const messageUpdate = { ...currentMessage } as Partial<ChatMessage> & {
+            rawAgentContent?: string;
+          };
+          delete messageUpdate.rawAgentContent;
+          callbacks.onMessageUpdate?.(messageUpdate);
         }
         break;
 
