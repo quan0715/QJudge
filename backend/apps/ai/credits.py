@@ -8,7 +8,8 @@
 - 預設 SCALE_PER_CREDIT = 400_000，等於 1 credit = 0.4 美分成本
   （Pro USD $20/月、2000 credits/月、目標 AI 成本 ≈ $8、毛利 ~60%）
 
-Pricing 與 ai-service/services/model_factory.py 的 PRICING 對齊。
+Pricing 與 ai-service/services/model_factory.py 的 PRICING 必須一致；
+由 backend/apps/ai/tests/test_pricing_alignment.py contract test 在 CI 把關。
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from __future__ import annotations
 from django.conf import settings
 
 # 每百萬 token 的美分（input/output）
+# IMPORTANT: keep in sync with ai-service/services/model_factory.py::PRICING.
 DEFAULT_MODEL_PRICING: dict[str, dict[str, int]] = {
     "deepseek-r1": {"input": 55, "output": 219},
     "deepseek-v3": {"input": 7, "output": 28},

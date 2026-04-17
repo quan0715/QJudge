@@ -495,16 +495,19 @@ def _increment_usage(run: AIChatRun) -> None:
 
     credits_delta = usage_to_credits(input_tokens, output_tokens, model_used)
 
-    # 把本次 credits_used 寫回訊息 metadata，方便未來做明細/對帳
-    usage["credits_used"] = credits_delta
-    metadata["usage"] = usage
-    _save_assistant_metadata(run, metadata)
+    # 在同一個 transaction 內先扣 counter、再寫 metadata，避免兩者出現不一致：
+    # - 若 counter update 失敗 → 整段 rollback，metadata 也不會留下 credits_used
+    # - 若 metadata save 失敗 → counter 同樣 rollback，不會出現「已扣點但訊息沒紀錄」
+    with transaction.atomic():
+        UserAICredit.objects.get_or_create(user=run.user)
+        UserAICredit.objects.filter(user=run.user).update(
+            total_input_tokens=F("total_input_tokens") + input_tokens,
+            total_output_tokens=F("total_output_tokens") + output_tokens,
+            total_requests=F("total_requests") + 1,
+            total_cost_cents=F("total_cost_cents") + cost_cents,
+            total_credits=F("total_credits") + credits_delta,
+        )
 
-    UserAICredit.objects.get_or_create(user=run.user)
-    UserAICredit.objects.filter(user=run.user).update(
-        total_input_tokens=F("total_input_tokens") + input_tokens,
-        total_output_tokens=F("total_output_tokens") + output_tokens,
-        total_requests=F("total_requests") + 1,
-        total_cost_cents=F("total_cost_cents") + cost_cents,
-        total_credits=F("total_credits") + credits_delta,
-    )
+        usage["credits_used"] = credits_delta
+        metadata["usage"] = usage
+        _save_assistant_metadata(run, metadata)
