@@ -326,6 +326,11 @@ class UserAICredit(models.Model):
     total_output_tokens = models.BigIntegerField(default=0, verbose_name="累計輸出 tokens")
     total_requests = models.IntegerField(default=0, verbose_name="累計請求數")
     total_cost_cents = models.BigIntegerField(default=0, verbose_name="累計費用 (cents)")
+    total_credits = models.BigIntegerField(
+        default=0,
+        verbose_name="累計 AI Credits",
+        help_text="依 usage_to_credits 由 token × 模型單價換算之累計點數",
+    )
     updated_at = models.DateTimeField(auto_now=True, verbose_name="最後更新")
 
     class Meta:
@@ -337,4 +342,4 @@ class UserAICredit(models.Model):
         return Decimal(self.total_cost_cents) / 100
 
     def __str__(self):
-        return f"AICredit {self.user} - {self.total_requests} reqs, ${self.total_cost_usd}"
+        return f"AICredit {self.user} - {self.total_requests} reqs, {self.total_credits} cr"
