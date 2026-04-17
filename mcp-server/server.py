@@ -557,7 +557,10 @@ async def qjudge_bank(
     """
     valid_actions = {"create", "get", "update", "delete"}
     if action not in valid_actions:
-        return _error(f"Unknown action: {action}")
+        return _error(
+            f"Unknown action: {action!r}. "
+            f"qjudge_bank supports: {sorted(valid_actions)}"
+        )
 
     if action == "create":
         if not bank_id:
@@ -757,7 +760,10 @@ async def qjudge_exam(
     base = f"/api/v1/contests/{contest_id}/exam-questions"
     valid_actions = {"list", "get", "create", "update", "delete", "reorder", "import_from_bank", "batch_create"}
     if action not in valid_actions:
-        return _error(f"Unknown action: {action}")
+        return _error(
+            f"Unknown action: {action!r}. "
+            f"qjudge_exam supports: {sorted(valid_actions)}"
+        )
     if action in {"get", "update", "delete"} and not question_id:
         return _error("question_id is required")
     if action == "reorder" and not question_ids:
@@ -960,7 +966,7 @@ async def qjudge_grading(
 
 
 # ---------------------------------------------------------------------------
-# Tool 5: qjudge_coding — 競賽程式題目管理 + test_run
+# Tool 5: qjudge_coding — 競賽程式題目管理（程式碼執行請用 qjudge_code_runner）
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
@@ -1018,7 +1024,11 @@ async def qjudge_coding(
     """
     valid_actions = {"list", "get", "create", "update", "import_from_bank", "update_score", "delete"}
     if action not in valid_actions:
-        return _error(f"Unknown action: {action}. For code execution, use qjudge_code_runner.")
+        return _error(
+            f"Unknown action: {action!r}. "
+            f"qjudge_coding supports: {sorted(valid_actions)}. "
+            f"For code execution (including test_run), use qjudge_code_runner instead."
+        )
     if not contest_id:
         return _error("contest_id is required")
     if action in {"get", "update", "update_score", "delete"} and not problem_id:

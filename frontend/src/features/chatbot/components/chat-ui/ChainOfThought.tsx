@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { Accordion, AccordionItem } from "@carbon/react";
 import { Checkmark, Warning, InProgress } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -31,55 +32,100 @@ function getTodoSummaryStatus(todoItems: RunTodoItem[]) {
   return "pending";
 }
 
-export function ChainOfThought({
+interface StepProps {
+  step: ToolInfo;
+  index: number;
+  inputLabel: string;
+  outputLabel: string;
+}
+
+const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
+  step,
+  index,
+  inputLabel,
+  outputLabel,
+}: StepProps) {
+  const isDone = step.result !== undefined || step.isError;
+  const isFailed = step.isError;
+  const StatusIcon = isFailed ? Warning : isDone ? Checkmark : InProgress;
+  const statusClass = isFailed
+    ? styles.failure
+    : isDone
+      ? styles.success
+      : styles.processing;
+
+  // Expensive JSON serialization is cached per-step; only re-runs when
+  // the underlying inputData/result reference changes. This is critical
+  // because previously-completed steps would re-stringify on every SSE
+  // delta applied to the parent message list.
+  const inputJson = useMemo(() => {
+    if (step.inputData === undefined || step.inputData === null) return "";
+    try {
+      return JSON.stringify(step.inputData, null, 2);
+    } catch {
+      return String(step.inputData);
+    }
+  }, [step.inputData]);
+
+  const resultText = useMemo(() => {
+    if (step.result === undefined || step.result === null) return "";
+    if (typeof step.result === "string") return step.result;
+    try {
+      return JSON.stringify(step.result, null, 2);
+    } catch {
+      return String(step.result);
+    }
+  }, [step.result]);
+
+  return (
+    <AccordionItem
+      title={
+        <span className={styles.stepTitle}>
+          <StatusIcon size={16} className={statusClass} />
+          {step.toolName} #{index + 1}
+        </span>
+      }
+    >
+      {inputJson && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>{inputLabel}</div>
+          <pre className={styles.json}>{inputJson}</pre>
+        </div>
+      )}
+      {resultText && (
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>{outputLabel}</div>
+          <pre className={styles.json}>{resultText}</pre>
+        </div>
+      )}
+    </AccordionItem>
+  );
+});
+
+function ChainOfThoughtComponent({
   steps,
   todoItems = [],
   isProcessing,
   currentToolName,
 }: ChainOfThoughtProps) {
   const { t } = useTranslation("chatbot");
+  const inputLabel = t("ui.stepInput");
+  const outputLabel = t("ui.stepOutput");
   const todoSummaryStatus = getTodoSummaryStatus(todoItems);
+
   return (
     <div className={styles.cot}>
       <div className={styles.label}>{t("ui.reasoningSteps")}</div>
       <Accordion size="sm" className={styles.accordion}>
-        {steps.map((step, i) => {
-          const isDone = step.result !== undefined || step.isError;
-          const isFailed = step.isError;
-          const StatusIcon = isFailed ? Warning : isDone ? Checkmark : InProgress;
-          const statusClass = isFailed ? styles.failure : isDone ? styles.success : styles.processing;
-
-          return (
-            <AccordionItem
-              key={step.toolCallId || i}
-              title={
-                <span className={styles.stepTitle}>
-                  <StatusIcon size={16} className={statusClass} />
-                  {step.toolName} #{i + 1}
-                </span>
-              }
-            >
-              {step.inputData && (
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>{t("ui.stepInput")}</div>
-                  <pre className={styles.json}>
-                    {JSON.stringify(step.inputData, null, 2)}
-                  </pre>
-                </div>
-              )}
-              {step.result && (
-                <div className={styles.section}>
-                  <div className={styles.sectionLabel}>{t("ui.stepOutput")}</div>
-                  <pre className={styles.json}>
-                    {typeof step.result === "string"
-                      ? step.result
-                      : JSON.stringify(step.result, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </AccordionItem>
-          );
-        })}
+        {steps.map((step, i) => (
+          <ChainOfThoughtStep
+            key={step.toolCallId || i}
+            step={step}
+            index={i}
+            inputLabel={inputLabel}
+            outputLabel={outputLabel}
+          />
+        ))}
 
         {isProcessing && currentToolName && (
           <AccordionItem
@@ -123,3 +169,5 @@ export function ChainOfThought({
     </div>
   );
 }
+
+export const ChainOfThought = memo(ChainOfThoughtComponent);

@@ -1,3 +1,4 @@
+import { memo, useCallback, useMemo } from "react";
 import { WatsonxAi, Copy, Checkmark } from "@carbon/icons-react";
 import { IconButton } from "@carbon/react";
 import { useTranslation } from "react-i18next";
@@ -12,16 +13,37 @@ interface MessageBubbleProps {
   message: ChatMessage;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+function MessageBubbleComponent({ message }: MessageBubbleProps) {
   const { t } = useTranslation("chatbot");
   const { isCopied, copy } = useCopyText();
   const isUser = message.role === "user";
-  const thinkingText = message.thinkingInfo?.thinking
-    ? normalizeChatMarkdownText(message.thinkingInfo.thinking)
-    : "";
-  const messageText = message.content
-    ? normalizeChatMarkdownText(message.content)
-    : "";
+
+  const thinkingSource = message.thinkingInfo?.thinking;
+  const thinkingText = useMemo(
+    () => (thinkingSource ? normalizeChatMarkdownText(thinkingSource) : ""),
+    [thinkingSource],
+  );
+  const messageText = useMemo(
+    () => (message.content ? normalizeChatMarkdownText(message.content) : ""),
+    [message.content],
+  );
+  const timeLabel = useMemo(
+    () =>
+      message.timestamp.toLocaleTimeString("zh-TW", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    [message.timestamp],
+  );
+
+  const handleCopy = useCallback(() => {
+    copy(message.content);
+  }, [copy, message.content]);
+
+  const hasCoT =
+    !isUser &&
+    ((message.toolExecutions && message.toolExecutions.length > 0) ||
+      (message.todoItems && message.todoItems.length > 0));
 
   return (
     <div className={`${styles.bubble} ${isUser ? styles.user : styles.ai}`}>
@@ -35,23 +57,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         {!isUser && (
           <div className={styles.meta}>
             <span className={styles.name}>QJudge AI</span>
-            <span className={styles.time}>
-              {message.timestamp.toLocaleTimeString("zh-TW", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
+            <span className={styles.time}>{timeLabel}</span>
           </div>
         )}
 
         {isUser && (
           <div className={styles.metaRight}>
-            <span className={styles.time}>
-              {message.timestamp.toLocaleTimeString("zh-TW", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
+            <span className={styles.time}>{timeLabel}</span>
           </div>
         )}
 
@@ -72,7 +84,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
 
         {/* CoT steps */}
-        {!isUser && ((message.toolExecutions && message.toolExecutions.length > 0) || (message.todoItems && message.todoItems.length > 0)) && (
+        {hasCoT && (
           <ChainOfThought
             steps={message.toolExecutions || []}
             todoItems={message.todoItems}
@@ -121,7 +133,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               kind="ghost"
               size="sm"
               label={isCopied ? t("ui.copied", "已複製") : t("ui.copyMessage", "複製訊息")}
-              onClick={() => copy(message.content)}
+              onClick={handleCopy}
               className={styles.copyButton}
             >
               {isCopied ? <Checkmark size={16} /> : <Copy size={16} />}
@@ -132,3 +144,5 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     </div>
   );
 }
+
+export const MessageBubble = memo(MessageBubbleComponent);
