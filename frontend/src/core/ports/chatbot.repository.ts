@@ -14,11 +14,6 @@ export interface ChatbotRepository {
   deleteSession(sessionId: string | number): Promise<void>;
   renameSession(sessionId: string | number, title: string): Promise<ChatSession>;
   clearSession(sessionId: string | number): Promise<ChatSession>;
-  submitAnswer(
-    sessionId: string | number,
-    requestId: string,
-    answers: Record<string, string>
-  ): Promise<{ success: boolean; message?: string }>;
   startRun(
     sessionId: string | number,
     content: string,

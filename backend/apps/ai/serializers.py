@@ -93,22 +93,6 @@ class RenameSessionSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=100)
 
 
-# ============================================================
-# v2 Serializers
-# ============================================================
-
-
-class SendMessageStreamSerializer(serializers.Serializer):
-    """Serializer for POST send_message_stream (v2 contract)."""
-
-    content = serializers.CharField(max_length=10000)
-    model_id = serializers.ChoiceField(
-        choices=["deepseek-r1", "deepseek-v3"],
-        required=False,
-        default="deepseek-r1",
-    )
-
-
 class StartRunSerializer(serializers.Serializer):
     """Serializer for creating a durable AI chat run."""
 

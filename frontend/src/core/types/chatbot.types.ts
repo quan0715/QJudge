@@ -111,7 +111,6 @@ export interface StreamEvent extends BaseStreamEvent {
   content?: string;
   thinkingInfo?: ThinkingInfo;
   toolInfo?: ToolInfo;
-  userInputRequest?: UserInputRequest;
   metadata?: Record<string, unknown>;
   runId?: string;
   threadId?: string;
@@ -174,24 +173,6 @@ export interface SendMessageOptions {
   signal?: AbortSignal;
 }
 
-// ===== User Input =====
-export interface UserInputOption {
-  label: string;
-  description: string;
-}
-
-export interface UserInputQuestion {
-  question: string;
-  header: string;
-  options: UserInputOption[];
-  multiSelect: boolean;
-}
-
-export interface UserInputRequest {
-  requestId: string;
-  questions: UserInputQuestion[];
-}
-
 // ===== HITL Approval =====
 export interface ApprovalActionRequest {
   name: string;
@@ -208,7 +189,6 @@ export interface StreamCallbacks {
   onMessageUpdate?: (message: Partial<ChatMessage>) => void;
   onComplete?: (session: ChatSession) => void;
   onError?: (error: string) => void;
-  onUserInputRequest?: (request: UserInputRequest) => void;
   onVerificationReport?: (report: VerificationReport) => void;
   onAwaitingApproval?: (request: ApprovalRequest) => void;
 }

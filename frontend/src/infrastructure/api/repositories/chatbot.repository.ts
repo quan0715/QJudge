@@ -292,20 +292,6 @@ const chatbotRepository: ChatbotRepository = {
     };
   },
 
-  async submitAnswer(
-    sessionId: string | number,
-    requestId: string,
-    answers: Record<string, string>
-  ): Promise<{ success: boolean; message?: string }> {
-    return await requestJson<{ success: boolean; message?: string }>(
-      httpClient.post(`${BASE_URL}/${sessionId.toString()}/submit_answer/`, {
-        request_id: requestId,
-        answers,
-      }),
-      "無法提交回答"
-    );
-  },
-
   // ============================================================
   // v2: New API methods
   // ============================================================
@@ -455,6 +441,13 @@ const chatbotRepository: ChatbotRepository = {
     resolvedSessionId: string,
     setResolvedId: (id: string) => void
   ) {
+    if (typeof event.seq === "number") {
+      currentMessage.lastEventSeq = event.seq;
+    }
+    if (event.run_status) {
+      currentMessage.runStatus = event.run_status as ChatMessage["runStatus"];
+    }
+
     switch (event.type) {
       // ===== v2 Events =====
       case "run_started":

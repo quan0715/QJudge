@@ -1,14 +1,16 @@
 """Tests for durable backend-controlled AI chat runs."""
 
+import asyncio
+import inspect
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.ai.models import AIChatRun, AIMessage, AISession
-from apps.ai.services.run_runtime import execute_run
+from apps.ai.models import AIChatRun, AIMessage, AISession, AIStreamEvent
+from apps.ai.services.run_runtime import execute_run, run_events_as_sse
 
 User = get_user_model()
 
@@ -48,7 +50,7 @@ class _MockHttpClient:
         return _MockStreamResponse()
 
 
-class DurableRunAPITestCase(TestCase):
+class DurableRunAPITestCase(TransactionTestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(
@@ -151,6 +153,61 @@ class DurableRunAPITestCase(TestCase):
         self.assertEqual(run.assistant_message.content, "partial")
         self.assertEqual(run.assistant_message.metadata["run_status"], "cancelled")
 
+    def test_event_subscription_uses_async_generator_and_replays_after_seq(self):
+        run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.COMPLETED,
+            content="done",
+            last_event_seq=2,
+        )
+        AIStreamEvent.objects.create(
+            run=run,
+            seq=1,
+            event_type="thinking_delta",
+            payload={"seq": 1, "type": "thinking_delta", "content": "think"},
+        )
+        AIStreamEvent.objects.create(
+            run=run,
+            seq=2,
+            event_type="run_completed",
+            payload={"seq": 2, "type": "run_completed"},
+        )
+
+        generator = run_events_as_sse(run=run, after=1)
+        self.assertTrue(inspect.isasyncgen(generator))
+
+        async def collect_events():
+            return [chunk async for chunk in generator]
+
+        chunks = asyncio.run(collect_events())
+        self.assertEqual(chunks, ['data: {"seq": 2, "type": "run_completed"}\n\n'])
+
+    def test_approval_endpoint_resumes_awaiting_run(self):
+        run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.AWAITING_APPROVAL,
+            content="needs approval",
+            approval_payload={"action_requests": [{"name": "tool"}]},
+        )
+
+        self.client.force_authenticate(user=self.user)
+        with patch("apps.ai.services.run_runtime.dispatch_run") as dispatch_run:
+            response = self.client.post(
+                f"/api/v1/ai/runs/{run.id}/approval/",
+                {"decision": "approve"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        run.refresh_from_db()
+        self.assertEqual(run.status, AIChatRun.Status.RUNNING)
+        self.assertEqual(run.kind, AIChatRun.Kind.RESUME)
+        self.assertEqual(run.resume_decision, "approve")
+        self.assertEqual(run.approval_payload["decision"], "approve")
+        dispatch_run.assert_called_once()
+
 
 class DurableRunWorkerTestCase(TestCase):
     def setUp(self):
@@ -198,3 +255,44 @@ class DurableRunWorkerTestCase(TestCase):
         self.assertEqual(assistant_message.content, "Hello")
         self.assertEqual(assistant_message.metadata["thinking"], "think")
         self.assertEqual(run.events.count(), 5)
+
+    def test_execute_run_dispatches_next_queued_run_after_terminal_event(self):
+        user_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.USER,
+            content="First",
+        )
+        assistant_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.ASSISTANT,
+            content="",
+            metadata={"run_status": "running"},
+        )
+        running_run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.RUNNING,
+            content="First",
+            user_message=user_message,
+            assistant_message=assistant_message,
+            thread_id=self.session.session_id,
+        )
+        queued_run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.QUEUED,
+            content="Second",
+            thread_id=self.session.session_id,
+        )
+
+        with patch(
+            "apps.ai.services.run_runtime.build_ai_service_headers",
+            return_value={"X-AI-Internal-Token": "test"},
+        ), patch("apps.ai.services.run_runtime.httpx.Client", _MockHttpClient), patch(
+            "apps.ai.services.run_runtime.dispatch_run",
+        ) as dispatch_run:
+            execute_run(str(running_run.id))
+
+        queued_run.refresh_from_db()
+        self.assertEqual(queued_run.status, AIChatRun.Status.RUNNING)
+        dispatch_run.assert_called_once()
