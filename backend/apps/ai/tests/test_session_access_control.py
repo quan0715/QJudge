@@ -7,7 +7,7 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.ai.models import AIExecutionLog, AISession
+from apps.ai.models import AIChatRun, AIExecutionLog, AISession
 
 User = get_user_model()
 
@@ -35,19 +35,9 @@ class SessionAccessControlTestCase(TestCase):
             context={"title": "u2"},
         )
 
-    def _mock_stream(self):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.iter_lines.return_value = [
-            'data: {"type":"run_started","thread_id":"11111111-1111-1111-1111-111111111111"}',
-            'data: {"type":"agent_message_delta","content":"ok"}',
-            'data: {"type":"done"}',
-        ]
-        return mock_response
-
     def test_unauthenticated_user_cannot_send_message(self):
         response = self.client.post(
-            f"/api/v1/ai/sessions/{self.user1_session.session_id}/send_message_stream/",
+            f"/api/v1/ai/sessions/{self.user1_session.session_id}/runs/",
             {"content": "hello"},
             format="json",
         )
@@ -55,24 +45,23 @@ class SessionAccessControlTestCase(TestCase):
 
     def test_user_can_send_message_to_own_session(self):
         self.client.force_authenticate(user=self.user1)
-        with patch(
-            "apps.ai.services.session_runtime.build_ai_service_headers",
-            return_value={"X-AI-Internal-Token": "test"},
-        ), patch(
-            "apps.ai.services.session_runtime.httpx.stream"
-        ) as mock_stream:
-            mock_stream.return_value.__enter__.return_value = self._mock_stream()
+        delay = MagicMock(return_value=MagicMock(id="celery-access-1"))
+        with patch("apps.ai.tasks.execute_ai_chat_run.delay", delay):
             response = self.client.post(
-                f"/api/v1/ai/sessions/{self.user1_session.session_id}/send_message_stream/",
+                f"/api/v1/ai/sessions/{self.user1_session.session_id}/runs/",
                 {"content": "hello"},
                 format="json",
             )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        run = AIChatRun.objects.get(pk=response.data["id"])
+        self.assertEqual(run.user, self.user1)
+        self.assertEqual(run.session, self.user1_session)
+        delay.assert_called_once_with(str(run.id))
 
     def test_user_cannot_send_message_to_other_user_session(self):
         self.client.force_authenticate(user=self.user1)
         response = self.client.post(
-            f"/api/v1/ai/sessions/{self.user2_session.session_id}/send_message_stream/",
+            f"/api/v1/ai/sessions/{self.user2_session.session_id}/runs/",
             {"content": "hello"},
             format="json",
         )

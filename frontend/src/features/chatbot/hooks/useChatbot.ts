@@ -3,10 +3,10 @@ import i18n from "i18next";
 import type {
   BackgroundInformation,
   ChatSession,
-  UserInputRequest,
   ChatContext,
   ApprovalRequest,
   ChatRun,
+  ChatMessage,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 
@@ -18,7 +18,6 @@ interface UseChatbotReturn {
   isStreaming: boolean;
   isInitializing: boolean;
   error: string | null;
-  pendingUserInput: UserInputRequest | null;
   pendingApproval: ApprovalRequest | null;
   createSession: () => Promise<string | null>;
   deleteSession: (sessionId: string) => Promise<void>;
@@ -27,11 +26,6 @@ interface UseChatbotReturn {
   sendMessage: (content: string) => Promise<void>;
   stopStreaming: () => void;
   refreshSessions: () => Promise<void>;
-  submitUserInput: (
-    requestId: string,
-    answers: Record<string, string>,
-  ) => Promise<void>;
-  cancelUserInput: () => void;
   submitApproval: (decision: "approve" | "reject") => Promise<void>;
   dismissApproval: () => void;
   clearError: () => void;
@@ -53,6 +47,98 @@ interface UseChatbotOptions {
  * 連接後端 API，支援多 session 管理
  */
 const LAST_SESSION_KEY = "chatbot_last_session_id";
+
+export interface StreamedRunState {
+  content: string;
+  thinking: string;
+}
+
+function appendSubscriptionDelta(previous: string, next: string | undefined) {
+  if (typeof next !== "string") {
+    return { nextStreamValue: previous, delta: undefined };
+  }
+  const delta = next.startsWith(previous) ? next.slice(previous.length) : next;
+  return { nextStreamValue: next, delta };
+}
+
+function mergeStreamedText(existing: string, streamedValue: string, delta?: string) {
+  if (!delta) return existing;
+  if (!existing) return streamedValue;
+  if (streamedValue.startsWith(existing)) return streamedValue;
+  if (existing.startsWith(streamedValue)) return existing;
+  return `${existing}${delta}`;
+}
+
+function createAssistantDraft(
+  run: ChatRun,
+  messageUpdate: Partial<ChatMessage>,
+): ChatMessage {
+  return {
+    id: String(run.assistantMessageId ?? `run-${run.id}-assistant`),
+    role: "assistant",
+    content: "",
+    timestamp: new Date(),
+    runId: run.id,
+    runStatus: run.status,
+    isThinking: run.status === "queued" || run.status === "running",
+    ...messageUpdate,
+  };
+}
+
+export function applyRunMessageUpdate(
+  session: ChatSession,
+  run: ChatRun,
+  messageUpdate: Partial<ChatMessage>,
+  streamedState: StreamedRunState,
+): ChatSession {
+  const assistantMessageId = String(run.assistantMessageId ?? `run-${run.id}-assistant`);
+  const contentDelta = appendSubscriptionDelta(streamedState.content, messageUpdate.content);
+  streamedState.content = contentDelta.nextStreamValue;
+
+  const nextThinking = messageUpdate.thinkingInfo?.thinking;
+  const thinkingDelta = appendSubscriptionDelta(streamedState.thinking, nextThinking);
+  streamedState.thinking = thinkingDelta.nextStreamValue;
+
+  let didUpdateExistingDraft = false;
+  const messages = session.messages.map((message) => {
+    if (message.id !== assistantMessageId && message.runId !== run.id) return message;
+    didUpdateExistingDraft = true;
+
+    const mergedThinking = messageUpdate.thinkingInfo
+      ? {
+          ...messageUpdate.thinkingInfo,
+          thinking: mergeStreamedText(
+            message.thinkingInfo?.thinking ?? "",
+            streamedState.thinking,
+            thinkingDelta.delta,
+          ),
+        }
+      : message.thinkingInfo;
+
+    return {
+      ...message,
+      ...messageUpdate,
+      content: mergeStreamedText(
+        message.content,
+        streamedState.content,
+        contentDelta.delta,
+      ),
+      thinkingInfo: mergedThinking,
+      runId: message.runId ?? run.id,
+      runStatus: messageUpdate.runStatus ?? run.status,
+      lastEventSeq: messageUpdate.lastEventSeq ?? message.lastEventSeq,
+    };
+  });
+
+  if (!didUpdateExistingDraft) {
+    messages.push(createAssistantDraft(run, messageUpdate));
+  }
+
+  return {
+    ...session,
+    messages,
+  };
+}
 
 export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const {
@@ -77,8 +163,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pendingUserInput, setPendingUserInput] =
-    useState<UserInputRequest | null>(null);
   const [pendingApproval, setPendingApproval] =
     useState<ApprovalRequest | null>(null);
   const [activeRuns, setActiveRuns] = useState<ChatRun[]>([]);
@@ -324,6 +408,10 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     setIsLoading(activeRun.status !== "awaiting_approval");
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    const streamedState = {
+      content: "",
+      thinking: "",
+    };
 
     chatbotRepository.subscribeRunEvents(
       activeRun,
@@ -332,14 +420,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setSessions((prev) =>
             prev.map((session) =>
               session.id === activeRun.sessionId
-                ? {
-                    ...session,
-                    messages: session.messages.map((message) =>
-                      message.id === String(activeRun.assistantMessageId)
-                        ? { ...message, ...messageUpdate }
-                        : message,
-                    ),
-                  }
+                ? applyRunMessageUpdate(session, activeRun, messageUpdate, streamedState)
                 : session,
             ),
           );
@@ -477,48 +558,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   );
 
   /**
-   * 提交用戶回答（回應 AskUserQuestion）
-   */
-  const submitUserInput = useCallback(
-    async (requestId: string, answers: Record<string, string>) => {
-      if (!currentSessionId) return;
-
-      setPendingUserInput(null); // 立刻關閉彈窗
-      setError(null);
-
-      try {
-        await chatbotRepository.submitAnswer(
-          currentSessionId,
-          requestId,
-          answers,
-        );
-      } catch (err) {
-        console.error("Failed to submit answer:", err);
-        setError(i18n.t("chatbot:errors.submitAnswerFailed"));
-        return;
-      }
-
-      try {
-        // 提交成功後，使用 resumeAgent 恢復串流獲取 AI 回應
-        await resumeAgent("approve");
-      } catch (err) {
-        console.error("Failed to resume agent after answer submission:", err);
-        setError(i18n.t("chatbot:errors.resumeAfterAnswerFailed"));
-      }
-    },
-    [currentSessionId, resumeAgent],
-  );
-
-  /**
-   * 取消用戶輸入（跳過問題）
-   */
-  const cancelUserInput = useCallback(() => {
-    // Just close the modal without submitting
-    // The AI service will timeout and continue without the input
-    setPendingUserInput(null);
-  }, []);
-
-  /**
    * 提交 HITL 核准決定（核准或拒絕）
    */
   const submitApproval = useCallback(
@@ -593,7 +632,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     isStreaming,
     isInitializing,
     error,
-    pendingUserInput,
     pendingApproval,
     createSession,
     deleteSession,
@@ -602,8 +640,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     sendMessage,
     stopStreaming,
     refreshSessions,
-    submitUserInput,
-    cancelUserInput,
     submitApproval,
     dismissApproval,
     clearError,

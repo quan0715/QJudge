@@ -14,9 +14,8 @@ router.register(r"sessions", AISessionViewSet, basename="ai-session")
 router.register(r"runs", AIChatRunViewSet, basename="ai-run")
 
 urlpatterns = [
-    # Existing session CRUD + actions (send_message_stream, rename, etc.)
+    # Session CRUD and durable run APIs.
     path("", include(router.urls)),
 
-    # v2: Model list
     path("models/", ModelListView.as_view(), name="ai-model-list"),
 ]

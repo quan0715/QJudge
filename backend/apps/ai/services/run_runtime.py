@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 import logging
-import time
-from collections.abc import Generator
+import asyncio
+from collections.abc import AsyncGenerator
 from typing import Any
 
 import httpx
+from asgiref.sync import sync_to_async
 from django.db import transaction
 from django.utils import timezone
 
@@ -143,22 +144,30 @@ def resume_approval_run(*, run: AIChatRun, decision: str) -> AIChatRun:
     return run
 
 
-def run_events_as_sse(*, run: AIChatRun, after: int = 0) -> Generator[str, None, None]:
+async def run_events_as_sse(*, run: AIChatRun, after: int = 0) -> AsyncGenerator[str, None]:
     """Replay and tail persisted run events as SSE."""
     last_seq = max(after, 0)
     while True:
         emitted = False
-        events = list(run.events.filter(seq__gt=last_seq).order_by("seq")[:100])
+        events = await sync_to_async(
+            lambda: list(
+                run.events.filter(seq__gt=last_seq)
+                .order_by("seq")
+                .values("seq", "payload")[:100],
+            ),
+        )()
         for event in events:
             emitted = True
-            last_seq = event.seq
-            yield f"data: {json.dumps(event.payload, ensure_ascii=False)}\n\n"
+            last_seq = event["seq"]
+            yield f"data: {json.dumps(event['payload'], ensure_ascii=False)}\n\n"
 
-        run.refresh_from_db(fields=["status"])
-        if run.status in TERMINAL_STATUSES and not emitted:
+        run_status = await sync_to_async(
+            lambda: AIChatRun.objects.only("status").get(pk=run.pk).status,
+        )()
+        if run_status in TERMINAL_STATUSES and not emitted:
             return
         if not emitted:
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
 
 
 def execute_run(run_id: str) -> None:

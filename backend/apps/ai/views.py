@@ -9,11 +9,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 
 from .models import AIChatRun, AIMessage, AISession
-from .services.session_runtime import (
-    ChatStreamRuntime,
-    ResumeStreamRuntime,
-    build_sse_response,
-)
+from .services.stream_response import build_sse_response
 from .serializers import (
     AIChatRunSerializer,
     AISessionListSerializer,
@@ -21,7 +17,6 @@ from .serializers import (
     ModelInfoSerializer,
     RenameSessionSerializer,
     RunApprovalSerializer,
-    SendMessageStreamSerializer,
     StartRunSerializer,
 )
 from .services.run_runtime import (
@@ -92,67 +87,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
             "id": backend_session_id,
             "status": "pending",
         })
-
-    @action(detail=True, methods=["post"])
-    def send_message_stream(self, request, pk=None):
-        """Deprecated: send a message and stream AI response.
-
-        Deprecated in favor of POST /api/v1/ai/sessions/{id}/runs/.
-
-        設計說明：
-        - 所有 session 必須與認證用戶關聯
-        - pk 可以是：
-          - 現存 session_id（Claude SDK session ID）- 恢復現存會話
-          - backend_session_id（新會話的 UUID）- 新會話（需要初始化）
-          - 'new' 特殊值（向後相容）- 新會話
-        - 不支持匿名會話
-
-        Request body:
-        - content: str (required) - The message content
-        - model_id: str (optional) - Model to use (default: 'deepseek-v3')
-        """
-        logger.warning("Deprecated send_message_stream endpoint used by user=%s", request.user)
-
-        # 必須認證
-        if not request.user or not request.user.is_authenticated:
-            return Response(
-                {"error": "Authentication required"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # 獲取或創建 session
-        session = None
-
-        # pk 可以是現存 session_id 或新會話的 backend_session_id
-        # 嘗試查詢現存會話
-        try:
-            session = AISession.objects.get(session_id=pk, user=request.user)
-            logger.debug(f"Found existing session {pk} for user {request.user.id}")
-        except AISession.DoesNotExist:
-            if AISession.objects.filter(session_id=pk).exists():
-                return Response(
-                    {"error": "Session not found"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            # pk 不存在於資料庫，可能是新會話的 backend_session_id
-            logger.debug(f"Session {pk} not found - will create new session for user {request.user.id}")
-            session = None
-
-        serializer = SendMessageStreamSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        content = serializer.validated_data["content"]
-
-        runtime = ChatStreamRuntime(
-            user=request.user,
-            backend_session_id=pk,
-            session=session,
-            content=content,
-            validated_data=serializer.validated_data,
-        )
-        response = build_sse_response(runtime.generate())
-        response["Deprecation"] = "true"
-        response["Link"] = '</api/v1/ai/sessions/{session_id}/runs/>; rel="successor-version"'
-        return response
 
     @action(detail=True, methods=["post"], url_path="runs")
     def runs(self, request, pk=None):
@@ -270,50 +204,6 @@ class AISessionViewSet(viewsets.ModelViewSet):
             "total_cost_usd": str(credit_obj.total_cost_usd),
             "updated_at": credit_obj.updated_at,
         })
-
-    @action(detail=True, methods=["post"])
-    def resume_stream(self, request, pk=None):
-        """Deprecated: resume an interrupted agent and stream the result.
-
-        Deprecated in favor of POST /api/v1/ai/runs/{run_id}/approval/.
-        Proxies to ai-service /api/chat/resume endpoint.
-
-        Request body:
-        - decision: str (required) - "approve" or "reject"
-        """
-        logger.warning("Deprecated resume_stream endpoint used by user=%s", request.user)
-
-        if not request.user or not request.user.is_authenticated:
-            return Response(
-                {"error": "Authentication required"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        decision = request.data.get("decision")
-        if decision not in ("approve", "reject"):
-            return Response(
-                {"error": "decision must be 'approve' or 'reject'"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Look up existing session
-        try:
-            session = AISession.objects.get(session_id=pk, user=request.user)
-        except AISession.DoesNotExist:
-            return Response(
-                {"error": "Session not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        runtime = ResumeStreamRuntime(
-            user=request.user,
-            session=session,
-            decision=decision,
-        )
-        response = build_sse_response(runtime.generate())
-        response["Deprecation"] = "true"
-        response["Link"] = '</api/v1/ai/runs/{run_id}/approval/>; rel="successor-version"'
-        return response
 
 
 class AIChatRunViewSet(viewsets.ReadOnlyModelViewSet):
