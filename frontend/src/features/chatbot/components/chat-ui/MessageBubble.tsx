@@ -41,15 +41,6 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 minute: "2-digit",
               })}
             </span>
-            <IconButton
-              kind="ghost"
-              size="sm"
-              label={isCopied ? t("ui.copied", "已複製") : t("ui.copyMessage", "複製訊息")}
-              onClick={() => copy(message.content)}
-              className={styles.copyButton}
-            >
-              {isCopied ? <Checkmark size={16} /> : <Copy size={16} />}
-            </IconButton>
           </div>
         )}
 
@@ -61,15 +52,6 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 minute: "2-digit",
               })}
             </span>
-            <IconButton
-              kind="ghost"
-              size="sm"
-              label={isCopied ? t("ui.copied", "已複製") : t("ui.copyMessage", "複製訊息")}
-              onClick={() => copy(message.content)}
-              className={styles.copyButton}
-            >
-              {isCopied ? <Checkmark size={16} /> : <Copy size={16} />}
-            </IconButton>
           </div>
         )}
 
@@ -126,6 +108,20 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
         {!isUser && message.runStatus === "failed" && (
           <span className={styles.runStatus}>任務失敗</span>
+        )}
+
+        {messageText && (
+          <div className={styles.messageActions}>
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label={isCopied ? t("ui.copied", "已複製") : t("ui.copyMessage", "複製訊息")}
+              onClick={() => copy(message.content)}
+              className={styles.copyButton}
+            >
+              {isCopied ? <Checkmark size={16} /> : <Copy size={16} />}
+            </IconButton>
+          </div>
         )}
       </div>
     </div>

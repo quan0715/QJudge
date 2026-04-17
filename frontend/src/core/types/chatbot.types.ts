@@ -8,6 +8,7 @@ export type StreamEventType =
   | "agent_message_delta"
   | "thinking_delta"
   | "summarization_started"
+  | "todo_update"
   | "verification_report"
   | "tool_call_started"
   | "tool_call_finished"
@@ -44,6 +45,23 @@ export interface RunTodoItem {
   id: string;
   label: string;
   status: RunTodoStatus;
+}
+
+export type RunTodoInputStatus =
+  | RunTodoStatus
+  | "completed"
+  | "complete"
+  | "done"
+  | "running"
+  | "in_progress"
+  | "failed"
+  | "error";
+
+export interface RunTodoInputItem {
+  id?: string;
+  content?: string;
+  label?: string;
+  status?: RunTodoInputStatus | string;
 }
 
 export interface VerificationReport {

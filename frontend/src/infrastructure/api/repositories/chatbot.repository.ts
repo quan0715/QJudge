@@ -7,6 +7,7 @@ import type {
   ToolInfo,
   ChatMessage,
   ChatSession,
+  RunTodoInputItem,
   RunTodoItem,
   RunTodoStatus,
   VerificationReport,
@@ -20,10 +21,13 @@ const AI_BASE = "/api/v1/ai";
 interface V2StreamEvent {
   type:
   | "run_started"
-  | "agent_message_delta"
-  | "thinking_delta"
-  | "summarization_started"
-  | "verification_report"
+    | "agent_message_delta"
+    | "thinking_delta"
+    | "summarization_started"
+    | "todo_update"
+    | "todos_updated"
+    | "todo_list_updated"
+    | "verification_report"
   | "tool_call_started"
   | "tool_call_finished"
   | "usage_report"
@@ -69,7 +73,8 @@ interface V2StreamEvent {
   // awaiting_approval
   action_requests?: Array<{ name: string; args?: Record<string, unknown> }>;
   review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
-  todo_items?: Array<{ id?: string; label?: string; status?: RunTodoStatus }>;
+  todos?: RunTodoInputItem[];
+  todo_items?: RunTodoInputItem[];
 
 }
 
@@ -124,6 +129,37 @@ interface BackendRun {
 }
 
 // ===== Helpers =====
+function normalizeTodoStatus(status: unknown): RunTodoStatus {
+  if (status === "success" || status === "completed" || status === "complete" || status === "done") {
+    return "success";
+  }
+  if (status === "fail" || status === "failed" || status === "error") {
+    return "fail";
+  }
+  return "pending";
+}
+
+function normalizeTodoItems(rawTodos: unknown): RunTodoItem[] | undefined {
+  if (!Array.isArray(rawTodos)) return undefined;
+  return rawTodos
+    .map((todo, index): RunTodoItem | null => {
+      if (!todo || typeof todo !== "object") return null;
+      const item = todo as RunTodoInputItem;
+      const label = typeof item.content === "string"
+        ? item.content
+        : typeof item.label === "string"
+          ? item.label
+          : "";
+      if (!label) return null;
+      return {
+        id: typeof item.id === "string" && item.id ? item.id : `${index}-${label}`,
+        label,
+        status: normalizeTodoStatus(item.status),
+      };
+    })
+    .filter((todo): todo is RunTodoItem => todo !== null);
+}
+
 function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
   const metadata = backendMsg.metadata ?? {};
   const thinking =
@@ -155,24 +191,7 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
         })
         .filter((t): t is ToolInfo => t !== null)
     : undefined;
-  const todoItems = Array.isArray(metadata.todo_items)
-    ? metadata.todo_items
-        .map((todo): RunTodoItem | null => {
-          if (!todo || typeof todo !== "object") return null;
-          const t = todo as Record<string, unknown>;
-          const label = typeof t.label === "string" ? t.label : "";
-          const status = t.status === "pending" || t.status === "success" || t.status === "fail"
-            ? t.status
-            : "pending";
-          if (!label) return null;
-          return {
-            id: typeof t.id === "string" && t.id ? t.id : label,
-            label,
-            status,
-          };
-        })
-        .filter((todo): todo is RunTodoItem => todo !== null)
-    : undefined;
+  const todoItems = normalizeTodoItems(metadata.todos) ?? normalizeTodoItems(metadata.todo_items);
 
   return {
     id: backendMsg.id.toString(),
@@ -471,6 +490,12 @@ const chatbotRepository: ChatbotRepository = {
       currentMessage.runStatus = event.run_status as ChatMessage["runStatus"];
     }
 
+    const todoItems = normalizeTodoItems(event.todos) ?? normalizeTodoItems(event.todo_items);
+    if (todoItems) {
+      currentMessage.todoItems = todoItems;
+      callbacks.onTodoItemsUpdate?.(todoItems);
+    }
+
     switch (event.type) {
       // ===== v2 Events =====
       case "run_started":
@@ -484,17 +509,13 @@ const chatbotRepository: ChatbotRepository = {
 
       case "summarization_started": {
         callbacks.onSessionNotice?.("對話過長，截取摘要中");
-        const todoItems: RunTodoItem[] = [
-          {
-            id: "summarization",
-            label: "對話過長，截取摘要中",
-            status: "pending" as const,
-          },
-        ];
-        currentMessage.todoItems = todoItems;
-        callbacks.onTodoItemsUpdate?.(todoItems);
         break;
       }
+
+      case "todo_update":
+      case "todos_updated":
+      case "todo_list_updated":
+        break;
 
       case "agent_message_delta":
         if (event.content) {
@@ -536,17 +557,6 @@ const chatbotRepository: ChatbotRepository = {
         if (event.tool_name) {
           currentMessage.toolName = event.tool_name;
           currentMessage.isThinking = false;
-          const toolTodo: RunTodoItem = {
-            id: event.tool_call_id || event.tool_name,
-            label: `呼叫 ${event.tool_name}`,
-            status: "pending" as const,
-          };
-          const todoItems: RunTodoItem[] = [
-            ...(currentMessage.todoItems || []),
-            toolTodo,
-          ];
-          currentMessage.todoItems = todoItems;
-          callbacks.onTodoItemsUpdate?.(todoItems);
           callbacks.onMessageUpdate?.({ ...currentMessage });
         }
         break;
@@ -564,16 +574,6 @@ const chatbotRepository: ChatbotRepository = {
           toolInfo,
         ];
         currentMessage.toolName = undefined;
-        const todoItems: RunTodoItem[] = (currentMessage.todoItems || []).map((item) =>
-          item.id === toolCallId
-            ? {
-                ...item,
-                status: event.is_error ? "fail" : "success",
-              }
-            : item,
-        );
-        currentMessage.todoItems = todoItems;
-        callbacks.onTodoItemsUpdate?.(todoItems);
         callbacks.onMessageUpdate?.({ ...currentMessage });
         break;
       }
@@ -646,7 +646,9 @@ const chatbotRepository: ChatbotRepository = {
       }
 
       default:
-        console.debug("SSE: unknown event type", { type: event.type });
+        if (!todoItems) {
+          console.debug("SSE: unknown event type", { type: event.type });
+        }
     }
   },
 } as ChatbotRepository & {

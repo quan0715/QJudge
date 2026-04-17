@@ -90,10 +90,10 @@ export function ComposerBar({
                     className={styles.todoStatus}
                   >
                     {item.status === "success"
-                      ? t("ui.todoSuccess", "完成")
+                      ? t("ui.todoSuccess", "success")
                       : item.status === "fail"
-                        ? t("ui.todoFail", "失敗")
-                        : t("ui.todoPending", "進行中")}
+                        ? t("ui.todoFail", "fail")
+                        : t("ui.todoPending", "pending")}
                   </Tag>
                   <span className={styles.todoLabel}>{item.label}</span>
                 </div>
