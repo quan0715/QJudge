@@ -3,12 +3,12 @@ import { Tag } from "@carbon/react";
 import { HeroBase } from "@/shared/layout/HeroBase";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { Checkmark, Percentage, Document, Trophy } from "@carbon/icons-react";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { useTranslation } from "react-i18next";
 import "./ProblemHero.scss";
 
 interface ProblemHeroProps {
-  problem: ProblemDetail | null;
+  problem: CodingProblemDetail | null;
   loading?: boolean;
   // Contest mode props
   contestMode?: boolean;

@@ -7,7 +7,7 @@ import {
   Minimize,
   DocumentView,
 } from "@carbon/icons-react";
-import type { ProblemDetail as Problem } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { getProblem } from "@/infrastructure/api/repositories/problem.repository";
 import { ProblemFullPageSolve } from "@/features/problems/components/solve/editorview/ProblemFullPageSolve";
 import "./screen.scss";
@@ -23,7 +23,7 @@ import "./screen.scss";
 const ProblemSolveScreen = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [problem, setProblem] = useState<Problem | null>(null);
+  const [problem, setProblem] = useState<CodingProblemDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);

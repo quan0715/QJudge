@@ -60,7 +60,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <details className={styles.thinking}>
             <summary>{t("ui.reasoning")}</summary>
             <div className={styles.thinkingContent}>
-              <MarkdownRenderer enableHighlight enableMath className={styles.thinkingMarkdown}>
+              <MarkdownRenderer
+                enableHighlight
+                enableMath
+                className={`${styles.thinkingMarkdown} chat-thinking-markdown`}
+              >
                 {thinkingText}
               </MarkdownRenderer>
             </div>

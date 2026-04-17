@@ -97,7 +97,7 @@ const ProblemCodingTab: React.FC<ProblemCodingTabProps> = ({
             </Button>
           </div>
         }
-        noPadding
+        padding="none"
       >
         <div className="problem-coding-tab__editor-container">
           <QJudgeEditor
@@ -135,7 +135,7 @@ const ProblemCodingTab: React.FC<ProblemCodingTabProps> = ({
             </Button>
           </div>
         }
-        noPadding
+        padding="none"
       >
         <div className="problem-coding-tab__test-cases-container">
           <TestCaseList

@@ -3,7 +3,7 @@ import { Layer, Tag, IconButton } from "@carbon/react";
 import { Code, Copy, DataBase, Draggable, TrashCan } from "@carbon/icons-react";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import { useTranslation } from "react-i18next";
@@ -19,7 +19,7 @@ interface CodingProblemPreviewCardProps {
   orderLabel: string;
   displayTitle: string;
   score?: number;
-  problem: ProblemDetail;
+  problem: CodingProblemDetail;
   frozen?: boolean;
   contestBinding: Pick<ContestProblemSummary, "sourceBank" | "sourceMode">;
   problemId: string;

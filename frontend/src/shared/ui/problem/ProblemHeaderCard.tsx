@@ -1,6 +1,6 @@
 import React from "react";
 import { Time, DataBase } from "@carbon/icons-react";
-import type { ProblemDetail, Difficulty } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail, Difficulty } from "@/core/entities/problem.entity";
 import { DifficultyBadge } from "@/shared/ui/tag/DifficultyBadge";
 import { CategoryTag } from "@/shared/ui/tag/CategoryTag";
 import { AcrBadge } from "@/shared/ui/tag/AcrBadge";
@@ -12,7 +12,7 @@ import "./ProblemHeaderCard.scss";
 
 interface ProblemHeaderCardProps {
   /** Problem data */
-  problem: ProblemDetail;
+  problem: CodingProblemDetail;
   /** Optional problem label (e.g., "A" for contest) */
   problemLabel?: string;
   /** Show AC rate badge */

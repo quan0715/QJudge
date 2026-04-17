@@ -5,7 +5,7 @@ import { Code } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import type {
-  ProblemDetail as Problem,
+  CodingProblemDetail,
   LanguageConfig,
 } from "@/core/entities/problem.entity";
 import type { SubmissionDetail } from "@/core/entities/submission.entity";
@@ -36,7 +36,7 @@ import {
 import "./ProblemDetailSection.scss";
 
 interface ProblemDetailSectionProps {
-  problem: Problem;
+  problem: CodingProblemDetail;
   initialCode?: string;
   initialLanguage?: string;
   onSubmit: (
@@ -332,7 +332,7 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
 
         {/* Section 4: Submission List */}
         <section className="problem-detail-page__section">
-          <ContainerCard title="提交記錄" noPadding>
+          <ContainerCard title="提交記錄" padding="none">
             <ProblemSubmissionList problemId={problem.id} />
           </ContainerCard>
         </section>

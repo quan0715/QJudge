@@ -5,7 +5,7 @@ import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@carbon/react";
 import { Download, View } from "@carbon/icons-react";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import {
   deleteProblem,
 } from "@/infrastructure/api/repositories/problem.repository";
@@ -41,7 +41,7 @@ import { formSchemaToPreview } from "./utils/previewAdapter";
 import "./screen.scss";
 
 interface ProblemEditScreenContentProps {
-  problem: ProblemDetail;
+  problem: CodingProblemDetail;
   handleDelete: () => Promise<void>;
   handleExportConfirm: (onClose: () => void) => void;
   onBack: () => void;

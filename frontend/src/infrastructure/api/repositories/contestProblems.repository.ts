@@ -1,7 +1,7 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import type {
-  Problem,
-  ProblemDetail,
+  CodingProblem,
+  CodingProblemDetail,
 } from "@/core/entities/problem.entity";
 import {
   mapProblemDto,
@@ -11,7 +11,7 @@ import {
 export const getContestProblem = async (
   contestId: string,
   contestProblemId: string
-): Promise<ProblemDetail | undefined> => {
+): Promise<CodingProblemDetail | undefined> => {
   const res = await httpClient.get(
     `/api/v1/contests/${contestId}/problems/${contestProblemId}/`
   );
@@ -23,7 +23,7 @@ export const getContestProblem = async (
 export const createContestProblem = async (
   contestId: string,
   data: { title: string; max_score?: number }
-): Promise<Problem> => {
+): Promise<CodingProblem> => {
   const responseData = await requestJson<any>(
     httpClient.post(`/api/v1/contests/${contestId}/problems/`, data),
     "Failed to create problem"
@@ -34,7 +34,7 @@ export const createContestProblem = async (
 export const duplicateContestProblem = async (
   contestId: string,
   data: { problem_id: string; max_score?: number }
-): Promise<Problem> => {
+): Promise<CodingProblem> => {
   const responseData = await requestJson<any>(
     httpClient.post(`/api/v1/contests/${contestId}/problems/duplicate/`, data),
     "Failed to duplicate problem"
@@ -45,7 +45,7 @@ export const duplicateContestProblem = async (
 export const importContestProblemsFromBank = async (
   contestId: string,
   items: { question_bank_id: string; question_id: string }[]
-): Promise<Problem[]> => {
+): Promise<CodingProblem[]> => {
   const responseData = await requestJson<any[]>(
     httpClient.post(`/api/v1/contests/${contestId}/problems/import-from-bank/`, { items }),
     "Failed to import problems from bank"

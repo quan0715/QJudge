@@ -1,12 +1,12 @@
 import React from "react";
 import { Modal } from "@carbon/react";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { ProblemPreview } from "@/shared/ui/problem";
 
 interface ProblemEditPreviewModalProps {
   open: boolean;
   onClose: () => void;
-  previewData: ProblemDetail;
+  previewData: CodingProblemDetail;
 }
 
 const ProblemEditPreviewModal: React.FC<ProblemEditPreviewModalProps> = ({

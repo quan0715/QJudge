@@ -355,7 +355,7 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
                   ? t("submissions.title")
                   : t("submissions.titleWithCount", { count: totalItems })
               }
-              noPadding
+              padding="none"
             >
               <div style={{ minHeight: "200px" }}>
                 {showSkeleton ? (

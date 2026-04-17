@@ -312,7 +312,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
         ];
 
   return (
-    <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} noPadding withLayer={false}>
+    <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} padding="none" withLayer={false}>
       {error ? (
         <InlineNotification
           kind="warning"

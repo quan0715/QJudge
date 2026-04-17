@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { SkeletonText, SkeletonPlaceholder } from "@carbon/react";
 import { ProblemDetailSection } from "./section";
-import type { ProblemDetail as Problem } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { SubmissionDetail as Submission } from "@/core/entities/submission.entity";
 import { submitSolution } from "@/infrastructure/api/repositories/submission.repository";
 import { getProblem } from "@/infrastructure/api/repositories/problem.repository";
@@ -146,7 +146,7 @@ const ProblemDetailSkeleton: React.FC = () => {
 const ProblemDetail = () => {
   const { id } = useParams<{ id: string }>();
 
-  const [problem, setProblem] = useState<Problem | null>(null);
+  const [problem, setProblem] = useState<CodingProblemDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

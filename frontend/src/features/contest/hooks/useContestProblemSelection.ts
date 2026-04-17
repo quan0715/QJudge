@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { ContestProblemSummary, ContestDetail, ScoreboardRow } from "@/core/entities/contest.entity";
 import { getContestProblem } from "@/infrastructure/api/repositories";
 import type { ProblemMenuItem } from "@/shared/ui/solver";
@@ -24,7 +24,7 @@ interface UseContestProblemSelectionReturn {
   selectProblem: (problemId: string) => void;
 
   // Loaded problem
-  selectedProblem: ProblemDetail | null;
+  selectedProblem: CodingProblemDetail | null;
   isProblemLoading: boolean;
   error: string | null;
 }
@@ -48,7 +48,7 @@ export function useContestProblemSelection({
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(
     initialProblemId || null
   );
-  const [selectedProblem, setSelectedProblem] = useState<ProblemDetail | null>(null);
+  const [selectedProblem, setSelectedProblem] = useState<CodingProblemDetail | null>(null);
   const [isProblemLoading, setIsProblemLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

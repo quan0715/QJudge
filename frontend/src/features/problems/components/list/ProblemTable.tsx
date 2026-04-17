@@ -16,11 +16,11 @@ import {
   SkeletonText,
 } from "@carbon/react";
 import { Upload, Add } from "@carbon/icons-react";
-import type { Problem } from "@/core/entities/problem.entity";
+import type { CodingProblem } from "@/core/entities/problem.entity";
 import ProblemTableRow from "./ProblemTableRow";
 
-// Extend Problem to include contest-specific fields if needed for display
-export interface ProblemRowData extends Partial<Problem> {
+// Extend CodingProblem to include contest-specific fields if needed for display
+export interface ProblemRowData extends Partial<CodingProblem> {
   id: string;
   title: string;
   isSolved?: boolean; // For student mode
@@ -31,7 +31,7 @@ export interface ProblemRowData extends Partial<Problem> {
   problemId?: string; // Real problem ID if different from contest problem ID
 
   // Allow loose typing for legacy support during migration if needed,
-  // but prefer strict typing from Problem entity
+  // but prefer strict typing from CodingProblem entity
   [key: string]: any;
 }
 

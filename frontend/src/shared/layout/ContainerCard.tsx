@@ -16,8 +16,6 @@ interface ContainerCardProps {
   style?: React.CSSProperties;
   /** Content area padding. "none" removes all padding, "compact" uses 0.5rem. */
   padding?: "none" | "compact" | "default";
-  /** @deprecated Use padding="none" instead */
-  noPadding?: boolean;
   /** Stretch header actions to fill the full header height (e.g. for toolbar-style buttons) */
   headerStretch?: boolean;
 }
@@ -33,10 +31,9 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
   className,
   style,
   padding,
-  noPadding = false,
   headerStretch = false,
 }) => {
-  const resolvedPadding = padding ?? (noPadding ? "none" : "default");
+  const resolvedPadding = padding ?? "default";
   const contentClass =
     resolvedPadding === "none"
       ? styles.contentNoPadding

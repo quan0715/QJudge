@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import {
   DEFAULT_PROBLEM_FORM_VALUES,
   type ProblemFormSchema,
@@ -12,7 +12,7 @@ import {
 describe("problemFormAdapters", () => {
   describe("problemDetailToFormSchema", () => {
     it("maps problem detail flat fields into form schema", () => {
-      const detail: ProblemDetail = {
+      const detail: CodingProblemDetail = {
         id: "1",
         title: "Test Problem",
         difficulty: "easy",

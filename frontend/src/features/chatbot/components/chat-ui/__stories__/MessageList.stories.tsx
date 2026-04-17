@@ -21,6 +21,7 @@ const meta: Meta<typeof MessageList> = {
   },
   args: {
     onApprovalDecision: () => {},
+    isLoading: false,
     pendingApproval: null,
   },
   decorators: [
@@ -49,6 +50,14 @@ export const Conversation: Story = {
       { ...mockUserMessage, id: "msg-user-2", content: "列出競賽題目", timestamp: new Date("2026-04-17T14:02:00") },
       mockAiWithMarkdown,
     ],
+  },
+};
+
+export const LoadingHistory: Story = {
+  name: "載入歷史訊息",
+  args: {
+    messages: [],
+    isLoading: true,
   },
 };
 

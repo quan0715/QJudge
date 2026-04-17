@@ -2,13 +2,13 @@ import React from "react";
 import { ClickableTile, SkeletonText, Layer, Stack } from "@carbon/react";
 import { CheckmarkFilled, ArrowRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { Problem } from "@/core/entities/problem.entity";
+import type { CodingProblem } from "@/core/entities/problem.entity";
 import { DifficultyBadge, CategoryTag, AcrBadge } from "@/shared/ui/tag";
 import "./ProblemPreviewSection.scss";
 
 export interface ProblemPreviewSectionProps {
-  problem: Problem;
-  onSelect?: (problem: Problem) => void;
+  problem: CodingProblem;
+  onSelect?: (problem: CodingProblem) => void;
 }
 
 export const ProblemPreviewSection: React.FC<ProblemPreviewSectionProps> = ({

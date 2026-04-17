@@ -15,7 +15,7 @@ import type {
   ExamQuestion,
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { Submission } from "@/core/entities/submission.entity";
 
 // ============================================================================
@@ -53,7 +53,7 @@ export interface IContestProblemRepository {
   getContestProblem(
     contestId: string,
     contestProblemId: string
-  ): Promise<ProblemDetail | undefined>;
+  ): Promise<CodingProblemDetail | undefined>;
   addProblemToContest(
     contestId: string,
     problemId: string,

@@ -1,6 +1,6 @@
 import type {
-  Problem,
-  ProblemDetail,
+  CodingProblem,
+  CodingProblemDetail,
   ProblemUpsertPayload,
   Difficulty,
   Tag,
@@ -20,7 +20,7 @@ export interface GetProblemsParams {
 }
 
 export interface PaginatedProblems {
-  results: Problem[];
+  results: CodingProblem[];
   count: number;
   next: string | null;
   previous: string | null;
@@ -70,8 +70,8 @@ export interface TestRunResult {
 
 export interface IProblemRepository {
   // Read operations
-  getProblems(params?: GetProblemsParams | string): Promise<Problem[]>;
-  getProblem(id: string, scope?: string): Promise<ProblemDetail | undefined>;
+  getProblems(params?: GetProblemsParams | string): Promise<CodingProblem[]>;
+  getProblem(id: string, scope?: string): Promise<CodingProblemDetail | undefined>;
   getTags(): Promise<Tag[]>;
   getProblemStatistics(
     problemId: string,
@@ -79,12 +79,12 @@ export interface IProblemRepository {
   ): Promise<ProblemStatistics>;
 
   // Write operations
-  createProblem(data: ProblemUpsertPayload): Promise<ProblemDetail>;
-  updateProblem(id: string, data: ProblemUpsertPayload): Promise<ProblemDetail>;
+  createProblem(data: ProblemUpsertPayload): Promise<CodingProblemDetail>;
+  updateProblem(id: string, data: ProblemUpsertPayload): Promise<CodingProblemDetail>;
   patchProblem(
     id: string,
     data: Partial<ProblemUpsertPayload>
-  ): Promise<ProblemDetail>;
+  ): Promise<CodingProblemDetail>;
   deleteProblem(id: string): Promise<void>;
 
   // Test run

@@ -9,7 +9,7 @@ import {
   useProblemLeaderboard,
   useProblemSubmissions,
 } from "./ProblemContext";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { ProblemStatistics } from "@/core/ports/problem.repository";
 import type { GetSubmissionsResult } from "@/core/ports/submission.repository";
 
@@ -32,7 +32,7 @@ import { getProblem, getProblemStatistics } from "@/infrastructure/api/repositor
 import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
 
 // Test data
-const mockProblem: ProblemDetail = {
+const mockProblem: CodingProblemDetail = {
   id: "1",
   title: "Test Problem",
   difficulty: "easy",

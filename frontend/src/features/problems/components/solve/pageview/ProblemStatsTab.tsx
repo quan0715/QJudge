@@ -274,7 +274,7 @@ const ProblemStatsTab: React.FC = () => {
               </span>
             }
             style={{ minHeight: "380px" }}
-            noPadding
+            padding="none"
           >
             {leaderboardLoading ? (
               <div className="problem-stats-tab__loading">
