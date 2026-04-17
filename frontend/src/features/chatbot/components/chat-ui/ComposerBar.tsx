@@ -1,8 +1,7 @@
 import { useRef, useState, useCallback } from "react";
 import { IconButton, Tag } from "@carbon/react";
-import { Checkmark, InProgress, Send, StopFilled, Warning } from "@carbon/icons-react";
+import { Send, StopFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { RunTodoItem } from "@/core/types/chatbot.types";
 import styles from "./ComposerBar.module.scss";
 
 const TEXTAREA_MAX_HEIGHT = 160; // sync with $chat-textarea-max-height in _variables.scss
@@ -14,7 +13,6 @@ interface ComposerBarProps {
   disabled?: boolean;
   placeholder?: string;
   sessionNotice?: string | null;
-  runTodoItems?: RunTodoItem[];
 }
 
 export function ComposerBar({
@@ -24,7 +22,6 @@ export function ComposerBar({
   disabled = false,
   placeholder,
   sessionNotice,
-  runTodoItems = [],
 }: ComposerBarProps) {
   const { t } = useTranslation("chatbot");
   const displayPlaceholder = placeholder || t("ui.inputPlaceholder");
@@ -66,20 +63,7 @@ export function ComposerBar({
   }, []);
 
   const canSend = value.trim().length > 0 && !disabled && !isStreaming;
-  const hasStatusBlock = Boolean(sessionNotice) || runTodoItems.length > 0;
-
-  const renderTodoIcon = (item: RunTodoItem) => {
-    if (item.status === "success") {
-      return <Checkmark size={16} className={`${styles.todoIcon} ${styles.todoIconSuccess}`} />;
-    }
-    if (item.status === "fail") {
-      return <Warning size={16} className={`${styles.todoIcon} ${styles.todoIconFail}`} />;
-    }
-    if (item.status === "in_progress") {
-      return <InProgress size={16} className={`${styles.todoIcon} ${styles.todoIconInProgress}`} />;
-    }
-    return <InProgress size={16} className={`${styles.todoIcon} ${styles.todoIconPending}`} />;
-  };
+  const hasStatusBlock = Boolean(sessionNotice);
 
   return (
     <div className={styles.bar}>
@@ -93,16 +77,6 @@ export function ComposerBar({
             </div>
           )}
 
-          {runTodoItems.length > 0 && (
-            <div className={styles.todoList} aria-label={t("ui.todoList", "待辦清單")}>
-              {runTodoItems.map((item) => (
-                <div key={item.id} className={styles.todoItem}>
-                  {renderTodoIcon(item)}
-                  <span className={styles.todoLabel}>{item.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 

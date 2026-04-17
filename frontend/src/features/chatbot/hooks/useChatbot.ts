@@ -22,7 +22,6 @@ interface UseChatbotReturn {
   error: string | null;
   pendingApproval: ApprovalRequest | null;
   sessionNotice: string | null;
-  runTodoItems: RunTodoItem[];
   createSession: () => Promise<string | null>;
   deleteSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
@@ -187,7 +186,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const [pendingApproval, setPendingApproval] =
     useState<ApprovalRequest | null>(null);
   const [sessionNotice, setSessionNotice] = useState<string | null>(null);
-  const [runTodoItems, setRunTodoItems] = useState<RunTodoItem[]>([]);
   const [activeRuns, setActiveRuns] = useState<ChatRun[]>([]);
 
   // AbortController for cancelling only the local event subscription.
@@ -452,7 +450,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setIsStreaming(false);
       setIsLoading(false);
       setSessionNotice(null);
-      setRunTodoItems([]);
       return;
     }
 
@@ -469,9 +466,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       activeRun,
       {
         onMessageUpdate: (messageUpdate) => {
-          if (messageUpdate.todoItems) {
-            setRunTodoItems(messageUpdate.todoItems);
-          }
           setSessions((prev) =>
             prev.map((session) =>
               session.id === activeRun.sessionId
@@ -484,7 +478,19 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setSessionNotice(notice);
         },
         onTodoItemsUpdate: (items) => {
-          setRunTodoItems(items || []);
+          if (!items) return;
+          setSessions((prev) =>
+            prev.map((session) =>
+              session.id === activeRun.sessionId
+                ? applyRunMessageUpdate(
+                    session,
+                    activeRun,
+                    { todoItems: items },
+                    streamedState,
+                  )
+                : session,
+            ),
+          );
         },
         onComplete: (freshSession) => {
           setSessions((prev) =>
@@ -496,7 +502,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setIsStreaming(false);
           setIsLoading(false);
           setSessionNotice(null);
-          setRunTodoItems([]);
         },
         onError: (errorMsg) => {
           setError(errorMsg);
@@ -504,7 +509,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setIsStreaming(false);
           setIsLoading(false);
           setSessionNotice(null);
-          setRunTodoItems([]);
         },
         onAwaitingApproval: (request) => {
           setPendingApproval(request);
@@ -564,7 +568,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setIsLoading(true);
       setError(null);
       setSessionNotice(null);
-      setRunTodoItems([]);
 
       try {
         const run = await chatbotRepository.startRun(
@@ -591,7 +594,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setIsStreaming(false);
         setIsLoading(false);
         setSessionNotice(null);
-        setRunTodoItems([]);
       }
     },
     [currentSessionId, effectiveContext, setCurrentSessionId],
@@ -664,7 +666,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setIsStreaming(false);
       setIsLoading(false);
       setSessionNotice(null);
-      setRunTodoItems([]);
       return;
     }
 
@@ -693,7 +694,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setIsStreaming(false);
         setIsLoading(false);
         setSessionNotice(null);
-        setRunTodoItems([]);
       });
   }, [activeRuns, currentSessionId]);
 
@@ -708,7 +708,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     error,
     pendingApproval,
     sessionNotice,
-    runTodoItems,
     createSession,
     deleteSession,
     switchSession,

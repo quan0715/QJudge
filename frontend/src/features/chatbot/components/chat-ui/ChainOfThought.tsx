@@ -1,21 +1,73 @@
 import { Accordion, AccordionItem } from "@carbon/react";
 import { Checkmark, Warning, InProgress } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { ToolInfo } from "@/core/types/chatbot.types";
+import type { RunTodoItem, ToolInfo } from "@/core/types/chatbot.types";
 import styles from "./ChainOfThought.module.scss";
 
 interface ChainOfThoughtProps {
   steps: ToolInfo[];
+  todoItems?: RunTodoItem[];
   isProcessing: boolean;
   currentToolName?: string;
 }
 
-export function ChainOfThought({ steps, isProcessing, currentToolName }: ChainOfThoughtProps) {
+function getTodoStatusIcon(item: RunTodoItem) {
+  if (item.status === "success") {
+    return <Checkmark size={16} className={styles.success} />;
+  }
+  if (item.status === "fail") {
+    return <Warning size={16} className={styles.failure} />;
+  }
+  if (item.status === "in_progress") {
+    return <InProgress size={16} className={styles.processing} />;
+  }
+  return <InProgress size={16} className={styles.pending} />;
+}
+
+function getTodoSummaryStatus(todoItems: RunTodoItem[]) {
+  if (todoItems.some((item) => item.status === "fail")) return "fail";
+  if (todoItems.some((item) => item.status === "in_progress")) return "in_progress";
+  if (todoItems.length > 0 && todoItems.every((item) => item.status === "success")) return "success";
+  return "pending";
+}
+
+export function ChainOfThought({
+  steps,
+  todoItems = [],
+  isProcessing,
+  currentToolName,
+}: ChainOfThoughtProps) {
   const { t } = useTranslation("chatbot");
+  const todoSummaryStatus = getTodoSummaryStatus(todoItems);
   return (
     <div className={styles.cot}>
       <div className={styles.label}>{t("ui.reasoningSteps")}</div>
       <Accordion size="sm" className={styles.accordion}>
+        {todoItems.length > 0 && (
+          <AccordionItem
+            open={todoSummaryStatus === "in_progress" || todoSummaryStatus === "pending"}
+            title={
+              <span className={styles.stepTitle}>
+                {getTodoStatusIcon({
+                  id: "todo-summary",
+                  label: "",
+                  status: todoSummaryStatus,
+                })}
+                {t("ui.todoList", "待辦清單")}
+              </span>
+            }
+          >
+            <div className={styles.todoList}>
+              {todoItems.map((item) => (
+                <div key={item.id} className={styles.todoItem}>
+                  {getTodoStatusIcon(item)}
+                  <span className={styles.todoLabel}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </AccordionItem>
+        )}
+
         {steps.map((step, i) => {
           const isDone = step.result !== undefined || step.isError;
           const isFailed = step.isError;

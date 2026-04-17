@@ -48,13 +48,8 @@ export const Disabled: Story = {
 };
 
 export const WithStatus: Story = {
-  name: "含摘要與待辦",
+  name: "含摘要狀態",
   args: {
     sessionNotice: "對話過長，截取摘要中",
-    runTodoItems: [
-      { id: "summarization", label: "對話過長，截取摘要中", status: "pending" },
-      { id: "tool-qjudge_discover", label: "呼叫 qjudge_discover", status: "success" },
-      { id: "tool-qjudge_submit", label: "呼叫 qjudge_submit", status: "fail" },
-    ],
   },
 };

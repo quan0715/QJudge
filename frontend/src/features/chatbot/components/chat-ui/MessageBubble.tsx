@@ -72,9 +72,10 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
 
         {/* CoT steps */}
-        {!isUser && message.toolExecutions && message.toolExecutions.length > 0 && (
+        {!isUser && ((message.toolExecutions && message.toolExecutions.length > 0) || (message.todoItems && message.todoItems.length > 0)) && (
           <ChainOfThought
-            steps={message.toolExecutions}
+            steps={message.toolExecutions || []}
+            todoItems={message.todoItems}
             isProcessing={!!message.toolName}
             currentToolName={message.toolName}
           />
