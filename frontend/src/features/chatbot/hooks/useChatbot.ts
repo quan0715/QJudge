@@ -703,6 +703,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setError(i18n.t("chatbot:errors.resumeAgentFailed"));
         setIsStreaming(false);
         setIsLoading(false);
+        throw err;
       }
     },
     [activeRuns, currentSessionId],
@@ -710,12 +711,20 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
   /**
    * 提交 HITL 核准決定（核准或拒絕）
+   *
+   * 只有在 resumeAgent 成功後才關掉 pendingApproval，否則使用者會失去
+   * 重新核准的入口（後端 run 仍停在 awaiting_approval、但不會再 replay
+   * 該事件，因為 SSE 訂閱要等下一次成功 resume 才會重開）。
    */
   const submitApproval = useCallback(
     async (decision: "approve" | "reject") => {
       if (!currentSessionId) return;
-      setPendingApproval(null);
-      await resumeAgent(decision);
+      try {
+        await resumeAgent(decision);
+        setPendingApproval(null);
+      } catch {
+        // resumeAgent 已 setError；保留 pendingApproval 讓使用者可以重試
+      }
     },
     [currentSessionId, resumeAgent],
   );
