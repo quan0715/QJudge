@@ -3,15 +3,8 @@ import { Bullhorn } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ClassroomAnnouncement } from "@/core/entities/classroom.entity";
 import { formatDateTime, DATE_FORMATS } from "@/i18n/dateUtils";
+import { stripMarkdown } from "@/shared/utils";
 import { ScheduleCard } from "../ScheduleCard";
-
-const stripMarkdown = (md: string, maxLen = 80): string => {
-  const plain = md
-    .replace(/[#*_~`>\-![\]()]/g, "")
-    .replace(/\n+/g, " ")
-    .trim();
-  return plain.length > maxLen ? `${plain.slice(0, maxLen)}…` : plain;
-};
 
 export interface AnnouncementScheduleCardProps {
   announcement: ClassroomAnnouncement;

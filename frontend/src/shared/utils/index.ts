@@ -12,3 +12,4 @@ export {
 
 // Utility functions
 export { debounce } from "./debounce";
+export { stripMarkdown } from "./stringUtils";

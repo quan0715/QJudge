@@ -7,6 +7,8 @@ import type {
   ApprovalRequest,
   ChatRun,
   ChatMessage,
+  ToolInfo,
+  VerificationReport,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 
@@ -17,8 +19,10 @@ interface UseChatbotReturn {
   isLoading: boolean;
   isStreaming: boolean;
   isInitializing: boolean;
+  isSessionLoading: boolean;
   error: string | null;
   pendingApproval: ApprovalRequest | null;
+  sessionNotice: string | null;
   createSession: () => Promise<string | null>;
   deleteSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
@@ -67,6 +71,67 @@ function mergeStreamedText(existing: string, streamedValue: string, delta?: stri
   if (streamedValue.startsWith(existing)) return streamedValue;
   if (existing.startsWith(streamedValue)) return existing;
   return `${existing}${delta}`;
+}
+
+/**
+ * Merge tool executions by `toolCallId`, keeping prior entries in order and
+ * letting incoming entries update/append. Each new SSE subscription rebuilds
+ * `currentMessage.toolExecutions` from an empty array (e.g., after a HITL
+ * approve reopens a fresh stream), so a blind `...messageUpdate` spread would
+ * wipe the history. This merge preserves all completed tool calls.
+ */
+function mergeToolExecutions(
+  previous: ToolInfo[] | undefined,
+  incoming: ToolInfo[] | undefined,
+): ToolInfo[] | undefined {
+  if (!incoming?.length) return previous;
+  if (!previous?.length) return incoming;
+  const incomingById = new Map<string, ToolInfo>();
+  for (const exec of incoming) {
+    if (exec.toolCallId) incomingById.set(exec.toolCallId, exec);
+  }
+  const merged: ToolInfo[] = [];
+  const usedIds = new Set<string>();
+  for (const exec of previous) {
+    const id = exec.toolCallId;
+    const replacement = id ? incomingById.get(id) : undefined;
+    if (replacement && id) {
+      merged.push(replacement);
+      usedIds.add(id);
+    } else {
+      merged.push(exec);
+    }
+  }
+  for (const exec of incoming) {
+    if (exec.toolCallId && usedIds.has(exec.toolCallId)) continue;
+    merged.push(exec);
+  }
+  return merged;
+}
+
+function mergeVerificationReports(
+  previous: VerificationReport[] | undefined,
+  incoming: VerificationReport[] | undefined,
+): VerificationReport[] | undefined {
+  if (!incoming?.length) return previous;
+  if (!previous?.length) return incoming;
+  const incomingByIter = new Map(incoming.map((r) => [r.iteration, r]));
+  const merged: VerificationReport[] = [];
+  const usedIters = new Set<number>();
+  for (const report of previous) {
+    const replacement = incomingByIter.get(report.iteration);
+    if (replacement) {
+      merged.push(replacement);
+      usedIters.add(report.iteration);
+    } else {
+      merged.push(report);
+    }
+  }
+  for (const report of incoming) {
+    if (usedIters.has(report.iteration)) continue;
+    merged.push(report);
+  }
+  return merged;
 }
 
 function createAssistantDraft(
@@ -125,9 +190,18 @@ export function applyRunMessageUpdate(
         contentDelta.delta,
       ),
       thinkingInfo: mergedThinking,
+      toolExecutions: mergeToolExecutions(
+        message.toolExecutions,
+        messageUpdate.toolExecutions,
+      ),
+      verificationReports: mergeVerificationReports(
+        message.verificationReports,
+        messageUpdate.verificationReports,
+      ),
       runId: message.runId ?? run.id,
       runStatus: messageUpdate.runStatus ?? run.status,
       lastEventSeq: messageUpdate.lastEventSeq ?? message.lastEventSeq,
+      todoItems: messageUpdate.todoItems ?? message.todoItems,
     };
   });
 
@@ -163,10 +237,19 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [loadingSessionIds, setLoadingSessionIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [error, setError] = useState<string | null>(null);
   const [pendingApproval, setPendingApproval] =
     useState<ApprovalRequest | null>(null);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
   const [activeRuns, setActiveRuns] = useState<ChatRun[]>([]);
+  // Incremented whenever we need to force the SSE subscription effect to
+  // restart with the same activeRun (e.g., after POSTing an approval decision
+  // that resumes the same run). activeRun.id/kind alone won't cover multi-turn
+  // HITL because kind stays "resume" across successive approvals.
+  const [subscribeEpoch, setSubscribeEpoch] = useState(0);
 
   // AbortController for cancelling only the local event subscription.
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -179,6 +262,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
   const currentSession =
     sessions.find((session) => session.id === currentSessionId) ?? null;
+  const isSessionLoading =
+    currentSessionId !== null && loadingSessionIds.has(currentSessionId);
 
   const effectiveContext = useMemo<ChatContext | null>(() => {
     if (context) return context;
@@ -274,13 +359,26 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
           setSessions(sessionsWithRuns);
           setCurrentSessionId(activeId);
+          setLoadingSessionIds((prev) => new Set(prev).add(activeId));
+          setIsInitializing(false);
 
           // 背景 lazy load active session 的 messages
-          chatbotRepository.getSession(activeId).then((detailed) => {
-            setSessions((prev) =>
-              prev.map((s) => (s.id === activeId ? detailed : s)),
-            );
-          }).catch(() => { /* ignore, will load on click */ });
+          chatbotRepository
+            .getSession(activeId)
+            .then((detailed) => {
+              setSessions((prev) =>
+                prev.map((s) => (s.id === activeId ? detailed : s)),
+              );
+            })
+            .catch(() => { /* ignore, will load on click */ })
+            .finally(() => {
+              setLoadingSessionIds((prev) => {
+                const next = new Set(prev);
+                next.delete(activeId);
+                return next;
+              });
+            });
+          return;
         }
       } catch (err) {
         console.error("Failed to initialize chatbot:", err);
@@ -306,6 +404,11 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
       setSessions((prev) => [...prev, newSession]);
       setCurrentSessionId(newSession.id);
+      setLoadingSessionIds((prev) => {
+        const next = new Set(prev);
+        next.delete(newSession.id);
+        return next;
+      });
       return newSession.id;
     } catch (err) {
       console.error("Failed to create session:", err);
@@ -341,7 +444,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setError(i18n.t("chatbot:errors.deleteSessionFailed"));
       }
     },
-    [currentSessionId, createSession],
+    [currentSessionId, createSession, setCurrentSessionId],
   );
 
   /**
@@ -354,6 +457,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     // Lazy load messages if not yet loaded
     const existing = sessions.find((s) => s.id === sessionId);
     if (existing && !existing.id.startsWith("temp-") && existing.messages.length === 0) {
+      setLoadingSessionIds((prev) => new Set(prev).add(sessionId));
       try {
         const detailed = await chatbotRepository.getSession(sessionId);
         setSessions((prev) =>
@@ -361,9 +465,15 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         );
       } catch (err) {
         console.warn("Failed to load session messages:", err);
+      } finally {
+        setLoadingSessionIds((prev) => {
+          const next = new Set(prev);
+          next.delete(sessionId);
+          return next;
+        });
       }
     }
-  }, [sessions]);
+  }, [sessions, setCurrentSessionId]);
 
   /**
    * 重新命名 session
@@ -389,19 +499,29 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     [],
   );
 
-  useEffect(() => {
-    if (!enabled || !currentSessionId) return;
-    const activeRun = activeRuns.find(
-      (run) =>
-        run.sessionId === currentSessionId &&
-        ["queued", "running", "awaiting_approval"].includes(run.status),
+  // Derive the active run for the current session once so the subscription
+  // effect can depend on stable primitives (id/kind/lastEventSeq) instead of
+  // the `activeRuns` array reference. Without this, every setActiveRuns call
+  // (e.g., status churn on awaiting_approval) would tear down and rebuild the
+  // SSE subscription, causing the backend to replay old events from seq 0.
+  const activeRun = useMemo(() => {
+    if (!enabled || !currentSessionId) return null;
+    return (
+      activeRuns.find(
+        (run) =>
+          run.sessionId === currentSessionId &&
+          ["queued", "running", "awaiting_approval"].includes(run.status),
+      ) ?? null
     );
+  }, [activeRuns, currentSessionId, enabled]);
 
+  useEffect(() => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
     if (!activeRun) {
       setIsStreaming(false);
       setIsLoading(false);
+      setSessionNotice(null);
       return;
     }
 
@@ -426,6 +546,24 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
             ),
           );
         },
+        onSessionNotice: (notice) => {
+          setSessionNotice(notice);
+        },
+        onTodoItemsUpdate: (items) => {
+          if (!items) return;
+          setSessions((prev) =>
+            prev.map((session) =>
+              session.id === activeRun.sessionId
+                ? applyRunMessageUpdate(
+                    session,
+                    activeRun,
+                    { todoItems: items },
+                    streamedState,
+                  )
+                : session,
+            ),
+          );
+        },
         onComplete: (freshSession) => {
           setSessions((prev) =>
             prev.map((session) =>
@@ -435,20 +573,21 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setActiveRuns((prev) => prev.filter((run) => run.id !== activeRun.id));
           setIsStreaming(false);
           setIsLoading(false);
+          setSessionNotice(null);
         },
         onError: (errorMsg) => {
           setError(errorMsg);
           setActiveRuns((prev) => prev.filter((run) => run.id !== activeRun.id));
           setIsStreaming(false);
           setIsLoading(false);
+          setSessionNotice(null);
         },
         onAwaitingApproval: (request) => {
+          // Do NOT mutate activeRuns here — any churn on the array forces the
+          // parent useEffect to tear this subscription down and reopen it,
+          // which replays old SSE events and loops. The HITLCard visibility
+          // is gated on `pendingApproval`, which is enough by itself.
           setPendingApproval(request);
-          setActiveRuns((prev) =>
-            prev.map((run) =>
-              run.id === activeRun.id ? { ...run, status: "awaiting_approval" } : run,
-            ),
-          );
           setIsLoading(false);
         },
       },
@@ -458,7 +597,11 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     return () => {
       controller.abort();
     };
-  }, [activeRuns, currentSessionId, enabled]);
+    // activeRun is intentionally destructured via primitives so that status
+    // changes alone (awaiting_approval) don't tear down the SSE subscription.
+    // Only id changes or an explicit epoch bump (after a resume decision) do.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRun?.id, subscribeEpoch, enabled]);
 
   /**
    * 發送訊息（建立後端控管的 durable run）
@@ -499,6 +642,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setIsStreaming(true);
       setIsLoading(true);
       setError(null);
+      setSessionNotice(null);
 
       try {
         const run = await chatbotRepository.startRun(
@@ -524,6 +668,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setError(i18n.t("chatbot:errors.sendMessageFailed"));
         setIsStreaming(false);
         setIsLoading(false);
+        setSessionNotice(null);
       }
     },
     [currentSessionId, effectiveContext, setCurrentSessionId],
@@ -536,7 +681,9 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const resumeAgent = useCallback(
     async (decision: "approve" | "reject") => {
       const activeRun = activeRuns.find(
-        (run) => run.sessionId === currentSessionId && run.status === "awaiting_approval",
+        (run) =>
+          run.sessionId === currentSessionId &&
+          ["queued", "running", "awaiting_approval"].includes(run.status),
       );
       if (!activeRun) return;
 
@@ -548,11 +695,15 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setActiveRuns((prev) =>
           prev.map((item) => (item.id === run.id ? run : item)),
         );
+        // Force the SSE effect to re-subscribe even if id/kind didn't
+        // change (e.g., second HITL cycle on the same run).
+        setSubscribeEpoch((n) => n + 1);
       } catch (err) {
         console.error("Resume run error:", err);
         setError(i18n.t("chatbot:errors.resumeAgentFailed"));
         setIsStreaming(false);
         setIsLoading(false);
+        throw err;
       }
     },
     [activeRuns, currentSessionId],
@@ -560,12 +711,20 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
   /**
    * 提交 HITL 核准決定（核准或拒絕）
+   *
+   * 只有在 resumeAgent 成功後才關掉 pendingApproval，否則使用者會失去
+   * 重新核准的入口（後端 run 仍停在 awaiting_approval、但不會再 replay
+   * 該事件，因為 SSE 訂閱要等下一次成功 resume 才會重開）。
    */
   const submitApproval = useCallback(
     async (decision: "approve" | "reject") => {
       if (!currentSessionId) return;
-      setPendingApproval(null);
-      await resumeAgent(decision);
+      try {
+        await resumeAgent(decision);
+        setPendingApproval(null);
+      } catch {
+        // resumeAgent 已 setError；保留 pendingApproval 讓使用者可以重試
+      }
     },
     [currentSessionId, resumeAgent],
   );
@@ -595,6 +754,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       abortControllerRef.current = null;
       setIsStreaming(false);
       setIsLoading(false);
+      setSessionNotice(null);
       return;
     }
 
@@ -622,6 +782,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         abortControllerRef.current = null;
         setIsStreaming(false);
         setIsLoading(false);
+        setSessionNotice(null);
       });
   }, [activeRuns, currentSessionId]);
 
@@ -632,8 +793,10 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     isLoading,
     isStreaming,
     isInitializing,
+    isSessionLoading,
     error,
     pendingApproval,
+    sessionNotice,
     createSession,
     deleteSession,
     switchSession,

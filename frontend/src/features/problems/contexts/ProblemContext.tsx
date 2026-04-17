@@ -10,7 +10,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getProblem, getProblemStatistics } from "@/infrastructure/api/repositories/problem.repository";
 import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { Submission } from "@/core/entities/submission.entity";
 
 // ============================================================================
@@ -51,7 +51,7 @@ export interface SubmissionsResult {
 
 interface ProblemContextType {
   // Problem data
-  problem: ProblemDetail | null;
+  problem: CodingProblemDetail | null;
   problemLoading: boolean;
   problemError: Error | null;
   refetchProblem: () => void;
@@ -92,7 +92,7 @@ interface ProblemProviderProps {
   problemId?: string;
   contestId?: string;
   /** Optional: provide initial problem data to avoid duplicate fetch */
-  initialProblem?: ProblemDetail | null;
+  initialProblem?: CodingProblemDetail | null;
 }
 
 // ============================================================================

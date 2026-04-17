@@ -1,4 +1,4 @@
-import type { Problem } from './problem.entity';
+import type { CodingProblem } from './problem.entity';
 import type { User } from './user.entity';
 
 /**
@@ -44,7 +44,7 @@ export interface SubmissionDetail extends Submission {
   code: string;
   errorMessage?: string;
   user?: User; // Expanded user info
-  problem?: Problem; // Expanded problem info
+  problem?: CodingProblem; // Expanded problem info
   results?: TestResult[];
   totalTestCases?: number;
 }

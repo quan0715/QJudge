@@ -1,5 +1,5 @@
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
 import type { UpsertBankQuestionPayload } from "@/core/ports/questionBank.repository";
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories/examQuestions.repository";
@@ -237,15 +237,15 @@ export const toExamBankPayload = (
 };
 
 /**
- * Convert a coding BankQuestion into ProblemDetail for ProblemPreview.
+ * Convert a coding BankQuestion into CodingProblemDetail for ProblemPreview.
  */
-export const toBankProblemDetail = (q: BankQuestion): ProblemDetail => {
+export const toBankProblemDetail = (q: BankQuestion): CodingProblemDetail => {
   const ext = q.codingExt;
   const primaryTr = ext?.translations?.[0];
   return {
     id: q.bankItemId,
     title: q.title,
-    difficulty: (q.difficulty as ProblemDetail["difficulty"]) || "medium",
+    difficulty: (q.difficulty as CodingProblemDetail["difficulty"]) || "medium",
     description: primaryTr?.description ?? "",
     inputDescription: primaryTr?.inputDescription ?? "",
     outputDescription: primaryTr?.outputDescription ?? "",

@@ -28,8 +28,6 @@ vi.mock("@/shared/ui/theme/ThemeContext", () => ({
     theme: "g100",
     preference: "system",
     setPreference: vi.fn(),
-    setTheme: vi.fn(),
-    toggleTheme: vi.fn(),
   })),
 }));
 

@@ -145,6 +145,22 @@ class AIStreamEventAdmin(admin.ModelAdmin):
 
 @admin.register(UserAICredit)
 class UserAICreditAdmin(admin.ModelAdmin):
-    list_display = ["user", "total_requests", "total_input_tokens", "total_output_tokens", "total_cost_cents", "updated_at"]
-    readonly_fields = ["user", "total_input_tokens", "total_output_tokens", "total_requests", "total_cost_cents", "updated_at"]
+    list_display = [
+        "user",
+        "total_credits",
+        "total_requests",
+        "total_input_tokens",
+        "total_output_tokens",
+        "total_cost_cents",
+        "updated_at",
+    ]
+    readonly_fields = [
+        "user",
+        "total_credits",
+        "total_input_tokens",
+        "total_output_tokens",
+        "total_requests",
+        "total_cost_cents",
+        "updated_at",
+    ]
     search_fields = ["user__username"]

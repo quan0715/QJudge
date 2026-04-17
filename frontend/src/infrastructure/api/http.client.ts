@@ -4,7 +4,6 @@
  * but we keep localStorage for user info cache.
  */
 export const clearAuthStorage = () => {
-  localStorage.removeItem("token"); // Legacy support
   localStorage.removeItem("user");
   window.dispatchEvent(new Event("storage"));
 };

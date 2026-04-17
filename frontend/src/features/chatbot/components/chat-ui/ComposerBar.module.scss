@@ -14,6 +14,20 @@
   );
 }
 
+.statusStack {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.noticeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .inputWrapper {
   pointer-events: auto;
   display: flex;

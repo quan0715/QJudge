@@ -5,18 +5,13 @@ import { Section } from "@/shared/layout/SettingsPanel";
 import { httpClient } from "@/infrastructure/api/http.client";
 
 interface CreditData {
+  total_credits: number;
   total_input_tokens: number;
   total_output_tokens: number;
   total_requests: number;
   total_cost_cents: number;
   total_cost_usd: string;
   updated_at: string | null;
-}
-
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString();
 }
 
 export const AIUsagePanel: React.FC = () => {
@@ -61,10 +56,8 @@ export const AIUsagePanel: React.FC = () => {
   }
 
   const stats = [
+    { label: t("settings.aiUsage.totalCredits", "已使用 AI Credits"), value: (credit.total_credits ?? 0).toLocaleString() },
     { label: t("settings.aiUsage.totalRequests", "總請求數"), value: (credit.total_requests ?? 0).toLocaleString() },
-    { label: t("settings.aiUsage.inputTokens", "輸入 Tokens"), value: formatNumber(credit.total_input_tokens ?? 0) },
-    { label: t("settings.aiUsage.outputTokens", "輸出 Tokens"), value: formatNumber(credit.total_output_tokens ?? 0) },
-    { label: t("settings.aiUsage.totalCost", "累計費用"), value: `$${credit.total_cost_usd ?? "0.00"} USD` },
   ];
 
   return (

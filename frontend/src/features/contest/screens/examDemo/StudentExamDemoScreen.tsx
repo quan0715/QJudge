@@ -19,7 +19,7 @@ import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import type { ExamItem } from "../../types/exam.types";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import type { ContestDetail } from "@/core/entities/contest.entity";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import styles from "./StudentExamDemoScreen.module.scss";
 
 const MOCK_DURATION_SEC = 90 * 60;
@@ -46,7 +46,7 @@ const StudentExamDemoScreen: FC = () => {
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
-  const [problemDetails, setProblemDetails] = useState<Record<string, ProblemDetail>>({});
+  const [problemDetails, setProblemDetails] = useState<Record<string, CodingProblemDetail>>({});
   const loadingProblemIdsRef = useRef<Set<string>>(new Set());
 
   const countdown = useCountdown(MOCK_DURATION_SEC);

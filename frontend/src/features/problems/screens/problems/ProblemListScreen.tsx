@@ -23,7 +23,7 @@ import {
 } from "./section/ProblemPreviewSection";
 import { LoadingIndicator } from "./section/LoadingIndicator";
 import { useInfiniteProblemList, useProblemTags } from "@/features/problems/hooks";
-import type { Problem } from "@/core/entities/problem.entity";
+import type { CodingProblem } from "@/core/entities/problem.entity";
 import "./screen.scss";
 import { useNavigate } from "react-router-dom";
 
@@ -87,7 +87,7 @@ const ProblemListScreen: React.FC = () => {
     setFilters(next);
   };
 
-  const handleProblemSelect = (problem: Problem) => {
+  const handleProblemSelect = (problem: CodingProblem) => {
     navigate(`/problems/${problem.id}/solve`);
   };
 
@@ -111,7 +111,7 @@ const ProblemListScreen: React.FC = () => {
         scrollThreshold={0.9}
       >
         <Stack gap={5}>
-          {problems.map((problem: Problem) => (
+          {problems.map((problem: CodingProblem) => (
             <ProblemPreviewSection
               key={problem.id}
               problem={problem}

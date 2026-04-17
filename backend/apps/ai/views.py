@@ -197,6 +197,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
         from .models import UserAICredit
         credit_obj, _ = UserAICredit.objects.get_or_create(user=request.user)
         return Response({
+            "total_credits": credit_obj.total_credits,
             "total_input_tokens": credit_obj.total_input_tokens,
             "total_output_tokens": credit_obj.total_output_tokens,
             "total_requests": credit_obj.total_requests,

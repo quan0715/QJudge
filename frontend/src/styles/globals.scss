@@ -74,7 +74,7 @@ body {
 
 
 // Markdown body overrides to fix background color rendering
-.markdown-body {
+.markdown-body:not(.chat-thinking-markdown) {
   background-color: transparent !important;
   color: var(--cds-text-primary) !important;
 

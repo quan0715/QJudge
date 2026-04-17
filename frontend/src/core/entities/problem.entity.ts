@@ -53,9 +53,6 @@ export interface CodingProblem {
   createdAt?: string;
 }
 
-/** @deprecated Use {@link CodingProblem} */
-export type Problem = CodingProblem;
-
 /**
  * Coding problem detail (full content for editing/solving).
  */
@@ -78,9 +75,6 @@ export interface CodingProblemDetail extends CodingProblem {
   forbiddenKeywords?: string[];
   requiredKeywords?: string[];
 }
-
-/** @deprecated Use {@link CodingProblemDetail} */
-export type ProblemDetail = CodingProblemDetail;
 
 // API payload shape for create/update/import (snake_case).
 export interface ProblemUpsertTranslation {

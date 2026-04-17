@@ -128,7 +128,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                   }
                 />
               }
-              noPadding
+              padding="none"
             >
               <div style={{ padding: "1rem" }}>
                 <p

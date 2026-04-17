@@ -1,5 +1,5 @@
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { useTranslation } from "react-i18next";
 import { Tag, Tile, IconButton } from "@carbon/react";
 import { Copy, Checkmark } from "@carbon/icons-react";
@@ -9,7 +9,7 @@ import styles from "./ProblemPreview.module.scss";
 
 export interface ProblemPreviewProps {
   /** Problem data to display */
-  problem?: ProblemDetail;
+  problem?: CodingProblemDetail;
   /** Show language toggle */
   showLanguageToggle?: boolean;
   /** Compact mode - hide title */
@@ -18,7 +18,7 @@ export interface ProblemPreviewProps {
 
 /**
  * ProblemPreview - Displays problem content with markdown rendering.
- * Accepts a ProblemDetail entity for cleaner API.
+ * Accepts a CodingProblemDetail entity for cleaner API.
  */
 const ProblemPreview = ({
   problem,

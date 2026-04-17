@@ -1,4 +1,4 @@
-import type { Problem, Tag, Difficulty } from "@/core/entities/problem.entity";
+import type { CodingProblem, CodingProblemDetail, Tag, Difficulty } from "@/core/entities/problem.entity";
 
 // =====================================================
 // Tags Mock Data
@@ -34,7 +34,7 @@ interface CreateProblemOptions {
   isSolved?: boolean;
 }
 
-export function createMockProblem(options: CreateProblemOptions = {}): Problem {
+export function createMockProblem(options: CreateProblemOptions = {}): CodingProblem {
   const {
     id = "1",
     title = "Sample Problem",
@@ -64,6 +64,28 @@ export function createMockProblem(options: CreateProblemOptions = {}): Problem {
     isSolved,
   };
 }
+
+/** Helper to mock a base CodingProblem */
+export const mockProblem = (overrides?: Partial<CodingProblem>): CodingProblem => ({
+  ...createMockProblem(),
+  ...overrides,
+});
+
+/** Helper to mock a CodingProblemDetail */
+export const mockProblemDetail = (
+  overrides?: Partial<CodingProblemDetail>
+): CodingProblemDetail => ({
+  ...createMockProblem(),
+  description: "Mock description content in markdown.",
+  inputDescription: "Mock input description.",
+  outputDescription: "Mock output description.",
+  hint: "Mock hint.",
+  timeLimit: 1000,
+  memoryLimit: 128,
+  testCases: [],
+  languageConfigs: [],
+  ...overrides,
+});
 
 // =====================================================
 // Pre-defined Problems

@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react";
-import { IconButton } from "@carbon/react";
+import { IconButton, Tag } from "@carbon/react";
 import { Send, StopFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import styles from "./ComposerBar.module.scss";
@@ -12,6 +12,7 @@ interface ComposerBarProps {
   isStreaming: boolean;
   disabled?: boolean;
   placeholder?: string;
+  sessionNotice?: string | null;
 }
 
 export function ComposerBar({
@@ -20,6 +21,7 @@ export function ComposerBar({
   isStreaming,
   disabled = false,
   placeholder,
+  sessionNotice,
 }: ComposerBarProps) {
   const { t } = useTranslation("chatbot");
   const displayPlaceholder = placeholder || t("ui.inputPlaceholder");
@@ -61,10 +63,23 @@ export function ComposerBar({
   }, []);
 
   const canSend = value.trim().length > 0 && !disabled && !isStreaming;
+  const hasStatusBlock = Boolean(sessionNotice);
 
   return (
     <div className={styles.bar}>
-      {/* Future: attach button slot goes here */}
+      {hasStatusBlock && (
+        <div className={styles.statusStack}>
+          {sessionNotice && (
+            <div className={styles.noticeRow}>
+              <Tag type="gray" size="sm">
+                {sessionNotice}
+              </Tag>
+            </div>
+          )}
+
+        </div>
+      )}
+
       <div className={styles.inputWrapper}>
         <textarea
           ref={textareaRef}

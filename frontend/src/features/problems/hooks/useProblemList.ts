@@ -1,6 +1,6 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { getPaginatedProblems } from "@/infrastructure/api/repositories/problem.repository";
-import type { Difficulty, Problem } from "@/core/entities/problem.entity";
+import type { Difficulty, CodingProblem } from "@/core/entities/problem.entity";
 
 export interface ProblemListFilters {
   search: string;
@@ -15,7 +15,7 @@ export interface ProblemListPagination {
 }
 
 const filterByStatus = (
-  problems: Problem[],
+  problems: CodingProblem[],
   status: ProblemListFilters["status"]
 ) => {
   if (status.length === 0 || status.length > 1) return problems;

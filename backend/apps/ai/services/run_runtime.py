@@ -10,7 +10,7 @@ from typing import Any
 
 import httpx
 from asgiref.sync import sync_to_async
-from django.db import transaction
+from django.db import connections, transaction
 from django.utils import timezone
 
 from ..models import AIChatRun, AIExecutionLog, AIMessage, AISession, AIStreamEvent
@@ -33,6 +33,12 @@ TERMINAL_STATUSES = [
     AIChatRun.Status.FAILED,
     AIChatRun.Status.CANCELLED,
 ]
+PAUSED_STATUSES = [AIChatRun.Status.AWAITING_APPROVAL]
+
+# Poll interval for tailing new SSE events. HITL runs can idle for arbitrary
+# time waiting on human input, so we also short-circuit on PAUSED_STATUSES to
+# free the underlying DB connection back to pgbouncer.
+_SSE_POLL_INTERVAL_SECONDS = 1.5
 
 
 def ensure_session_for_run(*, user, session_id: str) -> AISession:
@@ -145,29 +151,43 @@ def resume_approval_run(*, run: AIChatRun, decision: str) -> AIChatRun:
 
 
 async def run_events_as_sse(*, run: AIChatRun, after: int = 0) -> AsyncGenerator[str, None]:
-    """Replay and tail persisted run events as SSE."""
-    last_seq = max(after, 0)
-    while True:
-        emitted = False
-        events = await sync_to_async(
-            lambda: list(
-                run.events.filter(seq__gt=last_seq)
-                .order_by("seq")
-                .values("seq", "payload")[:100],
-            ),
-        )()
-        for event in events:
-            emitted = True
-            last_seq = event["seq"]
-            yield f"data: {json.dumps(event['payload'], ensure_ascii=False)}\n\n"
+    """Replay and tail persisted run events as SSE.
 
-        run_status = await sync_to_async(
-            lambda: AIChatRun.objects.only("status").get(pk=run.pk).status,
-        )()
-        if run_status in TERMINAL_STATUSES and not emitted:
-            return
-        if not emitted:
-            await asyncio.sleep(0.5)
+    The stream closes on both terminal states (completed/failed/cancelled)
+    and paused states (awaiting_approval). Closing on pause prevents idle
+    SSE connections from pinning pgbouncer slots while the user deliberates
+    on a HITL prompt — the frontend reopens the stream after submitting a
+    decision via ``POST /runs/{id}/approval/``.
+    """
+    last_seq = max(after, 0)
+    try:
+        while True:
+            emitted = False
+            events = await sync_to_async(
+                lambda: list(
+                    run.events.filter(seq__gt=last_seq)
+                    .order_by("seq")
+                    .values("seq", "payload")[:100],
+                ),
+            )()
+            for event in events:
+                emitted = True
+                last_seq = event["seq"]
+                yield f"data: {json.dumps(event['payload'], ensure_ascii=False)}\n\n"
+
+            run_status = await sync_to_async(
+                lambda: AIChatRun.objects.only("status").get(pk=run.pk).status,
+            )()
+            if run_status in TERMINAL_STATUSES and not emitted:
+                return
+            if run_status in PAUSED_STATUSES and not emitted:
+                return
+            if not emitted:
+                await asyncio.sleep(_SSE_POLL_INTERVAL_SECONDS)
+    finally:
+        # Release any DB connections held by the sync_to_async worker
+        # threads so they return to the pgbouncer pool immediately.
+        await sync_to_async(connections.close_all)()
 
 
 def execute_run(run_id: str) -> None:
@@ -464,17 +484,30 @@ def _increment_usage(run: AIChatRun) -> None:
     input_tokens = usage.get("input_tokens") or 0
     output_tokens = usage.get("output_tokens") or 0
     cost_cents = usage.get("cost_cents") or 0
+    model_used = usage.get("model_used") or run.model_id
     if not any([input_tokens, output_tokens, cost_cents]):
         return
 
     from django.db.models import F
 
+    from ..credits import usage_to_credits
     from ..models import UserAICredit
 
-    UserAICredit.objects.get_or_create(user=run.user)
-    UserAICredit.objects.filter(user=run.user).update(
-        total_input_tokens=F("total_input_tokens") + input_tokens,
-        total_output_tokens=F("total_output_tokens") + output_tokens,
-        total_requests=F("total_requests") + 1,
-        total_cost_cents=F("total_cost_cents") + cost_cents,
-    )
+    credits_delta = usage_to_credits(input_tokens, output_tokens, model_used)
+
+    # 在同一個 transaction 內先扣 counter、再寫 metadata，避免兩者出現不一致：
+    # - 若 counter update 失敗 → 整段 rollback，metadata 也不會留下 credits_used
+    # - 若 metadata save 失敗 → counter 同樣 rollback，不會出現「已扣點但訊息沒紀錄」
+    with transaction.atomic():
+        UserAICredit.objects.get_or_create(user=run.user)
+        UserAICredit.objects.filter(user=run.user).update(
+            total_input_tokens=F("total_input_tokens") + input_tokens,
+            total_output_tokens=F("total_output_tokens") + output_tokens,
+            total_requests=F("total_requests") + 1,
+            total_cost_cents=F("total_cost_cents") + cost_cents,
+            total_credits=F("total_credits") + credits_delta,
+        )
+
+        usage["credits_used"] = credits_delta
+        metadata["usage"] = usage
+        _save_assistant_metadata(run, metadata)

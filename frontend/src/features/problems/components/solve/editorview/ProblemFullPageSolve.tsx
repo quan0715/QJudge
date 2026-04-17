@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { InlineNotification } from "@carbon/react";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { useProblemSolver } from "@/features/problems/hooks/useProblemSolver";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import { SolverLayout } from "@/shared/layout/SolverLayout";
@@ -15,7 +15,7 @@ import "./ProblemFullPageSolve.scss";
 
 interface ProblemFullPageSolveProps {
   /** The problem to solve */
-  problem: ProblemDetail;
+  problem: CodingProblemDetail;
   /** Problem label (e.g. "A" for contest) */
   problemLabel?: string;
   /** Optional contest ID for contest mode */

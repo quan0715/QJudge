@@ -113,4 +113,39 @@ describe("applyRunMessageUpdate", () => {
       runId: "run-1",
     });
   });
+  it("replaces todo items in the assistant draft", () => {
+    const streamedState: StreamedRunState = { content: "", thinking: "" };
+    const run = baseRun();
+    const initialSession: ChatSession = {
+      ...baseSession(),
+      messages: [
+        {
+          id: "42",
+          role: "assistant",
+          content: "",
+          timestamp: new Date("2026-04-17T00:00:00.000Z"),
+          runId: "run-1",
+          runStatus: "running",
+          todoItems: [
+            { id: "old-1", label: "舊任務", status: "pending" },
+          ],
+        },
+      ],
+    };
+    const nextSession = applyRunMessageUpdate(
+      initialSession,
+      run,
+      {
+        todoItems: [
+          { id: "new-1", label: "新任務", status: "in_progress" },
+        ],
+      },
+      streamedState,
+    );
+
+    expect(nextSession.messages).toHaveLength(1);
+    expect(nextSession.messages[0].todoItems).toEqual([
+      { id: "new-1", label: "新任務", status: "in_progress" },
+    ]);
+  });
 });

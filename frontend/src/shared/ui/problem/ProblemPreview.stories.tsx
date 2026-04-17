@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import ProblemPreview from "./ProblemPreview";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 
 // =====================================================
-// ProblemDetail Mock Data
+// CodingProblemDetail Mock Data
 // =====================================================
 const createMockProblemDetail = (
-  overrides: Partial<ProblemDetail> = {}
-): ProblemDetail => ({
+  overrides: Partial<CodingProblemDetail> = {}
+): CodingProblemDetail => ({
   id: "1",
   title: "兩數之和",
   difficulty: "easy",
@@ -42,7 +42,7 @@ const createMockProblemDetail = (
   ...overrides,
 });
 
-const mockProblemDetails: Record<string, ProblemDetail> = {
+const mockProblemDetails: Record<string, CodingProblemDetail> = {
   basic: createMockProblemDetail(),
 
   withKeywords: createMockProblemDetail({
@@ -99,7 +99,7 @@ const mockProblemDetails: Record<string, ProblemDetail> = {
     ],
   }),
 
-  empty: undefined as unknown as ProblemDetail,
+  empty: undefined as unknown as CodingProblemDetail,
 };
 
 // =====================================================

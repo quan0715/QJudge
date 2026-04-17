@@ -1,8 +1,8 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import { buildQuery } from "@/infrastructure/api/utils/buildQuery.client";
 import type {
-  CodingProblem as Problem,
-  CodingProblemDetail as ProblemDetail,
+  CodingProblem,
+  CodingProblemDetail,
   ProblemUpsertPayload,
   Tag,
 } from "@/core/entities/problem.entity";
@@ -29,7 +29,7 @@ const MANAGEMENT_PROBLEMS_BASE = "/api/v1/management/problems";
 
 export const getProblems = async (
   params?: GetProblemsParams | string
-): Promise<Problem[]> => {
+): Promise<CodingProblem[]> => {
   let query = "";
   const defaultScope = "manage";
 
@@ -90,7 +90,7 @@ export const getPaginatedProblems = async (
 export const getProblem = async (
   id: string,
   scope?: string
-): Promise<ProblemDetail | undefined> => {
+): Promise<CodingProblemDetail | undefined> => {
   const query = `?scope=${scope || "manage"}`;
   const res = await httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${id}/${query}`);
 
@@ -104,7 +104,7 @@ export const getProblem = async (
 
 export const createProblem = async (
   data: ProblemUpsertPayload
-): Promise<ProblemDetail> => {
+): Promise<CodingProblemDetail> => {
   const responseData = await requestJson<ProblemDetailDto>(
     httpClient.post(`${MANAGEMENT_PROBLEMS_BASE}/`, data),
     "Failed to create problem"
@@ -115,7 +115,7 @@ export const createProblem = async (
 export const updateProblem = async (
   id: string,
   data: ProblemUpsertPayload
-): Promise<ProblemDetail> => {
+): Promise<CodingProblemDetail> => {
   const responseData = await requestJson<ProblemDetailDto>(
     httpClient.put(`${MANAGEMENT_PROBLEMS_BASE}/${id}/?scope=manage`, data),
     "Failed to update problem"
@@ -126,7 +126,7 @@ export const updateProblem = async (
 export const patchProblem = async (
   id: string,
   data: Partial<ProblemUpsertPayload>
-): Promise<ProblemDetail> => {
+): Promise<CodingProblemDetail> => {
   const responseData = await requestJson<ProblemDetailDto>(
     httpClient.patch(`${MANAGEMENT_PROBLEMS_BASE}/${id}/?scope=manage`, data),
     "Failed to patch problem"

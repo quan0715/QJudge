@@ -1,5 +1,5 @@
 import type {
-  ProblemDetail,
+  CodingProblemDetail,
   ProblemUpsertPayload,
 } from "@/core/entities/problem.entity";
 import { LANGUAGE_OPTIONS } from "@/features/problems/constants/codeTemplates";
@@ -12,7 +12,7 @@ import type { ProblemFormSchema } from "./problemFormSchema";
  * flat fields, which the backend reads from QuestionAsset.payload.
  */
 export function problemDetailToFormSchema(
-  problem: ProblemDetail | null | undefined
+  problem: CodingProblemDetail | null | undefined
 ): ProblemFormSchema | undefined {
   if (!problem) return undefined;
 

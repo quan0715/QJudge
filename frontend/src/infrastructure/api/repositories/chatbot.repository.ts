@@ -7,6 +7,9 @@ import type {
   ToolInfo,
   ChatMessage,
   ChatSession,
+  RunTodoInputItem,
+  RunTodoItem,
+  RunTodoStatus,
   VerificationReport,
 } from "@/core/types/chatbot.types";
 import { httpClient } from "@/infrastructure/api/http.client";
@@ -17,13 +20,17 @@ const AI_BASE = "/api/v1/ai";
 // ===== v2 SSE event shape from ai-service =====
 interface V2StreamEvent {
   type:
-    | "run_started"
+  | "run_started"
     | "agent_message_delta"
     | "thinking_delta"
+    | "summarization_started"
+    | "todo_update"
+    | "todos_updated"
+    | "todo_list_updated"
     | "verification_report"
-    | "tool_call_started"
-    | "tool_call_finished"
-    | "usage_report"
+  | "tool_call_started"
+  | "tool_call_finished"
+  | "usage_report"
     | "run_completed"
     | "run_failed"
     | "run_cancelled"
@@ -66,6 +73,8 @@ interface V2StreamEvent {
   // awaiting_approval
   action_requests?: Array<{ name: string; args?: Record<string, unknown> }>;
   review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
+  todos?: RunTodoInputItem[];
+  todo_items?: RunTodoInputItem[];
 
 }
 
@@ -120,6 +129,180 @@ interface BackendRun {
 }
 
 // ===== Helpers =====
+const TODO_TOOL_NAMES = new Set(["write_todos", "update_todos"]);
+const hiddenTodoToolNames = new WeakMap<object, string>();
+
+function isTodoToolName(toolName: string | undefined): boolean {
+  return !!toolName && TODO_TOOL_NAMES.has(toolName);
+}
+
+function normalizeTodoStatus(status: unknown): RunTodoStatus {
+  if (status === "success" || status === "completed" || status === "complete" || status === "done") {
+    return "success";
+  }
+  if (status === "in_progress" || status === "running") {
+    return "in_progress";
+  }
+  if (status === "fail" || status === "failed" || status === "error") {
+    return "fail";
+  }
+  return "pending";
+}
+
+function normalizeTodoItems(rawTodos: unknown): RunTodoItem[] | undefined {
+  if (!Array.isArray(rawTodos)) return undefined;
+  const items = rawTodos
+    .map((todo): RunTodoInputItem | null => {
+      if (!todo || typeof todo !== "object") return null;
+      return todo as RunTodoInputItem;
+    })
+    .filter((todo): todo is RunTodoInputItem => todo !== null)
+    .reduce<RunTodoItem[]>((todoItems, item) => {
+      const label = (typeof item.content === "string"
+        ? item.content.trim()
+        : typeof item.label === "string"
+          ? item.label
+          : "").trim();
+      if (!label) return todoItems;
+      const existingIndex = todoItems.findIndex((todo) => todo.label === label);
+      const normalizedItem = {
+        id: typeof item.id === "string" && item.id
+          ? item.id
+          : existingIndex >= 0
+            ? todoItems[existingIndex].id
+            : `${todoItems.length}-${label}`,
+        label,
+        status: normalizeTodoStatus(item.status),
+      };
+      if (existingIndex >= 0) {
+        todoItems[existingIndex] = normalizedItem;
+      } else {
+        todoItems.push(normalizedItem);
+      }
+      return todoItems;
+    }, []);
+  return items.length > 0 ? items : undefined;
+}
+
+function findMatchingBracket(text: string, openIndex: number): number {
+  let depth = 0;
+  let quote: string | null = null;
+  let escaped = false;
+
+  for (let index = openIndex; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === "\"" || char === "'") {
+      quote = char;
+      continue;
+    }
+
+    if (char === "[") {
+      depth += 1;
+    } else if (char === "]") {
+      depth -= 1;
+      if (depth === 0) return index;
+    }
+  }
+
+  return -1;
+}
+
+function extractTodosListText(commandBody: string): string | undefined {
+  const todosKeyMatch = /["']?todos["']?\s*:/.exec(commandBody);
+  if (!todosKeyMatch) return undefined;
+
+  const listStart = commandBody.indexOf("[", todosKeyMatch.index + todosKeyMatch[0].length);
+  if (listStart === -1) return undefined;
+
+  const listEnd = findMatchingBracket(commandBody, listStart);
+  if (listEnd === -1) return undefined;
+
+  return commandBody.slice(listStart + 1, listEnd);
+}
+
+function parseTodoCommandItems(commandBody: string): RunTodoItem[] | undefined {
+  const todosText = extractTodosListText(commandBody);
+  if (!todosText) return undefined;
+
+  const todoItems: RunTodoInputItem[] = [];
+  const objectPattern = /\{([^{}]*)\}/g;
+  let objectMatch: RegExpExecArray | null;
+
+  while ((objectMatch = objectPattern.exec(todosText)) !== null) {
+    const objectText = objectMatch[1];
+    const contentMatch = objectText.match(/["']?content["']?\s*:\s*(?:"([^"]*)"|'([^']*)'|([^,}]+))/);
+    const statusMatch = objectText.match(/["']?status["']?\s*:\s*(?:"([^"]*)"|'([^']*)'|([^,}]+))/);
+    const content = (contentMatch?.[1] ?? contentMatch?.[2] ?? contentMatch?.[3] ?? "").trim();
+    const status = (statusMatch?.[1] ?? statusMatch?.[2] ?? statusMatch?.[3] ?? "pending").trim();
+
+    if (content) {
+      todoItems.push({ content, status });
+    }
+  }
+
+  return normalizeTodoItems(todoItems);
+}
+
+function extractTodoCommands(text: string): {
+  displayText: string;
+  todoItems?: RunTodoItem[];
+} {
+  let displayText = text;
+  let todoItems: RunTodoItem[] | undefined;
+  const commandStartPattern = /command\s*\(\s*update(?:=|_)/i;
+  let searchStart = 0;
+
+  while (true) {
+    const match = commandStartPattern.exec(displayText.slice(searchStart));
+    if (!match) break;
+
+    const start = searchStart + match.index;
+    const bodyStart = start + match[0].length;
+    const end = displayText.indexOf(")", bodyStart);
+    if (end === -1) {
+      todoItems = parseTodoCommandItems(displayText.slice(bodyStart)) ?? todoItems;
+      displayText = displayText.slice(0, start);
+      break;
+    }
+
+    const commandBody = displayText.slice(bodyStart, end);
+    todoItems = parseTodoCommandItems(commandBody) ?? todoItems;
+    displayText = `${displayText.slice(0, start)}${displayText.slice(end + 1)}`;
+    searchStart = start;
+  }
+
+  return { displayText, todoItems };
+}
+
+function extractTodoItemsFromEvent(event: V2StreamEvent): RunTodoItem[] | undefined {
+  const inputData = event.input_data;
+  const result = event.result;
+
+  return (
+    normalizeTodoItems(event.todos) ??
+    normalizeTodoItems(event.todo_items) ??
+    normalizeTodoItems(inputData?.todos) ??
+    normalizeTodoItems(inputData?.todo_items) ??
+    (typeof result === "string" ? extractTodoCommands(result).todoItems : undefined) ??
+    (typeof result === "object" && result !== null
+      ? normalizeTodoItems((result as Record<string, unknown>).todos) ??
+        normalizeTodoItems((result as Record<string, unknown>).todo_items)
+      : undefined)
+  );
+}
+
 function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
   const metadata = backendMsg.metadata ?? {};
   const thinking =
@@ -151,6 +334,7 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
         })
         .filter((t): t is ToolInfo => t !== null)
     : undefined;
+  const todoItems = normalizeTodoItems(metadata.todos) ?? normalizeTodoItems(metadata.todo_items);
 
   return {
     id: backendMsg.id.toString(),
@@ -159,6 +343,7 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
     timestamp: new Date(backendMsg.created_at),
     thinkingInfo: thinking ? { thinking, signature: "" } : undefined,
     toolExecutions: tools,
+    todoItems,
     runId,
     runStatus: runStatus as ChatMessage["runStatus"],
     lastEventSeq,
@@ -362,9 +547,9 @@ const chatbotRepository: ChatbotRepository = {
       let buffer = "";
 
       const currentMessage: Partial<ChatMessage> = {
-        content: "",
-        isThinking: run.status === "running" || run.status === "queued",
-      };
+      content: "",
+      isThinking: run.status === "running" || run.status === "queued",
+    };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -448,6 +633,12 @@ const chatbotRepository: ChatbotRepository = {
       currentMessage.runStatus = event.run_status as ChatMessage["runStatus"];
     }
 
+    const todoItems = extractTodoItemsFromEvent(event);
+    if (todoItems) {
+      currentMessage.todoItems = todoItems;
+      callbacks.onTodoItemsUpdate?.(todoItems);
+    }
+
     switch (event.type) {
       // ===== v2 Events =====
       case "run_started":
@@ -459,11 +650,35 @@ const chatbotRepository: ChatbotRepository = {
         }
         break;
 
+      case "summarization_started": {
+        callbacks.onSessionNotice?.("對話過長，截取摘要中");
+        break;
+      }
+
+      case "todo_update":
+      case "todos_updated":
+      case "todo_list_updated":
+        break;
+
       case "agent_message_delta":
         if (event.content) {
-          currentMessage.content = (currentMessage.content || "") + event.content;
+          const messageState = currentMessage as Partial<ChatMessage> & {
+            rawAgentContent?: string;
+          };
+          const rawContent = (messageState.rawAgentContent || currentMessage.content || "") + event.content;
+          messageState.rawAgentContent = rawContent;
+          const commandResult = extractTodoCommands(rawContent);
+          currentMessage.content = commandResult.displayText;
+          if (commandResult.todoItems) {
+            currentMessage.todoItems = commandResult.todoItems;
+            callbacks.onTodoItemsUpdate?.(commandResult.todoItems);
+          }
           currentMessage.isThinking = false;
-          callbacks.onMessageUpdate?.({ ...currentMessage });
+          const messageUpdate = { ...currentMessage } as Partial<ChatMessage> & {
+            rawAgentContent?: string;
+          };
+          delete messageUpdate.rawAgentContent;
+          callbacks.onMessageUpdate?.(messageUpdate);
         }
         break;
 
@@ -497,6 +712,11 @@ const chatbotRepository: ChatbotRepository = {
 
       case "tool_call_started":
         if (event.tool_name) {
+          if (isTodoToolName(event.tool_name)) {
+            hiddenTodoToolNames.set(currentMessage, event.tool_name);
+            currentMessage.isThinking = false;
+            break;
+          }
           currentMessage.toolName = event.tool_name;
           currentMessage.isThinking = false;
           callbacks.onMessageUpdate?.({ ...currentMessage });
@@ -504,9 +724,18 @@ const chatbotRepository: ChatbotRepository = {
         break;
 
       case "tool_call_finished": {
+        const hiddenTodoToolName = hiddenTodoToolNames.get(currentMessage);
+        const toolName = event.tool_name || currentMessage.toolName || hiddenTodoToolName || "";
+        if (isTodoToolName(toolName)) {
+          hiddenTodoToolNames.delete(currentMessage);
+          currentMessage.toolName = undefined;
+          currentMessage.isThinking = false;
+          break;
+        }
+        const toolCallId = event.tool_call_id || toolName;
         const toolInfo: ToolInfo = {
-          toolName: currentMessage.toolName || "",
-          toolCallId: event.tool_call_id || "",
+          toolName,
+          toolCallId,
           result: event.result,
           isError: event.is_error,
         };
@@ -530,6 +759,8 @@ const chatbotRepository: ChatbotRepository = {
 
       case "run_completed": {
         console.debug("SSE: run_completed", { runId: event.run_id });
+        callbacks.onSessionNotice?.(null);
+        callbacks.onTodoItemsUpdate?.(null);
         // Fetch fresh session
         this.getSession(resolvedSessionId)
           .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
@@ -542,6 +773,8 @@ const chatbotRepository: ChatbotRepository = {
 
       case "run_cancelled": {
         console.debug("SSE: run_cancelled", { runId: event.run_id });
+        callbacks.onSessionNotice?.(null);
+        callbacks.onTodoItemsUpdate?.(null);
         this.getSession(resolvedSessionId)
           .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
           .catch((err: Error) => {
@@ -556,6 +789,8 @@ const chatbotRepository: ChatbotRepository = {
           errorCode: event.error_code,
           message: event.message,
         });
+        callbacks.onSessionNotice?.(null);
+        callbacks.onTodoItemsUpdate?.(null);
         this.getSession(resolvedSessionId)
           .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
           .catch((err: Error) => {
@@ -581,7 +816,9 @@ const chatbotRepository: ChatbotRepository = {
       }
 
       default:
-        console.debug("SSE: unknown event type", { type: event.type });
+        if (!todoItems) {
+          console.debug("SSE: unknown event type", { type: event.type });
+        }
     }
   },
 } as ChatbotRepository & {

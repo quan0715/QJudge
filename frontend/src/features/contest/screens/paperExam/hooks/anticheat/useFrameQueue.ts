@@ -4,8 +4,6 @@ const IDB_DB_NAME = "qjudge_anticheat_capture";
 const IDB_DB_VERSION = 2; // bumped: now creates per-module stores
 const IDB_STORE_SCREEN = "frames_screen_share";
 const IDB_STORE_WEBCAM = "frames_webcam";
-/** @deprecated kept for migration: drain any leftover frames into screen_share */
-const IDB_STORE_LEGACY = "frames";
 const MAX_IDB_QUEUE = 600;
 const MAX_MEMORY_QUEUE = 120;
 
@@ -70,55 +68,13 @@ const openIndexedDb = (): Promise<IDBDatabase> =>
           autoIncrement: true,
         });
       }
-      // Keep legacy store around for migration drain; do NOT delete it
-      // as IndexedDB forbids deleting stores with pending data outside versionchange.
-      if (!db.objectStoreNames.contains(IDB_STORE_LEGACY)) {
-        db.createObjectStore(IDB_STORE_LEGACY, {
-          keyPath: "id",
-          autoIncrement: true,
-        });
-      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error || new Error("Failed to open indexedDB"));
   });
 
-/** One-time: move any leftover frames from the shared legacy store into screen_share. */
-const drainLegacyStore = async (db: IDBDatabase): Promise<void> => {
-  if (!db.objectStoreNames.contains(IDB_STORE_LEGACY)) return;
-  if (!db.objectStoreNames.contains(IDB_STORE_SCREEN)) return;
-
-  return new Promise<void>((resolve) => {
-    try {
-      const tx = db.transaction([IDB_STORE_LEGACY, IDB_STORE_SCREEN], "readwrite");
-      const legacyStore = tx.objectStore(IDB_STORE_LEGACY);
-      const screenStore = tx.objectStore(IDB_STORE_SCREEN);
-      const cursorReq = legacyStore.openCursor();
-
-      cursorReq.onsuccess = () => {
-        const cursor = cursorReq.result;
-        if (!cursor) return; // done
-        screenStore.add({ createdAt: cursor.value.createdAt, blob: cursor.value.blob });
-        legacyStore.delete(cursor.primaryKey);
-        cursor.continue();
-      };
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve(); // best effort
-    } catch {
-      resolve();
-    }
-  });
-};
-
 const createIndexedDbQueueStore = async (module: QueueModule): Promise<QueueStore> => {
   const db = await openIndexedDb();
-
-  // Drain legacy store once (only matters for screen_share)
-  if (module === "screen_share") {
-    await drainLegacyStore(db);
-  }
-
   const storeName = storeNameFor(module);
 
   const count = () =>

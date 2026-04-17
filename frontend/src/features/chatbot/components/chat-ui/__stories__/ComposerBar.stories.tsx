@@ -46,3 +46,10 @@ export const Disabled: Story = {
   name: "禁用",
   args: { disabled: true },
 };
+
+export const WithStatus: Story = {
+  name: "含摘要狀態",
+  args: {
+    sessionNotice: "對話過長，截取摘要中",
+  },
+};

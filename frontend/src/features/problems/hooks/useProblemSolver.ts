@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { submitSolution, getSubmission } from "@/infrastructure/api/repositories/submission.repository";
 import { testRun } from "@/infrastructure/api/repositories/problem.repository";
 import { useInterval } from "@/shared/hooks/useInterval";
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { TestCaseItem } from "@/core/entities/testcase.entity";
 import {
   LANGUAGE_OPTIONS,
@@ -27,7 +27,7 @@ export type TestResult = TestRunResult;
 
 interface UseProblemSolverProps {
   /** The problem to solve - can be provided directly or loaded */
-  problem: ProblemDetail | null;
+  problem: CodingProblemDetail | null;
   /** Optional contest ID for contest mode */
   contestId?: string;
   /** Problem label (e.g. "A") for contest mode */

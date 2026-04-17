@@ -21,7 +21,9 @@ _MODEL_MAP: dict[str, str] = {
 _DEFAULT_MODEL_ID = "deepseek-r1"
 _SUMMARIZATION_MODEL_ID = "deepseek-v3"
 
-# Pricing in cents per million tokens (single source of truth)
+# Pricing in cents per million tokens.
+# IMPORTANT: keep in sync with backend/apps/ai/credits.py::DEFAULT_MODEL_PRICING.
+# A contract test (backend/apps/ai/tests/test_pricing_alignment.py) enforces equality in CI.
 PRICING: dict[str, dict[str, int]] = {
     "deepseek-r1": {"input": 55, "output": 219},
     "deepseek-v3": {"input": 7, "output": 28},

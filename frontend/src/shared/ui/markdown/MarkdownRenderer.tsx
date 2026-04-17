@@ -1,4 +1,5 @@
 import {
+  memo,
   useState,
   useCallback,
   useMemo,
@@ -212,7 +213,31 @@ const CodeBlock: React.FC<{
  * // With copy button
  * <MarkdownRenderer enableCopy>{contentWithCode}</MarkdownRenderer>
  */
-const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
+// Static base components — defined once at module scope so references stay
+// stable across renders and never invalidate react-markdown's internal memo.
+const BASE_COMPONENTS: Record<
+  string,
+  React.ComponentType<{ children?: React.ReactNode }>
+> = {
+  table: ({ children }) => (
+    <Table size="sm" aria-label="資料表格" className="markdown-table">
+      {children}
+    </Table>
+  ),
+  thead: ({ children }) => <TableHead>{children}</TableHead>,
+  tbody: ({ children }) => <TableBody>{children}</TableBody>,
+  tr: ({ children }) => <TableRow>{children}</TableRow>,
+  th: ({ children }) => <TableHeader>{children}</TableHeader>,
+  td: ({ children }) => <TableCell>{children}</TableCell>,
+};
+
+const PreWithCopy: React.ComponentType<{ children?: React.ReactNode }> = ({
+  children,
+}) => <CodeBlock enableCopy>{children}</CodeBlock>;
+
+const COMPONENTS_WITH_COPY = { ...BASE_COMPONENTS, pre: PreWithCopy };
+
+const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
   children,
   enableMath = false,
   enableHighlight = false,
@@ -221,62 +246,28 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   className = "",
   style,
 }) => {
-  // Build plugins based on options
-  const remarkPlugins: any[] = [remarkGfm];
-  const rehypePlugins: any[] = [rehypeSlug];
+  // Memoize plugin arrays so ReactMarkdown receives stable references across
+  // renders (critical when the parent re-renders frequently, e.g. on SSE
+  // deltas). Without this, rehypeHighlight/rehypeKatex would be re-run on
+  // identical content.
+  const remarkPlugins = useMemo(() => {
+    const plugins: any[] = [remarkGfm];
+    if (enableMath) plugins.push(remarkMath);
+    return plugins;
+  }, [enableMath]);
 
-  if (allowRawHtml) {
-    rehypePlugins.unshift(rehypeRaw);
-  }
+  const rehypePlugins = useMemo(() => {
+    const plugins: any[] = [];
+    if (allowRawHtml) plugins.push(rehypeRaw);
+    plugins.push(rehypeSlug);
+    if (enableMath) plugins.push(rehypeKatex);
+    if (enableHighlight) {
+      plugins.push([rehypeHighlight, { detect: true, ignoreMissing: true }]);
+    }
+    return plugins;
+  }, [allowRawHtml, enableMath, enableHighlight]);
 
-  if (enableMath) {
-    remarkPlugins.push(remarkMath);
-    rehypePlugins.push(rehypeKatex);
-  }
-
-  if (enableHighlight) {
-    // Use registered hljs languages
-    rehypePlugins.push([
-      rehypeHighlight,
-      {
-        detect: true,
-        ignoreMissing: true,
-      },
-    ]);
-  }
-
-  // Custom components for rendering
-  const baseComponents: Record<string, React.ComponentType<{ children?: React.ReactNode }>> = {
-    table: ({ children }: { children?: React.ReactNode }) => (
-      <Table size="sm" aria-label="資料表格" className="markdown-table">{children}</Table>
-    ),
-    thead: ({ children }: { children?: React.ReactNode }) => (
-      <TableHead>{children}</TableHead>
-    ),
-    tbody: ({ children }: { children?: React.ReactNode }) => (
-      <TableBody>{children}</TableBody>
-    ),
-    tr: ({ children }: { children?: React.ReactNode }) => (
-      <TableRow>{children}</TableRow>
-    ),
-    th: ({ children }: { children?: React.ReactNode }) => (
-      <TableHeader>{children}</TableHeader>
-    ),
-    td: ({ children }: { children?: React.ReactNode }) => (
-      <TableCell>{children}</TableCell>
-    ),
-  };
-
-  const components = {
-    ...baseComponents,
-    ...(enableCopy
-      ? {
-          pre: ({ children }: { children?: React.ReactNode }) => (
-            <CodeBlock enableCopy={enableCopy}>{children}</CodeBlock>
-          ),
-        }
-      : {}),
-  };
+  const components = enableCopy ? COMPONENTS_WITH_COPY : BASE_COMPONENTS;
 
   return (
     <div className={`markdown-body ${className}`.trim()} style={style}>
@@ -290,5 +281,10 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     </div>
   );
 };
+
+// Memoize the whole renderer: identical children + flags should not re-parse
+// and re-highlight. This is the single biggest win for chat message lists
+// where completed bubbles re-render as new deltas arrive for later messages.
+const MarkdownRenderer = memo(MarkdownRendererComponent);
 
 export default MarkdownRenderer;

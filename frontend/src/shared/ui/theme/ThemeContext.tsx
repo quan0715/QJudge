@@ -9,10 +9,6 @@ interface ThemeContextType {
   theme: ThemeType;
   preference: ThemePreference;
   setPreference: (pref: ThemePreference) => void;
-  /** @deprecated Use setPreference instead */
-  toggleTheme: () => void;
-  /** @deprecated Use setPreference instead */
-  setTheme: (theme: ThemeType) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -85,17 +81,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     // system case is handled by the useEffect above
   }, []);
 
-  // Legacy compat — setTheme without saving preference (used by useUserPreferences backend sync)
-  const setTheme = useCallback((newTheme: ThemeType) => {
-    setThemeState(newTheme);
-  }, []);
-
-  const toggleTheme = useCallback(() => {
-    setPreference(theme === "white" ? "dark" : "light");
-  }, [theme, setPreference]);
-
   return (
-    <ThemeContext.Provider value={{ theme, preference, setPreference, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, preference, setPreference }}>
       <Theme theme={theme}>
         {children}
         <div id="modal-portal-root" />

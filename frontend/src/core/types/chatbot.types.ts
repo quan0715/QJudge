@@ -7,6 +7,8 @@ export type StreamEventType =
   | "run_started"
   | "agent_message_delta"
   | "thinking_delta"
+  | "summarization_started"
+  | "todo_update"
   | "verification_report"
   | "tool_call_started"
   | "tool_call_finished"
@@ -37,6 +39,31 @@ export interface ToolInfo {
   durationMs?: number;
 }
 
+export type RunTodoStatus = "pending" | "in_progress" | "success" | "fail";
+
+export interface RunTodoItem {
+  id: string;
+  label: string;
+  status: RunTodoStatus;
+}
+
+export type RunTodoInputStatus =
+  | RunTodoStatus
+  | "completed"
+  | "complete"
+  | "done"
+  | "running"
+  | "in_progress"
+  | "failed"
+  | "error";
+
+export interface RunTodoInputItem {
+  id?: string;
+  content?: string;
+  label?: string;
+  status?: RunTodoInputStatus | string;
+}
+
 export interface VerificationReport {
   iteration: number;
   passed: boolean;
@@ -60,6 +87,7 @@ export interface ChatMessage {
   thinkingInfo?: ThinkingInfo;
   toolExecutions?: ToolInfo[];
   verificationReports?: VerificationReport[];
+  todoItems?: RunTodoItem[];
   isThinking?: boolean;
   toolName?: string;
   runId?: string;
@@ -112,6 +140,7 @@ export interface StreamEvent extends BaseStreamEvent {
   thinkingInfo?: ThinkingInfo;
   toolInfo?: ToolInfo;
   metadata?: Record<string, unknown>;
+  todoItems?: RunTodoItem[];
   runId?: string;
   threadId?: string;
   verificationReport?: VerificationReport;
@@ -191,6 +220,8 @@ export interface StreamCallbacks {
   onError?: (error: string) => void;
   onVerificationReport?: (report: VerificationReport) => void;
   onAwaitingApproval?: (request: ApprovalRequest) => void;
+  onSessionNotice?: (notice: string | null) => void;
+  onTodoItemsUpdate?: (items: RunTodoItem[] | null) => void;
 }
 
 // ===== Helper Functions =====

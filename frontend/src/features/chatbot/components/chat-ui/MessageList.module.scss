@@ -14,7 +14,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  padding: 1rem 0 7rem;
+  padding: 1rem 0 9rem;
 
   // Center message content within full-width scroll container
   display: flex;
@@ -31,9 +31,11 @@
   &::-webkit-scrollbar {
     width: 6px;
   }
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
+
   &::-webkit-scrollbar-thumb {
     background: var(--cds-border-subtle-01, #c6c6c6);
     border-radius: 3px;
@@ -42,24 +44,24 @@
 
 .scrollButton {
   position: absolute;
-  bottom: 5.5rem; // Just above the composer
+  bottom: 7rem; // Keep distance from the composer input.
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
-  border-radius: 50% !important;
-  
+  border-radius: 50%;
+
   // Subtle background
-  background-color: var(--cds-layer-03, #e0e0e0) !important;
-  border: 1px solid var(--cds-border-subtle-01, #c6c6c6) !important;
+  background-color: var(--cds-layer-03, #e0e0e0);
+  border: 1px solid var(--cds-border-subtle-01, #c6c6c6);
   opacity: 0.8;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
+
   transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
 
   &:hover {
     transform: translateX(-50%) translateY(-2px);
     opacity: 1;
-    background-color: var(--cds-layer-hover-03, #d1d1d1) !important;
+    background-color: var(--cds-layer-hover-03, #d1d1d1);
   }
 
   &:active {
@@ -68,6 +70,66 @@
 
   // Carbon icons integration
   svg {
-    fill: var(--cds-icon-secondary, #525252) !important;
+    fill: var(--cds-icon-secondary, #525252);
+  }
+}
+
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.75rem 1rem;
+}
+
+.skeletonMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  max-width: $chat-content-max-width;
+  width: 100%;
+}
+
+.skeletonMessageRight {
+  justify-content: flex-end;
+
+  .skeletonContent {
+    max-width: min(70%, 36rem);
+  }
+}
+
+.skeletonAvatar {
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--cds-skeleton-background, #e8e8e8);
+  overflow: hidden;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--cds-skeleton-element, #c6c6c6);
+    opacity: 0.35;
+    animation: avatarSkeletonPulse 1.5s ease-in-out infinite;
+  }
+}
+
+.skeletonContent {
+  flex: 1 1 auto;
+  max-width: min(78%, 42rem);
+  min-width: 10rem;
+  padding-top: 0.125rem;
+}
+
+@keyframes avatarSkeletonPulse {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 0.45;
   }
 }

@@ -31,12 +31,14 @@ class CreditEndpointTest(TestCase):
         self.assertEqual(response.data["total_requests"], 0)
         self.assertEqual(response.data["total_cost_cents"], 0)
         self.assertEqual(float(response.data["total_cost_usd"]), 0.0)
+        self.assertEqual(response.data["total_credits"], 0)
 
     def test_response_shape(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(CREDIT_URL)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         expected_keys = {
+            "total_credits",
             "total_input_tokens",
             "total_output_tokens",
             "total_requests",
@@ -54,6 +56,7 @@ class CreditEndpointTest(TestCase):
             total_output_tokens=200,
             total_requests=3,
             total_cost_cents=5,
+            total_credits=2,
         )
         response = self.client.get(CREDIT_URL)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -61,3 +64,4 @@ class CreditEndpointTest(TestCase):
         self.assertEqual(response.data["total_output_tokens"], 200)
         self.assertEqual(response.data["total_requests"], 3)
         self.assertEqual(response.data["total_cost_cents"], 5)
+        self.assertEqual(response.data["total_credits"], 2)

@@ -1,6 +1,6 @@
 import type {
-  CodingProblem as Problem,
-  CodingProblemDetail as ProblemDetail,
+  CodingProblem,
+  CodingProblemDetail,
   Tag,
   TestCase,
   LanguageConfig,
@@ -24,7 +24,7 @@ export function mapTagDto(dto: TagDto): Tag {
   };
 }
 
-export function mapProblemDto(dto: ProblemDto): Problem {
+export function mapProblemDto(dto: ProblemDto): CodingProblem {
   // For contest problems, use problem_id (the actual Problem ID) if available
   const problemId = (dto as any).problem_id ?? dto.id;
   return {
@@ -46,7 +46,7 @@ export function mapProblemDto(dto: ProblemDto): Problem {
   };
 }
 
-export function mapProblemDetailDto(dto: ProblemDetailDto): ProblemDetail {
+export function mapProblemDetailDto(dto: ProblemDetailDto): CodingProblemDetail {
   const problem = mapProblemDto(dto);
   return {
     ...problem,

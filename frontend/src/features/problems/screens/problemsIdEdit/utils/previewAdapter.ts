@@ -1,4 +1,4 @@
-import type { ProblemDetail } from "@/core/entities/problem.entity";
+import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 
 /**
@@ -6,7 +6,7 @@ import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSch
  */
 export const formSchemaToPreview = (
   formData: Partial<ProblemFormSchema>
-): ProblemDetail => {
+): CodingProblemDetail => {
   const zhTranslation = formData.translationZh;
   return {
     id: "preview",

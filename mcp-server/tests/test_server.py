@@ -331,7 +331,9 @@ def test_qjudge_exam_returns_fixed_errors():
 
     assert missing_question == {"error": True, "detail": "question_id is required"}
     assert no_update_fields == {"error": True, "detail": "No fields to update"}
-    assert unknown == {"error": True, "detail": "Unknown action: wat"}
+    assert unknown["error"] is True
+    assert "Unknown action: 'wat'" in unknown["detail"]
+    assert "qjudge_exam supports" in unknown["detail"]
 
 
 def test_qjudge_grading_list_answers_returns_compact_projection(monkeypatch):
@@ -1129,7 +1131,8 @@ def test_qjudge_coding_delete_requires_ids():
 def test_qjudge_coding_unknown_action():
     result = run(server.qjudge_coding("wat", DummyContext(), contest_id="c-1"))
     assert result["error"] is True
-    assert "Unknown action: wat" in result["detail"]
+    assert "Unknown action: 'wat'" in result["detail"]
+    assert "qjudge_coding supports" in result["detail"]
     assert "qjudge_code_runner" in result["detail"]
 
 

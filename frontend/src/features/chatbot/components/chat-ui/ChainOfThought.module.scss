@@ -40,6 +40,7 @@
 
 .success { color: var(--cds-support-success, #198038); }
 .failure { color: var(--cds-support-error, #da1e28); }
+.pending { color: var(--cds-icon-secondary, #525252); }
 .processing {
   color: var(--cds-interactive, #0f62fe);
   animation: spin 1.2s linear infinite;
@@ -79,4 +80,24 @@
   font-size: 0.8125rem;
   color: var(--cds-text-secondary, #525252);
   font-style: italic;
+}
+
+.todoList {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.todoItem {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.5rem;
+  color: var(--cds-text-secondary, #525252);
+}
+
+.todoLabel {
+  min-width: 0;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  line-height: var(--cds-body-compact-01-line-height, 1.29);
+  overflow-wrap: anywhere;
 }

@@ -405,6 +405,9 @@ AI_SERVICE_INTERNAL_TOKEN = os.getenv(
     "AI_SERVICE_INTERNAL_TOKEN",
     os.getenv("AI_INTERNAL_TOKEN", ""),  # backward-compatible fallback
 )
+# AI Credit 換算：1 credit = SCALE_PER_CREDIT 份「美分 × 10⁻⁶」的模型成本
+# 預設 400_000 ≙ 0.4 美分/credit（Pro $20/月、~2000 credits 對應 ~$8 AI 成本、毛利 ~60%）
+AI_CREDIT_SCALE_PER_CREDIT = int(os.getenv("AI_CREDIT_SCALE_PER_CREDIT", "400000"))
 
 # Anti-cheat evidence storage (MinIO / S3-compatible)
 ANTICHEAT_S3_ENDPOINT_URL = os.getenv("ANTICHEAT_S3_ENDPOINT_URL", "")
