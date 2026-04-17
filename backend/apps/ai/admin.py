@@ -3,7 +3,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import AIExecutionLog, AIMessage, AISession, UserAICredit
+from .models import AIChatRun, AIExecutionLog, AIMessage, AISession, AIStreamEvent, UserAICredit
 
 
 class AIMessageInline(admin.TabularInline):
@@ -123,6 +123,24 @@ class AIExecutionLogAdmin(admin.ModelAdmin):
         return msg[:50] + "..." if len(msg) > 50 else msg
 
     short_user_message.short_description = "用戶訊息"
+
+
+@admin.register(AIChatRun)
+class AIChatRunAdmin(admin.ModelAdmin):
+    list_display = ["id", "session", "user", "status", "kind", "created_at", "updated_at"]
+    list_filter = ["status", "kind", "created_at"]
+    search_fields = ["id", "session__session_id", "user__username", "content"]
+    readonly_fields = ["id", "created_at", "updated_at", "last_event_seq"]
+    raw_id_fields = ["session", "user", "user_message", "assistant_message"]
+
+
+@admin.register(AIStreamEvent)
+class AIStreamEventAdmin(admin.ModelAdmin):
+    list_display = ["id", "run", "seq", "event_type", "created_at"]
+    list_filter = ["event_type", "created_at"]
+    search_fields = ["run__id", "event_type"]
+    readonly_fields = ["run", "seq", "event_type", "payload", "created_at"]
+    raw_id_fields = ["run"]
 
 
 @admin.register(UserAICredit)

@@ -1,5 +1,6 @@
 import type { ChatbotRepository } from "@/core/ports/chatbot.repository";
 import type {
+  ChatRun,
   ModelInfo,
   SendMessageOptions,
   StreamCallbacks,
@@ -25,7 +26,10 @@ interface V2StreamEvent {
     | "usage_report"
     | "run_completed"
     | "run_failed"
+    | "run_cancelled"
     | "awaiting_approval";
+  seq?: number;
+  run_status?: string;
 
   // run_started
   run_id?: string;
@@ -99,11 +103,32 @@ interface BackendSession {
   updated_at: string;
 }
 
+interface BackendRun {
+  id: string;
+  session_id: string;
+  status: ChatRun["status"];
+  kind: ChatRun["kind"];
+  model_id: string;
+  last_event_seq: number;
+  approval_payload?: {
+    action_requests?: Array<{ name: string; args?: Record<string, unknown> }>;
+    review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
+  };
+  user_message_id?: number;
+  assistant_message_id?: number;
+  error?: string;
+}
+
 // ===== Helpers =====
 function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
   const metadata = backendMsg.metadata ?? {};
   const thinking =
     typeof metadata.thinking === "string" ? metadata.thinking : undefined;
+  const runStatus =
+    typeof metadata.run_status === "string" ? metadata.run_status : undefined;
+  const runId = typeof metadata.run_id === "string" ? metadata.run_id : undefined;
+  const lastEventSeq =
+    typeof metadata.last_event_seq === "number" ? metadata.last_event_seq : undefined;
   const tools = Array.isArray(metadata.tools_executed)
     ? metadata.tools_executed
         .map((tool): ToolInfo | null => {
@@ -134,6 +159,25 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
     timestamp: new Date(backendMsg.created_at),
     thinkingInfo: thinking ? { thinking, signature: "" } : undefined,
     toolExecutions: tools,
+    runId,
+    runStatus: runStatus as ChatMessage["runStatus"],
+    lastEventSeq,
+    isThinking: runStatus === "queued" || runStatus === "running",
+  };
+}
+
+function convertBackendRun(run: BackendRun): ChatRun {
+  return {
+    id: run.id,
+    sessionId: run.session_id,
+    status: run.status,
+    kind: run.kind,
+    modelId: run.model_id,
+    lastEventSeq: run.last_event_seq,
+    approvalPayload: run.approval_payload,
+    userMessageId: run.user_message_id,
+    assistantMessageId: run.assistant_message_id,
+    error: run.error,
   };
 }
 
@@ -274,145 +318,40 @@ const chatbotRepository: ChatbotRepository = {
     return data.models;
   },
 
-  // ============================================================
-  // v2: Resume interrupted agent stream
-  // ============================================================
-
-  async resumeAgentStream(
-    sessionId: string | number,
-    decision: "approve" | "reject",
-    callbacks: StreamCallbacks,
-    options?: SendMessageOptions,
-  ) {
-    try {
-      const urlSessionId = sessionId.toString();
-      const resolvedSessionId = urlSessionId;
-
-      const payload = { decision };
-
-      const response = await httpClient.request(
-        `${BASE_URL}/${urlSessionId}/resume_stream/`,
-        {
-          method: "POST",
-          body: JSON.stringify(payload),
-          headers: {
-            "Content-Type": "application/json",
-            "X-QJudge-Agent-Contract": "v2",
-          },
-          signal: options?.signal,
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response body");
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      const currentMessage: Partial<ChatMessage> = {
-        content: "",
-        isThinking: false,
-      };
-
-      let hasTerminalEvent = false;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const rawLine of lines) {
-          const line = rawLine.trimEnd();
-          if (!line.startsWith("data: ")) continue;
-
-          try {
-            const event: V2StreamEvent = JSON.parse(line.slice(6));
-            if (event.type === "run_completed" || event.type === "run_failed") {
-              hasTerminalEvent = true;
-            }
-            this._handleStreamEvent(
-              event,
-              currentMessage,
-              callbacks,
-              resolvedSessionId,
-              () => {} // no need to update resolved ID for resume
-            );
-          } catch (e) {
-            console.debug("Failed to parse resume stream event:", e);
-          }
-        }
-      }
-
-      // Handle final buffered line
-      const finalLine = buffer.trim();
-      if (finalLine.startsWith("data: ")) {
-        try {
-          const event: V2StreamEvent = JSON.parse(finalLine.slice(6));
-          if (event.type === "run_completed" || event.type === "run_failed") {
-            hasTerminalEvent = true;
-          }
-          this._handleStreamEvent(
-            event,
-            currentMessage,
-            callbacks,
-            resolvedSessionId,
-            () => {}
-          );
-        } catch (e) {
-          console.debug("Failed to parse final resume event:", e);
-        }
-      }
-
-      // Safety net: if stream ended without any terminal event, force completion
-      if (!hasTerminalEvent) {
-        console.warn("Resume stream ended without terminal event, forcing completion");
-        this.getSession(resolvedSessionId)
-          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
-          .catch(() => callbacks.onError?.("Stream 異常結束"));
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      callbacks.onError?.(`Resume 失敗: ${errorMessage}`);
-    }
-  },
-
-  // ============================================================
-  // v2: SSE Stream (new event parser)
-  // ============================================================
-
-  async sendMessageStream(
+  async startRun(
     sessionId: string | number,
     content: string,
+    options?: SendMessageOptions
+  ): Promise<ChatRun> {
+    const data = await requestJson<BackendRun>(
+      httpClient.post(`${BASE_URL}/${sessionId.toString()}/runs/`, {
+        content,
+        model_id: options?.modelOverride,
+      }),
+      "無法建立 AI 任務"
+    );
+    return convertBackendRun(data);
+  },
+
+  async getActiveRuns(): Promise<ChatRun[]> {
+    const response = await requestJson<PaginatedResponse<BackendRun>>(
+      httpClient.get(`${AI_BASE}/runs/?status=active`),
+      "無法載入進行中的 AI 任務"
+    );
+    return (response.results || []).map(convertBackendRun);
+  },
+
+  async subscribeRunEvents(
+    run: ChatRun,
     callbacks: StreamCallbacks,
     options?: SendMessageOptions
-  ) {
+  ): Promise<void> {
     try {
-      const urlSessionId = sessionId.toString();
-      let resolvedSessionId = urlSessionId;
-
-      // v2 payload
-      const payload: Record<string, unknown> = {
-        content,
-      };
-
       const response = await httpClient.request(
-        `${BASE_URL}/${urlSessionId}/send_message_stream/`,
+        `${AI_BASE}/runs/${run.id}/events/?after=${run.lastEventSeq ?? 0}`,
         {
-          method: "POST",
-          body: JSON.stringify(payload),
-          headers: {
-            "Content-Type": "application/json",
-            "X-QJudge-Agent-Contract": "v2",
-          },
+          method: "GET",
+          headers: { "X-QJudge-Agent-Contract": "v2" },
           signal: options?.signal,
         }
       );
@@ -438,10 +377,8 @@ const chatbotRepository: ChatbotRepository = {
 
       const currentMessage: Partial<ChatMessage> = {
         content: "",
-        isThinking: true,
+        isThinking: run.status === "running" || run.status === "queued",
       };
-
-      let hasTerminalEvent = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -457,18 +394,15 @@ const chatbotRepository: ChatbotRepository = {
 
           try {
             const event: V2StreamEvent = JSON.parse(line.slice(6));
-            if (event.type === "run_completed" || event.type === "run_failed") {
-              hasTerminalEvent = true;
-            }
             this._handleStreamEvent(
               event,
               currentMessage,
               callbacks,
-              resolvedSessionId,
-              (id: string) => { resolvedSessionId = id; }
+              run.sessionId,
+              () => {}
             );
           } catch (e) {
-            console.debug("Failed to parse stream event:", e);
+            console.debug("Failed to parse run event:", e);
           }
         }
       }
@@ -478,33 +412,39 @@ const chatbotRepository: ChatbotRepository = {
       if (finalLine.startsWith("data: ")) {
         try {
           const event: V2StreamEvent = JSON.parse(finalLine.slice(6));
-          if (event.type === "run_completed" || event.type === "run_failed") {
-            hasTerminalEvent = true;
-          }
           this._handleStreamEvent(
             event,
             currentMessage,
             callbacks,
-            resolvedSessionId,
-            (id: string) => { resolvedSessionId = id; }
+            run.sessionId,
+            () => {}
           );
         } catch (e) {
-          console.debug("Failed to parse final stream event:", e);
+          console.debug("Failed to parse final run event:", e);
         }
       }
-
-      // Safety net: if stream ended without any terminal event, force completion
-      if (!hasTerminalEvent) {
-        console.warn("Stream ended without terminal event, forcing completion");
-        this.getSession(resolvedSessionId)
-          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
-          .catch(() => callbacks.onError?.("Stream 異常結束"));
-      }
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      callbacks.onError?.(`無法發送訊息: ${errorMessage}`);
+      callbacks.onError?.(`任務訂閱失敗: ${errorMessage}`);
     }
+  },
+
+  async cancelRun(runId: string): Promise<ChatRun> {
+    const data = await requestJson<BackendRun>(
+      httpClient.post(`${AI_BASE}/runs/${runId}/cancel/`, {}),
+      "無法停止 AI 任務"
+    );
+    return convertBackendRun(data);
+  },
+
+  async submitRunApproval(runId: string, decision: "approve" | "reject"): Promise<ChatRun> {
+    const data = await requestJson<BackendRun>(
+      httpClient.post(`${AI_BASE}/runs/${runId}/approval/`, { decision }),
+      "無法送出核准決定"
+    );
+    return convertBackendRun(data);
   },
 
   /** Internal: handle a single SSE event */
@@ -607,11 +547,27 @@ const chatbotRepository: ChatbotRepository = {
         break;
       }
 
+      case "run_cancelled": {
+        console.debug("SSE: run_cancelled", { runId: event.run_id });
+        this.getSession(resolvedSessionId)
+          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
+          .catch((err: Error) => {
+            console.warn("Failed to fetch session after run_cancelled:", err);
+            callbacks.onError?.("對話同步失敗，請重新整理後再試");
+          });
+        break;
+      }
+
       case "run_failed":
         console.debug("SSE: run_failed", {
           errorCode: event.error_code,
           message: event.message,
         });
+        this.getSession(resolvedSessionId)
+          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
+          .catch((err: Error) => {
+            console.warn("Failed to fetch session after run_failed:", err);
+          });
         callbacks.onError?.(event.message || "Agent 執行失敗");
         break;
 

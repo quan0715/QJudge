@@ -1,5 +1,6 @@
-"""AI Chat models for session and message storage."""
+"""AI Chat models for session, message, and durable run storage."""
 
+import uuid
 from decimal import Decimal
 
 from django.conf import settings
@@ -205,6 +206,112 @@ class AIExecutionLog(models.Model):
     def __str__(self):
         user_str = self.user.username if self.user else "Anonymous"
         return f"AILog #{self.pk} - {user_str} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+
+
+class AIChatRun(models.Model):
+    """Durable AI chat task controlled by the backend."""
+
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        RUNNING = "running", "Running"
+        AWAITING_APPROVAL = "awaiting_approval", "Awaiting approval"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    class Kind(models.TextChoices):
+        CHAT = "chat", "Chat"
+        RESUME = "resume", "Resume"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(
+        AISession,
+        on_delete=models.CASCADE,
+        related_name="runs",
+        verbose_name="Session",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ai_chat_runs",
+        verbose_name="用戶",
+    )
+    user_message = models.ForeignKey(
+        AIMessage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="chat_runs_as_user_message",
+    )
+    assistant_message = models.ForeignKey(
+        AIMessage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="chat_runs_as_assistant_message",
+    )
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.CHAT)
+    status = models.CharField(max_length=32, choices=Status.choices, default=Status.QUEUED)
+    content = models.TextField(blank=True)
+    model_id = models.CharField(max_length=50, default="deepseek-r1")
+    thread_id = models.CharField(max_length=100, blank=True)
+    external_run_id = models.CharField(max_length=100, blank=True)
+    celery_task_id = models.CharField(max_length=100, blank=True)
+    error = models.TextField(blank=True)
+    approval_payload = models.JSONField(default=dict, blank=True)
+    resume_decision = models.CharField(max_length=20, blank=True)
+    cancel_requested = models.BooleanField(default=False)
+    last_event_seq = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["user", "status", "created_at"]),
+            models.Index(fields=["session", "status", "created_at"]),
+            models.Index(fields=["status", "created_at"]),
+        ]
+
+    @property
+    def is_active(self) -> bool:
+        return self.status in {
+            self.Status.QUEUED,
+            self.Status.RUNNING,
+            self.Status.AWAITING_APPROVAL,
+        }
+
+    def __str__(self):
+        return f"AIChatRun {self.id} ({self.status})"
+
+
+class AIStreamEvent(models.Model):
+    """Persisted stream event for replaying an AI run subscription."""
+
+    run = models.ForeignKey(
+        AIChatRun,
+        on_delete=models.CASCADE,
+        related_name="events",
+    )
+    seq = models.PositiveIntegerField()
+    event_type = models.CharField(max_length=64)
+    payload = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["seq"]
+        constraints = [
+            models.UniqueConstraint(fields=["run", "seq"], name="uniq_ai_stream_event_run_seq"),
+        ]
+        indexes = [
+            models.Index(fields=["run", "seq"]),
+            models.Index(fields=["event_type", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"AIStreamEvent run={self.run_id} seq={self.seq} type={self.event_type}"
 
 
 class UserAICredit(models.Model):

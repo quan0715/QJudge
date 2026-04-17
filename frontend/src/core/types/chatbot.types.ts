@@ -13,6 +13,7 @@ export type StreamEventType =
   | "usage_report"
   | "run_completed"
   | "run_failed"
+  | "run_cancelled"
   | "awaiting_approval";
 
 export interface BaseStreamEvent {
@@ -61,6 +62,33 @@ export interface ChatMessage {
   verificationReports?: VerificationReport[];
   isThinking?: boolean;
   toolName?: string;
+  runId?: string;
+  runStatus?: ChatRunStatus;
+  lastEventSeq?: number;
+}
+
+export type ChatRunStatus =
+  | "queued"
+  | "running"
+  | "awaiting_approval"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export interface ChatRun {
+  id: string;
+  sessionId: string;
+  status: ChatRunStatus;
+  kind: "chat" | "resume";
+  modelId: string;
+  lastEventSeq: number;
+  approvalPayload?: {
+    action_requests?: ApprovalActionRequest[];
+    review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
+  };
+  userMessageId?: number;
+  assistantMessageId?: number;
+  error?: string;
 }
 
 export interface ChatSession {
@@ -74,6 +102,8 @@ export interface ChatSession {
     deepagent_thread_id?: string;
     title_pending?: boolean;
     sync_timestamp?: number;
+    active_run_id?: string;
+    active_run_status?: ChatRunStatus;
   };
 }
 

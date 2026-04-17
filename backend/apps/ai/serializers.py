@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from .models import AIMessage, AISession
+from .models import AIChatRun, AIMessage, AISession
 
 
 class AIMessageSerializer(serializers.ModelSerializer):
@@ -107,6 +107,55 @@ class SendMessageStreamSerializer(serializers.Serializer):
         required=False,
         default="deepseek-r1",
     )
+
+
+class StartRunSerializer(serializers.Serializer):
+    """Serializer for creating a durable AI chat run."""
+
+    content = serializers.CharField(max_length=10000)
+    model_id = serializers.ChoiceField(
+        choices=["deepseek-r1", "deepseek-v3"],
+        required=False,
+        default="deepseek-r1",
+    )
+
+
+class RunApprovalSerializer(serializers.Serializer):
+    """Serializer for resuming an approval-gated run."""
+
+    decision = serializers.ChoiceField(choices=["approve", "reject"])
+
+
+class AIChatRunSerializer(serializers.ModelSerializer):
+    """Serializer for durable AI chat runs."""
+
+    session_id = serializers.CharField(source="session.session_id", read_only=True)
+    user_message_id = serializers.IntegerField(read_only=True)
+    assistant_message_id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = AIChatRun
+        fields = [
+            "id",
+            "session_id",
+            "status",
+            "kind",
+            "model_id",
+            "thread_id",
+            "external_run_id",
+            "celery_task_id",
+            "error",
+            "approval_payload",
+            "cancel_requested",
+            "last_event_seq",
+            "user_message_id",
+            "assistant_message_id",
+            "started_at",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
 
 
 class ModelInfoSerializer(serializers.Serializer):

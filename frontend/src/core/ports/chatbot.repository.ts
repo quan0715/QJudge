@@ -1,4 +1,5 @@
 import type {
+  ChatRun,
   ChatSession,
   ModelInfo,
   SendMessageOptions,
@@ -18,21 +19,20 @@ export interface ChatbotRepository {
     requestId: string,
     answers: Record<string, string>
   ): Promise<{ success: boolean; message?: string }>;
-  sendMessageStream(
+  startRun(
     sessionId: string | number,
     content: string,
+    options?: SendMessageOptions
+  ): Promise<ChatRun>;
+  getActiveRuns(): Promise<ChatRun[]>;
+  subscribeRunEvents(
+    run: ChatRun,
     callbacks: StreamCallbacks,
     options?: SendMessageOptions
   ): Promise<void>;
+  cancelRun(runId: string): Promise<ChatRun>;
+  submitRunApproval(runId: string, decision: "approve" | "reject"): Promise<ChatRun>;
 
   // v2: Model list
   getModels(): Promise<ModelInfo[]>;
-
-  // v2: Resume interrupted agent stream
-  resumeAgentStream(
-    sessionId: string | number,
-    decision: "approve" | "reject",
-    callbacks: StreamCallbacks,
-    options?: SendMessageOptions,
-  ): Promise<void>;
 }

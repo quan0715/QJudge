@@ -96,6 +96,16 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             </span>
           )
         )}
+
+        {!isUser && message.runStatus === "queued" && (
+          <span className={styles.runStatus}>已排入佇列</span>
+        )}
+        {!isUser && message.runStatus === "cancelled" && (
+          <span className={styles.runStatus}>已停止</span>
+        )}
+        {!isUser && message.runStatus === "failed" && (
+          <span className={styles.runStatus}>任務失敗</span>
+        )}
       </div>
     </div>
   );
