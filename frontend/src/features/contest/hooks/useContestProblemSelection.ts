@@ -13,12 +13,16 @@ interface UseContestProblemSelectionProps {
 interface UseContestProblemSelectionReturn {
   // Problem list
   problems: ProblemMenuItem[];
-  
+
   // Selection
   selectedProblemId: string | null;
+  // CodingProblem.id for the currently selected binding — the id expected by
+  // cross-feature APIs (e.g. /submissions?problem=), since those filters target
+  // CodingProblem, not ContestQuestionBinding.
+  selectedCodingProblemId: string | null;
   selectedProblemLabel: string;
   selectProblem: (problemId: string) => void;
-  
+
   // Loaded problem
   selectedProblem: ProblemDetail | null;
   isProblemLoading: boolean;
@@ -80,6 +84,12 @@ export function useContestProblemSelection({
     return problem?.label || "A";
   }, [selectedProblemId, contest?.problems]);
 
+  const selectedCodingProblemId = useMemo<string | null>(() => {
+    if (!selectedProblemId || !contest?.problems) return null;
+    const match = contest.problems.find((p) => p.id === selectedProblemId);
+    return match?.problemId ?? null;
+  }, [selectedProblemId, contest?.problems]);
+
   // Load problem when selection changes
   useEffect(() => {
     const selectedContestProblemId = resolveContestProblemSelectionId(selectedProblemId);
@@ -127,6 +137,7 @@ export function useContestProblemSelection({
   return {
     problems,
     selectedProblemId,
+    selectedCodingProblemId,
     selectedProblemLabel,
     selectProblem,
     selectedProblem,

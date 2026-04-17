@@ -207,7 +207,7 @@ const ContestProblemScreen = () => {
         renderSubmissions={() => (
           <ContestProblemSubmissions
             contestId={resolvedContestId!}
-            problemId={problemSelection.selectedProblemId || ""}
+            codingProblemId={problemSelection.selectedCodingProblemId || ""}
           />
         )}
       />

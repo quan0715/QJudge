@@ -13,7 +13,9 @@ import { SubmissionDetailModal, SubmissionTable, type SubmissionRow } from "@/fe
 
 interface ContestProblemSubmissionsProps {
   contestId: string;
-  problemId: string;
+  // Expects CodingProblem.id (NOT ContestQuestionBinding.id) — the /submissions
+  // list filter targets Submission.problem FK, which points at CodingProblem.
+  codingProblemId: string;
 }
 
 /**
@@ -22,7 +24,7 @@ interface ContestProblemSubmissionsProps {
  */
 const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
   contestId,
-  problemId,
+  codingProblemId,
 }) => {
   const skeletonWidths = [
     "calc(var(--cds-spacing-07) + var(--cds-spacing-06) + var(--cds-spacing-02))",
@@ -48,7 +50,7 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
     contestId,
     page: 1,
     pageSize: 20,
-    problemFilter: problemId,
+    problemFilter: codingProblemId,
     userId: currentUser?.id,
   });
 

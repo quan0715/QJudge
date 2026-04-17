@@ -74,6 +74,7 @@
     "toolConfirm": "工具呼叫確認",
     "confirmAction": "確認執行",
     "cancelAction": "取消",
-    "loading": "載入中"
+    "loading": "載入中",
+    "scrollToBottom": "卷動至底部"
   }
 }
