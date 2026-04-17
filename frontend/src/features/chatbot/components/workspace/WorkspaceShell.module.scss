@@ -1,10 +1,10 @@
 @use "../chat-ui/variables" as *;
 
-$panel-width: 400px;
-
 .shell {
   display: flex;
+  flex: 1;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -17,13 +17,49 @@ $panel-width: 400px;
 .panel {
   flex-shrink: 0;
   width: 0;
+  height: 100%;
   overflow: hidden;
-  border-left: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  position: relative;
   transition: width $chat-motion-duration $chat-motion-easing;
 }
 
 .panelOpen {
-  width: $panel-width;
+  width: $chat-sidebar-width;
+  display: flex;
+}
+
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  background: transparent;
+  // Visual border centered in the handle
+  border-right: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  transition: border-color 150ms ease;
+  touch-action: none; // prevent scroll while dragging on touch
+
+  &:hover,
+  &:active {
+    border-right-color: var(--cds-interactive, #0f62fe);
+    border-right-width: 2px;
+  }
+
+  // Wider touch target on touch devices
+  @media (pointer: coarse) {
+    left: -8px;
+    width: 16px;
+  }
+}
+
+.panelContent {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 // Hide panel on mobile — use /chat full page instead
