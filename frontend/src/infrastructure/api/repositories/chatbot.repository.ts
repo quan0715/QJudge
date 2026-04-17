@@ -149,25 +149,43 @@ function normalizeTodoStatus(status: unknown): RunTodoStatus {
   return "pending";
 }
 
+function isToolProgressTodoLabel(label: string): boolean {
+  return /^使用\s+qjudge_[\w-]+\(action=['"][^'"]+['"]\)/.test(label.trim());
+}
+
 function normalizeTodoItems(rawTodos: unknown): RunTodoItem[] | undefined {
   if (!Array.isArray(rawTodos)) return undefined;
-  return rawTodos
-    .map((todo, index): RunTodoItem | null => {
+  const items = rawTodos
+    .map((todo): RunTodoInputItem | null => {
       if (!todo || typeof todo !== "object") return null;
-      const item = todo as RunTodoInputItem;
-      const label = typeof item.content === "string"
-        ? item.content
+      return todo as RunTodoInputItem;
+    })
+    .filter((todo): todo is RunTodoInputItem => todo !== null)
+    .reduce<RunTodoItem[]>((todoItems, item) => {
+      const label = (typeof item.content === "string"
+        ? item.content.trim()
         : typeof item.label === "string"
           ? item.label
-          : "";
-      if (!label) return null;
-      return {
-        id: typeof item.id === "string" && item.id ? item.id : `${index}-${label}`,
+          : "").trim();
+      if (!label || isToolProgressTodoLabel(label)) return todoItems;
+      const existingIndex = todoItems.findIndex((todo) => todo.label === label);
+      const normalizedItem = {
+        id: typeof item.id === "string" && item.id
+          ? item.id
+          : existingIndex >= 0
+            ? todoItems[existingIndex].id
+            : `${todoItems.length}-${label}`,
         label,
         status: normalizeTodoStatus(item.status),
       };
-    })
-    .filter((todo): todo is RunTodoItem => todo !== null);
+      if (existingIndex >= 0) {
+        todoItems[existingIndex] = normalizedItem;
+      } else {
+        todoItems.push(normalizedItem);
+      }
+      return todoItems;
+    }, []);
+  return items.length > 0 ? items : undefined;
 }
 
 function findMatchingBracket(text: string, openIndex: number): number {

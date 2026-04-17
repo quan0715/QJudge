@@ -43,31 +43,6 @@ export function ChainOfThought({
     <div className={styles.cot}>
       <div className={styles.label}>{t("ui.reasoningSteps")}</div>
       <Accordion size="sm" className={styles.accordion}>
-        {todoItems.length > 0 && (
-          <AccordionItem
-            open={todoSummaryStatus === "in_progress" || todoSummaryStatus === "pending"}
-            title={
-              <span className={styles.stepTitle}>
-                {getTodoStatusIcon({
-                  id: "todo-summary",
-                  label: "",
-                  status: todoSummaryStatus,
-                })}
-                {t("ui.todoList", "待辦清單")}
-              </span>
-            }
-          >
-            <div className={styles.todoList}>
-              {todoItems.map((item) => (
-                <div key={item.id} className={styles.todoItem}>
-                  {getTodoStatusIcon(item)}
-                  <span className={styles.todoLabel}>{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </AccordionItem>
-        )}
-
         {steps.map((step, i) => {
           const isDone = step.result !== undefined || step.isError;
           const isFailed = step.isError;
@@ -117,6 +92,31 @@ export function ChainOfThought({
             }
           >
             <div className={styles.processingText}>{t("ui.processing")}</div>
+          </AccordionItem>
+        )}
+
+        {todoItems.length > 0 && (
+          <AccordionItem
+            open={todoSummaryStatus === "in_progress" || todoSummaryStatus === "pending"}
+            title={
+              <span className={styles.stepTitle}>
+                {getTodoStatusIcon({
+                  id: "todo-summary",
+                  label: "",
+                  status: todoSummaryStatus,
+                })}
+                {t("ui.todoList", "待辦清單")}
+              </span>
+            }
+          >
+            <div className={styles.todoList}>
+              {todoItems.map((item) => (
+                <div key={item.id} className={styles.todoItem}>
+                  {getTodoStatusIcon(item)}
+                  <span className={styles.todoLabel}>{item.label}</span>
+                </div>
+              ))}
+            </div>
           </AccordionItem>
         )}
       </Accordion>

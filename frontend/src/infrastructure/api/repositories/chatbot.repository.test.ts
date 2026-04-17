@@ -76,6 +76,43 @@ describe("chatbotRepository stream events", () => {
     ]);
   });
 
+  it("deduplicates todo labels and ignores tool-progress todo items", () => {
+    const onTodoItemsUpdate = vi.fn();
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string; todos: Array<{ status: string; content: string }> },
+        currentMessage: Record<string, unknown>,
+        callbacks: {
+          onTodoItemsUpdate?: (items: unknown[] | null) => void;
+        },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "todo_update",
+        todos: [
+          { status: "completed", content: "讀取現有題庫結構" },
+          { status: "pending", content: "規劃新題目主題與難度" },
+          { status: "in_progress", content: "使用 qjudge_exam(action='create') 再新增一題單選題" },
+          { status: "in_progress", content: "規劃新題目主題與難度" },
+        ],
+      },
+      {},
+      {
+        onTodoItemsUpdate,
+      },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onTodoItemsUpdate).toHaveBeenCalledWith([
+      { id: "0-讀取現有題庫結構", label: "讀取現有題庫結構", status: "success" },
+      { id: "1-規劃新題目主題與難度", label: "規劃新題目主題與難度", status: "in_progress" },
+    ]);
+  });
+
   it("updates todos immediately from write_todos tool_call_started input", () => {
     const onTodoItemsUpdate = vi.fn();
     const onMessageUpdate = vi.fn();
