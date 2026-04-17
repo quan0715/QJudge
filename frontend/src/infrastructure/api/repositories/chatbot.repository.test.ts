@@ -117,7 +117,7 @@ describe("chatbotRepository stream events", () => {
 
     expect(onTodoItemsUpdate).toHaveBeenCalledWith([
       { id: "0-分析需求規格", label: "分析需求規格", status: "success" },
-      { id: "1-設計系統架構", label: "設計系統架構", status: "pending" },
+      { id: "1-設計系統架構", label: "設計系統架構", status: "in_progress" },
       { id: "2-實作核心功能", label: "實作核心功能", status: "pending" },
     ]);
   });
@@ -239,7 +239,7 @@ describe("chatbotRepository stream events", () => {
 
     expect(onTodoItemsUpdate).toHaveBeenCalledWith([
       { id: "0-分析需求規格", label: "分析需求規格", status: "success" },
-      { id: "1-設計系統架構", label: "設計系統架構", status: "pending" },
+      { id: "1-設計系統架構", label: "設計系統架構", status: "in_progress" },
       { id: "2-實作核心功能", label: "實作核心功能", status: "pending" },
     ]);
   });

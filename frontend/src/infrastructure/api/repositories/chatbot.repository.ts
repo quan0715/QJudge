@@ -133,6 +133,9 @@ function normalizeTodoStatus(status: unknown): RunTodoStatus {
   if (status === "success" || status === "completed" || status === "complete" || status === "done") {
     return "success";
   }
+  if (status === "in_progress" || status === "running") {
+    return "in_progress";
+  }
   if (status === "fail" || status === "failed" || status === "error") {
     return "fail";
   }

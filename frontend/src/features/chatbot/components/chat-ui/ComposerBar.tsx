@@ -75,6 +75,9 @@ export function ComposerBar({
     if (item.status === "fail") {
       return <Warning size={16} className={`${styles.todoIcon} ${styles.todoIconFail}`} />;
     }
+    if (item.status === "in_progress") {
+      return <InProgress size={16} className={`${styles.todoIcon} ${styles.todoIconInProgress}`} />;
+    }
     return <InProgress size={16} className={`${styles.todoIcon} ${styles.todoIconPending}`} />;
   };
 

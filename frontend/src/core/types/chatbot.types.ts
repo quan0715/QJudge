@@ -39,7 +39,7 @@ export interface ToolInfo {
   durationMs?: number;
 }
 
-export type RunTodoStatus = "pending" | "success" | "fail";
+export type RunTodoStatus = "pending" | "in_progress" | "success" | "fail";
 
 export interface RunTodoItem {
   id: string;
