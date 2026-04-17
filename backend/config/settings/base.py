@@ -323,6 +323,7 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_DEFAULT_QUEUE = "default"
 
 # Celery Beat Schedule (for periodic tasks)
 # Only effective when celery-beat service is running
@@ -342,6 +343,10 @@ CELERY_BEAT_SCHEDULE = {
     "check-heartbeat-timeout-every-30-seconds": {
         "task": "apps.contests.tasks.check_heartbeat_timeout",
         "schedule": 30.0,
+    },
+    "sweep-stale-ai-runs-every-60-seconds": {
+        "task": "apps.ai.tasks.sweep_stale_ai_runs",
+        "schedule": 60.0,
     },
 }
 
