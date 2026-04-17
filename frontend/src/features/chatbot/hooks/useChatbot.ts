@@ -2,11 +2,11 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import i18n from "i18next";
 import type {
   BackgroundInformation,
-  ChatMessage,
   ChatSession,
   UserInputRequest,
   ChatContext,
   ApprovalRequest,
+  ChatRun,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 
@@ -81,12 +81,13 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     useState<UserInputRequest | null>(null);
   const [pendingApproval, setPendingApproval] =
     useState<ApprovalRequest | null>(null);
+  const [activeRuns, setActiveRuns] = useState<ChatRun[]>([]);
 
-  // AbortController for cancelling streaming
+  // AbortController for cancelling only the local event subscription.
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Abort any in-flight stream when the component unmounts to prevent
-  // state updates on an unmounted component and dangling fetch connections.
+  // Abort any in-flight event subscription when the component unmounts.
+  // This does not cancel backend-controlled AI runs.
   useEffect(() => {
     return () => { abortControllerRef.current?.abort(); };
   }, []);
@@ -105,14 +106,35 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     };
   }, [backgroundInfo, context]);
 
+  const applyActiveRunsToSessions = useCallback(
+    (sessionList: ChatSession[], runs: ChatRun[]): ChatSession[] =>
+      sessionList.map((session) => {
+        const activeRun = runs.find((run) => run.sessionId === session.id);
+        if (!activeRun) return session;
+        return {
+          ...session,
+          metadata: {
+            ...session.metadata,
+            active_run_id: activeRun.id,
+            active_run_status: activeRun.status,
+          },
+        };
+      }),
+    [],
+  );
+
   /**
    * 載入所有 sessions（僅列表，不含 messages）
    */
   const refreshSessions = useCallback(async () => {
     try {
       setError(null);
-      const apiSessions = await chatbotRepository.getSessions();
-      setSessions(apiSessions);
+      const [apiSessions, runs] = await Promise.all([
+        chatbotRepository.getSessions(),
+        chatbotRepository.getActiveRuns(),
+      ]);
+      setActiveRuns(runs);
+      setSessions(applyActiveRunsToSessions(apiSessions, runs));
 
       if (apiSessions.length > 0 && !currentSessionIdRef.current) {
         setCurrentSessionId(apiSessions[0].id);
@@ -121,7 +143,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       console.error("Failed to load sessions:", err);
       setError(i18n.t("chatbot:errors.loadSessionsFailed"));
     }
-  }, [setCurrentSessionId]);
+  }, [applyActiveRunsToSessions, setCurrentSessionId]);
 
   /**
    * 初始化：從後端 API 載入 sessions
@@ -146,21 +168,26 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       try { savedSessionId = localStorage.getItem(LAST_SESSION_KEY); } catch { /* ignore */ }
 
       try {
-        // 只載入列表（不含 messages），速度快
-        const apiSessions = await chatbotRepository.getSessions();
+        // 只載入列表（不含 messages），速度快；active runs 讓 reload 後知道哪些任務還在後端執行。
+        const [apiSessions, runs] = await Promise.all([
+          chatbotRepository.getSessions(),
+          chatbotRepository.getActiveRuns(),
+        ]);
+        setActiveRuns(runs);
+        const sessionsWithRuns = applyActiveRunsToSessions(apiSessions, runs);
 
-        if (apiSessions.length === 0) {
+        if (sessionsWithRuns.length === 0) {
           const newSession = await chatbotRepository.createSession();
           setSessions([newSession]);
           setCurrentSessionId(newSession.id);
         } else {
           // 恢復 saved session，或選第一個
           const savedSession = savedSessionId
-            ? apiSessions.find((s) => s.id === savedSessionId)
+            ? sessionsWithRuns.find((s) => s.id === savedSessionId)
             : null;
-          const activeId = savedSession?.id ?? apiSessions[0].id;
+          const activeId = savedSession?.id ?? sessionsWithRuns[0].id;
 
-          setSessions(apiSessions);
+          setSessions(sessionsWithRuns);
           setCurrentSessionId(activeId);
 
           // 背景 lazy load active session 的 messages
@@ -182,7 +209,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     };
 
     init();
-  }, [enabled]);
+  }, [applyActiveRunsToSessions, enabled, setCurrentSessionId]);
 
   /**
    * 創建新 session
@@ -277,34 +304,100 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     [],
   );
 
+  useEffect(() => {
+    if (!enabled || !currentSessionId) return;
+    const activeRun = activeRuns.find(
+      (run) =>
+        run.sessionId === currentSessionId &&
+        ["queued", "running", "awaiting_approval"].includes(run.status),
+    );
+
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    if (!activeRun) {
+      setIsStreaming(false);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsStreaming(true);
+    setIsLoading(activeRun.status !== "awaiting_approval");
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    chatbotRepository.subscribeRunEvents(
+      activeRun,
+      {
+        onMessageUpdate: (messageUpdate) => {
+          setSessions((prev) =>
+            prev.map((session) =>
+              session.id === activeRun.sessionId
+                ? {
+                    ...session,
+                    messages: session.messages.map((message) =>
+                      message.id === String(activeRun.assistantMessageId)
+                        ? { ...message, ...messageUpdate }
+                        : message,
+                    ),
+                  }
+                : session,
+            ),
+          );
+        },
+        onComplete: (freshSession) => {
+          setSessions((prev) =>
+            prev.map((session) =>
+              session.id === freshSession.id ? freshSession : session,
+            ),
+          );
+          setActiveRuns((prev) => prev.filter((run) => run.id !== activeRun.id));
+          setIsStreaming(false);
+          setIsLoading(false);
+        },
+        onError: (errorMsg) => {
+          setError(errorMsg);
+          setActiveRuns((prev) => prev.filter((run) => run.id !== activeRun.id));
+          setIsStreaming(false);
+          setIsLoading(false);
+        },
+        onAwaitingApproval: (request) => {
+          setPendingApproval(request);
+          setActiveRuns((prev) =>
+            prev.map((run) =>
+              run.id === activeRun.id ? { ...run, status: "awaiting_approval" } : run,
+            ),
+          );
+          setIsLoading(false);
+        },
+      },
+      { signal: controller.signal },
+    );
+
+    return () => {
+      controller.abort();
+    };
+  }, [activeRuns, currentSessionId, enabled]);
+
   /**
-   * 發送訊息（使用串流）
+   * 發送訊息（建立後端控管的 durable run）
    */
   const sendMessage = useCallback(
     async (content: string) => {
       if (!content.trim() || !currentSessionId) return;
 
       const trimmedContent = content.trim();
-
-      // 檢查是否為第一則訊息（session 中沒有訊息）
-      const isFirstMessage = currentSession?.messages.length === 0;
-
-      // 如果是第一條訊息且沒有後端 session ID，先建立
       let sessionIdForRequest = currentSessionId;
-      const backendSessionId = currentSession?.metadata?.backend_session_id;
 
-      if (isFirstMessage && !backendSessionId) {
+      if (currentSessionId.startsWith("temp-")) {
         try {
           const newSessionData = await chatbotRepository.createBackendSession();
           sessionIdForRequest = newSessionData.id;
-
-          // 更新 session 的後端 ID
-          // 注意：保持前端 session.id 不變，只在 metadata 中記錄後端 ID
           setSessions((prev) =>
             prev.map((session) =>
               session.id === currentSessionId
                 ? {
                     ...session,
+                    id: newSessionData.id,
                     metadata: {
                       ...session.metadata,
                       backend_session_id: newSessionData.id,
@@ -313,6 +406,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
                 : session,
             ),
           );
+          setCurrentSessionId(newSessionData.id);
         } catch (err) {
           console.error("Failed to create backend session:", err);
           setError(i18n.t("chatbot:errors.createBackendSessionFailed"));
@@ -320,250 +414,66 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         }
       }
 
-      // 1. 新增臨時用戶訊息
-      const tempUserMessage: ChatMessage = {
-        id: `temp-user-${Date.now()}`,
-        role: "user",
-        content: trimmedContent,
-        timestamp: new Date(),
-      };
-
-      // 2. 新增臨時 AI 訊息（用於串流更新）
-      const tempAssistantId = `temp-assistant-${Date.now()}`;
-      const tempAssistantMessage: ChatMessage = {
-        id: tempAssistantId,
-        role: "assistant",
-        content: "",
-        timestamp: new Date(),
-        isThinking: true, // 初始狀態為思考中
-      };
-
-      // 添加到 UI
-      setSessions((prev) =>
-        prev.map((session) =>
-          session.id === currentSessionId
-            ? {
-                ...session,
-                messages: [
-                  ...session.messages,
-                  tempUserMessage,
-                  tempAssistantMessage,
-                ],
-                updatedAt: new Date(),
-              }
-            : session,
-        ),
-      );
-
       setIsStreaming(true);
       setIsLoading(true);
       setError(null);
 
-      // Create AbortController for this stream
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-
       try {
-        await chatbotRepository.sendMessageStream(
+        const run = await chatbotRepository.startRun(
           sessionIdForRequest,
           trimmedContent,
-          {
-            // 高級回調：訊息增量更新（包含所有內容）
-            onMessageUpdate: (messageUpdate) => {
-              setSessions((prev) =>
-                prev.map((session) =>
-                  session.id === currentSessionId
-                    ? {
-                        ...session,
-                        messages: session.messages.map((message) =>
-                          message.id === tempAssistantId
-                            ? { ...message, ...messageUpdate }
-                            : message,
-                        ),
-                      }
-                    : session,
-                ),
-              );
-            },
-
-            // 完成時更新為完整 session
-            onComplete: (freshSession) => {
-              setSessions((prev) =>
-                prev.map((session) =>
-                  session.id === currentSessionId ? freshSession : session,
-                ),
-              );
-              if (freshSession.id !== currentSessionId) {
-                setCurrentSessionId(freshSession.id);
-              }
-              setIsStreaming(false);
-              setIsLoading(false);
-            },
-
-            // 錯誤處理
-            onError: (errorMsg) => {
-              setError(errorMsg);
-              setIsStreaming(false);
-              setIsLoading(false);
-
-              // 更新臨時 AI 訊息為錯誤訊息
-              setSessions((prev) =>
-                prev.map((session) =>
-                  session.id === currentSessionId
-                    ? {
-                        ...session,
-                        messages: session.messages.map((message) =>
-                          message.id === tempAssistantId
-                            ? {
-                                ...message,
-                                content: i18n.t("chatbot:errors.aiServiceUnavailable"),
-                                isThinking: false,
-                              }
-                            : message,
-                        ),
-                      }
-                    : session,
-                ),
-              );
-            },
-
-            // 用戶輸入請求（AskUserQuestion）
-            onUserInputRequest: (request) => {
-              setPendingUserInput(request);
-            },
-
-            // HITL 核准請求（AwaitingApproval）
-            onAwaitingApproval: (request) => {
-              setPendingApproval(request);
-            },
-
-          },
-          {
-            context: effectiveContext ?? undefined,
-            signal: abortController.signal,
-          },
+          { context: effectiveContext ?? undefined },
         );
+        setActiveRuns((prev) => [...prev.filter((item) => item.id !== run.id), run]);
+
+        const freshSession = await chatbotRepository.getSession(run.sessionId);
+        setSessions((prev) => {
+          const withoutTemp = prev.filter((session) => session.id !== currentSessionId);
+          const existing = withoutTemp.some((session) => session.id === freshSession.id);
+          return existing
+            ? withoutTemp.map((session) =>
+                session.id === freshSession.id ? freshSession : session,
+              )
+            : [freshSession, ...withoutTemp];
+        });
+        setCurrentSessionId(run.sessionId);
       } catch (err) {
-        // Ignore abort errors
-        if (err instanceof DOMException && err.name === "AbortError") {
-          setIsStreaming(false);
-          setIsLoading(false);
-          return;
-        }
-        console.error("Stream error:", err);
+        console.error("Failed to start AI run:", err);
         setError(i18n.t("chatbot:errors.sendMessageFailed"));
-
-        // 更新臨時 AI 訊息為錯誤訊息
-        setSessions((prev) =>
-          prev.map((session) =>
-            session.id === currentSessionId
-              ? {
-                  ...session,
-                  messages: session.messages.map((message) =>
-                    message.id === tempAssistantId
-                      ? {
-                          ...message,
-                          content: i18n.t("chatbot:errors.aiServiceUnavailable"),
-                          isThinking: false,
-                        }
-                      : message,
-                  ),
-                }
-              : session,
-          ),
-        );
-
         setIsStreaming(false);
         setIsLoading(false);
       }
     },
-    [currentSessionId, currentSession, effectiveContext],
+    [currentSessionId, effectiveContext, setCurrentSessionId],
   );
 
 
   /**
-   * Resume interrupted agent stream after user input submission.
+   * Resume interrupted backend run after approval.
    */
   const resumeAgent = useCallback(
     async (decision: "approve" | "reject") => {
-      if (!currentSessionId) return;
-
-      // Add a temporary assistant message for the resume response
-      const tempAssistantId = `temp-resume-${Date.now()}`;
-      const tempAssistantMessage: ChatMessage = {
-        id: tempAssistantId,
-        role: "assistant",
-        content: "",
-        timestamp: new Date(),
-        isThinking: true,
-      };
-
-      setSessions((prev) =>
-        prev.map((session) =>
-          session.id === currentSessionId
-            ? {
-                ...session,
-                messages: [...session.messages, tempAssistantMessage],
-                updatedAt: new Date(),
-              }
-            : session,
-        ),
+      const activeRun = activeRuns.find(
+        (run) => run.sessionId === currentSessionId && run.status === "awaiting_approval",
       );
+      if (!activeRun) return;
 
       setIsStreaming(true);
       setIsLoading(true);
 
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-
       try {
-        await chatbotRepository.resumeAgentStream(
-          currentSessionId,
-          decision,
-          {
-            onMessageUpdate: (messageUpdate) => {
-              setSessions((prev) =>
-                prev.map((session) =>
-                  session.id === currentSessionId
-                    ? {
-                        ...session,
-                        messages: session.messages.map((message) =>
-                          message.id === tempAssistantId
-                            ? { ...message, ...messageUpdate }
-                            : message,
-                        ),
-                      }
-                    : session,
-                ),
-              );
-            },
-
-            onComplete: (freshSession) => {
-              setSessions((prev) =>
-                prev.map((session) =>
-                  session.id === currentSessionId ? freshSession : session,
-                ),
-              );
-              setIsStreaming(false);
-              setIsLoading(false);
-            },
-
-            onError: (errorMsg) => {
-              setError(errorMsg);
-              setIsStreaming(false);
-              setIsLoading(false);
-            },
-          },
-          { signal: abortController.signal },
+        const run = await chatbotRepository.submitRunApproval(activeRun.id, decision);
+        setActiveRuns((prev) =>
+          prev.map((item) => (item.id === run.id ? run : item)),
         );
       } catch (err) {
-        console.error("Resume stream error:", err);
+        console.error("Resume run error:", err);
         setError(i18n.t("chatbot:errors.resumeAgentFailed"));
         setIsStreaming(false);
         setIsLoading(false);
       }
     },
-    [currentSessionId],
+    [activeRuns, currentSessionId],
   );
 
   /**
@@ -635,13 +545,45 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   }, []);
 
   const stopStreaming = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    const activeRun = activeRuns.find(
+      (run) =>
+        run.sessionId === currentSessionId &&
+        ["queued", "running", "awaiting_approval"].includes(run.status),
+    );
+    if (!activeRun) {
+      abortControllerRef.current?.abort();
       abortControllerRef.current = null;
+      setIsStreaming(false);
+      setIsLoading(false);
+      return;
     }
-    setIsStreaming(false);
-    setIsLoading(false);
-  }, []);
+
+    chatbotRepository.cancelRun(activeRun.id)
+      .then((run) => {
+        setActiveRuns((prev) =>
+          prev.map((item) => (item.id === run.id ? run : item))
+            .filter((item) => item.status !== "cancelled"),
+        );
+        return chatbotRepository.getSession(run.sessionId);
+      })
+      .then((freshSession) => {
+        setSessions((prev) =>
+          prev.map((session) =>
+            session.id === freshSession.id ? freshSession : session,
+          ),
+        );
+      })
+      .catch((err) => {
+        console.error("Failed to cancel run:", err);
+        setError(i18n.t("chatbot:errors.stopRunFailed", "無法停止 AI 任務"));
+      })
+      .finally(() => {
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+        setIsStreaming(false);
+        setIsLoading(false);
+      });
+  }, [activeRuns, currentSessionId]);
 
   return {
     sessions,

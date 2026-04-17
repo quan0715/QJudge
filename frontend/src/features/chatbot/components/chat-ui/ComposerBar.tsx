@@ -1,7 +1,10 @@
 import { useRef, useState, useCallback } from "react";
 import { IconButton } from "@carbon/react";
 import { Send, StopFilled } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import styles from "./ComposerBar.module.scss";
+
+const TEXTAREA_MAX_HEIGHT = 160; // sync with $chat-textarea-max-height in _variables.scss
 
 interface ComposerBarProps {
   onSend: (text: string) => void;
@@ -16,8 +19,11 @@ export function ComposerBar({
   onStop,
   isStreaming,
   disabled = false,
-  placeholder = "輸入訊息…",
+  placeholder,
 }: ComposerBarProps) {
+  const { t } = useTranslation("chatbot");
+  const displayPlaceholder = placeholder || t("ui.inputPlaceholder");
+  
   const [value, setValue] = useState("");
   const composingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,7 +57,7 @@ export function ComposerBar({
     // Auto-resize
     const ta = e.target;
     ta.style.height = "auto";
-    ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+    ta.style.height = `${Math.min(ta.scrollHeight, TEXTAREA_MAX_HEIGHT)}px`;
   }, []);
 
   const canSend = value.trim().length > 0 && !disabled && !isStreaming;
@@ -68,16 +74,16 @@ export function ComposerBar({
           onKeyDown={handleKeyDown}
           onCompositionStart={() => { composingRef.current = true; }}
           onCompositionEnd={() => { composingRef.current = false; }}
-          placeholder={placeholder}
+          placeholder={displayPlaceholder}
           rows={1}
           disabled={disabled}
-          aria-label="訊息輸入"
+          aria-label={t("ui.inputAriaLabel")}
         />
         {isStreaming ? (
           <IconButton
             kind="ghost"
             size="sm"
-            label="停止生成"
+            label={t("ui.stopGenerating")}
             onClick={onStop}
             className={styles.sendBtn}
           >
@@ -87,7 +93,7 @@ export function ComposerBar({
           <IconButton
             kind="ghost"
             size="sm"
-            label="送出"
+            label={t("ui.send")}
             onClick={handleSubmit}
             disabled={!canSend}
             className={styles.sendBtn}

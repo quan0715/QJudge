@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { UserMenu } from "@/features/app/components/UserMenu";
 import { SideMenu } from "@/features/app/components/SideMenu";
 import { SideMenuToggle } from "@/features/app/components/SideMenuToggle";
+import { WorkspaceShell } from "@/features/chatbot/components/workspace/WorkspaceShell";
 import styles from "./ClassroomAdminLayout.module.scss";
 
 export type ClassroomAdminPanelId =
@@ -82,7 +83,9 @@ const ClassroomAdminLayout = ({
         />
       </Header>
 
-      <main className={styles.content}>{children}</main>
+      <WorkspaceShell>
+        <main className={styles.content}>{children}</main>
+      </WorkspaceShell>
     </div>
   );
 };

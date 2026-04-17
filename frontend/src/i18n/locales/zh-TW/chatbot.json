@@ -44,28 +44,36 @@
     "subtitle": "正在協助您編輯：{{title}}",
     "title": "我能為您做什麼？"
   },
-  "widget": {
-    "addChat": "新增對話",
-    "chatbotTitle": "Qgent TA",
+  "ui": {
+    "chatbotTitle": "QJudge AI 助教",
     "collapse": "收合面板",
-    "delete": "刪除",
-    "deleteModal": {
-      "confirmMessage": "確定要刪除對話「{{title}}」嗎？",
-      "submitting": "刪除中...",
-      "title": "確認刪除",
-      "undoWarning": "此操作無法復原。"
-    },
-    "expandLabel": "展開 Qgent TA",
-    "inputPlaceholder": "輸入訊息...",
+    "history": "對話紀錄",
     "newChat": "新對話",
-    "newChatLabel": "新對話",
-    "rename": "重命名",
-    "renameModal": {
-      "label": "新名稱",
-      "placeholder": "輸入新的對話名稱",
-      "title": "重命名對話"
-    },
-    "sessions": "對話記錄",
-    "thinking": "思考中..."
+    "close": "關閉",
+    "inputPlaceholder": "輸入訊息…",
+    "inputAriaLabel": "訊息輸入",
+    "stopGenerating": "停止生成",
+    "send": "送出",
+    "searchPlaceholder": "搜尋對話…",
+    "searchLabel": "搜尋對話",
+    "clear": "清除",
+    "noHistory": "尚無對話記錄",
+    "groupToday": "今天",
+    "groupYesterday": "昨天",
+    "groupLast7Days": "過去 7 天",
+    "groupOlder": "更早",
+    "rename": "重新命名",
+    "delete": "刪除",
+    "defaultSessionTitle": "對話 {{id}}…",
+    "welcome": "你好！我是 QJudge AI 助教，有什麼可以幫你的嗎？",
+    "reasoning": "推理過程",
+    "reasoningSteps": "推理步驟",
+    "stepInput": "輸入",
+    "stepOutput": "輸出",
+    "processing": "處理中…",
+    "toolConfirm": "工具呼叫確認",
+    "confirmAction": "確認執行",
+    "cancelAction": "取消",
+    "loading": "載入中"
   }
 }

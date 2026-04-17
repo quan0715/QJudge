@@ -44,28 +44,36 @@
     "subtitle": "Assisting with: {{title}}",
     "title": "How can I help you?"
   },
-  "widget": {
-    "addChat": "New Chat",
-    "chatbotTitle": "Qgent TA",
-    "collapse": "Collapse Panel",
-    "delete": "Delete",
-    "deleteModal": {
-      "confirmMessage": "Are you sure you want to delete conversation \"{{title}}\"?",
-      "submitting": "Deleting...",
-      "title": "Confirm Delete",
-      "undoWarning": "This action cannot be undone."
-    },
-    "expandLabel": "Expand Qgent TA",
-    "inputPlaceholder": "Type a message...",
-    "newChat": "New Chat",
-    "newChatLabel": "New Chat",
-    "rename": "Rename",
-    "renameModal": {
-      "label": "New Name",
-      "placeholder": "Enter new chat name",
-      "title": "Rename Chat"
-    },
-    "sessions": "Chat History",
-    "thinking": "Thinking..."
+  "ui": {
+    "chatbotTitle": "QJudge AI 조교",
+    "collapse": "패널 접기",
+    "history": "채팅 기록",
+    "newChat": "새 채팅",
+    "close": "닫기",
+    "inputPlaceholder": "메시지를 입력하세요...",
+    "inputAriaLabel": "메시지 입력",
+    "stopGenerating": "생성 중지",
+    "send": "전송",
+    "searchPlaceholder": "채팅 검색...",
+    "searchLabel": "채팅 검색",
+    "clear": "지우기",
+    "noHistory": "채팅 기록이 없습니다",
+    "groupToday": "오늘",
+    "groupYesterday": "어제",
+    "groupLast7Days": "지난 7일",
+    "groupOlder": "이전",
+    "rename": "이름 변경",
+    "delete": "삭제",
+    "defaultSessionTitle": "채팅 {{id}}...",
+    "welcome": "안녕하세요! QJudge AI 조교입니다. 무엇을 도와드릴까요?",
+    "reasoning": "추론 과정",
+    "reasoningSteps": "추론 단계",
+    "stepInput": "입력",
+    "stepOutput": "출력",
+    "processing": "처리 중...",
+    "toolConfirm": "도구 호출 확인",
+    "confirmAction": "실행 확인",
+    "cancelAction": "취소",
+    "loading": "로딩 중..."
   }
 }

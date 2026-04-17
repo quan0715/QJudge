@@ -1,7 +1,8 @@
+// frontend/src/features/app/components/MainLayout.tsx
 import { Outlet, useLocation } from "react-router-dom";
 import { Content } from "@carbon/react";
 import { GlobalHeader } from "./GlobalHeader";
-import { ChatbotWidget } from "@/features/chatbot/components/ChatbotWidget";
+import { WorkspaceShell } from "@/features/chatbot/components/workspace/WorkspaceShell";
 
 const MainLayout = () => {
   const location = useLocation();
@@ -29,11 +30,12 @@ const MainLayout = () => {
             <Outlet />
           </div>
         ) : (
-          <Content style={{ flex: 1, overflow: "auto", marginTop: 0 }}>
-            <Outlet />
-          </Content>
+          <WorkspaceShell>
+            <Content style={{ height: "100%", overflow: "auto", marginTop: 0 }}>
+              <Outlet />
+            </Content>
+          </WorkspaceShell>
         )}
-        <ChatbotWidget />
       </div>
     </>
   );

@@ -1,5 +1,6 @@
 import { Accordion, AccordionItem } from "@carbon/react";
 import { Checkmark, Warning, InProgress } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import type { ToolInfo } from "@/core/types/chatbot.types";
 import styles from "./ChainOfThought.module.scss";
 
@@ -10,9 +11,10 @@ interface ChainOfThoughtProps {
 }
 
 export function ChainOfThought({ steps, isProcessing, currentToolName }: ChainOfThoughtProps) {
+  const { t } = useTranslation("chatbot");
   return (
     <div className={styles.cot}>
-      <div className={styles.label}>推理步驟</div>
+      <div className={styles.label}>{t("ui.reasoningSteps")}</div>
       <Accordion size="sm" className={styles.accordion}>
         {steps.map((step, i) => {
           const isDone = step.result !== undefined || step.isError;
@@ -32,7 +34,7 @@ export function ChainOfThought({ steps, isProcessing, currentToolName }: ChainOf
             >
               {step.inputData && (
                 <div className={styles.section}>
-                  <div className={styles.sectionLabel}>輸入</div>
+                  <div className={styles.sectionLabel}>{t("ui.stepInput")}</div>
                   <pre className={styles.json}>
                     {JSON.stringify(step.inputData, null, 2)}
                   </pre>
@@ -40,7 +42,7 @@ export function ChainOfThought({ steps, isProcessing, currentToolName }: ChainOf
               )}
               {step.result && (
                 <div className={styles.section}>
-                  <div className={styles.sectionLabel}>輸出</div>
+                  <div className={styles.sectionLabel}>{t("ui.stepOutput")}</div>
                   <pre className={styles.json}>
                     {typeof step.result === "string"
                       ? step.result
@@ -62,7 +64,7 @@ export function ChainOfThought({ steps, isProcessing, currentToolName }: ChainOf
               </span>
             }
           >
-            <div className={styles.processingText}>處理中…</div>
+            <div className={styles.processingText}>{t("ui.processing")}</div>
           </AccordionItem>
         )}
       </Accordion>

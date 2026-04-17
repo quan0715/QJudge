@@ -42,11 +42,12 @@ import { classroomDetailRoute, classroomJoinRoute } from "@/features/classroom";
 import { questionBankMarketplaceRoute, questionBankDetailRoute } from "@/features/question-banks";
 import { lazy, Suspense } from "react";
 
-const ChatFullPage = lazy(() => import("@/features/chatbot/components/ChatFullPage"));
+const ChatStandalonePage = lazy(() => import("@/features/chatbot/components/ChatStandalonePage"));
 
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
 import { PageHeaderActionsProvider } from "@/features/app/contexts/PageHeaderActionsContext";
+import { AIWorkspaceProvider } from "@/features/chatbot/components/workspace/AIWorkspaceProvider";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 import {
   MarkdownImageUploadProvider,
@@ -94,6 +95,7 @@ function App() {
                     <SettingsDialogProvider>
                     <RecurProviderBridge>
                     <BrowserRouter>
+                      <AIWorkspaceProvider>
                       <PageHeaderActionsProvider>
                       <ApiErrorProvider>
                       <Routes>
@@ -165,9 +167,17 @@ function App() {
                             <Route element={<MainLayout />}>
                               {questionBankMarketplaceRoute}
                               {draftProblemsRoute}
-                              {/* Full-screen AI Chat page */}
-                              <Route path="/chat" element={<Suspense fallback={null}><ChatFullPage /></Suspense>} />
                             </Route>
+
+                            {/* Standalone AI Chat page (outside MainLayout) */}
+                            <Route
+                              path="/chat"
+                              element={
+                                <Suspense fallback={null}>
+                                  <ChatStandalonePage />
+                                </Suspense>
+                              }
+                            />
 
                             {/* Question Bank Detail - Standalone with breadcrumb header */}
                             {questionBankDetailRoute}
@@ -198,6 +208,7 @@ function App() {
                       </Routes>
                       </ApiErrorProvider>
                       </PageHeaderActionsProvider>
+                      </AIWorkspaceProvider>
                     </BrowserRouter>
                     <SettingsDialog />
                     </RecurProviderBridge>

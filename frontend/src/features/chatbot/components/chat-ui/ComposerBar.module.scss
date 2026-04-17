@@ -1,6 +1,8 @@
+@use "./variables" as *;
+
 .bar {
   flex-shrink: 0;
-  max-width: 900px;
+  max-width: $chat-content-max-width;
   width: 100%;
   margin: 0 auto;
   padding: 1.5rem 1rem 2rem;
@@ -41,7 +43,7 @@
   resize: none;
   padding: 0.5rem 0;
   min-height: 1.5em;
-  max-height: 160px;
+  max-height: $chat-textarea-max-height;
   color: var(--cds-text-primary, #161616);
 
   &::placeholder {

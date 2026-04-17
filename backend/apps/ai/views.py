@@ -8,18 +8,29 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 
-from .models import AIMessage, AISession
+from .models import AIChatRun, AIMessage, AISession
 from .services.session_runtime import (
     ChatStreamRuntime,
     ResumeStreamRuntime,
     build_sse_response,
 )
 from .serializers import (
+    AIChatRunSerializer,
     AISessionListSerializer,
     AISessionSerializer,
     ModelInfoSerializer,
     RenameSessionSerializer,
+    RunApprovalSerializer,
     SendMessageStreamSerializer,
+    StartRunSerializer,
+)
+from .services.run_runtime import (
+    ACTIVE_STATUSES,
+    create_chat_run,
+    ensure_session_for_run,
+    request_run_cancel,
+    resume_approval_run,
+    run_events_as_sse,
 )
 
 logger = logging.getLogger(__name__)
@@ -84,7 +95,9 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def send_message_stream(self, request, pk=None):
-        """Send a message and stream AI response (proxied to ai-service).
+        """Deprecated: send a message and stream AI response.
+
+        Deprecated in favor of POST /api/v1/ai/sessions/{id}/runs/.
 
         設計說明：
         - 所有 session 必須與認證用戶關聯
@@ -98,6 +111,8 @@ class AISessionViewSet(viewsets.ModelViewSet):
         - content: str (required) - The message content
         - model_id: str (optional) - Model to use (default: 'deepseek-v3')
         """
+        logger.warning("Deprecated send_message_stream endpoint used by user=%s", request.user)
+
         # 必須認證
         if not request.user or not request.user.is_authenticated:
             return Response(
@@ -134,7 +149,36 @@ class AISessionViewSet(viewsets.ModelViewSet):
             content=content,
             validated_data=serializer.validated_data,
         )
-        return build_sse_response(runtime.generate())
+        response = build_sse_response(runtime.generate())
+        response["Deprecation"] = "true"
+        response["Link"] = '</api/v1/ai/sessions/{session_id}/runs/>; rel="successor-version"'
+        return response
+
+    @action(detail=True, methods=["post"], url_path="runs")
+    def runs(self, request, pk=None):
+        """Create a durable backend-controlled chat run for a session."""
+        if not request.user or not request.user.is_authenticated:
+            return Response(
+                {"error": "Authentication required"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        serializer = StartRunSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            session = ensure_session_for_run(user=request.user, session_id=pk)
+        except AISession.DoesNotExist:
+            return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        run = create_chat_run(
+            user=request.user,
+            session=session,
+            content=serializer.validated_data["content"],
+            model_id=serializer.validated_data["model_id"],
+        )
+        status_code = status.HTTP_202_ACCEPTED if run.status == AIChatRun.Status.QUEUED else status.HTTP_201_CREATED
+        return Response(AIChatRunSerializer(run).data, status=status_code)
 
     @action(detail=True, methods=["post"])
     def rename(self, request, pk=None):
@@ -229,13 +273,16 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def resume_stream(self, request, pk=None):
-        """Resume an interrupted agent and stream the result.
+        """Deprecated: resume an interrupted agent and stream the result.
 
+        Deprecated in favor of POST /api/v1/ai/runs/{run_id}/approval/.
         Proxies to ai-service /api/chat/resume endpoint.
 
         Request body:
         - decision: str (required) - "approve" or "reject"
         """
+        logger.warning("Deprecated resume_stream endpoint used by user=%s", request.user)
+
         if not request.user or not request.user.is_authenticated:
             return Response(
                 {"error": "Authentication required"},
@@ -263,7 +310,60 @@ class AISessionViewSet(viewsets.ModelViewSet):
             session=session,
             decision=decision,
         )
-        return build_sse_response(runtime.generate())
+        response = build_sse_response(runtime.generate())
+        response["Deprecation"] = "true"
+        response["Link"] = '</api/v1/ai/runs/{run_id}/approval/>; rel="successor-version"'
+        return response
+
+
+class AIChatRunViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for durable AI chat runs."""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = AIChatRunSerializer
+
+    def get_queryset(self):
+        queryset = AIChatRun.objects.filter(user=self.request.user).select_related(
+            "session",
+            "user_message",
+            "assistant_message",
+        )
+        if self.request.query_params.get("status") == "active":
+            queryset = queryset.filter(status__in=ACTIVE_STATUSES)
+        return queryset
+
+    @action(detail=True, methods=["get"])
+    def events(self, request, pk=None):
+        """Subscribe to persisted events for a durable run."""
+        run = self.get_object()
+        try:
+            after = int(request.query_params.get("after", "0"))
+        except ValueError:
+            after = 0
+        return build_sse_response(run_events_as_sse(run=run, after=after))
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        """Request cancellation for a durable run."""
+        run = self.get_object()
+        request_run_cancel(run)
+        run.refresh_from_db()
+        return Response(AIChatRunSerializer(run).data)
+
+    @action(detail=True, methods=["post"])
+    def approval(self, request, pk=None):
+        """Submit approval/rejection for an awaiting durable run."""
+        run = self.get_object()
+        serializer = RunApprovalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            run = resume_approval_run(
+                run=run,
+                decision=serializer.validated_data["decision"],
+            )
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_409_CONFLICT)
+        return Response(AIChatRunSerializer(run).data)
 
 
 

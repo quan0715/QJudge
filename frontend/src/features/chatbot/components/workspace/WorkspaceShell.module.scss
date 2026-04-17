@@ -1,0 +1,95 @@
+@use "../chat-ui/variables" as *;
+
+.shell {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panel {
+  flex-shrink: 0;
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  transition: width $chat-motion-duration $chat-motion-easing;
+}
+
+.panelOpen {
+  width: $chat-sidebar-width;
+  display: flex;
+}
+
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  left: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  background: transparent;
+  // Visual border centered in the handle
+  border-right: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  transition: border-color 150ms ease;
+  touch-action: none; // prevent scroll while dragging on touch
+
+  &:hover,
+  &:active {
+    border-right-color: var(--cds-interactive, #0f62fe);
+    border-right-width: 2px;
+  }
+
+  // Wider touch target on touch devices
+  @media (pointer: coarse) {
+    left: -8px;
+    width: 16px;
+  }
+}
+
+.panelContent {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+// Hide panel on mobile — use /chat full page instead
+@media (max-width: $chat-mobile-breakpoint) {
+  .panel {
+    display: none;
+  }
+}
+
+// FAB — fixed bottom-right
+.fab {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 8001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--cds-interactive, #0f62fe);
+  color: var(--cds-text-on-color, #fff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background $chat-motion-duration $chat-motion-easing;
+
+  &:hover {
+    background: var(--cds-interactive-hover, #0043ce);
+  }
+}

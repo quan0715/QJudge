@@ -1,6 +1,8 @@
 import { WatsonxAi } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import { normalizeChatMarkdownText } from "@/features/chatbot/utils/chatText";
 import { ChainOfThought } from "./ChainOfThought";
 import styles from "./MessageBubble.module.scss";
 
@@ -9,7 +11,14 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
+  const { t } = useTranslation("chatbot");
   const isUser = message.role === "user";
+  const thinkingText = message.thinkingInfo?.thinking
+    ? normalizeChatMarkdownText(message.thinkingInfo.thinking)
+    : "";
+  const messageText = message.content
+    ? normalizeChatMarkdownText(message.content)
+    : "";
 
   return (
     <div className={`${styles.bubble} ${isUser ? styles.user : styles.ai}`}>
@@ -44,12 +53,12 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
 
         {/* Thinking/Reasoning block */}
-        {!isUser && message.thinkingInfo?.thinking && (
+        {!isUser && thinkingText && (
           <details className={styles.thinking}>
-            <summary>推理過程</summary>
+            <summary>{t("ui.reasoning")}</summary>
             <div className={styles.thinkingContent}>
-              <MarkdownRenderer enableHighlight enableMath>
-                {message.thinkingInfo.thinking}
+              <MarkdownRenderer enableHighlight enableMath className={styles.thinkingMarkdown}>
+                {thinkingText}
               </MarkdownRenderer>
             </div>
           </details>
@@ -65,9 +74,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
 
         {/* Message content */}
-        {message.content ? (
+        {messageText ? (
           isUser ? (
-            <p className={styles.text}>{message.content}</p>
+            <p className={styles.text}>{messageText}</p>
           ) : (
             <MarkdownRenderer
               enableHighlight
@@ -75,7 +84,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               enableMath
               className={styles.markdown}
             >
-              {message.content}
+              {messageText}
             </MarkdownRenderer>
           )
         ) : (
@@ -86,6 +95,16 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               <span />
             </span>
           )
+        )}
+
+        {!isUser && message.runStatus === "queued" && (
+          <span className={styles.runStatus}>已排入佇列</span>
+        )}
+        {!isUser && message.runStatus === "cancelled" && (
+          <span className={styles.runStatus}>已停止</span>
+        )}
+        {!isUser && message.runStatus === "failed" && (
+          <span className={styles.runStatus}>任務失敗</span>
         )}
       </div>
     </div>
