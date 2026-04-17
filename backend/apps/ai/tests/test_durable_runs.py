@@ -183,6 +183,33 @@ class DurableRunAPITestCase(TransactionTestCase):
         chunks = asyncio.run(collect_events())
         self.assertEqual(chunks, ['data: {"seq": 2, "type": "run_completed"}\n\n'])
 
+    def test_event_subscription_closes_on_awaiting_approval(self):
+        run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.AWAITING_APPROVAL,
+            content="needs approval",
+            approval_payload={"action_requests": [{"name": "qjudge_grading"}]},
+            last_event_seq=1,
+        )
+        AIStreamEvent.objects.create(
+            run=run,
+            seq=1,
+            event_type="awaiting_approval",
+            payload={"seq": 1, "type": "awaiting_approval"},
+        )
+
+        generator = run_events_as_sse(run=run, after=0)
+
+        async def collect_events():
+            return [chunk async for chunk in generator]
+
+        chunks = asyncio.run(asyncio.wait_for(collect_events(), timeout=5.0))
+        self.assertEqual(
+            chunks,
+            ['data: {"seq": 1, "type": "awaiting_approval"}\n\n'],
+        )
+
     def test_approval_endpoint_resumes_awaiting_run(self):
         run = AIChatRun.objects.create(
             session=self.session,

@@ -24,29 +24,35 @@ export function HITLCard({ request, onDecision }: HITLCardProps) {
   return (
     <div className={styles.wrapper}>
       <Tile className={styles.card}>
-        <div className={styles.title}>
-          {t("ui.toolConfirm")}：<code>{action.name}</code>
+        <div className={styles.body}>
+          <div className={styles.title}>
+            {t("ui.toolConfirm")}：<code>{action.name}</code>
+          </div>
+          {action.args && Object.keys(action.args).length > 0 && (
+            <pre className={styles.args}>
+              {JSON.stringify(action.args, null, 2)}
+            </pre>
+          )}
         </div>
-        {action.args && Object.keys(action.args).length > 0 && (
-          <pre className={styles.args}>
-            {JSON.stringify(action.args, null, 2)}
-          </pre>
-        )}
 
         {submitting ? (
-          <InlineLoading description={t("ui.processing")} />
+          <div className={styles.loadingFooter}>
+            <InlineLoading description={t("ui.processing")} />
+          </div>
         ) : (
-          <div className={styles.actions}>
+          <div className={styles.footer}>
             <Button
               kind="primary"
-              size="sm"
+              size="lg"
+              className={styles.footerButton}
               onClick={() => handleDecision("approve")}
             >
               {t("ui.confirmAction")}
             </Button>
             <Button
               kind="danger"
-              size="sm"
+              size="lg"
+              className={styles.footerButton}
               onClick={() => handleDecision("reject")}
             >
               {t("ui.cancelAction")}
