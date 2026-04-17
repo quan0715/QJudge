@@ -149,10 +149,6 @@ function normalizeTodoStatus(status: unknown): RunTodoStatus {
   return "pending";
 }
 
-function isToolProgressTodoLabel(label: string): boolean {
-  return /^使用\s+qjudge_[\w-]+\(action=['"][^'"]+['"]\)/.test(label.trim());
-}
-
 function normalizeTodoItems(rawTodos: unknown): RunTodoItem[] | undefined {
   if (!Array.isArray(rawTodos)) return undefined;
   const items = rawTodos
@@ -167,7 +163,7 @@ function normalizeTodoItems(rawTodos: unknown): RunTodoItem[] | undefined {
         : typeof item.label === "string"
           ? item.label
           : "").trim();
-      if (!label || isToolProgressTodoLabel(label)) return todoItems;
+      if (!label) return todoItems;
       const existingIndex = todoItems.findIndex((todo) => todo.label === label);
       const normalizedItem = {
         id: typeof item.id === "string" && item.id

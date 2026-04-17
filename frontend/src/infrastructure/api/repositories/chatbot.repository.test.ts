@@ -76,7 +76,7 @@ describe("chatbotRepository stream events", () => {
     ]);
   });
 
-  it("deduplicates todo labels and ignores tool-progress todo items", () => {
+  it("deduplicates todo labels without filtering by localized text", () => {
     const onTodoItemsUpdate = vi.fn();
 
     (chatbotRepository as unknown as {
@@ -110,6 +110,11 @@ describe("chatbotRepository stream events", () => {
     expect(onTodoItemsUpdate).toHaveBeenCalledWith([
       { id: "0-讀取現有題庫結構", label: "讀取現有題庫結構", status: "success" },
       { id: "1-規劃新題目主題與難度", label: "規劃新題目主題與難度", status: "in_progress" },
+      {
+        id: "2-使用 qjudge_exam(action='create') 再新增一題單選題",
+        label: "使用 qjudge_exam(action='create') 再新增一題單選題",
+        status: "in_progress",
+      },
     ]);
   });
 
