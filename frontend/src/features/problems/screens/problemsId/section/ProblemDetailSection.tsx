@@ -299,7 +299,7 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
           >
             <ProblemPreview
               problem={problem}
-              showLanguageToggle={(problem.translations?.length ?? 0) > 1}
+              showLanguageToggle={false}
               compact={false}
             />
           </ContainerCard>

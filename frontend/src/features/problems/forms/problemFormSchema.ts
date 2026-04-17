@@ -2,13 +2,18 @@ import type {
   Difficulty,
   LanguageConfig,
   TestCase,
-  Translation,
 } from "@/core/entities/problem.entity";
 
 /**
  * Translation fields for a single language.
  */
-export type TranslationFields = Omit<Translation, "language">;
+export interface TranslationFields {
+  title: string;
+  description: string;
+  inputDescription: string;
+  outputDescription: string;
+  hint: string;
+}
 
 /**
  * Form schema type for react-hook-form.

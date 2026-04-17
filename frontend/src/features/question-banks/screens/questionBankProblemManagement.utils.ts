@@ -241,11 +241,15 @@ export const toExamBankPayload = (
  */
 export const toBankProblemDetail = (q: BankQuestion): ProblemDetail => {
   const ext = q.codingExt;
+  const primaryTr = ext?.translations?.[0];
   return {
     id: q.bankItemId,
     title: q.title,
     difficulty: (q.difficulty as ProblemDetail["difficulty"]) || "medium",
-    description: "",
+    description: primaryTr?.description ?? "",
+    inputDescription: primaryTr?.inputDescription ?? "",
+    outputDescription: primaryTr?.outputDescription ?? "",
+    hint: primaryTr?.hint ?? "",
     acceptanceRate: 0,
     submissionCount: 0,
     acceptedCount: 0,
@@ -258,14 +262,6 @@ export const toBankProblemDetail = (q: BankQuestion): ProblemDetail => {
     isSolved: false,
     timeLimit: q.timeLimit,
     memoryLimit: q.memoryLimit,
-    translations: ext?.translations?.map((tr) => ({
-      language: tr.language,
-      title: tr.title,
-      description: tr.description,
-      inputDescription: tr.inputDescription ?? "",
-      outputDescription: tr.outputDescription ?? "",
-      hint: tr.hint ?? "",
-    })) ?? [],
     testCases: ext?.testCases?.map((tc) => ({
       input: tc.inputData,
       output: tc.outputData,
