@@ -142,11 +142,39 @@
   margin-top: 0.75rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--cds-border-subtle-01, #e0e0e0);
-  white-space: pre-wrap;
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   line-height: 1.5;
   max-height: 300px;
   overflow-y: auto;
+}
+
+.thinkingMarkdown {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+
+  :global(p) {
+    margin: 0.25rem 0;
+  }
+
+  :global(p:first-child) {
+    margin-top: 0;
+  }
+
+  :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  :global(ul),
+  :global(ol) {
+    margin: 0.25rem 0;
+    padding-left: 1.25rem;
+  }
+
+  :global(pre) {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
 }
 
 .thinkingDots {
