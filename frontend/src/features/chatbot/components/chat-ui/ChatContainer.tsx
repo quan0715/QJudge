@@ -42,7 +42,6 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
     isSessionLoading,
     pendingApproval,
     sessionNotice,
-    runTodoItems,
     createSession,
     deleteSession,
     switchSession,
@@ -162,7 +161,6 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
                 onStop={stopStreaming}
                 isStreaming={isStreaming}
                 sessionNotice={sessionNotice}
-                runTodoItems={runTodoItems}
               />
             </div>
           </div>

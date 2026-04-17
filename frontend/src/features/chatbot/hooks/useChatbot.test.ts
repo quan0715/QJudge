@@ -113,7 +113,6 @@ describe("applyRunMessageUpdate", () => {
       runId: "run-1",
     });
   });
-
   it("merges todo items into the assistant draft", () => {
     const streamedState: StreamedRunState = { content: "", thinking: "" };
     const run = baseRun();

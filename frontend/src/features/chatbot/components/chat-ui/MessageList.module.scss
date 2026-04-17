@@ -31,9 +31,11 @@
   &::-webkit-scrollbar {
     width: 6px;
   }
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
+
   &::-webkit-scrollbar-thumb {
     background: var(--cds-border-subtle-01, #c6c6c6);
     border-radius: 3px;
@@ -47,13 +49,13 @@
   transform: translateX(-50%);
   z-index: 100;
   border-radius: 50%;
-  
+
   // Subtle background
   background-color: var(--cds-layer-03, #e0e0e0);
   border: 1px solid var(--cds-border-subtle-01, #c6c6c6);
   opacity: 0.8;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
+
   transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
 
   &:hover {
