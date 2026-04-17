@@ -1,0 +1,28 @@
+@use "../chat-ui/variables" as *;
+
+$panel-width: 400px;
+
+// FAB — fixed bottom-right
+.fab {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 8001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--cds-interactive, #0f62fe);
+  color: var(--cds-text-on-color, #fff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background $chat-motion-duration $chat-motion-easing;
+
+  &:hover {
+    background: var(--cds-interactive-hover, #0043ce);
+  }
+}
