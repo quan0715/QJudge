@@ -262,6 +262,23 @@ function extractTodoCommands(text: string): {
   return { displayText, todoItems };
 }
 
+function extractTodoItemsFromEvent(event: V2StreamEvent): RunTodoItem[] | undefined {
+  const inputData = event.input_data;
+  const result = event.result;
+
+  return (
+    normalizeTodoItems(event.todos) ??
+    normalizeTodoItems(event.todo_items) ??
+    normalizeTodoItems(inputData?.todos) ??
+    normalizeTodoItems(inputData?.todo_items) ??
+    (typeof result === "string" ? extractTodoCommands(result).todoItems : undefined) ??
+    (typeof result === "object" && result !== null
+      ? normalizeTodoItems((result as Record<string, unknown>).todos) ??
+        normalizeTodoItems((result as Record<string, unknown>).todo_items)
+      : undefined)
+  );
+}
+
 function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
   const metadata = backendMsg.metadata ?? {};
   const thinking =
@@ -592,7 +609,7 @@ const chatbotRepository: ChatbotRepository = {
       currentMessage.runStatus = event.run_status as ChatMessage["runStatus"];
     }
 
-    const todoItems = normalizeTodoItems(event.todos) ?? normalizeTodoItems(event.todo_items);
+    const todoItems = extractTodoItemsFromEvent(event);
     if (todoItems) {
       currentMessage.todoItems = todoItems;
       callbacks.onTodoItemsUpdate?.(todoItems);

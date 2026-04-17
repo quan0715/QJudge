@@ -76,6 +76,52 @@ describe("chatbotRepository stream events", () => {
     ]);
   });
 
+  it("updates todos immediately from write_todos tool_call_started input", () => {
+    const onTodoItemsUpdate = vi.fn();
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: {
+          type: string;
+          tool_name: string;
+          input_data: { todos: Array<{ status: string; content: string }> };
+        },
+        currentMessage: Record<string, unknown>,
+        callbacks: {
+          onTodoItemsUpdate?: (items: unknown[] | null) => void;
+          onMessageUpdate?: (message: Record<string, unknown>) => void;
+        },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "tool_call_started",
+        tool_name: "write_todos",
+        input_data: {
+          todos: [
+            { status: "completed", content: "分析需求規格" },
+            { status: "in_progress", content: "設計系統架構" },
+            { status: "pending", content: "實作核心功能" },
+          ],
+        },
+      },
+      {},
+      {
+        onTodoItemsUpdate,
+        onMessageUpdate: vi.fn(),
+      },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onTodoItemsUpdate).toHaveBeenCalledWith([
+      { id: "0-分析需求規格", label: "分析需求規格", status: "success" },
+      { id: "1-設計系統架構", label: "設計系統架構", status: "pending" },
+      { id: "2-實作核心功能", label: "實作核心功能", status: "pending" },
+    ]);
+  });
+
   it("extracts todo command text from streamed assistant deltas", () => {
     const onTodoItemsUpdate = vi.fn();
     const onMessageUpdate = vi.fn();
@@ -159,5 +205,42 @@ describe("chatbotRepository stream events", () => {
     expect(onMessageUpdate).toHaveBeenLastCalledWith(
       expect.objectContaining({ content: "" }),
     );
+  });
+
+  it("updates todos from tool_call_finished Command result", () => {
+    const onTodoItemsUpdate = vi.fn();
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string; result: string; is_error: boolean },
+        currentMessage: Record<string, unknown>,
+        callbacks: {
+          onTodoItemsUpdate?: (items: unknown[] | null) => void;
+          onMessageUpdate?: (message: Record<string, unknown>) => void;
+        },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "tool_call_finished",
+        result:
+          "Command(update={'todos': [{'content': '分析需求規格', 'status': 'completed'}, {'content': '設計系統架構', 'status': 'in_progress'}, {'content': '實作核心功能', 'status': 'pending'}], 'messages': [ToolMessage(content=\"Updated todo list\", tool_call_id='call_00')]})",
+        is_error: false,
+      },
+      {},
+      {
+        onTodoItemsUpdate,
+        onMessageUpdate: vi.fn(),
+      },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onTodoItemsUpdate).toHaveBeenCalledWith([
+      { id: "0-分析需求規格", label: "分析需求規格", status: "success" },
+      { id: "1-設計系統架構", label: "設計系統架構", status: "pending" },
+      { id: "2-實作核心功能", label: "實作核心功能", status: "pending" },
+    ]);
   });
 });
