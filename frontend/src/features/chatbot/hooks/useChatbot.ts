@@ -101,6 +101,7 @@ export function applyRunMessageUpdate(
 
   let didUpdateExistingDraft = false;
   const messages = session.messages.map((message) => {
+    if (message.role !== "assistant") return message;
     if (message.id !== assistantMessageId && message.runId !== run.id) return message;
     didUpdateExistingDraft = true;
 

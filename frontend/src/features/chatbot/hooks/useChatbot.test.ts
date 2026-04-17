@@ -80,4 +80,37 @@ describe("applyRunMessageUpdate", () => {
     expect(second.messages[0].content).toBe("Hello");
     expect(second.messages[0].thinkingInfo?.thinking).toBe("think");
   });
+
+  it("should not update user messages even if runId matches", () => {
+    const streamedState: StreamedRunState = { content: "", thinking: "" };
+    const run = baseRun();
+    const userMessage = {
+      id: "user-1",
+      role: "user" as const,
+      content: "Hi AI",
+      timestamp: new Date("2026-04-17T00:00:00.000Z"),
+      runId: "run-1",
+    };
+    const initialSession: ChatSession = {
+      ...baseSession(),
+      messages: [userMessage],
+    };
+
+    const nextSession = applyRunMessageUpdate(
+      initialSession,
+      run,
+      { content: "Hello", runStatus: "running" as const },
+      streamedState,
+    );
+
+    // Should create a new assistant message and NOT update the user message
+    expect(nextSession.messages).toHaveLength(2);
+    expect(nextSession.messages[0].content).toBe("Hi AI");
+    expect(nextSession.messages[1]).toMatchObject({
+      id: "42",
+      role: "assistant",
+      content: "Hello",
+      runId: "run-1",
+    });
+  });
 });
