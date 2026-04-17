@@ -344,6 +344,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.contests.tasks.check_heartbeat_timeout",
         "schedule": 30.0,
     },
+    "sweep-stale-ai-runs-every-60-seconds": {
+        "task": "apps.ai.tasks.sweep_stale_ai_runs",
+        "schedule": 60.0,
+    },
 }
 
 # NYCU OAuth settings
