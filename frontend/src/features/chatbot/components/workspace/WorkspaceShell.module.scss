@@ -2,6 +2,37 @@
 
 $panel-width: 400px;
 
+.shell {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.panel {
+  flex-shrink: 0;
+  width: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  transition: width $chat-motion-duration $chat-motion-easing;
+}
+
+.panelOpen {
+  width: $panel-width;
+}
+
+// Hide panel on mobile — use /chat full page instead
+@media (max-width: $chat-mobile-breakpoint) {
+  .panel {
+    display: none;
+  }
+}
+
 // FAB — fixed bottom-right
 .fab {
   position: fixed;
