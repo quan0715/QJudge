@@ -373,4 +373,54 @@ describe("chatbotRepository stream events", () => {
     expect(currentMessage.toolExecutions).toBeUndefined();
     expect(onMessageUpdate).not.toHaveBeenCalled();
   });
+
+  it("formats read_file tool calls reading SKILL.md as use skill", () => {
+    const onMessageUpdate = vi.fn();
+    const currentMessage: Record<string, unknown> = {};
+    const handleStreamEvent = (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: any,
+        currentMessage: Record<string, unknown>,
+        callbacks: { onMessageUpdate?: (message: Record<string, unknown>) => void },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent;
+
+    handleStreamEvent(
+      {
+        type: "tool_call_started",
+        tool_name: "read_file",
+        tool_call_id: "call_skill",
+        input_data: { file_path: "/app/.deepagents/skills/qjudge-mcp-tool-operator/SKILL.md" },
+      },
+      currentMessage,
+      { onMessageUpdate },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(currentMessage.toolName).toBe("__skill__:qjudge-mcp-tool-operator");
+
+    handleStreamEvent(
+      {
+        type: "tool_call_finished",
+        tool_name: "read_file",
+        tool_call_id: "call_skill",
+        result: "skill content",
+      },
+      currentMessage,
+      { onMessageUpdate },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(currentMessage.toolExecutions).toEqual([
+      expect.objectContaining({
+        toolName: "__skill__:qjudge-mcp-tool-operator",
+        toolCallId: "call_skill",
+        inputData: { file_path: "/app/.deepagents/skills/qjudge-mcp-tool-operator/SKILL.md" },
+      }),
+    ]);
+  });
 });

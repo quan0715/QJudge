@@ -75,6 +75,7 @@
     "confirmAction": "実行を確認",
     "cancelAction": "キャンセル",
     "loading": "読み込み中...",
-    "scrollToBottom": "一番下までスクロール"
+    "scrollToBottom": "一番下までスクロール",
+    "useSkill": "スキルを使用する {{skillName}}"
   }
 }

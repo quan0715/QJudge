@@ -75,6 +75,7 @@
     "confirmAction": "確認執行",
     "cancelAction": "取消",
     "loading": "載入中",
-    "scrollToBottom": "卷動至底部"
+    "scrollToBottom": "卷動至底部",
+    "useSkill": "使用技能 {{skillName}}"
   }
 }

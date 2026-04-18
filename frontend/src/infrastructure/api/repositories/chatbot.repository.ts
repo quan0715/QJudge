@@ -132,9 +132,21 @@ interface BackendRun {
 // ===== Helpers =====
 const TODO_TOOL_NAMES = new Set(["write_todos", "update_todos"]);
 const hiddenTodoToolNames = new WeakMap<object, string>();
+const formattedToolNames = new Map<string, string>();
+const pendingToolInputs = new Map<string, Record<string, unknown>>();
 
 function isTodoToolName(toolName: string | undefined): boolean {
   return !!toolName && TODO_TOOL_NAMES.has(toolName);
+}
+
+function formatDisplayToolName(toolName: string, inputData?: Record<string, unknown>): string {
+  if (toolName === "read_file" && inputData && typeof inputData.file_path === "string") {
+    const match = inputData.file_path.match(/\/([^/]+)\/SKILL\.md$/);
+    if (match) {
+      return `__skill__:${match[1]}`;
+    }
+  }
+  return toolName;
 }
 
 function normalizeTodoStatus(status: unknown): RunTodoStatus {
@@ -318,13 +330,14 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
         .map((tool): ToolInfo | null => {
           if (!tool || typeof tool !== "object") return null;
           const t = tool as Record<string, unknown>;
-          return {
-            toolName: typeof t.tool_name === "string" ? t.tool_name : "",
-            toolCallId: typeof t.tool_call_id === "string" ? t.tool_call_id : "",
-            inputData:
-              typeof t.input === "object" && t.input !== null
+          const originalToolName = typeof t.tool_name === "string" ? t.tool_name : "";
+          const inputData = typeof t.input === "object" && t.input !== null
                 ? (t.input as Record<string, unknown>)
-                : undefined,
+                : undefined;
+          return {
+            toolName: formatDisplayToolName(originalToolName, inputData),
+            toolCallId: typeof t.tool_call_id === "string" ? t.tool_call_id : "",
+            inputData,
             result:
               typeof t.result === "string" ||
               (typeof t.result === "object" && t.result !== null)
@@ -723,7 +736,16 @@ const chatbotRepository: ChatbotRepository = {
             currentMessage.isThinking = false;
             break;
           }
-          currentMessage.toolName = event.tool_name;
+
+          const displayToolName = formatDisplayToolName(event.tool_name, event.input_data);
+          if (event.tool_call_id) {
+            formattedToolNames.set(event.tool_call_id, displayToolName);
+            if (event.input_data) {
+              pendingToolInputs.set(event.tool_call_id, event.input_data);
+            }
+          }
+
+          currentMessage.toolName = displayToolName;
           currentMessage.isThinking = false;
           callbacks.onMessageUpdate?.({ ...currentMessage });
         }
@@ -731,17 +753,36 @@ const chatbotRepository: ChatbotRepository = {
 
       case "tool_call_finished": {
         const hiddenTodoToolName = hiddenTodoToolNames.get(currentMessage);
-        const toolName = event.tool_name || currentMessage.toolName || hiddenTodoToolName || "";
-        if (isTodoToolName(toolName)) {
+        const originalToolName = event.tool_name || "";
+        const toolCallId = event.tool_call_id || originalToolName;
+
+        let toolName = originalToolName;
+        if (event.tool_call_id && formattedToolNames.has(event.tool_call_id)) {
+          toolName = formattedToolNames.get(event.tool_call_id)!;
+          formattedToolNames.delete(event.tool_call_id);
+        } else if (!event.tool_name && currentMessage.toolName) {
+          toolName = currentMessage.toolName;
+        } else if (!toolName) {
+          toolName = currentMessage.toolName || hiddenTodoToolName || "";
+        }
+
+        if (isTodoToolName(originalToolName) || isTodoToolName(toolName) || isTodoToolName(hiddenTodoToolName)) {
           hiddenTodoToolNames.delete(currentMessage);
           currentMessage.toolName = undefined;
           currentMessage.isThinking = false;
           break;
         }
-        const toolCallId = event.tool_call_id || toolName;
+
+        let inputData: Record<string, unknown> | undefined;
+        if (event.tool_call_id && pendingToolInputs.has(event.tool_call_id)) {
+          inputData = pendingToolInputs.get(event.tool_call_id);
+          pendingToolInputs.delete(event.tool_call_id);
+        }
+
         const toolInfo: ToolInfo = {
           toolName,
           toolCallId,
+          inputData,
           result: event.result,
           isError: event.is_error,
         };

@@ -75,6 +75,7 @@
     "confirmAction": "실행 확인",
     "cancelAction": "취소",
     "loading": "로딩 중...",
-    "scrollToBottom": "맨 아래로 스크롤"
+    "scrollToBottom": "맨 아래로 스크롤",
+    "useSkill": "스킬 사용 {{skillName}}"
   }
 }

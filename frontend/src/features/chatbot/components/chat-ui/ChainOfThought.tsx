@@ -37,6 +37,7 @@ interface StepProps {
   index: number;
   inputLabel: string;
   outputLabel: string;
+  displayToolName: string;
 }
 
 const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
@@ -44,6 +45,7 @@ const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
   index,
   inputLabel,
   outputLabel,
+  displayToolName,
 }: StepProps) {
   const isDone = step.result !== undefined || step.isError;
   const isFailed = step.isError;
@@ -82,7 +84,7 @@ const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
       title={
         <span className={styles.stepTitle}>
           <StatusIcon size={16} className={statusClass} />
-          {step.toolName} #{index + 1}
+          {displayToolName} #{index + 1}
         </span>
       }
     >
@@ -101,6 +103,14 @@ const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
     </AccordionItem>
   );
 });
+
+function formatToolName(toolName: string, t: any) {
+  if (toolName.startsWith("__skill__:")) {
+    const skillName = toolName.slice(10);
+    return t("ui.useSkill", { skillName, defaultValue: `使用技能 ${skillName}` });
+  }
+  return toolName;
+}
 
 function ChainOfThoughtComponent({
   steps,
@@ -124,6 +134,7 @@ function ChainOfThoughtComponent({
             index={i}
             inputLabel={inputLabel}
             outputLabel={outputLabel}
+            displayToolName={formatToolName(step.toolName, t)}
           />
         ))}
 
@@ -133,7 +144,7 @@ function ChainOfThoughtComponent({
             title={
               <span className={styles.stepTitle}>
                 <InProgress size={16} className={styles.processing} />
-                {currentToolName} #{steps.length + 1}
+                {formatToolName(currentToolName, t)} #{steps.length + 1}
               </span>
             }
           >

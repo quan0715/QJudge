@@ -75,6 +75,7 @@
     "confirmAction": "Confirm Execution",
     "cancelAction": "Cancel",
     "loading": "Loading...",
-    "scrollToBottom": "Scroll to bottom"
+    "scrollToBottom": "Scroll to bottom",
+    "useSkill": "Use skill {{skillName}}"
   }
 }
