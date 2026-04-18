@@ -52,6 +52,8 @@
     "close": "關閉",
     "inputPlaceholder": "輸入訊息…",
     "inputAriaLabel": "訊息輸入",
+    "modelLabel": "模型",
+    "addAttachment": "新增附件",
     "stopGenerating": "停止生成",
     "send": "送出",
     "searchPlaceholder": "搜尋對話…",

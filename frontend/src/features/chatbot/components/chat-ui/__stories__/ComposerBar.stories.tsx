@@ -14,6 +14,13 @@ const meta: Meta<typeof ComposerBar> = {
   },
   args: {
     onSend: () => {},
+    models: [
+      { model_id: "openai-nano", display_name: "gpt-5-nano", description: "fast", is_default: true },
+      { model_id: "deepseek-r1", display_name: "DeepSeek R1 (Thinking)", description: "reasoning", is_default: false },
+      { model_id: "deepseek-v3", display_name: "DeepSeek V3", description: "balanced", is_default: false },
+    ],
+    selectedModelId: "openai-nano",
+    onModelChange: () => {},
     onStop: () => {},
     isStreaming: false,
     disabled: false,

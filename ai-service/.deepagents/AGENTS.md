@@ -13,12 +13,12 @@
 |------|-------------------|
 | **qjudge-mcp-tool-operator** | **MCP 機械層**：選哪個工具、欄位怎麼填、禁忌與重試一次 |
 | **qjudge-ta-protocol** | **執行與環境層**：get／runner／update 順序、檔案僅讀、測資驗證語意流程、收斂、HITL 預期 |
-| **Coding_Problem_TA_SKILL** | **教學與題意層**：目標、規格、題敘／故事、定稿參數、語言出題習慣（不管 payload） |
+| **coding-problem-ta-skill** | **教學與題意層**：目標、規格、題敘／故事、定稿參數、語言出題習慣（不管 payload） |
 
 系統提示若已列出技能摘要，細節仍以 **read_file** 讀取上述 `SKILL.md` 為準。
 
 **複合任務（涵蓋多層）建議載入順序：**
-1. `Coding_Problem_TA_SKILL`（確認教學目標與規格）
+1. `coding-problem-ta-skill`（確認教學目標與規格）
 2. `qjudge-ta-protocol`（決定 get → code_runner → update 執行順序）
 3. `qjudge-mcp-tool-operator`（填欄位與工具路由）
 

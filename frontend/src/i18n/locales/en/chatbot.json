@@ -52,6 +52,8 @@
     "close": "Close",
     "inputPlaceholder": "Type a message...",
     "inputAriaLabel": "Message input",
+    "modelLabel": "Model",
+    "addAttachment": "Add attachment",
     "stopGenerating": "Stop generating",
     "send": "Send",
     "searchPlaceholder": "Search chats...",

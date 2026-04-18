@@ -12,7 +12,7 @@ description: QJudge MCP 的機械層：依意圖選對工具、欄位與 payload
 
 ## 不負責（請改查）
 - **何時先 get、何時才能宣稱驗證完成、虛擬檔能不能當測資**：**`qjudge-ta-protocol`**。
-- **教學目標、題敘怎寫、故事性、語言出題習慣**：**`Coding_Problem_TA_SKILL`**。
+- **教學目標、題敘怎寫、故事性、語言出題習慣**：**`coding-problem-ta-skill`**。
 
 ## Scope
 - 只處理 QJudge MCP 任務：查詢、出題、程式題管理、執行程式、批改。

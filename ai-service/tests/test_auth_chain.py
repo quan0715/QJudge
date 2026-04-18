@@ -1,6 +1,8 @@
 """Tests for auth chain: validate_internal_auth + RequestContext JWT extraction."""
 
 import os
+import sys
+import types
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,6 +10,17 @@ from fastapi.testclient import TestClient
 # Ensure required env vars before app import.
 os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
 os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
+os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
+
+_openai_stub = types.ModuleType("langchain_openai")
+
+
+class _ChatOpenAIStub:  # pragma: no cover - import stub only
+    pass
+
+
+_openai_stub.ChatOpenAI = _ChatOpenAIStub
+sys.modules.setdefault("langchain_openai", _openai_stub)
 
 from config import get_settings  # noqa: E402
 from main import app  # noqa: E402

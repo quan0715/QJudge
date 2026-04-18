@@ -19,11 +19,12 @@ from django.conf import settings
 # 每百萬 token 的美分（input/output）
 # IMPORTANT: keep in sync with ai-service/services/model_factory.py::PRICING.
 DEFAULT_MODEL_PRICING: dict[str, dict[str, int]] = {
+    "openai-nano": {"input": 5, "output": 20},
     "deepseek-r1": {"input": 55, "output": 219},
     "deepseek-v3": {"input": 7, "output": 28},
 }
 
-DEFAULT_MODEL_ID = "deepseek-r1"
+DEFAULT_MODEL_ID = "openai-nano"
 DEFAULT_SCALE_PER_CREDIT = 400_000  # 1 credit = 0.4 美分
 
 

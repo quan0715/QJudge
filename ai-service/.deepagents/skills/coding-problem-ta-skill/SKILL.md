@@ -1,5 +1,5 @@
 ---
-name: Coding_Problem_TA_SKILL
+name: coding-problem-ta-skill
 description: 程式教育向：協助老師收斂教學目標、題意規格與題敘（含故事性）；敘述定稿參數與各語言出題注意。不含 MCP 欄位、工具路由或虛擬檔規則。
 ---
 

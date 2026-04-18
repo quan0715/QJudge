@@ -1,6 +1,8 @@
 """API endpoint tests for AI Service (DeepAgent v2)."""
 
 import os
+import sys
+import types
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,6 +10,17 @@ from fastapi.testclient import TestClient
 # Ensure required internal auth secrets exist before app import.
 os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
 os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
+os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
+
+_openai_stub = types.ModuleType("langchain_openai")
+
+
+class _ChatOpenAIStub:  # pragma: no cover - import stub only
+    pass
+
+
+_openai_stub.ChatOpenAI = _ChatOpenAIStub
+sys.modules.setdefault("langchain_openai", _openai_stub)
 
 from config import get_settings  # noqa: E402
 from main import app  # noqa: E402
@@ -95,7 +108,10 @@ class TestModelsEndpoint:
         data = response.json()
         assert "models" in data
         assert isinstance(data["models"], list)
-        assert any(m.get("is_default") for m in data["models"])
+        model_ids = [m["model_id"] for m in data["models"]]
+        default_models = [m["model_id"] for m in data["models"] if m.get("is_default")]
+        assert model_ids == ["openai-nano", "deepseek-r1", "deepseek-v3"]
+        assert default_models == ["openai-nano"]
 
 
 class TestChatStreamEndpoint:
