@@ -81,7 +81,12 @@ class MCPToolProvider:
         async def _invoke(**kwargs: Any) -> Any:
             result = await self._call_tool(tool_def.name, kwargs or None)
             formatted = _format_tool_result(result)
-            logger.info("mcp_tool %s error=%s", tool_def.name, result.isError)
+            # Avoid logging the substring "error" on success — log aggregators often
+            # grep "error" and would flag every successful call (legacy: error=False).
+            if result.isError:
+                logger.warning("mcp_tool %s unsuccessful (MCP failure flag set)", tool_def.name)
+            else:
+                logger.info("mcp_tool %s ok", tool_def.name)
             return formatted
 
         return StructuredTool(

@@ -40,6 +40,8 @@ class Settings(BaseSettings):
 
     # MCP tool source
     qjudge_mcp_url: str = "http://qjudge-mcp:9000/mcp"
+    deepagent_skills_paths: list[str] = ["/app/.deepagents/skills/"]
+    deepagent_memory_paths: list[str] = ["/app/.deepagents/AGENTS.md"]
 
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]

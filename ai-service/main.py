@@ -33,6 +33,8 @@ async def lifespan(app: FastAPI):
     runner = DeepAgentRunner(
         checkpoint_db_url=settings.ai_state_postgres_url,
         mcp_server_url=settings.qjudge_mcp_url,
+        skills_paths=settings.deepagent_skills_paths,
+        memory_paths=settings.deepagent_memory_paths,
     )
 
     if settings.ai_state_postgres_url:
