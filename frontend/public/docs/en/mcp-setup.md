@@ -109,7 +109,7 @@ Once connected, the AI tool can access these QJudge MCP tool groups:
 | `reorder` | Reorder questions |
 | `import_from_bank` | Import questions from a bank |
 
-### Manage coding problems (`qjudge_coding`)
+### Manage coding problems (`qjudge_coding_problems`)
 
 | Action | Description |
 |--------|-------------|

@@ -109,7 +109,7 @@ https://mcp.q-judge.com/mcp
 | `reorder` | 重新排列題目順序 |
 | `import_from_bank` | 從題庫匯入題目 |
 
-### 管理程式題 (`qjudge_coding`)
+### 管理程式題 (`qjudge_coding_problems`)
 
 | 操作 | 說明 |
 |------|------|
