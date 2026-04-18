@@ -657,6 +657,27 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setError(null);
       setSessionNotice(null);
 
+      // 樂觀更新：立刻顯示 user bubble，不等 API 回來
+      setSessions((prev) =>
+        prev.map((session) =>
+          session.id === sessionIdForRequest || session.id === currentSessionId
+            ? {
+                ...session,
+                messages: [
+                  ...session.messages,
+                  {
+                    id: `optimistic-${Date.now()}`,
+                    role: "user" as const,
+                    content: trimmedContent,
+                    timestamp: new Date(),
+                    toolExecutions: [],
+                  },
+                ],
+              }
+            : session,
+        ),
+      );
+
       try {
         const run = await chatbotRepository.startRun(
           sessionIdForRequest,

@@ -1,63 +1,112 @@
 .wrapper {
   padding: 0.5rem 1rem;
-  max-width: min(80%, 672px);
+  max-width: min(80%, 640px);
 }
 
 .card {
-  padding: 0;
   overflow: hidden;
   border-radius: 8px;
-  border: 1px solid var(--cds-border-subtle, #e0e0e0);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--cds-border-subtle, #393939);
+  background: var(--cds-layer-01, #262626);
 }
 
-.body {
-  padding: 1rem 1.25rem;
+// ── Header ──────────────────────────────────────
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle, #393939);
+  background: var(--cds-layer-02, #2d2d2d);
 }
 
-.title {
-  font-size: 0.875rem;
+.headerLabel {
+  font-size: 0.75rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cds-text-secondary, #c6c6c6);
+}
 
-  code {
-    background: var(--cds-layer-02, #f4f4f4);
-    padding: 0.125rem 0.375rem;
-    border-radius: 3px;
-    font-size: 0.8125rem;
+// ── Actions list ─────────────────────────────────
+.actionsContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.actionItem {
+  padding: 0.875rem 1rem;
+
+  & + & {
+    border-top: 1px solid var(--cds-border-subtle, #393939);
   }
 }
 
-.args {
+.actionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
+}
+
+.toolName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
+  color: var(--cds-text-primary, #f4f4f4);
+}
+
+.actionTag {
+  flex-shrink: 0;
+}
+
+.actionBody {
+  // let custom renderers & fallback stretch
+}
+
+// ── JSON fallback ─────────────────────────────────
+.jsonFallback {
   font-size: 0.75rem;
-  line-height: 1.4;
-  background: var(--cds-layer-02, #f4f4f4);
+  line-height: 1.5;
+  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
+  background: var(--cds-layer-02, #1e1e1e);
+  border: 1px solid var(--cds-border-subtle, #393939);
   border-radius: 4px;
-  padding: 0.5rem;
+  padding: 0.625rem 0.75rem;
   margin: 0;
   overflow-x: auto;
   max-height: 200px;
   overflow-y: auto;
+  color: var(--cds-text-secondary, #c6c6c6);
+  white-space: pre;
 }
 
+.jsonKey {
+  color: #79c0ff; // blue-ish, readable on dark bg
+}
+
+// ── Footer ────────────────────────────────────────
 .footer {
   display: flex;
-  width: 100%;
-  border-top: 1px solid var(--cds-border-subtle, #e0e0e0);
+  border-top: 1px solid var(--cds-border-subtle, #393939);
 }
 
-.footerButton {
+.footerBtn {
   flex: 1 1 0;
   max-width: none;
-  min-height: 3.5rem;
-  padding: 1rem 1.25rem;
+  min-height: 4rem; // Carbon modal lg button height
   border-radius: 0;
-  justify-content: flex-start;
+  justify-content: center;
+
+  // kill the gap Carbon puts between adjacent buttons
+  & + & {
+    margin-inline-start: 0;
+  }
 }
 
 .loadingFooter {
   display: flex;
   justify-content: center;
-  padding: 1rem;
-  border-top: 1px solid var(--cds-border-subtle, #e0e0e0);
+  padding: 0.875rem 1rem;
+  border-top: 1px solid var(--cds-border-subtle, #393939);
 }

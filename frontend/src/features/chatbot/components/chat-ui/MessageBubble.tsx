@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { useCopyText } from "@/shared/hooks/useCopyText";
-import { normalizeChatMarkdownText } from "@/features/chatbot/utils/chatText";
 import { ChainOfThought } from "./ChainOfThought";
 import styles from "./MessageBubble.module.scss";
 
@@ -18,15 +17,8 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
   const { isCopied, copy } = useCopyText();
   const isUser = message.role === "user";
 
-  const thinkingSource = message.thinkingInfo?.thinking;
-  const thinkingText = useMemo(
-    () => (thinkingSource ? normalizeChatMarkdownText(thinkingSource) : ""),
-    [thinkingSource],
-  );
-  const messageText = useMemo(
-    () => (message.content ? normalizeChatMarkdownText(message.content) : ""),
-    [message.content],
-  );
+  const thinkingText = message.thinkingInfo?.thinking ?? "";
+  const messageText = message.content ?? "";
   const timeLabel = useMemo(
     () =>
       message.timestamp.toLocaleTimeString("zh-TW", {
