@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import asyncio
+from contextvars import ContextVar
 import logging
 import os
 import uuid
 from typing import Any, AsyncGenerator
 
+import deepagents.graph as _deepagents_graph
 from deepagents import create_deep_agent
+from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
+from deepagents.backends.state import StateBackend
 from deepagents.middleware.summarization import SummarizationMiddleware
 from langchain_core.messages import AnyMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool
 from langgraph.types import Command
 
 from services.event_adapter import (
@@ -32,6 +37,27 @@ from services.mcp_tool_provider import MCPToolProvider
 from services.model_factory import ModelFactory, _DEFAULT_MODEL_ID as _REPAIR_MODEL_ID
 
 logger = logging.getLogger(__name__)
+
+_SUMMARIZATION_EVENT_QUEUE: ContextVar[asyncio.Queue | None] = ContextVar(
+    "deepagent_summarization_event_queue",
+    default=None,
+)
+
+
+def _qjudge_backend_factory(rt: Any) -> CompositeBackend:
+    """Scratch/temp in agent state; skills + AGENTS.md read from mounted `/app/.deepagents/`.
+
+    Pure `StateBackend` lists skills from empty in-memory `files` — SkillsMiddleware then
+    shows no skills and `read_file` cannot see SKILL.md on disk. Route that tree to disk.
+    """
+    deepagents_fs = FilesystemBackend(
+        root_dir="/app/.deepagents",
+        virtual_mode=True,
+    )
+    return CompositeBackend(
+        default=StateBackend(rt),
+        routes={"/app/.deepagents/": deepagents_fs},
+    )
 
 
 # LangGraph recursion limit for a single run. A recursive budget covers each
@@ -80,7 +106,9 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
 
     def __init__(self, *args: Any, event_queue: asyncio.Queue | None = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self._event_queue: asyncio.Queue | None = event_queue
+        self._event_queue: asyncio.Queue | None = (
+            event_queue if event_queue is not None else _SUMMARIZATION_EVENT_QUEUE.get()
+        )
 
     def _partition_messages(
         self,
@@ -93,7 +121,6 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
         return self._lc_helper._partition_messages(conversation_messages, safe_cutoff)
 
     async def awrap_model_call(self, request: Any, handler: Any) -> Any:
-        logger.info("_SafeSummarizationMiddleware.awrap_model_call called")
         emitted_start = False
         # Mirror the parent's token-count check (read-only) to detect when
         # compaction will fire so we can emit a side-channel SSE event.
@@ -106,7 +133,12 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
             except TypeError:
                 total_tokens = self.token_counter(counted)
             should = self._should_summarize(list(request.messages), total_tokens)
-            logger.info("SummarizationMiddleware: total_tokens=%d should_summarize=%s trigger=%s", total_tokens, should, getattr(self, 'trigger', '?'))
+            logger.debug(
+                "SummarizationMiddleware: total_tokens=%d should_summarize=%s trigger=%s",
+                total_tokens,
+                should,
+                getattr(self, "trigger", "?"),
+            )
             if should:
                 logger.info("SummarizationMiddleware: compaction triggered")
                 if self._event_queue is not None:
@@ -124,57 +156,27 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
                 except Exception as e:
                     logger.warning("SummarizationMiddleware: SummarizationEnded emit failed: %s", e)
 
+# Force DeepAgent's default stack to use our safe summarization middleware.
+_deepagents_graph.SummarizationMiddleware = _SafeSummarizationMiddleware
 
-# Default system prompt for the TA agent
+
+# Default system prompt for the TA agent（細節見 AGENTS.md 與 skills/*/SKILL.md）
 _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師（出題者）。
 
-回覆要求：
-- 繁體中文，簡短直接，條列優先。
-- 不用 emoji，不要客套開場。
+回覆：繁體中文，簡短直接，條列優先；不用 emoji，不要客套開場。
 
-工作原則：
+核心原則：
 - 題目資料先讀取再回答，不要臆測。
-- 若工具本身會直接寫入，先用一句話說明預計變更；實際生效以 HITL 核准結果為準。
-- 對於與 QJudge 任務無關的請求，簡短拒絕並引導回出題/測驗/批改工作。
-- 若工具本身會直接寫入，先明確告知將執行的變更內容，再呼叫工具。
+- 與 QJudge 出題／測驗／批改無關的請求，簡短拒絕並引導回任務範圍。
+- 若工具會寫入或變更資料，先一句話說明預計變更；實際生效以 HITL 核准結果為準。
 
-可用工具：
-- qjudge_discover：查教室、競賽、題庫與題庫題。
-- qjudge_contest_manager：競賽詳情、場內題目列表（list_problems）、題目順序（reorder）。
-- qjudge_exam：管理試卷型（paper_exam）場內題目。
-- qjudge_grading：查看與批改作答。
-- qjudge_coding_problems：管理程式競賽場內單一程式題（CRUD）；列表請用 qjudge_contest_manager list_problems。
-- qjudge_code_runner：依題目執行程式碼（傳 code 字串），不負責題目 CRUD。
-- 所有寫入都直接走 MCP tool；先讀現況再修改，不要臆測。
+長流程與工具細則**不重複寫在此**，請遵守：
+1. 專案記憶 **AGENTS.md**（含 Skills 索引與摘要）。
+2. **Skills**：`/app/.deepagents/skills/` 下各 `SKILL.md`；操作 MCP、測資、驗證前務必遵循 **qjudge-ta-protocol**；工具路由與 payload 見 **qjudge-mcp-tool-operator**；題目與題敘設計見 **Coding_Problem_TA_SKILL**。
 
-虛擬檔案工具（write_file / read_file / ls / glob / grep / edit_file）：
-- 僅作為暫存筆記（scratch space），內容存在對話內部 state，外部看不到、也不會被測資系統讀到。
-- 絕對不要把「寫虛擬檔案」當成「更新題目/測資」。真實落地必須走：
-  * qjudge_coding_problems(action="update") 修改題目描述 / test_cases / language_configs
-  * qjudge_code_runner 執行 reference solution（參數是 code 字串，不讀虛擬檔案）
-- 同一個檔案不要連續 read 超過一次；已讀過就從對話記憶取用。
+需要全文時用 read_file 讀取上述路徑（技能庫若已列出摘要，仍可以該 SKILL 全文為準）。
 
-測資生成工作流（當用戶要求生成或驗證測資時遵循）：
-1. qjudge_coding_problems(action="get") 讀題目描述與限制。
-2. 視需要讀取題目細節中的 sample cases，或基於既有內容整理測資需求。
-3. 撰寫 reference solution（使用題目指定語言或 Python），直接在訊息或虛擬檔案中暫存。
-4. 設計測資集：sample cases（基本範例）+ hidden cases（邊界、壓力測試）。
-5. **必須**使用 qjudge_code_runner 以 code 字串送入實際執行 reference solution 驗證。
-   絕對不可跳過此步驟或自行手推 expected output；test_run 不在 qjudge_coding_problems 裡。
-6. 驗證後用 qjudge_coding_problems(action="update") 把新的 test_cases 寫回題目；不可假裝已寫入。
-
-寫入核准（HITL）：
-下列工具的寫入類 action 會自動中斷等核准，直接呼叫即可：
-- qjudge_grading：grade / batch_grade / ungrade
-  （唯讀：list_answers / question_detail / dashboard）
-- qjudge_contest_manager：reorder（列表請用 list_problems，非寫入）
-- qjudge_coding_problems：create / update / delete
-  （唯讀：get；執行程式碼請用 qjudge_code_runner）
-- qjudge_exam：create / update / delete / reorder / import_from_bank / batch_create
-  （唯讀：get 等；場內題目列表請用 qjudge_contest_manager list_problems）
-
-不要自行加「請確認」這類開場。使用者拒絕時工具會回傳 error ToolMessage，
-請據此調整回覆，不要重試相同寫入。
+檔案工具可用（含 write_file／edit_file）；請優先使用 /app/.deepagents/ 路徑，避免覆寫非目標檔案。
 """
 
 
@@ -193,21 +195,32 @@ class DeepAgentRunner:
         self._skills_paths = skills_paths or ["/app/.deepagents/skills/"]
         self._memory_paths = memory_paths or ["/app/.deepagents/AGENTS.md"]
         self._checkpointer: AsyncPostgresSaver | None = None
-        self._checkpointer_cm: Any = None  # context manager
+        self._pool: AsyncConnectionPool | None = None
 
     async def setup(self) -> None:
-        """Initialize the Postgres checkpointer and create tables if needed."""
-        self._checkpointer_cm = AsyncPostgresSaver.from_conn_string(
-            self._checkpoint_db_url,
+        """Initialize the Postgres checkpointer using a connection pool.
+
+        A pool (min=1, max=10) prevents the "another command is already in
+        progress" OperationalError that occurs when multiple concurrent
+        requests—or a CancelledError that leaves a connection dirty—all share
+        a single psycopg AsyncConnection.
+        """
+        self._pool = AsyncConnectionPool(
+            conninfo=self._checkpoint_db_url,
+            min_size=1,
+            max_size=10,
+            kwargs={"autocommit": True, "prepare_threshold": 0},
+            open=False,
         )
-        self._checkpointer = await self._checkpointer_cm.__aenter__()
+        await self._pool.open()
+        self._checkpointer = AsyncPostgresSaver(self._pool)
         await self._checkpointer.setup()
-        logger.info("DeepAgent checkpointer initialized and tables ensured.")
+        logger.info("DeepAgent checkpointer initialized with connection pool.")
 
     async def shutdown(self) -> None:
         """Clean up resources."""
-        if self._checkpointer_cm:
-            await self._checkpointer_cm.__aexit__(None, None, None)
+        if self._pool:
+            await self._pool.close()
         logger.info("DeepAgent runner shut down.")
 
     async def delete_thread(self, thread_id: str) -> None:
@@ -249,7 +262,6 @@ class DeepAgentRunner:
         """
         model = ModelFactory.create_model(model_id=model_id)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
-        skill_backend = FilesystemBackend(root_dir="/app")
         skills = [p for p in self._skills_paths if p]
         memory = [p for p in self._memory_paths if p]
 
@@ -257,14 +269,14 @@ class DeepAgentRunner:
             if not os.path.exists(path):
                 logger.warning("DeepAgents path not found: %s", path)
 
-        agent = create_deep_agent(
-            model=model,
-            tools=tools,
-            system_prompt=prompt,
-            backend=skill_backend,
-            skills=skills,
-            memory=memory,
-            middleware=[
+        agent_kwargs: dict[str, Any] = {
+            "model": model,
+            "tools": tools,
+            "system_prompt": prompt,
+            "backend": _qjudge_backend_factory,
+            "skills": skills,
+            "memory": memory,
+            "middleware": [
                 # Must be the last middleware: inspects the final tool_calls produced by
                 # the model turn and pauses execution for human approval on write actions.
                 ActionAwareHITLMiddleware(
@@ -272,9 +284,58 @@ class DeepAgentRunner:
                     allowed_decisions=["approve", "reject"],
                 ),
             ],
-            checkpointer=self._checkpointer,
-        )
+            "checkpointer": self._checkpointer,
+        }
+        queue_token = _SUMMARIZATION_EVENT_QUEUE.set(event_queue)
+        try:
+            agent = create_deep_agent(**agent_kwargs)
+        finally:
+            _SUMMARIZATION_EVENT_QUEUE.reset(queue_token)
         return agent
+
+    @staticmethod
+    def _build_run_config(thread_id: str, run_id: str) -> dict[str, Any]:
+        return {
+            "configurable": {"thread_id": thread_id},
+            "metadata": {"thread_id": thread_id, "run_id": run_id},
+            "recursion_limit": _AGENT_RECURSION_LIMIT,
+        }
+
+    async def _stream_with_provider(
+        self,
+        *,
+        thread_id: str,
+        run_id: str,
+        model_id: str,
+        system_prompt: str | None,
+        request_context: RequestContext | None,
+        agent_input: dict[str, Any] | Command,
+        event_queue: asyncio.Queue,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        async with MCPToolProvider(
+            server_url=self._mcp_server_url,
+            authorization_header=(
+                request_context.user_authorization if request_context else None
+            ),
+        ) as tool_provider:
+            tools = await tool_provider.load_tools()
+            agent = self._build_agent(
+                model_id=model_id,
+                system_prompt=system_prompt,
+                tools=tools,
+                event_queue=event_queue,
+            )
+            config = self._build_run_config(thread_id=thread_id, run_id=run_id)
+            async for sse_dict in self._stream_events(
+                agent,
+                agent_input,
+                config,
+                run_id,
+                thread_id,
+                model_id,
+                event_queue=event_queue,
+            ):
+                yield sse_dict
 
     # ------------------------------------------------------------------
     # Shared streaming loop
@@ -526,27 +587,17 @@ class DeepAgentRunner:
             thread_id = uuid.uuid4().hex
 
         event_queue: asyncio.Queue = asyncio.Queue()
-        async with MCPToolProvider(
-            server_url=self._mcp_server_url,
-            authorization_header=(
-                request_context.user_authorization if request_context else None
-            ),
-        ) as tool_provider:
-            tools = await tool_provider.load_tools()
-            agent = self._build_agent(model_id, system_prompt, tools, event_queue=event_queue)
-
-            config = {
-                "configurable": {"thread_id": thread_id},
-                "metadata": {"thread_id": thread_id, "run_id": run_id},
-                "recursion_limit": _AGENT_RECURSION_LIMIT,
-            }
-
-            agent_input: dict[str, Any] = {"messages": messages}
-
-            async for sse_dict in self._stream_events(
-                agent, agent_input, config, run_id, thread_id, model_id, event_queue=event_queue
-            ):
-                yield sse_dict
+        agent_input: dict[str, Any] = {"messages": messages}
+        async for sse_dict in self._stream_with_provider(
+            thread_id=thread_id,
+            run_id=run_id,
+            model_id=model_id,
+            system_prompt=system_prompt,
+            request_context=request_context,
+            agent_input=agent_input,
+            event_queue=event_queue,
+        ):
+            yield sse_dict
 
     async def resume_stream(
         self,
@@ -560,27 +611,17 @@ class DeepAgentRunner:
         run_id = uuid.uuid4().hex
 
         event_queue: asyncio.Queue = asyncio.Queue()
-        async with MCPToolProvider(
-            server_url=self._mcp_server_url,
-            authorization_header=(
-                request_context.user_authorization if request_context else None
-            ),
-        ) as tool_provider:
-            tools = await tool_provider.load_tools()
-            agent = self._build_agent(model_id, system_prompt, tools, event_queue=event_queue)
-
-            config = {
-                "configurable": {"thread_id": thread_id},
-                "metadata": {"thread_id": thread_id, "run_id": run_id},
-                "recursion_limit": _AGENT_RECURSION_LIMIT,
-            }
-
-            resume_value = Command(resume={"decisions": [{"type": decision}]})
-
-            async for sse_dict in self._stream_events(
-                agent, resume_value, config, run_id, thread_id, model_id, event_queue=event_queue
-            ):
-                yield sse_dict
+        resume_value = Command(resume={"decisions": [{"type": decision}]})
+        async for sse_dict in self._stream_with_provider(
+            thread_id=thread_id,
+            run_id=run_id,
+            model_id=model_id,
+            system_prompt=system_prompt,
+            request_context=request_context,
+            agent_input=resume_value,
+            event_queue=event_queue,
+        ):
+            yield sse_dict
 
     @staticmethod
     def _calculate_cost(

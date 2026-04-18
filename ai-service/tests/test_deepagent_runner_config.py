@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import sys
 import types
+from unittest.mock import MagicMock
 
 _deepseek_stub = types.ModuleType("langchain_deepseek")
 
@@ -16,7 +17,13 @@ class _ChatDeepSeekStub:  # pragma: no cover - import stub only
 _deepseek_stub.ChatDeepSeek = _ChatDeepSeekStub
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 
+from deepagents.backends.composite import CompositeBackend
+
 from services import deepagent_runner as runner_mod
+
+
+def test_summarization_middleware_is_patched():
+    assert runner_mod._deepagents_graph.SummarizationMiddleware is runner_mod._SafeSummarizationMiddleware
 
 
 class _CaptureCreateDeepAgent:
@@ -61,10 +68,12 @@ def test_build_agent_passes_default_skill_and_memory_paths(monkeypatch):
     assert capture.kwargs is not None
     assert capture.kwargs["skills"] == ["/app/.deepagents/skills/"]
     assert capture.kwargs["memory"] == ["/app/.deepagents/AGENTS.md"]
-    assert isinstance(capture.kwargs["backend"], runner_mod.FilesystemBackend)
+    backend_factory = capture.kwargs["backend"]
+    assert callable(backend_factory)
+    assert isinstance(backend_factory(MagicMock()), CompositeBackend)
 
 
-def test_build_agent_uses_slim_default_system_prompt(monkeypatch):
+def test_build_agent_default_system_prompt_key_phrases(monkeypatch):
     capture = _patch_builder_dependencies(monkeypatch)
     runner = runner_mod.DeepAgentRunner(
         checkpoint_db_url="",
@@ -81,7 +90,8 @@ def test_build_agent_uses_slim_default_system_prompt(monkeypatch):
     prompt = capture.kwargs["system_prompt"]
     assert "HITL 核准結果為準" in prompt
     assert "無關" in prompt
-    assert "測資生成工作流" not in prompt
+    assert "AGENTS.md" in prompt
+    assert "qjudge-ta-protocol" in prompt
 
 
 def test_build_agent_respects_custom_skill_and_memory_paths(monkeypatch):
