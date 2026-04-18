@@ -141,13 +141,14 @@ services:
       timeout: 10s
       retries: 3
 
-  # Django Backend
+  # Django Backend (shared image with all Celery services — single build per compose up --build)
   backend:
-    build:
+    build: &backend_prod_build
       context: ./backend
       dockerfile: Dockerfile
       args:
         DJANGO_ENV: production
+    image: oj-backend:prod
     container_name: oj_backend
     restart: always
     command: >
@@ -203,9 +204,8 @@ services:
 
   # Celery Worker - High Priority (Contest submissions)
   celery-high:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    build: *backend_prod_build
+    image: oj-backend:prod
     container_name: oj_celery_high
     restart: always
     command: celery -A config worker -l info -Q high_priority,default --concurrency=2
@@ -244,9 +244,8 @@ services:
 
   # Celery Worker - Default (Practice submissions)
   celery:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    build: *backend_prod_build
+    image: oj-backend:prod
     container_name: oj_celery
     restart: always
     command: celery -A config worker -l info -Q default --concurrency=2
@@ -284,9 +283,8 @@ services:
           memory: 2G
 
   celery-video:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    build: *backend_prod_build
+    image: oj-backend:prod
     container_name: oj_celery_video
     restart: always
     command: celery -A config worker -l info -Q video_queue --concurrency=2
@@ -325,9 +323,8 @@ services:
 
   # Celery Beat (Scheduler for periodic tasks)
   celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    build: *backend_prod_build
+    image: oj-backend:prod
     container_name: oj_celery_beat
     restart: always
     command: celery -A config beat -l info

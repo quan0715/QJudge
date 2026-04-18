@@ -406,6 +406,15 @@ class DeepAgentRunner:
             try:
                 async for sse_dict in _run_stream():
                     yield sse_dict
+            except asyncio.CancelledError:
+                # Client disconnected (backend dropped the SSE connection).
+                # Repair the checkpoint immediately so the next message on
+                # the same session doesn't hit "insufficient tool messages".
+                logger.warning(
+                    "Stream cancelled for thread %s, repairing checkpoint", thread_id
+                )
+                await self._repair_dangling_tool_calls(agent, config)
+                raise
             except Exception as exc:
                 # Detect dangling tool_calls error → repair and retry once
                 error_str = str(exc)

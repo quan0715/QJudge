@@ -1086,6 +1086,30 @@ def test_qjudge_code_runner_requires_fields():
     assert run(server.qjudge_code_runner(problem_id="", language="py", code="x", ctx=DummyContext()))["detail"] == "problem_id is required"
     assert run(server.qjudge_code_runner(problem_id="p-1", language="", code="x", ctx=DummyContext()))["detail"] == "language is required"
     assert run(server.qjudge_code_runner(problem_id="p-1", language="py", code="", ctx=DummyContext()))["detail"] == "code is required"
+    assert run(server.qjudge_code_runner(problem_id="p-1", language="py", code="   ", ctx=DummyContext()))["detail"] == "code is required"
+
+
+def test_qjudge_code_runner_normalizes_language_aliases(monkeypatch):
+    captured = {}
+
+    async def fake_django_api(method, path, ctx, *, json_body=None, timeout=30.0):
+        captured["json_body"] = json_body
+        return {"ok": True}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    run(server.qjudge_code_runner(problem_id="p-1", language="c++", code="int main(){}", ctx=DummyContext()))
+    assert captured["json_body"]["language"] == "cpp"
+
+    run(server.qjudge_code_runner(problem_id="p-1", language="python3", code="print(1)", ctx=DummyContext()))
+    assert captured["json_body"]["language"] == "python"
+
+
+def test_qjudge_code_runner_rejects_unsupported_language():
+    result = run(server.qjudge_code_runner(problem_id="p-1", language="javascript", code="console.log(1)", ctx=DummyContext()))
+    assert result["error"] is True
+    assert result["status"] == 400
+    assert "Unsupported language for qjudge_code_runner" in result["detail"]
 
 
 def test_qjudge_coding_problems_rejects_paper_exam_contest(monkeypatch):

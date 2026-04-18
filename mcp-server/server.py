@@ -145,6 +145,24 @@ def _error(detail: str, *, status: int | None = None) -> dict[str, Any]:
     return payload
 
 
+_CODE_RUNNER_LANGUAGE_ALIASES: dict[str, str] = {
+    "cpp": "cpp",
+    "c++": "cpp",
+    "python": "python",
+    "python3": "python",
+    "py": "python",
+    "c": "c",
+    "java": "java",
+}
+
+
+def _normalize_code_runner_language(language: str) -> str | None:
+    key = language.strip().lower()
+    if not key:
+        return None
+    return _CODE_RUNNER_LANGUAGE_ALIASES.get(key)
+
+
 def _truncate_text(value: str, limit: int = 120) -> str:
     if len(value) <= limit:
         return value
@@ -1279,11 +1297,20 @@ async def qjudge_code_runner(
         return _error("problem_id is required")
     if not language:
         return _error("language is required")
-    if not code:
+    if not code or not code.strip():
         return _error("code is required")
 
+    normalized_language = _normalize_code_runner_language(language)
+    if normalized_language is None:
+        return _error(
+            "Unsupported language for qjudge_code_runner. "
+            "Use one of: cpp, c, python, java "
+            "(aliases accepted: c++, python3, py).",
+            status=400,
+        )
+
     body: dict[str, Any] = {
-        "language": language,
+        "language": normalized_language,
         "code": code,
     }
     # Judge runs can exceed the default 30s client timeout; avoid httpx ReadTimeout
