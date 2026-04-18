@@ -342,8 +342,6 @@
     "marketplace": "Marketplace",
     "problemList": "Problem List",
     "problems": "Problems",
-    "problemsLegacy": "Problems (Legacy)",
-    "questionBanks": "Question Banks",
     "ranking": "Ranking",
     "submissions": "Submissions"
   },
@@ -360,9 +358,7 @@
     "login": "Login",
     "problemDetail": "Problem Detail",
     "problemManagement": "Problem Management",
-    "problemManagementLegacy": "Problem Management (Legacy)",
     "problems": "Problem List",
-    "questionBanks": "Question Banks",
     "register": "Register",
     "submissions": "Submissions",
     "teacherDashboard": "Teacher Dashboard",

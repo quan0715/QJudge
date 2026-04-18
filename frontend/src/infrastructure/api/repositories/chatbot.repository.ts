@@ -24,6 +24,7 @@ interface V2StreamEvent {
     | "agent_message_delta"
     | "thinking_delta"
     | "summarization_started"
+    | "summarization_ended"
     | "todo_update"
     | "todos_updated"
     | "todo_list_updated"
@@ -655,6 +656,11 @@ const chatbotRepository: ChatbotRepository = {
         break;
       }
 
+      case "summarization_ended": {
+        callbacks.onSessionNotice?.(null);
+        break;
+      }
+
       case "todo_update":
       case "todos_updated":
       case "todo_list_updated":
@@ -800,6 +806,8 @@ const chatbotRepository: ChatbotRepository = {
         break;
 
       case "awaiting_approval": {
+        // Run may pause for a long time before run_completed; clear transient notices (e.g. summarization).
+        callbacks.onSessionNotice?.(null);
         if (event.action_requests?.length) {
           callbacks.onAwaitingApproval?.({
             actionRequests: event.action_requests.map((a) => ({

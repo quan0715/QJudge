@@ -342,7 +342,6 @@
     "marketplace": "題庫市集",
     "problemList": "題目列表",
     "problems": "題目",
-    "problemsLegacy": "題目（舊）",
     "questionBanks": "題庫",
     "ranking": "排行榜",
     "submissions": "提交紀錄"
@@ -360,7 +359,6 @@
     "login": "登入",
     "problemDetail": "題目詳情",
     "problemManagement": "題目管理",
-    "problemManagementLegacy": "題目管理（舊）",
     "problems": "題目列表",
     "questionBanks": "題庫",
     "register": "註冊",

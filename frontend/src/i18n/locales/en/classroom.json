@@ -35,6 +35,7 @@
   },
   "announcement": {
     "createFailed": "Failed to create announcement",
+    "delete": "Delete announcement",
     "modal": {
       "form": {
         "content": "Content",

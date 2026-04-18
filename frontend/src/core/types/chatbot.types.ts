@@ -8,6 +8,7 @@ export type StreamEventType =
   | "agent_message_delta"
   | "thinking_delta"
   | "summarization_started"
+  | "summarization_ended"
   | "todo_update"
   | "verification_report"
   | "tool_call_started"

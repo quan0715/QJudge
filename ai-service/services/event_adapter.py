@@ -39,6 +39,12 @@ class SummarizationStarted:
 
 
 @dataclass(slots=True)
+class SummarizationEnded:
+    """Emitted after the summarization model call completes (pair for SummarizationStarted)."""
+    pass
+
+
+@dataclass(slots=True)
 class VerificationReport:
     iteration: int
     passed: bool
@@ -93,6 +99,7 @@ InternalEvent = Union[
     AgentMessageDelta,
     ThinkingDelta,
     SummarizationStarted,
+    SummarizationEnded,
     VerificationReport,
     ToolCallStarted,
     ToolCallFinished,
@@ -107,6 +114,7 @@ _TYPE_NAME_MAP: dict[type, str] = {
     AgentMessageDelta: "agent_message_delta",
     ThinkingDelta: "thinking_delta",
     SummarizationStarted: "summarization_started",
+    SummarizationEnded: "summarization_ended",
     VerificationReport: "verification_report",
     ToolCallStarted: "tool_call_started",
     ToolCallFinished: "tool_call_finished",

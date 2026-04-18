@@ -239,7 +239,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def test_run(self, request, id=None):
         """
-        Execute code with sample + custom inputs without creating a submission.
+        Execute code against all stored test cases without creating a submission.
         Returns execution results immediately.
         """
         problem = self.get_object()
@@ -250,8 +250,6 @@ class ProblemViewSet(viewsets.ModelViewSet):
                 problem=problem,
                 language=serializer.validated_data["language"],
                 source_code=serializer.validated_data["code"],
-                use_samples=serializer.validated_data.get("use_samples", True),
-                custom_test_cases=serializer.validated_data.get("custom_test_cases") or [],
             )
         except TestRunSetupError as exc:
             error_text = str(exc)

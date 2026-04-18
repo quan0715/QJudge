@@ -94,14 +94,7 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class TestRunSerializer(serializers.Serializer):
-    """Serializer for test run requests."""
-
-    class CustomTestCaseSerializer(serializers.Serializer):
-        input = serializers.CharField(
-            required=True,
-            allow_blank=True,
-            help_text='Custom input for the program'
-        )
+    """Serializer for test run requests — executes against all problem test cases."""
 
     language = serializers.ChoiceField(
         choices=['cpp', 'c', 'python', 'java'],
@@ -111,16 +104,6 @@ class TestRunSerializer(serializers.Serializer):
     code = serializers.CharField(
         required=True,
         help_text='Source code to execute'
-    )
-    use_samples = serializers.BooleanField(
-        required=False,
-        default=True,
-        help_text='Whether to include sample test cases'
-    )
-    custom_test_cases = CustomTestCaseSerializer(
-        many=True,
-        required=False,
-        help_text='Custom test cases (input only)'
     )
 
 

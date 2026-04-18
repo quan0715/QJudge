@@ -35,6 +35,7 @@
   },
   "announcement": {
     "createFailed": "お知らせの作成に失敗しました",
+    "delete": "お知らせを削除",
     "modal": {
       "form": {
         "content": "内容",

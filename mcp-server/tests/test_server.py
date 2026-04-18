@@ -1164,30 +1164,8 @@ def test_qjudge_code_runner(monkeypatch):
     assert captured == {
         "method": "POST",
         "path": "/api/v1/management/problems/p-1/test_run/",
-        "json_body": {"language": "python", "code": "print(1+2)", "use_samples": True},
+        "json_body": {"language": "python", "code": "print(1+2)"},
     }
-
-
-def test_qjudge_code_runner_with_custom_cases(monkeypatch):
-    captured = {}
-
-    async def fake_django_api(method, path, ctx, *, json_body=None):
-        captured["json_body"] = json_body
-        return {"results": []}
-
-    monkeypatch.setattr(server, "django_api", fake_django_api)
-
-    custom = [{"input": "5", "expected_output": "25"}]
-    run(
-        server.qjudge_code_runner(
-            problem_id="p-1", language="cpp", code="#include",
-            ctx=DummyContext(),
-            use_samples=False, custom_test_cases=custom,
-        )
-    )
-
-    assert captured["json_body"]["use_samples"] is False
-    assert captured["json_body"]["custom_test_cases"] == custom
 
 
 def test_qjudge_code_runner_requires_fields():

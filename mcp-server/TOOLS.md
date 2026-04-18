@@ -227,7 +227,7 @@ mode         → batch_create only
 
 ## qjudge_coding
 
-**競賽程式題管理 + test_run**。只能用於 `contest_type: "coding"` 的競賽。
+**競賽程式題管理**（程式執行請用 `qjudge_code_runner`）。只能用於 `contest_type: "coding"` 的競賽。
 
 ### Parameters
 
@@ -235,7 +235,7 @@ mode         → batch_create only
 |---|---|---|
 | `action` | string | all |
 | `contest_id` | string? | list, get, create, update, import_from_bank, update_score, delete |
-| `problem_id` | string? | get, update, update_score, delete, test_run |
+| `problem_id` | string? | get, update, update_score, delete |
 | `title` | string? | create |
 | `difficulty` | string? | create, update |
 | `time_limit` | int? | create, update |
@@ -345,7 +345,7 @@ mode         → batch_create only
 
 ## qjudge_code_runner
 
-**程式碼執行驗證**。對一道 coding 題跑程式碼，取得執行結果。
+**程式碼執行驗證**。對一道 coding 題依序跑**該題在系統內儲存的全部測資**，取得執行結果。
 
 不需要 `action` 參數 — 這個工具只做一件事。
 
@@ -354,10 +354,8 @@ mode         → batch_create only
 | Param | Type | Required | Notes |
 |---|---|---|---|
 | `problem_id` | string | yes | 要測試的 coding problem ID |
-| `language` | string | yes | `cpp`, `python`, `java`, `javascript` |
+| `language` | string | yes | `cpp`, `c`, `python`, `java`（與後端 judge 一致） |
 | `code` | string | yes | 要執行的原始碼 |
-| `use_samples` | bool | no | 是否跑 sample test cases（default: true） |
-| `custom_test_cases` | list[dict]? | no | 自訂測資 [{input, expected_output}] |
 
 ### 範例
 

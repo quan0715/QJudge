@@ -45,8 +45,6 @@ export interface ProblemStatistics {
 export interface TestRunPayload {
   language: string;
   code: string;
-  use_samples: boolean;
-  custom_test_cases: { input: string }[];
 }
 
 export interface TestRunResultItem {

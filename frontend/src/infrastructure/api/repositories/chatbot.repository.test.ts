@@ -39,6 +39,59 @@ describe("chatbotRepository stream events", () => {
     debugSpy.mockRestore();
   });
 
+  it("clears session notice on summarization_ended", () => {
+    const onSessionNotice = vi.fn();
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string },
+        currentMessage: Record<string, unknown>,
+        callbacks: { onSessionNotice?: (notice: string | null) => void },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      { type: "summarization_ended" },
+      {},
+      { onSessionNotice },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onSessionNotice).toHaveBeenCalledWith(null);
+  });
+
+  it("clears session notice on awaiting_approval", () => {
+    const onSessionNotice = vi.fn();
+    const onAwaitingApproval = vi.fn();
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string; action_requests?: Array<{ name: string; args: unknown }> },
+        currentMessage: Record<string, unknown>,
+        callbacks: {
+          onSessionNotice?: (notice: string | null) => void;
+          onAwaitingApproval?: (req: unknown) => void;
+        },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "awaiting_approval",
+        action_requests: [{ name: "test_tool", args: {} }],
+        review_configs: [],
+      },
+      {},
+      { onSessionNotice, onAwaitingApproval },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onSessionNotice).toHaveBeenCalledWith(null);
+    expect(onAwaitingApproval).toHaveBeenCalled();
+  });
+
   it("normalizes todo_update payloads into run todo items", () => {
     const onTodoItemsUpdate = vi.fn();
 

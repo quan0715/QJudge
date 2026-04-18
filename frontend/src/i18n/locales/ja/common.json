@@ -304,7 +304,6 @@
     "marketplace": "問題集マーケット",
     "problemList": "問題一覧",
     "problems": "問題",
-    "problemsLegacy": "問題 (旧)",
     "questionBanks": "問題集",
     "ranking": "ランキング",
     "submissions": "提出履歴"
@@ -322,7 +321,6 @@
     "login": "ログイン",
     "problemDetail": "問題詳細",
     "problemManagement": "問題管理",
-    "problemManagementLegacy": "問題管理 (旧)",
     "problems": "問題一覧",
     "questionBanks": "問題集",
     "register": "登録",

@@ -20,6 +20,7 @@ from services.event_adapter import (
     RunCompleted,
     RunFailed,
     RunStarted,
+    SummarizationEnded,
     SummarizationStarted,
     UsageReport,
     adapt_langgraph_event,
@@ -82,8 +83,8 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
     This subclass simply wires it up until deepagents releases a fix.
     See: https://github.com/langchain-ai/langchain/issues/34282
 
-    Also emits a SummarizationStarted event via an asyncio.Queue side-channel
-    so callers can surface a visible SSE event when compaction fires.
+    Also emits SummarizationStarted / SummarizationEnded via an asyncio.Queue
+    side-channel so callers can show/clear UI when compaction runs.
     """
 
     def __init__(self, *args: Any, event_queue: asyncio.Queue | None = None, **kwargs: Any) -> None:
@@ -102,6 +103,7 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
 
     async def awrap_model_call(self, request: Any, handler: Any) -> Any:
         logger.info("_SafeSummarizationMiddleware.awrap_model_call called")
+        emitted_start = False
         # Mirror the parent's token-count check (read-only) to detect when
         # compaction will fire so we can emit a side-channel SSE event.
         try:
@@ -118,10 +120,18 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
                 logger.info("SummarizationMiddleware: compaction triggered")
                 if self._event_queue is not None:
                     await self._event_queue.put(to_sse_dict(SummarizationStarted()))
+                    emitted_start = True
         except Exception as e:
             logger.warning("SummarizationMiddleware observability error: %s", e)
 
-        return await super().awrap_model_call(request, handler)
+        try:
+            return await super().awrap_model_call(request, handler)
+        finally:
+            if emitted_start and self._event_queue is not None:
+                try:
+                    await self._event_queue.put(to_sse_dict(SummarizationEnded()))
+                except Exception as e:
+                    logger.warning("SummarizationMiddleware: SummarizationEnded emit failed: %s", e)
 
 
 # Default system prompt for the TA agent
@@ -357,7 +367,7 @@ class DeepAgentRunner:
                 config=config,
                 version="v2",
             ):
-                # Drain side-channel events (e.g. summarization_started) before
+                # Drain side-channel events (e.g. summarization_started/ended) before
                 # each LangGraph event so they arrive in roughly the right order.
                 if event_queue is not None:
                     while not event_queue.empty():
@@ -375,6 +385,12 @@ class DeepAgentRunner:
                     continue
                 for internal_event in internal_events:
                     yield to_sse_dict(internal_event)
+
+            # After the graph stream ends, any side-channel events (e.g. summarization_ended
+            # queued in a middleware finally) must still be forwarded.
+            if event_queue is not None:
+                while not event_queue.empty():
+                    yield event_queue.get_nowait()
 
         try:
             try:

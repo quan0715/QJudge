@@ -371,6 +371,32 @@ _TOOL_HELP = {
         "qjudge_code_runner": "Execute code against test cases: run code, get results",
         "qjudge_grading": "Grading: list_answers, question_detail, dashboard, grade, batch_grade, ungrade",
     },
+    "coding_tools_how_to_choose": {
+        "summary": (
+            "Three different tools touch 'code' — pick by intent. "
+            "Wrong tool = wrong API or 400 errors."
+        ),
+        "qjudge_coding": {
+            "use_when": "You need to CREATE/EDIT/DELETE/import a **coding problem inside a coding contest**, or list problems.",
+            "requires": "contest_id (UUID) of a contest where contest_type is **coding**. problem_id = that contest's coding problem UUID.",
+            "never": "Do NOT run user's source code here. No 'code' parameter.",
+        },
+        "qjudge_code_runner": {
+            "use_when": "You need to **execute source code** against the problem's **stored** test cases (teacher/test-run).",
+            "requires": "problem_id = **CodingProblem / Problem UUID** (same id as GET /api/v1/management/problems/{id}/). language + code strings.",
+            "behavior": "Runs **all** test cases on the server in order; no sample-only or custom-case flags.",
+            "never": "Do NOT use contest_id here. Do NOT create/update problems here.",
+        },
+        "qjudge_bank": {
+            "use_when": "You need CRUD on a **reusable bank item** (exam or coding) — not tied to a contest until imported.",
+            "requires": "bank_id for create; question_id (bank item id) for get/update/delete. question_type 'coding' uses same fields as qjudge_coding but under bank APIs.",
+        },
+        "id_confusion": (
+            "contest_id identifies a contest. problem_id in qjudge_coding identifies a **problem row bound to that contest**. "
+            "qjudge_code_runner.problem_id is the **global problem UUID** (management problem id), "
+            "obtainable from qjudge_coding get/list response or Django problem id — use the `id` field of the coding problem object."
+        ),
+    },
     "coding_problem_example": {
         "_tool": "qjudge_coding",
         "_action": "create",
@@ -420,6 +446,9 @@ _TOOL_HELP = {
         "items for create": "create is single-item — use batch_create for multiple items",
         "browse for writes": "qjudge_browse is read-only — use qjudge_bank for bank CRUD",
         "language_configs values": "Valid languages: cpp, python, java, javascript",
+        "run code on qjudge_coding": "NEVER — use qjudge_code_runner(problem_id, language, code) for execution",
+        "test_run params removed": "qjudge_code_runner only sends language+code; all stored cases run automatically",
+        "javascript in test_run": "Backend judge supports cpp, c, python, java — not javascript for test_run",
     },
 }
 
@@ -461,7 +490,8 @@ async def qjudge_browse(
       get_contest            — Get contest detail (required: contest_id)
       browse_banks           — List your question banks
       browse_bank_questions  — List questions in a bank (required: bank_id)
-      get_help               — Get full usage guide for all QJudge MCP tools
+      get_help               — Return JSON help including `coding_tools_how_to_choose` (when to use
+                               qjudge_coding vs qjudge_code_runner vs qjudge_bank) and examples
     """
     if action == "get_help":
         return _TOOL_HELP
@@ -524,7 +554,12 @@ async def qjudge_bank(
     forbidden_keywords: list[str] | None = None,
     required_keywords: list[str] | None = None,
 ) -> Any:
-    """CRUD operations for question bank items.
+    """CRUD operations for question **bank** items (reusable assets), not live contest problems.
+
+    Routing (read this first):
+      • **Contest coding problems** (edit problems inside a contest) → `qjudge_coding`, not qjudge_bank.
+      • **Contest paper/exam questions** → `qjudge_exam`, not qjudge_bank.
+      • **Reusable bank questions** (create templates before importing) → this tool.
 
     Do NOT use this tool for contest question management — use qjudge_exam or qjudge_coding instead.
 
@@ -991,13 +1026,22 @@ async def qjudge_coding(
     items: list[dict] | None = None,
     max_score: int | None = None,
 ) -> Any:
-    """Manage coding problems within a coding contest.
+    """Manage **coding problems attached to a coding contest** (metadata + tests + languages).
 
-    Do NOT use this tool for code execution — use qjudge_code_runner instead.
-    Do NOT use this tool for paper_exam contests — use qjudge_exam instead.
-    This tool only works with contests whose ``contest_type`` is ``coding``.
+    ## When to use this tool (vs other tools)
+      • Use **`qjudge_coding`** → create/edit/list/delete **problems inside a contest** (needs `contest_id`).
+      • Use **`qjudge_code_runner`** → **run student/teacher code** against an existing problem's tests (needs `problem_id` + `code`). This tool has **no `code` parameter**.
+      • Use **`qjudge_bank`** → CRUD **reusable bank items**, not contest-bound rows.
+      • Use **`qjudge_exam`** → non-coding (paper) contests only.
 
-    Actions:
+    ## Preconditions
+      • `contest_id` must refer to a contest with ``contest_type`` = **``coding``** (server checks; wrong type → 400 with hint to use qjudge_exam).
+
+    ## ID semantics
+      • `contest_id` — UUID of the contest.
+      • `problem_id` — UUID of the **coding problem in that contest** (returned by `list` / `create` / `get`). Same logical problem as Django **Problem** id used by `qjudge_code_runner` when referring to that problem.
+
+    ## Actions
       list             — List coding problems in a contest (required: contest_id)
       get              — Get problem detail (required: contest_id, problem_id)
       create           — Create a new problem in contest (required: contest_id, title;
@@ -1010,6 +1054,10 @@ async def qjudge_coding(
                          items: list of {question_bank_id, question_id})
       update_score     — Update contest-level score (required: contest_id, problem_id, max_score)
       delete           — Remove problem from contest (required: contest_id, problem_id)
+
+    ## Payload shape (create/update) — pass TOP-LEVEL fields
+      Put `description`, `test_cases`, `language_configs`, etc. **at the top level** of the tool call.
+      Do **not** nest them under `coding_ext` (deprecated; may trigger warnings).
 
     Field format guide (create/update):
       description          — Problem description (Markdown)
@@ -1171,22 +1219,30 @@ async def qjudge_code_runner(
     language: str,
     code: str,
     ctx: Context,
-    use_samples: bool = True,
-    custom_test_cases: list[dict] | None = None,
 ) -> Any:
-    """Execute code against a problem's test cases and return results.
+    """**Run source code** against **all** test cases stored on a **Problem** (management test_run API).
 
-    Do NOT use this tool for problem CRUD — use qjudge_coding instead.
-    This tool only runs code; it does not create, update, or delete problems.
+    ## When to use (vs qjudge_coding)
+      • **`qjudge_code_runner`** — you have **source code** to execute and want **judge output** (stdout, verdict per case, CE/WA/AC, etc.).
+      • **`qjudge_coding`** — you are **editing problem metadata** (title, tests, limits). It never executes `code`.
 
-    Required:
-      problem_id  — The coding problem to test against
-      language    — Programming language (cpp, python, java, javascript)
-      code        — Source code to execute
+    ## What problem_id means
+      • `problem_id` is the **CodingProblem / Problem UUID** — the same string as:
+        - `id` on a problem object from `qjudge_coding` **list** or **get**, and
+        - the `{id}` in POST `/api/v1/management/problems/{id}/test_run/`.
+      • Do **not** pass `contest_id` here. Do **not** pass bank `question_id` unless that item is the same underlying problem id (usually use contest or management problem id from API responses).
 
-    Optional:
-      use_samples      — Run against sample test cases (default: true)
-      custom_test_cases — Custom test cases [{input: "...", expected_output: "..."}]
+    ## Execution model
+      • Sends only `{language, code}` to the server. The backend runs **every** stored test case for that problem, in order.
+      • There is **no** sample-only mode and **no** custom extra test cases in this API.
+
+    ## Languages (must match Django judge / TestRunSerializer)
+      Allowed: **cpp**, **c**, **python**, **java**. (javascript is **not** supported for this endpoint.)
+
+    ## Response (typical)
+      • JSON with `status` (overall), `results` array (per-case status, input, output, expected_output, etc.).
+
+    Do NOT use this tool for problem CRUD — use qjudge_coding or qjudge_bank instead.
     """
     if not problem_id:
         return _error("problem_id is required")
@@ -1198,10 +1254,7 @@ async def qjudge_code_runner(
     body: dict[str, Any] = {
         "language": language,
         "code": code,
-        "use_samples": use_samples,
     }
-    if custom_test_cases is not None:
-        body["custom_test_cases"] = custom_test_cases
     return await django_api("POST", f"/api/v1/management/problems/{problem_id}/test_run/", ctx, json_body=body)
 
 

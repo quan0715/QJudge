@@ -262,16 +262,9 @@ export function useProblemSolver({
     });
 
     try {
-      // Prepare custom test cases - only send input (not output)
-      const customCases = testCases
-        .filter((tc) => tc.source === "custom")
-        .map((tc) => ({ input: tc.input }));
-
       const result = await testRun(problem.id, {
         language,
         code,
-        use_samples: true, // Include sample test cases
-        custom_test_cases: customCases,
       });
 
       // Test run returns immediately (no polling needed)
@@ -289,7 +282,7 @@ export function useProblemSolver({
         error: err.message || "測試執行失敗"
       });
     }
-  }, [problem?.id, code, language, testCases]);
+  }, [problem?.id, code, language]);
 
   // Execute formal submission
   const executeSubmit = useCallback(async () => {

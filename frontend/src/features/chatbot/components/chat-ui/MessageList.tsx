@@ -83,6 +83,13 @@ export function MessageList({
     scheduleScrollToBottom("auto");
   }, [currentSessionId, isLoading, scheduleScrollToBottom]);
 
+  // When tool-confirmation (HITL) card becomes visible, always scroll to bottom so the user sees it
+  // immediately, even if they had scrolled up to read earlier messages. (Card is hidden while isLoading.)
+  useLayoutEffect(() => {
+    if (!pendingApproval || isLoading) return;
+    scheduleScrollToBottom("auto");
+  }, [pendingApproval, isLoading, scheduleScrollToBottom]);
+
   // Auto-scroll to bottom when new messages arrive or content changes (if already near bottom)
   useEffect(() => {
     const container = containerRef.current;
@@ -94,7 +101,7 @@ export function MessageList({
     if (isNearBottom) {
       scheduleScrollToBottom("smooth");
     }
-  }, [messages, pendingApproval, scheduleScrollToBottom]);
+  }, [messages, scheduleScrollToBottom]);
 
   return (
     <div className={styles.wrapper}>

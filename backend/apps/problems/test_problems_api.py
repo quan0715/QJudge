@@ -467,8 +467,8 @@ class ProblemTestRunTests(TestCase):
             order=1,
         )
 
-    def test_test_run_uses_samples_and_returns_results(self):
-        """Test-run should execute sample cases and not create submissions."""
+    def test_test_run_runs_all_stored_cases_and_returns_results(self):
+        """Test-run should execute every stored test case and not create submissions."""
         with patch('apps.judge.judge_factory.get_judge') as mock_get_judge:
             mock_judge = MagicMock()
             mock_judge.execute.return_value = {
@@ -485,8 +485,6 @@ class ProblemTestRunTests(TestCase):
                 {
                     'language': 'python',
                     'code': 'print(sum(map(int,input().split())))',
-                    'use_samples': True,
-                    'custom_test_cases': [],
                 },
                 format='json',
             )
@@ -495,47 +493,63 @@ class ProblemTestRunTests(TestCase):
         data = response.data
         self.assertEqual(data['status'], 'AC')
         self.assertEqual(len(data['results']), 1)
-        sample_result = data['results'][0]
-        self.assertEqual(sample_result['source'], 'sample')
-        self.assertEqual(sample_result['status'], 'AC')
-        self.assertEqual(sample_result['input'], '1 2')
-        self.assertEqual(sample_result['expected_output'], '3')
+        first = data['results'][0]
+        self.assertEqual(first['source'], 'test_case')
+        self.assertEqual(first['status'], 'AC')
+        self.assertEqual(first['input'], '1 2')
+        self.assertEqual(first['expected_output'], '3')
         self.assertEqual(Submission.objects.count(), 0)
 
-    def test_test_run_custom_input_without_expected_marks_info(self):
-        """Custom input without expected output should return info status."""
+    def test_test_run_runs_non_sample_cases_too(self):
+        """All DB test cases (sample and hidden) are executed in order."""
+        ProblemTestCase.objects.create(
+            problem=self.problem,
+            input_data='2 3',
+            output_data='5',
+            is_sample=False,
+            is_hidden=True,
+            score=0,
+            order=2,
+        )
+
         with patch('apps.judge.judge_factory.get_judge') as mock_get_judge:
             mock_judge = MagicMock()
-            mock_judge.execute.return_value = {
-                'status': 'AC',
-                'time': 10,
-                'memory': 1024,
-                'output': 'hello',
-                'error': '',
-            }
+            mock_judge.execute.side_effect = [
+                {
+                    'status': 'AC',
+                    'time': 10,
+                    'memory': 1024,
+                    'output': '3',
+                    'error': '',
+                },
+                {
+                    'status': 'WA',
+                    'time': 8,
+                    'memory': 512,
+                    'output': '0',
+                    'error': '',
+                },
+            ]
             mock_get_judge.return_value = mock_judge
 
             response = self.client.post(
                 f'/api/v1/management/problems/{self.problem.id}/test_run/',
                 {
                     'language': 'python',
-                    'code': 'print(input())',
-                    'use_samples': False,
-                    'custom_test_cases': [{'input': 'hello'}],
+                    'code': 'x',
                 },
                 format='json',
             )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data
-        self.assertEqual(data['status'], 'AC')
-        self.assertEqual(len(data['results']), 1)
-        custom_result = data['results'][0]
-        self.assertEqual(custom_result['source'], 'custom')
-        self.assertEqual(custom_result['status'], 'info')
-        self.assertEqual(custom_result['input'], 'hello')
-        self.assertIsNone(custom_result['expected_output'])
-        self.assertEqual(Submission.objects.count(), 0)
+        self.assertEqual(data['status'], 'WA')
+        self.assertEqual(len(data['results']), 2)
+        self.assertEqual(data['results'][0]['status'], 'AC')
+        self.assertEqual(data['results'][1]['status'], 'WA')
+        self.assertEqual(data['results'][0]['source'], 'test_case')
+        self.assertEqual(data['results'][1]['source'], 'test_case')
+        self.assertEqual(mock_judge.execute.call_count, 2)
 
     def test_test_run_stops_after_compile_error(self):
         """Hard failures should stop remaining case execution like the submission path."""
@@ -573,8 +587,6 @@ class ProblemTestRunTests(TestCase):
                 {
                     'language': 'python',
                     'code': 'broken code',
-                    'use_samples': True,
-                    'custom_test_cases': [],
                 },
                 format='json',
             )

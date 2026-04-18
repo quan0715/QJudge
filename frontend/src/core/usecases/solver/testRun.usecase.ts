@@ -1,7 +1,7 @@
 /**
  * Test Run Use Case
  *
- * Handles executing test runs against sample and custom test cases.
+ * Executes code against all server-side test cases for the problem.
  * Test runs are synchronous - no polling needed.
  */
 
@@ -16,8 +16,6 @@ export interface TestRunInput {
   problemId: string;
   language: string;
   code: string;
-  customTestCases: { input: string }[];
-  useSamples?: boolean;
 }
 
 export interface TestCaseResult {
@@ -78,14 +76,12 @@ function transformApiResult(result: ApiTestRunResult): TestRunOutput {
 export async function testRunUseCase(
   input: TestRunInput
 ): Promise<TestRunOutput> {
-  const { problemId, language, code, customTestCases, useSamples = true } = input;
+  const { problemId, language, code } = input;
 
   try {
     const result = await testRun(problemId, {
       language,
       code,
-      use_samples: useSamples,
-      custom_test_cases: customTestCases,
     });
 
     return transformApiResult(result);
