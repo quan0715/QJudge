@@ -22,11 +22,11 @@ class UsageToCreditsTest(TestCase):
         self.assertEqual(usage_to_credits(2000, 6000, "deepseek-v3"), 1)
 
     def test_unknown_model_falls_back_to_default(self):
-        r1 = usage_to_credits(2000, 6000, "deepseek-r1")
+        default_model = usage_to_credits(2000, 6000, "openai-nano")
         unknown = usage_to_credits(2000, 6000, "unknown-model")
         none_model = usage_to_credits(2000, 6000, None)
-        self.assertEqual(unknown, r1)
-        self.assertEqual(none_model, r1)
+        self.assertEqual(unknown, default_model)
+        self.assertEqual(none_model, default_model)
 
     @override_settings(AI_CREDIT_SCALE_PER_CREDIT=200_000)
     def test_scale_halved_doubles_credits_roughly(self):

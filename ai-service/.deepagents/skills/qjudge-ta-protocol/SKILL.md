@@ -1,6 +1,6 @@
 ---
 name: qjudge-ta-protocol
-description: TA Agent 執行層：資料真相來源、get／code_runner／update 順序、檔案工具僅讀、測資驗證工作流、失敗收斂、HITL 使用預期。不含 MCP 欄位細節與工具選擇表（交 mcp-tool-operator）；不含教學與題敘設計（交 Coding_Problem_TA_SKILL）。
+description: TA Agent 執行層：資料真相來源、get／code_runner／update 順序、檔案工具僅讀、測資驗證工作流、失敗收斂、HITL 使用預期。不含 MCP 欄位細節與工具選擇表（交 mcp-tool-operator）；不含教學與題敘設計（交 coding-problem-ta-skill）。
 ---
 
 # QJudge TA 執行協議
@@ -14,7 +14,7 @@ description: TA Agent 執行層：資料真相來源、get／code_runner／updat
 ## 不負責（請改查）
 
 - **具體要呼叫哪個 MCP 名稱、參數 key、payload 禁忌**：**qjudge-mcp-tool-operator**（本協議只說「類型」如 get／update／code_runner）。
-- **教學目標、題敘故事、語言出題習慣、定稿欄位 checklist**：**Coding_Problem_TA_SKILL**。
+- **教學目標、題敘故事、語言出題習慣、定稿欄位 checklist**：**coding-problem-ta-skill**。
 
 ## （1）工具與資料優先順序（必須遵守）
 
@@ -39,7 +39,7 @@ description: TA Agent 執行層：資料真相來源、get／code_runner／updat
 ## 測資生成與驗證工作流（語意層；欄位見 mcp-tool-operator）
 
 1. `get` 讀題目與限制（工具選擇與參數鍵名見 **qjudge-mcp-tool-operator**）。
-2. 對齊 sample 或整理測資需求（題意品質可參考 **Coding_Problem_TA_SKILL**）。
+2. 對齊 sample 或整理測資需求（題意品質可參考 **coding-problem-ta-skill**）。
 3. 撰寫 reference solution，放在**訊息**中即可。
 4. 設計 sample + hidden 測資。
 5. **必須**以 `code_runner` 執行驗證；不可跳過或純手推 expected output。
@@ -59,4 +59,4 @@ description: TA Agent 執行層：資料真相來源、get／code_runner／updat
 ## 與其他 SKILL
 
 - **MCP 工具路由與 payload**：`qjudge-mcp-tool-operator`
-- **題目設計、題敘、故事性、語言習慣**：`Coding_Problem_TA_SKILL`
+- **題目設計、題敘、故事性、語言習慣**：`coding-problem-ta-skill`

@@ -8,6 +8,7 @@ import types
 from unittest.mock import MagicMock
 
 _deepseek_stub = types.ModuleType("langchain_deepseek")
+_openai_stub = types.ModuleType("langchain_openai")
 
 
 class _ChatDeepSeekStub:  # pragma: no cover - import stub only
@@ -15,7 +16,15 @@ class _ChatDeepSeekStub:  # pragma: no cover - import stub only
 
 
 _deepseek_stub.ChatDeepSeek = _ChatDeepSeekStub
+
+
+class _ChatOpenAIStub:  # pragma: no cover - import stub only
+    pass
+
+
+_openai_stub.ChatOpenAI = _ChatOpenAIStub
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
+sys.modules.setdefault("langchain_openai", _openai_stub)
 
 from deepagents.backends.composite import CompositeBackend
 

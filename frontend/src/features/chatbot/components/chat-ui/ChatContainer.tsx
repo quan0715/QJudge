@@ -42,6 +42,9 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
     isSessionLoading,
     pendingApproval,
     sessionNotice,
+    availableModels,
+    selectedModelId,
+    setSelectedModelId,
     createSession,
     deleteSession,
     switchSession,
@@ -161,6 +164,9 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
                 onStop={stopStreaming}
                 isStreaming={isStreaming}
                 sessionNotice={sessionNotice}
+                models={availableModels}
+                selectedModelId={selectedModelId}
+                onModelChange={setSelectedModelId}
               />
             </div>
           </div>

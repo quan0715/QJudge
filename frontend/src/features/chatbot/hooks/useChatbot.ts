@@ -4,6 +4,7 @@ import type {
   BackgroundInformation,
   ChatSession,
   ChatContext,
+  ModelInfo,
   ApprovalRequest,
   ChatRun,
   ChatMessage,
@@ -23,6 +24,9 @@ interface UseChatbotReturn {
   error: string | null;
   pendingApproval: ApprovalRequest | null;
   sessionNotice: string | null;
+  availableModels: ModelInfo[];
+  selectedModelId: string;
+  setSelectedModelId: (modelId: string) => void;
   createSession: () => Promise<string | null>;
   deleteSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
@@ -51,6 +55,28 @@ interface UseChatbotOptions {
  * 連接後端 API，支援多 session 管理
  */
 const LAST_SESSION_KEY = "chatbot_last_session_id";
+const LAST_MODEL_KEY = "chatbot_last_model_id";
+const DEFAULT_MODEL_ID = "openai-nano";
+const FALLBACK_MODELS: ModelInfo[] = [
+  {
+    model_id: "openai-nano",
+    display_name: "gpt-5-nano",
+    description: "快速且成本低，適合日常教學互動",
+    is_default: true,
+  },
+  {
+    model_id: "deepseek-r1",
+    display_name: "DeepSeek R1 (Thinking)",
+    description: "推理能力強，適合複雜操作與測資生成",
+    is_default: false,
+  },
+  {
+    model_id: "deepseek-v3",
+    display_name: "DeepSeek V3",
+    description: "快速，適合簡單查詢",
+    is_default: false,
+  },
+];
 
 export interface StreamedRunState {
   content: string;
@@ -244,6 +270,14 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const [pendingApproval, setPendingApproval] =
     useState<ApprovalRequest | null>(null);
   const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>(FALLBACK_MODELS);
+  const [selectedModelIdState, setSelectedModelIdState] = useState<string>(() => {
+    try {
+      return localStorage.getItem(LAST_MODEL_KEY) || DEFAULT_MODEL_ID;
+    } catch {
+      return DEFAULT_MODEL_ID;
+    }
+  });
   const [activeRuns, setActiveRuns] = useState<ChatRun[]>([]);
   // Incremented whenever we need to force the SSE subscription effect to
   // restart with the same activeRun (e.g., after POSTing an approval decision
@@ -258,6 +292,15 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   // This does not cancel backend-controlled AI runs.
   useEffect(() => {
     return () => { abortControllerRef.current?.abort(); };
+  }, []);
+
+  const setSelectedModelId = useCallback((modelId: string) => {
+    setSelectedModelIdState(modelId);
+    try {
+      localStorage.setItem(LAST_MODEL_KEY, modelId);
+    } catch {
+      // ignore localStorage failures
+    }
   }, []);
 
   const currentSession =
@@ -339,10 +382,24 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
       try {
         // 只載入列表（不含 messages），速度快；active runs 讓 reload 後知道哪些任務還在後端執行。
-        const [apiSessions, runs] = await Promise.all([
+        const [apiSessions, runs, models] = await Promise.all([
           chatbotRepository.getSessions(),
           chatbotRepository.getActiveRuns(),
+          chatbotRepository.getModels().catch(() => FALLBACK_MODELS),
         ]);
+        setAvailableModels(models);
+        const defaultModel = models.find((m) => m.is_default)?.model_id || DEFAULT_MODEL_ID;
+        setSelectedModelIdState((previousModelId) => {
+          const nextModelId = models.some((m) => m.model_id === previousModelId)
+            ? previousModelId
+            : defaultModel;
+          try {
+            localStorage.setItem(LAST_MODEL_KEY, nextModelId);
+          } catch {
+            // ignore localStorage failures
+          }
+          return nextModelId;
+        });
         setActiveRuns(runs);
         const sessionsWithRuns = applyActiveRunsToSessions(apiSessions, runs);
 
@@ -682,7 +739,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         const run = await chatbotRepository.startRun(
           sessionIdForRequest,
           trimmedContent,
-          { context: effectiveContext ?? undefined },
+          { context: effectiveContext ?? undefined, modelOverride: selectedModelIdState },
         );
         setActiveRuns((prev) => [...prev.filter((item) => item.id !== run.id), run]);
 
@@ -705,7 +762,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setSessionNotice(null);
       }
     },
-    [currentSessionId, effectiveContext, setCurrentSessionId],
+    [currentSessionId, effectiveContext, selectedModelIdState, setCurrentSessionId],
   );
 
 
@@ -831,6 +888,9 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     error,
     pendingApproval,
     sessionNotice,
+    availableModels,
+    selectedModelId: selectedModelIdState,
+    setSelectedModelId,
     createSession,
     deleteSession,
     switchSession,

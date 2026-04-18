@@ -65,6 +65,10 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("DEEPSEEK_API_KEY"),
     )
+    openai_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("OPENAI_API_KEY"),
+    )
 
     # DeepAgent / LangGraph Settings
     ai_state_postgres_url: str = ""  # Postgres URL for checkpoint store (ai_state schema)

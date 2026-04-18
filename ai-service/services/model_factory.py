@@ -7,24 +7,27 @@ To switch models, change _MODEL_MAP and PRICING. Everything else
 import logging
 
 from langchain_deepseek import ChatDeepSeek
+from langchain_openai import ChatOpenAI
 
 from config import get_settings
 
 logger = logging.getLogger(__name__)
 
-# Canonical model ID -> provider model string
+# Canonical model ID -> provider model string (fixed in code, not env-configured)
 _MODEL_MAP: dict[str, str] = {
+    "openai-nano": "gpt-5-nano",
     "deepseek-r1": "deepseek-reasoner",
     "deepseek-v3": "deepseek-chat",
 }
 
-_DEFAULT_MODEL_ID = "deepseek-r1"
+_DEFAULT_MODEL_ID = "openai-nano"
 _SUMMARIZATION_MODEL_ID = "deepseek-v3"
 
 # Pricing in cents per million tokens.
 # IMPORTANT: keep in sync with backend/apps/ai/credits.py::DEFAULT_MODEL_PRICING.
 # A contract test (backend/apps/ai/tests/test_pricing_alignment.py) enforces equality in CI.
 PRICING: dict[str, dict[str, int]] = {
+    "openai-nano": {"input": 5, "output": 20},
     "deepseek-r1": {"input": 55, "output": 219},
     "deepseek-v3": {"input": 7, "output": 28},
 }
@@ -32,10 +35,16 @@ PRICING: dict[str, dict[str, int]] = {
 # Model display info for the /models API
 MODEL_INFO = [
     {
-        "model_id": "deepseek-r1",
-        "display_name": "DeepSeek R1",
-        "description": "推理能力強，適合複雜操作與測資生成",
+        "model_id": "openai-nano",
+        "display_name": "gpt-5-nano",
+        "description": "快速且成本低，適合日常教學互動",
         "is_default": True,
+    },
+    {
+        "model_id": "deepseek-r1",
+        "display_name": "DeepSeek R1 (Thinking)",
+        "description": "推理能力強，適合複雜操作與測資生成",
+        "is_default": False,
     },
     {
         "model_id": "deepseek-v3",
@@ -63,11 +72,21 @@ class ModelFactory:
 
     @staticmethod
     def create_model(model_id: str = _DEFAULT_MODEL_ID):
-        """Create a ChatDeepSeek instance using the platform API key."""
+        """Create an LLM client instance based on canonical model_id."""
         model_string = ModelFactory.resolve_model_string(model_id)
-        api_key = get_settings().deepseek_api_key
-        logger.info("Creating ChatDeepSeek model=%s (from '%s')", model_string, model_id)
+        settings = get_settings()
 
+        if model_id == "openai-nano":
+            api_key = settings.openai_api_key
+            logger.info("Creating ChatOpenAI model=%s (from '%s')", model_string, model_id)
+            return ChatOpenAI(
+                model=model_string,
+                api_key=api_key or None,
+                streaming=True,
+            )
+
+        api_key = settings.deepseek_api_key
+        logger.info("Creating ChatDeepSeek model=%s (from '%s')", model_string, model_id)
         return ChatDeepSeek(
             model=model_string,
             api_key=api_key or None,
