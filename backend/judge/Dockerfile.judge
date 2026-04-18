@@ -1,9 +1,12 @@
+# syntax=docker/dockerfile:1
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN for i in 1 2 3; do apt-get update && break || sleep 10; done \
-    && apt-get install -y \
+# BuildKit: cache downloaded .deb between builds; --no-install-recommends avoids extra packages
+RUN --mount=type=cache,target=/var/cache/apt/archives,sharing=locked \
+    for i in 1 2 3; do apt-get update && break || sleep 10; done \
+    && apt-get install -y --no-install-recommends \
     g++ \
     gcc \
     time \

@@ -110,6 +110,24 @@ async def generate_resume_events(
         }
 
 
+@router.post("/repair/{thread_id}")
+async def repair_thread(thread_id: str, app_request: Request) -> dict:
+    """Repair dangling tool_calls in a thread checkpoint after cancellation.
+
+    Called by the backend immediately after marking a run as cancelled, so
+    the next user message on the same session does not hit a 400 BadRequest
+    from the LLM API due to an incomplete tool_calls/tool sequence.
+    """
+    validate_internal_auth(app_request)
+    runner = app_request.app.state.deepagent_runner
+    try:
+        repaired = await runner.repair_thread(thread_id)
+        return {"repaired": repaired, "thread_id": thread_id}
+    except Exception as e:
+        logger.exception("Failed to repair thread %s: %s", thread_id, e)
+        return {"repaired": False, "thread_id": thread_id, "error": str(e)}
+
+
 @router.delete("/thread/{thread_id}")
 async def delete_thread(thread_id: str, app_request: Request) -> dict:
     """Delete all LangGraph checkpoint state for a thread.

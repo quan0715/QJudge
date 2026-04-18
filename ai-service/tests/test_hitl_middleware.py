@@ -23,16 +23,9 @@ from services.hitl_middleware import ActionAwareHITLMiddleware  # noqa: E402
 
 WRITE_ACTIONS = {
     "qjudge_grading": {"grade", "batch_grade", "ungrade"},
-    "qjudge_coding": {"create", "update", "delete", "import_from_bank", "update_score"},
+    "qjudge_contest_manager": {"reorder"},
+    "qjudge_coding_problems": {"create", "update", "delete"},
     "qjudge_exam": {
-        "create",
-        "update",
-        "delete",
-        "reorder",
-        "import_from_bank",
-        "batch_create",
-    },
-    "qjudge_bank": {
         "create",
         "update",
         "delete",
@@ -98,7 +91,7 @@ class TestWriteActionFiltering:
     def test_coding_create_triggers_interrupt(self):
         mw = _make_middleware()
         state = _make_state(
-            _tool_call("qjudge_coding", {"action": "create", "title": "New Problem"})
+            _tool_call("qjudge_coding_problems", {"action": "create", "title": "New Problem"})
         )
         runtime = Mock()
 
@@ -109,12 +102,12 @@ class TestWriteActionFiltering:
             mw.after_model(state, runtime)
 
         fake_interrupt.assert_called_once()
-        assert fake_interrupt.call_args.args[0]["action_requests"][0]["name"] == "qjudge_coding"
+        assert fake_interrupt.call_args.args[0]["action_requests"][0]["name"] == "qjudge_coding_problems"
 
     def test_coding_get_does_not_trigger(self):
         mw = _make_middleware()
         state = _make_state(
-            _tool_call("qjudge_coding", {"action": "get", "problem_id": "p1"})
+            _tool_call("qjudge_coding_problems", {"action": "get", "problem_id": "p1"})
         )
         runtime = Mock()
 
@@ -186,10 +179,10 @@ class TestMixedToolCalls:
     def test_only_write_calls_are_interrupted(self):
         mw = _make_middleware()
         write_call = _tool_call(
-            "qjudge_coding", {"action": "update", "problem_id": "p1"}, "w1"
+            "qjudge_coding_problems", {"action": "update", "problem_id": "p1"}, "w1"
         )
         read_call = _tool_call(
-            "qjudge_coding", {"action": "list", "contest_id": "c1"}, "r1"
+            "qjudge_contest_manager", {"action": "list_problems", "contest_id": "c1"}, "r1"
         )
         state = _make_state(write_call, read_call)
         runtime = Mock()
@@ -212,10 +205,10 @@ class TestMixedToolCalls:
     def test_single_decision_fans_out_to_multiple_writes(self):
         mw = _make_middleware()
         call_1 = _tool_call(
-            "qjudge_coding", {"action": "create", "title": "A"}, "c1"
+            "qjudge_coding_problems", {"action": "create", "title": "A"}, "c1"
         )
         call_2 = _tool_call(
-            "qjudge_coding", {"action": "update", "problem_id": "p2"}, "c2"
+            "qjudge_coding_problems", {"action": "update", "problem_id": "p2"}, "c2"
         )
         state = _make_state(call_1, call_2)
         runtime = Mock()

@@ -14,6 +14,17 @@ from mcp.types import CallToolResult, Tool
 logger = logging.getLogger(__name__)
 
 
+def _preview_for_log(value: Any, *, limit: int = 500) -> str:
+    """Best-effort compact preview for logs (avoid giant payload spam)."""
+    try:
+        text = str(value)
+    except Exception:
+        text = repr(value)
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit]}...(truncated)"
+
+
 class MCPToolProvider:
     """Connect to QJudge MCP and expose tools as LangChain tools."""
 
@@ -79,9 +90,32 @@ class MCPToolProvider:
         args_schema = tool_def.inputSchema or {"type": "object", "properties": {}}
 
         async def _invoke(**kwargs: Any) -> Any:
-            result = await self._call_tool(tool_def.name, kwargs or None)
+            try:
+                result = await self._call_tool(tool_def.name, kwargs or None)
+            except Exception as exc:
+                detail = f"{type(exc).__name__}: {exc!r}"
+                logger.exception(
+                    "mcp_tool %s transport exception args=%s detail=%s",
+                    tool_def.name,
+                    _preview_for_log(kwargs),
+                    detail,
+                )
+                return {
+                    "is_error": True,
+                    "detail": f"MCP transport error in {tool_def.name}",
+                    "exception": detail,
+                }
+
             formatted = _format_tool_result(result)
-            logger.info("mcp_tool %s error=%s", tool_def.name, result.isError)
+            if result.isError:
+                logger.warning(
+                    "mcp_tool %s unsuccessful args=%s payload=%s",
+                    tool_def.name,
+                    _preview_for_log(kwargs),
+                    _preview_for_log(formatted),
+                )
+            else:
+                logger.info("mcp_tool %s ok", tool_def.name)
             return formatted
 
         return StructuredTool(
@@ -114,6 +148,9 @@ def _format_tool_result(result: CallToolResult) -> Any:
         payload = _flatten_content_blocks(result.content)
 
     if result.isError:
+        # Some MCP transports return an empty string for bare ToolError.
+        if payload in ("", None, []):
+            payload = "MCP tool failed with empty error message"
         if isinstance(payload, dict):
             return {
                 "is_error": True,

@@ -117,6 +117,16 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
           )
         )}
 
+        {/* Show thinking dots after content when isThinking is true — covers the
+            gap between HITL resume and the first SSE event from the resumed run. */}
+        {!isUser && messageText && message.isThinking && (
+          <span className={styles.thinkingDots}>
+            <span />
+            <span />
+            <span />
+          </span>
+        )}
+
         {!isUser && message.runStatus === "queued" && (
           <span className={styles.runStatus}>已排入佇列</span>
         )}

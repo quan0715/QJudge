@@ -301,11 +301,10 @@
     "contests": "대회",
     "dashboard": "대시보드",
     "documentation": "문서",
-    "marketplace": "문제집 마켓",
+    "marketplace": "문제 마켓플레이스",
     "problemList": "문제 목록",
     "problems": "문제",
-    "problemsLegacy": "문제 (이전)",
-    "questionBanks": "문제집",
+
     "ranking": "랭킹",
     "submissions": "제출 기록"
   },
@@ -322,8 +321,6 @@
     "login": "로그인",
     "problemDetail": "문제 상세",
     "problemManagement": "문제 관리",
-    "problemManagementLegacy": "문제 관리 (이전)",
-    "problems": "문제 목록",
     "questionBanks": "문제집",
     "register": "회원가입",
     "submissions": "제출 기록",

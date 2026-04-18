@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react";
-import { IconButton, Tag } from "@carbon/react";
+import { IconButton } from "@carbon/react";
 import { Send, StopFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import styles from "./ComposerBar.module.scss";
@@ -70,13 +70,12 @@ export function ComposerBar({
       {hasStatusBlock && (
         <div className={styles.statusStack}>
           {sessionNotice && (
-            <div className={styles.noticeRow}>
-              <Tag type="gray" size="sm">
-                {sessionNotice}
-              </Tag>
+            <div className={styles.dividerNotice}>
+              <span className={styles.line} />
+              <span className={styles.noticeText}>{sessionNotice}</span>
+              <span className={styles.line} />
             </div>
           )}
-
         </div>
       )}
 

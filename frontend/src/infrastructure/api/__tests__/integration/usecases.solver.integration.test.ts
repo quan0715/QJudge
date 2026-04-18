@@ -49,8 +49,6 @@ describe("solver use case integration", () => {
       problemId,
       language: "cpp",
       code: TEST_CODE_SAMPLES.aPlusBCorrect,
-      customTestCases: [{ input: "1 2\n" }],
-      useSamples: true,
     });
 
     expect(result.success).toBe(true);

@@ -3,7 +3,7 @@ import type { SubmissionResult, TestRunResult } from "@/core/types/solver.types"
 export const transformTestRunToResult = (data: any): TestRunResult => {
   const results = data.results || [];
   const cases = results.map((r: any, idx: number) => ({
-    id: r.id?.toString() || `case_${idx}`,
+    id: r.case_id?.toString() || r.id?.toString() || `case_${idx}`,
     passed: r.status === "AC",
     input: r.input,
     expectedOutput: r.expected_output,
@@ -11,7 +11,7 @@ export const transformTestRunToResult = (data: any): TestRunResult => {
     error: r.error_message,
     executionTime: r.exec_time,
     memoryUsage: r.memory_usage,
-    isHidden: false,
+    isHidden: Boolean(r.is_hidden),
     status: r.status,
   }));
 

@@ -35,6 +35,7 @@
   },
   "announcement": {
     "createFailed": "建立公告失敗",
+    "delete": "刪除公告",
     "modal": {
       "form": {
         "content": "內容",

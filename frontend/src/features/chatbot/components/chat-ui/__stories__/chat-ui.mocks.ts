@@ -130,7 +130,7 @@ export const mockSessions: ChatSession[] = [
 export const mockApprovalRequest: ApprovalRequest = {
   actionRequests: [
     {
-      name: "qjudge_coding",
+      name: "qjudge_coding_problems",
       args: {
         action: "create_problem",
         contest_id: "abc-123",

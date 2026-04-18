@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Button, ClickableTile } from "@carbon/react";
 import { TrashCan, Calendar, Pin } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import { stripMarkdown } from "@/shared/utils";
 import styles from "./AnnouncementCard.module.scss";
 
@@ -52,6 +53,7 @@ export const AnnouncementCard = ({
   createdBy,
   showPin = true,
 }: AnnouncementCardProps) => {
+  const { t } = useTranslation("classroom");
   const displayContent =
     maxContentLength > 0
       ? stripMarkdown(announcement.content, maxContentLength)
@@ -86,7 +88,7 @@ export const AnnouncementCard = ({
                 size="sm"
                 renderIcon={TrashCan}
                 hasIconOnly
-                iconDescription="刪除公告"
+                iconDescription={t("announcement.delete")}
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   onDelete(announcement.id);

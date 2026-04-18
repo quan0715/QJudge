@@ -35,6 +35,7 @@
   },
   "announcement": {
     "createFailed": "공지 생성에 실패했습니다",
+    "delete": "공지사항 삭제",
     "modal": {
       "form": {
         "content": "내용",

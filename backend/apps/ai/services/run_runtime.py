@@ -123,6 +123,29 @@ def dispatch_next_queued_run(session: AISession) -> None:
     dispatch_run(run)
 
 
+def _fire_thread_repair(thread_id: str) -> None:
+    """Best-effort POST to ai-service repair endpoint after run cancellation.
+
+    Called synchronously in the Celery worker context. Failures are logged but
+    never raised — the reactive repair on the next request is the fallback.
+    """
+    try:
+        headers = {"X-AI-Internal-Token": _ai_internal_token()}
+        with httpx.Client(timeout=httpx.Timeout(5.0)) as client:
+            resp = client.post(
+                f"{ai_service_base_url()}/api/chat/repair/{thread_id}",
+                headers=headers,
+            )
+        logger.info("Thread repair for %s: %s", thread_id, resp.json())
+    except Exception as exc:
+        logger.warning("Thread repair request failed for %s: %s", thread_id, exc)
+
+
+def _ai_internal_token() -> str:
+    from django.conf import settings
+    return getattr(settings, "AI_SERVICE_INTERNAL_TOKEN", "").strip()
+
+
 def request_run_cancel(run: AIChatRun) -> AIChatRun:
     """Request cancellation. Queued and approval-gated runs terminate immediately."""
     run.cancel_requested = True
@@ -251,6 +274,7 @@ def execute_run(run_id: str) -> None:
                             raw_log={"cancelled": True, "run_id": str(run.id)},
                             metadata={"cancelled": True, "run_id": str(run.id)},
                         )
+                        _fire_thread_repair(run.thread_id or run.session.session_id)
                         dispatch_next_queued_run(run.session)
                         return
 

@@ -1,20 +1,22 @@
 # QJudge MCP Tools Reference
 
-> **Last updated:** 2026-04-14
-> **Source of truth:** `mcp-server/server.py`
+> **Last updated:** 2026-04-18
+> **Source of truth:** `mcp-server/server.py`（參數與路由行為以此為準）
+
+`qjudge_browse` → `get_help` 回傳的 JSON（`_TOOL_HELP`）與本文件對齊：**`tools`** 為各工具一句話摘要；**`coding_tools_how_to_choose`**、**`coding_problem_example`** / **`exam_question_example`**、**`common_mistakes`** 與下方「Common Mistakes」表意義相同。完整 **Parameters / Actions** 以本文件各節為準。
 
 ---
 
 ## Overview
 
-QJudge MCP Server 提供 6 個工具，每個工具有明確的職責邊界。
+QJudge MCP Server 提供 **6 個工具**（`qjudge_bank` 已自 MCP 移除，有需求再於 `server.py` 還原註解區塊），每個工具有明確的職責邊界。
 
 | Tool | Purpose | Do NOT use for |
 |---|---|---|
 | `qjudge_browse` | 唯讀查詢 | 任何寫入操作 |
-| `qjudge_bank` | 題庫題目 CRUD | 競賽題目管理 |
-| `qjudge_exam` | 競賽筆試題管理 | coding contests, code execution |
-| `qjudge_coding` | 競賽程式題管理 | code execution, paper_exam contests |
+| `qjudge_contest_manager` | 競賽詳情、場內題目列表、題目順序 reorder | 單題 CRUD（請用 exam/coding 工具） |
+| `qjudge_exam` | 競賽筆試題單題 CRUD / 批次 / 匯入 | coding contests, list/reorder 場內題目 |
+| `qjudge_coding_problems` | 競賽程式題單題 CRUD | code execution, paper_exam, list 場內題目 |
 | `qjudge_code_runner` | 程式碼執行驗證 | 題目 CRUD |
 | `qjudge_grading` | 改卷 | 題目 CRUD |
 
@@ -85,104 +87,32 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 
 ---
 
-## qjudge_bank
+## qjudge_contest_manager
 
-**題庫題目 CRUD**。支援 exam 和 coding 兩種題型。
+**競賽層級**：讀取競賽詳情、列出場內全部題目（依 `contest_type` 轉打 `.../problems/` 或 `.../exam-questions/`）、以及 **reorder** 題目順序。
 
 ### Parameters
 
-| Param | Type | Used by | Notes |
-|---|---|---|---|
-| `action` | string | all | create, get, update, delete |
-| `bank_id` | string? | create | 題庫 ID |
-| `question_id` | string? | get, update, delete | 題目 ID (bank_item_id) |
-| `question_type` | string? | create | `"exam"` or `"coding"` |
-| `title` | string? | create, update | |
-| `prompt` | string? | create, update | exam 題目敘述 |
-| `difficulty` | string? | create, update | easy/medium/hard |
-| `score` | int? | create, update | |
-| `time_limit` | int? | create, update | ms |
-| `memory_limit` | int? | create, update | MB |
-| `options` | list[str]? | create, update | exam 選項，**不要加 A/B/C/D 前綴** |
-| `correct_answer` | any? | create, update | 見下方格式說明 |
-| `description` | string? | create, update | coding 題目敘述（Markdown） |
-| `input_description` | string? | create, update | 輸入格式說明 |
-| `output_description` | string? | create, update | 輸出格式說明 |
-| `hint` | string? | create, update | 提示 |
-| `test_cases` | list[dict]? | create, update | coding 題測資 |
-| `language_configs` | list[dict]? | create, update | coding 題語言設定 |
-| `forbidden_keywords` | list[str]? | create, update | |
-| `required_keywords` | list[str]? | create, update | |
+| Param | Type | Used by |
+|---|---|---|
+| `action` | string | all |
+| `contest_id` | string? | get_detail, list_problems, reorder |
+| `question_ids` | list[str]? | reorder（全部題目 ID 的順序） |
 
 ### Actions
 
-| Action | Required | Optional |
+| Action | Required | Notes |
 |---|---|---|
-| `create` | bank_id, question_type, title | all field params |
-| `get` | question_id | — |
-| `update` | question_id | any field param |
-| `delete` | question_id | — |
-
-### Exam 題欄位格式
-
-```json
-{
-  "action": "create",
-  "bank_id": "...",
-  "question_type": "exam",
-  "title": "台灣首都",
-  "prompt": "台灣的首都是哪裡？",
-  "options": ["台北", "台中", "高雄", "台南"],
-  "correct_answer": 0,
-  "score": 10
-}
-```
-
-- `options`: 純文字，**不加** A/B/C/D 前綴（UI 自動加）
-- `correct_answer`:
-  - single_choice: 0-based int index（如 `0`）
-  - multiple_choice: int list（如 `[0, 2]`）
-  - true_false: boolean（`true`/`false`），options 應為 `["True", "False"]`
-  - short_answer/essay: string
-
-### Coding 題欄位格式
-
-```json
-{
-  "action": "create",
-  "bank_id": "...",
-  "question_type": "coding",
-  "title": "A+B Problem",
-  "difficulty": "easy",
-  "time_limit": 1000,
-  "memory_limit": 128,
-  "description": "給定兩個整數 A 和 B，輸出 A+B。",
-  "input_description": "一行，包含兩個整數 A 和 B。",
-  "output_description": "輸出 A+B 的結果。",
-  "hint": "",
-  "test_cases": [
-    {"input_data": "1 2\n", "output_data": "3\n", "is_sample": true, "weight_percent": 0, "order": 0},
-    {"input_data": "100 200\n", "output_data": "300\n", "is_sample": false, "weight_percent": 50, "order": 1},
-    {"input_data": "-1 1\n", "output_data": "0\n", "is_sample": false, "weight_percent": 50, "order": 2}
-  ],
-  "language_configs": [
-    {"language": "cpp", "template_code": "", "is_enabled": true, "order": 0},
-    {"language": "python", "template_code": "", "is_enabled": true, "order": 1}
-  ]
-}
-```
-
-**重要規則：**
-- `weight_percent`（不是 `score`）：所有 test_cases 的 weight_percent 總和必須 = 100
-- sample 測資的 weight_percent 設 `0`（不計分）
-- `language` 可選值：`cpp`, `python`, `java`, `javascript`
-- description/test_cases/language_configs 放**頂層**，不要用 `coding_ext` 或 `translations[]` 包裝
+| `get_detail` | contest_id | 等同 `GET /api/v1/contests/{id}/` |
+| `list_problems` | contest_id | `coding` → problems；`paper_exam` → exam-questions |
+| `reorder` | contest_id, question_ids | 依類型呼叫對應的 `.../reorder/` |
 
 ---
 
 ## qjudge_exam
 
-**競賽筆試題管理**。只能用於 `contest_type: "paper_exam"` 的競賽。
+**競賽筆試題管理**。只能用於 `contest_type: "paper_exam"` 的競賽。  
+**場內題目列表與 reorder** 請用 **`qjudge_contest_manager`**（`list_problems` / `reorder`）。
 
 ### Parameters
 
@@ -197,7 +127,6 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 | `score` | int? | create, update |
 | `options` | list[str]? | create, update |
 | `correct_answer` | any? | create, update |
-| `question_ids` | list[str]? | reorder |
 | `items` | list[dict]? | batch_create, import_from_bank |
 | `mode` | string? | batch_create |
 
@@ -205,12 +134,10 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 
 | Action | Required | Optional | Notes |
 |---|---|---|---|
-| `list` | contest_id | — | |
 | `get` | contest_id, question_id | — | |
 | `create` | contest_id, question_type, prompt | explanation, score, options, correct_answer | 一次一題 |
 | `update` | contest_id, question_id | any field | 一次一題 |
 | `delete` | contest_id, question_id | — | 一次一題，無批量 |
-| `reorder` | contest_id, question_ids | — | question_ids 為全部題目 ID 的排序 |
 | `import_from_bank` | contest_id, items | — | items: [{question_bank_id, question_id}] |
 | `batch_create` | contest_id, items | mode | mode: "append"(default) / "overwrite" |
 
@@ -218,24 +145,26 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 
 ```
 question_id  → get, update, delete only
-question_ids → reorder only
 items        → batch_create, import_from_bank only
 mode         → batch_create only
 ```
 
 ---
 
-## qjudge_coding
+## qjudge_coding_problems
 
-**競賽程式題管理 + test_run**。只能用於 `contest_type: "coding"` 的競賽。
+**競賽程式題管理**（程式執行請用 `qjudge_code_runner`）。只能用於 `contest_type: "coding"` 的競賽。  
+**場內題目列表**請用 **`qjudge_contest_manager`**（`list_problems`）。
+
+MCP 僅暴露 **get / create / update / delete**；後端另有匯入題庫、調整分數等 REST，若未來產品要接再開。
 
 ### Parameters
 
 | Param | Type | Used by |
 |---|---|---|
 | `action` | string | all |
-| `contest_id` | string? | list, get, create, update, import_from_bank, update_score, delete |
-| `problem_id` | string? | get, update, update_score, delete, test_run |
+| `contest_id` | string? | get, create, update, delete |
+| `problem_id` | string? | get, update, delete |
 | `title` | string? | create |
 | `difficulty` | string? | create, update |
 | `time_limit` | int? | create, update |
@@ -246,21 +175,15 @@ mode         → batch_create only
 | `hint` | string? | create, update |
 | `test_cases` | list[dict]? | create, update |
 | `language_configs` | list[dict]? | create, update |
-| `forbidden_keywords` | list[str]? | create, update |
-| `required_keywords` | list[str]? | create, update |
-| `items` | list[dict]? | import_from_bank |
-| `max_score` | int? | update_score |
+| `max_score` | int? | create, update |
 
 ### Actions
 
 | Action | Required | Optional |
 |---|---|---|
-| `list` | contest_id | — |
 | `get` | contest_id, problem_id | — |
-| `create` | contest_id, title | difficulty, time_limit, memory_limit, description, input_description, output_description, hint, test_cases, language_configs, forbidden_keywords, required_keywords |
+| `create` | contest_id, title | difficulty, time_limit, memory_limit, description, input_description, output_description, hint, test_cases, language_configs, max_score |
 | `update` | contest_id, problem_id | same as create |
-| `import_from_bank` | contest_id, items | — |
-| `update_score` | contest_id, problem_id, max_score | — |
 | `delete` | contest_id, problem_id | — |
 
 ### Create 完整範例
@@ -290,10 +213,34 @@ mode         → batch_create only
 ```
 
 **注意：**
-- 不要用 `coding_ext` 包裝（如果傳了會自動展開，但會收到棄用 warning）
 - 不要用 `prompt`（題目內容透過 `description` 傳入）
 - `weight_percent` 非 sample 測資總和必須 = 100
-- `language_configs` 可選值：`cpp`, `python`, `java`, `javascript`
+
+---
+
+## qjudge_code_runner
+
+**程式碼執行驗證**。對一道 coding 題依序跑**該題在系統內儲存的全部測資**，取得執行結果。
+
+不需要 `action` 參數 — 這個工具只做一件事（後端只收 `language` + `code`，無自訂測資或僅跑 sample 的模式）。
+
+### Parameters
+
+| Param | Type | Required | Notes |
+|---|---|---|---|
+| `problem_id` | string | yes | 要測試的 coding problem ID |
+| `language` | string | yes | `cpp`, `c`, `python`, `java`（與後端 judge 一致；**不支援** `javascript` 於此 endpoint） |
+| `code` | string | yes | 要執行的原始碼 |
+
+### 範例
+
+```json
+{
+  "problem_id": "...",
+  "language": "python",
+  "code": "a, b = map(int, input().split())\nprint(a + b)"
+}
+```
 
 ---
 
@@ -343,45 +290,20 @@ mode         → batch_create only
 
 ---
 
-## qjudge_code_runner
-
-**程式碼執行驗證**。對一道 coding 題跑程式碼，取得執行結果。
-
-不需要 `action` 參數 — 這個工具只做一件事。
-
-### Parameters
-
-| Param | Type | Required | Notes |
-|---|---|---|---|
-| `problem_id` | string | yes | 要測試的 coding problem ID |
-| `language` | string | yes | `cpp`, `python`, `java`, `javascript` |
-| `code` | string | yes | 要執行的原始碼 |
-| `use_samples` | bool | no | 是否跑 sample test cases（default: true） |
-| `custom_test_cases` | list[dict]? | no | 自訂測資 [{input, expected_output}] |
-
-### 範例
-
-```json
-{
-  "problem_id": "...",
-  "language": "python",
-  "code": "a, b = map(int, input().split())\nprint(a + b)"
-}
-```
-
----
-
 ## Common Mistakes
 
 | 錯誤 | 正確做法 |
 |---|---|
-| `coding_ext: {description: ...}` 包裝 | description 放頂層 |
+| 在 MCP 傳 `coding_ext` | `qjudge_coding_problems` 不支援 — 請傳頂層 `description` / `test_cases` 等 |
 | `translations: [{...}]` 陣列包裝 | 直接用 `description`、`input_description` 等頂層欄位 |
 | `prompt: "題目敘述"` 傳給 coding 題 | 用 `description` |
 | `score: 50` 在 test_cases 裡 | 用 `weight_percent: 50` |
 | options 加 `"A. 台北"` 前綴 | 純文字 `"台北"`，UI 自動加前綴 |
 | `question_ids` 傳給 delete | delete 只接受單一 `question_id` |
 | `items` 傳給 create | create 是單題，批量用 `batch_create` |
-| 用 `qjudge_browse` 建題目 | browse 是唯讀，建題用 `qjudge_bank` |
-| 用 `qjudge_coding` 跑程式碼 | 用 `qjudge_code_runner`，coding 只管題目 CRUD |
-| exam 欄位傳給 coding 題 | coding 題用 description/test_cases，不用 options/correct_answer |
+| 用 `qjudge_browse` 建題目 | browse 是唯讀；列場內題目用 `qjudge_contest_manager`；單題 CRUD 用 `qjudge_exam` / `qjudge_coding_problems` |
+| 仍呼叫 `qjudge_exam` / `qjudge_coding_problems` 的 `list` 或筆試的 `reorder` | 已移除；改 `qjudge_contest_manager` 的 `list_problems` / `reorder` |
+| 用 `qjudge_coding_problems` 跑程式碼 | 用 `qjudge_code_runner`，coding 只管題目 CRUD |
+| 以為 `qjudge_code_runner` 可選跑部分測資或帶自訂測資 | 後端固定跑該題儲存的全部測資；參數僅 `language` + `code` |
+| `language: "javascript"` 於 code_runner | 此 endpoint 僅支援 `cpp` / `c` / `python` / `java` |
+| exam 欄位傳給 coding 題 | coding 題用 description/test_cases；筆試欄位用 `qjudge_exam`（`paper_exam`） |

@@ -534,6 +534,19 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       thinking: "",
     };
 
+    // When resuming after HITL, the last pre-pause event left message.isThinking=false
+    // (tool finished / content arrived). Reset it to true immediately so the user
+    // sees a running indicator before the first SSE event from the resumed run arrives.
+    if (activeRun.status === "running" || activeRun.status === "queued") {
+      setSessions((prev) =>
+        prev.map((session) =>
+          session.id === activeRun.sessionId
+            ? applyRunMessageUpdate(session, activeRun, { isThinking: true }, streamedState)
+            : session,
+        ),
+      );
+    }
+
     chatbotRepository.subscribeRunEvents(
       activeRun,
       {

@@ -136,9 +136,9 @@ services:
       timeout: 10s
       retries: 3
 
-  # Django Backend (Dev Mode)
+  # Django Backend (Dev Mode; shared image with Celery — single build)
   backend:
-    build:
+    build: &backend_dev_build
       context: ./backend
       dockerfile: Dockerfile
       args:
@@ -186,6 +186,7 @@ services:
 
   # Celery Worker (Dev Mode)
   celery:
+    build: *backend_dev_build
     image: oj_backend_dev_img
     container_name: oj_celery_dev
     command: celery -A config.celery worker --loglevel=info -Q celery,default,high_priority
@@ -221,6 +222,7 @@ services:
       - oj_network_dev
 
   celery-video:
+    build: *backend_dev_build
     image: oj_backend_dev_img
     container_name: oj_celery_video_dev
     command: celery -A config.celery worker --loglevel=info -Q video_queue --concurrency=2
@@ -254,6 +256,7 @@ services:
 
   # Celery Beat (Dev Mode - Scheduler for periodic tasks)
   celery-beat:
+    build: *backend_dev_build
     image: oj_backend_dev_img
     container_name: oj_celery_beat_dev
     command: celery -A config beat -l info

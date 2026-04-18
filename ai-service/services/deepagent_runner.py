@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import uuid
 from typing import Any, AsyncGenerator
 
-from deepagents.backends import StateBackend
-from deepagents.graph import create_agent, TodoListMiddleware
-from deepagents.middleware.filesystem import FilesystemMiddleware
+from deepagents import create_deep_agent
+from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.middleware.summarization import SummarizationMiddleware
 from langchain_core.messages import AnyMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -20,6 +20,7 @@ from services.event_adapter import (
     RunCompleted,
     RunFailed,
     RunStarted,
+    SummarizationEnded,
     SummarizationStarted,
     UsageReport,
     adapt_langgraph_event,
@@ -28,7 +29,7 @@ from services.event_adapter import (
 from models.schemas import RequestContext
 from services.hitl_middleware import ActionAwareHITLMiddleware
 from services.mcp_tool_provider import MCPToolProvider
-from services.model_factory import ModelFactory, _SUMMARIZATION_MODEL_ID
+from services.model_factory import ModelFactory, _DEFAULT_MODEL_ID as _REPAIR_MODEL_ID
 
 logger = logging.getLogger(__name__)
 
@@ -45,22 +46,13 @@ _AGENT_RECURSION_LIMIT = 100
 # corresponding set triggers an interrupt handled by ActionAwareHITLMiddleware.
 _WRITE_ACTIONS: dict[str, set[str]] = {
     "qjudge_grading": {"grade", "batch_grade", "ungrade"},
-    "qjudge_coding": {
+    "qjudge_contest_manager": {"reorder"},
+    "qjudge_coding_problems": {
         "create",
         "update",
         "delete",
-        "import_from_bank",
-        "update_score",
     },
     "qjudge_exam": {
-        "create",
-        "update",
-        "delete",
-        "reorder",
-        "import_from_bank",
-        "batch_create",
-    },
-    "qjudge_bank": {
         "create",
         "update",
         "delete",
@@ -82,8 +74,8 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
     This subclass simply wires it up until deepagents releases a fix.
     See: https://github.com/langchain-ai/langchain/issues/34282
 
-    Also emits a SummarizationStarted event via an asyncio.Queue side-channel
-    so callers can surface a visible SSE event when compaction fires.
+    Also emits SummarizationStarted / SummarizationEnded via an asyncio.Queue
+    side-channel so callers can show/clear UI when compaction runs.
     """
 
     def __init__(self, *args: Any, event_queue: asyncio.Queue | None = None, **kwargs: Any) -> None:
@@ -102,6 +94,7 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
 
     async def awrap_model_call(self, request: Any, handler: Any) -> Any:
         logger.info("_SafeSummarizationMiddleware.awrap_model_call called")
+        emitted_start = False
         # Mirror the parent's token-count check (read-only) to detect when
         # compaction will fire so we can emit a side-channel SSE event.
         try:
@@ -118,10 +111,18 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
                 logger.info("SummarizationMiddleware: compaction triggered")
                 if self._event_queue is not None:
                     await self._event_queue.put(to_sse_dict(SummarizationStarted()))
+                    emitted_start = True
         except Exception as e:
             logger.warning("SummarizationMiddleware observability error: %s", e)
 
-        return await super().awrap_model_call(request, handler)
+        try:
+            return await super().awrap_model_call(request, handler)
+        finally:
+            if emitted_start and self._event_queue is not None:
+                try:
+                    await self._event_queue.put(to_sse_dict(SummarizationEnded()))
+                except Exception as e:
+                    logger.warning("SummarizationMiddleware: SummarizationEnded emit failed: %s", e)
 
 
 # Default system prompt for the TA agent
@@ -133,40 +134,44 @@ _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師�
 
 工作原則：
 - 題目資料先讀取再回答，不要臆測。
+- 若工具本身會直接寫入，先用一句話說明預計變更；實際生效以 HITL 核准結果為準。
+- 對於與 QJudge 任務無關的請求，簡短拒絕並引導回出題/測驗/批改工作。
 - 若工具本身會直接寫入，先明確告知將執行的變更內容，再呼叫工具。
 
 可用工具：
 - qjudge_discover：查教室、競賽、題庫與題庫題。
-- qjudge_exam：管理試題型題目。
+- qjudge_contest_manager：競賽詳情、場內題目列表（list_problems）、題目順序（reorder）。
+- qjudge_exam：管理試卷型（paper_exam）場內題目。
 - qjudge_grading：查看與批改作答。
-- qjudge_coding：管理程式題、匯入題庫題、調整分數、test run。
+- qjudge_coding_problems：管理程式競賽場內單一程式題（CRUD）；列表請用 qjudge_contest_manager list_problems。
+- qjudge_code_runner：依題目執行程式碼（傳 code 字串），不負責題目 CRUD。
 - 所有寫入都直接走 MCP tool；先讀現況再修改，不要臆測。
 
 虛擬檔案工具（write_file / read_file / ls / glob / grep / edit_file）：
 - 僅作為暫存筆記（scratch space），內容存在對話內部 state，外部看不到、也不會被測資系統讀到。
 - 絕對不要把「寫虛擬檔案」當成「更新題目/測資」。真實落地必須走：
-  * qjudge_coding(action="update") 修改題目描述 / test_cases / language_configs
+  * qjudge_coding_problems(action="update") 修改題目描述 / test_cases / language_configs
   * qjudge_code_runner 執行 reference solution（參數是 code 字串，不讀虛擬檔案）
 - 同一個檔案不要連續 read 超過一次；已讀過就從對話記憶取用。
 
 測資生成工作流（當用戶要求生成或驗證測資時遵循）：
-1. qjudge_coding(action="get") 讀題目描述與限制。
+1. qjudge_coding_problems(action="get") 讀題目描述與限制。
 2. 視需要讀取題目細節中的 sample cases，或基於既有內容整理測資需求。
 3. 撰寫 reference solution（使用題目指定語言或 Python），直接在訊息或虛擬檔案中暫存。
 4. 設計測資集：sample cases（基本範例）+ hidden cases（邊界、壓力測試）。
 5. **必須**使用 qjudge_code_runner 以 code 字串送入實際執行 reference solution 驗證。
-   絕對不可跳過此步驟或自行手推 expected output；test_run 不在 qjudge_coding 裡。
-6. 驗證後用 qjudge_coding(action="update") 把新的 test_cases 寫回題目；不可假裝已寫入。
+   絕對不可跳過此步驟或自行手推 expected output；test_run 不在 qjudge_coding_problems 裡。
+6. 驗證後用 qjudge_coding_problems(action="update") 把新的 test_cases 寫回題目；不可假裝已寫入。
 
 寫入核准（HITL）：
 下列工具的寫入類 action 會自動中斷等核准，直接呼叫即可：
 - qjudge_grading：grade / batch_grade / ungrade
   （唯讀：list_answers / question_detail / dashboard）
-- qjudge_coding：create / update / delete / import_from_bank / update_score
-  （唯讀：list / get；test_run 不在此工具，執行程式碼請用 qjudge_code_runner）
+- qjudge_contest_manager：reorder（列表請用 list_problems，非寫入）
+- qjudge_coding_problems：create / update / delete
+  （唯讀：get；執行程式碼請用 qjudge_code_runner）
 - qjudge_exam：create / update / delete / reorder / import_from_bank / batch_create
-  （唯讀：list / get）
-- qjudge_bank：create / update / delete / reorder / import_from_bank / batch_create
+  （唯讀：get 等；場內題目列表請用 qjudge_contest_manager list_problems）
 
 不要自行加「請確認」這類開場。使用者拒絕時工具會回傳 error ToolMessage，
 請據此調整回覆，不要重試相同寫入。
@@ -180,9 +185,13 @@ class DeepAgentRunner:
         self,
         checkpoint_db_url: str,
         mcp_server_url: str,
+        skills_paths: list[str] | None = None,
+        memory_paths: list[str] | None = None,
     ) -> None:
         self._checkpoint_db_url = checkpoint_db_url
         self._mcp_server_url = mcp_server_url
+        self._skills_paths = skills_paths or ["/app/.deepagents/skills/"]
+        self._memory_paths = memory_paths or ["/app/.deepagents/AGENTS.md"]
         self._checkpointer: AsyncPostgresSaver | None = None
         self._checkpointer_cm: Any = None  # context manager
 
@@ -208,6 +217,23 @@ class DeepAgentRunner:
         await self._checkpointer.adelete_thread(thread_id)
         logger.info("Deleted LangGraph checkpoint for thread %s", thread_id)
 
+    async def repair_thread(self, thread_id: str) -> bool:
+        """Proactively repair dangling tool_calls after a run is cancelled.
+
+        Builds a minimal agent (no MCP tools) solely for checkpoint state
+        read/write — the model is never invoked. Returns True if any repair
+        messages were injected.
+        """
+        if self._checkpointer is None:
+            raise RuntimeError("Checkpointer not initialized")
+        agent = self._build_agent(
+            model_id=_REPAIR_MODEL_ID,
+            system_prompt=None,
+            tools=[],
+        )
+        config = {"configurable": {"thread_id": thread_id}}
+        return await self._repair_dangling_tool_calls(agent, config)
+
     def _build_agent(
         self,
         model_id: str,
@@ -217,34 +243,28 @@ class DeepAgentRunner:
     ):
         """Build a DeepAgent with tools.
 
-        Keeps create_agent (not create_deep_agent) to avoid the default
-        SubAgentMiddleware / SummarizationMiddleware overhead.
-
-        Middleware stack (in order):
-          1. TodoListMiddleware             — task planning, ~700 tokens
-          2. FilesystemMiddleware           — auto-evicts tool results >20k tokens to StateBackend
-          3. _SafeSummarizationMiddleware   — compresses history at 85% context; patches deepagents
-                                             0.5.3 bug where _partition_messages didn't call
-                                             _find_safe_cutoff_point (langchain#34282)
-          3. SummarizationMiddleware   — compresses conversation at 85% context window,
-                                        prevents long sessions from hitting DeepSeek R1's 131k limit
+        create_deep_agent already injects the standard DeepAgents stack
+        (TodoList, Skills, Filesystem, Summarization, etc.). Only append
+        custom middleware that is not already included.
         """
         model = ModelFactory.create_model(model_id=model_id)
-        summarization_model = ModelFactory.create_model(model_id=_SUMMARIZATION_MODEL_ID)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
-        backend = StateBackend()
+        skill_backend = FilesystemBackend(root_dir="/app")
+        skills = [p for p in self._skills_paths if p]
+        memory = [p for p in self._memory_paths if p]
 
-        agent = create_agent(
+        for path in skills + memory:
+            if not os.path.exists(path):
+                logger.warning("DeepAgents path not found: %s", path)
+
+        agent = create_deep_agent(
             model=model,
             tools=tools,
             system_prompt=prompt,
+            backend=skill_backend,
+            skills=skills,
+            memory=memory,
             middleware=[
-                TodoListMiddleware(),
-                FilesystemMiddleware(backend=backend),
-                # Trigger at ~95k local tokens ≈ ~108k actual tokens (DeepSeek R1 limit: 131k).
-                # count_tokens_approximately underestimates by ~12%, so 95k local ≈ 108k actual,
-                # giving enough headroom for the summarization LLM call output before hitting the limit.
-                _SafeSummarizationMiddleware(model=summarization_model, backend=backend, event_queue=event_queue, trigger=("tokens", 95000)),
                 # Must be the last middleware: inspects the final tool_calls produced by
                 # the model turn and pauses execution for human approval on write actions.
                 ActionAwareHITLMiddleware(
@@ -357,7 +377,7 @@ class DeepAgentRunner:
                 config=config,
                 version="v2",
             ):
-                # Drain side-channel events (e.g. summarization_started) before
+                # Drain side-channel events (e.g. summarization_started/ended) before
                 # each LangGraph event so they arrive in roughly the right order.
                 if event_queue is not None:
                     while not event_queue.empty():
@@ -376,10 +396,25 @@ class DeepAgentRunner:
                 for internal_event in internal_events:
                     yield to_sse_dict(internal_event)
 
+            # After the graph stream ends, any side-channel events (e.g. summarization_ended
+            # queued in a middleware finally) must still be forwarded.
+            if event_queue is not None:
+                while not event_queue.empty():
+                    yield event_queue.get_nowait()
+
         try:
             try:
                 async for sse_dict in _run_stream():
                     yield sse_dict
+            except asyncio.CancelledError:
+                # Client disconnected (backend dropped the SSE connection).
+                # Repair the checkpoint immediately so the next message on
+                # the same session doesn't hit "insufficient tool messages".
+                logger.warning(
+                    "Stream cancelled for thread %s, repairing checkpoint", thread_id
+                )
+                await self._repair_dangling_tool_calls(agent, config)
+                raise
             except Exception as exc:
                 # Detect dangling tool_calls error → repair and retry once
                 error_str = str(exc)

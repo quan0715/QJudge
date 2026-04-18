@@ -22,10 +22,33 @@
   margin-bottom: 0.75rem;
 }
 
-.noticeRow {
+.dividerNotice {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--cds-border-subtle-01, #e0e0e0);
+}
+
+.noticeText {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  white-space: nowrap;
+  animation: breathingText 2s ease-in-out infinite;
+}
+
+@keyframes breathingText {
+  0%, 100% {
+    color: var(--cds-text-secondary, #525252);
+  }
+  50% {
+    color: var(--cds-text-primary, #161616);
+  }
 }
 
 .inputWrapper {

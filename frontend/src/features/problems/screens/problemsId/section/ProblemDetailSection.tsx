@@ -220,15 +220,9 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
     setError(null);
 
     try {
-      const customCases = testCases
-        .filter((tc) => tc.source === "custom")
-        .map((tc) => ({ input: tc.input }));
-
       await testRun(problem.id, {
         language: activeLanguage,
         code,
-        use_samples: true,
-        custom_test_cases: customCases,
       });
     } catch (err: any) {
       setError(err.message || "測試執行失敗");

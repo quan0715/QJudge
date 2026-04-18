@@ -67,12 +67,9 @@ services:
     networks:
       - test-network
 
+  # Same image as backend-test / celery-test (defined in docker-compose.test.yml; no duplicate build)
   celery-video-test:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        DJANGO_ENV: development
+    image: oj_backend_test_img
     container_name: oj_celery_video_test
     command: celery -A config worker -l info -Q video_queue --concurrency=2
     environment:
@@ -93,6 +90,8 @@ services:
       - ANTICHEAT_RAW_BUCKET=anticheat-raw
       - ANTICHEAT_VIDEO_BUCKET=anticheat-videos
     depends_on:
+      backend-test:
+        condition: service_started
       postgres-test:
         condition: service_healthy
       pgbouncer-test:
@@ -107,11 +106,7 @@ services:
       - test-network
 
   celery-beat-test:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      args:
-        DJANGO_ENV: development
+    image: oj_backend_test_img
     container_name: oj_celery_beat_test
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     environment:
@@ -127,6 +122,8 @@ services:
       - REDIS_URL=redis://redis-test:6379/0
       - SECRET_KEY=test-secret-key-for-ci-only
     depends_on:
+      backend-test:
+        condition: service_started
       postgres-test:
         condition: service_healthy
       pgbouncer-test:

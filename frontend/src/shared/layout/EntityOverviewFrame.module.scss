@@ -57,6 +57,10 @@
     .bodyGrid {
       grid-template-columns: minmax(0, 1fr);
     }
+
+    .mainCol {
+      display: none;
+    }
   }
 }
 
@@ -69,11 +73,5 @@
 @media (max-width: 672px) {
   .section {
     padding: 1rem;
-  }
-
-  .root:global(.classroom-overview-frame) {
-    .mainCol {
-      display: none;
-    }
   }
 }
