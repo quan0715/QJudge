@@ -362,7 +362,6 @@ class TestToolSplitRegression:
                 "reorder",
                 admin_ctx,
                 contest_id=coding_contest_id,
-                question_ids=["dummy-id"],
             )
         )
         assert isinstance(result, dict)
