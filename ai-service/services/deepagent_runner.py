@@ -9,10 +9,11 @@ import uuid
 from typing import Any, AsyncGenerator
 
 from deepagents import create_deep_agent
-from deepagents.backends.filesystem import FilesystemBackend
+from deepagents.backends.state import StateBackend
 from deepagents.middleware.summarization import SummarizationMiddleware
 from langchain_core.messages import AnyMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool
 from langgraph.types import Command
 
 from services.event_adapter import (
@@ -193,21 +194,32 @@ class DeepAgentRunner:
         self._skills_paths = skills_paths or ["/app/.deepagents/skills/"]
         self._memory_paths = memory_paths or ["/app/.deepagents/AGENTS.md"]
         self._checkpointer: AsyncPostgresSaver | None = None
-        self._checkpointer_cm: Any = None  # context manager
+        self._pool: AsyncConnectionPool | None = None
 
     async def setup(self) -> None:
-        """Initialize the Postgres checkpointer and create tables if needed."""
-        self._checkpointer_cm = AsyncPostgresSaver.from_conn_string(
-            self._checkpoint_db_url,
+        """Initialize the Postgres checkpointer using a connection pool.
+
+        A pool (min=1, max=10) prevents the "another command is already in
+        progress" OperationalError that occurs when multiple concurrent
+        requests—or a CancelledError that leaves a connection dirty—all share
+        a single psycopg AsyncConnection.
+        """
+        self._pool = AsyncConnectionPool(
+            conninfo=self._checkpoint_db_url,
+            min_size=1,
+            max_size=10,
+            kwargs={"autocommit": True, "prepare_threshold": 0},
+            open=False,
         )
-        self._checkpointer = await self._checkpointer_cm.__aenter__()
+        await self._pool.open()
+        self._checkpointer = AsyncPostgresSaver(self._pool)
         await self._checkpointer.setup()
-        logger.info("DeepAgent checkpointer initialized and tables ensured.")
+        logger.info("DeepAgent checkpointer initialized with connection pool.")
 
     async def shutdown(self) -> None:
         """Clean up resources."""
-        if self._checkpointer_cm:
-            await self._checkpointer_cm.__aexit__(None, None, None)
+        if self._pool:
+            await self._pool.close()
         logger.info("DeepAgent runner shut down.")
 
     async def delete_thread(self, thread_id: str) -> None:
@@ -249,7 +261,7 @@ class DeepAgentRunner:
         """
         model = ModelFactory.create_model(model_id=model_id)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
-        skill_backend = FilesystemBackend(root_dir="/app")
+        skill_backend = StateBackend()
         skills = [p for p in self._skills_paths if p]
         memory = [p for p in self._memory_paths if p]
 
