@@ -101,7 +101,7 @@ export function MessageList({
     if (isNearBottom) {
       scheduleScrollToBottom("smooth");
     }
-  }, [messages, scheduleScrollToBottom]);
+  }, [messages, pendingApproval, scheduleScrollToBottom]);
 
   return (
     <div className={styles.wrapper}>

@@ -24,15 +24,8 @@ from services.hitl_middleware import ActionAwareHITLMiddleware  # noqa: E402
 WRITE_ACTIONS = {
     "qjudge_grading": {"grade", "batch_grade", "ungrade"},
     "qjudge_contest_manager": {"reorder"},
-    "qjudge_coding_problems": {"create", "update", "delete", "import_from_bank", "update_score"},
+    "qjudge_coding_problems": {"create", "update", "delete"},
     "qjudge_exam": {
-        "create",
-        "update",
-        "delete",
-        "import_from_bank",
-        "batch_create",
-    },
-    "qjudge_bank": {
         "create",
         "update",
         "delete",
