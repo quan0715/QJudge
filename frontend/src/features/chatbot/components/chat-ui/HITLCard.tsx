@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Tile, Button, InlineLoading } from "@carbon/react";
+import { Button, InlineLoading, Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ApprovalRequest } from "@/core/types/chatbot.types";
+import { getHITLRenderer } from "./hitlRendererRegistry";
 import styles from "./HITLCard.module.scss";
 
 interface HITLCardProps {
@@ -9,12 +10,64 @@ interface HITLCardProps {
   onDecision: (decision: "approve" | "reject") => void;
 }
 
+// Pretty JSON fallback with basic syntax colouring
+function PrettyJsonFallback({ args }: { args: Record<string, unknown> }) {
+  const lines = JSON.stringify(args, null, 2).split("\n");
+  return (
+    <pre className={styles.jsonFallback}>
+      {lines.map((line, i) => {
+        // colour keys differently from values
+        const keyMatch = line.match(/^(\s*)("[\w-]+")\s*:/);
+        if (keyMatch) {
+          const [, indent, key] = keyMatch;
+          const rest = line.slice(indent.length + key.length);
+          return (
+            <span key={i}>
+              {indent}
+              <span className={styles.jsonKey}>{key}</span>
+              {rest}
+              {"\n"}
+            </span>
+          );
+        }
+        return <span key={i}>{line}{"\n"}</span>;
+      })}
+    </pre>
+  );
+}
+
+function ActionItem({ name, args }: { name: string; args?: Record<string, unknown> }) {
+  const actionArg = typeof args?.action === "string" ? args.action : undefined;
+  const renderer = getHITLRenderer(name, actionArg);
+  const safeArgs = args ?? {};
+
+  return (
+    <div className={styles.actionItem}>
+      <div className={styles.actionHeader}>
+        <span className={styles.toolName}>{name}</span>
+        {actionArg && (
+          <Tag type="blue" size="sm" className={styles.actionTag}>
+            {actionArg}
+          </Tag>
+        )}
+      </div>
+      <div className={styles.actionBody}>
+        {renderer ? (
+          renderer(safeArgs)
+        ) : Object.keys(safeArgs).length > 0 ? (
+          <PrettyJsonFallback args={safeArgs} />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function HITLCard({ request, onDecision }: HITLCardProps) {
   const { t } = useTranslation("chatbot");
   const [submitting, setSubmitting] = useState(false);
 
-  const action = request.actionRequests[0];
-  if (!action) return null;
+  const actions = request.actionRequests;
+  if (!actions?.length) return null;
 
   const handleDecision = (decision: "approve" | "reject") => {
     setSubmitting(true);
@@ -23,16 +76,22 @@ export function HITLCard({ request, onDecision }: HITLCardProps) {
 
   return (
     <div className={styles.wrapper}>
-      <Tile className={styles.card}>
-        <div className={styles.body}>
-          <div className={styles.title}>
-            {t("ui.toolConfirm")}：<code>{action.name}</code>
-          </div>
-          {action.args && Object.keys(action.args).length > 0 && (
-            <pre className={styles.args}>
-              {JSON.stringify(action.args, null, 2)}
-            </pre>
+      <div className={styles.card}>
+        <div className={styles.cardHeader}>
+          <span className={styles.headerLabel}>{t("ui.toolConfirm")}</span>
+          {actions.length > 1 && (
+            <Tag type="gray" size="sm">{actions.length} 個操作</Tag>
           )}
+        </div>
+
+        <div className={styles.actionsContainer}>
+          {actions.map((action, idx) => (
+            <ActionItem
+              key={`${action.name}-${idx}`}
+              name={action.name}
+              args={action.args}
+            />
+          ))}
         </div>
 
         {submitting ? (
@@ -44,7 +103,7 @@ export function HITLCard({ request, onDecision }: HITLCardProps) {
             <Button
               kind="primary"
               size="lg"
-              className={styles.footerButton}
+              className={styles.footerBtn}
               onClick={() => handleDecision("approve")}
             >
               {t("ui.confirmAction")}
@@ -52,14 +111,14 @@ export function HITLCard({ request, onDecision }: HITLCardProps) {
             <Button
               kind="danger"
               size="lg"
-              className={styles.footerButton}
+              className={styles.footerBtn}
               onClick={() => handleDecision("reject")}
             >
               {t("ui.cancelAction")}
             </Button>
           </div>
         )}
-      </Tile>
+      </div>
     </div>
   );
 }
