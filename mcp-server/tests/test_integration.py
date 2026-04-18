@@ -198,11 +198,11 @@ class TestExam:
         return str(target["id"])
 
     def test_list_questions(self, teacher_ctx, contest_id):
-        result = run(server.qjudge_exam("list", contest_id, teacher_ctx))
+        result = run(server.qjudge_contest_manager("list_problems", teacher_ctx, contest_id=contest_id))
         assert isinstance(result, list)
 
     def test_get_question(self, teacher_ctx, contest_id):
-        questions = run(server.qjudge_exam("list", contest_id, teacher_ctx))
+        questions = run(server.qjudge_contest_manager("list_problems", teacher_ctx, contest_id=contest_id))
         if not questions:
             pytest.fail("No exam questions")
         qid = str(questions[0]["id"])
@@ -211,7 +211,7 @@ class TestExam:
 
 
 # ---------------------------------------------------------------------------
-# qjudge_coding
+# qjudge_coding_problems
 # ---------------------------------------------------------------------------
 
 class TestCoding:
@@ -222,7 +222,7 @@ class TestCoding:
         contests = _unwrap_paginated(result)
         for c in contests:
             cid = str(c["id"])
-            raw = run(server.qjudge_coding("list", teacher_ctx, contest_id=cid))
+            raw = run(server.qjudge_contest_manager("list_problems", teacher_ctx, contest_id=cid))
             problems = _unwrap_paginated(raw)
             if isinstance(problems, list) and problems:
                 return cid, problems
@@ -232,7 +232,7 @@ class TestCoding:
         contest_id, problems = contest_with_problems
         assert len(problems) >= 1
         pid = str(problems[0]["id"])
-        detail = run(server.qjudge_coding("get", teacher_ctx, contest_id=contest_id, problem_id=pid))
+        detail = run(server.qjudge_coding_problems("get", teacher_ctx, contest_id=contest_id, problem_id=pid))
         assert not (isinstance(detail, dict) and detail.get("error"))
         assert detail.get("id") is not None
 
@@ -267,7 +267,14 @@ class TestGrading:
 class TestMCPProtocol:
     """Verify the MCP server works at protocol level via in-memory transport."""
 
-    EXPECTED_TOOLS = {"qjudge_browse", "qjudge_bank", "qjudge_exam", "qjudge_grading", "qjudge_coding", "qjudge_code_runner"}
+    EXPECTED_TOOLS = {
+        "qjudge_browse",
+        "qjudge_contest_manager",
+        "qjudge_exam",
+        "qjudge_grading",
+        "qjudge_coding_problems",
+        "qjudge_code_runner",
+    }
 
     def test_list_tools(self):
         from mcp.shared.memory import create_connected_server_and_client_session
