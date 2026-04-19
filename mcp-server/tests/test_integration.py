@@ -75,7 +75,7 @@ def _find_contest(
     require_problems: bool = False,
 ):
     for contest in _list_contests(teacher_ctx):
-        contest_id = str(contest["id"])
+        contest_id = str(contest["contest_id"])
         resolved_type = contest.get("contest_type")
         # Some list endpoints omit contest_type; resolve from detail to avoid
         # false skips in integration environments.
@@ -216,15 +216,15 @@ class TestBrowse:
         items = _unwrap_paginated(result)
         if not items:
             pytest.skip("No contests available in current environment")
-        cid = str(items[0]["id"])
+        cid = str(items[0]["contest_id"])
         detail = run(server.qjudge_browse("get_contest", teacher_ctx, contest_id=cid))
         assert not (isinstance(detail, dict) and detail.get("error"))
-        assert detail.get("id") is not None
+        assert detail.get("contest_id") is not None
 
-    def test_browse_banks_returns_list(self, teacher_ctx):
-        result = run(server.qjudge_browse("browse_banks", teacher_ctx))
-        items = _unwrap_paginated(result)
-        assert isinstance(items, list)
+    def test_browse_rejects_contest_operations(self, teacher_ctx):
+        result = run(server.qjudge_browse("list_problems", teacher_ctx))
+        assert isinstance(result, dict)
+        assert result.get("error") is True
 
     def test_student_classroom_scope(self, student_ctx):
         result = run(server.qjudge_browse("list_classrooms", student_ctx))
@@ -300,7 +300,7 @@ class TestGrading:
         items = _unwrap_paginated(result)
         if not items:
             pytest.fail("No contests")
-        return str(items[0]["id"])
+        return str(items[0]["contest_id"])
 
     def test_dashboard(self, teacher_ctx, contest_id):
         result = run(server.qjudge_grading("dashboard", contest_id, teacher_ctx))

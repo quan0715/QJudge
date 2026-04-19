@@ -1,7 +1,27 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
+import { IconButton } from "@carbon/react";
+import { Close, OpenPanelLeft } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { ChatContainer } from "../chat-ui/ChatContainer";
 import styles from "./WorkspaceShell.module.scss";
+
+const MOBILE_BREAKPOINT_PX = 768;
+
+function useIsMobileWorkspace(): boolean {
+  const [m, setM] = useState(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`);
+    const apply = () => setM(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return m;
+}
 
 const MIN_PANEL_WIDTH = 320;
 const MAX_PANEL_WIDTH = 700;
@@ -20,8 +40,24 @@ function getSavedWidth(): number {
 }
 
 interface WorkspaceShellProps {
-  /** Main workspace area (left of the chat sidebar). */
+  /** Main workspace area. */
   children: React.ReactNode;
+  /** Persistent left panel (e.g. AppSidebar). */
+  leftPanel?: React.ReactNode;
+  /** When true, left panel is hidden (width: 0). */
+  leftPanelCollapsed?: boolean;
+  /** Callback to expand the left panel (shown in the shell header when the rail is collapsed). */
+  onExpandLeftPanel?: () => void;
+  /**
+   * When true, the right chat panel is suppressed entirely (hidden + no resize handle).
+   * Use on pages that already embed chat (e.g. /chat full-page).
+   */
+  disableRightPanel?: boolean;
+  /**
+   * When true, do not render the shell workspace header expand control (e.g. /chat puts
+   * “展開側欄” on ChatTopBar instead).
+   */
+  hideWorkspaceExpandHeader?: boolean;
 }
 
 /**
@@ -32,8 +68,24 @@ interface WorkspaceShellProps {
  * - The main content wrapper also sets `data-chatbot-sidebar-open` for CSS or
  *   non-React consumers (`[data-chatbot-sidebar-open="true"]`).
  */
-export function WorkspaceShell({ children }: WorkspaceShellProps) {
+export function WorkspaceShell({
+  children,
+  leftPanel,
+  leftPanelCollapsed = false,
+  onExpandLeftPanel,
+  disableRightPanel = false,
+  hideWorkspaceExpandHeader = false,
+}: WorkspaceShellProps) {
+  const { t } = useTranslation("chatbot");
+  const isMobile = useIsMobileWorkspace();
   const { isOpen, closeChat } = useWorkspace();
+  const chatActive = isOpen && !disableRightPanel;
+  /** Desktop: docked right panel; mobile: chat uses AIWorkspaceProvider bottom sheet instead. */
+  const dockChatInShell = chatActive && !isMobile;
+  const showWorkspaceHeader =
+    !hideWorkspaceExpandHeader &&
+    onExpandLeftPanel &&
+    (leftPanelCollapsed || isMobile);
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
 
@@ -89,18 +141,57 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
 
   return (
     <div className={styles.shell}>
+      {leftPanel && (
+        <aside
+          className={`${styles.leftPanel} ${leftPanelCollapsed ? styles.leftPanelCollapsed : ""}`}
+        >
+          {leftPanel}
+        </aside>
+      )}
       <div
-        className={styles.content}
-        data-chatbot-sidebar-open={isOpen ? "true" : "false"}
+        className={[
+          styles.mainColumn,
+          showWorkspaceHeader && isMobile ? styles.mainColumnWithFixedHeader : "",
+        ].filter(Boolean).join(" ")}
       >
-        {children}
+        {showWorkspaceHeader && (
+          <header className={styles.workspaceHeader} aria-label="側欄控制">
+            {isMobile && chatActive ? (
+              <IconButton
+                kind="ghost"
+                size="md"
+                align="bottom"
+                label={t("ui.closeChat", "關閉聊天")}
+                onClick={closeChat}
+              >
+                <Close size={20} />
+              </IconButton>
+            ) : (
+              <IconButton
+                kind="ghost"
+                size="md"
+                align="bottom"
+                label={t("ui.expandSidebar", "展開側欄")}
+                onClick={onExpandLeftPanel}
+              >
+                <OpenPanelLeft size={20} />
+              </IconButton>
+            )}
+          </header>
+        )}
+        <div
+          className={styles.content}
+          data-chatbot-sidebar-open={chatActive ? "true" : "false"}
+        >
+          {children}
+        </div>
       </div>
       <aside
         ref={panelRef}
-        className={`${styles.panel} ${isOpen ? styles.panelOpen : ""}`}
-        style={isOpen ? { width: getSavedWidth() } : undefined}
+        className={`${styles.panel} ${dockChatInShell ? styles.panelOpen : ""}`}
+        style={dockChatInShell ? { width: getSavedWidth() } : undefined}
       >
-        {isOpen && (
+        {dockChatInShell && (
           <>
             <div
               className={styles.resizeHandle}

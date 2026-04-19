@@ -1,43 +1,42 @@
-// frontend/src/features/app/components/MainLayout.tsx
 import { Outlet, useLocation } from "react-router-dom";
 import { Content } from "@carbon/react";
-import { GlobalHeader } from "./GlobalHeader";
+import { AppSidebar } from "./AppSidebar";
+import { useAppSidebar } from "@/features/app/contexts/AppSidebarContext";
 import { WorkspaceShell } from "@/features/chatbot/components/workspace/WorkspaceShell";
+import styles from "./MainLayout.module.scss";
 
 const MainLayout = () => {
   const location = useLocation();
-  const isFullBleed = location.pathname === "/chat";
+  const isChatPage = location.pathname.startsWith("/chat");
+  const { isOpen, open, close } = useAppSidebar();
 
   return (
-    <>
-      <GlobalHeader />
-      <div
-        style={{
-          display: "flex",
-          height: "calc(100dvh - 48px)",
-          marginTop: "48px",
-          overflow: "hidden",
-        }}
-      >
-        {isFullBleed ? (
-          <div style={{
-            flex: 1,
-            overflow: "hidden",
-            position: "relative",
-            height: "100%",
-            paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          }}>
-            <Outlet />
-          </div>
-        ) : (
-          <WorkspaceShell>
+    <div className={styles.root}>
+      <div className={styles.body}>
+        <WorkspaceShell
+          leftPanel={
+            <AppSidebar
+              collapsed={!isOpen}
+              onToggleCollapse={close}
+            />
+          }
+          leftPanelCollapsed={!isOpen}
+          onExpandLeftPanel={open}
+          disableRightPanel={isChatPage}
+          hideWorkspaceExpandHeader={isChatPage}
+        >
+          {isChatPage ? (
+            <div style={{ flex: 1, height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <Outlet />
+            </div>
+          ) : (
             <Content style={{ height: "100%", overflow: "auto", marginTop: 0 }}>
               <Outlet />
             </Content>
-          </WorkspaceShell>
-        )}
+          )}
+        </WorkspaceShell>
       </div>
-    </>
+    </div>
   );
 };
 

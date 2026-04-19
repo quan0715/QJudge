@@ -49,6 +49,7 @@ import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shar
 import { PageHeaderActionsProvider } from "@/features/app/contexts/PageHeaderActionsContext";
 import { AIWorkspaceProvider } from "@/features/chatbot/components/workspace/AIWorkspaceProvider";
 import { ChatSessionProvider } from "@/features/chatbot/contexts/ChatSessionContext";
+import { AppSidebarProvider } from "@/features/app/contexts/AppSidebarContext";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 import {
   MarkdownImageUploadProvider,
@@ -96,8 +97,9 @@ function App() {
                     <SettingsDialogProvider>
                     <RecurProviderBridge>
                     <BrowserRouter>
-                      <AIWorkspaceProvider>
                       <ChatSessionProvider>
+                      <AppSidebarProvider>
+                      <AIWorkspaceProvider>
                       <PageHeaderActionsProvider>
                       <ApiErrorProvider>
                       <Routes>
@@ -141,6 +143,8 @@ function App() {
                                 path="/ranking"
                                 element={<div>Ranking Page (Coming Soon)</div>}
                               />
+                              {/* Classroom Detail - inside MainLayout for shared sidebar */}
+                              {classroomDetailRoute}
                             </Route>
 
                             {/* Legacy hidden routes */}
@@ -154,9 +158,6 @@ function App() {
                             {/* Classroom-scoped Contest Routes */}
                             {classroomContestDetailRoutes}
 
-                            {/* Classroom Detail - Standalone classroom admin shell */}
-                            {classroomDetailRoute}
-
                             {/* Classroom Exam Precheck - Classroom-scoped */}
                             {classroomExamPrecheckRoute}
                           </Route>
@@ -169,25 +170,23 @@ function App() {
                             <Route element={<MainLayout />}>
                               {questionBankMarketplaceRoute}
                               {draftProblemsRoute}
+                              <Route
+                                path="/chat"
+                                element={
+                                  <Suspense fallback={null}>
+                                    <ChatStandalonePage />
+                                  </Suspense>
+                                }
+                              />
+                              <Route
+                                path="/chat/:sessionId"
+                                element={
+                                  <Suspense fallback={null}>
+                                    <ChatStandalonePage />
+                                  </Suspense>
+                                }
+                              />
                             </Route>
-
-                            {/* Standalone AI Chat page (outside MainLayout) */}
-                            <Route
-                              path="/chat"
-                              element={
-                                <Suspense fallback={null}>
-                                  <ChatStandalonePage />
-                                </Suspense>
-                              }
-                            />
-                            <Route
-                              path="/chat/:sessionId"
-                              element={
-                                <Suspense fallback={null}>
-                                  <ChatStandalonePage />
-                                </Suspense>
-                              }
-                            />
 
                             {/* Question Bank Detail - Standalone with breadcrumb header */}
                             {questionBankDetailRoute}
@@ -218,8 +217,9 @@ function App() {
                       </Routes>
                       </ApiErrorProvider>
                       </PageHeaderActionsProvider>
-                      </ChatSessionProvider>
                       </AIWorkspaceProvider>
+                      </AppSidebarProvider>
+                      </ChatSessionProvider>
                     </BrowserRouter>
                     <SettingsDialog />
                     </RecurProviderBridge>

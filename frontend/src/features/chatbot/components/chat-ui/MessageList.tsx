@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown } from "@carbon/icons-react";
+import { ArrowDown } from "@carbon/icons-react";
 import { Button, SkeletonText } from "@carbon/react";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import type { ApprovalRequest } from "@/core/types/chatbot.types";
@@ -70,7 +70,7 @@ export function MessageList({
           kind="secondary"
           size="sm"
           hasIconOnly
-          renderIcon={ChevronDown}
+          renderIcon={ArrowDown}
           iconDescription={t("ui.scrollToBottom")}
           tooltipPosition="left"
           className={styles.scrollButton}

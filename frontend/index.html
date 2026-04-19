@@ -6,7 +6,9 @@
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f62fe" />
+    <!-- Default updated by inline script + ThemeContext; matches Carbon g100 / white backgrounds -->
+    <meta name="theme-color" content="#161616" />
+    <meta name="color-scheme" content="dark light" />
     <!-- IBM Plex fonts from Google Fonts CDN (required by Carbon Design System) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -68,6 +70,31 @@
         }
       ]
     }
+    </script>
+    <!-- Apply theme before first paint to avoid white safe-area / overscroll on iOS Safari -->
+    <script>
+      (function () {
+        try {
+          var key = "themePreference";
+          var p = localStorage.getItem(key);
+          var theme = "white";
+          if (p === "dark") theme = "g100";
+          else if (p === "light") theme = "white";
+          else if (p === "system" || !p) {
+            theme =
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "g100"
+                : "white";
+          }
+          document.documentElement.setAttribute("data-carbon-theme", theme);
+          var dark = theme === "g100" || theme === "g90";
+          var bg = dark ? "#161616" : "#ffffff";
+          document.documentElement.style.backgroundColor = bg;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", bg);
+        } catch (e) {}
+      })();
     </script>
   </head>
   <body>

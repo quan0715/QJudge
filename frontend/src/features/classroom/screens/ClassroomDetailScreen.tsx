@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button, Tag, Tabs, TabList, Tab } from "@carbon/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
@@ -12,7 +13,6 @@ import {
   UserMultiple,
 } from "@carbon/icons-react";
 import type {
-  Classroom,
   ClassroomAnnouncement,
   ClassroomDetail,
 } from "@/core/entities/classroom.entity";
@@ -24,7 +24,6 @@ import { useToast } from "@/shared/contexts/ToastContext";
 import { KpiCard } from "@/shared/ui/dataCard";
 import {
   getClassroom,
-  getClassrooms,
   deleteClassroom,
   deleteAnnouncement,
 } from "@/infrastructure/api/repositories/classroom.repository";
@@ -41,6 +40,7 @@ import { OverviewPanel } from "./panels/OverviewPanel";
 import { ContestPanel } from "./panels/ContestPanel";
 import { MembersPanel } from "./panels/MembersPanel";
 import { getClassroomIcon } from "../constants/classroomIcons";
+import { CLASSROOM_OPEN_SETTINGS_QUERY } from "../constants/classroomUrlParams";
 import { useTabWithUrlParam } from "@/shared/hooks";
 import { ClassroomSettingsModal } from "../components/ClassroomSettingsModal";
 import "./ClassroomDetailScreen.scss";
@@ -55,10 +55,10 @@ const ClassroomDetailScreen: React.FC = () => {
   const { t } = useTranslation("classroom");
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { classroomId } = useParams<{ classroomId: string }>();
 
   const [classroom, setClassroom] = useState<ClassroomDetail | null>(null);
-  const [classroomOptions, setClassroomOptions] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [createContestOpen, setCreateContestOpen] = useState(false);
@@ -77,7 +77,16 @@ const ClassroomDetailScreen: React.FC = () => {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const availablePanels = useMemo<ClassroomAdminPanelId[]>(() => {
-    if (isPrivileged || isMember) {
+    if (isPrivileged) {
+      return [
+        "overview",
+        "announcements",
+        "contests",
+        "members",
+        "settings",
+      ];
+    }
+    if (isMember) {
       return ["overview", "announcements", "contests", "members"];
     }
     return ["overview"];
@@ -95,6 +104,20 @@ const ClassroomDetailScreen: React.FC = () => {
     aliases: PANEL_ALIAS,
   });
   const shouldReduceMotion = useReducedMotion();
+  const prevPanelRef = useRef<ClassroomAdminPanelId>(activePanel);
+
+  useEffect(() => {
+    if (prevPanelRef.current === "settings" && activePanel !== "settings") {
+      setSettingsModalOpen(false);
+    }
+    prevPanelRef.current = activePanel;
+  }, [activePanel]);
+
+  useEffect(() => {
+    if (activePanel === "settings" && isPrivileged) {
+      setSettingsModalOpen(true);
+    }
+  }, [activePanel, isPrivileged]);
 
   const fetchClassroomData = useCallback(async () => {
     if (!classroomId) return;
@@ -123,37 +146,27 @@ const ClassroomDetailScreen: React.FC = () => {
     }
   }, [classroomId, showToast, t]);
 
-  const fetchClassroomOptions = useCallback(async () => {
-    try {
-      const rows = await getClassrooms();
-      setClassroomOptions(rows);
-    } catch (error) {
-      showToast({
-        kind: "error",
-        title: t("switcherLoadFailed", "載入教室清單失敗"),
-        subtitle:
-          error instanceof Error
-            ? error.message
-            : t("loadFailedHint", "請稍後再試"),
-      });
-    }
-  }, [showToast, t]);
-
   const refreshAll = useCallback(async () => {
-    await Promise.all([fetchClassroomData(), fetchClassroomOptions()]);
-  }, [fetchClassroomData, fetchClassroomOptions]);
+    await fetchClassroomData();
+  }, [fetchClassroomData]);
 
   useEffect(() => {
     void refreshAll();
   }, [refreshAll]);
 
+  useEffect(() => {
+    if (searchParams.get(CLASSROOM_OPEN_SETTINGS_QUERY) !== "1") return;
+    if (loading || !classroom) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete(CLASSROOM_OPEN_SETTINGS_QUERY);
+    setSearchParams(next, { replace: true });
+    if (isPrivileged) {
+      setSettingsModalOpen(true);
+    }
+  }, [searchParams, setSearchParams, loading, classroom, isPrivileged]);
+
   const handleTabChange = ({ selectedIndex }: { selectedIndex: number }) => {
     handleTabChangeIndex(selectedIndex);
-  };
-
-  const handleClassroomSwitch = (targetId: string) => {
-    if (!targetId || targetId === classroomId) return;
-    navigate(`/classrooms/${targetId}`);
   };
 
   const handleNavigateContest = useCallback(
@@ -254,20 +267,7 @@ const ClassroomDetailScreen: React.FC = () => {
 
   return (
     <>
-      <ClassroomAdminLayout
-        classroomName={classroom.name}
-        classroomOptions={classroomOptions.map((row) => ({
-          id: row.id,
-          name: row.name,
-          icon: row.icon,
-        }))}
-        selectedClassroomId={classroomId || classroom.id}
-        onClassroomSwitch={handleClassroomSwitch}
-        onGoHome={() => navigate("/dashboard")}
-        onOpenSettings={
-          isPrivileged ? () => setSettingsModalOpen(true) : undefined
-        }
-      >
+      <ClassroomAdminLayout>
         <div className="classroom-admin-page">
           <QJudgeHeroWidget
             title={
@@ -367,6 +367,13 @@ const ClassroomDetailScreen: React.FC = () => {
                 {activePanel === "members" && (
                   <MembersPanel classroom={classroom} />
                 )}
+
+                {activePanel === "settings" && (
+                  <div
+                    className="classroom-admin-panel__settings-placeholder"
+                    aria-hidden
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -385,7 +392,12 @@ const ClassroomDetailScreen: React.FC = () => {
           />
           <ClassroomSettingsModal
             open={settingsModalOpen}
-            onClose={() => setSettingsModalOpen(false)}
+            onClose={() => {
+              setSettingsModalOpen(false);
+              if (activePanel === "settings") {
+                handlePanelChange("overview");
+              }
+            }}
             classroom={classroom}
             onRefresh={refreshAll}
             onDeleteClassroom={handleDeleteClassroom}
@@ -427,13 +439,31 @@ type TFn = ReturnType<typeof useTranslation>["t"];
 
 const TAB_CONFIG: Record<
   ClassroomAdminPanelId,
-  { label: (t: TFn) => string; icon: any }
+  {
+    label: (t: TFn) => string;
+    icon: ComponentType<{ size?: number }>;
+  }
 > = {
-  overview: { label: (t) => t("tab.overview", "總覽"), icon: Dashboard },
-  announcements: { label: (t) => t("tab.announcements"), icon: Bullhorn },
-  contests: { label: (t) => t("tab.contests", "活動"), icon: Trophy },
-  members: { label: (t) => t("tab.members", "成員"), icon: UserMultiple },
-  settings: { label: (t) => t("tab.settings", "設定"), icon: Settings },
+  overview: {
+    label: (t) => t("sideMenu.overview", "概要"),
+    icon: Dashboard,
+  },
+  announcements: {
+    label: (t) => t("sideMenu.announcements", "教室公告"),
+    icon: Bullhorn,
+  },
+  contests: {
+    label: (t) => t("sideMenu.contests", "競賽列表"),
+    icon: Trophy,
+  },
+  members: {
+    label: (t) => t("sideMenu.members", "教室成員"),
+    icon: UserMultiple,
+  },
+  settings: {
+    label: (t) => t("sideMenu.settings", "教室設定"),
+    icon: Settings,
+  },
 };
 
 export default ClassroomDetailScreen;

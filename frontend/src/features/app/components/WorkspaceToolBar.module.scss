@@ -1,0 +1,41 @@
+/**
+ * 工作區頂列：leading（可選 before + 內建展開 app 側欄 + title slot） + actions。
+ */
+
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  width: 100%;
+  min-height: 2.5rem;
+  box-sizing: border-box;
+  background: transparent;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+}
+
+.leading {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.titleSlot {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  position: relative;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}

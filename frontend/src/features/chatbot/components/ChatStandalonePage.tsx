@@ -1,8 +1,6 @@
 import { useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { GlobalHeader } from "@/features/app/components/GlobalHeader";
 import ChatFullPage from "./ChatFullPage";
-import styles from "./ChatStandalonePage.module.scss";
 
 export default function ChatStandalonePage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -21,15 +19,10 @@ export default function ChatStandalonePage() {
   }, [navigate]);
 
   return (
-    <div className={styles.pageRoot}>
-      <GlobalHeader />
-      <main className={styles.main}>
-        <ChatFullPage
-          sessionId={sessionId ?? null}
-          onSessionChange={handleSessionChange}
-          onSessionDeleted={handleSessionDeleted}
-        />
-      </main>
-    </div>
+    <ChatFullPage
+      sessionId={sessionId ?? null}
+      onSessionChange={handleSessionChange}
+      onSessionDeleted={handleSessionDeleted}
+    />
   );
 }

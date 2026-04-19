@@ -2,7 +2,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--cds-layer-01, #f4f4f4);
+  // Theme tokens only (no light hex fallbacks). Chain to --cds-layer if layer-01 is unset in scope.
+  background: var(--cds-layer-01, var(--cds-layer));
 }
 
 .list {
@@ -14,7 +15,7 @@
 .empty {
   padding: 1rem;
   font-size: 0.875rem;
-  color: var(--cds-text-secondary, #525252);
+  color: var(--cds-text-secondary);
 }
 
 .group {
@@ -24,7 +25,7 @@
 .groupLabel {
   font-size: 0.6875rem;
   font-weight: 600;
-  color: var(--cds-text-secondary, #525252);
+  color: var(--cds-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 0.5rem 1rem 0.25rem;
@@ -41,11 +42,7 @@
   margin: 0 0.25rem;
 
   &:hover {
-    background: var(--cds-layer-hover-01, #e8e8e8);
-
-    .overflow {
-      opacity: 1;
-    }
+    background: var(--cds-layer-hover-01);
 
     .itemTime {
       display: none;
@@ -54,16 +51,16 @@
 }
 
 .active {
-  background: var(--cds-layer-selected-01, #e0e0e0);
+  background: var(--cds-layer-selected-01);
 
   &:hover {
-    background: var(--cds-layer-selected-hover-01, #d1d1d1);
+    background: var(--cds-layer-selected-hover-01);
   }
 }
 
 .itemIcon {
   flex-shrink: 0;
-  color: var(--cds-icon-secondary, #525252);
+  color: var(--cds-icon-secondary);
 }
 
 .itemName {
@@ -73,35 +70,72 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
-  color: var(--cds-text-primary, #161616);
+  color: var(--cds-text-primary);
 }
 
 .itemTime {
   flex-shrink: 0;
   font-size: 0.75rem;
-  color: var(--cds-text-secondary, #525252);
+  color: var(--cds-text-secondary);
   white-space: nowrap;
 }
 
+// 預設：觸控／無 hover 裝置維持按鈕可點（若僅 opacity:0 仍會佔 32px，改收合寬度需搭配下段 media）
 .overflow {
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 150ms ease;
+  flex: 0 0 auto;
+  max-width: 2.75rem;
+  min-width: 2rem;
+  opacity: 1;
+  pointer-events: auto;
+  transition:
+    opacity 150ms ease,
+    max-width 160ms ease;
+
+  :global(.cds--overflow-menu) {
+    flex-shrink: 0;
+  }
+}
+
+// 桌面 hover：未互動時收合寬度，不佔 32px 空白
+@media (hover: hover) and (pointer: fine) {
+  .overflow {
+    flex: 0 0 0;
+    min-width: 0;
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .item:hover .overflow,
+  .item:focus-within .overflow,
+  .item.active .overflow {
+    flex: 0 0 auto;
+    max-width: 2.75rem;
+    min-width: 2rem;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  // 目前選中列固定顯示 kebab，隱藏時間讓出水平空間
+  .item.active .itemTime {
+    display: none;
+  }
 }
 
 .renameInput {
   flex: 1;
   font-size: 0.8125rem;
-  border: 1px solid var(--cds-focus, #0f62fe);
+  border: 1px solid var(--cds-focus);
   border-radius: 2px;
   padding: 0.125rem 0.25rem;
-  background: var(--cds-field-01, #fff);
+  background: var(--cds-field-01);
   outline: none;
 }
 
 .footer {
   padding: 0.5rem;
-  border-top: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  border-top: 1px solid var(--cds-border-subtle-01);
   flex-shrink: 0;
 }
 
@@ -113,15 +147,15 @@
   width: 100%;
   padding: 0.5rem;
   background: transparent;
-  border: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  border: 1px solid var(--cds-border-subtle-01);
   border-radius: 4px;
   cursor: pointer;
-  color: var(--cds-text-secondary, #525252);
+  color: var(--cds-text-secondary);
   font-size: 0.875rem;
   transition: background 100ms ease, color 100ms ease;
 
   &:hover {
-    background: var(--cds-layer-hover-01, #e8e8e8);
-    color: var(--cds-text-primary, #161616);
+    background: var(--cds-layer-hover-01);
+    color: var(--cds-text-primary);
   }
 }

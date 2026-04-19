@@ -1,9 +1,11 @@
-import { createContext, useState, useCallback, useMemo } from "react";
+import { createContext, useState, useCallback, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import styles from "./WorkspaceShell.module.scss";
+import { ChatContainer } from "../chat-ui/ChatContainer";
+import styles from "./AIWorkspaceProvider.module.scss";
+import shellStyles from "./WorkspaceShell.module.scss";
 
 const STORAGE_KEY = "workspace_chat_open";
 
@@ -24,22 +26,32 @@ export const WorkspaceContext = createContext<WorkspaceContextValue>({
 });
 
 function getInitialOpen(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === "true";
-  } catch {
-    return false;
-  }
+  try { return localStorage.getItem(STORAGE_KEY) === "true"; }
+  catch { return false; }
+}
+
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth <= 768,
+  );
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 768px)");
+    const handle = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handle);
+    setIsMobile(mql.matches);
+    return () => mql.removeEventListener("change", handle);
+  }, []);
+  return isMobile;
 }
 
 export function AIWorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(getInitialOpen);
+  const isMobile = useIsMobile();
 
   const isAllowed = user?.role === "teacher" || user?.role === "admin";
-  const isOnChatPage = location.pathname === "/chat";
-  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+  const isOnChatPage = location.pathname.startsWith("/chat");
 
   const persistOpen = useCallback((open: boolean) => {
     setIsOpen(open);
@@ -48,12 +60,8 @@ export function AIWorkspaceProvider({ children }: { children: React.ReactNode })
 
   const openChat = useCallback(() => {
     if (!isAllowed) return;
-    if (isMobile) {
-      navigate("/chat");
-      return;
-    }
     persistOpen(true);
-  }, [isAllowed, isMobile, navigate, persistOpen]);
+  }, [isAllowed, persistOpen]);
 
   const closeChat = useCallback(() => {
     persistOpen(false);
@@ -61,34 +69,50 @@ export function AIWorkspaceProvider({ children }: { children: React.ReactNode })
 
   const toggleChat = useCallback(() => {
     if (!isAllowed) return;
-    if (isMobile) {
-      navigate("/chat");
-      return;
-    }
     persistOpen(!isOpen);
-  }, [isAllowed, isMobile, navigate, persistOpen, isOpen]);
+  }, [isAllowed, persistOpen, isOpen]);
 
   const value = useMemo<WorkspaceContextValue>(
     () => ({ isOpen: isOpen && isAllowed, isAllowed, openChat, closeChat, toggleChat }),
     [isOpen, isAllowed, openChat, closeChat, toggleChat],
   );
 
+  // FAB: desktop only — on mobile the panel is hidden so FAB is not needed
   const showFab = isAllowed && !isOpen && !isOnChatPage && !isMobile;
+
+  // Mobile bottom-sheet: replaces the side panel on mobile
+  const showMobileSheet = isAllowed && isOpen && isMobile && !isOnChatPage;
 
   return (
     <WorkspaceContext.Provider value={value}>
       {children}
-      {showFab &&
-        createPortal(
-          <button
-            className={styles.fab}
-            onClick={toggleChat}
-            aria-label="開啟 AI 助教"
-          >
-            <AiLaunch size={20} />
-          </button>,
-          document.body,
-        )}
+
+      {showFab && typeof document !== "undefined" && createPortal(
+        <button
+          className={shellStyles.fab}
+          onClick={openChat}
+          aria-label="開啟 AI 助教"
+        >
+          <AiLaunch size={20} />
+        </button>,
+        document.body,
+      )}
+
+      {showMobileSheet && typeof document !== "undefined" && createPortal(
+        <div className={styles.overlay}>
+          <div className={styles.backdrop} onClick={closeChat} aria-hidden="true" />
+          <div className={styles.sheet}>
+            <div className={styles.sheetHandle} />
+            <div className={styles.sheetContent}>
+              <ChatContainer
+                mode="sidebar"
+                onClose={closeChat}
+              />
+            </div>
+          </div>
+        </div>,
+        document.getElementById("modal-portal-root") ?? document.body,
+      )}
     </WorkspaceContext.Provider>
   );
 }

@@ -216,6 +216,13 @@
   "switchClassroom": "교실 전환",
   "switchTo": "이 교실로 전환",
   "switcherLoadFailed": "교실 목록 불러오기 실패",
+  "sideMenu": {
+    "overview": "개요",
+    "announcements": "교실 공지",
+    "contests": "콘테스트 목록",
+    "members": "교실 멤버",
+    "settings": "교실 설정"
+  },
   "tab": {
     "announcements": "공지사항",
     "contests": "콘테스트",

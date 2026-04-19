@@ -34,7 +34,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
   const navItems: SettingsModalNavItem[] = [
     {
       id: "general",
-      label: t("tab.settings", "教室設定"),
+      label: t("sideMenu.settings", "教室設定"),
       icon: Settings,
     },
     {
@@ -72,7 +72,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
       <SettingsModal
         open={open}
         onRequestClose={onClose}
-        modalHeading={t("tab.settings", "教室設定")}
+        modalHeading={t("sideMenu.settings", "教室設定")}
         navItems={navItems}
         renderPanel={renderPanel}
       />

@@ -97,7 +97,7 @@ def test_build_agent_default_system_prompt_key_phrases(monkeypatch):
     )
 
     prompt = capture.kwargs["system_prompt"]
-    assert "HITL 核准結果為準" in prompt
+    assert "寫入前先一句話說明預計變更" in prompt
     assert "無關" in prompt
     assert "AGENTS.md" in prompt
     assert "qjudge-ta-protocol" in prompt

@@ -2,12 +2,18 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
 import { Add, Close, ChevronDown, Chat as ChatIcon, RecentlyViewed } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import type { ChatSession } from "@/core/types/chatbot.types";
 import { formatRelativeTime } from "@/shared/utils/relativeTime";
 import styles from "./ChatTopBar.module.scss";
 
 interface ChatTopBarFullProps {
   mode: "full";
+  /**
+   * When chat is embedded in the workspace split (right panel), hide the
+   * main app sidebar expand control — the layout is already split.
+   */
+  hideAppSidebarExpand?: boolean;
   title?: string;
   sessions: ChatSession[];
   currentSessionId: string | null;
@@ -54,36 +60,42 @@ export function ChatTopBar(props: ChatTopBarProps) {
     const { title, historyOpen = false, onToggleHistory, onNewChat, onClose } = props as ChatTopBarSidebarProps;
     const displayTitle = title || t("ui.chatbotTitle");
     return (
-      <div className={styles.bar}>
-        <div className={styles.left}>
-          {onToggleHistory && (
+      <WorkspaceToolBar
+        leadingBefore={
+          onToggleHistory ? (
             <IconButton
               kind="ghost"
+              size="md"
+              align="bottom"
               label={historyOpen ? t("ui.collapse") : t("ui.history")}
               onClick={onToggleHistory}
             >
               {historyOpen ? <Close size={20} /> : <RecentlyViewed size={20} />}
             </IconButton>
-          )}
-        </div>
-        <span className={styles.title}>{displayTitle}</span>
-        <div className={styles.right}>
-          <IconButton kind="ghost" label={t("ui.newChat")} onClick={onNewChat}>
-            <Add size={20} />
-          </IconButton>
-          {onClose && (
-            <IconButton kind="ghost" label={t("ui.close")} onClick={onClose}>
-              <Close size={20} />
+          ) : undefined
+        }
+        showAppSidebarExpand={false}
+        title={<span className={styles.sidebarTitle}>{displayTitle}</span>}
+        actions={
+          <>
+            <IconButton kind="ghost" size="md" align="bottom" label={t("ui.addComment")} onClick={onNewChat}>
+              <Add size={20} />
             </IconButton>
-          )}
-        </div>
-      </div>
+            {onClose && (
+              <IconButton kind="ghost" size="md" align="bottom" label={t("ui.close")} onClick={onClose}>
+                <Close size={20} />
+              </IconButton>
+            )}
+          </>
+        }
+      />
     );
   }
 
   // ── Full-page mode ──
   const {
     title,
+    hideAppSidebarExpand = false,
     sessions,
     currentSessionId,
     onSelectSession,
@@ -108,10 +120,8 @@ export function ChatTopBar(props: ChatTopBarProps) {
     setRenameValue("");
   };
 
-  return (
-    <div className={styles.bar}>
-      {/* Left: title dropdown */}
-      <div className={styles.titleArea} ref={dropdownRef}>
+  const titleSlot = (
+    <div className={styles.titleArea} ref={dropdownRef}>
         {renamingId === currentSessionId ? (
           <input
             className={styles.renameInput}
@@ -168,36 +178,43 @@ export function ChatTopBar(props: ChatTopBarProps) {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Right: actions */}
-      <div className={styles.right}>
-        <IconButton kind="ghost" label={t("ui.newChat")} onClick={onNewChat}>
-          <Add size={20} />
-        </IconButton>
-        {currentSessionId && (
-          <OverflowMenu size="sm" flipped>
-            <OverflowMenuItem
-              itemText={t("ui.rename")}
-              onClick={() => {
-                const session = sessions.find((s) => s.id === currentSessionId);
-                if (session) startRename(session);
-              }}
-            />
-            <OverflowMenuItem
-              itemText={t("ui.delete")}
-              isDelete
-              hasDivider
-              onClick={() => onDeleteSession(currentSessionId)}
-            />
-          </OverflowMenu>
-        )}
-        {onClose && (
-          <IconButton kind="ghost" label={t("ui.close")} onClick={onClose}>
-            <Close size={20} />
-          </IconButton>
-        )}
-      </div>
     </div>
+  );
+
+  return (
+    <WorkspaceToolBar
+      showAppSidebarExpand={!hideAppSidebarExpand}
+      expandAppSidebarLabel={t("ui.expandSidebar")}
+      title={titleSlot}
+      actions={
+        <>
+          <IconButton kind="ghost" size="md" align="bottom" label={t("ui.addComment")} onClick={onNewChat}>
+            <Add size={20} />
+          </IconButton>
+          {currentSessionId && (
+            <OverflowMenu flipped size="md" align="bottom" iconDescription={t("ui.moreOptions")}>
+              <OverflowMenuItem
+                itemText={t("ui.rename")}
+                onClick={() => {
+                  const session = sessions.find((s) => s.id === currentSessionId);
+                  if (session) startRename(session);
+                }}
+              />
+              <OverflowMenuItem
+                itemText={t("ui.delete")}
+                isDelete
+                hasDivider
+                onClick={() => onDeleteSession(currentSessionId)}
+              />
+            </OverflowMenu>
+          )}
+          {onClose && (
+            <IconButton kind="ghost" size="md" align="bottom" label={t("ui.close")} onClick={onClose}>
+              <Close size={20} />
+            </IconButton>
+          )}
+        </>
+      }
+    />
   );
 }

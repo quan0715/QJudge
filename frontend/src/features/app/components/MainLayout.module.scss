@@ -1,0 +1,20 @@
+// ── Root ──
+// Full-viewport flex column; no Carbon header offset needed.
+
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+// ── App body ──
+// Grows to fill space above the MobileBottomNav on mobile,
+// or to full height on desktop (where MobileBottomNav is display:none).
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}

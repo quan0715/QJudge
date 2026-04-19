@@ -90,6 +90,7 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
       <div className={styles.main}>
         <ChatTopBar
           mode="full"
+          hideAppSidebarExpand={mode === "sidebar"}
           title={sessionTitle}
           sessions={sessions}
           currentSessionId={currentSessionId}
