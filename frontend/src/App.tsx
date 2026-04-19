@@ -97,9 +97,9 @@ function App() {
                     <SettingsDialogProvider>
                     <RecurProviderBridge>
                     <BrowserRouter>
+                      <ChatSessionProvider>
                       <AppSidebarProvider>
                       <AIWorkspaceProvider>
-                      <ChatSessionProvider>
                       <PageHeaderActionsProvider>
                       <ApiErrorProvider>
                       <Routes>
@@ -217,9 +217,9 @@ function App() {
                       </Routes>
                       </ApiErrorProvider>
                       </PageHeaderActionsProvider>
-                      </ChatSessionProvider>
                       </AIWorkspaceProvider>
                       </AppSidebarProvider>
+                      </ChatSessionProvider>
                     </BrowserRouter>
                     <SettingsDialog />
                     </RecurProviderBridge>

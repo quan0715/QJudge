@@ -15,6 +15,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEME_PREFERENCE_KEY = "themePreference";
 
+/** Matches Carbon layer background for browser chrome (theme-color) on mobile. */
+function themeChromeColor(t: ThemeType): string {
+  if (t === "g100" || t === "g90") return "#161616";
+  return "#ffffff";
+}
+
 const getSystemTheme = (): ThemeType => {
   if (typeof window !== "undefined" && window.matchMedia) {
     return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -67,9 +73,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [preference]);
 
-  // Sync data-carbon-theme attribute
+  // Sync data-carbon-theme + root background + theme-color (iOS Safari / Android Chrome)
   useEffect(() => {
-    document.documentElement.setAttribute("data-carbon-theme", theme);
+    const root = document.documentElement;
+    root.setAttribute("data-carbon-theme", theme);
+    const bg = themeChromeColor(theme);
+    root.style.backgroundColor = bg;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", bg);
   }, [theme]);
 
   const setPreference = useCallback((pref: ThemePreference) => {

@@ -6,6 +6,18 @@
 
 html {
   height: 100%;
+  // Match page background in overscroll / safe-area (esp. iOS Safari)
+  background-color: var(--cds-background, #ffffff);
+}
+
+html[data-carbon-theme="g100"],
+html[data-carbon-theme="g90"] {
+  color-scheme: dark;
+}
+
+html[data-carbon-theme="white"],
+html[data-carbon-theme="g10"] {
+  color-scheme: light;
 }
 
 body {

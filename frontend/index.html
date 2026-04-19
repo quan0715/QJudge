@@ -71,6 +71,31 @@
       ]
     }
     </script>
+    <!-- Apply theme before first paint to avoid white safe-area / overscroll on iOS Safari -->
+    <script>
+      (function () {
+        try {
+          var key = "themePreference";
+          var p = localStorage.getItem(key);
+          var theme = "white";
+          if (p === "dark") theme = "g100";
+          else if (p === "light") theme = "white";
+          else if (p === "system" || !p) {
+            theme =
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "g100"
+                : "white";
+          }
+          document.documentElement.setAttribute("data-carbon-theme", theme);
+          var dark = theme === "g100" || theme === "g90";
+          var bg = dark ? "#161616" : "#ffffff";
+          document.documentElement.style.backgroundColor = bg;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", bg);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
