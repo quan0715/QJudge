@@ -161,13 +161,13 @@ export function AppSidebar({ collapsed = false, onToggleCollapse }: AppSidebarPr
         {/* Collapse / expand button */}
         <IconButton
           kind="ghost"
-          size="sm"
+          size="md"
           label={collapsed ? t("ui.expandSidebar", "展開側欄") : t("ui.collapseSidebar", "收合側欄")}
-          align="right"
+          align="bottom"
           onClick={onToggleCollapse}
           className={styles.collapseBtn}
         >
-          {collapsed ? <OpenPanelLeft size={16} /> : <SidePanelClose size={16} />}
+          {collapsed ? <OpenPanelLeft size={20} /> : <SidePanelClose size={20} />}
         </IconButton>
       </div>
 
