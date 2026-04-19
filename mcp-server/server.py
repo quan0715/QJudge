@@ -3,6 +3,7 @@
 import json
 from typing import Any
 from urllib.parse import urlencode
+from uuid import UUID
 
 import httpx
 from mcp.server.auth.provider import AccessToken, TokenVerifier
@@ -143,6 +144,103 @@ def _error(detail: str, *, status: int | None = None) -> dict[str, Any]:
     if status is not None:
         payload["status"] = status
     return payload
+
+
+def _help_hint(tool_name: str | None = None) -> str:
+    if tool_name:
+        return (
+            f'For usage, call qjudge_browse(action="get_help", tool_name="{tool_name}").'
+        )
+    return 'For usage, call qjudge_browse(action="get_help").'
+
+
+def _tool_error(
+    *,
+    tool_name: str,
+    detail: str,
+    status: int | None = None,
+) -> dict[str, Any]:
+    return _error(f"{detail} {_help_hint(tool_name)}", status=status)
+
+
+def _is_uuid(value: str | None) -> bool:
+    if not value or not isinstance(value, str):
+        return False
+    try:
+        UUID(value)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def _require_uuid(
+    value: str | None,
+    *,
+    field_name: str,
+    tool_name: str,
+    hint: str | None = None,
+) -> dict[str, Any] | None:
+    if not value:
+        return _tool_error(tool_name=tool_name, detail=f"{field_name} is required")
+    if _is_uuid(value):
+        return None
+    msg = f'{field_name} must be a UUID string, got "{value}".'
+    if hint:
+        msg = f"{msg} {hint}"
+    return _tool_error(tool_name=tool_name, detail=msg, status=400)
+
+
+def _extract_results(payload: Any) -> list[dict[str, Any]]:
+    if isinstance(payload, dict):
+        results = payload.get("results")
+        if isinstance(results, list):
+            return [row for row in results if isinstance(row, dict)]
+    if isinstance(payload, list):
+        return [row for row in payload if isinstance(row, dict)]
+    return []
+
+
+def _text_match(value: Any, keyword: str) -> bool:
+    if not isinstance(value, str):
+        return False
+    return keyword.casefold() in value.casefold()
+
+
+def _matches_keyword(row: dict[str, Any], keyword: str, fields: tuple[str, ...]) -> bool:
+    return any(_text_match(row.get(field), keyword) for field in fields)
+
+
+def _compact_classroom(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "classroom_id": row.get("uuid"),
+        "name": row.get("name"),
+        "description": row.get("description"),
+        "current_user_role": row.get("current_user_role"),
+    }
+
+
+def _compact_contest_from_detail(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "contest_id": row.get("id"),
+        "name": row.get("name"),
+        "description": row.get("description"),
+        "status": row.get("status"),
+        "contest_type": row.get("contest_type"),
+        "delivery_mode": row.get("delivery_mode"),
+        "bound_classroom_id": row.get("bound_classroom_id"),
+    }
+
+
+def _compact_contest_from_classroom(row: dict[str, Any], *, classroom_id: str) -> dict[str, Any]:
+    return {
+        "contest_id": row.get("contest_id"),
+        "name": row.get("contest_name"),
+        "description": row.get("contest_description"),
+        "status": row.get("contest_status"),
+        "contest_type": row.get("contest_type"),
+        "delivery_mode": row.get("delivery_mode"),
+        "bound_classroom_id": classroom_id,
+    }
 
 
 _CODE_RUNNER_LANGUAGE_ALIASES: dict[str, str] = {
@@ -392,17 +490,24 @@ def _build_exam_question_body(
 
 _TOOL_HELP = {
     "tools": {
-        "qjudge_browse": "Read-only queries: list_classrooms, list_contests, get_contest, browse_banks, browse_bank_questions, get_help",
-        "qjudge_contest_manager": "Contest: get_detail, list_problems (coding or paper_exam), reorder question order",
+        "qjudge_browse": "Discovery only: list/get classrooms, list classroom contests, list/get contests, get_help",
+        "qjudge_contest_manager": "Contest operations: get_detail, list_problems, reorder (requires contest_id UUID)",
         "qjudge_exam": "Paper-exam contest questions: get, create, update, delete, batch_create, import_from_bank (no list/reorder — use qjudge_contest_manager)",
-        "qjudge_coding_problems": "Coding contest problems: get, create, update, delete (no list — use qjudge_contest_manager)",
+        "qjudge_coding_problems": "Coding contest problems: get, create, update, delete (no list — use qjudge_contest_manager list_problems)",
         "qjudge_code_runner": "Execute code against test cases: run code, get results",
         "qjudge_grading": "Grading: list_answers, question_detail, dashboard, grade, batch_grade, ungrade",
+    },
+    "routing_rules": {
+        "unknown_id": "If classroom_id/contest_id is unknown, use qjudge_browse first.",
+        "contest_ops": "Once contest_id is known, use qjudge_contest_manager for get_detail/list_problems/reorder.",
+        "single_item_crud": "Use qjudge_exam (paper_exam) or qjudge_coding_problems (coding) for single-item CRUD.",
+        "code_execution": "Use qjudge_code_runner for running source code.",
     },
     "coding_tools_how_to_choose": {
         "summary": (
             "Several tools touch contests and code — pick by intent. "
-            "qjudge_contest_manager = get_detail + list_problems + reorder; "
+            "qjudge_browse = classroom/contest discovery (find IDs); "
+            "qjudge_contest_manager = get_detail + list_problems + reorder (needs contest_id); "
             "qjudge_exam = paper_exam question CRUD; "
             "qjudge_coding_problems = coding problem CRUD; "
             "qjudge_code_runner = execute code. "
@@ -475,13 +580,10 @@ _TOOL_HELP = {
         "option prefixes": "Do NOT add A/B/C/D prefixes to options — the UI adds them",
         "question_ids for delete": "delete only accepts single question_id — no batch delete",
         "items for create": "create is single-item — use batch_create for multiple items",
-        "browse for writes": (
-            "qjudge_browse is read-only — use qjudge_contest_manager for list_problems/reorder; "
-            "qjudge_exam / qjudge_coding_problems for single-question CRUD; bank CRUD is not exposed via MCP (UI or REST)"
-        ),
+        "browse routing": "Use qjudge_browse only for locating classroom_id/contest_id when user intent is ambiguous.",
         "run code on qjudge_coding_problems": "NEVER — use qjudge_code_runner(problem_id, language, code) for execution",
-        "list problems in contest": "Use qjudge_contest_manager list_problems (or get_detail). Do NOT use removed list actions on qjudge_exam / qjudge_coding_problems",
-        "reorder contest questions": "Use qjudge_contest_manager reorder — exam/coding tools no longer expose reorder",
+        "list problems in contest": "Use qjudge_contest_manager list_problems. Do NOT use list actions on qjudge_exam / qjudge_coding_problems",
+        "reorder contest questions": "Use qjudge_contest_manager reorder — qjudge_browse does not reorder",
         "test_run params removed": "qjudge_code_runner only sends language+code; all stored cases run automatically",
         "javascript in test_run": "Backend judge supports cpp, c, python, java — not javascript for test_run",
         "exam fields on coding": "Do NOT pass paper-exam fields (options, correct_answer, prompt) to qjudge_coding_problems — use description/test_cases; use qjudge_exam for paper_exam contests",
@@ -514,49 +616,93 @@ async def qjudge_browse(
     search: str | None = None,
     status: str | None = None,
     contest_id: str | None = None,
-    bank_id: str | None = None,
+    classroom_id: str | None = None,
+    tool_name: str | None = None,
 ) -> Any:
-    """Browse classrooms, contests, and question banks (read-only).
-
-    Do NOT use this tool for any write operations — use qjudge_contest_manager (get_detail, list_problems, reorder), qjudge_exam, or qjudge_coding_problems for contest questions.
+    """Discovery-only tool for classroom/contest lookup.
 
     Actions:
-      search_all             — Search across classrooms, contests, and question banks by keyword (required: search).
-                               Returns {classrooms: [...], contests: [...], banks: [...]}.
       list_classrooms        — List classrooms you manage (optional: search)
+      get_classroom          — Get one classroom detail (required: classroom_id)
+      list_classroom_contests — List exam contests in one classroom (required: classroom_id, optional: search, status)
       list_contests          — List contests you manage (optional: search, status)
       get_contest            — Get contest detail (required: contest_id)
-      browse_banks           — List your question banks
-      browse_bank_questions  — List questions in a bank (required: bank_id)
       get_help               — Return JSON help including `coding_tools_how_to_choose` (when to use
-                               qjudge_contest_manager, qjudge_coding_problems vs qjudge_code_runner) and examples
+                               qjudge_browse, qjudge_contest_manager, qjudge_coding_problems vs qjudge_code_runner)
     """
     if action == "get_help":
+        if tool_name:
+            summary = _TOOL_HELP.get("tools", {}).get(tool_name)
+            if not summary:
+                return _tool_error(
+                    tool_name="qjudge_browse",
+                    detail=f"Unknown tool_name: {tool_name}",
+                    status=400,
+                )
+            return {
+                "tool": tool_name,
+                "summary": summary,
+                "routing_rules": _TOOL_HELP.get("routing_rules", {}),
+                "common_mistakes": _TOOL_HELP.get("common_mistakes", {}),
+            }
         return _TOOL_HELP
-
-    if action == "search_all":
-        if not search:
-            return _error("search is required for search_all")
-        classrooms_q = {"scope": "manage", "search": search}
-        contests_q = {"scope": "manage", "search": search}
-        banks_q = {"search": search}
-        import asyncio
-        classrooms_res, contests_res, banks_res = await asyncio.gather(
-            django_api("GET", f"/api/v1/classrooms/?{urlencode(classrooms_q)}", ctx),
-            django_api("GET", f"/api/v1/contests/?{urlencode(contests_q)}", ctx),
-            django_api("GET", f"/api/v1/question-banks/?{urlencode(banks_q)}", ctx),
-        )
-        return {
-            "classrooms": classrooms_res.get("results", classrooms_res) if isinstance(classrooms_res, dict) else classrooms_res,
-            "contests": contests_res.get("results", contests_res) if isinstance(contests_res, dict) else contests_res,
-            "banks": banks_res if isinstance(banks_res, list) else banks_res.get("results", banks_res),
-        }
 
     if action == "list_classrooms":
         query = {"scope": "manage"}
         if search:
             query["search"] = search
-        return await django_api("GET", f"/api/v1/classrooms/?{urlencode(query)}", ctx)
+        classrooms_res = await django_api("GET", f"/api/v1/classrooms/?{urlencode(query)}", ctx)
+        if isinstance(classrooms_res, dict) and classrooms_res.get("error"):
+            return classrooms_res
+
+        classrooms = _extract_results(classrooms_res)
+        if search and not classrooms:
+            all_classrooms_res = await django_api("GET", "/api/v1/classrooms/?scope=manage", ctx)
+            if isinstance(all_classrooms_res, dict) and all_classrooms_res.get("error"):
+                return all_classrooms_res
+            classrooms = [
+                row for row in _extract_results(all_classrooms_res)
+                if _matches_keyword(row, search, ("name", "description"))
+            ]
+        return [_compact_classroom(row) for row in classrooms]
+
+    if action == "get_classroom":
+        uuid_error = _require_uuid(
+            classroom_id,
+            field_name="classroom_id",
+            tool_name="qjudge_browse",
+            hint="Use qjudge_browse list_classrooms first to get classroom_id.",
+        )
+        if uuid_error:
+            return uuid_error
+        classroom = await django_api("GET", f"/api/v1/classrooms/{classroom_id}/", ctx)
+        if isinstance(classroom, dict) and classroom.get("error"):
+            return classroom
+        if not isinstance(classroom, dict):
+            return _tool_error(tool_name="qjudge_browse", detail="Invalid classroom payload", status=500)
+        return _compact_classroom(classroom)
+
+    if action == "list_classroom_contests":
+        uuid_error = _require_uuid(
+            classroom_id,
+            field_name="classroom_id",
+            tool_name="qjudge_browse",
+            hint="Use qjudge_browse list_classrooms first to get classroom_id.",
+        )
+        if uuid_error:
+            return uuid_error
+        contests_res = await django_api("GET", f"/api/v1/classrooms/{classroom_id}/contests/", ctx)
+        if isinstance(contests_res, dict) and contests_res.get("error"):
+            return contests_res
+        contests = _extract_results(contests_res)
+        if status:
+            contests = [row for row in contests if row.get("contest_status") == status]
+        if search:
+            contests = [
+                row for row in contests
+                if _matches_keyword(row, search, ("contest_name", "contest_description"))
+            ]
+        return [_compact_contest_from_classroom(row, classroom_id=classroom_id) for row in contests]
 
     if action == "list_contests":
         query: dict[str, str] = {"scope": "manage"}
@@ -564,28 +710,91 @@ async def qjudge_browse(
             query["search"] = search
         if status:
             query["status"] = status
-        return await django_api("GET", f"/api/v1/contests/?{urlencode(query)}", ctx)
+        contests_res = await django_api("GET", f"/api/v1/contests/?{urlencode(query)}", ctx)
+        if isinstance(contests_res, dict) and contests_res.get("error"):
+            return contests_res
+        contests = _extract_results(contests_res)
+
+        # If backend name-only search misses, fallback to classroom contests and match name/description.
+        if search and not contests:
+            classrooms_res = await django_api("GET", "/api/v1/classrooms/?scope=manage", ctx)
+            if isinstance(classrooms_res, dict) and classrooms_res.get("error"):
+                return classrooms_res
+            merged: dict[str, dict[str, Any]] = {}
+            for room in _extract_results(classrooms_res):
+                cid = room.get("uuid")
+                if not isinstance(cid, str) or not _is_uuid(cid):
+                    continue
+                room_contests = await django_api("GET", f"/api/v1/classrooms/{cid}/contests/", ctx)
+                if isinstance(room_contests, dict) and room_contests.get("error"):
+                    continue
+                for row in _extract_results(room_contests):
+                    compact = _compact_contest_from_classroom(row, classroom_id=cid)
+                    contest_uuid = compact.get("contest_id")
+                    if not isinstance(contest_uuid, str):
+                        continue
+                    if status and compact.get("status") != status:
+                        continue
+                    if not _matches_keyword(
+                        {
+                            "name": compact.get("name"),
+                            "description": compact.get("description"),
+                        },
+                        search,
+                        ("name", "description"),
+                    ):
+                        continue
+                    merged[contest_uuid] = compact
+            return list(merged.values())
+
+        import asyncio
+        detail_calls = [
+            django_api("GET", f"/api/v1/contests/{row.get('id')}/", ctx)
+            for row in contests
+            if isinstance(row.get("id"), str)
+        ]
+        details = await asyncio.gather(*detail_calls) if detail_calls else []
+        compact = [
+            _compact_contest_from_detail(detail)
+            for detail in details
+            if isinstance(detail, dict) and not detail.get("error")
+        ]
+        if search:
+            compact = [row for row in compact if _matches_keyword(row, search, ("name", "description"))]
+        return compact
 
     if action == "get_contest":
-        if not contest_id:
-            return _error("contest_id is required")
-        return await django_api("GET", f"/api/v1/contests/{contest_id}/", ctx)
+        uuid_error = _require_uuid(
+            contest_id,
+            field_name="contest_id",
+            tool_name="qjudge_browse",
+            hint="Use qjudge_browse list_contests or list_classroom_contests first to get contest_id.",
+        )
+        if uuid_error:
+            return uuid_error
+        contest = await django_api("GET", f"/api/v1/contests/{contest_id}/", ctx)
+        if isinstance(contest, dict) and contest.get("error"):
+            return contest
+        if not isinstance(contest, dict):
+            return _tool_error(tool_name="qjudge_browse", detail="Invalid contest payload", status=500)
+        return _compact_contest_from_detail(contest)
 
-    if action == "browse_banks":
-        return await django_api("GET", "/api/v1/question-banks/", ctx)
+    if action in {"get_detail", "list_problems", "reorder"}:
+        return _tool_error(
+            tool_name="qjudge_browse",
+            detail=(
+                f"Action '{action}' is not available on qjudge_browse. "
+                "Use qjudge_contest_manager with contest_id instead."
+            ),
+            status=400,
+        )
 
-    if action == "browse_bank_questions":
-        if not bank_id:
-            return _error("bank_id is required")
-        return await django_api("GET", f"/api/v1/question-banks/{bank_id}/questions/", ctx)
-
-    return _error(f"Unknown action: {action}")
+    return _tool_error(tool_name="qjudge_browse", detail=f"Unknown action: {action}", status=400)
 
 
 # ---------------------------------------------------------------------------
-# Tool 1b: qjudge_contest_manager — 競賽詳情、題目列表、題目順序（reorder）
+# Tool 1b: qjudge_contest_manager — contest operations (requires contest_id UUID)
 # ---------------------------------------------------------------------------
-
 @mcp.tool()
 async def qjudge_contest_manager(
     action: str,
@@ -593,33 +802,36 @@ async def qjudge_contest_manager(
     contest_id: str | None = None,
     question_ids: list[str] | None = None,
 ) -> Any:
-    """**Contest-scoped reads and question reorder** — use this instead of calling
-    ``qjudge_exam``/``qjudge_coding_problems`` **list** or **reorder**.
+    """Contest-scoped operations with explicit contest_id.
 
-    ## Actions
-      get_detail     — GET contest detail (required: contest_id). Same payload as browse ``get_contest``.
-      list_problems  — List all questions in the contest (required: contest_id). Routes by ``contest_type``:
-                       ``coding`` → ``GET .../problems/``, ``paper_exam`` → ``GET .../exam-questions/``.
-      reorder        — Reorder questions (required: contest_id, question_ids — full ordered list of IDs).
-                       Routes to ``POST .../problems/reorder/`` or ``.../exam-questions/reorder/``.
-
-    ## When to use
-      • Use **list_problems** whenever you need the full question list (replaces removed list actions on exam/coding tools).
-      • Use **reorder** for both contest types (replaces ``qjudge_exam`` reorder).
-
-    ## Preconditions
-      • ``list_problems`` / ``reorder`` require ``contest_type`` **coding** or **paper_exam** (other types → MCP error).
+    Actions:
+      get_detail    — Get contest detail (required: contest_id UUID)
+      list_problems — List all contest problems/questions (required: contest_id UUID)
+      reorder       — Reorder questions/problems (required: contest_id UUID, question_ids)
     """
     valid_actions = {"get_detail", "list_problems", "reorder"}
     if action not in valid_actions:
-        return _error(
-            f"Unknown action: {action!r}. "
-            f"qjudge_contest_manager supports: {sorted(valid_actions)}."
+        return _tool_error(
+            tool_name="qjudge_contest_manager",
+            detail=(
+                f"Unknown action: {action!r}. "
+                f"qjudge_contest_manager supports: {sorted(valid_actions)}."
+            ),
+            status=400,
         )
-    if not contest_id:
-        return _error("contest_id is required")
+    uuid_error = _require_uuid(
+        contest_id,
+        field_name="contest_id",
+        tool_name="qjudge_contest_manager",
+        hint="Use qjudge_browse list_contests or list_classroom_contests first to get contest_id.",
+    )
+    if uuid_error:
+        return uuid_error
     if action == "reorder" and not question_ids:
-        return _error("question_ids is required (ordered list of all question/problem IDs)")
+        return _tool_error(
+            tool_name="qjudge_contest_manager",
+            detail="question_ids is required (ordered list of all question/problem IDs)",
+        )
 
     if action == "get_detail":
         return await django_api("GET", f"/api/v1/contests/{contest_id}/", ctx)
@@ -630,9 +842,12 @@ async def qjudge_contest_manager(
 
     contest_type = contest.get("contest_type") if isinstance(contest, dict) else None
     if contest_type not in {"coding", "paper_exam"}:
-        return _error(
-            "list_problems and reorder only support contests with contest_type "
-            "'coding' or 'paper_exam'.",
+        return _tool_error(
+            tool_name="qjudge_contest_manager",
+            detail=(
+                "list_problems and reorder only support contests with contest_type "
+                "'coding' or 'paper_exam'."
+            ),
             status=400,
         )
 
@@ -641,7 +856,6 @@ async def qjudge_contest_manager(
             return await django_api("GET", f"/api/v1/contests/{contest_id}/problems/", ctx)
         return await django_api("GET", f"/api/v1/contests/{contest_id}/exam-questions/", ctx)
 
-    # reorder
     orders = [{"id": qid, "order": idx} for idx, qid in enumerate(question_ids or [])]
     if contest_type == "coding":
         return await django_api(
@@ -915,15 +1129,35 @@ async def qjudge_exam(
     """
     base = f"/api/v1/contests/{contest_id}/exam-questions"
     valid_actions = {"get", "create", "update", "delete", "import_from_bank", "batch_create"}
+    uuid_error = _require_uuid(
+        contest_id,
+        field_name="contest_id",
+        tool_name="qjudge_exam",
+        hint="Use qjudge_browse list_contests or list_classroom_contests first to get contest_id.",
+    )
+    if uuid_error:
+        return uuid_error
     if action not in valid_actions:
-        return _error(
-            f"Unknown action: {action!r}. "
-            f"qjudge_exam supports: {sorted(valid_actions)}"
+        return _tool_error(
+            tool_name="qjudge_exam",
+            detail=(
+                f"Unknown action: {action!r}. "
+                f"qjudge_exam supports: {sorted(valid_actions)}"
+            ),
+            status=400,
         )
     if action in {"get", "update", "delete"} and not question_id:
-        return _error("question_id is required")
+        return _tool_error(tool_name="qjudge_exam", detail="question_id is required")
+    if action == "create":
+        if not question_type:
+            return _tool_error(tool_name="qjudge_exam", detail="question_type is required")
+        if not prompt:
+            return _tool_error(tool_name="qjudge_exam", detail="prompt is required")
     if action == "import_from_bank" and not items:
-        return _error("items is required (list of {question_bank_id, question_id})")
+        return _tool_error(
+            tool_name="qjudge_exam",
+            detail="items is required (list of {question_bank_id, question_id})",
+        )
     if action == "update":
         body = _build_exam_question_body(
             question_type=question_type,
@@ -934,13 +1168,13 @@ async def qjudge_exam(
             correct_answer=correct_answer,
         )
         if not body:
-            return _error("No fields to update")
+            return _tool_error(tool_name="qjudge_exam", detail="No fields to update")
     normalized_mode = mode or "append"
     if action == "batch_create":
         if not items:
-            return _error("items is required")
+            return _tool_error(tool_name="qjudge_exam", detail="items is required")
         if normalized_mode not in {"append", "overwrite"}:
-            return _error("mode must be one of: append, overwrite")
+            return _tool_error(tool_name="qjudge_exam", detail="mode must be one of: append, overwrite")
 
     type_error = await _ensure_contest_type(
         contest_id=contest_id,
@@ -983,7 +1217,7 @@ async def qjudge_exam(
             if isinstance(existing, dict) and existing.get("error"):
                 return existing
             if not isinstance(existing, list):
-                return _error("Expected exam question list during overwrite", status=500)
+                return _tool_error(tool_name="qjudge_exam", detail="Expected exam question list during overwrite", status=500)
             for existing_item in existing:
                 if not isinstance(existing_item, dict):
                     continue
@@ -998,7 +1232,7 @@ async def qjudge_exam(
         created_items: list[Any] = []
         for item in items:
             if not isinstance(item, dict):
-                return _error("Each batch item must be an object")
+                return _tool_error(tool_name="qjudge_exam", detail="Each batch item must be an object")
             body = _build_exam_question_body(
                 question_type=item.get("question_type"),
                 prompt=item.get("prompt"),
@@ -1020,7 +1254,7 @@ async def qjudge_exam(
             "items": created_items,
         }
 
-    return _error(f"Unknown action: {action}")
+    return _tool_error(tool_name="qjudge_exam", detail=f"Unknown action: {action}", status=400)
 
 
 # ---------------------------------------------------------------------------
@@ -1046,9 +1280,18 @@ async def qjudge_grading(
 
     Actions: list_answers, question_detail, dashboard, grade, batch_grade, ungrade."""
     base = f"/api/v1/contests/{contest_id}/exam-answers"
+    uuid_error = _require_uuid(
+        contest_id,
+        field_name="contest_id",
+        tool_name="qjudge_grading",
+        hint="Use qjudge_browse list_contests or list_classroom_contests first to get contest_id.",
+    )
+    if uuid_error:
+        return uuid_error
 
     if action == "list_answers":
         query: dict[str, str] = {}
+        # participant_id maps to backend participant user identifier accepted by this endpoint.
         if participant_id:
             query["participant_id"] = participant_id
         if question_id:
@@ -1059,7 +1302,7 @@ async def qjudge_grading(
 
     if action == "question_detail":
         if not question_id:
-            return _error("question_id is required")
+            return _tool_error(tool_name="qjudge_grading", detail="question_id is required")
         raw = await django_api("GET", f"{base}/question-detail/?question_id={question_id}", ctx)
         return _compact_question_detail(
             raw,
@@ -1073,9 +1316,9 @@ async def qjudge_grading(
 
     if action == "grade":
         if not exam_answer_id:
-            return _error("exam_answer_id is required")
+            return _tool_error(tool_name="qjudge_grading", detail="exam_answer_id is required")
         if score is None:
-            return _error("score is required")
+            return _tool_error(tool_name="qjudge_grading", detail="score is required")
         body: dict[str, Any] = {"score": score}
         if feedback is not None:
             body["feedback"] = feedback
@@ -1086,7 +1329,7 @@ async def qjudge_grading(
 
     if action == "batch_grade":
         if not grades:
-            return _error("grades array is required")
+            return _tool_error(tool_name="qjudge_grading", detail="grades array is required")
         result = await django_api("POST", f"{base}/batch-grade/", ctx, json_body={"grades": grades})
         if isinstance(result, dict) and result.get("error"):
             return result
@@ -1103,13 +1346,13 @@ async def qjudge_grading(
 
     if action == "ungrade":
         if not exam_answer_id:
-            return _error("exam_answer_id is required")
+            return _tool_error(tool_name="qjudge_grading", detail="exam_answer_id is required")
         result = await django_api("POST", f"{base}/{exam_answer_id}/ungrade/", ctx)
         if isinstance(result, dict) and result.get("error"):
             return result
         return {"status": "success", "exam_answer_id": exam_answer_id}
 
-    return _error(f"Unknown action: {action}")
+    return _tool_error(tool_name="qjudge_grading", detail=f"Unknown action: {action}", status=400)
 
 
 # ---------------------------------------------------------------------------
@@ -1173,20 +1416,37 @@ async def qjudge_coding_problems(
     """
     valid_actions = {"get", "create", "update", "delete"}
     if action not in valid_actions:
-        return _error(
-            f"Unknown action: {action!r}. "
-            f"qjudge_coding_problems supports: {sorted(valid_actions)}. "
-            f"For code execution (including test_run), use qjudge_code_runner instead."
+        return _tool_error(
+            tool_name="qjudge_coding_problems",
+            detail=(
+                f"Unknown action: {action!r}. "
+                f"qjudge_coding_problems supports: {sorted(valid_actions)}. "
+                f"For code execution (including test_run), use qjudge_code_runner instead."
+            ),
+            status=400,
         )
-    if not contest_id:
-        return _error("contest_id is required")
-    if action in {"get", "update", "delete"} and not problem_id:
-        return _error("problem_id is required")
+    uuid_error = _require_uuid(
+        contest_id,
+        field_name="contest_id",
+        tool_name="qjudge_coding_problems",
+        hint="Use qjudge_browse list_contests or list_classroom_contests first to get contest_id.",
+    )
+    if uuid_error:
+        return uuid_error
+    if action in {"get", "update", "delete"}:
+        pid_error = _require_uuid(
+            problem_id,
+            field_name="problem_id",
+            tool_name="qjudge_coding_problems",
+            hint="Use qjudge_contest_manager list_problems first to get problem_id.",
+        )
+        if pid_error:
+            return pid_error
     if action == "create" and not title:
-        return _error("title is required")
+        return _tool_error(tool_name="qjudge_coding_problems", detail="title is required")
 
     warnings: list[str] = []
-    if action in {"create", "update"}:
+    if action == "create":
         if not description:
             warnings.append("missing description — problem will have no description")
         if not test_cases:
@@ -1253,7 +1513,7 @@ async def qjudge_coding_problems(
             if val is not None:
                 body[key] = val
         if not body:
-            return _error("No fields to update")
+            return _tool_error(tool_name="qjudge_coding_problems", detail="No fields to update")
         _normalize_body_text(body)
         result = await django_api("PATCH", f"/api/v1/contests/{contest_id}/problems/{problem_id}/", ctx, json_body=body)
         return _attach_warnings(result)
@@ -1275,7 +1535,7 @@ async def qjudge_coding_problems(
     #         json_body={"max_score": max_score},
     #     )
 
-    return _error(f"Unknown action: {action}")
+    return _tool_error(tool_name="qjudge_coding_problems", detail=f"Unknown action: {action}", status=400)
 
 
 # ---------------------------------------------------------------------------
@@ -1313,19 +1573,28 @@ async def qjudge_code_runner(
 
     Do NOT use this tool for problem CRUD — use qjudge_coding_problems instead.
     """
-    if not problem_id:
-        return _error("problem_id is required")
+    uuid_error = _require_uuid(
+        problem_id,
+        field_name="problem_id",
+        tool_name="qjudge_code_runner",
+        hint="Use qjudge_contest_manager list_problems first to get problem_id.",
+    )
+    if uuid_error:
+        return uuid_error
     if not language:
-        return _error("language is required")
+        return _tool_error(tool_name="qjudge_code_runner", detail="language is required")
     if not code or not code.strip():
-        return _error("code is required")
+        return _tool_error(tool_name="qjudge_code_runner", detail="code is required")
 
     normalized_language = _normalize_code_runner_language(language)
     if normalized_language is None:
-        return _error(
-            "Unsupported language for qjudge_code_runner. "
-            "Use one of: cpp, c, python, java "
-            "(aliases accepted: c++, python3, py).",
+        return _tool_error(
+            tool_name="qjudge_code_runner",
+            detail=(
+                "Unsupported language for qjudge_code_runner. "
+                "Use one of: cpp, c, python, java "
+                "(aliases accepted: c++, python3, py)."
+            ),
             status=400,
         )
 
