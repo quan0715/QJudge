@@ -32,6 +32,7 @@ import CreateContestModal from "@/features/classroom/components/CreateContestMod
 import ClassroomAdminLayout, {
   type ClassroomAdminPanelId,
 } from "./ClassroomAdminLayout";
+import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import { ClassroomSkeleton } from "../components/ClassroomSkeleton";
 import { AnnouncementSection } from "../components/AnnouncementSection";
@@ -268,6 +269,7 @@ const ClassroomDetailScreen: React.FC = () => {
   return (
     <>
       <ClassroomAdminLayout>
+        <WorkspaceToolBar showAppSidebarExpand title={null} />
         <div className="classroom-admin-page">
           <QJudgeHeroWidget
             title={

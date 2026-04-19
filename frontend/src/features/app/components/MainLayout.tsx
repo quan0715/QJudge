@@ -1,7 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { Content } from "@carbon/react";
 import { AppSidebar } from "./AppSidebar";
-import { MobileBottomNav } from "./MobileBottomNav";
 import { useAppSidebar } from "@/features/app/contexts/AppSidebarContext";
 import { WorkspaceShell } from "@/features/chatbot/components/workspace/WorkspaceShell";
 import styles from "./MainLayout.module.scss";
@@ -13,7 +12,6 @@ const MainLayout = () => {
 
   return (
     <div className={styles.root}>
-      {/* App body (grows to fill space above the mobile bottom nav) */}
       <div className={styles.body}>
         <WorkspaceShell
           leftPanel={
@@ -37,9 +35,6 @@ const MainLayout = () => {
           )}
         </WorkspaceShell>
       </div>
-
-      {/* Mobile-only bottom navigation (hidden on desktop ≥ 769px) */}
-      <MobileBottomNav />
     </div>
   );
 };

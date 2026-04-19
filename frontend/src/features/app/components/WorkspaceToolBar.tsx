@@ -42,6 +42,8 @@ export function WorkspaceToolBar({
 
   const showExpand = showAppSidebarExpand && !appSidebarOpen;
 
+  if (!title && !actions && !showExpand) return null;
+
   return (
     <div className={`${styles.root}${className ? ` ${className}` : ""}`}>
       <div className={styles.leading}>

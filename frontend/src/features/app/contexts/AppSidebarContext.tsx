@@ -1,4 +1,14 @@
-import { createContext, useContext, useState, useCallback, useMemo } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import { createPortal } from "react-dom";
+import { SideMenu } from "@/features/app/components/SideMenu";
+import styles from "./AppSidebarMobileOverlay.module.scss";
 
 export interface AppSidebarContextValue {
   isOpen: boolean;
@@ -21,8 +31,23 @@ function getInitialOpen(): boolean {
   catch { return true; }
 }
 
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth <= 768,
+  );
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 768px)");
+    const handle = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handle);
+    setIsMobile(mql.matches);
+    return () => mql.removeEventListener("change", handle);
+  }, []);
+  return isMobile;
+}
+
 export function AppSidebarProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(getInitialOpen);
+  const isMobile = useIsMobile();
 
   const persist = useCallback((value: boolean) => {
     setIsOpen(value);
@@ -44,9 +69,22 @@ export function AppSidebarProvider({ children }: { children: React.ReactNode }) 
     [isOpen, open, close, toggle],
   );
 
+  const showMobileOverlay = isOpen && isMobile;
+
   return (
     <AppSidebarContext.Provider value={value}>
       {children}
+
+      {/* Mobile drawer overlay — rendered when isOpen on small screens */}
+      {showMobileOverlay && typeof document !== "undefined" && createPortal(
+        <div className={styles.overlay}>
+          <div className={styles.panel}>
+            <SideMenu variant="panel" />
+          </div>
+          <div className={styles.backdrop} onClick={close} aria-hidden="true" />
+        </div>,
+        document.body,
+      )}
     </AppSidebarContext.Provider>
   );
 }
