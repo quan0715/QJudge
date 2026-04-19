@@ -1,4 +1,6 @@
 import { useRef, useCallback } from "react";
+import { IconButton } from "@carbon/react";
+import { SidePanelOpen } from "@carbon/icons-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { ChatContainer } from "../chat-ui/ChatContainer";
 import styles from "./WorkspaceShell.module.scss";
@@ -20,8 +22,14 @@ function getSavedWidth(): number {
 }
 
 interface WorkspaceShellProps {
-  /** Main workspace area (left of the chat sidebar). */
+  /** Main workspace area. */
   children: React.ReactNode;
+  /** Persistent left panel (e.g. AppSidebar). */
+  leftPanel?: React.ReactNode;
+  /** When true, left panel is hidden (width: 0). */
+  leftPanelCollapsed?: boolean;
+  /** Callback to expand the left panel; also triggers the expand button in content area. */
+  onExpandLeftPanel?: () => void;
 }
 
 /**
@@ -32,7 +40,7 @@ interface WorkspaceShellProps {
  * - The main content wrapper also sets `data-chatbot-sidebar-open` for CSS or
  *   non-React consumers (`[data-chatbot-sidebar-open="true"]`).
  */
-export function WorkspaceShell({ children }: WorkspaceShellProps) {
+export function WorkspaceShell({ children, leftPanel, leftPanelCollapsed = false, onExpandLeftPanel }: WorkspaceShellProps) {
   const { isOpen, closeChat } = useWorkspace();
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
@@ -89,6 +97,13 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
 
   return (
     <div className={styles.shell}>
+      {leftPanel && (
+        <aside
+          className={`${styles.leftPanel} ${leftPanelCollapsed ? styles.leftPanelCollapsed : ""}`}
+        >
+          {leftPanel}
+        </aside>
+      )}
       <div
         className={styles.content}
         data-chatbot-sidebar-open={isOpen ? "true" : "false"}

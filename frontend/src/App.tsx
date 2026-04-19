@@ -49,6 +49,7 @@ import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shar
 import { PageHeaderActionsProvider } from "@/features/app/contexts/PageHeaderActionsContext";
 import { AIWorkspaceProvider } from "@/features/chatbot/components/workspace/AIWorkspaceProvider";
 import { ChatSessionProvider } from "@/features/chatbot/contexts/ChatSessionContext";
+import { AppSidebarProvider } from "@/features/app/contexts/AppSidebarContext";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 import {
   MarkdownImageUploadProvider,
@@ -96,6 +97,7 @@ function App() {
                     <SettingsDialogProvider>
                     <RecurProviderBridge>
                     <BrowserRouter>
+                      <AppSidebarProvider>
                       <AIWorkspaceProvider>
                       <ChatSessionProvider>
                       <PageHeaderActionsProvider>
@@ -169,25 +171,23 @@ function App() {
                             <Route element={<MainLayout />}>
                               {questionBankMarketplaceRoute}
                               {draftProblemsRoute}
+                              <Route
+                                path="/chat"
+                                element={
+                                  <Suspense fallback={null}>
+                                    <ChatStandalonePage />
+                                  </Suspense>
+                                }
+                              />
+                              <Route
+                                path="/chat/:sessionId"
+                                element={
+                                  <Suspense fallback={null}>
+                                    <ChatStandalonePage />
+                                  </Suspense>
+                                }
+                              />
                             </Route>
-
-                            {/* Standalone AI Chat page (outside MainLayout) */}
-                            <Route
-                              path="/chat"
-                              element={
-                                <Suspense fallback={null}>
-                                  <ChatStandalonePage />
-                                </Suspense>
-                              }
-                            />
-                            <Route
-                              path="/chat/:sessionId"
-                              element={
-                                <Suspense fallback={null}>
-                                  <ChatStandalonePage />
-                                </Suspense>
-                              }
-                            />
 
                             {/* Question Bank Detail - Standalone with breadcrumb header */}
                             {questionBankDetailRoute}
@@ -220,6 +220,7 @@ function App() {
                       </PageHeaderActionsProvider>
                       </ChatSessionProvider>
                       </AIWorkspaceProvider>
+                      </AppSidebarProvider>
                     </BrowserRouter>
                     <SettingsDialog />
                     </RecurProviderBridge>

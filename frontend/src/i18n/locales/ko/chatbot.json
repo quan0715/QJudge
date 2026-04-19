@@ -49,6 +49,8 @@
     "collapse": "패널 접기",
     "history": "채팅 기록",
     "newChat": "새 채팅",
+    "addComment": "댓글 추가",
+    "moreOptions": "대화 옵션",
     "close": "닫기",
     "inputPlaceholder": "메시지를 입력하세요...",
     "inputAriaLabel": "메시지 입력",

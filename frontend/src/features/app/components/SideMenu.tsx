@@ -29,11 +29,13 @@ function getDefaultTab(pathname: string): TabKey {
 }
 
 interface SideMenuProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  variant?: "drawer" | "panel";
 }
 
-export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
+export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, variant = "drawer" }) => {
+  const isPanelMode = variant === "panel";
   const { t } = useTranslation("common");
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,10 +62,10 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (isOpen && activeTab === "chat" && isTeacherOrAdmin) {
+    if ((isPanelMode || isOpen) && activeTab === "chat" && isTeacherOrAdmin) {
       void refreshSessions();
     }
-  }, [isOpen, activeTab, isTeacherOrAdmin, refreshSessions]);
+  }, [isPanelMode, isOpen, activeTab, isTeacherOrAdmin, refreshSessions]);
 
   const classroomId = useMemo(() => {
     const match = location.pathname.match(/^\/classrooms\/([^/]+)/);
@@ -92,20 +94,20 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
   }, [user, isTeacherOrAdmin]);
 
   useEffect(() => {
-    if (isOpen && !fetched) void fetchData();
-  }, [isOpen, fetched, fetchData]);
+    if ((isPanelMode || isOpen) && !fetched) void fetchData();
+  }, [isPanelMode, isOpen, fetched, fetchData]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (isPanelMode || !isOpen) return;
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
       if (drawerRef.current?.contains(target)) return;
       const toggle = document.querySelector(`[data-side-menu-toggle]`);
       if (toggle?.contains(target)) return;
-      onClose();
+      onClose?.();
     };
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onClose?.();
     };
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleEscape);
@@ -113,9 +115,9 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isPanelMode, isOpen, onClose]);
 
-  const go = useCallback((path: string) => { onClose(); navigate(path); }, [onClose, navigate]);
+  const go = useCallback((path: string) => { onClose?.(); navigate(path); }, [onClose, navigate]);
 
   const isActive = (prefix: string) => location.pathname.startsWith(prefix);
 
@@ -123,16 +125,16 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
     try {
       const newSession = await chatbotRepository.createSession();
       void refreshSessions();
-      onClose();
+      onClose?.();
       navigate(`/chat/${newSession.id}`);
     } catch {
-      onClose();
+      onClose?.();
       navigate("/chat");
     }
   }, [refreshSessions, onClose, navigate]);
 
   const handleSelectSession = useCallback((id: string) => {
-    onClose();
+    onClose?.();
     navigate(`/chat/${id}`);
   }, [onClose, navigate]);
 
@@ -174,13 +176,18 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
 
   return (
     <>
-      <div
-        className={`side-menu-backdrop${isOpen ? " side-menu-backdrop--visible" : ""}`}
-        aria-hidden="true"
-      />
+      {!isPanelMode && (
+        <div
+          className={`side-menu-backdrop${isOpen ? " side-menu-backdrop--visible" : ""}`}
+          aria-hidden="true"
+        />
+      )}
       <nav
         ref={drawerRef}
-        className={`side-menu${isOpen ? " side-menu--open" : ""}`}
+        className={[
+          "side-menu",
+          isPanelMode ? "side-menu--panel" : isOpen ? "side-menu--open" : "",
+        ].filter(Boolean).join(" ")}
         aria-label={t("header.sideNav", "Side navigation")}
       >
         {/* Tab bar */}

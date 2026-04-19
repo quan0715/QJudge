@@ -59,6 +59,8 @@ export function ChatTopBar(props: ChatTopBarProps) {
           {onToggleHistory && (
             <IconButton
               kind="ghost"
+              size="md"
+              align="bottom"
               label={historyOpen ? t("ui.collapse") : t("ui.history")}
               onClick={onToggleHistory}
             >
@@ -68,11 +70,17 @@ export function ChatTopBar(props: ChatTopBarProps) {
         </div>
         <span className={styles.title}>{displayTitle}</span>
         <div className={styles.right}>
-          <IconButton kind="ghost" label={t("ui.newChat")} onClick={onNewChat}>
+          <IconButton
+            kind="ghost"
+            size="md"
+            align="bottom"
+            label={t("ui.addComment")}
+            onClick={onNewChat}
+          >
             <Add size={20} />
           </IconButton>
           {onClose && (
-            <IconButton kind="ghost" label={t("ui.close")} onClick={onClose}>
+            <IconButton kind="ghost" size="md" align="bottom" label={t("ui.close")} onClick={onClose}>
               <Close size={20} />
             </IconButton>
           )}
@@ -172,11 +180,22 @@ export function ChatTopBar(props: ChatTopBarProps) {
 
       {/* Right: actions */}
       <div className={styles.right}>
-        <IconButton kind="ghost" label={t("ui.newChat")} onClick={onNewChat}>
+        <IconButton
+          kind="ghost"
+          size="md"
+          align="bottom"
+          label={t("ui.addComment")}
+          onClick={onNewChat}
+        >
           <Add size={20} />
         </IconButton>
         {currentSessionId && (
-          <OverflowMenu size="sm" flipped>
+          <OverflowMenu
+            flipped
+            size="md"
+            align="bottom"
+            iconDescription={t("ui.moreOptions")}
+          >
             <OverflowMenuItem
               itemText={t("ui.rename")}
               onClick={() => {
@@ -193,7 +212,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
           </OverflowMenu>
         )}
         {onClose && (
-          <IconButton kind="ghost" label={t("ui.close")} onClick={onClose}>
+          <IconButton kind="ghost" size="md" align="bottom" label={t("ui.close")} onClick={onClose}>
             <Close size={20} />
           </IconButton>
         )}

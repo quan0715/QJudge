@@ -49,6 +49,8 @@
     "collapse": "收合面板",
     "history": "對話紀錄",
     "newChat": "新對話",
+    "addComment": "新增留言",
+    "moreOptions": "對話選項",
     "close": "關閉",
     "inputPlaceholder": "輸入訊息…",
     "inputAriaLabel": "訊息輸入",

@@ -49,6 +49,8 @@
     "collapse": "パネルを折りたたむ",
     "history": "チャット履歴",
     "newChat": "新しいチャット",
+    "addComment": "コメントを追加",
+    "moreOptions": "チャットのオプション",
     "close": "閉じる",
     "inputPlaceholder": "メッセージを入力...",
     "inputAriaLabel": "メッセージ入力",

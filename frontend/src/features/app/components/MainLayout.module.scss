@@ -1,0 +1,44 @@
+// ── Root ──
+// Full-viewport flex column; no Carbon header offset needed.
+
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+// ── Mobile-only header (< 769px) ──
+// On desktop the left panel is always visible; this bar provides navigation on mobile.
+
+.mobileHeader {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  background: var(--cds-background);
+  border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  position: relative; // drawer SideMenu uses fixed positioning relative to viewport
+
+  @media (min-width: 769px) {
+    display: none;
+  }
+}
+
+.mobileBrand {
+  flex: 1;
+  padding: 0 0.75rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--cds-text-primary);
+  user-select: none;
+}
+
+// ── App body (grows to fill remaining height) ──
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}
