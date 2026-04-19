@@ -1,24 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-
 import { ChatTopBar } from "../ChatTopBar";
+import { mockSessions } from "./chat-ui.mocks";
 
-const meta: Meta<typeof ChatTopBar> = {
+const meta: Meta = {
   title: "features/chatbot/chat-ui/ChatTopBar",
   component: ChatTopBar,
   parameters: {
     docs: {
       description: {
-        component: "統一頂部列 — 左：history toggle / 中：session 標題 / 右：新對話 + (可選) 關閉。桌面、手機、sidebar 共用。",
+        component:
+          "統一頂部列 — 支援 full-page（title dropdown + actions）與 sidebar（history toggle + close）兩種模式。",
       },
     },
-  },
-  args: {
-    onToggleHistory: () => {},
-    onNewChat: () => {},
-  },
-  argTypes: {
-    title: { control: "text" },
-    historyOpen: { control: "boolean" },
   },
   decorators: [
     (Story) => (
@@ -32,28 +25,43 @@ const meta: Meta<typeof ChatTopBar> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const HistoryClosed: Story = {
-  name: "History 關閉",
-  args: { title: "新對話", historyOpen: false },
-};
-
-export const HistoryOpen: Story = {
-  name: "History 開啟",
-  args: { title: "列出我的教室", historyOpen: true },
-};
-
-export const SidebarMode: Story = {
-  name: "Sidebar 模式（含關閉按鈕）",
+export const FullPage: Story = {
+  name: "Full-page mode",
   args: {
+    mode: "full" as const,
+    title: "如何描述 AI 側邊欄效果",
+    sessions: mockSessions,
+    currentSessionId: mockSessions[0].id,
+    onSelectSession: () => {},
+    onNewChat: () => {},
+    onRenameSession: () => {},
+    onDeleteSession: () => {},
+  },
+};
+
+export const FullPageWithClose: Story = {
+  name: "Full-page + close button (sidebar embed)",
+  args: {
+    mode: "full" as const,
     title: "QJudge AI 助教",
+    sessions: mockSessions,
+    currentSessionId: mockSessions[0].id,
+    onSelectSession: () => {},
+    onNewChat: () => {},
+    onRenameSession: () => {},
+    onDeleteSession: () => {},
     onClose: () => {},
   },
 };
 
-export const NoHistoryToggle: Story = {
-  name: "無 History 按鈕",
+export const SidebarMode: Story = {
+  name: "Sidebar mode（含關閉按鈕）",
   args: {
+    mode: "sidebar" as const,
     title: "QJudge AI 助教",
-    onToggleHistory: undefined,
+    historyOpen: false,
+    onToggleHistory: () => {},
+    onNewChat: () => {},
+    onClose: () => {},
   },
 };
