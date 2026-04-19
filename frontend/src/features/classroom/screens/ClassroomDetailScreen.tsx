@@ -12,7 +12,6 @@ import {
   UserMultiple,
 } from "@carbon/icons-react";
 import type {
-  Classroom,
   ClassroomAnnouncement,
   ClassroomDetail,
 } from "@/core/entities/classroom.entity";
@@ -24,7 +23,6 @@ import { useToast } from "@/shared/contexts/ToastContext";
 import { KpiCard } from "@/shared/ui/dataCard";
 import {
   getClassroom,
-  getClassrooms,
   deleteClassroom,
   deleteAnnouncement,
 } from "@/infrastructure/api/repositories/classroom.repository";
@@ -58,7 +56,6 @@ const ClassroomDetailScreen: React.FC = () => {
   const { classroomId } = useParams<{ classroomId: string }>();
 
   const [classroom, setClassroom] = useState<ClassroomDetail | null>(null);
-  const [classroomOptions, setClassroomOptions] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [createContestOpen, setCreateContestOpen] = useState(false);
@@ -123,25 +120,9 @@ const ClassroomDetailScreen: React.FC = () => {
     }
   }, [classroomId, showToast, t]);
 
-  const fetchClassroomOptions = useCallback(async () => {
-    try {
-      const rows = await getClassrooms();
-      setClassroomOptions(rows);
-    } catch (error) {
-      showToast({
-        kind: "error",
-        title: t("switcherLoadFailed", "載入教室清單失敗"),
-        subtitle:
-          error instanceof Error
-            ? error.message
-            : t("loadFailedHint", "請稍後再試"),
-      });
-    }
-  }, [showToast, t]);
-
   const refreshAll = useCallback(async () => {
-    await Promise.all([fetchClassroomData(), fetchClassroomOptions()]);
-  }, [fetchClassroomData, fetchClassroomOptions]);
+    await fetchClassroomData();
+  }, [fetchClassroomData]);
 
   useEffect(() => {
     void refreshAll();
@@ -149,11 +130,6 @@ const ClassroomDetailScreen: React.FC = () => {
 
   const handleTabChange = ({ selectedIndex }: { selectedIndex: number }) => {
     handleTabChangeIndex(selectedIndex);
-  };
-
-  const handleClassroomSwitch = (targetId: string) => {
-    if (!targetId || targetId === classroomId) return;
-    navigate(`/classrooms/${targetId}`);
   };
 
   const handleNavigateContest = useCallback(
@@ -255,18 +231,7 @@ const ClassroomDetailScreen: React.FC = () => {
   return (
     <>
       <ClassroomAdminLayout
-        classroomName={classroom.name}
-        classroomOptions={classroomOptions.map((row) => ({
-          id: row.id,
-          name: row.name,
-          icon: row.icon,
-        }))}
-        selectedClassroomId={classroomId || classroom.id}
-        onClassroomSwitch={handleClassroomSwitch}
-        onGoHome={() => navigate("/dashboard")}
-        onOpenSettings={
-          isPrivileged ? () => setSettingsModalOpen(true) : undefined
-        }
+        onOpenSettings={isPrivileged ? () => setSettingsModalOpen(true) : undefined}
       >
         <div className="classroom-admin-page">
           <QJudgeHeroWidget

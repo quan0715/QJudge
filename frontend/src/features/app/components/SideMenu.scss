@@ -306,3 +306,95 @@
   display: flex;
   flex-direction: column;
 }
+
+// ── Classroom workspace selector ──
+
+.side-menu__workspace {
+  padding: 0.5rem;
+  position: relative;
+  border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  flex-shrink: 0;
+}
+
+.side-menu__workspace-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cds-text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: var(--cds-layer-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+}
+
+.side-menu__workspace-icon {
+  flex-shrink: 0;
+  color: var(--cds-icon-primary);
+}
+
+.side-menu__workspace-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-menu__workspace-chevron {
+  flex-shrink: 0;
+  color: var(--cds-text-secondary);
+  transition: transform 150ms ease;
+}
+
+.side-menu__workspace-chevron--open {
+  transform: rotate(180deg);
+}
+
+.side-menu__workspace-dropdown {
+  position: absolute;
+  top: calc(100% - 0.25rem);
+  left: 0.5rem;
+  right: 0.5rem;
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.side-menu__workspace-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--cds-text-primary);
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cds-layer-hover);
+  }
+}
+
+.side-menu__workspace-option--active {
+  background: var(--cds-layer-selected-01);
+  font-weight: 500;
+}

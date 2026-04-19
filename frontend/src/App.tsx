@@ -143,6 +143,8 @@ function App() {
                                 path="/ranking"
                                 element={<div>Ranking Page (Coming Soon)</div>}
                               />
+                              {/* Classroom Detail - inside MainLayout for shared sidebar */}
+                              {classroomDetailRoute}
                             </Route>
 
                             {/* Legacy hidden routes */}
@@ -155,9 +157,6 @@ function App() {
 
                             {/* Classroom-scoped Contest Routes */}
                             {classroomContestDetailRoutes}
-
-                            {/* Classroom Detail - Standalone classroom admin shell */}
-                            {classroomDetailRoute}
 
                             {/* Classroom Exam Precheck - Classroom-scoped */}
                             {classroomExamPrecheckRoute}
