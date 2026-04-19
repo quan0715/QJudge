@@ -3,22 +3,8 @@ import { IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
 import { Add, Close, ChevronDown, Chat as ChatIcon, RecentlyViewed } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ChatSession } from "@/core/types/chatbot.types";
+import { formatRelativeTime } from "@/shared/utils/relativeTime";
 import styles from "./ChatTopBar.module.scss";
-
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) {
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    return diffHours === 0 ? "Just now" : `${diffHours}h`;
-  }
-  if (diffDays === 1) return "1d";
-  if (diffDays < 7) return `${diffDays}d`;
-  const diffWeeks = Math.floor(diffDays / 7);
-  if (diffWeeks < 5) return `${diffWeeks}w`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 interface ChatTopBarFullProps {
   mode: "full";
