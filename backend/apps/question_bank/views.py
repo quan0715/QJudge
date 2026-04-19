@@ -10,7 +10,7 @@ from django.http import Http404
 from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework import mixins, permissions, status, viewsets
+from rest_framework import filters, mixins, permissions, status, viewsets
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -84,6 +84,10 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
     serializer_class = QuestionBankSerializer
     pagination_class = None
     lookup_field = "uuid"
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name']
+    ordering_fields = ['created_at', 'name']
+    ordering = ['-created_at']
     COVER_SUPPORTED_FORMATS = {
         "PNG": ("png", "image/png"),
         "JPEG": ("jpg", "image/jpeg"),

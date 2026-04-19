@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 @use "./variables" as *;
 
 .bar {
@@ -53,13 +54,88 @@
 .inputWrapper {
   pointer-events: auto;
   display: flex;
-  flex-direction: column;
   gap: 0.5rem;
   border-radius: 16px;
   border: 1px solid var(--cds-border-subtle-01, #525252);
   background: var(--cds-layer-02, #262626);
   box-shadow: none;
   padding: 0.6rem 0.75rem 0.6rem;
+  transition: padding 160ms ease;
+}
+
+// Compact mode: single visible row; everything inline.
+.inputWrapperCompact {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.95rem;
+
+  .input {
+    flex: 1 1 auto;
+    min-height: 1.75rem;
+    padding: 0;
+  }
+
+  .toolbar {
+    flex: 0 0 auto;
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+  }
+
+  .rightTools {
+    width: auto;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+  }
+
+  // Slimmer model chip so single row stays balanced
+  .modelSelectWrap {
+    min-width: 0;
+    padding-left: 0.45rem;
+  }
+
+  .modelSelectButton {
+    min-height: 1.75rem;
+    padding-right: 1.1rem;
+    max-width: 8.5rem;
+  }
+
+  .modelText {
+    max-width: 7rem;
+  }
+}
+
+// Expanded mode (auto-grows when text wraps multiple lines):
+// toolbar moves below the textarea with model selector pinned to the left
+// and send button on the right.
+.inputWrapperExpanded {
+  flex-direction: column;
+  align-items: stretch;
+
+  .toolbar {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .rightTools {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .modelSelectWrap {
+    margin-right: auto;
+  }
+
+  // Model is now anchored to the left edge of the bar — open the dropdown
+  // toward the right so it never gets clipped by the viewport on narrow screens.
+  .modelMenu {
+    left: 0;
+    right: auto;
+    max-width: calc(100vw - 2rem);
+  }
 }
 
 .input {
@@ -261,37 +337,68 @@
 
 @media (max-width: $chat-mobile-breakpoint) {
   .bar {
-    padding: 0.6rem 0.75rem 0.9rem;
-  }
-
-  .inputWrapper {
-    border-radius: 14px;
-    padding: 0.5rem 0.6rem;
-    gap: 0.5rem;
+    padding-top: 0.6rem;
+    padding-left: layout.$spacing-05;
+    padding-right: layout.$spacing-05;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
   }
 
   .input {
     min-height: 1.75rem;
   }
 
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.55rem;
-  }
-
-  .rightTools {
-    width: 100%;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-  }
-
-  .modelSelectWrap {
-    min-width: 10rem;
-  }
-
   .sendButton {
     width: 2rem;
     height: 2rem;
+  }
+
+  // Compact mode on mobile: keep one row but shrink the model chip further
+  .inputWrapperCompact {
+    padding: 0.3rem 0.4rem 0.3rem 0.85rem;
+    gap: 0.4rem;
+
+    .modelSelectWrap {
+      min-width: 0;
+    }
+
+    .modelSelectButton {
+      max-width: 6.5rem;
+      padding-right: 0.9rem;
+    }
+
+    .modelText {
+      max-width: 5rem;
+    }
+  }
+
+  // Expanded mode on mobile: model selector on left, send button on right
+  .inputWrapperExpanded {
+    padding: 0.5rem 0.6rem;
+    gap: 0.5rem;
+
+    .toolbar {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .rightTools {
+      width: 100%;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+    }
+
+    .modelSelectWrap {
+      min-width: 0;
+      flex: 0 1 auto;
+    }
+
+    .modelSelectButton {
+      max-width: 9rem;
+    }
+
+    .modelText {
+      max-width: 7.5rem;
+    }
   }
 }

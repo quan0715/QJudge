@@ -1,9 +1,10 @@
-import { useMemo, useRef, useEffect, useState, useCallback, useLayoutEffect } from "react";
+import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown } from "@carbon/icons-react";
 import { Button, SkeletonText } from "@carbon/react";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import type { ApprovalRequest } from "@/core/types/chatbot.types";
+import { useChatScrollToBottom } from "../../hooks/useChatScrollToBottom";
 import { MessageBubble } from "./MessageBubble";
 import { HITLCard } from "./HITLCard";
 import styles from "./MessageList.module.scss";
@@ -24,9 +25,7 @@ export function MessageList({
   onApprovalDecision,
 }: MessageListProps) {
   const { t } = useTranslation("chatbot");
-  const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const displayMessages = useMemo(() => {
     if (messages.length === 0) {
@@ -42,66 +41,13 @@ export function MessageList({
     return messages;
   }, [messages, t]);
 
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior,
-    });
-  }, []);
-
-  const scheduleScrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    requestAnimationFrame(() => {
-      scrollToBottom(behavior);
-      requestAnimationFrame(() => scrollToBottom(behavior));
-    });
-  }, [scrollToBottom]);
-
-  // Handle scroll event to show/hide "Scroll to Bottom" button
-  const handleScroll = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    // Show button if user scrolls up more than 300px from the bottom
-    const isFarFromBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight > 300;
-    setShowScrollButton(isFarFromBottom);
-  }, []);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener("scroll", handleScroll);
-      return () => container.removeEventListener("scroll", handleScroll);
-    }
-  }, [handleScroll]);
-
-  // Auto-scroll to bottom when session changes
-  useLayoutEffect(() => {
-    scheduleScrollToBottom("auto");
-  }, [currentSessionId, isLoading, scheduleScrollToBottom]);
-
-  // When tool-confirmation (HITL) card becomes visible, always scroll to bottom so the user sees it
-  // immediately, even if they had scrolled up to read earlier messages. (Card is hidden while isLoading.)
-  useLayoutEffect(() => {
-    if (!pendingApproval || isLoading) return;
-    scheduleScrollToBottom("auto");
-  }, [pendingApproval, isLoading, scheduleScrollToBottom]);
-
-  // Auto-scroll to bottom when new messages arrive or content changes (if already near bottom)
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 150;
-
-    if (isNearBottom) {
-      scheduleScrollToBottom("smooth");
-    }
-  }, [messages, pendingApproval, scheduleScrollToBottom]);
+  const { scrollToBottom, showScrollButton } = useChatScrollToBottom({
+    containerRef,
+    messages,
+    currentSessionId,
+    isLoading,
+    pendingApproval,
+  });
 
   return (
     <div className={styles.wrapper}>
@@ -117,8 +63,6 @@ export function MessageList({
         {!isLoading && pendingApproval && (
           <HITLCard request={pendingApproval} onDecision={onApprovalDecision} />
         )}
-
-        <div ref={endRef} />
       </div>
 
       {showScrollButton && (
