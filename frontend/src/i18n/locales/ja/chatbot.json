@@ -51,6 +51,7 @@
     "newChat": "新しいチャット",
     "addComment": "コメントを追加",
     "moreOptions": "チャットのオプション",
+    "expandSidebar": "サイドパネルを開く",
     "close": "閉じる",
     "inputPlaceholder": "メッセージを入力...",
     "inputAriaLabel": "メッセージ入力",

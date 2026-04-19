@@ -26,11 +26,33 @@
   border-right: none;
 }
 
-.expandLeftPanelBtn {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: 10;
+// 主欄：可選頂列 header（展開側欄）+ 頁面內容，避免用 absolute 疊在子頁面上
+.mainColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspaceHeader {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0 0.5rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  background: var(--cds-layer-01, #f4f4f4);
+
+  @media (max-width: $chat-mobile-breakpoint) {
+    // 行動版由 MainLayout 頂欄處理導覽，不重複顯示展開鈕
+    display: none;
+  }
+}
+
+:global([data-carbon-theme="g100"]) .workspaceHeader {
+  background: var(--cds-background, #161616);
 }
 
 .content {
@@ -38,11 +60,7 @@
   min-width: 0;
   min-height: 0;
   position: relative;
-}
-
-// 左欄收合時「展開側欄」為 absolute 疊在左上角，會壓到／撞上內容（例如 /chat 的標題列），預留左內距
-.contentWithExpandControl {
-  padding-left: 2.75rem;
+  overflow: hidden;
 }
 
 .panel {

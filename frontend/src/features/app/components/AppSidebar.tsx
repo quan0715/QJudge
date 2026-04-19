@@ -13,7 +13,7 @@ import {
   DocumentBlank,
   Code,
   SidePanelClose,
-  SidePanelOpen,
+  OpenPanelLeft,
 } from "@carbon/icons-react";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useSettingsDialog } from "@/features/auth/contexts/SettingsDialogContext";
@@ -167,7 +167,7 @@ export function AppSidebar({ collapsed = false, onToggleCollapse }: AppSidebarPr
           onClick={onToggleCollapse}
           className={styles.collapseBtn}
         >
-          {collapsed ? <SidePanelOpen size={16} /> : <SidePanelClose size={16} />}
+          {collapsed ? <OpenPanelLeft size={16} /> : <SidePanelClose size={16} />}
         </IconButton>
       </div>
 

@@ -1,6 +1,6 @@
 import { useRef, useCallback } from "react";
 import { IconButton } from "@carbon/react";
-import { SidePanelOpen } from "@carbon/icons-react";
+import { OpenPanelLeft } from "@carbon/icons-react";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { ChatContainer } from "../chat-ui/ChatContainer";
 import styles from "./WorkspaceShell.module.scss";
@@ -28,13 +28,18 @@ interface WorkspaceShellProps {
   leftPanel?: React.ReactNode;
   /** When true, left panel is hidden (width: 0). */
   leftPanelCollapsed?: boolean;
-  /** Callback to expand the left panel; also triggers the expand button in content area. */
+  /** Callback to expand the left panel (shown in the shell header when the rail is collapsed). */
   onExpandLeftPanel?: () => void;
   /**
    * When true, the right chat panel is suppressed entirely (hidden + no resize handle).
    * Use on pages that already embed chat (e.g. /chat full-page).
    */
   disableRightPanel?: boolean;
+  /**
+   * When true, do not render the shell workspace header expand control (e.g. /chat puts
+   * “展開側欄” on ChatTopBar instead).
+   */
+  hideWorkspaceExpandHeader?: boolean;
 }
 
 /**
@@ -45,7 +50,14 @@ interface WorkspaceShellProps {
  * - The main content wrapper also sets `data-chatbot-sidebar-open` for CSS or
  *   non-React consumers (`[data-chatbot-sidebar-open="true"]`).
  */
-export function WorkspaceShell({ children, leftPanel, leftPanelCollapsed = false, onExpandLeftPanel, disableRightPanel = false }: WorkspaceShellProps) {
+export function WorkspaceShell({
+  children,
+  leftPanel,
+  leftPanelCollapsed = false,
+  onExpandLeftPanel,
+  disableRightPanel = false,
+  hideWorkspaceExpandHeader = false,
+}: WorkspaceShellProps) {
   const { isOpen, closeChat } = useWorkspace();
   const rightPanelOpen = isOpen && !disableRightPanel;
   const panelRef = useRef<HTMLElement>(null);
@@ -110,26 +122,26 @@ export function WorkspaceShell({ children, leftPanel, leftPanelCollapsed = false
           {leftPanel}
         </aside>
       )}
-      <div
-        className={`${styles.content} ${
-          leftPanelCollapsed && onExpandLeftPanel ? styles.contentWithExpandControl : ""
-        }`}
-        data-chatbot-sidebar-open={rightPanelOpen ? "true" : "false"}
-      >
-        {leftPanelCollapsed && onExpandLeftPanel && (
-          <div className={styles.expandLeftPanelBtn}>
+      <div className={styles.mainColumn}>
+        {leftPanelCollapsed && onExpandLeftPanel && !hideWorkspaceExpandHeader && (
+          <header className={styles.workspaceHeader} aria-label="側欄控制">
             <IconButton
               kind="ghost"
-              size="sm"
+              size="md"
+              align="bottom"
               label="展開側欄"
-              align="right"
               onClick={onExpandLeftPanel}
             >
-              <SidePanelOpen size={16} />
+              <OpenPanelLeft size={20} />
             </IconButton>
-          </div>
+          </header>
         )}
-        {children}
+        <div
+          className={styles.content}
+          data-chatbot-sidebar-open={rightPanelOpen ? "true" : "false"}
+        >
+          {children}
+        </div>
       </div>
       <aside
         ref={panelRef}

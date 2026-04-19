@@ -8,4 +8,5 @@ export { NotFound, type NotFoundProps } from "./NotFound";
 export { ServerError, type ServerErrorProps } from "./ServerError";
 export { GlobalHeader } from "./GlobalHeader";
 export { default as MainLayout } from "./MainLayout";
+export { WorkspaceToolBar, type WorkspaceToolBarProps } from "./WorkspaceToolBar";
 export { UserAvatarDisplay } from "./UserAvatarDisplay";

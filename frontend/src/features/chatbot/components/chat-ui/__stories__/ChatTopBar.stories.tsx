@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { AppSidebarProvider } from "@/features/app/contexts/AppSidebarContext";
 import { ChatTopBar } from "../ChatTopBar";
 import { mockSessions } from "./chat-ui.mocks";
 
@@ -9,15 +10,17 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "統一頂部列 — 支援 full-page（title dropdown + actions）與 sidebar（history toggle + close）兩種模式。",
+          "以 WorkspaceToolBar 為基底 — full-page（session dropdown + actions + 展開 app 側欄）、sidebar（歷史 + 純标题 + actions）。",
       },
     },
   },
   decorators: [
     (Story) => (
-      <div style={{ maxWidth: 900 }}>
-        <Story />
-      </div>
+      <AppSidebarProvider>
+        <div style={{ maxWidth: 900 }}>
+          <Story />
+        </div>
+      </AppSidebarProvider>
     ),
   ],
 };
