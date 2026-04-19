@@ -3,7 +3,11 @@
 
 .overlay {
   position: fixed;
-  inset: 0;
+  // Start below the WorkspaceToolBar (min-height: 2.5rem)
+  top: 2.5rem;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 9000;
   display: flex;
   align-items: stretch;

@@ -7,7 +7,9 @@ import {
   useMemo,
 } from "react";
 import { createPortal } from "react-dom";
+import { Theme } from "@carbon/react";
 import { SideMenu } from "@/features/app/components/SideMenu";
+import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import styles from "./AppSidebarMobileOverlay.module.scss";
 
 export interface AppSidebarContextValue {
@@ -48,6 +50,7 @@ function useIsMobile(): boolean {
 export function AppSidebarProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(getInitialOpen);
   const isMobile = useIsMobile();
+  const { theme } = useTheme();
 
   const persist = useCallback((value: boolean) => {
     setIsOpen(value);
@@ -77,12 +80,14 @@ export function AppSidebarProvider({ children }: { children: React.ReactNode }) 
 
       {/* Mobile drawer overlay — rendered when isOpen on small screens */}
       {showMobileOverlay && typeof document !== "undefined" && createPortal(
-        <div className={styles.overlay}>
-          <div className={styles.panel}>
-            <SideMenu variant="panel" />
+        <Theme theme={theme}>
+          <div className={styles.overlay}>
+            <div className={styles.panel}>
+              <SideMenu variant="panel" />
+            </div>
+            <div className={styles.backdrop} onClick={close} aria-hidden="true" />
           </div>
-          <div className={styles.backdrop} onClick={close} aria-hidden="true" />
-        </div>,
+        </Theme>,
         document.body,
       )}
     </AppSidebarContext.Provider>

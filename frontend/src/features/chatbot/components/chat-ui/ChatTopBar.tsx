@@ -9,6 +9,11 @@ import styles from "./ChatTopBar.module.scss";
 
 interface ChatTopBarFullProps {
   mode: "full";
+  /**
+   * When chat is embedded in the workspace split (right panel), hide the
+   * main app sidebar expand control — the layout is already split.
+   */
+  hideAppSidebarExpand?: boolean;
   title?: string;
   sessions: ChatSession[];
   currentSessionId: string | null;
@@ -90,6 +95,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
   // ── Full-page mode ──
   const {
     title,
+    hideAppSidebarExpand = false,
     sessions,
     currentSessionId,
     onSelectSession,
@@ -177,7 +183,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
 
   return (
     <WorkspaceToolBar
-      showAppSidebarExpand
+      showAppSidebarExpand={!hideAppSidebarExpand}
       expandAppSidebarLabel={t("ui.expandSidebar")}
       title={titleSlot}
       actions={

@@ -52,6 +52,7 @@
     "addComment": "Add comment",
     "moreOptions": "Session options",
     "expandSidebar": "Expand sidebar",
+    "closeChat": "Close chat",
     "close": "Close",
     "inputPlaceholder": "Type a message...",
     "inputAriaLabel": "Message input",

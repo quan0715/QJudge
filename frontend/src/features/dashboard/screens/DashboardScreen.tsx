@@ -15,7 +15,6 @@ import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { CreateClassroomModal } from "@/features/classroom/components/CreateClassroomModal";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
-import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import "./DashboardScreen.scss";
 
 const CLASSROOM_BANNER_IMAGES = [
@@ -295,7 +294,6 @@ const DashboardScreen = () => {
 
   return (
     <div className="dashboard-classroom">
-      <WorkspaceToolBar showAppSidebarExpand title={null} />
       <QJudgeHeroWidget
         title={`${welcomeName} ${t("dashboard.classroomHub.welcomeBack", "歡迎回來")}`}
         actions={

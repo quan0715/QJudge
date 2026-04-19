@@ -36,6 +36,13 @@
   overflow: hidden;
 }
 
+// Reserve space when workspaceHeader is fixed on mobile (see WorkspaceShell.tsx)
+.mainColumnWithFixedHeader {
+  @media (max-width: $chat-mobile-breakpoint) {
+    padding-top: 3rem;
+  }
+}
+
 .workspaceHeader {
   flex-shrink: 0;
   display: flex;
@@ -46,8 +53,12 @@
   background: var(--cds-layer-01, #f4f4f4);
 
   @media (max-width: $chat-mobile-breakpoint) {
-    // 行動版由 MainLayout 頂欄處理導覽，不重複顯示展開鈕
-    display: none;
+    // 浮在內容之上，關閉聊天 / 展開側欄；需高於 bottom-sheet overlay (8500)
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9000;
   }
 }
 

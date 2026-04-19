@@ -1,9 +1,27 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { IconButton } from "@carbon/react";
-import { OpenPanelLeft } from "@carbon/icons-react";
+import { Close, OpenPanelLeft } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { ChatContainer } from "../chat-ui/ChatContainer";
 import styles from "./WorkspaceShell.module.scss";
+
+const MOBILE_BREAKPOINT_PX = 768;
+
+function useIsMobileWorkspace(): boolean {
+  const [m, setM] = useState(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`);
+    const apply = () => setM(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return m;
+}
 
 const MIN_PANEL_WIDTH = 320;
 const MAX_PANEL_WIDTH = 700;
@@ -58,8 +76,16 @@ export function WorkspaceShell({
   disableRightPanel = false,
   hideWorkspaceExpandHeader = false,
 }: WorkspaceShellProps) {
+  const { t } = useTranslation("chatbot");
+  const isMobile = useIsMobileWorkspace();
   const { isOpen, closeChat } = useWorkspace();
-  const rightPanelOpen = isOpen && !disableRightPanel;
+  const chatActive = isOpen && !disableRightPanel;
+  /** Desktop: docked right panel; mobile: chat uses AIWorkspaceProvider bottom sheet instead. */
+  const dockChatInShell = chatActive && !isMobile;
+  const showWorkspaceHeader =
+    !hideWorkspaceExpandHeader &&
+    onExpandLeftPanel &&
+    (leftPanelCollapsed || isMobile);
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
 
@@ -122,33 +148,50 @@ export function WorkspaceShell({
           {leftPanel}
         </aside>
       )}
-      <div className={styles.mainColumn}>
-        {leftPanelCollapsed && onExpandLeftPanel && !hideWorkspaceExpandHeader && (
+      <div
+        className={[
+          styles.mainColumn,
+          showWorkspaceHeader && isMobile ? styles.mainColumnWithFixedHeader : "",
+        ].filter(Boolean).join(" ")}
+      >
+        {showWorkspaceHeader && (
           <header className={styles.workspaceHeader} aria-label="側欄控制">
-            <IconButton
-              kind="ghost"
-              size="md"
-              align="bottom"
-              label="展開側欄"
-              onClick={onExpandLeftPanel}
-            >
-              <OpenPanelLeft size={20} />
-            </IconButton>
+            {isMobile && chatActive ? (
+              <IconButton
+                kind="ghost"
+                size="md"
+                align="bottom"
+                label={t("ui.closeChat", "關閉聊天")}
+                onClick={closeChat}
+              >
+                <Close size={20} />
+              </IconButton>
+            ) : (
+              <IconButton
+                kind="ghost"
+                size="md"
+                align="bottom"
+                label={t("ui.expandSidebar", "展開側欄")}
+                onClick={onExpandLeftPanel}
+              >
+                <OpenPanelLeft size={20} />
+              </IconButton>
+            )}
           </header>
         )}
         <div
           className={styles.content}
-          data-chatbot-sidebar-open={rightPanelOpen ? "true" : "false"}
+          data-chatbot-sidebar-open={chatActive ? "true" : "false"}
         >
           {children}
         </div>
       </div>
       <aside
         ref={panelRef}
-        className={`${styles.panel} ${rightPanelOpen ? styles.panelOpen : ""}`}
-        style={rightPanelOpen ? { width: getSavedWidth() } : undefined}
+        className={`${styles.panel} ${dockChatInShell ? styles.panelOpen : ""}`}
+        style={dockChatInShell ? { width: getSavedWidth() } : undefined}
       >
-        {rightPanelOpen && (
+        {dockChatInShell && (
           <>
             <div
               className={styles.resizeHandle}
