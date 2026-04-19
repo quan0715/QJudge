@@ -40,6 +40,11 @@
   position: relative;
 }
 
+// 左欄收合時「展開側欄」為 absolute 疊在左上角，會壓到／撞上內容（例如 /chat 的標題列），預留左內距
+.contentWithExpandControl {
+  padding-left: 2.75rem;
+}
+
 .panel {
   flex-shrink: 0;
   width: 0;

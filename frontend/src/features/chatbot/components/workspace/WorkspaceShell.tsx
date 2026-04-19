@@ -111,7 +111,9 @@ export function WorkspaceShell({ children, leftPanel, leftPanelCollapsed = false
         </aside>
       )}
       <div
-        className={styles.content}
+        className={`${styles.content} ${
+          leftPanelCollapsed && onExpandLeftPanel ? styles.contentWithExpandControl : ""
+        }`}
         data-chatbot-sidebar-open={rightPanelOpen ? "true" : "false"}
       >
         {leftPanelCollapsed && onExpandLeftPanel && (
