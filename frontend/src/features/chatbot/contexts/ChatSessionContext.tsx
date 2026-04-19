@@ -1,5 +1,5 @@
 // frontend/src/features/chatbot/contexts/ChatSessionContext.tsx
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { ChatSession } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -10,13 +10,9 @@ interface ChatSessionContextValue {
   refreshSessions: () => Promise<void>;
 }
 
-const ChatSessionContext = createContext<ChatSessionContextValue>({
-  sessions: [],
-  isLoadingSessions: false,
-  refreshSessions: async () => {},
-});
+const ChatSessionContext = createContext<ChatSessionContextValue | undefined>(undefined);
 
-export function ChatSessionProvider({ children }: { children: React.ReactNode }) {
+export function ChatSessionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
 
@@ -50,5 +46,9 @@ export function ChatSessionProvider({ children }: { children: React.ReactNode })
 }
 
 export function useChatSessionContext() {
-  return useContext(ChatSessionContext);
+  const ctx = useContext(ChatSessionContext);
+  if (ctx === undefined) {
+    throw new Error("useChatSessionContext must be used within ChatSessionProvider");
+  }
+  return ctx;
 }
