@@ -1,24 +1,24 @@
-// frontend/src/features/chatbot/components/ChatStandalonePage.tsx
+import { useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { GlobalHeader } from "@/features/app/components/GlobalHeader";
 import ChatFullPage from "./ChatFullPage";
 import styles from "./ChatStandalonePage.module.scss";
 
 export default function ChatStandalonePage() {
-  const { sessionId } = useParams<{ sessionId?: string }>();
+  const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
 
-  const handleSessionChange = (newId: string) => {
+  const handleSessionChange = useCallback((newId: string) => {
     navigate(`/chat/${newId}`, { replace: false });
-  };
+  }, [navigate]);
 
-  const handleSessionDeleted = (fallbackId: string | null) => {
+  const handleSessionDeleted = useCallback((fallbackId: string | null) => {
     if (fallbackId) {
       navigate(`/chat/${fallbackId}`, { replace: true });
     } else {
       navigate("/chat", { replace: true });
     }
-  };
+  }, [navigate]);
 
   return (
     <div className={styles.pageRoot}>
