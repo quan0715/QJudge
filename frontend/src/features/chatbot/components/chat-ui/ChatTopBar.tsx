@@ -1,9 +1,38 @@
-import { IconButton } from "@carbon/react";
-import { RecentlyViewed, Add, Close } from "@carbon/icons-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
+import { Add, Close, ChevronDown, Chat as ChatIcon, RecentlyViewed } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import type { ChatSession } from "@/core/types/chatbot.types";
 import styles from "./ChatTopBar.module.scss";
 
-interface ChatTopBarProps {
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) {
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    return diffHours === 0 ? "Just now" : `${diffHours}h`;
+  }
+  if (diffDays === 1) return "1d";
+  if (diffDays < 7) return `${diffDays}d`;
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks < 5) return `${diffWeeks}w`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+interface ChatTopBarFullProps {
+  mode: "full";
+  title?: string;
+  sessions: ChatSession[];
+  currentSessionId: string | null;
+  onSelectSession: (id: string) => void;
+  onNewChat: () => void;
+  onRenameSession: (id: string, title: string) => void;
+  onDeleteSession: (id: string) => void;
+}
+
+interface ChatTopBarSidebarProps {
+  mode?: "sidebar";
   title?: string;
   historyOpen?: boolean;
   onToggleHistory?: () => void;
@@ -11,34 +40,169 @@ interface ChatTopBarProps {
   onClose?: () => void;
 }
 
-export function ChatTopBar({
-  title,
-  historyOpen = false,
-  onToggleHistory,
-  onNewChat,
-  onClose,
-}: ChatTopBarProps) {
+type ChatTopBarProps = ChatTopBarFullProps | ChatTopBarSidebarProps;
+
+export function ChatTopBar(props: ChatTopBarProps) {
   const { t } = useTranslation("chatbot");
-  const displayTitle = title || t("ui.chatbotTitle");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const closeDropdown = useCallback(() => setDropdownOpen(false), []);
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!dropdownRef.current?.contains(e.target as Node)) {
+        closeDropdown();
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [dropdownOpen, closeDropdown]);
+
+  // ── Sidebar mode ──
+  if (!props.mode || props.mode === "sidebar") {
+    const { title, historyOpen = false, onToggleHistory, onNewChat, onClose } = props as ChatTopBarSidebarProps;
+    const displayTitle = title || t("ui.chatbotTitle");
+    return (
+      <div className={styles.bar}>
+        <div className={styles.left}>
+          {onToggleHistory && (
+            <IconButton
+              kind="ghost"
+              label={historyOpen ? t("ui.collapse") : t("ui.history")}
+              onClick={onToggleHistory}
+            >
+              {historyOpen ? <Close size={20} /> : <RecentlyViewed size={20} />}
+            </IconButton>
+          )}
+        </div>
+        <span className={styles.title}>{displayTitle}</span>
+        <div className={styles.right}>
+          <IconButton kind="ghost" label={t("ui.newChat")} onClick={onNewChat}>
+            <Add size={20} />
+          </IconButton>
+          {onClose && (
+            <IconButton kind="ghost" label={t("ui.close")} onClick={onClose}>
+              <Close size={20} />
+            </IconButton>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Full-page mode ──
+  const {
+    title,
+    sessions,
+    currentSessionId,
+    onSelectSession,
+    onNewChat,
+    onRenameSession,
+    onDeleteSession,
+  } = props as ChatTopBarFullProps;
+  const displayTitle = title || t("ui.newChat");
+
+  const startRename = (session: ChatSession) => {
+    setRenamingId(session.id);
+    setRenameValue(session.title || "");
+    setDropdownOpen(false);
+  };
+
+  const commitRename = () => {
+    if (renamingId && renameValue.trim()) {
+      onRenameSession(renamingId, renameValue.trim());
+    }
+    setRenamingId(null);
+    setRenameValue("");
+  };
 
   return (
     <div className={styles.bar}>
-      <div className={styles.left}>
-        {onToggleHistory && (
-          <IconButton kind="ghost" label={historyOpen ? t("ui.collapse") : t("ui.history")} onClick={onToggleHistory}>
-            {historyOpen ? <Close size={20} /> : <RecentlyViewed size={20} />}
-          </IconButton>
+      {/* Left: title dropdown */}
+      <div className={styles.titleArea} ref={dropdownRef}>
+        {renamingId === currentSessionId ? (
+          <input
+            className={styles.renameInput}
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitRename();
+              if (e.key === "Escape") {
+                setRenamingId(null);
+                setRenameValue("");
+              }
+            }}
+            autoFocus
+          />
+        ) : (
+          <button
+            type="button"
+            className={styles.titleBtn}
+            onClick={() => setDropdownOpen((v) => !v)}
+            aria-haspopup="listbox"
+            aria-expanded={dropdownOpen}
+          >
+            <span className={styles.titleText}>{displayTitle}</span>
+            <ChevronDown
+              size={16}
+              className={`${styles.titleChevron} ${dropdownOpen ? styles.open : ""}`}
+            />
+          </button>
+        )}
+
+        {dropdownOpen && (
+          <div className={styles.dropdown} role="listbox">
+            {sessions.slice(0, 15).map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                role="option"
+                aria-selected={s.id === currentSessionId}
+                className={`${styles.dropdownItem} ${s.id === currentSessionId ? styles.dropdownItemActive : ""}`}
+                onClick={() => {
+                  onSelectSession(s.id);
+                  setDropdownOpen(false);
+                }}
+              >
+                <ChatIcon size={14} className={styles.dropdownItemIcon} />
+                <span className={styles.dropdownItemTitle}>
+                  {s.title || t("ui.newChat")}
+                </span>
+                <span className={styles.dropdownItemTime}>
+                  {formatRelativeTime(s.updatedAt)}
+                </span>
+              </button>
+            ))}
+          </div>
         )}
       </div>
-      <span className={styles.title}>{displayTitle}</span>
+
+      {/* Right: actions */}
       <div className={styles.right}>
         <IconButton kind="ghost" label={t("ui.newChat")} onClick={onNewChat}>
           <Add size={20} />
         </IconButton>
-        {onClose && (
-          <IconButton kind="ghost" label={t("ui.close")} onClick={onClose}>
-            <Close size={20} />
-          </IconButton>
+        {currentSessionId && (
+          <OverflowMenu size="sm" flipped>
+            <OverflowMenuItem
+              itemText={t("ui.rename")}
+              onClick={() => {
+                const session = sessions.find((s) => s.id === currentSessionId);
+                if (session) startRename(session);
+              }}
+            />
+            <OverflowMenuItem
+              itemText={t("ui.delete")}
+              isDelete
+              hasDivider
+              onClick={() => onDeleteSession(currentSessionId)}
+            />
+          </OverflowMenu>
         )}
       </div>
     </div>
