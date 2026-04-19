@@ -40,6 +40,7 @@ const MainLayout = () => {
           }
           leftPanelCollapsed={!isOpen}
           onExpandLeftPanel={open}
+          disableRightPanel={isChatPage}
         >
           {isChatPage ? (
             <div style={{ flex: 1, height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>

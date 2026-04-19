@@ -30,6 +30,11 @@ interface WorkspaceShellProps {
   leftPanelCollapsed?: boolean;
   /** Callback to expand the left panel; also triggers the expand button in content area. */
   onExpandLeftPanel?: () => void;
+  /**
+   * When true, the right chat panel is suppressed entirely (hidden + no resize handle).
+   * Use on pages that already embed chat (e.g. /chat full-page).
+   */
+  disableRightPanel?: boolean;
 }
 
 /**
@@ -40,8 +45,9 @@ interface WorkspaceShellProps {
  * - The main content wrapper also sets `data-chatbot-sidebar-open` for CSS or
  *   non-React consumers (`[data-chatbot-sidebar-open="true"]`).
  */
-export function WorkspaceShell({ children, leftPanel, leftPanelCollapsed = false, onExpandLeftPanel }: WorkspaceShellProps) {
+export function WorkspaceShell({ children, leftPanel, leftPanelCollapsed = false, onExpandLeftPanel, disableRightPanel = false }: WorkspaceShellProps) {
   const { isOpen, closeChat } = useWorkspace();
+  const rightPanelOpen = isOpen && !disableRightPanel;
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
 
@@ -106,16 +112,29 @@ export function WorkspaceShell({ children, leftPanel, leftPanelCollapsed = false
       )}
       <div
         className={styles.content}
-        data-chatbot-sidebar-open={isOpen ? "true" : "false"}
+        data-chatbot-sidebar-open={rightPanelOpen ? "true" : "false"}
       >
+        {leftPanelCollapsed && onExpandLeftPanel && (
+          <div className={styles.expandLeftPanelBtn}>
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label="展開側欄"
+              align="right"
+              onClick={onExpandLeftPanel}
+            >
+              <SidePanelOpen size={16} />
+            </IconButton>
+          </div>
+        )}
         {children}
       </div>
       <aside
         ref={panelRef}
-        className={`${styles.panel} ${isOpen ? styles.panelOpen : ""}`}
-        style={isOpen ? { width: getSavedWidth() } : undefined}
+        className={`${styles.panel} ${rightPanelOpen ? styles.panelOpen : ""}`}
+        style={rightPanelOpen ? { width: getSavedWidth() } : undefined}
       >
-        {isOpen && (
+        {rightPanelOpen && (
           <>
             <div
               className={styles.resizeHandle}

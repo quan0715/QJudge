@@ -64,7 +64,7 @@ export function AppSidebar({ collapsed = false, onToggleCollapse }: AppSidebarPr
   const name = displayName?.trim() || user?.username || user?.email || "User";
 
   return (
-    <div className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
+    <div className={styles.sidebar}>
 
       {/* ── Header: user trigger + collapse button ── */}
       <div className={styles.header}>
@@ -146,19 +146,15 @@ export function AppSidebar({ collapsed = false, onToggleCollapse }: AppSidebarPr
           <button
             type="button"
             className={`${styles.userTrigger} ${menuOpen ? styles.userTriggerActive : ""}`}
-            onClick={() => !collapsed && setMenuOpen(v => !v)}
+            onClick={() => setMenuOpen(v => !v)}
             aria-label={name}
           >
             <Avatar name={name} url={avatarUrl || undefined} size="sm" />
-            {!collapsed && (
-              <>
-                <span className={styles.userTriggerName}>{name}</span>
-                <ChevronDown
-                  size={14}
-                  className={`${styles.chevron} ${menuOpen ? styles.chevronOpen : ""}`}
-                />
-              </>
-            )}
+            <span className={styles.userTriggerName}>{name}</span>
+            <ChevronDown
+              size={14}
+              className={`${styles.chevron} ${menuOpen ? styles.chevronOpen : ""}`}
+            />
           </button>
         </div>
 
@@ -175,12 +171,10 @@ export function AppSidebar({ collapsed = false, onToggleCollapse }: AppSidebarPr
         </IconButton>
       </div>
 
-      {/* ── Navigation (hidden when collapsed) ── */}
-      {!collapsed && (
-        <div className={styles.nav}>
-          <SideMenu variant="panel" />
-        </div>
-      )}
+      {/* ── Navigation ── */}
+      <div className={styles.nav}>
+        <SideMenu variant="panel" />
+      </div>
 
       <Modal
         open={logoutModalOpen}

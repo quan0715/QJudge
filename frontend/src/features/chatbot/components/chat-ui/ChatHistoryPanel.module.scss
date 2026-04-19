@@ -43,10 +43,6 @@
   &:hover {
     background: var(--cds-layer-hover-01, #e8e8e8);
 
-    .overflow {
-      opacity: 1;
-    }
-
     .itemTime {
       display: none;
     }
@@ -83,10 +79,47 @@
   white-space: nowrap;
 }
 
+// 預設：觸控／無 hover 裝置維持按鈕可點（若僅 opacity:0 仍會佔 32px，改收合寬度需搭配下段 media）
 .overflow {
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 150ms ease;
+  flex: 0 0 auto;
+  max-width: 2.75rem;
+  min-width: 2rem;
+  opacity: 1;
+  pointer-events: auto;
+  transition:
+    opacity 150ms ease,
+    max-width 160ms ease;
+
+  :global(.cds--overflow-menu) {
+    flex-shrink: 0;
+  }
+}
+
+// 桌面 hover：未互動時收合寬度，不佔 32px 空白
+@media (hover: hover) and (pointer: fine) {
+  .overflow {
+    flex: 0 0 0;
+    min-width: 0;
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .item:hover .overflow,
+  .item:focus-within .overflow,
+  .item.active .overflow {
+    flex: 0 0 auto;
+    max-width: 2.75rem;
+    min-width: 2rem;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  // 目前選中列固定顯示 kebab，隱藏時間讓出水平空間
+  .item.active .itemTime {
+    display: none;
+  }
 }
 
 .renameInput {

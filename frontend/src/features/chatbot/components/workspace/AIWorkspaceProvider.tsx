@@ -38,7 +38,7 @@ export function AIWorkspaceProvider({ children }: { children: React.ReactNode })
   const [isOpen, setIsOpen] = useState(getInitialOpen);
 
   const isAllowed = user?.role === "teacher" || user?.role === "admin";
-  const isOnChatPage = location.pathname === "/chat";
+  const isOnChatPage = location.pathname.startsWith("/chat");
   const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
 
   const persistOpen = useCallback((open: boolean) => {

@@ -6,7 +6,9 @@ import {
   Book,
   Checkmark,
   Globe,
+  Chat as ChatIcon,
 } from "@carbon/icons-react";
+import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
@@ -166,11 +168,13 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
 
   const tabs = useMemo(
     () =>
-      [
-        { key: "classrooms" as TabKey, label: t("nav.classrooms"), show: true },
-        { key: "banks" as TabKey, label: t("nav.questionBanks"), show: isTeacherOrAdmin },
-        { key: "chat" as TabKey, label: t("nav.chat"), show: isTeacherOrAdmin },
-      ].filter((tab) => tab.show),
+      (
+        [
+          { key: "classrooms" as TabKey, label: t("nav.classrooms"), Icon: Education, show: true },
+          { key: "banks" as TabKey, label: t("nav.questionBanks"), Icon: Book, show: isTeacherOrAdmin },
+          { key: "chat" as TabKey, label: t("nav.chat"), Icon: ChatIcon, show: isTeacherOrAdmin },
+        ] as { key: TabKey; label: string; Icon: ComponentType<{ size?: number }>; show: boolean }[]
+      ).filter((tab) => tab.show),
     [t, isTeacherOrAdmin],
   );
 
@@ -192,18 +196,23 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
       >
         {/* Tab bar */}
         <div className="side-menu__tabs" role="tablist">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.key}
-              className={`side-menu__tab${activeTab === tab.key ? " side-menu__tab--active" : ""}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {tabs.map(({ key, label, Icon }) => {
+            const isActive = activeTab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                title={!isActive ? label : undefined}
+                className={`side-menu__tab${isActive ? " side-menu__tab--active" : ""}`}
+                onClick={() => setActiveTab(key)}
+              >
+                <Icon size={16} />
+                {isActive && <span className="side-menu__tab-label">{label}</span>}
+              </button>
+            );
+          })}
         </div>
 
         {/* Classrooms tab */}
