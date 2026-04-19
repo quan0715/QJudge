@@ -238,188 +238,183 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
         ].filter(Boolean).join(" ")}
         aria-label={t("header.sideNav", "Side navigation")}
       >
-        {isOnClassroomRoute ? (
-          /* ── Classroom workspace panel ── */
-          <>
-            {/* Classroom workspace selector */}
-            <div className="side-menu__workspace" ref={classroomDropdownRef}>
+        {/* ── Tab bar — always visible ── */}
+        <div className="side-menu__tabs" role="tablist">
+          {tabs.map(({ key, label, Icon }) => {
+            const isActiveTab = activeTab === key;
+            return (
               <button
+                key={key}
                 type="button"
-                className="side-menu__workspace-trigger"
-                onClick={() => setClassroomDropdownOpen(v => !v)}
+                role="tab"
+                aria-selected={isActiveTab}
+                title={!isActiveTab ? label : undefined}
+                className={`side-menu__tab${isActiveTab ? " side-menu__tab--active" : ""}`}
+                onClick={() => setActiveTab(key)}
               >
-                {(() => {
-                  const Icon = currentClassroom?.icon ? getClassroomIcon(currentClassroom.icon) : Education;
-                  return <Icon size={18} className="side-menu__workspace-icon" />;
-                })()}
-                <span className="side-menu__workspace-name">
-                  {currentClassroom?.name ?? t("nav.classrooms")}
-                </span>
-                <ChevronDown size={14} className={`side-menu__workspace-chevron${classroomDropdownOpen ? " side-menu__workspace-chevron--open" : ""}`} />
+                <Icon size={16} />
+                {isActiveTab && <span className="side-menu__tab-label">{label}</span>}
               </button>
-              {classroomDropdownOpen && (
-                <div className="side-menu__workspace-dropdown">
-                  {classrooms.map(c => {
-                    const Icon = c.icon ? getClassroomIcon(c.icon) : Education;
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className={`side-menu__workspace-option${c.id === classroomId ? " side-menu__workspace-option--active" : ""}`}
-                        onClick={() => { setClassroomDropdownOpen(false); navigate(`/classrooms/${c.id}`); }}
-                      >
-                        <Icon size={16} />
-                        <span>{c.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            );
+          })}
+        </div>
 
-            {/* Classroom nav items */}
-            <div className="side-menu__section">
-              {([
-                { panel: "overview", label: t("tab.overview", "概覽"), Icon: Dashboard },
-                { panel: "announcements", label: t("tab.announcements", "公告"), Icon: Bullhorn },
-                { panel: "contests", label: t("tab.contests", "競賽"), Icon: Trophy },
-                { panel: "members", label: t("tab.members", "成員"), Icon: UserMultiple },
-              ] as { panel: ClassroomAdminPanelId; label: string; Icon: ComponentType<{ size?: number }> }[]).map(({ panel, label, Icon }) => (
+        {/* ── Classrooms tab ── */}
+        {activeTab === "classrooms" && (
+          isOnClassroomRoute ? (
+            /* Inside a classroom: workspace selector + panel sub-nav */
+            <>
+              <div className="side-menu__workspace" ref={classroomDropdownRef}>
                 <button
-                  key={panel}
                   type="button"
-                  className={`side-menu__link${activePanel === panel ? " side-menu__link--active" : ""}`}
-                  onClick={() => goToPanel(panel)}
+                  className="side-menu__workspace-trigger"
+                  onClick={() => setClassroomDropdownOpen(v => !v)}
                 >
-                  <Icon size={16} />
-                  <span>{label}</span>
+                  {(() => {
+                    const Icon = currentClassroom?.icon ? getClassroomIcon(currentClassroom.icon) : Education;
+                    return <Icon size={18} className="side-menu__workspace-icon" />;
+                  })()}
+                  <span className="side-menu__workspace-name">
+                    {currentClassroom?.name ?? t("nav.classrooms")}
+                  </span>
+                  <ChevronDown size={14} className={`side-menu__workspace-chevron${classroomDropdownOpen ? " side-menu__workspace-chevron--open" : ""}`} />
                 </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          /* ── Default panel: tabs (教室/題庫/Chat) ── */
-          <>
-            {/* Tab bar */}
-            <div className="side-menu__tabs" role="tablist">
-              {tabs.map(({ key, label, Icon }) => {
-                const isActiveTab = activeTab === key;
-                return (
+                {classroomDropdownOpen && (
+                  <div className="side-menu__workspace-dropdown">
+                    {classrooms.map(c => {
+                      const Icon = c.icon ? getClassroomIcon(c.icon) : Education;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className={`side-menu__workspace-option${c.id === classroomId ? " side-menu__workspace-option--active" : ""}`}
+                          onClick={() => { setClassroomDropdownOpen(false); navigate(`/classrooms/${c.id}`); }}
+                        >
+                          <Icon size={16} />
+                          <span>{c.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="side-menu__section">
+                {([
+                  { panel: "overview", label: t("tab.overview", "概覽"), Icon: Dashboard },
+                  { panel: "announcements", label: t("tab.announcements", "公告"), Icon: Bullhorn },
+                  { panel: "contests", label: t("tab.contests", "競賽"), Icon: Trophy },
+                  { panel: "members", label: t("tab.members", "成員"), Icon: UserMultiple },
+                ] as { panel: ClassroomAdminPanelId; label: string; Icon: ComponentType<{ size?: number }> }[]).map(({ panel, label, Icon }) => (
                   <button
-                    key={key}
+                    key={panel}
                     type="button"
-                    role="tab"
-                    aria-selected={isActiveTab}
-                    title={!isActiveTab ? label : undefined}
-                    className={`side-menu__tab${isActiveTab ? " side-menu__tab--active" : ""}`}
-                    onClick={() => setActiveTab(key)}
+                    className={`side-menu__link${activePanel === panel ? " side-menu__link--active" : ""}`}
+                    onClick={() => goToPanel(panel)}
                   >
                     <Icon size={16} />
-                    {isActiveTab && <span className="side-menu__tab-label">{label}</span>}
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            /* Default classrooms list */
+            <>
+              <div className="side-menu__section">
+                <button
+                  type="button"
+                  className={`side-menu__link${isActive("/dashboard") ? " side-menu__link--active" : ""}`}
+                  onClick={() => go("/dashboard")}
+                >
+                  <Dashboard size={16} />
+                  <span>{t("nav.dashboard")}</span>
+                </button>
+                {isTeacherOrAdmin && (
+                  <button
+                    type="button"
+                    className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
+                    onClick={() => go("/marketplace")}
+                  >
+                    <Globe size={16} />
+                    <span>{t("nav.marketplace", "Marketplace")}</span>
+                  </button>
+                )}
+              </div>
+              {classrooms.length > 0 && (
+                <>
+                  <div className="side-menu__divider" />
+                  <div className="side-menu__section">
+                    <div className="side-menu__section-header">
+                      <Education size={16} />
+                      <span>{t("nav.classrooms")}</span>
+                    </div>
+                    <div className="side-menu__classroom-list">
+                      {classrooms.map((c) => {
+                        const isCurrent = c.id === classroomId;
+                        const Icon = getClassroomIcon(c.icon);
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className={`side-menu__classroom${isCurrent ? " side-menu__classroom--active" : ""}`}
+                            onClick={() => go(`/classrooms/${c.id}`)}
+                          >
+                            <Icon size={16} />
+                            <span className="side-menu__classroom-name">{c.name}</span>
+                            {isCurrent && <Checkmark size={16} className="side-menu__classroom-check" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )
+        )}
+
+        {/* ── Question Banks tab ── */}
+        {activeTab === "banks" && banks.length > 0 && (
+          <div className="side-menu__section">
+            <div className="side-menu__section-header">
+              <Book size={16} />
+              <span>{t("nav.questionBanks")}</span>
+            </div>
+            <div className="side-menu__bank-list">
+              {banks.map((b) => {
+                const isCurrent = b.id === bankId;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    className={`side-menu__bank${isCurrent ? " side-menu__bank--active" : ""}`}
+                    onClick={() => go(`/question-banks/${b.id}`)}
+                  >
+                    <span className="side-menu__bank-name">{b.name}</span>
+                    <span className="side-menu__bank-meta">
+                      {b.category === "coding" ? "Coding" : "Exam"} · {b.questionCount}
+                    </span>
+                    {isCurrent && <Checkmark size={14} className="side-menu__bank-check" />}
                   </button>
                 );
               })}
             </div>
+          </div>
+        )}
 
-            {/* Classrooms tab */}
-            {activeTab === "classrooms" && (
-              <>
-                <div className="side-menu__section">
-                  <button
-                    type="button"
-                    className={`side-menu__link${isActive("/dashboard") ? " side-menu__link--active" : ""}`}
-                    onClick={() => go("/dashboard")}
-                  >
-                    <Dashboard size={16} />
-                    <span>{t("nav.dashboard")}</span>
-                  </button>
-                  {isTeacherOrAdmin && (
-                    <button
-                      type="button"
-                      className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
-                      onClick={() => go("/marketplace")}
-                    >
-                      <Globe size={16} />
-                      <span>{t("nav.marketplace", "Marketplace")}</span>
-                    </button>
-                  )}
-                </div>
-                {classrooms.length > 0 && (
-                  <>
-                    <div className="side-menu__divider" />
-                    <div className="side-menu__section">
-                      <div className="side-menu__section-header">
-                        <Education size={16} />
-                        <span>{t("nav.classrooms")}</span>
-                      </div>
-                      <div className="side-menu__classroom-list">
-                        {classrooms.map((c) => {
-                          const isCurrent = c.id === classroomId;
-                          const Icon = getClassroomIcon(c.icon);
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              className={`side-menu__classroom${isCurrent ? " side-menu__classroom--active" : ""}`}
-                              onClick={() => go(`/classrooms/${c.id}`)}
-                            >
-                              <Icon size={16} />
-                              <span className="side-menu__classroom-name">{c.name}</span>
-                              {isCurrent && <Checkmark size={16} className="side-menu__classroom-check" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-
-            {/* Question banks tab */}
-            {activeTab === "banks" && banks.length > 0 && (
-              <div className="side-menu__section">
-                <div className="side-menu__section-header">
-                  <Book size={16} />
-                  <span>{t("nav.questionBanks")}</span>
-                </div>
-                <div className="side-menu__bank-list">
-                  {banks.map((b) => {
-                    const isCurrent = b.id === bankId;
-                    return (
-                      <button
-                        key={b.id}
-                        type="button"
-                        className={`side-menu__bank${isCurrent ? " side-menu__bank--active" : ""}`}
-                        onClick={() => go(`/question-banks/${b.id}`)}
-                      >
-                        <span className="side-menu__bank-name">{b.name}</span>
-                        <span className="side-menu__bank-meta">
-                          {b.category === "coding" ? "Coding" : "Exam"} · {b.questionCount}
-                        </span>
-                        {isCurrent && <Checkmark size={14} className="side-menu__bank-check" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Chat tab */}
-            {activeTab === "chat" && (
-              <div className="side-menu__chat-tab">
-                <ChatHistoryPanel
-                  sessions={sessions}
-                  currentSessionId={currentSessionId}
-                  onSelectSession={handleSelectSession}
-                  onDeleteSession={handleDeleteSession}
-                  onRenameSession={handleRenameSession}
-                  showNewChatButton
-                  onNewChat={handleNewChat}
-                />
-              </div>
-            )}
-          </>
+        {/* ── Chat tab ── */}
+        {activeTab === "chat" && (
+          <div className="side-menu__chat-tab">
+            <ChatHistoryPanel
+              sessions={sessions}
+              currentSessionId={currentSessionId}
+              onSelectSession={handleSelectSession}
+              onDeleteSession={handleDeleteSession}
+              onRenameSession={handleRenameSession}
+              showNewChatButton
+              onNewChat={handleNewChat}
+            />
+          </div>
         )}
       </nav>
     </>

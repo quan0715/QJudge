@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Tag, Tabs, TabList, Tab } from "@carbon/react";
+import { Button, IconButton, Tag, Tabs, TabList, Tab } from "@carbon/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Bullhorn,
@@ -31,6 +31,7 @@ import CreateContestModal from "@/features/classroom/components/CreateContestMod
 import ClassroomAdminLayout, {
   type ClassroomAdminPanelId,
 } from "./ClassroomAdminLayout";
+import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import { ClassroomSkeleton } from "../components/ClassroomSkeleton";
 import { AnnouncementSection } from "../components/AnnouncementSection";
@@ -230,9 +231,24 @@ const ClassroomDetailScreen: React.FC = () => {
 
   return (
     <>
-      <ClassroomAdminLayout
-        onOpenSettings={isPrivileged ? () => setSettingsModalOpen(true) : undefined}
-      >
+      <ClassroomAdminLayout>
+        <WorkspaceToolBar
+          showAppSidebarExpand
+          title={null}
+          actions={
+            isPrivileged ? (
+              <IconButton
+                kind="ghost"
+                size="md"
+                align="bottom"
+                label={t("tab.settings", "設定")}
+                onClick={() => setSettingsModalOpen(true)}
+              >
+                <Settings size={20} />
+              </IconButton>
+            ) : null
+          }
+        />
         <div className="classroom-admin-page">
           <QJudgeHeroWidget
             title={
