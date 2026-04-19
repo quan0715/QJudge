@@ -103,23 +103,25 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
   }
 
   // Mobile full-page or sidebar: history as overlay
-  const showHistoryOverlay = (isMobile || mode === "sidebar") && historyOpen;
+  const showHistoryOverlay = mode === "sidebar" && historyOpen;
 
   const sessionTitle = currentSession?.title || t("ui.newChat");
 
   return (
     <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
-      {/* Mobile / sidebar: history as overlay with slide animation */}
-      <div className={`${styles.historyOverlay} ${showHistoryOverlay ? styles.historyOverlayOpen : ""}`}>
-        <ChatHistoryPanel
-          sessions={sessions}
-          currentSessionId={currentSessionId}
-          onSelectSession={handleSelectSession}
-          onDeleteSession={deleteSession}
-          onRenameSession={renameSession}
-          onClose={() => setHistoryOpen(false)}
-        />
-      </div>
+      {/* Sidebar: history as overlay with slide animation */}
+      {mode === "sidebar" && (
+        <div className={`${styles.historyOverlay} ${showHistoryOverlay ? styles.historyOverlayOpen : ""}`}>
+          <ChatHistoryPanel
+            sessions={sessions}
+            currentSessionId={currentSessionId}
+            onSelectSession={handleSelectSession}
+            onDeleteSession={deleteSession}
+            onRenameSession={renameSession}
+            onClose={() => setHistoryOpen(false)}
+          />
+        </div>
+      )}
 
       {/* Main chat area */}
       <div className={styles.main}>
