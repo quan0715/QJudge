@@ -15,6 +15,7 @@ interface ChatTopBarFullProps {
   onNewChat: () => void;
   onRenameSession: (id: string, title: string) => void;
   onDeleteSession: (id: string) => void;
+  onClose?: () => void;
 }
 
 interface ChatTopBarSidebarProps {
@@ -89,6 +90,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
     onNewChat,
     onRenameSession,
     onDeleteSession,
+    onClose,
   } = props as ChatTopBarFullProps;
   const displayTitle = title || t("ui.newChat");
 
@@ -189,6 +191,11 @@ export function ChatTopBar(props: ChatTopBarProps) {
               onClick={() => onDeleteSession(currentSessionId)}
             />
           </OverflowMenu>
+        )}
+        {onClose && (
+          <IconButton kind="ghost" label={t("ui.close")} onClick={onClose}>
+            <Close size={20} />
+          </IconButton>
         )}
       </div>
     </div>
