@@ -11,6 +11,7 @@ import {
   Trophy,
   UserMultiple,
   ChevronDown,
+  Settings,
 } from "@carbon/icons-react";
 import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
@@ -24,6 +25,7 @@ import { useChatSessionContext } from "@/features/chatbot/contexts/ChatSessionCo
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { ChatHistoryPanel } from "@/features/chatbot/components/chat-ui/ChatHistoryPanel";
 import type { ClassroomAdminPanelId } from "@/features/classroom/screens/ClassroomAdminLayout";
+import { CLASSROOM_OPEN_SETTINGS_QUERY } from "@/features/classroom/constants/classroomUrlParams";
 import "./SideMenu.scss";
 
 type TabKey = "classrooms" | "banks" | "chat";
@@ -44,6 +46,7 @@ interface SideMenuProps {
 export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, variant = "drawer" }) => {
   const isPanelMode = variant === "panel";
   const { t } = useTranslation("common");
+  const { t: tClassroom } = useTranslation("classroom");
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -212,6 +215,13 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
     [classrooms, classroomId]
   );
 
+  const canOpenClassroomSettings = useMemo(() => {
+    const role = currentClassroom?.currentUserRole;
+    return (
+      role === "platform_admin" || role === "owner" || role === "manager"
+    );
+  }, [currentClassroom?.currentUserRole]);
+
   const activePanel = useMemo(() => {
     const p = new URLSearchParams(location.search).get("panel") || "overview";
     return p as ClassroomAdminPanelId;
@@ -220,6 +230,13 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
   const goToPanel = useCallback((panel: string) => {
     navigate(`/classrooms/${classroomId}?panel=${panel}`);
   }, [navigate, classroomId]);
+
+  const openClassroomSettingsModal = useCallback(() => {
+    if (!classroomId) return;
+    const params = new URLSearchParams(location.search);
+    params.set(CLASSROOM_OPEN_SETTINGS_QUERY, "1");
+    navigate(`/classrooms/${classroomId}?${params.toString()}`);
+  }, [classroomId, location.search, navigate]);
 
   return (
     <>
@@ -315,6 +332,16 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
                     <span>{label}</span>
                   </button>
                 ))}
+                {canOpenClassroomSettings && (
+                  <button
+                    type="button"
+                    className="side-menu__link"
+                    onClick={openClassroomSettingsModal}
+                  >
+                    <Settings size={16} />
+                    <span>{tClassroom("tab.settings", "教室設定")}</span>
+                  </button>
+                )}
               </div>
             </>
           ) : (

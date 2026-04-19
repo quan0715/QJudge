@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
-import { Button, IconButton, Tag, Tabs, TabList, Tab } from "@carbon/react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Button, Tag, Tabs, TabList, Tab } from "@carbon/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Bullhorn,
@@ -31,7 +31,6 @@ import CreateContestModal from "@/features/classroom/components/CreateContestMod
 import ClassroomAdminLayout, {
   type ClassroomAdminPanelId,
 } from "./ClassroomAdminLayout";
-import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import { ClassroomSkeleton } from "../components/ClassroomSkeleton";
 import { AnnouncementSection } from "../components/AnnouncementSection";
@@ -40,6 +39,7 @@ import { OverviewPanel } from "./panels/OverviewPanel";
 import { ContestPanel } from "./panels/ContestPanel";
 import { MembersPanel } from "./panels/MembersPanel";
 import { getClassroomIcon } from "../constants/classroomIcons";
+import { CLASSROOM_OPEN_SETTINGS_QUERY } from "../constants/classroomUrlParams";
 import { useTabWithUrlParam } from "@/shared/hooks";
 import { ClassroomSettingsModal } from "../components/ClassroomSettingsModal";
 import "./ClassroomDetailScreen.scss";
@@ -54,6 +54,7 @@ const ClassroomDetailScreen: React.FC = () => {
   const { t } = useTranslation("classroom");
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { classroomId } = useParams<{ classroomId: string }>();
 
   const [classroom, setClassroom] = useState<ClassroomDetail | null>(null);
@@ -128,6 +129,17 @@ const ClassroomDetailScreen: React.FC = () => {
   useEffect(() => {
     void refreshAll();
   }, [refreshAll]);
+
+  useEffect(() => {
+    if (searchParams.get(CLASSROOM_OPEN_SETTINGS_QUERY) !== "1") return;
+    if (loading || !classroom) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete(CLASSROOM_OPEN_SETTINGS_QUERY);
+    setSearchParams(next, { replace: true });
+    if (isPrivileged) {
+      setSettingsModalOpen(true);
+    }
+  }, [searchParams, setSearchParams, loading, classroom, isPrivileged]);
 
   const handleTabChange = ({ selectedIndex }: { selectedIndex: number }) => {
     handleTabChangeIndex(selectedIndex);
@@ -232,23 +244,6 @@ const ClassroomDetailScreen: React.FC = () => {
   return (
     <>
       <ClassroomAdminLayout>
-        <WorkspaceToolBar
-          showAppSidebarExpand
-          title={null}
-          actions={
-            isPrivileged ? (
-              <IconButton
-                kind="ghost"
-                size="md"
-                align="bottom"
-                label={t("tab.settings", "設定")}
-                onClick={() => setSettingsModalOpen(true)}
-              >
-                <Settings size={20} />
-              </IconButton>
-            ) : null
-          }
-        />
         <div className="classroom-admin-page">
           <QJudgeHeroWidget
             title={

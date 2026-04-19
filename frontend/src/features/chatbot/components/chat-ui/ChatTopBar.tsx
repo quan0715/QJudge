@@ -73,13 +73,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
         title={<span className={styles.sidebarTitle}>{displayTitle}</span>}
         actions={
           <>
-            <IconButton
-              kind="ghost"
-              size="md"
-              align="bottom"
-              label={t("ui.addComment")}
-              onClick={onNewChat}
-            >
+            <IconButton kind="ghost" size="md" align="bottom" label={t("ui.addComment")} onClick={onNewChat}>
               <Add size={20} />
             </IconButton>
             {onClose && (
@@ -188,22 +182,11 @@ export function ChatTopBar(props: ChatTopBarProps) {
       title={titleSlot}
       actions={
         <>
-          <IconButton
-            kind="ghost"
-            size="md"
-            align="bottom"
-            label={t("ui.addComment")}
-            onClick={onNewChat}
-          >
+          <IconButton kind="ghost" size="md" align="bottom" label={t("ui.addComment")} onClick={onNewChat}>
             <Add size={20} />
           </IconButton>
           {currentSessionId && (
-            <OverflowMenu
-              flipped
-              size="md"
-              align="bottom"
-              iconDescription={t("ui.moreOptions")}
-            >
+            <OverflowMenu flipped size="md" align="bottom" iconDescription={t("ui.moreOptions")}>
               <OverflowMenuItem
                 itemText={t("ui.rename")}
                 onClick={() => {
