@@ -39,6 +39,7 @@ import QuestionSourcePanel from "./QuestionSourcePanel";
 import type { QuestionSourceDragItem } from "./questionSource.types";
 import useToolbarSaveStatus from "./hooks/useToolbarSaveStatus";
 import { useEditorPaneScrollSelection } from "./hooks/useEditorPaneScrollSelection";
+import { useWorkspace } from "@/features/chatbot";
 import styles from "./ExamEditorLayout.module.scss";
 
 const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
@@ -106,14 +107,17 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   const { t } = useTranslation("contest");
   const { confirm, modalProps } = useConfirmModal();
   const toolbarSave = useToolbarSaveStatus();
+  const { isOpen: workspaceChatOpen } = useWorkspace();
+  /** When AI chat sidebar is open, default both side panels collapsed to save horizontal space. */
+  const defaultSidePanelsExpanded = !workspaceChatOpen;
 
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(defaultSidePanelsExpanded);
   const [sourceDragItem, setSourceDragItem] = useState<QuestionSourceDragItem | null>(null);
   const [sourceHoverIndex, setSourceHoverIndex] = useState<number | null>(null);
-  const [sourcePanelExpanded, setSourcePanelExpanded] = useState(true);
+  const [sourcePanelExpanded, setSourcePanelExpanded] = useState(defaultSidePanelsExpanded);
   const [sourceModalOpen, setSourceModalOpen] = useState(false);
 
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

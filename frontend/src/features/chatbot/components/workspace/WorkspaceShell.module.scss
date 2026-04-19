@@ -37,10 +37,9 @@
   cursor: col-resize;
   z-index: 10;
   background: transparent;
-  // Visual border centered in the handle
   border-right: 1px solid var(--cds-border-subtle-01, #e0e0e0);
   transition: border-color 150ms ease;
-  touch-action: none; // prevent scroll while dragging on touch
+  touch-action: none;
 
   &:hover,
   &:active {
@@ -48,7 +47,6 @@
     border-right-width: 2px;
   }
 
-  // Wider touch target on touch devices
   @media (pointer: coarse) {
     left: -8px;
     width: 16px;

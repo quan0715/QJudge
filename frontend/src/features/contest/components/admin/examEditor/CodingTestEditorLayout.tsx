@@ -29,6 +29,7 @@ import type { QuestionSourceDragItem } from "./questionSource.types";
 import useToolbarSaveStatus from "./hooks/useToolbarSaveStatus";
 import { useEditorPaneScrollSelection } from "./hooks/useEditorPaneScrollSelection";
 import { labelForContestProblemOrder } from "@/features/contest/domain/contestProblemOrderLabel";
+import { useWorkspace } from "@/features/chatbot";
 import styles from "./ExamEditorLayout.module.scss";
 
 interface CodingTestEditorLayoutProps {
@@ -93,16 +94,19 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   const { refreshContest, loading: contestLoading } = useContest();
   const listSave = useToolbarSaveStatus();
   const effectiveClassroomId = classroomId || contest.boundClassroomId || undefined;
+  const { isOpen: workspaceChatOpen } = useWorkspace();
+  /** When AI chat sidebar is open, default both side panels collapsed to save horizontal space. */
+  const defaultSidePanelsExpanded = !workspaceChatOpen;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [orderedProblems, setOrderedProblems] = useState<ContestProblemSummary[]>(() =>
     sortProblems(contest.problems ?? [])
   );
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(defaultSidePanelsExpanded);
 
   const [sourceDragItem, setSourceDragItem] = useState<QuestionSourceDragItem | null>(null);
   const [sourceHoverIndex, setSourceHoverIndex] = useState<number | null>(null);
-  const [sourcePanelExpanded, setSourcePanelExpanded] = useState(true);
+  const [sourcePanelExpanded, setSourcePanelExpanded] = useState(defaultSidePanelsExpanded);
   const [sourceModalOpen, setSourceModalOpen] = useState(false);
   const [viewReorderPointerDepth, setViewReorderPointerDepth] = useState(0);
 

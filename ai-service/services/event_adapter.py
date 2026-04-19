@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict, dataclass, field
-from typing import Any, Union
+from typing import Any, Iterable, Union
 
 logger = logging.getLogger(__name__)
 
@@ -144,13 +144,20 @@ def adapt_langgraph_event(event: dict[str, Any]) -> list[InternalEvent] | None:
         chunk = data.get("chunk")
         if chunk is None:
             return None
-            
+
         results: list[InternalEvent] = []
 
-        if hasattr(chunk, "additional_kwargs") and "reasoning_content" in chunk.additional_kwargs:
-            rc = chunk.additional_kwargs.get("reasoning_content")
-            if rc:
-                results.append(ThinkingDelta(content=rc))
+        additional_kwargs = (
+            getattr(chunk, "additional_kwargs", None)
+            if hasattr(chunk, "additional_kwargs")
+            else None
+        )
+        if isinstance(additional_kwargs, dict):
+            thinking_from_kwargs = _extract_reasoning_from_additional_kwargs(
+                additional_kwargs
+            )
+            if thinking_from_kwargs:
+                results.append(ThinkingDelta(content=thinking_from_kwargs))
 
         content = getattr(chunk, "content", "")
         if isinstance(content, list):
@@ -158,10 +165,21 @@ def adapt_langgraph_event(event: dict[str, Any]) -> list[InternalEvent] | None:
             thinking_parts: list[str] = []
             for block in content:
                 if isinstance(block, dict):
-                    if block.get("type") == "thinking":
-                        thinking_parts.append(block.get("thinking", ""))
-                    elif block.get("type") == "text":
-                        text_parts.append(block.get("text", ""))
+                    block_type = block.get("type")
+                    if block_type in {"thinking", "reasoning"}:
+                        thinking_parts.extend(
+                            _extract_text_fragments(
+                                block,
+                                preferred_keys=("thinking", "reasoning", "text"),
+                            )
+                        )
+                    elif block_type == "text":
+                        text_parts.extend(
+                            _extract_text_fragments(
+                                block,
+                                preferred_keys=("text",),
+                            )
+                        )
                 elif isinstance(block, str):
                     text_parts.append(block)
             # Emit both thinking and text when both are present in the same chunk
@@ -219,6 +237,72 @@ def adapt_langgraph_event(event: dict[str, Any]) -> list[InternalEvent] | None:
     # avoiding duplicate run_started events.
 
     return None
+
+
+def _extract_reasoning_from_additional_kwargs(
+    additional_kwargs: dict[str, Any],
+) -> str:
+    parts: list[str] = []
+
+    # Common fields observed across providers / wrappers.
+    candidate_keys = (
+        "reasoning_content",
+        "reasoning",
+        "reasoning_text",
+        "thinking",
+    )
+    for key in candidate_keys:
+        if key not in additional_kwargs:
+            continue
+        parts.extend(
+            _extract_text_fragments(
+                additional_kwargs[key],
+                preferred_keys=("text", "content", "reasoning", "thinking"),
+            )
+        )
+
+    # OpenAI-compatible chunks may carry content blocks under additional_kwargs.
+    # Example shapes:
+    # - {"reasoning": {"content": [...]}}
+    # - {"reasoning": [{"type": "reasoning", "text": "..."}]}
+    return "".join(parts)
+
+
+def _extract_text_fragments(
+    value: Any,
+    *,
+    preferred_keys: Iterable[str],
+) -> list[str]:
+    if value is None:
+        return []
+
+    if isinstance(value, str):
+        return [value]
+
+    if isinstance(value, (int, float, bool)):
+        return [str(value)]
+
+    if isinstance(value, dict):
+        parts: list[str] = []
+        for key in preferred_keys:
+            if key in value:
+                parts.extend(
+                    _extract_text_fragments(
+                        value[key],
+                        preferred_keys=preferred_keys,
+                    )
+                )
+        return parts
+
+    if isinstance(value, list):
+        parts: list[str] = []
+        for item in value:
+            parts.extend(
+                _extract_text_fragments(item, preferred_keys=preferred_keys)
+            )
+        return parts
+
+    return []
 
 
 # ---------------------------------------------------------------------------

@@ -48,6 +48,7 @@ const ChatStandalonePage = lazy(() => import("@/features/chatbot/components/Chat
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
 import { PageHeaderActionsProvider } from "@/features/app/contexts/PageHeaderActionsContext";
 import { AIWorkspaceProvider } from "@/features/chatbot/components/workspace/AIWorkspaceProvider";
+import { ChatSessionProvider } from "@/features/chatbot/contexts/ChatSessionContext";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 import {
   MarkdownImageUploadProvider,
@@ -96,6 +97,7 @@ function App() {
                     <RecurProviderBridge>
                     <BrowserRouter>
                       <AIWorkspaceProvider>
+                      <ChatSessionProvider>
                       <PageHeaderActionsProvider>
                       <ApiErrorProvider>
                       <Routes>
@@ -178,6 +180,14 @@ function App() {
                                 </Suspense>
                               }
                             />
+                            <Route
+                              path="/chat/:sessionId"
+                              element={
+                                <Suspense fallback={null}>
+                                  <ChatStandalonePage />
+                                </Suspense>
+                              }
+                            />
 
                             {/* Question Bank Detail - Standalone with breadcrumb header */}
                             {questionBankDetailRoute}
@@ -208,6 +218,7 @@ function App() {
                       </Routes>
                       </ApiErrorProvider>
                       </PageHeaderActionsProvider>
+                      </ChatSessionProvider>
                       </AIWorkspaceProvider>
                     </BrowserRouter>
                     <SettingsDialog />

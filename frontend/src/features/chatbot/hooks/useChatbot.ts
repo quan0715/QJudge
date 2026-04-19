@@ -12,6 +12,7 @@ import type {
   VerificationReport,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
+import { useChatSessionContext } from "../contexts/ChatSessionContext";
 
 interface UseChatbotReturn {
   sessions: ChatSession[];
@@ -48,6 +49,12 @@ interface UseChatbotOptions {
   context?: ChatContext | null;
   /** Agent commit 成功後觸發（通知父頁面重新載入資料） */
   onProblemUpdated?: () => void;
+  /** 從 URL 傳入的 session ID，useChatbot 會在初始化後切換到此 session */
+  externalSessionId?: string;
+  /** 當 session 被建立/切換時的回調（用於 URL navigation） */
+  onSessionChange?: (newId: string) => void;
+  /** 當 session 被刪除時的回調（用於 URL navigation） */
+  onSessionDeleted?: (fallbackId: string | null) => void;
 }
 
 /**
@@ -247,7 +254,13 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     backgroundInfo = null,
     context = null,
     onProblemUpdated: _onProblemUpdated,
+    externalSessionId,
+    onSessionChange,
+    onSessionDeleted,
   } = options;
+
+  // Notify shared ChatSessionContext to refresh when session list changes
+  const { refreshSessions: refreshSharedSessions } = useChatSessionContext();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, _setCurrentSessionId] = useState<string | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
@@ -466,13 +479,15 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         next.delete(newSession.id);
         return next;
       });
+      void refreshSharedSessions();
+      onSessionChange?.(newSession.id);
       return newSession.id;
     } catch (err) {
       console.error("Failed to create session:", err);
       setError(i18n.t("chatbot:errors.createSessionFailed"));
       return null;
     }
-  }, [setCurrentSessionId]);
+  }, [setCurrentSessionId, refreshSharedSessions, onSessionChange]);
 
   /**
    * 刪除 session
@@ -483,25 +498,36 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setError(null);
         await chatbotRepository.deleteSession(sessionId);
 
+        let fallback: string | null = null;
+        let shouldCreate = false;
+        let shouldCallDeleted = false;
+
         setSessions((prev) => {
           const filtered = prev.filter((session) => session.id !== sessionId);
-
-          // 如果刪除的是當前 session，切換到第一個
-          if (sessionId === currentSessionId && filtered.length > 0) {
-            setCurrentSessionId(filtered[0].id);
+          if (sessionId === currentSessionId) {
+            fallback = filtered[0]?.id ?? null;
+            if (filtered.length > 0) {
+              setCurrentSessionId(filtered[0].id);
+            } else {
+              shouldCreate = true;
+            }
+            shouldCallDeleted = true;
           } else if (filtered.length === 0) {
-            // 如果刪除後沒有 session，創建一個新的
-            createSession();
+            shouldCreate = true;
+            shouldCallDeleted = true;
           }
-
           return filtered;
         });
+
+        if (shouldCreate) void createSession();
+        if (shouldCallDeleted) onSessionDeleted?.(fallback);
+        void refreshSharedSessions();
       } catch (err) {
         console.error("Failed to delete session:", err);
         setError(i18n.t("chatbot:errors.deleteSessionFailed"));
       }
     },
-    [currentSessionId, createSession, setCurrentSessionId],
+    [currentSessionId, createSession, setCurrentSessionId, refreshSharedSessions, onSessionDeleted],
   );
 
   /**
@@ -532,6 +558,14 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     }
   }, [sessions, setCurrentSessionId]);
 
+  // Sync to URL-provided session ID after initialization completes
+  useEffect(() => {
+    if (!externalSessionId || isInitializing) return;
+    if (currentSessionId !== externalSessionId) {
+      void switchSession(externalSessionId);
+    }
+  }, [externalSessionId, isInitializing, currentSessionId, switchSession]);
+
   /**
    * 重新命名 session
    */
@@ -548,12 +582,13 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               : session,
           ),
         );
+        void refreshSharedSessions();
       } catch (err) {
         console.error("Failed to rename session:", err);
         setError(i18n.t("chatbot:errors.renameSessionFailed"));
       }
     },
-    [],
+    [refreshSharedSessions],
   );
 
   // Derive the active run for the current session once so the subscription

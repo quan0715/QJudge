@@ -297,6 +297,7 @@
   "nav": {
     "back": "뒤로",
     "backToProblemList": "문제 목록으로",
+    "chat": "Chat",
     "classrooms": "교실",
     "contests": "대회",
     "dashboard": "대시보드",
@@ -304,7 +305,6 @@
     "marketplace": "문제 마켓플레이스",
     "problemList": "문제 목록",
     "problems": "문제",
-
     "ranking": "랭킹",
     "submissions": "제출 기록"
   },

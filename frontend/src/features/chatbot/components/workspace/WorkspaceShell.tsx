@@ -20,9 +20,18 @@ function getSavedWidth(): number {
 }
 
 interface WorkspaceShellProps {
+  /** Main workspace area (left of the chat sidebar). */
   children: React.ReactNode;
 }
 
+/**
+ * Two-column shell: main content + optional chat panel.
+ *
+ * **Chat open state for descendants**
+ * - Any child may call `useWorkspace()` and read `isOpen` / `toggleChat` / etc.
+ * - The main content wrapper also sets `data-chatbot-sidebar-open` for CSS or
+ *   non-React consumers (`[data-chatbot-sidebar-open="true"]`).
+ */
 export function WorkspaceShell({ children }: WorkspaceShellProps) {
   const { isOpen, closeChat } = useWorkspace();
   const panelRef = useRef<HTMLElement>(null);
@@ -80,7 +89,10 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
 
   return (
     <div className={styles.shell}>
-      <div className={styles.content}>
+      <div
+        className={styles.content}
+        data-chatbot-sidebar-open={isOpen ? "true" : "false"}
+      >
         {children}
       </div>
       <aside

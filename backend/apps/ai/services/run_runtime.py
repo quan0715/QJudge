@@ -35,10 +35,19 @@ TERMINAL_STATUSES = [
 ]
 PAUSED_STATUSES = [AIChatRun.Status.AWAITING_APPROVAL]
 
-# Poll interval for tailing new SSE events. HITL runs can idle for arbitrary
-# time waiting on human input, so we also short-circuit on PAUSED_STATUSES to
-# free the underlying DB connection back to pgbouncer.
-_SSE_POLL_INTERVAL_SECONDS = 1.5
+# Poll intervals for tailing new SSE events.
+#
+# We use adaptive backoff so the typewriter effect stays smooth during token
+# bursts while idle / HITL waits don't hammer the DB:
+#   - When events arrive, reset to MIN so the next chunk lands within ~50ms.
+#   - When the queue is empty, exponentially back off up to MAX.
+#
+# HITL runs can idle for arbitrary time waiting on human input, so we also
+# short-circuit on PAUSED_STATUSES to free the underlying DB connection back
+# to pgbouncer.
+_SSE_POLL_MIN_INTERVAL_SECONDS = 0.05
+_SSE_POLL_MAX_INTERVAL_SECONDS = 1.5
+_SSE_POLL_BACKOFF_FACTOR = 1.5
 
 
 def ensure_session_for_run(*, user, session_id: str) -> AISession:
@@ -183,6 +192,7 @@ async def run_events_as_sse(*, run: AIChatRun, after: int = 0) -> AsyncGenerator
     decision via ``POST /runs/{id}/approval/``.
     """
     last_seq = max(after, 0)
+    interval = _SSE_POLL_MIN_INTERVAL_SECONDS
     try:
         while True:
             emitted = False
@@ -205,8 +215,14 @@ async def run_events_as_sse(*, run: AIChatRun, after: int = 0) -> AsyncGenerator
                 return
             if run_status in PAUSED_STATUSES and not emitted:
                 return
-            if not emitted:
-                await asyncio.sleep(_SSE_POLL_INTERVAL_SECONDS)
+            if emitted:
+                interval = _SSE_POLL_MIN_INTERVAL_SECONDS
+            else:
+                await asyncio.sleep(interval)
+                interval = min(
+                    interval * _SSE_POLL_BACKOFF_FACTOR,
+                    _SSE_POLL_MAX_INTERVAL_SECONDS,
+                )
     finally:
         # Release any DB connections held by the sync_to_async worker
         # threads so they return to the pgbouncer pool immediately.

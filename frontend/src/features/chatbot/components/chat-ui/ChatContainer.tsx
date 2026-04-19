@@ -1,27 +1,12 @@
-import { useState, useCallback, useSyncExternalStore } from "react";
+import { useCallback } from "react";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { useChatbot } from "../../hooks/useChatbot";
 import type { ChatContext } from "@/core/types/chatbot.types";
 import { MessageList } from "./MessageList";
 import { ComposerBar } from "./ComposerBar";
-import { ChatHistoryPanel } from "./ChatHistoryPanel";
 import { ChatTopBar } from "./ChatTopBar";
 import styles from "./ChatContainer.module.scss";
-
-// Reactive mobile detection — sync with $chat-mobile-breakpoint in _variables.scss
-const MOBILE_QUERY = "(max-width: 768px)";
-const subscribe = (cb: () => void) => {
-  const mql = window.matchMedia(MOBILE_QUERY);
-  mql.addEventListener("change", cb);
-  return () => mql.removeEventListener("change", cb);
-};
-const getSnapshot = () => window.matchMedia(MOBILE_QUERY).matches;
-const getServerSnapshot = () => false;
-
-function useIsMobile() {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-}
 
 interface ChatContainerProps {
   mode: "full" | "sidebar";
@@ -29,9 +14,15 @@ interface ChatContainerProps {
   onProblemUpdated?: () => void;
   onClose?: () => void;
   className?: string;
+  /** full-page 模式：當前 URL session ID */
+  externalSessionId?: string;
+  /** full-page 模式：session 建立/切換後的導航回調 */
+  onSessionChange?: (newId: string) => void;
+  /** full-page 模式：session 刪除後的導航回調 */
+  onSessionDeleted?: (fallbackId: string | null) => void;
 }
 
-export function ChatContainer({ mode, context, onProblemUpdated, onClose, className }: ChatContainerProps) {
+export function ChatContainer({ mode, context, onProblemUpdated, onClose, className, externalSessionId, onSessionChange, onSessionDeleted }: ChatContainerProps) {
   const { t } = useTranslation("chatbot");
   const {
     sessions,
@@ -56,22 +47,20 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
     enabled: true,
     context,
     onProblemUpdated,
+    externalSessionId: mode === "full" ? externalSessionId : undefined,
+    onSessionChange: mode === "full" ? onSessionChange : undefined,
+    onSessionDeleted: mode === "full" ? onSessionDeleted : undefined,
   });
-
-  const isMobile = useIsMobile();
-  const [historyOpen, setHistoryOpen] = useState(mode === "full" && !isMobile);
 
   const handleNewChat = useCallback(() => {
     createSession();
-    if (isMobile) setHistoryOpen(false);
-  }, [createSession, isMobile]);
+  }, [createSession]);
 
   const handleSelectSession = useCallback(
     (id: string) => {
       switchSession(id);
-      if (isMobile || mode === "sidebar") setHistoryOpen(false);
     },
-    [switchSession, isMobile, mode],
+    [switchSession],
   );
 
   const handleApproval = useCallback(
@@ -93,61 +82,23 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
     );
   }
 
-  const showDesktopHistory = mode === "full" && !isMobile && historyOpen;
-  // Mobile full-page or sidebar: history as overlay
-  const showHistoryOverlay = (isMobile || mode === "sidebar") && historyOpen;
-
   const sessionTitle = currentSession?.title || t("ui.newChat");
 
   return (
     <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
-      {/* Desktop full-page: history as side column */}
-      {mode === "full" && !isMobile && (
-        <div className={`${styles.historyColumn} ${showDesktopHistory ? "" : styles.historyCollapsed}`}>
-          <ChatHistoryPanel
-            sessions={sessions}
-            currentSessionId={currentSessionId}
-            onSelectSession={handleSelectSession}
-            onDeleteSession={deleteSession}
-            onRenameSession={renameSession}
-          />
-        </div>
-      )}
-
-      {/* Mobile / sidebar: history as overlay with slide animation */}
-      <div className={`${styles.historyOverlay} ${showHistoryOverlay ? styles.historyOverlayOpen : ""}`}>
-        <ChatHistoryPanel
+      {/* Main chat area */}
+      <div className={styles.main}>
+        <ChatTopBar
+          mode="full"
+          title={sessionTitle}
           sessions={sessions}
           currentSessionId={currentSessionId}
           onSelectSession={handleSelectSession}
-          onDeleteSession={deleteSession}
+          onNewChat={handleNewChat}
           onRenameSession={renameSession}
-          onClose={() => setHistoryOpen(false)}
+          onDeleteSession={deleteSession}
+          onClose={onClose}
         />
-      </div>
-
-      {/* Main chat area */}
-      <div className={styles.main}>
-        {/* Unified top bar for full mode (desktop + mobile) */}
-        {mode === "full" && (
-          <ChatTopBar
-            title={sessionTitle}
-            historyOpen={historyOpen}
-            onToggleHistory={() => setHistoryOpen((v) => !v)}
-            onNewChat={handleNewChat}
-          />
-        )}
-
-        {/* Sidebar header with history toggle + close */}
-        {mode === "sidebar" && (
-          <ChatTopBar
-            title={t("ui.chatbotTitle")}
-            historyOpen={historyOpen}
-            onToggleHistory={() => setHistoryOpen((v) => !v)}
-            onNewChat={handleNewChat}
-            onClose={onClose}
-          />
-        )}
 
         <div className={styles.chatBody}>
           <div className={styles.messagesArea}>

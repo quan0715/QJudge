@@ -44,7 +44,7 @@
 
 .scrollButton {
   position: absolute;
-  bottom: 7rem; // Keep distance from the composer input.
+  bottom: 8.5rem; // Keep distance from the composer input (desktop).
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -71,6 +71,13 @@
   // Carbon icons integration
   svg {
     fill: var(--cds-icon-secondary, #525252);
+  }
+}
+
+// Taller composer on narrow viewports + safe-area — lift button so it does not touch the bar
+@media (max-width: $chat-mobile-breakpoint) {
+  .scrollButton {
+    bottom: calc(12rem + env(safe-area-inset-bottom, 0px));
   }
 }
 

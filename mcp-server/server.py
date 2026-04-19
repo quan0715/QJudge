@@ -521,6 +521,8 @@ async def qjudge_browse(
     Do NOT use this tool for any write operations — use qjudge_contest_manager (get_detail, list_problems, reorder), qjudge_exam, or qjudge_coding_problems for contest questions.
 
     Actions:
+      search_all             — Search across classrooms, contests, and question banks by keyword (required: search).
+                               Returns {classrooms: [...], contests: [...], banks: [...]}.
       list_classrooms        — List classrooms you manage (optional: search)
       list_contests          — List contests you manage (optional: search, status)
       get_contest            — Get contest detail (required: contest_id)
@@ -531,6 +533,24 @@ async def qjudge_browse(
     """
     if action == "get_help":
         return _TOOL_HELP
+
+    if action == "search_all":
+        if not search:
+            return _error("search is required for search_all")
+        classrooms_q = {"scope": "manage", "search": search}
+        contests_q = {"scope": "manage", "search": search}
+        banks_q = {"search": search}
+        import asyncio
+        classrooms_res, contests_res, banks_res = await asyncio.gather(
+            django_api("GET", f"/api/v1/classrooms/?{urlencode(classrooms_q)}", ctx),
+            django_api("GET", f"/api/v1/contests/?{urlencode(contests_q)}", ctx),
+            django_api("GET", f"/api/v1/question-banks/?{urlencode(banks_q)}", ctx),
+        )
+        return {
+            "classrooms": classrooms_res.get("results", classrooms_res) if isinstance(classrooms_res, dict) else classrooms_res,
+            "contests": contests_res.get("results", contests_res) if isinstance(contests_res, dict) else contests_res,
+            "banks": banks_res if isinstance(banks_res, list) else banks_res.get("results", banks_res),
+        }
 
     if action == "list_classrooms":
         query = {"scope": "manage"}
