@@ -260,7 +260,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   } = options;
 
   // Notify shared ChatSessionContext to refresh when session list changes
-  const chatSessionCtx = useChatSessionContext();
+  const { refreshSessions: refreshSharedSessions } = useChatSessionContext();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, _setCurrentSessionId] = useState<string | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
@@ -487,7 +487,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         next.delete(newSession.id);
         return next;
       });
-      void chatSessionCtx.refreshSessions();
+      void refreshSharedSessions();
       onSessionChange?.(newSession.id);
       return newSession.id;
     } catch (err) {
@@ -495,7 +495,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setError(i18n.t("chatbot:errors.createSessionFailed"));
       return null;
     }
-  }, [setCurrentSessionId]);
+  }, [setCurrentSessionId, refreshSharedSessions, onSessionChange]);
 
   /**
    * 刪除 session
@@ -506,31 +506,36 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setError(null);
         await chatbotRepository.deleteSession(sessionId);
 
+        let fallback: string | null = null;
+        let shouldCreate = false;
+        let shouldCallDeleted = false;
+
         setSessions((prev) => {
           const filtered = prev.filter((session) => session.id !== sessionId);
-
           if (sessionId === currentSessionId) {
-            const fallback = filtered[0]?.id ?? null;
+            fallback = filtered[0]?.id ?? null;
             if (filtered.length > 0) {
               setCurrentSessionId(filtered[0].id);
             } else {
-              void createSession();
+              shouldCreate = true;
             }
-            onSessionDeleted?.(fallback);
+            shouldCallDeleted = true;
           } else if (filtered.length === 0) {
-            void createSession();
-            onSessionDeleted?.(null);
+            shouldCreate = true;
+            shouldCallDeleted = true;
           }
-
           return filtered;
         });
-        void chatSessionCtx.refreshSessions();
+
+        if (shouldCreate) void createSession();
+        if (shouldCallDeleted) onSessionDeleted?.(fallback);
+        void refreshSharedSessions();
       } catch (err) {
         console.error("Failed to delete session:", err);
         setError(i18n.t("chatbot:errors.deleteSessionFailed"));
       }
     },
-    [currentSessionId, createSession, setCurrentSessionId],
+    [currentSessionId, createSession, setCurrentSessionId, refreshSharedSessions, onSessionDeleted],
   );
 
   /**
@@ -577,13 +582,13 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               : session,
           ),
         );
-        void chatSessionCtx.refreshSessions();
+        void refreshSharedSessions();
       } catch (err) {
         console.error("Failed to rename session:", err);
         setError(i18n.t("chatbot:errors.renameSessionFailed"));
       }
     },
-    [],
+    [refreshSharedSessions],
   );
 
   // Derive the active run for the current session once so the subscription
