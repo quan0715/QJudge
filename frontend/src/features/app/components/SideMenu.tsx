@@ -162,11 +162,15 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
     }
   }, [refreshSessions]);
 
-  const tabs: { key: TabKey; label: string; show: boolean }[] = [
-    { key: "classrooms", label: t("nav.classrooms"), show: true },
-    { key: "banks", label: t("nav.questionBanks"), show: isTeacherOrAdmin },
-    { key: "chat", label: t("nav.chat", "Chat"), show: isTeacherOrAdmin },
-  ].filter((tab) => tab.show);
+  const tabs = useMemo(
+    () =>
+      [
+        { key: "classrooms" as TabKey, label: t("nav.classrooms"), show: true },
+        { key: "banks" as TabKey, label: t("nav.questionBanks"), show: isTeacherOrAdmin },
+        { key: "chat" as TabKey, label: t("nav.chat"), show: isTeacherOrAdmin },
+      ].filter((tab) => tab.show),
+    [t, isTeacherOrAdmin],
+  );
 
   return (
     <>
