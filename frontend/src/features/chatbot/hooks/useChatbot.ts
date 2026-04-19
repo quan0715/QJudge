@@ -464,14 +464,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     init();
   }, [applyActiveRunsToSessions, enabled, setCurrentSessionId]);
 
-  // Sync to URL-provided session ID after initialization completes
-  useEffect(() => {
-    if (!externalSessionId || isInitializing) return;
-    if (currentSessionId !== externalSessionId) {
-      void switchSession(externalSessionId);
-    }
-  }, [externalSessionId, isInitializing, currentSessionId, switchSession]);
-
   /**
    * 創建新 session
    */
@@ -565,6 +557,14 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       }
     }
   }, [sessions, setCurrentSessionId]);
+
+  // Sync to URL-provided session ID after initialization completes
+  useEffect(() => {
+    if (!externalSessionId || isInitializing) return;
+    if (currentSessionId !== externalSessionId) {
+      void switchSession(externalSessionId);
+    }
+  }, [externalSessionId, isInitializing, currentSessionId, switchSession]);
 
   /**
    * 重新命名 session
