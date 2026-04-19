@@ -10,12 +10,12 @@ interface ChatHistoryPanelProps {
   sessions: ChatSession[];
   currentSessionId: string | null;
   onSelectSession: (id: string) => void;
-  onDeleteSession: (id: string) => void;
-  onRenameSession: (id: string, name: string) => void;
+  onDeleteSession: (id: string) => void | Promise<void>;
+  onRenameSession: (id: string, name: string) => void | Promise<void>;
   onClose?: () => void;
   /** Show "新增對話" button at bottom */
   showNewChatButton?: boolean;
-  onNewChat?: () => void;
+  onNewChat?: () => void | Promise<void>;
 }
 
 interface HistoryGroup {
