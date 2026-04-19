@@ -49,17 +49,6 @@
     var(--cds-background, #161616);
 }
 
-.historyColumn {
-  width: $chat-history-width;
-  flex-shrink: 0;
-  transition: width $chat-motion-duration $chat-motion-easing;
-  overflow: hidden;
-}
-
-.historyCollapsed {
-  width: 0;
-}
-
 .main {
   flex: 1;
   display: flex;
