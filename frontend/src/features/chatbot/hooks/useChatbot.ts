@@ -12,6 +12,7 @@ import type {
   VerificationReport,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
+import { useChatSessionContext } from "../contexts/ChatSessionContext";
 
 interface UseChatbotReturn {
   sessions: ChatSession[];
@@ -48,6 +49,12 @@ interface UseChatbotOptions {
   context?: ChatContext | null;
   /** Agent commit 成功後觸發（通知父頁面重新載入資料） */
   onProblemUpdated?: () => void;
+  /** 從 URL 傳入的 session ID，useChatbot 會在初始化後切換到此 session */
+  externalSessionId?: string;
+  /** 當 session 被建立/切換時的回調（用於 URL navigation） */
+  onSessionChange?: (newId: string) => void;
+  /** 當 session 被刪除時的回調（用於 URL navigation） */
+  onSessionDeleted?: (fallbackId: string | null) => void;
 }
 
 /**
@@ -247,7 +254,13 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     backgroundInfo = null,
     context = null,
     onProblemUpdated: _onProblemUpdated,
+    externalSessionId,
+    onSessionChange,
+    onSessionDeleted,
   } = options;
+
+  // Notify shared ChatSessionContext to refresh when session list changes
+  const chatSessionCtx = useChatSessionContext();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, _setCurrentSessionId] = useState<string | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
@@ -451,6 +464,14 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     init();
   }, [applyActiveRunsToSessions, enabled, setCurrentSessionId]);
 
+  // Sync to URL-provided session ID after initialization completes
+  useEffect(() => {
+    if (!externalSessionId || isInitializing) return;
+    if (currentSessionId !== externalSessionId) {
+      void switchSession(externalSessionId);
+    }
+  }, [externalSessionId, isInitializing, currentSessionId, switchSession]);
+
   /**
    * 創建新 session
    */
@@ -466,6 +487,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         next.delete(newSession.id);
         return next;
       });
+      void chatSessionCtx.refreshSessions();
+      onSessionChange?.(newSession.id);
       return newSession.id;
     } catch (err) {
       console.error("Failed to create session:", err);
@@ -486,16 +509,22 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setSessions((prev) => {
           const filtered = prev.filter((session) => session.id !== sessionId);
 
-          // 如果刪除的是當前 session，切換到第一個
-          if (sessionId === currentSessionId && filtered.length > 0) {
-            setCurrentSessionId(filtered[0].id);
+          if (sessionId === currentSessionId) {
+            const fallback = filtered[0]?.id ?? null;
+            if (filtered.length > 0) {
+              setCurrentSessionId(filtered[0].id);
+            } else {
+              void createSession();
+            }
+            onSessionDeleted?.(fallback);
           } else if (filtered.length === 0) {
-            // 如果刪除後沒有 session，創建一個新的
-            createSession();
+            void createSession();
+            onSessionDeleted?.(null);
           }
 
           return filtered;
         });
+        void chatSessionCtx.refreshSessions();
       } catch (err) {
         console.error("Failed to delete session:", err);
         setError(i18n.t("chatbot:errors.deleteSessionFailed"));
@@ -548,6 +577,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               : session,
           ),
         );
+        void chatSessionCtx.refreshSessions();
       } catch (err) {
         console.error("Failed to rename session:", err);
         setError(i18n.t("chatbot:errors.renameSessionFailed"));
