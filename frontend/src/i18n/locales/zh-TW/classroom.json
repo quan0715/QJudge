@@ -216,6 +216,13 @@
   "switchClassroom": "切換教室",
   "switchTo": "切換至此教室",
   "switcherLoadFailed": "載入教室清單失敗",
+  "sideMenu": {
+    "overview": "概要",
+    "announcements": "教室公告",
+    "contests": "競賽列表",
+    "members": "教室成員",
+    "settings": "教室設定"
+  },
   "tab": {
     "announcements": "公告",
     "contests": "競賽",

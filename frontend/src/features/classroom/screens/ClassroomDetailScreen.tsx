@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button, Tag, Tabs, TabList, Tab } from "@carbon/react";
@@ -76,7 +77,16 @@ const ClassroomDetailScreen: React.FC = () => {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const availablePanels = useMemo<ClassroomAdminPanelId[]>(() => {
-    if (isPrivileged || isMember) {
+    if (isPrivileged) {
+      return [
+        "overview",
+        "announcements",
+        "contests",
+        "members",
+        "settings",
+      ];
+    }
+    if (isMember) {
       return ["overview", "announcements", "contests", "members"];
     }
     return ["overview"];
@@ -94,6 +104,20 @@ const ClassroomDetailScreen: React.FC = () => {
     aliases: PANEL_ALIAS,
   });
   const shouldReduceMotion = useReducedMotion();
+  const prevPanelRef = useRef<ClassroomAdminPanelId>(activePanel);
+
+  useEffect(() => {
+    if (prevPanelRef.current === "settings" && activePanel !== "settings") {
+      setSettingsModalOpen(false);
+    }
+    prevPanelRef.current = activePanel;
+  }, [activePanel]);
+
+  useEffect(() => {
+    if (activePanel === "settings" && isPrivileged) {
+      setSettingsModalOpen(true);
+    }
+  }, [activePanel, isPrivileged]);
 
   const fetchClassroomData = useCallback(async () => {
     if (!classroomId) return;
@@ -343,6 +367,13 @@ const ClassroomDetailScreen: React.FC = () => {
                 {activePanel === "members" && (
                   <MembersPanel classroom={classroom} />
                 )}
+
+                {activePanel === "settings" && (
+                  <div
+                    className="classroom-admin-panel__settings-placeholder"
+                    aria-hidden
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -361,7 +392,12 @@ const ClassroomDetailScreen: React.FC = () => {
           />
           <ClassroomSettingsModal
             open={settingsModalOpen}
-            onClose={() => setSettingsModalOpen(false)}
+            onClose={() => {
+              setSettingsModalOpen(false);
+              if (activePanel === "settings") {
+                handlePanelChange("overview");
+              }
+            }}
             classroom={classroom}
             onRefresh={refreshAll}
             onDeleteClassroom={handleDeleteClassroom}
@@ -403,13 +439,31 @@ type TFn = ReturnType<typeof useTranslation>["t"];
 
 const TAB_CONFIG: Record<
   ClassroomAdminPanelId,
-  { label: (t: TFn) => string; icon: any }
+  {
+    label: (t: TFn) => string;
+    icon: ComponentType<{ size?: number }>;
+  }
 > = {
-  overview: { label: (t) => t("tab.overview", "總覽"), icon: Dashboard },
-  announcements: { label: (t) => t("tab.announcements"), icon: Bullhorn },
-  contests: { label: (t) => t("tab.contests", "活動"), icon: Trophy },
-  members: { label: (t) => t("tab.members", "成員"), icon: UserMultiple },
-  settings: { label: (t) => t("tab.settings", "設定"), icon: Settings },
+  overview: {
+    label: (t) => t("sideMenu.overview", "概要"),
+    icon: Dashboard,
+  },
+  announcements: {
+    label: (t) => t("sideMenu.announcements", "教室公告"),
+    icon: Bullhorn,
+  },
+  contests: {
+    label: (t) => t("sideMenu.contests", "競賽列表"),
+    icon: Trophy,
+  },
+  members: {
+    label: (t) => t("sideMenu.members", "教室成員"),
+    icon: UserMultiple,
+  },
+  settings: {
+    label: (t) => t("sideMenu.settings", "教室設定"),
+    icon: Settings,
+  },
 };
 
 export default ClassroomDetailScreen;

@@ -25,7 +25,6 @@ import { useChatSessionContext } from "@/features/chatbot/contexts/ChatSessionCo
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { ChatHistoryPanel } from "@/features/chatbot/components/chat-ui/ChatHistoryPanel";
 import type { ClassroomAdminPanelId } from "@/features/classroom/screens/ClassroomAdminLayout";
-import { CLASSROOM_OPEN_SETTINGS_QUERY } from "@/features/classroom/constants/classroomUrlParams";
 import "./SideMenu.scss";
 
 type TabKey = "classrooms" | "banks" | "chat";
@@ -231,13 +230,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
     navigate(`/classrooms/${classroomId}?panel=${panel}`);
   }, [navigate, classroomId]);
 
-  const openClassroomSettingsModal = useCallback(() => {
-    if (!classroomId) return;
-    const params = new URLSearchParams(location.search);
-    params.set(CLASSROOM_OPEN_SETTINGS_QUERY, "1");
-    navigate(`/classrooms/${classroomId}?${params.toString()}`);
-  }, [classroomId, location.search, navigate]);
-
   return (
     <>
       {/* Drawer backdrop (drawer mode only) */}
@@ -279,8 +271,29 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
         {/* ── Classrooms tab ── */}
         {activeTab === "classrooms" && (
           isOnClassroomRoute ? (
-            /* Inside a classroom: workspace selector + panel sub-nav */
+            /* Inside a classroom: global links + workspace selector + panel sub-nav */
             <>
+              <div className="side-menu__section">
+                <button
+                  type="button"
+                  className={`side-menu__link${isActive("/dashboard") ? " side-menu__link--active" : ""}`}
+                  onClick={() => go("/dashboard")}
+                >
+                  <Dashboard size={16} />
+                  <span>{t("nav.dashboard")}</span>
+                </button>
+                {isTeacherOrAdmin && (
+                  <button
+                    type="button"
+                    className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
+                    onClick={() => go("/marketplace")}
+                  >
+                    <Globe size={16} />
+                    <span>{t("nav.marketplace", "Marketplace")}</span>
+                  </button>
+                )}
+              </div>
+              <div className="side-menu__divider" />
               <div className="side-menu__workspace" ref={classroomDropdownRef}>
                 <button
                   type="button"
@@ -317,10 +330,19 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
               </div>
               <div className="side-menu__section">
                 {([
-                  { panel: "overview", label: t("tab.overview", "概覽"), Icon: Dashboard },
-                  { panel: "announcements", label: t("tab.announcements", "公告"), Icon: Bullhorn },
-                  { panel: "contests", label: t("tab.contests", "競賽"), Icon: Trophy },
-                  { panel: "members", label: t("tab.members", "成員"), Icon: UserMultiple },
+                  { panel: "overview", label: tClassroom("sideMenu.overview", "概要"), Icon: Dashboard },
+                  { panel: "announcements", label: tClassroom("sideMenu.announcements", "教室公告"), Icon: Bullhorn },
+                  { panel: "contests", label: tClassroom("sideMenu.contests", "競賽列表"), Icon: Trophy },
+                  { panel: "members", label: tClassroom("sideMenu.members", "教室成員"), Icon: UserMultiple },
+                  ...(canOpenClassroomSettings
+                    ? ([
+                        {
+                          panel: "settings" as const,
+                          label: tClassroom("sideMenu.settings", "教室設定"),
+                          Icon: Settings,
+                        },
+                      ] as const)
+                    : []),
                 ] as { panel: ClassroomAdminPanelId; label: string; Icon: ComponentType<{ size?: number }> }[]).map(({ panel, label, Icon }) => (
                   <button
                     key={panel}
@@ -332,16 +354,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
                     <span>{label}</span>
                   </button>
                 ))}
-                {canOpenClassroomSettings && (
-                  <button
-                    type="button"
-                    className="side-menu__link"
-                    onClick={openClassroomSettingsModal}
-                  >
-                    <Settings size={16} />
-                    <span>{tClassroom("tab.settings", "教室設定")}</span>
-                  </button>
-                )}
               </div>
             </>
           ) : (
@@ -372,7 +384,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
                   <div className="side-menu__divider" />
                   <div className="side-menu__section">
                     <div className="side-menu__section-header">
-                      <Education size={16} />
                       <span>{t("nav.classrooms")}</span>
                     </div>
                     <div className="side-menu__classroom-list">

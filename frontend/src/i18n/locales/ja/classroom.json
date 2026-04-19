@@ -216,6 +216,13 @@
   "switchClassroom": "クラスルームを切り替え",
   "switchTo": "このクラスルームに切り替え",
   "switcherLoadFailed": "クラスルーム一覧の読み込みに失敗しました",
+  "sideMenu": {
+    "overview": "概要",
+    "announcements": "教室のお知らせ",
+    "contests": "コンテスト一覧",
+    "members": "教室メンバー",
+    "settings": "教室設定"
+  },
   "tab": {
     "announcements": "お知らせ",
     "contests": "コンテスト",

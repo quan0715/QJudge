@@ -216,6 +216,13 @@
   "switchClassroom": "Switch classroom",
   "switchTo": "Switch to this classroom",
   "switcherLoadFailed": "Failed to load classroom list",
+  "sideMenu": {
+    "overview": "Overview",
+    "announcements": "Classroom announcements",
+    "contests": "Contest list",
+    "members": "Classroom members",
+    "settings": "Classroom settings"
+  },
   "tab": {
     "announcements": "Announcements",
     "contests": "Contests",
