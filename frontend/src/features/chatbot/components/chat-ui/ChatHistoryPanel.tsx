@@ -1,8 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
-import { Search, IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
-import { Close } from "@carbon/icons-react";
+import { OverflowMenu, OverflowMenuItem } from "@carbon/react";
+import { Chat as ChatIcon, Add } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ChatSession } from "@/core/types/chatbot.types";
+import { formatRelativeTime } from "@/shared/utils/relativeTime";
 import styles from "./ChatHistoryPanel.module.scss";
 
 interface ChatHistoryPanelProps {
@@ -12,6 +13,9 @@ interface ChatHistoryPanelProps {
   onDeleteSession: (id: string) => void;
   onRenameSession: (id: string, name: string) => void;
   onClose?: () => void;
+  /** Show "新增對話" button at bottom */
+  showNewChatButton?: boolean;
+  onNewChat?: () => void;
 }
 
 interface HistoryGroup {
@@ -26,10 +30,7 @@ function groupSessions(sessions: ChatSession[]): HistoryGroup[] {
   const weekStart = todayStart - 7 * 86_400_000;
 
   const groups: Record<string, ChatSession[]> = {
-    today: [],
-    yesterday: [],
-    lastWeek: [],
-    older: [],
+    today: [], yesterday: [], lastWeek: [], older: [],
   };
 
   for (const s of sessions) {
@@ -51,20 +52,15 @@ export function ChatHistoryPanel({
   onSelectSession,
   onDeleteSession,
   onRenameSession,
-  onClose,
+  onClose: _onClose,
+  showNewChatButton = false,
+  onNewChat,
 }: ChatHistoryPanelProps) {
   const { t } = useTranslation("chatbot");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredSessions = useMemo(() => {
-    if (!searchQuery.trim()) return sessions;
-    const q = searchQuery.trim().toLowerCase();
-    return sessions.filter((s) => (s.title ?? "").toLowerCase().includes(q));
-  }, [sessions, searchQuery]);
-
-  const groups = useMemo(() => groupSessions(filteredSessions), [filteredSessions]);
+  const groups = useMemo(() => groupSessions(sessions), [sessions]);
 
   const groupLabels = useMemo(() => ({
     today: t("ui.groupToday"),
@@ -88,23 +84,6 @@ export function ChatHistoryPanel({
 
   return (
     <div className={styles.panel}>
-      <div className={styles.header}>
-        <Search
-          size="sm"
-          placeholder={t("ui.searchPlaceholder")}
-          labelText={t("ui.searchLabel")}
-          value={searchQuery}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-          closeButtonLabelText={t("ui.clear")}
-          className={styles.search}
-        />
-        {onClose && (
-          <IconButton kind="ghost" size="sm" label={t("ui.close")} onClick={onClose} className={styles.closeBtn}>
-            <Close size={20} />
-          </IconButton>
-        )}
-      </div>
-
       <div className={styles.list}>
         {groups.length === 0 && (
           <div className={styles.empty}>{t("ui.noHistory")}</div>
@@ -116,9 +95,7 @@ export function ChatHistoryPanel({
             {group.sessions.map((session) => (
               <div
                 key={session.id}
-                className={`${styles.item} ${
-                  session.id === currentSessionId ? styles.active : ""
-                }`}
+                className={`${styles.item} ${session.id === currentSessionId ? styles.active : ""}`}
                 onClick={() => onSelectSession(session.id)}
                 role="button"
                 tabIndex={0}
@@ -129,6 +106,8 @@ export function ChatHistoryPanel({
                   }
                 }}
               >
+                <ChatIcon size={16} className={styles.itemIcon} />
+
                 {renamingId === session.id ? (
                   <input
                     className={styles.renameInput}
@@ -146,9 +125,14 @@ export function ChatHistoryPanel({
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
-                  <span className={styles.itemName}>
-                    {session.title || t("ui.defaultSessionTitle", { id: session.id.slice(0, 8) })}
-                  </span>
+                  <>
+                    <span className={styles.itemName}>
+                      {session.title || t("ui.defaultSessionTitle", { id: session.id.slice(0, 8) })}
+                    </span>
+                    <span className={styles.itemTime}>
+                      {formatRelativeTime(session.updatedAt)}
+                    </span>
+                  </>
                 )}
 
                 <OverflowMenu
@@ -173,6 +157,15 @@ export function ChatHistoryPanel({
           </div>
         ))}
       </div>
+
+      {showNewChatButton && onNewChat && (
+        <div className={styles.footer}>
+          <button type="button" className={styles.newChatBtn} onClick={onNewChat}>
+            <Add size={16} />
+            <span>{t("ui.newChat")}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
