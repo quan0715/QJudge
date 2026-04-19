@@ -2,9 +2,7 @@ import { createContext, useState, useCallback, useEffect, useMemo } from "react"
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
-import { Theme } from "@carbon/react";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { ChatContainer } from "../chat-ui/ChatContainer";
 import styles from "./AIWorkspaceProvider.module.scss";
 import shellStyles from "./WorkspaceShell.module.scss";
@@ -49,7 +47,6 @@ function useIsMobile(): boolean {
 export function AIWorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const location = useLocation();
-  const { theme } = useTheme();
   const [isOpen, setIsOpen] = useState(getInitialOpen);
   const isMobile = useIsMobile();
 
@@ -102,21 +99,19 @@ export function AIWorkspaceProvider({ children }: { children: React.ReactNode })
       )}
 
       {showMobileSheet && typeof document !== "undefined" && createPortal(
-        <Theme theme={theme}>
-          <div className={styles.overlay}>
-            <div className={styles.backdrop} onClick={closeChat} aria-hidden="true" />
-            <div className={styles.sheet}>
-              <div className={styles.sheetHandle} />
-              <div className={styles.sheetContent}>
-                <ChatContainer
-                  mode="sidebar"
-                  onClose={closeChat}
-                />
-              </div>
+        <div className={styles.overlay}>
+          <div className={styles.backdrop} onClick={closeChat} aria-hidden="true" />
+          <div className={styles.sheet}>
+            <div className={styles.sheetHandle} />
+            <div className={styles.sheetContent}>
+              <ChatContainer
+                mode="sidebar"
+                onClose={closeChat}
+              />
             </div>
           </div>
-        </Theme>,
-        document.body,
+        </div>,
+        document.getElementById("modal-portal-root") ?? document.body,
       )}
     </WorkspaceContext.Provider>
   );
