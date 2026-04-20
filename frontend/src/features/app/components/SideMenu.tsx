@@ -7,7 +7,10 @@ import {
   Checkmark,
   Globe,
   Chat as ChatIcon,
+  Activity,
   Bullhorn,
+  ChartColumn,
+  TaskComplete,
   Trophy,
   UserMultiple,
   ChevronDown,
@@ -17,17 +20,40 @@ import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
+import { getContest } from "@/infrastructure/api/repositories/contest.repository";
 import { getQuestionBanks as listMyBanks } from "@/infrastructure/api/repositories/questionBank.repository";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import type { Classroom } from "@/core/entities/classroom.entity";
+import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { QuestionBank } from "@/core/entities/question-bank.entity";
 import { useChatSessionContext } from "@/features/chatbot/contexts/ChatSessionContext";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { ChatHistoryPanel } from "@/features/chatbot/components/chat-ui/ChatHistoryPanel";
+import { getContestTypeModule } from "@/features/contest/modules/registry";
+import type { AdminPanelId } from "@/features/contest/modules/types";
 import type { ClassroomAdminPanelId } from "@/features/classroom/screens/ClassroomAdminLayout";
 import "./SideMenu.scss";
 
 type TabKey = "classrooms" | "banks" | "chat";
+
+type ContestPanelNavItem = {
+  panel: AdminPanelId;
+  label: string;
+  Icon: ComponentType<{ size?: number }>;
+};
+
+const CONTEST_PANEL_META: Record<
+  Exclude<AdminPanelId, "settings">,
+  { labelKey: string; examLabelKey?: string; Icon: ComponentType<{ size?: number }> }
+> = {
+  overview: { labelKey: "overview", Icon: Dashboard },
+  clarifications: { labelKey: "clarifications", Icon: ChatIcon },
+  logs: { labelKey: "logs", Icon: Activity },
+  participants: { labelKey: "participants", Icon: UserMultiple },
+  problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: Education },
+  grading: { labelKey: "grading", examLabelKey: "examGrading", Icon: TaskComplete },
+  statistics: { labelKey: "statistics", examLabelKey: "examStatistics", Icon: ChartColumn },
+};
 
 function getDefaultTab(pathname: string): TabKey {
   if (pathname.startsWith("/classrooms")) return "classrooms";
@@ -46,6 +72,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
   const isPanelMode = variant === "panel";
   const { t } = useTranslation("common");
   const { t: tClassroom } = useTranslation("classroom");
+  const { t: tContest } = useTranslation("contest");
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -58,6 +85,8 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [banks, setBanks] = useState<QuestionBank[]>([]);
   const [fetched, setFetched] = useState(false);
+  const [contestForAdminNav, setContestForAdminNav] = useState<ContestDetail | null>(null);
+  const [contestFetched, setContestFetched] = useState(false);
 
   const { sessions, refreshSessions } = useChatSessionContext();
 
@@ -79,6 +108,11 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
   const classroomId = useMemo(() => {
     const match = location.pathname.match(/^\/classrooms\/([^/]+)/);
     return match?.[1];
+  }, [location.pathname]);
+  const contestAdminContext = useMemo(() => {
+    const match = location.pathname.match(/^\/classrooms\/([^/]+)\/contest\/([^/]+)\/admin\/?$/);
+    if (!match) return null;
+    return { classroomId: match[1], contestId: match[2] };
   }, [location.pathname]);
 
   const bankId = useMemo(() => {
@@ -128,6 +162,31 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
   useEffect(() => {
     if (isOnClassroomRoute && !fetched) void fetchData();
   }, [isOnClassroomRoute, fetched, fetchData]);
+
+  useEffect(() => {
+    setContestForAdminNav(null);
+    setContestFetched(false);
+  }, [contestAdminContext?.contestId]);
+
+  useEffect(() => {
+    if (!contestAdminContext?.contestId || contestFetched) return;
+    let active = true;
+    const loadContest = async () => {
+      try {
+        const contest = await getContest(contestAdminContext.contestId);
+        if (!active) return;
+        setContestForAdminNav(contest ?? null);
+      } finally {
+        if (active) {
+          setContestFetched(true);
+        }
+      }
+    };
+    void loadContest();
+    return () => {
+      active = false;
+    };
+  }, [contestAdminContext?.contestId, contestFetched]);
 
   useEffect(() => {
     if (isPanelMode || !isOpen) return;
@@ -221,14 +280,39 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
     );
   }, [currentClassroom?.currentUserRole]);
 
-  const activePanel = useMemo(() => {
+  const classroomActivePanel = useMemo(() => {
     const p = new URLSearchParams(location.search).get("panel") || "overview";
     return p as ClassroomAdminPanelId;
   }, [location.search]);
+  const contestActivePanel = useMemo(() => {
+    const p = new URLSearchParams(location.search).get("panel") || "overview";
+    return p as AdminPanelId;
+  }, [location.search]);
+
+  const contestPanelNavItems = useMemo<ContestPanelNavItem[]>(() => {
+    if (!contestAdminContext) return [];
+    const module = getContestTypeModule(contestForAdminNav?.contestType);
+    const isExamMode = module.admin.editorKind === "paper_exam";
+    return module.admin.getAvailablePanels(contestForAdminNav).flatMap((panel) => {
+      if (panel === "settings") return [];
+      const meta = CONTEST_PANEL_META[panel];
+      if (!meta) return [];
+      const labelKey = isExamMode && meta.examLabelKey ? meta.examLabelKey : meta.labelKey;
+      return [{
+        panel,
+        label: tContest(`adminLayout.nav.${labelKey}`),
+        Icon: meta.Icon,
+      }];
+    });
+  }, [contestAdminContext, contestForAdminNav, tContest]);
 
   const goToPanel = useCallback((panel: string) => {
     navigate(`/classrooms/${classroomId}?panel=${panel}`);
   }, [navigate, classroomId]);
+  const goToContestPanel = useCallback((panel: AdminPanelId) => {
+    if (!contestAdminContext) return;
+    navigate(`/classrooms/${contestAdminContext.classroomId}/contest/${contestAdminContext.contestId}/admin?panel=${panel}`);
+  }, [navigate, contestAdminContext]);
 
   return (
     <>
@@ -329,31 +413,45 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
                 )}
               </div>
               <div className="side-menu__section">
-                {([
-                  { panel: "overview", label: tClassroom("sideMenu.overview", "概要"), Icon: Dashboard },
-                  { panel: "announcements", label: tClassroom("sideMenu.announcements", "教室公告"), Icon: Bullhorn },
-                  { panel: "contests", label: tClassroom("sideMenu.contests", "競賽列表"), Icon: Trophy },
-                  { panel: "members", label: tClassroom("sideMenu.members", "教室成員"), Icon: UserMultiple },
-                  ...(canOpenClassroomSettings
-                    ? ([
-                        {
-                          panel: "settings" as const,
-                          label: tClassroom("sideMenu.settings", "教室設定"),
-                          Icon: Settings,
-                        },
-                      ] as const)
-                    : []),
-                ] as { panel: ClassroomAdminPanelId; label: string; Icon: ComponentType<{ size?: number }> }[]).map(({ panel, label, Icon }) => (
-                  <button
-                    key={panel}
-                    type="button"
-                    className={`side-menu__link${activePanel === panel ? " side-menu__link--active" : ""}`}
-                    onClick={() => goToPanel(panel)}
-                  >
-                    <Icon size={16} />
-                    <span>{label}</span>
-                  </button>
-                ))}
+                {contestAdminContext ? (
+                  contestPanelNavItems.map(({ panel, label, Icon }) => (
+                    <button
+                      key={panel}
+                      type="button"
+                      className={`side-menu__link${contestActivePanel === panel ? " side-menu__link--active" : ""}`}
+                      onClick={() => goToContestPanel(panel)}
+                    >
+                      <Icon size={16} />
+                      <span>{label}</span>
+                    </button>
+                  ))
+                ) : (
+                  ([
+                    { panel: "overview", label: tClassroom("sideMenu.overview", "概要"), Icon: Dashboard },
+                    { panel: "announcements", label: tClassroom("sideMenu.announcements", "教室公告"), Icon: Bullhorn },
+                    { panel: "contests", label: tClassroom("sideMenu.contests", "競賽列表"), Icon: Trophy },
+                    { panel: "members", label: tClassroom("sideMenu.members", "教室成員"), Icon: UserMultiple },
+                    ...(canOpenClassroomSettings
+                      ? ([
+                          {
+                            panel: "settings" as const,
+                            label: tClassroom("sideMenu.settings", "教室設定"),
+                            Icon: Settings,
+                          },
+                        ] as const)
+                      : []),
+                  ] as { panel: ClassroomAdminPanelId; label: string; Icon: ComponentType<{ size?: number }> }[]).map(({ panel, label, Icon }) => (
+                    <button
+                      key={panel}
+                      type="button"
+                      className={`side-menu__link${classroomActivePanel === panel ? " side-menu__link--active" : ""}`}
+                      onClick={() => goToPanel(panel)}
+                    >
+                      <Icon size={16} />
+                      <span>{label}</span>
+                    </button>
+                  ))
+                )}
               </div>
             </>
           ) : (
