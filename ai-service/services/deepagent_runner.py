@@ -8,6 +8,7 @@ import logging
 import os
 import uuid
 from typing import Any, AsyncGenerator
+from collections.abc import Mapping
 
 import deepagents.graph as _deepagents_graph
 from deepagents import create_deep_agent
@@ -36,7 +37,11 @@ from models.schemas import RequestContext
 from services.artifact_tools import build_artifact_tools
 from services.hitl_middleware import ActionAwareHITLMiddleware
 from services.mcp_tool_provider import MCPToolProvider
-from services.model_factory import ModelFactory, _DEFAULT_MODEL_ID as _REPAIR_MODEL_ID
+from services.model_factory import (
+    ModelFactory,
+    SUMMARIZATION_TRIGGER_FRACTION,
+    _DEFAULT_MODEL_ID as _REPAIR_MODEL_ID,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -119,11 +124,94 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
     side-channel so callers can show/clear UI when compaction runs.
     """
 
+    _FALLBACK_TRIGGER_TOKENS = 170_000
+    _SAFE_TRIGGER_FRACTION = SUMMARIZATION_TRIGGER_FRACTION
+    _DEFAULT_SUMMARY_TRIM_TOKENS = 12_000
+
     def __init__(self, *args: Any, event_queue: asyncio.Queue | None = None, **kwargs: Any) -> None:
+        self._normalize_summarization_config(args=args, kwargs=kwargs)
         super().__init__(*args, **kwargs)
         self._event_queue: asyncio.Queue | None = (
             event_queue if event_queue is not None else _SUMMARIZATION_EVENT_QUEUE.get()
         )
+
+    @classmethod
+    def _extract_model_name(cls, model: Any) -> str:
+        for attr in ("model_name", "model", "name"):
+            value = getattr(model, attr, None)
+            if isinstance(value, str) and value.strip():
+                return value.strip().lower()
+        return ""
+
+    @classmethod
+    def _infer_model_max_input_tokens(cls, model: Any) -> int | None:
+        max_input_hint = getattr(model, "_qjudge_max_input_tokens", None)
+        if isinstance(max_input_hint, int) and max_input_hint > 0:
+            return max_input_hint
+
+        profile = getattr(model, "profile", None)
+        if isinstance(profile, Mapping):
+            max_input = profile.get("max_input_tokens")
+            if isinstance(max_input, int) and max_input > 0:
+                return max_input
+
+        # Some integrations expose profile as an object instead of dict.
+        max_input_obj = getattr(profile, "max_input_tokens", None)
+        if isinstance(max_input_obj, int) and max_input_obj > 0:
+            return max_input_obj
+
+        # Final fallback for OpenAI GPT-5 family.
+        model_name = cls._extract_model_name(model)
+        if model_name.startswith("gpt-5"):
+            return 400_000
+        return None
+
+    @classmethod
+    def _safe_trigger_from_max_tokens(cls, max_input_tokens: int) -> tuple[str, int]:
+        safe_trigger = int(max_input_tokens * cls._SAFE_TRIGGER_FRACTION)
+        if safe_trigger <= 0:
+            safe_trigger = 1
+        return ("tokens", safe_trigger)
+
+    @classmethod
+    def _normalize_summarization_config(cls, args: tuple[Any, ...], kwargs: dict[str, Any]) -> None:
+        model = kwargs.get("model")
+        if model is None and args:
+            model = args[0]
+
+        max_input_tokens = cls._infer_model_max_input_tokens(model)
+
+        trigger = kwargs.get("trigger")
+        # DeepAgents fallback trigger is 170k when model profile is missing.
+        # This can exceed model input limits and prevent
+        # summarization from firing before OpenAI returns 400.
+        if (
+            isinstance(trigger, tuple)
+            and len(trigger) == 2
+            and trigger[0] == "tokens"
+            and isinstance(trigger[1], (int, float))
+        ):
+            trigger_tokens = int(trigger[1])
+            if max_input_tokens is not None and (
+                trigger_tokens == cls._FALLBACK_TRIGGER_TOKENS or trigger_tokens >= max_input_tokens
+            ):
+                safe_trigger = cls._safe_trigger_from_max_tokens(max_input_tokens)
+                logger.warning(
+                    "SummarizationMiddleware trigger adjusted from %s to %s for model max_input_tokens=%d",
+                    trigger,
+                    safe_trigger,
+                    max_input_tokens,
+                )
+                kwargs["trigger"] = safe_trigger
+
+        # Avoid oversized summarization requests; without trimming, the
+        # summarization model call can fail before compaction is applied.
+        if kwargs.get("trim_tokens_to_summarize") is None:
+            model_trim_hint = getattr(model, "_qjudge_summarization_trim_tokens", None)
+            if isinstance(model_trim_hint, int) and model_trim_hint > 0:
+                kwargs["trim_tokens_to_summarize"] = model_trim_hint
+            else:
+                kwargs["trim_tokens_to_summarize"] = cls._DEFAULT_SUMMARY_TRIM_TOKENS
 
     def _partition_messages(
         self,

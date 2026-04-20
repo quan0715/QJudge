@@ -35,6 +35,48 @@ def test_summarization_middleware_is_patched():
     assert runner_mod._deepagents_graph.SummarizationMiddleware is runner_mod._SafeSummarizationMiddleware
 
 
+def test_safe_summarization_config_adjusts_unsafe_fallback_trigger_for_gpt5():
+    class _FakeModel:
+        model_name = "gpt-5-nano"
+        profile = None
+        _qjudge_max_input_tokens = 400000
+        _qjudge_summarization_trim_tokens = 12000
+
+    kwargs = {
+        "model": _FakeModel(),
+        "trigger": ("tokens", 170000),
+        "trim_tokens_to_summarize": None,
+    }
+
+    runner_mod._SafeSummarizationMiddleware._normalize_summarization_config(
+        args=(),
+        kwargs=kwargs,
+    )
+
+    assert kwargs["trigger"] == ("tokens", int(400000 * 0.85))
+    assert kwargs["trim_tokens_to_summarize"] == 12000
+
+
+def test_safe_summarization_config_keeps_custom_safe_trigger():
+    class _FakeModel:
+        model_name = "gpt-5-nano"
+        profile = {"max_input_tokens": 400000}
+
+    kwargs = {
+        "model": _FakeModel(),
+        "trigger": ("tokens", 90000),
+        "trim_tokens_to_summarize": 2000,
+    }
+
+    runner_mod._SafeSummarizationMiddleware._normalize_summarization_config(
+        args=(),
+        kwargs=kwargs,
+    )
+
+    assert kwargs["trigger"] == ("tokens", 90000)
+    assert kwargs["trim_tokens_to_summarize"] == 2000
+
+
 class _CaptureCreateDeepAgent:
     def __init__(self):
         self.kwargs = None
