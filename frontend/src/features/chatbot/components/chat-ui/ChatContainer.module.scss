@@ -58,6 +58,42 @@
   overflow: hidden;
 }
 
+.chatOnlyRow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.splitRow {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr minmax(320px, 45%);
+  gap: 0;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr minmax(280px, 40%);
+  }
+}
+
+.artifactSplit {
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--cds-border-subtle);
+}
+
+.bottomSheet {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 75%;
+  background-color: var(--cds-background);
+  border-top: 1px solid var(--cds-border-subtle);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
 .chatBody {
   flex: 1;
   min-height: 0;

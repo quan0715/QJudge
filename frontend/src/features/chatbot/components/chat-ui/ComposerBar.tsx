@@ -1,7 +1,8 @@
 import { useRef, useState, useCallback, useMemo, useEffect, useLayoutEffect } from "react";
 import { ArrowUp, Checkmark, ChevronDown, InProgress } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { ModelInfo } from "@/core/types/chatbot.types";
+import type { ChatMessage, ModelInfo } from "@/core/types/chatbot.types";
+import { SessionBadges, useSessionBadgeSummary } from "./SessionBadges";
 import styles from "./ComposerBar.module.scss";
 
 const TEXTAREA_MAX_HEIGHT = 160; // sync with $chat-textarea-max-height in _variables.scss
@@ -16,6 +17,8 @@ interface ComposerBarProps {
   disabled?: boolean;
   placeholder?: string;
   sessionNotice?: string | null;
+  /** Session-scoped messages to feed SessionBadges (todo/artifact). */
+  messages?: ChatMessage[];
 }
 
 export function ComposerBar({
@@ -28,13 +31,19 @@ export function ComposerBar({
   disabled = false,
   placeholder,
   sessionNotice,
+  messages,
 }: ComposerBarProps) {
   const { t } = useTranslation("chatbot");
   const displayPlaceholder = placeholder || t("ui.inputPlaceholder");
-  
+
   const [value, setValue] = useState("");
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  // Expanded layout: active when textarea wraps >= 2 visual lines OR the
+  // session has badges to show. New chats with a single-line draft and no
+  // badges stay in the compact pill layout.
+  const [isWrapped, setIsWrapped] = useState(false);
+  const badgeSummary = useSessionBadgeSummary(messages ?? []);
+  const isExpanded = isWrapped || badgeSummary.hasAny;
   const composingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
@@ -94,10 +103,10 @@ export function ComposerBar({
     ta.style.height = `${Math.min(ta.scrollHeight, TEXTAREA_MAX_HEIGHT)}px`;
   }, []);
 
-  // Single-line height when empty / one line; grows when content wraps.
-  // Mode evaluation is one-way: enter expanded once content wraps, and only
-  // return to compact when the input is fully cleared. This prevents the
-  // compact↔expanded flicker caused by textarea width changing across modes.
+  // Auto-grow the textarea + detect wrap-to-multiline.
+  // One-way: enter wrapped state once content spans > 1.5 lines; exit only
+  // when value is fully cleared. Prevents width-change flicker when switching
+  // between compact and expanded layouts.
   useLayoutEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -106,19 +115,19 @@ export function ComposerBar({
     ta.style.height = `${next}px`;
 
     if (value.length === 0) {
-      if (isExpanded) setIsExpanded(false);
+      if (isWrapped) setIsWrapped(false);
       return;
     }
-    if (isExpanded) return;
+    if (isWrapped) return;
 
     const cs = window.getComputedStyle(ta);
     const lineHeight = parseFloat(cs.lineHeight) || 22;
     const paddingY =
       (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
     if (next - paddingY > lineHeight * 1.5) {
-      setIsExpanded(true);
+      setIsWrapped(true);
     }
-  }, [value, isExpanded]);
+  }, [value, isWrapped]);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -167,6 +176,13 @@ export function ComposerBar({
         />
 
         <div className={styles.toolbar}>
+          {isExpanded && (
+            <div className={styles.leftTools}>
+              {badgeSummary.hasAny && messages && (
+                <SessionBadges messages={messages} inline />
+              )}
+            </div>
+          )}
           <div className={styles.rightTools}>
             <div className={styles.modelSelectWrap} ref={modelMenuRef}>
               {isStreaming && <span className={styles.streamDot} aria-hidden />}

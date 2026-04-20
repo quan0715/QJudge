@@ -1,0 +1,75 @@
+.card {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background-color: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background-color: var(--cds-layer-hover);
+    border-color: var(--cds-border-strong);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.active {
+  border-color: var(--cds-interactive);
+  box-shadow: 0 0 0 1px var(--cds-interactive) inset;
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--cds-icon-primary);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.filename {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+.stepTag {
+  margin: 0;
+}
+
+.size {
+  font-variant-numeric: tabular-nums;
+}
+
+.arrow {
+  flex-shrink: 0;
+  color: var(--cds-icon-secondary);
+}
+
+.text {
+  font-size: 0.8125rem;
+  color: var(--cds-text-secondary);
+}

@@ -1,0 +1,69 @@
+.state {
+  padding: 1rem;
+  color: var(--cds-text-secondary);
+}
+
+.error {
+  padding: 1rem;
+  color: var(--cds-support-error);
+  font-size: 0.875rem;
+}
+
+.code {
+  margin: 0;
+  padding: 1rem;
+  white-space: pre;
+  overflow: auto;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  background-color: var(--cds-layer);
+  color: var(--cds-text-primary);
+  height: 100%;
+}
+
+.tableWrapper {
+  overflow: auto;
+  max-height: 100%;
+  height: 100%;
+}
+
+// Carbon DataTable handles styling; we only need the wrapper to scroll.
+
+.markdownWrapper {
+  padding: 1rem;
+  overflow: auto;
+  height: 100%;
+
+  :global(.markdown-body) {
+    :global(.cds--data-table-container),
+    :global(.cds--data-table__table-container) {
+      overflow-x: auto;
+    }
+
+    // 表頭不要一字一行（窄 panel 下尤其嚴重）
+    :global(.cds--table-header-label),
+    :global(.cds--data-table thead th) {
+      white-space: nowrap;
+    }
+
+    // 多行內容對齊上緣，避免短欄位為了配合長理由欄留大片空白
+    :global(.cds--data-table tbody td) {
+      vertical-align: top;
+      word-break: break-word;
+    }
+
+    // 長文字欄位限 3 行，hover 可看完整內容
+    :global(.cds--data-table tbody td) {
+      max-width: 32ch;
+
+      > p,
+      > span {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    }
+  }
+}

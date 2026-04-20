@@ -32,10 +32,10 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
     copy(message.content);
   }, [copy, message.content]);
 
+  // Todo list has moved to SessionBadges (above the composer), so CoT is
+  // only rendered when the message has actual tool-call transparency data.
   const hasCoT =
-    !isUser &&
-    ((message.toolExecutions && message.toolExecutions.length > 0) ||
-      (message.todoItems && message.todoItems.length > 0));
+    !isUser && !!message.toolExecutions && message.toolExecutions.length > 0;
 
   return (
     <div className={`${styles.bubble} ${isUser ? styles.user : styles.ai}`}>
