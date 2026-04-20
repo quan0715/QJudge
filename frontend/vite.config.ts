@@ -82,6 +82,22 @@ export default defineConfig(({ mode }) => {
         'import.meta.env.VITE_RECUR_PUBLISHABLE_KEY': JSON.stringify(recurPublishableKey),
       }),
     },
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          'mcp-classroom-list': path.resolve(__dirname, 'src/mcp-widgets/ClassroomListWidget.tsx'),
+        },
+        output: {
+          entryFileNames: (assetInfo) => {
+            if (assetInfo.name === 'mcp-classroom-list') {
+              return 'mcp-widgets/mcp-classroom-list.js';
+            }
+            return 'assets/[name]-[hash].js';
+          }
+        }
+      }
+    },
     server: {
       host: true, // Listen on all addresses
       allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0', 'q-judge.quan.wtf', 'q-judge-dev.quan.wtf'],
