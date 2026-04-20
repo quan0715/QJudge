@@ -8,6 +8,7 @@
   overflow: hidden;
 }
 
+// ── Left panel (desktop docked) ──
 .leftPanel {
   flex-shrink: 0;
   width: 18rem;
@@ -15,10 +16,6 @@
   overflow: hidden;
   border-right: 1px solid var(--cds-border-subtle-01, #e0e0e0);
   transition: width $chat-motion-duration $chat-motion-easing;
-
-  @media (max-width: $chat-mobile-breakpoint) {
-    display: none;
-  }
 }
 
 .leftPanelCollapsed {
@@ -26,7 +23,7 @@
   border-right: none;
 }
 
-// 主欄：可選頂列 header（展開側欄）+ 頁面內容，避免用 absolute 疊在子頁面上
+// ── Main column (children) ──
 .mainColumn {
   flex: 1;
   display: flex;
@@ -34,36 +31,6 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-}
-
-// Reserve space when workspaceHeader is fixed on mobile (see WorkspaceShell.tsx)
-.mainColumnWithFixedHeader {
-  @media (max-width: $chat-mobile-breakpoint) {
-    padding-top: 3rem;
-  }
-}
-
-.workspaceHeader {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  min-height: 3rem;
-  padding: 0 0.5rem;
-  border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
-  background: var(--cds-layer-01, #f4f4f4);
-
-  @media (max-width: $chat-mobile-breakpoint) {
-    // 浮在內容之上，關閉聊天 / 展開側欄；需高於 bottom-sheet overlay (8500)
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 9000;
-  }
-}
-
-:global([data-carbon-theme="g100"]) .workspaceHeader {
-  background: var(--cds-background, #161616);
 }
 
 .content {
@@ -74,6 +41,7 @@
   overflow: hidden;
 }
 
+// ── Right panel (desktop docked chat) ──
 .panel {
   flex-shrink: 0;
   width: 0;
@@ -120,14 +88,108 @@
   overflow: hidden;
 }
 
-// Hide panel on mobile — use /chat full page instead
-@media (max-width: $chat-mobile-breakpoint) {
-  .panel {
-    display: none;
-  }
+// ── Mobile: left drawer overlay (portal) ──
+// Covers the entire viewport. AppSidebar inside the drawer provides its own
+// close control (SidePanelClose) — no need for a toolbar-level close button.
+.mobileLeftOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: stretch;
 }
 
-// FAB — fixed bottom-right
+.mobileLeftPanel {
+  width: 18rem;
+  max-width: 85vw;
+  height: 100%;
+  background: var(--cds-layer);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideInLeft 200ms cubic-bezier(0.2, 0, 0.38, 0.9);
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+.mobileLeftBackdrop {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
+}
+
+// ── Mobile: right chat bottom sheet (portal) ──
+.mobileRightOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8500;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.mobileRightBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
+}
+
+.mobileRightSheet {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 88dvh;
+  background: var(--cds-layer);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: slideUp 250ms cubic-bezier(0.2, 0, 0.38, 0.9);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.mobileRightSheetHandle {
+  flex-shrink: 0;
+  width: 40px;
+  height: 4px;
+  background: var(--cds-border-subtle-01, #e0e0e0);
+  border-radius: 2px;
+  margin: 0.625rem auto 0;
+}
+
+.mobileRightSheetContent {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+// ── Hide desktop-docked panels on mobile (overlay versions take over) ──
+@media (max-width: $chat-mobile-breakpoint) {
+  .leftPanel { display: none; }
+  .panel { display: none; }
+}
+
+// ── FAB (open chat) ──
 .fab {
   position: fixed;
   bottom: 1.25rem;

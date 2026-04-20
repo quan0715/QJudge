@@ -561,6 +561,15 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   // Sync to URL-provided session ID after initialization completes
   useEffect(() => {
     if (!externalSessionId || isInitializing) return;
+    // Ignore stale temp session IDs from URL once we've already switched
+    // to a persisted backend session ID in memory.
+    if (
+      externalSessionId.startsWith("temp-")
+      && currentSessionId
+      && !currentSessionId.startsWith("temp-")
+    ) {
+      return;
+    }
     if (currentSessionId !== externalSessionId) {
       void switchSession(externalSessionId);
     }
@@ -737,6 +746,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
             ),
           );
           setCurrentSessionId(newSessionData.id);
+          onSessionChange?.(newSessionData.id);
         } catch (err) {
           console.error("Failed to create backend session:", err);
           setError(i18n.t("chatbot:errors.createBackendSessionFailed"));
@@ -797,7 +807,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setSessionNotice(null);
       }
     },
-    [currentSessionId, effectiveContext, selectedModelIdState, setCurrentSessionId],
+    [currentSessionId, effectiveContext, onSessionChange, selectedModelIdState, setCurrentSessionId],
   );
 
 

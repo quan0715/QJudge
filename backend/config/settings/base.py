@@ -218,6 +218,8 @@ OAUTH2_PROVIDER = {
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 # OAuth issuer defaults to FRONTEND_URL (same domain in production)
 OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", FRONTEND_URL)
+# MCP server public URL (served at /mcp via streamable-http transport)
+MCP_PUBLIC_URL = os.environ.get("MCP_PUBLIC_URL", "http://localhost:9000")
 
 # Spectacular settings
 SPECTACULAR_SETTINGS = {

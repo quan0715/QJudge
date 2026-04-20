@@ -8,11 +8,13 @@ from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework.permissions import IsAdminUser
 from apps.core.views.health import health_check
+from apps.core.views.landing_markdown import LandingMarkdownView
 schema_view_kwargs = {}
 if not settings.DEBUG:
     schema_view_kwargs = {"permission_classes": [IsAdminUser]}
 
 urlpatterns = [
+    path('', LandingMarkdownView.as_view(), name='landing-markdown'),
     path('api/health/', health_check, name='health-check'),
     path('django-admin/', admin.site.urls),  # Django backend admin (use only when frontend cannot handle it)
     path('', include('apps.oauth.urls')),  # Custom OAuth views (must be before oauth2_provider)

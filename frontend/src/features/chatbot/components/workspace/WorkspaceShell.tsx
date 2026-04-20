@@ -1,27 +1,18 @@
-import { useRef, useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import { IconButton } from "@carbon/react";
-import { Close, OpenPanelLeft } from "@carbon/icons-react";
-import { useTranslation } from "react-i18next";
-import { useWorkspace } from "../../hooks/useWorkspace";
+import { OpenPanelLeft } from "@carbon/icons-react";
+import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
+import { AppSidebar } from "@/features/app/components/AppSidebar";
+import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
+import {
+  WorkspaceToolbarSlotProvider,
+  usePageToolbarMounted,
+} from "@/features/app/contexts/WorkspaceToolbarSlot";
 import { ChatContainer } from "../chat-ui/ChatContainer";
+import toolbarStyles from "@/features/app/components/WorkspaceToolBar.module.scss";
 import styles from "./WorkspaceShell.module.scss";
-
-const MOBILE_BREAKPOINT_PX = 768;
-
-function useIsMobileWorkspace(): boolean {
-  const [m, setM] = useState(() =>
-    typeof window !== "undefined" &&
-    window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`);
-    const apply = () => setM(mq.matches);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
-  return m;
-}
 
 const MIN_PANEL_WIDTH = 320;
 const MAX_PANEL_WIDTH = 700;
@@ -39,55 +30,70 @@ function getSavedWidth(): number {
   return DEFAULT_PANEL_WIDTH;
 }
 
+/** Portal mount target for overlays. Returns null if document is unavailable (SSR). */
+function getPortalRoot(): Element | null {
+  if (typeof document === "undefined") return null;
+  return document.getElementById("modal-portal-root") ?? document.body;
+}
+
 interface WorkspaceShellProps {
-  /** Main workspace area. */
   children: React.ReactNode;
-  /** Persistent left panel (e.g. AppSidebar). */
-  leftPanel?: React.ReactNode;
-  /** When true, left panel is hidden (width: 0). */
-  leftPanelCollapsed?: boolean;
-  /** Callback to expand the left panel (shown in the shell header when the rail is collapsed). */
-  onExpandLeftPanel?: () => void;
   /**
-   * When true, the right chat panel is suppressed entirely (hidden + no resize handle).
-   * Use on pages that already embed chat (e.g. /chat full-page).
+   * 當外層已經有自己的 sidebar（例如 AdminShellLayout），傳 true 關閉內建 AppSidebar
+   * 與左側 drawer，只保留右側 chat 面板行為。
    */
-  disableRightPanel?: boolean;
-  /**
-   * When true, do not render the shell workspace header expand control (e.g. /chat puts
-   * “展開側欄” on ChatTopBar instead).
-   */
-  hideWorkspaceExpandHeader?: boolean;
+  omitAppSidebar?: boolean;
 }
 
 /**
- * Two-column shell: main content + optional chat panel.
+ * App-wide 3-panel shell：
  *
- * **Chat open state for descendants**
- * - Any child may call `useWorkspace()` and read `isOpen` / `toggleChat` / etc.
- * - The main content wrapper also sets `data-chatbot-sidebar-open` for CSS or
- *   non-React consumers (`[data-chatbot-sidebar-open="true"]`).
+ * - 桌面：左 AppSidebar + 中（children）+ 右 ChatContainer
+ * - 行動：中（children）為主；左以 portal drawer、右以 portal bottom-sheet 呈現
+ *
+ * Toolbar 策略（slot-based）：
+ * - 頁面在 main content 內 render `<WorkspaceToolBar>` → Shell 不另外補
+ * - 頁面沒 render，且 left panel 關閉（或處於 mobile）→ Shell 補一個 minimal
+ *   fallback（只有展開/關閉按鈕），確保使用者永遠能開啟 sidebar
+ * - 頁面沒 render，且 left panel 在 desktop 已展開 → 不顯示任何 toolbar
+ *
+ * 行為由 `useWorkspace()` 管理；頁面可呼叫 `useDisablePanel('right')` 等 hook
+ * 宣告式禁用面板（例如 `/chat` 主畫面、競賽進行中）。
  */
-export function WorkspaceShell({
-  children,
-  leftPanel,
-  leftPanelCollapsed = false,
-  onExpandLeftPanel,
-  disableRightPanel = false,
-  hideWorkspaceExpandHeader = false,
-}: WorkspaceShellProps) {
-  const { t } = useTranslation("chatbot");
-  const isMobile = useIsMobileWorkspace();
-  const { isOpen, closeChat } = useWorkspace();
-  const chatActive = isOpen && !disableRightPanel;
-  /** Desktop: docked right panel; mobile: chat uses AIWorkspaceProvider bottom sheet instead. */
-  const dockChatInShell = chatActive && !isMobile;
-  const showWorkspaceHeader =
-    !hideWorkspaceExpandHeader &&
-    onExpandLeftPanel &&
-    (leftPanelCollapsed || isMobile);
+export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceShellProps) {
+  const { isMobile, left, right } = useWorkspace();
+
+  const leftEnabled = !omitAppSidebar;
+  const dockLeft = leftEnabled && !isMobile;
+  const showLeftMobileOverlay = leftEnabled && isMobile && left.isOpen;
+  const dockRight = !isMobile && right.isOpen;
+  const showRightMobileSheet = isMobile && right.isOpen;
+  const showFab = right.isAllowed && !right.isOpen && !right.isDisabled;
+
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
+
+  // Auto-close the mobile drawer on navigation — otherwise the drawer's
+  // global open state persists and covers the newly-loaded page.
+  const location = useLocation();
+  const prevPathname = useRef(location.pathname);
+  useEffect(() => {
+    if (prevPathname.current === location.pathname) return;
+    prevPathname.current = location.pathname;
+    if (isMobile && left.isOpen) left.close();
+  }, [location.pathname, isMobile, left]);
+
+  // Close overlays with Escape key for keyboard users.
+  useEffect(() => {
+    if (!showLeftMobileOverlay && !showRightMobileSheet) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (showRightMobileSheet) right.close();
+      else if (showLeftMobileOverlay) left.close();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showLeftMobileOverlay, showRightMobileSheet, left, right]);
 
   const startResize = useCallback(() => {
     dragging.current = true;
@@ -139,59 +145,30 @@ export function WorkspaceShell({
     startResize();
   }, [startResize]);
 
+  const portalRoot = getPortalRoot();
+
   return (
     <div className={styles.shell}>
-      {leftPanel && (
-        <aside
-          className={`${styles.leftPanel} ${leftPanelCollapsed ? styles.leftPanelCollapsed : ""}`}
-        >
-          {leftPanel}
+      {dockLeft && (
+        <aside className={`${styles.leftPanel} ${left.isOpen ? "" : styles.leftPanelCollapsed}`}>
+          <AppSidebar collapsed={!left.isOpen} onToggleCollapse={left.toggle} />
         </aside>
       )}
-      <div
-        className={[
-          styles.mainColumn,
-          showWorkspaceHeader && isMobile ? styles.mainColumnWithFixedHeader : "",
-        ].filter(Boolean).join(" ")}
-      >
-        {showWorkspaceHeader && (
-          <header className={styles.workspaceHeader} aria-label="側欄控制">
-            {isMobile && chatActive ? (
-              <IconButton
-                kind="ghost"
-                size="md"
-                align="bottom"
-                label={t("ui.closeChat", "關閉聊天")}
-                onClick={closeChat}
-              >
-                <Close size={20} />
-              </IconButton>
-            ) : (
-              <IconButton
-                kind="ghost"
-                size="md"
-                align="bottom"
-                label={t("ui.expandSidebar", "展開側欄")}
-                onClick={onExpandLeftPanel}
-              >
-                <OpenPanelLeft size={20} />
-              </IconButton>
-            )}
-          </header>
-        )}
-        <div
-          className={styles.content}
-          data-chatbot-sidebar-open={chatActive ? "true" : "false"}
-        >
-          {children}
-        </div>
+
+      <div className={styles.mainColumn}>
+        <WorkspaceToolbarSlotProvider>
+          <MainColumnBody leftEnabled={leftEnabled} chatOpen={right.isOpen}>
+            {children}
+          </MainColumnBody>
+        </WorkspaceToolbarSlotProvider>
       </div>
+
       <aside
         ref={panelRef}
-        className={`${styles.panel} ${dockChatInShell ? styles.panelOpen : ""}`}
-        style={dockChatInShell ? { width: getSavedWidth() } : undefined}
+        className={`${styles.panel} ${dockRight ? styles.panelOpen : ""}`}
+        style={dockRight ? { width: getSavedWidth() } : undefined}
       >
-        {dockChatInShell && (
+        {dockRight && (
           <>
             <div
               className={styles.resizeHandle}
@@ -203,14 +180,124 @@ export function WorkspaceShell({
               tabIndex={0}
             />
             <div className={styles.panelContent}>
-              <ChatContainer
-                mode="sidebar"
-                onClose={closeChat}
-              />
+              <ChatContainer mode="sidebar" onClose={right.close} />
             </div>
           </>
         )}
       </aside>
+
+      {portalRoot && showLeftMobileOverlay && createPortal(
+        <div
+          className={styles.mobileLeftOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="App sidebar"
+        >
+          <div className={styles.mobileLeftPanel}>
+            <AppSidebar collapsed={false} onToggleCollapse={left.close} />
+          </div>
+          <button
+            type="button"
+            className={styles.mobileLeftBackdrop}
+            onClick={left.close}
+            aria-label="Close sidebar"
+          />
+        </div>,
+        portalRoot,
+      )}
+
+      {portalRoot && showRightMobileSheet && createPortal(
+        <div
+          className={styles.mobileRightOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Chat"
+        >
+          <button
+            type="button"
+            className={styles.mobileRightBackdrop}
+            onClick={right.close}
+            aria-label="Close chat"
+          />
+          <div className={styles.mobileRightSheet}>
+            <div className={styles.mobileRightSheetHandle} />
+            <div className={styles.mobileRightSheetContent}>
+              <ChatContainer mode="sidebar" onClose={right.close} />
+            </div>
+          </div>
+        </div>,
+        portalRoot,
+      )}
+
+      {portalRoot && showFab && createPortal(
+        <button
+          type="button"
+          className={styles.fab}
+          onClick={right.open}
+          aria-label="開啟 AI 助教"
+        >
+          <AiLaunch size={20} />
+        </button>,
+        portalRoot,
+      )}
+    </div>
+  );
+}
+
+/**
+ * Main column 的子樹：在 SlotProvider 內偵測頁面是否有自己的 WorkspaceToolBar，
+ * 若無且 left panel 不可見時補一個 minimal fallback。
+ */
+function MainColumnBody({
+  children,
+  leftEnabled,
+  chatOpen,
+}: {
+  children: React.ReactNode;
+  leftEnabled: boolean;
+  chatOpen: boolean;
+}) {
+  const pageHasToolbar = usePageToolbarMounted();
+  const { left } = useWorkspace();
+
+  // Fallback chrome：頁面沒自行 render toolbar 且 left panel 關閉時出現。
+  // mobile drawer 開啟時不需要，因為 drawer 覆蓋整個 viewport，AppSidebar
+  // 自己已經帶有關閉按鈕。
+  const needsFallback = leftEnabled && !pageHasToolbar && !left.isOpen;
+
+  return (
+    <>
+      {needsFallback && <ShellFallbackToolbar />}
+      <div
+        className={styles.content}
+        data-chatbot-sidebar-open={chatOpen ? "true" : "false"}
+      >
+        {children}
+      </div>
+    </>
+  );
+}
+
+/**
+ * Shell 自己的 fallback chrome — 只有展開按鈕（關閉由 drawer 內部的 AppSidebar
+ * 自行提供）。使用 WorkspaceToolBar 的 CSS class 保持視覺一致，但不掛 slot
+ * 註冊（避免 Shell 的 fallback 反而讓 pageHasToolbar=true）。
+ */
+function ShellFallbackToolbar() {
+  const { left } = useWorkspace();
+  return (
+    <div className={toolbarStyles.root}>
+      <div className={toolbarStyles.leading}>
+        <IconButton
+          kind="ghost"
+          size="md"
+          align="bottom"
+          label="Expand sidebar"
+          onClick={left.open}
+        >
+          <OpenPanelLeft size={20} />
+        </IconButton>
+      </div>
     </div>
   );
 }

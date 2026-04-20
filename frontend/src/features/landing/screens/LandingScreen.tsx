@@ -58,7 +58,7 @@ const LandingScreen = () => {
     "name": "QJudge",
     "applicationCategory": "EducationalApplication",
     "operatingSystem": "Web",
-    "url": "https://qjudge.app/",
+    "url": "https://q-judge.com/",
     "description": t("seo.description"),
     "offers": {
       "@type": "Offer",
@@ -71,7 +71,7 @@ const LandingScreen = () => {
     ],
     "publisher": {
       "@type": "Organization",
-      "@id": "https://qjudge.app/#organization",
+      "@id": "https://q-judge.com/#organization",
       "name": "QJudge",
     },
   };
@@ -104,14 +104,14 @@ const LandingScreen = () => {
         <title>{t("seo.title")}</title>
         <meta name="description" content={t("seo.description")} />
         <meta name="keywords" content={t("seo.keywords")} />
-        <link rel="canonical" href="https://qjudge.app/" />
+        <link rel="canonical" href="https://q-judge.com/" />
         {/* Open Graph */}
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://qjudge.app/" />
+        <meta property="og:url" content="https://q-judge.com/" />
         <meta property="og:site_name" content="QJudge" />
         <meta property="og:title" content={t("seo.ogTitle")} />
         <meta property="og:description" content={t("seo.ogDescription")} />
-        <meta property="og:image" content="https://qjudge.app/og-image.png" />
+        <meta property="og:image" content="https://q-judge.com/og-image.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:locale" content={ogLocale} />
@@ -119,7 +119,7 @@ const LandingScreen = () => {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={t("seo.ogTitle")} />
         <meta name="twitter:description" content={t("seo.ogDescription")} />
-        <meta name="twitter:image" content="https://qjudge.app/og-image.png" />
+        <meta name="twitter:image" content="https://q-judge.com/og-image.png" />
         {/* JSON-LD */}
         <script type="application/ld+json">{JSON.stringify(softwareJsonLd)}</script>
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>

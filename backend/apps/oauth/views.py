@@ -42,6 +42,31 @@ def oauth_authorization_server_metadata(request):
     )
 
 
+@require_GET
+def mcp_server_card(request):
+    """SEP-1649 — MCP Server Card for agent discovery."""
+    mcp_url = settings.MCP_PUBLIC_URL.rstrip("/")
+    return JsonResponse(
+        {
+            "serverInfo": {
+                "name": "QJudge MCP Server",
+                "version": "0.1.0",
+            },
+            "transport": {
+                "type": "streamable-http",
+                "endpoint": f"{mcp_url}/mcp",
+            },
+            "capabilities": {
+                "tools": {
+                    "listChanged": False,
+                },
+                "resources": {},
+                "prompts": {},
+            },
+        }
+    )
+
+
 def _generate_client_id(length=32):
     alphabet = string.ascii_letters + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(length))

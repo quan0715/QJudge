@@ -604,6 +604,56 @@ mcp = FastMCP(
     token_verifier=DjangoTokenVerifier(),
 )
 
+import os
+
+CLASSROOM_LIST_TEMPLATE_URI = "ui://widget/classroom-list.html"
+
+@mcp.resource(CLASSROOM_LIST_TEMPLATE_URI)
+def serve_classroom_list_widget() -> str:
+    widget_js_path = os.path.join(
+        os.path.dirname(__file__), 
+        "../frontend/dist/mcp-widgets/mcp-classroom-list.js"
+    )
+    
+    try:
+        with open(widget_js_path, "r", encoding="utf-8") as f:
+            js_code = f.read()
+    except FileNotFoundError:
+        js_code = "document.body.innerHTML = '<h1>UI bundle not found. Please run npm run build in frontend.</h1>';"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="zh-Hant">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body>
+        <div id="root"></div>
+        <script type="module">{{js_code}}</script>
+      </body>
+    </html>
+    """
+    
+    return html_content
+
+@mcp.tool()
+def render_classroom_list(classrooms: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Render a visually appealing classroom list UI.
+    MUST be called AFTER calling `qjudge_browse` (action="list_classrooms") to fetch the classrooms data.
+    """
+    return {
+        "content": [{"type": "text", "text": "正在為您顯示教室列表面板..."}],
+        "structuredContent": {
+            "classrooms": classrooms
+        },
+        "_meta": {
+            "ui": { "resourceUri": CLASSROOM_LIST_TEMPLATE_URI },
+            "openai/outputTemplate": CLASSROOM_LIST_TEMPLATE_URI
+        }
+    }
+
 
 # ---------------------------------------------------------------------------
 # Tool 1: qjudge_browse — 唯讀查詢教室、競賽、題庫

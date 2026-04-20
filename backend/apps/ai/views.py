@@ -195,7 +195,16 @@ class AISessionViewSet(viewsets.ModelViewSet):
     def credit(self, request):
         """GET /api/v1/ai/sessions/credit/ — return current user's AI usage."""
         from .models import UserAICredit
-        credit_obj, _ = UserAICredit.objects.get_or_create(user=request.user)
+        credit_obj, _ = UserAICredit.objects.get_or_create(
+            user=request.user,
+            defaults={
+                "total_input_tokens": 0,
+                "total_output_tokens": 0,
+                "total_requests": 0,
+                "total_cost_cents": 0,
+                "total_credits": 0,
+            },
+        )
         return Response({
             "total_credits": credit_obj.total_credits,
             "total_input_tokens": credit_obj.total_input_tokens,

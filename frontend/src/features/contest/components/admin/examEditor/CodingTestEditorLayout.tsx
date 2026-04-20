@@ -94,7 +94,8 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   const { refreshContest, loading: contestLoading } = useContest();
   const listSave = useToolbarSaveStatus();
   const effectiveClassroomId = classroomId || contest.boundClassroomId || undefined;
-  const { isOpen: workspaceChatOpen } = useWorkspace();
+  const { right } = useWorkspace();
+  const workspaceChatOpen = right.isOpen;
   /** When AI chat sidebar is open, default both side panels collapsed to save horizontal space. */
   const defaultSidePanelsExpanded = !workspaceChatOpen;
 

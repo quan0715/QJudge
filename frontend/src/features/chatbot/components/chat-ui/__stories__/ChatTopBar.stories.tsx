@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { AppSidebarProvider } from "@/features/app/contexts/AppSidebarContext";
 import { ChatTopBar } from "../ChatTopBar";
 import { mockSessions } from "./chat-ui.mocks";
 
@@ -10,17 +9,15 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "以 WorkspaceToolBar 為基底 — full-page（session dropdown + actions + 展開 app 側欄）、sidebar（歷史 + 純标题 + actions）。",
+          "以 WorkspaceToolBar 為基底 — full-page（session dropdown + actions）、sidebar（歷史 + 純标题 + actions）。展開側欄的按鈕已移至 WorkspaceShell 內建 chrome，不再由 ChatTopBar 提供。",
       },
     },
   },
   decorators: [
     (Story) => (
-      <AppSidebarProvider>
-        <div style={{ maxWidth: 900 }}>
-          <Story />
-        </div>
-      </AppSidebarProvider>
+      <div style={{ maxWidth: 900 }}>
+        <Story />
+      </div>
     ),
   ],
 };

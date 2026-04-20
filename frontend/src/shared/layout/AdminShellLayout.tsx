@@ -101,7 +101,7 @@ const AdminShellLayout = ({
 
       <main className={styles.content}>
         {enableAI ? (
-          <WorkspaceShell>
+          <WorkspaceShell omitAppSidebar>
             <div className={`${styles.contentViewport}${contentClassName ? ` ${contentClassName}` : ""}`}>
               {children}
             </div>
