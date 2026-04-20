@@ -9,7 +9,7 @@ from django.test import TestCase, TransactionTestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.ai.models import AIChatRun, AIMessage, AISession, AIStreamEvent
+from apps.ai.models import AIChatRun, AIMessage, AISession, AIStreamEvent, UserAICredit
 from apps.ai.services.run_runtime import execute_run, run_events_as_sse
 
 User = get_user_model()
@@ -278,10 +278,12 @@ class DurableRunWorkerTestCase(TestCase):
 
         run.refresh_from_db()
         assistant_message.refresh_from_db()
+        credit = UserAICredit.objects.get(user=self.user)
         self.assertEqual(run.status, AIChatRun.Status.COMPLETED)
         self.assertEqual(assistant_message.content, "Hello")
         self.assertEqual(assistant_message.metadata["thinking"], "think")
         self.assertEqual(run.events.count(), 5)
+        self.assertGreaterEqual(credit.total_credits, 1)
 
     def test_execute_run_dispatches_next_queued_run_after_terminal_event(self):
         user_message = AIMessage.objects.create(

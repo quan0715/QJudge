@@ -135,6 +135,36 @@ const hiddenTodoToolNames = new WeakMap<object, string>();
 const formattedToolNames = new Map<string, string>();
 const pendingToolInputs = new Map<string, Record<string, unknown>>();
 
+function isActiveRunStatus(status: ChatMessage["runStatus"] | undefined): boolean {
+  return status === "queued" || status === "running";
+}
+
+function applyRunStatusToCurrentMessage(
+  event: V2StreamEvent,
+  currentMessage: Partial<ChatMessage>,
+): void {
+  const runStatus = event.run_status as ChatMessage["runStatus"] | undefined;
+  if (runStatus) {
+    currentMessage.runStatus = runStatus;
+    currentMessage.isThinking = isActiveRunStatus(runStatus);
+    return;
+  }
+
+  if (event.type === "run_started") {
+    currentMessage.isThinking = true;
+    return;
+  }
+
+  if (
+    event.type === "run_completed"
+    || event.type === "run_failed"
+    || event.type === "run_cancelled"
+    || event.type === "awaiting_approval"
+  ) {
+    currentMessage.isThinking = false;
+  }
+}
+
 function isTodoToolName(toolName: string | undefined): boolean {
   return !!toolName && TODO_TOOL_NAMES.has(toolName);
 }
@@ -643,9 +673,7 @@ const chatbotRepository: ChatbotRepository = {
     if (typeof event.seq === "number") {
       currentMessage.lastEventSeq = event.seq;
     }
-    if (event.run_status) {
-      currentMessage.runStatus = event.run_status as ChatMessage["runStatus"];
-    }
+    applyRunStatusToCurrentMessage(event, currentMessage);
 
     const todoItems = extractTodoItemsFromEvent(event);
     if (todoItems) {
@@ -692,7 +720,6 @@ const chatbotRepository: ChatbotRepository = {
             currentMessage.todoItems = commandResult.todoItems;
             callbacks.onTodoItemsUpdate?.(commandResult.todoItems);
           }
-          currentMessage.isThinking = false;
           const messageUpdate = { ...currentMessage } as Partial<ChatMessage> & {
             rawAgentContent?: string;
           };
@@ -708,7 +735,6 @@ const chatbotRepository: ChatbotRepository = {
             thinking: prevThinking + event.content,
             signature: "",
           };
-          currentMessage.isThinking = true;
           callbacks.onMessageUpdate?.({ ...currentMessage });
         }
         break;
@@ -733,7 +759,6 @@ const chatbotRepository: ChatbotRepository = {
         if (event.tool_name) {
           if (isTodoToolName(event.tool_name)) {
             hiddenTodoToolNames.set(currentMessage, event.tool_name);
-            currentMessage.isThinking = false;
             break;
           }
 
@@ -746,7 +771,6 @@ const chatbotRepository: ChatbotRepository = {
           }
 
           currentMessage.toolName = displayToolName;
-          currentMessage.isThinking = false;
           callbacks.onMessageUpdate?.({ ...currentMessage });
         }
         break;
@@ -769,7 +793,6 @@ const chatbotRepository: ChatbotRepository = {
         if (isTodoToolName(originalToolName) || isTodoToolName(toolName) || isTodoToolName(hiddenTodoToolName)) {
           hiddenTodoToolNames.delete(currentMessage);
           currentMessage.toolName = undefined;
-          currentMessage.isThinking = false;
           break;
         }
 

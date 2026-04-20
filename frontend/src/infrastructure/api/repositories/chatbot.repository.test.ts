@@ -92,6 +92,67 @@ describe("chatbotRepository stream events", () => {
     expect(onAwaitingApproval).toHaveBeenCalled();
   });
 
+  it("keeps thinking dots visible while run_status is running even after message deltas", () => {
+    const onMessageUpdate = vi.fn();
+    const currentMessage: Record<string, unknown> = { isThinking: true };
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string; content?: string; run_status?: string },
+        currentMessage: Record<string, unknown>,
+        callbacks: { onMessageUpdate?: (message: Record<string, unknown>) => void },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "agent_message_delta",
+        content: "這是一段尚未完成的回覆",
+        run_status: "running",
+      },
+      currentMessage,
+      { onMessageUpdate },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onMessageUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: "這是一段尚未完成的回覆",
+        runStatus: "running",
+        isThinking: true,
+      }),
+    );
+  });
+
+  it("turns off thinking dots when run status is awaiting_approval", () => {
+    const currentMessage: Record<string, unknown> = { isThinking: true };
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string; run_status?: string; action_requests?: unknown[]; review_configs?: unknown[] },
+        currentMessage: Record<string, unknown>,
+        callbacks: Record<string, never>,
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "awaiting_approval",
+        run_status: "awaiting_approval",
+        action_requests: [],
+        review_configs: [],
+      },
+      currentMessage,
+      {},
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(currentMessage.isThinking).toBe(false);
+    expect(currentMessage.runStatus).toBe("awaiting_approval");
+  });
+
   it("normalizes todo_update payloads into run todo items", () => {
     const onTodoItemsUpdate = vi.fn();
 

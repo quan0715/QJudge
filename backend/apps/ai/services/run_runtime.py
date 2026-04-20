@@ -528,7 +528,8 @@ def _increment_usage(run: AIChatRun) -> None:
     if not any([input_tokens, output_tokens, cost_cents]):
         return
 
-    from django.db.models import F
+    from django.db.models import F, Value
+    from django.db.models.functions import Coalesce
 
     from ..credits import usage_to_credits
     from ..models import UserAICredit
@@ -539,13 +540,22 @@ def _increment_usage(run: AIChatRun) -> None:
     # - 若 counter update 失敗 → 整段 rollback，metadata 也不會留下 credits_used
     # - 若 metadata save 失敗 → counter 同樣 rollback，不會出現「已扣點但訊息沒紀錄」
     with transaction.atomic():
-        UserAICredit.objects.get_or_create(user=run.user)
+        UserAICredit.objects.get_or_create(
+            user=run.user,
+            defaults={
+                "total_input_tokens": 0,
+                "total_output_tokens": 0,
+                "total_requests": 0,
+                "total_cost_cents": 0,
+                "total_credits": 0,
+            },
+        )
         UserAICredit.objects.filter(user=run.user).update(
             total_input_tokens=F("total_input_tokens") + input_tokens,
             total_output_tokens=F("total_output_tokens") + output_tokens,
             total_requests=F("total_requests") + 1,
             total_cost_cents=F("total_cost_cents") + cost_cents,
-            total_credits=F("total_credits") + credits_delta,
+            total_credits=Coalesce(F("total_credits"), Value(0)) + credits_delta,
         )
 
         usage["credits_used"] = credits_delta
