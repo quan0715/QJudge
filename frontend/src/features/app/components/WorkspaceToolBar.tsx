@@ -1,53 +1,47 @@
 import { IconButton } from "@carbon/react";
 import { OpenPanelLeft, SidePanelClose } from "@carbon/icons-react";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
+import { useRegisterPageToolbar } from "@/features/app/contexts/WorkspaceToolbarSlot";
 import styles from "./WorkspaceToolBar.module.scss";
 
 export interface WorkspaceToolBarProps {
-  /**
-   * 排在「展開 app 側欄」之前的內容（例如右側浮動 chat 的歷史切換鈕）。
-   */
+  /** 排在 sidebar 控制 / title 之前的內容（例如 chat 歷史切換鈕）。 */
   leadingBefore?: React.ReactNode;
-  /**
-   * 是否顯示內建「展開/關閉 app 側欄」按鈕。桌面只在側欄收合時顯示展開鈕；
-   * 行動裝置則會在 drawer 開啟時切換為關閉鈕，方便手機使用者從 toolbar 關掉 drawer。
-   */
-  showAppSidebarExpand?: boolean;
-  /**
-   * 展開側欄按鈕的 aria / tooltip 文案。
-   */
-  expandAppSidebarLabel?: string;
-  /**
-   * 中欄：標題或自訂 UI（純文字、dropdown、表單等由外層組）。
-   */
+  /** 中欄：標題或自訂 UI（純文字、dropdown、表單等由外層組）。 */
   title: React.ReactNode;
   /** 右側操作列 */
   actions?: React.ReactNode;
+  /**
+   * 嵌入在非 main content（例如右側 chat dock 或 bottom sheet）時傳 true，
+   * 隱藏內建的展開/關閉 app sidebar 按鈕 — 那個控制屬於 main content。
+   */
+  hideSidebarControl?: boolean;
   className?: string;
 }
 
-const DEFAULT_EXPAND_LABEL = "Expand sidebar";
-const DEFAULT_CLOSE_LABEL = "Close sidebar";
-
 /**
- * 工作區頂列：可選 leadingBefore → 內建展開/關閉 app 側欄 → title slot → actions。
+ * 工作區頂列：leading + sidebar control（自動）+ title + actions。
+ *
+ * 內建邏輯：
+ * - 當 `left.isOpen === false`（desktop 收合 或 mobile drawer 關閉）→ 顯示展開鈕
+ * - 當 `isMobile && left.isOpen`（mobile drawer 開啟）→ 顯示關閉鈕
+ * - 當 desktop 且 `left.isOpen === true` → 不顯示 sidebar 按鈕（使用者從 sidebar 本身收合）
+ *
+ * 頁面 render 這個 component 即表示「本頁 main content 的 toolbar 由我提供」，
+ * Shell 不再補 fallback chrome。
  */
 export function WorkspaceToolBar({
   leadingBefore,
-  showAppSidebarExpand = false,
-  expandAppSidebarLabel = DEFAULT_EXPAND_LABEL,
   title,
   actions,
+  hideSidebarControl = false,
   className,
 }: WorkspaceToolBarProps) {
   const { isMobile, left } = useWorkspace();
+  useRegisterPageToolbar();
 
-  const showExpand = showAppSidebarExpand && !left.isOpen;
-  // On mobile the sidebar is an overlay drawer; once open, the user needs
-  // a toolbar-level affordance to dismiss it (backdrop is hidden behind content).
-  const showMobileClose = showAppSidebarExpand && isMobile && left.isOpen;
-
-  if (!title && !actions && !showExpand && !showMobileClose) return null;
+  const showExpand = !hideSidebarControl && !left.isOpen;
+  const showMobileClose = !hideSidebarControl && isMobile && left.isOpen;
 
   return (
     <div className={`${styles.root}${className ? ` ${className}` : ""}`}>
@@ -58,7 +52,7 @@ export function WorkspaceToolBar({
             kind="ghost"
             size="md"
             align="bottom"
-            label={expandAppSidebarLabel}
+            label="Expand sidebar"
             onClick={left.open}
           >
             <OpenPanelLeft size={20} />
@@ -69,7 +63,7 @@ export function WorkspaceToolBar({
             kind="ghost"
             size="md"
             align="bottom"
-            label={DEFAULT_CLOSE_LABEL}
+            label="Close sidebar"
             onClick={left.close}
           >
             <SidePanelClose size={20} />

@@ -10,10 +10,10 @@ import styles from "./ChatTopBar.module.scss";
 interface ChatTopBarFullProps {
   mode: "full";
   /**
-   * When chat is embedded in the workspace split (right panel), hide the
-   * main app sidebar expand control — the layout is already split.
+   * 當 chat 是嵌入式面板（右側 dock 或 bottom sheet）時傳 true，
+   * 隱藏 WorkspaceToolBar 內建的展開/關閉 app sidebar 按鈕。
    */
-  hideAppSidebarExpand?: boolean;
+  hideSidebarControl?: boolean;
   title?: string;
   sessions: ChatSession[];
   currentSessionId: string | null;
@@ -61,6 +61,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
     const displayTitle = title || t("ui.chatbotTitle");
     return (
       <WorkspaceToolBar
+        hideSidebarControl
         leadingBefore={
           onToggleHistory ? (
             <IconButton
@@ -74,7 +75,6 @@ export function ChatTopBar(props: ChatTopBarProps) {
             </IconButton>
           ) : undefined
         }
-        showAppSidebarExpand={false}
         title={<span className={styles.sidebarTitle}>{displayTitle}</span>}
         actions={
           <>
@@ -95,7 +95,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
   // ── Full-page mode ──
   const {
     title,
-    hideAppSidebarExpand = false,
+    hideSidebarControl = false,
     sessions,
     currentSessionId,
     onSelectSession,
@@ -183,8 +183,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
 
   return (
     <WorkspaceToolBar
-      showAppSidebarExpand={!hideAppSidebarExpand}
-      expandAppSidebarLabel={t("ui.expandSidebar")}
+      hideSidebarControl={hideSidebarControl}
       title={titleSlot}
       actions={
         <>

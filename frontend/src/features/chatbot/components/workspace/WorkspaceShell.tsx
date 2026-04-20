@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { IconButton } from "@carbon/react";
+import { OpenPanelLeft, SidePanelClose } from "@carbon/icons-react";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
+import {
+  WorkspaceToolbarSlotProvider,
+  usePageToolbarMounted,
+} from "@/features/app/contexts/WorkspaceToolbarSlot";
 import { ChatContainer } from "../chat-ui/ChatContainer";
+import toolbarStyles from "@/features/app/components/WorkspaceToolBar.module.scss";
 import styles from "./WorkspaceShell.module.scss";
 
 const MIN_PANEL_WIDTH = 320;
@@ -43,9 +50,14 @@ interface WorkspaceShellProps {
  * - 桌面：左 AppSidebar + 中（children）+ 右 ChatContainer
  * - 行動：中（children）為主；左以 portal drawer、右以 portal bottom-sheet 呈現
  *
- * 子節點（頁面）只負責 children 的內容。行為由 `useWorkspace()` 管理；
- * 頁面可呼叫 `useDisablePanel('right')` 等 hook 宣告式禁用面板
- * （例如 `/chat` 主畫面、競賽進行中）。
+ * Toolbar 策略（slot-based）：
+ * - 頁面在 main content 內 render `<WorkspaceToolBar>` → Shell 不另外補
+ * - 頁面沒 render，且 left panel 關閉（或處於 mobile）→ Shell 補一個 minimal
+ *   fallback（只有展開/關閉按鈕），確保使用者永遠能開啟 sidebar
+ * - 頁面沒 render，且 left panel 在 desktop 已展開 → 不顯示任何 toolbar
+ *
+ * 行為由 `useWorkspace()` 管理；頁面可呼叫 `useDisablePanel('right')` 等 hook
+ * 宣告式禁用面板（例如 `/chat` 主畫面、競賽進行中）。
  */
 export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceShellProps) {
   const { isMobile, left, right } = useWorkspace();
@@ -133,12 +145,11 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
       )}
 
       <div className={styles.mainColumn}>
-        <div
-          className={styles.content}
-          data-chatbot-sidebar-open={right.isOpen ? "true" : "false"}
-        >
-          {children}
-        </div>
+        <WorkspaceToolbarSlotProvider>
+          <MainColumnBody leftEnabled={leftEnabled} chatOpen={right.isOpen}>
+            {children}
+          </MainColumnBody>
+        </WorkspaceToolbarSlotProvider>
       </div>
 
       <aside
@@ -218,6 +229,75 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
         </button>,
         portalRoot,
       )}
+    </div>
+  );
+}
+
+/**
+ * Main column 的子樹：在 SlotProvider 內偵測頁面是否有自己的 WorkspaceToolBar，
+ * 若無且 left panel 不可見時補一個 minimal fallback。
+ */
+function MainColumnBody({
+  children,
+  leftEnabled,
+  chatOpen,
+}: {
+  children: React.ReactNode;
+  leftEnabled: boolean;
+  chatOpen: boolean;
+}) {
+  const pageHasToolbar = usePageToolbarMounted();
+  const { isMobile, left } = useWorkspace();
+
+  // Fallback chrome 只在「頁面沒 render toolbar」且「使用者需要 sidebar 入口」時出現。
+  const needsFallback = leftEnabled && !pageHasToolbar && (isMobile || !left.isOpen);
+
+  return (
+    <>
+      {needsFallback && <ShellFallbackToolbar />}
+      <div
+        className={styles.content}
+        data-chatbot-sidebar-open={chatOpen ? "true" : "false"}
+      >
+        {children}
+      </div>
+    </>
+  );
+}
+
+/**
+ * Shell 自己的 fallback chrome — 只有展開/關閉按鈕。
+ * 使用 WorkspaceToolBar 的 CSS class 保持視覺一致，但不掛 slot 註冊
+ * （避免 Shell 自己 render 的 fallback 反而讓 pageHasToolbar=true）。
+ */
+function ShellFallbackToolbar() {
+  const { isMobile, left } = useWorkspace();
+  const isClose = isMobile && left.isOpen;
+  return (
+    <div className={toolbarStyles.root}>
+      <div className={toolbarStyles.leading}>
+        {isClose ? (
+          <IconButton
+            kind="ghost"
+            size="md"
+            align="bottom"
+            label="Close sidebar"
+            onClick={left.close}
+          >
+            <SidePanelClose size={20} />
+          </IconButton>
+        ) : (
+          <IconButton
+            kind="ghost"
+            size="md"
+            align="bottom"
+            label="Expand sidebar"
+            onClick={left.open}
+          >
+            <OpenPanelLeft size={20} />
+          </IconButton>
+        )}
+      </div>
     </div>
   );
 }
