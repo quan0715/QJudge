@@ -207,13 +207,106 @@ def test_tools_without_session_return_error():
         backend_base_url="http://backend",
         internal_token="t",
     )
-    for name in ("artifact_write", "artifact_list", "artifact_read"):
+    for name in ("artifact_write", "artifact_list", "artifact_read", "artifact_write_csv"):
         tool = _tool(tools, name)
         if name == "artifact_write":
             result = _run(tool.coroutine(step="s", filename="f", content="c"))
         elif name == "artifact_list":
             result = _run(tool.coroutine())
+        elif name == "artifact_write_csv":
+            result = _run(tool.coroutine(step="s", filename="f.csv", columns=["a"], rows=[]))
         else:
             result = _run(tool.coroutine(step="s", filename="f"))
         assert result["is_error"] is True
         assert "session_id" in result["detail"]
+
+
+def test_write_csv_quotes_tricky_fields(monkeypatch):
+    captured_content = {}
+
+    stub = _StubClient([
+        {
+            "method": "POST",
+            "url_contains": "/_internal/artifacts/",
+            "status": 201,
+            "json": {"id": "a-csv", "step": "raw_answers", "filename": "raw_answers.csv"},
+        }
+    ])
+    _patch_httpx(monkeypatch, stub)
+
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="raw_answers",
+        filename="raw_answers.csv",
+        columns=["exam_answer_id", "student_id", "original_score", "answer_text"],
+        rows=[
+            {
+                "exam_answer_id": 1820,
+                "student_id": 92,
+                "original_score": "1.00",
+                "answer_text": "line 1,還有逗號\nline 2 \"引號\"",
+            },
+            {
+                "exam_answer_id": 2105,
+                "student_id": 181,
+                "original_score": "0.00",
+                "answer_text": "simple",
+            },
+        ],
+    ))
+
+    assert result["id"] == "a-csv"
+    posted = stub.calls[0]["json"]
+    content = posted["content"]
+    captured_content["body"] = content
+
+    lines = content.split("\n")
+    assert lines[0] == '"exam_answer_id","student_id","original_score","answer_text"'
+    # Row 1 answer_text has comma, newline, and quote → must be one CSV field
+    # spanning two physical lines with doubled inner quotes.
+    assert '"1820","92","1.00","line 1,還有逗號' in content
+    assert 'line 2 ""引號"""' in content
+    # Row 2 is simple but QUOTE_ALL still wraps every field.
+    assert '"2105","181","0.00","simple"' in content
+
+    assert posted["content_type"] == "text/csv; charset=utf-8"
+    assert posted["metadata"]["artifact_type"] == "csv"
+    assert posted["metadata"]["csv_columns"] == [
+        "exam_answer_id", "student_id", "original_score", "answer_text",
+    ]
+    assert posted["metadata"]["csv_row_count"] == 2
+
+
+def test_write_csv_rejects_empty_columns():
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="raw_answers", filename="x.csv", columns=[], rows=[{"a": 1}],
+    ))
+    assert result["is_error"] is True
+    assert "columns" in result["detail"]
+
+
+def test_write_csv_rejects_non_dict_row():
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="raw_answers", filename="x.csv",
+        columns=["a"], rows=["not a dict"],
+    ))
+    assert result["is_error"] is True
+    assert "row[0]" in result["detail"]
+
+
+def test_write_csv_fills_missing_columns_with_empty(monkeypatch):
+    stub = _StubClient([
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write_csv")
+    _run(tool.coroutine(
+        step="raw_answers", filename="x.csv",
+        columns=["a", "b", "c"],
+        rows=[{"a": 1, "c": 3}],  # b missing
+    ))
+    body = stub.calls[0]["json"]["content"]
+    lines = body.split("\n")
+    assert lines[1] == '"1","","3"'

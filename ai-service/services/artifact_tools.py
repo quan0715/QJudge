@@ -12,6 +12,8 @@ Backend API contract (see backend/apps/ai/artifact_views.py):
 """
 from __future__ import annotations
 
+import csv
+import io
 import logging
 from typing import Any
 
@@ -107,6 +109,54 @@ def build_artifact_tools(
                 "detail": _safe_json(resp),
             }
         return resp.json()
+
+    async def _artifact_write_csv(
+        step: str,
+        filename: str,
+        columns: list[str],
+        rows: list[dict[str, Any]],
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Encode rows into RFC 4180 CSV (QUOTE_ALL) and upsert as artifact.
+
+        LLMs are bad at hand-quoting CSV fields that contain commas, quotes,
+        or newlines — especially with Chinese punctuation. This tool removes
+        that responsibility entirely: caller supplies columns + rows, we
+        handle encoding.
+        """
+        err = _require_session()
+        if err:
+            return {"is_error": True, "detail": err}
+
+        if not columns:
+            return {"is_error": True, "detail": "columns must be non-empty"}
+        if not isinstance(rows, list):
+            return {"is_error": True, "detail": "rows must be a list of objects"}
+
+        buf = io.StringIO()
+        writer = csv.writer(buf, quoting=csv.QUOTE_ALL, lineterminator="\n")
+        writer.writerow(columns)
+        for idx, row in enumerate(rows):
+            if not isinstance(row, dict):
+                return {
+                    "is_error": True,
+                    "detail": f"row[{idx}] must be an object, got {type(row).__name__}",
+                }
+            writer.writerow(["" if row.get(c) is None else str(row[c]) for c in columns])
+
+        enriched_meta = {
+            "artifact_type": "csv",
+            "csv_columns": list(columns),
+            "csv_row_count": len(rows),
+            **(metadata or {}),
+        }
+        return await _artifact_write(
+            step=step,
+            filename=filename,
+            content=buf.getvalue(),
+            content_type="text/csv; charset=utf-8",
+            metadata=enriched_meta,
+        )
 
     async def _artifact_list(
         step: str | None = None,
@@ -235,6 +285,39 @@ def build_artifact_tools(
         coroutine=_artifact_list,
     )
 
+    write_csv_tool = StructuredTool(
+        name="artifact_write_csv",
+        description=(
+            "Write a CSV artifact from structured rows. ALWAYS prefer this over"
+            " artifact_write when producing *.csv — it handles RFC 4180 quoting"
+            " (commas, quotes, newlines, Chinese punctuation) correctly. Caller"
+            " supplies columns + list of row objects; the tool encodes and uploads."
+        ),
+        args_schema={
+            "type": "object",
+            "properties": {
+                "step": {"type": "string"},
+                "filename": {
+                    "type": "string",
+                    "description": "Must end in .csv",
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Ordered list of CSV header names.",
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "List of row objects keyed by column name. Missing keys → empty cell.",
+                },
+                "metadata": {"type": "object"},
+            },
+            "required": ["step", "filename", "columns", "rows"],
+        },
+        coroutine=_artifact_write_csv,
+    )
+
     read_tool = StructuredTool(
         name="artifact_read",
         description=(
@@ -252,7 +335,7 @@ def build_artifact_tools(
         coroutine=_artifact_read,
     )
 
-    return [list_tool, read_tool, write_tool]
+    return [list_tool, read_tool, write_tool, write_csv_tool]
 
 
 def _safe_json(resp: httpx.Response) -> Any:
