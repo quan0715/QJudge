@@ -1,6 +1,6 @@
 import { IconButton } from "@carbon/react";
 import { OpenPanelLeft } from "@carbon/icons-react";
-import { useAppSidebar } from "@/features/app/contexts/AppSidebarContext";
+import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import styles from "./WorkspaceToolBar.module.scss";
 
 export interface WorkspaceToolBarProps {
@@ -38,9 +38,9 @@ export function WorkspaceToolBar({
   actions,
   className,
 }: WorkspaceToolBarProps) {
-  const { isOpen: appSidebarOpen, open: openAppSidebar } = useAppSidebar();
+  const { left } = useWorkspace();
 
-  const showExpand = showAppSidebarExpand && !appSidebarOpen;
+  const showExpand = showAppSidebarExpand && !left.isOpen;
 
   if (!title && !actions && !showExpand) return null;
 
@@ -54,7 +54,7 @@ export function WorkspaceToolBar({
             size="md"
             align="bottom"
             label={expandAppSidebarLabel}
-            onClick={openAppSidebar}
+            onClick={left.open}
           >
             <OpenPanelLeft size={20} />
           </IconButton>

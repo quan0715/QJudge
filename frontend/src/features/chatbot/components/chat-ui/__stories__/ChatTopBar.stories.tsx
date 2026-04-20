@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { AppSidebarProvider } from "@/features/app/contexts/AppSidebarContext";
 import { ChatTopBar } from "../ChatTopBar";
 import { mockSessions } from "./chat-ui.mocks";
 
@@ -16,11 +15,9 @@ const meta: Meta = {
   },
   decorators: [
     (Story) => (
-      <AppSidebarProvider>
-        <div style={{ maxWidth: 900 }}>
-          <Story />
-        </div>
-      </AppSidebarProvider>
+      <div style={{ maxWidth: 900 }}>
+        <Story />
+      </div>
     ),
   ],
 };

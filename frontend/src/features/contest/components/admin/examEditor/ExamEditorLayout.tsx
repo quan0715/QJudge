@@ -107,7 +107,8 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   const { t } = useTranslation("contest");
   const { confirm, modalProps } = useConfirmModal();
   const toolbarSave = useToolbarSaveStatus();
-  const { isOpen: workspaceChatOpen } = useWorkspace();
+  const { right } = useWorkspace();
+  const workspaceChatOpen = right.isOpen;
   /** When AI chat sidebar is open, default both side panels collapsed to save horizontal space. */
   const defaultSidePanelsExpanded = !workspaceChatOpen;
 

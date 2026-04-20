@@ -1,4 +1,3 @@
-export { AIWorkspaceProvider } from "./components/workspace/AIWorkspaceProvider";
 export { WorkspaceShell } from "./components/workspace/WorkspaceShell";
 export { ChatContainer } from "./components/chat-ui/ChatContainer";
 export { useWorkspace } from "./hooks/useWorkspace";

@@ -1,7 +1,3 @@
-import { useContext } from "react";
-import { WorkspaceContext } from "../components/workspace/AIWorkspaceProvider";
-import type { WorkspaceContextValue } from "../components/workspace/AIWorkspaceProvider";
-
-export function useWorkspace(): WorkspaceContextValue {
-  return useContext(WorkspaceContext);
-}
+// Re-export for legacy import paths.
+export { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
+export type { WorkspaceContextValue, PanelControl } from "@/features/app/contexts/WorkspaceContext";
