@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Checkmark, Warning, InProgress, Document } from "@carbon/icons-react";
 import { Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
@@ -62,11 +62,26 @@ export function useSessionBadgeSummary(messages: ChatMessage[]): {
 export function SessionBadges({ messages, inline = false }: SessionBadgesProps) {
   const { t } = useTranslation("chatbot");
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const artifactCtx = useOptionalArtifactPanel();
   const artifacts = artifactCtx?.artifacts ?? [];
   const todos = useMemo(() => pickLatestTodos(messages), [messages]);
   const summary = useMemo(() => summarizeTodos(todos), [todos]);
+
+  // Close the floating popover when clicking outside (e.g. into the textarea
+  // or onto the artifact right panel). Without this the popover stays open
+  // and visually covers the composer's textarea, making input unclickable.
+  useEffect(() => {
+    if (!openPanel) return;
+    const onMouseDown = (event: MouseEvent) => {
+      if (!wrapperRef.current) return;
+      if (wrapperRef.current.contains(event.target as Node)) return;
+      setOpenPanel(null);
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [openPanel]);
 
   const hasTodos = todos.length > 0;
   const hasArtifacts = artifacts.length > 0;
@@ -77,6 +92,9 @@ export function SessionBadges({ messages, inline = false }: SessionBadgesProps) 
 
   const handleArtifactCardClick = (artifactId: string) => {
     artifactCtx?.open(artifactId);
+    // Opening the right-side artifact panel is the user's final intent —
+    // dismiss the inline popover so the composer textarea is clickable again.
+    setOpenPanel(null);
   };
 
   const summaryIcon =
@@ -89,7 +107,10 @@ export function SessionBadges({ messages, inline = false }: SessionBadgesProps) 
     );
 
   return (
-    <div className={`${styles.wrapper} ${inline ? styles.wrapperInline : ""}`}>
+    <div
+      ref={wrapperRef}
+      className={`${styles.wrapper} ${inline ? styles.wrapperInline : ""}`}
+    >
       {openPanel === "todos" && hasTodos && (
         <div className={styles.popover} role="dialog" aria-label={t("ui.todoList", "待辦清單")}>
           <div className={styles.popoverHeader}>
