@@ -10,7 +10,6 @@ import uuid
 from typing import Any, AsyncGenerator
 from collections.abc import Mapping
 
-import deepagents.graph as _deepagents_graph
 from deepagents import create_deep_agent
 from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
@@ -260,7 +259,14 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
                     logger.warning("SummarizationMiddleware: SummarizationEnded emit failed: %s", e)
 
 # Force DeepAgent's default stack to use our safe summarization middleware.
-_deepagents_graph.SummarizationMiddleware = _SafeSummarizationMiddleware
+#
+# graph.py imports the *factory* `create_summarization_middleware`, not the
+# class — so patching `deepagents.graph.SummarizationMiddleware` is inert.
+# The factory body is `return SummarizationMiddleware(...)` where
+# `SummarizationMiddleware` resolves against the `summarization` module's
+# own scope. Patching THAT binding is what actually swaps the class.
+from deepagents.middleware import summarization as _summarization_module
+_summarization_module.SummarizationMiddleware = _SafeSummarizationMiddleware
 
 
 # Default system prompt for the TA agent（細節見 AGENTS.md 與 skills/*/SKILL.md）

@@ -211,8 +211,16 @@ def build_artifact_tools(
     async def _artifact_read(
         step: str,
         filename: str,
+        offset: int = 0,
+        limit: int | None = None,
     ) -> dict[str, Any]:
-        """Read content by (step, filename). Internally lists then fetches."""
+        """Read content by (step, filename). Internally lists then fetches.
+
+        ``offset`` / ``limit`` mirror DeepAgent's ``read_file`` semantics —
+        line-based pagination so the agent can treat artifact content the
+        same way it treats virtual-FS files. When both are omitted the
+        whole content is returned (with the 200k-char safety truncation).
+        """
         listing = await _artifact_list(step=step, filename=filename)
         if listing.get("is_error"):
             return listing
@@ -244,9 +252,18 @@ def build_artifact_tools(
                 "is_error": True,
                 "detail": "artifact content is not utf-8 text",
             }
+
+        total_lines = text.count("\n") + (0 if text.endswith("\n") else 1) if text else 0
+        if offset or limit is not None:
+            lines = text.splitlines(keepends=True)
+            start = max(int(offset), 0)
+            end = start + int(limit) if limit is not None else len(lines)
+            text = "".join(lines[start:end])
+
         return {
             "metadata": artifact,
             "content": _truncate(text),
+            "total_lines": total_lines,
         }
 
     write_tool = StructuredTool(
@@ -302,6 +319,91 @@ def build_artifact_tools(
         coroutine=_artifact_list,
     )
 
+    async def _artifact_write_csv_from_records(
+        step: str,
+        filename: str,
+        records: list[dict[str, Any]] | str,
+        column_mapping: dict[str, str] | str | None = None,
+        defaults: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Map a list of records through a column spec and write as CSV.
+
+        Spares the agent from building rows by hand. Common case:
+            records = <qjudge_grading(action="list_answers") response>
+            column_mapping = {
+                "exam_answer_id": "exam_answer_id",
+                "student_id":     "username",
+                "answer_text":    "answer.text",    # dot-path for nested keys
+                "original_score": "score",
+            }
+            defaults = {"new_score": "", "reason": ""}
+
+        If the MCP result was offloaded to the virtual FS (DeepAgent does this
+        at ~20k tokens), the agent should `read_file` it first and pass the
+        file content here — this tool auto-parses JSON strings.
+        """
+        err = _require_session()
+        if err:
+            return {"is_error": True, "detail": err}
+
+        records = _coerce_json_list(records, "records")
+        if isinstance(records, dict) and records.get("is_error"):
+            return records
+
+        if column_mapping is None:
+            # Identity mapping: use the keys of the first record as-is. Lets the
+            # agent pipe an MCP result whose rows already match the CSV shape
+            # straight through with zero ceremony.
+            first = next((r for r in records if isinstance(r, dict)), None)
+            if first is None:
+                return {"is_error": True, "detail": "records is empty; cannot infer column_mapping"}
+            mapping: dict[str, str] = {k: k for k in first.keys()}
+        else:
+            mapping = _coerce_json_dict(column_mapping, "column_mapping")
+            if isinstance(mapping, dict) and mapping.get("is_error"):
+                return mapping
+            if not isinstance(mapping, dict):
+                return {"is_error": True, "detail": "column_mapping must be an object"}
+            if not mapping:
+                return {"is_error": True, "detail": "column_mapping must be non-empty"}
+
+        defaults = defaults or {}
+        if not isinstance(defaults, dict):
+            return {"is_error": True, "detail": "defaults must be an object"}
+
+        columns = list(mapping.keys()) + [k for k in defaults if k not in mapping]
+        rows: list[dict[str, Any]] = []
+        for idx, record in enumerate(records):
+            if not isinstance(record, dict):
+                return {
+                    "is_error": True,
+                    "detail": f"records[{idx}] must be an object, got {type(record).__name__}",
+                }
+            row: dict[str, Any] = {}
+            for target_col, source_path in mapping.items():
+                if not isinstance(source_path, str):
+                    return {
+                        "is_error": True,
+                        "detail": f"column_mapping['{target_col}'] must be a string path",
+                    }
+                row[target_col] = _resolve_dot_path(record, source_path)
+            for target_col, const_value in defaults.items():
+                row.setdefault(target_col, const_value)
+            rows.append(row)
+
+        return await _artifact_write_csv(
+            step=step,
+            filename=filename,
+            columns=columns,
+            rows=rows,
+            metadata={
+                "artifact_type": "csv",
+                "csv_source": "records_mapping",
+                **(metadata or {}),
+            },
+        )
+
     write_csv_tool = StructuredTool(
         name="artifact_write_csv",
         description=(
@@ -338,21 +440,176 @@ def build_artifact_tools(
     read_tool = StructuredTool(
         name="artifact_read",
         description=(
-            "Read an artifact's text content by (step, filename). Returns metadata"
-            " and utf-8 content. Content longer than 200k chars is truncated."
+            "Read an artifact's text content by (step, filename). Returns"
+            " metadata, utf-8 content, and total_lines. Optional offset/limit"
+            " paginate by line (same semantics as DeepAgent's read_file) for"
+            " large artifacts. Without pagination content is truncated at"
+            " 200k chars as a safety net."
         ),
         args_schema={
             "type": "object",
             "properties": {
-                "step": {"type": "string"},
+                "step":     {"type": "string"},
                 "filename": {"type": "string"},
+                "offset":   {"type": "integer", "minimum": 0, "description": "0-based line offset"},
+                "limit":    {"type": "integer", "minimum": 1, "description": "max lines to return"},
             },
             "required": ["step", "filename"],
         },
         coroutine=_artifact_read,
     )
 
-    return [list_tool, read_tool, write_tool, write_csv_tool]
+    async def _artifact_patch_csv_rows(
+        step: str,
+        filename: str,
+        key_column: str,
+        updates: list[dict[str, Any]] | str,
+    ) -> dict[str, Any]:
+        """Merge partial-row updates into an existing CSV artifact.
+
+        Solves the "越跑越少" bug:``artifact_write_csv`` fully overwrites
+        the object, so an agent that sends only its freshly-processed batch
+        silently deletes every other row. With this tool the agent sends
+        ONLY the rows it changed; we read the current CSV, locate each row
+        by ``key_column``, apply the partial update, and write the full set
+        back. Rows whose keys don't match any existing row are returned as
+        ``missing`` so the caller can decide how to handle them.
+        """
+        err = _require_session()
+        if err:
+            return {"is_error": True, "detail": err}
+
+        updates = _coerce_json_list(updates, "updates")
+        if isinstance(updates, dict) and updates.get("is_error"):
+            return updates
+        if not updates:
+            return {"is_error": True, "detail": "updates must be non-empty"}
+
+        existing = await _artifact_read(step=step, filename=filename)
+        if existing.get("is_error"):
+            return existing
+
+        try:
+            reader = csv.DictReader(io.StringIO(existing["content"]))
+            columns = list(reader.fieldnames or [])
+            rows = [dict(row) for row in reader]
+        except csv.Error as exc:
+            return {"is_error": True, "detail": f"existing CSV parse error: {exc}"}
+
+        if key_column not in columns:
+            return {
+                "is_error": True,
+                "detail": f"key_column '{key_column}' not in CSV columns {columns}",
+            }
+
+        index = {str(row.get(key_column, "")): i for i, row in enumerate(rows)}
+        updated = 0
+        missing: list[str] = []
+        for idx, patch in enumerate(updates):
+            if not isinstance(patch, dict):
+                return {
+                    "is_error": True,
+                    "detail": f"updates[{idx}] must be an object, got {type(patch).__name__}",
+                }
+            key_value = patch.get(key_column)
+            if key_value is None:
+                return {
+                    "is_error": True,
+                    "detail": f"updates[{idx}] missing key_column '{key_column}'",
+                }
+            row_idx = index.get(str(key_value))
+            if row_idx is None:
+                missing.append(str(key_value))
+                continue
+            for col, value in patch.items():
+                if col == key_column or col not in columns:
+                    continue
+                rows[row_idx][col] = "" if value is None else str(value)
+            updated += 1
+
+        write_result = await _artifact_write_csv(
+            step=step,
+            filename=filename,
+            columns=columns,
+            rows=rows,
+        )
+        if isinstance(write_result, dict) and write_result.get("is_error"):
+            return write_result
+
+        return {
+            "updated": updated,
+            "missing": missing,
+            "total_rows": len(rows),
+            "artifact": write_result,
+        }
+
+    write_csv_from_records_tool = StructuredTool(
+        name="artifact_write_csv_from_records",
+        description=(
+            "Preferred for writing a CSV from MCP / API results: pass the raw"
+            " records array plus a column_mapping (target_col → source dot-path)."
+            " Supports nested keys like 'answer.text'. Extra constant columns go"
+            " in `defaults`. records can be an inline list or a JSON string"
+            " (so if a large MCP response was offloaded to the virtual FS you can"
+            " read_file it first and pass the file content here)."
+        ),
+        args_schema={
+            "type": "object",
+            "properties": {
+                "step":     {"type": "string"},
+                "filename": {"type": "string"},
+                "records": {
+                    "description": "list of record objects, OR JSON-string of such a list",
+                },
+                "column_mapping": {
+                    "type": "object",
+                    "description": "target CSV column → source dot-path in each record",
+                    "additionalProperties": {"type": "string"},
+                },
+                "defaults": {
+                    "type": "object",
+                    "description": "extra CSV columns with constant values (e.g. {new_score: ''})",
+                },
+                "metadata": {"type": "object"},
+            },
+            "required": ["step", "filename", "records"],
+        },
+        coroutine=_artifact_write_csv_from_records,
+    )
+
+    patch_csv_rows_tool = StructuredTool(
+        name="artifact_patch_csv_rows",
+        description=(
+            "Merge partial updates into an existing CSV artifact by key."
+            " Use this to grade a batch of rows without overwriting the"
+            " unchanged ones: pass ONLY the rows you changed, identified by"
+            " `key_column`. Unmatched keys are returned as `missing`."
+        ),
+        args_schema={
+            "type": "object",
+            "properties": {
+                "step":       {"type": "string"},
+                "filename":   {"type": "string"},
+                "key_column": {"type": "string", "description": "column name to match rows on"},
+                "updates": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "Each object must include key_column; other fields overwrite existing cells.",
+                },
+            },
+            "required": ["step", "filename", "key_column", "updates"],
+        },
+        coroutine=_artifact_patch_csv_rows,
+    )
+
+    return [
+        list_tool,
+        read_tool,
+        write_tool,
+        write_csv_tool,
+        write_csv_from_records_tool,
+        patch_csv_rows_tool,
+    ]
 
 
 def _safe_json(resp: httpx.Response) -> Any:
@@ -360,6 +617,51 @@ def _safe_json(resp: httpx.Response) -> Any:
         return resp.json()
     except Exception:
         return resp.text[:500]
+
+
+def _resolve_dot_path(obj: Any, path: str) -> Any:
+    """Resolve 'a.b.c' → obj['a']['b']['c']. Returns None if any step is missing."""
+    current = obj
+    for key in path.split("."):
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+        if current is None:
+            return None
+    return current
+
+
+def _coerce_json_dict(value: Any, field: str) -> Any:
+    """Accept a dict, or a JSON-stringified dict; reject anything else."""
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.startswith("{") and stripped.endswith("}"):
+            try:
+                decoded = json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                return {
+                    "is_error": True,
+                    "detail": (
+                        f"{field} looked like a JSON object string but failed to"
+                        f" parse: {exc}."
+                    ),
+                }
+            if isinstance(decoded, dict):
+                logger.warning(
+                    "artifact tool: %s was passed as JSON string; decoded it.",
+                    field,
+                )
+                return decoded
+        return {
+            "is_error": True,
+            "detail": f"{field} must be a JSON object, got string.",
+        }
+    return {
+        "is_error": True,
+        "detail": f"{field} must be an object, got {type(value).__name__}",
+    }
 
 
 def _coerce_json_list(value: Any, field: str) -> Any:
