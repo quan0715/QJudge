@@ -167,6 +167,7 @@ function App() {
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
                               {questionBankMarketplaceRoute}
+                              {questionBankDetailRoute}
                               {draftProblemsRoute}
                               {/* Classroom Contest Admin - Classroom-scoped, inside shared workspace shell */}
                               {classroomContestAdminRoute}
@@ -187,9 +188,6 @@ function App() {
                                 }
                               />
                             </Route>
-
-                            {/* Question Bank Detail - Standalone with breadcrumb header */}
-                            {questionBankDetailRoute}
 
                             {/* Classroom Exam Preview - Classroom-scoped */}
                             {classroomExamPreviewRoute}
