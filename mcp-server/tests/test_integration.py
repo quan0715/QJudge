@@ -52,11 +52,14 @@ def run(coro):
 
 
 def _unwrap_paginated(result):
-    """Handle both list and paginated dict responses."""
+    """Handle list, paginated {results:...}, and MCP-wrapped {items:...} responses."""
     if isinstance(result, list):
         return result
-    if isinstance(result, dict) and "results" in result:
-        return result["results"]
+    if isinstance(result, dict):
+        if "items" in result:
+            return result["items"]
+        if "results" in result:
+            return result["results"]
     return result
 
 
@@ -94,13 +97,14 @@ def _find_contest(
             continue
         if not require_problems:
             return contest_id, None
-        problems = run(
+        result = run(
             server.qjudge_contest_manager(
                 "list_problems",
                 teacher_ctx,
                 contest_id=contest_id,
             )
         )
+        problems = _unwrap_paginated(result)
         if isinstance(problems, list) and problems:
             return contest_id, problems
     return None, None
@@ -252,10 +256,12 @@ class TestExam:
 
     def test_list_questions(self, admin_ctx, contest_id):
         result = run(server.qjudge_contest_manager("list_problems", admin_ctx, contest_id=contest_id))
-        assert isinstance(result, list)
+        items = _unwrap_paginated(result)
+        assert isinstance(items, list)
 
     def test_get_question(self, admin_ctx, contest_id):
-        questions = run(server.qjudge_contest_manager("list_problems", admin_ctx, contest_id=contest_id))
+        result = run(server.qjudge_contest_manager("list_problems", admin_ctx, contest_id=contest_id))
+        questions = _unwrap_paginated(result)
         if not questions:
             pytest.fail("No exam questions")
         qid = str(questions[0]["id"])
