@@ -1,6 +1,8 @@
 import { useEffect, useId } from "react";
 import { useWorkspace } from "./WorkspaceContext";
 
+type Side = "left" | "right";
+
 /**
  * 宣告式禁用 workspace panel：mount 時加入禁用棧，unmount 時自動移除。
  *
@@ -15,25 +17,30 @@ import { useWorkspace } from "./WorkspaceContext";
  * // 競賽進行中同時收掉左右
  * useDisablePanel(["left", "right"]);
  */
-export function useDisablePanel(side: "left" | "right" | Array<"left" | "right">) {
+export function useDisablePanel(side: Side | Side[]) {
   const { left, right } = useWorkspace();
   const id = useId();
-  const sides = Array.isArray(side) ? side : [side];
-  const sideKey = sides.join(",");
+
+  // Capture the exact functions we depend on so effect deps are correct.
+  const leftDisable = left.disable;
+  const leftEnable = left.enable;
+  const rightDisable = right.disable;
+  const rightEnable = right.enable;
+
+  // Derive a stable sorted CSV key so the effect re-runs only when the
+  // set of targeted sides actually changes (not per-render array identity).
+  const sides: Side[] = Array.isArray(side) ? side : [side];
+  const sideKey = [...new Set(sides)].sort().join(",");
 
   useEffect(() => {
-    const targets = sideKey.split(",") as Array<"left" | "right">;
+    const targets = sideKey.split(",") as Side[];
     targets.forEach(s => {
-      const panel = s === "left" ? left : right;
-      panel.disable(id);
+      (s === "left" ? leftDisable : rightDisable)(id);
     });
     return () => {
       targets.forEach(s => {
-        const panel = s === "left" ? left : right;
-        panel.enable(id);
+        (s === "left" ? leftEnable : rightEnable)(id);
       });
     };
-    // We re-run when sides string changes; panel methods are stable per-render of provider.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sideKey, id]);
+  }, [sideKey, id, leftDisable, leftEnable, rightDisable, rightEnable]);
 }

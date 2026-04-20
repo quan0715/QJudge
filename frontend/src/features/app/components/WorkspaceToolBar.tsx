@@ -1,5 +1,5 @@
 import { IconButton } from "@carbon/react";
-import { OpenPanelLeft } from "@carbon/icons-react";
+import { OpenPanelLeft, SidePanelClose } from "@carbon/icons-react";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import styles from "./WorkspaceToolBar.module.scss";
 
@@ -9,7 +9,8 @@ export interface WorkspaceToolBarProps {
    */
   leadingBefore?: React.ReactNode;
   /**
-   * 是否顯示內建「展開 app 側欄」按鈕（bind `useAppSidebar`，僅在側欄收合時顯示）。
+   * 是否顯示內建「展開/關閉 app 側欄」按鈕。桌面只在側欄收合時顯示展開鈕；
+   * 行動裝置則會在 drawer 開啟時切換為關閉鈕，方便手機使用者從 toolbar 關掉 drawer。
    */
   showAppSidebarExpand?: boolean;
   /**
@@ -26,9 +27,10 @@ export interface WorkspaceToolBarProps {
 }
 
 const DEFAULT_EXPAND_LABEL = "Expand sidebar";
+const DEFAULT_CLOSE_LABEL = "Close sidebar";
 
 /**
- * 工作區頂列：可選 leadingBefore → 內建展開 app 側欄 → title slot → actions。
+ * 工作區頂列：可選 leadingBefore → 內建展開/關閉 app 側欄 → title slot → actions。
  */
 export function WorkspaceToolBar({
   leadingBefore,
@@ -38,11 +40,14 @@ export function WorkspaceToolBar({
   actions,
   className,
 }: WorkspaceToolBarProps) {
-  const { left } = useWorkspace();
+  const { isMobile, left } = useWorkspace();
 
   const showExpand = showAppSidebarExpand && !left.isOpen;
+  // On mobile the sidebar is an overlay drawer; once open, the user needs
+  // a toolbar-level affordance to dismiss it (backdrop is hidden behind content).
+  const showMobileClose = showAppSidebarExpand && isMobile && left.isOpen;
 
-  if (!title && !actions && !showExpand) return null;
+  if (!title && !actions && !showExpand && !showMobileClose) return null;
 
   return (
     <div className={`${styles.root}${className ? ` ${className}` : ""}`}>
@@ -57,6 +62,17 @@ export function WorkspaceToolBar({
             onClick={left.open}
           >
             <OpenPanelLeft size={20} />
+          </IconButton>
+        )}
+        {showMobileClose && (
+          <IconButton
+            kind="ghost"
+            size="md"
+            align="bottom"
+            label={DEFAULT_CLOSE_LABEL}
+            onClick={left.close}
+          >
+            <SidePanelClose size={20} />
           </IconButton>
         )}
         <div className={styles.titleSlot}>{title}</div>

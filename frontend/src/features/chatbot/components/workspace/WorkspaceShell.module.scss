@@ -121,6 +121,11 @@
 .mobileLeftBackdrop {
   flex: 1;
   background: rgba(0, 0, 0, 0.5);
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
 }
 
 // ── Mobile: right chat bottom sheet (portal) ──
@@ -137,6 +142,11 @@
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
 }
 
 .mobileRightSheet {

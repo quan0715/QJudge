@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
@@ -22,9 +22,19 @@ function getSavedWidth(): number {
   return DEFAULT_PANEL_WIDTH;
 }
 
-function getPortalRoot(): Element {
-  if (typeof document === "undefined") return null as unknown as Element;
+/** Portal mount target for overlays. Returns null if document is unavailable (SSR). */
+function getPortalRoot(): Element | null {
+  if (typeof document === "undefined") return null;
   return document.getElementById("modal-portal-root") ?? document.body;
+}
+
+interface WorkspaceShellProps {
+  children: React.ReactNode;
+  /**
+   * 當外層已經有自己的 sidebar（例如 AdminShellLayout），傳 true 關閉內建 AppSidebar
+   * 與左側 drawer，只保留右側 chat 面板行為。
+   */
+  omitAppSidebar?: boolean;
 }
 
 /**
@@ -33,22 +43,34 @@ function getPortalRoot(): Element {
  * - 桌面：左 AppSidebar + 中（children）+ 右 ChatContainer
  * - 行動：中（children）為主；左以 portal drawer、右以 portal bottom-sheet 呈現
  *
- * 子節點（頁面）只負責 children 的內容；左右兩側固定由 Shell 內建組件提供。
- * 行為由 `useWorkspace()` 管理；頁面可呼叫 `useDisablePanel('right')` 等 hook
- * 宣告式地禁用面板（例如 `/chat` 主畫面、競賽進行中）。
+ * 子節點（頁面）只負責 children 的內容。行為由 `useWorkspace()` 管理；
+ * 頁面可呼叫 `useDisablePanel('right')` 等 hook 宣告式禁用面板
+ * （例如 `/chat` 主畫面、競賽進行中）。
  */
-export function WorkspaceShell({ children }: { children: React.ReactNode }) {
+export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceShellProps) {
   const { isMobile, left, right } = useWorkspace();
 
-  // ── Layout decisions ──
-  const dockLeft = !isMobile;                                       // desktop: left always in flow
-  const showLeftMobileOverlay = isMobile && left.isOpen;            // mobile: portal drawer
-  const dockRight = !isMobile && right.isOpen;                      // desktop: right docked
-  const showRightMobileSheet = isMobile && right.isOpen;            // mobile: bottom sheet
+  const leftEnabled = !omitAppSidebar;
+  const dockLeft = leftEnabled && !isMobile;
+  const showLeftMobileOverlay = leftEnabled && isMobile && left.isOpen;
+  const dockRight = !isMobile && right.isOpen;
+  const showRightMobileSheet = isMobile && right.isOpen;
   const showFab = right.isAllowed && !right.isOpen && !right.isDisabled;
 
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
+
+  // Close overlays with Escape key for keyboard users.
+  useEffect(() => {
+    if (!showLeftMobileOverlay && !showRightMobileSheet) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (showRightMobileSheet) right.close();
+      else if (showLeftMobileOverlay) left.close();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showLeftMobileOverlay, showRightMobileSheet, left, right]);
 
   const startResize = useCallback(() => {
     dragging.current = true;
@@ -100,11 +122,13 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
     startResize();
   }, [startResize]);
 
+  const portalRoot = getPortalRoot();
+
   return (
     <div className={styles.shell}>
       {dockLeft && (
         <aside className={`${styles.leftPanel} ${left.isOpen ? "" : styles.leftPanelCollapsed}`}>
-          <AppSidebar collapsed={!left.isOpen} onToggleCollapse={left.close} />
+          <AppSidebar collapsed={!left.isOpen} onToggleCollapse={left.toggle} />
         </aside>
       )}
 
@@ -140,19 +164,39 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
         )}
       </aside>
 
-      {showLeftMobileOverlay && typeof document !== "undefined" && createPortal(
-        <div className={styles.mobileLeftOverlay}>
+      {portalRoot && showLeftMobileOverlay && createPortal(
+        <div
+          className={styles.mobileLeftOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="App sidebar"
+        >
           <div className={styles.mobileLeftPanel}>
             <AppSidebar collapsed={false} onToggleCollapse={left.close} />
           </div>
-          <div className={styles.mobileLeftBackdrop} onClick={left.close} aria-hidden="true" />
+          <button
+            type="button"
+            className={styles.mobileLeftBackdrop}
+            onClick={left.close}
+            aria-label="Close sidebar"
+          />
         </div>,
-        getPortalRoot(),
+        portalRoot,
       )}
 
-      {showRightMobileSheet && typeof document !== "undefined" && createPortal(
-        <div className={styles.mobileRightOverlay}>
-          <div className={styles.mobileRightBackdrop} onClick={right.close} aria-hidden="true" />
+      {portalRoot && showRightMobileSheet && createPortal(
+        <div
+          className={styles.mobileRightOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Chat"
+        >
+          <button
+            type="button"
+            className={styles.mobileRightBackdrop}
+            onClick={right.close}
+            aria-label="Close chat"
+          />
           <div className={styles.mobileRightSheet}>
             <div className={styles.mobileRightSheetHandle} />
             <div className={styles.mobileRightSheetContent}>
@@ -160,10 +204,10 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>,
-        getPortalRoot(),
+        portalRoot,
       )}
 
-      {showFab && typeof document !== "undefined" && createPortal(
+      {portalRoot && showFab && createPortal(
         <button
           type="button"
           className={styles.fab}
@@ -172,7 +216,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
         >
           <AiLaunch size={20} />
         </button>,
-        document.body,
+        portalRoot,
       )}
     </div>
   );
