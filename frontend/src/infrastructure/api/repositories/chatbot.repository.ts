@@ -227,6 +227,29 @@ function normalizeTodoItems(rawTodos: unknown): RunTodoItem[] | undefined {
   return items.length > 0 ? items : undefined;
 }
 
+function isTimeoutFailure(errorCode?: string, message?: string): boolean {
+  const code = (errorCode ?? "").toLowerCase();
+  const text = (message ?? "").toLowerCase();
+  if (code.includes("timeout")) return true;
+
+  return (
+    text.includes("timeout")
+    || text.includes("timed out")
+    || text.includes("time out")
+    || text.includes("deadline")
+    || text.includes("exceeded")
+    || text.includes("超時")
+    || text.includes("逾時")
+  );
+}
+
+function toRunFailureMessage(errorCode?: string, message?: string): string {
+  if (isTimeoutFailure(errorCode, message)) {
+    return "任務執行太長，請手動繼續任務";
+  }
+  return message || "任務失敗";
+}
+
 function findMatchingBracket(text: string, openIndex: number): number {
   let depth = 0;
   let quote: string | null = null;
@@ -353,6 +376,16 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
   const runStatus =
     typeof metadata.run_status === "string" ? metadata.run_status : undefined;
   const runId = typeof metadata.run_id === "string" ? metadata.run_id : undefined;
+  const runErrorRaw =
+    typeof metadata.run_error === "string"
+      ? metadata.run_error
+      : typeof metadata.error === "string"
+        ? metadata.error
+        : typeof metadata.error_message === "string"
+          ? metadata.error_message
+          : undefined;
+  const runErrorCode =
+    typeof metadata.error_code === "string" ? metadata.error_code : undefined;
   const lastEventSeq =
     typeof metadata.last_event_seq === "number" ? metadata.last_event_seq : undefined;
   const tools = Array.isArray(metadata.tools_executed)
@@ -390,6 +423,8 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
     todoItems,
     runId,
     runStatus: runStatus as ChatMessage["runStatus"],
+    runError:
+      runStatus === "failed" ? toRunFailureMessage(runErrorCode, runErrorRaw) : undefined,
     lastEventSeq,
     isThinking: runStatus === "queued" || runStatus === "running",
   };
@@ -859,6 +894,10 @@ const chatbotRepository: ChatbotRepository = {
           errorCode: event.error_code,
           message: event.message,
         });
+        currentMessage.runStatus = "failed";
+        currentMessage.isThinking = false;
+        currentMessage.runError = toRunFailureMessage(event.error_code, event.message);
+        callbacks.onMessageUpdate?.({ ...currentMessage });
         callbacks.onSessionNotice?.(null);
         callbacks.onTodoItemsUpdate?.(null);
         this.getSession(resolvedSessionId)
@@ -866,7 +905,7 @@ const chatbotRepository: ChatbotRepository = {
           .catch((err: Error) => {
             console.warn("Failed to fetch session after run_failed:", err);
           });
-        callbacks.onError?.(event.message || "Agent 執行失敗");
+        callbacks.onError?.(toRunFailureMessage(event.error_code, event.message));
         break;
 
       case "awaiting_approval": {

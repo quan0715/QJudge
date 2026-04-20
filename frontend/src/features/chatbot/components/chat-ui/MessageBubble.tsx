@@ -126,7 +126,9 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
           <span className={styles.runStatus}>已停止</span>
         )}
         {!isUser && message.runStatus === "failed" && (
-          <span className={styles.runStatus}>任務失敗</span>
+          <span className={styles.runStatus}>
+            {message.runError || "任務失敗"}
+          </span>
         )}
 
         {messageText && (
