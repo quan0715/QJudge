@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import logging
 from typing import Any
 
@@ -113,8 +114,8 @@ def build_artifact_tools(
     async def _artifact_write_csv(
         step: str,
         filename: str,
-        columns: list[str],
-        rows: list[dict[str, Any]],
+        columns: list[str] | str,
+        rows: list[dict[str, Any]] | str,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Encode rows into RFC 4180 CSV (QUOTE_ALL) and upsert as artifact.
@@ -123,15 +124,31 @@ def build_artifact_tools(
         or newlines — especially with Chinese punctuation. This tool removes
         that responsibility entirely: caller supplies columns + rows, we
         handle encoding.
+
+        Defensive decoding: some models (notably DeepSeek) sometimes emit
+        array params as JSON-encoded strings instead of real arrays, which
+        silently corrupts output (iterating a string yields one char per
+        "column"). We detect and reject that shape with a clear error so
+        the agent can retry — rather than auto-coercing and hiding the bug.
         """
         err = _require_session()
         if err:
             return {"is_error": True, "detail": err}
 
+        columns = _coerce_json_list(columns, "columns")
+        if isinstance(columns, dict) and columns.get("is_error"):
+            return columns
+        rows = _coerce_json_list(rows, "rows")
+        if isinstance(rows, dict) and rows.get("is_error"):
+            return rows
+
         if not columns:
             return {"is_error": True, "detail": "columns must be non-empty"}
-        if not isinstance(rows, list):
-            return {"is_error": True, "detail": "rows must be a list of objects"}
+        if not all(isinstance(c, str) for c in columns):
+            return {
+                "is_error": True,
+                "detail": "every column name must be a string",
+            }
 
         buf = io.StringIO()
         writer = csv.writer(buf, quoting=csv.QUOTE_ALL, lineterminator="\n")
@@ -343,3 +360,48 @@ def _safe_json(resp: httpx.Response) -> Any:
         return resp.json()
     except Exception:
         return resp.text[:500]
+
+
+def _coerce_json_list(value: Any, field: str) -> Any:
+    """Accept a list, or a JSON-stringified list; reject anything else.
+
+    Returns the decoded list on success, or an error dict on failure (caller
+    must check ``isinstance(result, dict) and result.get("is_error")``).
+    Some models emit array params as quoted JSON strings (e.g.
+    ``columns="[\"a\", \"b\"]"``), which if passed straight into ``for c in
+    columns`` silently iterates per-character. Detect and reject.
+    """
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            try:
+                decoded = json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                return {
+                    "is_error": True,
+                    "detail": (
+                        f"{field} looked like a JSON array string but failed to"
+                        f" parse: {exc}. Pass a real array, not a quoted string."
+                    ),
+                }
+            if isinstance(decoded, list):
+                logger.warning(
+                    "artifact_write_csv: %s was passed as JSON string; decoded it."
+                    " Agent should pass a real array.",
+                    field,
+                )
+                return decoded
+        return {
+            "is_error": True,
+            "detail": (
+                f"{field} must be a JSON array, got string. Pass a real array"
+                " (e.g. [\"a\", \"b\"]), not a quoted string (e.g."
+                " \"[\\\"a\\\", \\\"b\\\"]\")."
+            ),
+        }
+    return {
+        "is_error": True,
+        "detail": f"{field} must be an array, got {type(value).__name__}",
+    }

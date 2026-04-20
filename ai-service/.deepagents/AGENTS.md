@@ -40,3 +40,9 @@ Agent **只有**一組由 DeepAgent 提供的**虛擬檔案系統**（`ls` / `re
 > **當需要原始資料（answers、contest、題目）時，一律呼叫對應的 MCP tool（例如 `qjudge_grading(action="list_answers")`），絕對不要嘗試 `read_file("/tmp/...")` 或假設 user 會遞資料。**
 
 跨 turn 持久化產物（要給 user 在右側 panel 看的東西）→ 用 `artifact_write` / `artifact_write_csv`（見 `qjudge-exam-grading-sop` SKILL）。虛擬 FS 僅做本 turn 暫存。
+
+## 批改任務特定備註
+
+- 使用 `artifact_write_csv` 時，確保 `columns` 參數傳遞的是**陣列字面值**，而非 JSON 字串陣列，例如 `columns=["exam_answer_id", "student_id", ...]`，而非 `columns="[\"exam_answer_id\", \"student_id\", ...]"`。
+- 若 MCP 回傳格式有異，直接回報錯誤欄位，不得臆測。
+- 不應使用 `task` 工具處理此類資料密集型任務，因 subagent 無上下文。

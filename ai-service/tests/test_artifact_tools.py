@@ -296,6 +296,72 @@ def test_write_csv_rejects_non_dict_row():
     assert "row[0]" in result["detail"]
 
 
+def test_write_csv_decodes_json_stringified_columns(monkeypatch):
+    """DeepSeek sometimes serializes arrays as JSON strings. Accept + log warning."""
+    stub = _StubClient([
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="answers",
+        filename="answers.csv",
+        columns='["a","b","c"]',   # ← stringified array (the bug shape)
+        rows=[{"a": 1, "b": 2, "c": 3}],
+    ))
+    assert result.get("is_error") is not True, result
+    body = stub.calls[0]["json"]["content"]
+    lines = body.split("\n")
+    # Header is the three real columns, not 13 single-char columns.
+    assert lines[0] == '"a","b","c"'
+    assert lines[1] == '"1","2","3"'
+
+
+def test_write_csv_rejects_non_list_non_string_columns():
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        columns=42, rows=[{"a": 1}],
+    ))
+    assert result["is_error"] is True
+    assert "must be an array" in result["detail"]
+
+
+def test_write_csv_rejects_malformed_string_columns():
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        columns='not json at all', rows=[{"a": 1}],
+    ))
+    assert result["is_error"] is True
+
+
+def test_write_csv_rejects_non_string_column_names():
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        columns=["a", 42, "c"], rows=[{"a": 1}],
+    ))
+    assert result["is_error"] is True
+    assert "column name" in result["detail"]
+
+
+def test_write_csv_decodes_json_stringified_rows(monkeypatch):
+    stub = _StubClient([
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        columns=["a", "b"],
+        rows='[{"a": 1, "b": 2}]',   # ← stringified too
+    ))
+    assert result.get("is_error") is not True, result
+    body = stub.calls[0]["json"]["content"]
+    assert '"1","2"' in body
+
+
 def test_write_csv_fills_missing_columns_with_empty(monkeypatch):
     stub = _StubClient([
         {"method": "POST", "status": 201, "json": {"id": "a"}},
