@@ -885,21 +885,42 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         run.sessionId === currentSessionId &&
         ["queued", "running", "awaiting_approval"].includes(run.status),
     );
+
+    // Abort only the CURRENT subscription immediately. Do not defer this to an
+    // async finally block, otherwise a later run may replace the ref and get
+    // aborted by mistake (causing "next message has no thinking until refresh").
+    const controllerToAbort = abortControllerRef.current;
+    abortControllerRef.current = null;
+    controllerToAbort?.abort();
+
+    // Immediate UI response for cancel click.
+    setIsStreaming(false);
+    setIsLoading(false);
+    setSessionNotice(null);
+
     if (!activeRun) {
-      abortControllerRef.current?.abort();
-      abortControllerRef.current = null;
-      setIsStreaming(false);
-      setIsLoading(false);
-      setSessionNotice(null);
       return;
     }
 
+    // Optimistically mark current assistant run as cancelled so "已停止" appears
+    // right away without waiting for backend cancel + session refetch.
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === activeRun.sessionId
+          ? applyRunMessageUpdate(
+              session,
+              activeRun,
+              { runStatus: "cancelled", isThinking: false },
+              { content: "", thinking: "" },
+            )
+          : session,
+      ),
+    );
+    // Remove from active runs immediately to prevent stale running state.
+    setActiveRuns((prev) => prev.filter((item) => item.id !== activeRun.id));
+
     chatbotRepository.cancelRun(activeRun.id)
       .then((run) => {
-        setActiveRuns((prev) =>
-          prev.map((item) => (item.id === run.id ? run : item))
-            .filter((item) => item.status !== "cancelled"),
-        );
         return chatbotRepository.getSession(run.sessionId);
       })
       .then((freshSession) => {
@@ -912,13 +933,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       .catch((err) => {
         console.error("Failed to cancel run:", err);
         setError(i18n.t("chatbot:errors.stopRunFailed", "無法停止 AI 任務"));
-      })
-      .finally(() => {
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = null;
-        setIsStreaming(false);
-        setIsLoading(false);
-        setSessionNotice(null);
       });
   }, [activeRuns, currentSessionId]);
 
