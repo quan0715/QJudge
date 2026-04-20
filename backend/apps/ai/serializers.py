@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from .models import AIChatRun, AIMessage, AISession
+from .models import AIArtifact, AIChatRun, AIMessage, AISession
 
 
 class AIMessageSerializer(serializers.ModelSerializer):
@@ -149,3 +149,48 @@ class ModelInfoSerializer(serializers.Serializer):
     display_name = serializers.CharField()
     description = serializers.CharField()
     is_default = serializers.BooleanField()
+
+
+class AIArtifactSerializer(serializers.ModelSerializer):
+    """Metadata view of an artifact (no content)."""
+
+    session_id = serializers.CharField(source="session.session_id", read_only=True)
+    run_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AIArtifact
+        fields = [
+            "id",
+            "session_id",
+            "run_id",
+            "step",
+            "filename",
+            "object_key",
+            "content_type",
+            "size_bytes",
+            "checksum",
+            "metadata",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_run_id(self, obj) -> str | None:
+        return str(obj.run_id) if obj.run_id else None
+
+
+class AIArtifactWriteSerializer(serializers.Serializer):
+    """Accepts text content + metadata for internal artifact writes."""
+
+    session_id = serializers.CharField(max_length=36)
+    run_id = serializers.UUIDField(required=False, allow_null=True)
+    step = serializers.RegexField(regex=r"^[A-Za-z0-9_\-]{1,64}$")
+    filename = serializers.RegexField(regex=r"^[A-Za-z0-9._\-]{1,255}$")
+    content = serializers.CharField(allow_blank=True, trim_whitespace=False)
+    content_type = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=100,
+        default="text/plain; charset=utf-8",
+    )
+    metadata = serializers.JSONField(required=False, default=dict)

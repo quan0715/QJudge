@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Loading } from "@carbon/react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Breadcrumb, BreadcrumbItem, IconButton, Loading } from "@carbon/react";
+import { Renew, Settings } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 
 import {
   ContestProvider,
@@ -10,8 +12,8 @@ import {
   useContestAdmin,
   useAdminPanelRefresh,
 } from "@/features/contest/contexts";
-import AdminDashboardLayout from "@/features/contest/components/admin/layout/AdminDashboardLayout";
 import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
+import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
@@ -19,6 +21,7 @@ import { ContestSettingsOverlay } from "@/features/contest/screens/admin/panels/
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
 import { useTabWithUrlParam } from "@/shared/hooks";
+import styles from "./AdminDashboardScreen.module.scss";
 
 /** Dynamic panel dispatch — registry pattern requires runtime lookup; state is stable because
  *  each panelId maps to a fixed component reference within a given contestModule. */
@@ -39,6 +42,8 @@ const LEGACY_PANEL_ALIAS: Record<string, AdminPanelId> = {
 };
 
 const AdminDashboardInner = () => {
+  const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -77,14 +82,13 @@ const AdminDashboardInner = () => {
     () => contestModule.admin.getAvailablePanels(contest),
     [contestModule, contest],
   );
-  const { activeKey: activePanel, setActiveKey: handlePanelChange } = useTabWithUrlParam({
+  const { activeKey: activePanel } = useTabWithUrlParam({
     param: "panel",
     keys: availablePanels,
     defaultKey: "overview",
     aliases: LEGACY_PANEL_ALIAS,
   });
 
-  const isExamMode = contestModule.admin.editorKind === "paper_exam";
   const panelParam = searchParams.get("panel");
 
   useEffect(() => {
@@ -145,28 +149,69 @@ const AdminDashboardInner = () => {
   }
 
   return (
-    <AdminDashboardLayout
-      contestId={contestId || ""}
-      contestName={contest?.name || "Loading..."}
-      classroomId={effectiveClassroomId}
-      classroomName=""
-      activePanel={activePanel}
-      availablePanels={availablePanels}
-      examMode={isExamMode}
-      contest={contest}
-      onPanelChange={handlePanelChange}
-      onRefresh={handleNavbarRefresh}
-      onSettingsOpen={() => setSettingsOpen(true)}
-    >
-      <AdminPanelSlot
-        panelId={activePanel}
-        contestModule={contestModule}
-        contestId={contestId || ""}
-        contest={contest}
-        onExport={() => setExportOpen(true)}
-        onPreview={handlePreview}
-        onOpenSettings={() => setSettingsOpen(true)}
+    <div className={styles.page}>
+      <WorkspaceToolBar
+        className={styles.toolbar}
+        title={(
+          <div className={styles.toolbarTitle}>
+            <Link to="/dashboard" className={styles.brandLink}>
+              {tc("header.prefix", "QJudge")}
+            </Link>
+            <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
+              <BreadcrumbItem>
+                <Link to="/dashboard">{tc("nav.dashboard")}</Link>
+              </BreadcrumbItem>
+              {effectiveClassroomId && (
+                <BreadcrumbItem>
+                  <Link to={`/classrooms/${effectiveClassroomId}`}>
+                    {tc("nav.classrooms", "教室")}
+                  </Link>
+                </BreadcrumbItem>
+              )}
+              <BreadcrumbItem>
+                {contest?.name || "Loading..."}
+              </BreadcrumbItem>
+              <BreadcrumbItem isCurrentPage>
+                {t("adminLayout.title", "管理")}
+              </BreadcrumbItem>
+            </Breadcrumb>
+          </div>
+        )}
+        actions={(
+          <>
+            <IconButton
+              kind="ghost"
+              size="md"
+              align="bottom"
+              label={tc("actions.refresh", "Refresh")}
+              onClick={handleNavbarRefresh}
+            >
+              <Renew size={20} />
+            </IconButton>
+            <IconButton
+              kind="ghost"
+              size="md"
+              align="bottom"
+              label={t("adminLayout.nav.settings")}
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings size={20} />
+            </IconButton>
+          </>
+        )}
       />
+
+      <div className={styles.panelBody}>
+        <AdminPanelSlot
+          panelId={activePanel}
+          contestModule={contestModule}
+          contestId={contestId || ""}
+          contest={contest}
+          onExport={() => setExportOpen(true)}
+          onPreview={handlePreview}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      </div>
 
       {contest && contestId && (
         <ContestExportDialog
@@ -181,7 +226,7 @@ const AdminDashboardInner = () => {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />
-    </AdminDashboardLayout>
+    </div>
   );
 };
 

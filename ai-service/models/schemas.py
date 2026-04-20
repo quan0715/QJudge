@@ -46,6 +46,11 @@ class ChatRequest(BaseModel):
         max_length=100,
         description="DeepAgent thread ID for resume (None = new thread)",
     )
+    run_id: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Backend AIChatRun id for artifact attribution",
+    )
     conversation: list[ChatMessage] = Field(
         default_factory=list,
         max_length=50,
@@ -60,6 +65,11 @@ class ResumeRequest(BaseModel):
         min_length=1,
         max_length=100,
         description="DeepAgent thread ID to resume",
+    )
+    run_id: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Backend AIChatRun id for artifact attribution",
     )
     decision: str = Field(
         ...,
@@ -91,3 +101,5 @@ class HealthResponse(BaseModel):
 class RequestContext(BaseModel):
     """Request-scoped context derived from trusted backend headers."""
     user_authorization: str | None = None
+    session_id: str | None = None
+    run_id: str | None = None

@@ -7,29 +7,12 @@ import styles from "./ChainOfThought.module.scss";
 
 interface ChainOfThoughtProps {
   steps: ToolInfo[];
+  // Kept on the type for compatibility with existing callers, but the todo
+  // block has moved to SessionBadges (above the composer). CoT now focuses
+  // on raw tool-call transparency only.
   todoItems?: RunTodoItem[];
   isProcessing: boolean;
   currentToolName?: string;
-}
-
-function getTodoStatusIcon(item: RunTodoItem) {
-  if (item.status === "success") {
-    return <Checkmark size={16} className={styles.success} />;
-  }
-  if (item.status === "fail") {
-    return <Warning size={16} className={styles.failure} />;
-  }
-  if (item.status === "in_progress") {
-    return <InProgress size={16} className={styles.processing} />;
-  }
-  return <InProgress size={16} className={styles.pending} />;
-}
-
-function getTodoSummaryStatus(todoItems: RunTodoItem[]) {
-  if (todoItems.some((item) => item.status === "fail")) return "fail";
-  if (todoItems.some((item) => item.status === "in_progress")) return "in_progress";
-  if (todoItems.length > 0 && todoItems.every((item) => item.status === "success")) return "success";
-  return "pending";
 }
 
 interface StepProps {
@@ -56,10 +39,6 @@ const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
       ? styles.success
       : styles.processing;
 
-  // Expensive JSON serialization is cached per-step; only re-runs when
-  // the underlying inputData/result reference changes. This is critical
-  // because previously-completed steps would re-stringify on every SSE
-  // delta applied to the parent message list.
   const inputJson = useMemo(() => {
     if (step.inputData === undefined || step.inputData === null) return "";
     try {
@@ -114,14 +93,14 @@ function formatToolName(toolName: string, t: any) {
 
 function ChainOfThoughtComponent({
   steps,
-  todoItems = [],
   isProcessing,
   currentToolName,
 }: ChainOfThoughtProps) {
   const { t } = useTranslation("chatbot");
   const inputLabel = t("ui.stepInput");
   const outputLabel = t("ui.stepOutput");
-  const todoSummaryStatus = getTodoSummaryStatus(todoItems);
+
+  if (steps.length === 0 && !isProcessing) return null;
 
   return (
     <div className={styles.cot}>
@@ -149,31 +128,6 @@ function ChainOfThoughtComponent({
             }
           >
             <div className={styles.processingText}>{t("ui.processing")}</div>
-          </AccordionItem>
-        )}
-
-        {todoItems.length > 0 && (
-          <AccordionItem
-            open={todoSummaryStatus === "in_progress" || todoSummaryStatus === "pending"}
-            title={
-              <span className={styles.stepTitle}>
-                {getTodoStatusIcon({
-                  id: "todo-summary",
-                  label: "",
-                  status: todoSummaryStatus,
-                })}
-                {t("ui.todoList", "待辦清單")}
-              </span>
-            }
-          >
-            <div className={styles.todoList}>
-              {todoItems.map((item) => (
-                <div key={item.id} className={styles.todoItem}>
-                  {getTodoStatusIcon(item)}
-                  <span className={styles.todoLabel}>{item.label}</span>
-                </div>
-              ))}
-            </div>
           </AccordionItem>
         )}
       </Accordion>

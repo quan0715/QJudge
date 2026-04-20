@@ -13,6 +13,7 @@
 | **qjudge-mcp-tool-operator** | MCP 機械層：工具路由、必要欄位、常見錯誤修正 |
 | **qjudge-ta-protocol** | 執行層：get → code_runner → update 順序與收斂 |
 | **coding-problem-ta-skill** | 教學層：題意、規格、題敘與定稿品質 |
+| **qjudge-exam-grading-sop** | 批改層：open-ended 題目批改 SOP、artifact 產出、Gate 確認 |
 
 系統提示若已列出摘要，細節仍以 `read_file` 讀取該 `SKILL.md` 全文為準。
 

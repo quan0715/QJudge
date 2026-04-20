@@ -7,8 +7,6 @@ import {
   Button,
   ExpandableSearch,
   FluidDropdown,
-  Header,
-  HeaderGlobalBar,
   Loading,
   Stack,
   Tag,
@@ -41,9 +39,7 @@ import {
 } from "@/infrastructure/api/repositories/questionBank.repository";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import { useAuth } from "@/features/auth";
-import { SideMenu } from "@/features/app/components/SideMenu";
-import { SideMenuToggle } from "@/features/app/components/SideMenuToggle";
-import { UserMenu } from "@/features/app/components/UserMenu";
+import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import { QuestionBankSettingsGeneralPanel } from "@/features/question-banks/components/QuestionBankSettingsGeneralPanel";
 import { ImportInboxModal } from "@/features/question-banks/components/ImportInboxModal";
 import QuestionBankProblemManagementPanel from "./QuestionBankProblemManagementPanel";
@@ -83,7 +79,6 @@ const QuestionBankDetailScreen = () => {
     tags: [],
     questionTypes: [],
   });
-  const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<BankQuestion | null>(null);
   const [importInboxOpen, setImportInboxOpen] = useState(false);
   const [examTypePickerOpen, setExamTypePickerOpen] = useState(false);
@@ -386,44 +381,29 @@ const QuestionBankDetailScreen = () => {
 
   return (
     <div className={styles.shell}>
-      {/* Breadcrumb Header */}
-      <Header
-        aria-label={t("questionBank.adminTitle", "題庫管理")}
-        className={styles.header}
-      >
-        <div className={styles.headerLeft}>
-          <SideMenuToggle
-            isOpen={sideMenuOpen}
-            onClick={() => setSideMenuOpen((o) => !o)}
-          />
-          <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
-            <BreadcrumbItem>
-              <Link to="/marketplace">{t("nav.marketplace", "Marketplace")}</Link>
-            </BreadcrumbItem>
-            <BreadcrumbItem isCurrentPage>
-              {bank.name}
-            </BreadcrumbItem>
-          </Breadcrumb>
-        </div>
-        <HeaderGlobalBar>
-          <UserMenu />
-        </HeaderGlobalBar>
-        <SideMenu
-          isOpen={sideMenuOpen}
-          onClose={() => setSideMenuOpen(false)}
-        />
-      </Header>
-
-      {/* Toolbar (below header, above hero) */}
-      <div className={styles.localToolbar}>
+      <WorkspaceToolBar
+        className={styles.localToolbar}
+        title={(
           <div className={styles.localToolbarLeft}>
-            <h4 className={styles.localToolbarTitle}>
-              {t("page.problemManagement", "題目管理")}
-            </h4>
-            <span className={styles.localToolbarMeta}>
-              {t("questionBank.questionCount", "共 {{count}} 題", { count: questions.length })}
-            </span>
+            <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
+              <BreadcrumbItem>
+                <Link to="/marketplace">{t("nav.marketplace", "Marketplace")}</Link>
+              </BreadcrumbItem>
+              <BreadcrumbItem isCurrentPage>
+                {bank.name}
+              </BreadcrumbItem>
+            </Breadcrumb>
+            <div className={styles.titleBlock}>
+              <h4 className={styles.localToolbarTitle}>
+                {t("page.problemManagement", "題目管理")}
+              </h4>
+              <span className={styles.localToolbarMeta}>
+                {t("questionBank.questionCount", "共 {{count}} 題", { count: questions.length })}
+              </span>
+            </div>
           </div>
+        )}
+        actions={(
           <div className={styles.localToolbarRight}>
             <ExpandableSearch
               id="qb-toolbar-search"
@@ -536,7 +516,8 @@ const QuestionBankDetailScreen = () => {
               />
             )}
           </div>
-        </div>
+        )}
+      />
 
       <main className={styles.content}>
         <QJudgeHeroWidget

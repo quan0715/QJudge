@@ -167,7 +167,10 @@ function App() {
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
                               {questionBankMarketplaceRoute}
+                              {questionBankDetailRoute}
                               {draftProblemsRoute}
+                              {/* Classroom Contest Admin - Classroom-scoped, inside shared workspace shell */}
+                              {classroomContestAdminRoute}
                               <Route
                                 path="/chat"
                                 element={
@@ -185,12 +188,6 @@ function App() {
                                 }
                               />
                             </Route>
-
-                            {/* Question Bank Detail - Standalone with breadcrumb header */}
-                            {questionBankDetailRoute}
-
-                            {/* Classroom Contest Admin - Classroom-scoped */}
-                            {classroomContestAdminRoute}
 
                             {/* Classroom Exam Preview - Classroom-scoped */}
                             {classroomExamPreviewRoute}

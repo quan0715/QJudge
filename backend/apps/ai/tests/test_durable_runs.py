@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.ai.models import AIChatRun, AIMessage, AISession, AIStreamEvent, UserAICredit
-from apps.ai.services.run_runtime import execute_run, run_events_as_sse
+from apps.ai.services.run_runtime import apply_event_to_run, execute_run, run_events_as_sse
 
 User = get_user_model()
 
@@ -325,3 +325,50 @@ class DurableRunWorkerTestCase(TestCase):
         queued_run.refresh_from_db()
         self.assertEqual(queued_run.status, AIChatRun.Status.RUNNING)
         dispatch_run.assert_called_once()
+
+    def test_todos_are_persisted_in_assistant_metadata(self):
+        user_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.USER,
+            content="Track todos",
+        )
+        assistant_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.ASSISTANT,
+            content="",
+            metadata={"run_status": "running"},
+        )
+        run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.RUNNING,
+            content="Track todos",
+            user_message=user_message,
+            assistant_message=assistant_message,
+            thread_id=self.session.session_id,
+        )
+
+        apply_event_to_run(
+            run,
+            {
+                "type": "tool_call_started",
+                "tool_name": "write_todos",
+                "tool_call_id": "tool-1",
+                "input_data": {
+                    "todos": [
+                        {"content": "讀取題目", "status": "running"},
+                        {"content": "產生測資", "status": "pending"},
+                    ]
+                },
+            },
+        )
+        apply_event_to_run(run, {"type": "run_completed"})
+
+        assistant_message.refresh_from_db()
+        self.assertEqual(
+            assistant_message.metadata.get("todos"),
+            [
+                {"id": "0-讀取題目", "content": "讀取題目", "status": "in_progress"},
+                {"id": "1-產生測資", "content": "產生測資", "status": "pending"},
+            ],
+        )

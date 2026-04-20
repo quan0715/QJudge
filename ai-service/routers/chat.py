@@ -41,6 +41,9 @@ async def generate_sse_events(
 
     request_context = RequestContext(
         user_authorization=app_request.headers.get("X-QJudge-User-Authorization"),
+        # thread_id is already session-scoped in the backend contract.
+        session_id=request.thread_id,
+        run_id=request.run_id,
     )
 
     try:
@@ -87,6 +90,8 @@ async def generate_resume_events(
 
     request_context = RequestContext(
         user_authorization=app_request.headers.get("X-QJudge-User-Authorization"),
+        session_id=request.thread_id,
+        run_id=request.run_id,
     )
 
     try:

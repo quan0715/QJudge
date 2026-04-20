@@ -87,6 +87,15 @@ class Settings(BaseSettings):
     deepagent_skills_paths: list[str] = ["/app/.deepagents/skills/"]
     deepagent_memory_paths: list[str] = ["/app/.deepagents/AGENTS.md"]
 
+    # Backend (Django) base URL for internal artifact tool callbacks
+    qjudge_backend_url: str = Field(
+        default="http://backend:8000",
+        validation_alias=AliasChoices(
+            "QJUDGE_BACKEND_URL",
+            "DJANGO_BASE_URL",  # reuse if present
+        ),
+    )
+
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
 
