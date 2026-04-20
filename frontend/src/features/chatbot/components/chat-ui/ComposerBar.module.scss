@@ -61,6 +61,11 @@
   box-shadow: none;
   padding: 0.6rem 0.75rem 0.6rem;
   transition: padding 160ms ease;
+  // Enable container queries so narrow chat panels (e.g. right-side split
+  // inside a desktop workspace) can collapse badge labels even when the
+  // viewport is wide.
+  container-type: inline-size;
+  container-name: composer;
 }
 
 // Compact mode: single visible row; everything inline.
@@ -370,7 +375,9 @@
     }
   }
 
-  // Expanded mode on mobile: model selector on left, send button on right
+  // Expanded mode on mobile: keep everything on a single toolbar row —
+  // [badges] [model selector] [send]. Badges hide their label (see
+  // SessionBadges mobile overrides) so the three elements always fit.
   .inputWrapperExpanded {
     padding: 0.5rem 0.6rem;
     gap: 0.5rem;
@@ -378,13 +385,22 @@
     .toolbar {
       flex-direction: row;
       align-items: center;
-      gap: 0.5rem;
+      justify-content: space-between;
+      gap: 0.4rem;
+      flex-wrap: nowrap;
+    }
+
+    .leftTools {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
     }
 
     .rightTools {
-      width: 100%;
-      justify-content: space-between;
+      width: auto;
       flex-wrap: nowrap;
+      flex-shrink: 0;
+      gap: 0.4rem;
     }
 
     .modelSelectWrap {
@@ -394,11 +410,11 @@
     }
 
     .modelSelectButton {
-      max-width: 9rem;
+      max-width: 8rem;
     }
 
     .modelText {
-      max-width: 7.5rem;
+      max-width: 6.5rem;
     }
   }
 }
