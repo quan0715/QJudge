@@ -9,6 +9,11 @@ urlpatterns = [
         name="oauth-as-metadata",
     ),
     path(
+        ".well-known/mcp/server-card.json",
+        views.mcp_server_card,
+        name="mcp-server-card",
+    ),
+    path(
         "o/register/",
         views.dynamic_client_registration,
         name="oauth-dcr",
