@@ -343,3 +343,61 @@ class UserAICredit(models.Model):
 
     def __str__(self):
         return f"AICredit {self.user} - {self.total_requests} reqs, {self.total_credits} cr"
+
+
+class AIArtifact(models.Model):
+    """Artifact produced during an AI session (e.g. rubric, graded answers)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(
+        AISession,
+        on_delete=models.CASCADE,
+        related_name="artifacts",
+    )
+    run = models.ForeignKey(
+        AIChatRun,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="artifacts",
+        help_text="最近一次寫入此 artifact 的 run（保留紀錄，不影響讀取）",
+    )
+    step = models.CharField(
+        max_length=64,
+        help_text="SOP 階段識別（例：rubric、raw_answers、calibration、graded、final_delta）",
+    )
+    filename = models.CharField(max_length=255)
+    object_key = models.CharField(
+        max_length=512,
+        help_text="MinIO 物件 key：ai-artifacts/{session_id}/{step}/{filename}",
+    )
+    content_type = models.CharField(max_length=100, default="application/octet-stream")
+    size_bytes = models.PositiveIntegerField(default=0)
+    checksum = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="內容 sha256，用於完整性檢查",
+    )
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="自由欄位：artifact_type、rubric 摘要、評分進度等",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["session", "step", "filename"],
+                name="uniq_ai_artifact_session_step_filename",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["session", "step"]),
+            models.Index(fields=["session", "-updated_at"]),
+        ]
+
+    def __str__(self):
+        return f"AIArtifact {self.session_id}/{self.step}/{self.filename}"

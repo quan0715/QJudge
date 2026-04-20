@@ -411,40 +411,69 @@ AI_SERVICE_INTERNAL_TOKEN = os.getenv(
 # 預設 400_000 ≙ 0.4 美分/credit（Pro $20/月、~2000 credits 對應 ~$8 AI 成本、毛利 ~60%）
 AI_CREDIT_SCALE_PER_CREDIT = int(os.getenv("AI_CREDIT_SCALE_PER_CREDIT", "400000"))
 
-# Anti-cheat evidence storage (MinIO / S3-compatible)
-ANTICHEAT_S3_ENDPOINT_URL = os.getenv("ANTICHEAT_S3_ENDPOINT_URL", "")
-# Optional browser-facing endpoint used to rewrite presigned URLs
-# Example (dev): http://localhost:9000
-ANTICHEAT_S3_PUBLIC_ENDPOINT_URL = os.getenv("ANTICHEAT_S3_PUBLIC_ENDPOINT_URL", "")
-ANTICHEAT_S3_REGION = os.getenv("ANTICHEAT_S3_REGION", "us-east-1")
-ANTICHEAT_S3_ACCESS_KEY = os.getenv(
-    "ANTICHEAT_S3_ACCESS_KEY",
-    os.getenv("MINIO_ROOT_USER", ""),
+# ---------------------------------------------------------------------------
+# MinIO / S3 連線設定（所有 MinIO 使用者共用同一個實例，只設一次）
+# ---------------------------------------------------------------------------
+MINIO_ENDPOINT_URL = os.getenv(
+    "MINIO_ENDPOINT_URL",
+    os.getenv("ANTICHEAT_S3_ENDPOINT_URL", ""),
 )
-ANTICHEAT_S3_SECRET_KEY = os.getenv(
-    "ANTICHEAT_S3_SECRET_KEY",
-    os.getenv("MINIO_ROOT_PASSWORD", ""),
+# Browser-facing endpoint used to rewrite presigned URLs (e.g. http://localhost:9000)
+MINIO_PUBLIC_ENDPOINT_URL = os.getenv(
+    "MINIO_PUBLIC_ENDPOINT_URL",
+    os.getenv("ANTICHEAT_S3_PUBLIC_ENDPOINT_URL", ""),
 )
+MINIO_REGION = os.getenv(
+    "MINIO_REGION",
+    os.getenv("ANTICHEAT_S3_REGION", "us-east-1"),
+)
+MINIO_ACCESS_KEY = os.getenv(
+    "MINIO_ACCESS_KEY",
+    os.getenv(
+        "ANTICHEAT_S3_ACCESS_KEY",
+        os.getenv("MINIO_ROOT_USER", ""),
+    ),
+)
+MINIO_SECRET_KEY = os.getenv(
+    "MINIO_SECRET_KEY",
+    os.getenv(
+        "ANTICHEAT_S3_SECRET_KEY",
+        os.getenv("MINIO_ROOT_PASSWORD", ""),
+    ),
+)
+MINIO_PRESIGNED_URL_TTL_SECONDS = int(
+    os.getenv("MINIO_PRESIGNED_URL_TTL_SECONDS", "300")
+)
+
+# Backwards-compatible aliases — existing modules read these. Prefer MINIO_* in new code.
+ANTICHEAT_S3_ENDPOINT_URL = MINIO_ENDPOINT_URL
+ANTICHEAT_S3_PUBLIC_ENDPOINT_URL = MINIO_PUBLIC_ENDPOINT_URL
+ANTICHEAT_S3_REGION = MINIO_REGION
+ANTICHEAT_S3_ACCESS_KEY = MINIO_ACCESS_KEY
+ANTICHEAT_S3_SECRET_KEY = MINIO_SECRET_KEY
+ANTICHEAT_PRESIGNED_URL_TTL_SECONDS = MINIO_PRESIGNED_URL_TTL_SECONDS
+
+MARKDOWN_IMAGE_S3_ENDPOINT_URL = MINIO_ENDPOINT_URL
+MARKDOWN_IMAGE_S3_REGION = MINIO_REGION
+MARKDOWN_IMAGE_S3_ACCESS_KEY = MINIO_ACCESS_KEY
+MARKDOWN_IMAGE_S3_SECRET_KEY = MINIO_SECRET_KEY
+
+# Per-feature bucket / size settings
 ANTICHEAT_RAW_BUCKET = os.getenv("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
 ANTICHEAT_VIDEO_BUCKET = os.getenv("ANTICHEAT_VIDEO_BUCKET", "anticheat-videos")
-ANTICHEAT_PRESIGNED_URL_TTL_SECONDS = int(
-    os.getenv("ANTICHEAT_PRESIGNED_URL_TTL_SECONDS", "300")
-)
 ANTICHEAT_CAPTURE_INTERVAL_SECONDS = int(
     os.getenv("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
 )
 
-# Markdown image storage — reuses the same MinIO instance as anticheat
-MARKDOWN_IMAGE_S3_ENDPOINT_URL = ANTICHEAT_S3_ENDPOINT_URL
-MARKDOWN_IMAGE_S3_REGION = ANTICHEAT_S3_REGION
-MARKDOWN_IMAGE_S3_ACCESS_KEY = ANTICHEAT_S3_ACCESS_KEY
-MARKDOWN_IMAGE_S3_SECRET_KEY = ANTICHEAT_S3_SECRET_KEY
 MARKDOWN_IMAGE_S3_BUCKET = os.getenv("MARKDOWN_IMAGE_S3_BUCKET", "markdown-images")
 MARKDOWN_IMAGE_MAX_BYTES = int(os.getenv("MARKDOWN_IMAGE_MAX_BYTES", "5242880"))
 MARKDOWN_IMAGE_PUBLIC_BASE_URL = os.getenv(
     "MARKDOWN_IMAGE_PUBLIC_BASE_URL",
     os.getenv("FRONTEND_URL", ""),
 ).strip()
+
+AI_ARTIFACT_S3_BUCKET = os.getenv("AI_ARTIFACT_S3_BUCKET", "ai-artifacts")
+AI_ARTIFACT_MAX_BYTES = int(os.getenv("AI_ARTIFACT_MAX_BYTES", "10485760"))  # 10 MB
 
 # Recur Payment settings
 RECUR_PUBLISHABLE_KEY = os.getenv("RECUR_PUBLISHABLE_KEY", "")

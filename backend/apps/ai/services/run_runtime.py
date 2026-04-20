@@ -48,6 +48,54 @@ PAUSED_STATUSES = [AIChatRun.Status.AWAITING_APPROVAL]
 _SSE_POLL_MIN_INTERVAL_SECONDS = 0.05
 _SSE_POLL_MAX_INTERVAL_SECONDS = 1.5
 _SSE_POLL_BACKOFF_FACTOR = 1.5
+_TODO_TOOL_NAMES = {"write_todos", "update_todos"}
+
+
+def _normalize_todo_status(status: Any) -> str:
+    if not isinstance(status, str):
+        return "pending"
+    value = status.strip().lower()
+    if value in {"success", "completed", "complete", "done"}:
+        return "success"
+    if value in {"in_progress", "running"}:
+        return "in_progress"
+    if value in {"fail", "failed", "error"}:
+        return "fail"
+    return "pending"
+
+
+def _normalize_todo_items(raw_todos: Any) -> list[dict[str, str]] | None:
+    if not isinstance(raw_todos, list):
+        return None
+    normalized: list[dict[str, str]] = []
+    for item in raw_todos:
+        if not isinstance(item, dict):
+            continue
+        raw_label = item.get("content") if isinstance(item.get("content"), str) else item.get("label")
+        label = raw_label.strip() if isinstance(raw_label, str) else ""
+        if not label:
+            continue
+        todo_id = item.get("id")
+        normalized.append(
+            {
+                "id": todo_id if isinstance(todo_id, str) and todo_id else f"{len(normalized)}-{label}",
+                "content": label,
+                "status": _normalize_todo_status(item.get("status")),
+            }
+        )
+    return normalized or None
+
+
+def _extract_todo_items_from_payload(payload: Any) -> list[dict[str, str]] | None:
+    if not isinstance(payload, dict):
+        return None
+    return _normalize_todo_items(payload.get("todos")) or _normalize_todo_items(payload.get("todo_items"))
+
+
+def _persist_todos_in_metadata(metadata: dict[str, Any], payload: Any) -> None:
+    todos = _extract_todo_items_from_payload(payload)
+    if todos:
+        metadata["todos"] = todos
 
 
 def ensure_session_for_run(*, user, session_id: str) -> AISession:
@@ -248,6 +296,7 @@ def execute_run(run_id: str) -> None:
     if run.kind == AIChatRun.Kind.RESUME:
         payload = {
             "thread_id": run.thread_id or run.session.session_id,
+            "run_id": str(run.id),
             "decision": run.resume_decision,
         }
     else:
@@ -255,6 +304,7 @@ def execute_run(run_id: str) -> None:
             "content": run.content,
             "conversation": [],
             "thread_id": run.thread_id or run.session.session_id,
+            "run_id": str(run.id),
             "model_id": run.model_id,
         }
 
@@ -385,6 +435,8 @@ def apply_event_to_run(run: AIChatRun, event: dict[str, Any]) -> None:
             "tool_call_id": event.get("tool_call_id"),
             "input": event.get("input_data"),
         }
+        if event.get("tool_name") in _TODO_TOOL_NAMES:
+            _persist_todos_in_metadata(metadata, event.get("input_data"))
         _save_assistant_metadata(run, metadata)
         return
 
@@ -399,6 +451,9 @@ def apply_event_to_run(run: AIChatRun, event: dict[str, Any]) -> None:
             }
         )
         metadata.setdefault("tools_executed", []).append(tool)
+        if tool.get("tool_name") in _TODO_TOOL_NAMES:
+            _persist_todos_in_metadata(metadata, tool.get("input"))
+            _persist_todos_in_metadata(metadata, event.get("result"))
         _save_assistant_metadata(run, metadata)
         return
 

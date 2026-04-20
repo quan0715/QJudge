@@ -31,7 +31,9 @@ from services.event_adapter import (
     adapt_langgraph_event,
     to_sse_dict,
 )
+from config import get_settings
 from models.schemas import RequestContext
+from services.artifact_tools import build_artifact_tools
 from services.hitl_middleware import ActionAwareHITLMiddleware
 from services.mcp_tool_provider import MCPToolProvider
 from services.model_factory import ModelFactory, _DEFAULT_MODEL_ID as _REPAIR_MODEL_ID
@@ -57,6 +59,19 @@ def _qjudge_backend_factory(rt: Any) -> CompositeBackend:
     return CompositeBackend(
         default=StateBackend(rt),
         routes={"/app/.deepagents/": deepagents_fs},
+    )
+
+
+def _build_session_artifact_tools(request_context: RequestContext | None) -> list[Any]:
+    """Construct session-private artifact tools using ai-service config."""
+    cfg = get_settings()
+    session_id = request_context.session_id if request_context else None
+    run_id = request_context.run_id if request_context else None
+    return build_artifact_tools(
+        session_id=session_id,
+        run_id=run_id,
+        backend_base_url=cfg.qjudge_backend_url,
+        internal_token=cfg.ai_internal_token,
     )
 
 
@@ -174,6 +189,7 @@ _DEFAULT_SYSTEM_PROMPT = """你是 QJudge 的 AI 助教，對話對象是老師�
 - `/app/.deepagents/skills/qjudge-ta-protocol/SKILL.md`
 - `/app/.deepagents/skills/qjudge-mcp-tool-operator/SKILL.md`
 - `/app/.deepagents/skills/coding-problem-ta-skill/SKILL.md`
+- `/app/.deepagents/skills/qjudge-exam-grading-sop/SKILL.md`（open-ended 題批改 SOP；遇到老師要評分/改分時讀此）
 
 如工具錯誤或路由不確定，先呼叫：
 `qjudge_browse(action="get_help", tool_name="<tool_name>")`
@@ -319,6 +335,7 @@ class DeepAgentRunner:
             ),
         ) as tool_provider:
             tools = await tool_provider.load_tools()
+            tools = list(tools) + _build_session_artifact_tools(request_context)
             agent = self._build_agent(
                 model_id=model_id,
                 system_prompt=system_prompt,
