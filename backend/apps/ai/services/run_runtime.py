@@ -5,11 +5,13 @@ from __future__ import annotations
 import json
 import logging
 import asyncio
+import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
 import httpx
 from asgiref.sync import sync_to_async
+from celery.exceptions import CeleryError
 from django.db import connections, transaction
 from django.utils import timezone
 
@@ -48,6 +50,7 @@ PAUSED_STATUSES = [AIChatRun.Status.AWAITING_APPROVAL]
 _SSE_POLL_MIN_INTERVAL_SECONDS = 0.05
 _SSE_POLL_MAX_INTERVAL_SECONDS = 1.5
 _SSE_POLL_BACKOFF_FACTOR = 1.5
+_SSE_HEARTBEAT_INTERVAL_SECONDS = 15.0
 _TODO_TOOL_NAMES = {"write_todos", "update_todos"}
 
 
@@ -203,11 +206,31 @@ def _ai_internal_token() -> str:
     return getattr(settings, "AI_SERVICE_INTERNAL_TOKEN", "").strip()
 
 
+def _revoke_celery_task(task_id: str) -> None:
+    """Best-effort revoke of an in-flight Celery task."""
+    if not task_id:
+        return
+    try:
+        from ..tasks import execute_ai_chat_run
+
+        execute_ai_chat_run.AsyncResult(task_id).revoke(terminate=True)
+    except (CeleryError, RuntimeError, ValueError) as exc:
+        logger.warning("Failed to revoke ai run task %s: %s", task_id, exc)
+    except Exception as exc:  # pragma: no cover - defensive guard
+        logger.warning("Unexpected error revoking ai run task %s: %s", task_id, exc)
+
+
 def request_run_cancel(run: AIChatRun) -> AIChatRun:
-    """Request cancellation. Queued and approval-gated runs terminate immediately."""
+    """Request cancellation and stop execution as eagerly as possible."""
     run.cancel_requested = True
     run.save(update_fields=["cancel_requested", "updated_at"])
-    if run.status in {AIChatRun.Status.QUEUED, AIChatRun.Status.AWAITING_APPROVAL}:
+    if run.status in {
+        AIChatRun.Status.QUEUED,
+        AIChatRun.Status.AWAITING_APPROVAL,
+        AIChatRun.Status.RUNNING,
+    }:
+        if run.status == AIChatRun.Status.RUNNING:
+            _revoke_celery_task(run.celery_task_id)
         mark_run_cancelled(run)
         dispatch_next_queued_run(run.session)
     return run
@@ -241,6 +264,7 @@ async def run_events_as_sse(*, run: AIChatRun, after: int = 0) -> AsyncGenerator
     """
     last_seq = max(after, 0)
     interval = _SSE_POLL_MIN_INTERVAL_SECONDS
+    last_heartbeat_at = time.monotonic()
     try:
         while True:
             emitted = False
@@ -265,7 +289,14 @@ async def run_events_as_sse(*, run: AIChatRun, after: int = 0) -> AsyncGenerator
                 return
             if emitted:
                 interval = _SSE_POLL_MIN_INTERVAL_SECONDS
+                last_heartbeat_at = time.monotonic()
             else:
+                now = time.monotonic()
+                if now - last_heartbeat_at >= _SSE_HEARTBEAT_INTERVAL_SECONDS:
+                    # SSE comment frame keeps reverse proxies/load balancers from
+                    # closing idle run event streams during long-thinking phases.
+                    yield ": keep-alive\n\n"
+                    last_heartbeat_at = now
                 await asyncio.sleep(interval)
                 interval = min(
                     interval * _SSE_POLL_BACKOFF_FACTOR,
@@ -410,6 +441,11 @@ def record_event(run: AIChatRun, event_type: str, payload: dict[str, Any]) -> AI
 def apply_event_to_run(run: AIChatRun, event: dict[str, Any]) -> None:
     event_type = event.get("type")
     run.refresh_from_db()
+
+    # Ignore late events once the run is cancelled. This prevents races where
+    # already-buffered upstream chunks rewrite cancelled runs to completed.
+    if run.status == AIChatRun.Status.CANCELLED and event_type != "run_cancelled":
+        return
 
     if event_type == "run_started":
         run.external_run_id = event.get("run_id") or run.external_run_id

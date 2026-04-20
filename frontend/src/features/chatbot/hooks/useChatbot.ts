@@ -300,11 +300,18 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
   // AbortController for cancelling only the local event subscription.
   const abortControllerRef = useRef<AbortController | null>(null);
+  const resubscribeTimerRef = useRef<number | null>(null);
 
   // Abort any in-flight event subscription when the component unmounts.
   // This does not cancel backend-controlled AI runs.
   useEffect(() => {
-    return () => { abortControllerRef.current?.abort(); };
+    return () => {
+      abortControllerRef.current?.abort();
+      if (resubscribeTimerRef.current !== null) {
+        window.clearTimeout(resubscribeTimerRef.current);
+        resubscribeTimerRef.current = null;
+      }
+    };
   }, []);
 
   const setSelectedModelId = useCallback((modelId: string) => {
@@ -691,6 +698,19 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         },
         onError: (errorMsg) => {
           setError(errorMsg);
+          // Transient SSE disconnect should auto-retry; do not drop active run.
+          if (errorMsg.startsWith("任務訂閱失敗:")) {
+            setSessionNotice("連線中斷，嘗試重新連線…");
+            setIsLoading(false);
+            if (resubscribeTimerRef.current !== null) {
+              window.clearTimeout(resubscribeTimerRef.current);
+            }
+            resubscribeTimerRef.current = window.setTimeout(() => {
+              resubscribeTimerRef.current = null;
+              setSubscribeEpoch((n) => n + 1);
+            }, 1000);
+            return;
+          }
           setActiveRuns((prev) => prev.filter((run) => run.id !== activeRun.id));
           setIsStreaming(false);
           setIsLoading(false);
@@ -892,6 +912,10 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     const controllerToAbort = abortControllerRef.current;
     abortControllerRef.current = null;
     controllerToAbort?.abort();
+    if (resubscribeTimerRef.current !== null) {
+      window.clearTimeout(resubscribeTimerRef.current);
+      resubscribeTimerRef.current = null;
+    }
 
     // Immediate UI response for cancel click.
     setIsStreaming(false);

@@ -153,6 +153,32 @@ class DurableRunAPITestCase(TransactionTestCase):
         self.assertEqual(run.assistant_message.content, "partial")
         self.assertEqual(run.assistant_message.metadata["run_status"], "cancelled")
 
+    def test_cancel_running_run_revokes_worker_task_and_marks_cancelled(self):
+        run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.RUNNING,
+            content="running",
+            celery_task_id="celery-running-task-id",
+            assistant_message=AIMessage.objects.create(
+                session=self.session,
+                role=AIMessage.Role.ASSISTANT,
+                content="partial",
+                metadata={"run_status": "running"},
+            ),
+        )
+
+        self.client.force_authenticate(user=self.user)
+        with patch("apps.ai.services.run_runtime._revoke_celery_task") as revoke_task:
+            response = self.client.post(f"/api/v1/ai/runs/{run.id}/cancel/", {}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        run.refresh_from_db()
+        run.assistant_message.refresh_from_db()
+        self.assertEqual(run.status, AIChatRun.Status.CANCELLED)
+        self.assertEqual(run.assistant_message.metadata["run_status"], "cancelled")
+        revoke_task.assert_called_once_with("celery-running-task-id")
+
     def test_event_subscription_uses_async_generator_and_replays_after_seq(self):
         run = AIChatRun.objects.create(
             session=self.session,
@@ -372,3 +398,22 @@ class DurableRunWorkerTestCase(TestCase):
                 {"id": "1-產生測資", "content": "產生測資", "status": "pending"},
             ],
         )
+
+    def test_cancelled_run_ignores_late_terminal_events(self):
+        assistant_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.ASSISTANT,
+            content="partial",
+            metadata={"run_status": "cancelled"},
+        )
+        run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.CANCELLED,
+            content="ignored",
+            assistant_message=assistant_message,
+        )
+
+        apply_event_to_run(run, {"type": "run_completed"})
+        run.refresh_from_db()
+        self.assertEqual(run.status, AIChatRun.Status.CANCELLED)
