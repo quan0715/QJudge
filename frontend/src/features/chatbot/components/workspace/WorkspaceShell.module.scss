@@ -89,13 +89,11 @@
 }
 
 // ── Mobile: left drawer overlay (portal) ──
+// Covers the entire viewport. AppSidebar inside the drawer provides its own
+// close control (SidePanelClose) — no need for a toolbar-level close button.
 .mobileLeftOverlay {
   position: fixed;
-  // Sit below WorkspaceToolBar (min-height: 2.5rem) so the toolbar remains tappable
-  top: 2.5rem;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 9000;
   display: flex;
   align-items: stretch;

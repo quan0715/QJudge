@@ -66,10 +66,12 @@ function readStoredWithMigration(newKey: string, legacyKey: string, fallback: bo
   }
 }
 
+function detectInitialIsMobile(): boolean {
+  return typeof window !== "undefined" && window.innerWidth <= MOBILE_BREAKPOINT_PX;
+}
+
 function useIsMobile(): boolean {
-  const [mobile, setMobile] = useState(
-    () => typeof window !== "undefined" && window.innerWidth <= MOBILE_BREAKPOINT_PX,
-  );
+  const [mobile, setMobile] = useState(detectInitialIsMobile);
   useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`);
     const apply = () => setMobile(mql.matches);
@@ -84,8 +86,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const rightAllowed = user?.role === "teacher" || user?.role === "admin";
 
+  // Default: open on desktop, closed on mobile (mobile drawer is overlay,
+  // so auto-open would cover the user's first impression of the page).
   const [leftPref, setLeftPref] = useState(
-    () => readStoredWithMigration(LEFT_STORAGE_KEY, LEGACY_LEFT_KEY, true),
+    () => readStoredWithMigration(LEFT_STORAGE_KEY, LEGACY_LEFT_KEY, !detectInitialIsMobile()),
   );
   const [rightPref, setRightPref] = useState(
     () => readStoredWithMigration(RIGHT_STORAGE_KEY, LEGACY_RIGHT_KEY, false),

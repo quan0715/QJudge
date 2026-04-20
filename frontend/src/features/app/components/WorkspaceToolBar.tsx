@@ -1,5 +1,5 @@
 import { IconButton } from "@carbon/react";
-import { OpenPanelLeft, SidePanelClose } from "@carbon/icons-react";
+import { OpenPanelLeft } from "@carbon/icons-react";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { useRegisterPageToolbar } from "@/features/app/contexts/WorkspaceToolbarSlot";
 import styles from "./WorkspaceToolBar.module.scss";
@@ -24,8 +24,8 @@ export interface WorkspaceToolBarProps {
  *
  * 內建邏輯：
  * - 當 `left.isOpen === false`（desktop 收合 或 mobile drawer 關閉）→ 顯示展開鈕
- * - 當 `isMobile && left.isOpen`（mobile drawer 開啟）→ 顯示關閉鈕
- * - 當 desktop 且 `left.isOpen === true` → 不顯示 sidebar 按鈕（使用者從 sidebar 本身收合）
+ * - 當 `left.isOpen === true` → 不顯示 sidebar 按鈕（desktop 用 sidebar 本身的收合鈕；
+ *   mobile 則由 drawer 覆蓋整個 viewport，關閉鈕在 drawer 內部的 AppSidebar header）
  *
  * 頁面 render 這個 component 即表示「本頁 main content 的 toolbar 由我提供」，
  * Shell 不再補 fallback chrome。
@@ -37,11 +37,10 @@ export function WorkspaceToolBar({
   hideSidebarControl = false,
   className,
 }: WorkspaceToolBarProps) {
-  const { isMobile, left } = useWorkspace();
+  const { left } = useWorkspace();
   useRegisterPageToolbar();
 
   const showExpand = !hideSidebarControl && !left.isOpen;
-  const showMobileClose = !hideSidebarControl && isMobile && left.isOpen;
 
   return (
     <div className={`${styles.root}${className ? ` ${className}` : ""}`}>
@@ -56,17 +55,6 @@ export function WorkspaceToolBar({
             onClick={left.open}
           >
             <OpenPanelLeft size={20} />
-          </IconButton>
-        )}
-        {showMobileClose && (
-          <IconButton
-            kind="ghost"
-            size="md"
-            align="bottom"
-            label="Close sidebar"
-            onClick={left.close}
-          >
-            <SidePanelClose size={20} />
           </IconButton>
         )}
         <div className={styles.titleSlot}>{title}</div>

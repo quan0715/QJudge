@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import { IconButton } from "@carbon/react";
-import { OpenPanelLeft, SidePanelClose } from "@carbon/icons-react";
+import { OpenPanelLeft } from "@carbon/icons-react";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
@@ -71,6 +72,16 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
 
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
+
+  // Auto-close the mobile drawer on navigation — otherwise the drawer's
+  // global open state persists and covers the newly-loaded page.
+  const location = useLocation();
+  const prevPathname = useRef(location.pathname);
+  useEffect(() => {
+    if (prevPathname.current === location.pathname) return;
+    prevPathname.current = location.pathname;
+    if (isMobile && left.isOpen) left.close();
+  }, [location.pathname, isMobile, left]);
 
   // Close overlays with Escape key for keyboard users.
   useEffect(() => {
@@ -247,10 +258,12 @@ function MainColumnBody({
   chatOpen: boolean;
 }) {
   const pageHasToolbar = usePageToolbarMounted();
-  const { isMobile, left } = useWorkspace();
+  const { left } = useWorkspace();
 
-  // Fallback chrome 只在「頁面沒 render toolbar」且「使用者需要 sidebar 入口」時出現。
-  const needsFallback = leftEnabled && !pageHasToolbar && (isMobile || !left.isOpen);
+  // Fallback chrome：頁面沒自行 render toolbar 且 left panel 關閉時出現。
+  // mobile drawer 開啟時不需要，因為 drawer 覆蓋整個 viewport，AppSidebar
+  // 自己已經帶有關閉按鈕。
+  const needsFallback = leftEnabled && !pageHasToolbar && !left.isOpen;
 
   return (
     <>
@@ -266,37 +279,24 @@ function MainColumnBody({
 }
 
 /**
- * Shell 自己的 fallback chrome — 只有展開/關閉按鈕。
- * 使用 WorkspaceToolBar 的 CSS class 保持視覺一致，但不掛 slot 註冊
- * （避免 Shell 自己 render 的 fallback 反而讓 pageHasToolbar=true）。
+ * Shell 自己的 fallback chrome — 只有展開按鈕（關閉由 drawer 內部的 AppSidebar
+ * 自行提供）。使用 WorkspaceToolBar 的 CSS class 保持視覺一致，但不掛 slot
+ * 註冊（避免 Shell 的 fallback 反而讓 pageHasToolbar=true）。
  */
 function ShellFallbackToolbar() {
-  const { isMobile, left } = useWorkspace();
-  const isClose = isMobile && left.isOpen;
+  const { left } = useWorkspace();
   return (
     <div className={toolbarStyles.root}>
       <div className={toolbarStyles.leading}>
-        {isClose ? (
-          <IconButton
-            kind="ghost"
-            size="md"
-            align="bottom"
-            label="Close sidebar"
-            onClick={left.close}
-          >
-            <SidePanelClose size={20} />
-          </IconButton>
-        ) : (
-          <IconButton
-            kind="ghost"
-            size="md"
-            align="bottom"
-            label="Expand sidebar"
-            onClick={left.open}
-          >
-            <OpenPanelLeft size={20} />
-          </IconButton>
-        )}
+        <IconButton
+          kind="ghost"
+          size="md"
+          align="bottom"
+          label="Expand sidebar"
+          onClick={left.open}
+        >
+          <OpenPanelLeft size={20} />
+        </IconButton>
       </div>
     </div>
   );
