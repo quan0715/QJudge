@@ -16,8 +16,6 @@ from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.backends.state import StateBackend
 from deepagents.middleware.summarization import SummarizationMiddleware
-from langchain_core.messages import AnyMessage
-from langgraph.errors import GraphRecursionError
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg_pool import AsyncConnectionPool
 from langgraph.types import Command
@@ -37,6 +35,7 @@ from services.event_adapter import (
 from config import get_settings
 from models.schemas import RequestContext
 from services.artifact_tools import build_artifact_tools
+from services.adapters.interrupt_state_adapter import extract_approval_payload
 from services.hitl_middleware import ActionAwareHITLMiddleware
 from services.mcp_tool_provider import MCPToolProvider
 from services.model_factory import (
@@ -44,6 +43,10 @@ from services.model_factory import (
     SUMMARIZATION_TRIGGER_FRACTION,
     _DEFAULT_MODEL_ID as _REPAIR_MODEL_ID,
 )
+from services.policies.approval_policy import WRITE_ACTIONS
+from services.runtime.checkpoint_recovery_manager import CheckpointRecoveryManager
+from services.runtime.recursion_failure_handler import RecursionFailureHandler
+from services.runtime.usage_accumulator import UsageAccumulator
 
 logger = logging.getLogger(__name__)
 
@@ -92,30 +95,6 @@ def _build_session_artifact_tools(
 # multi-tool plans routinely burn 30-40 iterations, so keep headroom. Past
 # scratch-space loops (write_file/read_file churn) used to hit 60 easily.
 _AGENT_RECURSION_LIMIT = 100
-_RECURSION_SUMMARY_MODEL_ID = "openai-nano"
-_RECURSION_TAIL_MESSAGES = 12
-
-
-# Write-class MCP tool actions that require human approval before execution.
-# Any tool_call whose name is a key AND whose args["action"] is in the
-# corresponding set triggers an interrupt handled by ActionAwareHITLMiddleware.
-_WRITE_ACTIONS: dict[str, set[str]] = {
-    "qjudge_grading": {"grade", "batch_grade", "ungrade"},
-    "qjudge_contest_manager": {"reorder"},
-    "qjudge_coding_problems": {
-        "create",
-        "update",
-        "delete",
-    },
-    "qjudge_exam": {
-        "create",
-        "update",
-        "delete",
-        "reorder",
-        "import_from_bank",
-        "batch_create",
-    },
-}
 
 
 class _SafeSummarizationMiddleware(SummarizationMiddleware):
@@ -316,6 +295,7 @@ class DeepAgentRunner:
         self._memory_paths = memory_paths or ["/app/.deepagents/AGENTS.md"]
         self._checkpointer: AsyncPostgresSaver | None = None
         self._pool: AsyncConnectionPool | None = None
+        self._recursion_handler = RecursionFailureHandler()
 
     async def setup(self) -> None:
         """Initialize the Postgres checkpointer using a connection pool.
@@ -400,7 +380,7 @@ class DeepAgentRunner:
                 # Must be the last middleware: inspects the final tool_calls produced by
                 # the model turn and pauses execution for human approval on write actions.
                 ActionAwareHITLMiddleware(
-                    write_actions=_WRITE_ACTIONS,
+                    write_actions=WRITE_ACTIONS,
                     allowed_decisions=["approve", "reject"],
                 ),
             ],
@@ -534,6 +514,112 @@ class DeepAgentRunner:
             logger.warning("Checkpoint repair failed: %s", repair_exc)
             return False
 
+    async def _stream_raw_events(
+        self,
+        *,
+        agent: Any,
+        agent_input: dict[str, Any] | Command,
+        config: dict[str, Any],
+        event_queue: asyncio.Queue | None,
+        usage_accumulator: UsageAccumulator,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        async for event in agent.astream_events(
+            agent_input,
+            config=config,
+            version="v2",
+        ):
+            # Drain side-channel events (e.g. summarization_started/ended) before
+            # each LangGraph event so they arrive in roughly the right order.
+            if event_queue is not None:
+                while not event_queue.empty():
+                    yield event_queue.get_nowait()
+
+            usage_accumulator.ingest_langgraph_event(event)
+
+            internal_events = adapt_langgraph_event(event)
+            if internal_events is None:
+                continue
+            for internal_event in internal_events:
+                yield to_sse_dict(internal_event)
+
+        # After the graph stream ends, any side-channel events (e.g. summarization_ended
+        # queued in a middleware finally) must still be forwarded.
+        if event_queue is not None:
+            while not event_queue.empty():
+                yield event_queue.get_nowait()
+
+    async def _finalize_stream_events(
+        self,
+        *,
+        agent: Any,
+        config: dict[str, Any],
+        run_id: str,
+        thread_id: str,
+        usage_event: UsageReport,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        # Check whether the agent paused for human approval.
+        # LangGraph stores pending interrupts on StateSnapshot.interrupts
+        # (tuple of Interrupt objects) after astream_events exhausts.
+        state = await agent.aget_state(config)
+        has_interrupt = bool(getattr(state, "interrupts", None))
+        action_requests, review_configs = extract_approval_payload(state)
+        if has_interrupt:
+            if not action_requests:
+                logger.error(
+                    "Agent interrupt payload missing action_requests for thread %s",
+                    thread_id,
+                )
+                yield to_sse_dict(usage_event)
+                yield to_sse_dict(
+                    RunFailed(
+                        run_id=run_id,
+                        error_code="INTERRUPT_PAYLOAD_INVALID",
+                        message="Invalid approval payload from agent interrupt",
+                    )
+                )
+                return
+            logger.info(
+                "Agent interrupted for approval: %s",
+                [r.get("name") for r in action_requests],
+            )
+            yield to_sse_dict(usage_event)
+            yield to_sse_dict(
+                AwaitingApproval(
+                    thread_id=thread_id,
+                    action_requests=action_requests,
+                    review_configs=review_configs,
+                )
+            )
+            return
+
+        yield to_sse_dict(usage_event)
+        yield to_sse_dict(RunCompleted(run_id=run_id))
+
+    async def _build_recursion_failure_events(
+        self,
+        *,
+        agent: Any,
+        config: dict[str, Any],
+        run_id: str,
+        usage_event: UsageReport,
+    ) -> list[dict[str, Any]]:
+        """Build fallback events when recursion budget is exhausted."""
+        try:
+            summary = await self._recursion_handler.summarize_interruption(
+                agent=agent,
+                config=config,
+            )
+            if not summary:
+                summary = self._recursion_handler.fallback_recursion_summary()
+            return [
+                to_sse_dict(AgentMessageDelta(content=summary)),
+                to_sse_dict(usage_event),
+                to_sse_dict(RunCompleted(run_id=run_id)),
+            ]
+        except Exception:
+            logger.exception("Failed to emit recursion summary event")
+            return []
+
     async def _stream_events(
         self,
         agent: Any,
@@ -551,171 +637,56 @@ class DeepAgentRunner:
         """
         yield to_sse_dict(RunStarted(run_id=run_id, thread_id=thread_id))
 
-        total_input_tokens = 0
-        total_output_tokens = 0
-        retried = False
+        usage_accumulator = UsageAccumulator()
+        recovery_manager = CheckpointRecoveryManager(
+            checkpointer=self._checkpointer,
+            repair_dangling_tool_calls=self._repair_dangling_tool_calls,
+        )
 
-        async def _emit_recursion_summary():
-            """Emit a plain assistant message when recursion budget is exhausted."""
-            try:
-                summary = await self._summarize_recursion_interruption(
-                    agent=agent,
-                    config=config,
-                )
-                if not summary:
-                    summary = self._fallback_recursion_summary()
-                yield to_sse_dict(AgentMessageDelta(content=summary))
-                yield to_sse_dict(
-                    UsageReport(
-                        input_tokens=total_input_tokens,
-                        output_tokens=total_output_tokens,
-                        cost_cents=self._calculate_cost(
-                            model_id,
-                            total_input_tokens,
-                            total_output_tokens,
-                        ),
-                        model_used=model_id,
-                    )
-                )
-                yield to_sse_dict(RunCompleted(run_id=run_id))
-            except Exception:
-                logger.exception("Failed to emit recursion summary event")
-
-        async def _run_stream():
-            nonlocal total_input_tokens, total_output_tokens
-            async for event in agent.astream_events(
-                agent_input,
-                config=config,
-                version="v2",
-            ):
-                # Drain side-channel events (e.g. summarization_started/ended) before
-                # each LangGraph event so they arrive in roughly the right order.
-                if event_queue is not None:
-                    while not event_queue.empty():
-                        yield event_queue.get_nowait()
-
-                if event.get("event") == "on_chat_model_end":
-                    usage_meta = event.get("data", {}).get("output", None)
-                    if usage_meta and hasattr(usage_meta, "usage_metadata"):
-                        um = usage_meta.usage_metadata
-                        total_input_tokens += um.get("input_tokens", 0)
-                        total_output_tokens += um.get("output_tokens", 0)
-
-                internal_events = adapt_langgraph_event(event)
-                if internal_events is None:
-                    continue
-                for internal_event in internal_events:
-                    yield to_sse_dict(internal_event)
-
-            # After the graph stream ends, any side-channel events (e.g. summarization_ended
-            # queued in a middleware finally) must still be forwarded.
-            if event_queue is not None:
-                while not event_queue.empty():
-                    yield event_queue.get_nowait()
+        def _build_usage_event() -> UsageReport:
+            return usage_accumulator.build_usage_report(
+                model_id=model_id,
+                calculate_cost=self._calculate_cost,
+            )
 
         try:
             try:
-                async for sse_dict in _run_stream():
+                async for sse_dict in recovery_manager.stream_with_recovery(
+                    run_stream=lambda: self._stream_raw_events(
+                        agent=agent,
+                        agent_input=agent_input,
+                        config=config,
+                        event_queue=event_queue,
+                        usage_accumulator=usage_accumulator,
+                    ),
+                    agent=agent,
+                    config=config,
+                    thread_id=thread_id,
+                    passthrough_predicate=self._recursion_handler.is_graph_recursion_error,
+                ):
                     yield sse_dict
-            except asyncio.CancelledError:
-                # Client disconnected (backend dropped the SSE connection).
-                # Repair the checkpoint immediately so the next message on
-                # the same session doesn't hit "insufficient tool messages".
-                logger.warning(
-                    "Stream cancelled for thread %s, repairing checkpoint", thread_id
-                )
-                await self._repair_dangling_tool_calls(agent, config)
-                raise
             except Exception as exc:
-                if self._is_graph_recursion_error(exc):
-                    handled = False
-                    async for recursion_event in _emit_recursion_summary():
-                        handled = True
-                        yield recursion_event
-                    if handled:
-                        return
-
-                # Detect dangling tool_calls error → repair and retry once
-                error_str = str(exc)
-                # Also check nested ExceptionGroup sub-exceptions
-                if hasattr(exc, "exceptions"):
-                    error_str += " ".join(str(e) for e in exc.exceptions)
-                if not retried and "insufficient tool messages" in error_str:
-                    logger.warning("Dangling tool_calls detected, attempting repair...")
-                    repaired = await self._repair_dangling_tool_calls(agent, config)
-                    if repaired:
-                        retried = True
-                        try:
-                            async for sse_dict in _run_stream():
-                                yield sse_dict
-                        except Exception as retry_exc:
-                            # Repair didn't help — nuclear option: delete checkpoint
-                            retry_str = str(retry_exc)
-                            if hasattr(retry_exc, "exceptions"):
-                                retry_str += " ".join(str(e) for e in retry_exc.exceptions)
-                            if "insufficient tool messages" in retry_str:
-                                logger.warning(
-                                    "Repair insufficient, deleting checkpoint for thread %s",
-                                    thread_id,
-                                )
-                                await self._checkpointer.adelete_thread(thread_id)
-                            raise retry_exc
-                    else:
-                        # Repair found nothing to fix in raw messages — the problem
-                        # is likely in _summarization_event state (bad cutoff_index).
-                        # Delete the checkpoint so the next request starts clean.
-                        if "insufficient tool messages" in error_str:
-                            logger.warning(
-                                "Cannot repair dangling tool_calls (summarization state corrupt), "
-                                "deleting checkpoint for thread %s",
-                                thread_id,
-                            )
-                            await self._checkpointer.adelete_thread(thread_id)
-                        raise
-                else:
-                    raise
-
-            cost_cents = self._calculate_cost(
-                model_id, total_input_tokens, total_output_tokens
-            )
-            usage_event = UsageReport(
-                input_tokens=total_input_tokens,
-                output_tokens=total_output_tokens,
-                cost_cents=cost_cents,
-                model_used=model_id,
-            )
-
-            # Check whether the agent paused for human approval.
-            # LangGraph stores pending interrupts on StateSnapshot.interrupts
-            # (tuple of Interrupt objects) after astream_events exhausts.
-            state = await agent.aget_state(config)
-            if state.interrupts:
-                interrupt_val = state.interrupts[0].value
-                action_requests = (
-                    interrupt_val.get("action_requests", [])
-                    if isinstance(interrupt_val, dict)
-                    else []
-                )
-                review_configs = (
-                    interrupt_val.get("review_configs", [])
-                    if isinstance(interrupt_val, dict)
-                    else []
-                )
-                logger.info(
-                    "Agent interrupted for approval: %s",
-                    [r.get("name") for r in action_requests],
-                )
-                yield to_sse_dict(usage_event)
-                yield to_sse_dict(
-                    AwaitingApproval(
-                        thread_id=thread_id,
-                        action_requests=action_requests,
-                        review_configs=review_configs,
+                if self._recursion_handler.is_graph_recursion_error(exc):
+                    handled_events = await self._build_recursion_failure_events(
+                        agent=agent,
+                        config=config,
+                        run_id=run_id,
+                        usage_event=_build_usage_event(),
                     )
-                )
-            else:
-                yield to_sse_dict(usage_event)
-                yield to_sse_dict(RunCompleted(run_id=run_id))
+                    if handled_events:
+                        for recursion_event in handled_events:
+                            yield recursion_event
+                        return
+                raise
+
+            async for sse_dict in self._finalize_stream_events(
+                agent=agent,
+                config=config,
+                run_id=run_id,
+                thread_id=thread_id,
+                usage_event=_build_usage_event(),
+            ):
+                yield sse_dict
 
         except Exception as exc:
             logger.exception("DeepAgent execution failed: %s", exc)
@@ -726,88 +697,6 @@ class DeepAgentRunner:
                     message="Agent execution failed",
                 )
             )
-
-    @staticmethod
-    def _is_graph_recursion_error(exc: BaseException) -> bool:
-        if isinstance(exc, GraphRecursionError):
-            return True
-        nested = getattr(exc, "exceptions", None)
-        if nested:
-            return any(isinstance(item, GraphRecursionError) for item in nested)
-        return False
-
-    @staticmethod
-    def _format_message_for_summary(message: AnyMessage) -> str:
-        role = getattr(message, "type", message.__class__.__name__).lower()
-        name = getattr(message, "name", "")
-        header = f"{role}:{name}" if name else role
-
-        content = getattr(message, "content", "")
-        if isinstance(content, list):
-            content_text = " ".join(str(part) for part in content)
-        else:
-            content_text = str(content or "")
-        content_text = content_text.replace("\n", " ").strip()
-        if len(content_text) > 350:
-            content_text = f"{content_text[:350]}..."
-
-        tool_call_id = getattr(message, "tool_call_id", "")
-        status = getattr(message, "status", "")
-        extras: list[str] = []
-        if tool_call_id:
-            extras.append(f"tool_call_id={tool_call_id}")
-        if status:
-            extras.append(f"status={status}")
-        suffix = f" [{' '.join(extras)}]" if extras else ""
-        return f"- {header}{suffix}: {content_text}"
-
-    @classmethod
-    def _build_recursion_summary_prompt(cls, transcript: str) -> str:
-        return (
-            "你是 AI 助手的故障摘要器。主代理在 LangGraph 達到遞迴上限而中止。\n"
-            "請使用繁體中文，回覆 2-4 句，語氣直接。\n"
-            "格式要求：\n"
-            "1) 先說明剛剛嘗試要做的事情。\n"
-            "2) 明確指出卡住原因（根據錯誤訊息）。\n"
-            "3) 最後引導使用者：請調整提示後再送出，或直接回覆「繼續任務」。\n"
-            "不要使用 markdown、不要使用 emoji。\n\n"
-            "最近訊息：\n"
-            f"{transcript}"
-        )
-
-    @staticmethod
-    def _fallback_recursion_summary() -> str:
-        return (
-            "我剛剛在執行任務時重複嘗試過多次，暫時卡住了。"
-            "目前無法從現有資訊突破，請補充更明確的指示或修正條件。"
-            "請調整提示後再送出，或直接回覆「繼續任務」。"
-        )
-
-    async def _summarize_recursion_interruption(
-        self,
-        *,
-        agent: Any,
-        config: dict[str, Any],
-    ) -> str:
-        state = await agent.aget_state(config)
-        messages = state.values.get("messages", []) if state else []
-        if not isinstance(messages, list) or not messages:
-            return self._fallback_recursion_summary()
-
-        tail = messages[-_RECURSION_TAIL_MESSAGES:]
-        lines = [self._format_message_for_summary(msg) for msg in tail]
-        transcript = "\n".join(lines)
-        if len(transcript) > 6000:
-            transcript = transcript[-6000:]
-
-        summary_model = ModelFactory.create_model(_RECURSION_SUMMARY_MODEL_ID)
-        summary_prompt = self._build_recursion_summary_prompt(transcript)
-        response = await summary_model.ainvoke(summary_prompt)
-        content = getattr(response, "content", "")
-        if isinstance(content, list):
-            content = " ".join(str(part) for part in content)
-        summary = str(content).strip()
-        return summary or self._fallback_recursion_summary()
 
     # ------------------------------------------------------------------
     # Public streaming API
