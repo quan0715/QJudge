@@ -190,6 +190,18 @@ def _require_uuid(
     return _tool_error(tool_name=tool_name, detail=msg, status=400)
 
 
+def _items(rows: list[Any]) -> dict[str, Any]:
+    """Wrap a list in a FastMCP-friendly ``{"count": N, "items": [...]}`` envelope.
+
+    FastMCP auto-generates structured content only for object-like returns
+    (dict / dataclass / Pydantic); bare lists are serialized as separate
+    TextContent blocks per item, which makes the LLM see "streaming JSON
+    objects" instead of a proper JSON array. Wrapping keeps the wire shape
+    unambiguous across clients.
+    """
+    return {"count": len(rows), "items": rows}
+
+
 def _extract_results(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, dict):
         results = payload.get("results")
@@ -325,7 +337,37 @@ def _compact_answers(raw: Any) -> Any:
             "feedback": item.get("feedback"),
             "graded_at": item.get("graded_at"),
         })
-    return compact_rows
+    return _items(compact_rows)
+
+
+def _compact_answers_for_grading(raw: Any) -> Any:
+    """Minimal projection for the open-ended grading SOP.
+
+    Returns a dict ``{"count": N, "items": [...]}`` rather than a bare list,
+    so FastMCP treats it as structured content (single JSON object block)
+    instead of splitting the list across multiple TextContent blocks.
+    Each row's keys already match the final answers.csv columns — the
+    agent pipes ``result["items"]`` straight into
+    artifact_write_csv_from_records with no remapping.
+    """
+    data = _strip_snapshots(raw)
+    if not isinstance(data, list):
+        return _items([])
+
+    rows = []
+    for i, item in enumerate(data, start=1):
+        if not isinstance(item, dict):
+            continue
+        answer = item.get("answer") or {}
+        rows.append({
+            "index":             i,
+            "exam_answer_id":    item.get("id"),
+            "username":          item.get("participant_username"),
+            "answer_text":       answer.get("text") if isinstance(answer, dict) else None,
+            "original_score":    item.get("score"),
+            "original_feedback": item.get("feedback") or "",
+        })
+    return _items(rows)
 
 
 def _compact_question_detail(
@@ -714,7 +756,7 @@ async def qjudge_browse(
                 row for row in _extract_results(all_classrooms_res)
                 if _matches_keyword(row, search, ("name", "description"))
             ]
-        return [_compact_classroom(row) for row in classrooms]
+        return _items([_compact_classroom(row) for row in classrooms])
 
     if action == "get_classroom":
         uuid_error = _require_uuid(
@@ -752,7 +794,7 @@ async def qjudge_browse(
                 row for row in contests
                 if _matches_keyword(row, search, ("contest_name", "contest_description"))
             ]
-        return [_compact_contest_from_classroom(row, classroom_id=classroom_id) for row in contests]
+        return _items([_compact_contest_from_classroom(row, classroom_id=classroom_id) for row in contests])
 
     if action == "list_contests":
         query: dict[str, str] = {"scope": "manage"}
@@ -795,7 +837,7 @@ async def qjudge_browse(
                     ):
                         continue
                     merged[contest_uuid] = compact
-            return list(merged.values())
+            return _items(list(merged.values()))
 
         import asyncio
         detail_calls = [
@@ -811,7 +853,7 @@ async def qjudge_browse(
         ]
         if search:
             compact = [row for row in compact if _matches_keyword(row, search, ("name", "description"))]
-        return compact
+        return _items(compact)
 
     if action == "get_contest":
         uuid_error = _require_uuid(
@@ -902,9 +944,17 @@ async def qjudge_contest_manager(
         )
 
     if action == "list_problems":
-        if contest_type == "coding":
-            return await django_api("GET", f"/api/v1/contests/{contest_id}/problems/", ctx)
-        return await django_api("GET", f"/api/v1/contests/{contest_id}/exam-questions/", ctx)
+        path = (
+            f"/api/v1/contests/{contest_id}/problems/"
+            if contest_type == "coding"
+            else f"/api/v1/contests/{contest_id}/exam-questions/"
+        )
+        raw = await django_api("GET", path, ctx)
+        if isinstance(raw, dict) and raw.get("error"):
+            return raw
+        if isinstance(raw, list):
+            return _items(raw)
+        return raw
 
     orders = [{"id": qid, "order": idx} for idx, qid in enumerate(question_ids or [])]
     if contest_type == "coding":
@@ -1325,10 +1375,18 @@ async def qjudge_grading(
     include_participants: bool = False,
     include_omitted: bool = False,
     include_full_titles: bool = False,
+    projection: str | None = None,
 ) -> Any:
     """Grade exam answers. Do NOT use this tool for question CRUD — use qjudge_exam or qjudge_coding_problems instead.
 
-    Actions: list_answers, question_detail, dashboard, grade, batch_grade, ungrade."""
+    Actions: list_answers, question_detail, dashboard, grade, batch_grade, ungrade.
+
+    list_answers supports `projection="grading"` which returns a minimal
+    4-field row shape (exam_answer_id / student_id / answer_text /
+    original_score) tailored for the open-ended batch-grading SOP — it
+    can be piped straight into artifact_write_csv_from_records without
+    any column remapping.
+    """
     base = f"/api/v1/contests/{contest_id}/exam-answers"
     uuid_error = _require_uuid(
         contest_id,
@@ -1348,6 +1406,8 @@ async def qjudge_grading(
             query["question_id"] = question_id
         suffix = f"?{urlencode(query)}" if query else ""
         raw = await django_api("GET", f"{base}/all-answers/{suffix}", ctx)
+        if projection == "grading":
+            return _compact_answers_for_grading(raw)
         return _compact_answers(raw)
 
     if action == "question_detail":

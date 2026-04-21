@@ -484,4 +484,92 @@ describe("chatbotRepository stream events", () => {
       }),
     ]);
   });
+
+  it("maps timeout run_failed to actionable message and updates assistant status", () => {
+    const onMessageUpdate = vi.fn();
+    const onError = vi.fn();
+    const getSessionSpy = vi
+      .spyOn(chatbotRepository, "getSession")
+      .mockResolvedValue({
+        id: "session-1",
+        title: "Test",
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+    const currentMessage: Record<string, unknown> = {
+      runId: "run-1",
+      runStatus: "running",
+      isThinking: true,
+    };
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string; error_code?: string; message?: string },
+        currentMessage: Record<string, unknown>,
+        callbacks: {
+          onMessageUpdate?: (message: Record<string, unknown>) => void;
+          onError?: (error: string) => void;
+        },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "run_failed",
+        error_code: "RUN_TIMEOUT",
+        message: "execution timed out",
+      },
+      currentMessage,
+      { onMessageUpdate, onError },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onMessageUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runStatus: "failed",
+        isThinking: false,
+        runError: "任務執行太長，請手動繼續任務",
+      }),
+    );
+    expect(onError).toHaveBeenCalledWith("任務執行太長，請手動繼續任務");
+    getSessionSpy.mockRestore();
+  });
+
+  it("keeps original run_failed message for non-timeout failures", () => {
+    const onError = vi.fn();
+    const getSessionSpy = vi
+      .spyOn(chatbotRepository, "getSession")
+      .mockResolvedValue({
+        id: "session-1",
+        title: "Test",
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string; error_code?: string; message?: string },
+        currentMessage: Record<string, unknown>,
+        callbacks: { onError?: (error: string) => void },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "run_failed",
+        error_code: "RUN_FAILED",
+        message: "Tool execution failed",
+      },
+      {},
+      { onError },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onError).toHaveBeenCalledWith("Tool execution failed");
+    getSessionSpy.mockRestore();
+  });
 });

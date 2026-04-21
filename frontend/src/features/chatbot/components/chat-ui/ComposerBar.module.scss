@@ -393,7 +393,9 @@
     .leftTools {
       flex: 1 1 auto;
       min-width: 0;
-      overflow: hidden;
+      // Keep badge popovers visible on narrow screens; hidden clips the
+      // absolute-positioned dropdown panel above the composer.
+      overflow: visible;
     }
 
     .rightTools {

@@ -279,7 +279,7 @@ def test_qjudge_browse_builds_encoded_query(monkeypatch):
         )
     )
 
-    assert result == []
+    assert result == {"count": 0, "items": []}
     assert calls[0] == {
         "method": "GET",
         "path": "/api/v1/classrooms/?scope=manage&search=algo+%26+ds",
@@ -436,21 +436,67 @@ def test_qjudge_grading_list_answers_returns_compact_projection(monkeypatch):
         )
     )
 
-    assert result == [{
-        "exam_answer_id": "ans-1",
-        "question_id": "q-1",
-        "question_prompt": "Long prompt",
-        "question_type": "essay",
-        "max_score": 10,
-        "participant_id": 99,
-        "username": "alice",
-        "display_name": "Alice",
-        "answer": {"text": "hello"},
-        "is_correct": None,
-        "score": 7,
-        "feedback": "ok",
-        "graded_at": "z",
-    }]
+    assert result == {
+        "count": 1,
+        "items": [{
+            "exam_answer_id": "ans-1",
+            "question_id": "q-1",
+            "question_prompt": "Long prompt",
+            "question_type": "essay",
+            "max_score": 10,
+            "participant_id": 99,
+            "username": "alice",
+            "display_name": "Alice",
+            "answer": {"text": "hello"},
+            "is_correct": None,
+            "score": 7,
+            "feedback": "ok",
+            "graded_at": "z",
+        }],
+    }
+
+
+def test_qjudge_grading_list_answers_grading_projection(monkeypatch):
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        return [{
+            "id": "ans-1",
+            "question_id": "q-1",
+            "question_prompt": "Long prompt",
+            "question_type": "essay",
+            "max_score": 10,
+            "answer": {"text": "hello"},
+            "is_correct": None,
+            "score": 7,
+            "feedback": "第2點需再補充",
+            "participant_user_id": 99,
+            "participant_username": "alice",
+            "participant_nickname": "Alice",
+            "graded_at": "z",
+        }]
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    result = run(
+        server.qjudge_grading(
+            "list_answers",
+            "11111111-1111-1111-1111-111111111111",
+            DummyContext(),
+            question_id="q-1",
+            projection="grading",
+        )
+    )
+
+    assert result == {
+        "count": 1,
+        "items": [{
+            "index": 1,
+            "exam_answer_id": "ans-1",
+            "username": "alice",
+            "answer_text": "hello",
+            "original_score": 7,
+            "original_feedback": "第2點需再補充",
+        }],
+    }
 
 
 def test_qjudge_grading_question_detail_strips_participants_and_omitted_by_default(monkeypatch):
@@ -853,7 +899,7 @@ def test_qjudge_contest_manager_list_problems_coding(monkeypatch):
 
     result = run(server.qjudge_contest_manager("list_problems", DummyContext(), contest_id=contest_uuid))
 
-    assert result == [{"id": "b-1", "title": "A+B"}]
+    assert result == {"count": 1, "items": [{"id": "b-1", "title": "A+B"}]}
     assert captured == {"method": "GET", "path": f"/api/v1/contests/{contest_uuid}/problems/"}
 
 
@@ -872,7 +918,7 @@ def test_qjudge_contest_manager_list_problems_paper_exam(monkeypatch):
 
     result = run(server.qjudge_contest_manager("list_problems", DummyContext(), contest_id=contest_uuid))
 
-    assert result == [{"id": "eq-1"}]
+    assert result == {"count": 1, "items": [{"id": "eq-1"}]}
     assert captured == {"method": "GET", "path": f"/api/v1/contests/{contest_uuid}/exam-questions/"}
 
 

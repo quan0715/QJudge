@@ -93,6 +93,7 @@ export interface ChatMessage {
   toolName?: string;
   runId?: string;
   runStatus?: ChatRunStatus;
+  runError?: string;
   lastEventSeq?: number;
 }
 

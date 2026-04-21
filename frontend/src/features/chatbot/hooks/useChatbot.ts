@@ -300,11 +300,18 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
   // AbortController for cancelling only the local event subscription.
   const abortControllerRef = useRef<AbortController | null>(null);
+  const resubscribeTimerRef = useRef<number | null>(null);
 
   // Abort any in-flight event subscription when the component unmounts.
   // This does not cancel backend-controlled AI runs.
   useEffect(() => {
-    return () => { abortControllerRef.current?.abort(); };
+    return () => {
+      abortControllerRef.current?.abort();
+      if (resubscribeTimerRef.current !== null) {
+        window.clearTimeout(resubscribeTimerRef.current);
+        resubscribeTimerRef.current = null;
+      }
+    };
   }, []);
 
   const setSelectedModelId = useCallback((modelId: string) => {
@@ -691,6 +698,19 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         },
         onError: (errorMsg) => {
           setError(errorMsg);
+          // Transient SSE disconnect should auto-retry; do not drop active run.
+          if (errorMsg.startsWith("任務訂閱失敗:")) {
+            setSessionNotice("連線中斷，嘗試重新連線…");
+            setIsLoading(false);
+            if (resubscribeTimerRef.current !== null) {
+              window.clearTimeout(resubscribeTimerRef.current);
+            }
+            resubscribeTimerRef.current = window.setTimeout(() => {
+              resubscribeTimerRef.current = null;
+              setSubscribeEpoch((n) => n + 1);
+            }, 1000);
+            return;
+          }
           setActiveRuns((prev) => prev.filter((run) => run.id !== activeRun.id));
           setIsStreaming(false);
           setIsLoading(false);
@@ -885,21 +905,46 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         run.sessionId === currentSessionId &&
         ["queued", "running", "awaiting_approval"].includes(run.status),
     );
+
+    // Abort only the CURRENT subscription immediately. Do not defer this to an
+    // async finally block, otherwise a later run may replace the ref and get
+    // aborted by mistake (causing "next message has no thinking until refresh").
+    const controllerToAbort = abortControllerRef.current;
+    abortControllerRef.current = null;
+    controllerToAbort?.abort();
+    if (resubscribeTimerRef.current !== null) {
+      window.clearTimeout(resubscribeTimerRef.current);
+      resubscribeTimerRef.current = null;
+    }
+
+    // Immediate UI response for cancel click.
+    setIsStreaming(false);
+    setIsLoading(false);
+    setSessionNotice(null);
+
     if (!activeRun) {
-      abortControllerRef.current?.abort();
-      abortControllerRef.current = null;
-      setIsStreaming(false);
-      setIsLoading(false);
-      setSessionNotice(null);
       return;
     }
 
+    // Optimistically mark current assistant run as cancelled so "已停止" appears
+    // right away without waiting for backend cancel + session refetch.
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === activeRun.sessionId
+          ? applyRunMessageUpdate(
+              session,
+              activeRun,
+              { runStatus: "cancelled", isThinking: false },
+              { content: "", thinking: "" },
+            )
+          : session,
+      ),
+    );
+    // Remove from active runs immediately to prevent stale running state.
+    setActiveRuns((prev) => prev.filter((item) => item.id !== activeRun.id));
+
     chatbotRepository.cancelRun(activeRun.id)
       .then((run) => {
-        setActiveRuns((prev) =>
-          prev.map((item) => (item.id === run.id ? run : item))
-            .filter((item) => item.status !== "cancelled"),
-        );
         return chatbotRepository.getSession(run.sessionId);
       })
       .then((freshSession) => {
@@ -912,13 +957,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       .catch((err) => {
         console.error("Failed to cancel run:", err);
         setError(i18n.t("chatbot:errors.stopRunFailed", "無法停止 AI 任務"));
-      })
-      .finally(() => {
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = null;
-        setIsStreaming(false);
-        setIsLoading(false);
-        setSessionNotice(null);
       });
   }, [activeRuns, currentSessionId]);
 

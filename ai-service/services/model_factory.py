@@ -33,7 +33,7 @@ MODEL_MAX_INPUT_TOKENS: dict[str, int] = {
 }
 
 # Summarization controls derived from model table.
-SUMMARIZATION_TRIGGER_FRACTION = 0.85
+SUMMARIZATION_TRIGGER_FRACTION = 0.70
 MODEL_SUMMARY_TRIM_TOKENS: dict[str, int] = {
     "openai-nano": 12_000,
     "deepseek-r1": 12_000,
@@ -110,6 +110,16 @@ class ModelFactory:
                 api_key=api_key or None,
                 streaming=True,
             )
+            # ChatDeepSeek ships with profile=None. DeepAgent's
+            # compute_summarization_defaults uses fraction-based policies
+            # (keep=10% of context) only when profile.max_input_tokens is a
+            # real int; otherwise it falls back to keep=("messages", 6),
+            # which can't cope with a single 60–80k-token tool result (e.g.
+            # list_answers for 131 answers). Stamp a minimal profile so
+            # compaction goes through the fraction path.
+            max_in = MODEL_MAX_INPUT_TOKENS.get(model_id)
+            if isinstance(max_in, int):
+                model.profile = {"max_input_tokens": max_in}
 
         setattr(model, "_qjudge_model_id", model_id)
         setattr(model, "_qjudge_model_name", model_string)

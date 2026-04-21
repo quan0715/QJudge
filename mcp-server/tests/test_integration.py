@@ -52,11 +52,14 @@ def run(coro):
 
 
 def _unwrap_paginated(result):
-    """Handle both list and paginated dict responses."""
+    """Handle list, paginated {results:...}, and MCP-wrapped {items:...} responses."""
     if isinstance(result, list):
         return result
-    if isinstance(result, dict) and "results" in result:
-        return result["results"]
+    if isinstance(result, dict):
+        if "items" in result:
+            return result["items"]
+        if "results" in result:
+            return result["results"]
     return result
 
 
@@ -94,13 +97,14 @@ def _find_contest(
             continue
         if not require_problems:
             return contest_id, None
-        problems = run(
+        result = run(
             server.qjudge_contest_manager(
                 "list_problems",
                 teacher_ctx,
                 contest_id=contest_id,
             )
         )
+        problems = _unwrap_paginated(result)
         if isinstance(problems, list) and problems:
             return contest_id, problems
     return None, None
@@ -252,10 +256,12 @@ class TestExam:
 
     def test_list_questions(self, admin_ctx, contest_id):
         result = run(server.qjudge_contest_manager("list_problems", admin_ctx, contest_id=contest_id))
-        assert isinstance(result, list)
+        items = _unwrap_paginated(result)
+        assert isinstance(items, list)
 
     def test_get_question(self, admin_ctx, contest_id):
-        questions = run(server.qjudge_contest_manager("list_problems", admin_ctx, contest_id=contest_id))
+        result = run(server.qjudge_contest_manager("list_problems", admin_ctx, contest_id=contest_id))
+        questions = _unwrap_paginated(result)
         if not questions:
             pytest.fail("No exam questions")
         qid = str(questions[0]["id"])
@@ -397,8 +403,15 @@ class TestCodeRunnerIntegration:
         assert isinstance(result, dict)
         if result.get("error"):
             # Backend/business errors are acceptable in integration env, but must be structured.
-            assert isinstance(result.get("detail"), str)
-            assert result["detail"].strip() != ""
+            # _format_django_errors emits either `detail` (str) or `errors` (list[str])
+            # depending on the Django response shape — both count as structured.
+            detail = result.get("detail")
+            errors = result.get("errors")
+            has_detail = isinstance(detail, str) and detail.strip()
+            has_errors = isinstance(errors, list) and any(
+                isinstance(e, str) and e.strip() for e in errors
+            )
+            assert has_detail or has_errors, f"unstructured error payload: {result!r}"
         else:
             # Successful response shape depends on backend version; keep structural assertion broad.
             assert "results" in result or "status" in result

@@ -190,6 +190,31 @@ def test_read_fetches_content_after_listing(monkeypatch):
     assert result["metadata"]["id"] == "a-1"
 
 
+def test_read_paginates_by_offset_and_limit(monkeypatch):
+    body = b"line0\nline1\nline2\nline3\nline4\n"
+    stub = _StubClient([
+        {
+            "method": "GET",
+            "url_contains": "/_internal/artifacts/",
+            "status": 200,
+            "json": [
+                {"id": "a-1", "step": "s", "filename": "f", "content_type": "text/plain"},
+            ],
+        },
+        {
+            "method": "GET",
+            "url_contains": "/a-1/content/",
+            "status": 200,
+            "content": body,
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read")
+    result = _run(tool.coroutine(step="s", filename="f", offset=1, limit=2))
+    assert result["content"] == "line1\nline2\n"
+    assert result["total_lines"] == 5
+
+
 def test_read_missing_returns_error(monkeypatch):
     stub = _StubClient([
         {"method": "GET", "status": 200, "json": []},
@@ -294,6 +319,282 @@ def test_write_csv_rejects_non_dict_row():
     ))
     assert result["is_error"] is True
     assert "row[0]" in result["detail"]
+
+
+def test_write_csv_decodes_json_stringified_columns(monkeypatch):
+    """DeepSeek sometimes serializes arrays as JSON strings. Accept + log warning."""
+    stub = _StubClient([
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="answers",
+        filename="answers.csv",
+        columns='["a","b","c"]',   # ← stringified array (the bug shape)
+        rows=[{"a": 1, "b": 2, "c": 3}],
+    ))
+    assert result.get("is_error") is not True, result
+    body = stub.calls[0]["json"]["content"]
+    lines = body.split("\n")
+    # Header is the three real columns, not 13 single-char columns.
+    assert lines[0] == '"a","b","c"'
+    assert lines[1] == '"1","2","3"'
+
+
+def test_write_csv_rejects_non_list_non_string_columns():
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        columns=42, rows=[{"a": 1}],
+    ))
+    assert result["is_error"] is True
+    assert "must be an array" in result["detail"]
+
+
+def test_write_csv_rejects_malformed_string_columns():
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        columns='not json at all', rows=[{"a": 1}],
+    ))
+    assert result["is_error"] is True
+
+
+def test_write_csv_rejects_non_string_column_names():
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        columns=["a", 42, "c"], rows=[{"a": 1}],
+    ))
+    assert result["is_error"] is True
+    assert "column name" in result["detail"]
+
+
+def test_write_csv_decodes_json_stringified_rows(monkeypatch):
+    stub = _StubClient([
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write_csv")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        columns=["a", "b"],
+        rows='[{"a": 1, "b": 2}]',   # ← stringified too
+    ))
+    assert result.get("is_error") is not True, result
+    body = stub.calls[0]["json"]["content"]
+    assert '"1","2"' in body
+
+
+def test_write_csv_from_records_basic_mapping(monkeypatch):
+    stub = _StubClient([
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    _run(tool.coroutine(
+        step="answers",
+        filename="answers.csv",
+        records=[
+            {"exam_answer_id": 1820, "username": "313554060",
+             "answer": {"text": "ans1,含逗號"}, "score": "1.00"},
+            {"exam_answer_id": 2105, "username": "414551016",
+             "answer": {"text": "ans2"}, "score": "0.00"},
+        ],
+        column_mapping={
+            "exam_answer_id": "exam_answer_id",
+            "student_id":     "username",
+            "answer_text":    "answer.text",
+            "original_score": "score",
+        },
+        defaults={"new_score": "", "reason": ""},
+    ))
+    body = stub.calls[0]["json"]["content"]
+    lines = body.split("\n")
+    # Columns: mapping keys first (in insertion order), defaults last
+    assert lines[0] == '"exam_answer_id","student_id","answer_text","original_score","new_score","reason"'
+    # Dot-path resolved nested value; comma in text gets QUOTE_ALL-wrapped
+    assert '"1820","313554060","ans1,含逗號","1.00","",""' in body
+    assert '"2105","414551016","ans2","0.00","",""' in body
+
+
+def test_write_csv_from_records_accepts_json_string(monkeypatch):
+    """Simulates the offload-then-read_file case: agent passes file content as string."""
+    stub = _StubClient([
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    _run(tool.coroutine(
+        step="answers",
+        filename="answers.csv",
+        records='[{"exam_answer_id": 1, "username": "u1", "answer": {"text": "t1"}, "score": "1"}]',
+        column_mapping='{"exam_answer_id":"exam_answer_id","student_id":"username","answer_text":"answer.text","original_score":"score"}',
+        defaults={"new_score": "", "reason": ""},
+    ))
+    body = stub.calls[0]["json"]["content"]
+    assert '"1","u1","t1","1","",""' in body
+
+
+def test_write_csv_from_records_missing_path_yields_empty(monkeypatch):
+    stub = _StubClient([
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        records=[{"a": 1}],   # missing "b" entirely, and "c.d" nested path
+        column_mapping={"col_a": "a", "col_b": "b", "col_cd": "c.d"},
+    ))
+    body = stub.calls[0]["json"]["content"]
+    lines = body.split("\n")
+    assert lines[0] == '"col_a","col_b","col_cd"'
+    assert lines[1] == '"1","",""'
+
+
+def test_write_csv_from_records_rejects_non_dict_record():
+    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        records=[{"a": 1}, "not a dict"],
+        column_mapping={"col_a": "a"},
+    ))
+    assert result["is_error"] is True
+    assert "records[1]" in result["detail"]
+
+
+def test_write_csv_from_records_identity_mapping(monkeypatch):
+    """If column_mapping is omitted and records already match CSV shape, use keys as-is."""
+    stub = _StubClient([
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    _run(tool.coroutine(
+        step="answers", filename="answers.csv",
+        records=[
+            {"exam_answer_id": 1, "student_id": "u1", "answer_text": "t1", "original_score": "1"},
+            {"exam_answer_id": 2, "student_id": "u2", "answer_text": "t2", "original_score": "2"},
+        ],
+        defaults={"new_score": "", "reason": ""},
+    ))
+    body = stub.calls[0]["json"]["content"]
+    lines = body.split("\n")
+    assert lines[0] == '"exam_answer_id","student_id","answer_text","original_score","new_score","reason"'
+    assert '"1","u1","t1","1","",""' in body
+    assert '"2","u2","t2","2","",""' in body
+
+
+def test_patch_csv_rows_merges_updates_and_preserves_others(monkeypatch):
+    """Patch only the batch you graded — other rows must survive."""
+    seed_body = (
+        '"exam_answer_id","username","score","reason"\n'
+        '"1","alice","",""\n'
+        '"2","bob","",""\n'
+        '"3","charlie","",""\n'
+    )
+    stub = _StubClient([
+        # _artifact_read: first list, then content
+        {"method": "GET", "url_contains": "/_internal/artifacts/", "status": 200,
+         "json": [{"id": "a-1", "step": "grade", "filename": "grade.csv", "content_type": "text/csv"}]},
+        {"method": "GET", "url_contains": "/a-1/content/", "status": 200,
+         "content": seed_body.encode("utf-8")},
+        # _artifact_write_csv → POST
+        {"method": "POST", "url_contains": "/_internal/artifacts/", "status": 201,
+         "json": {"id": "a-1", "size_bytes": 999}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_patch_csv_rows")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        key_column="exam_answer_id",
+        updates=[
+            {"exam_answer_id": 1, "score": "5", "reason": "完整"},
+            {"exam_answer_id": 3, "score": "2", "reason": "缺關鍵"},
+        ],
+    ))
+    assert result["updated"] == 2
+    assert result["missing"] == []
+    assert result["total_rows"] == 3
+    # The write payload should still contain all 3 rows, two updated.
+    post_body = stub.calls[-1]["json"]["content"]
+    assert '"1","alice","5","完整"' in post_body
+    assert '"2","bob","",""' in post_body         # untouched row preserved
+    assert '"3","charlie","2","缺關鍵"' in post_body
+
+
+def test_patch_csv_rows_reports_missing_keys(monkeypatch):
+    seed_body = '"exam_answer_id","score"\n"1",""\n'
+    stub = _StubClient([
+        {"method": "GET", "status": 200, "json": [{"id": "a", "step": "g", "filename": "g.csv", "content_type": "text/csv"}]},
+        {"method": "GET", "status": 200, "content": seed_body.encode("utf-8")},
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_patch_csv_rows")
+    result = _run(tool.coroutine(
+        step="g", filename="g.csv", key_column="exam_answer_id",
+        updates=[
+            {"exam_answer_id": 1, "score": "5"},
+            {"exam_answer_id": 999, "score": "5"},
+        ],
+    ))
+    assert result["updated"] == 1
+    assert result["missing"] == ["999"]
+
+
+def test_patch_csv_rows_rejects_missing_key_column(monkeypatch):
+    seed_body = '"id","score"\n"1",""\n'
+    stub = _StubClient([
+        {"method": "GET", "status": 200, "json": [{"id": "a", "step": "g", "filename": "g.csv", "content_type": "text/csv"}]},
+        {"method": "GET", "status": 200, "content": seed_body.encode("utf-8")},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_patch_csv_rows")
+    result = _run(tool.coroutine(
+        step="g", filename="g.csv", key_column="exam_answer_id",
+        updates=[{"exam_answer_id": 1, "score": "5"}],
+    ))
+    assert result["is_error"] is True
+    assert "key_column" in result["detail"]
+
+
+def test_patch_csv_rows_accepts_stringified_updates(monkeypatch):
+    seed_body = '"id","score"\n"1",""\n'
+    stub = _StubClient([
+        {"method": "GET", "status": 200, "json": [{"id": "a", "step": "g", "filename": "g.csv", "content_type": "text/csv"}]},
+        {"method": "GET", "status": 200, "content": seed_body.encode("utf-8")},
+        {"method": "POST", "status": 201, "json": {"id": "a"}},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_patch_csv_rows")
+    result = _run(tool.coroutine(
+        step="g", filename="g.csv", key_column="id",
+        updates='[{"id": 1, "score": "9"}]',
+    ))
+    assert result["updated"] == 1
+
+
+def test_write_csv_from_records_identity_rejects_empty_records():
+    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        records=[],
+    ))
+    assert result["is_error"] is True
+    assert "cannot infer" in result["detail"]
+
+
+def test_write_csv_from_records_rejects_empty_mapping():
+    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    result = _run(tool.coroutine(
+        step="answers", filename="x.csv",
+        records=[{"a": 1}],
+        column_mapping={},
+    ))
+    assert result["is_error"] is True
 
 
 def test_write_csv_fills_missing_columns_with_empty(monkeypatch):
