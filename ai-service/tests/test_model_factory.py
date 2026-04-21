@@ -41,6 +41,8 @@ def test_create_model_openai_nano(monkeypatch):
     assert model.kwargs["api_key"] == "openai-key"
     assert model.kwargs["streaming"] is True
     assert "reasoning_effort" not in model.kwargs
+    # nano has no TPM pressure; no rate limiter.
+    assert "rate_limiter" not in model.kwargs
 
 
 def test_create_model_openai_mini_sets_reasoning_effort(monkeypatch):
@@ -56,6 +58,10 @@ def test_create_model_openai_mini_sets_reasoning_effort(monkeypatch):
     assert model.kwargs["use_responses_api"] is True
     assert model.kwargs["output_version"] == "responses/v1"
     assert "reasoning_effort" not in model.kwargs
+    # TPM protection.
+    rate_limiter = model.kwargs.get("rate_limiter")
+    assert rate_limiter is not None
+    assert rate_limiter.requests_per_second == 2.0
 
 
 def test_create_model_openai_mini_medium_sets_medium_effort(monkeypatch):
@@ -66,6 +72,9 @@ def test_create_model_openai_mini_medium_sets_medium_effort(monkeypatch):
     assert model.kwargs["reasoning"] == {"effort": "medium", "summary": "auto"}
     assert model.kwargs["use_responses_api"] is True
     assert model.kwargs["output_version"] == "responses/v1"
+    rate_limiter = model.kwargs.get("rate_limiter")
+    assert rate_limiter is not None
+    assert rate_limiter.requests_per_second == 2.0
 
 
 def test_create_model_deepseek_r1(monkeypatch):

@@ -6,6 +6,7 @@ To switch models, change _MODEL_MAP and PRICING. Everything else
 
 import logging
 
+from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_deepseek import ChatDeepSeek
 from langchain_openai import ChatOpenAI
 
@@ -27,6 +28,15 @@ _OPENAI_REASONING_EFFORT: dict[str, str | None] = {
     "openai-nano": None,
     "openai-mini": "low",
     "openai-mini-medium": "medium",
+}
+
+# Canonical model ID -> max model invocations per second. gpt-5.4-mini ships
+# with a 200K TPM limit that is easy to hit during grading bursts (each model
+# call can carry ~80K prompt tokens). A ~0.5s spacing gives the TPM window
+# time to roll and avoids 429s without serializing everything unnecessarily.
+_OPENAI_RATE_LIMIT_RPS: dict[str, float] = {
+    "openai-mini": 2.0,
+    "openai-mini-medium": 2.0,
 }
 
 _DEFAULT_MODEL_ID = "openai-nano"
@@ -135,6 +145,14 @@ class ModelFactory:
                 "api_key": api_key or None,
                 "streaming": True,
             }
+            rate_limit_rps = _OPENAI_RATE_LIMIT_RPS.get(model_id)
+            if rate_limit_rps:
+                # LangChain waits on this limiter before each model invocation.
+                openai_kwargs["rate_limiter"] = InMemoryRateLimiter(
+                    requests_per_second=rate_limit_rps,
+                    check_every_n_seconds=0.1,
+                    max_bucket_size=1,
+                )
             if reasoning_effort:
                 # Route via Responses API: gpt-5.x + function tools + reasoning_effort
                 # is rejected by /v1/chat/completions ("not supported, use /v1/responses").
