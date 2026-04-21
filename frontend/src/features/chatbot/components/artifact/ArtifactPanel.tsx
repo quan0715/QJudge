@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { IconButton, InlineLoading } from "@carbon/react";
-import { Close, Renew, Document } from "@carbon/icons-react";
+import { Close, Download, Renew, Document } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
+import { fetchArtifactDownloadUrl } from "@/infrastructure/api/repositories/artifact.repository";
 import { ArtifactPreview } from "./ArtifactPreview";
 import styles from "./ArtifactPanel.module.scss";
 
@@ -30,6 +31,16 @@ export function ArtifactPanel() {
     [artifacts, activeArtifactId],
   );
 
+  const handleDownload = async () => {
+    if (!active) return;
+    try {
+      const { url } = await fetchArtifactDownloadUrl(active.id);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      // Keep panel usable; user can still refresh/retry.
+    }
+  };
+
   return (
     <div className={styles.panel}>
       <header className={styles.header}>
@@ -45,6 +56,16 @@ export function ArtifactPanel() {
           )}
         </div>
         <div className={styles.headerActions}>
+          <IconButton
+            kind="ghost"
+            size="sm"
+            align="bottom"
+            label={t("artifact.download", "下載")}
+            onClick={() => void handleDownload()}
+            disabled={!active}
+          >
+            <Download size={16} />
+          </IconButton>
           <IconButton
             kind="ghost"
             size="sm"

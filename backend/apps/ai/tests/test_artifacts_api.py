@@ -4,6 +4,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -273,3 +274,47 @@ class ArtifactUserEndpointTests(TestCase):
         resp = self.client.get(f"/api/v1/ai/artifacts/{own.id}/download/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["url"], "https://minio/signed")
+
+    @patch("apps.ai.artifact_views.artifact_storage.store_artifact")
+    def test_upload_csv_creates_user_upload_artifact(self, mock_store):
+        self.client.force_authenticate(user=self.user1)
+        upload = SimpleUploadedFile(
+            "scores.csv",
+            b"id,score\n1,100\n",
+            content_type="text/csv",
+        )
+        resp = self.client.post(
+            "/api/v1/ai/artifacts/upload/",
+            {"session_id": self.session1.session_id, "file": upload},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
+        self.assertEqual(resp.data["step"], "user_upload")
+        self.assertEqual(resp.data["filename"], "scores.csv")
+        self.assertEqual(resp.data["session_id"], self.session1.session_id)
+        mock_store.assert_called_once()
+
+    def test_upload_rejects_non_csv_md(self):
+        self.client.force_authenticate(user=self.user1)
+        upload = SimpleUploadedFile(
+            "notes.txt",
+            b"hello",
+            content_type="text/plain",
+        )
+        resp = self.client.post(
+            "/api/v1/ai/artifacts/upload/",
+            {"session_id": self.session1.session_id, "file": upload},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_upload_rejects_other_users_session(self):
+        self.client.force_authenticate(user=self.user1)
+        upload = SimpleUploadedFile(
+            "scores.csv",
+            b"id,score\n1,100\n",
+            content_type="text/csv",
+        )
+        resp = self.client.post(
+            "/api/v1/ai/artifacts/upload/",
+            {"session_id": self.session2.session_id, "file": upload},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)

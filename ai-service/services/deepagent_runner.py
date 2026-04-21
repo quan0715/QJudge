@@ -16,11 +16,13 @@ from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.backends.state import StateBackend
 from deepagents.middleware.summarization import SummarizationMiddleware
 from langchain_core.messages import AnyMessage
+from langgraph.errors import GraphRecursionError
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg_pool import AsyncConnectionPool
 from langgraph.types import Command
 
 from services.event_adapter import (
+    AgentMessageDelta,
     AwaitingApproval,
     RunCompleted,
     RunFailed,
@@ -84,6 +86,8 @@ def _build_session_artifact_tools(request_context: RequestContext | None) -> lis
 # multi-tool plans routinely burn 30-40 iterations, so keep headroom. Past
 # scratch-space loops (write_file/read_file churn) used to hit 60 easily.
 _AGENT_RECURSION_LIMIT = 100
+_RECURSION_SUMMARY_MODEL_ID = "openai-nano"
+_RECURSION_TAIL_MESSAGES = 12
 
 
 # Write-class MCP tool actions that require human approval before execution.
@@ -542,6 +546,32 @@ class DeepAgentRunner:
         total_output_tokens = 0
         retried = False
 
+        async def _emit_recursion_summary():
+            """Emit a plain assistant message when recursion budget is exhausted."""
+            try:
+                summary = await self._summarize_recursion_interruption(
+                    agent=agent,
+                    config=config,
+                )
+                if not summary:
+                    summary = self._fallback_recursion_summary()
+                yield to_sse_dict(AgentMessageDelta(content=summary))
+                yield to_sse_dict(
+                    UsageReport(
+                        input_tokens=total_input_tokens,
+                        output_tokens=total_output_tokens,
+                        cost_cents=self._calculate_cost(
+                            model_id,
+                            total_input_tokens,
+                            total_output_tokens,
+                        ),
+                        model_used=model_id,
+                    )
+                )
+                yield to_sse_dict(RunCompleted(run_id=run_id))
+            except Exception:
+                logger.exception("Failed to emit recursion summary event")
+
         async def _run_stream():
             nonlocal total_input_tokens, total_output_tokens
             async for event in agent.astream_events(
@@ -588,6 +618,14 @@ class DeepAgentRunner:
                 await self._repair_dangling_tool_calls(agent, config)
                 raise
             except Exception as exc:
+                if self._is_graph_recursion_error(exc):
+                    handled = False
+                    async for recursion_event in _emit_recursion_summary():
+                        handled = True
+                        yield recursion_event
+                    if handled:
+                        return
+
                 # Detect dangling tool_calls error → repair and retry once
                 error_str = str(exc)
                 # Also check nested ExceptionGroup sub-exceptions
@@ -679,6 +717,88 @@ class DeepAgentRunner:
                     message="Agent execution failed",
                 )
             )
+
+    @staticmethod
+    def _is_graph_recursion_error(exc: BaseException) -> bool:
+        if isinstance(exc, GraphRecursionError):
+            return True
+        nested = getattr(exc, "exceptions", None)
+        if nested:
+            return any(isinstance(item, GraphRecursionError) for item in nested)
+        return False
+
+    @staticmethod
+    def _format_message_for_summary(message: AnyMessage) -> str:
+        role = getattr(message, "type", message.__class__.__name__).lower()
+        name = getattr(message, "name", "")
+        header = f"{role}:{name}" if name else role
+
+        content = getattr(message, "content", "")
+        if isinstance(content, list):
+            content_text = " ".join(str(part) for part in content)
+        else:
+            content_text = str(content or "")
+        content_text = content_text.replace("\n", " ").strip()
+        if len(content_text) > 350:
+            content_text = f"{content_text[:350]}..."
+
+        tool_call_id = getattr(message, "tool_call_id", "")
+        status = getattr(message, "status", "")
+        extras: list[str] = []
+        if tool_call_id:
+            extras.append(f"tool_call_id={tool_call_id}")
+        if status:
+            extras.append(f"status={status}")
+        suffix = f" [{' '.join(extras)}]" if extras else ""
+        return f"- {header}{suffix}: {content_text}"
+
+    @classmethod
+    def _build_recursion_summary_prompt(cls, transcript: str) -> str:
+        return (
+            "你是 AI 助手的故障摘要器。主代理在 LangGraph 達到遞迴上限而中止。\n"
+            "請使用繁體中文，回覆 2-4 句，語氣直接。\n"
+            "格式要求：\n"
+            "1) 先說明剛剛嘗試要做的事情。\n"
+            "2) 明確指出卡住原因（根據錯誤訊息）。\n"
+            "3) 最後引導使用者：請調整提示後再送出，或直接回覆「繼續任務」。\n"
+            "不要使用 markdown、不要使用 emoji。\n\n"
+            "最近訊息：\n"
+            f"{transcript}"
+        )
+
+    @staticmethod
+    def _fallback_recursion_summary() -> str:
+        return (
+            "我剛剛在執行任務時重複嘗試過多次，暫時卡住了。"
+            "目前無法從現有資訊突破，請補充更明確的指示或修正條件。"
+            "請調整提示後再送出，或直接回覆「繼續任務」。"
+        )
+
+    async def _summarize_recursion_interruption(
+        self,
+        *,
+        agent: Any,
+        config: dict[str, Any],
+    ) -> str:
+        state = await agent.aget_state(config)
+        messages = state.values.get("messages", []) if state else []
+        if not isinstance(messages, list) or not messages:
+            return self._fallback_recursion_summary()
+
+        tail = messages[-_RECURSION_TAIL_MESSAGES:]
+        lines = [self._format_message_for_summary(msg) for msg in tail]
+        transcript = "\n".join(lines)
+        if len(transcript) > 6000:
+            transcript = transcript[-6000:]
+
+        summary_model = ModelFactory.create_model(_RECURSION_SUMMARY_MODEL_ID)
+        summary_prompt = self._build_recursion_summary_prompt(transcript)
+        response = await summary_model.ainvoke(summary_prompt)
+        content = getattr(response, "content", "")
+        if isinstance(content, list):
+            content = " ".join(str(part) for part in content)
+        summary = str(content).strip()
+        return summary or self._fallback_recursion_summary()
 
     # ------------------------------------------------------------------
     # Public streaming API

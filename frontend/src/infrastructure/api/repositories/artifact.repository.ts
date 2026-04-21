@@ -70,3 +70,16 @@ export async function fetchArtifactDownloadUrl(artifactId: string): Promise<{
     "Failed to fetch download URL",
   );
 }
+
+export async function uploadUserArtifact(sessionId: string, file: File): Promise<ArtifactRecord> {
+  const formData = new FormData();
+  formData.append("session_id", sessionId);
+  formData.append("file", file);
+  return requestJson<ArtifactRecord>(
+    httpClient.request(`${BASE_URL}/upload/`, {
+      method: "POST",
+      body: formData,
+    }),
+    "Failed to upload artifact",
+  );
+}

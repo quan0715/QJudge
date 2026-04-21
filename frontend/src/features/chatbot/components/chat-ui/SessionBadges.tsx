@@ -112,16 +112,19 @@ export function SessionBadges({ messages, inline = false }: SessionBadgesProps) 
       className={`${styles.wrapper} ${inline ? styles.wrapperInline : ""}`}
     >
       {openPanel === "todos" && hasTodos && (
-        <div className={styles.popover} role="dialog" aria-label={t("ui.todoList", "待辦清單")}>
+        <div className={styles.popover} role="dialog" aria-label={t("ui.taskList", "任務列表")}>
           <div className={styles.popoverHeader}>
-            <span className={styles.popoverTitle}>{t("ui.todoList", "待辦清單")}</span>
+            <span className={styles.popoverTitle}>{t("ui.taskList", "任務列表")}</span>
             <span className={styles.popoverMeta}>
               {summary.done}/{summary.total}
             </span>
           </div>
           <ul className={styles.todoList}>
             {todos.map((item) => (
-              <li key={item.id} className={styles.todoItem}>
+              <li
+                key={item.id}
+                className={`${styles.todoItem} ${item.status === "in_progress" ? styles.todoItemInProgress : ""}`}
+              >
                 {todoIcon(item.status)}
                 <span className={styles.todoLabel}>{item.label}</span>
               </li>
@@ -131,9 +134,9 @@ export function SessionBadges({ messages, inline = false }: SessionBadgesProps) 
       )}
 
       {openPanel === "artifacts" && hasArtifacts && (
-        <div className={styles.popover} role="dialog" aria-label={t("artifact.panelTitle", "輸出產物")}>
+        <div className={styles.popover} role="dialog" aria-label={t("ui.fileList", "檔案列表")}>
           <div className={styles.popoverHeader}>
-            <span className={styles.popoverTitle}>{t("artifact.panelTitle", "輸出產物")}</span>
+            <span className={styles.popoverTitle}>{t("ui.fileList", "檔案列表")}</span>
             <span className={styles.popoverMeta}>{artifacts.length}</span>
           </div>
           <div className={styles.artifactList}>
@@ -159,7 +162,7 @@ export function SessionBadges({ messages, inline = false }: SessionBadgesProps) 
             onClick={() => toggle("todos")}
           >
             {summaryIcon}
-            <span className={styles.badgeLabel}>{t("ui.todoList", "待辦清單")}</span>
+            <span className={styles.badgeLabel}>{t("ui.taskList", "任務列表")}</span>
             <Tag size="sm" type={summary.failed > 0 ? "red" : "cool-gray"}>
               {summary.done}/{summary.total}
             </Tag>
@@ -173,7 +176,7 @@ export function SessionBadges({ messages, inline = false }: SessionBadgesProps) 
             onClick={() => toggle("artifacts")}
           >
             <Document size={14} />
-            <span className={styles.badgeLabel}>{t("artifact.panelTitle", "輸出產物")}</span>
+            <span className={styles.badgeLabel}>{t("ui.fileList", "檔案列表")}</span>
             <Tag size="sm" type="blue">
               {artifacts.length}
             </Tag>

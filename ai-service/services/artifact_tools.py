@@ -319,7 +319,7 @@ def build_artifact_tools(
         coroutine=_artifact_list,
     )
 
-    async def _artifact_write_csv_from_records(
+    async def _artifact_csv_from_json(
         step: str,
         filename: str,
         records: list[dict[str, Any]] | str,
@@ -459,7 +459,7 @@ def build_artifact_tools(
         coroutine=_artifact_read,
     )
 
-    async def _artifact_patch_csv_rows(
+    async def _artifact_csv_patch(
         step: str,
         filename: str,
         key_column: str,
@@ -543,15 +543,16 @@ def build_artifact_tools(
             "artifact": write_result,
         }
 
-    write_csv_from_records_tool = StructuredTool(
-        name="artifact_write_csv_from_records",
+    csv_from_json_tool = StructuredTool(
+        name="artifact_csv_from_json",
         description=(
-            "Preferred for writing a CSV from MCP / API results: pass the raw"
-            " records array plus a column_mapping (target_col → source dot-path)."
-            " Supports nested keys like 'answer.text'. Extra constant columns go"
-            " in `defaults`. records can be an inline list or a JSON string"
-            " (so if a large MCP response was offloaded to the virtual FS you can"
-            " read_file it first and pass the file content here)."
+            "Write/seed a CSV artifact from JSON records (a list of objects)."
+            " Intended for turning an MCP/API response directly into a CSV file."
+            " Optional `column_mapping` renames or flattens nested keys via"
+            " dot-paths (e.g. 'answer.text'). Optional `defaults` appends extra"
+            " constant columns (e.g. blank score/reason). records accepts inline"
+            " list or JSON string (in case an offloaded response was read_file'd"
+            " first)."
         ),
         args_schema={
             "type": "object",
@@ -574,15 +575,15 @@ def build_artifact_tools(
             },
             "required": ["step", "filename", "records"],
         },
-        coroutine=_artifact_write_csv_from_records,
+        coroutine=_artifact_csv_from_json,
     )
 
-    patch_csv_rows_tool = StructuredTool(
-        name="artifact_patch_csv_rows",
+    csv_patch_tool = StructuredTool(
+        name="artifact_csv_patch",
         description=(
             "Merge partial updates into an existing CSV artifact by key."
-            " Use this to grade a batch of rows without overwriting the"
-            " unchanged ones: pass ONLY the rows you changed, identified by"
+            " Use this to write back a batch of changes without overwriting"
+            " unchanged rows: pass ONLY the rows you changed, identified by"
             " `key_column`. Unmatched keys are returned as `missing`."
         ),
         args_schema={
@@ -599,7 +600,194 @@ def build_artifact_tools(
             },
             "required": ["step", "filename", "key_column", "updates"],
         },
-        coroutine=_artifact_patch_csv_rows,
+        coroutine=_artifact_csv_patch,
+    )
+
+    async def _load_filtered_csv(
+        step: str,
+        filename: str,
+        where: dict[str, Any] | str | None,
+    ) -> dict[str, Any]:
+        """Shared helper: read CSV + apply equality-only where filter.
+
+        Returns ``{"all_columns", "rows", "filtered"}`` on success,
+        or ``{"is_error": True, "detail": ...}`` on failure.
+        """
+        if where is not None:
+            where = _coerce_json_dict(where, "where")
+            if isinstance(where, dict) and where.get("is_error"):
+                return where
+
+        existing = await _artifact_read(step=step, filename=filename)
+        if existing.get("is_error"):
+            return existing
+
+        try:
+            reader = csv.DictReader(io.StringIO(existing["content"]))
+            all_columns = list(reader.fieldnames or [])
+            rows = [dict(row) for row in reader]
+        except csv.Error as exc:
+            return {"is_error": True, "detail": f"CSV parse error: {exc}"}
+
+        if where:
+            unknown = [c for c in where if c not in all_columns]
+            if unknown:
+                return {
+                    "is_error": True,
+                    "detail": f"unknown where columns {unknown}; CSV has {all_columns}",
+                }
+
+            def _match(row: dict[str, str]) -> bool:
+                for col, expected in where.items():
+                    cell = row.get(col, "")
+                    expected_str = "" if expected is None else str(expected)
+                    if str(cell if cell is not None else "") != expected_str:
+                        return False
+                return True
+
+            filtered = [r for r in rows if _match(r)]
+        else:
+            filtered = list(rows)
+
+        return {"all_columns": all_columns, "rows": rows, "filtered": filtered}
+
+    async def _artifact_csv_search(
+        step: str,
+        filename: str,
+        where: dict[str, Any] | str | None = None,
+    ) -> dict[str, Any]:
+        """Count rows matching a where-filter. Does NOT return row data.
+
+        Use this to answer "how many rows still have score empty?" or "how
+        many unsynced rows remain?" — cheap status check before deciding
+        whether/what to batch next. For the actual payload, call
+        ``artifact_csv_to_json`` with ``columns`` + ``limit``.
+        """
+        err = _require_session()
+        if err:
+            return {"is_error": True, "detail": err}
+
+        loaded = await _load_filtered_csv(step=step, filename=filename, where=where)
+        if loaded.get("is_error"):
+            return loaded
+
+        return {
+            "matched": len(loaded["filtered"]),
+            "total_rows": len(loaded["rows"]),
+        }
+
+    async def _artifact_csv_to_json(
+        step: str,
+        filename: str,
+        columns: list[str] | str,
+        where: dict[str, Any] | str | None = None,
+        offset: int = 0,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        """Export matching rows as JSON records with an explicit column projection.
+
+        Intended for building MCP payloads like
+        ``grades=[{exam_answer_id, score, reason}, ...]`` from a CSV without
+        hand-parsing. ``columns`` is REQUIRED so the agent is forced to declare
+        the payload shape explicitly. ``where``/``offset``/``limit`` follow the
+        same rules as ``artifact_csv_search``.
+        """
+        err = _require_session()
+        if err:
+            return {"is_error": True, "detail": err}
+
+        columns = _coerce_json_list(columns, "columns")
+        if isinstance(columns, dict) and columns.get("is_error"):
+            return columns
+        if not columns:
+            return {"is_error": True, "detail": "columns must be non-empty"}
+        if not all(isinstance(c, str) for c in columns):
+            return {"is_error": True, "detail": "every column name must be a string"}
+
+        loaded = await _load_filtered_csv(step=step, filename=filename, where=where)
+        if loaded.get("is_error"):
+            return loaded
+
+        unknown = [c for c in columns if c not in loaded["all_columns"]]
+        if unknown:
+            return {
+                "is_error": True,
+                "detail": f"unknown columns {unknown}; CSV has {loaded['all_columns']}",
+            }
+
+        filtered = loaded["filtered"]
+        total_matched = len(filtered)
+        start = max(int(offset), 0)
+        end = start + int(limit) if limit is not None else total_matched
+        paged = filtered[start:end]
+        records = [{c: r.get(c, "") for c in columns} for r in paged]
+
+        return {
+            "count": len(records),
+            "total_matched": total_matched,
+            "records": records,
+        }
+
+    csv_search_tool = StructuredTool(
+        name="artifact_csv_search",
+        description=(
+            "Count rows in a CSV artifact that match an equality filter."
+            " Returns only {matched, total_rows} — no row data. Use this to"
+            " answer status questions like 'how many rows still need grading?'"
+            " or 'how many unsynced rows remain?' cheaply, without pulling any"
+            " content into context. For the payload itself, call artifact_csv_to_json."
+        ),
+        args_schema={
+            "type": "object",
+            "properties": {
+                "step":     {"type": "string"},
+                "filename": {"type": "string"},
+                "where": {
+                    "type": "object",
+                    "description": (
+                        "Equality filters as {column: expected_value}. AND-combined."
+                        " Use \"\" to match empty cells. Omit to count all rows."
+                    ),
+                },
+            },
+            "required": ["step", "filename"],
+        },
+        coroutine=_artifact_csv_search,
+    )
+
+    csv_to_json_tool = StructuredTool(
+        name="artifact_csv_to_json",
+        description=(
+            "Export matching CSV rows as JSON records for use as an MCP/API"
+            " payload (e.g. grades=[{exam_answer_id, score, reason}, ...])."
+            " `columns` is REQUIRED to force an explicit payload shape; `where`"
+            " is equality-only (empty string matches empty cells);"
+            " `offset`/`limit` paginate the filtered rows. Returns"
+            " {count, total_matched, records}."
+        ),
+        args_schema={
+            "type": "object",
+            "properties": {
+                "step":     {"type": "string"},
+                "filename": {"type": "string"},
+                "columns": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Payload columns to project. Required.",
+                },
+                "where": {
+                    "type": "object",
+                    "description": (
+                        "Equality filters as {column: expected_value}. AND-combined."
+                        " Use \"\" to match empty cells."
+                    ),
+                },
+                "offset": {"type": "integer", "minimum": 0},
+                "limit":  {"type": "integer", "minimum": 1},
+            },
+            "required": ["step", "filename", "columns"],
+        },
+        coroutine=_artifact_csv_to_json,
     )
 
     return [
@@ -607,8 +795,10 @@ def build_artifact_tools(
         read_tool,
         write_tool,
         write_csv_tool,
-        write_csv_from_records_tool,
-        patch_csv_rows_tool,
+        csv_from_json_tool,
+        csv_patch_tool,
+        csv_search_tool,
+        csv_to_json_tool,
     ]
 
 

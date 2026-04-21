@@ -57,6 +57,8 @@
     "inputPlaceholder": "Type a message...",
     "inputAriaLabel": "Message input",
     "modelLabel": "Model",
+    "taskList": "Task List",
+    "fileList": "File List",
     "addAttachment": "Add attachment",
     "stopGenerating": "Stop generating",
     "send": "Send",

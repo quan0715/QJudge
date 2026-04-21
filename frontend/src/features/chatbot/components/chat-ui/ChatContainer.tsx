@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { useChatbot } from "../../hooks/useChatbot";
 import type { ChatContext, ChatMessage, ChatSession, ModelInfo } from "@/core/types/chatbot.types";
 import { MessageList } from "./MessageList";
@@ -47,6 +48,7 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
     switchSession,
     renameSession,
     sendMessage,
+    uploadArtifact,
     stopStreaming,
     submitApproval,
   } = useChatbot({
@@ -111,6 +113,7 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
           onRenameSession={renameSession}
           onDeleteSession={deleteSession}
           sendMessage={sendMessage}
+          uploadArtifact={uploadArtifact}
           stopStreaming={stopStreaming}
           onApproval={handleApproval}
           onClose={onClose}
@@ -140,6 +143,7 @@ interface ChatContainerBodyProps {
   onRenameSession: (id: string, title: string) => void;
   onDeleteSession: (id: string) => void;
   sendMessage: UseChatbotReturn["sendMessage"];
+  uploadArtifact: UseChatbotReturn["uploadArtifact"];
   stopStreaming: () => void;
   onApproval: (decision: "approve" | "reject") => void;
   onClose?: () => void;
@@ -163,6 +167,7 @@ function ChatContainerBody({
   onRenameSession,
   onDeleteSession,
   sendMessage,
+  uploadArtifact,
   stopStreaming,
   onApproval,
   onClose,
@@ -192,6 +197,38 @@ function ChatContainerBody({
     }
   }, [messages, markToolFinished]);
 
+  const handleUpload = useCallback(async (file: File) => {
+    await uploadArtifact(file);
+    markToolFinished("artifact_write");
+  }, [markToolFinished, uploadArtifact]);
+
+  const chatMain = (
+    <div className={styles.chatBody}>
+      <div className={styles.messagesArea}>
+        <MessageList
+          messages={messages}
+          currentSessionId={currentSessionId}
+          isLoading={isSessionLoading}
+          pendingApproval={pendingApproval}
+          onApprovalDecision={onApproval}
+        />
+        <div className={styles.composerFloat}>
+          <ComposerBar
+            onSend={sendMessage}
+            onUpload={handleUpload}
+            onStop={stopStreaming}
+            isStreaming={isStreaming}
+            sessionNotice={sessionNotice}
+            models={availableModels}
+            selectedModelId={selectedModelId}
+            onModelChange={setSelectedModelId}
+            messages={messages}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className={styles.main}>
       <ChatTopBar
@@ -207,37 +244,26 @@ function ChatContainerBody({
         onClose={onClose}
       />
 
-      <div className={showSplitPanel ? styles.splitRow : styles.chatOnlyRow}>
-        <div className={styles.chatBody}>
-          <div className={styles.messagesArea}>
-            <MessageList
-              messages={messages}
-              currentSessionId={currentSessionId}
-              isLoading={isSessionLoading}
-              pendingApproval={pendingApproval}
-              onApprovalDecision={onApproval}
-            />
-            <div className={styles.composerFloat}>
-              <ComposerBar
-                onSend={sendMessage}
-                onStop={stopStreaming}
-                isStreaming={isStreaming}
-                sessionNotice={sessionNotice}
-                models={availableModels}
-                selectedModelId={selectedModelId}
-                onModelChange={setSelectedModelId}
-                messages={messages}
-              />
-            </div>
-          </div>
+      {showSplitPanel ? (
+        <Group
+          orientation="horizontal"
+          className={styles.splitPanels}
+        >
+          <Panel id="chat-panel" defaultSize={62} minSize="420px">
+            {chatMain}
+          </Panel>
+          <Separator className={styles.resizeHandle} />
+          <Panel id="artifact-panel" defaultSize={38} minSize="320px">
+            <aside className={styles.artifactSplit}>
+              <ArtifactPanel />
+            </aside>
+          </Panel>
+        </Group>
+      ) : (
+        <div className={styles.chatOnlyRow}>
+          {chatMain}
         </div>
-
-        {showSplitPanel && (
-          <aside className={styles.artifactSplit}>
-            <ArtifactPanel />
-          </aside>
-        )}
-      </div>
+      )}
 
       {showBottomSheet && (
         <div className={styles.bottomSheet} role="dialog">

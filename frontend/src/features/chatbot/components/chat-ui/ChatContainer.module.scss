@@ -67,19 +67,56 @@
 .splitRow {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 1fr minmax(320px, 45%);
-  gap: 0;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr minmax(280px, 40%);
-  }
+  display: flex;
 }
 
 .artifactSplit {
+  height: 100%;
   min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  border-left: 1px solid var(--cds-border-subtle);
+}
+
+.splitPanels {
+  flex: 1;
+  min-height: 0;
+
+  :global([data-panel]) {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+  }
+
+  :global([data-panel] > div) {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+}
+
+.resizeHandle {
+  position: relative;
+  width: 1px;
+  min-width: 1px;
+  background: var(--cds-border-subtle);
+  cursor: col-resize;
+  flex-shrink: 0;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    left: -4px;
+    right: -4px;
+  }
+
+  &:hover,
+  &[data-resize-handle-active] {
+    background: var(--cds-border-interactive);
+  }
 }
 
 .bottomSheet {
@@ -96,7 +133,9 @@
 
 .chatBody {
   flex: 1;
+  height: 100%;
   min-height: 0;
+  min-width: 0;
   position: relative;
 }
 
@@ -123,4 +162,3 @@
   flex: 1;
   width: 100%;
 }
-

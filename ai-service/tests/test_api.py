@@ -13,14 +13,21 @@ os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
 os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
 
 _openai_stub = types.ModuleType("langchain_openai")
+_deepseek_stub = types.ModuleType("langchain_deepseek")
 
 
 class _ChatOpenAIStub:  # pragma: no cover - import stub only
     pass
 
 
+class _ChatDeepSeekStub:  # pragma: no cover - import stub only
+    pass
+
+
 _openai_stub.ChatOpenAI = _ChatOpenAIStub
+_deepseek_stub.ChatDeepSeek = _ChatDeepSeekStub
 sys.modules.setdefault("langchain_openai", _openai_stub)
+sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 
 from config import get_settings  # noqa: E402
 from main import app  # noqa: E402

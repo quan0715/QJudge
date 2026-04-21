@@ -32,7 +32,7 @@ from services import deepagent_runner as runner_mod
 
 
 def test_summarization_middleware_is_patched():
-    assert runner_mod._deepagents_graph.SummarizationMiddleware is runner_mod._SafeSummarizationMiddleware
+    assert runner_mod._summarization_module.SummarizationMiddleware is runner_mod._SafeSummarizationMiddleware
 
 
 def test_safe_summarization_config_adjusts_unsafe_fallback_trigger_for_gpt5():
@@ -53,7 +53,10 @@ def test_safe_summarization_config_adjusts_unsafe_fallback_trigger_for_gpt5():
         kwargs=kwargs,
     )
 
-    assert kwargs["trigger"] == ("tokens", int(400000 * 0.85))
+    assert kwargs["trigger"] == (
+        "tokens",
+        int(400000 * runner_mod.SUMMARIZATION_TRIGGER_FRACTION),
+    )
     assert kwargs["trim_tokens_to_summarize"] == 12000
 
 

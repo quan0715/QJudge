@@ -387,12 +387,12 @@ def test_write_csv_decodes_json_stringified_rows(monkeypatch):
     assert '"1","2"' in body
 
 
-def test_write_csv_from_records_basic_mapping(monkeypatch):
+def test_csv_from_json_basic_mapping(monkeypatch):
     stub = _StubClient([
         {"method": "POST", "status": 201, "json": {"id": "a"}},
     ])
     _patch_httpx(monkeypatch, stub)
-    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    tool = _tool(_tools(), "artifact_csv_from_json")
     _run(tool.coroutine(
         step="answers",
         filename="answers.csv",
@@ -419,13 +419,13 @@ def test_write_csv_from_records_basic_mapping(monkeypatch):
     assert '"2105","414551016","ans2","0.00","",""' in body
 
 
-def test_write_csv_from_records_accepts_json_string(monkeypatch):
+def test_csv_from_json_accepts_json_string(monkeypatch):
     """Simulates the offload-then-read_file case: agent passes file content as string."""
     stub = _StubClient([
         {"method": "POST", "status": 201, "json": {"id": "a"}},
     ])
     _patch_httpx(monkeypatch, stub)
-    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    tool = _tool(_tools(), "artifact_csv_from_json")
     _run(tool.coroutine(
         step="answers",
         filename="answers.csv",
@@ -437,12 +437,12 @@ def test_write_csv_from_records_accepts_json_string(monkeypatch):
     assert '"1","u1","t1","1","",""' in body
 
 
-def test_write_csv_from_records_missing_path_yields_empty(monkeypatch):
+def test_csv_from_json_missing_path_yields_empty(monkeypatch):
     stub = _StubClient([
         {"method": "POST", "status": 201, "json": {"id": "a"}},
     ])
     _patch_httpx(monkeypatch, stub)
-    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    tool = _tool(_tools(), "artifact_csv_from_json")
     _run(tool.coroutine(
         step="answers", filename="x.csv",
         records=[{"a": 1}],   # missing "b" entirely, and "c.d" nested path
@@ -454,8 +454,8 @@ def test_write_csv_from_records_missing_path_yields_empty(monkeypatch):
     assert lines[1] == '"1","",""'
 
 
-def test_write_csv_from_records_rejects_non_dict_record():
-    tool = _tool(_tools(), "artifact_write_csv_from_records")
+def test_csv_from_json_rejects_non_dict_record():
+    tool = _tool(_tools(), "artifact_csv_from_json")
     result = _run(tool.coroutine(
         step="answers", filename="x.csv",
         records=[{"a": 1}, "not a dict"],
@@ -465,13 +465,13 @@ def test_write_csv_from_records_rejects_non_dict_record():
     assert "records[1]" in result["detail"]
 
 
-def test_write_csv_from_records_identity_mapping(monkeypatch):
+def test_csv_from_json_identity_mapping(monkeypatch):
     """If column_mapping is omitted and records already match CSV shape, use keys as-is."""
     stub = _StubClient([
         {"method": "POST", "status": 201, "json": {"id": "a"}},
     ])
     _patch_httpx(monkeypatch, stub)
-    tool = _tool(_tools(), "artifact_write_csv_from_records")
+    tool = _tool(_tools(), "artifact_csv_from_json")
     _run(tool.coroutine(
         step="answers", filename="answers.csv",
         records=[
@@ -487,7 +487,7 @@ def test_write_csv_from_records_identity_mapping(monkeypatch):
     assert '"2","u2","t2","2","",""' in body
 
 
-def test_patch_csv_rows_merges_updates_and_preserves_others(monkeypatch):
+def test_csv_patch_merges_updates_and_preserves_others(monkeypatch):
     """Patch only the batch you graded — other rows must survive."""
     seed_body = (
         '"exam_answer_id","username","score","reason"\n'
@@ -506,7 +506,7 @@ def test_patch_csv_rows_merges_updates_and_preserves_others(monkeypatch):
          "json": {"id": "a-1", "size_bytes": 999}},
     ])
     _patch_httpx(monkeypatch, stub)
-    tool = _tool(_tools(), "artifact_patch_csv_rows")
+    tool = _tool(_tools(), "artifact_csv_patch")
     result = _run(tool.coroutine(
         step="grade", filename="grade.csv",
         key_column="exam_answer_id",
@@ -525,7 +525,7 @@ def test_patch_csv_rows_merges_updates_and_preserves_others(monkeypatch):
     assert '"3","charlie","2","缺關鍵"' in post_body
 
 
-def test_patch_csv_rows_reports_missing_keys(monkeypatch):
+def test_csv_patch_reports_missing_keys(monkeypatch):
     seed_body = '"exam_answer_id","score"\n"1",""\n'
     stub = _StubClient([
         {"method": "GET", "status": 200, "json": [{"id": "a", "step": "g", "filename": "g.csv", "content_type": "text/csv"}]},
@@ -533,7 +533,7 @@ def test_patch_csv_rows_reports_missing_keys(monkeypatch):
         {"method": "POST", "status": 201, "json": {"id": "a"}},
     ])
     _patch_httpx(monkeypatch, stub)
-    tool = _tool(_tools(), "artifact_patch_csv_rows")
+    tool = _tool(_tools(), "artifact_csv_patch")
     result = _run(tool.coroutine(
         step="g", filename="g.csv", key_column="exam_answer_id",
         updates=[
@@ -545,14 +545,14 @@ def test_patch_csv_rows_reports_missing_keys(monkeypatch):
     assert result["missing"] == ["999"]
 
 
-def test_patch_csv_rows_rejects_missing_key_column(monkeypatch):
+def test_csv_patch_rejects_missing_key_column(monkeypatch):
     seed_body = '"id","score"\n"1",""\n'
     stub = _StubClient([
         {"method": "GET", "status": 200, "json": [{"id": "a", "step": "g", "filename": "g.csv", "content_type": "text/csv"}]},
         {"method": "GET", "status": 200, "content": seed_body.encode("utf-8")},
     ])
     _patch_httpx(monkeypatch, stub)
-    tool = _tool(_tools(), "artifact_patch_csv_rows")
+    tool = _tool(_tools(), "artifact_csv_patch")
     result = _run(tool.coroutine(
         step="g", filename="g.csv", key_column="exam_answer_id",
         updates=[{"exam_answer_id": 1, "score": "5"}],
@@ -561,7 +561,7 @@ def test_patch_csv_rows_rejects_missing_key_column(monkeypatch):
     assert "key_column" in result["detail"]
 
 
-def test_patch_csv_rows_accepts_stringified_updates(monkeypatch):
+def test_csv_patch_accepts_stringified_updates(monkeypatch):
     seed_body = '"id","score"\n"1",""\n'
     stub = _StubClient([
         {"method": "GET", "status": 200, "json": [{"id": "a", "step": "g", "filename": "g.csv", "content_type": "text/csv"}]},
@@ -569,7 +569,7 @@ def test_patch_csv_rows_accepts_stringified_updates(monkeypatch):
         {"method": "POST", "status": 201, "json": {"id": "a"}},
     ])
     _patch_httpx(monkeypatch, stub)
-    tool = _tool(_tools(), "artifact_patch_csv_rows")
+    tool = _tool(_tools(), "artifact_csv_patch")
     result = _run(tool.coroutine(
         step="g", filename="g.csv", key_column="id",
         updates='[{"id": 1, "score": "9"}]',
@@ -577,8 +577,8 @@ def test_patch_csv_rows_accepts_stringified_updates(monkeypatch):
     assert result["updated"] == 1
 
 
-def test_write_csv_from_records_identity_rejects_empty_records():
-    tool = _tool(_tools(), "artifact_write_csv_from_records")
+def test_csv_from_json_identity_rejects_empty_records():
+    tool = _tool(_tools(), "artifact_csv_from_json")
     result = _run(tool.coroutine(
         step="answers", filename="x.csv",
         records=[],
@@ -587,8 +587,8 @@ def test_write_csv_from_records_identity_rejects_empty_records():
     assert "cannot infer" in result["detail"]
 
 
-def test_write_csv_from_records_rejects_empty_mapping():
-    tool = _tool(_tools(), "artifact_write_csv_from_records")
+def test_csv_from_json_rejects_empty_mapping():
+    tool = _tool(_tools(), "artifact_csv_from_json")
     result = _run(tool.coroutine(
         step="answers", filename="x.csv",
         records=[{"a": 1}],
@@ -611,3 +611,188 @@ def test_write_csv_fills_missing_columns_with_empty(monkeypatch):
     body = stub.calls[0]["json"]["content"]
     lines = body.split("\n")
     assert lines[1] == '"1","","3"'
+
+
+# ---------------------------------------------------------------------------
+# artifact_csv_search + artifact_csv_to_json
+# ---------------------------------------------------------------------------
+
+_CSV_FIXTURE = (
+    '"exam_answer_id","username","score","reason","synced"\n'
+    '"1","alice","5","完整","yes"\n'
+    '"2","bob","","",""\n'
+    '"3","charlie","3","缺關鍵",""\n'
+    '"4","dave","","",""\n'
+)
+
+
+def _read_csv_stub(body: bytes = _CSV_FIXTURE.encode("utf-8")) -> _StubClient:
+    return _StubClient([
+        {"method": "GET", "url_contains": "/_internal/artifacts/", "status": 200,
+         "json": [{"id": "a-1", "step": "grade", "filename": "grade.csv",
+                   "content_type": "text/csv"}]},
+        {"method": "GET", "url_contains": "/a-1/content/", "status": 200,
+         "content": body},
+    ])
+
+
+# -- artifact_csv_search ----------------------------------------------------
+
+def test_csv_search_counts_matching_rows(monkeypatch):
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_search")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        where={"synced": ""},
+    ))
+    assert result == {"matched": 3, "total_rows": 4}
+
+
+def test_csv_search_without_where_counts_all(monkeypatch):
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_search")
+    result = _run(tool.coroutine(step="grade", filename="grade.csv"))
+    assert result == {"matched": 4, "total_rows": 4}
+
+
+def test_csv_search_does_not_return_row_data(monkeypatch):
+    """Search is intentionally cheap — it must not leak records into context."""
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_search")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        where={"synced": ""},
+    ))
+    assert "records" not in result
+    assert "rows" not in result
+
+
+def test_csv_search_multi_column_filter_anded(monkeypatch):
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_search")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        where={"synced": "", "score": ""},
+    ))
+    assert result["matched"] == 2
+
+
+def test_csv_search_rejects_unknown_where_column(monkeypatch):
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_search")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        where={"does_not_exist": "x"},
+    ))
+    assert result["is_error"] is True
+    assert "does_not_exist" in result["detail"]
+
+
+# -- artifact_csv_to_json ---------------------------------------------------
+
+def test_csv_to_json_requires_columns(monkeypatch):
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_to_json")
+    result = _run(tool.coroutine(step="grade", filename="grade.csv", columns=[]))
+    assert result["is_error"] is True
+    assert "columns" in result["detail"]
+
+
+def test_csv_to_json_projects_columns(monkeypatch):
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_to_json")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        columns=["exam_answer_id", "score", "reason"],
+    ))
+    assert result["count"] == 4
+    assert result["total_matched"] == 4
+    for rec in result["records"]:
+        assert set(rec.keys()) == {"exam_answer_id", "score", "reason"}
+
+
+def test_csv_to_json_filters_by_empty_string(monkeypatch):
+    """Build unsynced batch — the motivating use case."""
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_to_json")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        columns=["exam_answer_id", "score", "reason"],
+        where={"synced": ""},
+    ))
+    assert result["total_matched"] == 3
+    ids = [r["exam_answer_id"] for r in result["records"]]
+    assert ids == ["2", "3", "4"]
+
+
+def test_csv_to_json_filter_and_limit_combine(monkeypatch):
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_to_json")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        columns=["exam_answer_id"],
+        where={"synced": ""},
+        limit=2,
+    ))
+    assert result["total_matched"] == 3
+    assert result["count"] == 2
+    assert [r["exam_answer_id"] for r in result["records"]] == ["2", "3"]
+
+
+def test_csv_to_json_offset_and_limit_paginate(monkeypatch):
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_to_json")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        columns=["exam_answer_id"],
+        offset=1, limit=2,
+    ))
+    assert result["count"] == 2
+    assert [r["exam_answer_id"] for r in result["records"]] == ["2", "3"]
+
+
+def test_csv_to_json_rejects_unknown_projection_column(monkeypatch):
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_to_json")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        columns=["score", "nope"],
+    ))
+    assert result["is_error"] is True
+    assert "nope" in result["detail"]
+
+
+def test_csv_to_json_rejects_unknown_where_column(monkeypatch):
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_to_json")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        columns=["exam_answer_id"],
+        where={"does_not_exist": "x"},
+    ))
+    assert result["is_error"] is True
+    assert "does_not_exist" in result["detail"]
+
+
+def test_csv_to_json_accepts_stringified_json(monkeypatch):
+    """DeepSeek may emit columns/where as JSON strings; tool should decode."""
+    _patch_httpx(monkeypatch, _read_csv_stub())
+    tool = _tool(_tools(), "artifact_csv_to_json")
+    result = _run(tool.coroutine(
+        step="grade", filename="grade.csv",
+        columns='["exam_answer_id","score"]',
+        where='{"synced": ""}',
+    ))
+    assert result["total_matched"] == 3
+    assert set(result["records"][0].keys()) == {"exam_answer_id", "score"}
+
+
+def test_csv_to_json_missing_artifact_returns_error(monkeypatch):
+    stub = _StubClient([
+        {"method": "GET", "status": 200, "json": []},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_csv_to_json")
+    result = _run(tool.coroutine(step="grade", filename="nope.csv",
+                                 columns=["exam_answer_id"]))
+    assert result["is_error"] is True
