@@ -139,9 +139,18 @@ class ModelFactory:
                 # Route via Responses API: gpt-5.x + function tools + reasoning_effort
                 # is rejected by /v1/chat/completions ("not supported, use /v1/responses").
                 # Passing `reasoning` as a dict makes langchain-openai switch to the
-                # Responses API automatically.
-                openai_kwargs["reasoning"] = {"effort": reasoning_effort}
+                # Responses API automatically. `summary=auto` is required to actually
+                # receive reasoning blocks in the stream — without it OpenAI performs
+                # internal reasoning but emits no reasoning output, so the frontend sees
+                # only tool calls + final text. `output_version=responses/v1` puts the
+                # reasoning summaries into message.content as `{type: "reasoning"}`
+                # blocks (event_adapter already handles both this and additional_kwargs).
+                openai_kwargs["reasoning"] = {
+                    "effort": reasoning_effort,
+                    "summary": "auto",
+                }
                 openai_kwargs["use_responses_api"] = True
+                openai_kwargs["output_version"] = "responses/v1"
             model = ChatOpenAI(**openai_kwargs)
         else:
             api_key = settings.deepseek_api_key

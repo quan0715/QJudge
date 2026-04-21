@@ -52,8 +52,9 @@ def test_create_model_openai_mini_sets_reasoning_effort(monkeypatch):
     assert model.kwargs["streaming"] is True
     # Must route via Responses API (gpt-5.x + tools + reasoning on
     # /v1/chat/completions is rejected by OpenAI).
-    assert model.kwargs["reasoning"] == {"effort": "low"}
+    assert model.kwargs["reasoning"] == {"effort": "low", "summary": "auto"}
     assert model.kwargs["use_responses_api"] is True
+    assert model.kwargs["output_version"] == "responses/v1"
     assert "reasoning_effort" not in model.kwargs
 
 
@@ -62,8 +63,9 @@ def test_create_model_openai_mini_medium_sets_medium_effort(monkeypatch):
     model = model_factory_mod.ModelFactory.create_model("openai-mini-medium")
     assert isinstance(model, _ChatOpenAIStub)
     assert model.kwargs["model"] == "gpt-5.4-mini"
-    assert model.kwargs["reasoning"] == {"effort": "medium"}
+    assert model.kwargs["reasoning"] == {"effort": "medium", "summary": "auto"}
     assert model.kwargs["use_responses_api"] is True
+    assert model.kwargs["output_version"] == "responses/v1"
 
 
 def test_create_model_deepseek_r1(monkeypatch):
