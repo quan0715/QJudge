@@ -81,8 +81,9 @@ export function ArtifactPanelProvider({
       if (seq !== refreshSeq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load artifacts");
     } finally {
-      if (seq !== refreshSeq.current) return;
-      setIsLoading(false);
+      if (seq === refreshSeq.current) {
+        setIsLoading(false);
+      }
     }
   }, [sessionId]);
 
