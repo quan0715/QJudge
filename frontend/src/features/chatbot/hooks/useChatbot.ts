@@ -714,7 +714,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setError(errorMsg);
           // Transient SSE disconnect should auto-retry; do not drop active run.
           if (errorMsg.startsWith("任務訂閱失敗:")) {
-            setSessionNotice("連線中斷，嘗試重新連線…");
             setIsLoading(false);
             if (resubscribeTimerRef.current !== null) {
               window.clearTimeout(resubscribeTimerRef.current);
