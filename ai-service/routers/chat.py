@@ -121,6 +121,7 @@ async def generate_resume_events(
         async for sse_dict in runner.resume_stream(
             thread_id=request.thread_id,
             decision=request.decision,
+            model_id=request.model_id,
             request_context=request_context,
         ):
             yield {"data": json.dumps(sse_dict, ensure_ascii=False)}
