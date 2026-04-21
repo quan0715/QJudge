@@ -131,6 +131,12 @@
   color: var(--cds-text-primary);
 }
 
+.todoItemInProgress {
+  .iconProgress {
+    animation: todoPulse 900ms ease-in-out infinite;
+  }
+}
+
 .todoLabel {
   flex: 1;
   min-width: 0;
@@ -163,6 +169,17 @@
   color: var(--cds-icon-secondary);
   flex-shrink: 0;
   margin-top: 2px;
+}
+
+@keyframes todoPulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 // Narrow composer container (mobile viewport OR narrow desktop split panel):

@@ -43,6 +43,12 @@ export function ChatTopBar(props: ChatTopBarProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const closeDropdown = useCallback(() => setDropdownOpen(false), []);
+  const triggerNewChat = useCallback((onNewChat: () => void) => {
+    setDropdownOpen(false);
+    setRenamingId(null);
+    setRenameValue("");
+    onNewChat();
+  }, []);
 
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -78,7 +84,13 @@ export function ChatTopBar(props: ChatTopBarProps) {
         title={<span className={styles.sidebarTitle}>{displayTitle}</span>}
         actions={
           <>
-            <IconButton kind="ghost" size="md" align="bottom" label={t("ui.addComment")} onClick={onNewChat}>
+            <IconButton
+              kind="ghost"
+              size="md"
+              align="bottom"
+              label={t("ui.addComment")}
+              onClick={() => triggerNewChat(onNewChat)}
+            >
               <Add size={20} />
             </IconButton>
             {onClose && (
@@ -187,7 +199,13 @@ export function ChatTopBar(props: ChatTopBarProps) {
       title={titleSlot}
       actions={
         <>
-          <IconButton kind="ghost" size="md" align="bottom" label={t("ui.addComment")} onClick={onNewChat}>
+          <IconButton
+            kind="ghost"
+            size="md"
+            align="bottom"
+            label={t("ui.addComment")}
+            onClick={() => triggerNewChat(onNewChat)}
+          >
             <Add size={20} />
           </IconButton>
           {currentSessionId && (

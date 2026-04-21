@@ -11,6 +11,13 @@ import {
   usePageToolbarMounted,
 } from "@/features/app/contexts/WorkspaceToolbarSlot";
 import { ChatContainer } from "../chat-ui/ChatContainer";
+import {
+  WorkspaceBackdrop,
+  WorkspaceOverlayRoot,
+  WorkspacePanelPresence,
+  WorkspaceSlideInLeftPanel,
+  WorkspaceSlideUpPanel,
+} from "./WorkspacePanelMotion";
 import toolbarStyles from "@/features/app/components/WorkspaceToolBar.module.scss";
 import styles from "./WorkspaceShell.module.scss";
 
@@ -186,46 +193,41 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
         )}
       </aside>
 
-      {portalRoot && showLeftMobileOverlay && createPortal(
-        <div
-          className={styles.mobileLeftOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-label="App sidebar"
-        >
-          <div className={styles.mobileLeftPanel}>
-            <AppSidebar collapsed={false} onToggleCollapse={left.close} />
-          </div>
-          <button
-            type="button"
-            className={styles.mobileLeftBackdrop}
-            onClick={left.close}
-            aria-label="Close sidebar"
-          />
-        </div>,
+      {portalRoot && createPortal(
+        <WorkspacePanelPresence show={showLeftMobileOverlay}>
+          <WorkspaceOverlayRoot
+            className={styles.mobileLeftOverlay}
+            ariaLabel="App sidebar"
+          >
+            <WorkspaceSlideInLeftPanel className={styles.mobileLeftPanel}>
+              <AppSidebar collapsed={false} onToggleCollapse={left.close} />
+            </WorkspaceSlideInLeftPanel>
+            <WorkspaceBackdrop
+              className={styles.mobileLeftBackdrop}
+              onClick={left.close}
+              ariaLabel="Close sidebar"
+            />
+          </WorkspaceOverlayRoot>
+        </WorkspacePanelPresence>,
         portalRoot,
       )}
 
-      {portalRoot && showRightMobileSheet && createPortal(
-        <div
-          className={styles.mobileRightOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Chat"
-        >
-          <button
-            type="button"
-            className={styles.mobileRightBackdrop}
-            onClick={right.close}
-            aria-label="Close chat"
-          />
-          <div className={styles.mobileRightSheet}>
-            <div className={styles.mobileRightSheetHandle} />
-            <div className={styles.mobileRightSheetContent}>
-              <ChatContainer mode="sidebar" onClose={right.close} />
-            </div>
-          </div>
-        </div>,
+      {portalRoot && createPortal(
+        <WorkspacePanelPresence show={showRightMobileSheet}>
+          <WorkspaceOverlayRoot className={styles.mobileRightOverlay} ariaLabel="Chat">
+            <WorkspaceBackdrop
+              className={styles.mobileRightBackdrop}
+              onClick={right.close}
+              ariaLabel="Close chat"
+            />
+            <WorkspaceSlideUpPanel className={styles.mobileRightSheet}>
+              <div className={styles.mobileRightSheetHandle} />
+              <div className={styles.mobileRightSheetContent}>
+                <ChatContainer mode="sidebar" onClose={right.close} />
+              </div>
+            </WorkspaceSlideUpPanel>
+          </WorkspaceOverlayRoot>
+        </WorkspacePanelPresence>,
         portalRoot,
       )}
 

@@ -46,7 +46,9 @@ interface ArtifactPanelProviderProps {
   children: ReactNode;
 }
 
-const ARTIFACT_TOOL_NAMES = new Set(["artifact_write", "artifact_read", "artifact_list"]);
+function isArtifactToolName(toolName: string): boolean {
+  return toolName.startsWith("artifact_");
+}
 
 export function ArtifactPanelProvider({
   sessionId,
@@ -59,34 +61,46 @@ export function ArtifactPanelProvider({
   const [error, setError] = useState<string | null>(null);
 
   const seenToolCallIds = useRef(new Set<string>());
+  const refreshSeq = useRef(0);
 
   const refresh = useCallback(async () => {
+    const seq = ++refreshSeq.current;
     if (!sessionId) {
       setArtifacts([]);
+      setError(null);
+      setIsLoading(false);
       return;
     }
     setIsLoading(true);
     setError(null);
     try {
       const records = await listArtifacts({ sessionId });
+      if (seq !== refreshSeq.current) return;
       setArtifacts(records);
     } catch (err) {
+      if (seq !== refreshSeq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load artifacts");
     } finally {
+      if (seq !== refreshSeq.current) return;
       setIsLoading(false);
     }
   }, [sessionId]);
 
   // Load on session change + reset selection
   useEffect(() => {
+    refreshSeq.current += 1; // invalidate in-flight requests from previous session
     seenToolCallIds.current = new Set();
+    setIsOpen(false);
     setActiveArtifactId(null);
+    setArtifacts([]);
+    setError(null);
+    setIsLoading(Boolean(sessionId));
     void refresh();
   }, [sessionId, refresh]);
 
   const markToolFinished = useCallback(
     (toolName: string) => {
-      if (!ARTIFACT_TOOL_NAMES.has(toolName)) return;
+      if (!isArtifactToolName(toolName)) return;
       void refresh();
     },
     [refresh],

@@ -9,6 +9,9 @@ Two surfaces:
 """
 from __future__ import annotations
 
+import os
+import re
+
 from django.conf import settings
 from django.db import transaction
 from django.http import HttpResponse
@@ -22,6 +25,17 @@ from .models import AIArtifact, AIChatRun, AISession
 from .permissions import IsAIServiceInternal
 from .serializers import AIArtifactSerializer, AIArtifactWriteSerializer
 from .services import artifact_storage
+
+_UPLOAD_FILENAME_RE = re.compile(r"^[A-Za-z0-9._\-]{1,255}$")
+_USER_UPLOAD_STEP = "user_upload"
+_ALLOWED_UPLOAD_EXTS = {".csv", ".md"}
+_ALLOWED_UPLOAD_CONTENT_TYPES = {
+    "text/csv",
+    "application/csv",
+    "text/plain",
+    "text/markdown",
+    "text/x-markdown",
+}
 
 
 def _user_session_qs(user):
@@ -144,6 +158,69 @@ class AIArtifactUserViewSet(viewsets.ReadOnlyModelViewSet):
         if step:
             qs = qs.filter(step=step)
         return qs
+
+    @action(detail=False, methods=["post"], url_path="upload")
+    def upload(self, request):
+        """Upload user-provided artifact (csv/md) into current session."""
+        session_id = (request.data.get("session_id") or "").strip()
+        file_obj = request.FILES.get("file")
+        if not session_id:
+            return Response({"detail": "session_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if file_obj is None:
+            return Response({"detail": "file is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        filename = os.path.basename((file_obj.name or "").strip())
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in _ALLOWED_UPLOAD_EXTS:
+            return Response(
+                {"detail": "Only .csv and .md files are supported"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not _UPLOAD_FILENAME_RE.match(filename):
+            return Response({"detail": "invalid filename"}, status=status.HTTP_400_BAD_REQUEST)
+
+        content_type = (file_obj.content_type or "application/octet-stream").lower()
+        if content_type not in _ALLOWED_UPLOAD_CONTENT_TYPES:
+            content_type = "text/csv" if ext == ".csv" else "text/markdown"
+
+        content_bytes = file_obj.read()
+        max_bytes = settings.AI_ARTIFACT_MAX_BYTES
+        if len(content_bytes) > max_bytes:
+            return Response(
+                {"detail": f"file exceeds AI_ARTIFACT_MAX_BYTES={max_bytes}"},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        session = get_object_or_404(_user_session_qs(request.user), session_id=session_id)
+        object_key = artifact_storage.build_artifact_object_key(
+            session.session_id,
+            _USER_UPLOAD_STEP,
+            filename,
+        )
+        artifact_storage.store_artifact(
+            content=content_bytes,
+            object_key=object_key,
+            content_type=content_type,
+        )
+        checksum = artifact_storage.compute_checksum(content_bytes)
+        with transaction.atomic():
+            artifact, _ = AIArtifact.objects.update_or_create(
+                session=session,
+                step=_USER_UPLOAD_STEP,
+                filename=filename,
+                defaults={
+                    "run": None,
+                    "object_key": object_key,
+                    "content_type": content_type,
+                    "size_bytes": len(content_bytes),
+                    "checksum": checksum,
+                    "metadata": {
+                        "artifact_type": "user_upload",
+                        "source": "composer_upload",
+                    },
+                },
+            )
+        return Response(AIArtifactSerializer(artifact).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get"], url_path="download")
     def download(self, request, pk=None):

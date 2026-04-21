@@ -12,6 +12,7 @@ import type {
   VerificationReport,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
+import { uploadUserArtifact } from "@/infrastructure/api/repositories/artifact.repository";
 import { useChatSessionContext } from "../contexts/ChatSessionContext";
 
 interface UseChatbotReturn {
@@ -33,6 +34,7 @@ interface UseChatbotReturn {
   switchSession: (sessionId: string) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
+  uploadArtifact: (file: File) => Promise<void>;
   stopStreaming: () => void;
   refreshSessions: () => Promise<void>;
   submitApproval: (decision: "approve" | "reject") => Promise<void>;
@@ -892,6 +894,36 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     setPendingApproval(null);
   }, []);
 
+  const uploadArtifact = useCallback(async (file: File) => {
+    const sessionId = currentSessionId;
+    if (!sessionId) return;
+    try {
+      setError(null);
+      await uploadUserArtifact(sessionId, file);
+      setSessions((prev) =>
+        prev.map((session) =>
+          session.id === sessionId
+            ? {
+                ...session,
+                messages: [
+                  ...session.messages,
+                  {
+                    id: `upload-${Date.now()}`,
+                    role: "assistant",
+                    content: `已上傳檔案 ${file.name}`,
+                    timestamp: new Date(),
+                  },
+                ],
+              }
+            : session,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to upload artifact:", err);
+      setError(i18n.t("chatbot:errors.uploadArtifactFailed", "無法上傳附件"));
+    }
+  }, [currentSessionId]);
+
   /**
    * 清除錯誤訊息
    */
@@ -979,6 +1011,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     switchSession,
     renameSession,
     sendMessage,
+    uploadArtifact,
     stopStreaming,
     refreshSessions,
     submitApproval,

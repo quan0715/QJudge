@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useMemo, useEffect, useLayoutEffect } from "react";
-import { ArrowUp, Checkmark, ChevronDown, InProgress } from "@carbon/icons-react";
+import { Add, ArrowUp, Checkmark, ChevronDown, InProgress } from "@carbon/icons-react";
+import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { useTranslation } from "react-i18next";
 import type { ChatMessage, ModelInfo } from "@/core/types/chatbot.types";
 import { SessionBadges, useSessionBadgeSummary } from "./SessionBadges";
@@ -7,11 +8,17 @@ import styles from "./ComposerBar.module.scss";
 
 const TEXTAREA_MAX_HEIGHT = 160; // sync with $chat-textarea-max-height in _variables.scss
 
+function normalizeModelLabel(label: string | undefined): string {
+  if (!label) return "gpt-5-nano";
+  return label.replace(/\s*\(Thinking\)\s*/gi, "").trim();
+}
+
 interface ComposerBarProps {
   onSend: (text: string) => void;
   models: ModelInfo[];
   selectedModelId: string;
   onModelChange: (modelId: string) => void;
+  onUpload?: (file: File) => Promise<void>;
   onStop?: () => void;
   isStreaming: boolean;
   disabled?: boolean;
@@ -26,6 +33,7 @@ export function ComposerBar({
   models,
   selectedModelId,
   onModelChange,
+  onUpload,
   onStop,
   isStreaming,
   disabled = false,
@@ -47,6 +55,7 @@ export function ComposerBar({
   const composingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
   const selectedModel = useMemo(
     () => models.find((model) => model.model_id === selectedModelId) ?? models[0],
     [models, selectedModelId],
@@ -141,6 +150,19 @@ export function ComposerBar({
 
   const canSend = value.trim().length > 0 && !disabled && !isStreaming;
   const hasStatusBlock = Boolean(sessionNotice);
+  const canUpload = Boolean(onUpload) && !disabled && !isStreaming;
+
+  const handlePickFile = useCallback(() => {
+    if (!canUpload) return;
+    uploadInputRef.current?.click();
+  }, [canUpload]);
+
+  const handleUploadChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onUpload) return;
+    await onUpload(file);
+    e.target.value = "";
+  }, [onUpload]);
 
   return (
     <div className={styles.bar}>
@@ -161,6 +183,26 @@ export function ComposerBar({
           isExpanded ? styles.inputWrapperExpanded : styles.inputWrapperCompact
         }`}
       >
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept=".csv,.md,text/csv,text/markdown,text/plain"
+          className={styles.uploadInput}
+          onChange={handleUploadChange}
+          tabIndex={-1}
+          aria-hidden
+        />
+        {!isExpanded && (
+          <button
+            type="button"
+            className={styles.attachmentButton}
+            onClick={handlePickFile}
+            disabled={!canUpload}
+            aria-label={t("ui.addAttachment")}
+          >
+            <Add size={16} />
+          </button>
+        )}
         <textarea
           ref={textareaRef}
           className={styles.input}
@@ -176,11 +218,31 @@ export function ComposerBar({
         />
 
         <div className={styles.toolbar}>
-          {isExpanded && (
+          {isExpanded && badgeSummary.hasAny && messages && (
             <div className={styles.leftTools}>
-              {badgeSummary.hasAny && messages && (
-                <SessionBadges messages={messages} inline />
-              )}
+              <button
+                type="button"
+                className={styles.attachmentButton}
+                onClick={handlePickFile}
+                disabled={!canUpload}
+                aria-label={t("ui.addAttachment")}
+              >
+                <Add size={16} />
+              </button>
+              <SessionBadges messages={messages} inline />
+            </div>
+          )}
+          {isExpanded && (!badgeSummary.hasAny || !messages) && (
+            <div className={styles.leftTools}>
+              <button
+                type="button"
+                className={styles.attachmentButton}
+                onClick={handlePickFile}
+                disabled={!canUpload}
+                aria-label={t("ui.addAttachment")}
+              >
+                <Add size={16} />
+              </button>
             </div>
           )}
           <div className={styles.rightTools}>
@@ -195,7 +257,10 @@ export function ComposerBar({
                 aria-haspopup="listbox"
                 aria-expanded={isModelMenuOpen}
               >
-                <span className={styles.modelText}>{selectedModel?.display_name ?? "gpt-5-nano"}</span>
+                <AiLaunch size={14} className={styles.modelIcon} aria-hidden />
+                <span className={styles.modelText}>
+                  {normalizeModelLabel(selectedModel?.display_name)}
+                </span>
               </button>
               <ChevronDown size={14} className={styles.modelChevron} aria-hidden />
               {isModelMenuOpen && (
@@ -214,7 +279,7 @@ export function ComposerBar({
                           setIsModelMenuOpen(false);
                         }}
                       >
-                        <span>{model.display_name}</span>
+                        <span>{normalizeModelLabel(model.display_name)}</span>
                         {isActive && <Checkmark size={14} />}
                       </button>
                     );

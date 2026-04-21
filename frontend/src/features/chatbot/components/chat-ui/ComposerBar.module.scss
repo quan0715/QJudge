@@ -13,6 +13,7 @@
     transparent 0%,
     color-mix(in srgb, var(--cds-background, #fff) 94%, transparent) 36%
   );
+  overflow: visible;
 }
 
 .statusStack {
@@ -66,6 +67,7 @@
   // viewport is wide.
   container-type: inline-size;
   container-name: composer;
+  overflow: visible;
 }
 
 // Compact mode: single visible row; everything inline.
@@ -116,6 +118,10 @@
   flex-direction: column;
   align-items: stretch;
 
+  .attachmentButton {
+    align-self: flex-start;
+  }
+
   .toolbar {
     width: 100%;
     justify-content: space-between;
@@ -159,6 +165,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
+  overflow: visible;
 }
 
 .leftTools {
@@ -169,12 +176,42 @@
   flex: 1 1 auto;
 }
 
+.uploadInput {
+  display: none;
+}
+
+.attachmentButton {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--cds-icon-secondary, #8d8d8d);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+
+  &:hover:not(:disabled) {
+    background: var(--cds-layer-03, #393939);
+    color: var(--cds-text-primary, #f4f4f4);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
 .rightTools {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   justify-content: flex-end;
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .modelSelectWrap {
@@ -236,6 +273,11 @@
   }
 }
 
+.modelIcon {
+  display: none;
+  color: var(--cds-icon-secondary, #8d8d8d);
+}
+
 .modelText {
   max-width: 14.5rem;
   min-width: 0;
@@ -280,16 +322,75 @@
   justify-content: space-between;
   font-size: 0.88rem;
   cursor: pointer;
+  text-align: left;
 
   transition: background-color 120ms ease;
 
   &:hover {
     background: color-mix(in srgb, var(--cds-button-primary, #0f62fe) 24%, transparent);
   }
+
+  > span {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .modelOptionActive {
   background: color-mix(in srgb, var(--cds-button-primary, #0f62fe) 18%, transparent);
+}
+
+// Narrow panel RWD: keep model picker as icon-only trigger to avoid overlap
+// with badges/add/send controls when artifact split is resized small.
+@container composer (max-width: 560px) {
+  .rightTools {
+    gap: 0.35rem;
+  }
+
+  .modelSelectWrap {
+    min-width: 2rem;
+    width: 2rem;
+    height: 2rem;
+    padding-left: 0;
+    justify-content: center;
+  }
+
+  .streamDot {
+    display: none;
+  }
+
+  .modelSelectButton {
+    width: 2rem;
+    min-width: 2rem;
+    max-width: 2rem;
+    min-height: 2rem;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .modelIcon {
+    display: inline-flex;
+  }
+
+  .modelText {
+    display: none;
+  }
+
+  .modelChevron {
+    position: static;
+  }
+
+  .modelSelectWrap .modelMenu {
+    left: auto;
+    right: 0;
+    min-width: 12rem;
+    max-width: min(14rem, calc(100vw - 1rem));
+    transform: translateX(-0.25rem);
+  }
 }
 
 .sendButton {
