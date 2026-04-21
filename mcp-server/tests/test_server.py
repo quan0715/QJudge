@@ -258,6 +258,67 @@ def test_strip_snapshots_leaves_non_json_string_unchanged():
     assert server._strip_snapshots(raw) == raw
 
 
+def test_artifact_csv_delete_rows_by_row_index(tmp_path):
+    csv_path = tmp_path / "answers.csv"
+    csv_path.write_text(
+        "index,exam_answer_id,score,reason\n"
+        "1,2088,,\n"
+        "2,2088,2,重複資料，答案完整正確\n"
+        "3,3001,1,ok\n",
+        encoding="utf-8",
+    )
+
+    result = server.artifact_csv_delete_rows(
+        file_path=str(csv_path),
+        row_index=1,
+    )
+
+    assert result["status"] == "success"
+    assert result["deleted_count"] == 1
+    assert result["after_count"] == 2
+    assert csv_path.read_text(encoding="utf-8") == (
+        "index,exam_answer_id,score,reason\n"
+        "2,2088,2,重複資料，答案完整正確\n"
+        "3,3001,1,ok\n"
+    )
+
+
+def test_artifact_csv_delete_rows_by_match(tmp_path):
+    csv_path = tmp_path / "answers.csv"
+    csv_path.write_text(
+        "index,exam_answer_id,score,reason\n"
+        "1,2088,,\n"
+        "2,2088,2,重複資料，答案完整正確\n"
+        "3,2088,,\n",
+        encoding="utf-8",
+    )
+
+    result = server.artifact_csv_delete_rows(
+        file_path=str(csv_path),
+        match={"exam_answer_id": "2088", "score": ""},
+        delete_all_matches=True,
+    )
+
+    assert result["status"] == "success"
+    assert result["deleted_count"] == 2
+    assert result["after_count"] == 1
+    assert csv_path.read_text(encoding="utf-8") == (
+        "index,exam_answer_id,score,reason\n"
+        "2,2088,2,重複資料，答案完整正確\n"
+    )
+
+
+def test_artifact_csv_delete_rows_requires_selector(tmp_path):
+    csv_path = tmp_path / "answers.csv"
+    csv_path.write_text("index,exam_answer_id,score\n1,2088,\n", encoding="utf-8")
+
+    result = server.artifact_csv_delete_rows(file_path=str(csv_path))
+
+    assert result["error"] is True
+    assert result["status"] == 400
+    assert "selector" in result["detail"]
+
+
 def test_qjudge_browse_builds_encoded_query(monkeypatch):
     calls = []
 

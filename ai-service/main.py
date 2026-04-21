@@ -1,5 +1,6 @@
 """AI Service — FastAPI application entry point (v2: DeepAgent)."""
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -46,6 +47,7 @@ async def lifespan(app: FastAPI):
         logger.warning("AI_STATE_POSTGRES_URL not set — checkpointing disabled.")
 
     app.state.deepagent_runner = runner
+    app.state.stream_semaphore = asyncio.Semaphore(max(1, settings.stream_max_concurrency))
 
     yield
 

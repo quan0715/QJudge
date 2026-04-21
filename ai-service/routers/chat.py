@@ -1,5 +1,6 @@
 """Chat API router (v2 — DeepAgent)."""
 
+import asyncio
 import hmac
 import json
 import logging
@@ -27,9 +28,27 @@ def validate_internal_auth(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
+async def acquire_stream_slot(app_request: Request) -> asyncio.Semaphore:
+    """Acquire a bounded stream slot to protect AI service from overload."""
+    settings = get_settings()
+    semaphore = app_request.app.state.stream_semaphore
+    try:
+        await asyncio.wait_for(
+            semaphore.acquire(),
+            timeout=max(0.1, settings.stream_acquire_timeout_seconds),
+        )
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service is busy. Please retry shortly.",
+        ) from exc
+    return semaphore
+
+
 async def generate_sse_events(
     request: ChatRequest,
     app_request: Request,
+    semaphore: asyncio.Semaphore,
 ) -> AsyncGenerator[dict, None]:
     """Generate SSE events by running the DeepAgent."""
     runner = app_request.app.state.deepagent_runner
@@ -67,6 +86,8 @@ async def generate_sse_events(
                 }
             )
         }
+    finally:
+        semaphore.release()
 
 
 @router.post("/stream")
@@ -78,12 +99,14 @@ async def chat_stream(request: ChatRequest, app_request: Request) -> EventSource
     usage_report, run_completed, run_failed.
     """
     validate_internal_auth(app_request)
-    return EventSourceResponse(generate_sse_events(request, app_request))
+    semaphore = await acquire_stream_slot(app_request)
+    return EventSourceResponse(generate_sse_events(request, app_request, semaphore))
 
 
 async def generate_resume_events(
     request: ResumeRequest,
     app_request: Request,
+    semaphore: asyncio.Semaphore,
 ) -> AsyncGenerator[dict, None]:
     """Generate SSE events by resuming an interrupted DeepAgent."""
     runner = app_request.app.state.deepagent_runner
@@ -113,6 +136,8 @@ async def generate_resume_events(
                 }
             )
         }
+    finally:
+        semaphore.release()
 
 
 @router.post("/repair/{thread_id}")
@@ -158,4 +183,5 @@ async def chat_resume(request: ResumeRequest, app_request: Request) -> EventSour
     Streams SSE events for the resumed agent execution.
     """
     validate_internal_auth(app_request)
-    return EventSourceResponse(generate_resume_events(request, app_request))
+    semaphore = await acquire_stream_slot(app_request)
+    return EventSourceResponse(generate_resume_events(request, app_request, semaphore))

@@ -40,6 +40,30 @@ def test_create_model_openai_nano(monkeypatch):
     assert model.kwargs["model"] == "gpt-5-nano"
     assert model.kwargs["api_key"] == "openai-key"
     assert model.kwargs["streaming"] is True
+    assert "reasoning_effort" not in model.kwargs
+
+
+def test_create_model_openai_mini_sets_reasoning_effort(monkeypatch):
+    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
+    model = model_factory_mod.ModelFactory.create_model("openai-mini")
+    assert isinstance(model, _ChatOpenAIStub)
+    assert model.kwargs["model"] == "gpt-5.4-mini"
+    assert model.kwargs["api_key"] == "openai-key"
+    assert model.kwargs["streaming"] is True
+    # Must route via Responses API (gpt-5.x + tools + reasoning on
+    # /v1/chat/completions is rejected by OpenAI).
+    assert model.kwargs["reasoning"] == {"effort": "low"}
+    assert model.kwargs["use_responses_api"] is True
+    assert "reasoning_effort" not in model.kwargs
+
+
+def test_create_model_openai_mini_medium_sets_medium_effort(monkeypatch):
+    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
+    model = model_factory_mod.ModelFactory.create_model("openai-mini-medium")
+    assert isinstance(model, _ChatOpenAIStub)
+    assert model.kwargs["model"] == "gpt-5.4-mini"
+    assert model.kwargs["reasoning"] == {"effort": "medium"}
+    assert model.kwargs["use_responses_api"] is True
 
 
 def test_create_model_deepseek_r1(monkeypatch):

@@ -133,7 +133,8 @@
 
 .todoItemInProgress {
   .iconProgress {
-    animation: todoPulse 900ms ease-in-out infinite;
+    animation: todoSpin 1s linear infinite;
+    transform-origin: center;
   }
 }
 
@@ -171,14 +172,9 @@
   margin-top: 2px;
 }
 
-@keyframes todoPulse {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(0.94);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1);
+@keyframes todoSpin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

@@ -98,7 +98,7 @@ class StartRunSerializer(serializers.Serializer):
 
     content = serializers.CharField(max_length=10000)
     model_id = serializers.ChoiceField(
-        choices=["openai-nano", "deepseek-r1", "deepseek-v3"],
+        choices=["openai-nano", "openai-mini", "openai-mini-medium", "deepseek-r1", "deepseek-v3"],
         required=False,
         default="openai-nano",
     )

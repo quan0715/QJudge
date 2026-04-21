@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import AsyncExitStack
 import logging
 from typing import Any
@@ -10,6 +11,8 @@ from langchain_core.tools import BaseTool, StructuredTool
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 from mcp.types import CallToolResult, Tool
+
+from config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +43,7 @@ class MCPToolProvider:
         self._session: ClientSession | None = None
 
     async def __aenter__(self) -> "MCPToolProvider":
+        settings = get_settings()
         stack = AsyncExitStack()
         headers: dict[str, str] = {}
         if self._authorization_header:
@@ -53,7 +57,10 @@ class MCPToolProvider:
         )
         session = ClientSession(read_stream, write_stream)
         await stack.enter_async_context(session)
-        await session.initialize()
+        await asyncio.wait_for(
+            session.initialize(),
+            timeout=max(0.5, settings.mcp_initialize_timeout_seconds),
+        )
 
         self._stack = stack
         self._session = session
@@ -72,12 +79,16 @@ class MCPToolProvider:
 
     async def load_tools(self) -> list[BaseTool]:
         """Load all MCP tool definitions and wrap them for LangChain."""
+        settings = get_settings()
         session = self._require_session()
         tools: list[Tool] = []
         cursor: str | None = None
 
         while True:
-            result = await session.list_tools(cursor=cursor)
+            result = await asyncio.wait_for(
+                session.list_tools(cursor=cursor),
+                timeout=max(0.5, settings.mcp_list_tools_timeout_seconds),
+            )
             tools.extend(result.tools)
             cursor = result.nextCursor
             if not cursor:
@@ -130,8 +141,12 @@ class MCPToolProvider:
         tool_name: str,
         arguments: dict[str, Any] | None,
     ) -> CallToolResult:
+        settings = get_settings()
         session = self._require_session()
-        return await session.call_tool(tool_name, arguments=arguments)
+        return await asyncio.wait_for(
+            session.call_tool(tool_name, arguments=arguments),
+            timeout=max(0.5, settings.mcp_call_tool_timeout_seconds),
+        )
 
     def _require_session(self) -> ClientSession:
         if self._session is None:

@@ -285,6 +285,18 @@ class ModelListView(SchemaAPIView):
             "is_default": True,
         },
         {
+            "model_id": "openai-mini",
+            "display_name": "gpt-5.4-mini (low)",
+            "description": "OpenAI 推理模型，低思考強度，平衡速度與品質",
+            "is_default": False,
+        },
+        {
+            "model_id": "openai-mini-medium",
+            "display_name": "gpt-5.4-mini (medium)",
+            "description": "OpenAI 推理模型，中等思考強度，適合複雜批改與推理",
+            "is_default": False,
+        },
+        {
             "model_id": "deepseek-r1",
             "display_name": "DeepSeek R1 (Thinking)",
             "description": "推理能力強，適合複雜操作與測資生成",
