@@ -116,12 +116,13 @@ services:
       context: ./ai-service
       dockerfile: Dockerfile
     container_name: oj_ai_service_dev
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --workers 2 --timeout-keep-alive 30
     ports:
       - "8001:8001"
     env_file:
       - .env
     environment:
-      - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-online_judge}
+      - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:5432/${DB_NAME:-online_judge}
       - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -130,7 +131,8 @@ services:
     networks:
       - oj_network_dev
     depends_on:
-      - postgres
+      pgbouncer:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s

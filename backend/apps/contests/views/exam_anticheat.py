@@ -30,6 +30,7 @@ from ..services.anticheat_storage import (
     build_raw_object_key,
     build_upload_session_id,
     generate_put_url,
+    get_s3_client,
 )
 from ..services.exam_validation import validate_exam_operation
 from .activity import ContestActivityViewSet
@@ -104,6 +105,9 @@ class ExamAnticheatMixin:
             upload_session_id = build_upload_session_id()
         start_seq = int(query_serializer.validated_data.get("start_seq") or 1)
         base_ts = int(timezone.now().timestamp() * 1000)
+        presign_client = get_s3_client(
+            endpoint_url=(settings.ANTICHEAT_S3_PUBLIC_ENDPOINT_URL or "").strip() or None
+        )
         items = []
         for i in range(count):
             seq = start_seq + i
@@ -120,6 +124,7 @@ class ExamAnticheatMixin:
                 settings.ANTICHEAT_RAW_BUCKET,
                 object_key,
                 expires_seconds=settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS,
+                client=presign_client,
             )
             items.append(
                 {

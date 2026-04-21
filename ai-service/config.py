@@ -84,6 +84,9 @@ class Settings(BaseSettings):
 
     # MCP tool source
     qjudge_mcp_url: str = "http://qjudge-mcp:9000/mcp"
+    mcp_initialize_timeout_seconds: float = 10.0
+    mcp_list_tools_timeout_seconds: float = 10.0
+    mcp_call_tool_timeout_seconds: float = 30.0
     deepagent_skills_paths: list[str] = ["/app/.deepagents/skills/"]
     deepagent_memory_paths: list[str] = ["/app/.deepagents/AGENTS.md"]
 
@@ -98,6 +101,10 @@ class Settings(BaseSettings):
 
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+
+    # Runtime hardening
+    stream_max_concurrency: int = 50
+    stream_acquire_timeout_seconds: float = 2.0
 
     @classmethod
     def settings_customise_sources(

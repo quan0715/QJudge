@@ -4,6 +4,7 @@ MinIO/S3 helper utilities for anti-cheat upload and evidence access.
 from __future__ import annotations
 
 import uuid
+from functools import lru_cache
 from typing import Any
 from urllib.parse import urlparse, urlunparse
 
@@ -16,17 +17,28 @@ def _get_boto3():
     return boto3
 
 
-def get_s3_client(*, endpoint_url: str | None = None):
+@lru_cache(maxsize=8)
+def _cached_s3_client(resolved_endpoint: str) -> Any:
+    """Create and cache boto3 S3 clients by endpoint.
+
+    Client construction is relatively expensive. In hot paths like
+    presigned-URL generation, reusing clients significantly reduces latency.
+    """
     boto3 = _get_boto3()
     kwargs: dict[str, Any] = {
         "aws_access_key_id": settings.ANTICHEAT_S3_ACCESS_KEY,
         "aws_secret_access_key": settings.ANTICHEAT_S3_SECRET_KEY,
         "region_name": settings.ANTICHEAT_S3_REGION,
     }
-    resolved_endpoint = endpoint_url if endpoint_url is not None else settings.ANTICHEAT_S3_ENDPOINT_URL
     if resolved_endpoint:
         kwargs["endpoint_url"] = resolved_endpoint
     return boto3.client("s3", **kwargs)
+
+
+def get_s3_client(*, endpoint_url: str | None = None):
+    resolved_endpoint = endpoint_url if endpoint_url is not None else settings.ANTICHEAT_S3_ENDPOINT_URL
+    endpoint_key = (resolved_endpoint or "").strip()
+    return _cached_s3_client(endpoint_key)
 
 
 def _rewrite_presigned_url_for_browser(url: str) -> str:
@@ -83,9 +95,11 @@ def generate_put_url(
     expires_seconds: int = 300,
     content_type: str = "image/webp",
     tagging: str = "cleanup=true",
+    client: Any | None = None,
 ) -> str:
     # Presigned URLs must be signed against the same public host clients will call.
-    client = get_s3_client(endpoint_url=(settings.ANTICHEAT_S3_PUBLIC_ENDPOINT_URL or "").strip() or None)
+    if client is None:
+        client = get_s3_client(endpoint_url=(settings.ANTICHEAT_S3_PUBLIC_ENDPOINT_URL or "").strip() or None)
     url = client.generate_presigned_url(
         ClientMethod="put_object",
         Params={
@@ -99,9 +113,15 @@ def generate_put_url(
     return url
 
 
-def generate_get_url(bucket: str, object_key: str, expires_seconds: int = 120) -> str:
+def generate_get_url(
+    bucket: str,
+    object_key: str,
+    expires_seconds: int = 120,
+    client: Any | None = None,
+) -> str:
     # Presigned URLs must be signed against the same public host clients will call.
-    client = get_s3_client(endpoint_url=(settings.ANTICHEAT_S3_PUBLIC_ENDPOINT_URL or "").strip() or None)
+    if client is None:
+        client = get_s3_client(endpoint_url=(settings.ANTICHEAT_S3_PUBLIC_ENDPOINT_URL or "").strip() or None)
     url = client.generate_presigned_url(
         ClientMethod="get_object",
         Params={

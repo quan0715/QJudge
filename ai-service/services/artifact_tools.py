@@ -16,6 +16,7 @@ import csv
 import io
 import json
 import logging
+from contextlib import asynccontextmanager
 from typing import Any
 
 import httpx
@@ -50,6 +51,7 @@ def build_artifact_tools(
     backend_base_url: str,
     internal_token: str,
     http_timeout_seconds: float = 10.0,
+    shared_client: httpx.AsyncClient | None = None,
 ) -> list[BaseTool]:
     """Build the three artifact tools scoped to the current run.
 
@@ -64,6 +66,14 @@ def build_artifact_tools(
         if not session_id:
             return "session_id unavailable in current context; cannot use artifact tool"
         return None
+
+    @asynccontextmanager
+    async def _client_context():
+        if shared_client is not None:
+            yield shared_client
+            return
+        async with httpx.AsyncClient(timeout=http_timeout_seconds) as client:
+            yield client
 
     async def _artifact_write(
         step: str,
@@ -87,7 +97,7 @@ def build_artifact_tools(
         if run_id:
             payload["run_id"] = run_id
         try:
-            async with httpx.AsyncClient(timeout=http_timeout_seconds) as client:
+            async with _client_context() as client:
                 resp = await client.post(
                     internal_url,
                     json=payload,
@@ -190,7 +200,7 @@ def build_artifact_tools(
             params["filename"] = filename
 
         try:
-            async with httpx.AsyncClient(timeout=http_timeout_seconds) as client:
+            async with _client_context() as client:
                 resp = await client.get(
                     internal_url,
                     params=params,
@@ -234,7 +244,7 @@ def build_artifact_tools(
         artifact_id = artifact["id"]
         content_url = f"{base}{_ARTIFACT_INTERNAL_PATH}{artifact_id}/content/"
         try:
-            async with httpx.AsyncClient(timeout=http_timeout_seconds) as client:
+            async with _client_context() as client:
                 resp = await client.get(content_url, headers=_headers(internal_token))
         except httpx.HTTPError as exc:
             return {"is_error": True, "detail": f"transport error: {exc!r}"}

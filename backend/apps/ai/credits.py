@@ -20,6 +20,8 @@ from django.conf import settings
 # IMPORTANT: keep in sync with ai-service/services/model_factory.py::PRICING.
 DEFAULT_MODEL_PRICING: dict[str, dict[str, int]] = {
     "openai-nano": {"input": 5, "output": 20},
+    "openai-mini": {"input": 75, "output": 450},
+    "openai-mini-medium": {"input": 75, "output": 450},
     "deepseek-r1": {"input": 55, "output": 219},
     "deepseek-v3": {"input": 7, "output": 28},
 }

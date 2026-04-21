@@ -39,11 +39,17 @@ _CONFIGURED_TOKEN = get_settings().ai_internal_token.strip()
 class _FakeRunner:
     """No-network runner for API contract tests."""
 
+    def __init__(self):
+        self.last_run_kwargs = None
+        self.last_resume_kwargs = None
+
     async def run_stream(self, **kwargs):
+        self.last_run_kwargs = kwargs
         yield {"type": "run_started", "run_id": "r1", "thread_id": "t1"}
         yield {"type": "run_completed", "run_id": "r1"}
 
     async def resume_stream(self, **kwargs):
+        self.last_resume_kwargs = kwargs
         yield {"type": "run_started", "run_id": "r2", "thread_id": kwargs["thread_id"]}
         yield {"type": "run_completed", "run_id": "r2"}
 
@@ -63,8 +69,10 @@ class _ErrorRunner:
 @pytest.fixture
 def client():
     """Create test client with fake runner to avoid external LLM calls."""
+    runner = _FakeRunner()
     with TestClient(app) as test_client:
-        test_client.app.state.deepagent_runner = _FakeRunner()
+        test_client.app.state.deepagent_runner = runner
+        test_client.app.state._test_runner = runner
         yield test_client
 
 
@@ -201,10 +209,14 @@ class TestChatStreamEndpoint:
             headers=AUTH_HEADERS,
             json={
                 "thread_id": "thread-1",
+                "model_id": "openai-mini",
                 "decision": "approve",
             },
         )
         assert response.status_code == 200
+        runner = client.app.state._test_runner
+        assert runner.last_resume_kwargs is not None
+        assert runner.last_resume_kwargs["model_id"] == "openai-mini"
 
     def test_resume_failure_does_not_leak_internal_error(self, error_client):
         response = error_client.post(

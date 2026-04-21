@@ -71,6 +71,10 @@ class ResumeRequest(BaseModel):
         max_length=64,
         description="Backend AIChatRun id for artifact attribution",
     )
+    model_id: str = Field(
+        default="openai-nano",
+        description="Canonical model ID for resumed run",
+    )
     decision: str = Field(
         ...,
         pattern=r"^(approve|reject)$",

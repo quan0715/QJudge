@@ -10,6 +10,7 @@ import uuid
 from typing import Any, AsyncGenerator
 from collections.abc import Mapping
 
+import httpx
 from deepagents import create_deep_agent
 from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
@@ -68,7 +69,11 @@ def _qjudge_backend_factory(rt: Any) -> CompositeBackend:
     )
 
 
-def _build_session_artifact_tools(request_context: RequestContext | None) -> list[Any]:
+def _build_session_artifact_tools(
+    request_context: RequestContext | None,
+    *,
+    shared_client: httpx.AsyncClient | None = None,
+) -> list[Any]:
     """Construct session-private artifact tools using ai-service config."""
     cfg = get_settings()
     session_id = request_context.session_id if request_context else None
@@ -78,6 +83,7 @@ def _build_session_artifact_tools(request_context: RequestContext | None) -> lis
         run_id=run_id,
         backend_base_url=cfg.qjudge_backend_url,
         internal_token=cfg.ai_internal_token,
+        shared_client=shared_client,
     )
 
 
@@ -431,9 +437,12 @@ class DeepAgentRunner:
             authorization_header=(
                 request_context.user_authorization if request_context else None
             ),
-        ) as tool_provider:
+        ) as tool_provider, httpx.AsyncClient(timeout=10.0) as artifact_client:
             tools = await tool_provider.load_tools()
-            tools = list(tools) + _build_session_artifact_tools(request_context)
+            tools = list(tools) + _build_session_artifact_tools(
+                request_context,
+                shared_client=artifact_client,
+            )
             agent = self._build_agent(
                 model_id=model_id,
                 system_prompt=system_prompt,

@@ -1,6 +1,8 @@
 """QJudge MCP Server tools."""
 
+import csv
 import json
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 from uuid import UUID
@@ -538,6 +540,7 @@ _TOOL_HELP = {
         "qjudge_coding_problems": "Coding contest problems: get, create, update, delete (no list — use qjudge_contest_manager list_problems)",
         "qjudge_code_runner": "Execute code against test cases: run code, get results",
         "qjudge_grading": "Grading: list_answers, question_detail, dashboard, grade, batch_grade, ungrade",
+        "artifact_csv_delete_rows": "Local CSV row deletion helper: delete by row_index and/or exact match conditions",
     },
     "routing_rules": {
         "unknown_id": "If classroom_id/contest_id is unknown, use qjudge_browse first.",
@@ -694,6 +697,96 @@ def render_classroom_list(classrooms: list[dict[str, Any]]) -> dict[str, Any]:
             "ui": { "resourceUri": CLASSROOM_LIST_TEMPLATE_URI },
             "openai/outputTemplate": CLASSROOM_LIST_TEMPLATE_URI
         }
+    }
+
+
+@mcp.tool()
+def artifact_csv_delete_rows(
+    file_path: str,
+    row_index: int | None = None,
+    match: dict[str, Any] | None = None,
+    delete_all_matches: bool = True,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Delete rows from a local CSV file.
+
+    Selectors:
+      - row_index: 1-based data-row index (header excluded)
+      - match: exact-match conditions on CSV columns, e.g. {"exam_answer_id": "2088", "score": ""}
+      - You may provide both; in that case, both conditions must match.
+    """
+    if row_index is None and not match:
+        return _error("Provide at least one selector: row_index or match", status=400)
+    if row_index is not None and row_index <= 0:
+        return _error("row_index must be >= 1 (1-based data row index)", status=400)
+
+    csv_path = Path(file_path).expanduser()
+    if not csv_path.exists():
+        return _error(f"CSV file not found: {csv_path}", status=404)
+    if not csv_path.is_file():
+        return _error(f"Path is not a file: {csv_path}", status=400)
+
+    try:
+        with csv_path.open("r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            fieldnames = list(reader.fieldnames or [])
+            rows = list(reader)
+    except Exception as exc:
+        return _error(f"Failed to read CSV: {exc!r}", status=400)
+
+    if not fieldnames:
+        return _error("CSV has no header row", status=400)
+
+    for key in (match or {}).keys():
+        if key not in fieldnames:
+            return _error(f"Unknown match column: {key}", status=400)
+
+    deleted_rows: list[dict[str, Any]] = []
+    kept_rows: list[dict[str, Any]] = []
+    deleted_any = False
+
+    for idx, row in enumerate(rows, start=1):
+        index_ok = row_index is None or idx == row_index
+        match_ok = True
+        if match:
+            for key, expected in match.items():
+                actual = row.get(key, "")
+                expected_text = "" if expected is None else str(expected)
+                if actual != expected_text:
+                    match_ok = False
+                    break
+        should_delete = index_ok and match_ok
+        if should_delete and (delete_all_matches or not deleted_any):
+            deleted_rows.append(row)
+            deleted_any = True
+            continue
+        kept_rows.append(row)
+
+    if not deleted_rows:
+        return {
+            "status": "no_match",
+            "file_path": str(csv_path),
+            "before_count": len(rows),
+            "deleted_count": 0,
+            "after_count": len(rows),
+        }
+
+    if not dry_run:
+        try:
+            with csv_path.open("w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(kept_rows)
+        except Exception as exc:
+            return _error(f"Failed to write CSV: {exc!r}", status=500)
+
+    return {
+        "status": "success" if not dry_run else "dry_run",
+        "file_path": str(csv_path),
+        "before_count": len(rows),
+        "deleted_count": len(deleted_rows),
+        "after_count": len(kept_rows),
+        "deleted_rows_preview": deleted_rows[:5],
     }
 
 
