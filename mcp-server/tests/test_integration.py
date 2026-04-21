@@ -403,8 +403,15 @@ class TestCodeRunnerIntegration:
         assert isinstance(result, dict)
         if result.get("error"):
             # Backend/business errors are acceptable in integration env, but must be structured.
-            assert isinstance(result.get("detail"), str)
-            assert result["detail"].strip() != ""
+            # _format_django_errors emits either `detail` (str) or `errors` (list[str])
+            # depending on the Django response shape — both count as structured.
+            detail = result.get("detail")
+            errors = result.get("errors")
+            has_detail = isinstance(detail, str) and detail.strip()
+            has_errors = isinstance(errors, list) and any(
+                isinstance(e, str) and e.strip() for e in errors
+            )
+            assert has_detail or has_errors, f"unstructured error payload: {result!r}"
         else:
             # Successful response shape depends on backend version; keep structural assertion broad.
             assert "results" in result or "status" in result
