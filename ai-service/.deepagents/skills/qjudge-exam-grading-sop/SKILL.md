@@ -63,15 +63,26 @@ sop:
       rules:
         - 一題一題依 rubric.md 決定 score 與 reason,禁止寫腳本或機械批打。
         - 每批 20 筆,結束後用 artifact_patch_csv_rows 寫回,並將對應 todo 標為 completed。
+        - reason 政策(省 output token):
+            - 預設:滿分(rubric 最高分) → reason 留空;非滿分 → 必填 reason。
+            - 例外:滿分但有值得給的改進建議 → 可填。
+            - 覆寫:若 user 在 Stage 1 明說「每題都要寫 reason / 都要評語」 → 一律填。
       loop:
         - |
-          # 讀目前進度(可用 offset/limit 分頁讀)
-          artifact_read(step="grade", filename="grade.csv")
-          # 取目前 todo 對應 index 範圍中 score == "" 的 row
+          # 1. 只把本批要評的 20 筆 + 必要欄位讀進 context(其他欄/列不載入,省 token)
+          batch = artifact_csv_to_records(
+            step="grade",
+            filename="grade.csv",
+            columns=["exam_answer_id", "answer_text"],
+            where={"score": ""},
+            limit=20,
+          )
+          # batch["records"] = [{exam_answer_id, answer_text}, ...]
+          # batch["count"] == 0 → 全部評完,跳出 loop 進 4_writeback_confirm
         - |
-          # 對每一筆獨立思考後決定 score 與 reason
+          # 2. 對每一筆獨立思考後決定 score 與 reason (依 reason 政策)
         - |
-          # 只 patch 這批 20 筆的 score/reason(不需重傳 answer_text 等原始欄位)
+          # 3. 只 patch 這批 20 筆的 score/reason
           artifact_patch_csv_rows(
             step="grade",
             filename="grade.csv",
@@ -82,9 +93,9 @@ sop:
             ],
           )
         - |
-          # 更新 todo: 本批標 completed,啟動下一批
+          # 4. 更新 todo: 本批標 completed,啟動下一批
           write_todos(todos=[...])
-        - 仍有 todo pending → 下一輪;全部 completed → 進 4_writeback_confirm
+        - count > 0 → 下一輪;count == 0 → 進 4_writeback_confirm
 
     - id: 4_writeback_confirm
       halt: true
@@ -98,17 +109,33 @@ sop:
         - 取消 → 回「取消」
 
     - id: 5_writeback
-      steps:
-        - qjudge_grading(action=grade|batch_grade, per_row={exam_answer_id, score, reason})
+      rules:
+        - 禁止手動解析 CSV 或寫 Python。用 artifact_csv_to_records 讀 unsynced rows → 直接丟 batch_grade。
+        - 每批最多 20 筆(跟 Stage 3 批次對齊)。
+      loop:
         - |
-          # 每筆寫回成功後 patch grade.csv 標記 synced="yes",未成功留空
+          # 1. 取尚未 sync 的 (exam_answer_id, score, reason),最多 20 筆
+          batch = artifact_csv_to_records(
+            step="grade",
+            filename="grade.csv",
+            columns=["exam_answer_id", "score", "reason"],
+            where={"synced": ""},
+            limit=20,
+          )
+          # batch 形狀: {"count": N, "total_matched": M, "records": [{exam_answer_id, score, reason}, ...]}
+          # count == 0 → 全部寫回完畢,跳出 loop 進 report
+        - |
+          # 2. 整批寫回
+          qjudge_grading(action="batch_grade", grades=batch["records"])
+        - |
+          # 3. 成功的列 patch synced="yes";失敗的留空,等下輪重試或進 report
           artifact_patch_csv_rows(
             step="grade", filename="grade.csv",
             key_column="exam_answer_id",
-            updates=[{"exam_answer_id": ..., "synced": "yes"}, ...],
+            updates=[{"exam_answer_id": ..., "synced": "yes"}, ...],  # 只放成功的
           )
       report: 寫回 X 筆成功、Y 筆失敗(失敗列 exam_answer_id + 錯誤)。
-      idempotency: 同一 exam_answer_id 重複視為 no-op;synced=="yes" 的 row 可跳過。
+      idempotency: 同一 exam_answer_id 重複視為 no-op;synced=="yes" 的 row 下輪會自動被 where filter 跳過。
 
   stage_resolution:
     primary: artifact_list

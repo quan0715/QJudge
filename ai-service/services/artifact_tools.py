@@ -602,6 +602,136 @@ def build_artifact_tools(
         coroutine=_artifact_patch_csv_rows,
     )
 
+    async def _artifact_csv_to_records(
+        step: str,
+        filename: str,
+        columns: list[str] | str | None = None,
+        where: dict[str, Any] | str | None = None,
+        offset: int = 0,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        """Read a CSV artifact and return matching rows as records (list of dicts).
+
+        Symmetric with ``artifact_write_csv_from_records``: use this to turn
+        a CSV back into records for feeding into MCP payloads (e.g. building
+        ``grades=[{exam_answer_id, score, reason}, ...]`` for batch_grade).
+
+        - ``columns``:  projection. Omit or None → include every CSV column.
+        - ``where``:    dict of ``column → expected value``; AND-combined,
+                        equality-only (no DSL). All comparisons are made on
+                        the string form, so ``{"score": ""}`` matches cells
+                        that are empty after CSV parse.
+        - ``offset`` / ``limit``: applied AFTER filtering, on the row list
+                        (not line-based like ``artifact_read``).
+        """
+        err = _require_session()
+        if err:
+            return {"is_error": True, "detail": err}
+
+        if columns is not None:
+            columns = _coerce_json_list(columns, "columns")
+            if isinstance(columns, dict) and columns.get("is_error"):
+                return columns
+            if not all(isinstance(c, str) for c in columns):
+                return {
+                    "is_error": True,
+                    "detail": "every column name must be a string",
+                }
+
+        if where is not None:
+            where = _coerce_json_dict(where, "where")
+            if isinstance(where, dict) and where.get("is_error"):
+                return where
+
+        existing = await _artifact_read(step=step, filename=filename)
+        if existing.get("is_error"):
+            return existing
+
+        try:
+            reader = csv.DictReader(io.StringIO(existing["content"]))
+            all_columns = list(reader.fieldnames or [])
+            rows = [dict(row) for row in reader]
+        except csv.Error as exc:
+            return {"is_error": True, "detail": f"CSV parse error: {exc}"}
+
+        if columns is not None:
+            unknown = [c for c in columns if c not in all_columns]
+            if unknown:
+                return {
+                    "is_error": True,
+                    "detail": f"unknown columns {unknown}; CSV has {all_columns}",
+                }
+        if where:
+            unknown = [c for c in where if c not in all_columns]
+            if unknown:
+                return {
+                    "is_error": True,
+                    "detail": f"unknown where columns {unknown}; CSV has {all_columns}",
+                }
+
+        if where:
+            def _match(row: dict[str, str]) -> bool:
+                for col, expected in where.items():
+                    cell = row.get(col, "")
+                    expected_str = "" if expected is None else str(expected)
+                    if str(cell if cell is not None else "") != expected_str:
+                        return False
+                return True
+            filtered = [r for r in rows if _match(r)]
+        else:
+            filtered = rows
+
+        total_matched = len(filtered)
+        start = max(int(offset), 0)
+        end = start + int(limit) if limit is not None else total_matched
+        paged = filtered[start:end]
+
+        if columns is not None:
+            projected = [{c: r.get(c, "") for c in columns} for r in paged]
+        else:
+            projected = [dict(r) for r in paged]
+
+        return {
+            "count": len(projected),
+            "total_matched": total_matched,
+            "records": projected,
+        }
+
+    csv_to_records_tool = StructuredTool(
+        name="artifact_csv_to_records",
+        description=(
+            "Read a CSV artifact and return rows as JSON records (list of"
+            " objects). Use this to build payloads for MCP tools — e.g. pick"
+            " the unsynced rows for qjudge_grading batch_grade without having"
+            " to hand-parse CSV. Optional `columns` projects to a subset;"
+            " `where` is an equality-only dict filter (empty string matches"
+            " empty cells); `offset`/`limit` paginate the filtered rows."
+        ),
+        args_schema={
+            "type": "object",
+            "properties": {
+                "step":     {"type": "string"},
+                "filename": {"type": "string"},
+                "columns": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Projection; omit to include every CSV column.",
+                },
+                "where": {
+                    "type": "object",
+                    "description": (
+                        "Equality filters as {column: expected_value}. AND-combined."
+                        " Use \"\" to match empty cells."
+                    ),
+                },
+                "offset": {"type": "integer", "minimum": 0},
+                "limit":  {"type": "integer", "minimum": 1},
+            },
+            "required": ["step", "filename"],
+        },
+        coroutine=_artifact_csv_to_records,
+    )
+
     return [
         list_tool,
         read_tool,
@@ -609,6 +739,7 @@ def build_artifact_tools(
         write_csv_tool,
         write_csv_from_records_tool,
         patch_csv_rows_tool,
+        csv_to_records_tool,
     ]
 
 
