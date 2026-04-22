@@ -145,7 +145,7 @@ const buildPayload = (form: CodingFormState, existing: BankQuestion): UpsertBank
         output_data: tc.outputData,
         is_sample: tc.isSample,
         is_hidden: tc.isHidden,
-        score: tc.score,
+        weight_percent: tc.score,
         order: idx,
       })),
       languageConfigs: form.languageConfigs
@@ -172,7 +172,7 @@ interface CodingEditCtx {
   saveStatus: "idle" | "saving" | "saved" | "error";
 }
 
-function useCodingAutoSave(question: BankQuestion, onSaved?: () => void): CodingEditCtx {
+function useCodingAutoSave(bankId: string, question: BankQuestion, onSaved?: () => void): CodingEditCtx {
   const { showToast } = useToast();
   const { t } = useTranslation("common");
   const [form, setForm] = useState<CodingFormState>(() => toFormState(question));
@@ -195,7 +195,7 @@ function useCodingAutoSave(question: BankQuestion, onSaved?: () => void): Coding
     setSaveStatus("saving");
     try {
       const payload = buildPayload(latestRef.current, question);
-      await updateQuestion(question.bankItemId, payload);
+      await updateQuestion(bankId, question.bankItemId, payload);
       setSaveStatus("saved");
       onSaved?.();
       setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 2000);
@@ -205,7 +205,7 @@ function useCodingAutoSave(question: BankQuestion, onSaved?: () => void): Coding
     } finally {
       savingRef.current = false;
     }
-  }, [question, onSaved, showToast, t]);
+  }, [bankId, question, onSaved, showToast, t]);
 
   const scheduleSave = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -484,13 +484,14 @@ const CodingLanguageTab = ({ ctx }: { ctx: CodingEditCtx }) => {
 // Main — renders the active sub-tab, shares auto-save state across all tabs
 // ---------------------------------------------------------------------------
 export interface CodingQuestionEditPanelProps {
+  bankId: string;
   question: BankQuestion;
   onSaved?: () => void;
   activeTab?: "edit" | "validation" | "languages";
 }
 
-const CodingQuestionEditPanel = ({ question, onSaved, activeTab = "edit" }: CodingQuestionEditPanelProps) => {
-  const ctx = useCodingAutoSave(question, onSaved);
+const CodingQuestionEditPanel = ({ bankId, question, onSaved, activeTab = "edit" }: CodingQuestionEditPanelProps) => {
+  const ctx = useCodingAutoSave(bankId, question, onSaved);
 
   return (
     <>

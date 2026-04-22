@@ -25,10 +25,10 @@ export function mapTagDto(dto: TagDto): Tag {
 }
 
 export function mapProblemDto(dto: ProblemDto): CodingProblem {
-  // For contest problems, use problem_id (the actual Problem ID) if available
-  const problemId = (dto as any).problem_id ?? dto.id;
+  // For contest list/admin operations, prefer binding_id as canonical row ID.
+  const canonicalId = (dto as any).binding_id ?? dto.id;
   return {
-    id: problemId?.toString() || "",
+    id: canonicalId?.toString() || "",
     title: dto.title || "",
     difficulty: dto.difficulty || "medium",
     acceptanceRate: dto.acceptance_rate || 0,
@@ -48,8 +48,10 @@ export function mapProblemDto(dto: ProblemDto): CodingProblem {
 
 export function mapProblemDetailDto(dto: ProblemDetailDto): CodingProblemDetail {
   const problem = mapProblemDto(dto);
+  const detailProblemId = (dto as any).problem_id ?? dto.id;
   return {
     ...problem,
+    id: detailProblemId?.toString() || problem.id,
     description: dto.description || "",
     inputDescription: dto.input_description,
     outputDescription: dto.output_description,

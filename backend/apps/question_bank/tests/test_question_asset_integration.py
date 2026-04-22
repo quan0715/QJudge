@@ -239,7 +239,7 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
 
     api_client.force_authenticate(user=teacher)
     resp = api_client.patch(
-        f"/api/v1/question-bank-items/{question.id}/",
+        f"/api/v1/question-banks/{bank.uuid}/questions/{question.id}/",
         {
             "title": "Patch Me v2",
             "coding_ext": {
@@ -408,7 +408,7 @@ def test_question_viewset_can_retrieve_canonical_only_membership(
     )
 
     api_client.force_authenticate(user=teacher)
-    resp = api_client.get(f"/api/v1/question-bank-items/{membership.id}/")
+    resp = api_client.get(f"/api/v1/question-banks/{bank.uuid}/questions/{membership.id}/")
 
     assert resp.status_code == status.HTTP_200_OK
     assert resp.data["id"] == str(membership.id)
@@ -460,7 +460,7 @@ def test_question_bank_item_route_can_retrieve_canonical_membership(
     )
 
     api_client.force_authenticate(user=teacher)
-    resp = api_client.get(f"/api/v1/question-bank-items/{membership.id}/")
+    resp = api_client.get(f"/api/v1/question-banks/{bank.uuid}/questions/{membership.id}/")
 
     assert resp.status_code == status.HTTP_200_OK
     assert resp.data["id"] == str(membership.id)
@@ -511,7 +511,7 @@ def test_question_viewset_can_patch_canonical_only_membership(
 
     api_client.force_authenticate(user=teacher)
     resp = api_client.patch(
-        f"/api/v1/question-bank-items/{membership.id}/",
+        f"/api/v1/question-banks/{bank.uuid}/questions/{membership.id}/",
         {
             "title": "After Patch",
             "coding_ext": {
@@ -579,7 +579,7 @@ def test_question_viewset_can_delete_canonical_only_membership(
     )
 
     api_client.force_authenticate(user=teacher)
-    resp = api_client.delete(f"/api/v1/question-bank-items/{membership.id}/")
+    resp = api_client.delete(f"/api/v1/question-banks/{bank.uuid}/questions/{membership.id}/")
 
     assert resp.status_code == status.HTTP_204_NO_CONTENT
     assert not QuestionBankMembership.objects.filter(id=membership.id).exists()

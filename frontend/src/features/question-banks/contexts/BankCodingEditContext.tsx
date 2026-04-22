@@ -12,6 +12,7 @@ import type { FieldSaveState } from "@/features/problems/hooks/useAutoSave";
 
 interface BankCodingEditProviderProps {
   children: ReactNode;
+  bankId: string;
   bankItemId: string;
 }
 
@@ -53,6 +54,7 @@ function countSectionErrors(
  */
 export const BankCodingEditProvider: React.FC<BankCodingEditProviderProps> = ({
   children,
+  bankId,
   bankItemId,
 }) => {
   const {
@@ -62,6 +64,7 @@ export const BankCodingEditProvider: React.FC<BankCodingEditProviderProps> = ({
   } = useFormContext<ProblemFormSchema>();
 
   const autoSave = useBankCodingAutoSave({
+    bankId,
     bankItemId,
     debounceMs: 1500,
     getFormValues: () => getValues() as unknown as Record<string, unknown>,

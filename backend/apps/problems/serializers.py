@@ -389,7 +389,6 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     def _normalize_and_validate_test_case_weights(self, test_cases_data):
         """
         Normalize testcase weights to percentage semantics.
-        Backward-compatible: if weight_percent missing, fallback to score.
         """
         if not test_cases_data:
             return
@@ -397,14 +396,12 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
         weights = []
         for idx, tc in enumerate(test_cases_data):
             raw_weight = tc.get('weight_percent', None)
-            if raw_weight is None:
-                raw_weight = tc.get('score', None)
 
             if raw_weight is None:
                 raise serializers.ValidationError(
                     {
                         'test_cases': [
-                            f'test_cases[{idx}].weight_percent is required (or provide legacy score)'
+                            f'test_cases[{idx}].weight_percent is required'
                         ]
                     }
                 )
@@ -422,7 +419,7 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
                 )
 
             tc['weight_percent'] = weight
-            # Keep legacy score in sync for transition compatibility.
+            # Persist score as the runtime weight source for judge-side logic.
             tc['score'] = weight
             weights.append(weight)
 

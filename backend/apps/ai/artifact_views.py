@@ -29,10 +29,11 @@ from .services import artifact_storage
 _UPLOAD_FILENAME_RE = re.compile(r"^[A-Za-z0-9._\-]{1,255}$")
 _UPLOAD_STEP_RE = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
 _USER_UPLOAD_STEP = "user_upload"
-_ALLOWED_UPLOAD_EXTS = {".csv", ".md"}
+_ALLOWED_UPLOAD_EXTS = {".csv", ".md", ".json"}
 _ALLOWED_UPLOAD_CONTENT_TYPES = {
     "text/csv",
     "application/csv",
+    "application/json",
     "text/plain",
     "text/markdown",
     "text/x-markdown",
@@ -174,7 +175,7 @@ class AIArtifactUserViewSet(viewsets.ReadOnlyModelViewSet):
         ext = os.path.splitext(filename)[1].lower()
         if ext not in _ALLOWED_UPLOAD_EXTS:
             return Response(
-                {"detail": "Only .csv and .md files are supported"},
+                {"detail": "Only .csv, .md and .json files are supported"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not _UPLOAD_FILENAME_RE.match(filename):
@@ -182,7 +183,12 @@ class AIArtifactUserViewSet(viewsets.ReadOnlyModelViewSet):
 
         content_type = (file_obj.content_type or "application/octet-stream").lower()
         if content_type not in _ALLOWED_UPLOAD_CONTENT_TYPES:
-            content_type = "text/csv" if ext == ".csv" else "text/markdown"
+            if ext == ".csv":
+                content_type = "text/csv"
+            elif ext == ".json":
+                content_type = "application/json"
+            else:
+                content_type = "text/markdown"
 
         content_bytes = file_obj.read()
         max_bytes = settings.AI_ARTIFACT_MAX_BYTES

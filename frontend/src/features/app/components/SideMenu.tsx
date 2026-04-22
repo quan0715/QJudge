@@ -52,6 +52,7 @@ const CONTEST_PANEL_META: Record<
   participants: { labelKey: "participants", Icon: UserMultiple },
   problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: Education },
   grading: { labelKey: "grading", examLabelKey: "examGrading", Icon: TaskComplete },
+  "ai-grading": { labelKey: "aiGrading", examLabelKey: "examAiGrading", Icon: TaskComplete },
   statistics: { labelKey: "statistics", examLabelKey: "examStatistics", Icon: ChartColumn },
   settings: { labelKey: "settings", Icon: Settings },
 };

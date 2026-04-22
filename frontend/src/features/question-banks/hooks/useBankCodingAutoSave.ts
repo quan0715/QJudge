@@ -8,6 +8,7 @@ import { buildBankCodingPatchPayload } from "@/features/question-banks/adapters/
 export type { FieldSaveState, FieldSaveStatus, GlobalSaveStatus };
 
 export interface UseBankCodingAutoSaveOptions {
+  bankId: string;
   bankItemId: string;
   debounceMs?: number;
   getFormValues?: () => Record<string, unknown>;
@@ -20,6 +21,7 @@ export interface UseBankCodingAutoSaveOptions {
  * Same interface as useAutoSave but calls updateQuestion instead of patchProblem.
  */
 export function useBankCodingAutoSave({
+  bankId,
   bankItemId,
   debounceMs = 1500,
   getFormValues,
@@ -49,7 +51,7 @@ export function useBankCodingAutoSave({
       const formValues = getFormValues?.();
       const payload = buildBankCodingPatchPayload(fieldPath, value, formValues);
       if (!payload) return;
-      return updateQuestion(bankItemId, payload);
+      return updateQuestion(bankId, bankItemId, payload);
     },
   });
 

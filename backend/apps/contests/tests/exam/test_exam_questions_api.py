@@ -21,6 +21,7 @@ from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamQuestion
 from apps.question_bank.models import Question, QuestionBank
+from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
 from apps.contests import views as contest_views
 from apps.contests.views import exam_question as exam_question_view_module
 
@@ -603,6 +604,9 @@ class TestImportFromQuestionBank:
             score=4,
             metadata={"legacy_question_type": "single_choice"},
         )
+        ensure_question_asset_for_bank_question(question=question, actor=teacher)
+        question.refresh_from_db()
+        membership = question.asset_membership
 
         res = api_client.post(
             url(contest.id) + "import-from-bank/",
@@ -610,7 +614,7 @@ class TestImportFromQuestionBank:
                 "items": [
                     {
                         "question_bank_id": str(bank.uuid),
-                        "question_id": question.id,
+                        "question_id": str(membership.id),
                     }
                 ],
             },
@@ -622,6 +626,37 @@ class TestImportFromQuestionBank:
         assert rows.first().prompt == "2+2 = ?"
         assert rows.first().question_type == "single_choice"
         assert rows.first().score == 4
+
+    def test_import_from_bank_rejects_legacy_question_id_fallback(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        bank = QuestionBank.objects.create(
+            owner=teacher,
+            name="Teacher Exam Bank Legacy Reject",
+            category=QuestionBank.Category.EXAM,
+            visibility=QuestionBank.Visibility.PRIVATE,
+            verified=False,
+        )
+        question = Question.objects.create(
+            bank=bank,
+            question_type=Question.QuestionType.EXAM,
+            title="",
+            prompt="legacy fallback",
+            score=1,
+        )
+
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {
+                "items": [
+                    {
+                        "question_bank_id": str(bank.uuid),
+                        "question_id": str(question.id),
+                    }
+                ],
+            },
+            format="json",
+        )
+        assert res.status_code == status.HTTP_404_NOT_FOUND
 
     def test_student_cannot_import_from_bank(self, api_client, student, contest):
         ContestParticipant.objects.create(contest=contest, user=student)

@@ -49,6 +49,11 @@ const NAV_ITEMS: Record<
     examLabelKey: "examGrading",
     icon: TaskComplete,
   },
+  "ai-grading": {
+    labelKey: "aiGrading",
+    examLabelKey: "examAiGrading",
+    icon: TaskComplete,
+  },
   statistics: {
     labelKey: "statistics",
     examLabelKey: "examStatistics",

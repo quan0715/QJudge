@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Loading, Modal, Tag, TextInput, ProgressBar } from "@carbon/react";
+import { Button, Loading, Modal, Tag, Dropdown, ProgressBar } from "@carbon/react";
 import { ArrowLeft } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -255,13 +255,6 @@ const ContestAiGradingScreen: React.FC = () => {
             <div className={styles.infoLabel}>{t("grading.questionPrompt", "題目")}</div>
             <div className={styles.infoValue}>
               <MarkdownContent.Problem>{selectedQuestion.prompt || ""}</MarkdownContent.Problem>
-            </div>
-          </div>
-
-          <div className={styles.infoSection}>
-            <div className={styles.infoLabel}>{t("grading.questionExplanation", "解答")}</div>
-            <div className={styles.infoValue}>
-              <MarkdownContent.Problem>{selectedQuestion.explanation || t("grading.noExplanation", "尚無解答")}</MarkdownContent.Problem>
             </div>
           </div>
 

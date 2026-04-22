@@ -70,7 +70,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
         """Create a new session placeholder before first message.
 
         此 endpoint 用於前端建立新會話時獲取一個後端 session ID。
-        實際的 AISession 會在發送第一條訊息時才建立。
+        AISession 會在此時建立，讓前端可以在第一個 run 之前先綁定 artifact。
 
         Returns:
             {
@@ -80,8 +80,13 @@ class AISessionViewSet(viewsets.ModelViewSet):
         """
         import uuid
 
-        # 生成一個臨時的 backend session ID（用於前端識別）
+        # 生成一個 backend session ID 並建立 placeholder，支援 first-run 前的 artifact upload。
         backend_session_id = str(uuid.uuid4())
+        AISession.objects.create(
+            session_id=backend_session_id,
+            user=request.user,
+            context={},
+        )
 
         return Response({
             "id": backend_session_id,
@@ -141,11 +146,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
 
         session = self.get_object()
         session.messages.all().delete()
-
-        # Clear session context but keep title
-        title = session.context.get("title") if session.context else None
-        session.context = {"title": title} if title else {}
-        session.save(update_fields=["context", "updated_at"])
+        session.save(update_fields=["updated_at"])
 
         # Delete LangGraph checkpoint so broken state is fully wiped
         try:

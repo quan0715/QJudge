@@ -10,7 +10,7 @@ from django.http import Http404
 from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework import filters, mixins, permissions, status, viewsets
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -425,40 +425,58 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         question.refresh_from_db()
         return Response(_serialize_bank_question_response(question=question), status=status.HTTP_201_CREATED)
 
-
-class QuestionBankItemViewSet(
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.DestroyModelMixin,
-    viewsets.GenericViewSet,
-):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = QuestionBankItemWriteSerializer
-
-    def retrieve(self, request, *args, **kwargs):
+    @staticmethod
+    def _resolve_bank_question_target_or_404(*, bank: QuestionBank, user, raw_id: str, allow_cloneable: bool = False):
         target = resolve_bank_question_target_for_user(
-            user=request.user,
-            raw_id=kwargs.get("pk"),
+            user=user,
+            raw_id=raw_id,
+            allow_cloneable=allow_cloneable,
         )
         if not target:
             raise Http404
-        return Response(
-            _serialize_bank_question_response(
-                question=target.legacy_question,
-                membership=target.membership,
+
+        target_bank_uuid = None
+        if target.membership:
+            target_bank_uuid = str(target.membership.bank.uuid)
+        elif target.legacy_question:
+            target_bank_uuid = str(target.legacy_question.bank.uuid)
+
+        if target_bank_uuid != str(bank.uuid):
+            raise Http404
+        return target
+
+    @action(detail=True, methods=["get", "patch", "delete"], url_path=r"questions/(?P<question_id>[^/.]+)")
+    def question_detail(self, request, uuid=None, pk=None, question_id=None):
+        bank = QuestionBank.objects.filter(uuid=uuid, is_archived=False).first()
+        if not bank:
+            raise NotFound("Bank not found.")
+
+        target = self._resolve_bank_question_target_or_404(
+            bank=bank,
+            user=request.user,
+            raw_id=question_id,
+        )
+
+        if request.method.lower() == "get":
+            return Response(
+                _serialize_bank_question_response(
+                    question=target.legacy_question,
+                    membership=target.membership,
+                )
             )
-        )
 
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop("partial", False)
-        target = resolve_bank_question_target_for_user(
-            user=request.user,
-            raw_id=kwargs.get("pk"),
-        )
-        if not target:
-            raise Http404
+        if request.method.lower() == "delete":
+            if target.membership:
+                target.membership.delete()
+            if target.legacy_question and (
+                not target.membership or target.membership.legacy_question_id == target.legacy_question.id
+            ):
+                target.legacy_question.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        partial = True
         instance = target.legacy_question
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer = QuestionBankItemWriteSerializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         if instance is None:
             if not target.membership:
@@ -476,30 +494,23 @@ class QuestionBankItemViewSet(
         membership = target.membership or getattr(question, "asset_membership", None)
         return Response(_serialize_bank_question_response(question=question, membership=membership))
 
-    def destroy(self, request, *args, **kwargs):
-        target = resolve_bank_question_target_for_user(
-            user=request.user,
-            raw_id=kwargs.get("pk"),
-        )
-        if not target:
-            raise Http404
-        if target.membership:
-            target.membership.delete()
-        if target.legacy_question and (
-            not target.membership or target.membership.legacy_question_id == target.legacy_question.id
-        ):
-            target.legacy_question.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"questions/(?P<question_id>[^/.]+)/clone-to-my-bank",
+    )
+    def clone_question_to_my_bank(self, request, uuid=None, pk=None, question_id=None):
+        bank = QuestionBank.objects.filter(uuid=uuid, is_archived=False).first()
+        if not bank:
+            raise NotFound("Bank not found.")
 
-    @action(detail=True, methods=["post"], url_path="clone-to-my-bank")
-    def clone_to_my_bank(self, request, pk=None):
-        target = resolve_bank_question_target_for_user(
+        target = self._resolve_bank_question_target_or_404(
+            bank=bank,
             user=request.user,
-            raw_id=pk,
+            raw_id=question_id,
             allow_cloneable=True,
         )
-        if not target:
-            raise Http404
+
         source_question = target.legacy_question
         if source_question is None:
             if not target.membership:
@@ -529,3 +540,4 @@ class QuestionBankItemViewSet(
         cloned = clone_question_to_bank(source_question, target_bank, request.user)
         cloned.refresh_from_db()
         return Response(_serialize_bank_question_response(question=cloned), status=status.HTTP_201_CREATED)
+

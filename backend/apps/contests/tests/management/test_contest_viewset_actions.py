@@ -16,6 +16,7 @@ from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests.views import contest as contest_view_module
 from apps.problems.models import Problem
 from apps.question_bank.models import Question, QuestionBank, QuestionCodingExt
+from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
 from apps.users.models import User, UserProfile
 
 
@@ -595,6 +596,9 @@ def test_import_from_bank_creates_problem_copy(
         forbidden_keywords=[],
         required_keywords=[],
     )
+    ensure_question_asset_for_bank_question(question=question, actor=platform_admin)
+    question.refresh_from_db()
+    membership = question.asset_membership
 
     api_client.force_authenticate(user=owner)
 
@@ -604,7 +608,7 @@ def test_import_from_bank_creates_problem_copy(
             "items": [
                 {
                     "question_bank_id": str(bank.uuid),
-                    "question_id": question.id,
+                    "question_id": str(membership.id),
                     "max_score": 45,
                 },
             ],
@@ -674,6 +678,9 @@ def test_import_from_bank_materializes_coding_ext(
         forbidden_keywords=[],
         required_keywords=[],
     )
+    ensure_question_asset_for_bank_question(question=question, actor=platform_admin)
+    question.refresh_from_db()
+    membership = question.asset_membership
 
     api_client.force_authenticate(user=owner)
     response = api_client.post(
@@ -682,7 +689,7 @@ def test_import_from_bank_materializes_coding_ext(
             "items": [
                 {
                     "question_bank_id": str(bank.uuid),
-                    "question_id": question.id,
+                    "question_id": str(membership.id),
                 },
             ],
         },
@@ -699,6 +706,60 @@ def test_import_from_bank_materializes_coding_ext(
         binding.coding_problem.test_cases.order_by("order").values_list("weight_percent", flat=True)
     )
     assert weights == [40, 60]
+
+
+@pytest.mark.django_db
+def test_import_from_bank_rejects_legacy_question_id_fallback(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    platform_admin = User.objects.create_user(
+        username="platform_admin_for_legacy_id_reject",
+        email="platform_admin_for_legacy_id_reject@example.com",
+        password="testpass123",
+        role="admin",
+        is_staff=True,
+    )
+    bank = QuestionBank.objects.create(
+        owner=platform_admin,
+        name="Official Coding Bank Legacy Reject",
+        category=QuestionBank.Category.CODING,
+        visibility=QuestionBank.Visibility.PUBLIC,
+        verified=True,
+    )
+    question = Question.objects.create(
+        bank=bank,
+        question_type=Question.QuestionType.CODING,
+        title="Legacy ID Reject",
+        prompt="legacy",
+        score=100,
+    )
+    QuestionCodingExt.objects.create(
+        question=question,
+        translations=[{"language": "zh-TW", "title": "Legacy ID Reject"}],
+        test_cases=[
+            {"input_data": "1", "output_data": "1", "is_sample": True, "weight_percent": 100, "order": 0},
+        ],
+        language_configs=[],
+        forbidden_keywords=[],
+        required_keywords=[],
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/problems/import-from-bank/",
+        {
+            "items": [
+                {
+                    "question_bank_id": str(bank.uuid),
+                    "question_id": str(question.id),
+                },
+            ],
+        },
+        format="json",
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.django_db
@@ -741,12 +802,12 @@ def test_contest_problem_retrieve_by_binding_id(
     response = api_client.get(f"/api/v1/contests/{contest.id}/problems/{binding.id}/")
 
     assert response.status_code == status.HTTP_200_OK
-    assert str(response.data["contest_problem_id"]) == str(binding.id)
+    assert str(response.data["binding_id"]) == str(binding.id)
     assert response.data["id"] == str(problem.id)
 
 
 @pytest.mark.django_db
-def test_contest_problem_destroy_accepts_coding_problem_id_fallback(
+def test_contest_problem_destroy_rejects_coding_problem_id_fallback(
     api_client: APIClient,
     owner: User,
     contest: Contest,
@@ -757,8 +818,8 @@ def test_contest_problem_destroy_accepts_coding_problem_id_fallback(
     api_client.force_authenticate(user=owner)
     response = api_client.delete(f"/api/v1/contests/{contest.id}/problems/{problem.id}/")
 
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert not ContestQuestionBinding.objects.filter(id=binding.id).exists()
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert ContestQuestionBinding.objects.filter(id=binding.id).exists()
 
 
 @pytest.mark.django_db

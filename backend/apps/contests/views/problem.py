@@ -51,32 +51,24 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         )
 
     def _resolve_binding(self, *, contest_id, lookup_value):
-        """Resolve a binding by UUID (binding id or coding_problem id)."""
+        """Resolve a binding strictly by binding UUID."""
         import uuid as _uuid
-        lookup_str = str(lookup_value)
-        qs = ContestQuestionBinding.objects.filter(
-            contest_id=contest_id,
-            binding_type=QuestionAsset.AssetType.CODING,
-        ).select_related('coding_problem', 'question_asset', 'question_version')
 
-        # Check if it looks like a valid UUID
-        is_uuid = True
+        lookup_str = str(lookup_value)
         try:
             _uuid.UUID(lookup_str)
         except (ValueError, AttributeError):
-            is_uuid = False
+            return None
 
-        if is_uuid:
-            # Try binding ID
-            binding = qs.filter(id=lookup_str).first()
-            if binding:
-                return binding
-            # Try coding_problem_id
-            binding = qs.filter(coding_problem_id=lookup_str).first()
-            if binding:
-                return binding
-
-        return None
+        return (
+            ContestQuestionBinding.objects.filter(
+                contest_id=contest_id,
+                binding_type=QuestionAsset.AssetType.CODING,
+                id=lookup_str,
+            )
+            .select_related('coding_problem', 'question_asset', 'question_version')
+            .first()
+        )
 
     def retrieve(self, request, *args, **kwargs):
         contest_id = self.kwargs.get('contest_pk')
@@ -124,7 +116,6 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         data['score'] = binding.score
         data['max_score'] = binding.score
         data['label'] = binding.label
-        data['contest_problem_id'] = str(binding.id)
         data['binding_id'] = str(binding.id)
         data['source_bank'] = (
             {'id': str(binding.source_bank_id), 'name': binding.source_bank_name or ''}
@@ -487,13 +478,9 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
                 is_uuid = False
 
             if is_uuid:
-                updated = ContestQuestionBinding.objects.filter(
+                ContestQuestionBinding.objects.filter(
                     contest=contest, id=item_str,
                 ).update(order=new_order)
-                if not updated:
-                    ContestQuestionBinding.objects.filter(
-                        contest=contest, coding_problem_id=item_str,
-                    ).update(order=new_order)
 
         # Normalize to sequential 0, 1, 2...
         bindings = ContestQuestionBinding.objects.filter(

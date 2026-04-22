@@ -30,6 +30,8 @@ export interface TestCaseDto {
 
 export interface ProblemDto {
   id: number | string;
+  problem_id?: number | string;
+  binding_id?: number | string;
   title: string;
   difficulty: Difficulty;
   acceptance_rate: number;

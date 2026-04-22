@@ -129,24 +129,35 @@ export const createQuestion = async (bankId: string, payload: any): Promise<Bank
   return mapBankQuestionDto(responseData);
 };
 
-export const updateQuestion = async (bankItemId: string, payload: any): Promise<BankQuestion> => {
+export const updateQuestion = async (
+  bankId: string,
+  bankItemId: string,
+  payload: any
+): Promise<BankQuestion> => {
   const responseData = await requestJson<BankQuestionDto>(
-    httpClient.patch(`/api/v1/question-bank-items/${bankItemId}/`, payload),
+    httpClient.patch(`/api/v1/question-banks/${bankId}/questions/${bankItemId}/`, payload),
     "Failed to update question"
   );
   return mapBankQuestionDto(responseData);
 };
 
-export const deleteQuestion = async (bankItemId: string): Promise<void> => {
+export const deleteQuestion = async (bankId: string, bankItemId: string): Promise<void> => {
   await ensureOk(
-    httpClient.delete(`/api/v1/question-bank-items/${bankItemId}/`),
+    httpClient.delete(`/api/v1/question-banks/${bankId}/questions/${bankItemId}/`),
     "Failed to delete question"
   );
 };
 
-export const clone = async (bankItemId: string, targetBankId?: string): Promise<BankQuestion> => {
+export const clone = async (
+  bankId: string,
+  bankItemId: string,
+  targetBankId?: string
+): Promise<BankQuestion> => {
   const responseData = await requestJson<BankQuestionDto>(
-    httpClient.post(`/api/v1/question-bank-items/${bankItemId}/clone-to-my-bank/`, { target_bank_id: targetBankId }),
+    httpClient.post(
+      `/api/v1/question-banks/${bankId}/questions/${bankItemId}/clone-to-my-bank/`,
+      { target_bank_id: targetBankId }
+    ),
     "Failed to clone question"
   );
   return mapBankQuestionDto(responseData);

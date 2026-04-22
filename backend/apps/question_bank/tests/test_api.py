@@ -386,7 +386,7 @@ class TestQuestionBankAPI:
 
         api_client.force_authenticate(user=teacher)
         resp = api_client.post(
-            f"/api/v1/question-bank-items/{source.id}/clone-to-my-bank/",
+            f"/api/v1/question-banks/{public_platform_bank.uuid}/questions/{source.id}/clone-to-my-bank/",
             {},
             format="json",
         )
@@ -420,14 +420,14 @@ class TestQuestionBankAPI:
 
         api_client.force_authenticate(user=teacher)
         first_resp = api_client.post(
-            f"/api/v1/question-bank-items/{source.id}/clone-to-my-bank/",
+            f"/api/v1/question-banks/{public_platform_bank.uuid}/questions/{source.id}/clone-to-my-bank/",
             {},
             format="json",
         )
         assert first_resp.status_code == status.HTTP_201_CREATED
 
         second_resp = api_client.post(
-            f"/api/v1/question-bank-items/{source.id}/clone-to-my-bank/",
+            f"/api/v1/question-banks/{public_platform_bank.uuid}/questions/{source.id}/clone-to-my-bank/",
             {},
             format="json",
         )
@@ -1144,7 +1144,7 @@ class TestQuestionCRUDPermissions:
             question_type=Question.QuestionType.CODING,
             title="To Delete",
         )
-        resp = api_client.delete(f"/api/v1/question-bank-items/{question.id}/")
+        resp = api_client.delete(f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{question.id}/")
         assert resp.status_code == status.HTTP_204_NO_CONTENT
         assert not Question.objects.filter(id=question.id).exists()
 
@@ -1158,7 +1158,7 @@ class TestQuestionCRUDPermissions:
             title="Guarded",
         )
         api_client.force_authenticate(user=other)
-        resp = api_client.delete(f"/api/v1/question-bank-items/{question.id}/")
+        resp = api_client.delete(f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{question.id}/")
         assert resp.status_code == status.HTTP_404_NOT_FOUND  # filtered out via get_queryset
 
     def test_post_question_to_public_bank_by_non_owner_is_forbidden(
@@ -1182,7 +1182,7 @@ class TestQuestionCRUDPermissions:
             title="Original",
         )
         resp = api_client.patch(
-            f"/api/v1/question-bank-items/{question.id}/",
+            f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{question.id}/",
             {"title": "Updated"},
             format="json",
         )
@@ -1203,7 +1203,7 @@ class TestQuestionCRUDPermissions:
         )
         api_client.force_authenticate(user=other)
         resp = api_client.patch(
-            f"/api/v1/question-bank-items/{question.id}/",
+            f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{question.id}/",
             {"title": "Hacked"},
             format="json",
         )
@@ -1332,7 +1332,7 @@ class TestMetadataReadOnly:
             metadata={"legacy_problem_id": "original-id"},
         )
         resp = api_client.patch(
-            f"/api/v1/question-bank-items/{question.id}/",
+            f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{question.id}/",
             {"metadata": {"legacy_problem_id": "tampered"}},
             format="json",
         )

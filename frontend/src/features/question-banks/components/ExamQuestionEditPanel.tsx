@@ -117,6 +117,7 @@ const buildPayload = (form: ExamFormState, existing: BankQuestion): UpsertBankQu
 // Props
 // ---------------------------------------------------------------------------
 interface ExamQuestionEditPanelProps {
+  bankId: string;
   question: BankQuestion;
   onSaved?: () => void;
 }
@@ -124,7 +125,7 @@ interface ExamQuestionEditPanelProps {
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
-const ExamQuestionEditPanel = ({ question, onSaved }: ExamQuestionEditPanelProps) => {
+const ExamQuestionEditPanel = ({ bankId, question, onSaved }: ExamQuestionEditPanelProps) => {
   const { t } = useTranslation("common");
   const { showToast } = useToast();
   const [form, setForm] = useState<ExamFormState>(() => toFormState(question));
@@ -148,7 +149,7 @@ const ExamQuestionEditPanel = ({ question, onSaved }: ExamQuestionEditPanelProps
     setSaveStatus("saving");
     try {
       const payload = buildPayload(latestRef.current, question);
-      await updateQuestion(question.bankItemId, payload);
+      await updateQuestion(bankId, question.bankItemId, payload);
       setSaveStatus("saved");
       onSaved?.();
       setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 2000);
@@ -158,7 +159,7 @@ const ExamQuestionEditPanel = ({ question, onSaved }: ExamQuestionEditPanelProps
     } finally {
       savingRef.current = false;
     }
-  }, [question, onSaved, showToast, t]);
+  }, [bankId, question, onSaved, showToast, t]);
 
   const scheduleSave = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);

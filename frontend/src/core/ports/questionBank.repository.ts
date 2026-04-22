@@ -61,9 +61,13 @@ export interface IQuestionBankRepository {
   delete(id: string): Promise<void>;
   listQuestions(bankId: string): Promise<BankQuestion[]>;
   createQuestion(bankId: string, payload: UpsertBankQuestionPayload): Promise<BankQuestion>;
-  updateQuestion(bankItemId: string, payload: UpsertBankQuestionPayload): Promise<BankQuestion>;
-  deleteQuestion(bankItemId: string): Promise<void>;
-  clone(bankItemId: string, targetBankId?: string): Promise<BankQuestion>;
+  updateQuestion(
+    bankId: string,
+    bankItemId: string,
+    payload: UpsertBankQuestionPayload
+  ): Promise<BankQuestion>;
+  deleteQuestion(bankId: string, bankItemId: string): Promise<void>;
+  clone(bankId: string, bankItemId: string, targetBankId?: string): Promise<BankQuestion>;
   listInbox(category?: BankCategory): Promise<QuestionInboxSummary>;
   ingestInbox(params: {
     targetBankId: string;

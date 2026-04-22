@@ -87,9 +87,6 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
         </button>
         <div className={styles.userBlock}>
           <div className={styles.user}>{user}</div>
-          <div className={styles.userMeta}>
-            {t("grading.maxScore", "滿分")} {row.maxScore}
-          </div>
         </div>
         <div className={styles.statusBlock}>
           <Tag type={statusTag.type} size="sm">{statusTag.label}</Tag>

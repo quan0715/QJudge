@@ -7,8 +7,6 @@ from .auth import (
     DevTokenView,
     OAuthLoginView,
     OAuthCallbackView,
-    NYCUOAuthLoginView,
-    NYCUOAuthCallbackView,
 )
 from .token import TokenRefreshView, LogoutView, ResolveConflictView
 from .profile import (
@@ -35,8 +33,6 @@ __all__ = [
     "DevTokenView",
     "OAuthLoginView",
     "OAuthCallbackView",
-    "NYCUOAuthLoginView",
-    "NYCUOAuthCallbackView",
     "TokenRefreshView",
     "LogoutView",
     "ResolveConflictView",

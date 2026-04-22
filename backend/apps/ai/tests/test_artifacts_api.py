@@ -323,8 +323,26 @@ class ArtifactUserEndpointTests(TestCase):
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
+    @patch("apps.ai.artifact_views.artifact_storage.store_artifact")
+    def test_upload_json_creates_user_upload_artifact(self, mock_store):
+        self.client.force_authenticate(user=self.user1)
+        upload = SimpleUploadedFile(
+            "task_manifest.json",
+            b'{"schema_version":1}',
+            content_type="application/json",
+        )
+        resp = self.client.post(
+            "/api/v1/ai/artifacts/upload/",
+            {"session_id": self.session1.session_id, "file": upload},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
+        self.assertEqual(resp.data["step"], "user_upload")
+        self.assertEqual(resp.data["filename"], "task_manifest.json")
+        self.assertEqual(resp.data["content_type"], "application/json")
+        self.assertEqual(resp.data["session_id"], self.session1.session_id)
+        mock_store.assert_called_once()
 
-    def test_upload_rejects_non_csv_md(self):
+    def test_upload_rejects_non_csv_md_json(self):
         self.client.force_authenticate(user=self.user1)
         upload = SimpleUploadedFile(
             "notes.txt",

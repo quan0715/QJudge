@@ -4,6 +4,7 @@ import AdminClarificationsScreen from "../screens/admin/panels/AdminClarificatio
 import ContestLogsScreen from "../screens/settings/ContestLogsScreen";
 import ContestParticipantsScreen from "../screens/settings/ContestParticipantsScreen";
 import ContestExamGradingScreen from "../screens/settings/ContestExamGradingScreen";
+import ContestAiGradingScreen from "../screens/settings/ContestAiGradingScreen";
 const DefaultEmptyPanel: AdminPanelRenderer = () => null;
 
 const defaultAdminRenderers: Record<AdminPanelId, AdminPanelRenderer> = {
@@ -12,6 +13,7 @@ const defaultAdminRenderers: Record<AdminPanelId, AdminPanelRenderer> = {
   logs: ContestLogsScreen,
   participants: ContestParticipantsScreen,
   grading: ContestExamGradingScreen,
+  "ai-grading": ContestAiGradingScreen,
   settings: DefaultEmptyPanel,
   problem_editor: DefaultEmptyPanel,
   statistics: DefaultEmptyPanel,
