@@ -24,6 +24,7 @@ interface AiRunStatusDto {
 interface AiSuggestion {
   score: number | null;
   reason: string;
+  synced: boolean;
 }
 
 interface ActiveRunRecord {
@@ -67,6 +68,12 @@ const toNumberOrNull = (value: unknown): number | null => {
 };
 
 const toString = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+const normalizeAnswerId = (value: unknown): string => String(value ?? "").trim();
+
+function parseSynced(value: unknown): boolean {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return ["1", "true", "yes", "y", "synced", "submitted"].includes(normalized);
+}
 
 function stringifyAnswer(answer: Record<string, unknown>): string {
   const text = answer?.text;
@@ -190,16 +197,21 @@ function parseSuggestions(
   const idxReason = header.findIndex(
     (c) => c === "reason" || c === "feedback" || c === "comment" || c === "explanation",
   );
+  const idxSynced = header.findIndex((c) => c === "synced");
   if (idxAnswerId < 0 || idxScore < 0) return results;
 
   for (let i = 1; i < rows.length; i += 1) {
     const row = rows[i];
-    const rowAnswerId = toString(row[idxAnswerId]);
+    const rowAnswerId = normalizeAnswerId(row[idxAnswerId]);
     if (!rowAnswerId || !expectedAnswerIds.has(rowAnswerId)) continue;
     const score = toNumberOrNull(row[idxScore]);
     const reason = idxReason >= 0 ? toString(row[idxReason]) : "";
     if (score == null && !reason) continue;
-    results[rowAnswerId] = { score, reason };
+    results[rowAnswerId] = {
+      score,
+      reason,
+      synced: idxSynced >= 0 ? parseSynced(row[idxSynced]) : false,
+    };
   }
   return results;
 }
@@ -219,31 +231,108 @@ export function buildDefaultGradingPrompt(contestId: string, questionId: string)
 
 function buildPrompt(contestId: string, questionId: string): string {
   return [
-    "請使用 `qjudge-exam-grading-sop` 技能執行申論/短答題的 AI 批改，依 SOP 各 stage 逐步執行。",
+    "請使用 `qjudge-exam-grading-sop` 技能協助申論/短答題批改，但本輪先進行「準備階段」，**不要真的批改任何作答**。",
     "",
     "Stage 1 context：",
     `- contest_id: ${contestId}`,
     `- grading_question_id: ${questionId}`,
     "",
-    "題目與 rubric 請依 SOP 自行透過 qjudge_grading 等工具抓取；學生作答資料已由前端預先整理進 artifact。",
-    "注意：前端已先在 artifact 內建立 `grade.csv`，內含本題所有作答與空白 score/reason 欄位；請先 artifact_read(filename=\"grade.csv\")，沿用這份 CSV，不要重建或刪減列。",
+    "準備階段要做的事（請先用 todo 工具建立以下兩個 todo，依序完成）：",
+    "1. **確認資料**：artifact_read(filename=\"grade.csv\") 檢視前端預先準備的作答列（9 欄：index, exam_answer_id, username, answer_text, original_score, original_feedback, score, reason, synced），並透過 qjudge_grading 等工具抓取題目與原始 rubric，向使用者摘要：本題共幾筆作答、滿分、題目重點、學生作答分布觀察。",
+    "2. **建立評分規則**：根據題目與樣本作答，草擬這次 AI 批改要沿用的細部評分準則（rubric checklist、分數切分、reason 撰寫規範）。完成後條列給使用者確認。",
     "",
-    "grade.csv 產出規範（對齊 SOP）：",
+    "兩個 todo 都完成後，**必須停下來等待使用者確認『OK，可以開始批改』**，這階段禁止：",
+    "- 呼叫 artifact_csv_patch 寫入任何 score / reason",
+    "- 呼叫 qjudge_grading 寫回分數或觸發後續階段",
+    "- 自行決定跳過確認繼續批改",
+    "",
+    "只有在使用者明確回覆同意後，才依 `qjudge-exam-grading-sop` 各 stage 逐步執行實際批改，並遵守下列 grade.csv 規範：",
     "- 透過 artifact_csv_patch 維護既有 `grade.csv`，檔名固定為 `grade.csv`，content_type 為 text/csv。",
     "- 欄位順序固定（9 欄）：index, exam_answer_id, username, answer_text, original_score, original_feedback, score, reason, synced。",
     "- key_column: exam_answer_id。",
     "- score 為數值（整數或浮點，且落在題目滿分範圍內）；reason 為簡短中文，依 SOP reason 政策填寫（滿分可留空，非滿分必填）。",
     "- CSV 遵循 RFC 4180：欄位若含逗號、雙引號或換行，必須用雙引號包住，內部雙引號以 \"\" 轉義。",
-    "- Stage 4 halt 時等我回覆「確認寫回」再進入 Stage 5。",
+    "- 更新完 `grade.csv` 後即可停止；不要進入寫回/發布成績階段，也不要呼叫 qjudge_grading 寫回分數。",
   ].join("\n");
+}
+
+function buildRetryPrompt(
+  contestId: string,
+  questionId: string,
+  answerIds: string[],
+  note?: string,
+): string {
+  return [
+    "請使用 `qjudge-exam-grading-sop` 技能重新批改指定作答，依既有 rubric 與題目脈絡處理。",
+    "",
+    "Stage 1 context：",
+    `- contest_id: ${contestId}`,
+    `- grading_question_id: ${questionId}`,
+    `- exam_answer_ids: ${answerIds.join(", ")}`,
+    note?.trim() ? `- regrade_note: ${note.trim()}` : "",
+    "",
+    "請先 artifact_read(filename=\"grade.csv\")，只重新批改上述 exam_answer_ids 對應列。",
+    "透過 artifact_csv_patch 維護既有 `grade.csv`，key_column 固定為 exam_answer_id，只更新指定列的 score 與 reason。",
+    note?.trim() ? "重新批改時請優先考量 regrade_note，但仍需維持 rubric 一致性。" : "",
+    "更新完 `grade.csv`（Excel 表格）後即可停止；不要進入寫回/發布成績階段，也不要呼叫 qjudge_grading 寫回分數。",
+  ].filter(Boolean).join("\n");
 }
 
 function buildTaskContext(contestId: string, questionId: string): Record<string, string> {
   return { contest_id: contestId, question_id: questionId };
 }
 
-function isActiveTaskStatus(status: AiTaskStatus | "idle"): boolean {
-  return status === "running";
+function serializeCsvRows(rows: string[][]): string {
+  return `${rows.map((row) => row.map(encodeCsvCell).join(",")).join("\n")}\n`;
+}
+
+function patchSuggestionCsv(
+  content: string,
+  answerIds: string[],
+  patch: { score?: string; reason?: string; synced?: string },
+): string {
+  const rows = parseCsvContent(content);
+  if (rows.length === 0) return content;
+  const answerIdSet = new Set(answerIds.map(normalizeAnswerId));
+  const header = rows[0].map((c) => c.trim().toLowerCase());
+  const idxAnswerId = header.findIndex(
+    (c) => c === "exam_answer_id" || c === "answer_id" || c === "id",
+  );
+  if (idxAnswerId < 0) return content;
+
+  const idxScore = header.findIndex((c) => c === "score" || c === "suggested_score");
+  const idxReason = header.findIndex(
+    (c) => c === "reason" || c === "feedback" || c === "comment" || c === "explanation",
+  );
+  const idxSynced = header.findIndex((c) => c === "synced");
+
+  const nextRows = rows.map((row) => [...row]);
+  let didPatch = false;
+  for (let i = 1; i < nextRows.length; i += 1) {
+    if (!answerIdSet.has(normalizeAnswerId(nextRows[i][idxAnswerId]))) continue;
+    if (idxScore >= 0 && patch.score !== undefined) nextRows[i][idxScore] = patch.score;
+    if (idxReason >= 0 && patch.reason !== undefined) nextRows[i][idxReason] = patch.reason;
+    if (idxSynced >= 0 && patch.synced !== undefined) nextRows[i][idxSynced] = patch.synced;
+    didPatch = true;
+  }
+  return didPatch ? serializeCsvRows(nextRows) : content;
+}
+
+async function patchGradeCsvArtifact(
+  sessionId: string,
+  answerIds: string[],
+  patch: { score?: string; reason?: string; synced?: string },
+): Promise<void> {
+  const artifacts = await listArtifacts({ sessionId, step: "grade" });
+  const gradeCsv = artifacts
+    .filter((artifact) => artifact.filename.toLowerCase() === "grade.csv")
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+  if (!gradeCsv) return;
+  const content = await fetchArtifactContent(gradeCsv.id);
+  const nextContent = patchSuggestionCsv(content.content, answerIds, patch);
+  if (nextContent === content.content) return;
+  const file = new File([nextContent], "grade.csv", { type: "text/csv" });
+  await uploadUserArtifact(sessionId, file, { step: "grade" });
 }
 
 export function useAiQuestionGrading() {
@@ -289,11 +378,15 @@ export function useAiQuestionGrading() {
   }) => {
     activeRunRef.current = { sessionId: params.sessionId, runId: params.runId };
     artifactVersionsRef.current.clear();
-    expectedAnswerIdsRef.current = new Set(params.rows.map((row) => row.id));
+    expectedAnswerIdsRef.current = new Set(params.rows.map((row) => normalizeAnswerId(row.id)));
     pollMsRef.current = POLL_MS;
   }, []);
 
-  const loadSuggestionsOnce = useCallback(async (sessionId: string, _runId: string) => {
+  const loadSuggestionsOnce = useCallback(async (
+    sessionId: string,
+    _runId: string,
+    options?: { force?: boolean },
+  ) => {
     const artifacts = await listArtifacts({
       sessionId,
     });
@@ -305,9 +398,10 @@ export function useAiQuestionGrading() {
     let rubricMarkdown: string | undefined;
     let hasGradeArtifact = false;
     for (const artifact of latest) {
+      const version = artifact.checksum || artifact.updated_at;
       const prevVersion = artifactVersionsRef.current.get(artifact.id);
-      if (prevVersion === artifact.updated_at) continue;
-      artifactVersionsRef.current.set(artifact.id, artifact.updated_at);
+      if (!options?.force && prevVersion === version) continue;
+      artifactVersionsRef.current.set(artifact.id, version);
       const content = await fetchArtifactContent(artifact.id);
       const filename = artifact.filename.toLowerCase();
       if (filename === "rubric.md") {
@@ -330,6 +424,22 @@ export function useAiQuestionGrading() {
     }
     return merged;
   }, []);
+
+  const refreshSuggestions = useCallback(async (
+    sessionId: string,
+    questionId: string,
+    rows: GradingAnswerRow[],
+  ): Promise<void> => {
+    if (!sessionId || !questionId || rows.length === 0) return;
+    expectedAnswerIdsRef.current = new Set(rows.map((row) => normalizeAnswerId(row.id)));
+    await loadSuggestionsOnce(sessionId, "", { force: true });
+    setState((prev) => ({
+      ...prev,
+      sessionId,
+      trackedQuestionId: questionId,
+      error: undefined,
+    }));
+  }, [loadSuggestionsOnce]);
 
   const start = useCallback(async (
     contestId: string,
@@ -357,7 +467,7 @@ export function useAiQuestionGrading() {
     });
     activeRunRef.current = null;
     artifactVersionsRef.current.clear();
-    expectedAnswerIdsRef.current = new Set(rows.map((row) => row.id));
+    expectedAnswerIdsRef.current = new Set(rows.map((row) => normalizeAnswerId(row.id)));
     pollMsRef.current = POLL_MS;
 
     try {
@@ -372,14 +482,14 @@ export function useAiQuestionGrading() {
       await withRetry(() => seedGradeCsvArtifact(sessionId, rows));
       await loadSuggestionsOnce(sessionId, "");
 
-      if (manifest.status === "running" && manifest.active_run_id) {
+      if (manifest.active_run_id) {
         prepareTracking({ sessionId, runId: manifest.active_run_id, contestId, questionId, rows });
         await loadSuggestionsOnce(sessionId, manifest.active_run_id);
         setState((prev) => ({
           ...prev,
           sessionId,
           trackedQuestionId: questionId,
-          taskStatus: manifest.status,
+          taskStatus: "running",
         }));
         return sessionId;
       }
@@ -392,7 +502,6 @@ export function useAiQuestionGrading() {
       prepareTracking({ sessionId, runId: run.id, contestId, questionId, rows });
       await patchTaskManifest(sessionId, (prev) => ({
         ...appendTaskHistory(prev, "run_started", run.id),
-        status: "running",
         prompt,
         active_run_id: run.id,
       }));
@@ -452,14 +561,13 @@ export function useAiQuestionGrading() {
             }));
             await patchTaskManifest(activeRun.sessionId, (prev) => ({
               ...appendTaskHistory(prev, runStatus.status, runStatus.error),
-              status: runStatus.status === "cancelled" ? "paused" : "failed",
               active_run_id: null,
             }));
             shouldStop = true;
           } else if (runStatus.status === "completed") {
+            await loadSuggestionsOnce(activeRun.sessionId, activeRun.runId, { force: true });
             await patchTaskManifest(activeRun.sessionId, (prev) => ({
               ...appendTaskHistory(prev, "run_completed", activeRun.runId),
-              status: "review",
               active_run_id: null,
             }));
             setState((prev) => ({ ...prev, taskStatus: "review" }));
@@ -529,7 +637,6 @@ export function useAiQuestionGrading() {
       activeRunRef.current = null;
       await patchTaskManifest(activeRun.sessionId, (prev) => ({
         ...appendTaskHistory(prev, "cancelled", activeRun.runId || "manual_pause"),
-        status: "paused",
         active_run_id: null,
       }));
       setState((prev) => ({
@@ -547,6 +654,133 @@ export function useAiQuestionGrading() {
       return false;
     }
   }, [withRetry]);
+
+  const retryAnswers = useCallback(async (
+    contestId: string,
+    questionId: string,
+    rows: GradingAnswerRow[],
+    options?: { modelId?: string; note?: string },
+  ): Promise<boolean> => {
+    const sessionId = state.sessionId;
+    if (!sessionId || !contestId || !questionId || rows.length === 0) return false;
+    if (state.running || startInFlightRef.current) return false;
+
+    const answerIds = rows.map((row) => normalizeAnswerId(row.id)).filter(Boolean);
+    if (answerIds.length === 0) return false;
+
+    startInFlightRef.current = true;
+    try {
+      await withRetry(() =>
+        patchGradeCsvArtifact(sessionId, answerIds, { score: "", reason: "", synced: "" }),
+      );
+      setState((prev) => {
+        const nextByAnswerId = { ...prev.byAnswerId };
+        for (const answerId of answerIds) {
+          delete nextByAnswerId[answerId];
+        }
+        return {
+          ...prev,
+          running: true,
+          byAnswerId: nextByAnswerId,
+          error: undefined,
+          sessionId,
+          trackedQuestionId: questionId,
+          taskStatus: "running",
+        };
+      });
+
+      activeRunRef.current = null;
+      artifactVersionsRef.current.clear();
+      expectedAnswerIdsRef.current = new Set(answerIds);
+      pollMsRef.current = POLL_MS;
+
+      const prompt = buildRetryPrompt(contestId, questionId, answerIds, options?.note);
+      const run = await withRetry(() =>
+        chatbotRepository.startRun(sessionId, prompt, {
+          modelOverride: options?.modelId || AI_GRADING_DEFAULT_MODEL_ID,
+        }),
+      );
+      activeRunRef.current = { sessionId, runId: run.id };
+      await patchTaskManifest(sessionId, (prev) => ({
+        ...appendTaskHistory(prev, "run_started", run.id),
+        prompt,
+        active_run_id: run.id,
+      }));
+      return true;
+    } catch (error) {
+      activeRunRef.current = null;
+      setState((prev) => ({
+        ...prev,
+        running: false,
+        taskStatus: "failed",
+        error: error instanceof Error ? error.message : "AI 重新批改啟動失敗",
+      }));
+      return false;
+    } finally {
+      startInFlightRef.current = false;
+    }
+  }, [state.running, state.sessionId, withRetry]);
+
+  const retryAnswer = useCallback(async (
+    contestId: string,
+    questionId: string,
+    row: GradingAnswerRow,
+    options?: { modelId?: string; note?: string },
+  ): Promise<boolean> => retryAnswers(contestId, questionId, [row], options), [retryAnswers]);
+
+  const markAnswersSynced = useCallback(async (answerIds: string[]): Promise<boolean> => {
+    const sessionId = state.sessionId;
+    const normalizedAnswerIds = answerIds.map(normalizeAnswerId).filter(Boolean);
+    if (!sessionId || normalizedAnswerIds.length === 0) return false;
+
+    try {
+      await withRetry(() => patchGradeCsvArtifact(sessionId, normalizedAnswerIds, { synced: "true" }));
+      setState((prev) => {
+        const nextByAnswerId = { ...prev.byAnswerId };
+        for (const answerId of normalizedAnswerIds) {
+          const existing = nextByAnswerId[answerId];
+          if (existing) {
+            nextByAnswerId[answerId] = { ...existing, synced: true };
+          }
+        }
+        return { ...prev, byAnswerId: nextByAnswerId, error: undefined };
+      });
+      return true;
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        error: error instanceof Error ? error.message : "AI 批改送出狀態更新失敗",
+      }));
+      return false;
+    }
+  }, [state.sessionId, withRetry]);
+
+  const markAnswersUnsynced = useCallback(async (answerIds: string[]): Promise<boolean> => {
+    const sessionId = state.sessionId;
+    const normalizedAnswerIds = answerIds.map(normalizeAnswerId).filter(Boolean);
+    if (!sessionId || normalizedAnswerIds.length === 0) return false;
+
+    try {
+      await withRetry(() => patchGradeCsvArtifact(sessionId, normalizedAnswerIds, { synced: "" }));
+      setState((prev) => {
+        const nextByAnswerId = { ...prev.byAnswerId };
+        for (const answerId of normalizedAnswerIds) {
+          const existing = nextByAnswerId[answerId];
+          if (existing) {
+            nextByAnswerId[answerId] = { ...existing, synced: false };
+          }
+        }
+        return { ...prev, byAnswerId: nextByAnswerId, error: undefined };
+      });
+      return true;
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        error: error instanceof Error ? error.message : "AI 批改送出狀態 revert 失敗",
+      }));
+      return false;
+    }
+  }, [state.sessionId, withRetry]);
 
   /**
    * 外部綁定已存在的 session（例如頁面刷新後重新接回正在跑的批改）。
@@ -575,13 +809,14 @@ export function useAiQuestionGrading() {
           rows,
         });
         await loadSuggestionsOnce(sessionId, manifest.active_run_id ?? "");
+        const hasActiveRun = !!manifest.active_run_id;
         setState((prev) => ({
           ...prev,
-          running: isActiveTaskStatus(manifest.status),
+          running: hasActiveRun,
           error: undefined,
           sessionId,
           trackedQuestionId: questionId,
-          taskStatus: manifest.status,
+          taskStatus: hasActiveRun ? "running" : "idle",
         }));
         return true;
       } catch (error) {
@@ -608,13 +843,14 @@ export function useAiQuestionGrading() {
         if (!contestId || !questionId) {
           throw new Error("task context 缺少 contest_id 或 question_id");
         }
+        const hasActiveRun = !!manifest.active_run_id;
         setState((prev) => ({
           ...prev,
           error: undefined,
           sessionId,
           trackedQuestionId: questionId,
-          taskStatus: manifest.status,
-          running: isActiveTaskStatus(manifest.status),
+          taskStatus: hasActiveRun ? "running" : "idle",
+          running: hasActiveRun,
         }));
         return { contestId, questionId };
       } catch (error) {
@@ -635,10 +871,53 @@ export function useAiQuestionGrading() {
       questionId: string,
       rows: GradingAnswerRow[],
     ): Promise<string | null> => {
-      const bound = await bindSession(sessionId, contestId, questionId, rows);
-      return bound ? sessionId : null;
+      if (!sessionId || !contestId || !questionId || rows.length === 0) return null;
+      try {
+        const manifest = await bindExistingTaskSession({
+          sessionId,
+          taskType: AI_GRADING_TASK_TYPE,
+          context: buildTaskContext(contestId, questionId),
+        });
+        prepareTracking({
+          sessionId,
+          runId: manifest.active_run_id ?? "",
+          contestId,
+          questionId,
+          rows,
+        });
+        artifactVersionsRef.current.clear();
+        expectedAnswerIdsRef.current = new Set(rows.map((row) => normalizeAnswerId(row.id)));
+        const merged = await loadSuggestionsOnce(sessionId, manifest.active_run_id ?? "", {
+          force: true,
+        });
+        // rebind 時：running 只看 manifest.active_run_id 有沒有實體 run；
+        // grade.csv 全填滿代表已進 review；兩者都沒有 → idle。
+        // manifest.status 已棄用（避免兩份事實漂移）。
+        const allDone =
+          expectedAnswerIdsRef.current.size > 0 &&
+          Array.from(expectedAnswerIdsRef.current).every((id) => !!merged[id]);
+        const hasActiveRun = !!manifest.active_run_id && !allDone;
+        if (!hasActiveRun) {
+          activeRunRef.current = null;
+        }
+        setState((prev) => ({
+          ...prev,
+          running: hasActiveRun,
+          error: undefined,
+          sessionId,
+          trackedQuestionId: questionId,
+          taskStatus: hasActiveRun ? "running" : allDone ? "review" : "idle",
+        }));
+        return sessionId;
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error: error instanceof Error ? error.message : "AI 批改 session 還原失敗",
+        }));
+        return null;
+      }
     },
-    [bindSession],
+    [loadSuggestionsOnce, prepareTracking],
   );
 
   return useMemo(
@@ -653,9 +932,14 @@ export function useAiQuestionGrading() {
       taskStatus: state.taskStatus,
       start,
       pause,
+      retryAnswer,
+      retryAnswers,
+      markAnswersSynced,
+      markAnswersUnsynced,
       bindSession,
       loadSessionTask,
       restore,
+      refreshSuggestions,
       clear,
     }),
     [
@@ -669,9 +953,14 @@ export function useAiQuestionGrading() {
       state.taskStatus,
       start,
       pause,
+      retryAnswer,
+      retryAnswers,
+      markAnswersSynced,
+      markAnswersUnsynced,
       bindSession,
       loadSessionTask,
       restore,
+      refreshSuggestions,
       clear,
     ],
   );

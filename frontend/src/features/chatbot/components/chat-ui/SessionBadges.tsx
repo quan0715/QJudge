@@ -3,9 +3,10 @@ import { Checkmark, Warning, InProgress, Document } from "@carbon/icons-react";
 import { Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
-import type { ChatMessage, RunTodoItem } from "@/core/types/chatbot.types";
+import type { ChatMessage } from "@/core/types/chatbot.types";
 import { useOptionalArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { ArtifactInlineCard } from "../artifact/ArtifactInlineCard";
+import { TodoList, pickLatestTodos, summarizeTodos } from "./TodoList";
 
 import styles from "./SessionBadges.module.scss";
 
@@ -14,33 +15,6 @@ interface SessionBadgesProps {
   /** When true, render without outer wrapper padding (for inline use inside
    *  the composer toolbar). */
   inline?: boolean;
-}
-
-function pickLatestTodos(messages: ChatMessage[]): RunTodoItem[] {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const todos = messages[i]?.todoItems;
-    if (todos && todos.length > 0) return todos;
-  }
-  return [];
-}
-
-function summarizeTodos(todos: RunTodoItem[]) {
-  let done = 0;
-  let inProgress = 0;
-  let failed = 0;
-  for (const item of todos) {
-    if (item.status === "success") done += 1;
-    else if (item.status === "fail") failed += 1;
-    else if (item.status === "in_progress") inProgress += 1;
-  }
-  return { total: todos.length, done, inProgress, failed };
-}
-
-function todoIcon(status: RunTodoItem["status"]) {
-  if (status === "success") return <Checkmark size={14} className={styles.iconSuccess} />;
-  if (status === "fail") return <Warning size={14} className={styles.iconFail} />;
-  if (status === "in_progress") return <InProgress size={14} className={styles.iconProgress} />;
-  return <InProgress size={14} className={styles.iconPending} />;
 }
 
 type OpenPanel = "todos" | "artifacts" | null;
@@ -119,17 +93,7 @@ export function SessionBadges({ messages, inline = false }: SessionBadgesProps) 
               {summary.done}/{summary.total}
             </span>
           </div>
-          <ul className={styles.todoList}>
-            {todos.map((item) => (
-              <li
-                key={item.id}
-                className={`${styles.todoItem} ${item.status === "in_progress" ? styles.todoItemInProgress : ""}`}
-              >
-                {todoIcon(item.status)}
-                <span className={styles.todoLabel}>{item.label}</span>
-              </li>
-            ))}
-          </ul>
+          <TodoList items={todos} />
         </div>
       )}
 

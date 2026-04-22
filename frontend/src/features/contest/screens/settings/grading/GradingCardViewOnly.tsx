@@ -1,5 +1,6 @@
-import { useMemo } from "react";
-import { Button, Tag } from "@carbon/react";
+import { useMemo, type KeyboardEvent } from "react";
+import { Checkmark } from "@carbon/icons-react";
+import { Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { GradingAnswerRow } from "./gradingTypes";
 import styles from "./GradingCardViewOnly.module.scss";
@@ -15,12 +16,9 @@ interface GradingCardViewOnlyProps {
    * 由外部判斷：`running && !resultsByAnswerId[row.id]`。
    */
   pending?: boolean;
-  status?: "idle" | "pending" | "reviewable" | "missing";
+  status?: "idle" | "pending" | "reviewable" | "submitted" | "missing";
   selected?: boolean;
   onToggleSelected?: () => void;
-  onRetry?: () => void;
-  onSubmit?: () => void;
-  actionsDisabled?: boolean;
 }
 
 function stringifyAnswer(answer: Record<string, unknown>): string {
@@ -47,9 +45,6 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
   status = pending ? "pending" : "idle",
   selected = false,
   onToggleSelected,
-  onRetry,
-  onSubmit,
-  actionsDisabled = true,
 }) => {
   const { t } = useTranslation("contest");
 
@@ -63,33 +58,82 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
 
   const answerText = useMemo(() => stringifyAnswer(row.answerContent), [row.answerContent]);
 
+  const hasOriginalScore = row.score != null;
+  const hasOriginalFeedback = !!row.feedback?.trim();
+
   const aiScoreText = aiScore == null ? "-" : `${aiScore}`;
+  const scoreDelta =
+    aiScore != null && hasOriginalScore && row.score != null ? aiScore - row.score : null;
+  const deltaLabel =
+    scoreDelta == null
+      ? null
+      : scoreDelta === 0
+      ? "±0"
+      : scoreDelta > 0
+      ? `+${scoreDelta}`
+      : `${scoreDelta}`;
+  const deltaClass =
+    scoreDelta == null || scoreDelta === 0
+      ? styles.deltaZero
+      : scoreDelta > 0
+      ? styles.deltaUp
+      : styles.deltaDown;
   const aiReasonText = (aiReason ?? "").trim() || "-";
   const isPending = status === "pending";
   const statusTag = {
     idle: { type: "cool-gray" as const, label: t("grading.cardStatePending", "待批改") },
     pending: { type: "blue" as const, label: t("grading.cardStateAiRunning", "AI批改中") },
     reviewable: { type: "green" as const, label: t("grading.reviewable", "可審核") },
+    submitted: { type: "teal" as const, label: t("grading.submitted", "已送出") },
     missing: { type: "red" as const, label: t("grading.cardStateMissing", "未產生建議") },
   }[status];
 
+  const interactive = !!onToggleSelected;
+  const hoverTitle = interactive
+    ? selected
+      ? t("grading.cardClickDeselect", "點擊取消勾選")
+      : t("grading.cardClickSelect", "點擊勾選此筆作答")
+    : undefined;
+
+  const handleClick = () => {
+    if (!interactive) return;
+    onToggleSelected?.();
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (!interactive) return;
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      onToggleSelected?.();
+    }
+  };
+
   return (
-    <article className={`${styles.card} ${selected ? styles.cardSelected : ""}`}>
+    <article
+      className={`${styles.card} ${selected ? styles.cardSelected : ""} ${
+        interactive ? styles.cardInteractive : ""
+      }`}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-pressed={interactive ? selected : undefined}
+      title={hoverTitle}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+    >
       <header className={styles.headerBlock}>
-        <button
-          type="button"
-          className={`${styles.selectCell} ${selected ? styles.selectCellActive : ""}`}
-          onClick={onToggleSelected}
-          aria-pressed={selected}
-          aria-label={selected ? t("common.selected", "已選取") : t("common.select", "選取")}
-        >
-          <span className={styles.selectMark}>{selected ? "✓" : ""}</span>
-        </button>
         <div className={styles.userBlock}>
           <div className={styles.user}>{user}</div>
         </div>
         <div className={styles.statusBlock}>
           <Tag type={statusTag.type} size="sm">{statusTag.label}</Tag>
+        </div>
+        <div
+          className={`${styles.selectCell} ${selected ? styles.selectCellActive : ""}`}
+          aria-hidden="true"
+        >
+          <span className={`${styles.selectMark} ${selected ? styles.selectMarkActive : ""}`}>
+            {selected ? <Checkmark size={14} /> : null}
+          </span>
         </div>
       </header>
 
@@ -98,6 +142,20 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
           <div className={styles.label}>{t("grading.answerContent", "作答內容")}</div>
           <div className={`${styles.value} ${styles.answerBox}`}>
             {answerText || <span className={styles.muted}>-</span>}
+          </div>
+          <div className={styles.originalMeta}>
+            <span className={styles.originalLabel}>
+              {t("grading.originalScore", "原評分")}
+            </span>
+            <span className={styles.originalScore}>
+              {hasOriginalScore ? `${row.score} / ${row.maxScore}` : "-"}
+            </span>
+            <span className={styles.originalLabel}>
+              {t("grading.originalFeedback", "原評語")}
+            </span>
+            <span className={styles.originalFeedback}>
+              {hasOriginalFeedback ? row.feedback : "-"}
+            </span>
           </div>
         </section>
 
@@ -114,6 +172,9 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
               <div className={styles.aiScoreValue}>
                 {aiScoreText}
                 <span className={styles.aiScoreUnit}> / {row.maxScore}</span>
+                {deltaLabel ? (
+                  <span className={`${styles.aiScoreDelta} ${deltaClass}`}>{deltaLabel}</span>
+                ) : null}
               </div>
             )}
           </div>
@@ -129,22 +190,6 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
         </section>
       </section>
 
-      <footer className={styles.actionBlock}>
-        <Button
-          kind="ghost"
-          disabled={actionsDisabled || !onRetry}
-          onClick={onRetry}
-        >
-          {t("grading.retryAiGrading", "重改")}
-        </Button>
-        <Button
-          kind="primary"
-          disabled={actionsDisabled || !onSubmit}
-          onClick={onSubmit}
-        >
-          {t("grading.publish", "送出")}
-        </Button>
-      </footer>
     </article>
   );
 };
