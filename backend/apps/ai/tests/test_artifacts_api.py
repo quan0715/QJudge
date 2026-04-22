@@ -175,6 +175,55 @@ class ArtifactInternalEndpointTests(TestCase):
         resp = self.client.get(self.url, **_auth_headers())
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
+    @patch("apps.ai.artifact_views.artifact_storage.store_artifact")
+    def test_list_filters_by_filename_only(self, _mock_store):
+        """?session_id=X&filename=Y returns matching artifacts across steps."""
+        self.client.post(
+            self.url,
+            self._write_payload(step="grade", filename="grade.csv", content="a"),
+            format="json",
+            **_auth_headers(),
+        )
+        self.client.post(
+            self.url,
+            self._write_payload(step="rubric", filename="rubric.md", content="b"),
+            format="json",
+            **_auth_headers(),
+        )
+
+        resp = self.client.get(
+            f"{self.url}?session_id={self.session.session_id}&filename=grade.csv",
+            **_auth_headers(),
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data[0]["filename"], "grade.csv")
+
+    @patch("apps.ai.artifact_views.artifact_storage.store_artifact")
+    def test_list_filename_only_returns_multiple_steps(self, _mock_store):
+        """Same filename in two steps → both returned when filtering by filename."""
+        self.client.post(
+            self.url,
+            self._write_payload(step="grade", filename="grade.csv", content="v1"),
+            format="json",
+            **_auth_headers(),
+        )
+        self.client.post(
+            self.url,
+            self._write_payload(step="backup", filename="grade.csv", content="v2"),
+            format="json",
+            **_auth_headers(),
+        )
+
+        resp = self.client.get(
+            f"{self.url}?session_id={self.session.session_id}&filename=grade.csv",
+            **_auth_headers(),
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(resp.data), 2)
+        steps = {a["step"] for a in resp.data}
+        self.assertEqual(steps, {"grade", "backup"})
+
     @patch(
         "apps.ai.artifact_views.artifact_storage.store_artifact",
     )

@@ -51,7 +51,9 @@ export function ArtifactPanel() {
           </span>
           {active && (
             <span className={styles.titleMeta}>
-              {active.step} · {formatBytes(active.size_bytes)}
+              {active.step !== "default" && active.step !== "user_upload"
+                ? `${active.step} · `
+                : ""}{formatBytes(active.size_bytes)}
             </span>
           )}
         </div>

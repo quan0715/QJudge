@@ -61,6 +61,7 @@ def build_artifact_tools(
 
     base = backend_base_url.rstrip("/")
     internal_url = f"{base}{_ARTIFACT_INTERNAL_PATH}"
+    _DEFAULT_STEP = "default"
 
     def _require_session() -> str | None:
         if not session_id:
@@ -75,16 +76,65 @@ def build_artifact_tools(
         async with httpx.AsyncClient(timeout=http_timeout_seconds) as client:
             yield client
 
-    async def _artifact_write(
-        step: str,
+    async def _resolve_step(
+        step: str | None,
         filename: str,
-        content: str,
+        *,
+        for_write: bool = False,
+    ) -> str | dict[str, Any]:
+        """Resolve *step* when the caller omits it.
+
+        Returns the resolved step **string** on success, or an
+        ``{"is_error": True, ...}`` dict on failure.
+
+        * ``step`` given → returned as-is (fast path).
+        * ``step`` is ``None`` → list artifacts by filename:
+          - 1 match  → use its step.
+          - 0 matches and ``for_write`` → fall back to ``_DEFAULT_STEP``.
+          - 0 matches and read → not-found error.
+          - >1 matches → ambiguity error listing the steps.
+        """
+        if step:
+            return step
+
+        listing = await _artifact_list(filename=filename)
+        if listing.get("is_error"):
+            return listing
+
+        artifacts = listing.get("artifacts") or []
+        if len(artifacts) == 1:
+            return artifacts[0]["step"]
+        if len(artifacts) == 0:
+            if for_write:
+                return _DEFAULT_STEP
+            return {
+                "is_error": True,
+                "detail": f"artifact not found: filename={filename}",
+            }
+        steps = sorted(set(a["step"] for a in artifacts))
+        return {
+            "is_error": True,
+            "detail": (
+                f"ambiguous filename '{filename}': found in steps {steps}. "
+                f"Provide step= to disambiguate."
+            ),
+        }
+
+    async def _artifact_write(
+        step: str | None = None,
+        filename: str = "",
+        content: str = "",
         content_type: str = "text/plain; charset=utf-8",
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         err = _require_session()
         if err:
             return {"is_error": True, "detail": err}
+
+        resolved = await _resolve_step(step, filename, for_write=True)
+        if isinstance(resolved, dict):
+            return resolved
+        step = resolved
 
         payload: dict[str, Any] = {
             "session_id": session_id,
@@ -122,10 +172,10 @@ def build_artifact_tools(
         return resp.json()
 
     async def _artifact_write_csv(
-        step: str,
-        filename: str,
-        columns: list[str] | str,
-        rows: list[dict[str, Any]] | str,
+        step: str | None = None,
+        filename: str = "",
+        columns: list[str] | str = "",
+        rows: list[dict[str, Any]] | str = "",
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Encode rows into RFC 4180 CSV (QUOTE_ALL) and upsert as artifact.
@@ -144,6 +194,11 @@ def build_artifact_tools(
         err = _require_session()
         if err:
             return {"is_error": True, "detail": err}
+
+        resolved = await _resolve_step(step, filename, for_write=True)
+        if isinstance(resolved, dict):
+            return resolved
+        step = resolved
 
         columns = _coerce_json_list(columns, "columns")
         if isinstance(columns, dict) and columns.get("is_error"):
@@ -219,12 +274,16 @@ def build_artifact_tools(
         return {"artifacts": resp.json()}
 
     async def _artifact_read(
-        step: str,
-        filename: str,
+        step: str | None = None,
+        filename: str = "",
         offset: int = 0,
         limit: int | None = None,
     ) -> dict[str, Any]:
-        """Read content by (step, filename). Internally lists then fetches.
+        """Read content by filename (or step + filename). Lists then fetches.
+
+        When ``step`` is omitted the tool resolves by filename alone:
+        exactly one match → success; zero → not found; multiple → ambiguity
+        error listing the steps that contain the filename.
 
         ``offset`` / ``limit`` mirror DeepAgent's ``read_file`` semantics —
         line-based pagination so the agent can treat artifact content the
@@ -236,9 +295,20 @@ def build_artifact_tools(
             return listing
         artifacts = listing.get("artifacts") or []
         if not artifacts:
+            detail = (
+                f"artifact not found: filename={filename}"
+                if not step
+                else f"artifact not found: step={step} filename={filename}"
+            )
+            return {"is_error": True, "detail": detail}
+        if len(artifacts) > 1:
+            steps = sorted(set(a["step"] for a in artifacts))
             return {
                 "is_error": True,
-                "detail": f"artifact not found: step={step} filename={filename}",
+                "detail": (
+                    f"ambiguous filename '{filename}': found in steps {steps}. "
+                    f"Provide step= to disambiguate."
+                ),
             }
         artifact = artifacts[0]
         artifact_id = artifact["id"]
@@ -279,21 +349,21 @@ def build_artifact_tools(
     write_tool = StructuredTool(
         name="artifact_write",
         description=(
-            "Write (create or overwrite) an artifact to the current AI session."
-            " Use for SOP step outputs: rubric.json, raw_answers.csv,"
-            " calibration_report.md, graded_answers.csv, final_delta_preview.csv."
-            " Upsert semantics: same (step, filename) overwrites."
+            "Write (create or overwrite) a text artifact in the current AI"
+            " session. Upsert semantics: same filename overwrites."
+            " step is optional — omit it and the tool auto-resolves by"
+            " filename; provide it only to disambiguate or organise."
         ),
         args_schema={
             "type": "object",
             "properties": {
                 "step": {
                     "type": "string",
-                    "description": "SOP step identifier, e.g. rubric / raw_answers / calibration / graded / final_delta",
+                    "description": "Optional namespace. Omit to auto-resolve by filename (new files default to 'default').",
                 },
                 "filename": {
                     "type": "string",
-                    "description": "Target filename, e.g. rubric.json",
+                    "description": "Target filename, e.g. rubric.md",
                 },
                 "content": {
                     "type": "string",
@@ -308,7 +378,7 @@ def build_artifact_tools(
                     "description": "Arbitrary JSON metadata (artifact_type, rubric summary, ...)",
                 },
             },
-            "required": ["step", "filename", "content"],
+            "required": ["filename", "content"],
         },
         coroutine=_artifact_write,
     )
@@ -330,9 +400,9 @@ def build_artifact_tools(
     )
 
     async def _artifact_csv_from_json(
-        step: str,
-        filename: str,
-        records: list[dict[str, Any]] | str,
+        step: str | None = None,
+        filename: str = "",
+        records: list[dict[str, Any]] | str = "",
         column_mapping: dict[str, str] | str | None = None,
         defaults: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
@@ -356,6 +426,11 @@ def build_artifact_tools(
         err = _require_session()
         if err:
             return {"is_error": True, "detail": err}
+
+        resolved = await _resolve_step(step, filename, for_write=True)
+        if isinstance(resolved, dict):
+            return resolved
+        step = resolved
 
         records = _coerce_json_list(records, "records")
         if isinstance(records, dict) and records.get("is_error"):
@@ -421,11 +496,12 @@ def build_artifact_tools(
             " artifact_write when producing *.csv — it handles RFC 4180 quoting"
             " (commas, quotes, newlines, Chinese punctuation) correctly. Caller"
             " supplies columns + list of row objects; the tool encodes and uploads."
+            " step is optional — omit to auto-resolve or default."
         ),
         args_schema={
             "type": "object",
             "properties": {
-                "step": {"type": "string"},
+                "step": {"type": "string", "description": "Optional namespace. Omit to auto-resolve by filename."},
                 "filename": {
                     "type": "string",
                     "description": "Must end in .csv",
@@ -442,7 +518,7 @@ def build_artifact_tools(
                 },
                 "metadata": {"type": "object"},
             },
-            "required": ["step", "filename", "columns", "rows"],
+            "required": ["filename", "columns", "rows"],
         },
         coroutine=_artifact_write_csv,
     )
@@ -450,30 +526,31 @@ def build_artifact_tools(
     read_tool = StructuredTool(
         name="artifact_read",
         description=(
-            "Read an artifact's text content by (step, filename). Returns"
+            "Read an artifact's text content by filename. Returns"
             " metadata, utf-8 content, and total_lines. Optional offset/limit"
             " paginate by line (same semantics as DeepAgent's read_file) for"
             " large artifacts. Without pagination content is truncated at"
             " 200k chars as a safety net."
+            " step is optional — omit it to auto-resolve by filename."
         ),
         args_schema={
             "type": "object",
             "properties": {
-                "step":     {"type": "string"},
+                "step":     {"type": "string", "description": "Optional namespace. Omit to auto-resolve by filename."},
                 "filename": {"type": "string"},
                 "offset":   {"type": "integer", "minimum": 0, "description": "0-based line offset"},
                 "limit":    {"type": "integer", "minimum": 1, "description": "max lines to return"},
             },
-            "required": ["step", "filename"],
+            "required": ["filename"],
         },
         coroutine=_artifact_read,
     )
 
     async def _artifact_csv_patch(
-        step: str,
-        filename: str,
-        key_column: str,
-        updates: list[dict[str, Any]] | str,
+        step: str | None = None,
+        filename: str = "",
+        key_column: str = "",
+        updates: list[dict[str, Any]] | str = "",
     ) -> dict[str, Any]:
         """Merge partial-row updates into an existing CSV artifact.
 
@@ -488,6 +565,11 @@ def build_artifact_tools(
         err = _require_session()
         if err:
             return {"is_error": True, "detail": err}
+
+        resolved = await _resolve_step(step, filename, for_write=False)
+        if isinstance(resolved, dict):
+            return resolved
+        step = resolved
 
         updates = _coerce_json_list(updates, "updates")
         if isinstance(updates, dict) and updates.get("is_error"):
@@ -562,12 +644,12 @@ def build_artifact_tools(
             " dot-paths (e.g. 'answer.text'). Optional `defaults` appends extra"
             " constant columns (e.g. blank score/reason). records accepts inline"
             " list or JSON string (in case an offloaded response was read_file'd"
-            " first)."
+            " first). step is optional — omit to auto-resolve or default."
         ),
         args_schema={
             "type": "object",
             "properties": {
-                "step":     {"type": "string"},
+                "step":     {"type": "string", "description": "Optional namespace. Omit to auto-resolve by filename."},
                 "filename": {"type": "string"},
                 "records": {
                     "description": "list of record objects, OR JSON-string of such a list",
@@ -583,7 +665,7 @@ def build_artifact_tools(
                 },
                 "metadata": {"type": "object"},
             },
-            "required": ["step", "filename", "records"],
+            "required": ["filename", "records"],
         },
         coroutine=_artifact_csv_from_json,
     )
@@ -595,11 +677,12 @@ def build_artifact_tools(
             " Use this to write back a batch of changes without overwriting"
             " unchanged rows: pass ONLY the rows you changed, identified by"
             " `key_column`. Unmatched keys are returned as `missing`."
+            " step is optional — omit to auto-resolve by filename."
         ),
         args_schema={
             "type": "object",
             "properties": {
-                "step":       {"type": "string"},
+                "step":       {"type": "string", "description": "Optional namespace. Omit to auto-resolve by filename."},
                 "filename":   {"type": "string"},
                 "key_column": {"type": "string", "description": "column name to match rows on"},
                 "updates": {
@@ -608,7 +691,7 @@ def build_artifact_tools(
                     "description": "Each object must include key_column; other fields overwrite existing cells.",
                 },
             },
-            "required": ["step", "filename", "key_column", "updates"],
+            "required": ["filename", "key_column", "updates"],
         },
         coroutine=_artifact_csv_patch,
     )
@@ -662,8 +745,8 @@ def build_artifact_tools(
         return {"all_columns": all_columns, "rows": rows, "filtered": filtered}
 
     async def _artifact_csv_search(
-        step: str,
-        filename: str,
+        step: str | None = None,
+        filename: str = "",
         where: dict[str, Any] | str | None = None,
     ) -> dict[str, Any]:
         """Count rows matching a where-filter. Does NOT return row data.
@@ -677,7 +760,11 @@ def build_artifact_tools(
         if err:
             return {"is_error": True, "detail": err}
 
-        loaded = await _load_filtered_csv(step=step, filename=filename, where=where)
+        resolved = await _resolve_step(step, filename, for_write=False)
+        if isinstance(resolved, dict):
+            return resolved
+
+        loaded = await _load_filtered_csv(step=resolved, filename=filename, where=where)
         if loaded.get("is_error"):
             return loaded
 
@@ -687,9 +774,9 @@ def build_artifact_tools(
         }
 
     async def _artifact_csv_to_json(
-        step: str,
-        filename: str,
-        columns: list[str] | str,
+        step: str | None = None,
+        filename: str = "",
+        columns: list[str] | str = "",
         where: dict[str, Any] | str | None = None,
         offset: int = 0,
         limit: int | None = None,
@@ -706,6 +793,10 @@ def build_artifact_tools(
         if err:
             return {"is_error": True, "detail": err}
 
+        resolved = await _resolve_step(step, filename, for_write=False)
+        if isinstance(resolved, dict):
+            return resolved
+
         columns = _coerce_json_list(columns, "columns")
         if isinstance(columns, dict) and columns.get("is_error"):
             return columns
@@ -714,7 +805,7 @@ def build_artifact_tools(
         if not all(isinstance(c, str) for c in columns):
             return {"is_error": True, "detail": "every column name must be a string"}
 
-        loaded = await _load_filtered_csv(step=step, filename=filename, where=where)
+        loaded = await _load_filtered_csv(step=resolved, filename=filename, where=where)
         if loaded.get("is_error"):
             return loaded
 
@@ -746,11 +837,12 @@ def build_artifact_tools(
             " answer status questions like 'how many rows still need grading?'"
             " or 'how many unsynced rows remain?' cheaply, without pulling any"
             " content into context. For the payload itself, call artifact_csv_to_json."
+            " step is optional — omit to auto-resolve by filename."
         ),
         args_schema={
             "type": "object",
             "properties": {
-                "step":     {"type": "string"},
+                "step":     {"type": "string", "description": "Optional namespace. Omit to auto-resolve by filename."},
                 "filename": {"type": "string"},
                 "where": {
                     "type": "object",
@@ -760,7 +852,7 @@ def build_artifact_tools(
                     ),
                 },
             },
-            "required": ["step", "filename"],
+            "required": ["filename"],
         },
         coroutine=_artifact_csv_search,
     )
@@ -774,11 +866,12 @@ def build_artifact_tools(
             " is equality-only (empty string matches empty cells);"
             " `offset`/`limit` paginate the filtered rows. Returns"
             " {count, total_matched, records}."
+            " step is optional — omit to auto-resolve by filename."
         ),
         args_schema={
             "type": "object",
             "properties": {
-                "step":     {"type": "string"},
+                "step":     {"type": "string", "description": "Optional namespace. Omit to auto-resolve by filename."},
                 "filename": {"type": "string"},
                 "columns": {
                     "type": "array",
@@ -795,7 +888,7 @@ def build_artifact_tools(
                 "offset": {"type": "integer", "minimum": 0},
                 "limit":  {"type": "integer", "minimum": 1},
             },
-            "required": ["step", "filename", "columns"],
+            "required": ["filename", "columns"],
         },
         coroutine=_artifact_csv_to_json,
     )

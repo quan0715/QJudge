@@ -46,7 +46,6 @@ interface AiState {
 const POLL_MS = 2000;
 const MAX_POLL_MS = 10000;
 const MAX_RETRY = 4;
-const AI_GRADING_MODEL_ID = "deepseek-r1";
 const AI_GRADING_TASK_TYPE = "grading.question";
 const GRADE_CSV_COLUMNS = [
   "index",
@@ -212,6 +211,12 @@ async function getRunStatus(runId: string): Promise<AiRunStatusDto> {
   );
 }
 
+export const AI_GRADING_DEFAULT_MODEL_ID = "deepseek-r1";
+
+export function buildDefaultGradingPrompt(contestId: string, questionId: string): string {
+  return buildPrompt(contestId, questionId);
+}
+
 function buildPrompt(contestId: string, questionId: string): string {
   return [
     "請使用 `qjudge-exam-grading-sop` 技能執行申論/短答題的 AI 批改，依 SOP 各 stage 逐步執行。",
@@ -221,10 +226,10 @@ function buildPrompt(contestId: string, questionId: string): string {
     `- grading_question_id: ${questionId}`,
     "",
     "題目與 rubric 請依 SOP 自行透過 qjudge_grading 等工具抓取；學生作答資料已由前端預先整理進 artifact。",
-    "注意：前端已先在 artifact 內建立 `grade/grade.csv`，內含本題所有作答與空白 score/reason 欄位；請先 artifact_read(step=\"grade\", filename=\"grade.csv\")，沿用這份 CSV，不要重建或刪減列。",
+    "注意：前端已先在 artifact 內建立 `grade.csv`，內含本題所有作答與空白 score/reason 欄位；請先 artifact_read(filename=\"grade.csv\")，沿用這份 CSV，不要重建或刪減列。",
     "",
     "grade.csv 產出規範（對齊 SOP）：",
-    "- 透過 artifact_csv_patch 維護既有 `grade/grade.csv`，檔名固定為 `grade.csv`，content_type 為 text/csv。",
+    "- 透過 artifact_csv_patch 維護既有 `grade.csv`，檔名固定為 `grade.csv`，content_type 為 text/csv。",
     "- 欄位順序固定（9 欄）：index, exam_answer_id, username, answer_text, original_score, original_feedback, score, reason, synced。",
     "- key_column: exam_answer_id。",
     "- score 為數值（整數或浮點，且落在題目滿分範圍內）；reason 為簡短中文，依 SOP reason 政策填寫（滿分可留空，非滿分必填）。",
@@ -330,13 +335,15 @@ export function useAiQuestionGrading() {
     contestId: string,
     questionId: string,
     rows: GradingAnswerRow[],
+    options?: { prompt?: string; modelId?: string },
   ): Promise<string | null> => {
     if (!contestId || !questionId) return null;
     if (!rows.length) return null;
     if (state.running || startInFlightRef.current) return null;
     startInFlightRef.current = true;
 
-    const prompt = buildPrompt(contestId, questionId);
+    const prompt = options?.prompt?.trim() || buildPrompt(contestId, questionId);
+    const modelId = options?.modelId || AI_GRADING_DEFAULT_MODEL_ID;
     const context = buildTaskContext(contestId, questionId);
 
     setState({
@@ -379,7 +386,7 @@ export function useAiQuestionGrading() {
 
       const run = await withRetry(() =>
         chatbotRepository.startRun(sessionId, prompt, {
-          modelOverride: AI_GRADING_MODEL_ID,
+          modelOverride: modelId,
         }),
       );
       prepareTracking({ sessionId, runId: run.id, contestId, questionId, rows });
@@ -508,6 +515,39 @@ export function useAiQuestionGrading() {
     });
   }, []);
 
+  const pause = useCallback(async (): Promise<boolean> => {
+    const activeRun = activeRunRef.current;
+    if (!activeRun) {
+      setState((prev) => ({ ...prev, running: false, taskStatus: "paused" }));
+      return true;
+    }
+
+    try {
+      if (activeRun.runId) {
+        await withRetry(() => chatbotRepository.cancelRun(activeRun.runId));
+      }
+      activeRunRef.current = null;
+      await patchTaskManifest(activeRun.sessionId, (prev) => ({
+        ...appendTaskHistory(prev, "cancelled", activeRun.runId || "manual_pause"),
+        status: "paused",
+        active_run_id: null,
+      }));
+      setState((prev) => ({
+        ...prev,
+        running: false,
+        taskStatus: "paused",
+        error: undefined,
+      }));
+      return true;
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        error: error instanceof Error ? error.message : "AI 批改暫停失敗",
+      }));
+      return false;
+    }
+  }, [withRetry]);
+
   /**
    * 外部綁定已存在的 session（例如頁面刷新後重新接回正在跑的批改）。
    * 綁定前會驗證 manifest task_type/context，避免把其他頁面或其他題目的 session 接進來。
@@ -612,6 +652,7 @@ export function useAiQuestionGrading() {
       trackedQuestionId: state.trackedQuestionId,
       taskStatus: state.taskStatus,
       start,
+      pause,
       bindSession,
       loadSessionTask,
       restore,
@@ -627,6 +668,7 @@ export function useAiQuestionGrading() {
       state.trackedQuestionId,
       state.taskStatus,
       start,
+      pause,
       bindSession,
       loadSessionTask,
       restore,
