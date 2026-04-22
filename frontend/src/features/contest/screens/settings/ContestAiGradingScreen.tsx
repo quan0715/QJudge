@@ -177,7 +177,9 @@ const ContestAiGradingScreen: React.FC = () => {
     void loadSessionTask(taskSessionId).then((task) => {
       if (!task) return;
       if (task.contestId !== contest.id) return;
-      setSelectedQuestionId(task.questionId);
+      // 只在「還沒選題目」時用 session 的 question_id 自動帶入。使用者已選題目後不再回頭覆寫，
+      // 否則切題目會被這個 effect 拉回 chat session 所屬的原題。
+      setSelectedQuestionId((prev) => prev ?? task.questionId);
       setPendingBindSessionId(taskSessionId);
     });
   }, [contest?.id, loadSessionTask, sessionId, taskSessionId]);
