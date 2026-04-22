@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Breadcrumb, BreadcrumbItem, Loading } from "@carbon/react";
+import { Breadcrumb, BreadcrumbItem, IconButton, Loading } from "@carbon/react";
+import { ArrowLeft } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -125,21 +126,33 @@ const AdminDashboardInner = () => {
         className={styles.toolbar}
         title={(
           <div className={styles.toolbarTitle}>
-            <Link to="/dashboard" className={styles.brandLink}>
-              {tc("header.prefix", "QJudge")}
-            </Link>
-            <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
-              {isCompactBreadcrumb ? (
-                <>
-                  <BreadcrumbItem>
-                    <span aria-hidden="true">…</span>
-                  </BreadcrumbItem>
-                  <BreadcrumbItem isCurrentPage>
-                    {t("adminLayout.mobileTitle", "競賽後台")}
-                  </BreadcrumbItem>
-                </>
-              ) : (
-                <>
+            {isCompactBreadcrumb ? (
+              <>
+                <IconButton
+                  kind="ghost"
+                  size="sm"
+                  align="bottom"
+                  label={tc("common.back", "返回")}
+                  onClick={() => {
+                    const backPath = effectiveClassroomId
+                      ? `/classrooms/${effectiveClassroomId}`
+                      : "/dashboard";
+                    navigate(backPath);
+                  }}
+                  className={styles.backButton}
+                >
+                  <ArrowLeft size={20} />
+                </IconButton>
+                <h1 className={styles.mobileTitle}>
+                  {t("adminLayout.mobileTitle", "競賽後台")}
+                </h1>
+              </>
+            ) : (
+              <>
+                <Link to="/dashboard" className={styles.brandLink}>
+                  {tc("header.prefix", "QJudge")}
+                </Link>
+                <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
                   <BreadcrumbItem>
                     <Link to="/dashboard">{tc("nav.dashboard")}</Link>
                   </BreadcrumbItem>
@@ -156,9 +169,9 @@ const AdminDashboardInner = () => {
                   <BreadcrumbItem isCurrentPage>
                     {t("adminLayout.title", "管理")}
                   </BreadcrumbItem>
-                </>
-              )}
-            </Breadcrumb>
+                </Breadcrumb>
+              </>
+            )}
           </div>
         )}
       />

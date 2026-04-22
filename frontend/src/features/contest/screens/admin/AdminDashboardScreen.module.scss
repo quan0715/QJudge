@@ -30,6 +30,25 @@
   }
 }
 
+/** Mobile toolbar: ArrowLeft back button flush against left edge and the current-page title. */
+.backButton {
+  flex: 0 0 auto;
+  /* Pull left to align with the toolbar container edge; the toolbar has some
+     inset padding that makes the ghost button appear off-center otherwise. */
+  margin-left: -0.5rem;
+}
+
+.mobileTitle {
+  margin: 0;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .breadcrumb {
   display: inline-flex;
   align-items: center;
