@@ -25,7 +25,8 @@
       "settings": "Settings",
       "statistics": "Statistics"
     },
-    "title": "Admin Dashboard"
+    "title": "Admin Dashboard",
+    "mobileTitle": "Contest Admin"
   },
   "adminOverview": {
     "actions": {

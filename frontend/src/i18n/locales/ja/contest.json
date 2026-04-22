@@ -25,7 +25,8 @@
       "settings": "設定",
       "statistics": "統計"
     },
-    "title": "管理ダッシュボード"
+    "title": "管理ダッシュボード",
+    "mobileTitle": "コンテスト管理"
   },
   "adminOverview": {
     "actions": {

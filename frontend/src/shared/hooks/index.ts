@@ -9,3 +9,4 @@ export {
   type UseScrollSpyReturn,
 } from "./useScrollSpy";
 export { useTabWithUrlParam } from "./useTabWithUrlParam";
+export { useMediaQuery } from "./useMediaQuery";

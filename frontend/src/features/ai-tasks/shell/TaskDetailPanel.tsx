@@ -177,7 +177,7 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionLabel}>
-              {t("aiTaskShell.todoLabel", "AI 工作清單")}
+              {t("aiTaskShell.todoLabel", "任務表")}
             </span>
           </div>
           <TodoList items={todoItems} />

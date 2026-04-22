@@ -17,7 +17,7 @@ import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRend
 import { ContestSettingsOverlay } from "@/features/contest/screens/admin/panels/AdminContestSettingsScreen";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
-import { useTabWithUrlParam } from "@/shared/hooks";
+import { useMediaQuery, useTabWithUrlParam } from "@/shared/hooks";
 import styles from "./AdminDashboardScreen.module.scss";
 
 /** Dynamic panel dispatch — registry pattern requires runtime lookup; state is stable because
@@ -46,6 +46,7 @@ const AdminDashboardInner = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { contest, loading } = useContest();
+  const isCompactBreadcrumb = useMediaQuery("(max-width: 900px)");
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const hasManagementRole =
     contest?.currentUserRole !== undefined &&
@@ -128,22 +129,35 @@ const AdminDashboardInner = () => {
               {tc("header.prefix", "QJudge")}
             </Link>
             <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
-              <BreadcrumbItem>
-                <Link to="/dashboard">{tc("nav.dashboard")}</Link>
-              </BreadcrumbItem>
-              {effectiveClassroomId && (
-                <BreadcrumbItem>
-                  <Link to={`/classrooms/${effectiveClassroomId}`}>
-                    {tc("nav.classrooms", "教室")}
-                  </Link>
-                </BreadcrumbItem>
+              {isCompactBreadcrumb ? (
+                <>
+                  <BreadcrumbItem>
+                    <span aria-hidden="true">…</span>
+                  </BreadcrumbItem>
+                  <BreadcrumbItem isCurrentPage>
+                    {t("adminLayout.mobileTitle", "競賽後台")}
+                  </BreadcrumbItem>
+                </>
+              ) : (
+                <>
+                  <BreadcrumbItem>
+                    <Link to="/dashboard">{tc("nav.dashboard")}</Link>
+                  </BreadcrumbItem>
+                  {effectiveClassroomId && (
+                    <BreadcrumbItem>
+                      <Link to={`/classrooms/${effectiveClassroomId}`}>
+                        {tc("nav.classrooms", "教室")}
+                      </Link>
+                    </BreadcrumbItem>
+                  )}
+                  <BreadcrumbItem>
+                    {contest?.name || "Loading..."}
+                  </BreadcrumbItem>
+                  <BreadcrumbItem isCurrentPage>
+                    {t("adminLayout.title", "管理")}
+                  </BreadcrumbItem>
+                </>
               )}
-              <BreadcrumbItem>
-                {contest?.name || "Loading..."}
-              </BreadcrumbItem>
-              <BreadcrumbItem isCurrentPage>
-                {t("adminLayout.title", "管理")}
-              </BreadcrumbItem>
             </Breadcrumb>
           </div>
         )}

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@carbon/react";
-import { Download } from "@carbon/icons-react";
+import { Download, Information } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { ArtifactPreview } from "@/features/chatbot/components/artifact/ArtifactPreview";
 import { fetchArtifactDownloadUrl } from "@/infrastructure/api/repositories/artifact.repository";
+import { useMediaQuery } from "@/shared/hooks";
 import { TaskDetailPanel } from "./TaskDetailPanel";
 import { TaskMainTabs } from "./TaskMainTabs";
 import { ArtifactFileIcon } from "./artifactIcon";
@@ -24,6 +25,7 @@ import type {
 import styles from "./AITaskShell.module.scss";
 
 const ARTIFACT_TAB_PREFIX = "__artifact__:";
+const MOBILE_DETAIL_TAB_ID = "__task_detail__";
 
 export interface AITaskShellProps {
   taskTypeLabel: string;

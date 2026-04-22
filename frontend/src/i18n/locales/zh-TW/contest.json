@@ -21,7 +21,8 @@
       "settings": "設定",
       "statistics": "統計"
     },
-    "title": "管理後台"
+    "title": "管理後台",
+    "mobileTitle": "競賽後台"
   },
   "adminOverview": {
     "actions": {

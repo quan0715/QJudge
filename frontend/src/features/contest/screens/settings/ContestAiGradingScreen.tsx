@@ -149,11 +149,25 @@ const ContestAiGradingScreen: React.FC = () => {
     [questionProgress, selectedQuestionId],
   );
 
+  // 當 chat session 綁在其他題目上（context 不一致）時，restore 會靜默失敗；把 session+question
+  // 標記為 skip，避免 URL / state 沒改的情況下 effect 無限重跑。
+  const skippedRestoreKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (questionProgress.length === 0) return;
     if (selectedQuestion) return;
     setSelectedQuestionId(questionProgress[0].questionId);
   }, [questionProgress, selectedQuestion]);
+
+  // 切題目時立刻把 hook state（byAnswerId / todo 顯示條件 / rubric）清乾淨，不然下一輪 restore
+  // 觸發前（例如 rows 還沒重新載入）畫面會殘留上一題的 AI 建議、任務表等資料。
+  useEffect(() => {
+    if (!selectedQuestion) return;
+    if (!sessionId) return;
+    if (trackedQuestionId === selectedQuestion.questionId) return;
+    clear();
+    skippedRestoreKeyRef.current = null;
+  }, [clear, selectedQuestion, sessionId, trackedQuestionId]);
 
   const rows = useMemo<GradingAnswerRow[]>(
     () => (selectedQuestion ? answersByQuestion.get(selectedQuestion.questionId) ?? [] : []),
@@ -184,9 +198,6 @@ const ContestAiGradingScreen: React.FC = () => {
     });
   }, [contest?.id, loadSessionTask, sessionId, taskSessionId]);
 
-  // 當 chat session 綁在其他題目上（context 不一致）時，restore 會靜默失敗；把 session+question
-  // 標記為 skip，避免 URL / state 沒改的情況下 effect 無限重跑。
-  const skippedRestoreKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!taskSessionId || !contest?.id || !selectedQuestion || rows.length === 0) return;
     if (sessionId === taskSessionId && trackedQuestionId === selectedQuestion.questionId) return;

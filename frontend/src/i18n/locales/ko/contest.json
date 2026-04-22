@@ -25,7 +25,8 @@
       "settings": "설정",
       "statistics": "통계"
     },
-    "title": "관리 대시보드"
+    "title": "관리 대시보드",
+    "mobileTitle": "대회 관리"
   },
   "adminOverview": {
     "actions": {
