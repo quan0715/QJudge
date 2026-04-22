@@ -35,15 +35,21 @@
   align-items: center;
   margin: 0;
   min-width: 0;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
 
   :global(.cds--breadcrumb-item) {
     margin-right: 0;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   :global(.cds--link) {
     color: var(--cds-text-secondary);
     font-size: 0.875rem;
     text-decoration: none;
+    white-space: nowrap;
 
     &:hover {
       color: var(--cds-link-primary-hover);
@@ -53,6 +59,7 @@
   :global(.cds--breadcrumb-item--current) {
     color: var(--cds-text-primary);
     font-size: 0.875rem;
+    white-space: nowrap;
   }
 }
 

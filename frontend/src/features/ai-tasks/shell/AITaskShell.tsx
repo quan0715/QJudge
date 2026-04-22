@@ -67,8 +67,12 @@ export interface AITaskShellProps {
  * Shell 不擁有任務 state，全部由 caller 傳入（之後 Pass 2 會再抽 TaskDefinition）。
  */
 export function AITaskShell(props: AITaskShellProps) {
-  const [activeTabId, setActiveTabId] = useState<string>(
-    props.defaultTabId ?? props.mainTabs[0]?.id ?? "",
+  const { t } = useTranslation("contest");
+  const isMobile = useMediaQuery("(max-width: 900px)");
+  const [activeTabId, setActiveTabId] = useState<string>(() =>
+    isMobile
+      ? MOBILE_DETAIL_TAB_ID
+      : props.defaultTabId ?? props.mainTabs[0]?.id ?? "",
   );
   const [openArtifactIds, setOpenArtifactIds] = useState<string[]>([]);
   const artifactsById = useMemo(
@@ -79,26 +83,6 @@ export function AITaskShell(props: AITaskShellProps) {
   useEffect(() => {
     setOpenArtifactIds((prev) => prev.filter((artifactId) => artifactsById.has(artifactId)));
   }, [artifactsById]);
-
-  const tabs = useMemo<TaskShellMainTab[]>(() => {
-    const artifactTabs = openArtifactIds.flatMap((artifactId) => {
-      const artifact = artifactsById.get(artifactId);
-      if (!artifact) return [];
-      return [
-        {
-          id: getArtifactTabId(artifact.id),
-          title: artifact.filename,
-          icon: <ArtifactFileIcon filename={artifact.filename} size={16} />,
-          closable: true,
-          render: () => <TaskArtifactMain artifact={artifact} />,
-        },
-      ];
-    });
-    return [
-      ...props.mainTabs,
-      ...artifactTabs,
-    ];
-  }, [artifactsById, openArtifactIds, props.mainTabs]);
 
   const activeArtifactId = getArtifactIdFromTabId(activeTabId);
 
@@ -125,32 +109,84 @@ export function AITaskShell(props: AITaskShellProps) {
     );
   };
 
+  const taskDetailPanel = (
+    <TaskDetailPanel
+      taskTypeLabel={props.taskTypeLabel}
+      title={props.title}
+      subtitle={props.subtitle}
+      status={props.status}
+      running={props.running}
+      progress={props.progress}
+      secondaryProgress={props.secondaryProgress}
+      models={props.models}
+      selectedModelId={props.selectedModelId}
+      onModelChange={props.onModelChange}
+      selectBlock={props.selectBlock}
+      todoItems={props.todoItems}
+      artifacts={props.artifacts}
+      onOpenArtifact={handleOpenArtifact}
+      activeArtifactId={activeArtifactId}
+      primaryAction={props.primaryAction}
+      errorText={props.errorText}
+    />
+  );
+
+  const artifactTabs = useMemo<TaskShellMainTab[]>(
+    () =>
+      openArtifactIds.flatMap((artifactId) => {
+        const artifact = artifactsById.get(artifactId);
+        if (!artifact) return [];
+        return [
+          {
+            id: getArtifactTabId(artifact.id),
+            title: artifact.filename,
+            icon: <ArtifactFileIcon filename={artifact.filename} size={16} />,
+            closable: true,
+            render: () => <TaskArtifactMain artifact={artifact} />,
+          },
+        ];
+      }),
+    [artifactsById, openArtifactIds],
+  );
+
+  /** Task-detail tab captures current-render props via `taskDetailPanel`; recomputed each render
+   *  so progress/status/todo updates propagate without stale closures. */
+  const tabs: TaskShellMainTab[] = isMobile
+    ? [
+        {
+          id: MOBILE_DETAIL_TAB_ID,
+          title: t("aiTaskShell.mobileDetailTabTitle", "任務資訊"),
+          icon: <Information size={16} />,
+          render: () => taskDetailPanel,
+        },
+        ...props.mainTabs,
+        ...artifactTabs,
+      ]
+    : [...props.mainTabs, ...artifactTabs];
+
   const safeActiveTabId = tabs.some((tab) => tab.id === activeTabId)
     ? activeTabId
-    : props.defaultTabId ?? props.mainTabs[0]?.id ?? "";
+    : isMobile
+      ? MOBILE_DETAIL_TAB_ID
+      : props.defaultTabId ?? props.mainTabs[0]?.id ?? "";
+
+  if (isMobile) {
+    return (
+      <div className={styles.shellMobile}>
+        <TaskMainTabs
+          tabs={tabs}
+          activeTabId={safeActiveTabId}
+          onSelect={setActiveTabId}
+          onClose={handleCloseTab}
+        />
+      </div>
+    );
+  }
 
   return (
     <Group orientation="horizontal" className={styles.shell}>
       <Panel id="ai-task-detail" defaultSize={28} minSize="280px" maxSize="520px">
-        <TaskDetailPanel
-          taskTypeLabel={props.taskTypeLabel}
-          title={props.title}
-          subtitle={props.subtitle}
-          status={props.status}
-          running={props.running}
-          progress={props.progress}
-          secondaryProgress={props.secondaryProgress}
-          models={props.models}
-          selectedModelId={props.selectedModelId}
-          onModelChange={props.onModelChange}
-          selectBlock={props.selectBlock}
-          todoItems={props.todoItems}
-          artifacts={props.artifacts}
-          onOpenArtifact={handleOpenArtifact}
-          activeArtifactId={activeArtifactId}
-          primaryAction={props.primaryAction}
-          errorText={props.errorText}
-        />
+        {taskDetailPanel}
       </Panel>
       <Separator className={styles.resizeHandle} />
       <Panel id="ai-task-main" minSize="360px">

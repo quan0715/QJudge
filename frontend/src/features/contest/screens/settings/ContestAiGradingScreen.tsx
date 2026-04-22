@@ -13,7 +13,6 @@ import {
   Undo,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useAiGradingScreenData } from "./grading/useAiGradingScreenData";
@@ -22,10 +21,12 @@ import GradingCardViewOnly from "./grading/GradingCardViewOnly";
 import type { GradingAnswerRow } from "./grading";
 import ExamQuestionEditCard from "@/features/contest/components/admin/examEditor/ExamQuestionEditCard";
 import {
-  useAiQuestionGrading,
-  buildDefaultGradingPrompt,
   AI_GRADING_DEFAULT_MODEL_ID,
+  AI_GRADING_TASK_TYPE,
+  buildDefaultGradingPrompt,
+  useAiQuestionGrading,
 } from "./grading/useAiQuestionGrading";
+import { findLatestTaskSession } from "./grading/aiTaskRuntime";
 import { useChatSessionContext } from "@/features/chatbot/contexts/ChatSessionContext";
 import { useChatbotContext } from "@/features/chatbot/contexts/ChatbotProvider";
 import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
@@ -72,18 +73,15 @@ const ContestAiGradingScreen: React.FC = () => {
     selectedQuestionError,
   } = useAiGradingScreenData(selectedQuestionId);
   const {
-    running,
     resultsByAnswerId,
     error,
     sessionId,
     trackedQuestionId,
     start,
-    pause,
     retryAnswers,
     markAnswersSynced,
     markAnswersUnsynced,
     bindSession,
-    loadSessionTask,
     restore,
     refreshSuggestions,
     clear,
@@ -104,25 +102,6 @@ const ContestAiGradingScreen: React.FC = () => {
   const [submitModalRows, setSubmitModalRows] = useState<GradingAnswerRow[]>([]);
   const [revertModalRows, setRevertModalRows] = useState<GradingAnswerRow[]>([]);
   const [scoreFilterId, setScoreFilterId] = useState("all");
-  const [searchParams, setSearchParams] = useSearchParams();
-  const taskSessionId = searchParams.get("session") || "";
-
-  // Grading panel follows the chat panel's current session as single source of truth.
-  // Writing back to ?session= lets the existing load/restore cascade below re-run on switch,
-  // and keeps deep links accurate for reload / copy-URL.
-  useEffect(() => {
-    const chatSessionId = currentSession?.id;
-    if (!chatSessionId || chatSessionId.startsWith("temp-")) return;
-    if (chatSessionId === taskSessionId) return;
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("session", chatSessionId);
-        return next;
-      },
-      { replace: true },
-    );
-  }, [currentSession?.id, taskSessionId, setSearchParams]);
 
   // Filter down to models the grading task supports.
   const gradingModels = useMemo(
@@ -149,24 +128,18 @@ const ContestAiGradingScreen: React.FC = () => {
     [questionProgress, selectedQuestionId],
   );
 
-  // 當 chat session 綁在其他題目上（context 不一致）時，restore 會靜默失敗；把 session+question
-  // 標記為 skip，避免 URL / state 沒改的情況下 effect 無限重跑。
-  const skippedRestoreKeyRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (questionProgress.length === 0) return;
     if (selectedQuestion) return;
     setSelectedQuestionId(questionProgress[0].questionId);
   }, [questionProgress, selectedQuestion]);
 
-  // 切題目時立刻把 hook state（byAnswerId / todo 顯示條件 / rubric）清乾淨，不然下一輪 restore
-  // 觸發前（例如 rows 還沒重新載入）畫面會殘留上一題的 AI 建議、任務表等資料。
+  // 切題目時先把 hook state 清乾淨。下一輪 auto-bind effect 會再去找 match session。
   useEffect(() => {
     if (!selectedQuestion) return;
     if (!sessionId) return;
     if (trackedQuestionId === selectedQuestion.questionId) return;
     clear();
-    skippedRestoreKeyRef.current = null;
   }, [clear, selectedQuestion, sessionId, trackedQuestionId]);
 
   const rows = useMemo<GradingAnswerRow[]>(
@@ -184,38 +157,35 @@ const ContestAiGradingScreen: React.FC = () => {
     if (!sessionId) setPromptDraft(defaultPrompt);
   }, [defaultPrompt, sessionId]);
 
+  // 自動綁定：找 sessions 裡時間最近 && task_type=grading && context 吻合的 session。
+  // 找到就呼叫 bindSession / restore 接回；沒找到就維持 init 狀態等使用者按「開始批改」建立新 session。
+  const autoBindKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!taskSessionId || !contest?.id) return;
-    if (sessionId === taskSessionId) return;
+    if (!contest?.id || !selectedQuestion || rows.length === 0) return;
+    if (sessionId && trackedQuestionId === selectedQuestion.questionId) return;
+    const attemptKey = `${contest.id}:${selectedQuestion.questionId}:${rows.length}`;
+    if (autoBindKeyRef.current === attemptKey) return;
+    autoBindKeyRef.current = attemptKey;
 
-    void loadSessionTask(taskSessionId).then((task) => {
-      if (!task) return;
-      if (task.contestId !== contest.id) return;
-      // 只在「還沒選題目」時用 session 的 question_id 自動帶入。使用者已選題目後不再回頭覆寫，
-      // 否則切題目會被這個 effect 拉回 chat session 所屬的原題。
-      setSelectedQuestionId((prev) => prev ?? task.questionId);
-      setPendingBindSessionId(taskSessionId);
-    });
-  }, [contest?.id, loadSessionTask, sessionId, taskSessionId]);
+    const contestId = contest.id;
+    const questionId = selectedQuestion.questionId;
+    const sessionIdsSorted = sessions.map((s) => s.id); // ChatSessionContext 已按 updatedAt desc
 
-  useEffect(() => {
-    if (!taskSessionId || !contest?.id || !selectedQuestion || rows.length === 0) return;
-    if (sessionId === taskSessionId && trackedQuestionId === selectedQuestion.questionId) return;
-    const attemptKey = `${taskSessionId}:${selectedQuestion.questionId}`;
-    if (skippedRestoreKeyRef.current === attemptKey) return;
-    void restore(taskSessionId, contest.id, selectedQuestion.questionId, rows).then(
-      (restoredSessionId) => {
-        if (restoredSessionId) {
-          skippedRestoreKeyRef.current = null;
-          setPendingBindSessionId(restoredSessionId);
-          requestActiveSession(restoredSessionId);
-        } else {
-          // Restore 回 null 可能是 context mismatch（切題目但 chat 還停在上一題的 session）。
-          // 記下來別再試，讓畫面保持 init 狀態等使用者按「開始批改」或切 chat session。
-          skippedRestoreKeyRef.current = attemptKey;
-        }
-      },
-    );
+    void (async () => {
+      const matched = await findLatestTaskSession({
+        sessionIds: sessionIdsSorted,
+        taskType: AI_GRADING_TASK_TYPE,
+        context: { contest_id: contestId, question_id: questionId },
+      });
+      if (autoBindKeyRef.current !== attemptKey) return; // 期間使用者又切題，放棄結果
+      if (!matched) return;
+      const restoredSessionId = await restore(matched, contestId, questionId, rows);
+      if (autoBindKeyRef.current !== attemptKey) return;
+      if (restoredSessionId) {
+        setPendingBindSessionId(restoredSessionId);
+        requestActiveSession(restoredSessionId);
+      }
+    })();
   }, [
     contest?.id,
     requestActiveSession,
@@ -223,7 +193,7 @@ const ContestAiGradingScreen: React.FC = () => {
     rows,
     selectedQuestion,
     sessionId,
-    taskSessionId,
+    sessions,
     trackedQuestionId,
   ]);
 
@@ -243,25 +213,6 @@ const ContestAiGradingScreen: React.FC = () => {
     });
   }, []);
 
-  const updateSessionUrl = useCallback(
-    (nextSessionId: string | null) => {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.set("panel", "ai-grading");
-          if (nextSessionId) {
-            next.set("session", nextSessionId);
-          } else {
-            next.delete("session");
-          }
-          return next;
-        },
-        { replace: true },
-      );
-    },
-    [setSearchParams],
-  );
-
   const handleStartAiGrading = useCallback(async () => {
     if (!contest?.id || !selectedQuestion || rows.length === 0) return;
     const effectivePrompt = promptDraft.trim() || defaultPrompt;
@@ -271,7 +222,6 @@ const ContestAiGradingScreen: React.FC = () => {
     });
     if (newSessionId) {
       setPendingBindSessionId(newSessionId);
-      updateSessionUrl(newSessionId);
       right.open();
       requestActiveSession(newSessionId);
       // Grading hook calls startRun directly on the repository, bypassing useChatbot's
@@ -289,7 +239,6 @@ const ContestAiGradingScreen: React.FC = () => {
     rows,
     selectedQuestion,
     start,
-    updateSessionUrl,
   ]);
 
   // Running 改以 session 實際狀態為主（後端 getActiveRuns 決定），避免 hook 內部 state 與
@@ -305,12 +254,16 @@ const ContestAiGradingScreen: React.FC = () => {
     sessionActiveRunStatus === "awaiting_approval";
 
   const handlePrimaryAction = useCallback(() => {
-    if (sessionRunning) {
-      void pause();
+    if (sessionRunning) return; // button is disabled; belt-and-braces
+    if (sessionId) {
+      // 已有匹配的 session → 開 retry modal 讓使用者輸入原因，送出後在同一個 session retry 全部 row
+      if (rows.length === 0) return;
+      setRetryModalRows(rows);
+      setRetryNote("");
       return;
     }
     void handleStartAiGrading();
-  }, [handleStartAiGrading, pause, sessionRunning]);
+  }, [handleStartAiGrading, rows, sessionId, sessionRunning]);
 
   const selectedRows = useMemo(
     () => rows.filter((row) => selectedAnswerIds.has(row.id)),
@@ -568,7 +521,6 @@ const ContestAiGradingScreen: React.FC = () => {
     if (!contest?.id || !selectedQuestion || !sid || rows.length === 0) return;
     void bindSession(sid, contest.id, selectedQuestion.questionId, rows).then((bound) => {
       if (!bound) return;
-      updateSessionUrl(sid);
       right.open();
       requestActiveSession(sid);
     });
@@ -580,26 +532,23 @@ const ContestAiGradingScreen: React.FC = () => {
     right,
     rows,
     selectedQuestion,
-    updateSessionUrl,
   ]);
 
   const handleClearSession = useCallback(() => {
     clear();
     setPendingBindSessionId("");
     setPromptDraft(defaultPrompt);
-    updateSessionUrl(null);
-  }, [clear, defaultPrompt, updateSessionUrl]);
+  }, [clear, defaultPrompt]);
 
   const handleSelectQuestion = useCallback(
     (questionId: string | null) => {
-      if (taskSessionId) {
+      if (sessionId) {
         clear();
         setPendingBindSessionId("");
-        updateSessionUrl(null);
       }
       setSelectedQuestionId(questionId);
     },
-    [clear, taskSessionId, updateSessionUrl],
+    [clear, sessionId],
   );
 
   // 卡片狀態完全看 grade.csv：沒有「這是哪個 run 在跑」的概念，
@@ -942,13 +891,16 @@ const ContestAiGradingScreen: React.FC = () => {
         onBind={handleBindSession}
         onUnbind={handleClearSession}
         primaryAction={{
+          // 三態：進行中(disabled) / 已有 match session(重新批改) / 無 match(開始批改)。
           label: sessionRunning
-            ? t("grading.pauseAiGrading", "暫停批改")
-            : t("grading.startAiGradingShort", "開始批改"),
+            ? t("grading.primaryRunning", "批改中")
+            : sessionId
+              ? t("grading.primaryRetry", "重新批改")
+              : t("grading.primaryStart", "開始批改"),
           onClick: handlePrimaryAction,
-          disabled: !sessionRunning && (rows.length === 0 || hasBoundSession),
-          kind: sessionRunning ? "secondary" : "primary",
-          renderIcon: sessionRunning ? Pause : Return,
+          disabled: sessionRunning || rows.length === 0,
+          kind: "primary",
+          renderIcon: sessionRunning ? Pause : sessionId ? Renew : Return,
         }}
         errorText={error || actionError}
         mainTabs={[
@@ -1006,7 +958,7 @@ const ContestAiGradingScreen: React.FC = () => {
         secondaryButtonText={t("common.cancel", "取消")}
         onRequestClose={closeRetryModal}
         onRequestSubmit={() => void handleConfirmRetry()}
-        primaryButtonDisabled={running || retryModalRows.length === 0}
+        primaryButtonDisabled={sessionRunning || retryModalRows.length === 0}
       >
         <div className={styles.retryModalBody}>
           <p className={styles.retryModalSummary}>

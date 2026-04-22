@@ -48,7 +48,7 @@ interface AiState {
 const POLL_MS = 2000;
 const MAX_POLL_MS = 10000;
 const MAX_RETRY = 4;
-const AI_GRADING_TASK_TYPE = "grading.question";
+export const AI_GRADING_TASK_TYPE = "grading.question";
 const GRADE_CSV_COLUMNS = [
   "index",
   "exam_answer_id",

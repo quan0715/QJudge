@@ -51,6 +51,31 @@ export async function loadTaskManifest(sessionId: string): Promise<AiTaskManifes
   return isTaskManifest(manifest) ? manifest : null;
 }
 
+/**
+ * 在一批 session id 裡挑出第一個 task_type 與 context 都吻合的。id 的順序由呼叫端決定
+ * （通常按 updatedAt / createdAt 由新到舊排，回傳 = 時間最近的 match）。
+ * 失敗或沒有 manifest 的 session 會被跳過，不影響其他 session 的查詢。
+ */
+export async function findLatestTaskSession(params: {
+  sessionIds: readonly string[];
+  taskType: string;
+  context: Record<string, string>;
+}): Promise<string | null> {
+  for (const sessionId of params.sessionIds) {
+    let manifest: AiTaskManifestV1 | null;
+    try {
+      manifest = await loadTaskManifest(sessionId);
+    } catch {
+      continue;
+    }
+    if (!manifest) continue;
+    if (manifest.task_type !== params.taskType) continue;
+    if (!isSameTaskContext(manifest.context, params.context)) continue;
+    return sessionId;
+  }
+  return null;
+}
+
 export async function saveTaskManifest(
   sessionId: string,
   manifest: AiTaskManifestV1,
