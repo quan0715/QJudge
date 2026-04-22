@@ -280,9 +280,14 @@ export const getAllExamAnswers = async (
 
 export const getExamDashboardSummary = async (
   contestId: string,
+  opts: { kind?: string } = {},
 ): Promise<ExamDashboardSummaryDto> => {
+  const search = new URLSearchParams();
+  if (opts.kind) search.set("kind", opts.kind);
+  const query = search.toString();
+  const url = `/api/v1/contests/${contestId}/exam-answers/dashboard-summary/${query ? `?${query}` : ""}`;
   return requestJson<ExamDashboardSummaryDto>(
-    httpClient.get(`/api/v1/contests/${contestId}/exam-answers/dashboard-summary/`),
+    httpClient.get(url),
     "Failed to fetch exam dashboard summary",
   );
 };

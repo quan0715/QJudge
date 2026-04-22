@@ -591,10 +591,15 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     ) {
       return;
     }
-    if (currentSessionId !== externalSessionId) {
-      void switchSession(externalSessionId);
+    if (currentSessionId === externalSessionId) return;
+
+    // 外部流程（如批改）建立的 session 可能還沒出現在本地 list，先 refresh 再切
+    const inList = sessions.some((s) => s.id === externalSessionId);
+    if (!inList) {
+      void refreshSessions();
     }
-  }, [externalSessionId, isInitializing, currentSessionId, switchSession]);
+    void switchSession(externalSessionId);
+  }, [externalSessionId, isInitializing, currentSessionId, sessions, refreshSessions, switchSession]);
 
   /**
    * 重新命名 session

@@ -17,10 +17,32 @@ export interface ExamQuestionBankImportItem {
   question_id: string;
 }
 
-export const getExamQuestions = async (contestId: string): Promise<ExamQuestion[]> => {
+/**
+ * Shorthand aliases understood by the backend ``?kind=`` filter. The same
+ * aliases are honoured by the exam dashboard summary endpoint.
+ */
+export type ExamQuestionKindFilter =
+  | "subjective"
+  | "objective"
+  | ExamQuestionType
+  | Array<ExamQuestionType | "subjective" | "objective">;
+
+const serializeKindFilter = (kind: ExamQuestionKindFilter): string => {
+  if (Array.isArray(kind)) return kind.join(",");
+  return kind;
+};
+
+export const getExamQuestions = async (
+  contestId: string,
+  opts: { kind?: ExamQuestionKindFilter } = {},
+): Promise<ExamQuestion[]> => {
+  const search = new URLSearchParams();
+  if (opts.kind) search.set("kind", serializeKindFilter(opts.kind));
+  const query = search.toString();
+  const url = `/api/v1/contests/${contestId}/exam-questions/${query ? `?${query}` : ""}`;
   const data = await requestJson<unknown>(
-    httpClient.get(`/api/v1/contests/${contestId}/exam-questions/`),
-    "Failed to fetch exam questions"
+    httpClient.get(url),
+    "Failed to fetch exam questions",
   );
 
   return Array.isArray(data) ? data.map(mapExamQuestionDto) : [];

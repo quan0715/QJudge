@@ -1235,6 +1235,34 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
         return obj.participant.nickname or obj.participant.user.username
 
 
+class ExamAnswerGradingSerializer(serializers.ModelSerializer):
+    """Slim serializer for grading screens.
+
+    Drops redundant per-row duplicates (question_prompt/type/options/explanation/
+    max_score/question_snapshot and participant_username/nickname). Consumers
+    should join question info via GET /exam-questions/ and participant info via
+    contest participants list — both are O(题数) / O(学生数) rather than
+    O(answers)."""
+
+    participant_user_id = serializers.SerializerMethodField()
+    graded_by_username = serializers.CharField(
+        source='graded_by.username', read_only=True, default=None
+    )
+
+    class Meta:
+        model = ExamAnswer
+        fields = [
+            'id', 'question_id', 'participant_user_id',
+            'answer', 'is_correct', 'score', 'feedback',
+            'graded_by_username', 'graded_at',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = fields
+
+    def get_participant_user_id(self, obj):
+        return obj.participant.user_id
+
+
 class ExamAnswerSubmitSerializer(serializers.Serializer):
     """Serializer for submitting/updating a single answer."""
     question_id = serializers.UUIDField()

@@ -13,6 +13,7 @@ import {
 } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { ArtifactPanel } from "../artifact/ArtifactPanel";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
+import { useChatSessionContext } from "../../contexts/ChatSessionContext";
 import styles from "./ChatContainer.module.scss";
 
 interface ChatContainerProps {
@@ -31,6 +32,9 @@ interface ChatContainerProps {
 
 export function ChatContainer({ mode, context, onProblemUpdated, onClose, className, externalSessionId, onSessionChange, onSessionDeleted }: ChatContainerProps) {
   const { t } = useTranslation("chatbot");
+  const { activeSessionRequest } = useChatSessionContext();
+  const effectiveExternalSessionId =
+    mode === "full" ? externalSessionId : (activeSessionRequest ?? undefined);
   const {
     sessions,
     currentSessionId,
@@ -55,7 +59,7 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
     enabled: true,
     context,
     onProblemUpdated,
-    externalSessionId: mode === "full" ? externalSessionId : undefined,
+    externalSessionId: effectiveExternalSessionId,
     onSessionChange: mode === "full" ? onSessionChange : undefined,
     onSessionDeleted: mode === "full" ? onSessionDeleted : undefined,
   });

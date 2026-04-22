@@ -1,42 +1,38 @@
 /**
- * Pure utility to map ExamAnswerDetail[] + ExamQuestion[] → GradingAnswerRow[].
- * Shared between useGradingData hook and report PDF export.
+ * Pure utility to map slim ExamAnswerGrading[] + ExamQuestion[] → GradingAnswerRow[].
+ *
+ * Previously consumed the fat ExamAnswerDetail DTO which duplicated question_*
+ * and participant name fields on every row. Switched to the slim projection
+ * (backend `?projection=grading`) so this now joins question info via
+ * `questions` and participant names via `participantMap`.
  */
 import type { ExamQuestion } from "@/core/entities/contest.entity";
-import type { ExamAnswerDetail } from "@/infrastructure/api/repositories/examAnswers.repository";
+import type { ExamAnswerGrading } from "@/infrastructure/api/repositories/examAnswers.repository";
 import type { GradingAnswerRow, QuestionType } from "./gradingTypes";
 
 export function buildGradingRows(
-  allAnswers: ExamAnswerDetail[],
+  allAnswers: ExamAnswerGrading[],
   questions: ExamQuestion[],
-  participantMap?: Map<string, { username: string; nickname: string }>
+  participantMap?: Map<string, { username: string; nickname: string }>,
 ): GradingAnswerRow[] {
   const questionsMap = new Map<string, ExamQuestion>();
   questions.forEach((q, i) =>
-    questionsMap.set(q.id, { ...q, order: q.order ?? i })
+    questionsMap.set(q.id, { ...q, order: q.order ?? i }),
   );
 
   return allAnswers.map((a) => {
     const q = questionsMap.get(a.questionId);
     const qIdx = q ? q.order : 0;
-    const qType = (a.questionType ?? "short_answer") as QuestionType;
+    const qType = (q?.questionType ?? "short_answer") as QuestionType;
     const isAuto =
       qType === "true_false" ||
       qType === "single_choice" ||
       qType === "multiple_choice";
 
-    const studentId = a.participantUserId ?? a.id;
-    const studentUsername =
-      a.participantUsername ??
-      participantMap?.get(studentId)?.username ??
-      "unknown";
-    const studentNickname =
-      a.participantNickname ??
-      participantMap?.get(studentId)?.nickname ??
-      studentUsername;
-
-    const correctAnswer =
-      a.questionSnapshot?.correctAnswer ?? q?.correctAnswer ?? null;
+    const studentId = a.participantUserId;
+    const student = participantMap?.get(studentId);
+    const studentUsername = student?.username ?? "unknown";
+    const studentNickname = student?.nickname ?? studentUsername;
 
     return {
       id: a.id,
@@ -45,22 +41,18 @@ export function buildGradingRows(
       studentNickname,
       questionId: a.questionId,
       questionIndex: qIdx + 1,
-      questionPrompt: a.questionPrompt ?? "",
-      questionExplanation:
-        a.questionExplanation ??
-        a.questionSnapshot?.explanation ??
-        q?.explanation ??
-        "",
+      questionPrompt: q?.prompt ?? "",
+      questionExplanation: q?.explanation ?? "",
       questionType: qType,
-      questionOptions: a.questionOptions ?? [],
-      maxScore: a.maxScore ?? 0,
+      questionOptions: q?.options ?? [],
+      maxScore: q?.score ?? 0,
       answerContent: a.answer,
       score: a.score,
       feedback: a.feedback ?? "",
       gradedBy: a.gradedByUsername,
       gradedAt: a.gradedAt,
       isAutoGraded: isAuto && a.score !== null,
-      correctAnswer,
+      correctAnswer: q?.correctAnswer ?? null,
     };
   });
 }

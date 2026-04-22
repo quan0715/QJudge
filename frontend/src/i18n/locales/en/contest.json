@@ -12,10 +12,12 @@
     },
     "nav": {
       "clarifications": "Q&A",
+      "examAiGrading": "AI Grading",
       "examGrading": "Answer Results",
       "examManagement": "Exam Management",
       "examStatistics": "Exam Statistics",
       "grading": "Answer Results",
+      "aiGrading": "AI Grading",
       "logs": "Event Logs",
       "overview": "Overview",
       "participants": "Participants",

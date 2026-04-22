@@ -12,10 +12,12 @@
     },
     "nav": {
       "clarifications": "Q&A",
+      "examAiGrading": "AI採点",
       "examGrading": "試験採点",
       "examManagement": "試験管理",
       "examStatistics": "試験統計",
       "grading": "採点",
+      "aiGrading": "AI採点",
       "logs": "イベントログ",
       "overview": "概要",
       "participants": "参加者",
