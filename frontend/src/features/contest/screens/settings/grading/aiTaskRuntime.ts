@@ -77,6 +77,13 @@ export async function createTaskSession(params: {
   return { sessionId: session.id, manifest };
 }
 
+export class TaskContextMismatchError extends Error {
+  constructor(message = "task context 不一致，無法綁定此 session") {
+    super(message);
+    this.name = "TaskContextMismatchError";
+  }
+}
+
 export async function bindExistingTaskSession(params: {
   sessionId: string;
   taskType: string;
@@ -90,7 +97,7 @@ export async function bindExistingTaskSession(params: {
     throw new Error("task 類型不一致，無法綁定此 session");
   }
   if (params.context && !isSameTaskContext(manifest.context, params.context)) {
-    throw new Error("task context 不一致，無法綁定此 session");
+    throw new TaskContextMismatchError();
   }
   return manifest;
 }

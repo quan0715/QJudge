@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, FluidDropdown, Loading, Modal, TextArea } from "@carbon/react";
 import {
   CheckboxCheckedFilled,
@@ -182,14 +182,24 @@ const ContestAiGradingScreen: React.FC = () => {
     });
   }, [contest?.id, loadSessionTask, sessionId, taskSessionId]);
 
+  // 當 chat session 綁在其他題目上（context 不一致）時，restore 會靜默失敗；把 session+question
+  // 標記為 skip，避免 URL / state 沒改的情況下 effect 無限重跑。
+  const skippedRestoreKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!taskSessionId || !contest?.id || !selectedQuestion || rows.length === 0) return;
     if (sessionId === taskSessionId && trackedQuestionId === selectedQuestion.questionId) return;
+    const attemptKey = `${taskSessionId}:${selectedQuestion.questionId}`;
+    if (skippedRestoreKeyRef.current === attemptKey) return;
     void restore(taskSessionId, contest.id, selectedQuestion.questionId, rows).then(
       (restoredSessionId) => {
         if (restoredSessionId) {
+          skippedRestoreKeyRef.current = null;
           setPendingBindSessionId(restoredSessionId);
           requestActiveSession(restoredSessionId);
+        } else {
+          // Restore 回 null 可能是 context mismatch（切題目但 chat 還停在上一題的 session）。
+          // 記下來別再試，讓畫面保持 init 狀態等使用者按「開始批改」或切 chat session。
+          skippedRestoreKeyRef.current = attemptKey;
         }
       },
     );

@@ -11,6 +11,7 @@ import {
   bindExistingTaskSession,
   createTaskSession,
   patchTaskManifest,
+  TaskContextMismatchError,
 } from "./aiTaskRuntime";
 import type { AiTaskStatus } from "./aiTaskManifest";
 import type { GradingAnswerRow } from "./gradingTypes";
@@ -910,6 +911,25 @@ export function useAiQuestionGrading() {
         }));
         return sessionId;
       } catch (error) {
+        // Context mismatch = 這個 session 是綁在別的題目上，切題目時靜默視為「沒有匹配的 session」，
+        // 把 hook state 收乾淨、不顯示錯誤 banner（chat panel 由 screen 端決定是否關閉）。
+        if (error instanceof TaskContextMismatchError) {
+          activeRunRef.current = null;
+          artifactVersionsRef.current.clear();
+          expectedAnswerIdsRef.current.clear();
+          setState((prev) => ({
+            ...prev,
+            running: false,
+            byAnswerId: {},
+            rubricMarkdown: undefined,
+            hasGradeArtifact: false,
+            error: undefined,
+            sessionId: "",
+            trackedQuestionId: undefined,
+            taskStatus: "idle",
+          }));
+          return null;
+        }
         setState((prev) => ({
           ...prev,
           error: error instanceof Error ? error.message : "AI 批改 session 還原失敗",
