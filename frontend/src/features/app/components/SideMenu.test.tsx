@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { SideMenu } from "./SideMenu";
 
 const mockGetClassrooms = vi.fn();
@@ -43,6 +43,11 @@ vi.mock("@/infrastructure/api/repositories", () => ({
   },
 }));
 
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location-search">{location.search}</div>;
+}
+
 describe("SideMenu contest admin workspace panels", () => {
   beforeEach(() => {
     mockGetClassrooms.mockResolvedValue([
@@ -71,10 +76,30 @@ describe("SideMenu contest admin workspace panels", () => {
 
     expect(await screen.findByText("adminLayout.nav.overview")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.problemManagement")).toBeInTheDocument();
+    expect(screen.getByText("adminLayout.nav.settings")).toBeInTheDocument();
     expect(screen.queryByText("adminLayout.nav.grading")).not.toBeInTheDocument();
 
     const editorButton = screen.getByText("adminLayout.nav.problemManagement").closest("button");
     expect(editorButton).toHaveClass("side-menu__link--active");
+  });
+
+  it("navigates contest settings entry through the panel query", async () => {
+    mockGetContest.mockResolvedValue({
+      id: "contest-1",
+      contestType: "coding",
+      status: "draft",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=overview"]}>
+        <SideMenu variant="panel" />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByText("adminLayout.nav.settings"));
+
+    expect(screen.getByTestId("location-search")).toHaveTextContent("panel=settings");
   });
 
   it("shows published panel set including grading and statistics", async () => {
@@ -93,6 +118,7 @@ describe("SideMenu contest admin workspace panels", () => {
     expect(await screen.findByText("adminLayout.nav.examManagement")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.examGrading")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.examStatistics")).toBeInTheDocument();
+    expect(screen.getByText("adminLayout.nav.settings")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(mockGetContest).toHaveBeenCalledWith("contest-2");

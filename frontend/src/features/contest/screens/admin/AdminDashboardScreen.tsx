@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Breadcrumb, BreadcrumbItem, IconButton, Loading } from "@carbon/react";
-import { Renew, Settings } from "@carbon/icons-react";
+import { Breadcrumb, BreadcrumbItem, Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -9,8 +8,6 @@ import {
   ContestAdminProvider,
   AdminPanelRefreshProvider,
   useContest,
-  useContestAdmin,
-  useAdminPanelRefresh,
 } from "@/features/contest/contexts";
 import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
 import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
@@ -48,9 +45,7 @@ const AdminDashboardInner = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { contest, loading, refreshContest } = useContest();
-  const { refreshAllAdminData, refreshAdminData } = useContestAdmin();
-  const { triggerPanelRefresh } = useAdminPanelRefresh();
+  const { contest, loading } = useContest();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const hasManagementRole =
     contest?.currentUserRole !== undefined &&
@@ -108,31 +103,6 @@ const AdminDashboardInner = () => {
     window.open(previewPath, "_blank");
   };
 
-  const handleNavbarRefresh = () => {
-    const run = async () => {
-      const handled = await triggerPanelRefresh(activePanel);
-      if (handled) return;
-
-      switch (activePanel) {
-        case "overview":
-          await Promise.all([refreshAllAdminData(), refreshContest()]);
-          return;
-        case "participants":
-        case "logs":
-          await refreshAdminData();
-          return;
-        case "clarifications":
-        case "grading":
-        case "settings":
-        case "problem_editor":
-        case "statistics":
-        default:
-          await refreshContest();
-      }
-    };
-    void run();
-  };
-
   if (loading && !contest) {
     return (
       <div
@@ -176,28 +146,6 @@ const AdminDashboardInner = () => {
               </BreadcrumbItem>
             </Breadcrumb>
           </div>
-        )}
-        actions={(
-          <>
-            <IconButton
-              kind="ghost"
-              size="md"
-              align="bottom"
-              label={tc("actions.refresh", "Refresh")}
-              onClick={handleNavbarRefresh}
-            >
-              <Renew size={20} />
-            </IconButton>
-            <IconButton
-              kind="ghost"
-              size="md"
-              align="bottom"
-              label={t("adminLayout.nav.settings")}
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings size={20} />
-            </IconButton>
-          </>
         )}
       />
 

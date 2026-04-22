@@ -43,7 +43,7 @@ type ContestPanelNavItem = {
 };
 
 const CONTEST_PANEL_META: Record<
-  Exclude<AdminPanelId, "settings">,
+  AdminPanelId,
   { labelKey: string; examLabelKey?: string; Icon: ComponentType<{ size?: number }> }
 > = {
   overview: { labelKey: "overview", Icon: Dashboard },
@@ -53,6 +53,7 @@ const CONTEST_PANEL_META: Record<
   problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: Education },
   grading: { labelKey: "grading", examLabelKey: "examGrading", Icon: TaskComplete },
   statistics: { labelKey: "statistics", examLabelKey: "examStatistics", Icon: ChartColumn },
+  settings: { labelKey: "settings", Icon: Settings },
 };
 
 function getDefaultTab(pathname: string): TabKey {
@@ -293,8 +294,11 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
     if (!contestAdminContext) return [];
     const module = getContestTypeModule(contestForAdminNav?.contestType);
     const isExamMode = module.admin.editorKind === "paper_exam";
-    return module.admin.getAvailablePanels(contestForAdminNav).flatMap((panel) => {
-      if (panel === "settings") return [];
+    const panels = Array.from(new Set<AdminPanelId>([
+      ...module.admin.getAvailablePanels(contestForAdminNav),
+      "settings",
+    ]));
+    return panels.flatMap((panel) => {
       const meta = CONTEST_PANEL_META[panel];
       if (!meta) return [];
       const labelKey = isExamMode && meta.examLabelKey ? meta.examLabelKey : meta.labelKey;

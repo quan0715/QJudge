@@ -27,6 +27,7 @@ from .serializers import AIArtifactSerializer, AIArtifactWriteSerializer
 from .services import artifact_storage
 
 _UPLOAD_FILENAME_RE = re.compile(r"^[A-Za-z0-9._\-]{1,255}$")
+_UPLOAD_STEP_RE = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
 _USER_UPLOAD_STEP = "user_upload"
 _ALLOWED_UPLOAD_EXTS = {".csv", ".md"}
 _ALLOWED_UPLOAD_CONTENT_TYPES = {
@@ -191,10 +192,14 @@ class AIArtifactUserViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             )
 
+        step = (request.data.get("step") or _USER_UPLOAD_STEP).strip()
+        if not _UPLOAD_STEP_RE.match(step):
+            return Response({"detail": "invalid step"}, status=status.HTTP_400_BAD_REQUEST)
+
         session = get_object_or_404(_user_session_qs(request.user), session_id=session_id)
         object_key = artifact_storage.build_artifact_object_key(
             session.session_id,
-            _USER_UPLOAD_STEP,
+            step,
             filename,
         )
         artifact_storage.store_artifact(
@@ -206,7 +211,7 @@ class AIArtifactUserViewSet(viewsets.ReadOnlyModelViewSet):
         with transaction.atomic():
             artifact, _ = AIArtifact.objects.update_or_create(
                 session=session,
-                step=_USER_UPLOAD_STEP,
+                step=step,
                 filename=filename,
                 defaults={
                     "run": None,

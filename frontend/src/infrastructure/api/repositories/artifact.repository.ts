@@ -71,9 +71,14 @@ export async function fetchArtifactDownloadUrl(artifactId: string): Promise<{
   );
 }
 
-export async function uploadUserArtifact(sessionId: string, file: File): Promise<ArtifactRecord> {
+export async function uploadUserArtifact(
+  sessionId: string,
+  file: File,
+  options?: { step?: string },
+): Promise<ArtifactRecord> {
   const formData = new FormData();
   formData.append("session_id", sessionId);
+  if (options?.step) formData.append("step", options.step);
   formData.append("file", file);
   return requestJson<ArtifactRecord>(
     httpClient.request(`${BASE_URL}/upload/`, {

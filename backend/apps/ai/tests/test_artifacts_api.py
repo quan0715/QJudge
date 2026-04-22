@@ -293,6 +293,37 @@ class ArtifactUserEndpointTests(TestCase):
         self.assertEqual(resp.data["session_id"], self.session1.session_id)
         mock_store.assert_called_once()
 
+    @patch("apps.ai.artifact_views.artifact_storage.store_artifact")
+    def test_upload_csv_accepts_custom_step_for_session_artifact(self, mock_store):
+        self.client.force_authenticate(user=self.user1)
+        upload = SimpleUploadedFile(
+            "grade.csv",
+            b"exam_answer_id,score\n1,\n",
+            content_type="text/csv",
+        )
+        resp = self.client.post(
+            "/api/v1/ai/artifacts/upload/",
+            {"session_id": self.session1.session_id, "step": "grade", "file": upload},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
+        self.assertEqual(resp.data["step"], "grade")
+        self.assertEqual(resp.data["filename"], "grade.csv")
+        mock_store.assert_called_once()
+
+    def test_upload_rejects_invalid_step(self):
+        self.client.force_authenticate(user=self.user1)
+        upload = SimpleUploadedFile(
+            "grade.csv",
+            b"exam_answer_id,score\n1,\n",
+            content_type="text/csv",
+        )
+        resp = self.client.post(
+            "/api/v1/ai/artifacts/upload/",
+            {"session_id": self.session1.session_id, "step": "../grade", "file": upload},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+
     def test_upload_rejects_non_csv_md(self):
         self.client.force_authenticate(user=self.user1)
         upload = SimpleUploadedFile(
