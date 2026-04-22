@@ -17,11 +17,14 @@ function formatBytes(n?: number): string {
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 
+const _HIDDEN_STEPS = new Set(["default", "user_upload"]);
+
 export function ArtifactInlineCard({
   artifact,
   onClick,
   isActive = false,
 }: ArtifactInlineCardProps) {
+  const showStepTag = !_HIDDEN_STEPS.has(artifact.step);
   return (
     <button
       type="button"
@@ -33,9 +36,11 @@ export function ArtifactInlineCard({
       <div className={styles.body}>
         <span className={styles.filename}>{artifact.filename}</span>
         <span className={styles.meta}>
-          <Tag size="sm" type="cool-gray" className={styles.stepTag}>
-            {artifact.step}
-          </Tag>
+          {showStepTag && (
+            <Tag size="sm" type="cool-gray" className={styles.stepTag}>
+              {artifact.step}
+            </Tag>
+          )}
           <span className={styles.size}>{formatBytes(artifact.size_bytes)}</span>
         </span>
       </div>

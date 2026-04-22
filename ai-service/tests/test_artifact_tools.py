@@ -796,3 +796,233 @@ def test_csv_to_json_missing_artifact_returns_error(monkeypatch):
     result = _run(tool.coroutine(step="grade", filename="nope.csv",
                                  columns=["exam_answer_id"]))
     assert result["is_error"] is True
+
+
+# ── filename-only resolution tests ────────────────────────────────────
+
+
+def test_read_filename_only_single_match(monkeypatch):
+    """When step is omitted and exactly one artifact matches filename, succeed."""
+    stub = _StubClient([
+        # list by filename only → one match
+        {
+            "method": "GET",
+            "url_contains": "/_internal/artifacts/",
+            "status": 200,
+            "json": [{"id": "a-1", "step": "grade", "filename": "grade.csv",
+                       "content_type": "text/csv"}],
+        },
+        # fetch content
+        {
+            "method": "GET",
+            "url_contains": "/a-1/content/",
+            "status": 200,
+            "content": b"col1,col2\nv1,v2\n",
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read")
+    result = _run(tool.coroutine(filename="grade.csv"))
+    assert result["content"] == "col1,col2\nv1,v2\n"
+    assert result["metadata"]["id"] == "a-1"
+    # The list call should NOT contain step in params
+    list_call = stub.calls[0]
+    assert "step" not in list_call["params"]
+    assert list_call["params"]["filename"] == "grade.csv"
+
+
+def test_read_filename_only_no_match(monkeypatch):
+    """When step is omitted and no artifact matches, return a not-found error."""
+    stub = _StubClient([
+        {"method": "GET", "status": 200, "json": []},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read")
+    result = _run(tool.coroutine(filename="nope.csv"))
+    assert result["is_error"] is True
+    assert "not found" in result["detail"]
+    assert "filename=nope.csv" in result["detail"]
+
+
+def test_read_filename_only_ambiguous(monkeypatch):
+    """When step is omitted and multiple artifacts match, return ambiguity error."""
+    stub = _StubClient([
+        {
+            "method": "GET",
+            "status": 200,
+            "json": [
+                {"id": "a-1", "step": "grade", "filename": "grade.csv"},
+                {"id": "a-2", "step": "backup", "filename": "grade.csv"},
+            ],
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read")
+    result = _run(tool.coroutine(filename="grade.csv"))
+    assert result["is_error"] is True
+    assert "ambiguous" in result["detail"]
+    assert "grade" in result["detail"]
+    assert "backup" in result["detail"]
+
+
+def test_write_filename_only_existing(monkeypatch):
+    """Write with omitted step reuses step from existing artifact."""
+    stub = _StubClient([
+        # _resolve_step → list by filename → 1 match → step="grade"
+        {
+            "method": "GET",
+            "url_contains": "/_internal/artifacts/",
+            "status": 200,
+            "json": [{"id": "a-1", "step": "grade", "filename": "grade.csv"}],
+        },
+        # actual write
+        {
+            "method": "POST",
+            "url_contains": "/_internal/artifacts/",
+            "status": 201,
+            "json": {"id": "a-1", "step": "grade", "filename": "grade.csv"},
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write")
+    result = _run(tool.coroutine(filename="grade.csv", content="hello"))
+    assert result["id"] == "a-1"
+    # Verify the POST uses the resolved step
+    post_call = [c for c in stub.calls if c["method"] == "POST"][0]
+    assert post_call["json"]["step"] == "grade"
+
+
+def test_write_filename_only_new(monkeypatch):
+    """Write with omitted step and no existing artifact uses 'default' step."""
+    stub = _StubClient([
+        # _resolve_step → list by filename → 0 matches → default
+        {
+            "method": "GET",
+            "url_contains": "/_internal/artifacts/",
+            "status": 200,
+            "json": [],
+        },
+        # actual write
+        {
+            "method": "POST",
+            "url_contains": "/_internal/artifacts/",
+            "status": 201,
+            "json": {"id": "a-new", "step": "default", "filename": "notes.md"},
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_write")
+    result = _run(tool.coroutine(filename="notes.md", content="# Notes"))
+    assert result["id"] == "a-new"
+    post_call = [c for c in stub.calls if c["method"] == "POST"][0]
+    assert post_call["json"]["step"] == "default"
+
+
+def test_csv_patch_filename_only(monkeypatch):
+    """csv_patch with omitted step resolves by filename."""
+    csv_body = b'"exam_answer_id","score"\n"100",""\n"200","5"\n'
+    stub = _StubClient([
+        # _resolve_step → list
+        {
+            "method": "GET",
+            "url_contains": "/_internal/artifacts/",
+            "status": 200,
+            "json": [{"id": "a-1", "step": "grade", "filename": "grade.csv"}],
+        },
+        # _artifact_read (inside csv_patch) → list
+        {
+            "method": "GET",
+            "url_contains": "/_internal/artifacts/",
+            "status": 200,
+            "json": [{"id": "a-1", "step": "grade", "filename": "grade.csv",
+                       "content_type": "text/csv"}],
+        },
+        # _artifact_read → content
+        {
+            "method": "GET",
+            "url_contains": "/a-1/content/",
+            "status": 200,
+            "content": csv_body,
+        },
+        # write back
+        {
+            "method": "POST",
+            "url_contains": "/_internal/artifacts/",
+            "status": 201,
+            "json": {"id": "a-1", "step": "grade", "filename": "grade.csv"},
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_csv_patch")
+    result = _run(tool.coroutine(
+        filename="grade.csv",
+        key_column="exam_answer_id",
+        updates=[{"exam_answer_id": "100", "score": "8"}],
+    ))
+    assert result["updated"] == 1
+    assert result["total_rows"] == 2
+
+
+def test_csv_search_filename_only(monkeypatch):
+    """csv_search with omitted step resolves by filename."""
+    csv_body = b'"id","score"\n"1",""\n"2","5"\n"3",""\n'
+    stub = _StubClient([
+        # _resolve_step → list
+        {
+            "method": "GET",
+            "url_contains": "/_internal/artifacts/",
+            "status": 200,
+            "json": [{"id": "a-1", "step": "grade", "filename": "grade.csv"}],
+        },
+        # _artifact_read (inside _load_filtered_csv) → list
+        {
+            "method": "GET",
+            "url_contains": "/_internal/artifacts/",
+            "status": 200,
+            "json": [{"id": "a-1", "step": "grade", "filename": "grade.csv",
+                       "content_type": "text/csv"}],
+        },
+        # _artifact_read → content
+        {
+            "method": "GET",
+            "url_contains": "/a-1/content/",
+            "status": 200,
+            "content": csv_body,
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_csv_search")
+    result = _run(tool.coroutine(
+        filename="grade.csv",
+        where={"score": ""},
+    ))
+    assert result["matched"] == 2
+    assert result["total_rows"] == 3
+
+
+def test_explicit_step_still_works(monkeypatch):
+    """Passing step explicitly still works (backward compat)."""
+    stub = _StubClient([
+        # list with both step and filename
+        {
+            "method": "GET",
+            "url_contains": "/_internal/artifacts/",
+            "status": 200,
+            "json": [{"id": "a-1", "step": "rubric", "filename": "rubric.md",
+                       "content_type": "text/markdown"}],
+        },
+        # content
+        {
+            "method": "GET",
+            "url_contains": "/a-1/content/",
+            "status": 200,
+            "content": b"# Rubric\nCriteria here.",
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read")
+    result = _run(tool.coroutine(step="rubric", filename="rubric.md"))
+    assert result["content"] == "# Rubric\nCriteria here."
+    # step should be passed through
+    list_call = stub.calls[0]
+    assert list_call["params"]["step"] == "rubric"

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, IconButton, Loading } from "@carbon/react";
-import { Renew, Settings } from "@carbon/icons-react";
+import { ArrowLeft } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -9,8 +9,6 @@ import {
   ContestAdminProvider,
   AdminPanelRefreshProvider,
   useContest,
-  useContestAdmin,
-  useAdminPanelRefresh,
 } from "@/features/contest/contexts";
 import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
 import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
@@ -20,7 +18,7 @@ import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRend
 import { ContestSettingsOverlay } from "@/features/contest/screens/admin/panels/AdminContestSettingsScreen";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
-import { useTabWithUrlParam } from "@/shared/hooks";
+import { useMediaQuery, useTabWithUrlParam } from "@/shared/hooks";
 import styles from "./AdminDashboardScreen.module.scss";
 
 /** Dynamic panel dispatch — registry pattern requires runtime lookup; state is stable because
@@ -48,9 +46,8 @@ const AdminDashboardInner = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { contest, loading, refreshContest } = useContest();
-  const { refreshAllAdminData, refreshAdminData } = useContestAdmin();
-  const { triggerPanelRefresh } = useAdminPanelRefresh();
+  const { contest, loading } = useContest();
+  const isCompactBreadcrumb = useMediaQuery("(max-width: 900px)");
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const hasManagementRole =
     contest?.currentUserRole !== undefined &&
@@ -108,31 +105,6 @@ const AdminDashboardInner = () => {
     window.open(previewPath, "_blank");
   };
 
-  const handleNavbarRefresh = () => {
-    const run = async () => {
-      const handled = await triggerPanelRefresh(activePanel);
-      if (handled) return;
-
-      switch (activePanel) {
-        case "overview":
-          await Promise.all([refreshAllAdminData(), refreshContest()]);
-          return;
-        case "participants":
-        case "logs":
-          await refreshAdminData();
-          return;
-        case "clarifications":
-        case "grading":
-        case "settings":
-        case "problem_editor":
-        case "statistics":
-        default:
-          await refreshContest();
-      }
-    };
-    void run();
-  };
-
   if (loading && !contest) {
     return (
       <div
@@ -154,50 +126,53 @@ const AdminDashboardInner = () => {
         className={styles.toolbar}
         title={(
           <div className={styles.toolbarTitle}>
-            <Link to="/dashboard" className={styles.brandLink}>
-              {tc("header.prefix", "QJudge")}
-            </Link>
-            <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
-              <BreadcrumbItem>
-                <Link to="/dashboard">{tc("nav.dashboard")}</Link>
-              </BreadcrumbItem>
-              {effectiveClassroomId && (
-                <BreadcrumbItem>
-                  <Link to={`/classrooms/${effectiveClassroomId}`}>
-                    {tc("nav.classrooms", "教室")}
-                  </Link>
-                </BreadcrumbItem>
-              )}
-              <BreadcrumbItem>
-                {contest?.name || "Loading..."}
-              </BreadcrumbItem>
-              <BreadcrumbItem isCurrentPage>
-                {t("adminLayout.title", "管理")}
-              </BreadcrumbItem>
-            </Breadcrumb>
+            {isCompactBreadcrumb ? (
+              <>
+                <IconButton
+                  kind="ghost"
+                  size="sm"
+                  align="bottom"
+                  label={tc("common.back", "返回")}
+                  onClick={() => {
+                    const backPath = effectiveClassroomId
+                      ? `/classrooms/${effectiveClassroomId}`
+                      : "/dashboard";
+                    navigate(backPath);
+                  }}
+                  className={styles.backButton}
+                >
+                  <ArrowLeft size={20} />
+                </IconButton>
+                <h1 className={styles.mobileTitle}>
+                  {t("adminLayout.mobileTitle", "競賽後台")}
+                </h1>
+              </>
+            ) : (
+              <>
+                <Link to="/dashboard" className={styles.brandLink}>
+                  {tc("header.prefix", "QJudge")}
+                </Link>
+                <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
+                  <BreadcrumbItem>
+                    <Link to="/dashboard">{tc("nav.dashboard")}</Link>
+                  </BreadcrumbItem>
+                  {effectiveClassroomId && (
+                    <BreadcrumbItem>
+                      <Link to={`/classrooms/${effectiveClassroomId}`}>
+                        {tc("nav.classrooms", "教室")}
+                      </Link>
+                    </BreadcrumbItem>
+                  )}
+                  <BreadcrumbItem>
+                    {contest?.name || "Loading..."}
+                  </BreadcrumbItem>
+                  <BreadcrumbItem isCurrentPage>
+                    {t("adminLayout.title", "管理")}
+                  </BreadcrumbItem>
+                </Breadcrumb>
+              </>
+            )}
           </div>
-        )}
-        actions={(
-          <>
-            <IconButton
-              kind="ghost"
-              size="md"
-              align="bottom"
-              label={tc("actions.refresh", "Refresh")}
-              onClick={handleNavbarRefresh}
-            >
-              <Renew size={20} />
-            </IconButton>
-            <IconButton
-              kind="ghost"
-              size="md"
-              align="bottom"
-              label={t("adminLayout.nav.settings")}
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings size={20} />
-            </IconButton>
-          </>
         )}
       />
 

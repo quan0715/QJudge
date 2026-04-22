@@ -29,7 +29,6 @@ urlpatterns = [
     path('api/v1/contests/', include('apps.contests.urls')),
     path('api/v1/classrooms/', include('apps.classrooms.urls')),
     path('api/v1/question-banks/', include('apps.question_bank.urls')),
-    path('api/v1/question-bank-items/', include('apps.question_bank.item_urls')),
     path('api/v1/management/announcements/', include('apps.announcements.urls')),
     path('api/v1/ai/', include('apps.ai.urls')),
     path('api/v1/subscriptions/', include('apps.subscriptions.urls')),

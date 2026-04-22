@@ -59,7 +59,7 @@ def resolve_bank_question_for_import(*, user, question_bank_id, question_id):
                 membership=membership, actor=user,
             )
     else:
-        question = Question.objects.filter(bank=bank, id=normalized_question_uuid).first()
+        question = None
 
     if not question:
         raise NotFound("Question not found in bank")

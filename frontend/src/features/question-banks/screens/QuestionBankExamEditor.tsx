@@ -271,7 +271,7 @@ const QuestionBankExamEditor: React.FC<QuestionBankExamEditorProps> = ({
           source,
           question.order + 1
         );
-        await updateQuestion(question.id, payload);
+        await updateQuestion(bankId, question.id, payload);
       }
     },
     [bankQuestionById, editorQuestions, toBankPayload]
@@ -300,7 +300,7 @@ const QuestionBankExamEditor: React.FC<QuestionBankExamEditorProps> = ({
             source,
             item.nextOrder
           );
-          await updateQuestion(item.question.id, payload);
+          await updateQuestion(bankId, item.question.id, payload);
         }
         await onReload();
       } catch (error) {
@@ -374,7 +374,7 @@ const QuestionBankExamEditor: React.FC<QuestionBankExamEditorProps> = ({
       if (!questionId) return;
       try {
         const source = bankQuestionById.get(questionId);
-        await updateQuestion(questionId, toBankPayload(payload, source));
+        await updateQuestion(bankId, questionId, toBankPayload(payload, source));
         showToast({
           kind: "success",
           title: t("examEditor.questionUpdated", "題目已更新"),
@@ -454,7 +454,7 @@ const QuestionBankExamEditor: React.FC<QuestionBankExamEditorProps> = ({
       if (!accepted) return;
 
       try {
-        await deleteQuestion(questionId);
+        await deleteQuestion(bankId, questionId);
         showToast({
           kind: "success",
           title: t("examEditor.questionDeleted", "題目已刪除"),

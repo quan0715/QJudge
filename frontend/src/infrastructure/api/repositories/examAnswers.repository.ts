@@ -1,4 +1,5 @@
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
+import { fetchEnvelope, type BaseMeta } from "@/infrastructure/api/envelope";
 
 // ── Types ──
 
@@ -70,12 +71,66 @@ export interface ExamAnswerDetail extends ExamAnswer {
   participantNickname?: string;
 }
 
+/**
+ * Slim DTO for the `?projection=grading` endpoint.
+ * Drops per-row question_* / participant name duplicates; consumers join those
+ * via {@link getExamQuestions} + contest participants list.
+ */
+export interface ExamAnswerGradingDto {
+  id: number;
+  question_id: string;
+  participant_user_id: number;
+  answer: Record<string, unknown>;
+  is_correct: boolean | null;
+  score: string | null;
+  feedback: string;
+  graded_by_username: string | null;
+  graded_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExamAnswerGrading {
+  id: string;
+  questionId: string;
+  participantUserId: string;
+  answer: Record<string, unknown>;
+  isCorrect: boolean | null;
+  score: number | null;
+  feedback: string;
+  gradedByUsername: string | null;
+  gradedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Meta returned by `?projection=grading`. */
+export interface GradingListMeta extends BaseMeta {
+  count?: number;
+  projection?: "grading";
+  question_id?: string;
+}
+
 // ── Mappers ──
 
 const mapAnswerDto = (dto: ExamAnswerDto): ExamAnswer => ({
   id: String(dto.id),
   questionId: String(dto.question_id),
   answer: dto.answer,
+  createdAt: dto.created_at,
+  updatedAt: dto.updated_at,
+});
+
+const mapAnswerGradingDto = (dto: ExamAnswerGradingDto): ExamAnswerGrading => ({
+  id: String(dto.id),
+  questionId: String(dto.question_id),
+  participantUserId: String(dto.participant_user_id),
+  answer: dto.answer,
+  isCorrect: dto.is_correct,
+  score: dto.score != null ? Number(dto.score) : null,
+  feedback: dto.feedback ?? "",
+  gradedByUsername: dto.graded_by_username,
+  gradedAt: dto.graded_at,
   createdAt: dto.created_at,
   updatedAt: dto.updated_at,
 });
@@ -249,6 +304,37 @@ export const getAllExamAnswers = async (
     "Failed to fetch all answers"
   );
   return data.map(mapAnswerDetailDto);
+};
+
+/**
+ * Get slim answers optimized for grading screens (TA/admin only).
+ *
+ * Uses `?projection=grading` so the server strips per-row question/participant
+ * name duplicates. Question info should be joined via {@link getExamQuestions}
+ * and participant names via the contest participants list.
+ *
+ * Response is the new envelope shape: `{ data: [...], meta: { count, projection, ... } }`.
+ * This returns the `data` array directly plus the envelope's `meta` so callers
+ * can surface hints (e.g., count) without re-reading the response.
+ */
+export const getAllExamAnswersForGrading = async (
+  contestId: string,
+  opts: { userId?: string; participantId?: string; questionId?: string } = {},
+): Promise<{ data: ExamAnswerGrading[]; meta: GradingListMeta }> => {
+  const search = new URLSearchParams({ projection: "grading" });
+  if (opts.userId) search.set("user_id", opts.userId);
+  if (opts.participantId) search.set("participant_id", opts.participantId);
+  if (opts.questionId) search.set("question_id", opts.questionId);
+  const { data, meta } = await fetchEnvelope<ExamAnswerGradingDto[], GradingListMeta>(
+    httpClient.get(
+      `/api/v1/contests/${contestId}/exam-answers/all-answers/?${search.toString()}`,
+    ),
+    "Failed to fetch grading answers",
+  );
+  return {
+    data: data.map(mapAnswerGradingDto),
+    meta,
+  };
 };
 
 /** Grade a single answer (TA only). */

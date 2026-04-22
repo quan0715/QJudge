@@ -51,6 +51,7 @@ const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
   "participants",
   "problem_editor",
   "grading",
+  "ai-grading",
   "statistics",
 ];
 const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];

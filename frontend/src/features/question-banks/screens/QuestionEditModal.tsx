@@ -282,16 +282,16 @@ const QuestionEditModal = ({
 
         if (activeId === "edit") {
           return isExam
-            ? <ExamQuestionEditPanel question={question} onSaved={onSaved} />
-            : <CodingQuestionEditPanel question={question} onSaved={onSaved} activeTab="edit" />;
+            ? <ExamQuestionEditPanel bankId={bank.id} question={question} onSaved={onSaved} />
+            : <CodingQuestionEditPanel bankId={bank.id} question={question} onSaved={onSaved} activeTab="edit" />;
         }
 
         if (activeId === "validation" && isCoding) {
-          return <CodingQuestionEditPanel question={question} onSaved={onSaved} activeTab="validation" />;
+          return <CodingQuestionEditPanel bankId={bank.id} question={question} onSaved={onSaved} activeTab="validation" />;
         }
 
         if (activeId === "languages" && isCoding) {
-          return <CodingQuestionEditPanel question={question} onSaved={onSaved} activeTab="languages" />;
+          return <CodingQuestionEditPanel bankId={bank.id} question={question} onSaved={onSaved} activeTab="languages" />;
         }
 
         if (activeId === "actions") {

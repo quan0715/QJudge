@@ -50,6 +50,12 @@ function isArtifactToolName(toolName: string): boolean {
   return toolName.startsWith("artifact_");
 }
 
+// Trailing-edge debounce for burst refreshes triggered by the agent firing
+// a cluster of artifact_* tool calls in one turn (e.g. seed + 20-row patch).
+// 250ms is long enough to collapse an agent burst into a single fetch and
+// short enough to feel live to the user.
+const REFRESH_DEBOUNCE_MS = 250;
+
 export function ArtifactPanelProvider({
   sessionId,
   children,
@@ -62,13 +68,26 @@ export function ArtifactPanelProvider({
 
   const seenToolCallIds = useRef(new Set<string>());
   const refreshSeq = useRef(0);
+  // Debounce timer for burst coalescing.
+  const refreshTimerRef = useRef<number | null>(null);
+  // In-flight guard: if a fetch is already running, remember that another
+  // refresh was requested and run it once the current one settles.
+  const refreshInFlightRef = useRef(false);
+  const refreshQueuedRef = useRef(false);
 
   const refresh = useCallback(async () => {
+    if (refreshInFlightRef.current) {
+      // Coalesce: whoever finishes the in-flight call will re-run once.
+      refreshQueuedRef.current = true;
+      return;
+    }
+    refreshInFlightRef.current = true;
     const seq = ++refreshSeq.current;
     if (!sessionId) {
       setArtifacts([]);
       setError(null);
       setIsLoading(false);
+      refreshInFlightRef.current = false;
       return;
     }
     setIsLoading(true);
@@ -81,16 +100,37 @@ export function ArtifactPanelProvider({
       if (seq !== refreshSeq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load artifacts");
     } finally {
+      refreshInFlightRef.current = false;
       if (seq === refreshSeq.current) {
         setIsLoading(false);
       }
+      // Drain any refresh that was requested while this one was running.
+      if (refreshQueuedRef.current) {
+        refreshQueuedRef.current = false;
+        void refresh();
+      }
     }
   }, [sessionId]);
+
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimerRef.current != null) {
+      window.clearTimeout(refreshTimerRef.current);
+    }
+    refreshTimerRef.current = window.setTimeout(() => {
+      refreshTimerRef.current = null;
+      void refresh();
+    }, REFRESH_DEBOUNCE_MS);
+  }, [refresh]);
 
   // Load on session change + reset selection
   useEffect(() => {
     refreshSeq.current += 1; // invalidate in-flight requests from previous session
     seenToolCallIds.current = new Set();
+    if (refreshTimerRef.current != null) {
+      window.clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+    refreshQueuedRef.current = false;
     setIsOpen(false);
     setActiveArtifactId(null);
     setArtifacts([]);
@@ -99,12 +139,22 @@ export function ArtifactPanelProvider({
     void refresh();
   }, [sessionId, refresh]);
 
+  // Flush pending debounced timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current != null) {
+        window.clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const markToolFinished = useCallback(
     (toolName: string) => {
       if (!isArtifactToolName(toolName)) return;
-      void refresh();
+      scheduleRefresh();
     },
-    [refresh],
+    [scheduleRefresh],
   );
 
   const open = useCallback((artifactId?: string) => {

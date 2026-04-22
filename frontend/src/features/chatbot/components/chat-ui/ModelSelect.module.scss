@@ -1,0 +1,126 @@
+.modelSelectWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 12.75rem;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid transparent;
+  padding-left: 0.5rem;
+  transition: background-color 120ms ease, border-color 120ms ease;
+
+  &:hover,
+  &:focus-within {
+    background: var(--cds-layer-03, #393939);
+    border-color: var(--cds-border-subtle-00, #6f6f6f);
+  }
+}
+
+.streamDot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #d0d0d0;
+  margin-right: 0.35rem;
+}
+
+.modelSelectButton {
+  border: none;
+  background: transparent;
+  color: var(--cds-text-primary, #161616);
+  font-size: 0.94rem;
+  line-height: 1.25;
+  min-height: 2rem;
+  padding: 0 1.3rem 0 0;
+  outline: none;
+  cursor: pointer;
+  max-width: 14rem;
+  text-align: left;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.modelIcon {
+  display: none;
+  color: var(--cds-icon-secondary, #8d8d8d);
+}
+
+.modelText {
+  max-width: 14.5rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+
+.modelChevron {
+  position: absolute;
+  right: 0.45rem;
+  color: var(--cds-icon-secondary, #525252);
+  pointer-events: none;
+}
+
+.modelMenu {
+  position: absolute;
+  right: 0;
+  min-width: 14rem;
+  border-radius: 12px;
+  border: 1px solid var(--cds-border-subtle-01, #525252);
+  background: var(--cds-layer-03, #393939);
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  z-index: 20;
+}
+
+.modelMenuTop {
+  bottom: calc(100% + 0.45rem);
+}
+
+.modelMenuBottom {
+  top: calc(100% + 0.45rem);
+}
+
+.modelOption {
+  border: none;
+  background: transparent;
+  color: var(--cds-text-primary, #161616);
+  border-radius: 8px;
+  min-height: 2rem;
+  padding: 0 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--cds-button-primary, #0f62fe) 24%, transparent);
+  }
+
+  > span {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.modelOptionActive {
+  background: color-mix(in srgb, var(--cds-button-primary, #0f62fe) 18%, transparent);
+}

@@ -5,7 +5,7 @@
 import { useState, useMemo, useCallback, useEffect, useContext } from "react";
 import { useParams } from "react-router-dom";
 import {
-  getAllExamAnswers,
+  getAllExamAnswersForGrading,
   gradeExamAnswer,
   ungradeExamAnswer,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
@@ -321,8 +321,8 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         return;
       }
 
-      const [allAnswers, questions] = await Promise.all([
-        getAllExamAnswers(contestId),
+      const [{ data: allAnswers }, questions] = await Promise.all([
+        getAllExamAnswersForGrading(contestId),
         getExamQuestions(contestId),
       ]);
 

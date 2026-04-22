@@ -48,6 +48,7 @@ const ChatStandalonePage = lazy(() => import("@/features/chatbot/components/Chat
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
 import { PageHeaderActionsProvider } from "@/features/app/contexts/PageHeaderActionsContext";
 import { ChatSessionProvider } from "@/features/chatbot/contexts/ChatSessionContext";
+import { ChatbotProvider } from "@/features/chatbot/contexts/ChatbotProvider";
 import { WorkspaceProvider } from "@/features/app/contexts/WorkspaceContext";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 import {
@@ -97,6 +98,7 @@ function App() {
                     <RecurProviderBridge>
                     <BrowserRouter>
                       <ChatSessionProvider>
+                      <ChatbotProvider>
                       <WorkspaceProvider>
                       <PageHeaderActionsProvider>
                       <ApiErrorProvider>
@@ -213,6 +215,7 @@ function App() {
                       </ApiErrorProvider>
                       </PageHeaderActionsProvider>
                       </WorkspaceProvider>
+                      </ChatbotProvider>
                       </ChatSessionProvider>
                     </BrowserRouter>
                     <SettingsDialog />

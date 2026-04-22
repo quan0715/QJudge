@@ -22,10 +22,12 @@ from ..models import (
 from ..serializers import (
     ExamAnswerSerializer,
     ExamAnswerDetailSerializer,
+    ExamAnswerGradingSerializer,
     ExamAnswerSubmitSerializer,
     ExamAnswerGradeSerializer,
 )
 from ..permissions import can_manage_contest
+from apps.core.api.envelope import envelope
 from ..services.anti_cheat_session import build_device_conflict_response
 from ..services.exam_validation import validate_exam_operation
 from ..services.question_edit_lock import maybe_lock_from_exam_answer
@@ -38,22 +40,21 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
     """
     permission_classes = [permissions.IsAuthenticated]
 
+    # Actions in this set return errors in the new envelope shape.
+    # See apps.core.api.envelope (success shape) and apps.core.exceptions
+    # (error shape). Other actions retain the legacy `{success, error}` format.
+    envelope_error_actions = {"all_answers"}
+
     def _get_contest(self, contest_pk):
         return get_object_or_404(Contest, pk=contest_pk)
-
-    @staticmethod
-    def _dashboard_summary_cache_key(contest_id):
-        return f"contest:{contest_id}:exam_dashboard_summary:v1"
 
     @staticmethod
     def _question_detail_cache_key(contest_id, question_id):
         return f"contest:{contest_id}:exam_question_detail:{question_id}:v2"
 
     def _invalidate_dashboard_cache(self, contest_id, question_id=None):
-        keys = [self._dashboard_summary_cache_key(contest_id)]
         if question_id is not None:
-            keys.append(self._question_detail_cache_key(contest_id, question_id))
-        cache.delete_many(keys)
+            cache.delete(self._question_detail_cache_key(contest_id, question_id))
 
     def _student_participants_qs(self, contest):
         return ContestParticipant.objects.filter(
@@ -278,7 +279,18 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=['get'], url_path='all-answers')
     def all_answers(self, request, contest_pk=None):
-        """List all answers for all students (TA/admin only)."""
+        """List all answers for all students (TA/admin only).
+
+        Query params:
+        - `participant_id` / `user_id`: filter by participant.
+        - `question_id`: filter by question.
+        - `projection=grading`: return slim rows wrapped in
+          `{"data": [...], "meta": {"count": N, "projection": "grading"}}`.
+          Drops per-row question/participant name duplicates. Consumers join via
+          `/exam-questions/` and the participants list.
+
+        Without `projection`, returns a bare array of ExamAnswerDetailSerializer
+        payloads (backward compatible)."""
         contest = self._get_contest(contest_pk)
         if not can_manage_contest(request.user, contest):
             raise PermissionDenied('Only contest staff can view all answers.')
@@ -298,19 +310,61 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         if question_id:
             answers = answers.filter(question_id=question_id)
 
+        projection = request.query_params.get('projection')
+        if projection == 'grading':
+            data = ExamAnswerGradingSerializer(answers, many=True).data
+            meta = {
+                'count': len(data),
+                'projection': 'grading',
+            }
+            if question_id:
+                meta['question_id'] = question_id
+            return envelope(data, meta=meta)
+
         return Response(ExamAnswerDetailSerializer(answers, many=True).data)
+
+    # Aliases consumed by the `?kind=` filter on dashboard-summary; shared with
+    # ContestExamQuestionViewSet so the two endpoints agree on aliases.
+    _DASHBOARD_KIND_ALIAS = {
+        'subjective': {ExamQuestionType.SHORT_ANSWER, ExamQuestionType.ESSAY},
+        'objective': {
+            ExamQuestionType.TRUE_FALSE,
+            ExamQuestionType.SINGLE_CHOICE,
+            ExamQuestionType.MULTIPLE_CHOICE,
+        },
+    }
+
+    @classmethod
+    def _parse_dashboard_kind(cls, raw):
+        """Translate ``?kind=<alias|csv>`` to a set of enum values or ``None``."""
+        if not raw:
+            return None
+        tokens = {t.strip() for t in raw.split(',') if t.strip()}
+        if not tokens:
+            return None
+        all_values = set(ExamQuestionType.values)
+        kinds = set()
+        for tok in tokens:
+            if tok in cls._DASHBOARD_KIND_ALIAS:
+                kinds |= cls._DASHBOARD_KIND_ALIAS[tok]
+            elif tok in all_values:
+                kinds.add(tok)
+        return kinds
 
     @action(detail=False, methods=['get'], url_path='dashboard-summary')
     def dashboard_summary(self, request, contest_pk=None):
-        """Contest result dashboard summary (teacher/admin only)."""
+        """Contest result dashboard summary (teacher/admin only).
+
+        Supports ``?kind=<alias|csv of enums>`` to filter the per-question
+        ``questions`` array (e.g. ``?kind=subjective``). Contest-level summary
+        (average, median, score distribution) is always computed over all
+        questions so numbers stay consistent across callers.
+        """
         contest = self._get_contest(contest_pk)
         if not can_manage_contest(request.user, contest):
             raise PermissionDenied('Only contest staff can view dashboard summary.')
 
-        cache_key = self._dashboard_summary_cache_key(contest.id)
-        cached_payload = cache.get(cache_key)
-        if cached_payload is not None:
-            return Response(cached_payload)
+        kind_filter = self._parse_dashboard_kind(request.query_params.get('kind'))
 
         participants = list(
             self._student_participants_qs(contest).values('id', 'exam_status')
@@ -381,6 +435,8 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         question_summaries = []
         for question in questions:
+            if kind_filter is not None and question.question_type not in kind_filter:
+                continue
             question_id = str(question.id)
             stats = question_stats[question_id]
             answer_count = stats['answer_count']
@@ -446,7 +502,6 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             'score_distribution': self._build_score_distribution(total_scores, max_total_score),
             'questions': question_summaries,
         }
-        cache.set(cache_key, payload, timeout=60)
         return Response(payload)
 
     @action(detail=False, methods=['get'], url_path='question-detail')

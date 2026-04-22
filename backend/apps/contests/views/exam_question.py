@@ -104,12 +104,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                     membership=membership, actor=user,
                 )
         else:
-            # Legacy fallback: direct Question ID
-            question = Question.objects.filter(
-                bank=bank,
-                id=normalized_question_uuid,
-                question_type=Question.QuestionType.EXAM,
-            ).first()
+            question = None
 
         if not question:
             raise NotFound("Question not found in bank")
@@ -160,6 +155,38 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             return None
         return build_device_conflict_response(contest, participant, self.request)
 
+    # Aliases consumed by the `?kind=` filter in addition to raw enum values.
+    _KIND_ALIAS = {
+        'subjective': {ExamQuestionType.SHORT_ANSWER, ExamQuestionType.ESSAY},
+        'objective': {
+            ExamQuestionType.TRUE_FALSE,
+            ExamQuestionType.SINGLE_CHOICE,
+            ExamQuestionType.MULTIPLE_CHOICE,
+        },
+    }
+
+    @classmethod
+    def _parse_kind_filter(cls, raw):
+        """Translate ``?kind=<alias|csv of enums>`` into a set of enum values.
+
+        Returns ``None`` for no filter, or an empty set for an unknown value
+        (caller can treat empty-set as "no matches")."""
+        if not raw:
+            return None
+        tokens = {t.strip() for t in raw.split(',') if t.strip()}
+        if not tokens:
+            return None
+        kinds = set()
+        all_enum_values = set(ExamQuestionType.values)
+        for tok in tokens:
+            if tok in cls._KIND_ALIAS:
+                kinds |= cls._KIND_ALIAS[tok]
+            elif tok in all_enum_values:
+                kinds.add(tok)
+            # Unknown tokens are ignored (strict validation would add noise for
+            # a filter-only-hint query param).
+        return kinds
+
     def get_queryset(self):
         contest = self._get_contest()
         # Students can only list; admin check is enforced per-action for writes
@@ -174,7 +201,14 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied('Contest has not started yet')
             if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
                 raise PermissionDenied('You must start the exam before viewing questions')
-        return ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+
+        qs = ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+
+        kind_filter = self._parse_kind_filter(self.request.query_params.get('kind'))
+        if kind_filter is not None:
+            qs = qs.filter(question_type__in=kind_filter)
+
+        return qs
 
     def list(self, request, *args, **kwargs):
         conflict = self._check_student_device_guard()

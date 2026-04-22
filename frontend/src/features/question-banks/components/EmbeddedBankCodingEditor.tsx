@@ -13,12 +13,14 @@ import {
 import { problemFormSchema } from "@/features/problems/forms/problemFormValidation";
 
 interface EmbeddedEditorInnerProps {
+  bankId: string;
   bankQuestion: BankQuestion;
   onDelete: () => Promise<void>;
   onClose?: () => void;
 }
 
 const EmbeddedEditorInner: React.FC<EmbeddedEditorInnerProps> = ({
+  bankId,
   bankQuestion,
   onDelete,
   onClose,
@@ -41,7 +43,7 @@ const EmbeddedEditorInner: React.FC<EmbeddedEditorInnerProps> = ({
   return (
     <MarkdownEditorProvider>
       <FormProvider {...methods}>
-        <BankCodingEditProvider bankItemId={bankQuestion.bankItemId}>
+        <BankCodingEditProvider bankId={bankId} bankItemId={bankQuestion.bankItemId}>
           <CodingProblemEditorShell
             title={bankQuestion.title}
             formValues={formValues as ProblemFormSchema}
@@ -65,11 +67,12 @@ interface EmbeddedBankCodingEditorProps {
 }
 
 const EmbeddedBankCodingEditor: React.FC<EmbeddedBankCodingEditorProps> = ({
+  bankId,
   bankQuestion,
   onDelete,
   onClose,
 }) => (
-  <EmbeddedEditorInner bankQuestion={bankQuestion} onDelete={onDelete} onClose={onClose} />
+  <EmbeddedEditorInner bankId={bankId} bankQuestion={bankQuestion} onDelete={onDelete} onClose={onClose} />
 );
 
 export default EmbeddedBankCodingEditor;

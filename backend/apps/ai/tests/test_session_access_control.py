@@ -133,6 +133,12 @@ class SessionCreationAccessControlTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "pending")
         self.assertTrue(response.data["id"])
+        self.assertTrue(
+            AISession.objects.filter(
+                session_id=response.data["id"],
+                user=self.user1,
+            ).exists()
+        )
 
     def test_anonymous_user_cannot_create_session_placeholder(self):
         response = self.client.post("/api/v1/ai/sessions/new_session/", {}, format="json")

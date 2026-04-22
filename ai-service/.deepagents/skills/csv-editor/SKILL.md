@@ -10,6 +10,10 @@ csv_editor:
     禁止用 artifact_read + offset/limit 找符合條件的列。所有 CSV 動作都有專用工具,
     找對應的那一個就好。
 
+  note: >
+    所有 artifact 工具的 step 參數為 optional，正常流程省略即可（工具自動依 filename 定位）。
+    僅在同 session 出現同名檔案時才需帶 step 消歧義。
+
   decision_tree:
     - 問: 我要新開一份 CSV,資料直接來自 MCP / API 的 response?
       答: artifact_csv_from_json
@@ -29,9 +33,8 @@ csv_editor:
     artifact_csv_from_json:
       when: 從 MCP/API 的 response seed 一份新的 CSV(最常見的開檔場景)。
       minimum_example: |
-        # records 的每個元素已經就是一列 → identity mapping(省略 column_mapping)
+        # records 的每個元素已經就是一列 → identity mapping（省略 column_mapping）
         artifact_csv_from_json(
-          step="grade",
           filename="grade.csv",
           records=response["items"],                           # list of dict
           defaults={"score": "", "reason": "", "synced": ""},   # 補上 records 沒有的欄位
@@ -39,7 +42,7 @@ csv_editor:
       with_column_mapping: |
         # 當原始 record 的 key 跟想要的 CSV 欄名不同,或需要 dot-path 取巢狀欄位
         artifact_csv_from_json(
-          step="answers", filename="answers.csv",
+          filename="answers.csv",
           records=response["items"],
           column_mapping={
             "exam_answer_id": "exam_answer_id",
@@ -57,7 +60,7 @@ csv_editor:
       when: 你手上已經有 columns + rows(list of dicts),不是直接來自 response。
       minimum_example: |
         artifact_write_csv(
-          step="rubric", filename="rubric_scores.csv",
+          filename="rubric_scores.csv",
           columns=["criterion", "max_score"],
           rows=[{"criterion": "完整性", "max_score": 3}, ...],
         )
@@ -70,7 +73,7 @@ csv_editor:
       minimum_example: |
         # 還剩幾筆沒評?
         artifact_csv_search(
-          step="grade", filename="grade.csv",
+          filename="grade.csv",
           where={"score": ""},
         )
         # → {"matched": 45, "total_rows": 150}
@@ -85,7 +88,7 @@ csv_editor:
       minimum_example: |
         # 找所有 synced 還是空的列,取 batch_grade 需要的三欄,最多 20 筆
         batch = artifact_csv_to_json(
-          step="grade", filename="grade.csv",
+          filename="grade.csv",
           columns=["exam_answer_id", "score", "reason"],
           where={"synced": ""},
           limit=20,
@@ -110,7 +113,7 @@ csv_editor:
       minimum_example: |
         # 本批批改完,只送改動的 20 列
         artifact_csv_patch(
-          step="grade", filename="grade.csv",
+          filename="grade.csv",
           key_column="exam_answer_id",
           updates=[
             {"exam_answer_id": 2673, "score": "6", "reason": "..."},
@@ -132,7 +135,7 @@ csv_editor:
     artifact_read:
       when: debug / 人類可讀 / 想看 raw content。不要拿來解析 CSV 或找列。
       minimum_example: |
-        artifact_read(step="grade", filename="grade.csv", offset=0, limit=50)
+        artifact_read(filename="grade.csv", offset=0, limit=50)
       gotchas:
         - 回傳的 content 會在 200k 字元處被截斷;大檔必用 offset/limit。
         - 就算 .csv 也是回整段文字,不會幫你解析。解析用 csv_to_json / csv_search。

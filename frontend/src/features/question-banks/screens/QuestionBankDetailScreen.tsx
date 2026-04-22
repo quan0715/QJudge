@@ -210,8 +210,9 @@ const QuestionBankDetailScreen = () => {
   };
 
   const handleDeleteQuestion = async (question: BankQuestion) => {
+    if (!bank) return;
     try {
-      await deleteQuestion(question.bankItemId);
+      await deleteQuestion(bank.id, question.bankItemId);
       showToast({
         kind: "success",
         title: t("message.success"),

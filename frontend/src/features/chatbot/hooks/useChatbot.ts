@@ -1,9 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import i18n from "i18next";
 import type {
-  BackgroundInformation,
   ChatSession,
-  ChatContext,
   ModelInfo,
   ApprovalRequest,
   ChatRun,
@@ -45,18 +43,6 @@ interface UseChatbotReturn {
 interface UseChatbotOptions {
   /** 是否啟用（延遲初始化用） */
   enabled?: boolean;
-  /** 舊版背景資訊，會轉換為 ChatContext.custom */
-  backgroundInfo?: BackgroundInformation | null;
-  /** 背景上下文（統一的背景資訊結構） */
-  context?: ChatContext | null;
-  /** Agent commit 成功後觸發（通知父頁面重新載入資料） */
-  onProblemUpdated?: () => void;
-  /** 從 URL 傳入的 session ID，useChatbot 會在初始化後切換到此 session */
-  externalSessionId?: string;
-  /** 當 session 被建立/切換時的回調（用於 URL navigation） */
-  onSessionChange?: (newId: string) => void;
-  /** 當 session 被刪除時的回調（用於 URL navigation） */
-  onSessionDeleted?: (fallbackId: string | null) => void;
 }
 
 /**
@@ -263,15 +249,7 @@ export function applyRunMessageUpdate(
 }
 
 export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
-  const {
-    enabled = true,
-    backgroundInfo = null,
-    context = null,
-    onProblemUpdated: _onProblemUpdated,
-    externalSessionId,
-    onSessionChange,
-    onSessionDeleted,
-  } = options;
+  const { enabled = true } = options;
 
   // Notify shared ChatSessionContext to refresh when session list changes
   const { refreshSessions: refreshSharedSessions } = useChatSessionContext();
@@ -341,17 +319,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     sessions.find((session) => session.id === currentSessionId) ?? null;
   const isSessionLoading =
     currentSessionId !== null && loadingSessionIds.has(currentSessionId);
-
-  const effectiveContext = useMemo<ChatContext | null>(() => {
-    if (context) return context;
-    if (!backgroundInfo) return null;
-
-    return {
-      custom: {
-        backgroundInfo,
-      },
-    };
-  }, [backgroundInfo, context]);
 
   const applyActiveRunsToSessions = useCallback(
     (sessionList: ChatSession[], runs: ChatRun[]): ChatSession[] =>
@@ -501,14 +468,13 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         return next;
       });
       void refreshSharedSessions();
-      onSessionChange?.(newSession.id);
       return newSession.id;
     } catch (err) {
       console.error("Failed to create session:", err);
       setError(i18n.t("chatbot:errors.createSessionFailed"));
       return null;
     }
-  }, [setCurrentSessionId, refreshSharedSessions, onSessionChange]);
+  }, [setCurrentSessionId, refreshSharedSessions]);
 
   /**
    * 刪除 session
@@ -519,36 +485,32 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setError(null);
         await chatbotRepository.deleteSession(sessionId);
 
-        let fallback: string | null = null;
         let shouldCreate = false;
-        let shouldCallDeleted = false;
 
         setSessions((prev) => {
           const filtered = prev.filter((session) => session.id !== sessionId);
           if (sessionId === currentSessionId) {
-            fallback = filtered[0]?.id ?? null;
             if (filtered.length > 0) {
               setCurrentSessionId(filtered[0].id);
             } else {
+              setCurrentSessionId(null);
               shouldCreate = true;
             }
-            shouldCallDeleted = true;
           } else if (filtered.length === 0) {
+            setCurrentSessionId(null);
             shouldCreate = true;
-            shouldCallDeleted = true;
           }
           return filtered;
         });
 
         if (shouldCreate) void createSession();
-        if (shouldCallDeleted) onSessionDeleted?.(fallback);
         void refreshSharedSessions();
       } catch (err) {
         console.error("Failed to delete session:", err);
         setError(i18n.t("chatbot:errors.deleteSessionFailed"));
       }
     },
-    [currentSessionId, createSession, setCurrentSessionId, refreshSharedSessions, onSessionDeleted],
+    [currentSessionId, createSession, setCurrentSessionId, refreshSharedSessions],
   );
 
   /**
@@ -578,23 +540,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       }
     }
   }, [sessions, setCurrentSessionId]);
-
-  // Sync to URL-provided session ID after initialization completes
-  useEffect(() => {
-    if (!externalSessionId || isInitializing) return;
-    // Ignore stale temp session IDs from URL once we've already switched
-    // to a persisted backend session ID in memory.
-    if (
-      externalSessionId.startsWith("temp-")
-      && currentSessionId
-      && !currentSessionId.startsWith("temp-")
-    ) {
-      return;
-    }
-    if (currentSessionId !== externalSessionId) {
-      void switchSession(externalSessionId);
-    }
-  }, [externalSessionId, isInitializing, currentSessionId, switchSession]);
 
   /**
    * 重新命名 session
@@ -714,7 +659,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setError(errorMsg);
           // Transient SSE disconnect should auto-retry; do not drop active run.
           if (errorMsg.startsWith("任務訂閱失敗:")) {
-            setSessionNotice("連線中斷，嘗試重新連線…");
             setIsLoading(false);
             if (resubscribeTimerRef.current !== null) {
               window.clearTimeout(resubscribeTimerRef.current);
@@ -780,7 +724,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
             ),
           );
           setCurrentSessionId(newSessionData.id);
-          onSessionChange?.(newSessionData.id);
         } catch (err) {
           console.error("Failed to create backend session:", err);
           setError(i18n.t("chatbot:errors.createBackendSessionFailed"));
@@ -818,7 +761,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         const run = await chatbotRepository.startRun(
           sessionIdForRequest,
           trimmedContent,
-          { context: effectiveContext ?? undefined, modelOverride: selectedModelIdState },
+          { modelOverride: selectedModelIdState },
         );
         setActiveRuns((prev) => [...prev.filter((item) => item.id !== run.id), run]);
 
@@ -841,7 +784,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setSessionNotice(null);
       }
     },
-    [currentSessionId, effectiveContext, onSessionChange, selectedModelIdState, setCurrentSessionId],
+    [currentSessionId, selectedModelIdState, setCurrentSessionId],
   );
 
 

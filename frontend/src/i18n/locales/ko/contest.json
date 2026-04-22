@@ -12,10 +12,12 @@
     },
     "nav": {
       "clarifications": "Q&A",
+      "examAiGrading": "AI 채점",
       "examGrading": "시험 채점",
       "examManagement": "시험 관리",
       "examStatistics": "시험 통계",
       "grading": "채점",
+      "aiGrading": "AI 채점",
       "logs": "이벤트 로그",
       "overview": "개요",
       "participants": "참가자",
@@ -23,7 +25,8 @@
       "settings": "설정",
       "statistics": "통계"
     },
-    "title": "관리 대시보드"
+    "title": "관리 대시보드",
+    "mobileTitle": "대회 관리"
   },
   "adminOverview": {
     "actions": {

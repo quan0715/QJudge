@@ -57,6 +57,9 @@ export interface QuestionProgress {
   questionIndex: number;
   questionType: QuestionType;
   prompt: string;
+  explanation?: string;
+  correctAnswer?: unknown;
+  averageScore?: number;
   maxScore: number;
   totalAnswers: number;
   gradedCount: number;

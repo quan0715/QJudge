@@ -253,11 +253,6 @@ class OAuthCallbackView(SchemaAPIView):
             )
 
 
-# Legacy aliases — keep backward-compatible imports
-NYCUOAuthLoginView = type('NYCUOAuthLoginView', (OAuthLoginView,), {})
-NYCUOAuthCallbackView = type('NYCUOAuthCallbackView', (OAuthCallbackView,), {})
-
-
 __all__ = [
     "SchemaAPIView",
     "RegisterView",
@@ -265,6 +260,4 @@ __all__ = [
     "DevTokenView",
     "OAuthLoginView",
     "OAuthCallbackView",
-    "NYCUOAuthLoginView",
-    "NYCUOAuthCallbackView",
 ]

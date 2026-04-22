@@ -18,7 +18,7 @@ const buildProblemPayload = (title: string): ProblemUpsertPayload => ({
       input_data: "1 2\n",
       output_data: "3\n",
       is_sample: true,
-      score: 100,
+      weight_percent: 100,
     },
   ],
   language_configs: [

@@ -1,17 +1,12 @@
-import { useRef, useState, useCallback, useMemo, useEffect, useLayoutEffect } from "react";
-import { Add, ArrowUp, Checkmark, ChevronDown, InProgress } from "@carbon/icons-react";
-import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
+import { useRef, useState, useCallback, useEffect, useLayoutEffect } from "react";
+import { Add, ArrowUp, InProgress } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ChatMessage, ModelInfo } from "@/core/types/chatbot.types";
 import { SessionBadges, useSessionBadgeSummary } from "./SessionBadges";
+import { ModelSelect } from "./ModelSelect";
 import styles from "./ComposerBar.module.scss";
 
 const TEXTAREA_MAX_HEIGHT = 160; // sync with $chat-textarea-max-height in _variables.scss
-
-function normalizeModelLabel(label: string | undefined): string {
-  if (!label) return "gpt-5-nano";
-  return label.replace(/\s*\(Thinking\)\s*/gi, "").trim();
-}
 
 interface ComposerBarProps {
   onSend: (text: string) => void;
@@ -45,7 +40,6 @@ export function ComposerBar({
   const displayPlaceholder = placeholder || t("ui.inputPlaceholder");
 
   const [value, setValue] = useState("");
-  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   // Expanded layout: active when textarea wraps >= 2 visual lines OR the
   // session has badges to show. New chats with a single-line draft and no
   // badges stay in the compact pill layout.
@@ -54,29 +48,7 @@ export function ComposerBar({
   const isExpanded = isWrapped || badgeSummary.hasAny;
   const composingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const modelMenuRef = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
-  const selectedModel = useMemo(
-    () => models.find((model) => model.model_id === selectedModelId) ?? models[0],
-    [models, selectedModelId],
-  );
-
-  useEffect(() => {
-    if (disabled || isStreaming) {
-      setIsModelMenuOpen(false);
-    }
-  }, [disabled, isStreaming]);
-
-  useEffect(() => {
-    const onMouseDown = (event: MouseEvent) => {
-      if (!modelMenuRef.current) return;
-      if (!modelMenuRef.current.contains(event.target as Node)) {
-        setIsModelMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, []);
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim();
@@ -246,47 +218,23 @@ export function ComposerBar({
             </div>
           )}
           <div className={styles.rightTools}>
-            <div className={styles.modelSelectWrap} ref={modelMenuRef}>
-              {isStreaming && <span className={styles.streamDot} aria-hidden />}
-              <button
-                type="button"
-                className={styles.modelSelectButton}
-                onClick={() => setIsModelMenuOpen((open) => !open)}
-                disabled={disabled || isStreaming}
-                aria-label={t("ui.modelLabel")}
-                aria-haspopup="listbox"
-                aria-expanded={isModelMenuOpen}
-              >
-                <AiLaunch size={14} className={styles.modelIcon} aria-hidden />
-                <span className={styles.modelText}>
-                  {normalizeModelLabel(selectedModel?.display_name)}
-                </span>
-              </button>
-              <ChevronDown size={14} className={styles.modelChevron} aria-hidden />
-              {isModelMenuOpen && (
-                <div className={styles.modelMenu} role="listbox" aria-label={t("ui.modelLabel")}>
-                  {models.map((model) => {
-                    const isActive = model.model_id === selectedModelId;
-                    return (
-                      <button
-                        key={model.model_id}
-                        type="button"
-                        className={`${styles.modelOption} ${isActive ? styles.modelOptionActive : ""}`}
-                        role="option"
-                        aria-selected={isActive}
-                        onClick={() => {
-                          onModelChange(model.model_id);
-                          setIsModelMenuOpen(false);
-                        }}
-                      >
-                        <span>{normalizeModelLabel(model.display_name)}</span>
-                        {isActive && <Checkmark size={14} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <ModelSelect
+              models={models}
+              selectedModelId={selectedModelId}
+              onChange={onModelChange}
+              disabled={disabled || isStreaming}
+              showStreamDot={isStreaming}
+              menuPlacement="top"
+              classes={{
+                wrap: styles.modelSelectWrap,
+                button: styles.modelSelectButton,
+                menu: styles.modelMenu,
+                text: styles.modelText,
+                icon: styles.modelIcon,
+                chevron: styles.modelChevron,
+                streamDot: styles.streamDot,
+              }}
+            />
             {isStreaming ? (
               <button
                 type="button"

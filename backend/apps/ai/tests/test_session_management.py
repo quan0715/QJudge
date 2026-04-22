@@ -115,6 +115,33 @@ class SessionMessageManagementTestCase(TestCase):
         self.assertEqual(response.data["message_count"], 2)
         self.assertEqual(len(response.data["messages"]), 2)
 
+    def test_clear_session_preserves_context_metadata(self):
+        self.session.context = {
+            "title": "Message Session",
+            "task_manifest": {
+                "schema_version": 1,
+                "task_type": "grading.question",
+                "context": {"contest_id": "contest-1", "question_id": "question-1"},
+            },
+        }
+        self.session.save(update_fields=["context"])
+        AIMessage.objects.create(session=self.session, role=AIMessage.Role.USER, content="Hello")
+
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        response = client.post(
+            f"/api/v1/ai/sessions/{self.session.session_id}/clear/",
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.session.refresh_from_db()
+        self.assertEqual(self.session.context["title"], "Message Session")
+        self.assertEqual(
+            self.session.context["task_manifest"]["task_type"],
+            "grading.question",
+        )
+
 
 class SessionContextManagementTestCase(TestCase):
     """Test session context endpoint."""

@@ -8,6 +8,9 @@ interface ChatSessionContextValue {
   sessions: ChatSession[];
   isLoadingSessions: boolean;
   refreshSessions: () => Promise<void>;
+  /** 其他流程（如批改）建立 session 後，用這個通知已掛載的 ChatContainer 切到該 session。 */
+  activeSessionRequest: string | null;
+  requestActiveSession: (id: string) => void;
 }
 
 const ChatSessionContext = createContext<ChatSessionContextValue | undefined>(undefined);
@@ -18,6 +21,7 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const [activeSessionRequest, setActiveSessionRequest] = useState<string | null>(null);
 
   const refreshSessions = useCallback(async () => {
     if (!isTeacherOrAdmin) return;
@@ -32,6 +36,10 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
     }
   }, [isTeacherOrAdmin]);
 
+  const requestActiveSession = useCallback((id: string) => {
+    setActiveSessionRequest(id);
+  }, []);
+
   useEffect(() => {
     if (isTeacherOrAdmin) {
       void refreshSessions();
@@ -39,7 +47,15 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
   }, [isTeacherOrAdmin, refreshSessions]);
 
   return (
-    <ChatSessionContext.Provider value={{ sessions, isLoadingSessions, refreshSessions }}>
+    <ChatSessionContext.Provider
+      value={{
+        sessions,
+        isLoadingSessions,
+        refreshSessions,
+        activeSessionRequest,
+        requestActiveSession,
+      }}
+    >
       {children}
     </ChatSessionContext.Provider>
   );

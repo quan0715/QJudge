@@ -10,6 +10,7 @@ export type AdminPanelId =
   | "participants"
   | "problem_editor"
   | "grading"
+  | "ai-grading"
   | "statistics"
   | "settings";
 

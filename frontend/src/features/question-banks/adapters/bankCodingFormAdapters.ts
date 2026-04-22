@@ -108,7 +108,7 @@ export function formSchemaToUpsertPayload(
         output_data: tc.output,
         is_sample: tc.isSample ?? false,
         is_hidden: tc.isHidden ?? false,
-        score: tc.score ?? 0,
+        weight_percent: tc.score ?? 0,
         order: tc.order ?? index,
       })),
       languageConfigs: data.languageConfigs

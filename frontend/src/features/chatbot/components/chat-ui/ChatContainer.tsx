@@ -2,34 +2,23 @@ import { useCallback, useEffect, useRef } from "react";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { Group, Panel, Separator } from "react-resizable-panels";
-import { useChatbot } from "../../hooks/useChatbot";
-import type { ChatContext, ChatMessage, ChatSession, ModelInfo } from "@/core/types/chatbot.types";
+import { useChatbotContext } from "../../contexts/ChatbotProvider";
+import type { ChatMessage, ChatSession, ModelInfo } from "@/core/types/chatbot.types";
 import { MessageList } from "./MessageList";
 import { ComposerBar } from "./ComposerBar";
 import { ChatTopBar } from "./ChatTopBar";
-import {
-  ArtifactPanelProvider,
-  useArtifactPanel,
-} from "@/features/chatbot/contexts/ArtifactPanelContext";
+import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { ArtifactPanel } from "../artifact/ArtifactPanel";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import styles from "./ChatContainer.module.scss";
 
 interface ChatContainerProps {
   mode: "full" | "sidebar";
-  context?: ChatContext | null;
-  onProblemUpdated?: () => void;
   onClose?: () => void;
   className?: string;
-  /** full-page 模式：當前 URL session ID */
-  externalSessionId?: string;
-  /** full-page 模式：session 建立/切換後的導航回調 */
-  onSessionChange?: (newId: string) => void;
-  /** full-page 模式：session 刪除後的導航回調 */
-  onSessionDeleted?: (fallbackId: string | null) => void;
 }
 
-export function ChatContainer({ mode, context, onProblemUpdated, onClose, className, externalSessionId, onSessionChange, onSessionDeleted }: ChatContainerProps) {
+export function ChatContainer({ mode, onClose, className }: ChatContainerProps) {
   const { t } = useTranslation("chatbot");
   const {
     sessions,
@@ -51,14 +40,7 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
     uploadArtifact,
     stopStreaming,
     submitApproval,
-  } = useChatbot({
-    enabled: true,
-    context,
-    onProblemUpdated,
-    externalSessionId: mode === "full" ? externalSessionId : undefined,
-    onSessionChange: mode === "full" ? onSessionChange : undefined,
-    onSessionDeleted: mode === "full" ? onSessionDeleted : undefined,
-  });
+  } = useChatbotContext();
 
   const handleNewChat = useCallback(() => {
     createSession();
@@ -93,37 +75,35 @@ export function ChatContainer({ mode, context, onProblemUpdated, onClose, classN
   const sessionTitle = currentSession?.title || t("ui.newChat");
 
   return (
-    <ArtifactPanelProvider sessionId={currentSessionId}>
-      <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
-        <ChatContainerBody
-          mode={mode}
-          sessionTitle={sessionTitle}
-          sessions={sessions}
-          currentSessionId={currentSessionId}
-          messages={messages}
-          isSessionLoading={isSessionLoading}
-          pendingApproval={pendingApproval}
-          availableModels={availableModels}
-          selectedModelId={selectedModelId}
-          setSelectedModelId={setSelectedModelId}
-          isStreaming={isStreaming}
-          sessionNotice={sessionNotice}
-          onSelectSession={handleSelectSession}
-          onNewChat={handleNewChat}
-          onRenameSession={renameSession}
-          onDeleteSession={deleteSession}
-          sendMessage={sendMessage}
-          uploadArtifact={uploadArtifact}
-          stopStreaming={stopStreaming}
-          onApproval={handleApproval}
-          onClose={onClose}
-        />
-      </div>
-    </ArtifactPanelProvider>
+    <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
+      <ChatContainerBody
+        mode={mode}
+        sessionTitle={sessionTitle}
+        sessions={sessions}
+        currentSessionId={currentSessionId}
+        messages={messages}
+        isSessionLoading={isSessionLoading}
+        pendingApproval={pendingApproval}
+        availableModels={availableModels}
+        selectedModelId={selectedModelId}
+        setSelectedModelId={setSelectedModelId}
+        isStreaming={isStreaming}
+        sessionNotice={sessionNotice}
+        onSelectSession={handleSelectSession}
+        onNewChat={handleNewChat}
+        onRenameSession={renameSession}
+        onDeleteSession={deleteSession}
+        sendMessage={sendMessage}
+        uploadArtifact={uploadArtifact}
+        stopStreaming={stopStreaming}
+        onApproval={handleApproval}
+        onClose={onClose}
+      />
+    </div>
   );
 }
 
-type UseChatbotReturn = ReturnType<typeof useChatbot>;
+type UseChatbotReturn = ReturnType<typeof useChatbotContext>;
 
 interface ChatContainerBodyProps {
   mode: "full" | "sidebar";
