@@ -40,7 +40,7 @@ const ContestAiGradingScreen: React.FC = () => {
     restore,
     clear,
   } = useAiQuestionGrading();
-  const { requestActiveSession } = useChatSessionContext();
+  const { sessions, requestActiveSession } = useChatSessionContext();
   const { right } = useWorkspace();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [sessionIdInput, setSessionIdInput] = useState("");
@@ -302,13 +302,17 @@ const ContestAiGradingScreen: React.FC = () => {
             {t("grading.startAiGrading", "開始 AI 批改")}
           </Button>
           {error ? <span className={styles.errorText}>{error}</span> : null}
-          <TextInput
+          <Dropdown
             id="ai-grading-session-id"
-            labelText={t("grading.bindSessionLabel", "綁定既有批改 session ID")}
-            placeholder={t("grading.bindSessionPlaceholder", "貼上 session UUID")}
+            titleText={t("grading.bindSessionLabel", "綁定既有批改 session")}
+            label={t("grading.bindSessionPlaceholder", "選擇要綁定的 session")}
             size="sm"
-            value={sessionIdInput}
-            onChange={(e) => setSessionIdInput(e.target.value)}
+            items={sessions}
+            itemToString={(item) =>
+              item ? `${item.title || t("grading.untitledSession", "(未命名 session)")} · ${item.id.slice(0, 8)}` : ""
+            }
+            selectedItem={sessions.find((session) => session.id === sessionIdInput) ?? null}
+            onChange={({ selectedItem }) => setSessionIdInput(selectedItem?.id ?? "")}
           />
           <div className={styles.actionButtons}>
             <Button
