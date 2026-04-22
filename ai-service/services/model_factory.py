@@ -5,14 +5,47 @@ To switch models, change _MODEL_MAP and PRICING. Everything else
 """
 
 import logging
+from typing import Any
 
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_deepseek import ChatDeepSeek
 from langchain_openai import ChatOpenAI
 
 from config import get_settings
+from services.tpm_gate import (
+    TpmBudget,
+    estimate_input_tokens,
+    get_or_create_budget,
+)
 
 logger = logging.getLogger(__name__)
+
+
+class TpmGatedChatOpenAI(ChatOpenAI):
+    """``ChatOpenAI`` variant that pauses for a rolling-60 s TPM budget.
+
+    The budget is attached per-instance via ``_qjudge_tpm_budget`` (set
+    in :func:`ModelFactory.create_model`). If no budget is attached,
+    behaviour is identical to :class:`ChatOpenAI` — this class is a
+    drop-in replacement and safe to use for non-gated models too.
+
+    We override the public ``ainvoke`` / ``astream`` entry points. DeepAgent
+    and LangGraph both call one of these for every model turn, so gating
+    here catches every call that would otherwise contribute to TPM.
+    """
+
+    async def ainvoke(self, input, config=None, *, stop=None, **kwargs):  # type: ignore[override]
+        budget: TpmBudget | None = getattr(self, "_qjudge_tpm_budget", None)
+        if budget is not None:
+            await budget.wait(estimate_input_tokens(input))
+        return await super().ainvoke(input, config, stop=stop, **kwargs)
+
+    async def astream(self, input, config=None, *, stop=None, **kwargs):  # type: ignore[override]
+        budget: TpmBudget | None = getattr(self, "_qjudge_tpm_budget", None)
+        if budget is not None:
+            await budget.wait(estimate_input_tokens(input))
+        async for chunk in super().astream(input, config, stop=stop, **kwargs):
+            yield chunk
 
 # Canonical model ID -> provider model string (fixed in code, not env-configured)
 _MODEL_MAP: dict[str, str] = {
@@ -37,6 +70,24 @@ _OPENAI_REASONING_EFFORT: dict[str, str | None] = {
 _OPENAI_RATE_LIMIT_RPS: dict[str, float] = {
     "openai-mini": 2.0,
     "openai-mini-medium": 2.0,
+}
+
+# Canonical model ID -> upstream TPM limit (tokens per minute). Used by the
+# proactive TPM gate. Both openai-mini* variants resolve to ``gpt-5.4-mini``
+# on the OpenAI side and share the same quota; the gate keys on the provider
+# model string so the budget is shared across them.
+_OPENAI_TPM_LIMIT: dict[str, int] = {
+    "openai-mini": 200_000,
+    "openai-mini-medium": 200_000,
+}
+
+# Canonical model ID -> OpenAI SDK ``max_retries``. Raised from the SDK
+# default (2) for models prone to transient 429s; the SDK honours
+# ``Retry-After`` with exponential backoff so most TPM breaches that slip
+# past the gate self-heal without surfacing to the user.
+_OPENAI_MAX_RETRIES: dict[str, int] = {
+    "openai-mini": 6,
+    "openai-mini-medium": 6,
 }
 
 _DEFAULT_MODEL_ID = "openai-nano"
@@ -153,6 +204,10 @@ class ModelFactory:
                     check_every_n_seconds=0.1,
                     max_bucket_size=1,
                 )
+            max_retries = _OPENAI_MAX_RETRIES.get(model_id)
+            if max_retries is not None:
+                # OpenAI SDK will honour Retry-After on 429s across retries.
+                openai_kwargs["max_retries"] = max_retries
             if reasoning_effort:
                 # Route via Responses API: gpt-5.x + function tools + reasoning_effort
                 # is rejected by /v1/chat/completions ("not supported, use /v1/responses").
@@ -169,7 +224,16 @@ class ModelFactory:
                 }
                 openai_kwargs["use_responses_api"] = True
                 openai_kwargs["output_version"] = "responses/v1"
-            model = ChatOpenAI(**openai_kwargs)
+            model = TpmGatedChatOpenAI(**openai_kwargs)
+            tpm_limit = _OPENAI_TPM_LIMIT.get(model_id)
+            if tpm_limit:
+                # Shared per upstream model string so openai-mini and
+                # openai-mini-medium contend for the same 200K/min budget.
+                setattr(
+                    model,
+                    "_qjudge_tpm_budget",
+                    get_or_create_budget(model_string, tpm_limit),
+                )
         else:
             api_key = settings.deepseek_api_key
             logger.info("Creating ChatDeepSeek model=%s (from '%s')", model_string, model_id)
