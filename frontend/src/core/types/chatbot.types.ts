@@ -17,7 +17,8 @@ export type StreamEventType =
   | "run_completed"
   | "run_failed"
   | "run_cancelled"
-  | "awaiting_approval";
+  | "awaiting_approval"
+  | "awaiting_user_answer";
 
 export interface BaseStreamEvent {
   type: StreamEventType;
@@ -95,12 +96,14 @@ export interface ChatMessage {
   runStatus?: ChatRunStatus;
   runError?: string;
   lastEventSeq?: number;
+  nextTurnOptions?: NextTurnOption[];
 }
 
 export type ChatRunStatus =
   | "queued"
   | "running"
   | "awaiting_approval"
+  | "awaiting_user_answer"
   | "completed"
   | "failed"
   | "cancelled";
@@ -115,6 +118,11 @@ export interface ChatRun {
   approvalPayload?: {
     action_requests?: ApprovalActionRequest[];
     review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
+  };
+  questionPayload?: {
+    question?: string;
+    options?: string[];
+    input_type?: string;
   };
   userMessageId?: number;
   assistantMessageId?: number;
@@ -215,6 +223,19 @@ export interface ApprovalRequest {
   reviewConfigs?: Array<{ actionName: string; allowedDecisions: string[] }>;
 }
 
+// ===== Agent Question =====
+export interface QuestionRequest {
+  question: string;
+  options?: string[];
+  inputType?: "text" | "choice";
+}
+
+// ===== Next Turn Options =====
+export interface NextTurnOption {
+  label: string;
+  message: string;
+}
+
 // ===== Stream Callbacks =====
 export interface StreamCallbacks {
   onMessageUpdate?: (message: Partial<ChatMessage>) => void;
@@ -222,6 +243,8 @@ export interface StreamCallbacks {
   onError?: (error: string) => void;
   onVerificationReport?: (report: VerificationReport) => void;
   onAwaitingApproval?: (request: ApprovalRequest) => void;
+  onAwaitingUserAnswer?: (request: QuestionRequest) => void;
+  onNextTurnOptions?: (options: NextTurnOption[]) => void;
   onSessionNotice?: (notice: string | null) => void;
   onTodoItemsUpdate?: (items: RunTodoItem[] | null) => void;
 }

@@ -37,18 +37,16 @@ export function ChatbotProvider({ children }: { children: ReactNode }) {
       handledRequestRef.current = activeSessionRequest;
       return;
     }
-    if (
-      activeSessionRequest.startsWith("temp-") &&
-      current.currentSessionId &&
-      !current.currentSessionId.startsWith("temp-")
-    ) {
-      handledRequestRef.current = activeSessionRequest;
-      return;
-    }
-
     handledRequestRef.current = activeSessionRequest;
     const inList = current.sessions.some((s) => s.id === activeSessionRequest);
     if (!inList) {
+      if (
+        activeSessionRequest.startsWith("temp-") &&
+        current.currentSessionId &&
+        !current.currentSessionId.startsWith("temp-")
+      ) {
+        return;
+      }
       void current.refreshSessions();
     }
     void current.switchSession(activeSessionRequest);
@@ -69,4 +67,8 @@ export function useChatbotContext(): ChatbotContextValue {
     throw new Error("useChatbotContext must be used within <ChatbotProvider>");
   }
   return ctx;
+}
+
+export function useOptionalChatbotContext(): ChatbotContextValue | null {
+  return useContext(ChatbotContext);
 }

@@ -4,6 +4,8 @@ import type {
   ChatSession,
   ModelInfo,
   ApprovalRequest,
+  QuestionRequest,
+  NextTurnOption,
   ChatRun,
   ChatMessage,
   ToolInfo,
@@ -23,9 +25,12 @@ interface UseChatbotReturn {
   isSessionLoading: boolean;
   error: string | null;
   pendingApproval: ApprovalRequest | null;
+  pendingQuestion: QuestionRequest | null;
+  nextTurnOptions: NextTurnOption[] | null;
   sessionNotice: string | null;
   availableModels: ModelInfo[];
   selectedModelId: string;
+  activeRuns: ChatRun[];
   setSelectedModelId: (modelId: string) => void;
   createSession: () => Promise<string | null>;
   deleteSession: (sessionId: string) => Promise<void>;
@@ -37,6 +42,8 @@ interface UseChatbotReturn {
   refreshSessions: () => Promise<void>;
   submitApproval: (decision: "approve" | "reject") => Promise<void>;
   dismissApproval: () => void;
+  submitAnswer: (answer: string) => Promise<void>;
+  dismissQuestion: () => void;
   clearError: () => void;
 }
 
@@ -274,6 +281,10 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const [error, setError] = useState<string | null>(null);
   const [pendingApproval, setPendingApproval] =
     useState<ApprovalRequest | null>(null);
+  const [pendingQuestion, setPendingQuestion] =
+    useState<QuestionRequest | null>(null);
+  const [nextTurnOptions, setNextTurnOptions] =
+    useState<NextTurnOption[] | null>(null);
   const [sessionNotice, setSessionNotice] = useState<string | null>(null);
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>(FALLBACK_MODELS);
   const [selectedModelIdState, setSelectedModelIdState] = useState<string>(() => {
@@ -682,6 +693,13 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setPendingApproval(request);
           setIsLoading(false);
         },
+        onAwaitingUserAnswer: (request) => {
+          setPendingQuestion(request);
+          setIsLoading(false);
+        },
+        onNextTurnOptions: (options) => {
+          setNextTurnOptions(options);
+        },
       },
       { signal: controller.signal },
     );
@@ -702,6 +720,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     async (content: string) => {
       if (!content.trim() || !currentSessionId) return;
 
+      setNextTurnOptions(null);
       const trimmedContent = content.trim();
       let sessionIdForRequest = currentSessionId;
 
@@ -849,6 +868,45 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     setPendingApproval(null);
   }, []);
 
+  /**
+   * 提交用戶回答（回覆 agent 的提問）
+   */
+  const submitAnswer = useCallback(
+    async (answer: string) => {
+      const run = activeRuns.find(
+        (r) =>
+          r.sessionId === currentSessionId &&
+          r.status === "awaiting_user_answer",
+      );
+      if (!run) return;
+
+      setIsStreaming(true);
+      setIsLoading(true);
+
+      try {
+        const updatedRun = await chatbotRepository.submitRunAnswer(run.id, answer);
+        setActiveRuns((prev) =>
+          prev.map((item) => (item.id === updatedRun.id ? updatedRun : item)),
+        );
+        setSubscribeEpoch((n) => n + 1);
+        setPendingQuestion(null);
+      } catch (err) {
+        console.error("Submit answer error:", err);
+        setError(i18n.t("chatbot:errors.submitAnswerFailed", "無法提交回答"));
+        setIsStreaming(false);
+        setIsLoading(false);
+      }
+    },
+    [activeRuns, currentSessionId],
+  );
+
+  /**
+   * 關閉提問卡片（不回答）
+   */
+  const dismissQuestion = useCallback(() => {
+    setPendingQuestion(null);
+  }, []);
+
   const uploadArtifact = useCallback(async (file: File) => {
     const sessionId = currentSessionId;
     if (!sessionId) return;
@@ -957,9 +1015,12 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     isSessionLoading,
     error,
     pendingApproval,
+    pendingQuestion,
+    nextTurnOptions,
     sessionNotice,
     availableModels,
     selectedModelId: selectedModelIdState,
+    activeRuns,
     setSelectedModelId,
     createSession,
     deleteSession,
@@ -971,6 +1032,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     refreshSessions,
     submitApproval,
     dismissApproval,
+    submitAnswer,
+    dismissQuestion,
     clearError,
   };
 }

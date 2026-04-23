@@ -17,6 +17,7 @@
     "renameSessionFailed": "Failed to rename conversation",
     "resumeAfterAnswerFailed": "Answer sent, but failed to resume stream. Please refresh the page.",
     "resumeAgentFailed": "Failed to resume agent execution",
+    "submitAnswerFailed": "답변 제출에 실패했습니다",
     "sendMessageFailed": "Failed to send message",
     "submitAnswerFailed": "Failed to submit answer",
     "unknownError": "Unknown error"
@@ -78,6 +79,10 @@
     "toolConfirm": "도구 호출 확인",
     "confirmAction": "실행 확인",
     "cancelAction": "취소",
+    "agentQuestion": "AI 조교 질문",
+    "questionPlaceholder": "답변을 입력하세요…",
+    "submitAnswer": "답변 제출",
+    "skipQuestion": "건너뛰기",
     "loading": "로딩 중...",
     "scrollToBottom": "맨 아래로 스크롤",
     "useSkill": "스킬 사용 {{skillName}}"

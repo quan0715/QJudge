@@ -2,11 +2,13 @@ import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowDown } from "@carbon/icons-react";
 import { Button, SkeletonText } from "@carbon/react";
-import type { ChatMessage } from "@/core/types/chatbot.types";
-import type { ApprovalRequest } from "@/core/types/chatbot.types";
+import type { ChatMessage, NextTurnOption } from "@/core/types/chatbot.types";
+import type { ApprovalRequest, QuestionRequest } from "@/core/types/chatbot.types";
 import { useChatScrollToBottom } from "../../hooks/useChatScrollToBottom";
 import { MessageBubble } from "./MessageBubble";
 import { HITLCard } from "./HITLCard";
+import { QuestionCard } from "./QuestionCard";
+import { NextTurnChips } from "./NextTurnChips";
 import styles from "./MessageList.module.scss";
 
 interface MessageListProps {
@@ -15,6 +17,12 @@ interface MessageListProps {
   isLoading?: boolean;
   pendingApproval: ApprovalRequest | null;
   onApprovalDecision: (decision: "approve" | "reject") => void;
+  pendingQuestion?: QuestionRequest | null;
+  onQuestionSubmit?: (answer: string) => void;
+  onQuestionDismiss?: () => void;
+  nextTurnOptions?: NextTurnOption[] | null;
+  onNextTurnSelect?: (message: string) => void;
+  isStreaming?: boolean;
 }
 
 export function MessageList({
@@ -23,6 +31,12 @@ export function MessageList({
   isLoading = false,
   pendingApproval,
   onApprovalDecision,
+  pendingQuestion,
+  onQuestionSubmit,
+  onQuestionDismiss,
+  nextTurnOptions,
+  onNextTurnSelect,
+  isStreaming,
 }: MessageListProps) {
   const { t } = useTranslation("chatbot");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,6 +77,19 @@ export function MessageList({
         {!isLoading && pendingApproval && (
           <HITLCard request={pendingApproval} onDecision={onApprovalDecision} />
         )}
+
+        {!isLoading && pendingQuestion && onQuestionSubmit && (
+          <QuestionCard
+            request={pendingQuestion}
+            onSubmit={onQuestionSubmit}
+            onDismiss={onQuestionDismiss}
+          />
+        )}
+
+        {!isLoading && !isStreaming && !pendingApproval && !pendingQuestion &&
+          nextTurnOptions?.length && onNextTurnSelect ? (
+          <NextTurnChips options={nextTurnOptions} onSelect={onNextTurnSelect} />
+        ) : null}
       </div>
 
       {showScrollButton && (

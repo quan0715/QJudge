@@ -17,6 +17,7 @@
     "renameSessionFailed": "Failed to rename conversation",
     "resumeAfterAnswerFailed": "Answer sent, but failed to resume stream. Please refresh the page.",
     "resumeAgentFailed": "Failed to resume agent execution",
+    "submitAnswerFailed": "Failed to submit answer",
     "sendMessageFailed": "Failed to send message",
     "submitAnswerFailed": "Failed to submit answer",
     "unknownError": "Unknown error"
@@ -82,6 +83,10 @@
     "toolConfirm": "Tool Call Confirmation",
     "confirmAction": "Confirm Execution",
     "cancelAction": "Cancel",
+    "agentQuestion": "Agent Question",
+    "questionPlaceholder": "Type your answer…",
+    "submitAnswer": "Submit Answer",
+    "skipQuestion": "Skip",
     "loading": "Loading...",
     "scrollToBottom": "Scroll to bottom",
     "useSkill": "Use skill {{skillName}}"

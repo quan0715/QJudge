@@ -17,6 +17,7 @@
     "renameSessionFailed": "Failed to rename conversation",
     "resumeAfterAnswerFailed": "Answer sent, but failed to resume stream. Please refresh the page.",
     "resumeAgentFailed": "Failed to resume agent execution",
+    "submitAnswerFailed": "回答の送信に失敗しました",
     "sendMessageFailed": "Failed to send message",
     "submitAnswerFailed": "Failed to submit answer",
     "unknownError": "Unknown error"
@@ -78,6 +79,10 @@
     "toolConfirm": "ツールの呼び出し確認",
     "confirmAction": "実行を確認",
     "cancelAction": "キャンセル",
+    "agentQuestion": "AIアシスタントの質問",
+    "questionPlaceholder": "回答を入力…",
+    "submitAnswer": "回答を送信",
+    "skipQuestion": "スキップ",
     "loading": "読み込み中...",
     "scrollToBottom": "一番下までスクロール",
     "useSkill": "スキルを使用する {{skillName}}"

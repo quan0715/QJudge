@@ -27,6 +27,7 @@ export interface ChatbotRepository {
   ): Promise<void>;
   cancelRun(runId: string): Promise<ChatRun>;
   submitRunApproval(runId: string, decision: "approve" | "reject"): Promise<ChatRun>;
+  submitRunAnswer(runId: string, answer: string): Promise<ChatRun>;
 
   // v2: Model list
   getModels(): Promise<ModelInfo[]>;

@@ -35,7 +35,8 @@ interface V2StreamEvent {
     | "run_completed"
     | "run_failed"
     | "run_cancelled"
-    | "awaiting_approval";
+    | "awaiting_approval"
+    | "awaiting_user_answer";
   seq?: number;
   run_status?: string;
 
@@ -76,6 +77,14 @@ interface V2StreamEvent {
   review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
   todos?: RunTodoInputItem[];
   todo_items?: RunTodoInputItem[];
+
+  // awaiting_user_answer
+  question?: string;
+  options?: string[];
+  input_type?: string;
+
+  // run_completed — next_turn_options
+  next_turn_options?: Array<{ label: string; message: string }>;
 
 }
 
@@ -123,6 +132,11 @@ interface BackendRun {
   approval_payload?: {
     action_requests?: Array<{ name: string; args?: Record<string, unknown> }>;
     review_configs?: Array<{ action_name: string; allowed_decisions: string[] }>;
+  };
+  question_payload?: {
+    question?: string;
+    options?: string[];
+    input_type?: string;
   };
   user_message_id?: number;
   assistant_message_id?: number;
@@ -439,6 +453,7 @@ function convertBackendRun(run: BackendRun): ChatRun {
     modelId: run.model_id,
     lastEventSeq: run.last_event_seq,
     approvalPayload: run.approval_payload,
+    questionPayload: run.question_payload,
     userMessageId: run.user_message_id,
     assistantMessageId: run.assistant_message_id,
     error: run.error,
@@ -697,6 +712,14 @@ const chatbotRepository: ChatbotRepository = {
     return convertBackendRun(data);
   },
 
+  async submitRunAnswer(runId: string, answer: string): Promise<ChatRun> {
+    const data = await requestJson<BackendRun>(
+      httpClient.post(`${AI_BASE}/runs/${runId}/answer/`, { answer }),
+      "無法提交回答"
+    );
+    return convertBackendRun(data);
+  },
+
   /** Internal: handle a single SSE event */
   _handleStreamEvent(
     event: V2StreamEvent,
@@ -866,6 +889,14 @@ const chatbotRepository: ChatbotRepository = {
         console.debug("SSE: run_completed", { runId: event.run_id });
         callbacks.onSessionNotice?.(null);
         callbacks.onTodoItemsUpdate?.(null);
+        if (event.next_turn_options?.length) {
+          callbacks.onNextTurnOptions?.(
+            event.next_turn_options.map((o) => ({
+              label: o.label,
+              message: o.message,
+            }))
+          );
+        }
         // Fetch fresh session
         this.getSession(resolvedSessionId)
           .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
@@ -921,6 +952,18 @@ const chatbotRepository: ChatbotRepository = {
               actionName: r.action_name,
               allowedDecisions: r.allowed_decisions,
             })),
+          });
+        }
+        break;
+      }
+
+      case "awaiting_user_answer": {
+        callbacks.onSessionNotice?.(null);
+        if (event.question) {
+          callbacks.onAwaitingUserAnswer?.({
+            question: event.question,
+            options: event.options,
+            inputType: (event.input_type as "text" | "choice") ?? "text",
           });
         }
         break;
