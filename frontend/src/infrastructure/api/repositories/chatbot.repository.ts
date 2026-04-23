@@ -498,7 +498,7 @@ const chatbotRepository: ChatbotRepository = {
     let nextUrl: string | null = `${BASE_URL}/`;
 
     while (nextUrl) {
-      const response = await requestJson<PaginatedResponse<BackendSessionListItem>>(
+      const response: PaginatedResponse<BackendSessionListItem> = await requestJson(
         httpClient.get(nextUrl),
         "無法載入對話列表"
       );
@@ -506,7 +506,7 @@ const chatbotRepository: ChatbotRepository = {
       // DRF returns absolute URLs (e.g. http://backend:8000/api/...)
       // which cause mixed-content errors. Extract path + query only.
       if (response.next) {
-        const parsed = new URL(response.next, window.location.origin);
+        const parsed: URL = new URL(response.next, window.location.origin);
         nextUrl = parsed.pathname + parsed.search;
       } else {
         nextUrl = null;
