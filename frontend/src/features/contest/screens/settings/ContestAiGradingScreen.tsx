@@ -1,18 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, FluidDropdown, Loading, Modal, TextArea } from "@carbon/react";
-import {
-  CheckboxCheckedFilled,
-  CheckboxIndeterminate,
-  Checkbox as CheckboxIcon,
-  Document,
-  List,
-  Pause,
-  Renew,
-  Return,
-  Send,
-  Undo,
-} from "@carbon/icons-react";
+import { Loading } from "@carbon/react";
+import { Document, List, Pause, Renew, Return } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
 import { useContest } from "@/features/contest/contexts/ContestContext";
@@ -39,17 +28,17 @@ import {
   gradeExamAnswer,
   ungradeExamAnswer,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
-import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
+import { GradingBulkToolbar, type ScoreFilterOption } from "./grading/components/GradingBulkToolbar";
+import {
+  BulkRevertModal,
+  BulkSubmitModal,
+  RegradeChoiceModal,
+  RetryGradingModal,
+} from "./grading/components/GradingModals";
 import styles from "./ContestAiGradingScreen.module.scss";
 
 const EXCLUDED_MODEL_IDS = new Set(["openai-nano", "deepseek-v3"]);
 const AI_GRADING_QUESTION_PARAM = "ai_grading_question";
-
-interface ScoreFilterOption {
-  id: string;
-  label: string;
-  score: number | null;
-}
 
 function toSingleLineLabel(value: string | undefined): string {
   return (value ?? "")
@@ -875,85 +864,24 @@ const ContestAiGradingScreen: React.FC = () => {
             <EmptyState title={t("grading.noAnswersForQuestion", "此題目尚無學生作答")} compact />
           ) : (
             <>
-              <div className={styles.bulkBar}>
-                <FilterPopover
-                  hasActiveFilters={scoreFilterId !== "all"}
-                  triggerLabel={t("grading.scoreFilterLabel", "建議分數篩選")}
-                  onReset={() => setScoreFilterId("all")}
-                  align="bottom-left"
-                >
-                  <FluidDropdown
-                    id="ai-grading-score-filter"
-                    titleText={t("grading.scoreFilterLabel", "建議分數篩選")}
-                    label={t("grading.scoreFilterAll", "全部建議分數")}
-                    items={scoreFilterOptions}
-                    selectedItem={selectedScoreFilter}
-                    itemToString={(item) => (item as ScoreFilterOption | null)?.label ?? ""}
-                    onChange={({ selectedItem }) => {
-                      setScoreFilterId((selectedItem as ScoreFilterOption | null)?.id ?? "all");
-                    }}
-                  />
-                </FilterPopover>
-                <Button
-                  kind="ghost"
-                  size="md"
-                  hasIconOnly
-                  renderIcon={
-                    allFilteredSelected
-                      ? CheckboxCheckedFilled
-                      : someFilteredSelected
-                      ? CheckboxIndeterminate
-                      : CheckboxIcon
-                  }
-                  iconDescription={
-                    allFilteredSelected
-                      ? t("grading.bulkDeselectAll", "取消全選（目前篩選）")
-                      : t("grading.bulkSelectAll", "全選（目前篩選）")
-                  }
-                  disabled={filteredRows.length === 0}
-                  onClick={handleToggleSelectAllFiltered}
-                />
-                <span className={styles.bulkCount}>
-                  {t("grading.selectedCount", "已選取 {{count}} 筆", {
-                    count: selectedRows.length,
-                  })}
-                </span>
-                <Button
-                  kind="ghost"
-                  size="md"
-                  hasIconOnly
-                  renderIcon={Undo}
-                  iconDescription={t("grading.bulkRevertPublish", "撤回已送出評分")}
-                  disabled={
-                    !hasBoundSession ||
-                    submittingAnswerIds.size > 0 ||
-                    selectedRowsRevertable.length === 0
-                  }
-                  onClick={() => openRevertModal(selectedRows)}
-                />
-                <Button
-                  kind="ghost"
-                  size="md"
-                  hasIconOnly
-                  renderIcon={Renew}
-                  iconDescription={t("grading.bulkRetryAiGrading", "批量重新批改")}
-                  disabled={!hasBoundSession || selectedRows.length === 0}
-                  onClick={() => openRetryModal(selectedRows)}
-                />
-                <Button
-                  kind="primary"
-                  size="md"
-                  hasIconOnly
-                  renderIcon={Send}
-                  iconDescription={t("grading.bulkPublish", "批量送出")}
-                  disabled={
-                    !hasBoundSession ||
-                    submittingAnswerIds.size > 0 ||
-                    selectedRowsReadyToSubmit.length === 0
-                  }
-                  onClick={() => openSubmitModal(selectedRows)}
-                />
-              </div>
+              <GradingBulkToolbar
+                scoreFilterOptions={scoreFilterOptions}
+                selectedScoreFilter={selectedScoreFilter}
+                scoreFilterId={scoreFilterId}
+                onScoreFilterChange={setScoreFilterId}
+                selectedCount={selectedRows.length}
+                filteredCount={filteredRows.length}
+                allFilteredSelected={allFilteredSelected}
+                someFilteredSelected={someFilteredSelected}
+                onToggleSelectAllFiltered={handleToggleSelectAllFiltered}
+                canBulkAct={hasBoundSession}
+                submitting={submittingAnswerIds.size > 0}
+                revertableCount={selectedRowsRevertable.length}
+                submittableCount={selectedRowsReadyToSubmit.length}
+                onRequestRevert={() => openRevertModal(selectedRows)}
+                onRequestRetry={() => openRetryModal(selectedRows)}
+                onRequestSubmit={() => openSubmitModal(selectedRows)}
+              />
               <div className={styles.cardList}>
                 {filteredRows.map((row) => {
                   const cardStatus = getCardStatus(row.id);
@@ -1067,83 +995,35 @@ const ContestAiGradingScreen: React.FC = () => {
           },
         ]}
       />
-      <Modal
+      <BulkRevertModal
         open={revertModalRows.length > 0}
-        modalHeading={t("grading.bulkRevertHeading", "撤回已送出評分")}
-        primaryButtonText={t("grading.bulkRevertConfirm", "確認撤回")}
-        secondaryButtonText={t("common.cancel", "取消")}
-        onRequestClose={closeRevertModal}
-        onRequestSubmit={() => void handleConfirmRevert()}
-        primaryButtonDisabled={submittingAnswerIds.size > 0 || revertModalRows.length === 0}
-        danger
-      >
-        <p>
-          {t(
-            "grading.bulkRevertSummary",
-            "將撤回 {{count}} 筆已送出的評分，學生端會回到未評分狀態，AI 建議會保留可再次編輯或送出。",
-            { count: revertModalRows.length },
-          )}
-        </p>
-      </Modal>
-      <Modal
+        onClose={closeRevertModal}
+        count={revertModalRows.length}
+        submitting={submittingAnswerIds.size > 0}
+        onConfirm={() => void handleConfirmRevert()}
+      />
+      <BulkSubmitModal
         open={submitModalRows.length > 0}
-        modalHeading={t("grading.bulkSubmitHeading", "批量送出 AI 建議")}
-        primaryButtonText={t("grading.bulkSubmitConfirm", "確認送出")}
-        secondaryButtonText={t("common.cancel", "取消")}
-        onRequestClose={closeSubmitModal}
-        onRequestSubmit={() => void handleConfirmSubmit()}
-        primaryButtonDisabled={submittingAnswerIds.size > 0 || submitModalRows.length === 0}
-      >
-        <p>
-          {t("grading.bulkSubmitSummary", "將把 {{count}} 筆 AI 建議送出為正式評分，送出後可於學生端查看。", {
-            count: submitModalRows.length,
-          })}
-        </p>
-      </Modal>
-      <Modal
+        onClose={closeSubmitModal}
+        count={submitModalRows.length}
+        submitting={submittingAnswerIds.size > 0}
+        onConfirm={() => void handleConfirmSubmit()}
+      />
+      <RegradeChoiceModal
         open={regradeChoiceOpen}
-        modalHeading={t("grading.regradeChoiceHeading", "重新批改")}
-        primaryButtonText={t("grading.regradeReuseSession", "沿用目前 session")}
-        secondaryButtonText={t("grading.regradeNewSession", "建立新 session")}
-        onRequestClose={() => setRegradeChoiceOpen(false)}
-        onRequestSubmit={handleRegradeReuseSession}
-        onSecondarySubmit={handleRegradeNewSession}
-      >
-        <p>
-          {t(
-            "grading.regradeChoiceDescription",
-            "要在目前 AI session 中重新批改，或建立一個全新的 session？沿用現有 session 會保留 rubric 與對話紀錄，並在同一份 grade.csv 上重批；建立新 session 則會從空白 grade.csv 重新開始。",
-          )}
-        </p>
-      </Modal>
-      <Modal
+        onClose={() => setRegradeChoiceOpen(false)}
+        onReuseSession={handleRegradeReuseSession}
+        onNewSession={handleRegradeNewSession}
+      />
+      <RetryGradingModal
         open={retryModalRows.length > 0}
-        modalHeading={t("grading.retryAiGrading", "重新批改")}
-        primaryButtonText={t("grading.startRetryAiGrading", "送出重新批改")}
-        secondaryButtonText={t("common.cancel", "取消")}
-        onRequestClose={closeRetryModal}
-        onRequestSubmit={() => void handleConfirmRetry()}
-        primaryButtonDisabled={sessionRunning || retryModalRows.length === 0}
-      >
-        <div className={styles.retryModalBody}>
-          <p className={styles.retryModalSummary}>
-            {t("grading.retryModalSummary", "將重新批改 {{count}} 筆作答。", {
-              count: retryModalRows.length,
-            })}
-          </p>
-          <TextArea
-            id="ai-grading-retry-note"
-            labelText={t("grading.retryNoteLabel", "重新批改建議")}
-            placeholder={t(
-              "grading.retryNotePlaceholder",
-              "例如：請更嚴格檢查是否提到關鍵概念，或針對第 2 點重新評估。",
-            )}
-            rows={5}
-            value={retryNote}
-            onChange={(event) => setRetryNote(event.target.value)}
-          />
-        </div>
-      </Modal>
+        onClose={closeRetryModal}
+        count={retryModalRows.length}
+        running={sessionRunning}
+        note={retryNote}
+        onNoteChange={setRetryNote}
+        onConfirm={() => void handleConfirmRetry()}
+      />
     </div>
   );
 };
