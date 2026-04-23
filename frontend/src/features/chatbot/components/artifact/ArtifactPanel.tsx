@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { fetchArtifactDownloadUrl } from "@/infrastructure/api/repositories/artifact.repository";
-import { ArtifactPreview } from "./ArtifactPreview";
+import { ArtifactPreview } from "@/shared/ai/ArtifactPreview";
 import styles from "./ArtifactPanel.module.scss";
 
 function formatBytes(n: number): string {

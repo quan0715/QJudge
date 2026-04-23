@@ -1,7 +1,7 @@
 import { Button, Dropdown, InlineLoading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
-import { ModelSelect } from "@/features/chatbot/components/chat-ui/ModelSelect";
-import { TodoList } from "@/features/chatbot/components/chat-ui/TodoList";
+import { ModelSelect } from "@/shared/ai/ModelSelect";
+import { TodoList } from "@/shared/ai/TodoList";
 import { InitPromptEditor } from "./InitPromptEditor";
 import { ProgressCard, SecondaryProgressBar } from "./ProgressCard";
 import { ArtifactFileIcon } from "./artifactIcon";

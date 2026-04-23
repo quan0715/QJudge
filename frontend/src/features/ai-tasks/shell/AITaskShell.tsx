@@ -3,7 +3,7 @@ import { Button } from "@carbon/react";
 import { Download, Information } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { Group, Panel, Separator } from "react-resizable-panels";
-import { ArtifactPreview } from "@/features/chatbot/components/artifact/ArtifactPreview";
+import { ArtifactPreview } from "@/shared/ai/ArtifactPreview";
 import { fetchArtifactDownloadUrl } from "@/infrastructure/api/repositories/artifact.repository";
 import { useMediaQuery } from "@/shared/hooks";
 import { TaskDetailPanel } from "./TaskDetailPanel";

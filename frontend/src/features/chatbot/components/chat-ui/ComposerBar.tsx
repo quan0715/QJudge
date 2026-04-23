@@ -3,7 +3,7 @@ import { Add, ArrowUp, InProgress } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ChatMessage, ModelInfo } from "@/core/types/chatbot.types";
 import { SessionBadges, useSessionBadgeSummary } from "./SessionBadges";
-import { ModelSelect } from "./ModelSelect";
+import { ModelSelect } from "@/shared/ai/ModelSelect";
 import styles from "./ComposerBar.module.scss";
 
 const TEXTAREA_MAX_HEIGHT = 160; // sync with $chat-textarea-max-height in _variables.scss
