@@ -16,6 +16,7 @@ from .serializers import (
     AISessionSerializer,
     ModelInfoSerializer,
     RenameSessionSerializer,
+    RunAnswerSerializer,
     RunApprovalSerializer,
     StartRunSerializer,
 )
@@ -25,6 +26,7 @@ from .services.run_runtime import (
     ensure_session_for_run,
     request_run_cancel,
     resume_approval_run,
+    resume_question_run,
     run_events_as_sse,
 )
 
@@ -261,6 +263,21 @@ class AIChatRunViewSet(viewsets.ReadOnlyModelViewSet):
             run = resume_approval_run(
                 run=run,
                 decision=serializer.validated_data["decision"],
+            )
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_409_CONFLICT)
+        return Response(AIChatRunSerializer(run).data)
+
+    @action(detail=True, methods=["post"])
+    def answer(self, request, pk=None):
+        """Submit the user's answer for an awaiting-question durable run."""
+        run = self.get_object()
+        serializer = RunAnswerSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            run = resume_question_run(
+                run=run,
+                answer=serializer.validated_data["answer"],
             )
         except ValueError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_409_CONFLICT)

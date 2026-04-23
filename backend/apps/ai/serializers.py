@@ -110,6 +110,12 @@ class RunApprovalSerializer(serializers.Serializer):
     decision = serializers.ChoiceField(choices=["approve", "reject"])
 
 
+class RunAnswerSerializer(serializers.Serializer):
+    """Serializer for answering an agent's question."""
+
+    answer = serializers.CharField(max_length=10000)
+
+
 class AIChatRunSerializer(serializers.ModelSerializer):
     """Serializer for durable AI chat runs."""
 
@@ -130,6 +136,7 @@ class AIChatRunSerializer(serializers.ModelSerializer):
             "celery_task_id",
             "error",
             "approval_payload",
+            "question_payload",
             "cancel_requested",
             "last_event_seq",
             "user_message_id",

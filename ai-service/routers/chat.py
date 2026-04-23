@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Request
 from sse_starlette.sse import EventSourceResponse
 
 from config import get_settings
-from models.schemas import ChatRequest, RequestContext, ResumeRequest
+from models.schemas import AnswerRequest, ChatRequest, RequestContext, ResumeRequest
 
 logger = logging.getLogger(__name__)
 
@@ -186,3 +186,52 @@ async def chat_resume(request: ResumeRequest, app_request: Request) -> EventSour
     validate_internal_auth(app_request)
     semaphore = await acquire_stream_slot(app_request)
     return EventSourceResponse(generate_resume_events(request, app_request, semaphore))
+
+
+async def generate_answer_events(
+    request: AnswerRequest,
+    app_request: Request,
+    semaphore: asyncio.Semaphore,
+) -> AsyncGenerator[dict, None]:
+    """Generate SSE events by resuming an ask_user-interrupted agent with the user's answer."""
+    runner = app_request.app.state.deepagent_runner
+
+    request_context = RequestContext(
+        user_authorization=app_request.headers.get("X-QJudge-User-Authorization"),
+        session_id=request.thread_id,
+        run_id=request.run_id,
+    )
+
+    try:
+        async for sse_dict in runner.answer_stream(
+            thread_id=request.thread_id,
+            answer=request.answer,
+            model_id=request.model_id,
+            request_context=request_context,
+        ):
+            yield {"data": json.dumps(sse_dict, ensure_ascii=False)}
+    except Exception as e:
+        logger.exception("Answer streaming error: %s", e)
+        yield {
+            "data": json.dumps(
+                {
+                    "type": "run_failed",
+                    "run_id": "",
+                    "error_code": "ANSWER_ERROR",
+                    "message": "Answer resume failed",
+                }
+            )
+        }
+    finally:
+        semaphore.release()
+
+
+@router.post("/answer")
+async def chat_answer(request: AnswerRequest, app_request: Request) -> EventSourceResponse:
+    """Resume an agent interrupted by ask_user with the user's answer.
+
+    Streams SSE events for the resumed agent execution.
+    """
+    validate_internal_auth(app_request)
+    semaphore = await acquire_stream_slot(app_request)
+    return EventSourceResponse(generate_answer_events(request, app_request, semaphore))

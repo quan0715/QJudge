@@ -23,6 +23,7 @@ from langgraph.types import Command
 from services.event_adapter import (
     AgentMessageDelta,
     AwaitingApproval,
+    AwaitingUserAnswer,
     RunCompleted,
     RunFailed,
     RunStarted,
@@ -35,7 +36,13 @@ from services.event_adapter import (
 from config import get_settings
 from models.schemas import RequestContext
 from services.artifact_tools import build_artifact_tools
-from services.adapters.interrupt_state_adapter import extract_approval_payload
+from services.ask_user_tool import build_ask_user_tool
+from services.next_turn_tool import build_suggest_next_actions_tool
+from services.adapters.interrupt_state_adapter import (
+    extract_approval_payload,
+    extract_interrupt_type,
+    extract_question_payload,
+)
 from services.hitl_middleware import ActionAwareHITLMiddleware
 from services.mcp_tool_provider import MCPToolProvider
 from services.model_factory import (
@@ -423,6 +430,8 @@ class DeepAgentRunner:
                 request_context,
                 shared_client=artifact_client,
             )
+            tools.append(build_ask_user_tool())
+            tools.append(build_suggest_next_actions_tool())
             agent = self._build_agent(
                 model_id=model_id,
                 system_prompt=system_prompt,
@@ -562,8 +571,40 @@ class DeepAgentRunner:
         # (tuple of Interrupt objects) after astream_events exhausts.
         state = await agent.aget_state(config)
         has_interrupt = bool(getattr(state, "interrupts", None))
-        action_requests, review_configs = extract_approval_payload(state)
+
         if has_interrupt:
+            interrupt_type = extract_interrupt_type(state)
+
+            if interrupt_type == "ask_user":
+                question, options, input_type = extract_question_payload(state)
+                if not question:
+                    logger.error(
+                        "Agent interrupt payload missing question for thread %s",
+                        thread_id,
+                    )
+                    yield to_sse_dict(usage_event)
+                    yield to_sse_dict(
+                        RunFailed(
+                            run_id=run_id,
+                            error_code="INTERRUPT_PAYLOAD_INVALID",
+                            message="Invalid question payload from agent interrupt",
+                        )
+                    )
+                    return
+                logger.info("Agent interrupted to ask user: %s", question[:80])
+                yield to_sse_dict(usage_event)
+                yield to_sse_dict(
+                    AwaitingUserAnswer(
+                        thread_id=thread_id,
+                        question=question,
+                        options=options,
+                        input_type=input_type,
+                    )
+                )
+                return
+
+            # Default: approval interrupt
+            action_requests, review_configs = extract_approval_payload(state)
             if not action_requests:
                 logger.error(
                     "Agent interrupt payload missing action_requests for thread %s",
@@ -611,10 +652,17 @@ class DeepAgentRunner:
             )
             if not summary:
                 summary = self._recursion_handler.fallback_recursion_summary()
+            recursion_options = [
+                {"label": "繼續任務", "message": "繼續任務"},
+                {"label": "重新開始", "message": "請重新開始這個任務，用不同的方法試試"},
+            ]
             return [
                 to_sse_dict(AgentMessageDelta(content=summary)),
                 to_sse_dict(usage_event),
-                to_sse_dict(RunCompleted(run_id=run_id)),
+                to_sse_dict(RunCompleted(
+                    run_id=run_id,
+                    next_turn_options=recursion_options,
+                )),
             ]
         except Exception:
             logger.exception("Failed to emit recursion summary event")
@@ -741,6 +789,30 @@ class DeepAgentRunner:
 
         event_queue: asyncio.Queue = asyncio.Queue()
         resume_value = Command(resume={"decisions": [{"type": decision}]})
+        async for sse_dict in self._stream_with_provider(
+            thread_id=thread_id,
+            run_id=run_id,
+            model_id=model_id,
+            system_prompt=system_prompt,
+            request_context=request_context,
+            agent_input=resume_value,
+            event_queue=event_queue,
+        ):
+            yield sse_dict
+
+    async def answer_stream(
+        self,
+        thread_id: str,
+        answer: str,
+        model_id: str = "deepseek-r1",
+        system_prompt: str | None = None,
+        request_context: RequestContext | None = None,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Resume an agent interrupted by ask_user with the user's answer."""
+        run_id = uuid.uuid4().hex
+
+        event_queue: asyncio.Queue = asyncio.Queue()
+        resume_value = Command(resume={"answer": answer})
         async for sse_dict in self._stream_with_provider(
             thread_id=thread_id,
             run_id=run_id,

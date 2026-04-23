@@ -77,6 +77,7 @@ class UsageReport:
 @dataclass(slots=True)
 class RunCompleted:
     run_id: str
+    next_turn_options: list[dict[str, str]] | None = None
 
 
 @dataclass(slots=True)
@@ -94,6 +95,15 @@ class AwaitingApproval:
     review_configs: list[dict]    # [{"action_name": ..., "allowed_decisions": [...]}]
 
 
+@dataclass(slots=True)
+class AwaitingUserAnswer:
+    """Emitted when the agent pauses to ask the user a clarifying question."""
+    thread_id: str
+    question: str
+    options: list[str]
+    input_type: str   # "text" or "choice"
+
+
 InternalEvent = Union[
     RunStarted,
     AgentMessageDelta,
@@ -107,6 +117,7 @@ InternalEvent = Union[
     RunCompleted,
     RunFailed,
     AwaitingApproval,
+    AwaitingUserAnswer,
 ]
 
 _TYPE_NAME_MAP: dict[type, str] = {
@@ -122,6 +133,7 @@ _TYPE_NAME_MAP: dict[type, str] = {
     RunCompleted: "run_completed",
     RunFailed: "run_failed",
     AwaitingApproval: "awaiting_approval",
+    AwaitingUserAnswer: "awaiting_user_answer",
 }
 
 # ---------------------------------------------------------------------------

@@ -29,13 +29,14 @@ ACTIVE_STATUSES = [
     AIChatRun.Status.QUEUED,
     AIChatRun.Status.RUNNING,
     AIChatRun.Status.AWAITING_APPROVAL,
+    AIChatRun.Status.AWAITING_USER_ANSWER,
 ]
 TERMINAL_STATUSES = [
     AIChatRun.Status.COMPLETED,
     AIChatRun.Status.FAILED,
     AIChatRun.Status.CANCELLED,
 ]
-PAUSED_STATUSES = [AIChatRun.Status.AWAITING_APPROVAL]
+PAUSED_STATUSES = [AIChatRun.Status.AWAITING_APPROVAL, AIChatRun.Status.AWAITING_USER_ANSWER]
 
 # Poll intervals for tailing new SSE events.
 #
@@ -253,6 +254,19 @@ def resume_approval_run(*, run: AIChatRun, decision: str) -> AIChatRun:
     return run
 
 
+def resume_question_run(*, run: AIChatRun, answer: str) -> AIChatRun:
+    """Resume an awaiting-question run with the user's answer."""
+    if run.status != AIChatRun.Status.AWAITING_USER_ANSWER:
+        raise ValueError("Run is not awaiting a user answer")
+    run.kind = AIChatRun.Kind.RESUME
+    run.question_answer = answer
+    run.status = AIChatRun.Status.RUNNING
+    run.save(update_fields=["kind", "question_answer", "status", "updated_at"])
+    _sync_message_run_metadata(run)
+    dispatch_run(run)
+    return run
+
+
 async def run_events_as_sse(*, run: AIChatRun, after: int = 0) -> AsyncGenerator[str, None]:
     """Replay and tail persisted run events as SSE.
 
@@ -321,16 +335,26 @@ def execute_run(run_id: str) -> None:
     run.save(update_fields=["status", "started_at", "updated_at"])
     _sync_message_run_metadata(run)
 
-    log = create_execution_log(run.user, run.session, run.content or f"[resume:{run.resume_decision}]")
-    endpoint = "/api/chat/resume" if run.kind == AIChatRun.Kind.RESUME else "/api/chat/stream"
+    log = create_execution_log(run.user, run.session, run.content or f"[resume:{run.resume_decision or run.question_answer[:40] if run.question_answer else ''}]")
+
+    # Determine the ai-service endpoint and payload based on run kind.
     payload: dict[str, Any]
-    if run.kind == AIChatRun.Kind.RESUME:
+    if run.kind == AIChatRun.Kind.RESUME and run.question_answer:
+        endpoint = "/api/chat/answer"
+        payload = {
+            "thread_id": run.thread_id or run.session.session_id,
+            "run_id": str(run.id),
+            "answer": run.question_answer,
+        }
+    elif run.kind == AIChatRun.Kind.RESUME:
+        endpoint = "/api/chat/resume"
         payload = {
             "thread_id": run.thread_id or run.session.session_id,
             "run_id": str(run.id),
             "decision": run.resume_decision,
         }
     else:
+        endpoint = "/api/chat/stream"
         payload = {
             "content": run.content,
             "conversation": [],
@@ -514,7 +538,23 @@ def apply_event_to_run(run: AIChatRun, event: dict[str, Any]) -> None:
         _sync_message_run_metadata(run)
         return
 
+    if event_type == "awaiting_user_answer":
+        run.status = AIChatRun.Status.AWAITING_USER_ANSWER
+        run.question_payload = {
+            "question": event.get("question", ""),
+            "options": event.get("options", []),
+            "input_type": event.get("input_type", "text"),
+        }
+        run.save(update_fields=["status", "question_payload", "updated_at"])
+        _sync_message_run_metadata(run)
+        return
+
     if event_type == "run_completed":
+        next_turn_options = event.get("next_turn_options")
+        if next_turn_options:
+            metadata = _assistant_metadata(run)
+            metadata["next_turn_options"] = next_turn_options
+            _save_assistant_metadata(run, metadata)
         mark_run_completed(run)
         return
 
