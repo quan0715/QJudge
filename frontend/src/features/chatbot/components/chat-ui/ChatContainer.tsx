@@ -28,6 +28,8 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
     isInitializing,
     isSessionLoading,
     pendingApproval,
+    pendingQuestion,
+    nextTurnOptions,
     sessionNotice,
     availableModels,
     selectedModelId,
@@ -40,6 +42,8 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
     uploadArtifact,
     stopStreaming,
     submitApproval,
+    submitAnswer,
+    dismissQuestion,
   } = useChatbotContext();
 
   const handleNewChat = useCallback(() => {
@@ -84,6 +88,8 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
         messages={messages}
         isSessionLoading={isSessionLoading}
         pendingApproval={pendingApproval}
+        pendingQuestion={pendingQuestion}
+        nextTurnOptions={nextTurnOptions}
         availableModels={availableModels}
         selectedModelId={selectedModelId}
         setSelectedModelId={setSelectedModelId}
@@ -97,6 +103,8 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
         uploadArtifact={uploadArtifact}
         stopStreaming={stopStreaming}
         onApproval={handleApproval}
+        submitAnswer={submitAnswer}
+        dismissQuestion={dismissQuestion}
         onClose={onClose}
       />
     </div>
@@ -113,6 +121,8 @@ interface ChatContainerBodyProps {
   messages: ChatMessage[];
   isSessionLoading: boolean;
   pendingApproval: UseChatbotReturn["pendingApproval"];
+  pendingQuestion: UseChatbotReturn["pendingQuestion"];
+  nextTurnOptions: UseChatbotReturn["nextTurnOptions"];
   availableModels: ModelInfo[];
   selectedModelId: string;
   setSelectedModelId: (id: string) => void;
@@ -126,6 +136,8 @@ interface ChatContainerBodyProps {
   uploadArtifact: UseChatbotReturn["uploadArtifact"];
   stopStreaming: () => void;
   onApproval: (decision: "approve" | "reject") => void;
+  submitAnswer: UseChatbotReturn["submitAnswer"];
+  dismissQuestion: UseChatbotReturn["dismissQuestion"];
   onClose?: () => void;
 }
 
@@ -137,6 +149,8 @@ function ChatContainerBody({
   messages,
   isSessionLoading,
   pendingApproval,
+  pendingQuestion,
+  nextTurnOptions,
   availableModels,
   selectedModelId,
   setSelectedModelId,
@@ -150,6 +164,8 @@ function ChatContainerBody({
   uploadArtifact,
   stopStreaming,
   onApproval,
+  submitAnswer,
+  dismissQuestion,
   onClose,
 }: ChatContainerBodyProps) {
   const { isMobile } = useWorkspace();
@@ -191,6 +207,12 @@ function ChatContainerBody({
           isLoading={isSessionLoading}
           pendingApproval={pendingApproval}
           onApprovalDecision={onApproval}
+          pendingQuestion={pendingQuestion}
+          onQuestionSubmit={submitAnswer}
+          onQuestionDismiss={dismissQuestion}
+          nextTurnOptions={nextTurnOptions}
+          onNextTurnSelect={sendMessage}
+          isStreaming={isStreaming}
         />
         <div className={styles.composerFloat}>
           <ComposerBar

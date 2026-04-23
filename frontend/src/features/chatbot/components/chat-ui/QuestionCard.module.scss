@@ -1,0 +1,92 @@
+.wrapper {
+  padding: 0.5rem 1rem;
+  max-width: min(80%, 640px);
+}
+
+.card {
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--cds-border-subtle, #393939);
+  background: var(--cds-layer-01, #262626);
+}
+
+// ── Header ──────────────────────────────────────
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle, #393939);
+  background: var(--cds-layer-02, #2d2d2d);
+}
+
+.headerIcon {
+  font-size: 1rem;
+  color: var(--cds-icon-interactive, #4589ff);
+}
+
+.headerLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cds-text-secondary, #c6c6c6);
+}
+
+// ── Question body ────────────────────────────────
+.questionBody {
+  padding: 1rem;
+}
+
+.questionText {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--cds-text-primary, #f4f4f4);
+  margin-bottom: 0.875rem;
+}
+
+// ── Choice options ───────────────────────────────
+.optionsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+}
+
+.optionBtn {
+  min-height: 2.25rem;
+}
+
+.optionBtnSelected {
+  composes: optionBtn;
+}
+
+// ── Text input ───────────────────────────────────
+.textInputWrapper {
+  margin-bottom: 0.5rem;
+}
+
+// ── Footer ────────────────────────────────────────
+.footer {
+  display: flex;
+  border-top: 1px solid var(--cds-border-subtle, #393939);
+}
+
+.footerBtn {
+  flex: 1 1 0;
+  max-width: none;
+  min-height: 3.5rem;
+  border-radius: 0;
+  justify-content: center;
+
+  & + & {
+    margin-inline-start: 0;
+  }
+}
+
+.loadingFooter {
+  display: flex;
+  justify-content: center;
+  padding: 0.875rem 1rem;
+  border-top: 1px solid var(--cds-border-subtle, #393939);
+}

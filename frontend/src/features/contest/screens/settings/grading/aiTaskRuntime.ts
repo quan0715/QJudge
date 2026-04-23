@@ -4,7 +4,6 @@ import {
   type AiTaskManifestV1,
   createTaskManifest,
   isSameTaskContext,
-  withHistory,
 } from "./aiTaskManifest";
 
 const SESSION_BASE_URL = "/api/v1/ai/sessions";
@@ -51,27 +50,29 @@ export async function loadTaskManifest(sessionId: string): Promise<AiTaskManifes
   return isTaskManifest(manifest) ? manifest : null;
 }
 
+function extractTaskManifest(sessionContext: unknown): AiTaskManifestV1 | null {
+  if (!sessionContext || typeof sessionContext !== "object") return null;
+  const manifest = (sessionContext as Record<string, unknown>)[TASK_MANIFEST_CONTEXT_KEY];
+  return isTaskManifest(manifest) ? manifest : null;
+}
+
 /**
- * 在一批 session id 裡挑出第一個 task_type 與 context 都吻合的。id 的順序由呼叫端決定
- * （通常按 updatedAt / createdAt 由新到舊排，回傳 = 時間最近的 match）。
- * 失敗或沒有 manifest 的 session 會被跳過，不影響其他 session 的查詢。
+ * 在一批 session 中找出第一個 task_type 與 context 都吻合的 session id。
+ * 呼叫端需提供已載入的 session context（來自 session list API），
+ * 此函式只做純 in-memory 過濾，避免對每個 session 發 detail fetch。
+ * 順序由呼叫端決定（通常按 updatedAt desc，回傳 = 時間最近的 match）。
  */
-export async function findLatestTaskSession(params: {
-  sessionIds: readonly string[];
+export function findLatestTaskSession(params: {
+  sessions: ReadonlyArray<{ id: string; context?: Record<string, unknown> | null }>;
   taskType: string;
   context: Record<string, string>;
-}): Promise<string | null> {
-  for (const sessionId of params.sessionIds) {
-    let manifest: AiTaskManifestV1 | null;
-    try {
-      manifest = await loadTaskManifest(sessionId);
-    } catch {
-      continue;
-    }
+}): string | null {
+  for (const session of params.sessions) {
+    const manifest = extractTaskManifest(session.context);
     if (!manifest) continue;
     if (manifest.task_type !== params.taskType) continue;
     if (!isSameTaskContext(manifest.context, params.context)) continue;
-    return sessionId;
+    return session.id;
   }
   return null;
 }
@@ -91,6 +92,7 @@ export async function createTaskSession(params: {
   taskType: string;
   context: Record<string, string>;
   prompt?: string;
+  title?: string;
 }): Promise<{ sessionId: string; manifest: AiTaskManifestV1 }> {
   const session = await chatbotRepository.createBackendSession();
   const manifest = createTaskManifest({
@@ -99,6 +101,10 @@ export async function createTaskSession(params: {
     prompt: params.prompt,
   });
   await saveTaskManifest(session.id, manifest);
+  const title = params.title?.trim();
+  if (title) {
+    await chatbotRepository.renameSession(session.id, title);
+  }
   return { sessionId: session.id, manifest };
 }
 
@@ -127,23 +133,3 @@ export async function bindExistingTaskSession(params: {
   return manifest;
 }
 
-export async function patchTaskManifest(
-  sessionId: string,
-  patcher: (prev: AiTaskManifestV1) => AiTaskManifestV1,
-): Promise<AiTaskManifestV1> {
-  const prev = await loadTaskManifest(sessionId);
-  if (!prev) {
-    throw new Error("找不到 session task manifest");
-  }
-  const next = patcher(prev);
-  await saveTaskManifest(sessionId, next);
-  return next;
-}
-
-export function appendTaskHistory(
-  manifest: AiTaskManifestV1,
-  action: string,
-  detail?: string,
-): AiTaskManifestV1 {
-  return withHistory(manifest, action, detail);
-}

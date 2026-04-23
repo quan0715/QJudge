@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button, FluidDropdown, Loading, Modal, TextArea } from "@carbon/react";
 import {
   CheckboxCheckedFilled,
@@ -42,6 +43,7 @@ import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
 import styles from "./ContestAiGradingScreen.module.scss";
 
 const EXCLUDED_MODEL_IDS = new Set(["openai-nano", "deepseek-v3"]);
+const AI_GRADING_QUESTION_PARAM = "ai_grading_question";
 
 interface ScoreFilterOption {
   id: string;
@@ -62,9 +64,11 @@ function truncateLabel(value: string, maxLength = 56): string {
 }
 
 const ContestAiGradingScreen: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [, startTransition] = useTransition();
   const { t } = useTranslation("contest");
   const { contest } = useContest();
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+  const selectedQuestionId = searchParams.get(AI_GRADING_QUESTION_PARAM);
   const {
     loading,
     isQuestionLoading,
@@ -86,8 +90,15 @@ const ContestAiGradingScreen: React.FC = () => {
     refreshSuggestions,
     clear,
   } = useAiQuestionGrading();
-  const { sessions, requestActiveSession } = useChatSessionContext();
-  const { availableModels, currentSession, refreshSessions } = useChatbotContext();
+  const { sessions, isLoadingSessions, requestActiveSession } = useChatSessionContext();
+  const {
+    availableModels,
+    currentSession,
+    activeRuns,
+    createSession,
+    refreshSessions,
+    setSelectedModelId,
+  } = useChatbotContext();
   const artifactPanel = useArtifactPanel();
   const { right } = useWorkspace();
 
@@ -99,9 +110,41 @@ const ContestAiGradingScreen: React.FC = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [retryModalRows, setRetryModalRows] = useState<GradingAnswerRow[]>([]);
   const [retryNote, setRetryNote] = useState("");
+  const [regradeChoiceOpen, setRegradeChoiceOpen] = useState(false);
   const [submitModalRows, setSubmitModalRows] = useState<GradingAnswerRow[]>([]);
   const [revertModalRows, setRevertModalRows] = useState<GradingAnswerRow[]>([]);
   const [scoreFilterId, setScoreFilterId] = useState("all");
+  const [preparingSessionId, setPreparingSessionId] = useState<string | null>(null);
+  const [resolvingSessionKey, setResolvingSessionKey] = useState<string | null>(null);
+  const [startingAiGrading, setStartingAiGrading] = useState(false);
+  const pendingCardRef = useRef<HTMLDivElement | null>(null);
+  const lastAutoScrolledPendingRef = useRef<string | null>(null);
+
+  const updateAiGradingParams = useCallback((updates: Record<string, string | null>) => {
+    startTransition(() => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        let hasChanges = false;
+
+        Object.entries(updates).forEach(([key, value]) => {
+          const current = next.get(key);
+          if (!value) {
+            if (current !== null) {
+              next.delete(key);
+              hasChanges = true;
+            }
+            return;
+          }
+          if (current !== value) {
+            next.set(key, value);
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? next : prev;
+      }, { replace: true });
+    });
+  }, [setSearchParams, startTransition]);
 
   // Filter down to models the grading task supports.
   const gradingModels = useMemo(
@@ -131,8 +174,8 @@ const ContestAiGradingScreen: React.FC = () => {
   useEffect(() => {
     if (questionProgress.length === 0) return;
     if (selectedQuestion) return;
-    setSelectedQuestionId(questionProgress[0].questionId);
-  }, [questionProgress, selectedQuestion]);
+    updateAiGradingParams({ [AI_GRADING_QUESTION_PARAM]: questionProgress[0].questionId });
+  }, [questionProgress, selectedQuestion, updateAiGradingParams]);
 
   // 切題目時先把 hook state 清乾淨。下一輪 auto-bind effect 會再去找 match session。
   useEffect(() => {
@@ -158,42 +201,79 @@ const ContestAiGradingScreen: React.FC = () => {
   }, [defaultPrompt, sessionId]);
 
   // 自動綁定：找 sessions 裡時間最近 && task_type=grading && context 吻合的 session。
-  // 找到就呼叫 bindSession / restore 接回；沒找到就維持 init 狀態等使用者按「開始批改」建立新 session。
+  // 找到就呼叫 bindSession / restore 接回；沒找到就把右側 chat 切成空白新 session。
   const autoBindKeyRef = useRef<string | null>(null);
+  const emptySessionQuestionRef = useRef<string | null>(null);
+  const sessionsSignature = useMemo(
+    () => sessions.map((session) => `${session.id}:${session.updatedAt.getTime()}`).join("|"),
+    [sessions],
+  );
   useEffect(() => {
-    if (!contest?.id || !selectedQuestion || rows.length === 0) return;
-    if (sessionId && trackedQuestionId === selectedQuestion.questionId) return;
-    const attemptKey = `${contest.id}:${selectedQuestion.questionId}:${rows.length}`;
-    if (autoBindKeyRef.current === attemptKey) return;
+    if (!contest?.id || !selectedQuestion || rows.length === 0) {
+      setResolvingSessionKey(null);
+      return;
+    }
+    if (sessionId && trackedQuestionId === selectedQuestion.questionId) {
+      setResolvingSessionKey(null);
+      return;
+    }
+    const taskKey = `${contest.id}:${selectedQuestion.questionId}:${rows.length}`;
+    if (isLoadingSessions) {
+      setResolvingSessionKey(taskKey);
+      return;
+    }
+    const attemptKey = `${taskKey}:${sessionsSignature}`;
+    if (autoBindKeyRef.current === attemptKey) {
+      // 已跑過同一輪 attempt；確保 loading 被清掉（上一輪可能因 race 沒清到）。
+      setResolvingSessionKey(null);
+      return;
+    }
     autoBindKeyRef.current = attemptKey;
+    setResolvingSessionKey(taskKey);
 
     const contestId = contest.id;
     const questionId = selectedQuestion.questionId;
-    const sessionIdsSorted = sessions.map((s) => s.id); // ChatSessionContext 已按 updatedAt desc
+    // ChatSessionContext 已按 updatedAt desc；list API 已攜帶 context，可就地過濾 manifest。
+    const matched = findLatestTaskSession({
+      sessions,
+      taskType: AI_GRADING_TASK_TYPE,
+      context: { contest_id: contestId, question_id: questionId },
+    });
 
     void (async () => {
-      const matched = await findLatestTaskSession({
-        sessionIds: sessionIdsSorted,
-        taskType: AI_GRADING_TASK_TYPE,
-        context: { contest_id: contestId, question_id: questionId },
-      });
-      if (autoBindKeyRef.current !== attemptKey) return; // 期間使用者又切題，放棄結果
-      if (!matched) return;
-      const restoredSessionId = await restore(matched, contestId, questionId, rows);
-      if (autoBindKeyRef.current !== attemptKey) return;
-      if (restoredSessionId) {
-        setPendingBindSessionId(restoredSessionId);
-        requestActiveSession(restoredSessionId);
+      try {
+        if (autoBindKeyRef.current !== attemptKey) return; // 期間使用者又切題，放棄結果
+        if (!matched) {
+          if (emptySessionQuestionRef.current === questionId) return;
+          emptySessionQuestionRef.current = questionId;
+          const emptySessionId = await createSession();
+          if (autoBindKeyRef.current !== attemptKey || !emptySessionId) return;
+          requestActiveSession(emptySessionId);
+          return;
+        }
+        const restoredSessionId = await restore(matched, contestId, questionId, rows);
+        if (autoBindKeyRef.current !== attemptKey) return;
+        if (restoredSessionId) {
+          emptySessionQuestionRef.current = null;
+          setPendingBindSessionId(restoredSessionId);
+          requestActiveSession(restoredSessionId);
+        }
+      } finally {
+        // 永遠清 loading：即使被更新一輪 attempt 覆寫也無所謂，更新 attempt 會重新 setResolvingSessionKey(taskKey)。
+        setResolvingSessionKey(null);
       }
     })();
   }, [
     contest?.id,
+    createSession,
+    isLoadingSessions,
     requestActiveSession,
     restore,
     rows,
     selectedQuestion,
     sessionId,
     sessions,
+    sessionsSignature,
     trackedQuestionId,
   ]);
 
@@ -215,18 +295,27 @@ const ContestAiGradingScreen: React.FC = () => {
 
   const handleStartAiGrading = useCallback(async () => {
     if (!contest?.id || !selectedQuestion || rows.length === 0) return;
+    setStartingAiGrading(true);
     const effectivePrompt = promptDraft.trim() || defaultPrompt;
-    const newSessionId = await start(contest.id, selectedQuestion.questionId, rows, {
-      prompt: effectivePrompt,
-      modelId,
-    });
-    if (newSessionId) {
-      setPendingBindSessionId(newSessionId);
-      right.open();
-      requestActiveSession(newSessionId);
-      // Grading hook calls startRun directly on the repository, bypassing useChatbot's
-      // activeRuns state. Refresh so the chat panel subscribes to the new run and streams.
-      void refreshSessions();
+    const sessionTitle = `${t("grading.taskTypeLabel", "AI 批改")} · Q${selectedQuestion.questionIndex}`;
+    setSelectedModelId(modelId);
+    try {
+      const newSessionId = await start(contest.id, selectedQuestion.questionId, rows, {
+        prompt: effectivePrompt,
+        modelId,
+        title: sessionTitle,
+      });
+      if (newSessionId) {
+        setPreparingSessionId(newSessionId);
+        setPendingBindSessionId(newSessionId);
+        right.open();
+        requestActiveSession(newSessionId);
+        // Grading hook calls startRun directly on the repository, bypassing useChatbot's
+        // activeRuns state. Refresh so the chat panel subscribes to the new run and streams.
+        void refreshSessions();
+      }
+    } finally {
+      setStartingAiGrading(false);
     }
   }, [
     contest?.id,
@@ -238,32 +327,55 @@ const ContestAiGradingScreen: React.FC = () => {
     right,
     rows,
     selectedQuestion,
+    setSelectedModelId,
     start,
+    t,
   ]);
 
-  // Running 改以 session 實際狀態為主（後端 getActiveRuns 決定），避免 hook 內部 state 與
-  // 後端漂移的問題。只有當該 session 真的有一個 active run（queued/running/awaiting_approval）
-  // 才視為「正在跑」。
-  const sessionActiveRunStatus =
-    currentSession && currentSession.id === sessionId
-      ? currentSession.metadata?.active_run_status
-      : undefined;
-  const sessionRunning =
-    sessionActiveRunStatus === "running" ||
-    sessionActiveRunStatus === "queued" ||
-    sessionActiveRunStatus === "awaiting_approval";
+  // Subscribe task detail to ChatbotProvider's active run state. This keeps
+  // model/running UI aligned with the right chat panel after a task session is
+  // injected from this screen.
+  const taskActiveRun = useMemo(() => {
+    if (!sessionId) return null;
+    return (
+      activeRuns.find(
+        (run) =>
+          run.sessionId === sessionId &&
+          ["queued", "running", "awaiting_approval"].includes(run.status),
+      ) ?? null
+    );
+  }, [activeRuns, sessionId]);
+  const sessionRunning = Boolean(taskActiveRun);
+  const effectiveModelId = taskActiveRun?.modelId ?? modelId;
+
+  useEffect(() => {
+    if (!preparingSessionId) return;
+    if (currentSession?.id !== preparingSessionId) return;
+    setPreparingSessionId(null);
+  }, [currentSession?.id, preparingSessionId]);
 
   const handlePrimaryAction = useCallback(() => {
-    if (sessionRunning) return; // button is disabled; belt-and-braces
+    if (sessionRunning || startingAiGrading) return; // button is disabled; belt-and-braces
     if (sessionId) {
-      // 已有匹配的 session → 開 retry modal 讓使用者輸入原因，送出後在同一個 session retry 全部 row
+      // 已有匹配的 session → 先問要沿用舊 session 還是開新 session
       if (rows.length === 0) return;
-      setRetryModalRows(rows);
-      setRetryNote("");
+      setRegradeChoiceOpen(true);
       return;
     }
     void handleStartAiGrading();
-  }, [handleStartAiGrading, rows, sessionId, sessionRunning]);
+  }, [handleStartAiGrading, rows, sessionId, sessionRunning, startingAiGrading]);
+
+  const handleRegradeReuseSession = useCallback(() => {
+    if (rows.length === 0) return;
+    setRegradeChoiceOpen(false);
+    setRetryModalRows(rows);
+    setRetryNote("");
+  }, [rows]);
+
+  const handleRegradeNewSession = useCallback(() => {
+    setRegradeChoiceOpen(false);
+    void handleStartAiGrading();
+  }, [handleStartAiGrading]);
 
   const selectedRows = useMemo(
     () => rows.filter((row) => selectedAnswerIds.has(row.id)),
@@ -382,6 +494,7 @@ const ContestAiGradingScreen: React.FC = () => {
         note: retryNote,
       });
       if (started) {
+        setSelectedModelId(modelId);
         closeRetryModal();
         setSelectedAnswerIds(new Set());
         right.open();
@@ -400,6 +513,7 @@ const ContestAiGradingScreen: React.FC = () => {
       retryNote,
       right,
       selectedQuestion,
+      setSelectedModelId,
       sessionId,
     ],
   );
@@ -546,13 +660,13 @@ const ContestAiGradingScreen: React.FC = () => {
         clear();
         setPendingBindSessionId("");
       }
-      setSelectedQuestionId(questionId);
+      updateAiGradingParams({ [AI_GRADING_QUESTION_PARAM]: questionId });
     },
-    [clear, sessionId],
+    [clear, sessionId, updateAiGradingParams],
   );
 
-  // 卡片狀態完全看 grade.csv：沒有「這是哪個 run 在跑」的概念，
-  // 只看該題有沒有開始批改（任何一筆有 AI 分數）以及本筆是否已評。
+  // 卡片狀態以 chat provider 的 active run + grade.csv 結果共同判斷：
+  // run 正在跑且該列尚未產生建議時，保留 AI 批改中的動態狀態。
   const hasAnyAiResult = useMemo(
     () => rows.some((row) => !!resultsByAnswerId[row.id]),
     [rows, resultsByAnswerId],
@@ -563,10 +677,48 @@ const ContestAiGradingScreen: React.FC = () => {
       const suggestion = resultsByAnswerId[rowId];
       if (suggestion?.synced) return "submitted";
       if (suggestion) return "reviewable";
+      if (sessionRunning) return "pending";
       return hasAnyAiResult ? "pending" : "idle";
     },
-    [resultsByAnswerId, hasAnyAiResult],
+    [resultsByAnswerId, sessionRunning, hasAnyAiResult],
   );
+
+  const firstPendingAnswerId = useMemo(
+    () => filteredRows.find((row) => getCardStatus(row.id) === "pending")?.id ?? null,
+    [filteredRows, getCardStatus],
+  );
+
+  const shouldAutoScrollToPending = useMemo(
+    () =>
+      sessionRunning ||
+      (hasAnyAiResult && rows.some((row) => !resultsByAnswerId[row.id])),
+    [hasAnyAiResult, resultsByAnswerId, rows, sessionRunning],
+  );
+
+  useEffect(() => {
+    if (!firstPendingAnswerId || !shouldAutoScrollToPending) return;
+    const node = pendingCardRef.current;
+    if (!node) return;
+    const scrollKey = `${sessionId ?? "new"}:${selectedQuestion?.questionId ?? "none"}:${firstPendingAnswerId}:${sessionRunning ? "running" : "partial"}`;
+    if (lastAutoScrolledPendingRef.current === scrollKey) return;
+    lastAutoScrolledPendingRef.current = scrollKey;
+
+    window.requestAnimationFrame(() => {
+      node.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    });
+  }, [
+    firstPendingAnswerId,
+    selectedQuestion?.questionId,
+    sessionId,
+    sessionRunning,
+    shouldAutoScrollToPending,
+  ]);
 
   // Todos: derive from chatbot's current session (only when chatbot is on our bound session).
   const todoItems = useMemo(() => {
@@ -663,6 +815,28 @@ const ContestAiGradingScreen: React.FC = () => {
     return (
       <div className={styles.loadingWrap}>
         <Loading withOverlay={false} description={t("grading.loading", "載入批改資料...")} />
+      </div>
+    );
+  }
+
+  if (resolvingSessionKey) {
+    return (
+      <div className={styles.loadingWrap}>
+        <Loading
+          withOverlay={false}
+          description={t("grading.resolvingTaskSession", "尋找對應 AI session...")}
+        />
+      </div>
+    );
+  }
+
+  if (preparingSessionId && currentSession?.id !== preparingSessionId) {
+    return (
+      <div className={styles.loadingWrap}>
+        <Loading
+          withOverlay={false}
+          description={t("grading.preparingSession", "建立 AI session...")}
+        />
       </div>
     );
   }
@@ -822,18 +996,26 @@ const ContestAiGradingScreen: React.FC = () => {
                 />
               </div>
               <div className={styles.cardList}>
-                {filteredRows.map((row) => (
-                  <GradingCardViewOnly
-                    key={row.id}
-                    row={row}
-                    aiScore={resultsByAnswerId[row.id]?.score ?? null}
-                    aiReason={resultsByAnswerId[row.id]?.reason ?? ""}
-                    pending={getCardStatus(row.id) === "pending"}
-                    status={getCardStatus(row.id)}
-                    selected={selectedAnswerIds.has(row.id)}
-                    onToggleSelected={() => toggleSelectedAnswer(row.id)}
-                  />
-                ))}
+                {filteredRows.map((row) => {
+                  const cardStatus = getCardStatus(row.id);
+                  return (
+                    <div
+                      key={row.id}
+                      ref={row.id === firstPendingAnswerId ? pendingCardRef : null}
+                      className={styles.cardAnchor}
+                    >
+                      <GradingCardViewOnly
+                        row={row}
+                        aiScore={resultsByAnswerId[row.id]?.score ?? null}
+                        aiReason={resultsByAnswerId[row.id]?.reason ?? ""}
+                        pending={cardStatus === "pending"}
+                        status={cardStatus}
+                        selected={selectedAnswerIds.has(row.id)}
+                        onToggleSelected={() => toggleSelectedAnswer(row.id)}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
@@ -872,9 +1054,14 @@ const ContestAiGradingScreen: React.FC = () => {
           locked: hasBoundSession,
           onUnlock: hasBoundSession ? handleClearSession : undefined,
         }}
+        showInitPrompt={false}
+        showSessionBinding={false}
         models={gradingModels}
-        selectedModelId={modelId}
-        onModelChange={setModelId}
+        selectedModelId={effectiveModelId}
+        onModelChange={(nextModelId) => {
+          setModelId(nextModelId);
+          setSelectedModelId(nextModelId);
+        }}
         selectBlock={{
           label: t("grading.selectQuestion", "選擇題目"),
           placeholder: t("grading.selectQuestion", "選擇題目"),
@@ -892,13 +1079,16 @@ const ContestAiGradingScreen: React.FC = () => {
         onUnbind={handleClearSession}
         primaryAction={{
           // 三態：進行中(disabled) / 已有 match session(重新批改) / 無 match(開始批改)。
-          label: sessionRunning
+          label: startingAiGrading
+            ? t("grading.primaryStarting", "準備批改")
+            : sessionRunning
             ? t("grading.primaryRunning", "批改中")
             : sessionId
               ? t("grading.primaryRetry", "重新批改")
               : t("grading.primaryStart", "開始批改"),
           onClick: handlePrimaryAction,
-          disabled: sessionRunning || rows.length === 0,
+          disabled: startingAiGrading || sessionRunning || rows.length === 0,
+          pending: startingAiGrading,
           kind: "primary",
           renderIcon: sessionRunning ? Pause : sessionId ? Renew : Return,
         }}
@@ -949,6 +1139,22 @@ const ContestAiGradingScreen: React.FC = () => {
           {t("grading.bulkSubmitSummary", "將把 {{count}} 筆 AI 建議送出為正式評分，送出後可於學生端查看。", {
             count: submitModalRows.length,
           })}
+        </p>
+      </Modal>
+      <Modal
+        open={regradeChoiceOpen}
+        modalHeading={t("grading.regradeChoiceHeading", "重新批改")}
+        primaryButtonText={t("grading.regradeReuseSession", "沿用目前 session")}
+        secondaryButtonText={t("grading.regradeNewSession", "建立新 session")}
+        onRequestClose={() => setRegradeChoiceOpen(false)}
+        onRequestSubmit={handleRegradeReuseSession}
+        onSecondarySubmit={handleRegradeNewSession}
+      >
+        <p>
+          {t(
+            "grading.regradeChoiceDescription",
+            "要在目前 AI session 中重新批改，或建立一個全新的 session？沿用現有 session 會保留 rubric 與對話紀錄，並在同一份 grade.csv 上重批；建立新 session 則會從空白 grade.csv 重新開始。",
+          )}
         </p>
       </Modal>
       <Modal

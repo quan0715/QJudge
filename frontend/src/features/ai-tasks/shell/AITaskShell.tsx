@@ -38,6 +38,7 @@ export interface AITaskShellProps {
   secondaryProgress?: TaskShellSecondaryProgress;
 
   initPrompt: TaskShellInitPrompt;
+  showInitPrompt?: boolean;
 
   models: ModelInfo[];
   selectedModelId: string;
@@ -49,6 +50,7 @@ export interface AITaskShellProps {
   onOpenArtifact?(artifactId: string): void;
 
   sessionId: string | null;
+  showSessionBinding?: boolean;
   bindableSessions: TaskShellSessionOption[];
   pendingBindSessionId: string;
   onBindSessionChange(id: string): void;
@@ -118,6 +120,8 @@ export function AITaskShell(props: AITaskShellProps) {
       running={props.running}
       progress={props.progress}
       secondaryProgress={props.secondaryProgress}
+      initPrompt={props.initPrompt}
+      showInitPrompt={props.showInitPrompt}
       models={props.models}
       selectedModelId={props.selectedModelId}
       onModelChange={props.onModelChange}
@@ -128,6 +132,13 @@ export function AITaskShell(props: AITaskShellProps) {
       activeArtifactId={activeArtifactId}
       primaryAction={props.primaryAction}
       errorText={props.errorText}
+      sessionId={props.sessionId}
+      showSessionBinding={props.showSessionBinding}
+      bindableSessions={props.bindableSessions}
+      pendingBindSessionId={props.pendingBindSessionId}
+      onBindSessionChange={props.onBindSessionChange}
+      onBind={props.onBind}
+      onUnbind={props.onUnbind}
     />
   );
 

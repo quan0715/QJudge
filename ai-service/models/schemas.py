@@ -82,6 +82,31 @@ class ResumeRequest(BaseModel):
     )
 
 
+class AnswerRequest(BaseModel):
+    """Request body for POST /api/chat/answer."""
+    thread_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="DeepAgent thread ID to resume",
+    )
+    run_id: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Backend AIChatRun id for artifact attribution",
+    )
+    model_id: str = Field(
+        default="openai-nano",
+        description="Canonical model ID for resumed run",
+    )
+    answer: str = Field(
+        ...,
+        min_length=1,
+        max_length=10000,
+        description="User's answer to the agent's question",
+    )
+
+
 class ModelInfo(BaseModel):
     """Model information for GET /api/models."""
     model_id: str

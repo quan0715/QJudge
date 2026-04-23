@@ -29,29 +29,29 @@ export function ChatbotProvider({ children }: { children: ReactNode }) {
       handledRequestRef.current = null;
       return;
     }
-    if (handledRequestRef.current === activeSessionRequest) return;
+    const requestedSessionId = activeSessionRequest.id;
+    const requestKey = `${requestedSessionId}:${activeSessionRequest.nonce}`;
+    if (handledRequestRef.current === requestKey) return;
 
     const current = chatbotRef.current;
     if (current.isInitializing) return;
-    if (current.currentSessionId === activeSessionRequest) {
-      handledRequestRef.current = activeSessionRequest;
+    if (current.currentSessionId === requestedSessionId && current.currentSession) {
+      handledRequestRef.current = requestKey;
       return;
     }
-    if (
-      activeSessionRequest.startsWith("temp-") &&
-      current.currentSessionId &&
-      !current.currentSessionId.startsWith("temp-")
-    ) {
-      handledRequestRef.current = activeSessionRequest;
-      return;
-    }
-
-    handledRequestRef.current = activeSessionRequest;
-    const inList = current.sessions.some((s) => s.id === activeSessionRequest);
+    handledRequestRef.current = requestKey;
+    const inList = current.sessions.some((s) => s.id === requestedSessionId);
     if (!inList) {
+      if (
+        requestedSessionId.startsWith("temp-") &&
+        current.currentSessionId &&
+        !current.currentSessionId.startsWith("temp-")
+      ) {
+        return;
+      }
       void current.refreshSessions();
     }
-    void current.switchSession(activeSessionRequest);
+    void current.switchSession(requestedSessionId);
   }, [activeSessionRequest, chatbot.isInitializing]);
 
   return (
@@ -69,4 +69,8 @@ export function useChatbotContext(): ChatbotContextValue {
     throw new Error("useChatbotContext must be used within <ChatbotProvider>");
   }
   return ctx;
+}
+
+export function useOptionalChatbotContext(): ChatbotContextValue | null {
+  return useContext(ChatbotContext);
 }

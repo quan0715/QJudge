@@ -5,6 +5,7 @@
   padding: 0;
   overflow-y: auto;
   height: 100%;
+  min-width: 0;
   background: var(--cds-layer-background-02, var(--cds-layer-02));
   border-right: 1px solid var(--cds-border-subtle);
 }
@@ -22,6 +23,12 @@
     align-self: stretch;
     min-height: 3rem;
   }
+}
+
+.primaryActionPending {
+  display: inline-flex;
+  align-items: center;
+  min-width: 5.5rem;
 }
 
 .title {
@@ -67,13 +74,19 @@
   color: var(--cds-text-secondary);
 }
 
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 .artifactList {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0;
 }
 
 .artifactItem {
@@ -85,7 +98,7 @@
   min-height: 3rem;
   padding: 0.625rem 0.75rem;
   border: 1px solid var(--cds-border-subtle);
-  border-radius: 0.5rem;
+  border-radius: 0;
   background: var(--cds-layer-background-01, var(--cds-layer-01));
   cursor: pointer;
   font-size: 0.875rem;
@@ -103,6 +116,10 @@
     outline-offset: -2px;
   }
 
+  /** Stack like Carbon structured rows: single 1px seam between items. */
+  &:not(:first-child) {
+    border-top-width: 0;
+  }
 }
 
 .artifactItemActive {

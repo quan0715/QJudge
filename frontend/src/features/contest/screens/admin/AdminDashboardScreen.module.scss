@@ -41,8 +41,10 @@
 .mobileTitle {
   margin: 0;
   min-width: 0;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 300;
+  line-height: 1.25rem;
+  letter-spacing: 0;
   color: var(--cds-text-primary);
   white-space: nowrap;
   overflow: hidden;

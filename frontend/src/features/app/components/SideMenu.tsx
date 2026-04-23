@@ -27,6 +27,7 @@ import type { Classroom } from "@/core/entities/classroom.entity";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { QuestionBank } from "@/core/entities/question-bank.entity";
 import { useChatSessionContext } from "@/features/chatbot/contexts/ChatSessionContext";
+import { useOptionalChatbotContext } from "@/features/chatbot/contexts/ChatbotProvider";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { ChatHistoryPanel } from "@/features/chatbot/components/chat-ui/ChatHistoryPanel";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
@@ -91,6 +92,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
   const [contestFetched, setContestFetched] = useState(false);
 
   const { sessions, refreshSessions } = useChatSessionContext();
+  const chatbot = useOptionalChatbotContext();
 
   const currentSessionId = useMemo(() => {
     const match = location.pathname.match(/^\/chat\/([^/]+)/);
@@ -215,16 +217,17 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
   const isActive = (prefix: string) => location.pathname.startsWith(prefix);
 
   const handleNewChat = useCallback(async () => {
-    try {
-      const newSession = await chatbotRepository.createSession();
-      void refreshSessions();
+    const newSessionId = chatbot
+      ? await chatbot.createSession()
+      : (await chatbotRepository.createSession()).id;
+    if (newSessionId) {
       onClose?.();
-      navigate(`/chat/${newSession.id}`);
-    } catch {
-      onClose?.();
-      navigate("/chat");
+      navigate(`/chat/${newSessionId}`);
+      return;
     }
-  }, [refreshSessions, onClose, navigate]);
+    onClose?.();
+    navigate("/chat");
+  }, [chatbot, onClose, navigate]);
 
   const handleSelectSession = useCallback((id: string) => {
     onClose?.();
@@ -233,7 +236,11 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
 
   const handleDeleteSession = useCallback(async (id: string) => {
     try {
-      await chatbotRepository.deleteSession(id);
+      if (chatbot) {
+        await chatbot.deleteSession(id);
+      } else {
+        await chatbotRepository.deleteSession(id);
+      }
       void refreshSessions();
       if (id === currentSessionId) {
         const remaining = sessions.filter((s) => s.id !== id);
@@ -246,16 +253,20 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
     } catch {
       // silently ignore
     }
-  }, [currentSessionId, sessions, refreshSessions, navigate]);
+  }, [chatbot, currentSessionId, sessions, refreshSessions, navigate]);
 
   const handleRenameSession = useCallback(async (id: string, title: string) => {
     try {
-      await chatbotRepository.renameSession(id, title);
+      if (chatbot) {
+        await chatbot.renameSession(id, title);
+      } else {
+        await chatbotRepository.renameSession(id, title);
+      }
       void refreshSessions();
     } catch {
       // silently ignore
     }
-  }, [refreshSessions]);
+  }, [chatbot, refreshSessions]);
 
   const tabs = useMemo(
     () =>

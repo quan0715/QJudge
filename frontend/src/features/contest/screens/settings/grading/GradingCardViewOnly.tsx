@@ -1,4 +1,4 @@
-import { useMemo, type KeyboardEvent } from "react";
+import { useMemo, type CSSProperties, type KeyboardEvent } from "react";
 import { Checkmark } from "@carbon/icons-react";
 import { Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
@@ -80,6 +80,8 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
       : styles.deltaDown;
   const aiReasonText = (aiReason ?? "").trim() || "-";
   const isPending = status === "pending";
+  const scoreAnimationKey = aiScore == null ? "empty" : `${aiScore}`;
+  const scoreDigits = aiScoreText.split("");
   const statusTag = {
     idle: { type: "cool-gray" as const, label: t("grading.cardStatePending", "待批改") },
     pending: { type: "blue" as const, label: t("grading.cardStateAiRunning", "AI批改中") },
@@ -110,7 +112,7 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
 
   return (
     <article
-      className={`${styles.card} ${selected ? styles.cardSelected : ""} ${
+      className={`${styles.card} ${isPending ? styles.cardPending : ""} ${selected ? styles.cardSelected : ""} ${
         interactive ? styles.cardInteractive : ""
       }`}
       role={interactive ? "button" : undefined}
@@ -169,8 +171,28 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
                 <span className={styles.shimmerDot} />
               </div>
             ) : (
-              <div className={styles.aiScoreValue}>
-                {aiScoreText}
+              <div
+                key={scoreAnimationKey}
+                className={`${styles.aiScoreValue} ${
+                  aiScore != null ? styles.aiScoreEntered : ""
+                }`}
+              >
+                {aiScore == null ? (
+                  aiScoreText
+                ) : (
+                  <span className={styles.scoreDigits} aria-label={aiScoreText}>
+                    {scoreDigits.map((digit, index) => (
+                      <span
+                        key={`${digit}-${index}`}
+                        className={styles.scoreDigit}
+                        style={{ animationDelay: `${index * 42}ms` } as CSSProperties}
+                        aria-hidden="true"
+                      >
+                        {digit}
+                      </span>
+                    ))}
+                  </span>
+                )}
                 <span className={styles.aiScoreUnit}> / {row.maxScore}</span>
                 {deltaLabel ? (
                   <span className={`${styles.aiScoreDelta} ${deltaClass}`}>{deltaLabel}</span>

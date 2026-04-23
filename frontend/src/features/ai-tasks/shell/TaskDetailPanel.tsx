@@ -1,7 +1,8 @@
-import { Button, Dropdown } from "@carbon/react";
+import { Button, Dropdown, InlineLoading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { ModelSelect } from "@/features/chatbot/components/chat-ui/ModelSelect";
 import { TodoList } from "@/features/chatbot/components/chat-ui/TodoList";
+import { InitPromptEditor } from "./InitPromptEditor";
 import { ProgressCard, SecondaryProgressBar } from "./ProgressCard";
 import { ArtifactFileIcon } from "./artifactIcon";
 import type {
@@ -9,9 +10,11 @@ import type {
   ModelInfo,
   RunTodoItem,
   TaskShellAction,
+  TaskShellInitPrompt,
   TaskShellSelectBlock,
   TaskShellProgress,
   TaskShellSecondaryProgress,
+  TaskShellSessionOption,
   TaskStatus,
 } from "./types";
 import styles from "./TaskDetailPanel.module.scss";
@@ -37,6 +40,16 @@ interface TaskDetailPanelProps {
 
   primaryAction: TaskShellAction;
   errorText?: string | null;
+
+  initPrompt: TaskShellInitPrompt;
+  showInitPrompt?: boolean;
+  sessionId: string | null;
+  showSessionBinding?: boolean;
+  bindableSessions: TaskShellSessionOption[];
+  pendingBindSessionId: string;
+  onBindSessionChange(id: string): void;
+  onBind(): void;
+  onUnbind(): void;
 }
 
 export function TaskDetailPanel(props: TaskDetailPanelProps) {
@@ -56,6 +69,15 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
     activeArtifactId,
     primaryAction,
     errorText,
+    initPrompt,
+    showInitPrompt = true,
+    sessionId,
+    showSessionBinding = true,
+    bindableSessions,
+    pendingBindSessionId,
+    onBindSessionChange,
+    onBind,
+    onUnbind,
   } = props;
 
   const selectedBlockItem =
@@ -68,11 +90,17 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
         <Button
           kind={primaryAction.kind === "secondary" ? "secondary" : "primary"}
           size="md"
-          renderIcon={primaryAction.renderIcon}
-          disabled={primaryAction.disabled}
+          renderIcon={primaryAction.pending ? undefined : primaryAction.renderIcon}
+          disabled={primaryAction.disabled || primaryAction.pending}
           onClick={primaryAction.onClick}
         >
-          {primaryAction.label}
+          {primaryAction.pending ? (
+            <span className={styles.primaryActionPending}>
+              <InlineLoading status="active" description={primaryAction.label} />
+            </span>
+          ) : (
+            primaryAction.label
+          )}
         </Button>
       </header>
       {errorText ? <div className={styles.headerError}>{errorText}</div> : null}
@@ -89,6 +117,57 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
           menuPlacement="bottom"
         />
       </div>
+
+      {showInitPrompt ? (
+        <div className={styles.section}>
+          <InitPromptEditor prompt={initPrompt} />
+        </div>
+      ) : null}
+
+      {showSessionBinding ? (
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionLabel}>
+              {t("aiTaskShell.sessionLabel", "Session")}
+            </span>
+            {sessionId ? (
+              <span className={styles.sectionMeta}>{sessionId.slice(0, 8)}</span>
+            ) : null}
+          </div>
+          <Dropdown
+            id="ai-task-session-bind"
+            titleText=""
+            hideLabel
+            label={t("aiTaskShell.sessionPlaceholder", "選擇既有 session")}
+            size="sm"
+            items={bindableSessions}
+            itemToString={(item) => item?.label ?? ""}
+            selectedItem={
+              bindableSessions.find((item) => item.id === pendingBindSessionId) ?? null
+            }
+            disabled={running || bindableSessions.length === 0}
+            onChange={({ selectedItem }) => {
+              if (selectedItem) onBindSessionChange(selectedItem.id);
+            }}
+          />
+          <div className={styles.actionRow}>
+            {sessionId ? (
+              <Button kind="ghost" size="sm" disabled={running} onClick={onUnbind}>
+                {t("aiTaskShell.unbindSession", "解除綁定")}
+              </Button>
+            ) : (
+              <Button
+                kind="tertiary"
+                size="sm"
+                disabled={running || !pendingBindSessionId}
+                onClick={onBind}
+              >
+                {t("aiTaskShell.bindSession", "綁定 session")}
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className={styles.section}>
         <div className={styles.sectionHeader}>

@@ -215,6 +215,7 @@ class AIChatRun(models.Model):
         QUEUED = "queued", "Queued"
         RUNNING = "running", "Running"
         AWAITING_APPROVAL = "awaiting_approval", "Awaiting approval"
+        AWAITING_USER_ANSWER = "awaiting_user_answer", "Awaiting user answer"
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
         CANCELLED = "cancelled", "Cancelled"
@@ -259,7 +260,9 @@ class AIChatRun(models.Model):
     celery_task_id = models.CharField(max_length=100, blank=True)
     error = models.TextField(blank=True)
     approval_payload = models.JSONField(default=dict, blank=True)
+    question_payload = models.JSONField(default=dict, blank=True)
     resume_decision = models.CharField(max_length=20, blank=True)
+    question_answer = models.TextField(blank=True)
     cancel_requested = models.BooleanField(default=False)
     last_event_seq = models.PositiveIntegerField(default=0)
     started_at = models.DateTimeField(null=True, blank=True)
@@ -281,6 +284,7 @@ class AIChatRun(models.Model):
             self.Status.QUEUED,
             self.Status.RUNNING,
             self.Status.AWAITING_APPROVAL,
+            self.Status.AWAITING_USER_ANSWER,
         }
 
     def __str__(self):

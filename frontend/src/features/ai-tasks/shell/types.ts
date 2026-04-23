@@ -59,6 +59,7 @@ export interface TaskShellAction {
   label: string;
   onClick(): void;
   disabled?: boolean;
+  pending?: boolean;
   kind?: "primary" | "secondary" | "ghost";
   renderIcon?: CarbonIconType;
 }

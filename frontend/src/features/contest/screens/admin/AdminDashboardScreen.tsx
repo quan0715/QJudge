@@ -143,9 +143,9 @@ const AdminDashboardInner = () => {
                 >
                   <ArrowLeft size={20} />
                 </IconButton>
-                <h1 className={styles.mobileTitle}>
+                <h2 className={styles.mobileTitle}>
                   {t("adminLayout.mobileTitle", "競賽後台")}
-                </h1>
+                </h2>
               </>
             ) : (
               <>
