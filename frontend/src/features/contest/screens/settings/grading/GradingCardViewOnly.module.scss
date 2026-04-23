@@ -13,6 +13,50 @@
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
+.cardPending {
+  position: relative;
+  border-color: color-mix(in srgb, var(--cds-border-interactive, #0f62fe) 28%, var(--cds-border-subtle));
+  background:
+    linear-gradient(
+      115deg,
+      color-mix(in srgb, var(--cds-layer-background-01) 94%, var(--cds-interactive, #0f62fe)) 0%,
+      color-mix(in srgb, var(--cds-layer-background-01) 98%, var(--cds-support-info, #4589ff)) 28%,
+      var(--cds-layer-background-01) 48%,
+      color-mix(in srgb, var(--cds-layer-background-01) 96%, var(--cds-support-info, #4589ff)) 72%,
+      color-mix(in srgb, var(--cds-layer-background-01) 95%, var(--cds-support-success, #24a148)) 100%
+    );
+  background-size: 260% 260%;
+  animation: pendingCardField 8.4s ease-in-out infinite;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--cds-border-interactive, #0f62fe) 10%, transparent),
+    0 0 12px color-mix(in srgb, var(--cds-interactive, #0f62fe) 5%, transparent);
+}
+
+.cardPending::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--cds-interactive, #0f62fe) 7%, transparent) 38%,
+      color-mix(in srgb, var(--cds-support-info, #4589ff) 9%, transparent) 50%,
+      color-mix(in srgb, var(--cds-support-success, #24a148) 6%, transparent) 62%,
+      transparent 76%
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 9px,
+      color-mix(in srgb, var(--cds-text-primary) 3%, transparent) 10px
+    );
+  background-size: 300% 100%, 100% 100%;
+  animation: pendingSignalSweep 5.2s linear infinite;
+  opacity: 0.52;
+}
+
 .cardInteractive {
   cursor: pointer;
   outline: none;
@@ -39,6 +83,13 @@
   gap: 0.75rem;
   border-bottom: 1px solid var(--cds-border-subtle);
   background: var(--cds-layer-background-01);
+}
+
+.cardPending .headerBlock,
+.cardPending .mainRow,
+.cardPending .selectCell,
+.cardPending .answerBox {
+  background: transparent;
 }
 
 .selectCell {
@@ -121,6 +172,19 @@
   grid-template-rows: auto auto;
 }
 
+.cardPending .aiCol {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--cds-layer-background-01) 88%, var(--cds-interactive, #0f62fe)) 0%,
+      color-mix(in srgb, var(--cds-layer-background-01) 96%, var(--cds-support-info, #4589ff)) 36%,
+      color-mix(in srgb, var(--cds-layer-background-01) 94%, var(--cds-support-info, #4589ff)) 64%,
+      color-mix(in srgb, var(--cds-layer-background-01) 90%, var(--cds-support-success, #24a148)) 100%
+    );
+  background-size: 240% 240%;
+  animation: pendingPanelField 7.2s ease-in-out infinite;
+}
+
 .aiRow {
   padding: 0.75rem;
   min-height: 5.5rem;
@@ -139,6 +203,28 @@
   line-height: 1.05;
   font-weight: 700;
   color: var(--cds-text-primary);
+  font-variant-numeric: tabular-nums;
+  transform-origin: left center;
+}
+
+.aiScoreEntered {
+  animation: scoreEnter 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.scoreDigits {
+  display: inline-flex;
+  align-items: baseline;
+  perspective: 18rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreDigit {
+  display: inline-block;
+  min-width: 0.58em;
+  opacity: 0;
+  transform-origin: 50% 72%;
+  animation: digitReloadIn 560ms cubic-bezier(0.18, 0.82, 0.22, 1) both;
+  will-change: transform, opacity, filter;
 }
 
 .aiScoreUnit {
@@ -234,14 +320,23 @@
   gap: 0.375rem;
   color: var(--cds-text-secondary);
   font-size: 0.8125rem;
+  min-height: 2.5rem;
 }
 
 .shimmerDot {
-  width: 0.375rem;
-  height: 0.375rem;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
-  background: var(--cds-interactive, #0f62fe);
-  animation: shimmerPulse 1.2s ease-in-out infinite;
+  background:
+    radial-gradient(circle, var(--cds-text-on-color, #ffffff) 0 18%, transparent 19%),
+    linear-gradient(
+      135deg,
+      var(--cds-interactive, #0f62fe),
+      var(--cds-support-info, #4589ff) 48%,
+      var(--cds-support-success, #24a148)
+    );
+  box-shadow: 0 0 9px color-mix(in srgb, var(--cds-interactive, #0f62fe) 24%, transparent);
+  animation: shimmerPulse 1.9s ease-in-out infinite, hueDrift 7.4s linear infinite;
 
   &:nth-child(2) {
     animation-delay: 0.2s;
@@ -257,16 +352,46 @@
 }
 
 .shimmerBar {
-  height: 1.125rem;
-  border-radius: 0.25rem;
+  height: 1.25rem;
+  border-radius: 0.125rem;
   background: linear-gradient(
     90deg,
-    var(--cds-layer-accent-01, #e0e0e0) 0%,
-    var(--cds-layer-02, #f4f4f4) 50%,
-    var(--cds-layer-accent-01, #e0e0e0) 100%
+    color-mix(in srgb, var(--cds-layer-accent-01, #e0e0e0) 86%, var(--cds-interactive, #0f62fe)) 0%,
+    color-mix(in srgb, var(--cds-layer-02, #f4f4f4) 88%, var(--cds-support-info, #4589ff)) 36%,
+    color-mix(in srgb, var(--cds-layer-02, #f4f4f4) 88%, var(--cds-support-info, #4589ff)) 64%,
+    color-mix(in srgb, var(--cds-layer-accent-01, #e0e0e0) 86%, var(--cds-support-success, #24a148)) 100%
   );
-  background-size: 200% 100%;
-  animation: shimmerSweep 1.4s ease-in-out infinite;
+  background-size: 320% 100%;
+  animation: shimmerSweep 2.7s ease-in-out infinite, hueDrift 8.6s linear infinite;
+}
+
+@keyframes pendingCardField {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pendingPanelField {
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+}
+
+@keyframes pendingSignalSweep {
+  0% {
+    background-position: 140% 0, 0 0;
+  }
+  100% {
+    background-position: -140% 0, 0 0;
+  }
 }
 
 @keyframes shimmerPulse {
@@ -276,8 +401,8 @@
     transform: scale(0.8);
   }
   50% {
-    opacity: 1;
-    transform: scale(1.15);
+    opacity: 0.82;
+    transform: scale(1.08);
   }
 }
 
@@ -287,6 +412,70 @@
   }
   100% {
     background-position: -100% 0;
+  }
+}
+
+@keyframes hueDrift {
+  0%,
+  100% {
+    filter: saturate(1) brightness(1);
+  }
+  50% {
+    filter: saturate(1.12) brightness(1.03);
+  }
+}
+
+@keyframes scoreEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.94);
+    filter: blur(4px);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(-0.125rem) scale(1.035);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes digitReloadIn {
+  0% {
+    opacity: 0;
+    transform: translateY(0.78em) rotateX(-58deg) scale(0.92);
+    filter: blur(5px);
+  }
+  46% {
+    opacity: 1;
+    transform: translateY(-0.12em) rotateX(8deg) scale(1.045);
+    filter: blur(0);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(0.035em) rotateX(0deg) scale(0.99);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotateX(0deg) scale(1);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardPending,
+  .cardPending::before,
+  .cardPending .aiCol,
+  .shimmerDot,
+  .shimmerBar,
+  .scoreDigit,
+  .aiScoreEntered {
+    animation: none;
+    opacity: 1;
   }
 }
 

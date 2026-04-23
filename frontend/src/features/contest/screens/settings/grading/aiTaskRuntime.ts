@@ -91,6 +91,7 @@ export async function createTaskSession(params: {
   taskType: string;
   context: Record<string, string>;
   prompt?: string;
+  title?: string;
 }): Promise<{ sessionId: string; manifest: AiTaskManifestV1 }> {
   const session = await chatbotRepository.createBackendSession();
   const manifest = createTaskManifest({
@@ -99,6 +100,10 @@ export async function createTaskSession(params: {
     prompt: params.prompt,
   });
   await saveTaskManifest(session.id, manifest);
+  const title = params.title?.trim();
+  if (title) {
+    await chatbotRepository.renameSession(session.id, title);
+  }
   return { sessionId: session.id, manifest };
 }
 

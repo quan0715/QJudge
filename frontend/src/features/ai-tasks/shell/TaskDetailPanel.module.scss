@@ -67,6 +67,12 @@
   color: var(--cds-text-secondary);
 }
 
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 .artifactList {
   list-style: none;
   margin: 0;

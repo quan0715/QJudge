@@ -232,28 +232,22 @@ export function buildDefaultGradingPrompt(contestId: string, questionId: string)
 
 function buildPrompt(contestId: string, questionId: string): string {
   return [
-    "請使用 `qjudge-exam-grading-sop` 技能協助申論/短答題批改，但本輪先進行「準備階段」，**不要真的批改任何作答**。",
+    "請協助批改這題申論/短答題，必要時可參考 `qjudge-exam-grading-sop` 技能的評分原則。",
     "",
-    "Stage 1 context：",
+    "Input：",
     `- contest_id: ${contestId}`,
     `- grading_question_id: ${questionId}`,
+    "- `grade.csv` 已由前端建立，欄位固定為：index, exam_answer_id, username, answer_text, original_score, original_feedback, score, reason, synced。",
+    "- 請用 artifact_read(filename=\"grade.csv\") 讀取學生作答，並用 qjudge_grading 等工具取得題目、滿分與參考解答/評分說明。",
     "",
-    "準備階段要做的事（請先用 todo 工具建立以下兩個 todo，依序完成）：",
-    "1. **確認資料**：artifact_read(filename=\"grade.csv\") 檢視前端預先準備的作答列（9 欄：index, exam_answer_id, username, answer_text, original_score, original_feedback, score, reason, synced），並透過 qjudge_grading 等工具抓取題目與原始 rubric，向使用者摘要：本題共幾筆作答、滿分、題目重點、學生作答分布觀察。",
-    "2. **建立評分規則**：根據題目與樣本作答，草擬這次 AI 批改要沿用的細部評分準則（rubric checklist、分數切分、reason 撰寫規範）。完成後條列給使用者確認。",
-    "",
-    "兩個 todo 都完成後，**必須停下來等待使用者確認『OK，可以開始批改』**，這階段禁止：",
-    "- 呼叫 artifact_csv_patch 寫入任何 score / reason",
-    "- 呼叫 qjudge_grading 寫回分數或觸發後續階段",
-    "- 自行決定跳過確認繼續批改",
-    "",
-    "只有在使用者明確回覆同意後，才依 `qjudge-exam-grading-sop` 各 stage 逐步執行實際批改，並遵守下列 grade.csv 規範：",
-    "- 透過 artifact_csv_patch 維護既有 `grade.csv`，檔名固定為 `grade.csv`，content_type 為 text/csv。",
-    "- 欄位順序固定（9 欄）：index, exam_answer_id, username, answer_text, original_score, original_feedback, score, reason, synced。",
-    "- key_column: exam_answer_id。",
-    "- score 為數值（整數或浮點，且落在題目滿分範圍內）；reason 為簡短中文，依 SOP reason 政策填寫（滿分可留空，非滿分必填）。",
-    "- CSV 遵循 RFC 4180：欄位若含逗號、雙引號或換行，必須用雙引號包住，內部雙引號以 \"\" 轉義。",
-    "- 更新完 `grade.csv` 後即可停止；不要進入寫回/發布成績階段，也不要呼叫 qjudge_grading 寫回分數。",
+    "Output：",
+    "- 開始後請建立對應 TODO，至少包含讀取資料、建立 rubric、逐筆評分、批次更新 `grade.csv`，讓使用者能了解目前進度。",
+    "- 先建立 `rubric.md`，根據題目、滿分、參考解答/評分說明整理本題評分準則。",
+    "- 透過 artifact_csv_patch 更新同一份 `grade.csv`，key_column 固定為 exam_answer_id。",
+    "- 只填寫每列的 score 與 reason；不要改動 index, exam_answer_id, username, answer_text, original_score, original_feedback, synced。",
+    "- 如果作答很多，可以批量處理，但每一筆都要實際閱讀 answer_text 後，再給出 score 與 reason。",
+    "- reason 簡短說明扣分或給分依據；中英文皆可，如果學生用英文回答，建議 reason 也用英文。",
+    "- 更新完 `grade.csv` 後停止；不要呼叫 qjudge_grading 寫回分數，也不要發布成績。",
   ].join("\n");
 }
 
@@ -264,18 +258,24 @@ function buildRetryPrompt(
   note?: string,
 ): string {
   return [
-    "請使用 `qjudge-exam-grading-sop` 技能重新批改指定作答，依既有 rubric 與題目脈絡處理。",
+    "請重新批改指定作答，依既有 rubric、題目脈絡與必要的 `qjudge-exam-grading-sop` 評分原則處理。",
     "",
-    "Stage 1 context：",
+    "Input：",
     `- contest_id: ${contestId}`,
     `- grading_question_id: ${questionId}`,
     `- exam_answer_ids: ${answerIds.join(", ")}`,
     note?.trim() ? `- regrade_note: ${note.trim()}` : "",
     "",
-    "請先 artifact_read(filename=\"grade.csv\")，只重新批改上述 exam_answer_ids 對應列。",
-    "透過 artifact_csv_patch 維護既有 `grade.csv`，key_column 固定為 exam_answer_id，只更新指定列的 score 與 reason。",
+    "Output：",
+    "- 開始後請建立對應 TODO，至少包含讀取指定作答、確認 rubric、逐筆重新評分、批次更新 `grade.csv`，讓使用者能了解目前進度。",
+    "- 先參考既有 `rubric.md`；若不存在，請根據題目與參考解答/評分說明建立 `rubric.md`。",
+    "- 請先 artifact_read(filename=\"grade.csv\")，只重新批改上述 exam_answer_ids 對應列。",
+    "- 透過 artifact_csv_patch 更新既有 `grade.csv`，key_column 固定為 exam_answer_id。",
+    "- 只更新指定列的 score 與 reason；不要改動其他欄位或非指定列。",
+    "- 如果指定作答很多，可以批量處理，但每一筆都要實際閱讀 answer_text 後，再給出 score 與 reason。",
+    "- reason 簡短說明扣分或給分依據；中英文皆可，如果學生用英文回答，建議 reason 也用英文。",
     note?.trim() ? "重新批改時請優先考量 regrade_note，但仍需維持 rubric 一致性。" : "",
-    "更新完 `grade.csv`（Excel 表格）後即可停止；不要進入寫回/發布成績階段，也不要呼叫 qjudge_grading 寫回分數。",
+    "- 更新完 `grade.csv` 後停止；不要呼叫 qjudge_grading 寫回分數，也不要發布成績。",
   ].filter(Boolean).join("\n");
 }
 
@@ -446,7 +446,7 @@ export function useAiQuestionGrading() {
     contestId: string,
     questionId: string,
     rows: GradingAnswerRow[],
-    options?: { prompt?: string; modelId?: string },
+    options?: { prompt?: string; modelId?: string; title?: string },
   ): Promise<string | null> => {
     if (!contestId || !questionId) return null;
     if (!rows.length) return null;
@@ -477,6 +477,7 @@ export function useAiQuestionGrading() {
           taskType: AI_GRADING_TASK_TYPE,
           context,
           prompt,
+          title: options?.title,
         }),
       );
 
@@ -553,7 +554,7 @@ export function useAiQuestionGrading() {
         }
 
         if (!shouldStop && activeRun.runId) {
-          const runStatus = await withRetry(() => getRunStatus(activeRun.runId));
+          const runStatus = await getRunStatus(activeRun.runId);
           if (runStatus.status === "failed" || runStatus.status === "cancelled") {
             setState((prev) => ({
               ...prev,

@@ -87,7 +87,14 @@ const ContestAiGradingScreen: React.FC = () => {
     clear,
   } = useAiQuestionGrading();
   const { sessions, requestActiveSession } = useChatSessionContext();
-  const { availableModels, currentSession, refreshSessions } = useChatbotContext();
+  const {
+    availableModels,
+    currentSession,
+    activeRuns,
+    createSession,
+    refreshSessions,
+    setSelectedModelId,
+  } = useChatbotContext();
   const artifactPanel = useArtifactPanel();
   const { right } = useWorkspace();
 
@@ -102,6 +109,7 @@ const ContestAiGradingScreen: React.FC = () => {
   const [submitModalRows, setSubmitModalRows] = useState<GradingAnswerRow[]>([]);
   const [revertModalRows, setRevertModalRows] = useState<GradingAnswerRow[]>([]);
   const [scoreFilterId, setScoreFilterId] = useState("all");
+  const [preparingSessionId, setPreparingSessionId] = useState<string | null>(null);
 
   // Filter down to models the grading task supports.
   const gradingModels = useMemo(
@@ -158,8 +166,9 @@ const ContestAiGradingScreen: React.FC = () => {
   }, [defaultPrompt, sessionId]);
 
   // 自動綁定：找 sessions 裡時間最近 && task_type=grading && context 吻合的 session。
-  // 找到就呼叫 bindSession / restore 接回；沒找到就維持 init 狀態等使用者按「開始批改」建立新 session。
+  // 找到就呼叫 bindSession / restore 接回；沒找到就把右側 chat 切成空白新 session。
   const autoBindKeyRef = useRef<string | null>(null);
+  const emptySessionQuestionRef = useRef<string | null>(null);
   useEffect(() => {
     if (!contest?.id || !selectedQuestion || rows.length === 0) return;
     if (sessionId && trackedQuestionId === selectedQuestion.questionId) return;
@@ -178,16 +187,25 @@ const ContestAiGradingScreen: React.FC = () => {
         context: { contest_id: contestId, question_id: questionId },
       });
       if (autoBindKeyRef.current !== attemptKey) return; // 期間使用者又切題，放棄結果
-      if (!matched) return;
+      if (!matched) {
+        if (emptySessionQuestionRef.current === questionId) return;
+        emptySessionQuestionRef.current = questionId;
+        const emptySessionId = await createSession();
+        if (autoBindKeyRef.current !== attemptKey || !emptySessionId) return;
+        requestActiveSession(emptySessionId);
+        return;
+      }
       const restoredSessionId = await restore(matched, contestId, questionId, rows);
       if (autoBindKeyRef.current !== attemptKey) return;
       if (restoredSessionId) {
+        emptySessionQuestionRef.current = null;
         setPendingBindSessionId(restoredSessionId);
         requestActiveSession(restoredSessionId);
       }
     })();
   }, [
     contest?.id,
+    createSession,
     requestActiveSession,
     restore,
     rows,
@@ -216,11 +234,15 @@ const ContestAiGradingScreen: React.FC = () => {
   const handleStartAiGrading = useCallback(async () => {
     if (!contest?.id || !selectedQuestion || rows.length === 0) return;
     const effectivePrompt = promptDraft.trim() || defaultPrompt;
+    const sessionTitle = `${t("grading.taskTypeLabel", "AI 批改")} · Q${selectedQuestion.questionIndex}`;
+    setSelectedModelId(modelId);
     const newSessionId = await start(contest.id, selectedQuestion.questionId, rows, {
       prompt: effectivePrompt,
       modelId,
+      title: sessionTitle,
     });
     if (newSessionId) {
+      setPreparingSessionId(newSessionId);
       setPendingBindSessionId(newSessionId);
       right.open();
       requestActiveSession(newSessionId);
@@ -238,20 +260,32 @@ const ContestAiGradingScreen: React.FC = () => {
     right,
     rows,
     selectedQuestion,
+    setSelectedModelId,
     start,
+    t,
   ]);
 
-  // Running 改以 session 實際狀態為主（後端 getActiveRuns 決定），避免 hook 內部 state 與
-  // 後端漂移的問題。只有當該 session 真的有一個 active run（queued/running/awaiting_approval）
-  // 才視為「正在跑」。
-  const sessionActiveRunStatus =
-    currentSession && currentSession.id === sessionId
-      ? currentSession.metadata?.active_run_status
-      : undefined;
-  const sessionRunning =
-    sessionActiveRunStatus === "running" ||
-    sessionActiveRunStatus === "queued" ||
-    sessionActiveRunStatus === "awaiting_approval";
+  // Subscribe task detail to ChatbotProvider's active run state. This keeps
+  // model/running UI aligned with the right chat panel after a task session is
+  // injected from this screen.
+  const taskActiveRun = useMemo(() => {
+    if (!sessionId) return null;
+    return (
+      activeRuns.find(
+        (run) =>
+          run.sessionId === sessionId &&
+          ["queued", "running", "awaiting_approval"].includes(run.status),
+      ) ?? null
+    );
+  }, [activeRuns, sessionId]);
+  const sessionRunning = Boolean(taskActiveRun);
+  const effectiveModelId = taskActiveRun?.modelId ?? modelId;
+
+  useEffect(() => {
+    if (!preparingSessionId) return;
+    if (currentSession?.id !== preparingSessionId) return;
+    setPreparingSessionId(null);
+  }, [currentSession?.id, preparingSessionId]);
 
   const handlePrimaryAction = useCallback(() => {
     if (sessionRunning) return; // button is disabled; belt-and-braces
@@ -382,6 +416,7 @@ const ContestAiGradingScreen: React.FC = () => {
         note: retryNote,
       });
       if (started) {
+        setSelectedModelId(modelId);
         closeRetryModal();
         setSelectedAnswerIds(new Set());
         right.open();
@@ -400,6 +435,7 @@ const ContestAiGradingScreen: React.FC = () => {
       retryNote,
       right,
       selectedQuestion,
+      setSelectedModelId,
       sessionId,
     ],
   );
@@ -547,12 +583,18 @@ const ContestAiGradingScreen: React.FC = () => {
         setPendingBindSessionId("");
       }
       setSelectedQuestionId(questionId);
+      if (questionId) {
+        emptySessionQuestionRef.current = questionId;
+        void createSession().then((emptySessionId) => {
+          if (emptySessionId) requestActiveSession(emptySessionId);
+        });
+      }
     },
-    [clear, sessionId],
+    [clear, createSession, requestActiveSession, sessionId],
   );
 
-  // 卡片狀態完全看 grade.csv：沒有「這是哪個 run 在跑」的概念，
-  // 只看該題有沒有開始批改（任何一筆有 AI 分數）以及本筆是否已評。
+  // 卡片狀態以 chat provider 的 active run + grade.csv 結果共同判斷：
+  // run 正在跑且該列尚未產生建議時，保留 AI 批改中的動態狀態。
   const hasAnyAiResult = useMemo(
     () => rows.some((row) => !!resultsByAnswerId[row.id]),
     [rows, resultsByAnswerId],
@@ -563,9 +605,10 @@ const ContestAiGradingScreen: React.FC = () => {
       const suggestion = resultsByAnswerId[rowId];
       if (suggestion?.synced) return "submitted";
       if (suggestion) return "reviewable";
+      if (sessionRunning) return "pending";
       return hasAnyAiResult ? "pending" : "idle";
     },
-    [resultsByAnswerId, hasAnyAiResult],
+    [resultsByAnswerId, sessionRunning, hasAnyAiResult],
   );
 
   // Todos: derive from chatbot's current session (only when chatbot is on our bound session).
@@ -663,6 +706,17 @@ const ContestAiGradingScreen: React.FC = () => {
     return (
       <div className={styles.loadingWrap}>
         <Loading withOverlay={false} description={t("grading.loading", "載入批改資料...")} />
+      </div>
+    );
+  }
+
+  if (preparingSessionId && currentSession?.id !== preparingSessionId) {
+    return (
+      <div className={styles.loadingWrap}>
+        <Loading
+          withOverlay={false}
+          description={t("grading.preparingSession", "建立 AI session...")}
+        />
       </div>
     );
   }
@@ -872,9 +926,14 @@ const ContestAiGradingScreen: React.FC = () => {
           locked: hasBoundSession,
           onUnlock: hasBoundSession ? handleClearSession : undefined,
         }}
+        showInitPrompt={false}
+        showSessionBinding={false}
         models={gradingModels}
-        selectedModelId={modelId}
-        onModelChange={setModelId}
+        selectedModelId={effectiveModelId}
+        onModelChange={(nextModelId) => {
+          setModelId(nextModelId);
+          setSelectedModelId(nextModelId);
+        }}
         selectBlock={{
           label: t("grading.selectQuestion", "選擇題目"),
           placeholder: t("grading.selectQuestion", "選擇題目"),
