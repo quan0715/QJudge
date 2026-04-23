@@ -21,7 +21,7 @@ import styles from "./TaskDetailPanel.module.scss";
 
 interface TaskDetailPanelProps {
   taskTypeLabel: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   status: TaskStatus;
   running: boolean;
@@ -55,6 +55,9 @@ interface TaskDetailPanelProps {
 export function TaskDetailPanel(props: TaskDetailPanelProps) {
   const { t } = useTranslation("contest");
   const {
+    taskTypeLabel,
+    title,
+    subtitle,
     status,
     running,
     progress,
@@ -86,7 +89,11 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
   return (
     <aside className={styles.panel}>
       <header className={styles.header}>
-        <h2 className={styles.title}>{t("grading.taskTypeLabel", "AI 批改")}</h2>
+        <div className={styles.headerTitles}>
+          <h2 className={styles.title}>{taskTypeLabel}</h2>
+          {title ? <div className={styles.titleSub}>{title}</div> : null}
+          {subtitle ? <div className={styles.titleMeta}>{subtitle}</div> : null}
+        </div>
         <Button
           kind={primaryAction.kind === "secondary" ? "secondary" : "primary"}
           size="md"

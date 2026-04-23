@@ -108,28 +108,43 @@ export async function createTaskSession(params: {
   return { sessionId: session.id, manifest };
 }
 
-export class TaskContextMismatchError extends Error {
-  constructor(message = "task context 不一致，無法綁定此 session") {
-    super(message);
-    this.name = "TaskContextMismatchError";
-  }
-}
+export type BindTaskSessionReason = "not_found" | "wrong_type" | "context_mismatch";
 
+export type BindTaskSessionResult =
+  | { ok: true; manifest: AiTaskManifestV1 }
+  | { ok: false; reason: BindTaskSessionReason; message: string };
+
+/**
+ * 嘗試綁定既有 session。business rule 失敗以 discriminated union 回傳（不 throw）；
+ * 載入 session 時的網路／伺服器錯誤仍會 throw，由呼叫端以 try/catch 處理。
+ */
 export async function bindExistingTaskSession(params: {
   sessionId: string;
   taskType: string;
   context?: Record<string, string>;
-}): Promise<AiTaskManifestV1> {
+}): Promise<BindTaskSessionResult> {
   const manifest = await loadTaskManifest(params.sessionId);
   if (!manifest) {
-    throw new Error("找不到 session task manifest，無法綁定此 session");
+    return {
+      ok: false,
+      reason: "not_found",
+      message: "找不到 session task manifest，無法綁定此 session",
+    };
   }
   if (manifest.task_type !== params.taskType) {
-    throw new Error("task 類型不一致，無法綁定此 session");
+    return {
+      ok: false,
+      reason: "wrong_type",
+      message: "task 類型不一致，無法綁定此 session",
+    };
   }
   if (params.context && !isSameTaskContext(manifest.context, params.context)) {
-    throw new TaskContextMismatchError();
+    return {
+      ok: false,
+      reason: "context_mismatch",
+      message: "task context 不一致，無法綁定此 session",
+    };
   }
-  return manifest;
+  return { ok: true, manifest };
 }
 

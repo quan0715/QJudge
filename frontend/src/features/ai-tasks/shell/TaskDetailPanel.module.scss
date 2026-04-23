@@ -25,6 +25,14 @@
   }
 }
 
+.headerTitles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  padding: 0.25rem 0;
+}
+
 .primaryActionPending {
   display: inline-flex;
   align-items: center;
@@ -36,7 +44,27 @@
   font-size: 1.5rem;
   font-weight: 300;
   color: var(--cds-text-primary);
-  line-height: 1;
+  line-height: 1.1;
+}
+
+.titleSub {
+  margin: 0 0 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--cds-text-secondary);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titleMeta {
+  margin: 0 0 0 1rem;
+  font-size: 0.75rem;
+  color: var(--cds-text-helper);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .headerError {

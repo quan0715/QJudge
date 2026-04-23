@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { findLatestTaskSession } from "@/features/contest/screens/settings/grading/aiTaskRuntime";
+import { findLatestTaskSession } from "@/features/ai-tasks/lib/aiTaskRuntime";
 
 interface TaskSessionCandidate {
   id: string;
