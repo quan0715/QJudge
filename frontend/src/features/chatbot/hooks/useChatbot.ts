@@ -533,6 +533,27 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
     // Lazy load messages if not yet loaded
     const existing = sessions.find((s) => s.id === sessionId);
+    if (!existing && !sessionId.startsWith("temp-")) {
+      setLoadingSessionIds((prev) => new Set(prev).add(sessionId));
+      try {
+        const detailed = await chatbotRepository.getSession(sessionId);
+        setSessions((prev) => {
+          if (prev.some((s) => s.id === sessionId)) {
+            return prev.map((s) => (s.id === sessionId ? detailed : s));
+          }
+          return [detailed, ...prev];
+        });
+      } catch (err) {
+        console.warn("Failed to load requested session:", err);
+      } finally {
+        setLoadingSessionIds((prev) => {
+          const next = new Set(prev);
+          next.delete(sessionId);
+          return next;
+        });
+      }
+      return;
+    }
     if (existing && !existing.id.startsWith("temp-") && existing.messages.length === 0) {
       setLoadingSessionIds((prev) => new Set(prev).add(sessionId));
       try {
@@ -665,6 +686,16 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setIsStreaming(false);
           setIsLoading(false);
           setSessionNotice(null);
+          // Fallback: extract nextTurnOptions from the last assistant message
+          // in case the SSE event didn't carry them (e.g. tool-based path).
+          if (!nextTurnOptions) {
+            const lastMsg = [...(freshSession.messages ?? [])].reverse().find(
+              (m) => m.role === "assistant" && m.nextTurnOptions?.length,
+            );
+            if (lastMsg?.nextTurnOptions) {
+              setNextTurnOptions(lastMsg.nextTurnOptions);
+            }
+          }
         },
         onError: (errorMsg) => {
           setError(errorMsg);

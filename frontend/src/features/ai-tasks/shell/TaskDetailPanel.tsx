@@ -1,4 +1,4 @@
-import { Button, Dropdown } from "@carbon/react";
+import { Button, Dropdown, InlineLoading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { ModelSelect } from "@/features/chatbot/components/chat-ui/ModelSelect";
 import { TodoList } from "@/features/chatbot/components/chat-ui/TodoList";
@@ -90,11 +90,17 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
         <Button
           kind={primaryAction.kind === "secondary" ? "secondary" : "primary"}
           size="md"
-          renderIcon={primaryAction.renderIcon}
-          disabled={primaryAction.disabled}
+          renderIcon={primaryAction.pending ? undefined : primaryAction.renderIcon}
+          disabled={primaryAction.disabled || primaryAction.pending}
           onClick={primaryAction.onClick}
         >
-          {primaryAction.label}
+          {primaryAction.pending ? (
+            <span className={styles.primaryActionPending}>
+              <InlineLoading status="active" description={primaryAction.label} />
+            </span>
+          ) : (
+            primaryAction.label
+          )}
         </Button>
       </header>
       {errorText ? <div className={styles.headerError}>{errorText}</div> : null}

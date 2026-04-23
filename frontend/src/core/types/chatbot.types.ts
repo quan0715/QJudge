@@ -135,6 +135,8 @@ export interface ChatSession {
   messages: ChatMessage[];
   createdAt: Date;
   updatedAt: Date;
+  /** Arbitrary session context（task_manifest 等），目前由 AISessionListSerializer 攜帶。 */
+  context?: Record<string, unknown>;
   metadata?: {
     backend_session_id?: string;
     deepagent_thread_id?: string;

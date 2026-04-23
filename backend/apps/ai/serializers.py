@@ -67,6 +67,7 @@ class AISessionListSerializer(serializers.ModelSerializer):
         fields = [
             "session_id",
             "user",
+            "context",
             "created_at",
             "updated_at",
             "message_count",

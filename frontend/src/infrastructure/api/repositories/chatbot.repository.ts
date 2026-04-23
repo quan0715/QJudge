@@ -102,6 +102,7 @@ interface BackendSessionListItem {
   session_id: string;
   user: number;
   title: string;
+  context?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
   message_count: number;
@@ -426,6 +427,10 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
         .filter((t): t is ToolInfo => t !== null)
     : undefined;
   const todoItems = normalizeTodoItems(metadata.todos) ?? normalizeTodoItems(metadata.todo_items);
+  const rawOptions = Array.isArray(metadata.next_turn_options) ? metadata.next_turn_options : undefined;
+  const nextTurnOptions = rawOptions
+    ?.filter((o): o is Record<string, unknown> => typeof o === "object" && o !== null && "label" in o && "message" in o)
+    .map((o) => ({ label: String(o.label), message: String(o.message) }));
 
   return {
     id: backendMsg.id.toString(),
@@ -435,6 +440,7 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
     thinkingInfo: thinking ? { thinking, signature: "" } : undefined,
     toolExecutions: tools,
     todoItems,
+    nextTurnOptions: nextTurnOptions?.length ? nextTurnOptions : undefined,
     runId,
     runStatus: runStatus as ChatMessage["runStatus"],
     runError:
@@ -488,18 +494,35 @@ async function requestJson<T>(
 // ===== Repository Implementation =====
 const chatbotRepository: ChatbotRepository = {
   async getSessions(): Promise<ChatSession[]> {
-    const response = await requestJson<PaginatedResponse<BackendSessionListItem>>(
-      httpClient.get(`${BASE_URL}/`),
-      "無法載入對話列表"
-    );
-    const sessions = response.results || [];
-    return sessions.map((session) => ({
-      id: session.session_id,
-      title: session.title,
-      messages: [],
-      createdAt: new Date(session.created_at),
-      updatedAt: new Date(session.updated_at),
-    }));
+    const sessions: BackendSessionListItem[] = [];
+    let nextUrl: string | null = `${BASE_URL}/`;
+
+    while (nextUrl) {
+      const response = await requestJson<PaginatedResponse<BackendSessionListItem>>(
+        httpClient.get(nextUrl),
+        "無法載入對話列表"
+      );
+      sessions.push(...(response.results || []));
+      // DRF returns absolute URLs (e.g. http://backend:8000/api/...)
+      // which cause mixed-content errors. Extract path + query only.
+      if (response.next) {
+        const parsed = new URL(response.next, window.location.origin);
+        nextUrl = parsed.pathname + parsed.search;
+      } else {
+        nextUrl = null;
+      }
+    }
+
+    return sessions
+      .map((session) => ({
+        id: session.session_id,
+        title: session.title,
+        messages: [],
+        context: session.context ?? undefined,
+        createdAt: new Date(session.created_at),
+        updatedAt: new Date(session.updated_at),
+      }))
+      .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
   },
 
   async getSession(sessionId: string | number): Promise<ChatSession> {

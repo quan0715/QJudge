@@ -1,29 +1,12 @@
-export type AiTaskStatus =
-  | "idle"
-  | "running"
-  | "paused"
-  | "review"
-  | "completed"
-  | "failed";
-
-export interface AiTaskHistoryEntry {
-  at: string;
-  action: string;
-  detail?: string;
-}
-
 export interface AiTaskManifestV1 {
   schema_version: 1;
   task_type: string;
   context: Record<string, string>;
-  status: AiTaskStatus;
   prompt: string;
-  active_run_id: string | null;
   updated_at: string;
-  history: AiTaskHistoryEntry[];
 }
 
-export function nowIsoString(): string {
+function nowIsoString(): string {
   return new Date().toISOString();
 }
 
@@ -32,29 +15,12 @@ export function createTaskManifest(params: {
   context: Record<string, string>;
   prompt?: string;
 }): AiTaskManifestV1 {
-  const at = nowIsoString();
   return {
     schema_version: 1,
     task_type: params.taskType,
     context: params.context,
-    status: "idle",
     prompt: params.prompt ?? "",
-    active_run_id: null,
-    updated_at: at,
-    history: [{ at, action: "created" }],
-  };
-}
-
-export function withHistory(
-  manifest: AiTaskManifestV1,
-  action: string,
-  detail?: string,
-): AiTaskManifestV1 {
-  const at = nowIsoString();
-  return {
-    ...manifest,
-    updated_at: at,
-    history: [...manifest.history, { at, action, detail }],
+    updated_at: nowIsoString(),
   };
 }
 

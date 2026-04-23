@@ -514,6 +514,11 @@ def apply_event_to_run(run: AIChatRun, event: dict[str, Any]) -> None:
         if tool.get("tool_name") in _TODO_TOOL_NAMES:
             _persist_todos_in_metadata(metadata, tool.get("input"))
             _persist_todos_in_metadata(metadata, event.get("result"))
+        # Extract next_turn_options from suggest_next_actions tool result
+        if tool.get("tool_name") == "suggest_next_actions":
+            result = tool.get("result")
+            if isinstance(result, dict) and result.get("next_turn_options"):
+                metadata["next_turn_options"] = result["next_turn_options"]
         _save_assistant_metadata(run, metadata)
         return
 
