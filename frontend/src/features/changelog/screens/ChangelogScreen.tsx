@@ -8,6 +8,7 @@ import DocTableOfContents from "@/features/docs/components/DocTableOfContents";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { ThemeSwitch } from "@/shared/ui/config";
 import type { ThemeValue } from "@/shared/ui/config";
+import { BrandLockup } from "@/shared/brand/BrandLockup";
 import styles from "./ChangelogScreen.module.scss";
 
 interface VersionMeta {
@@ -100,7 +101,7 @@ const ChangelogScreen: React.FC = () => {
             QJudge
           </p>
           <h2 className="cds--type-productive-heading-03" style={{ margin: 0 }}>
-            {t("title")}
+            <BrandLockup label={t("title")} size={22} />
           </h2>
         </div>
 

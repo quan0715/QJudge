@@ -1,0 +1,19 @@
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  color: inherit;
+}
+
+.brand-lockup__mark {
+  display: block;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.brand-lockup__label {
+  white-space: nowrap;
+  line-height: 1;
+}

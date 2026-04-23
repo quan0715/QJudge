@@ -39,12 +39,11 @@
 .landing-header__brand {
   display: inline-flex;
   align-items: center;
-  gap: layout.$spacing-03;
   color: inherit;
   text-decoration: none;
   flex-shrink: 0;
 
-  span {
+  .brand-lockup__label {
     @include type.type-style("heading-compact-02");
     font-weight: 600;
   }

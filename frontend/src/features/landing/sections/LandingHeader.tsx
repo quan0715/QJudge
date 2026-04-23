@@ -1,8 +1,8 @@
 import type { FC } from "react";
 import { Button } from "@carbon/react";
-import { TaskComplete } from "@carbon/icons-react";
 import { TextModeSwitcher, type TextModeOption } from "@/shared/ui/navigation/TextModeSwitcher";
 import { IconModeSwitcher, type IconModeOption } from "@/shared/ui/navigation/IconModeSwitcher";
+import { BrandLockup } from "@/shared/brand/BrandLockup";
 import type { SupportedLanguage } from "@/i18n";
 import "./LandingHeader.scss";
 
@@ -31,8 +31,7 @@ const LandingHeader: FC<LandingHeaderProps> = ({
     <header className="landing-header">
       <div className="landing-header__inner">
         <a className="landing-header__brand" href="#top" aria-label="QJudge home">
-          <TaskComplete size={18} />
-          <span>QJudge</span>
+          <BrandLockup size={22} />
         </a>
 
         <nav className="landing-header__nav" aria-label="Landing sections">
