@@ -1,5 +1,5 @@
-import { memo, useCallback, useMemo } from "react";
-import { WatsonxAi, Copy, Checkmark } from "@carbon/icons-react";
+import { memo, useCallback } from "react";
+import { Copy, Checkmark } from "@carbon/icons-react";
 import { IconButton } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ChatMessage } from "@/core/types/chatbot.types";
@@ -19,14 +19,6 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
 
   const thinkingText = message.thinkingInfo?.thinking ?? "";
   const messageText = message.content ?? "";
-  const timeLabel = useMemo(
-    () =>
-      message.timestamp.toLocaleTimeString("zh-TW", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    [message.timestamp],
-  );
 
   const handleCopy = useCallback(() => {
     copy(message.content);
@@ -39,26 +31,7 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
 
   return (
     <div className={`${styles.bubble} ${isUser ? styles.user : styles.ai}`}>
-      {!isUser && (
-        <div className={styles.avatar} aria-hidden="true">
-          <WatsonxAi size={20} />
-        </div>
-      )}
-
       <div className={styles.content}>
-        {!isUser && (
-          <div className={styles.meta}>
-            <span className={styles.name}>QJudge AI</span>
-            <span className={styles.time}>{timeLabel}</span>
-          </div>
-        )}
-
-        {isUser && (
-          <div className={styles.metaRight}>
-            <span className={styles.time}>{timeLabel}</span>
-          </div>
-        )}
-
         {/* Thinking/Reasoning block */}
         {!isUser && thinkingText && (
           <details className={styles.thinking}>
