@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { useChatbotContext } from "../../contexts/ChatbotProvider";
+import { useAiSessionParam } from "../../lib/aiSessionUrl";
 import type { ChatMessage, ChatSession, ModelInfo } from "@/core/types/chatbot.types";
 import { MessageList } from "./MessageList";
 import { ComposerBar } from "./ComposerBar";
@@ -36,7 +37,6 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
     setSelectedModelId,
     createSession,
     deleteSession,
-    switchSession,
     renameSession,
     sendMessage,
     uploadArtifact,
@@ -50,11 +50,12 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
     createSession();
   }, [createSession]);
 
+  const { setAiSessionId } = useAiSessionParam();
   const handleSelectSession = useCallback(
     (id: string) => {
-      switchSession(id);
+      setAiSessionId(id);
     },
-    [switchSession],
+    [setAiSessionId],
   );
 
   const handleApproval = useCallback(
@@ -173,26 +174,10 @@ function ChatContainerBody({
   const showSplitPanel = artifactOpen && !isMobile;
   const showBottomSheet = artifactOpen && isMobile;
 
-  // Trigger artifact list refresh whenever an artifact_* tool call finishes.
-  // Dedup by toolCallId so repeat messages don't re-fetch.
-  const seenToolCalls = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    seenToolCalls.current = new Set();
-  }, [currentSessionId]);
-  useEffect(() => {
-    for (const message of messages) {
-      const execs = message.toolExecutions ?? [];
-      for (const step of execs) {
-        if (!step.toolCallId || !step.toolName) continue;
-        if (!step.toolName.startsWith("artifact_")) continue;
-        if (step.result === undefined && !step.isError) continue;
-        if (seenToolCalls.current.has(step.toolCallId)) continue;
-        seenToolCalls.current.add(step.toolCallId);
-        markToolFinished(step.toolName);
-      }
-    }
-  }, [messages, markToolFinished]);
-
+  // 重要：原本掃描 messages→artifact_* tool call→markToolFinished 的 effect 已搬至
+  // `ArtifactPanelProvider`。ChatContainer 只在右側 panel 開著時才 mount，AI Grading
+  // 等只看 artifacts（進度/grade.csv）而關閉 chat panel 的場景會丟失 refresh 觸發。
+  // `markToolFinished` 這裡保留給手動上傳成功後 nudge artifacts 列表用。
   const handleUpload = useCallback(async (file: File) => {
     await uploadArtifact(file);
     markToolFinished("artifact_write");

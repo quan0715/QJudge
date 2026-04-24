@@ -24,7 +24,7 @@ export interface UseTaskSessionOptions {
   onMatch(matchedSessionId: string): Promise<string | null>;
   /** 沒有 match 的 session 時執行（通常是 createSession()）；每個 resolveKey 只會觸發一次。 */
   onEmpty?(): Promise<string | null>;
-  /** 任一路徑解析出 sessionId 後呼叫，給 consumer 做後續動作（例如 requestActiveSession / 打開 chat panel）。 */
+  /** 任一路徑解析出 sessionId 後呼叫，給 consumer 做後續動作（例如寫入 `?ai_session_id=` URL / 打開 chat panel）。 */
   onSessionResolved?(sessionId: string): void;
 }
 

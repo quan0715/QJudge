@@ -19,6 +19,7 @@ import {
 import { useTaskSession } from "@/features/ai-tasks/hooks/useTaskSession";
 import { useChatSessionContext } from "@/features/chatbot/contexts/ChatSessionContext";
 import { useChatbotContext } from "@/features/chatbot/contexts/ChatbotProvider";
+import { useAiSessionParam } from "@/features/chatbot/lib/aiSessionUrl";
 import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { pickLatestTodos } from "@/shared/ai/TodoList";
@@ -37,7 +38,7 @@ import {
 } from "./grading/components/GradingModals";
 import styles from "./ContestAiGradingScreen.module.scss";
 
-const EXCLUDED_MODEL_IDS = new Set(["openai-nano", "deepseek-v3"]);
+const EXCLUDED_MODEL_IDS = new Set(["openai-nano", "deepseek-v4"]);
 const AI_GRADING_QUESTION_PARAM = "ai_grading_question";
 
 function toSingleLineLabel(value: string | undefined): string {
@@ -79,7 +80,8 @@ const ContestAiGradingScreen: React.FC = () => {
     refreshSuggestions,
     clear,
   } = useAiQuestionGrading();
-  const { sessions, isLoadingSessions, requestActiveSession } = useChatSessionContext();
+  const { sessions, isLoadingSessions } = useChatSessionContext();
+  const { setAiSessionId } = useAiSessionParam();
   const {
     availableModels,
     currentSession,
@@ -214,14 +216,14 @@ const ContestAiGradingScreen: React.FC = () => {
     taskContext,
     sessions,
     isLoadingSessions,
-    boundSessionId: sessionId,
+    boundSessionId: sessionId ?? null,
     isBoundForCurrentContext:
       !!sessionId && !!selectedQuestion && trackedQuestionId === selectedQuestion.questionId,
     enabled: !!contest?.id && !!selectedQuestion && rows.length > 0,
     resolveKey,
     onMatch: handleMatchedSession,
     onEmpty: handleEmptySession,
-    onSessionResolved: requestActiveSession,
+    onSessionResolved: setAiSessionId,
   });
 
   useEffect(() => {
@@ -256,7 +258,7 @@ const ContestAiGradingScreen: React.FC = () => {
         setPreparingSessionId(newSessionId);
         setPendingBindSessionId(newSessionId);
         right.open();
-        requestActiveSession(newSessionId);
+        setAiSessionId(newSessionId);
         // Grading hook calls startRun directly on the repository, bypassing useChatbot's
         // activeRuns state. Refresh so the chat panel subscribes to the new run and streams.
         void refreshSessions();
@@ -270,7 +272,7 @@ const ContestAiGradingScreen: React.FC = () => {
     modelId,
     promptDraft,
     refreshSessions,
-    requestActiveSession,
+    setAiSessionId,
     right,
     rows,
     selectedQuestion,
@@ -446,7 +448,7 @@ const ContestAiGradingScreen: React.FC = () => {
         closeRetryModal();
         setSelectedAnswerIds(new Set());
         right.open();
-        requestActiveSession(sessionId);
+        setAiSessionId(sessionId);
         void refreshSessions();
       }
     },
@@ -455,7 +457,7 @@ const ContestAiGradingScreen: React.FC = () => {
       contest?.id,
       modelId,
       refreshSessions,
-      requestActiveSession,
+      setAiSessionId,
       retryAnswers,
       retryModalRows,
       retryNote,
@@ -584,13 +586,13 @@ const ContestAiGradingScreen: React.FC = () => {
     void bindSession(sid, contest.id, selectedQuestion.questionId, rows).then((bound) => {
       if (!bound) return;
       right.open();
-      requestActiveSession(sid);
+      setAiSessionId(sid);
     });
   }, [
     bindSession,
     contest?.id,
     pendingBindSessionId,
-    requestActiveSession,
+    setAiSessionId,
     right,
     rows,
     selectedQuestion,
@@ -614,7 +616,12 @@ const ContestAiGradingScreen: React.FC = () => {
   );
 
   // 卡片狀態以 chat provider 的 active run + grade.csv 結果共同判斷：
-  // run 正在跑且該列尚未產生建議時，保留 AI 批改中的動態狀態。
+  // - 有分數（同步狀態）          → submitted
+  // - 有分數未同步                → reviewable
+  // - 無分數且 AI 正在跑          → pending（藍色「AI 批改中」動畫）
+  // - 無分數、AI 已停、其他列有分數 → missing（紅色「未產生建議」，提示 AI 漏批）
+  // - 無分數、AI 已停、其他列也無 → idle（灰色「待批改」）
+  // 先前把最後兩種都塞進 pending，AI 跑完後未填的列永遠卡在「批改中」badge。
   const hasAnyAiResult = useMemo(
     () => rows.some((row) => !!resultsByAnswerId[row.id]),
     [rows, resultsByAnswerId],
@@ -626,7 +633,7 @@ const ContestAiGradingScreen: React.FC = () => {
       if (suggestion?.synced) return "submitted";
       if (suggestion) return "reviewable";
       if (sessionRunning) return "pending";
-      return hasAnyAiResult ? "pending" : "idle";
+      return hasAnyAiResult ? "missing" : "idle";
     },
     [resultsByAnswerId, sessionRunning, hasAnyAiResult],
   );
@@ -914,9 +921,6 @@ const ContestAiGradingScreen: React.FC = () => {
   return (
     <div className={styles.shellRoot}>
       <AITaskShell
-        taskTypeLabel={t("grading.taskTypeLabel", "AI 批改")}
-        title={`${t("grading.question", "題目")} Q${selectedQuestion.questionIndex}`}
-        subtitle={contest?.name}
         status={effectiveTaskStatus}
         running={sessionRunning}
         // 進度 & 三態都以 grade.csv 為主（aiCompletedCount / totalAnswerCount）

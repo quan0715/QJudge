@@ -43,11 +43,11 @@ import { questionBankMarketplaceRoute, questionBankDetailRoute } from "@/feature
 import { lazy, Suspense } from "react";
 
 const ChatStandalonePage = lazy(() => import("@/features/chatbot/components/ChatStandalonePage"));
+const ChatSessionRedirect = lazy(() => import("@/features/chatbot/components/ChatSessionRedirect"));
 
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
 import { PageHeaderActionsProvider } from "@/features/app/contexts/PageHeaderActionsContext";
-import { ChatSessionProvider } from "@/features/chatbot/contexts/ChatSessionContext";
 import { ChatbotProvider } from "@/features/chatbot/contexts/ChatbotProvider";
 import { WorkspaceProvider } from "@/features/app/contexts/WorkspaceContext";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
@@ -97,7 +97,6 @@ function App() {
                     <SettingsDialogProvider>
                     <RecurProviderBridge>
                     <BrowserRouter>
-                      <ChatSessionProvider>
                       <ChatbotProvider>
                       <WorkspaceProvider>
                       <PageHeaderActionsProvider>
@@ -185,7 +184,7 @@ function App() {
                                 path="/chat/:sessionId"
                                 element={
                                   <Suspense fallback={null}>
-                                    <ChatStandalonePage />
+                                    <ChatSessionRedirect />
                                   </Suspense>
                                 }
                               />
@@ -216,7 +215,6 @@ function App() {
                       </PageHeaderActionsProvider>
                       </WorkspaceProvider>
                       </ChatbotProvider>
-                      </ChatSessionProvider>
                     </BrowserRouter>
                     <SettingsDialog />
                     </RecurProviderBridge>
