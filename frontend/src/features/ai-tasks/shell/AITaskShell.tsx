@@ -28,10 +28,6 @@ const ARTIFACT_TAB_PREFIX = "__artifact__:";
 const MOBILE_DETAIL_TAB_ID = "__task_detail__";
 
 export interface AITaskShellProps {
-  taskTypeLabel: string;
-  title: string;
-  subtitle?: string;
-
   status: TaskStatus;
   running: boolean;
   progress?: TaskShellProgress;
@@ -113,9 +109,6 @@ export function AITaskShell(props: AITaskShellProps) {
 
   const taskDetailPanel = (
     <TaskDetailPanel
-      taskTypeLabel={props.taskTypeLabel}
-      title={props.title}
-      subtitle={props.subtitle}
       status={props.status}
       running={props.running}
       progress={props.progress}
