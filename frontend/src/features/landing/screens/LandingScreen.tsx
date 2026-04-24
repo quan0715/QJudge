@@ -21,6 +21,8 @@ import type { IconModeOption } from "@/shared/ui/navigation/IconModeSwitcher";
 import "@/features/landing/styles/LandingPage.scss";
 
 const DEMO_FORM_URL = "https://bedecked-griffin-98f.notion.site/b532286e832b4846a8f08298b6942fcc?pvs=105";
+const LANDING_PUBLIC_URL = (import.meta.env.VITE_LANDING_PUBLIC_URL || "https://q-judge.com").replace(/\/$/, "");
+const MAIN_APP_URL = (import.meta.env.VITE_MAIN_APP_URL || "").replace(/\/$/, "");
 
 const LandingScreen = () => {
   const navigate = useNavigate();
@@ -58,7 +60,7 @@ const LandingScreen = () => {
     "name": "QJudge",
     "applicationCategory": "EducationalApplication",
     "operatingSystem": "Web",
-    "url": "https://q-judge.com/",
+    "url": `${LANDING_PUBLIC_URL}/`,
     "description": t("seo.description"),
     "offers": {
       "@type": "Offer",
@@ -71,7 +73,7 @@ const LandingScreen = () => {
     ],
     "publisher": {
       "@type": "Organization",
-      "@id": "https://q-judge.com/#organization",
+      "@id": `${LANDING_PUBLIC_URL}/#organization`,
       "name": "QJudge",
     },
   };
@@ -91,8 +93,16 @@ const LandingScreen = () => {
   ];
   const themeValue = preference === "system" ? "dark" : preference;
 
-  const handleRegister = () => navigate("/register");
-  const handleLogin = () => navigate("/login");
+  const openAppPath = (path: string) => {
+    if (MAIN_APP_URL) {
+      window.location.assign(`${MAIN_APP_URL}${path}`);
+      return;
+    }
+    navigate(path);
+  };
+
+  const handleRegister = () => openAppPath("/register");
+  const handleLogin = () => openAppPath("/login");
   const handleContact = () => {
     window.open(DEMO_FORM_URL, "_blank", "noopener,noreferrer");
   };
@@ -104,14 +114,14 @@ const LandingScreen = () => {
         <title>{t("seo.title")}</title>
         <meta name="description" content={t("seo.description")} />
         <meta name="keywords" content={t("seo.keywords")} />
-        <link rel="canonical" href="https://q-judge.com/" />
+        <link rel="canonical" href={`${LANDING_PUBLIC_URL}/`} />
         {/* Open Graph */}
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://q-judge.com/" />
+        <meta property="og:url" content={`${LANDING_PUBLIC_URL}/`} />
         <meta property="og:site_name" content="QJudge" />
         <meta property="og:title" content={t("seo.ogTitle")} />
         <meta property="og:description" content={t("seo.ogDescription")} />
-        <meta property="og:image" content="https://q-judge.com/og-image.png" />
+        <meta property="og:image" content={`${LANDING_PUBLIC_URL}/og-image.png`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:locale" content={ogLocale} />
@@ -119,7 +129,7 @@ const LandingScreen = () => {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={t("seo.ogTitle")} />
         <meta name="twitter:description" content={t("seo.ogDescription")} />
-        <meta name="twitter:image" content="https://q-judge.com/og-image.png" />
+        <meta name="twitter:image" content={`${LANDING_PUBLIC_URL}/og-image.png`} />
         {/* JSON-LD */}
         <script type="application/ld+json">{JSON.stringify(softwareJsonLd)}</script>
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>

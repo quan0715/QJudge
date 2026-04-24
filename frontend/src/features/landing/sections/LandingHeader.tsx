@@ -31,7 +31,7 @@ const LandingHeader: FC<LandingHeaderProps> = ({
     <header className="landing-header">
       <div className="landing-header__inner">
         <a className="landing-header__brand" href="#top" aria-label="QJudge home">
-          <BrandLockup size={22} />
+          <BrandLockup size={36} />
         </a>
 
         <nav className="landing-header__nav" aria-label="Landing sections">
