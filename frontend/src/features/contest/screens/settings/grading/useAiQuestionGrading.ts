@@ -196,7 +196,7 @@ function parseSuggestions(
   return results;
 }
 
-export const AI_GRADING_DEFAULT_MODEL_ID = "deepseek-r1";
+export const AI_GRADING_DEFAULT_MODEL_ID = "deepseek-v4-thinking";
 
 export function buildDefaultGradingPrompt(contestId: string, questionId: string): string {
   return buildPrompt(contestId, questionId);

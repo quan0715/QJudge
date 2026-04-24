@@ -77,15 +77,40 @@ def test_create_model_openai_mini_medium_sets_medium_effort(monkeypatch):
     assert rate_limiter.requests_per_second == 2.0
 
 
-def test_create_model_deepseek_r1(monkeypatch):
+def test_create_model_deepseek_v4(monkeypatch):
     monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    model = model_factory_mod.ModelFactory.create_model("deepseek-r1")
+    model = model_factory_mod.ModelFactory.create_model("deepseek-v4")
     assert isinstance(model, _ChatDeepSeekStub)
-    assert model.kwargs["model"] == "deepseek-reasoner"
+    assert model.kwargs["model"] == "deepseek-v4-flash"
     assert model.kwargs["api_key"] == "deepseek-key"
     assert model.kwargs["streaming"] is True
+    # V4 thinking is ON by default upstream, but multi-turn requires echoing
+    # reasoning_content back in history, which LangChain strips. Default
+    # deepseek-v4 runs as a V3-style fast chat: thinking disabled.
+    assert model.kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
+    assert "reasoning_effort" not in model.kwargs
+
+
+def test_create_model_deepseek_v4_thinking(monkeypatch):
+    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
+    model = model_factory_mod.ModelFactory.create_model("deepseek-v4-thinking")
+    # Uses the reasoning-preserving subclass, which still inherits from the
+    # stubbed ChatDeepSeek so isinstance passes against the stub.
+    assert isinstance(model, _ChatDeepSeekStub)
+    assert model.kwargs["model"] == "deepseek-v4-flash"
+    assert model.kwargs["extra_body"] == {"thinking": {"type": "enabled"}}
+    assert model.kwargs["reasoning_effort"] == "low"
 
 
 def test_unknown_model_falls_back_to_default():
     assert model_factory_mod.ModelFactory.resolve_model_string("missing-model") == "gpt-5-nano"
+
+
+def test_unknown_model_does_not_leak_across_providers(monkeypatch):
+    """Unknown id → default canonical id → OpenAI branch + OpenAI provider
+    string. Must never drop an OpenAI model string into the DeepSeek branch."""
+    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
+    model = model_factory_mod.ModelFactory.create_model("deepseek-r1")  # stale
+    assert isinstance(model, _ChatOpenAIStub)
+    assert model.kwargs["model"] == "gpt-5-nano"
 

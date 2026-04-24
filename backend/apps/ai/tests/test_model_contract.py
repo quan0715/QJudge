@@ -5,7 +5,13 @@ from apps.ai.views import ModelListView
 
 
 def test_start_run_serializer_accepts_expected_model_ids():
-    for model_id in ("openai-nano", "openai-mini", "openai-mini-medium", "deepseek-r1", "deepseek-v3"):
+    for model_id in (
+        "openai-nano",
+        "openai-mini",
+        "openai-mini-medium",
+        "deepseek-v4",
+        "deepseek-v4-thinking",
+    ):
         serializer = StartRunSerializer(data={"content": "hello", "model_id": model_id})
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["model_id"] == model_id
@@ -31,5 +37,11 @@ def test_model_list_view_models_are_openai_plus_deepseek():
     model_ids = [item["model_id"] for item in models]
     defaults = [item["model_id"] for item in models if item["is_default"]]
 
-    assert model_ids == ["openai-nano", "openai-mini", "openai-mini-medium", "deepseek-r1", "deepseek-v3"]
+    assert model_ids == [
+        "openai-nano",
+        "openai-mini",
+        "openai-mini-medium",
+        "deepseek-v4",
+        "deepseek-v4-thinking",
+    ]
     assert defaults == ["openai-nano"]

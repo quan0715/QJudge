@@ -6,8 +6,7 @@ import type { ModelInfo } from "@/core/types/chatbot.types";
 import styles from "./ModelSelect.module.scss";
 
 export function normalizeModelLabel(label: string | undefined): string {
-  if (!label) return "gpt-5-nano";
-  return label.replace(/\s*\(Thinking\)\s*/gi, "").trim();
+  return label?.trim() || "gpt-5-nano";
 }
 
 export interface ModelSelectClasses {

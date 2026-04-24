@@ -705,14 +705,17 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           // 不然使用者看到的是「任務失敗」但卡片還留著，點按鈕會對不到活 run 變成卡死。
           setPendingApproval(null);
           setPendingQuestion(null);
-          // Fallback: extract nextTurnOptions from the last assistant message
-          // in case the SSE event didn't carry them (e.g. tool-based path).
+          // Fallback: if SSE didn't carry onNextTurnOptions for this run
+          // (e.g. tool-based path), read them off the LATEST assistant
+          // message only. Walking back to the first assistant with options
+          // would resurrect chips from an earlier turn that the user has
+          // already answered — classic stale-chip bug.
           if (!nextTurnOptions) {
-            const lastMsg = [...(freshSession.messages ?? [])].reverse().find(
-              (m) => m.role === "assistant" && m.nextTurnOptions?.length,
-            );
-            if (lastMsg?.nextTurnOptions) {
-              setNextTurnOptions(lastMsg.nextTurnOptions);
+            const lastAssistant = [...(freshSession.messages ?? [])]
+              .reverse()
+              .find((m) => m.role === "assistant");
+            if (lastAssistant?.nextTurnOptions?.length) {
+              setNextTurnOptions(lastAssistant.nextTurnOptions);
             }
           }
         },

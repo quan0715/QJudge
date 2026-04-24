@@ -189,7 +189,7 @@ class AIExecutionLog(models.Model):
     )
     model_used = models.CharField(
         max_length=50,
-        default='deepseek-r1',
+        default='deepseek-v4',
         verbose_name="使用的模型",
         help_text="使用的 LLM 模型版本"
     )
@@ -254,7 +254,7 @@ class AIChatRun(models.Model):
     kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.CHAT)
     status = models.CharField(max_length=32, choices=Status.choices, default=Status.QUEUED)
     content = models.TextField(blank=True)
-    model_id = models.CharField(max_length=50, default="deepseek-r1")
+    model_id = models.CharField(max_length=50, default="deepseek-v4")
     thread_id = models.CharField(max_length=100, blank=True)
     external_run_id = models.CharField(max_length=100, blank=True)
     celery_task_id = models.CharField(max_length=100, blank=True)

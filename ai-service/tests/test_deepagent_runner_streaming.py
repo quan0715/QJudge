@@ -68,7 +68,7 @@ async def _collect_events(runner: DeepAgentRunner, agent: _FakeAgent):
         config={"configurable": {"thread_id": "thread-1"}},
         run_id="run-1",
         thread_id="thread-1",
-        model_id="deepseek-r1",
+        model_id="deepseek-v4",
         event_queue=None,
     ):
         events.append(item)

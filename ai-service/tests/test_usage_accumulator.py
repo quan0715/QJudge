@@ -35,14 +35,14 @@ def test_usage_accumulator_collects_tokens_from_chat_model_end_event():
     )
 
     report = acc.build_usage_report(
-        model_id="deepseek-r1",
+        model_id="deepseek-v4",
         calculate_cost=lambda _m, i, o: i + o,
     )
 
     assert report.input_tokens == 13
     assert report.output_tokens == 36
     assert report.cost_cents == 49
-    assert report.model_used == "deepseek-r1"
+    assert report.model_used == "deepseek-v4"
 
 
 def test_usage_accumulator_ignores_irrelevant_events():
@@ -51,7 +51,7 @@ def test_usage_accumulator_ignores_irrelevant_events():
     acc.ingest_langgraph_event({"event": "on_chat_model_stream", "data": {}})
 
     report = acc.build_usage_report(
-        model_id="deepseek-r1",
+        model_id="deepseek-v4",
         calculate_cost=lambda _m, i, o: i + o,
     )
 

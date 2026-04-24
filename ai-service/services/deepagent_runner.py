@@ -754,7 +754,7 @@ class DeepAgentRunner:
         self,
         thread_id: str | None,
         messages: list[dict[str, str]],
-        model_id: str = "deepseek-r1",
+        model_id: str = "deepseek-v4",
         system_prompt: str | None = None,
         request_context: RequestContext | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
@@ -780,7 +780,7 @@ class DeepAgentRunner:
         self,
         thread_id: str,
         decision: str,
-        model_id: str = "deepseek-r1",
+        model_id: str = "deepseek-v4",
         system_prompt: str | None = None,
         request_context: RequestContext | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
@@ -804,7 +804,7 @@ class DeepAgentRunner:
         self,
         thread_id: str,
         answer: str,
-        model_id: str = "deepseek-r1",
+        model_id: str = "deepseek-v4",
         system_prompt: str | None = None,
         request_context: RequestContext | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:

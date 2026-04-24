@@ -125,7 +125,13 @@ class TestModelsEndpoint:
         assert isinstance(data["models"], list)
         model_ids = [m["model_id"] for m in data["models"]]
         default_models = [m["model_id"] for m in data["models"] if m.get("is_default")]
-        assert model_ids == ["openai-nano", "deepseek-r1", "deepseek-v3"]
+        assert model_ids == [
+            "openai-nano",
+            "openai-mini",
+            "openai-mini-medium",
+            "deepseek-v4",
+            "deepseek-v4-thinking",
+        ]
         assert default_models == ["openai-nano"]
 
 
