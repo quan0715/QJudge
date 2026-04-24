@@ -504,42 +504,6 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   }, [setCurrentSessionId]);
 
   /**
-   * 刪除 session
-   */
-  const deleteSession = useCallback(
-    async (sessionId: string) => {
-      try {
-        setError(null);
-        await chatbotRepository.deleteSession(sessionId);
-
-        let shouldCreate = false;
-
-        setSessions((prev) => {
-          const filtered = prev.filter((session) => session.id !== sessionId);
-          if (sessionId === currentSessionId) {
-            if (filtered.length > 0) {
-              setCurrentSessionId(filtered[0].id);
-            } else {
-              setCurrentSessionId(null);
-              shouldCreate = true;
-            }
-          } else if (filtered.length === 0) {
-            setCurrentSessionId(null);
-            shouldCreate = true;
-          }
-          return filtered;
-        });
-
-        if (shouldCreate) void createSession();
-      } catch (err) {
-        console.error("Failed to delete session:", err);
-        setError(i18n.t("chatbot:errors.deleteSessionFailed"));
-      }
-    },
-    [currentSessionId, createSession, setCurrentSessionId],
-  );
-
-  /**
    * 切換 session（lazy load messages）
    */
   const switchSession = useCallback(async (sessionId: string) => {
@@ -587,6 +551,47 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       }
     }
   }, [sessions, setCurrentSessionId]);
+
+  /**
+   * 刪除 session
+   */
+  const deleteSession = useCallback(
+    async (sessionId: string) => {
+      try {
+        setError(null);
+        await chatbotRepository.deleteSession(sessionId);
+
+        let shouldCreate = false;
+        let fallbackSessionId: string | null = null;
+
+        setSessions((prev) => {
+          const filtered = prev.filter((session) => session.id !== sessionId);
+          if (sessionId === currentSessionId) {
+            if (filtered.length > 0) {
+              fallbackSessionId = filtered[0].id;
+            } else {
+              setCurrentSessionId(null);
+              shouldCreate = true;
+            }
+          } else if (filtered.length === 0) {
+            setCurrentSessionId(null);
+            shouldCreate = true;
+          }
+          return filtered;
+        });
+
+        // 走 switchSession 而不是 setCurrentSessionId，讓 fallback session 也會 lazy-load
+        // messages；否則 sessions list 裡的 messages 永遠是 getSessions() 給的空陣列，
+        // 使用者會看到預設 welcome 畫面直到 refresh。
+        if (fallbackSessionId) void switchSession(fallbackSessionId);
+        if (shouldCreate) void createSession();
+      } catch (err) {
+        console.error("Failed to delete session:", err);
+        setError(i18n.t("chatbot:errors.deleteSessionFailed"));
+      }
+    },
+    [currentSessionId, createSession, setCurrentSessionId, switchSession],
+  );
 
   /**
    * 重新命名 session
