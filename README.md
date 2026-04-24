@@ -72,15 +72,18 @@ GitHub (push to main)
 | `CSRF_TRUSTED_ORIGINS` | Django CSRF 信任來源（含前端網址） |
 | `REDIS_URL` | Redis 連線位址 |
 | `AI_SERVICE_INTERNAL_TOKEN` | Backend ↔ AI service 內部 token |
-| `MINIO_ROOT_USER` | MinIO 管理帳號（勿用預設值） |
-| `MINIO_ROOT_PASSWORD` | MinIO 管理密碼（勿用預設值） |
-| `MINIO_API_CORS_ALLOW_ORIGIN` | MinIO API CORS allow origin |
-| `ANTICHEAT_S3_ENDPOINT_URL` | 後端到 MinIO 內網 endpoint（例：`http://minio:9000`） |
-| `ANTICHEAT_S3_PUBLIC_ENDPOINT_URL` | 瀏覽器直傳 MinIO 的公開 HTTPS endpoint |
+| `OBJECT_STORAGE_ENDPOINT_URL` | S3-compatible endpoint；local MinIO 例：`http://minio:9000`，Cloudflare R2 例：`https://<account_id>.r2.cloudflarestorage.com` |
+| `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` | 瀏覽器 presigned URL 使用的公開 endpoint；R2 通常同上 |
+| `OBJECT_STORAGE_REGION` | local MinIO 通常 `us-east-1`；Cloudflare R2 使用 `auto` |
+| `OBJECT_STORAGE_ACCESS_KEY/SECRET_KEY` | S3-compatible access key；R2 請使用 R2 API token 產生的 access key |
+| `MINIO_ROOT_USER` | local MinIO 管理帳號（勿用預設值） |
+| `MINIO_ROOT_PASSWORD` | local MinIO 管理密碼（勿用預設值） |
+| `MINIO_API_CORS_ALLOW_ORIGIN` | local MinIO API CORS allow origin |
 | `ANTICHEAT_CORS_ALLOWED_ORIGINS` | anti-cheat presigned 上傳允許來源 |
 | `ANTICHEAT_RAW_BUCKET` | anti-cheat 原始截圖 bucket |
 | `ANTICHEAT_VIDEO_BUCKET` | anti-cheat 影片 bucket |
-| `ANTICHEAT_S3_ACCESS_KEY/SECRET_KEY` | 選填；未填時 fallback 到 `MINIO_ROOT_USER/PASSWORD` |
+| `MARKDOWN_IMAGE_S3_BUCKET` | Markdown 圖片 bucket |
+| `MARKDOWN_IMAGE_PUBLIC_BASE_URL` | Markdown 圖片 API 的 public base URL；通常設為前端正式網址 |
 | `TUNNEL_TOKEN` | Cloudflare Tunnel token |
 | `NYCU_OAUTH_CLIENT_ID/SECRET` | NYCU OAuth |
 

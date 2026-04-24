@@ -412,51 +412,81 @@ AI_SERVICE_INTERNAL_TOKEN = os.getenv(
 AI_CREDIT_SCALE_PER_CREDIT = int(os.getenv("AI_CREDIT_SCALE_PER_CREDIT", "400000"))
 
 # ---------------------------------------------------------------------------
-# MinIO / S3 連線設定（所有 MinIO 使用者共用同一個實例，只設一次）
+# S3-compatible object storage connection settings.
+#
+# Prefer OBJECT_STORAGE_* for new deployments. MINIO_* and ANTICHEAT_S3_* are
+# retained as fallback aliases so existing .env files continue to work during
+# the R2 migration.
 # ---------------------------------------------------------------------------
-MINIO_ENDPOINT_URL = os.getenv(
-    "MINIO_ENDPOINT_URL",
-    os.getenv("ANTICHEAT_S3_ENDPOINT_URL", ""),
-)
-# Browser-facing endpoint used to rewrite presigned URLs (e.g. http://localhost:9000)
-MINIO_PUBLIC_ENDPOINT_URL = os.getenv(
-    "MINIO_PUBLIC_ENDPOINT_URL",
-    os.getenv("ANTICHEAT_S3_PUBLIC_ENDPOINT_URL", ""),
-)
-MINIO_REGION = os.getenv(
-    "MINIO_REGION",
-    os.getenv("ANTICHEAT_S3_REGION", "us-east-1"),
-)
-MINIO_ACCESS_KEY = os.getenv(
-    "MINIO_ACCESS_KEY",
+OBJECT_STORAGE_ENDPOINT_URL = os.getenv(
+    "OBJECT_STORAGE_ENDPOINT_URL",
     os.getenv(
-        "ANTICHEAT_S3_ACCESS_KEY",
-        os.getenv("MINIO_ROOT_USER", ""),
+        "MINIO_ENDPOINT_URL",
+        os.getenv("ANTICHEAT_S3_ENDPOINT_URL", ""),
     ),
 )
-MINIO_SECRET_KEY = os.getenv(
-    "MINIO_SECRET_KEY",
+# Browser-facing endpoint used for presigned URLs. For R2 this is usually the
+# same S3 API endpoint as OBJECT_STORAGE_ENDPOINT_URL.
+OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = os.getenv(
+    "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
     os.getenv(
-        "ANTICHEAT_S3_SECRET_KEY",
-        os.getenv("MINIO_ROOT_PASSWORD", ""),
+        "MINIO_PUBLIC_ENDPOINT_URL",
+        os.getenv("ANTICHEAT_S3_PUBLIC_ENDPOINT_URL", ""),
     ),
 )
-MINIO_PRESIGNED_URL_TTL_SECONDS = int(
-    os.getenv("MINIO_PRESIGNED_URL_TTL_SECONDS", "300")
+OBJECT_STORAGE_REGION = os.getenv(
+    "OBJECT_STORAGE_REGION",
+    os.getenv(
+        "MINIO_REGION",
+        os.getenv("ANTICHEAT_S3_REGION", "us-east-1"),
+    ),
+)
+OBJECT_STORAGE_ACCESS_KEY = os.getenv(
+    "OBJECT_STORAGE_ACCESS_KEY",
+    os.getenv(
+        "MINIO_ACCESS_KEY",
+        os.getenv(
+            "ANTICHEAT_S3_ACCESS_KEY",
+            os.getenv("MINIO_ROOT_USER", ""),
+        ),
+    ),
+)
+OBJECT_STORAGE_SECRET_KEY = os.getenv(
+    "OBJECT_STORAGE_SECRET_KEY",
+    os.getenv(
+        "MINIO_SECRET_KEY",
+        os.getenv(
+            "ANTICHEAT_S3_SECRET_KEY",
+            os.getenv("MINIO_ROOT_PASSWORD", ""),
+        ),
+    ),
+)
+OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS = int(
+    os.getenv(
+        "OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS",
+        os.getenv("MINIO_PRESIGNED_URL_TTL_SECONDS", "300"),
+    )
 )
 
-# Backwards-compatible aliases — existing modules read these. Prefer MINIO_* in new code.
-ANTICHEAT_S3_ENDPOINT_URL = MINIO_ENDPOINT_URL
-ANTICHEAT_S3_PUBLIC_ENDPOINT_URL = MINIO_PUBLIC_ENDPOINT_URL
-ANTICHEAT_S3_REGION = MINIO_REGION
-ANTICHEAT_S3_ACCESS_KEY = MINIO_ACCESS_KEY
-ANTICHEAT_S3_SECRET_KEY = MINIO_SECRET_KEY
-ANTICHEAT_PRESIGNED_URL_TTL_SECONDS = MINIO_PRESIGNED_URL_TTL_SECONDS
+# Backwards-compatible aliases — existing modules read these.
+MINIO_ENDPOINT_URL = OBJECT_STORAGE_ENDPOINT_URL
+MINIO_PUBLIC_ENDPOINT_URL = OBJECT_STORAGE_PUBLIC_ENDPOINT_URL
+MINIO_REGION = OBJECT_STORAGE_REGION
+MINIO_ACCESS_KEY = OBJECT_STORAGE_ACCESS_KEY
+MINIO_SECRET_KEY = OBJECT_STORAGE_SECRET_KEY
+MINIO_PRESIGNED_URL_TTL_SECONDS = OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS
 
-MARKDOWN_IMAGE_S3_ENDPOINT_URL = MINIO_ENDPOINT_URL
-MARKDOWN_IMAGE_S3_REGION = MINIO_REGION
-MARKDOWN_IMAGE_S3_ACCESS_KEY = MINIO_ACCESS_KEY
-MARKDOWN_IMAGE_S3_SECRET_KEY = MINIO_SECRET_KEY
+ANTICHEAT_S3_ENDPOINT_URL = OBJECT_STORAGE_ENDPOINT_URL
+ANTICHEAT_S3_PUBLIC_ENDPOINT_URL = OBJECT_STORAGE_PUBLIC_ENDPOINT_URL
+ANTICHEAT_S3_REGION = OBJECT_STORAGE_REGION
+ANTICHEAT_S3_ACCESS_KEY = OBJECT_STORAGE_ACCESS_KEY
+ANTICHEAT_S3_SECRET_KEY = OBJECT_STORAGE_SECRET_KEY
+ANTICHEAT_PRESIGNED_URL_TTL_SECONDS = OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS
+
+MARKDOWN_IMAGE_S3_ENDPOINT_URL = OBJECT_STORAGE_ENDPOINT_URL
+MARKDOWN_IMAGE_S3_REGION = OBJECT_STORAGE_REGION
+MARKDOWN_IMAGE_S3_ACCESS_KEY = OBJECT_STORAGE_ACCESS_KEY
+MARKDOWN_IMAGE_S3_SECRET_KEY = OBJECT_STORAGE_SECRET_KEY
 
 # Per-feature bucket / size settings
 ANTICHEAT_RAW_BUCKET = os.getenv("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
