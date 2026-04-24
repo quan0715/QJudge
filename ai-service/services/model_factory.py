@@ -25,12 +25,28 @@ logger = logging.getLogger(__name__)
 class ReasoningPreservingChatDeepSeek(ChatDeepSeek):
     """ChatDeepSeek variant that echoes prior ``reasoning_content``.
 
-    DeepSeek V4 thinking mode requires each assistant message in the
-    request history to carry the ``reasoning_content`` it produced. If
-    any prior assistant message omits it, the API returns 400
-    ``reasoning_content ... must be passed back``. LangChain captures the
-    field on the way in (into ``AIMessage.additional_kwargs``) but drops
-    it when serializing messages back out; this subclass re-attaches it.
+    DeepSeek V4 thinking mode requires **every** assistant message in the
+    request history to carry a ``reasoning_content`` field. If any prior
+    assistant message omits it, the API returns 400 ``reasoning_content
+    ... must be passed back``.
+
+    LangChain captures the field into ``AIMessage.additional_kwargs`` on
+    the way in but drops it when serializing messages back out, so on
+    multi-turn calls we re-attach it. But additional_kwargs alone isn't
+    enough:
+
+    - LangGraph checkpoint restoration, SummarizationMiddleware, DeepAgent
+      sub-agents, and any code path that reconstructs an ``AIMessage``
+      from content only will leave ``additional_kwargs`` empty.
+    - A non-thinking model turn (e.g. when the user previously ran the
+      session on ``deepseek-v4`` without thinking) produces assistant
+      messages with no reasoning_content at all.
+
+    For those cases a blank ``reasoning_content=""`` is accepted by the
+    DeepSeek API (verified empirically) and preserves the turn; without
+    it the entire request is rejected. Populate every assistant payload
+    slot: real value from ``additional_kwargs`` when available, empty
+    string otherwise.
     """
 
     def _get_request_payload(self, input_, *, stop=None, **kwargs):  # type: ignore[override]
@@ -46,10 +62,11 @@ class ReasoningPreservingChatDeepSeek(ChatDeepSeek):
             try:
                 lm = next(ai_iter)
             except StopIteration:
-                break
-            rc = (lm.additional_kwargs or {}).get("reasoning_content")
-            if rc:
-                md["reasoning_content"] = rc
+                lm = None
+            rc = ""
+            if lm is not None:
+                rc = (lm.additional_kwargs or {}).get("reasoning_content") or ""
+            md["reasoning_content"] = rc
         return payload
 
 
