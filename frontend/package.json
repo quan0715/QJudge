@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:landing": "tsc -b && vite build --config vite.config.landing.ts",
     "build:docs": "tsc -b && vite build --config vite.config.docs.ts",
+    "cf:landing:create": "npx wrangler pages project create qjudge-landing --production-branch=main",
+    "cf:landing:deploy": "npm run build:landing && npx wrangler pages deploy dist-landing --project-name=qjudge-landing --branch=main",
+    "cf:landing:deploy:preview": "npm run build:landing && npx wrangler pages deploy dist-landing --project-name=qjudge-landing --branch=preview",
     "check:docs": "node scripts/check-docs-translations.js",
     "check:i18n": "node scripts/check-i18n-sync.js",
     "sync:i18n": "node scripts/sync-i18n.js",

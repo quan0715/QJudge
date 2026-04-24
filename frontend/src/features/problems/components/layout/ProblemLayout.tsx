@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { UserMenu } from "@/features/app/components/UserMenu";
 import { SideMenu } from "@/features/app/components/SideMenu";
 import { SideMenuToggle } from "@/features/app/components/SideMenuToggle";
+import { BrandLockup } from "@/shared/brand/BrandLockup";
 
 const ProblemLayout = () => {
   const navigate = useNavigate();
@@ -30,13 +31,13 @@ const ProblemLayout = () => {
         />
         <HeaderName
           href="#"
-          prefix="NYCU"
+          prefix=""
           onClick={(e) => {
             e.preventDefault();
             navigate("/dashboard");
           }}
         >
-          QJudge
+          <BrandLockup size={20} />
         </HeaderName>
         <HeaderNavigation aria-label="Problem Navigation">
           <HeaderMenuItem onClick={() => navigate("/problems")}>

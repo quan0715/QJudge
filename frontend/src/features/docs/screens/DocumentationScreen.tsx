@@ -9,6 +9,7 @@ import DocTableOfContents from "../components/DocTableOfContents";
 import DocFeedback from "../components/DocFeedback";
 import QuickLinkCards from "../components/QuickLinkCards";
 import AIGeneratedBadge from "../components/AIGeneratedBadge";
+import { BrandLockup } from "@/shared/brand/BrandLockup";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { ThemeSwitch, LanguageSwitch, type ThemeValue } from "@/shared/ui/config";
 import styles from "./DocumentationScreen.module.scss";
@@ -140,7 +141,7 @@ const DocumentationScreen: React.FC = () => {
             {t("nav.productLabel", "使用說明")}
           </p>
           <h2 className="cds--type-productive-heading-03" style={{ margin: 0 }}>
-            QJudge
+            <BrandLockup size={22} />
           </h2>
         </div>
 

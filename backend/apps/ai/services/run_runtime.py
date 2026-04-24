@@ -409,7 +409,55 @@ def execute_run(run_id: str) -> None:
 
         run.refresh_from_db()
         if run.status == AIChatRun.Status.RUNNING:
-            mark_run_failed(run, "Stream ended without terminal event")
+            # Reconcile with the persisted event stream before declaring failure.
+            # `_handle_sse_line` performs `record_event` (writes AIStreamEvent) and
+            # `apply_event_to_run` (updates run.status) as two separate DB writes.
+            # If the second raises, or if the upstream chunked the `awaiting_*`
+            # frame such that JSON decode succeeded in record_event but a later
+            # transient error aborted apply_event_to_run, run.status can be stuck
+            # in RUNNING while AIStreamEvent already shows a paused state — and
+            # the frontend, which tails AIStreamEvent, has already opened the
+            # HITL card. Failing the run here would orphan that card.
+            #
+            # Trust the persisted event stream: if the last recorded event is a
+            # paused / terminal state, sync run.status to it. Only mark failed
+            # when no authoritative event was ever recorded.
+            last_event = (
+                AIStreamEvent.objects.filter(run=run)
+                .order_by("-seq")
+                .values_list("event_type", flat=True)
+                .first()
+            )
+            if last_event == "awaiting_approval":
+                run.status = AIChatRun.Status.AWAITING_APPROVAL
+                run.save(update_fields=["status", "updated_at"])
+                _sync_message_run_metadata(run)
+            elif last_event == "awaiting_user_answer":
+                run.status = AIChatRun.Status.AWAITING_USER_ANSWER
+                run.save(update_fields=["status", "updated_at"])
+                _sync_message_run_metadata(run)
+            elif last_event in ("run_completed", "run_failed", "run_cancelled"):
+                # Terminal event already persisted but status sync never ran
+                # (apply_event_to_run raised). Sync status to the event without
+                # re-emitting so the frontend doesn't see a duplicate. The run
+                # must not be left as RUNNING or activeRuns will keep listing it.
+                logger.warning(
+                    "Run %s has terminal event %s but status=RUNNING; "
+                    "syncing status without re-emitting event.",
+                    run_id,
+                    last_event,
+                )
+                status_map = {
+                    "run_completed": AIChatRun.Status.COMPLETED,
+                    "run_failed": AIChatRun.Status.FAILED,
+                    "run_cancelled": AIChatRun.Status.CANCELLED,
+                }
+                run.status = status_map[last_event]
+                run.completed_at = timezone.now()
+                run.save(update_fields=["status", "completed_at", "updated_at"])
+                _sync_message_run_metadata(run)
+            else:
+                mark_run_failed(run, "Stream ended without terminal event")
 
         complete_execution_log(
             log,

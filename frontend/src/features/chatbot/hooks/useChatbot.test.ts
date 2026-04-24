@@ -16,7 +16,7 @@ const baseRun = (): ChatRun => ({
   sessionId: "session-1",
   status: "running",
   kind: "chat",
-  modelId: "deepseek-r1",
+  modelId: "deepseek-v4",
   lastEventSeq: 0,
   assistantMessageId: 42,
 });

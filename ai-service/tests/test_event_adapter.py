@@ -80,3 +80,31 @@ def test_adapt_legacy_thinking_block_still_supported():
     assert len(events) == 1
     assert isinstance(events[0], ThinkingDelta)
     assert events[0].content == "old-think"
+
+
+def test_adapt_openai_responses_api_reasoning_summary_block():
+    """OpenAI Responses API (output_version=responses/v1) emits reasoning
+    with a nested `summary[].text` shape. The adapter must extract the text
+    even though it's not directly on the block's `reasoning` / `text` key.
+    """
+    chunk = _Chunk(
+        content=[
+            {
+                "type": "reasoning",
+                "index": 0,
+                "summary": [
+                    {"index": 0, "type": "summary_text", "text": "Let me "},
+                    {"index": 0, "type": "summary_text", "text": "think."},
+                ],
+            },
+            {"type": "text", "text": "answer"},
+        ]
+    )
+
+    events = adapt_langgraph_event(_stream_event(chunk))
+
+    assert events is not None
+    assert isinstance(events[0], ThinkingDelta)
+    assert events[0].content == "Let me think."
+    assert isinstance(events[1], AgentMessageDelta)
+    assert events[1].content == "answer"

@@ -1,0 +1,80 @@
+name: Deploy Landing
+
+# Deploy standalone landing page to Cloudflare Pages.
+# This is intentionally separate from CD Prod, which deploys the product app
+# to the remote Docker Compose host through Tailscale.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/landing.html"
+      - "frontend/src/landing-main.tsx"
+      - "frontend/vite.config.landing.ts"
+      - "frontend/wrangler.jsonc"
+      - "frontend/pages/landing-worker.js"
+      - "frontend/src/features/landing/**"
+      - "frontend/src/shared/brand/**"
+      - "frontend/src/shared/ui/navigation/**"
+      - "frontend/src/shared/ui/theme/**"
+      - "frontend/src/shared/contexts/ContentLanguageContext.tsx"
+      - "frontend/src/styles/**"
+      - "frontend/public/brand/**"
+      - "frontend/public/illustrations/**"
+      - "frontend/public/logos/**"
+      - "frontend/public/videos/**"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - ".github/workflows/deploy-landing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-landing
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  deploy:
+    name: Build and Deploy Landing
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Validate required secrets
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "Missing required secret: CLOUDFLARE_API_TOKEN" >&2
+            exit 1
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build landing
+        run: npm run build:landing
+        working-directory: frontend
+
+      - name: Deploy to Cloudflare Pages
+        run: npx wrangler pages deploy dist-landing --project-name=qjudge-landing --branch=main
+        working-directory: frontend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

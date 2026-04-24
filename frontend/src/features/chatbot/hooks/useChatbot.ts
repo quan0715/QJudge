@@ -13,8 +13,6 @@ import type {
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { uploadUserArtifact } from "@/infrastructure/api/repositories/artifact.repository";
-import { useChatSessionContext } from "../contexts/ChatSessionContext";
-
 interface UseChatbotReturn {
   sessions: ChatSession[];
   currentSessionId: string | null;
@@ -22,6 +20,7 @@ interface UseChatbotReturn {
   isLoading: boolean;
   isStreaming: boolean;
   isInitializing: boolean;
+  isLoadingSessions: boolean;
   isSessionLoading: boolean;
   error: string | null;
   pendingApproval: ApprovalRequest | null;
@@ -50,6 +49,11 @@ interface UseChatbotReturn {
 interface UseChatbotOptions {
   /** 是否啟用（延遲初始化用） */
   enabled?: boolean;
+  /**
+   * 初始化時優先使用這個 session id（通常來自 URL `?ai_session_id=`）。
+   * 比 localStorage 的 last session 優先。沒提供時 fallback 到 localStorage → 列表第一筆。
+   */
+  initialSessionIdHint?: string | null;
 }
 
 /**
@@ -79,15 +83,15 @@ const FALLBACK_MODELS: ModelInfo[] = [
     is_default: false,
   },
   {
-    model_id: "deepseek-r1",
-    display_name: "DeepSeek R1 (Thinking)",
-    description: "推理能力強，適合複雜操作與測資生成",
+    model_id: "deepseek-v4",
+    display_name: "deepseek-v4",
+    description: "1M context、快速、低成本，適合日常對話與 summarization（非推理模式）",
     is_default: false,
   },
   {
-    model_id: "deepseek-v3",
-    display_name: "DeepSeek V3",
-    description: "快速，適合簡單查詢",
+    model_id: "deepseek-v4-thinking",
+    display_name: "deepseek-v4 (thinking)",
+    description: "1M context、推理模式（reasoning_effort=low），適合複雜批改與測資生成",
     is_default: false,
   },
 ];
@@ -256,11 +260,13 @@ export function applyRunMessageUpdate(
 }
 
 export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
-  const { enabled = true } = options;
+  const { enabled = true, initialSessionIdHint = null } = options;
+  // hint 只在 init 階段使用一次；後續 URL 變動由 ChatbotProvider 的 effect 處理。
+  // 用 ref 凍結首次進 init() 時的值，避免 hint 在 init 跑到一半被 URL 改變打斷。
+  const initialHintRef = useRef(initialSessionIdHint);
 
-  // Notify shared ChatSessionContext to refresh when session list changes
-  const { refreshSessions: refreshSharedSessions } = useChatSessionContext();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [currentSessionId, _setCurrentSessionId] = useState<string | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
 
@@ -352,6 +358,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
    * 載入所有 sessions（僅列表，不含 messages）
    */
   const refreshSessions = useCallback(async () => {
+    setIsLoadingSessions(true);
     try {
       setError(null);
       const [apiSessions, runs] = await Promise.all([
@@ -367,6 +374,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     } catch (err) {
       console.error("Failed to load sessions:", err);
       setError(i18n.t("chatbot:errors.loadSessionsFailed"));
+    } finally {
+      setIsLoadingSessions(false);
     }
   }, [applyActiveRunsToSessions, setCurrentSessionId]);
 
@@ -386,6 +395,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
 
     const init = async () => {
       setIsInitializing(true);
+      setIsLoadingSessions(true);
       setError(null);
 
       // 嘗試從 localStorage 恢復上次的 session
@@ -420,16 +430,21 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setSessions([newSession]);
           setCurrentSessionId(newSession.id);
         } else {
-          // 恢復 saved session，或選第一個
+          // 優先序：URL hint > localStorage saved > 列表第一筆
+          const hintSession = initialHintRef.current
+            ? sessionsWithRuns.find((s) => s.id === initialHintRef.current)
+            : null;
           const savedSession = savedSessionId
             ? sessionsWithRuns.find((s) => s.id === savedSessionId)
             : null;
-          const activeId = savedSession?.id ?? sessionsWithRuns[0].id;
+          const activeId =
+            hintSession?.id ?? savedSession?.id ?? sessionsWithRuns[0].id;
 
           setSessions(sessionsWithRuns);
           setCurrentSessionId(activeId);
           setLoadingSessionIds((prev) => new Set(prev).add(activeId));
           setIsInitializing(false);
+          setIsLoadingSessions(false);
 
           // 背景 lazy load active session 的 messages
           chatbotRepository
@@ -454,10 +469,12 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         const errorMessage = err instanceof Error ? err.message : i18n.t("chatbot:errors.unknownError");
         setError(errorMessage);
         setIsInitializing(false);
+        setIsLoadingSessions(false);
         return;
       }
 
       setIsInitializing(false);
+      setIsLoadingSessions(false);
     };
 
     init();
@@ -478,51 +495,13 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         next.delete(newSession.id);
         return next;
       });
-      void refreshSharedSessions();
       return newSession.id;
     } catch (err) {
       console.error("Failed to create session:", err);
       setError(i18n.t("chatbot:errors.createSessionFailed"));
       return null;
     }
-  }, [setCurrentSessionId, refreshSharedSessions]);
-
-  /**
-   * 刪除 session
-   */
-  const deleteSession = useCallback(
-    async (sessionId: string) => {
-      try {
-        setError(null);
-        await chatbotRepository.deleteSession(sessionId);
-
-        let shouldCreate = false;
-
-        setSessions((prev) => {
-          const filtered = prev.filter((session) => session.id !== sessionId);
-          if (sessionId === currentSessionId) {
-            if (filtered.length > 0) {
-              setCurrentSessionId(filtered[0].id);
-            } else {
-              setCurrentSessionId(null);
-              shouldCreate = true;
-            }
-          } else if (filtered.length === 0) {
-            setCurrentSessionId(null);
-            shouldCreate = true;
-          }
-          return filtered;
-        });
-
-        if (shouldCreate) void createSession();
-        void refreshSharedSessions();
-      } catch (err) {
-        console.error("Failed to delete session:", err);
-        setError(i18n.t("chatbot:errors.deleteSessionFailed"));
-      }
-    },
-    [currentSessionId, createSession, setCurrentSessionId, refreshSharedSessions],
-  );
+  }, [setCurrentSessionId]);
 
   /**
    * 切換 session（lazy load messages）
@@ -574,6 +553,47 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   }, [sessions, setCurrentSessionId]);
 
   /**
+   * 刪除 session
+   */
+  const deleteSession = useCallback(
+    async (sessionId: string) => {
+      try {
+        setError(null);
+        await chatbotRepository.deleteSession(sessionId);
+
+        let shouldCreate = false;
+        let fallbackSessionId: string | null = null;
+
+        setSessions((prev) => {
+          const filtered = prev.filter((session) => session.id !== sessionId);
+          if (sessionId === currentSessionId) {
+            if (filtered.length > 0) {
+              fallbackSessionId = filtered[0].id;
+            } else {
+              setCurrentSessionId(null);
+              shouldCreate = true;
+            }
+          } else if (filtered.length === 0) {
+            setCurrentSessionId(null);
+            shouldCreate = true;
+          }
+          return filtered;
+        });
+
+        // 走 switchSession 而不是 setCurrentSessionId，讓 fallback session 也會 lazy-load
+        // messages；否則 sessions list 裡的 messages 永遠是 getSessions() 給的空陣列，
+        // 使用者會看到預設 welcome 畫面直到 refresh。
+        if (fallbackSessionId) void switchSession(fallbackSessionId);
+        if (shouldCreate) void createSession();
+      } catch (err) {
+        console.error("Failed to delete session:", err);
+        setError(i18n.t("chatbot:errors.deleteSessionFailed"));
+      }
+    },
+    [currentSessionId, createSession, setCurrentSessionId, switchSession],
+  );
+
+  /**
    * 重新命名 session
    */
   const renameSession = useCallback(
@@ -589,13 +609,12 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
               : session,
           ),
         );
-        void refreshSharedSessions();
       } catch (err) {
         console.error("Failed to rename session:", err);
         setError(i18n.t("chatbot:errors.renameSessionFailed"));
       }
     },
-    [refreshSharedSessions],
+    [],
   );
 
   // Derive the active run for the current session once so the subscription
@@ -686,20 +705,29 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setIsStreaming(false);
           setIsLoading(false);
           setSessionNotice(null);
-          // Fallback: extract nextTurnOptions from the last assistant message
-          // in case the SSE event didn't carry them (e.g. tool-based path).
+          // Run 已進入 terminal state（completed / failed / cancelled），無論先前
+          // 是否停在 awaiting_approval / awaiting_user_answer，HITL 卡片都必須清掉，
+          // 不然使用者看到的是「任務失敗」但卡片還留著，點按鈕會對不到活 run 變成卡死。
+          setPendingApproval(null);
+          setPendingQuestion(null);
+          // Fallback: if SSE didn't carry onNextTurnOptions for this run
+          // (e.g. tool-based path), read them off the LATEST assistant
+          // message only. Walking back to the first assistant with options
+          // would resurrect chips from an earlier turn that the user has
+          // already answered — classic stale-chip bug.
           if (!nextTurnOptions) {
-            const lastMsg = [...(freshSession.messages ?? [])].reverse().find(
-              (m) => m.role === "assistant" && m.nextTurnOptions?.length,
-            );
-            if (lastMsg?.nextTurnOptions) {
-              setNextTurnOptions(lastMsg.nextTurnOptions);
+            const lastAssistant = [...(freshSession.messages ?? [])]
+              .reverse()
+              .find((m) => m.role === "assistant");
+            if (lastAssistant?.nextTurnOptions?.length) {
+              setNextTurnOptions(lastAssistant.nextTurnOptions);
             }
           }
         },
         onError: (errorMsg) => {
           setError(errorMsg);
-          // Transient SSE disconnect should auto-retry; do not drop active run.
+          // Transient SSE disconnect should auto-retry; do not drop active run
+          // or pending HITL cards — the resubscribed stream will replay them.
           if (errorMsg.startsWith("任務訂閱失敗:")) {
             setIsLoading(false);
             if (resubscribeTimerRef.current !== null) {
@@ -715,6 +743,9 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
           setIsStreaming(false);
           setIsLoading(false);
           setSessionNotice(null);
+          // run_failed 結束 run 時也要清 HITL，避免殘留卡片誤導使用者（見 onComplete 註解）。
+          setPendingApproval(null);
+          setPendingQuestion(null);
         },
         onAwaitingApproval: (request) => {
           // Do NOT mutate activeRuns here — any churn on the array forces the
@@ -1043,6 +1074,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
     isLoading,
     isStreaming,
     isInitializing,
+    isLoadingSessions,
     isSessionLoading,
     error,
     pendingApproval,

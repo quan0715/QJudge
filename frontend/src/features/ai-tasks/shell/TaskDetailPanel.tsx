@@ -1,7 +1,7 @@
 import { Button, Dropdown, InlineLoading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
-import { ModelSelect } from "@/features/chatbot/components/chat-ui/ModelSelect";
-import { TodoList } from "@/features/chatbot/components/chat-ui/TodoList";
+import { ModelSelect } from "@/shared/ai/ModelSelect";
+import { TodoList } from "@/shared/ai/TodoList";
 import { InitPromptEditor } from "./InitPromptEditor";
 import { ProgressCard, SecondaryProgressBar } from "./ProgressCard";
 import { ArtifactFileIcon } from "./artifactIcon";
@@ -20,11 +20,9 @@ import type {
 import styles from "./TaskDetailPanel.module.scss";
 
 interface TaskDetailPanelProps {
-  taskTypeLabel: string;
-  title: string;
-  subtitle?: string;
   status: TaskStatus;
   running: boolean;
+  primaryAction: TaskShellAction;
   progress?: TaskShellProgress;
   secondaryProgress?: TaskShellSecondaryProgress;
 
@@ -38,7 +36,6 @@ interface TaskDetailPanelProps {
   onOpenArtifact?(artifactId: string): void;
   activeArtifactId?: string | null;
 
-  primaryAction: TaskShellAction;
   errorText?: string | null;
 
   initPrompt: TaskShellInitPrompt;
@@ -55,6 +52,7 @@ interface TaskDetailPanelProps {
 export function TaskDetailPanel(props: TaskDetailPanelProps) {
   const { t } = useTranslation("contest");
   const {
+    primaryAction,
     status,
     running,
     progress,
@@ -67,7 +65,6 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
     artifacts,
     onOpenArtifact,
     activeArtifactId,
-    primaryAction,
     errorText,
     initPrompt,
     showInitPrompt = true,

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { ChatMessage } from "@/core/types/chatbot.types";
 import { useOptionalArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { ArtifactInlineCard } from "../artifact/ArtifactInlineCard";
-import { TodoList, pickLatestTodos, summarizeTodos } from "./TodoList";
+import { TodoList, pickLatestTodos, summarizeTodos } from "@/shared/ai/TodoList";
 
 import styles from "./SessionBadges.module.scss";
 

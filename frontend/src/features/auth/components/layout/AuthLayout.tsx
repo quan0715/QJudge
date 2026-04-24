@@ -1,13 +1,14 @@
 import { cloneElement, useMemo, useState, useEffect } from 'react';
 import { useLocation, useOutlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Light, Asleep, TaskComplete, ArrowLeft } from '@carbon/icons-react';
+import { Light, Asleep, ArrowLeft } from '@carbon/icons-react';
 import { motion, AnimatePresence } from 'motion/react';
 import AuthHeroComposition from '../AuthHeroComposition';
 import { useTheme } from '@/shared/ui/theme/ThemeContext';
 import { useContentLanguage } from '@/shared/contexts/ContentLanguageContext';
 import { IconModeSwitcher, type IconModeOption } from '@/shared/ui/navigation/IconModeSwitcher';
 import { TextModeSwitcher, type TextModeOption } from '@/shared/ui/navigation/TextModeSwitcher';
+import { BrandLockup } from '@/shared/brand/BrandLockup';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
 import { AuthLayoutContext, type AuthMetadata } from '../../contexts/AuthLayoutContext';
 import "../../screens/AuthPages.scss";
@@ -92,8 +93,7 @@ const AuthLayout = () => {
         <div className="auth-split-grid">
           <section className="auth-hero-side" aria-hidden="true">
             <div className="auth-hero-logo">
-              <TaskComplete size={20} className="auth-hero-logo__icon" />
-              <span className="auth-hero-logo__text">QJudge</span>
+              <BrandLockup className="auth-hero-logo__brand" size={24} />
             </div>
             <div className="auth-hero-shell">
               <AuthHeroComposition />

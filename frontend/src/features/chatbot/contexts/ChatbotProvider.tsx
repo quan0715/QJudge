@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useChatbot } from "../hooks/useChatbot";
-import { useChatSessionContext } from "./ChatSessionContext";
+import { useAiSessionParam } from "../lib/aiSessionUrl";
 import { ArtifactPanelProvider } from "./ArtifactPanelContext";
 
 type ChatbotContextValue = ReturnType<typeof useChatbot>;
@@ -11,48 +11,48 @@ const ChatbotContext = createContext<ChatbotContextValue | null>(null);
 export function ChatbotProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const enabled = !!user;
-  const chatbot = useChatbot({ enabled });
+  const { aiSessionId, setAiSessionId } = useAiSessionParam();
+  const chatbot = useChatbot({ enabled, initialSessionIdHint: aiSessionId });
 
-  const { activeSessionRequest } = useChatSessionContext();
-
-  // 用 ref 持有最新的 chatbot state，effect 本身只依賴 activeSessionRequest。
-  // 先前直接把 chatbot.sessions/switchSession 等放進 deps，會因為它們每 render 就換 reference 導致
-  // effect 每次重跑，配合未滿足 guard 的瞬間會對後端同一個 endpoint 灌出大量請求。
+  // 用 ref 持有最新 chatbot，effect 本身只依賴需要的 primitive，避免每 render
+  // 都因為 chatbot 物件 reference 改變而把 effect 清掉重跑。
   const chatbotRef = useRef(chatbot);
   useEffect(() => {
     chatbotRef.current = chatbot;
   });
-  const handledRequestRef = useRef<string | null>(null);
+
+  // 紀錄上一輪 render 看到的 URL 與 state，用來判斷「這一輪 render 誰真的變動」。
+  // 不這樣做的話，URL 剛變的那輪 render 裡 state 還是舊值，一個 effect 會把 URL
+  // 扭成舊 state，另一個 effect 會把 state 拉去新 URL，下一輪又鏡像一次互扭，形成無限橫跳。
+  const lastUrlRef = useRef<string | null>(aiSessionId);
+  const lastStateRef = useRef<string | null>(chatbot.currentSessionId);
 
   useEffect(() => {
-    if (!activeSessionRequest) {
-      handledRequestRef.current = null;
-      return;
-    }
-    const requestedSessionId = activeSessionRequest.id;
-    const requestKey = `${requestedSessionId}:${activeSessionRequest.nonce}`;
-    if (handledRequestRef.current === requestKey) return;
+    if (chatbot.isInitializing) return;
 
-    const current = chatbotRef.current;
-    if (current.isInitializing) return;
-    if (current.currentSessionId === requestedSessionId && current.currentSession) {
-      handledRequestRef.current = requestKey;
+    const urlChanged = aiSessionId !== lastUrlRef.current;
+    const stateChanged = chatbot.currentSessionId !== lastStateRef.current;
+    lastUrlRef.current = aiSessionId;
+    lastStateRef.current = chatbot.currentSessionId;
+
+    if (aiSessionId === chatbot.currentSessionId) return;
+
+    // URL 剛變動且有值 → URL 是權威，同步 state。若 id 還不在 sessions list
+    // （例如 AI Task 在他頁剛建立的 session）先 refreshSessions 再 switch。
+    if (urlChanged && aiSessionId) {
+      const current = chatbotRef.current;
+      const inList = current.sessions.some((s) => s.id === aiSessionId);
+      if (!inList) void current.refreshSessions();
+      void current.switchSession(aiSessionId);
       return;
     }
-    handledRequestRef.current = requestKey;
-    const inList = current.sessions.some((s) => s.id === requestedSessionId);
-    if (!inList) {
-      if (
-        requestedSessionId.startsWith("temp-") &&
-        current.currentSessionId &&
-        !current.currentSessionId.startsWith("temp-")
-      ) {
-        return;
-      }
-      void current.refreshSessions();
+
+    // 僅 state 變動（createSession / deleteSession / sendMessage 的 temp→real 升級）
+    // → 把新值寫回 URL。跳過 temp 前綴（不是 real backend id）。
+    if (stateChanged && chatbot.currentSessionId && !chatbot.currentSessionId.startsWith("temp-")) {
+      setAiSessionId(chatbot.currentSessionId, { replace: true });
     }
-    void current.switchSession(requestedSessionId);
-  }, [activeSessionRequest, chatbot.isInitializing]);
+  }, [aiSessionId, chatbot.currentSessionId, chatbot.isInitializing, setAiSessionId]);
 
   return (
     <ChatbotContext.Provider value={chatbot}>

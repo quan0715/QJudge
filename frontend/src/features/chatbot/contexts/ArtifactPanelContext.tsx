@@ -21,6 +21,7 @@ import {
   listArtifacts,
   type ArtifactRecord,
 } from "@/infrastructure/api/repositories/artifact.repository";
+import { useOptionalChatbotContext } from "./ChatbotProvider";
 
 interface ArtifactPanelContextValue {
   isOpen: boolean;
@@ -156,6 +157,31 @@ export function ArtifactPanelProvider({
     },
     [scheduleRefresh],
   );
+
+  // Auto-watch the current session's messages for finished artifact_* tool calls.
+  // Previously this was done inside ChatContainerBody, which is only mounted when
+  // the right chat panel is open. Consumers like AI Grading read `artifacts` for
+  // progress tracking even when the chat panel is closed — so the refresh trigger
+  // must live here, where the provider stays mounted for the whole session.
+  const chatbot = useOptionalChatbotContext();
+  const currentSessionMessages =
+    chatbot?.currentSession?.id === sessionId
+      ? chatbot?.currentSession?.messages
+      : undefined;
+  useEffect(() => {
+    if (!currentSessionMessages) return;
+    for (const message of currentSessionMessages) {
+      const execs = message.toolExecutions ?? [];
+      for (const step of execs) {
+        if (!step.toolCallId || !step.toolName) continue;
+        if (!isArtifactToolName(step.toolName)) continue;
+        if (step.result === undefined && !step.isError) continue;
+        if (seenToolCallIds.current.has(step.toolCallId)) continue;
+        seenToolCallIds.current.add(step.toolCallId);
+        scheduleRefresh();
+      }
+    }
+  }, [currentSessionMessages, scheduleRefresh]);
 
   const open = useCallback((artifactId?: string) => {
     setIsOpen(true);

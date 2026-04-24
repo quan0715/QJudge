@@ -19,6 +19,7 @@ import { UserMenu } from "@/features/app/components/UserMenu";
 import { SideMenu } from "@/features/app/components/SideMenu";
 import { SideMenuToggle } from "@/features/app/components/SideMenuToggle";
 import { usePageHeaderActionsSlot } from "@/features/app/contexts/PageHeaderActionsContext";
+import { BrandLockup } from "@/shared/brand/BrandLockup";
 import "./GlobalHeader.scss";
 
 export const GlobalHeader = () => {
@@ -62,8 +63,8 @@ export const GlobalHeader = () => {
           isOpen={sideMenuOpen}
           onClick={() => setSideMenuOpen((o) => !o)}
         />
-        <HeaderName href="/dashboard" prefix={t("header.prefix")}>
-          QJudge
+        <HeaderName href="/dashboard" prefix="">
+          <BrandLockup size={20} />
         </HeaderName>
         <HeaderNavigation aria-label={t("header.mainNavigation")}>
           {desktopNavItems.map((item) => (

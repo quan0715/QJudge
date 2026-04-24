@@ -27,6 +27,7 @@ import type { Classroom } from "@/core/entities/classroom.entity";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { QuestionBank } from "@/core/entities/question-bank.entity";
 import { useChatSessionContext } from "@/features/chatbot/contexts/ChatSessionContext";
+import { useAiSessionParam } from "@/features/chatbot/lib/aiSessionUrl";
 import { useOptionalChatbotContext } from "@/features/chatbot/contexts/ChatbotProvider";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { ChatHistoryPanel } from "@/features/chatbot/components/chat-ui/ChatHistoryPanel";
@@ -93,11 +94,12 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
 
   const { sessions, refreshSessions } = useChatSessionContext();
   const chatbot = useOptionalChatbotContext();
+  const { aiSessionId, setAiSessionId } = useAiSessionParam();
 
-  const currentSessionId = useMemo(() => {
-    const match = location.pathname.match(/^\/chat\/([^/]+)/);
-    return match?.[1] ?? null;
-  }, [location.pathname]);
+  // 當前 session id 直接看 URL query（全站 source of truth）。若 URL 還沒
+  // 帶 param（例如剛進來 /chat 還沒同步完），fallback 到 chatbot 的內部狀態
+  // 避免 highlight 閃爍。
+  const currentSessionId = aiSessionId ?? chatbot?.currentSessionId ?? null;
 
   useEffect(() => {
     setActiveTab(getDefaultTab(location.pathname));
@@ -216,23 +218,35 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
 
   const isActive = (prefix: string) => location.pathname.startsWith(prefix);
 
+  // 統一的 session 切換：若不在 /chat 路由，用 navigate 把路由 + query 一起換；
+  // 在 /chat 路由內則只動 query（不 unmount Provider，避免重 init）。
+  const goToChatSession = useCallback(
+    (id: string | null, options?: { replace?: boolean }) => {
+      const onChatRoute = location.pathname === "/chat" || location.pathname.startsWith("/chat/");
+      if (onChatRoute) {
+        setAiSessionId(id, { replace: options?.replace ?? false });
+        return;
+      }
+      const search = id ? `?ai_session_id=${encodeURIComponent(id)}` : "";
+      navigate(`/chat${search}`, { replace: options?.replace });
+    },
+    [location.pathname, navigate, setAiSessionId],
+  );
+
   const handleNewChat = useCallback(async () => {
     const newSessionId = chatbot
       ? await chatbot.createSession()
       : (await chatbotRepository.createSession()).id;
-    if (newSessionId) {
-      onClose?.();
-      navigate(`/chat/${newSessionId}`);
-      return;
-    }
     onClose?.();
-    navigate("/chat");
-  }, [chatbot, onClose, navigate]);
+    // chatbot.createSession 會把 currentSessionId 設成新 id，Provider 的 URL
+    // sync effect 會自動寫回 query。但若目前不在 /chat 路由，仍要切路由過去。
+    goToChatSession(newSessionId ?? null);
+  }, [chatbot, onClose, goToChatSession]);
 
   const handleSelectSession = useCallback((id: string) => {
     onClose?.();
-    navigate(`/chat/${id}`);
-  }, [onClose, navigate]);
+    goToChatSession(id);
+  }, [onClose, goToChatSession]);
 
   const handleDeleteSession = useCallback(async (id: string) => {
     try {
@@ -244,16 +258,15 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
       void refreshSessions();
       if (id === currentSessionId) {
         const remaining = sessions.filter((s) => s.id !== id);
-        if (remaining.length > 0) {
-          navigate(`/chat/${remaining[0].id}`, { replace: true });
-        } else {
-          navigate("/chat", { replace: true });
-        }
+        // chatbot.deleteSession 內部已切到下一個 / 新建 session 並改 currentSessionId，
+        // Provider 的 effect 會把 URL query 同步過去。這裡只負責在需要時切路由。
+        const nextId = remaining[0]?.id ?? null;
+        goToChatSession(nextId, { replace: true });
       }
     } catch {
       // silently ignore
     }
-  }, [chatbot, currentSessionId, sessions, refreshSessions, navigate]);
+  }, [chatbot, currentSessionId, sessions, refreshSessions, goToChatSession]);
 
   const handleRenameSession = useCallback(async (id: string, title: string) => {
     try {

@@ -7,6 +7,7 @@ To switch models, change _MODEL_MAP and PRICING. Everything else
 import logging
 from typing import Any
 
+from langchain_core.messages import AIMessage
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_deepseek import ChatDeepSeek
 from langchain_openai import ChatOpenAI
@@ -19,6 +20,54 @@ from services.tpm_gate import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class ReasoningPreservingChatDeepSeek(ChatDeepSeek):
+    """ChatDeepSeek variant that echoes prior ``reasoning_content``.
+
+    DeepSeek V4 thinking mode requires **every** assistant message in the
+    request history to carry a ``reasoning_content`` field. If any prior
+    assistant message omits it, the API returns 400 ``reasoning_content
+    ... must be passed back``.
+
+    LangChain captures the field into ``AIMessage.additional_kwargs`` on
+    the way in but drops it when serializing messages back out, so on
+    multi-turn calls we re-attach it. But additional_kwargs alone isn't
+    enough:
+
+    - LangGraph checkpoint restoration, SummarizationMiddleware, DeepAgent
+      sub-agents, and any code path that reconstructs an ``AIMessage``
+      from content only will leave ``additional_kwargs`` empty.
+    - A non-thinking model turn (e.g. when the user previously ran the
+      session on ``deepseek-v4`` without thinking) produces assistant
+      messages with no reasoning_content at all.
+
+    For those cases a blank ``reasoning_content=""`` is accepted by the
+    DeepSeek API (verified empirically) and preserves the turn; without
+    it the entire request is rejected. Populate every assistant payload
+    slot: real value from ``additional_kwargs`` when available, empty
+    string otherwise.
+    """
+
+    def _get_request_payload(self, input_, *, stop=None, **kwargs):  # type: ignore[override]
+        payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        messages = payload.get("messages")
+        if not messages:
+            return payload
+        input_list = list(input_) if not isinstance(input_, list) else input_
+        ai_iter = iter(m for m in input_list if isinstance(m, AIMessage))
+        for md in messages:
+            if md.get("role") != "assistant":
+                continue
+            try:
+                lm = next(ai_iter)
+            except StopIteration:
+                lm = None
+            rc = ""
+            if lm is not None:
+                rc = (lm.additional_kwargs or {}).get("reasoning_content") or ""
+            md["reasoning_content"] = rc
+        return payload
 
 
 class TpmGatedChatOpenAI(ChatOpenAI):
@@ -52,8 +101,8 @@ _MODEL_MAP: dict[str, str] = {
     "openai-nano": "gpt-5-nano",
     "openai-mini": "gpt-5.4-mini",
     "openai-mini-medium": "gpt-5.4-mini",
-    "deepseek-r1": "deepseek-reasoner",
-    "deepseek-v3": "deepseek-chat",
+    "deepseek-v4": "deepseek-v4-flash",
+    "deepseek-v4-thinking": "deepseek-v4-flash",
 }
 
 # Canonical model ID -> OpenAI reasoning_effort override (None = no override).
@@ -91,7 +140,7 @@ _OPENAI_MAX_RETRIES: dict[str, int] = {
 }
 
 _DEFAULT_MODEL_ID = "openai-nano"
-_SUMMARIZATION_MODEL_ID = "deepseek-v3"
+_SUMMARIZATION_MODEL_ID = "deepseek-v4"
 
 # Canonical model ID -> known max input tokens.
 # Keep this table in-code so summarization thresholds do not depend on
@@ -100,8 +149,8 @@ MODEL_MAX_INPUT_TOKENS: dict[str, int] = {
     "openai-nano": 400_000,
     "openai-mini": 272_000,
     "openai-mini-medium": 272_000,
-    "deepseek-r1": 128_000,
-    "deepseek-v3": 128_000,
+    "deepseek-v4": 1_000_000,
+    "deepseek-v4-thinking": 1_000_000,
 }
 
 # Summarization controls derived from model table.
@@ -110,8 +159,8 @@ MODEL_SUMMARY_TRIM_TOKENS: dict[str, int] = {
     "openai-nano": 12_000,
     "openai-mini": 12_000,
     "openai-mini-medium": 12_000,
-    "deepseek-r1": 12_000,
-    "deepseek-v3": 12_000,
+    "deepseek-v4": 12_000,
+    "deepseek-v4-thinking": 12_000,
 }
 
 # Pricing in cents per million tokens.
@@ -121,8 +170,8 @@ PRICING: dict[str, dict[str, int]] = {
     "openai-nano": {"input": 5, "output": 20},
     "openai-mini": {"input": 75, "output": 450},
     "openai-mini-medium": {"input": 75, "output": 450},
-    "deepseek-r1": {"input": 55, "output": 219},
-    "deepseek-v3": {"input": 7, "output": 28},
+    "deepseek-v4": {"input": 14, "output": 28},
+    "deepseek-v4-thinking": {"input": 14, "output": 28},
 }
 
 # Model display info for the /models API
@@ -146,15 +195,15 @@ MODEL_INFO = [
         "is_default": False,
     },
     {
-        "model_id": "deepseek-r1",
-        "display_name": "DeepSeek R1 (Thinking)",
-        "description": "推理能力強，適合複雜操作與測資生成",
+        "model_id": "deepseek-v4",
+        "display_name": "deepseek-v4",
+        "description": "1M context、快速、低成本，適合日常對話與 summarization（非推理模式）",
         "is_default": False,
     },
     {
-        "model_id": "deepseek-v3",
-        "display_name": "DeepSeek V3",
-        "description": "快速，適合簡單查詢",
+        "model_id": "deepseek-v4-thinking",
+        "display_name": "deepseek-v4 (thinking)",
+        "description": "1M context、推理模式（reasoning_effort=low），適合複雜批改與測資生成",
         "is_default": False,
     },
 ]
@@ -164,21 +213,32 @@ class ModelFactory:
     """Factory for creating LLM model instances."""
 
     @staticmethod
+    def canonicalize_model_id(model_id: str) -> str:
+        """Return a safe canonical id that is guaranteed present in ``_MODEL_MAP``.
+
+        Unknown id → default. Callers must branch on the canonicalized id
+        (provider selection, thinking toggle) so a stale / typo id can't
+        leak the wrong provider string into the wrong SDK.
+        """
+        if model_id in _MODEL_MAP:
+            return model_id
+        logger.warning(
+            "Unknown model_id '%s', falling back to default '%s'",
+            model_id,
+            _DEFAULT_MODEL_ID,
+        )
+        return _DEFAULT_MODEL_ID
+
+    @staticmethod
     def resolve_model_string(model_id: str) -> str:
-        resolved = _MODEL_MAP.get(model_id)
-        if resolved is None:
-            logger.warning(
-                "Unknown model_id '%s', falling back to default '%s'",
-                model_id,
-                _DEFAULT_MODEL_ID,
-            )
-            resolved = _MODEL_MAP[_DEFAULT_MODEL_ID]
-        return resolved
+        canonical = ModelFactory.canonicalize_model_id(model_id)
+        return _MODEL_MAP[canonical]
 
     @staticmethod
     def create_model(model_id: str = _DEFAULT_MODEL_ID):
         """Create an LLM client instance based on canonical model_id."""
-        model_string = ModelFactory.resolve_model_string(model_id)
+        model_id = ModelFactory.canonicalize_model_id(model_id)
+        model_string = _MODEL_MAP[model_id]
         settings = get_settings()
 
         model = None
@@ -236,12 +296,32 @@ class ModelFactory:
                 )
         else:
             api_key = settings.deepseek_api_key
-            logger.info("Creating ChatDeepSeek model=%s (from '%s')", model_string, model_id)
-            model = ChatDeepSeek(
-                model=model_string,
-                api_key=api_key or None,
-                streaming=True,
+            thinking = model_id == "deepseek-v4-thinking"
+            logger.info(
+                "Creating ChatDeepSeek model=%s (from '%s', thinking=%s)",
+                model_string,
+                model_id,
+                thinking,
             )
+            # V4 ships with thinking ON by default. The API requires each
+            # prior assistant turn to echo its own reasoning_content back;
+            # plain ChatDeepSeek strips that field so multi-turn fails with
+            # 400. For the explicit thinking variant we use
+            # ``ReasoningPreservingChatDeepSeek`` which re-attaches it at
+            # request time. For the default "deepseek-v4" we disable
+            # thinking entirely (V3-style fast chat).
+            deepseek_cls = ReasoningPreservingChatDeepSeek if thinking else ChatDeepSeek
+            deepseek_kwargs: dict[str, Any] = {
+                "model": model_string,
+                "api_key": api_key or None,
+                "streaming": True,
+                "extra_body": {
+                    "thinking": {"type": "enabled" if thinking else "disabled"}
+                },
+            }
+            if thinking:
+                deepseek_kwargs["reasoning_effort"] = "low"
+            model = deepseek_cls(**deepseek_kwargs)
             # ChatDeepSeek ships with profile=None. DeepAgent's
             # compute_summarization_defaults uses fraction-based policies
             # (keep=10% of context) only when profile.max_input_tokens is a

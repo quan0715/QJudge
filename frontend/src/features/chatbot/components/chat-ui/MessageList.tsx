@@ -112,7 +112,6 @@ function MessageListSkeleton() {
   return (
     <div className={styles.skeletonStack} aria-hidden="true">
       <div className={styles.skeletonMessage}>
-        <span className={styles.skeletonAvatar} />
         <div className={styles.skeletonContent}>
           <SkeletonText width="7rem" />
           <SkeletonText paragraph lineCount={3} />
@@ -123,10 +122,8 @@ function MessageListSkeleton() {
           <SkeletonText width="5rem" />
           <SkeletonText paragraph lineCount={2} />
         </div>
-        <span className={styles.skeletonAvatar} />
       </div>
       <div className={styles.skeletonMessage}>
-        <span className={styles.skeletonAvatar} />
         <div className={styles.skeletonContent}>
           <SkeletonText width="6rem" />
           <SkeletonText paragraph lineCount={4} />

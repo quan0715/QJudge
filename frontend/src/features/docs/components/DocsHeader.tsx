@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { ThemeSwitch, LanguageSwitch, type ThemeValue } from "@/shared/ui/config";
+import { BrandLockup } from "@/shared/brand/BrandLockup";
 import DocsSearchDropdown from "./DocsSearchDropdown";
 import DocSidebar from "./DocSidebar";
 import styles from "./DocsHeader.module.scss";
@@ -76,9 +77,9 @@ const DocsHeader: React.FC = () => {
           />
           <HeaderName
             href={import.meta.env.VITE_MAIN_APP_URL || "/"}
-            prefix="QJudge"
+            prefix=""
           >
-            DOCS
+            <BrandLockup label="QJudge Docs" size={20} />
           </HeaderName>
 
           {/* Search - Only element in header */}
@@ -108,7 +109,7 @@ const DocsHeader: React.FC = () => {
                   className="cds--type-productive-heading-03"
                   style={{ margin: 0 }}
                 >
-                  QJudge
+                  <BrandLockup size={22} />
                 </h2>
               </div>
 

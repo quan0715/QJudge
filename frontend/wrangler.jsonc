@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qjudge-landing",
+  "compatibility_date": "2026-04-24",
+  "pages_build_output_dir": "./dist-landing",
+  "send_metrics": false
+}

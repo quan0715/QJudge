@@ -50,20 +50,15 @@
   top: $spacing-06;
   left: $spacing-07;
   z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: $spacing-03;
 }
 
-.auth-hero-logo__icon {
-  color: #a8c0ff;
-}
-
-.auth-hero-logo__text {
-  @include type.type-style("heading-03");
-  color: #ffffff;
-  font-weight: 600;
-  letter-spacing: -0.5px;
+.auth-hero-logo__brand {
+  .brand-lockup__label {
+    @include type.type-style("heading-03");
+    color: #ffffff;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
 }
 
 @media (min-width: 66rem) {

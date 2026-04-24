@@ -179,10 +179,22 @@ def adapt_langgraph_event(event: dict[str, Any]) -> list[InternalEvent] | None:
                 if isinstance(block, dict):
                     block_type = block.get("type")
                     if block_type in {"thinking", "reasoning"}:
+                        # OpenAI Responses API (output_version=responses/v1) emits
+                        # reasoning as `{"type": "reasoning", "summary": [{"type":
+                        # "summary_text", "text": "..."}]}` — the text lives two
+                        # levels deep under `summary`, not directly on the block.
+                        # Anthropic / DeepSeek keep it on `thinking` / `reasoning` /
+                        # `text` directly. Include `summary` in the preferred keys
+                        # so the OpenAI shape is also reachable.
                         thinking_parts.extend(
                             _extract_text_fragments(
                                 block,
-                                preferred_keys=("thinking", "reasoning", "text"),
+                                preferred_keys=(
+                                    "thinking",
+                                    "reasoning",
+                                    "text",
+                                    "summary",
+                                ),
                             )
                         )
                     elif block_type == "text":

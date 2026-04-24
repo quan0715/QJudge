@@ -315,15 +315,15 @@ class ModelListView(SchemaAPIView):
             "is_default": False,
         },
         {
-            "model_id": "deepseek-r1",
-            "display_name": "DeepSeek R1 (Thinking)",
-            "description": "推理能力強，適合複雜操作與測資生成",
+            "model_id": "deepseek-v4",
+            "display_name": "deepseek-v4",
+            "description": "1M context、快速、低成本，適合日常對話與 summarization（非推理模式）",
             "is_default": False,
         },
         {
-            "model_id": "deepseek-v3",
-            "display_name": "DeepSeek V3",
-            "description": "快速，適合簡單查詢",
+            "model_id": "deepseek-v4-thinking",
+            "display_name": "deepseek-v4 (thinking)",
+            "description": "1M context、推理模式（reasoning_effort=low），適合複雜批改與測資生成",
             "is_default": False,
         },
     ]

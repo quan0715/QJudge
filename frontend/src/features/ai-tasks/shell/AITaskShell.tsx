@@ -3,7 +3,7 @@ import { Button } from "@carbon/react";
 import { Download, Information } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { Group, Panel, Separator } from "react-resizable-panels";
-import { ArtifactPreview } from "@/features/chatbot/components/artifact/ArtifactPreview";
+import { ArtifactPreview } from "@/shared/ai/ArtifactPreview";
 import { fetchArtifactDownloadUrl } from "@/infrastructure/api/repositories/artifact.repository";
 import { useMediaQuery } from "@/shared/hooks";
 import { TaskDetailPanel } from "./TaskDetailPanel";
@@ -28,10 +28,6 @@ const ARTIFACT_TAB_PREFIX = "__artifact__:";
 const MOBILE_DETAIL_TAB_ID = "__task_detail__";
 
 export interface AITaskShellProps {
-  taskTypeLabel: string;
-  title: string;
-  subtitle?: string;
-
   status: TaskStatus;
   running: boolean;
   progress?: TaskShellProgress;
@@ -113,9 +109,6 @@ export function AITaskShell(props: AITaskShellProps) {
 
   const taskDetailPanel = (
     <TaskDetailPanel
-      taskTypeLabel={props.taskTypeLabel}
-      title={props.title}
-      subtitle={props.subtitle}
       status={props.status}
       running={props.running}
       progress={props.progress}

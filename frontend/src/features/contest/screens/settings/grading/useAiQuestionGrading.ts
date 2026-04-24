@@ -8,8 +8,7 @@ import {
 import {
   bindExistingTaskSession,
   createTaskSession,
-  TaskContextMismatchError,
-} from "./aiTaskRuntime";
+} from "@/features/ai-tasks/lib/aiTaskRuntime";
 import type { GradingAnswerRow } from "./gradingTypes";
 
 interface AiSuggestion {
@@ -197,7 +196,7 @@ function parseSuggestions(
   return results;
 }
 
-export const AI_GRADING_DEFAULT_MODEL_ID = "deepseek-r1";
+export const AI_GRADING_DEFAULT_MODEL_ID = "deepseek-v4-thinking";
 
 export function buildDefaultGradingPrompt(contestId: string, questionId: string): string {
   return buildPrompt(contestId, questionId);
@@ -581,11 +580,15 @@ export function useAiQuestionGrading() {
     ): Promise<boolean> => {
       if (!sessionId || !contestId || !questionId || !rows.length) return false;
       try {
-        await bindExistingTaskSession({
+        const result = await bindExistingTaskSession({
           sessionId,
           taskType: AI_GRADING_TASK_TYPE,
           context: buildTaskContext(contestId, questionId),
         });
+        if (!result.ok) {
+          setState((prev) => ({ ...prev, error: result.message }));
+          return false;
+        }
         primeRows(rows);
         await loadSuggestionsOnce(sessionId);
         setState((prev) => ({
@@ -615,11 +618,20 @@ export function useAiQuestionGrading() {
     ): Promise<string | null> => {
       if (!sessionId || !contestId || !questionId || rows.length === 0) return null;
       try {
-        await bindExistingTaskSession({
+        const result = await bindExistingTaskSession({
           sessionId,
           taskType: AI_GRADING_TASK_TYPE,
           context: buildTaskContext(contestId, questionId),
         });
+        if (!result.ok) {
+          // Context mismatch = 這個 session 是綁在別的題目上，切題目時靜默視為「沒有匹配的 session」。
+          if (result.reason === "context_mismatch") {
+            clear();
+            return null;
+          }
+          setState((prev) => ({ ...prev, error: result.message }));
+          return null;
+        }
         primeRows(rows);
         await loadSuggestionsOnce(sessionId, { force: true });
         setState((prev) => ({
@@ -630,11 +642,6 @@ export function useAiQuestionGrading() {
         }));
         return sessionId;
       } catch (error) {
-        // Context mismatch = 這個 session 是綁在別的題目上，切題目時靜默視為「沒有匹配的 session」。
-        if (error instanceof TaskContextMismatchError) {
-          clear();
-          return null;
-        }
         setState((prev) => ({
           ...prev,
           error: error instanceof Error ? error.message : "AI 批改 session 還原失敗",
