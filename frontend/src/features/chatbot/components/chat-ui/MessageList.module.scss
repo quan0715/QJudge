@@ -91,7 +91,6 @@
 .skeletonMessage {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
   max-width: $chat-content-max-width;
   width: 100%;
 }
@@ -104,39 +103,9 @@
   }
 }
 
-.skeletonAvatar {
-  flex: 0 0 2rem;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--cds-skeleton-background, #e8e8e8);
-  overflow: hidden;
-  position: relative;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--cds-skeleton-element, #c6c6c6);
-    opacity: 0.35;
-    animation: avatarSkeletonPulse 1.5s ease-in-out infinite;
-  }
-}
-
 .skeletonContent {
   flex: 1 1 auto;
-  max-width: min(78%, 42rem);
+  max-width: min(95%, 860px);
   min-width: 10rem;
   padding-top: 0.125rem;
-}
-
-@keyframes avatarSkeletonPulse {
-  0%,
-  100% {
-    opacity: 0.2;
-  }
-
-  50% {
-    opacity: 0.45;
-  }
 }
