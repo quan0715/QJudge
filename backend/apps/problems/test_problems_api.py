@@ -1,12 +1,14 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 from .models import Problem, Tag, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
-from apps.contests.models import Contest
+from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
 
 
@@ -596,3 +598,118 @@ class ProblemTestRunTests(TestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['status'], 'CE')
         self.assertEqual(mock_judge.execute.call_count, 1)
+
+
+class ProblemTestRunContestAccessTests(TestCase):
+    """Access policy mirrors Submission: any authenticated user may test_run,
+    and contest_id (when provided) gates by SubmissionAccessPolicy."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.client = APIClient()
+
+        self.teacher = User.objects.create_user(
+            username='owner-t', email='owner-t@example.com',
+            password='pw', role='teacher',
+        )
+        self.student = User.objects.create_user(
+            username='stu-1', email='stu-1@example.com',
+            password='pw', role='student',
+        )
+        self.outsider = User.objects.create_user(
+            username='stu-out', email='stu-out@example.com',
+            password='pw', role='student',
+        )
+
+        self.problem = Problem.objects.create(
+            slug='cap', time_limit=1000, memory_limit=128,
+            created_by=self.teacher,
+        )
+        ProblemTestCase.objects.create(
+            problem=self.problem, input_data='1 2', output_data='3',
+            is_sample=True, score=100, order=1,
+        )
+
+        now = timezone.now()
+        self.active_contest = Contest.objects.create(
+            name='Active', owner=self.teacher,
+            start_time=now - timedelta(hours=1),
+            end_time=now + timedelta(hours=2),
+            visibility='public', status='published',
+        )
+        bind_problem_to_contest(self.active_contest, self.problem)
+        ContestParticipant.objects.create(
+            contest=self.active_contest, user=self.student,
+            exam_status=ExamStatus.IN_PROGRESS, started_at=now,
+        )
+
+    def _post(self, payload):
+        return self.client.post(
+            f'/api/v1/management/problems/{self.problem.id}/test_run/',
+            payload, format='json',
+        )
+
+    def _mock_judge(self):
+        patcher = patch('apps.judge.judge_factory.get_judge')
+        mock_get_judge = patcher.start()
+        self.addCleanup(patcher.stop)
+        mock_judge = MagicMock()
+        mock_judge.execute.return_value = {
+            'status': 'AC', 'time': 1, 'memory': 1, 'output': '3', 'error': '',
+        }
+        mock_get_judge.return_value = mock_judge
+        return mock_judge
+
+    def test_student_participant_can_test_run_with_contest_id(self):
+        self._mock_judge()
+        self.client.force_authenticate(user=self.student)
+        resp = self._post({
+            'language': 'python',
+            'code': 'x',
+            'contest_id': str(self.active_contest.id),
+        })
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertEqual(Submission.objects.count(), 0)
+
+    def test_student_can_test_run_without_contest_id(self):
+        """Mirrors Submission practice path: no contest context => any auth user."""
+        self._mock_judge()
+        self.client.force_authenticate(user=self.student)
+        resp = self._post({'language': 'python', 'code': 'x'})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+
+    def test_non_participant_with_contest_id_is_denied(self):
+        self.client.force_authenticate(user=self.outsider)
+        resp = self._post({
+            'language': 'python',
+            'code': 'x',
+            'contest_id': str(self.active_contest.id),
+        })
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN, resp.data)
+
+    def test_contest_not_started_blocks_student(self):
+        User = get_user_model()
+        future_owner = self.teacher
+        now = timezone.now()
+        future_contest = Contest.objects.create(
+            name='Future', owner=future_owner,
+            start_time=now + timedelta(hours=1),
+            end_time=now + timedelta(hours=3),
+            visibility='public', status='published',
+        )
+        bind_problem_to_contest(future_contest, self.problem)
+        ContestParticipant.objects.create(
+            contest=future_contest, user=self.student,
+            exam_status=ExamStatus.NOT_STARTED,
+        )
+        self.client.force_authenticate(user=self.student)
+        resp = self._post({
+            'language': 'python',
+            'code': 'x',
+            'contest_id': str(future_contest.id),
+        })
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN, resp.data)
+
+    def test_unauthenticated_is_rejected(self):
+        resp = self._post({'language': 'python', 'code': 'x'})
+        self.assertIn(resp.status_code, (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN))

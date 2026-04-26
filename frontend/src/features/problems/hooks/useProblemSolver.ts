@@ -265,6 +265,7 @@ export function useProblemSolver({
       const result = await testRun(problem.id, {
         language,
         code,
+        ...(contestId ? { contest_id: contestId } : {}),
       });
 
       // Test run returns immediately (no polling needed)
@@ -282,7 +283,7 @@ export function useProblemSolver({
         error: err.message || "測試執行失敗"
       });
     }
-  }, [problem?.id, code, language]);
+  }, [problem?.id, code, language, contestId]);
 
   // Execute formal submission
   const executeSubmit = useCallback(async () => {

@@ -1,6 +1,7 @@
 """
 Views for problems app.
 """
+import logging
 from uuid import UUID
 
 from rest_framework import viewsets, permissions, filters, status, serializers
@@ -24,6 +25,8 @@ from .serializers import (
 )
 from .test_run_service import ProblemTestRunService, TestRunSetupError
 from apps.contests.services.question_edit_lock import ensure_contest_question_editable
+
+logger = logging.getLogger(__name__)
 
 
 class ProblemFilter(django_filters.FilterSet):
@@ -241,10 +244,40 @@ class ProblemViewSet(viewsets.ModelViewSet):
         """
         Execute code against all stored test cases without creating a submission.
         Returns execution results immediately.
+
+        Access mirrors Submission: any authenticated user may invoke test_run as
+        long as they hold the problem id. If a `contest_id` is supplied, the
+        same SubmissionAccessPolicy used by real submissions is applied so that
+        contest-level rules (status, schedule, participant, exam state) gate
+        the run.
         """
-        problem = self.get_object()
+        from django.shortcuts import get_object_or_404
+        from rest_framework.exceptions import PermissionDenied
+
+        from apps.contests.models import Contest
+        from apps.submissions.access_policy import (
+            SubmissionAccessError,
+            SubmissionAccessPolicy,
+        )
+
+        try:
+            UUID(str(id))
+        except (TypeError, ValueError):
+            raise serializers.ValidationError({"id": "Must be a valid UUID."})
+
         serializer = TestRunSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        problem = get_object_or_404(Problem, id=id)
+
+        contest_id = serializer.validated_data.get("contest_id")
+        if contest_id:
+            contest = get_object_or_404(Contest, id=contest_id)
+            try:
+                SubmissionAccessPolicy.enforce_contest_submission(request.user, contest)
+            except SubmissionAccessError as exc:
+                raise PermissionDenied(exc.message) from exc
+
         try:
             result = ProblemTestRunService.run(
                 problem=problem,

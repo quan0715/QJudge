@@ -123,11 +123,17 @@
 // ── Mobile: right chat bottom sheet (portal) ──
 .mobileRightOverlay {
   position: fixed;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  // height / top 由 JS visualViewport 同步覆寫；fallback 給 100dvh，鍵盤關閉
+  // 時等同 visual viewport 大小。
+  height: 100dvh;
   z-index: 8500;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  overscroll-behavior: contain;
 }
 
 .mobileRightBackdrop {
@@ -146,21 +152,45 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-  height: 88dvh;
-  background: var(--cds-layer);
+  // 接近整頁，保留小縫提示是 sheet。overlay 已 = visual viewport（JS 同步），
+  // 所以 100% 等同貼齊鍵盤上方；內部 flex 會把空間分配給 chatBody。
+  height: calc(100% - 1.25rem);
+  max-height: calc(100% - 1.25rem);
+  margin-top: auto;
+  // 與 ChatContainer 內部的 --cds-background 對齊，避免 safe-area / handle 區
+  // 與 chat 主體呈現不同色塊。safe-area-inset 由 ComposerBar 自己 padding 處理，
+  // 這裡再加會產生雙重 padding 並露出 sheet 底色。
+  background: var(--cds-background, #fff);
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.2);
   overflow: hidden;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  touch-action: pan-y;
 }
 
 .mobileRightSheetHandle {
   flex-shrink: 0;
-  width: 40px;
-  height: 4px;
-  background: var(--cds-border-subtle-01, #e0e0e0);
-  border-radius: 2px;
-  margin: 0.625rem auto 0;
+  // 視覺上的 4px 把手 + 透明 padding，把 hit-area 撐到 24px 高，方便拇指拖曳。
+  position: relative;
+  width: 100%;
+  height: 24px;
+  cursor: grab;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 4px;
+    background: var(--cds-border-subtle-01, #e0e0e0);
+    border-radius: 2px;
+  }
 }
 
 .mobileRightSheetContent {

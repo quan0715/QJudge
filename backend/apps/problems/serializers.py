@@ -105,6 +105,11 @@ class TestRunSerializer(serializers.Serializer):
         required=True,
         help_text='Source code to execute'
     )
+    contest_id = serializers.UUIDField(
+        required=False,
+        allow_null=True,
+        help_text='Optional contest context for participant access enforcement',
+    )
 
 
 class ProblemListSerializer(serializers.ModelSerializer):

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { IconButton } from "@carbon/react";
@@ -13,10 +13,10 @@ import {
 import { ChatContainer } from "../chat-ui/ChatContainer";
 import {
   WorkspaceBackdrop,
+  WorkspaceDraggableSheet,
   WorkspaceOverlayRoot,
   WorkspacePanelPresence,
   WorkspaceSlideInLeftPanel,
-  WorkspaceSlideUpPanel,
 } from "./WorkspacePanelMotion";
 import toolbarStyles from "@/features/app/components/WorkspaceToolBar.module.scss";
 import styles from "./WorkspaceShell.module.scss";
@@ -89,6 +89,44 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
     prevPathname.current = location.pathname;
     if (isMobile && left.isOpen) left.close();
   }, [location.pathname, isMobile, left]);
+
+  // 行動 sheet 開啟時鎖 body scroll，避免下拉/觸控滾到背景頁（dashboard 上的
+  // 教室列表等）。`overscroll-behavior: contain` 在 sheet 內部 CSS 處理。
+  useEffect(() => {
+    if (!showLeftMobileOverlay && !showRightMobileSheet) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevTouch = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.touchAction = prevTouch;
+    };
+  }, [showLeftMobileOverlay, showRightMobileSheet]);
+
+  // 用 visualViewport 同步 overlay 大小與 offsetTop。iOS Safari 上
+  // `position: fixed` 釘在 layout viewport，鍵盤打開後 layout viewport 不縮，
+  // sheet 會被推出可視區（toolbar 消失）。讀 visualViewport 後直接寫到 inline
+  // style，鍵盤升降時 sheet 永遠貼齊可見區。
+  const [vvStyle, setVvStyle] = useState<{ height: number; top: number } | null>(null);
+  useEffect(() => {
+    if (!showRightMobileSheet && !showLeftMobileOverlay) {
+      setVvStyle(null);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      setVvStyle({ height: vv.height, top: vv.offsetTop });
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [showLeftMobileOverlay, showRightMobileSheet]);
 
   // Close overlays with Escape key for keyboard users.
   useEffect(() => {
@@ -198,6 +236,7 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
           <WorkspaceOverlayRoot
             className={styles.mobileLeftOverlay}
             ariaLabel="App sidebar"
+            style={vvStyle ? { height: vvStyle.height, top: vvStyle.top } : undefined}
           >
             <WorkspaceSlideInLeftPanel className={styles.mobileLeftPanel}>
               <AppSidebar collapsed={false} onToggleCollapse={left.close} />
@@ -214,18 +253,25 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
 
       {portalRoot && createPortal(
         <WorkspacePanelPresence show={showRightMobileSheet}>
-          <WorkspaceOverlayRoot className={styles.mobileRightOverlay} ariaLabel="Chat">
+          <WorkspaceOverlayRoot
+            className={styles.mobileRightOverlay}
+            ariaLabel="Chat"
+            style={vvStyle ? { height: vvStyle.height, top: vvStyle.top } : undefined}
+          >
             <WorkspaceBackdrop
               className={styles.mobileRightBackdrop}
               onClick={right.close}
               ariaLabel="Close chat"
             />
-            <WorkspaceSlideUpPanel className={styles.mobileRightSheet}>
-              <div className={styles.mobileRightSheetHandle} />
+            <WorkspaceDraggableSheet
+              className={styles.mobileRightSheet}
+              handleClassName={styles.mobileRightSheetHandle}
+              onClose={right.close}
+            >
               <div className={styles.mobileRightSheetContent}>
                 <ChatContainer mode="sidebar" onClose={right.close} />
               </div>
-            </WorkspaceSlideUpPanel>
+            </WorkspaceDraggableSheet>
           </WorkspaceOverlayRoot>
         </WorkspacePanelPresence>,
         portalRoot,
