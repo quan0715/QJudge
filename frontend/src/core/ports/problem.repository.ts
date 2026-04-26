@@ -45,6 +45,7 @@ export interface ProblemStatistics {
 export interface TestRunPayload {
   language: string;
   code: string;
+  contest_id?: string;
 }
 
 export interface TestRunResultItem {
