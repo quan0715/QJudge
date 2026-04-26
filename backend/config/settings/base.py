@@ -6,6 +6,16 @@ Base settings shared across all environments.
 import os
 from pathlib import Path
 from datetime import timedelta
+from urllib.parse import urlparse
+
+
+def _endpoint_is_r2(url: str) -> bool:
+    """True iff the hostname is on cloudflarestorage.com (R2)."""
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except ValueError:
+        return False
+    return host == "r2.cloudflarestorage.com" or host.endswith(".r2.cloudflarestorage.com")
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -467,9 +477,17 @@ OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS = int(
         os.getenv("MINIO_PRESIGNED_URL_TTL_SECONDS", "300"),
     )
 )
+_OBJECT_STORAGE_IS_R2 = _endpoint_is_r2(OBJECT_STORAGE_ENDPOINT_URL)
 OBJECT_STORAGE_OBJECT_TAGGING_ENABLED = os.getenv(
     "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED",
-    "false" if ".r2.cloudflarestorage.com" in OBJECT_STORAGE_ENDPOINT_URL else "true",
+    "false" if _OBJECT_STORAGE_IS_R2 else "true",
+).lower() == "true"
+# Cloudflare R2 does not allow bucket creation via the S3 API (buckets must be
+# pre-created in the dashboard or via the Cloudflare API). Disable auto-create
+# automatically when the configured endpoint points at R2.
+OBJECT_STORAGE_AUTO_CREATE_BUCKETS = os.getenv(
+    "OBJECT_STORAGE_AUTO_CREATE_BUCKETS",
+    "false" if _OBJECT_STORAGE_IS_R2 else "true",
 ).lower() == "true"
 
 # Backwards-compatible aliases — existing modules read these.

@@ -81,12 +81,26 @@ def _ensure_bucket_exists(client) -> None:
         return
 
     bucket = settings.AI_ARTIFACT_S3_BUCKET
+    auto_create = getattr(settings, "OBJECT_STORAGE_AUTO_CREATE_BUCKETS", True)
     try:
         client.head_bucket(Bucket=bucket)
         _BUCKET_READY = True
         return
     except ClientError as exc:
         code = str(exc.response.get("Error", {}).get("Code", "")).strip()
+        if not auto_create:
+            # R2 / managed buckets: the token may not have account-wide
+            # HeadBucket permission. Trust the configured bucket and surface a
+            # clearer error if it really is missing on first put_object.
+            if code in {"403", "AccessDenied", "Forbidden"}:
+                _BUCKET_READY = True
+                return
+            if code in {"404", "NoSuchBucket", "NotFound"}:
+                raise AIArtifactStorageError(
+                    f"Artifact bucket '{bucket}' not found on object storage; "
+                    "create it in the provider dashboard before retrying."
+                ) from exc
+            raise AIArtifactStorageError("Failed to access artifact bucket") from exc
         if code not in {"404", "NoSuchBucket", "NotFound"}:
             raise AIArtifactStorageError("Failed to access artifact bucket") from exc
 

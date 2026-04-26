@@ -81,12 +81,23 @@ def _ensure_bucket_exists(client) -> None:
         return
 
     bucket = settings.MARKDOWN_IMAGE_S3_BUCKET
+    auto_create = getattr(settings, "OBJECT_STORAGE_AUTO_CREATE_BUCKETS", True)
     try:
         client.head_bucket(Bucket=bucket)
         _BUCKET_READY = True
         return
     except ClientError as exc:
         code = str(exc.response.get("Error", {}).get("Code", "")).strip()
+        if not auto_create:
+            if code in {"403", "AccessDenied", "Forbidden"}:
+                _BUCKET_READY = True
+                return
+            if code in {"404", "NoSuchBucket", "NotFound"}:
+                raise MarkdownImageStorageError(
+                    f"Markdown image bucket '{bucket}' not found on object storage; "
+                    "create it in the provider dashboard before retrying."
+                ) from exc
+            raise MarkdownImageStorageError("Failed to access markdown image bucket") from exc
         if code not in {"404", "NoSuchBucket", "NotFound"}:
             raise MarkdownImageStorageError("Failed to access markdown image bucket") from exc
 
