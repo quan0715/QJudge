@@ -7,7 +7,7 @@ QJUDGE_DC="$PROJECT_ROOT/.codex/skills/qjudge-env-compose-owner/scripts/qjudge-d
 usage() {
   cat <<'USAGE' >&2
 Usage:
-  scripts/r2/migrate-dev-minio-to-r2.sh [--dry-run|--apply] [--prefix PREFIX] [--only raw|videos|markdown]
+  scripts/r2/migrate-dev-minio-to-r2.sh [--dry-run|--apply] [--prefix PREFIX] [--only raw|videos|markdown|artifacts]
 
 Copies local dev MinIO objects into the currently configured dev R2 buckets.
 This script never deletes source or target objects.
@@ -15,7 +15,7 @@ This script never deletes source or target objects.
 Defaults:
   mode: dry-run
   source endpoint: http://minio:9000
-  source buckets: anticheat-raw, anticheat-videos, markdown-images
+  source buckets: anticheat-raw, anticheat-videos, markdown-images, ai-artifacts
   target buckets: current Django settings / .env values
 
 Examples:
@@ -50,9 +50,9 @@ while [[ $# -gt 0 ]]; do
     --only)
       ONLY="${2:-}"
       case "$ONLY" in
-        raw|videos|markdown) ;;
+        raw|videos|markdown|artifacts) ;;
         *)
-          echo "--only must be one of: raw, videos, markdown" >&2
+          echo "--only must be one of: raw, videos, markdown, artifacts" >&2
           exit 2
           ;;
       esac
@@ -117,6 +117,7 @@ SOURCE_REGION = os.environ.get("MINIO_MIGRATION_SOURCE_REGION", "us-east-1")
 SOURCE_RAW_BUCKET = os.environ.get("MINIO_MIGRATION_SOURCE_RAW_BUCKET", "anticheat-raw")
 SOURCE_VIDEO_BUCKET = os.environ.get("MINIO_MIGRATION_SOURCE_VIDEO_BUCKET", "anticheat-videos")
 SOURCE_MARKDOWN_BUCKET = os.environ.get("MINIO_MIGRATION_SOURCE_MARKDOWN_BUCKET", "markdown-images")
+SOURCE_ARTIFACT_BUCKET = os.environ.get("MINIO_MIGRATION_SOURCE_ARTIFACT_BUCKET", "ai-artifacts")
 
 if MODE not in {"dry-run", "apply"}:
     raise SystemExit(f"unsupported mode: {MODE}")
@@ -149,6 +150,7 @@ pairs = [
     BucketPair("raw", SOURCE_RAW_BUCKET, settings.ANTICHEAT_RAW_BUCKET),
     BucketPair("videos", SOURCE_VIDEO_BUCKET, settings.ANTICHEAT_VIDEO_BUCKET),
     BucketPair("markdown", SOURCE_MARKDOWN_BUCKET, settings.MARKDOWN_IMAGE_S3_BUCKET),
+    BucketPair("artifacts", SOURCE_ARTIFACT_BUCKET, settings.AI_ARTIFACT_S3_BUCKET),
 ]
 if ONLY:
     pairs = [pair for pair in pairs if pair.label == ONLY]
