@@ -147,11 +147,13 @@
   display: flex;
   flex-direction: column;
   height: 88dvh;
-  background: var(--cds-layer);
+  // 與 ChatContainer 內部的 --cds-background 對齊，避免 safe-area / handle 區
+  // 與 chat 主體呈現不同色塊。safe-area-inset 由 ComposerBar 自己 padding 處理，
+  // 這裡再加會產生雙重 padding 並露出 sheet 底色。
+  background: var(--cds-background, #fff);
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.2);
   overflow: hidden;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .mobileRightSheetHandle {

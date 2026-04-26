@@ -363,51 +363,69 @@ export default function OverviewActionWidgets({
               <h3 className={styles.widgetTitle}>{t("adminOverview.widgets.examProgress", "考試進度")}</h3>
             </div>
             <span className={styles.progressPercent}>
-              {hasSchedule && !liveTimeProgress.isStarted
-                ? t("adminOverview.time.notStarted", "尚未開始")
-                : `${Math.round(liveTimeProgress.progressPercent)}%`}
+              {!hasSchedule
+                ? t("adminOverview.time.unset", "未設定")
+                : liveTimeProgress.isEnded
+                  ? t("adminOverview.time.ended", "已結束")
+                  : !liveTimeProgress.isStarted
+                    ? t("adminOverview.time.notStarted", "尚未開始")
+                    : t("adminOverview.widgets.gradingRunning", "進行中")}
             </span>
           </div>
-          <div className={styles.progressPrimaryRow}>
-            <div className={styles.progressValue}>
-              {!hasSchedule
-                ? t("adminOverview.time.configure", "設定時間")
-                : !liveTimeProgress.isStarted
-                  ? formatDuration(countdownSeconds)
-                  : formatDuration(liveTimeProgress.elapsedSeconds)}
-              {hasSchedule && liveTimeProgress.isStarted && (
-                <span className={styles.widgetUnit}>/ {formatDuration(liveTimeProgress.totalSeconds)}</span>
-              )}
-              {hasSchedule && !liveTimeProgress.isStarted && (
-                <span className={styles.widgetUnit}>{t("adminOverview.time.untilStartShort", "後開始")}</span>
-              )}
-            </div>
-            {hasSchedule && (
-              <div className={styles.progressWindowText}>
-                {startTimeLabel}
-                <span className={styles.progressWindowSep}>{" — "}</span>
-                {endTimeLabel}
+
+          {hasSchedule && liveTimeProgress.isEnded ? (
+            <div className={styles.ticketRow}>
+              <div className={styles.ticketStop}>
+                <span className={styles.ticketLabel}>{t("adminOverview.time.start", "開始")}</span>
+                <span className={styles.ticketValue}>{startTimeLabel}</span>
               </div>
-            )}
-          </div>
-          <ProgressBar
-            className={styles.progressBar}
-            hideLabel
-            label={t("adminOverview.widgets.examProgress", "考試進度")}
-            size="small"
-            value={!hasSchedule ? 0 : !liveTimeProgress.isStarted ? countdownProgress : liveTimeProgress.progressPercent}
-          />
+              <span className={styles.ticketArrow} aria-hidden>→</span>
+              <div className={styles.ticketStop}>
+                <span className={styles.ticketLabel}>{t("adminOverview.time.end", "結束")}</span>
+                <span className={styles.ticketValue}>{endTimeLabel}</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className={styles.progressPrimaryRow}>
+                <div className={styles.progressValue}>
+                  {!hasSchedule
+                    ? t("adminOverview.time.configure", "設定時間")
+                    : !liveTimeProgress.isStarted
+                      ? formatDuration(countdownSeconds)
+                      : formatDuration(liveTimeProgress.remainingSeconds)}
+                  {hasSchedule && (
+                    <span className={styles.widgetUnit}>
+                      {!liveTimeProgress.isStarted
+                        ? t("adminOverview.time.untilStartShort", "後開始")
+                        : t("adminOverview.time.untilEndShort", "後結束")}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ProgressBar
+                className={styles.progressBar}
+                hideLabel
+                label={t("adminOverview.widgets.examProgress", "考試進度")}
+                size="small"
+                value={!hasSchedule ? 0 : !liveTimeProgress.isStarted ? countdownProgress : liveTimeProgress.progressPercent}
+              />
+            </>
+          )}
+
           <div className={styles.progressFooter}>
             <div className={styles.progressStatusText}>
-              {!hasSchedule
-                ? t("adminOverview.time.unscheduledHint", "尚未排程，請先發布並設定時段")
-                : liveTimeProgress.isEnded
-                ? t("adminOverview.time.ended", "已結束")
-                : liveTimeProgress.isStarted
-                  ? t("adminOverview.time.remaining", "剩餘 {{time}}", {
-                      time: formatDuration(liveTimeProgress.remainingSeconds),
-                    })
-                  : ""}
+              {!hasSchedule ? (
+                t("adminOverview.time.unscheduledHint", "尚未排程，請先發布並設定時段")
+              ) : liveTimeProgress.isEnded ? (
+                ""
+              ) : (
+                <>
+                  {startTimeLabel}
+                  <span className={styles.progressWindowSep}>{" — "}</span>
+                  {endTimeLabel}
+                </>
+              )}
             </div>
             <div className={styles.progressActionRow}>
               <span>{scheduleActionText}</span>
