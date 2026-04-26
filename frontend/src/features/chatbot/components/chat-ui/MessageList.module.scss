@@ -14,6 +14,10 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  // 防止滾到頂/底時 scroll chaining 到背景頁；同時讓 overlay 的 touch-action: none
+  // 不會擋住內部垂直捲動。
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: 1rem 0 9rem;
 
   // Center message content within full-width scroll container
@@ -74,10 +78,10 @@
   }
 }
 
-// Taller composer on narrow viewports + safe-area — lift button so it does not touch the bar
+// Mobile：sheet 空間有限，scroll-to-bottom 按鈕擋住訊息，直接隱藏。
 @media (max-width: $chat-mobile-breakpoint) {
   .scrollButton {
-    bottom: calc(12rem + env(safe-area-inset-bottom, 0px));
+    display: none;
   }
 }
 
