@@ -449,3 +449,34 @@ def test_classroom_manager_can_view_classroom_bound_submission_detail(
 
     assert response.status_code == 200
     assert str(response.data["id"]) == str(submission.id)
+
+
+@pytest.mark.django_db
+def test_unrelated_teacher_cannot_view_submission_detail(
+    api_client: APIClient,
+) -> None:
+    """A teacher with no relation to the contest, problem, or classroom must
+    NOT be able to read another user's submission code."""
+    contest_owner = UserFactory(role="teacher")
+    unrelated_teacher = UserFactory(role="teacher")
+    student = UserFactory(role="student")
+
+    contest = ContestFactory(owner=contest_owner, status="published")
+    ContestParticipantFactory(contest=contest, user=student, exam_status=ExamStatus.IN_PROGRESS)
+
+    problem = ProblemFactory(created_by=contest_owner)
+    submission = Submission.objects.create(
+        user=student,
+        problem=problem,
+        contest=contest,
+        source_type="contest",
+        language="python",
+        code="print('secret')",
+        status="AC",
+        score=100,
+    )
+
+    api_client.force_authenticate(user=unrelated_teacher)
+    response = api_client.get(reverse("submissions:submission-detail", args=[submission.id]))
+
+    assert response.status_code == 403
