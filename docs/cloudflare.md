@@ -169,3 +169,24 @@ Before switching from MinIO to R2:
 4. Update production `.env` with `OBJECT_STORAGE_*` first, leaving old MinIO vars in place only as rollback notes.
 5. Restart backend and Celery, then smoke-test presigned uploads/downloads.
 6. Remove MinIO from the critical path only after the smoke test and one real exam-like capture flow pass.
+
+## Dev MinIO to R2 Migration
+
+Local dev objects can be copied from the self-hosted MinIO service into the dev
+R2 buckets with:
+
+```bash
+scripts/r2/migrate-dev-minio-to-r2.sh --dry-run
+scripts/r2/migrate-dev-minio-to-r2.sh --apply
+```
+
+The script runs inside the dev backend container so it can read MinIO through the
+Docker network at `http://minio:9000`, while writing to the currently configured
+`OBJECT_STORAGE_*` target. It never deletes source or target objects.
+
+Useful scoped runs:
+
+```bash
+scripts/r2/migrate-dev-minio-to-r2.sh --dry-run --only raw
+scripts/r2/migrate-dev-minio-to-r2.sh --apply --only markdown --prefix markdown/2026/04/
+```

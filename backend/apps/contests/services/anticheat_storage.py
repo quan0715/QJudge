@@ -100,14 +100,16 @@ def generate_put_url(
     # Presigned URLs must be signed against the same public host clients will call.
     if client is None:
         client = get_s3_client(endpoint_url=(settings.ANTICHEAT_S3_PUBLIC_ENDPOINT_URL or "").strip() or None)
+    params = {
+        "Bucket": bucket,
+        "Key": object_key,
+        "ContentType": content_type,
+    }
+    if tagging and settings.ANTICHEAT_S3_OBJECT_TAGGING_ENABLED:
+        params["Tagging"] = tagging
     url = client.generate_presigned_url(
         ClientMethod="put_object",
-        Params={
-            "Bucket": bucket,
-            "Key": object_key,
-            "ContentType": content_type,
-            "Tagging": tagging,
-        },
+        Params=params,
         ExpiresIn=expires_seconds,
     )
     return url
@@ -135,6 +137,8 @@ def generate_get_url(
 
 def tag_object_retain(bucket: str, object_key: str) -> None:
     """Retain-tag a single object. Prefer tag_objects_retain() for batches."""
+    if not settings.ANTICHEAT_S3_OBJECT_TAGGING_ENABLED:
+        return
     client = get_s3_client()
     client.copy_object(
         Bucket=bucket,
@@ -150,6 +154,9 @@ def tag_objects_retain(bucket: str, object_keys: list[str]) -> int:
     import logging
 
     logger = logging.getLogger(__name__)
+    if not settings.ANTICHEAT_S3_OBJECT_TAGGING_ENABLED:
+        logger.info("Object tagging disabled; skipped retain tags for %s objects", len(object_keys))
+        return 0
     client = get_s3_client()
     tagged = 0
     for key in object_keys:
