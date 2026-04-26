@@ -471,6 +471,13 @@ OBJECT_STORAGE_OBJECT_TAGGING_ENABLED = os.getenv(
     "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED",
     "false" if ".r2.cloudflarestorage.com" in OBJECT_STORAGE_ENDPOINT_URL else "true",
 ).lower() == "true"
+# Cloudflare R2 does not allow bucket creation via the S3 API (buckets must be
+# pre-created in the dashboard or via the Cloudflare API). Disable auto-create
+# automatically when the configured endpoint points at R2.
+OBJECT_STORAGE_AUTO_CREATE_BUCKETS = os.getenv(
+    "OBJECT_STORAGE_AUTO_CREATE_BUCKETS",
+    "false" if ".r2.cloudflarestorage.com" in OBJECT_STORAGE_ENDPOINT_URL else "true",
+).lower() == "true"
 
 # Backwards-compatible aliases — existing modules read these.
 MINIO_ENDPOINT_URL = OBJECT_STORAGE_ENDPOINT_URL
