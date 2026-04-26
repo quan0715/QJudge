@@ -134,7 +134,11 @@ class ExamAnticheatMixin:
                     "put_url": put_url,
                     "required_headers": {
                         "Content-Type": "image/webp",
-                        "x-amz-tagging": "cleanup=true",
+                        **(
+                            {"x-amz-tagging": "cleanup=true"}
+                            if settings.ANTICHEAT_S3_OBJECT_TAGGING_ENABLED
+                            else {}
+                        ),
                     },
                 }
             )
