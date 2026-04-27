@@ -695,6 +695,54 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(got_keys, sorted([ts_left_in, ts_right_in]))
         self.assertEqual(mock_get_url.call_count, 2)
 
+    def test_screenshots_event_lookup_returns_all_modules_by_default(self):
+        ts_ms = 1774107000000
+        session_id = "session-event-window-2"
+        screen_key = (
+            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
+            f"screen_share/ts_{ts_ms}_seq_0001.webp"
+        )
+        webcam_key = (
+            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
+            f"webcam/ts_{ts_ms}_seq_0002.webp"
+        )
+
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exit_fullscreen",
+            metadata={"module": "screen_share", "upload_session_id": session_id},
+        )
+        event.created_at = timezone.make_aware(datetime.fromtimestamp(ts_ms / 1000))
+        event.save(update_fields=["created_at"])
+        attach_evidence_window_metadata(event)
+
+        class FakePaginator:
+            def paginate(self, Bucket: str, Prefix: str):
+                yield {"Contents": [{"Key": screen_key}, {"Key": webcam_key}]}
+
+        class FakeClient:
+            def get_paginator(self, operation_name):
+                return FakePaginator()
+
+        self.client.force_authenticate(user=self.teacher)
+        screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
+        with patch(
+            "apps.contests.views.exam_evidence.get_s3_client",
+            return_value=FakeClient(),
+        ), patch(
+            "apps.contests.views.exam_evidence.generate_get_url",
+            return_value="https://example.test/frame.webp",
+        ):
+            response = self.client.get(screenshots_url, {"event_id": event.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_raw_count"], 2)
+        self.assertEqual(
+            sorted(item["source_module"] for item in response.data["items"]),
+            ["screen_share", "webcam"],
+        )
+
     def test_end_exam_does_not_create_video_jobs(self):
         self.client.force_authenticate(user=self.student)
         end_url = reverse("contests:contest-exam-end-exam", args=[self.contest.id])

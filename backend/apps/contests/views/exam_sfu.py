@@ -1,4 +1,4 @@
-"""Dev-gated Cloudflare Realtime SFU spike endpoints."""
+"""Cloudflare Realtime SFU live monitoring endpoints."""
 from __future__ import annotations
 
 from django.shortcuts import get_object_or_404
@@ -18,6 +18,7 @@ from ..services.realtime_sfu import (
 from ..services.realtime_sfu_registry import (
     extract_first_local_track_name,
     get_publisher,
+    get_publishers,
     refresh_publisher,
     register_publisher,
     remove_publisher,
@@ -194,8 +195,19 @@ class ExamSfuMixin:
         ).first()
         if not target:
             return Response({"error": "target participant not found"}, status=status.HTTP_404_NOT_FOUND)
+        source_module = str(request.query_params.get("source_module") or "").strip()
+        if source_module:
+            publisher = get_publisher(contest.id, target.user_id, source_module=source_module)
+            return Response(
+                {
+                    "active": bool(publisher),
+                    "publisher": publisher,
+                    "publishers": [publisher] if publisher else [],
+                }
+            )
+        publishers = get_publishers(contest.id, target.user_id)
         publisher = get_publisher(contest.id, target.user_id)
-        return Response({"active": bool(publisher), "publisher": publisher})
+        return Response({"active": bool(publishers), "publisher": publisher, "publishers": publishers})
 
     @action(
         detail=False,
@@ -215,8 +227,14 @@ class ExamSfuMixin:
             return error_response
         if participant is None:
             return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
-        publisher = refresh_publisher(contest.id, participant.user_id)
-        return Response({"active": bool(publisher), "publisher": publisher})
+        source_module = str(request.data.get("source_module") or "").strip()
+        publisher = refresh_publisher(
+            contest.id,
+            participant.user_id,
+            source_module=source_module or None,
+        )
+        publishers = get_publishers(contest.id, participant.user_id)
+        return Response({"active": bool(publishers), "publisher": publisher, "publishers": publishers})
 
     @action(
         detail=False,
@@ -230,9 +248,12 @@ class ExamSfuMixin:
         if not participant:
             return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
         session_id = request.data.get("session_id")
+        source_module = str(request.data.get("source_module") or "").strip()
         remaining = remove_publisher(
             contest.id,
             participant.user_id,
             session_id=str(session_id) if session_id else None,
+            source_module=source_module or None,
         )
-        return Response({"active": bool(remaining), "publisher": remaining})
+        publishers = get_publishers(contest.id, participant.user_id)
+        return Response({"active": bool(publishers), "publisher": remaining, "publishers": publishers})

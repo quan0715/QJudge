@@ -97,7 +97,7 @@ class ExamAnticheatMixin:
             interval = WEBCAM_CAPTURE_INTERVAL_SECONDS
         else:
             interval = settings.ANTICHEAT_CAPTURE_INTERVAL_SECONDS
-        max_safe_count = max(1, settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS // interval - 10)
+        max_safe_count = max(1, settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS // interval - 10)
         count = min(count, max_safe_count)
 
         upload_session_id = str(query_serializer.validated_data.get("upload_session_id") or "").strip()
@@ -106,7 +106,7 @@ class ExamAnticheatMixin:
         start_seq = int(query_serializer.validated_data.get("start_seq") or 1)
         base_ts = int(timezone.now().timestamp() * 1000)
         presign_client = get_s3_client(
-            endpoint_url=(settings.ANTICHEAT_S3_PUBLIC_ENDPOINT_URL or "").strip() or None
+            endpoint_url=(settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL or "").strip() or None
         )
         items = []
         for i in range(count):
@@ -123,7 +123,7 @@ class ExamAnticheatMixin:
             put_url = generate_put_url(
                 settings.ANTICHEAT_RAW_BUCKET,
                 object_key,
-                expires_seconds=settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS,
+                expires_seconds=settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS,
                 client=presign_client,
             )
             items.append(
@@ -136,7 +136,7 @@ class ExamAnticheatMixin:
                         "Content-Type": "image/webp",
                         **(
                             {"x-amz-tagging": "cleanup=true"}
-                            if settings.ANTICHEAT_S3_OBJECT_TAGGING_ENABLED
+                            if settings.OBJECT_STORAGE_OBJECT_TAGGING_ENABLED
                             else {}
                         ),
                     },
@@ -147,7 +147,7 @@ class ExamAnticheatMixin:
             {
                 "upload_session_id": upload_session_id,
                 "module": module,
-                "expires_at": timezone.now() + timedelta(seconds=settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS),
+                "expires_at": timezone.now() + timedelta(seconds=settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS),
                 "interval_seconds": interval,
                 "next_seq": start_seq + count,
                 "throttle_scope": "exam_anticheat_urls",

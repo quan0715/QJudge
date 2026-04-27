@@ -35,7 +35,7 @@ def get_realtime_sfu_config() -> RealtimeSfuConfig:
     app_id = (settings.CLOUDFLARE_REALTIME_APP_ID or "").strip()
     app_secret = (settings.CLOUDFLARE_REALTIME_APP_SECRET or "").strip()
     return RealtimeSfuConfig(
-        enabled=bool(settings.LIVE_MONITORING_SPIKE_ENABLED),
+        enabled=bool(settings.LIVE_MONITORING_ENABLED),
         configured=bool(app_id and app_secret),
         app_id=app_id,
         api_base_url=(settings.CLOUDFLARE_REALTIME_API_BASE_URL or "").rstrip("/"),
@@ -53,7 +53,7 @@ class RealtimeSfuClient:
 
     def assert_available(self) -> None:
         if not self.config.enabled:
-            raise RealtimeSfuError("Realtime SFU spike is disabled", status_code=403)
+            raise RealtimeSfuError("Realtime SFU live monitoring is disabled", status_code=403)
         if not self.config.configured:
             raise RealtimeSfuError("Realtime SFU app is not configured", status_code=503)
 

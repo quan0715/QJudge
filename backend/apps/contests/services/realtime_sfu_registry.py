@@ -1,8 +1,7 @@
 """Short-lived registry for active Realtime SFU publishers.
 
-This intentionally uses cache instead of a model while the live-monitoring
-workflow is still behind a dev spike flag. The source of truth is the student's
-active WebRTC session, not persisted exam evidence.
+This intentionally uses cache instead of a model. The source of truth is the
+student's active WebRTC session, not persisted exam evidence.
 """
 from __future__ import annotations
 
@@ -12,9 +11,33 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
+SOURCE_MODULES = ("screen_share", "webcam")
 
-def publisher_key(contest_id: int, user_id: int) -> str:
+
+def infer_source_module(track_name: str | None) -> str:
+    return "webcam" if isinstance(track_name, str) and track_name.startswith("webcam-") else "screen_share"
+
+
+def publisher_key(contest_id: int, user_id: int, source_module: str | None = None) -> str:
+    if source_module in SOURCE_MODULES:
+        return f"contest:{contest_id}:sfu:publisher:{user_id}:{source_module}"
     return f"contest:{contest_id}:sfu:publisher:{user_id}"
+
+
+def _publisher_keys(contest_id: int, user_id: int) -> list[str]:
+    return [publisher_key(contest_id, user_id, source) for source in SOURCE_MODULES]
+
+
+def _cache_timeout() -> int:
+    return max(1, settings.LIVE_MONITORING_PUBLISHER_TTL_SECONDS)
+
+
+def _preferred_publisher(publishers: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for source_module in SOURCE_MODULES:
+        for publisher in publishers:
+            if publisher.get("source_module") == source_module:
+                return publisher
+    return publishers[0] if publishers else None
 
 
 def register_publisher(
@@ -25,38 +48,70 @@ def register_publisher(
     track_name: str,
     room_id: str,
 ) -> dict[str, Any]:
+    source_module = infer_source_module(track_name)
     payload = {
         "contest_id": contest_id,
         "user_id": user_id,
         "session_id": session_id,
         "track_name": track_name,
         "room_id": room_id,
+        "source_module": source_module,
         "updated_at": timezone.now().isoformat(),
     }
     cache.set(
-        publisher_key(contest_id, user_id),
+        publisher_key(contest_id, user_id, source_module),
         payload,
-        timeout=max(1, settings.LIVE_MONITORING_PUBLISHER_TTL_SECONDS),
+        timeout=_cache_timeout(),
     )
+    cache.delete(publisher_key(contest_id, user_id))
     return payload
 
 
-def refresh_publisher(contest_id: int, user_id: int) -> dict[str, Any] | None:
-    key = publisher_key(contest_id, user_id)
-    payload = cache.get(key)
-    if not isinstance(payload, dict):
-        return None
-    payload = {**payload, "updated_at": timezone.now().isoformat()}
-    cache.set(
-        key,
-        payload,
-        timeout=max(1, settings.LIVE_MONITORING_PUBLISHER_TTL_SECONDS),
-    )
-    return payload
+def refresh_publisher(
+    contest_id: int,
+    user_id: int,
+    *,
+    source_module: str | None = None,
+) -> dict[str, Any] | None:
+    if source_module in SOURCE_MODULES:
+        keys = [publisher_key(contest_id, user_id, source_module)]
+    else:
+        keys = _publisher_keys(contest_id, user_id)
+        keys.append(publisher_key(contest_id, user_id))
+
+    refreshed: list[dict[str, Any]] = []
+    for key in keys:
+        payload = cache.get(key)
+        if not isinstance(payload, dict):
+            continue
+        payload = {**payload, "updated_at": timezone.now().isoformat()}
+        cache.set(key, payload, timeout=_cache_timeout())
+        refreshed.append(payload)
+    return _preferred_publisher(refreshed)
 
 
-def get_publisher(contest_id: int, user_id: int) -> dict[str, Any] | None:
-    payload = cache.get(publisher_key(contest_id, user_id))
+def get_publishers(contest_id: int, user_id: int) -> list[dict[str, Any]]:
+    publishers: list[dict[str, Any]] = []
+    for source_module in SOURCE_MODULES:
+        payload = cache.get(publisher_key(contest_id, user_id, source_module))
+        if isinstance(payload, dict):
+            publishers.append(payload)
+    legacy_payload = cache.get(publisher_key(contest_id, user_id))
+    if isinstance(legacy_payload, dict):
+        publishers.append(legacy_payload)
+    return publishers
+
+
+def get_publisher(
+    contest_id: int,
+    user_id: int,
+    *,
+    source_module: str | None = None,
+) -> dict[str, Any] | None:
+    if source_module in SOURCE_MODULES:
+        payload = cache.get(publisher_key(contest_id, user_id, source_module))
+        return payload if isinstance(payload, dict) else None
+    payload = _preferred_publisher(get_publishers(contest_id, user_id))
     return payload if isinstance(payload, dict) else None
 
 
@@ -65,13 +120,20 @@ def remove_publisher(
     user_id: int,
     *,
     session_id: str | None = None,
+    source_module: str | None = None,
 ) -> dict[str, Any] | None:
-    key = publisher_key(contest_id, user_id)
-    payload = cache.get(key)
-    if session_id and isinstance(payload, dict) and payload.get("session_id") != session_id:
-        return payload
-    cache.delete(key)
-    return None
+    if source_module in SOURCE_MODULES:
+        keys = [publisher_key(contest_id, user_id, source_module)]
+    else:
+        keys = _publisher_keys(contest_id, user_id)
+        keys.append(publisher_key(contest_id, user_id))
+
+    for key in keys:
+        payload = cache.get(key)
+        if session_id and isinstance(payload, dict) and payload.get("session_id") != session_id:
+            continue
+        cache.delete(key)
+    return get_publisher(contest_id, user_id)
 
 
 def extract_first_local_track_name(payload: dict[str, Any]) -> str | None:

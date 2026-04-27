@@ -353,6 +353,28 @@ def _build_coding_report(contest: Contest, participant: ContestParticipant) -> t
     return overview, report
 
 
+def _forced_capture_uploaded_count(meta: dict[str, Any]) -> int:
+    uploaded_keys = meta.get("forced_capture_uploaded_object_keys")
+    if isinstance(uploaded_keys, list) and uploaded_keys:
+        return len(uploaded_keys)
+
+    module_results = meta.get("forced_capture_module_results")
+    if isinstance(module_results, dict):
+        count = 0
+        for result in module_results.values():
+            if not isinstance(result, dict):
+                continue
+            module_keys = result.get("uploadedObjectKeys")
+            if isinstance(module_keys, list):
+                count += len(module_keys)
+            elif result.get("uploaded"):
+                count += 1
+        if count > 0:
+            return count
+
+    return 1 if meta.get("forced_capture_uploaded") else 0
+
+
 def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> list[dict[str, Any]]:
     """Build aggregated event feed with 60s-window incident grouping."""
     window = EVENT_FEED_AGGREGATION_WINDOW_SECONDS
@@ -384,9 +406,8 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
         et = event.event_type
         ts = event.created_at
         meta = event.metadata or {}
-        uploaded_keys = meta.get("forced_capture_uploaded_object_keys")
-        uploaded_count = len(uploaded_keys) if isinstance(uploaded_keys, list) else 0
-        has_evidence = bool(meta.get("forced_capture_uploaded")) or uploaded_count > 0
+        uploaded_count = _forced_capture_uploaded_count(meta)
+        has_evidence = uploaded_count > 0
 
         idx = open_incidents.get(et)
         if idx is not None:
@@ -397,7 +418,7 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
                 inc["last_at"] = ts.isoformat()
                 inc["_last_at_dt"] = ts
                 if has_evidence:
-                    inc["evidence_count"] += uploaded_count or 1
+                    inc["evidence_count"] += uploaded_count
                 inc["summary"] = meta.get("reason") or inc["summary"]
                 continue
 
@@ -413,7 +434,7 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
             "first_at": ts.isoformat(),
             "last_at": ts.isoformat(),
             "count": 1,
-            "evidence_count": (uploaded_count or 1) if has_evidence else 0,
+            "evidence_count": uploaded_count if has_evidence else 0,
             "summary": meta.get("reason", ""),
             "metadata": meta,
             "source": "exam_event",
@@ -486,7 +507,6 @@ def build_participant_dashboard(contest: Contest, participant: ContestParticipan
         overview, report = _build_paper_exam_report(contest, participant)
         payload["overview"] = overview
         payload["report"] = report
-        payload["evidence"] = []
     else:
         overview, report = _build_coding_report(contest, participant)
         payload["overview"] = overview

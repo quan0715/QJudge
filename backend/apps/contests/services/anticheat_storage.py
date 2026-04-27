@@ -1,5 +1,5 @@
 """
-MinIO/S3 helper utilities for anti-cheat upload and evidence access.
+S3-compatible helper utilities for anti-cheat upload and evidence access.
 """
 from __future__ import annotations
 
@@ -26,9 +26,9 @@ def _cached_s3_client(resolved_endpoint: str) -> Any:
     """
     boto3 = _get_boto3()
     kwargs: dict[str, Any] = {
-        "aws_access_key_id": settings.ANTICHEAT_S3_ACCESS_KEY,
-        "aws_secret_access_key": settings.ANTICHEAT_S3_SECRET_KEY,
-        "region_name": settings.ANTICHEAT_S3_REGION,
+        "aws_access_key_id": settings.OBJECT_STORAGE_ACCESS_KEY,
+        "aws_secret_access_key": settings.OBJECT_STORAGE_SECRET_KEY,
+        "region_name": settings.OBJECT_STORAGE_REGION,
     }
     if resolved_endpoint:
         kwargs["endpoint_url"] = resolved_endpoint
@@ -36,7 +36,7 @@ def _cached_s3_client(resolved_endpoint: str) -> Any:
 
 
 def get_s3_client(*, endpoint_url: str | None = None):
-    resolved_endpoint = endpoint_url if endpoint_url is not None else settings.ANTICHEAT_S3_ENDPOINT_URL
+    resolved_endpoint = endpoint_url if endpoint_url is not None else settings.OBJECT_STORAGE_ENDPOINT_URL
     endpoint_key = (resolved_endpoint or "").strip()
     return _cached_s3_client(endpoint_key)
 
@@ -46,7 +46,7 @@ def _rewrite_presigned_url_for_browser(url: str) -> str:
     Rewrite presigned URL host for browser access when MinIO uses an internal
     Docker hostname (e.g. http://minio:9000).
     """
-    public_endpoint = (settings.ANTICHEAT_S3_PUBLIC_ENDPOINT_URL or "").strip()
+    public_endpoint = (settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL or "").strip()
     if not public_endpoint:
         return url
 
@@ -99,13 +99,13 @@ def generate_put_url(
 ) -> str:
     # Presigned URLs must be signed against the same public host clients will call.
     if client is None:
-        client = get_s3_client(endpoint_url=(settings.ANTICHEAT_S3_PUBLIC_ENDPOINT_URL or "").strip() or None)
+        client = get_s3_client(endpoint_url=(settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL or "").strip() or None)
     params = {
         "Bucket": bucket,
         "Key": object_key,
         "ContentType": content_type,
     }
-    if tagging and settings.ANTICHEAT_S3_OBJECT_TAGGING_ENABLED:
+    if tagging and settings.OBJECT_STORAGE_OBJECT_TAGGING_ENABLED:
         params["Tagging"] = tagging
     url = client.generate_presigned_url(
         ClientMethod="put_object",
@@ -123,7 +123,7 @@ def generate_get_url(
 ) -> str:
     # Presigned URLs must be signed against the same public host clients will call.
     if client is None:
-        client = get_s3_client(endpoint_url=(settings.ANTICHEAT_S3_PUBLIC_ENDPOINT_URL or "").strip() or None)
+        client = get_s3_client(endpoint_url=(settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL or "").strip() or None)
     url = client.generate_presigned_url(
         ClientMethod="get_object",
         Params={
@@ -137,7 +137,7 @@ def generate_get_url(
 
 def tag_object_retain(bucket: str, object_key: str) -> None:
     """Retain-tag a single object. Prefer tag_objects_retain() for batches."""
-    if not settings.ANTICHEAT_S3_OBJECT_TAGGING_ENABLED:
+    if not settings.OBJECT_STORAGE_OBJECT_TAGGING_ENABLED:
         return
     client = get_s3_client()
     client.copy_object(
@@ -154,7 +154,7 @@ def tag_objects_retain(bucket: str, object_keys: list[str]) -> int:
     import logging
 
     logger = logging.getLogger(__name__)
-    if not settings.ANTICHEAT_S3_OBJECT_TAGGING_ENABLED:
+    if not settings.OBJECT_STORAGE_OBJECT_TAGGING_ENABLED:
         logger.info("Object tagging disabled; skipped retain tags for %s objects", len(object_keys))
         return 0
     client = get_s3_client()

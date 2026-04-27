@@ -236,14 +236,6 @@ class ExamEvidenceMixin:
         source_module_raw = (request.query_params.get("source_module") or "").strip()
         source_module = normalize_source_module(source_module_raw) if source_module_raw else ""
 
-        if source_module == "":
-            anchor_metadata = {}
-            if anchor_event is not None and isinstance(anchor_event.metadata, dict):
-                anchor_metadata = anchor_event.metadata
-            source_module = normalize_source_module(
-                anchor_metadata.get("evidence_source_module") or anchor_metadata.get("module")
-            )
-
         ts_from = _parse_int_param(request.query_params.get("ts_from"))
         ts_to = _parse_int_param(request.query_params.get("ts_to"))
         ts_from, ts_to = _event_window_ms(anchor_event, ts_from, ts_to)

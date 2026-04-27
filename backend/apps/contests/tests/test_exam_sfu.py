@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
-from apps.contests.services.realtime_sfu_registry import get_publisher
+from apps.contests.services.realtime_sfu_registry import get_publisher, get_publishers
 from apps.users.models import User
 
 
@@ -52,7 +52,7 @@ class ExamSfuBrokerTests(APITestCase):
         self.assertEqual(response.data["app_id"], "")
 
     @override_settings(
-        LIVE_MONITORING_SPIKE_ENABLED=True,
+        LIVE_MONITORING_ENABLED=True,
         CLOUDFLARE_REALTIME_APP_ID="app-test",
         CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
         CLOUDFLARE_REALTIME_API_BASE_URL="https://rtc.example.test/v1",
@@ -87,7 +87,7 @@ class ExamSfuBrokerTests(APITestCase):
         self.assertNotIn("secret-test", str(response.data))
 
     @override_settings(
-        LIVE_MONITORING_SPIKE_ENABLED=True,
+        LIVE_MONITORING_ENABLED=True,
         CLOUDFLARE_REALTIME_APP_ID="app-test",
         CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
         CLOUDFLARE_REALTIME_API_BASE_URL="https://rtc.example.test/v1",
@@ -127,7 +127,7 @@ class ExamSfuBrokerTests(APITestCase):
         self.assertIn("/apps/app-test/sessions/sub-session/tracks/new", url)
 
     @override_settings(
-        LIVE_MONITORING_SPIKE_ENABLED=True,
+        LIVE_MONITORING_ENABLED=True,
         CLOUDFLARE_REALTIME_APP_ID="app-test",
         CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
         CLOUDFLARE_REALTIME_API_BASE_URL="https://rtc.example.test/v1",
@@ -166,12 +166,56 @@ class ExamSfuBrokerTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["publisher"]["session_id"], "pub-session")
         self.assertEqual(response.data["publisher"]["track_name"], "screen-track")
+        self.assertEqual(response.data["publisher"]["source_module"], "screen_share")
         stored = get_publisher(self.contest.id, self.student.id)
         self.assertEqual(stored["session_id"], "pub-session")
         self.assertEqual(stored["track_name"], "screen-track")
+        self.assertEqual(stored["source_module"], "screen_share")
 
     @override_settings(
-        LIVE_MONITORING_SPIKE_ENABLED=True,
+        LIVE_MONITORING_ENABLED=True,
+        CLOUDFLARE_REALTIME_APP_ID="app-test",
+        CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
+        CLOUDFLARE_REALTIME_API_BASE_URL="https://rtc.example.test/v1",
+        LIVE_MONITORING_ROOM_PREFIX="qjudge-test-exam",
+        LIVE_MONITORING_PUBLISHER_TTL_SECONDS=60,
+    )
+    def test_webcam_track_request_registers_webcam_publisher(self):
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "requiresImmediateRenegotiation": False,
+            "sessionDescription": {"type": "answer", "sdp": "v=0"},
+            "tracks": [{"trackName": "webcam-track"}],
+        }
+
+        self.client.force_authenticate(user=self.student)
+        with patch("apps.contests.services.realtime_sfu.requests.request", return_value=mock_response):
+            response = self.client.post(
+                f"/api/v1/contests/{self.contest.id}/exam/sfu/sessions/pub-session/tracks/new/",
+                {
+                    "role": "publisher",
+                    "payload": {
+                        "sessionDescription": {"type": "offer", "sdp": "v=0"},
+                        "tracks": [
+                            {
+                                "location": "local",
+                                "mid": "0",
+                                "trackName": "webcam-track",
+                            }
+                        ],
+                    },
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["publisher"]["source_module"], "webcam")
+        stored = get_publisher(self.contest.id, self.student.id, source_module="webcam")
+        self.assertEqual(stored["source_module"], "webcam")
+
+    @override_settings(
+        LIVE_MONITORING_ENABLED=True,
         CLOUDFLARE_REALTIME_APP_ID="app-test",
         CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
         LIVE_MONITORING_PUBLISHER_TTL_SECONDS=60,
@@ -208,9 +252,67 @@ class ExamSfuBrokerTests(APITestCase):
         self.assertTrue(response.data["active"])
         self.assertEqual(response.data["publisher"]["session_id"], "pub-session")
         self.assertEqual(response.data["publisher"]["track_name"], "screen-track")
+        self.assertEqual(len(response.data["publishers"]), 1)
 
     @override_settings(
-        LIVE_MONITORING_SPIKE_ENABLED=True,
+        LIVE_MONITORING_ENABLED=True,
+        CLOUDFLARE_REALTIME_APP_ID="app-test",
+        CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
+        LIVE_MONITORING_PUBLISHER_TTL_SECONDS=60,
+    )
+    def test_screen_and_webcam_publishers_can_coexist(self):
+        self.client.force_authenticate(user=self.student)
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"tracks": []}
+        with patch("apps.contests.services.realtime_sfu.requests.request", return_value=mock_response):
+            for session_id, track_name in (
+                ("screen-session", "screen_share-track"),
+                ("webcam-session", "webcam-track"),
+            ):
+                self.client.post(
+                    f"/api/v1/contests/{self.contest.id}/exam/sfu/sessions/{session_id}/tracks/new/",
+                    {
+                        "role": "publisher",
+                        "payload": {
+                            "tracks": [
+                                {
+                                    "location": "local",
+                                    "mid": "0",
+                                    "trackName": track_name,
+                                }
+                            ],
+                        },
+                    },
+                    format="json",
+                )
+
+        publishers = get_publishers(self.contest.id, self.student.id)
+        self.assertEqual(len(publishers), 2)
+        self.assertEqual(
+            {publisher["source_module"]: publisher["session_id"] for publisher in publishers},
+            {"screen_share": "screen-session", "webcam": "webcam-session"},
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get(
+            f"/api/v1/contests/{self.contest.id}/exam/sfu/publishers/{self.student.id}/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["active"])
+        self.assertEqual(len(response.data["publishers"]), 2)
+        self.assertEqual(response.data["publisher"]["source_module"], "screen_share")
+
+        webcam_response = self.client.get(
+            f"/api/v1/contests/{self.contest.id}/exam/sfu/publishers/{self.student.id}/",
+            {"source_module": "webcam"},
+        )
+        self.assertEqual(webcam_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(webcam_response.data["publisher"]["session_id"], "webcam-session")
+
+    @override_settings(
+        LIVE_MONITORING_ENABLED=True,
         CLOUDFLARE_REALTIME_APP_ID="app-test",
         CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
         LIVE_MONITORING_PUBLISHER_TTL_SECONDS=60,
@@ -240,7 +342,7 @@ class ExamSfuBrokerTests(APITestCase):
 
         heartbeat_response = self.client.post(
             f"/api/v1/contests/{self.contest.id}/exam/sfu/publisher/heartbeat/",
-            {},
+            {"source_module": "screen_share"},
             format="json",
         )
         self.assertEqual(heartbeat_response.status_code, status.HTTP_200_OK)
@@ -248,7 +350,7 @@ class ExamSfuBrokerTests(APITestCase):
 
         stop_response = self.client.post(
             f"/api/v1/contests/{self.contest.id}/exam/sfu/publisher/stop/",
-            {},
+            {"source_module": "screen_share"},
             format="json",
         )
         self.assertEqual(stop_response.status_code, status.HTTP_200_OK)
@@ -256,7 +358,7 @@ class ExamSfuBrokerTests(APITestCase):
         self.assertIsNone(get_publisher(self.contest.id, self.student.id))
 
     @override_settings(
-        LIVE_MONITORING_SPIKE_ENABLED=True,
+        LIVE_MONITORING_ENABLED=True,
         CLOUDFLARE_REALTIME_APP_ID="app-test",
         CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
         LIVE_MONITORING_PUBLISHER_TTL_SECONDS=60,
@@ -313,7 +415,7 @@ class ExamSfuBrokerTests(APITestCase):
         self.assertEqual(stored["session_id"], "new-session")
 
     @override_settings(
-        LIVE_MONITORING_SPIKE_ENABLED=True,
+        LIVE_MONITORING_ENABLED=True,
         CLOUDFLARE_REALTIME_APP_ID="app-test",
         CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
     )
