@@ -19,6 +19,12 @@ const HIDDEN_META_KEYS = new Set([
   "forced_capture_requested", "forced_capture_reason", "forced_capture_result",
   "forced_capture_attempted", "forced_capture_captured", "forced_capture_uploaded",
   "forced_capture_skipped", "forced_capture_error_code", "forced_capture_seq",
+  "forced_capture_uploaded_seqs", "forced_capture_uploaded_object_keys",
+  "evidence_pre_buffer_attempted", "evidence_pre_buffer_complete",
+  "evidence_pre_buffer_frame_count", "evidence_uploaded_frame_count",
+  "pre_buffer_complete", "evidence_cluster_id", "evidence_window_start",
+  "evidence_window_end", "evidence_window_before_seconds", "evidence_window_after_seconds",
+  "evidence_window_max_seconds", "evidence_source_module",
 ]);
 
 const META_LABEL_KEYS: Record<string, string> = {
@@ -127,6 +133,9 @@ export default function IncidentCard({
     setScreenshotError(false);
     try {
       const sessionId = meta.upload_session_id as string | undefined;
+      const evidenceObjectKeys = Array.isArray(meta.forced_capture_uploaded_object_keys)
+        ? meta.forced_capture_uploaded_object_keys.filter((value): value is string => typeof value === "string")
+        : [];
       const sourceModule =
         meta.module === "webcam" || meta.module === "screen_share"
           ? (meta.module as "screen_share" | "webcam")
@@ -145,6 +154,9 @@ export default function IncidentCard({
       }
       if (sourceModule) {
         params.source_module = sourceModule;
+      }
+      if (evidenceObjectKeys.length > 0) {
+        params.object_keys = evidenceObjectKeys.slice(0, screenshotPreviewLimit);
       }
       const result = await fetchScreenshots(contestId, params);
 

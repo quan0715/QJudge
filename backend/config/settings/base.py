@@ -519,6 +519,19 @@ ANTICHEAT_CAPTURE_INTERVAL_SECONDS = int(
     os.getenv("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
 )
 
+# Cloudflare Realtime SFU spike settings.
+# Keep disabled by default so existing exam monitoring/CD flows are untouched.
+CLOUDFLARE_REALTIME_API_BASE_URL = os.getenv(
+    "CLOUDFLARE_REALTIME_API_BASE_URL",
+    "https://rtc.live.cloudflare.com/v1",
+).rstrip("/")
+CLOUDFLARE_REALTIME_APP_ID = os.getenv("CLOUDFLARE_REALTIME_APP_ID", "")
+CLOUDFLARE_REALTIME_APP_SECRET = os.getenv("CLOUDFLARE_REALTIME_APP_SECRET", "")
+LIVE_MONITORING_SPIKE_ENABLED = (
+    os.getenv("LIVE_MONITORING_SPIKE_ENABLED", "false").lower() == "true"
+)
+LIVE_MONITORING_ROOM_PREFIX = os.getenv("LIVE_MONITORING_ROOM_PREFIX", "qjudge-dev-exam")
+
 MARKDOWN_IMAGE_S3_BUCKET = os.getenv("MARKDOWN_IMAGE_S3_BUCKET", "markdown-images")
 MARKDOWN_IMAGE_MAX_BYTES = int(os.getenv("MARKDOWN_IMAGE_MAX_BYTES", "5242880"))
 MARKDOWN_IMAGE_PUBLIC_BASE_URL = os.getenv(

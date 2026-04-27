@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFrameQueue } from "./anticheat/useFrameQueue";
 import { useCanvasProcessor } from "./anticheat/useCanvasProcessor";
 import { useAnticheatUploader } from "./anticheat/useAnticheatUploader";
+import { createEvidenceRingBuffer } from "./anticheat/evidenceRingBuffer";
 import {
   registerForcedCaptureHandler,
   unregisterForcedCaptureHandler,
@@ -97,6 +98,10 @@ export const useAnticheatScreenCapture = ({
   const hasCaptureSessionRef = useRef(false);
   const initialCaptureAttemptedRef = useRef(false);
   const lastForcedCaptureByTypeRef = useRef<Map<string, number>>(new Map());
+  const evidenceBufferRef = useRef<ReturnType<typeof createEvidenceRingBuffer> | null>(null);
+  if (!evidenceBufferRef.current) {
+    evidenceBufferRef.current = createEvidenceRingBuffer();
+  }
   const onScreenShareLostRef = useRef(onScreenShareLost);
   onScreenShareLostRef.current = onScreenShareLost;
 
@@ -108,7 +113,7 @@ export const useAnticheatScreenCapture = ({
 
   const { ensureQueue } = useFrameQueue();
   const { encodeUnderBudget } = useCanvasProcessor();
-  const { uploadBatch } = useAnticheatUploader(contestId);
+  const { uploadBatch, uploadBatchDetailed } = useAnticheatUploader(contestId);
 
   const stopStream = useCallback(() => {
     const stream = streamRef.current;
@@ -202,6 +207,7 @@ export const useAnticheatScreenCapture = ({
         }
         return;
       }
+      evidenceBufferRef.current?.add(blob);
       const q = await ensureQueue();
       await q.enqueue(blob);
     } catch (err) {
@@ -324,6 +330,15 @@ export const useAnticheatScreenCapture = ({
       lastForcedCaptureByTypeRef.current.set(cooldownKey, now);
     }
 
+    const eventTimeMs = Date.now();
+    const preBufferWindowStartMs = eventTimeMs - 20_000;
+    const bufferedFrames = evidenceBufferRef.current?.getWindow(
+      preBufferWindowStartMs,
+      eventTimeMs,
+    ) ?? [];
+    const preBufferComplete =
+      bufferedFrames.length > 0 && bufferedFrames[0].createdAt <= preBufferWindowStartMs + 1_000;
+
     const blob = await captureFrameBlob();
     if (!blob) {
       // Fallback: detect stream loss if the ended event didn't fire
@@ -338,25 +353,39 @@ export const useAnticheatScreenCapture = ({
         errorCode: "stream_unavailable",
         uploadSessionId: currentUploadSessionId,
         seq: null,
+        evidencePreBufferAttempted: true,
+        evidencePreBufferComplete: preBufferComplete,
+        evidencePreBufferFrameCount: bufferedFrames.length,
       };
     }
 
     const q = await ensureQueue();
     const frameId = await q.enqueue(blob);
+    const currentEvidenceFrame = evidenceBufferRef.current?.add(blob, Date.now());
+    const evidenceFrames = [
+      ...bufferedFrames,
+      ...(currentEvidenceFrame ? [currentEvidenceFrame] : []),
+    ].filter((frame, index, all) => all.findIndex((item) => item.id === frame.id) === index);
 
     try {
-      const uploadedIds = await uploadBatch(
-        [{ id: frameId, createdAt: Date.now(), blob }],
+      const uploadedEvidenceFrames = await uploadBatchDetailed(
+        evidenceFrames,
         uploadSessionId,
       );
-      if (uploadedIds.length > 0) {
-        await q.remove(uploadedIds);
+      if (uploadedEvidenceFrames.length > 0) {
+        await q.remove([frameId]);
         return {
           attempted: true,
           captured: true,
           uploaded: true,
           uploadSessionId: currentUploadSessionId,
-          seq: frameId,
+          seq: uploadedEvidenceFrames[uploadedEvidenceFrames.length - 1]?.seq ?? frameId,
+          uploadedSeqs: uploadedEvidenceFrames.map((item) => item.seq),
+          uploadedObjectKeys: uploadedEvidenceFrames.map((item) => item.objectKey),
+          evidencePreBufferAttempted: true,
+          evidencePreBufferComplete: preBufferComplete,
+          evidencePreBufferFrameCount: bufferedFrames.length,
+          evidenceUploadedFrameCount: uploadedEvidenceFrames.length,
         };
       }
     } catch {
@@ -369,6 +398,9 @@ export const useAnticheatScreenCapture = ({
       uploaded: false,
       uploadSessionId: currentUploadSessionId,
       seq: frameId,
+      evidencePreBufferAttempted: true,
+      evidencePreBufferComplete: preBufferComplete,
+      evidencePreBufferFrameCount: bufferedFrames.length,
     };
   }, [
     enabled,
@@ -376,7 +408,7 @@ export const useAnticheatScreenCapture = ({
     uploadSessionId,
     captureFrameBlob,
     ensureQueue,
-    uploadBatch,
+    uploadBatchDetailed,
     flushPendingUploads,
     forcedCaptureCooldownMs,
     forcedCaptureP1CooldownMs,
@@ -461,6 +493,7 @@ export const useAnticheatScreenCapture = ({
         }
       }
       forceStopCapture("unmount");
+      evidenceBufferRef.current?.clear();
     },
     [contestId, forceStopCapture, preserveStreamOnUnmount],
   );

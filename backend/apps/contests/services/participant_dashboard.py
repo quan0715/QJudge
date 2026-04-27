@@ -460,7 +460,9 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
         et = event.event_type
         ts = event.created_at
         meta = event.metadata or {}
-        has_evidence = bool(meta.get("forced_capture_uploaded"))
+        uploaded_keys = meta.get("forced_capture_uploaded_object_keys")
+        uploaded_count = len(uploaded_keys) if isinstance(uploaded_keys, list) else 0
+        has_evidence = bool(meta.get("forced_capture_uploaded")) or uploaded_count > 0
 
         idx = open_incidents.get(et)
         if idx is not None:
@@ -471,7 +473,7 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
                 inc["last_at"] = ts.isoformat()
                 inc["_last_at_dt"] = ts
                 if has_evidence:
-                    inc["evidence_count"] += 1
+                    inc["evidence_count"] += uploaded_count or 1
                 inc["summary"] = meta.get("reason") or inc["summary"]
                 continue
 
@@ -486,7 +488,7 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
             "first_at": ts.isoformat(),
             "last_at": ts.isoformat(),
             "count": 1,
-            "evidence_count": 1 if has_evidence else 0,
+            "evidence_count": (uploaded_count or 1) if has_evidence else 0,
             "summary": meta.get("reason", ""),
             "metadata": meta,
             "source": "exam_event",

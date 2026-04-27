@@ -2,6 +2,7 @@
 from datetime import datetime as dt, timezone as dt_timezone
 import logging
 import re
+from urllib.parse import unquote
 
 from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
@@ -31,6 +32,10 @@ from ..services.exam_submission import (
 
 logger = logging.getLogger(__name__)
 RAW_TS_PATTERN = re.compile(r"/ts_(\d+)_seq_\d+\.(?:webp|png|jpe?g)$")
+RAW_FRAME_KEY_PATTERN = re.compile(
+    r"^contest_(?P<contest_id>[^/]+)/user_(?P<user_id>\d+)/session_[^/]+/(?P<module>[^/]+)/"
+    r"ts_(?P<ts_ms>\d+)_seq_(?P<seq>\d+)\.webp$"
+)
 
 
 def _parse_int_param(value: str | None) -> int | None:
@@ -504,6 +509,41 @@ class ExamEvidenceMixin:
         ts_from = _parse_int_param(request.query_params.get("ts_from"))
         ts_to = _parse_int_param(request.query_params.get("ts_to"))
         limit = min(_parse_int_param(request.query_params.get("limit")) or 20, 50)
+        key_params = [
+            unquote(value).strip()
+            for value in request.query_params.getlist("object_key")
+            if unquote(value).strip()
+        ][:limit]
+
+        if key_params:
+            items = []
+            for key in key_params:
+                match = RAW_FRAME_KEY_PATTERN.match(key)
+                if not match:
+                    continue
+                if str(match.group("contest_id")) != str(contest.id):
+                    continue
+                if int(match.group("user_id")) != user_id:
+                    continue
+                module = match.group("module")
+                if source_module and module != source_module:
+                    continue
+                ts_ms = int(match.group("ts_ms"))
+                seq = int(match.group("seq"))
+                if ts_from is not None and ts_ms < ts_from:
+                    continue
+                if ts_to is not None and ts_ms > ts_to:
+                    continue
+                url = generate_get_url(settings.ANTICHEAT_RAW_BUCKET, key, expires_seconds=120)
+                items.append({
+                    "url": url,
+                    "ts_ms": ts_ms,
+                    "seq": seq,
+                    "source_module": module,
+                    "expires_in": 120,
+                })
+            items.sort(key=lambda item: item["ts_ms"], reverse=True)
+            return Response({"items": items, "total_raw_count": len(items), "storage_error": False})
 
         # Build S3 prefix
         if upload_session_id:

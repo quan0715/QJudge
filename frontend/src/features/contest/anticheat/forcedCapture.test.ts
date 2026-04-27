@@ -30,6 +30,12 @@ describe("forcedCapture", () => {
       uploaded: true,
       uploadSessionId: "session-123",
       seq: 7,
+      uploadedSeqs: [3, 4, 5, 7],
+      uploadedObjectKeys: ["raw/3.webp", "raw/4.webp", "raw/5.webp", "raw/7.webp"],
+      evidencePreBufferAttempted: true,
+      evidencePreBufferComplete: true,
+      evidencePreBufferFrameCount: 3,
+      evidenceUploadedFrameCount: 4,
     }));
     vi.mocked(recordExamEvent).mockResolvedValue({ status: "ok" } as any);
 
@@ -52,6 +58,13 @@ describe("forcedCapture", () => {
           forced_capture_result: "uploaded",
           forced_capture_uploaded: true,
           forced_capture_seq: 7,
+          forced_capture_uploaded_seqs: [3, 4, 5, 7],
+          forced_capture_uploaded_object_keys: ["raw/3.webp", "raw/4.webp", "raw/5.webp", "raw/7.webp"],
+          evidence_pre_buffer_attempted: true,
+          evidence_pre_buffer_complete: true,
+          pre_buffer_complete: true,
+          evidence_pre_buffer_frame_count: 3,
+          evidence_uploaded_frame_count: 4,
           upload_session_id: "session-123",
         }),
       })

@@ -26,6 +26,12 @@ export interface ForcedCaptureModuleResult {
   errorCode?: string;
   uploadSessionId: string | null;
   seq: number | null;
+  uploadedSeqs?: number[];
+  uploadedObjectKeys?: string[];
+  evidencePreBufferAttempted?: boolean;
+  evidencePreBufferComplete?: boolean;
+  evidencePreBufferFrameCount?: number;
+  evidenceUploadedFrameCount?: number;
 }
 
 export interface ForcedCaptureResult {
@@ -36,6 +42,12 @@ export interface ForcedCaptureResult {
   errorCode?: string;
   uploadSessionId: string | null;
   seq: number | null;
+  uploadedSeqs?: number[];
+  uploadedObjectKeys?: string[];
+  evidencePreBufferAttempted?: boolean;
+  evidencePreBufferComplete?: boolean;
+  evidencePreBufferFrameCount?: number;
+  evidenceUploadedFrameCount?: number;
   modules?: ForcedCaptureModule[];
   module_results?: Partial<Record<ForcedCaptureModule, ForcedCaptureModuleResult>>;
 }
@@ -114,6 +126,12 @@ const toModuleResult = (result: ForcedCaptureResult): ForcedCaptureModuleResult 
   errorCode: result.errorCode,
   uploadSessionId: result.uploadSessionId,
   seq: result.seq,
+  uploadedSeqs: result.uploadedSeqs,
+  uploadedObjectKeys: result.uploadedObjectKeys,
+  evidencePreBufferAttempted: result.evidencePreBufferAttempted,
+  evidencePreBufferComplete: result.evidencePreBufferComplete,
+  evidencePreBufferFrameCount: result.evidencePreBufferFrameCount,
+  evidenceUploadedFrameCount: result.evidenceUploadedFrameCount,
 });
 
 const pickPrimaryResult = (results: ForcedCaptureModuleResult[]): ForcedCaptureModuleResult => {
@@ -201,6 +219,25 @@ export const buildForcedCaptureMetadata = (
   ...(result.skipped ? { forced_capture_skipped: result.skipped } : {}),
   ...(result.errorCode ? { forced_capture_error_code: result.errorCode } : {}),
   ...(typeof result.seq === "number" ? { forced_capture_seq: result.seq } : {}),
+  ...(result.uploadedSeqs?.length ? { forced_capture_uploaded_seqs: result.uploadedSeqs } : {}),
+  ...(result.uploadedObjectKeys?.length
+    ? { forced_capture_uploaded_object_keys: result.uploadedObjectKeys }
+    : {}),
+  ...(typeof result.evidencePreBufferAttempted === "boolean"
+    ? { evidence_pre_buffer_attempted: result.evidencePreBufferAttempted }
+    : {}),
+  ...(typeof result.evidencePreBufferComplete === "boolean"
+    ? {
+        evidence_pre_buffer_complete: result.evidencePreBufferComplete,
+        pre_buffer_complete: result.evidencePreBufferComplete,
+      }
+    : {}),
+  ...(typeof result.evidencePreBufferFrameCount === "number"
+    ? { evidence_pre_buffer_frame_count: result.evidencePreBufferFrameCount }
+    : {}),
+  ...(typeof result.evidenceUploadedFrameCount === "number"
+    ? { evidence_uploaded_frame_count: result.evidenceUploadedFrameCount }
+    : {}),
   ...(result.modules?.length ? { forced_capture_modules: result.modules } : {}),
   ...(result.module_results ? { forced_capture_module_results: result.module_results } : {}),
   upload_session_id:

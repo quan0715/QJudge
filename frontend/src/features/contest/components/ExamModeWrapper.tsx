@@ -104,10 +104,16 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const screenModuleRole = monitoringPlan.sources.screenShare.role ?? "secondary";
   const webcamModuleRole = monitoringPlan.sources.webcam.role ?? "secondary";
   const policyRequired = cheatDetectionEnabled && (isExamMonitored || isMonitoredStatus(examStatus));
-  const policyUnavailable =
+  const policyConfigMissing =
     policyRequired &&
     !anticheatConfigLoading &&
-    (!anticheatConfig || !monitoringPlan.allowed);
+    !anticheatConfig;
+  const policyDeviceUnavailable =
+    policyRequired &&
+    !anticheatConfigLoading &&
+    !!anticheatConfig &&
+    !monitoringPlan.allowed;
+  const policyUnavailable = policyConfigMissing || policyDeviceUnavailable;
   const effectiveMonitoringEnabled = policyRequired && !!anticheatEffective && !policyUnavailable;
   const pwaGuardFailed =
     effectiveMonitoringEnabled &&
@@ -614,8 +620,25 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const shouldShowLockScreen =
     (examState.isLocked || shouldShowPolicyUnavailableScreen || pwaGuardFailed) &&
     isAnsweringPath();
-  const lockReasonText = shouldShowPolicyUnavailableScreen
+  const missingMonitoringSource = monitoringPlan.missingEnabledSources[0];
+  const policyUnavailableText = policyConfigMissing
     ? t("exam.anticheatConfigMissing", "防作弊策略尚未載入，請回到儀表板重新整理後再作答。")
+    : missingMonitoringSource === "screen_share"
+      ? t(
+          "exam.screenShareUnsupported",
+          "此瀏覽器不支援螢幕分享，請回到儀表板重新進行環境檢查，或改用支援螢幕分享的瀏覽器。"
+        )
+      : missingMonitoringSource === "webcam"
+        ? t(
+            "exam.webcamUnsupported",
+            "此裝置無法使用 Webcam，請回到儀表板重新進行環境檢查，或改用可開啟 Webcam 的裝置。"
+          )
+        : t(
+            "exam.monitoringDeviceUnsupported",
+            "目前裝置不符合此考試的監考設定，請回到儀表板重新進行環境檢查。"
+          );
+  const lockReasonText = shouldShowPolicyUnavailableScreen
+    ? policyUnavailableText
     : pwaGuardFailed
       ? t(
           "exam.pwaRequiredOnTablet",

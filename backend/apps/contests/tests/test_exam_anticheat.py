@@ -655,6 +655,70 @@ class ExamAntiCheatTests(APITestCase):
         self.assertIsNotNone(video.recording_started_at)
         self.assertIsNotNone(video.recording_finished_at)
 
+    def test_screenshots_can_presign_explicit_evidence_object_keys(self):
+        ts_ms = 1774106646951
+        raw_key = (
+            f"contest_{self.contest.id}/user_{self.student.id}/"
+            f"session_session-evidence-1/screen_share/ts_{ts_ms}_seq_0007.webp"
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
+        with patch(
+            "apps.contests.views.exam_evidence.generate_get_url",
+            return_value="https://example.test/frame.webp",
+        ) as mock_get_url:
+            response = self.client.get(
+                screenshots_url,
+                {
+                    "user_id": self.student.id,
+                    "object_key": raw_key,
+                    "source_module": "screen_share",
+                },
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_raw_count"], 1)
+        self.assertEqual(response.data["items"][0]["url"], "https://example.test/frame.webp")
+        self.assertEqual(response.data["items"][0]["ts_ms"], ts_ms)
+        self.assertEqual(response.data["items"][0]["seq"], 7)
+        mock_get_url.assert_called_once()
+
+    def test_screenshots_rejects_explicit_keys_for_other_participant(self):
+        other = User.objects.create_user(
+            username="other-student",
+            email="other-student@test.com",
+            password="pass",
+            role="student",
+        )
+        ContestParticipant.objects.create(
+            contest=self.contest,
+            user=other,
+            exam_status=ExamStatus.IN_PROGRESS,
+            started_at=timezone.now(),
+        )
+        raw_key = (
+            f"contest_{self.contest.id}/user_{other.id}/"
+            "session_session-evidence-1/screen_share/ts_1774106646951_seq_0007.webp"
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
+        with patch("apps.contests.views.exam_evidence.generate_get_url") as mock_get_url:
+            response = self.client.get(
+                screenshots_url,
+                {
+                    "user_id": self.student.id,
+                    "object_key": raw_key,
+                    "source_module": "screen_share",
+                },
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_raw_count"], 0)
+        self.assertEqual(response.data["items"], [])
+        mock_get_url.assert_not_called()
+
     def test_end_exam_never_auto_enqueues_video_compile(self):
         self.client.force_authenticate(user=self.student)
         end_url = reverse("contests:contest-exam-end-exam", args=[self.contest.id])

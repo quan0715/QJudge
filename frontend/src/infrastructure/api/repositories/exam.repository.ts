@@ -142,6 +142,88 @@ export interface ExamDashboardQuestionDetailDto {
   };
 }
 
+export interface RealtimeSfuConfigDto {
+  enabled: boolean;
+  configured: boolean;
+  app_id: string;
+  stun_urls: string[];
+}
+
+export interface RtcSessionDescriptionDto {
+  type: "offer" | "answer";
+  sdp: string;
+}
+
+export interface RealtimeSfuSessionDto {
+  sessionId: string;
+  room_id: string;
+  role: "publisher" | "subscriber";
+  sessionDescription?: RtcSessionDescriptionDto;
+  [key: string]: unknown;
+}
+
+export interface RealtimeSfuTrackRequest {
+  sessionDescription?: RtcSessionDescriptionDto;
+  tracks?: Array<Record<string, unknown>>;
+}
+
+export interface RealtimeSfuTrackResponse {
+  requiresImmediateRenegotiation?: boolean;
+  sessionDescription?: RtcSessionDescriptionDto;
+  tracks?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+}
+
+export const getRealtimeSfuConfig = async (
+  contestId: string
+): Promise<RealtimeSfuConfigDto> => {
+  return requestJson<RealtimeSfuConfigDto>(
+    httpClient.get(`/api/v1/contests/${contestId}/exam/sfu/config/`),
+    "Failed to fetch Realtime SFU config"
+  );
+};
+
+export const createRealtimeSfuSession = async (
+  contestId: string,
+  payload: { role: "publisher" | "subscriber"; target_user_id?: string }
+): Promise<RealtimeSfuSessionDto> => {
+  return requestJson<RealtimeSfuSessionDto>(
+    httpClient.post(`/api/v1/contests/${contestId}/exam/sfu/sessions/`, payload),
+    "Failed to create Realtime SFU session"
+  );
+};
+
+export const addRealtimeSfuTracks = async (
+  contestId: string,
+  sessionId: string,
+  payload: {
+    role: "publisher" | "subscriber";
+    payload: RealtimeSfuTrackRequest;
+  }
+): Promise<RealtimeSfuTrackResponse> => {
+  return requestJson<RealtimeSfuTrackResponse>(
+    httpClient.post(
+      `/api/v1/contests/${contestId}/exam/sfu/sessions/${encodeURIComponent(sessionId)}/tracks/new/`,
+      payload
+    ),
+    "Failed to add Realtime SFU tracks"
+  );
+};
+
+export const renegotiateRealtimeSfuSession = async (
+  contestId: string,
+  sessionId: string,
+  payload: { payload: RealtimeSfuTrackRequest }
+): Promise<RealtimeSfuTrackResponse> => {
+  return requestJson<RealtimeSfuTrackResponse>(
+    httpClient.put(
+      `/api/v1/contests/${contestId}/exam/sfu/sessions/${encodeURIComponent(sessionId)}/renegotiate/`,
+      payload
+    ),
+    "Failed to renegotiate Realtime SFU session"
+  );
+};
+
 const RETRYABLE_EVENT_STATUSES = new Set([502, 503, 504]);
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -526,6 +608,7 @@ export const fetchScreenshots = async (
     ts_to?: number;
     upload_session_id?: string;
     source_module?: "screen_share" | "webcam";
+    object_keys?: string[];
     limit?: number;
   }
 ): Promise<{ items: ScreenshotFrame[]; total_raw_count: number }> => {
@@ -535,6 +618,9 @@ export const fetchScreenshots = async (
   if (params.ts_to != null) search.set("ts_to", String(params.ts_to));
   if (params.upload_session_id) search.set("upload_session_id", params.upload_session_id);
   if (params.source_module) search.set("source_module", params.source_module);
+  if (params.object_keys?.length) {
+    params.object_keys.forEach((key) => search.append("object_key", key));
+  }
   if (params.limit != null) search.set("limit", String(params.limit));
   return requestJson<{ items: ScreenshotFrame[]; total_raw_count: number }>(
     httpClient.get(`/api/v1/contests/${contestId}/exam/screenshots/?${search.toString()}`),

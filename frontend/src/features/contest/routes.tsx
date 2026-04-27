@@ -9,6 +9,7 @@ import ContestPracticeScreen from "./screens/ContestPracticeScreen";
 import {
   ExamPrecheckScreen,
 } from "./screens/paperExam";
+import ContestSfuSpikeScreen from "./screens/sfuSpike/ContestSfuSpikeScreen";
 
 // ── Classroom-scoped contest routes (/classrooms/:classroomId/contest/:contestId) ──
 
@@ -20,6 +21,7 @@ export const classroomContestDetailRoutes = (
     <Route index element={<ContestDashboardScreen />} />
     <Route path="solve" element={<ContestSolveScreen />} />
     <Route path="solve/:problemId" element={<ContestSolveScreen />} />
+    <Route path="sfu-spike" element={<ContestSfuSpikeScreen />} />
   </Route>
 );
 
