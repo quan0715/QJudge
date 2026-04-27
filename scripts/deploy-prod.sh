@@ -48,6 +48,11 @@ require_env_key "DB_PASSWORD"
 require_env_key "SECRET_KEY"
 require_env_key "RECUR_PUBLISHABLE_KEY"
 
+get_env_value() {
+  local key="$1"
+  grep -E "^${key}=" .env | tail -n1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+}
+
 # ── deploy ─────────────────────────────────────────────────────
 
 echo "[deploy] fetch and checkout ${GIT_REF}"
@@ -73,12 +78,18 @@ docker compose "${COMPOSE_FILES[@]}" build
 echo "[deploy] start services"
 docker compose "${COMPOSE_FILES[@]}" up -d --remove-orphans
 
-echo "[deploy] initialize MinIO anti-cheat buckets/policies"
-if [ ! -x "./scripts/minio/run-init.sh" ]; then
-  echo "[deploy] scripts/minio/run-init.sh not found or not executable" >&2
-  exit 1
+object_storage_endpoint="$(get_env_value "OBJECT_STORAGE_ENDPOINT_URL" || true)"
+skip_minio_init="$(get_env_value "SKIP_MINIO_INIT" || true)"
+if [[ "$skip_minio_init" == "1" || "$object_storage_endpoint" == *".r2.cloudflarestorage.com"* ]]; then
+  echo "[deploy] skip MinIO bucket initialization (external object storage configured)"
+else
+  echo "[deploy] initialize local MinIO anti-cheat bucket/policy"
+  if [ ! -x "./scripts/minio/run-init.sh" ]; then
+    echo "[deploy] scripts/minio/run-init.sh not found or not executable" >&2
+    exit 1
+  fi
+  ENV_FILE="${DEPLOY_PATH}/.env" ./scripts/minio/run-init.sh docker-compose.yml
 fi
-ENV_FILE="${DEPLOY_PATH}/.env" ./scripts/minio/run-init.sh docker-compose.yml
 
 echo "[deploy] prune old images"
 docker image prune -f

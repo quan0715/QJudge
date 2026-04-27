@@ -1,8 +1,8 @@
 """
-Load test settings — inherits from test.py with key differences:
+Load test settings - inherits from test.py with key differences:
 - Real async Celery (not ALWAYS_EAGER)
 - Rate limiting enabled
-- MinIO/S3 anticheat storage configured
+- S3-compatible anticheat storage configured
 """
 from .test import *  # noqa: F401, F403
 import os
@@ -27,15 +27,18 @@ LOADTEST_DISABLE_LOGIN_RATELIMIT = os.getenv(
     "LOADTEST_DISABLE_LOGIN_RATELIMIT", "1"
 ) == "1"
 
-# --- MinIO / Anticheat (pointing to minio-test container) ---
-ANTICHEAT_S3_ENDPOINT_URL = os.getenv(
-    'ANTICHEAT_S3_ENDPOINT_URL', 'http://minio-test:9000'
+# --- Object storage / Anticheat (pointing to minio-test container by default) ---
+OBJECT_STORAGE_ENDPOINT_URL = os.getenv(
+    "OBJECT_STORAGE_ENDPOINT_URL",
+    "http://minio-test:9000",
 )
 # For Locust / browser direct PUT — local: http://localhost:9002
-ANTICHEAT_S3_PUBLIC_ENDPOINT_URL = os.getenv(
-    'ANTICHEAT_S3_PUBLIC_ENDPOINT_URL', 'http://localhost:9002'
+OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = os.getenv(
+    "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
+    "http://localhost:9002",
 )
-ANTICHEAT_S3_ACCESS_KEY = os.getenv('ANTICHEAT_S3_ACCESS_KEY', 'minioadmin')
-ANTICHEAT_S3_SECRET_KEY = os.getenv('ANTICHEAT_S3_SECRET_KEY', 'minioadmin')
-ANTICHEAT_S3_REGION = os.getenv('ANTICHEAT_S3_REGION', 'us-east-1')
-ANTICHEAT_S3_BUCKET = os.getenv('ANTICHEAT_S3_BUCKET', 'anticheat')
+OBJECT_STORAGE_ACCESS_KEY = os.getenv("OBJECT_STORAGE_ACCESS_KEY", "minioadmin")
+OBJECT_STORAGE_SECRET_KEY = os.getenv("OBJECT_STORAGE_SECRET_KEY", "minioadmin")
+OBJECT_STORAGE_REGION = os.getenv("OBJECT_STORAGE_REGION", "us-east-1")
+
+ANTICHEAT_RAW_BUCKET = os.getenv("ANTICHEAT_RAW_BUCKET", "anticheat-raw")

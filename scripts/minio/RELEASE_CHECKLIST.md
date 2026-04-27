@@ -1,6 +1,6 @@
-# Anti-Cheat Release Checklist (.env + MinIO + Runtime)
+# Anti-Cheat Object Storage Release Checklist
 
-Use this checklist before deploying anti-cheat capture/video features to a remote server.
+Use this checklist before deploying anti-cheat event evidence capture to a remote server.
 
 ## 1) Remote `.env` required values
 
@@ -8,38 +8,40 @@ Confirm all values are set and not left as local defaults:
 
 - `MINIO_ROOT_USER`
 - `MINIO_ROOT_PASSWORD`
-- `ANTICHEAT_S3_ENDPOINT_URL` (internal endpoint, usually `http://minio:9000`)
-- `ANTICHEAT_S3_PUBLIC_ENDPOINT_URL` (public HTTPS endpoint for browser presigned URLs)
+- `OBJECT_STORAGE_ENDPOINT_URL` (S3-compatible endpoint; R2 or local MinIO)
+- `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` (public HTTPS endpoint for browser presigned URLs)
+- `OBJECT_STORAGE_REGION`
+- `OBJECT_STORAGE_ACCESS_KEY`
+- `OBJECT_STORAGE_SECRET_KEY`
+- `OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS` (recommended: `300`)
 - `ANTICHEAT_CORS_ALLOWED_ORIGINS` (frontend origin)
-- `MINIO_API_CORS_ALLOW_ORIGIN` (frontend origin)
-- `ANTICHEAT_S3_REGION`
 - `ANTICHEAT_RAW_BUCKET`
-- `ANTICHEAT_PRESIGNED_URL_TTL_SECONDS` (recommended: `300`)
+- `MARKDOWN_IMAGE_S3_BUCKET`
+- `AI_ARTIFACT_S3_BUCKET`
 
-Optional override:
+Local MinIO-only values:
 
-- `ANTICHEAT_S3_ACCESS_KEY`
-- `ANTICHEAT_S3_SECRET_KEY`
-
-If optional keys are unset, backend will fallback to `MINIO_ROOT_USER/MINIO_ROOT_PASSWORD`.
+- `MINIO_ROOT_USER`
+- `MINIO_ROOT_PASSWORD`
+- `MINIO_API_CORS_ALLOW_ORIGIN` (frontend origin)
 
 Security note:
 
 - Do not use `minioadmin/minioadmin` in production.
-- Do not point `ANTICHEAT_S3_PUBLIC_ENDPOINT_URL` to `localhost`.
+- Do not point `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` to `localhost`.
 
 ## 2) Public routing and TLS
 
 Confirm ingress/tunnel routing:
 
-- `ANTICHEAT_S3_PUBLIC_ENDPOINT_URL` host routes to MinIO API (`:9000`), not frontend.
-- TLS certificate is valid for the public MinIO host.
+- `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` host routes to the object storage S3 API, not frontend.
+- TLS certificate is valid for the public object storage host.
 
 Example:
 
 - `https://minio-dev.quan.wtf` -> `http://minio:9000`
 
-## 3) MinIO initialization
+## 3) Local MinIO initialization
 
 After compose startup, run initialization script:
 
@@ -71,7 +73,7 @@ Must be healthy/running:
 
 - `backend`
 - `celery`
-- `minio`
+- `minio` only when using local MinIO instead of R2
 
 ## 5) DB and worker compatibility
 
@@ -97,27 +99,26 @@ From repo root:
 
 It should verify:
 
-- MinIO buckets exist
+- object storage buckets exist
 - Lifecycle exists
 - Presigned URL API returns upload URLs
 - URL host is the configured public endpoint
 
-## 7) Post-submit video pipeline
+## 7) Event evidence pipeline
 
-Submit one exam session and verify:
+Trigger one exam event and verify:
 
-1. raw frames appear in `anticheat-raw`
-3. final MP4 appears in `anticheat-videos`
-4. raw frames are deleted after success
-5. if job fails, raw objects are retained for retry
+1. bounded window frames appear in `ANTICHEAT_RAW_BUCKET`
+2. the related `ExamEvent.metadata.evidence_capture.uploaded_object_keys` contains object keys
+3. old compile/video endpoints are not exposed
 
 ## 8) Permission and admin UI checks
 
 Verify from frontend:
 
-- only contest managers can access video review endpoints
-- video list/play/download works
-- mark/unmark suspected flag works
+- only contest managers can access evidence URLs for event screenshots
+- TA Live View can subscribe without blocking student work
+- student event capture still works when Live View is not open
 
 ## 9) Rollback plan
 

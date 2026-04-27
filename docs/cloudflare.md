@@ -9,7 +9,7 @@ Use Cloudflare this way:
 - **Cloudflare Tunnel**: public ingress for the Compose services.
 - **Cloudflare DNS / proxy**: managed hostnames for `q-judge.com` and service subdomains.
 - **Cloudflare Access**: recommended for private operational surfaces such as Grafana, GlitchTip, and MinIO console/API endpoints when they should not be public.
-- **Cloudflare R2**: good candidate to replace MinIO buckets for anti-cheat raw screenshots, anti-cheat videos, and markdown images when the backend S3 configuration is ready to use Cloudflare R2 credentials.
+- **Cloudflare R2**: canonical object storage target for anti-cheat event evidence screenshots, markdown images, and AI artifacts. The old anti-cheat compiled-video bucket is no longer part of the active pipeline.
 - **Cloudflare Pages**: useful for standalone static surfaces such as `www.q-judge.com` landing and later `docs.q-judge.com`, but not a drop-in production replacement unless `/api`, auth cookies, CSRF, uploads, SSE, and service routing are deliberately handled.
 - **Workers / D1 / KV**: not the primary fit for the current Django + Compose application.
 
@@ -110,25 +110,24 @@ The remote tunnel config lives in Cloudflare, so route changes should be made th
 
 ## R2 Migration Candidate
 
-Use `OBJECT_STORAGE_*` as the canonical connection settings. The older
-`MINIO_*` and `ANTICHEAT_S3_*` names remain supported as fallbacks so existing
-deployments can switch gradually.
+Use `OBJECT_STORAGE_*` as the only object storage connection settings. Older
+`MINIO_*` and `ANTICHEAT_S3_*` environment names are not read by the app.
 
 Current production R2 buckets:
 
 | Bucket | Purpose | CORS |
 | --- | --- | --- |
-| `qjudge-anticheat-raw` | Anti-cheat raw screenshots | `GET`, `PUT`, `HEAD` from `https://q-judge.com` and `https://www.q-judge.com` |
-| `qjudge-anticheat-videos` | Anti-cheat compiled videos | `GET`, `PUT`, `HEAD` from `https://q-judge.com` and `https://www.q-judge.com` |
+| `qjudge-anticheat-raw` | Anti-cheat event evidence screenshots | `GET`, `PUT`, `HEAD` from `https://q-judge.com` and `https://www.q-judge.com` |
 | `qjudge-markdown-images` | Markdown editor images | `GET`, `PUT`, `HEAD` from `https://q-judge.com` and `https://www.q-judge.com` |
+| `qjudge-ai-artifacts` | AI-generated grading artifacts | Backend/API access only |
 
 Current dev R2 buckets:
 
 | Bucket | Purpose | CORS |
 | --- | --- | --- |
-| `qjudge-dev-anticheat-raw` | Dev anti-cheat raw screenshots | `GET`, `PUT`, `HEAD` from `https://q-judge-dev.quan.wtf`, `http://localhost:5173`, and `http://127.0.0.1:5173` |
-| `qjudge-dev-anticheat-videos` | Dev anti-cheat compiled videos | `GET`, `PUT`, `HEAD` from `https://q-judge-dev.quan.wtf`, `http://localhost:5173`, and `http://127.0.0.1:5173` |
+| `qjudge-dev-anticheat-raw` | Dev anti-cheat event evidence screenshots | `GET`, `PUT`, `HEAD` from `https://q-judge-dev.quan.wtf`, `http://localhost:5173`, and `http://127.0.0.1:5173` |
 | `qjudge-dev-markdown-images` | Dev Markdown editor images | `GET`, `PUT`, `HEAD` from `https://q-judge-dev.quan.wtf`, `http://localhost:5173`, and `http://127.0.0.1:5173` |
+| `qjudge-dev-ai-artifacts` | Dev AI-generated grading artifacts | Backend/API access only |
 
 Dev `.env` example:
 
@@ -143,6 +142,7 @@ ANTICHEAT_CORS_ALLOWED_ORIGINS=https://q-judge-dev.quan.wtf,http://localhost:517
 ANTICHEAT_RAW_BUCKET=qjudge-dev-anticheat-raw
 MARKDOWN_IMAGE_S3_BUCKET=qjudge-dev-markdown-images
 MARKDOWN_IMAGE_PUBLIC_BASE_URL=https://q-judge-dev.quan.wtf
+AI_ARTIFACT_S3_BUCKET=qjudge-dev-ai-artifacts
 ```
 
 Production `.env` example:
@@ -157,13 +157,31 @@ OBJECT_STORAGE_SECRET_KEY=<r2_secret_access_key>
 ANTICHEAT_RAW_BUCKET=qjudge-anticheat-raw
 MARKDOWN_IMAGE_S3_BUCKET=qjudge-markdown-images
 MARKDOWN_IMAGE_PUBLIC_BASE_URL=https://q-judge.com
+AI_ARTIFACT_S3_BUCKET=qjudge-ai-artifacts
 ```
+
+## Realtime Live Monitoring
+
+Realtime SFU is configured through backend environment variables and remains
+feature-flagged:
+
+```bash
+LIVE_MONITORING_ENABLED=true
+LIVE_MONITORING_ROOM_PREFIX=qjudge-prod-exam
+CLOUDFLARE_REALTIME_API_BASE_URL=https://rtc.live.cloudflare.com/v1
+CLOUDFLARE_REALTIME_APP_ID=<cloudflare_realtime_app_id>
+CLOUDFLARE_REALTIME_APP_SECRET=<cloudflare_realtime_api_token>
+LIVE_MONITORING_PUBLISHER_TTL_SECONDS=60
+```
+
+`LIVE_MONITORING_SPIKE_ENABLED` is still accepted as a backward-compatible
+fallback, but new environments should use `LIVE_MONITORING_ENABLED`.
 
 Before switching from MinIO to R2:
 
-1. Create separate buckets for raw anti-cheat images, anti-cheat videos, and markdown images.
+1. Create separate buckets for anti-cheat event evidence screenshots, markdown images, and AI artifacts.
 2. Configure CORS for browser direct uploads from `https://q-judge.com`.
-3. Decide lifecycle policies for raw images and videos.
+3. Decide lifecycle policies for anti-cheat event evidence screenshots.
 4. Update production `.env` with `OBJECT_STORAGE_*` first, leaving old MinIO vars in place only as rollback notes.
 5. Restart backend and Celery, then smoke-test presigned uploads/downloads.
 6. Remove MinIO from the critical path only after the smoke test and one real exam-like capture flow pass.

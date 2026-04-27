@@ -424,58 +424,18 @@ AI_CREDIT_SCALE_PER_CREDIT = int(os.getenv("AI_CREDIT_SCALE_PER_CREDIT", "400000
 # ---------------------------------------------------------------------------
 # S3-compatible object storage connection settings.
 #
-# Prefer OBJECT_STORAGE_* for new deployments. MINIO_* and ANTICHEAT_S3_* are
-# retained as fallback aliases so existing .env files continue to work during
-# the R2 migration.
+# OBJECT_STORAGE_* is the only supported external configuration surface.
+# Legacy MINIO_* / ANTICHEAT_S3_* environment names are intentionally not read.
 # ---------------------------------------------------------------------------
-OBJECT_STORAGE_ENDPOINT_URL = os.getenv(
-    "OBJECT_STORAGE_ENDPOINT_URL",
-    os.getenv(
-        "MINIO_ENDPOINT_URL",
-        os.getenv("ANTICHEAT_S3_ENDPOINT_URL", ""),
-    ),
-)
+OBJECT_STORAGE_ENDPOINT_URL = os.getenv("OBJECT_STORAGE_ENDPOINT_URL", "")
 # Browser-facing endpoint used for presigned URLs. For R2 this is usually the
 # same S3 API endpoint as OBJECT_STORAGE_ENDPOINT_URL.
-OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = os.getenv(
-    "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
-    os.getenv(
-        "MINIO_PUBLIC_ENDPOINT_URL",
-        os.getenv("ANTICHEAT_S3_PUBLIC_ENDPOINT_URL", ""),
-    ),
-)
-OBJECT_STORAGE_REGION = os.getenv(
-    "OBJECT_STORAGE_REGION",
-    os.getenv(
-        "MINIO_REGION",
-        os.getenv("ANTICHEAT_S3_REGION", "us-east-1"),
-    ),
-)
-OBJECT_STORAGE_ACCESS_KEY = os.getenv(
-    "OBJECT_STORAGE_ACCESS_KEY",
-    os.getenv(
-        "MINIO_ACCESS_KEY",
-        os.getenv(
-            "ANTICHEAT_S3_ACCESS_KEY",
-            os.getenv("MINIO_ROOT_USER", ""),
-        ),
-    ),
-)
-OBJECT_STORAGE_SECRET_KEY = os.getenv(
-    "OBJECT_STORAGE_SECRET_KEY",
-    os.getenv(
-        "MINIO_SECRET_KEY",
-        os.getenv(
-            "ANTICHEAT_S3_SECRET_KEY",
-            os.getenv("MINIO_ROOT_PASSWORD", ""),
-        ),
-    ),
-)
+OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = os.getenv("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "")
+OBJECT_STORAGE_REGION = os.getenv("OBJECT_STORAGE_REGION", "us-east-1")
+OBJECT_STORAGE_ACCESS_KEY = os.getenv("OBJECT_STORAGE_ACCESS_KEY", "")
+OBJECT_STORAGE_SECRET_KEY = os.getenv("OBJECT_STORAGE_SECRET_KEY", "")
 OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS = int(
-    os.getenv(
-        "OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS",
-        os.getenv("MINIO_PRESIGNED_URL_TTL_SECONDS", "300"),
-    )
+    os.getenv("OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS", "300")
 )
 _OBJECT_STORAGE_IS_R2 = _endpoint_is_r2(OBJECT_STORAGE_ENDPOINT_URL)
 OBJECT_STORAGE_OBJECT_TAGGING_ENABLED = os.getenv(
@@ -490,23 +450,6 @@ OBJECT_STORAGE_AUTO_CREATE_BUCKETS = os.getenv(
     "false" if _OBJECT_STORAGE_IS_R2 else "true",
 ).lower() == "true"
 
-# Backwards-compatible aliases — existing modules read these.
-MINIO_ENDPOINT_URL = OBJECT_STORAGE_ENDPOINT_URL
-MINIO_PUBLIC_ENDPOINT_URL = OBJECT_STORAGE_PUBLIC_ENDPOINT_URL
-MINIO_REGION = OBJECT_STORAGE_REGION
-MINIO_ACCESS_KEY = OBJECT_STORAGE_ACCESS_KEY
-MINIO_SECRET_KEY = OBJECT_STORAGE_SECRET_KEY
-MINIO_PRESIGNED_URL_TTL_SECONDS = OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS
-MINIO_OBJECT_TAGGING_ENABLED = OBJECT_STORAGE_OBJECT_TAGGING_ENABLED
-
-ANTICHEAT_S3_ENDPOINT_URL = OBJECT_STORAGE_ENDPOINT_URL
-ANTICHEAT_S3_PUBLIC_ENDPOINT_URL = OBJECT_STORAGE_PUBLIC_ENDPOINT_URL
-ANTICHEAT_S3_REGION = OBJECT_STORAGE_REGION
-ANTICHEAT_S3_ACCESS_KEY = OBJECT_STORAGE_ACCESS_KEY
-ANTICHEAT_S3_SECRET_KEY = OBJECT_STORAGE_SECRET_KEY
-ANTICHEAT_PRESIGNED_URL_TTL_SECONDS = OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS
-ANTICHEAT_S3_OBJECT_TAGGING_ENABLED = OBJECT_STORAGE_OBJECT_TAGGING_ENABLED
-
 MARKDOWN_IMAGE_S3_ENDPOINT_URL = OBJECT_STORAGE_ENDPOINT_URL
 MARKDOWN_IMAGE_S3_REGION = OBJECT_STORAGE_REGION
 MARKDOWN_IMAGE_S3_ACCESS_KEY = OBJECT_STORAGE_ACCESS_KEY
@@ -518,7 +461,7 @@ ANTICHEAT_CAPTURE_INTERVAL_SECONDS = int(
     os.getenv("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
 )
 
-# Cloudflare Realtime SFU spike settings.
+# Cloudflare Realtime SFU live monitoring settings.
 # Keep disabled by default so existing exam monitoring/CD flows are untouched.
 CLOUDFLARE_REALTIME_API_BASE_URL = os.getenv(
     "CLOUDFLARE_REALTIME_API_BASE_URL",
@@ -526,8 +469,12 @@ CLOUDFLARE_REALTIME_API_BASE_URL = os.getenv(
 ).rstrip("/")
 CLOUDFLARE_REALTIME_APP_ID = os.getenv("CLOUDFLARE_REALTIME_APP_ID", "")
 CLOUDFLARE_REALTIME_APP_SECRET = os.getenv("CLOUDFLARE_REALTIME_APP_SECRET", "")
-LIVE_MONITORING_SPIKE_ENABLED = (
-    os.getenv("LIVE_MONITORING_SPIKE_ENABLED", "false").lower() == "true"
+LIVE_MONITORING_ENABLED = (
+    os.getenv(
+        "LIVE_MONITORING_ENABLED",
+        os.getenv("LIVE_MONITORING_SPIKE_ENABLED", "false"),
+    ).lower()
+    == "true"
 )
 LIVE_MONITORING_ROOM_PREFIX = os.getenv("LIVE_MONITORING_ROOM_PREFIX", "qjudge-dev-exam")
 LIVE_MONITORING_PUBLISHER_TTL_SECONDS = int(

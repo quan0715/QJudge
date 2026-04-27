@@ -16,7 +16,7 @@
 | **ai-service**（`ai-service/services/`） | `artifact_tools.py`：LangChain 本地 tool（write/read/list），HTTP 打 Django internal endpoint；由 `deepagent_runner` 與 MCP tools 一起載入 |
 | **mcp-server** | **不動**。Artifact 為 session 私有資源，不暴露給外部 MCP client |
 | **Frontend** | Artifact Panel 呼叫 Django public API |
-| **MinIO** | 沿用 `ANTICHEAT_S3_*` 相同 MinIO 實例，新 bucket `ai-artifacts` |
+| **Object storage** | 沿用 `OBJECT_STORAGE_*` S3-compatible 連線設定，新 bucket `ai-artifacts` |
 
 ---
 

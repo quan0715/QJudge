@@ -1,4 +1,4 @@
-"""MinIO/S3-backed storage for AI artifacts (rubric, graded answers, etc.)."""
+"""S3-compatible storage for AI artifacts (rubric, graded answers, etc.)."""
 from __future__ import annotations
 
 import hashlib
@@ -55,11 +55,11 @@ def _get_boto3():
 def _build_client(endpoint_url: str | None = None):
     boto3 = _get_boto3()
     kwargs: dict[str, Any] = {
-        "aws_access_key_id": settings.MINIO_ACCESS_KEY,
-        "aws_secret_access_key": settings.MINIO_SECRET_KEY,
-        "region_name": settings.MINIO_REGION,
+        "aws_access_key_id": settings.OBJECT_STORAGE_ACCESS_KEY,
+        "aws_secret_access_key": settings.OBJECT_STORAGE_SECRET_KEY,
+        "region_name": settings.OBJECT_STORAGE_REGION,
     }
-    endpoint = endpoint_url or settings.MINIO_ENDPOINT_URL
+    endpoint = endpoint_url or settings.OBJECT_STORAGE_ENDPOINT_URL
     if endpoint:
         kwargs["endpoint_url"] = endpoint
     return boto3.client("s3", **kwargs)
@@ -71,7 +71,7 @@ def get_artifact_s3_client():
 
 def get_artifact_s3_public_client():
     """Client whose presigned URLs point at the browser-facing endpoint."""
-    public = settings.MINIO_PUBLIC_ENDPOINT_URL
+    public = settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL
     return _build_client(endpoint_url=public or None)
 
 
@@ -105,7 +105,7 @@ def _ensure_bucket_exists(client) -> None:
             raise AIArtifactStorageError("Failed to access artifact bucket") from exc
 
     create_params: dict[str, Any] = {"Bucket": bucket}
-    region = (settings.MINIO_REGION or "").strip()
+    region = (settings.OBJECT_STORAGE_REGION or "").strip()
     if region and region != "us-east-1":
         create_params["CreateBucketConfiguration"] = {"LocationConstraint": region}
 
@@ -170,7 +170,7 @@ def delete_artifact(object_key: str) -> None:
 
 def build_presigned_download_url(object_key: str, ttl: int | None = None) -> str:
     client = get_artifact_s3_public_client()
-    expires = ttl or settings.MINIO_PRESIGNED_URL_TTL_SECONDS
+    expires = ttl or settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS
     try:
         return client.generate_presigned_url(
             ClientMethod="get_object",

@@ -270,9 +270,6 @@ wait_for_service_running backend
 log "running migrations in backend container"
 dc exec -T backend python manage.py migrate
 
-log "purging local anti-cheat evidence metadata"
-dc exec -T backend python manage.py shell -c "from apps.contests.models import ExamEvidenceJob, ExamEvidenceVideo; ExamEvidenceVideo.objects.all().delete(); ExamEvidenceJob.objects.all().delete(); print('deleted evidence metadata')"
-
 log "clearing local MinIO anti-cheat bucket"
 dc exec -T minio sh -lc "rm -rf '/data/${ANTICHEAT_RAW_BUCKET}' && mkdir -p '/data/${ANTICHEAT_RAW_BUCKET}'"
 
