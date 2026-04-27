@@ -53,9 +53,21 @@
   height: 100%;
 }
 
-.localToolbarSearch :global(.cds--search) {
-  width: 14rem;
-  height: 2.5rem;
+.toolbarSelection {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--cds-text-secondary);
+}
+
+.toolbarSelectionName {
+  max-width: 14rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .localToolbarIconButton {
@@ -74,20 +86,18 @@
   background: var(--cds-layer-selected-hover);
 }
 
-.localToolbar :global(.cds--tooltip),
-.localToolbar :global(.cds--tooltip-container),
-.localToolbar :global(.cds--popover-container) {
-  z-index: 9000;
-}
-
 .root {
   display: grid;
-  grid-template-columns: minmax(12.5rem, 16rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
   flex: 1;
   min-height: 0;
   height: 100%;
   background: var(--cds-background);
+}
+
+.rootDetailOpen {
+  grid-template-columns: minmax(0, 1fr) minmax(24rem, 32rem);
 }
 
 /* Grid items (Layer wrappers, ContainerCards) must not exceed the row height */
@@ -96,13 +106,25 @@
   overflow: hidden;
 }
 
-.listCol {
+.listCol,
+.rosterCol {
   min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--cds-layer-01);
+}
+
+.rootDetailOpen .rosterCol {
   border-right: 1px solid var(--cds-border-subtle);
+}
+
+.detailCol {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--cds-background);
 }
 
 .pane {
@@ -112,6 +134,110 @@
 .listPaneCard {
   border: 0;
   background: var(--cds-layer-01);
+}
+
+.participantsSkeletonRow {
+  padding: 0.625rem 0.75rem;
+}
+
+.participantsTableWrap {
+  min-width: 42rem;
+}
+
+.participantsToolbar {
+  display: flex;
+  align-items: center;
+}
+
+.participantsToolbarContent {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.viewModeSwitcher {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.participantTableRow {
+  cursor: pointer;
+}
+
+.participantTableRow:hover {
+  background: var(--cds-layer-hover-01);
+}
+
+.participantTableRowSelected {
+  background: var(--cds-layer-selected-01);
+  box-shadow: inset 3px 0 0 var(--cds-border-interactive);
+}
+
+.participantIdentityCell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.warningText {
+  color: var(--cds-support-error);
+  font-weight: 600;
+}
+
+.participantGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.participantGridWrap {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.gridToolbar {
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+}
+
+.participantGridCard {
+  min-height: 8rem;
+  align-items: flex-start;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+}
+
+.gridCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.gridCardStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.75rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.gridCardTimestamp {
+  display: block;
+  margin-top: 0.375rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.35;
 }
 
 .listPaneHeader {
@@ -297,7 +423,10 @@
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
-.tabsList :global(.cds--tabs__nav-link) {
+.tabsList .detailTab {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
   min-height: 3rem;
   display: inline-flex;
   align-items: center;
@@ -314,14 +443,9 @@
   flex-shrink: 0;
 }
 
-/* Make the visible Carbon TabPanel fill remaining space and scroll */
-.tabsWrapper :global(.cds--tab-content:not([hidden])) {
-  flex: 1;
+.tabPanel {
   min-height: 0;
   overflow: auto;
-}
-
-.tabPanel {
   padding: 0;
 }
 
@@ -598,10 +722,6 @@
     flex-wrap: wrap;
   }
 
-  .localToolbarSearch :global(.cds--search) {
-    width: 100%;
-  }
-
   .root {
     grid-template-columns: 1fr;
     height: auto;
@@ -613,9 +733,23 @@
     overflow: hidden;
   }
 
-  /* Hide desktop list column */
-  .listCol {
-    display: none;
+  .rootDetailOpen {
+    grid-template-columns: 1fr;
+  }
+
+  .rootDetailOpen .rosterCol {
+    border-right: 0;
+  }
+
+  .detailCol {
+    position: fixed;
+    inset: 0;
+    z-index: 8000;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .participantsTableWrap {
+    min-width: 38rem;
   }
 
   /* Show mobile trigger */
@@ -729,7 +863,4 @@
     flex-wrap: wrap;
   }
 
-  .listItemHeader :global(.cds--tag) {
-    margin-top: 0.125rem;
-  }
 }

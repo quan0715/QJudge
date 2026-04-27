@@ -154,15 +154,17 @@ function groupByDate(items: EventFeedItem[]): { dateLabel: string; items: EventF
 }
 
 // --- Skeleton ---
-const LogsSkeleton = () => (
+const LogsSkeleton = ({ showKpis = true }: { showKpis?: boolean }) => (
   <div className={styles.root}>
-    <div className={styles.kpiStrip}>
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className={styles.kpiSkeletonCard}>
-          <SkeletonText width="100%" />
-        </div>
-      ))}
-    </div>
+    {showKpis ? (
+      <div className={styles.kpiStrip}>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className={styles.kpiSkeletonCard}>
+            <SkeletonText width="100%" />
+          </div>
+        ))}
+      </div>
+    ) : null}
     <SkeletonText paragraph lineCount={10} />
   </div>
 );
@@ -279,7 +281,9 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   }, [aggregationWindowMs, sourceEvents, externalEventFeed]);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(TAB_DEFAULT_CATEGORIES[0]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    embedded ? [] : TAB_DEFAULT_CATEGORIES[0],
+  );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [activeTab, setActiveTab] = useState(0);
   const [isRefreshPending, setIsRefreshPending] = useState(false);
@@ -301,9 +305,10 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 
   // --- Filter ---
   const tabFilteredFeed = useMemo(() => {
+    if (embedded) return eventFeed;
     if (activeTab === 0) return eventFeed.filter((inc) => inc.priority <= 1);
     return eventFeed.filter((inc) => inc.priority >= 2);
-  }, [eventFeed, activeTab]);
+  }, [eventFeed, activeTab, embedded]);
 
   const filteredFeed = useMemo(() => {
     let result = tabFilteredFeed;
@@ -323,7 +328,10 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   }, [tabFilteredFeed, selectedCategories, searchTerm]);
 
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [selectedCategories, searchTerm, activeTab]);
-  useEffect(() => { setSelectedCategories(TAB_DEFAULT_CATEGORIES[activeTab] || []); }, [activeTab]);
+  useEffect(() => {
+    if (embedded) return;
+    setSelectedCategories(TAB_DEFAULT_CATEGORIES[activeTab] || []);
+  }, [activeTab, embedded]);
 
   const visibleFeed = filteredFeed.slice(0, visibleCount);
   const dateGroups = useMemo(() => groupByDate(visibleFeed), [visibleFeed]);
@@ -388,7 +396,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   // ========== RENDER ==========
 
   if (loading) {
-    if (embedded) return <div className={styles.embeddedRoot}><LogsSkeleton /></div>;
+    if (embedded) return <div className={styles.embeddedRoot}><LogsSkeleton showKpis={false} /></div>;
     return <SurfaceSection maxWidth="1400px" style={{ height: "100%", overflowY: "auto" }}><LogsSkeleton /></SurfaceSection>;
   }
 
@@ -451,34 +459,36 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 
   const feedPanel = (panelIndex: number) => (
     <>
-      <div className={styles.toolbar}>
-        <div className={styles.searchWrapper}>
-          <input
-            className={styles.searchInput}
-            type="text"
-            placeholder={t("logs.searchPlaceholder", "搜尋使用者、事件類型、原因…")}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {embedded ? null : (
+        <div className={styles.toolbar}>
+          <div className={styles.searchWrapper}>
+            <input
+              className={styles.searchInput}
+              type="text"
+              placeholder={t("logs.searchPlaceholder", "搜尋使用者、事件類型、原因…")}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className={styles.filterWrapper}>
+            <MultiSelect
+              id={`event-category-filter-${panelIndex}`}
+              titleText=""
+              label={t("logs.filterCategory", "篩選優先級")}
+              items={CATEGORY_FILTER_OPTIONS}
+              itemToString={(item: { label: string } | null) => item?.label || ""}
+              selectedItems={CATEGORY_FILTER_OPTIONS.filter((opt) => selectedCategories.includes(opt.id))}
+              onChange={(data) => {
+                const items = (data.selectedItems ?? []).filter(
+                  (item): item is { id: string; label: string } => item != null,
+                );
+                setSelectedCategories(items.map((item) => item.id));
+              }}
+              size="md"
+            />
+          </div>
         </div>
-        <div className={styles.filterWrapper}>
-          <MultiSelect
-            id={`event-category-filter-${panelIndex}`}
-            titleText=""
-            label={t("logs.filterCategory", "篩選優先級")}
-            items={CATEGORY_FILTER_OPTIONS}
-            itemToString={(item: { label: string } | null) => item?.label || ""}
-            selectedItems={CATEGORY_FILTER_OPTIONS.filter((opt) => selectedCategories.includes(opt.id))}
-            onChange={(data) => {
-              const items = (data.selectedItems ?? []).filter(
-                (item): item is { id: string; label: string } => item != null,
-              );
-              setSelectedCategories(items.map((item) => item.id));
-            }}
-            size="md"
-          />
-        </div>
-      </div>
+      )}
 
       {filteredFeed.length === 0 ? (
         <div className={styles.feedEmpty}>
@@ -520,7 +530,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 
   const content = (
     <div className={styles.root}>
-      {kpiStrip}
+      {embedded ? null : kpiStrip}
 
       <div className={styles.feedSection}>
         <div className={styles.feedHeader}>
@@ -537,16 +547,20 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
             />
           ) : null}
         </div>
-        <Tabs selectedIndex={activeTab} onChange={({ selectedIndex }) => setActiveTab(selectedIndex)}>
-          <TabList aria-label="Event feed tabs">
-            <Tab>{t("logs.tabs.abnormal", "異常事件")}</Tab>
-            <Tab>{t("logs.tabs.system", "系統/管理事件")}</Tab>
-          </TabList>
-          <TabPanels>
-            <TabPanel>{feedPanel(0)}</TabPanel>
-            <TabPanel>{feedPanel(1)}</TabPanel>
-          </TabPanels>
-        </Tabs>
+        {embedded ? (
+          feedPanel(0)
+        ) : (
+          <Tabs selectedIndex={activeTab} onChange={({ selectedIndex }) => setActiveTab(selectedIndex)}>
+            <TabList aria-label="Event feed tabs">
+              <Tab>{t("logs.tabs.abnormal", "異常事件")}</Tab>
+              <Tab>{t("logs.tabs.system", "系統/管理事件")}</Tab>
+            </TabList>
+            <TabPanels>
+              <TabPanel>{feedPanel(0)}</TabPanel>
+              <TabPanel>{feedPanel(1)}</TabPanel>
+            </TabPanels>
+          </Tabs>
+        )}
       </div>
     </div>
   );

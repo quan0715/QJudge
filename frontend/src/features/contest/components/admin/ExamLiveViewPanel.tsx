@@ -97,7 +97,11 @@ const ExamLiveViewPanel = ({
   const isConnected = Boolean(subscriberState && isStreaming);
   const statusTagType = isConnected ? "green" : errorMessage ? "red" : "cool-gray";
   const statusTagLabel =
-    isConnected ? t("liveView.connected", "Live view 已連線") : statusText;
+    isConnected
+      ? t("liveView.connected", "已連線")
+      : errorMessage
+        ? t("liveView.unavailable", "無法連線")
+        : statusText;
 
   const helperText = missingTarget
     ? t("liveView.missingTarget", "請先選擇參與者才能開始即時監看。")
@@ -108,24 +112,20 @@ const ExamLiveViewPanel = ({
   return (
     <Tile className={styles.root}>
       <div className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>
-            {t("liveView.eyebrow", "Realtime SFU")}
-          </div>
+        <div className={styles.heading}>
           <h6 className={styles.title}>
             {t("liveView.title", "即時監看")}
           </h6>
           <p className={styles.description}>
             {participantName
-              ? t("liveView.descriptionWithName", "監看 {{name}} 目前分享中的考試畫面。", {
+              ? t("liveView.descriptionWithName", "查看 {{name}} 目前分享中的考試畫面。", {
                   name: participantName,
                 })
-              : t("liveView.description", "監看此學生目前分享中的考試畫面。")}
+              : t("liveView.description", "查看此學生目前分享中的考試畫面。")}
           </p>
         </div>
         <div className={styles.statusBlock}>
           <Tag type={statusTagType}>{statusTagLabel}</Tag>
-          <span className={styles.statusSubtext}>{statusTagLabel}</span>
         </div>
       </div>
 
@@ -178,33 +178,21 @@ const ExamLiveViewPanel = ({
           onClick={startLiveView}
           disabled={!canStart}
           kind="primary"
+          size="md"
         >
           {isConnected
             ? t("liveView.resubscribe", "重新連線")
-            : t("liveView.subscribe", "Subscribe live view")}
+            : t("liveView.subscribe", "連線即時監看")}
         </Button>
         <Button
-          kind="tertiary"
+          kind="ghost"
           renderIcon={StopFilledAlt}
           onClick={stopLiveView}
           disabled={busy || !isConnected}
+          size="md"
         >
           {t("liveView.stop", "停止")}
         </Button>
-      </div>
-
-      <div className={styles.meta}>
-        <span>
-          {t("liveView.userId", "userId")}: {userId || "-"}
-        </span>
-        <span>
-          {t("liveView.publisherSession", "publisher")}:{" "}
-          {subscriberState?.publisher.session_id || "-"}
-        </span>
-        <span>
-          {t("liveView.trackName", "track")}:{" "}
-          {subscriberState?.publisher.track_name || "-"}
-        </span>
       </div>
     </Tile>
   );

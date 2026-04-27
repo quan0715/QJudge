@@ -337,7 +337,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
             {availableDetails.map((detail) => {
               const Icon = TAB_ICON_BY_DETAIL[detail];
               return (
-                <Tab key={detail}>
+                <Tab key={detail} className={styles.detailTab}>
                   <span className={styles.tabLabel}>
                     {Icon ? <Icon size={16} className={styles.tabLabelIcon} /> : null}
                     <span>{t(`dashboard.tabs.${detail}`, detail)}</span>
@@ -366,18 +366,11 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           @{participant.username}
                           {participant.email ? ` • ${participant.email}` : ""}
                         </span>
-                        {participant.submitReason || participant.lockReason ? (
+                        {participant.lockReason ? (
                           <div className={styles.profileStatusNotice}>
-                            {participant.submitReason ? (
-                              <span className={styles.profileStatusNoticeItem}>
-                                {t("dashboard.submitReason", "交卷原因")}：{participant.submitReason}
-                              </span>
-                            ) : null}
-                            {participant.lockReason ? (
-                              <span className={styles.profileStatusNoticeItem}>
-                                {t("participants.headers.lockReason", "鎖定原因")}：{participant.lockReason}
-                              </span>
-                            ) : null}
+                            <span className={styles.profileStatusNoticeItem}>
+                              {t("participants.headers.lockReason", "鎖定原因")}：{participant.lockReason}
+                            </span>
                           </div>
                         ) : null}
                       </div>

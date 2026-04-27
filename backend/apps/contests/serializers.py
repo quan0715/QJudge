@@ -1004,6 +1004,9 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     account_role = serializers.CharField(source='user.role', read_only=True)
     auth_provider = serializers.CharField(source='user.auth_provider', read_only=True)
     total_score = serializers.SerializerMethodField()
+    connection_status = serializers.SerializerMethodField()
+    last_heartbeat_at = serializers.SerializerMethodField()
+    live_monitoring_online = serializers.SerializerMethodField()
     
     auto_unlock_at = serializers.SerializerMethodField()
     remaining_unlock_seconds = serializers.SerializerMethodField()
@@ -1015,7 +1018,37 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             'joined_at', 'exam_status',
             'lock_reason', 'violation_count', 'submit_reason', 'auto_unlock_at', 'remaining_unlock_seconds',
             'nickname', 'display_name', 'user_display_name', 'account_role', 'auth_provider',
+            'connection_status', 'last_heartbeat_at', 'live_monitoring_online',
         ]
+
+    def _get_last_heartbeat(self, obj):
+        if hasattr(obj, '_last_heartbeat_cached'):
+            return obj._last_heartbeat_cached
+        from apps.contests.services.anti_cheat_session import get_last_heartbeat
+
+        obj._last_heartbeat_cached = get_last_heartbeat(obj.contest_id, obj.user_id)
+        return obj._last_heartbeat_cached
+
+    def _get_live_publisher(self, obj):
+        if hasattr(obj, '_live_publisher_cached'):
+            return obj._live_publisher_cached
+        from apps.contests.services.realtime_sfu_registry import get_publisher
+
+        obj._live_publisher_cached = get_publisher(obj.contest_id, obj.user_id)
+        return obj._live_publisher_cached
+
+    def get_connection_status(self, obj):
+        if self._get_live_publisher(obj):
+            return 'live'
+        if self._get_last_heartbeat(obj):
+            return 'online'
+        return 'offline'
+
+    def get_last_heartbeat_at(self, obj):
+        return self._get_last_heartbeat(obj)
+
+    def get_live_monitoring_online(self, obj):
+        return bool(self._get_live_publisher(obj))
     
     def get_total_score(self, obj):
         """計算參賽者的實際總分（從提交記錄中計算，排除測試提交）

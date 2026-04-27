@@ -518,6 +518,12 @@ export function mapContestParticipantDto(dto: ContestParticipantDto): ContestPar
     userDisplayName: dto.user_display_name || dto.user?.profile?.display_name || "",
     accountRole: dto.account_role || dto.user?.role || "",
     authProvider: dto.auth_provider || dto.user?.auth_provider || "",
+    connectionStatus:
+      dto.connection_status === "live" || dto.connection_status === "online"
+        ? dto.connection_status
+        : "offline",
+    lastHeartbeatAt: dto.last_heartbeat_at ?? null,
+    liveMonitoringOnline: !!dto.live_monitoring_online,
     score: dto.total_score ?? dto.score ?? 0,
     rank: dto.rank,
     joinedAt: dto.joined_at || "",

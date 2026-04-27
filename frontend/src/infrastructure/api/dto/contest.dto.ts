@@ -176,6 +176,9 @@ export interface ContestParticipantDto {
   user_display_name?: string;
   account_role?: string;
   auth_provider?: string;
+  connection_status?: "offline" | "online" | "live";
+  last_heartbeat_at?: string | null;
+  live_monitoring_online?: boolean;
   score?: number;
   total_score?: number;
   rank?: number;

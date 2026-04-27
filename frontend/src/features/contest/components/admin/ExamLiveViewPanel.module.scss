@@ -1,35 +1,26 @@
 .root {
   display: grid;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  gap: 1rem;
+  padding: 1rem;
 }
 
 .header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
 
+.heading {
+  min-width: 0;
+}
+
 .statusBlock {
-  display: grid;
-  gap: 0.125rem;
-  justify-items: end;
-}
-
-.statusSubtext {
-  color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-}
-
-.eyebrow {
-  color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  line-height: var(--cds-label-01-line-height, 1rem);
+  flex-shrink: 0;
 }
 
 .title {
-  margin: 0.125rem 0 0;
+  margin: 0;
   color: var(--cds-text-primary);
   font-size: var(--cds-heading-compact-01-font-size, 0.875rem);
   font-weight: 600;
@@ -45,11 +36,10 @@
 
 .preview {
   position: relative;
-  min-height: 220px;
+  min-height: 18rem;
   overflow: hidden;
   background: #000;
   border: 1px solid var(--cds-border-subtle);
-  border-radius: 0.25rem;
 }
 
 .video {
@@ -69,6 +59,8 @@
   padding: 1rem;
   color: var(--cds-text-on-color);
   text-align: center;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  line-height: var(--cds-body-compact-01-line-height, 1.25rem);
 }
 
 .loading {
@@ -92,22 +84,15 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.meta {
-  display: grid;
-  gap: 0.25rem;
-  padding: 0.5rem;
-  background: var(--cds-layer-accent-01);
-  color: var(--cds-text-secondary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.75rem;
-  overflow-wrap: anywhere;
+  gap: 0;
 }
 
 @media (max-width: 42rem) {
   .header {
     display: grid;
+  }
+
+  .preview {
+    min-height: 14rem;
   }
 }

@@ -99,6 +99,9 @@ export interface ContestParticipant {
   userDisplayName?: string;
   accountRole?: string;
   authProvider?: string;
+  connectionStatus?: "offline" | "online" | "live";
+  lastHeartbeatAt?: string | null;
+  liveMonitoringOnline?: boolean;
   score: number;
   rank?: number;
   joinedAt: string;

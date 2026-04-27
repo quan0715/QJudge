@@ -227,7 +227,8 @@
     "requiresPassword": "需要密碼"
   },
   "button": {
-    "backToLobby": "返回競賽大廳"
+    "backToLobby": "返回競賽大廳",
+    "close": "關閉"
   },
   "clarifications": {
     "notFound": "找不到競賽",
@@ -985,26 +986,26 @@
   "liveView": {
     "idle": "尚未連線",
     "connecting": "連線中…",
-    "connectError": "啟動 live view 失敗",
-    "connected": "Live view 已連線",
+    "connectError": "即時監看連線失敗",
+    "connected": "已連線",
     "connect": "連線即時監看中…",
-    "description": "監看此學生目前分享中的考試畫面。",
-    "descriptionWithName": "監看 {{name}} 目前分享中的考試畫面。",
+    "description": "查看此學生目前分享中的考試畫面。",
+    "descriptionWithName": "查看 {{name}} 目前分享中的考試畫面。",
     "empty": "按下「連線即時監看」後會在這裡顯示學生畫面。",
-    "eyebrow": "Realtime SFU",
     "missingTarget": "請先選擇參與者才能開始即時監看。",
-    "noticeTitle": "Live view 尚不可用",
+    "noticeTitle": "即時監看尚不可用",
     "publisherSession": "publisher",
     "refresh": "重新連線",
     "resubscribe": "重新連線",
-    "stopped": "Live view 已停止",
+    "stopped": "已停止",
     "subscribe": "連線即時監看",
     "stop": "停止",
     "title": "即時監看",
     "trackName": "track",
     "userId": "使用者 ID",
     "streamingHint": "可在此畫面查看學生目前分享的螢幕。",
-    "unknownError": "啟動 live view 失敗"
+    "unavailable": "無法連線",
+    "unknownError": "即時監看連線失敗"
   },
   "management": {
     "contestCount": "共 {{count}} 場競賽",
@@ -1102,15 +1103,27 @@
     "exportFailed": "匯出失敗",
     "filterStatus": "篩選狀態",
     "generatingReport": "正在產生 {{name}} 的報告...",
+    "connection": {
+      "live": "Live",
+      "offline": "離線",
+      "online": "在線"
+    },
     "headers": {
+      "connection": "連線",
+      "displayName": "Display name",
       "joinedAt": "加入時間",
       "lockReason": "鎖定原因",
+      "participant": "參賽者",
+      "role": "身份",
       "score": "分數",
       "status": "狀態",
       "username": "使用者"
     },
+    "detailPanel": "參賽者詳細資料",
+    "gridView": "卡片",
     "listFooterCount": "顯示 {{shown}} / {{total}} 位",
     "listHeaderTitle": "學生",
+    "openDetail": "詳情",
     "remove": "移除",
     "removeFailed": "移除參賽者失敗",
     "removed": "參賽者已移除",
@@ -1118,6 +1131,13 @@
     "reopenFailed": "重新開放失敗",
     "reopened": "已重新開放考試",
     "reportDownloaded": "{{name}} 的報告已下載",
+    "roles": {
+      "admin": "管理員",
+      "student": "學生",
+      "ta": "助教",
+      "teacher": "教師",
+      "unknown": "未設定"
+    },
     "searchLabel": "搜尋參賽者",
     "searchPlaceholder": "搜尋姓名或使用者 ID...",
     "selectParticipant": "選擇參賽者",
@@ -1128,6 +1148,11 @@
     "unlockFailed": "解除鎖定失敗",
     "unlocked": "已解除鎖定",
     "updateFailed": "更新失敗",
+    "tableView": "表格",
+    "tableDescription": "快速檢視參賽者狀態、連線與作答資訊",
+    "tableTitle": "參賽者",
+    "tableToolbar": "參賽者表格工具列",
+    "viewModeLabel": "參賽者檢視模式",
     "viewTitle": "檢視參與者"
   },
   "participantsAdmin": {
