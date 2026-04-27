@@ -25,6 +25,7 @@ const MIN_PANEL_WIDTH = 320;
 const MAX_PANEL_WIDTH = 700;
 const DEFAULT_PANEL_WIDTH = 400;
 const STORAGE_KEY = "workspace_panel_width";
+const MINI_LEFT_PANEL_MIN_WIDTH_PX = 1024;
 
 function getSavedWidth(): number {
   try {
@@ -41,6 +42,22 @@ function getSavedWidth(): number {
 function getPortalRoot(): Element | null {
   if (typeof document === "undefined") return null;
   return document.getElementById("modal-portal-root") ?? document.body;
+}
+
+function useIsMiniLeftPanelEligible(): boolean {
+  const [eligible, setEligible] = useState(() => (
+    typeof window !== "undefined" && window.innerWidth >= MINI_LEFT_PANEL_MIN_WIDTH_PX
+  ));
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(min-width: ${MINI_LEFT_PANEL_MIN_WIDTH_PX}px)`);
+    const apply = () => setEligible(mql.matches);
+    apply();
+    mql.addEventListener("change", apply);
+    return () => mql.removeEventListener("change", apply);
+  }, []);
+
+  return eligible;
 }
 
 interface WorkspaceShellProps {
@@ -79,7 +96,8 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
 
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
-  const isMiniMode = !isMobile && leftVisualMode === "mini";
+  const isMiniLeftPanelEligible = useIsMiniLeftPanelEligible();
+  const isMiniMode = !isMobile && isMiniLeftPanelEligible && leftVisualMode === "mini";
   const isLeftCollapsed = !left.isOpen;
   const isMiniCollapsed = isMiniMode && isLeftCollapsed;
 

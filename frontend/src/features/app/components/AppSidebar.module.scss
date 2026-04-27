@@ -29,8 +29,7 @@
 }
 
 .compact .header {
-  padding: 0;
-  justify-content: center;
+  display: none;
 }
 
 // ── User area ──
@@ -98,6 +97,7 @@
 
 .collapseBtn {
   flex-shrink: 0;
+  color: var(--cds-icon-primary);
 }
 
 // ── User dropdown panel ──

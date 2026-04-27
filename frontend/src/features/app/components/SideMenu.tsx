@@ -8,6 +8,7 @@ import {
   Globe,
   Chat as ChatIcon,
   Activity,
+  AiLabel,
   Bullhorn,
   ChartColumn,
   TaskComplete,
@@ -54,7 +55,7 @@ const CONTEST_PANEL_META: Record<
   participants: { labelKey: "participants", Icon: UserMultiple },
   problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: Education },
   grading: { labelKey: "grading", examLabelKey: "examGrading", Icon: TaskComplete },
-  "ai-grading": { labelKey: "aiGrading", examLabelKey: "examAiGrading", Icon: TaskComplete },
+  "ai-grading": { labelKey: "aiGrading", examLabelKey: "examAiGrading", Icon: AiLabel },
   statistics: { labelKey: "statistics", examLabelKey: "examStatistics", Icon: ChartColumn },
   settings: { labelKey: "settings", Icon: Settings },
 };
@@ -348,6 +349,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     if (!contestAdminContext) return;
     navigate(`/classrooms/${contestAdminContext.classroomId}/contest/${contestAdminContext.contestId}/admin?panel=${panel}`);
   }, [navigate, contestAdminContext]);
+  const showContestAdminMiniNav = compact && Boolean(contestAdminContext);
 
   return (
     <>
@@ -367,29 +369,48 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         ].filter(Boolean).join(" ")}
         aria-label={t("header.sideNav", "Side navigation")}
       >
-        {/* ── Tab bar — always visible ── */}
-        <div className="side-menu__tabs" role="tablist">
-          {tabs.map(({ key, label, Icon }) => {
-            const isActiveTab = activeTab === key;
-            return (
+        {/* ── Tab bar — hidden in page-scoped mini nav ── */}
+        {!showContestAdminMiniNav && (
+          <div className="side-menu__tabs" role="tablist">
+            {tabs.map(({ key, label, Icon }) => {
+              const isActiveTab = activeTab === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActiveTab}
+                  title={!isActiveTab ? label : undefined}
+                  className={`side-menu__tab${isActiveTab ? " side-menu__tab--active" : ""}`}
+                  onClick={() => setActiveTab(key)}
+                >
+                  <Icon size={16} />
+                  {isActiveTab && <span className="side-menu__tab-label">{label}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {showContestAdminMiniNav && (
+          <div className="side-menu__section">
+            {contestPanelNavItems.map(({ panel, label, Icon }) => (
               <button
-                key={key}
+                key={panel}
                 type="button"
-                role="tab"
-                aria-selected={isActiveTab}
-                title={!isActiveTab ? label : undefined}
-                className={`side-menu__tab${isActiveTab ? " side-menu__tab--active" : ""}`}
-                onClick={() => setActiveTab(key)}
+                title={label}
+                className={`side-menu__link${contestActivePanel === panel ? " side-menu__link--active" : ""}`}
+                onClick={() => goToContestPanel(panel)}
               >
                 <Icon size={16} />
-                {isActiveTab && <span className="side-menu__tab-label">{label}</span>}
+                <span>{label}</span>
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Classrooms tab ── */}
-        {activeTab === "classrooms" && (
+        {!showContestAdminMiniNav && activeTab === "classrooms" && (
           isOnClassroomRoute ? (
             /* Inside a classroom: global links + workspace selector + panel sub-nav */
             <>
