@@ -1,11 +1,11 @@
 # 線上考試監考系統遷移提案：即時監看 + Event-Keyed 證據
 
-狀態：待 review
+狀態：Archived / partially implemented
 作者：Quan
 日期：2026-04-27
 影響範圍：考試監考流程、學生端錄影鏈路、助教審查 UI、Cloudflare / R2 基礎設施
 
-> 本文件是架構提案，實際 Cloudflare Realtime SFU 方案、免費額度、計費與 API 細節在實作前仍需以 Cloudflare 官方文件與帳號 Dashboard 的當下狀態再確認一次。
+> 本文件保留為設計脈絡。現行部署與環境設定以 `docs/cloudflare.md`、`README.md` 與程式碼為準。
 
 ## 1. 執行摘要
 

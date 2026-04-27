@@ -14,7 +14,7 @@ QJudge 採用微服務化的單體架構，主要由以下模組組成：
 | **Backend** | 業務邏輯、API、權限管理、評測排程 | Django 4.2, DRF, Celery |
 | **AI Service** | AI 助教核心、SSE 事件轉接 | FastAPI, LangGraph |
 | **Judge** | 程式碼安全隔離執行 | Docker, Python |
-| **Store** | 資料庫與快取 | PostgreSQL 15, Redis 7, MinIO |
+| **Store** | 資料庫、快取與物件儲存 | PostgreSQL 15, Redis 7, S3-compatible object storage（prod: R2, local dev: MinIO） |
 
 開發環境另含 **PgBouncer**（session mode）作為連線池，與 Django `CONN_MAX_AGE` 預設行為一致；細節見 `docker-compose.dev.yml` 與 `backend/config/settings/base.py` 註解。
 
