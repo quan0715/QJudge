@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Button, ContentSwitcher, FluidDropdown, IconSwitch, TableToolbarSearch, Tag } from "@carbon/react";
-import { Add, Close, DataTableReference, DocumentExport, Grid } from "@carbon/icons-react";
+import { Button, FluidDropdown, TableToolbarSearch } from "@carbon/react";
+import { Add, Close, DocumentExport } from "@carbon/icons-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
@@ -28,46 +29,27 @@ import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useToast } from "@/shared/contexts/ToastContext";
 
 import ParticipantDashboardPane from "@/features/contest/components/participants/ParticipantDashboardPane";
-import ParticipantsListPane, {
-  type ParticipantsViewMode,
-} from "@/features/contest/components/participants/ParticipantsListPane";
+import ParticipantsListPane from "@/features/contest/components/participants/ParticipantsListPane";
 import ParticipantStatusEditModal from "@/features/contest/components/participants/ParticipantStatusEditModal";
 import useParticipantDashboard from "./participants/useParticipantDashboard";
 import {
   DETAIL_OPTIONS_BY_TYPE,
   EXAM_STATUS_KEYS,
-  getParticipantDisplayName,
   type SortKey,
 } from "./participants/participantsScreen.config";
 import styles from "@/features/contest/components/participants/ContestParticipantsDashboard.module.scss";
 
-const PARTICIPANT_VIEW_MODE_STORAGE_KEY = "qjudge:participants:viewMode";
-const DETAIL_PANEL_WIDTH = "40rem";
+const DETAIL_PANEL_DEFAULT_WIDTH = 736;
+const DETAIL_PANEL_MIN_WIDTH = 512;
+const DETAIL_PANEL_MAX_WIDTH = 896;
+const DETAIL_PANEL_RESIZE_HANDLE_WIDTH = 4;
 const DETAIL_PANEL_TRANSITION = {
   duration: 0.22,
   ease: [0.2, 0, 0.38, 0.9] as const,
 };
 
-const readInitialViewMode = (): ParticipantsViewMode => {
-  if (typeof window === "undefined") return "table";
-  const stored = window.localStorage.getItem(PARTICIPANT_VIEW_MODE_STORAGE_KEY);
-  return stored === "grid" ? "grid" : "table";
-};
-
-const getStatusTagType = (status: ExamStatusType | null | undefined) => {
-  switch (status) {
-    case "submitted":
-      return "green";
-    case "in_progress":
-      return "blue";
-    case "paused":
-      return "purple";
-    case "locked":
-      return "red";
-    default:
-      return "cool-gray";
-  }
-};
+const clampDetailPanelWidth = (value: number) =>
+  Math.min(DETAIL_PANEL_MAX_WIDTH, Math.max(DETAIL_PANEL_MIN_WIDTH, value));
 
 const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -86,8 +68,8 @@ const ContestParticipantsScreen = () => {
   const [editExamStatus, setEditExamStatus] = useState<ExamStatusType>("not_started");
   const [editLockReason, setEditLockReason] = useState("");
   const [saving, setSaving] = useState(false);
-  const [viewMode, setViewMode] = useState<ParticipantsViewMode>(readInitialViewMode);
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
+  const [detailPanelWidth, setDetailPanelWidth] = useState(DETAIL_PANEL_DEFAULT_WIDTH);
   // filterOpen state removed — FilterPopover manages its own open/close
   const refreshInFlightRef = useRef(false);
 
@@ -182,12 +164,6 @@ const ContestParticipantsScreen = () => {
     return rows;
   }, [participants, searchQuery, statusFilter, sortKey]);
 
-  /** The currently selected participant object (from unfiltered list) */
-  const selectedParticipant = useMemo(
-    () => participants.find((p) => p.userId === selectedUserId),
-    [participants, selectedUserId],
-  );
-
   const updateParams = useCallback((updates: Record<string, string | null>) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -214,15 +190,40 @@ const ContestParticipantsScreen = () => {
   }, [setSearchParams]);
 
   useEffect(() => {
-    window.localStorage.setItem(PARTICIPANT_VIEW_MODE_STORAGE_KEY, viewMode);
-  }, [viewMode]);
-
-  useEffect(() => {
     const media = window.matchMedia("(max-width: 1056px)");
     const syncViewport = () => setIsNarrowViewport(media.matches);
     syncViewport();
     media.addEventListener("change", syncViewport);
     return () => media.removeEventListener("change", syncViewport);
+  }, []);
+
+  const handleDetailResizeStart = useCallback((startClientX: number) => {
+    const startWidth = detailPanelWidth;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      setDetailPanelWidth(clampDetailPanelWidth(startWidth - (event.clientX - startClientX)));
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+  }, [detailPanelWidth]);
+
+  const handleDetailResizeKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const delta = event.shiftKey ? 64 : 16;
+    setDetailPanelWidth((width) =>
+      clampDetailPanelWidth(width + (event.key === "ArrowLeft" ? delta : -delta)),
+    );
   }, []);
 
   // Validate selected user / detail without forcing a default selection.
@@ -463,14 +464,7 @@ const ContestParticipantsScreen = () => {
     totalItems: participants.length,
     selectedUserId,
     loading: isRefreshing,
-    viewMode,
   };
-
-  const selectedDisplayName = getParticipantDisplayName(selectedParticipant);
-
-  const selectedStatusTag = selectedParticipant?.examStatus
-    ? getStatusTagType(selectedParticipant.examStatus)
-    : null;
 
   const participantToolbarActions = (
     <>
@@ -485,28 +479,6 @@ const ContestParticipantsScreen = () => {
         }}
         persistent
       />
-      <ContentSwitcher
-        size="md"
-        className={styles.viewModeSwitcher}
-        selectedIndex={viewMode === "table" ? 0 : 1}
-        onChange={(event) => setViewMode(event.index === 0 ? "table" : "grid")}
-        aria-label={t("participants.viewModeLabel", "參賽者檢視模式")}
-      >
-        <IconSwitch
-          name="table"
-          text={t("participants.tableView", "表格")}
-          align="bottom"
-        >
-          <DataTableReference size={16} />
-        </IconSwitch>
-        <IconSwitch
-          name="grid"
-          text={t("participants.gridView", "卡片")}
-          align="bottom"
-        >
-          <Grid size={16} />
-        </IconSwitch>
-      </ContentSwitcher>
       <FilterPopover
         hasActiveFilters={hasActiveFilters}
         triggerLabel={t("participants.filters", "篩選")}
@@ -575,20 +547,9 @@ const ContestParticipantsScreen = () => {
       <div className={styles.page}>
         <PanelToolbar
           title={t("participants.viewTitle", "檢視參與者")}
-          status={
-            selectedParticipant?.examStatus && selectedStatusTag ? (
-              <div className={styles.toolbarSelection}>
-                <span className={styles.toolbarSelectionName}>
-                  {selectedDisplayName || t("participants.detailPanel", "參賽者詳細資料")}
-                </span>
-                <Tag size="sm" type={selectedStatusTag}>
-                  {t(`examStatus.${selectedParticipant.examStatus}`, selectedParticipant.examStatus)}
-                </Tag>
-              </div>
-            ) : null
-          }
           actions={
             <>
+              {participantToolbarActions}
               {selectedUserId ? (
                 <Button
                   kind="ghost"
@@ -609,18 +570,32 @@ const ContestParticipantsScreen = () => {
             gridTemplateColumns: isNarrowViewport
               ? "1fr"
               : selectedUserId
-              ? `minmax(0, 1fr) ${DETAIL_PANEL_WIDTH}`
-              : "minmax(0, 1fr) 0rem",
+              ? `minmax(0, 1fr) ${DETAIL_PANEL_RESIZE_HANDLE_WIDTH}px ${detailPanelWidth}px`
+              : "minmax(0, 1fr) 0px 0px",
           }}
           transition={prefersReducedMotion ? { duration: 0 } : DETAIL_PANEL_TRANSITION}
         >
           <div className={styles.rosterCol}>
             <ParticipantsListPane
               {...listPaneProps}
-              toolbarActions={participantToolbarActions}
               onSelect={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
             />
           </div>
+
+          {selectedUserId && !isNarrowViewport ? (
+            <div
+              className={styles.detailResizeHandle}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t("participants.resizeDetailPanel", "調整詳細面板寬度")}
+              tabIndex={0}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                handleDetailResizeStart(event.clientX);
+              }}
+              onKeyDown={handleDetailResizeKeyDown}
+            />
+          ) : null}
 
           <AnimatePresence initial={false}>
             {selectedUserId ? (

@@ -9,6 +9,7 @@ import { useCallback, useEffect } from "react";
 import { VIOLATION_ROUTES_MAP } from "@/features/contest/domain/violationRoutes";
 import { useViolationPipeline } from "./useViolationPipeline";
 import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
+import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 
 export interface UseWebcamMonitoringConfig {
   contestId: string;
@@ -17,6 +18,7 @@ export interface UseWebcamMonitoringConfig {
   isPrimary: boolean;
   moduleRole: string;
   recoveryGraceMs?: number;
+  evidenceCaptureModules?: ForcedCaptureModule[];
   streamActive: boolean;
   requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
 }
@@ -36,6 +38,7 @@ export function useWebcamMonitoring({
   isPrimary,
   moduleRole,
   recoveryGraceMs,
+  evidenceCaptureModules,
   streamActive,
   requestForceSubmit,
 }: UseWebcamMonitoringConfig): UseWebcamMonitoringReturn {
@@ -49,6 +52,8 @@ export function useWebcamMonitoring({
     moduleRole,
     requestForceSubmit,
     forceSubmitExtras: {
+      sourceModule: "webcam",
+      evidenceCaptureModules,
       stopCaptureKey: "manual",
       stopWebcamFirst: true,
     },

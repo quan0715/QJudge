@@ -37,13 +37,13 @@ import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifec
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import {
   detectAnticheatCapability,
+  resolveEvidenceCaptureStrategy,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
 import {
   getClassroomContestDashboardPath,
   getClassroomContestPrecheckPath,
 } from "@/features/contest/domain/contestRoutePolicy";
-import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 
 type RefreshFn = () => Promise<void>;
 type ErrorHandler = (message: string) => void;
@@ -75,23 +75,13 @@ export const useContestExamActions = ({
   const submissionProgress = useExamSubmissionProgress();
   const resolveMonitoringModules = useCallback((): {
     primarySourceModule: "screen_share" | "webcam";
-    enabledCaptureModules: ForcedCaptureModule[];
+    enabledCaptureModules: Array<"screen_share" | "webcam">;
   } => {
     const plan = resolveDeviceMonitoringPlan(
       detectAnticheatCapability(),
       contest?.anticheatDevicePolicy
     );
-    const enabledCaptureModules: ForcedCaptureModule[] = [];
-    if (plan.runtime.enableScreenShareCapture) {
-      enabledCaptureModules.push("screen_share");
-    }
-    if (plan.runtime.enableWebcamCapture) {
-      enabledCaptureModules.push("webcam");
-    }
-    return {
-      primarySourceModule: plan.primarySourceModule,
-      enabledCaptureModules,
-    };
+    return resolveEvidenceCaptureStrategy(plan);
   }, [contest?.anticheatDevicePolicy]);
 
   const cleanupExamArtifacts = useCallback((

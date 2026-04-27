@@ -2,17 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useAnticheatWebcamCapture } from "./useAnticheatWebcamCapture";
 
-vi.mock("./anticheat/useFrameQueue", () => ({
-  useFrameQueue: () => ({
-    ensureQueue: vi.fn().mockResolvedValue({
-      enqueue: vi.fn(),
-      peek: vi.fn().mockResolvedValue([]),
-      remove: vi.fn(),
-      count: vi.fn().mockResolvedValue(0),
-    }),
-  }),
-}));
-
 vi.mock("./anticheat/useCanvasProcessor", () => ({
   useCanvasProcessor: () => ({
     encodeUnderBudget: vi.fn().mockResolvedValue(new Blob(["x"], { type: "image/webp" })),
@@ -20,7 +9,22 @@ vi.mock("./anticheat/useCanvasProcessor", () => ({
 }));
 
 vi.mock("./anticheat/useAnticheatUploader", () => ({
-  useAnticheatUploader: () => ({ uploadBatch: vi.fn().mockResolvedValue([]) }),
+  useAnticheatUploader: () => ({ uploadBatchDetailed: vi.fn().mockResolvedValue([]) }),
+}));
+
+const { mockSfuStart, mockSfuStop } = vi.hoisted(() => ({
+  mockSfuStart: vi.fn().mockResolvedValue(null),
+  mockSfuStop: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("./anticheat/sfuScreenSharePublisher", () => ({
+  createSfuVideoPublisher: () => ({
+    get state() {
+      return null;
+    },
+    start: (...args: unknown[]) => mockSfuStart(...args),
+    stop: (...args: unknown[]) => mockSfuStop(...args),
+  }),
 }));
 
 vi.mock("@/shared/state/examCaptureSessionStore", () => ({
@@ -114,5 +118,47 @@ describe("useAnticheatWebcamCapture", () => {
     expect(onWebcamLost).toHaveBeenCalledTimes(1);
     expect(result.current.streamActive).toBe(false);
     vi.useRealTimers();
+  });
+
+  it("starts webcam live publisher when webcam is the live source", async () => {
+    const { stream } = createMockStream();
+    mockHandoffStream = stream;
+
+    renderHook(() =>
+      useAnticheatWebcamCapture({
+        contestId: "contest-1",
+        enabled: false,
+        monitorStream: true,
+        expectInitialStream: true,
+        publishLiveStream: true,
+      }),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mockSfuStart).toHaveBeenCalledWith("contest-1", stream);
+  });
+
+  it("does not start webcam live publisher when webcam is secondary", async () => {
+    const { stream } = createMockStream();
+    mockHandoffStream = stream;
+
+    renderHook(() =>
+      useAnticheatWebcamCapture({
+        contestId: "contest-1",
+        enabled: false,
+        monitorStream: true,
+        expectInitialStream: true,
+        publishLiveStream: false,
+      }),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mockSfuStart).not.toHaveBeenCalled();
   });
 });

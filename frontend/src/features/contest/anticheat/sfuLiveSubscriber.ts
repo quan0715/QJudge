@@ -5,6 +5,7 @@ import {
   getRealtimeSfuPublisher,
   renegotiateRealtimeSfuSession,
   type RealtimeSfuPublisherDto,
+  type RealtimeSfuSourceModule,
   type RealtimeSfuSessionDto,
 } from "@/infrastructure/api/repositories/exam.repository";
 import {
@@ -24,7 +25,8 @@ export class SfuLiveSubscriber {
   async subscribe(
     contestId: string,
     targetUserId: string,
-    onRemoteStream: (stream: MediaStream) => void
+    onRemoteStream: (stream: MediaStream) => void,
+    sourceModule?: RealtimeSfuSourceModule
   ): Promise<SfuLiveSubscriberState> {
     this.stop();
 
@@ -33,9 +35,9 @@ export class SfuLiveSubscriber {
       throw new Error("Realtime SFU 尚未啟用或尚未設定");
     }
 
-    const publisherResult = await getRealtimeSfuPublisher(contestId, targetUserId);
+    const publisherResult = await getRealtimeSfuPublisher(contestId, targetUserId, sourceModule);
     if (!publisherResult.active || !publisherResult.publisher) {
-      throw new Error("找不到該學生目前的 live publisher，請確認學生已進入考試並完成螢幕分享");
+      throw new Error("找不到該學生目前的 live publisher，請確認學生已進入考試並完成監控來源授權");
     }
 
     const subscriberSession = await createRealtimeSfuSession(contestId, {

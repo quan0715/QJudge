@@ -162,13 +162,22 @@ export interface RealtimeSfuSessionDto {
   [key: string]: unknown;
 }
 
+export type RealtimeSfuSourceModule = "screen_share" | "webcam";
+
 export interface RealtimeSfuPublisherDto {
   contest_id: number;
   user_id: number;
   session_id: string;
   track_name: string;
   room_id: string;
+  source_module?: RealtimeSfuSourceModule;
   updated_at: string;
+}
+
+export interface RealtimeSfuPublisherResponse {
+  active: boolean;
+  publisher: RealtimeSfuPublisherDto | null;
+  publishers?: RealtimeSfuPublisherDto[];
 }
 
 export interface RealtimeSfuTrackRequest {
@@ -236,30 +245,39 @@ export const renegotiateRealtimeSfuSession = async (
 
 export const getRealtimeSfuPublisher = async (
   contestId: string,
-  targetUserId: string | number
-): Promise<{ active: boolean; publisher: RealtimeSfuPublisherDto | null }> => {
-  return requestJson<{ active: boolean; publisher: RealtimeSfuPublisherDto | null }>(
-    httpClient.get(`/api/v1/contests/${contestId}/exam/sfu/publishers/${targetUserId}/`),
+  targetUserId: string | number,
+  sourceModule?: RealtimeSfuSourceModule
+): Promise<RealtimeSfuPublisherResponse> => {
+  const suffix = sourceModule
+    ? `?source_module=${encodeURIComponent(sourceModule)}`
+    : "";
+  return requestJson<RealtimeSfuPublisherResponse>(
+    httpClient.get(`/api/v1/contests/${contestId}/exam/sfu/publishers/${targetUserId}/${suffix}`),
     "Failed to fetch Realtime SFU publisher"
   );
 };
 
 export const heartbeatRealtimeSfuPublisher = async (
-  contestId: string
-): Promise<{ active: boolean; publisher: RealtimeSfuPublisherDto | null }> => {
-  return requestJson<{ active: boolean; publisher: RealtimeSfuPublisherDto | null }>(
-    httpClient.post(`/api/v1/contests/${contestId}/exam/sfu/publisher/heartbeat/`, {}),
+  contestId: string,
+  sourceModule?: RealtimeSfuSourceModule
+): Promise<RealtimeSfuPublisherResponse> => {
+  return requestJson<RealtimeSfuPublisherResponse>(
+    httpClient.post(`/api/v1/contests/${contestId}/exam/sfu/publisher/heartbeat/`, {
+      source_module: sourceModule,
+    }),
     "Failed to refresh Realtime SFU publisher"
   );
 };
 
 export const stopRealtimeSfuPublisher = async (
   contestId: string,
-  sessionId?: string
-): Promise<{ active: boolean; publisher?: RealtimeSfuPublisherDto | null }> => {
-  return requestJson<{ active: boolean; publisher?: RealtimeSfuPublisherDto | null }>(
+  sessionId?: string,
+  sourceModule?: RealtimeSfuSourceModule
+): Promise<RealtimeSfuPublisherResponse> => {
+  return requestJson<RealtimeSfuPublisherResponse>(
     httpClient.post(`/api/v1/contests/${contestId}/exam/sfu/publisher/stop/`, {
       session_id: sessionId,
+      source_module: sourceModule,
     }),
     "Failed to stop Realtime SFU publisher"
   );

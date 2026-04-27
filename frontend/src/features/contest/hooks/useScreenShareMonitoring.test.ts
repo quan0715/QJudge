@@ -154,6 +154,35 @@ describe("useScreenShareMonitoring", () => {
     );
   });
 
+  it("uses configured evidence modules when timeout recording runs", async () => {
+    const requestForceSubmit = vi.fn().mockResolvedValue(undefined);
+    const config = makeConfig({
+      recoveryGraceMs: 3000,
+      evidenceCaptureModules: ["screen_share", "webcam"],
+      requestForceSubmit,
+    });
+    const { result } = renderHook(() => useScreenShareMonitoring(config));
+
+    act(() => { result.current.onStreamLost(); });
+    act(() => { vi.advanceTimersByTime(3500); });
+
+    const request = requestForceSubmit.mock.calls[0][0];
+    await act(async () => {
+      await request.onRecording();
+    });
+
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      "contest-1",
+      "exam_submit_initiated",
+      expect.objectContaining({
+        captureOptions: {
+          eventType: "exam_submit_initiated",
+          modules: ["screen_share", "webcam"],
+        },
+      }),
+    );
+  });
+
   it("onStreamRestored before timeout prevents force submit", () => {
     const requestForceSubmit = vi.fn().mockResolvedValue(undefined);
     const config = makeConfig({

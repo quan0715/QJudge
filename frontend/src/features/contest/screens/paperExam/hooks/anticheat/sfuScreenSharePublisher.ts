@@ -5,6 +5,7 @@ import {
   heartbeatRealtimeSfuPublisher,
   stopRealtimeSfuPublisher,
   type RealtimeSfuPublisherDto,
+  type RealtimeSfuSourceModule,
 } from "@/infrastructure/api/repositories/exam.repository";
 import {
   createSfuPeerConnection,
@@ -14,23 +15,32 @@ import {
 
 const HEARTBEAT_INTERVAL_MS = 25_000;
 
-export interface SfuScreenSharePublisherState {
+export type LiveSourceModule = RealtimeSfuSourceModule;
+
+export interface SfuVideoPublisherState {
   sessionId: string;
   trackName: string;
   roomId: string;
   publisher?: RealtimeSfuPublisherDto;
 }
 
-export class SfuScreenSharePublisher {
+export type SfuScreenSharePublisherState = SfuVideoPublisherState;
+
+export class SfuVideoPublisher {
   private peer: RTCPeerConnection | null = null;
   private heartbeatTimer: number | null = null;
-  private activeState: SfuScreenSharePublisherState | null = null;
+  private activeState: SfuVideoPublisherState | null = null;
+  private readonly sourceModule: LiveSourceModule;
+
+  constructor(sourceModule: LiveSourceModule = "screen_share") {
+    this.sourceModule = sourceModule;
+  }
 
   get state() {
     return this.activeState;
   }
 
-  async start(contestId: string, stream: MediaStream): Promise<SfuScreenSharePublisherState | null> {
+  async start(contestId: string, stream: MediaStream): Promise<SfuVideoPublisherState | null> {
     if (this.activeState) return this.activeState;
 
     const config = await getRealtimeSfuConfig(contestId);
@@ -51,7 +61,7 @@ export class SfuScreenSharePublisher {
     await peer.setLocalDescription(offer);
     await waitForSfuIceGatheringComplete(peer);
 
-    const trackName = `screen-${contestId}-${Date.now()}`;
+    const trackName = `${this.sourceModule}-${contestId}-${Date.now()}`;
     const response = await addRealtimeSfuTracks(contestId, session.sessionId, {
       role: "publisher",
       payload: {
@@ -87,7 +97,7 @@ export class SfuScreenSharePublisher {
     this.peer = null;
     this.activeState = null;
     try {
-      await stopRealtimeSfuPublisher(contestId, sessionId);
+      await stopRealtimeSfuPublisher(contestId, sessionId, this.sourceModule);
     } catch {
       // Best effort cleanup only. Cache TTL also expires stale publisher state.
     }
@@ -96,8 +106,8 @@ export class SfuScreenSharePublisher {
   private startHeartbeat(contestId: string) {
     this.stopHeartbeat();
     this.heartbeatTimer = window.setInterval(() => {
-      heartbeatRealtimeSfuPublisher(contestId).catch(() => {
-        // Heartbeat is best effort during spike phase.
+      heartbeatRealtimeSfuPublisher(contestId, this.sourceModule).catch(() => {
+        // Heartbeat is best effort; cache TTL expires stale publisher state.
       });
     }, HEARTBEAT_INTERVAL_MS);
   }
@@ -108,5 +118,14 @@ export class SfuScreenSharePublisher {
     this.heartbeatTimer = null;
   }
 }
+
+export class SfuScreenSharePublisher extends SfuVideoPublisher {
+  constructor() {
+    super("screen_share");
+  }
+}
+
+export const createSfuVideoPublisher = (sourceModule: LiveSourceModule) =>
+  new SfuVideoPublisher(sourceModule);
 
 export const createSfuScreenSharePublisher = () => new SfuScreenSharePublisher();

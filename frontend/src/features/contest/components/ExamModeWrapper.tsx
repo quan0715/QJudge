@@ -39,6 +39,7 @@ import ExamSubmissionProgressModal from "@/features/contest/components/exam/Exam
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 import {
   detectAnticheatCapability,
+  resolveEvidenceCaptureStrategy,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
 import { useForceSubmitArbiter } from "@/features/contest/hooks/useForceSubmitArbiter";
@@ -98,9 +99,18 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     capability,
     anticheatConfig?.devicePolicy ?? anticheatEffective?.anticheatDevicePolicy
   );
+  const evidenceCaptureStrategy = useMemo(
+    () => resolveEvidenceCaptureStrategy(monitoringPlan),
+    [
+      monitoringPlan.primarySourceModule,
+      monitoringPlan.runtime.enableScreenShareCapture,
+      monitoringPlan.runtime.enableWebcamCapture,
+    ],
+  );
   const effectiveRequiresFullscreen =
     requiresFullscreen && monitoringPlan.precheck.requireFullscreen;
-  const { primarySourceModule } = monitoringPlan;
+  const { primarySourceModule, enabledCaptureModules: evidenceCaptureModules } =
+    evidenceCaptureStrategy;
   const screenModuleRole = monitoringPlan.sources.screenShare.role ?? "secondary";
   const webcamModuleRole = monitoringPlan.sources.webcam.role ?? "secondary";
   const policyRequired = cheatDetectionEnabled && (isExamMonitored || isMonitoredStatus(examStatus));
@@ -152,6 +162,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     onRefresh,
     requestFullscreen: fullscreenAdapterRef.current.request,
     warningTimeoutSeconds: anticheatEffective?.warningTimeoutSeconds,
+    evidenceCaptureModules,
   });
 
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
@@ -238,6 +249,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     expectInitialStream:
       precheckPassed && examStatus === "in_progress" && monitoringPlan.precheck.enableWebcam,
     autoAcquireOnStart: false,
+    publishLiveStream: webcamStreamMonitorEnabled,
     intervalMs: Math.max(1, monitoringPlan.sources.webcam.captureIntervalSeconds) * 1000,
     maxRetries: anticheatEffective ? Math.max(1, anticheatEffective.captureUploadMaxRetries) : undefined,
     reportDegraded: reportWebcamDegraded,
@@ -285,6 +297,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     monitoringDisabled: !effectiveMonitoringEnabled,
     moduleRole: screenModuleRole,
     recoveryGraceMs: anticheatEffective?.screenShareRecoveryGraceMs,
+    evidenceCaptureModules,
     requestForceSubmit,
   });
 
@@ -295,6 +308,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     isPrimary: webcamModuleRole === "primary",
     moduleRole: webcamModuleRole,
     recoveryGraceMs: anticheatEffective?.webcamRecoveryGraceMs,
+    evidenceCaptureModules,
     streamActive: webcamCapture.streamActive,
     requestForceSubmit,
   });
@@ -305,6 +319,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     examSubmitted: examStatus === "submitted",
     isTablet: capability.isTablet,
     primarySourceModule,
+    evidenceCaptureModules,
     requestForceSubmit,
   });
 
@@ -550,7 +565,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
               forceCaptureReason: "exam_submit_initiated:fullscreen_exit_confirm",
               captureOptions: {
                 eventType: "exam_submit_initiated",
-                modules: [primarySourceModule],
+                modules: evidenceCaptureModules,
               },
               metadata: {
                 upload_session_id: getExamCaptureSessionId(contestId) || undefined,

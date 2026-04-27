@@ -13,7 +13,7 @@
 import { expect, test } from "@playwright/test";
 import { loginViaAPI, clearAuth } from "../helpers/auth.helper";
 import { API_ENDPOINTS, TEST_USERS } from "../helpers/data.helper";
-import { prepareStudentPaperExamInProgress } from "../helpers/exam-lifecycle.helper";
+import { authHeaders, prepareStudentPaperExamInProgress } from "../helpers/exam-lifecycle.helper";
 import {
   prepareExamTakeoverScenario,
   resetStudentParticipant,
@@ -235,5 +235,82 @@ test.describe("Exam takeover via pending actions", () => {
 
     const finalURL = page.url();
     expect(finalURL).not.toContain("/exam-takeover");
+  });
+
+  // ── Case 5 ──────────────────────────────────────────────────────────────────
+  test("stale takeover token falls back when exam already finished", async ({
+    browser,
+  }, testInfo) => {
+    const baseURL =
+      testInfo.project.use.baseURL ||
+      process.env.PLAYWRIGHT_BASE_URL ||
+      process.env.E2E_BASE_URL ||
+      "http://localhost:5174";
+
+    await resetStudentParticipant(scenario.teacherPage, scenario.contestId);
+    const deviceA = `e2e-takeover-a-end-${Date.now()}`;
+    const deviceB = `e2e-takeover-b-end-${Date.now()}`;
+
+    const ctxA = await browser.newContext({
+      baseURL,
+      extraHTTPHeaders: { "X-Device-Id": deviceA },
+    });
+    const ctxB = await browser.newContext({
+      baseURL,
+      extraHTTPHeaders: { "X-Device-Id": deviceB },
+    });
+
+    try {
+      const pageA = await ctxA.newPage();
+      await pageA.goto("/", { waitUntil: "domcontentloaded" });
+      await pageA.evaluate(
+        ([k, v]) => localStorage.setItem(k, v),
+        [DEVICE_KEY, deviceA] as [string, string],
+      );
+      await loginViaAPI(pageA, "student");
+      await prepareStudentPaperExamInProgress(pageA, scenario.teacherPage, scenario.contestId);
+
+      const endHeaders = await authHeaders(pageA);
+      const endResp = await pageA.request.post(
+        API_ENDPOINTS.contests.examEnd(scenario.contestId),
+        {
+          headers: endHeaders,
+          data: { submit_reason: "e2e-takeover-stale" },
+        },
+      );
+      expect(endResp.ok()).toBeTruthy();
+
+      const pageB = await ctxB.newPage();
+      const blockResp = await pageB.request.post(API_ENDPOINTS.auth.login, {
+        data: {
+          email: TEST_USERS.student.email,
+          password: TEST_USERS.student.password,
+        },
+      });
+      expect([403, 409]).toContain(blockResp.status());
+      const blockBody = (await blockResp.json()) as {
+        conflict_token?: string;
+      };
+      expect(blockBody.conflict_token).toBeTruthy();
+
+      await pageB.goto("/", { waitUntil: "domcontentloaded" });
+      await pageB.evaluate(
+        ([k, v]) => sessionStorage.setItem(k, v),
+        [TAKEOVER_TOKEN_KEY, blockBody.conflict_token!] as [string, string],
+      );
+      await pageB.goto("/exam-takeover", { waitUntil: "domcontentloaded" });
+
+      const takeoverBtn = pageB.getByTestId("auth-exam-takeover-btn");
+      await expect(takeoverBtn).toBeVisible({ timeout: 10000 });
+      await takeoverBtn.click();
+
+      await pageB.waitForURL(/\/(dashboard|onboarding|classrooms|problems|login)/, {
+        timeout: 20000,
+      });
+      expect(pageB.url()).not.toContain("/exam-takeover");
+    } finally {
+      await ctxA.close();
+      await ctxB.close();
+    }
   });
 });

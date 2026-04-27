@@ -16,6 +16,11 @@
 }
 
 .statusBlock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.375rem;
+  flex-wrap: wrap;
   flex-shrink: 0;
 }
 
@@ -32,6 +37,68 @@
   color: var(--cds-text-secondary);
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   line-height: var(--cds-body-compact-01-line-height, 1.25rem);
+}
+
+.sessionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--cds-layer-accent-01);
+}
+
+.sessionBar strong {
+  display: block;
+  color: var(--cds-text-primary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  line-height: var(--cds-body-compact-01-line-height, 1.25rem);
+}
+
+.sessionBar p {
+  margin: 0.125rem 0 0;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  line-height: var(--cds-label-01-line-height, 1rem);
+}
+
+.allSources {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sourceGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.sourcePane {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.sourcePaneHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.sourceTitle {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: var(--cds-heading-compact-01-font-size, 0.875rem);
+  font-weight: 600;
+  line-height: var(--cds-heading-compact-01-line-height, 1.125rem);
+}
+
+.sourceDescription {
+  margin: 0.125rem 0 0;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  line-height: var(--cds-label-01-line-height, 1rem);
 }
 
 .preview {
@@ -81,14 +148,26 @@
   font-size: var(--cds-label-01-font-size, 0.75rem);
 }
 
-.actions {
+.noSessionState {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 10rem;
+  padding: 1rem;
+  background: var(--cds-layer-accent-01);
+  color: var(--cds-text-secondary);
+  text-align: center;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  line-height: var(--cds-body-compact-01-line-height, 1.25rem);
 }
 
 @media (max-width: 42rem) {
   .header {
+    display: grid;
+  }
+
+  .sessionBar,
+  .sourcePaneHeader {
     display: grid;
   }
 

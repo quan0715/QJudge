@@ -147,4 +147,75 @@ describe("forcedCapture", () => {
     expect(result.uploaded).toBe(true);
     expect(result.modules).toEqual(["screen_share", "webcam"]);
   });
+
+  it("records aggregate object keys when multiple modules upload evidence", async () => {
+    registerForcedCaptureHandler("contest-1", "screen_share", vi.fn().mockResolvedValue({
+      attempted: true,
+      captured: true,
+      uploaded: true,
+      uploadSessionId: "session-123",
+      seq: 1,
+      uploadedSeqs: [1],
+      uploadedObjectKeys: ["contest_1/user_1/session_s/screen_share/ts_1_seq_0001.webp"],
+      evidenceUploadedFrameCount: 1,
+    }));
+    registerForcedCaptureHandler("contest-1", "webcam", vi.fn().mockResolvedValue({
+      attempted: true,
+      captured: true,
+      uploaded: true,
+      uploadSessionId: "session-123",
+      seq: 2,
+      uploadedSeqs: [2],
+      uploadedObjectKeys: ["contest_1/user_1/session_s/webcam/ts_2_seq_0002.webp"],
+      evidenceUploadedFrameCount: 1,
+    }));
+    vi.mocked(recordExamEvent).mockResolvedValue({ status: "ok" } as any);
+
+    await recordExamEventWithForcedCapture("contest-1", "exam_submit_initiated", {
+      reason: "submit",
+      captureOptions: {
+        eventType: "exam_submit_initiated",
+        modules: ["screen_share", "webcam"],
+      },
+    });
+
+    expect(recordExamEvent).toHaveBeenCalledWith(
+      "contest-1",
+      "exam_submit_initiated",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          forced_capture_modules: ["screen_share", "webcam"],
+          forced_capture_uploaded_seqs: [1, 2],
+          forced_capture_uploaded_object_keys: [
+            "contest_1/user_1/session_s/screen_share/ts_1_seq_0001.webp",
+            "contest_1/user_1/session_s/webcam/ts_2_seq_0002.webp",
+          ],
+          evidence_uploaded_frame_count: 2,
+          forced_capture_module_results: expect.objectContaining({
+            screen_share: expect.objectContaining({ uploaded: true }),
+            webcam: expect.objectContaining({ uploaded: true }),
+          }),
+        }),
+      })
+    );
+  });
+
+  it("does not fall back when an explicit empty module list is requested", async () => {
+    const screenHandler = vi.fn().mockResolvedValue({
+      attempted: true,
+      captured: true,
+      uploaded: true,
+      uploadSessionId: "session-123",
+      seq: 1,
+    });
+    registerForcedCaptureHandler("contest-1", "screen_share", screenHandler);
+
+    const result = await forceCaptureForContest("contest-1", "submit:test", {
+      modules: [],
+      eventType: "exam_submit_initiated",
+    });
+
+    expect(screenHandler).not.toHaveBeenCalled();
+    expect(result.skipped).toBe("capture_unavailable");
+  });
 });

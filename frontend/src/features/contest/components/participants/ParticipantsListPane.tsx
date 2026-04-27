@@ -1,18 +1,11 @@
-import type { ReactNode } from "react";
+import { SkeletonText } from "@carbon/react";
 import {
-  DataTable,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableToolbar,
-  TableToolbarContent,
-  SkeletonText,
-  Tag,
-} from "@carbon/react";
+  CheckmarkFilled,
+  InProgress,
+  PauseFilled,
+  Time,
+  WarningFilled,
+} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import type { ContestParticipant } from "@/core/entities/contest.entity";
@@ -23,21 +16,16 @@ import {
   ListItemContent,
   ListItemTitle,
   ListItemMeta,
-  ListItemTrailing,
 } from "@/shared/ui/list/ListPanel";
 import { EmptyState } from "@/shared/ui/EmptyState";
 
 import styles from "./ContestParticipantsDashboard.module.scss";
-
-export type ParticipantsViewMode = "table" | "grid";
 
 interface ParticipantsListPaneProps {
   participants: ContestParticipant[];
   totalItems?: number;
   selectedUserId?: string | null;
   loading: boolean;
-  viewMode: ParticipantsViewMode;
-  toolbarActions?: ReactNode;
   onSelect: (userId: string) => void;
 }
 
@@ -47,84 +35,109 @@ const getParticipantDisplayName = (participant: ContestParticipant) =>
   participant.nickname ||
   participant.username;
 
-const getExplicitDisplayName = (participant: ContestParticipant) =>
-  participant.userDisplayName ||
-  participant.displayName ||
-  participant.nickname ||
-  "-";
+const NEEDS_ATTENTION_STATUSES = new Set(["locked", "paused"]);
+const STATUS_GROUP_ORDER = ["in_progress", "submitted", "not_started"];
 
-const getRoleTagType = (role: string | null | undefined) => {
-  switch (role) {
-    case "teacher":
-      return "purple";
-    case "ta":
-      return "teal";
-    case "admin":
-      return "red";
-    case "student":
-      return "gray";
-    default:
-      return "cool-gray";
-  }
-};
-
-const toExamStatusTagType = (status: string | null | undefined) => {
-  switch (status) {
-    case "submitted":
-      return "green";
+const getGroupIcon = (groupId: string) => {
+  switch (groupId) {
+    case "needs_attention":
+      return <WarningFilled size={16} />;
     case "in_progress":
-      return "blue";
+      return <InProgress size={16} />;
+    case "submitted":
+      return <CheckmarkFilled size={16} />;
     case "paused":
-      return "purple";
     case "locked":
-      return "red";
+      return <PauseFilled size={16} />;
     default:
-      return "cool-gray";
+      return <Time size={16} />;
   }
 };
 
-const toConnectionTagType = (status: ContestParticipant["connectionStatus"]) => {
-  switch (status) {
-    case "live":
-      return "cyan";
-    case "online":
-      return "green";
-    default:
-      return "cool-gray";
-  }
-};
+const needsAttention = (participant: ContestParticipant) =>
+  participant.violationCount > 0 ||
+  NEEDS_ATTENTION_STATUSES.has(participant.examStatus ?? "");
 
 const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
   participants,
   totalItems,
   selectedUserId,
   loading,
-  viewMode,
-  toolbarActions,
   onSelect,
 }) => {
   const { t } = useTranslation("contest");
   const shownCount = participants.length;
   const totalCount = totalItems ?? participants.length;
-  const headers = [
-    { key: "participant", header: t("participants.headers.participant", "參賽者") },
-    { key: "role", header: t("participants.headers.role", "身份") },
-    { key: "connection", header: t("participants.headers.connection", "連線") },
-    { key: "status", header: t("participants.headers.status", "狀態") },
-    { key: "score", header: t("participants.headers.score", "分數") },
-    { key: "violations", header: t("dashboard.violations", "違規") },
-    { key: "joinedAt", header: t("participants.headers.joinedAt", "加入時間") },
+  const participantsNeedingAttention = participants.filter(needsAttention);
+  const normalParticipantsByStatus = participants
+    .filter((participant) => !needsAttention(participant))
+    .reduce<Record<string, ContestParticipant[]>>((groups, participant) => {
+      const status = participant.examStatus ?? "unknown";
+      groups[status] = groups[status] ?? [];
+      groups[status].push(participant);
+      return groups;
+    }, {});
+  const statusGroupKeys = [
+    ...STATUS_GROUP_ORDER.filter((status) => normalParticipantsByStatus[status]?.length),
+    ...Object.keys(normalParticipantsByStatus)
+      .filter((status) => !STATUS_GROUP_ORDER.includes(status))
+      .sort(),
   ];
-  const rows = participants.map((participant) => ({
-    id: participant.userId,
-    participant: `${getExplicitDisplayName(participant)} ${participant.username}`,
-    role: participant.accountRole || "",
-    connection: participant.connectionStatus ?? "offline",
-    status: participant.examStatus,
-    score: String(participant.score),
-    violations: String(participant.violationCount),
-    joinedAt: participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-",
-  }));
+  const participantGroups = [
+    ...(participantsNeedingAttention.length > 0
+      ? [
+          {
+            id: "needs_attention",
+            title: t("participants.group.needsAttention", "需要處理"),
+            participants: participantsNeedingAttention,
+          },
+        ]
+      : []),
+    ...statusGroupKeys.map((status) => ({
+      id: status,
+      title: t(`examStatus.${status}`, status),
+      participants: normalParticipantsByStatus[status],
+    })),
+  ];
+
+  const renderParticipantCard = (participant: ContestParticipant) => (
+    <ListItem
+      key={participant.userId}
+      active={participant.userId === selectedUserId}
+      onClick={() => onSelect(participant.userId)}
+      className={styles.participantGridCard}
+    >
+      <ListItemContent className={styles.gridCardContent}>
+        <div className={styles.gridCardMain}>
+          <div className={styles.gridCardInfo}>
+            <div className={styles.gridCardHeader}>
+              <div className={styles.gridCardIdentity}>
+                <ListItemTitle className={styles.gridCardName}>
+                  {getParticipantDisplayName(participant)}
+                </ListItemTitle>
+                <ListItemMeta className={styles.gridCardUsername}>
+                  @{participant.username}
+                </ListItemMeta>
+              </div>
+            </div>
+            <span
+              className={`${styles.gridCardViolation} ${
+                participant.violationCount > 0 ? styles.gridCardViolationWarning : ""
+              }`}
+            >
+              {t("dashboard.violations", "違規")} {participant.violationCount}
+            </span>
+          </div>
+          <div className={styles.gridCardScore}>
+            <span className={styles.gridCardScoreLabel}>
+              {t("participants.headers.score", "分數")}
+            </span>
+            <span className={styles.gridCardScoreValue}>{participant.score}</span>
+          </div>
+        </div>
+      </ListItemContent>
+    </ListItem>
+  );
 
   return (
     <ListPanel
@@ -153,149 +166,29 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
           title={t("dashboard.emptyList", "目前沒有符合條件的參賽者")}
           compact
         />
-      ) : viewMode === "table" ? (
-        <div className={styles.participantsTableWrap}>
-          <DataTable rows={rows} headers={headers} size="sm">
-            {({ rows: renderRows, headers: renderHeaders, getHeaderProps, getTableProps }) => (
-              <TableContainer
-                title={t("participants.tableTitle", "參賽者")}
-                description={t("participants.tableDescription", "快速檢視參賽者狀態、連線與作答資訊")}
-              >
-                {toolbarActions ? (
-                  <TableToolbar
-                    aria-label={t("participants.tableToolbar", "參賽者表格工具列")}
-                    className={styles.participantsToolbar}
-                  >
-                    <TableToolbarContent className={styles.participantsToolbarContent}>
-                      {toolbarActions}
-                    </TableToolbarContent>
-                  </TableToolbar>
-                ) : null}
-                <Table {...getTableProps()} useZebraStyles={false}>
-                  <TableHead>
-                    <TableRow>
-                      {renderHeaders.map((header) => (
-                        <TableHeader {...getHeaderProps({ header })} key={header.key}>
-                          {header.header}
-                        </TableHeader>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {renderRows.map((row) => {
-                      const participant = participants.find((item) => item.userId === row.id);
-                      if (!participant) return null;
-                      const isSelected = participant.userId === selectedUserId;
-                      return (
-                        <TableRow
-                          key={participant.userId}
-                          className={`${styles.participantTableRow} ${isSelected ? styles.participantTableRowSelected : ""}`}
-                          onClick={() => onSelect(participant.userId)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              onSelect(participant.userId);
-                            }
-                          }}
-                          role="button"
-                          tabIndex={0}
-                          aria-pressed={isSelected}
-                        >
-                          <TableCell>
-                            <div className={styles.participantIdentityCell}>
-                              <span className={styles.primaryText}>
-                                {getExplicitDisplayName(participant)}
-                              </span>
-                              <span className={styles.secondaryText}>@{participant.username}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Tag size="sm" type={getRoleTagType(participant.accountRole)}>
-                              {t(
-                                `participants.roles.${participant.accountRole || "unknown"}`,
-                                participant.accountRole || "-",
-                              )}
-                            </Tag>
-                          </TableCell>
-                          <TableCell>
-                            <Tag size="sm" type={toConnectionTagType(participant.connectionStatus)}>
-                              {t(
-                                `participants.connection.${participant.connectionStatus ?? "offline"}`,
-                                participant.connectionStatus ?? "offline",
-                              )}
-                            </Tag>
-                          </TableCell>
-                          <TableCell>
-                            <Tag size="sm" type={toExamStatusTagType(participant.examStatus)}>
-                              {t(`examStatus.${participant.examStatus}`, participant.examStatus)}
-                            </Tag>
-                          </TableCell>
-                          <TableCell>{participant.score}</TableCell>
-                          <TableCell>
-                            <span className={participant.violationCount > 0 ? styles.warningText : undefined}>
-                              {participant.violationCount}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-"}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </DataTable>
-        </div>
       ) : (
         <div className={styles.participantGridWrap}>
-          {toolbarActions ? (
-            <div className={styles.gridToolbar}>{toolbarActions}</div>
-          ) : null}
-          <div className={styles.participantGrid}>
-          {participants.map((participant) => (
-            <ListItem
-              key={participant.userId}
-              active={participant.userId === selectedUserId}
-              onClick={() => onSelect(participant.userId)}
-              className={styles.participantGridCard}
-            >
-              <ListItemContent>
-                <div className={styles.gridCardHeader}>
-                  <ListItemTitle>{getParticipantDisplayName(participant)}</ListItemTitle>
-                  <Tag size="sm" type={toExamStatusTagType(participant.examStatus)}>
-                    {t(`examStatus.${participant.examStatus}`, participant.examStatus)}
-                  </Tag>
-                </div>
-                <ListItemMeta>@{participant.username}</ListItemMeta>
-                <div className={styles.gridCardStats}>
-                  <span>
-                    {t("participants.headers.score", "分數")} {participant.score}
-                  </span>
-                  <span
-                    className={participant.violationCount > 0 ? styles.warningText : undefined}
-                  >
-                    {t("dashboard.violations", "違規")} {participant.violationCount}
-                  </span>
-                </div>
-                <span className={styles.gridCardTimestamp}>
-                  {participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-"}
-                </span>
-              </ListItemContent>
-              <ListItemTrailing>
-                <Tag
-                  type="outline"
-                  size="sm"
-                  className={`${styles.listStatusTag} ${
-                    participant.examStatus === "submitted" ? styles.listStatusTagSubmitted : ""
+          <div className={styles.participantGridSections}>
+            {participantGroups.map((group) => (
+              <section key={group.id} className={styles.participantGridSection}>
+                <div
+                  className={`${styles.participantGridSectionHeader} ${
+                    group.id === "needs_attention" ? styles.participantGridSectionHeaderAttention : ""
                   }`}
                 >
-                  {t("participants.openDetail", "詳情")}
-                </Tag>
-              </ListItemTrailing>
-            </ListItem>
-          ))}
+                  <span className={styles.participantGridSectionIcon}>
+                    {getGroupIcon(group.id)}
+                  </span>
+                  <span className={styles.participantGridSectionTitle}>{group.title}</span>
+                  <span className={styles.participantGridSectionCount}>
+                    {group.participants.length}
+                  </span>
+                </div>
+                <div className={styles.participantGrid}>
+                  {group.participants.map(renderParticipantCard)}
+                </div>
+              </section>
+            ))}
           </div>
         </div>
       )}

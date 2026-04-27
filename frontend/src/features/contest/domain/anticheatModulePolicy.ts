@@ -23,10 +23,12 @@ export interface AnticheatCapability {
   pointerProfile: PointerProfile;
 }
 
+export type AnticheatSourceModule = "screen_share" | "webcam";
+
 export interface DeviceMonitoringPlan {
   deviceKind: AnticheatDeviceKind;
   allowed: boolean;
-  missingEnabledSources: Array<"screen_share" | "webcam">;
+  missingEnabledSources: AnticheatSourceModule[];
   sources: {
     screenShare: {
       enabled: boolean;
@@ -68,7 +70,7 @@ export interface DeviceMonitoringPlan {
     monitorWebcamStream: boolean;
     enableViewportIntegrity: boolean;
   };
-  primarySourceModule: "screen_share" | "webcam";
+  primarySourceModule: AnticheatSourceModule;
 }
 
 export interface ExamEntryDeviceMetadata {
@@ -80,8 +82,13 @@ export interface ExamEntryDeviceMetadata {
   supports_fine_pointer: boolean;
   screen_share_supported: boolean;
   webcam_supported: boolean;
-  primary_source_module: "screen_share" | "webcam";
-  active_sources: Array<"screen_share" | "webcam">;
+  primary_source_module: AnticheatSourceModule;
+  active_sources: AnticheatSourceModule[];
+}
+
+export interface EvidenceCaptureStrategy {
+  primarySourceModule: AnticheatSourceModule;
+  enabledCaptureModules: AnticheatSourceModule[];
 }
 
 export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
@@ -166,7 +173,7 @@ export const resolveDeviceMonitoringPlan = (
     },
   };
 
-  const missingEnabledSources: Array<"screen_share" | "webcam"> = [];
+  const missingEnabledSources: AnticheatSourceModule[] = [];
   if (sources.screenShare.enabled && !sources.screenShare.active) {
     missingEnabledSources.push("screen_share");
   }
@@ -200,7 +207,7 @@ export const resolveDeviceMonitoringPlan = (
   );
 
   const allowed = !!selected.enabled && missingEnabledSources.length === 0;
-  const primarySourceModule: "screen_share" | "webcam" =
+  const primarySourceModule: AnticheatSourceModule =
     sources.webcam.active && !sources.screenShare.active ? "webcam" : "screen_share";
   const screenShareActive = sources.screenShare.active;
   const webcamActive = sources.webcam.active;
@@ -231,17 +238,29 @@ export const resolveDeviceMonitoringPlan = (
   };
 };
 
+export const resolveEvidenceCaptureStrategy = (
+  monitoringPlan: DeviceMonitoringPlan
+): EvidenceCaptureStrategy => {
+  const enabledCaptureModules: AnticheatSourceModule[] = [];
+  if (monitoringPlan.runtime.enableScreenShareCapture) {
+    enabledCaptureModules.push("screen_share");
+  }
+  if (monitoringPlan.runtime.enableWebcamCapture) {
+    enabledCaptureModules.push("webcam");
+  }
+
+  return {
+    primarySourceModule: monitoringPlan.primarySourceModule,
+    enabledCaptureModules,
+  };
+};
+
 export const buildExamEntryDeviceMetadata = (
   capability: AnticheatCapability,
   monitoringPlan: DeviceMonitoringPlan
 ): ExamEntryDeviceMetadata => {
-  const activeSources: Array<"screen_share" | "webcam"> = [];
-  if (monitoringPlan.runtime.enableScreenShareCapture) {
-    activeSources.push("screen_share");
-  }
-  if (monitoringPlan.runtime.enableWebcamCapture) {
-    activeSources.push("webcam");
-  }
+  const { enabledCaptureModules: activeSources } =
+    resolveEvidenceCaptureStrategy(monitoringPlan);
 
   return {
     device_kind: monitoringPlan.deviceKind,

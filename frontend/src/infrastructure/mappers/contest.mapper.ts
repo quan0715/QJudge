@@ -15,7 +15,6 @@ import type {
   ParticipantDashboard,
   ParticipantDashboardStatus,
   ParticipantDashboardTimelineItem,
-  ParticipantEvidenceRow,
   ParticipantOverviewSummary,
   ParticipantPaperQuestionDetail,
   ParticipantPaperReportOverviewRow,
@@ -42,7 +41,6 @@ import type {
   ParticipantTimelineItemDto,
   ParticipantPaperReportRowDto,
   ParticipantCodingProblemRowDto,
-  ParticipantEvidenceRowDto,
   EventFeedItemDto,
 } from "@/infrastructure/api/dto/contest.dto";
 import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
@@ -634,27 +632,6 @@ const mapCodingTrendPointDto = (dto: any): ParticipantCodingTrendPoint => ({
   problemTitle: dto?.problem_title,
 });
 
-const mapParticipantEvidenceRowDto = (dto: ParticipantEvidenceRowDto): ParticipantEvidenceRow => ({
-  // Keep API compatibility: unknown status falls back to pending.
-  jobStatus: (["pending", "running", "success", "failed", "no_data"].includes(dto?.job_status || "")
-    ? dto.job_status
-    : "pending") as any,
-  id: Number(dto?.id ?? 0),
-  uploadSessionId: dto?.upload_session_id || "default",
-  sourceModule: (dto?.source_module === "webcam" ? "webcam" : "screen_share") as any,
-  hasVideo: !!dto?.has_video,
-  jobErrorMessage: dto?.job_error_message || "",
-  durationSeconds: Number(dto?.duration_seconds ?? 0),
-  frameCount: Number(dto?.frame_count ?? 0),
-  sizeBytes: Number(dto?.size_bytes ?? 0),
-  isSuspected: !!dto?.is_suspected,
-  suspectedNote: dto?.suspected_note || "",
-  suspectedByUsername: dto?.suspected_by_username || null,
-  updatedAt: dto?.updated_at || "",
-  createdAt: dto?.created_at || "",
-  videoId: dto?.video_id != null ? Number(dto.video_id) : null,
-});
-
 const mapEventFeedItemDto = (dto: EventFeedItemDto): EventFeedItem => ({
   incidentKey: dto?.incident_key || "",
   eventId: dto?.event_id != null ? String(dto.event_id) : "",
@@ -727,9 +704,6 @@ export function mapParticipantDashboardDto(dto: ParticipantDashboardDto): Partic
       canViewEvidence: !!dto?.actions?.can_view_evidence,
       canOpenGrading: !!dto?.actions?.can_open_grading,
     },
-    evidence: Array.isArray(dto?.evidence)
-      ? dto.evidence.map(mapParticipantEvidenceRowDto)
-      : undefined,
   };
 }
 

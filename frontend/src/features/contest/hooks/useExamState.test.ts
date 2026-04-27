@@ -89,6 +89,36 @@ describe("useExamState", () => {
     expect(result.current.warningCountdown).toBe(20);
   });
 
+  it("uses configured evidence capture modules for violation evidence", async () => {
+    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({
+      violation_count: 1,
+      max_cheat_warnings: 3,
+      bypass: false,
+    });
+
+    const { result } = renderHook(() =>
+      useExamState({
+        ...defaultProps,
+        evidenceCaptureModules: ["screen_share", "webcam"],
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleViolation("multiple_displays", "Multiple displays");
+    });
+
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      "123",
+      "multiple_displays",
+      expect.objectContaining({
+        captureOptions: {
+          eventType: "multiple_displays",
+          modules: ["screen_share", "webcam"],
+        },
+      })
+    );
+  });
+
   it("refreshes contest after recording a violation", async () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
     vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({

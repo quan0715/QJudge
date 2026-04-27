@@ -8,6 +8,7 @@ import {
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
+import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/runtimeReauthState";
 import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 
@@ -20,6 +21,7 @@ export interface UseExamStateProps {
   onRefresh?: () => Promise<void>;
   requestFullscreen: () => Promise<unknown>;
   warningTimeoutSeconds?: number;
+  evidenceCaptureModules?: ForcedCaptureModule[];
 }
 
 type SkippedDispatchResult = { skipped: true };
@@ -45,6 +47,7 @@ export function useExamState({
   onRefresh,
   requestFullscreen,
   warningTimeoutSeconds = 20,
+  evidenceCaptureModules,
 }: UseExamStateProps) {
   const EVENT_RETRY_DELAY_MS = 1500;
   const WARNING_TIMEOUT_SECONDS = Math.max(1, Math.floor(warningTimeoutSeconds));
@@ -89,6 +92,11 @@ export function useExamState({
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningCountdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevExamStatusRef = useRef(examStatus);
+  const evidenceCaptureModulesRef = useRef(evidenceCaptureModules);
+
+  useEffect(() => {
+    evidenceCaptureModulesRef.current = evidenceCaptureModules;
+  }, [evidenceCaptureModules]);
 
   const stopWarningCountdown = useCallback(() => {
     if (warningCountdownTimerRef.current) {
@@ -126,7 +134,10 @@ export function useExamState({
         phase: decision.phase,
         eventIdempotencyKey: decision.eventIdempotencyKey,
         forceCaptureReason: `${eventType}:${reason}`,
-        captureOptions: { eventType },
+        captureOptions: {
+          eventType,
+          modules: evidenceCaptureModulesRef.current,
+        },
         metadata: buildAnticheatMetadata(decision, {
           source,
           severity,

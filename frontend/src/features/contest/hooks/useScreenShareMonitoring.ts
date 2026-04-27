@@ -17,6 +17,7 @@ import {
 } from "@/features/contest/anticheat/runtimeReauthState";
 import { recordExamEvent } from "@/infrastructure/api/repositories";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
+import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { useViolationPipeline } from "./useViolationPipeline";
 import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
@@ -28,6 +29,7 @@ export interface UseScreenShareMonitoringConfig {
   monitoringDisabled: boolean;
   moduleRole: string;
   recoveryGraceMs?: number;
+  evidenceCaptureModules?: ForcedCaptureModule[];
   requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
 }
 
@@ -52,6 +54,7 @@ export function useScreenShareMonitoring({
   monitoringDisabled,
   moduleRole,
   recoveryGraceMs,
+  evidenceCaptureModules,
   requestForceSubmit,
 }: UseScreenShareMonitoringConfig): UseScreenShareMonitoringReturn {
   const runtimeReauth = useRuntimeScreenShareReauth(contestId);
@@ -62,11 +65,13 @@ export function useScreenShareMonitoring({
   const contestIdRef = useRef(contestId);
   const moduleRoleRef = useRef(moduleRole);
   const recoveryGraceMsRef = useRef(recoveryGraceMs);
+  const evidenceCaptureModulesRef = useRef(evidenceCaptureModules);
   const requestForceSubmitRef = useRef(requestForceSubmit);
 
   useEffect(() => { contestIdRef.current = contestId; }, [contestId]);
   useEffect(() => { moduleRoleRef.current = moduleRole; }, [moduleRole]);
   useEffect(() => { recoveryGraceMsRef.current = recoveryGraceMs; }, [recoveryGraceMs]);
+  useEffect(() => { evidenceCaptureModulesRef.current = evidenceCaptureModules; }, [evidenceCaptureModules]);
   useEffect(() => { requestForceSubmitRef.current = requestForceSubmit; }, [requestForceSubmit]);
 
   const pipeline = useViolationPipeline({
@@ -136,7 +141,7 @@ export function useScreenShareMonitoring({
             forceCaptureReason: "exam_submit_initiated:screen_share_timeout",
             captureOptions: {
               eventType: "exam_submit_initiated",
-              modules: ["screen_share"],
+              modules: evidenceCaptureModulesRef.current ?? ["screen_share"],
             },
             metadata: {
               upload_session_id: getExamCaptureSessionId(cid) || undefined,

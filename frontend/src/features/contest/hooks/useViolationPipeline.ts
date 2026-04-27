@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { recordExamEvent } from "@/infrastructure/api/repositories";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
+import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/runtimeReauthState";
 import type { ViolationRouteConfig, EscalationAction } from "@/features/contest/domain/violationRoutes";
@@ -22,6 +23,8 @@ export interface ForceSubmitExtras {
   stopWebcamFirst?: boolean;
   /** Passed to recordExamEventWithForcedCapture as forceCaptureReason. */
   forceCaptureReason?: string;
+  /** Evidence modules to capture for force-submit events. Defaults to the submit source module. */
+  evidenceCaptureModules?: ForcedCaptureModule[];
 }
 
 export interface UseViolationPipelineConfig {
@@ -188,6 +191,8 @@ export function useViolationPipeline({
           const extras = forceSubmitExtrasRef.current;
           const defaultSourceModule: ForceSubmitRequest["sourceModule"] =
             route.id === "webcam" ? "webcam" : "screen_share";
+          const sourceModule = extras?.sourceModule ?? defaultSourceModule;
+          const evidenceCaptureModules = extras?.evidenceCaptureModules ?? [sourceModule];
           const defaultStopCaptureKey: ForceSubmitRequest["stopCaptureKey"] =
             route.id === "screen_share"
               ? "screen_share_timeout_submit"
@@ -196,7 +201,7 @@ export function useViolationPipeline({
                 : "manual";
           requestForceSubmitRef.current({
             reason: `Force submit after ${route.id} recovery timeout`,
-            sourceModule: extras?.sourceModule ?? defaultSourceModule,
+            sourceModule,
             stopCaptureKey: extras?.stopCaptureKey ?? defaultStopCaptureKey,
             stopWebcamFirst: extras?.stopWebcamFirst,
             onRecording: async () => {
@@ -215,7 +220,7 @@ export function useViolationPipeline({
                 forceCaptureReason: extras?.forceCaptureReason,
                 captureOptions: {
                   eventType: "exam_submit_initiated",
-                  modules: [extras?.sourceModule ?? defaultSourceModule],
+                  modules: evidenceCaptureModules,
                 },
                 metadata: {
                   upload_session_id: getExamCaptureSessionId(contestIdRef.current) || undefined,

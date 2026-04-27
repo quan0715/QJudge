@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { VIOLATION_ROUTES_MAP } from "@/features/contest/domain/violationRoutes";
 import { useViolationPipeline } from "./useViolationPipeline";
 import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
+import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 
 const VIEWPORT_CHECK_INTERVAL_MS = 1_000;
 const VIEWPORT_COVERAGE_MIN = 0.82;
@@ -100,6 +101,7 @@ export interface UseViewportMonitoringConfig {
   recoveryGraceMs?: number;
   isTablet: boolean;
   primarySourceModule: ForceSubmitRequest["sourceModule"];
+  evidenceCaptureModules?: ForcedCaptureModule[];
   requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
 }
 
@@ -114,6 +116,7 @@ export function useViewportMonitoring({
   recoveryGraceMs,
   isTablet,
   primarySourceModule,
+  evidenceCaptureModules,
   requestForceSubmit,
 }: UseViewportMonitoringConfig): UseViewportMonitoringReturn {
   const baselineRef = useRef<ViewportSnapshot | null>(null);
@@ -127,7 +130,8 @@ export function useViewportMonitoring({
 
   const forceSubmitExtras = useMemo(() => ({
     sourceModule: primarySourceModule,
-  }), [primarySourceModule]);
+    evidenceCaptureModules,
+  }), [primarySourceModule, evidenceCaptureModules]);
 
   const pipeline = useViolationPipeline({
     route,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useFrameQueue } from "./anticheat/useFrameQueue";
 import { useCanvasProcessor } from "./anticheat/useCanvasProcessor";
-import { useAnticheatUploader } from "./anticheat/useAnticheatUploader";
+import { useEventEvidenceCapture } from "./anticheat/useEventEvidenceCapture";
+import { createSfuVideoPublisher } from "./anticheat/sfuScreenSharePublisher";
 import {
   getExamCaptureSessionId,
   setExamCaptureSessionId,
@@ -22,7 +22,6 @@ import {
   requestUserMediaVideo,
   supportsUserMediaApi,
 } from "@/features/contest/anticheat/mediaApi";
-import type { ForcedCaptureResult } from "@/features/contest/anticheat/forcedCapture";
 import {
   getPrimaryVideoTrack,
   isStreamHealthy,
@@ -35,7 +34,9 @@ interface Options {
   preserveStreamOnUnmount?: boolean;
   expectInitialStream?: boolean;
   autoAcquireOnStart?: boolean;
+  publishLiveStream?: boolean;
   intervalMs?: number;
+  /** Deprecated: event-keyed evidence no longer retries background frame uploads. */
   maxRetries?: number;
   reportDegraded?: (isDegraded: boolean) => void;
   onUploadProgress?: (count: number) => void;
@@ -49,8 +50,8 @@ export const useAnticheatWebcamCapture = ({
   preserveStreamOnUnmount = false,
   expectInitialStream = false,
   autoAcquireOnStart = false,
+  publishLiveStream = false,
   intervalMs = 10_000,
-  maxRetries = 3,
   reportDegraded,
   onUploadProgress,
   onWebcamLost,
@@ -63,21 +64,29 @@ export const useAnticheatWebcamCapture = ({
     return created;
   });
   const streamRef = useRef<MediaStream | null>(null);
+  const sfuPublisherRef = useRef(createSfuVideoPublisher("webcam"));
+  const lastSfuPublisherAttemptAtRef = useRef(0);
   const streamWasLiveRef = useRef(false);
   const initialExpectationCheckedRef = useRef(false);
   const prevMonitorRef = useRef(monitorStream);
-  const captureTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isCapturingRef = useRef(false);
-  const isUploadingRef = useRef(false);
-  const retryCountRef = useRef(0);
-  const initialCaptureAttemptedRef = useRef(false);
   const [streamActive, setStreamActive] = useState(false);
   const onWebcamLostRef = useRef(onWebcamLost);
   onWebcamLostRef.current = onWebcamLost;
 
-  const { ensureQueue } = useFrameQueue("webcam");
   const { encodeUnderBudget } = useCanvasProcessor();
-  const { uploadBatch } = useAnticheatUploader(contestId, "webcam");
+
+  const ensureSfuPublisher = useCallback(
+    (stream: MediaStream) => {
+      if (!publishLiveStream || !monitorStream || sfuPublisherRef.current.state) return;
+      const now = Date.now();
+      if (now - lastSfuPublisherAttemptAtRef.current < 30_000) return;
+      lastSfuPublisherAttemptAtRef.current = now;
+      sfuPublisherRef.current.start(contestId, stream).catch(() => {
+        // Live monitoring is best effort; evidence capture must continue.
+      });
+    },
+    [contestId, monitorStream, publishLiveStream],
+  );
 
   const stopStream = useCallback(() => {
     const stream = streamRef.current;
@@ -90,9 +99,11 @@ export const useAnticheatWebcamCapture = ({
 
   const handleDetectedWebcamLoss = useCallback(() => {
     streamWasLiveRef.current = false;
+    lastSfuPublisherAttemptAtRef.current = 0;
+    void sfuPublisherRef.current.stop(contestId);
     setStreamActive(false);
     onWebcamLostRef.current?.();
-  }, []);
+  }, [contestId]);
 
   const acceptOrRejectStream = useCallback((stream: MediaStream): MediaStream | null => {
     const track = getPrimaryVideoTrack(stream);
@@ -106,14 +117,19 @@ export const useAnticheatWebcamCapture = ({
       streamRef.current = stream;
       streamWasLiveRef.current = true;
       setStreamActive(true);
+      ensureSfuPublisher(stream);
       return stream;
     }
     stream.getTracks().forEach((t) => t.stop());
     return null;
-  }, [handleDetectedWebcamLoss]);
+  }, [ensureSfuPublisher, handleDetectedWebcamLoss]);
 
   const acquireStream = useCallback(async (): Promise<MediaStream | null> => {
-    if (isStreamHealthy(streamRef.current)) return streamRef.current;
+    const currentStream = streamRef.current;
+    if (currentStream && isStreamHealthy(currentStream)) {
+      ensureSfuPublisher(currentStream);
+      return currentStream;
+    }
     stopStream();
 
     const handoff = consumePrecheckWebcamHandoff() ?? consumeRuntimeWebcamHandoff();
@@ -129,7 +145,7 @@ export const useAnticheatWebcamCapture = ({
     } catch {
       return null;
     }
-  }, [autoAcquireOnStart, acceptOrRejectStream, stopStream]);
+  }, [autoAcquireOnStart, acceptOrRejectStream, ensureSfuPublisher, stopStream]);
 
   const captureFrameBlob = useCallback(async (): Promise<Blob | null> => {
     const stream = await acquireStream();
@@ -155,131 +171,38 @@ export const useAnticheatWebcamCapture = ({
     }
   }, [acquireStream, encodeUnderBudget]);
 
-  const captureAndQueue = useCallback(async () => {
-    if (isCapturingRef.current || !enabled) return;
-    isCapturingRef.current = true;
-    try {
-      const blob = await captureFrameBlob();
-      if (!blob) {
-        if (streamWasLiveRef.current && !isStreamHealthy(streamRef.current)) {
-          handleDetectedWebcamLoss();
-        }
-        return;
-      }
-      const q = await ensureQueue();
-      await q.enqueue(blob);
-    } finally {
-      isCapturingRef.current = false;
-    }
-  }, [captureFrameBlob, enabled, ensureQueue, handleDetectedWebcamLoss]);
-
-  const flushPendingUploads = useCallback(async () => {
-    if (isUploadingRef.current || !enabled) return;
-    isUploadingRef.current = true;
-    try {
-      const q = await ensureQueue();
-      const count = await q.count();
-      if (count === 0) return;
-      const items = await q.peek(10);
-      const uploadedIds = await uploadBatch(items, uploadSessionId, onUploadProgress);
-      await q.remove(uploadedIds);
-      retryCountRef.current = 0;
-      reportDegraded?.(false);
-    } catch {
-      retryCountRef.current += 1;
-      if (retryCountRef.current >= maxRetries) {
-        reportDegraded?.(true);
-      }
-    } finally {
-      isUploadingRef.current = false;
-    }
-  }, [enabled, ensureQueue, maxRetries, onUploadProgress, reportDegraded, uploadBatch, uploadSessionId]);
-
-  const forceCaptureNow = useCallback(
-    async (_reason: string): Promise<ForcedCaptureResult> => {
-      const currentUploadSessionId = uploadSessionId || (contestId ? getExamCaptureSessionId(contestId) : null);
-      if (!enabled) {
-        return {
-          attempted: false,
-          captured: false,
-          uploaded: false,
-          skipped: "disabled",
-          errorCode: "capture_disabled",
-          uploadSessionId: currentUploadSessionId,
-          seq: null,
-        };
-      }
-
-      const blob = await captureFrameBlob();
-      if (!blob) {
-        if (streamWasLiveRef.current && !isStreamHealthy(streamRef.current)) {
-          handleDetectedWebcamLoss();
-        }
-        return {
-          attempted: true,
-          captured: false,
-          uploaded: false,
-          skipped: "stream_unavailable",
-          errorCode: "stream_unavailable",
-          uploadSessionId: currentUploadSessionId,
-          seq: null,
-        };
-      }
-
-      const q = await ensureQueue();
-      const frameId = await q.enqueue(blob);
-      try {
-        const uploadedIds = await uploadBatch(
-          [{ id: frameId, createdAt: Date.now(), blob }],
-          uploadSessionId,
-          onUploadProgress,
-        );
-        if (uploadedIds.length > 0) {
-          await q.remove(uploadedIds);
-          return {
-            attempted: true,
-            captured: true,
-            uploaded: true,
-            uploadSessionId: currentUploadSessionId,
-            seq: frameId,
-          };
-        }
-      } catch {
-        void flushPendingUploads();
-      }
-
-      return {
-        attempted: true,
-        captured: true,
-        uploaded: false,
-        uploadSessionId: currentUploadSessionId,
-        seq: frameId,
-      };
-    },
-    [
-      captureFrameBlob,
-      contestId,
-      enabled,
-      ensureQueue,
-      flushPendingUploads,
-      handleDetectedWebcamLoss,
-      onUploadProgress,
-      uploadBatch,
-      uploadSessionId,
-    ],
+  const isWebcamUnavailable = useCallback(
+    () => streamWasLiveRef.current && !isStreamHealthy(streamRef.current),
+    [],
   );
 
+  const {
+    flushPendingUploads,
+    forceCaptureNow,
+    stopEvidenceCapture,
+  } = useEventEvidenceCapture({
+    contestId,
+    module: "webcam",
+    enabled,
+    intervalMs,
+    uploadSessionId,
+    captureFrameBlob,
+    isStreamUnavailable: isWebcamUnavailable,
+    onStreamUnavailable: handleDetectedWebcamLoss,
+    reportDegraded,
+    onUploadProgress,
+  });
+
   const forceStopCapture = useCallback(() => {
-    if (captureTimerRef.current) {
-      clearInterval(captureTimerRef.current);
-      captureTimerRef.current = null;
-    }
+    stopEvidenceCapture();
+    void sfuPublisherRef.current.stop(contestId);
+    lastSfuPublisherAttemptAtRef.current = 0;
     stopStream();
     streamWasLiveRef.current = false;
     setStreamActive(false);
     clearPrecheckWebcamHandoff(true);
     clearRuntimeWebcamHandoff(true);
-  }, [stopStream]);
+  }, [contestId, stopEvidenceCapture, stopStream]);
 
   useEffect(() => {
     if (!contestId) return;
@@ -288,41 +211,6 @@ export const useAnticheatWebcamCapture = ({
       unregisterForcedCaptureHandler(contestId, "webcam", forceCaptureNow);
     };
   }, [contestId, forceCaptureNow]);
-
-  useEffect(() => {
-    if (!enabled) {
-      if (captureTimerRef.current) {
-        clearInterval(captureTimerRef.current);
-        captureTimerRef.current = null;
-      }
-      initialCaptureAttemptedRef.current = false;
-      return;
-    }
-    captureTimerRef.current = setInterval(() => {
-      captureAndQueue();
-      void flushPendingUploads();
-    }, intervalMs);
-    return () => {
-      if (captureTimerRef.current) {
-        clearInterval(captureTimerRef.current);
-        captureTimerRef.current = null;
-      }
-    };
-  }, [captureAndQueue, enabled, flushPendingUploads, intervalMs]);
-
-  // Best effort: capture one frame immediately when source becomes enabled.
-  useEffect(() => {
-    if (!enabled) {
-      initialCaptureAttemptedRef.current = false;
-      return;
-    }
-    if (initialCaptureAttemptedRef.current) return;
-    initialCaptureAttemptedRef.current = true;
-    void (async () => {
-      await captureAndQueue();
-      await flushPendingUploads();
-    })();
-  }, [enabled, captureAndQueue, flushPendingUploads]);
 
   useEffect(() => {
     const wasMonitoring = prevMonitorRef.current;
@@ -365,10 +253,6 @@ export const useAnticheatWebcamCapture = ({
 
   useEffect(
     () => () => {
-      if (captureTimerRef.current) {
-        clearInterval(captureTimerRef.current);
-        captureTimerRef.current = null;
-      }
       const phase = getAnticheatPhase(contestId);
       const shouldPreserveStream =
         preserveStreamOnUnmount && phase !== "TERMINATING" && phase !== "TERMINAL";
