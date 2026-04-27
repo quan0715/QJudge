@@ -13,33 +13,17 @@ paths:
         Uses DRF authentication chain (CookieJWT / OAuth2 / JWT header).
       tags:
       - oauth
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/ai/internal/code/run:
-    post:
-      operationId: v1_ai_internal_code_run_create
-      description: |-
-        POST /api/v1/ai/internal/code/run
-
-        Execute code against test cases in a sandbox.
-        Returns per-case results and a summary.
-      tags:
-      - v1
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CodeRunRequestRequest'
+              $ref: '#/components/schemas/OAuthApproveRequestRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/CodeRunRequestRequest'
+              $ref: '#/components/schemas/OAuthApproveRequestRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CodeRunRequestRequest'
+              $ref: '#/components/schemas/OAuthApproveRequestRequest'
         required: true
       security:
       - cookieJwtAuth: []
@@ -49,132 +33,87 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CodeRunRequest'
+                $ref: '#/components/schemas/OAuthApproveResponse'
           description: ''
-  /api/v1/ai/internal/pending-actions/{action_id}:
+  /api/v1/ai/_internal/artifacts/:
     get:
-      operationId: v1_ai_internal_pending_actions_retrieve
-      description: |-
-        GET /api/v1/ai/internal/pending-actions/{action_id}
-
-        Returns pending action details (for ai-service to build approval preview).
-      parameters:
-      - in: path
-        name: action_id
-        schema:
-          type: string
-          format: uuid
-        required: true
+      operationId: v1_ai__internal_artifacts_retrieve
+      description: Internal endpoints for ai-service artifact tools.
       tags:
       - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PendingAction'
-          description: ''
-  /api/v1/ai/internal/problem-actions/commit:
-    post:
-      operationId: v1_ai_internal_problem_actions_commit_create
-      description: |-
-        POST /api/v1/ai/internal/problem-actions/commit
-
-        Called by ai-service tool after user confirms.
-        Executes the actual create/patch with transaction safety.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CommitActionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/CommitActionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/CommitActionRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommitAction'
-          description: ''
-  /api/v1/ai/internal/problem-actions/prepare:
-    post:
-      operationId: v1_ai_internal_problem_actions_prepare_create
-      description: |-
-        POST /api/v1/ai/internal/problem-actions/prepare
-
-        Called by ai-service tool: creates AIPendingAction with preview.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PrepareActionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PrepareActionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PrepareActionRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PrepareAction'
-          description: ''
-  /api/v1/ai/internal/problems/{problem_id}/context:
-    get:
-      operationId: v1_ai_internal_problems_context_retrieve
-      description: |-
-        GET /api/v1/ai/internal/problems/{id}/context
-
-        Returns problem data for agent to read.
-      parameters:
-      - in: path
-        name: problem_id
-        schema:
-          type: string
-          format: uuid
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
       responses:
         '200':
           description: No response body
-  /api/v1/ai/internal/problems/{problem_id}/test-cases:
+    post:
+      operationId: v1_ai__internal_artifacts_create
+      description: Internal endpoints for ai-service artifact tools.
+      tags:
+      - v1
+      responses:
+        '201':
+          description: No response body
+  /api/v1/ai/_internal/artifacts/{id}/:
     get:
-      operationId: v1_ai_internal_problems_test_cases_retrieve
-      description: |-
-        GET /api/v1/ai/internal/problems/{id}/test-cases
-
-        Returns ALL test cases (sample + hidden) for a problem.
+      operationId: v1_ai__internal_artifacts_retrieve_2
+      description: Internal endpoints for ai-service artifact tools.
       parameters:
       - in: path
-        name: problem_id
+        name: id
         schema:
           type: string
-          format: uuid
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ai/_internal/artifacts/{id}/content/:
+    get:
+      operationId: v1_ai__internal_artifacts_content_retrieve
+      description: Internal endpoints for ai-service artifact tools.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ai/artifacts/:
+    get:
+      operationId: v1_ai_artifacts_list
+      description: User-facing read-only artifact view (Artifact Panel).
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAIArtifactList'
+          description: ''
+  /api/v1/ai/artifacts/{id}/:
+    get:
+      operationId: v1_ai_artifacts_retrieve
+      description: User-facing read-only artifact view (Artifact Panel).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
         required: true
       tags:
       - v1
@@ -183,7 +122,71 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIArtifact'
+          description: ''
+  /api/v1/ai/artifacts/{id}/content/:
+    get:
+      operationId: v1_ai_artifacts_content_retrieve
+      description: Inline text preview (csv/md/json) for small artifacts.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIArtifact'
+          description: ''
+  /api/v1/ai/artifacts/{id}/download/:
+    get:
+      operationId: v1_ai_artifacts_download_retrieve
+      description: User-facing read-only artifact view (Artifact Panel).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIArtifact'
+          description: ''
+  /api/v1/ai/artifacts/upload/:
+    post:
+      operationId: v1_ai_artifacts_upload_create
+      description: Upload user-provided artifact (csv/md) into current session.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIArtifact'
+          description: ''
   /api/v1/ai/models/:
     get:
       operationId: v1_ai_models_retrieve
@@ -199,6 +202,139 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ModelInfo'
+          description: ''
+  /api/v1/ai/runs/:
+    get:
+      operationId: v1_ai_runs_list
+      description: ViewSet for durable AI chat runs.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAIChatRunList'
+          description: ''
+  /api/v1/ai/runs/{id}/:
+    get:
+      operationId: v1_ai_runs_retrieve
+      description: ViewSet for durable AI chat runs.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatRun'
+          description: ''
+  /api/v1/ai/runs/{id}/answer/:
+    post:
+      operationId: v1_ai_runs_answer_create
+      description: Submit the user's answer for an awaiting-question durable run.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatRun'
+          description: ''
+  /api/v1/ai/runs/{id}/approval/:
+    post:
+      operationId: v1_ai_runs_approval_create
+      description: Submit approval/rejection for an awaiting durable run.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatRun'
+          description: ''
+  /api/v1/ai/runs/{id}/cancel/:
+    post:
+      operationId: v1_ai_runs_cancel_create
+      description: Request cancellation for a durable run.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatRun'
+          description: ''
+  /api/v1/ai/runs/{id}/events/:
+    get:
+      operationId: v1_ai_runs_events_retrieve
+      description: Subscribe to persisted events for a durable run.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatRun'
           description: ''
   /api/v1/ai/sessions/:
     get:
@@ -353,86 +489,14 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/ai/sessions/{id}/actions/{action_id}/cancel/:
-    post:
-      operationId: v1_ai_sessions_actions_cancel_create
-      description: Cancel a pending action.
-      parameters:
-      - in: path
-        name: action_id
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AISession'
-          description: ''
-  /api/v1/ai/sessions/{id}/actions/{action_id}/confirm/:
-    post:
-      operationId: v1_ai_sessions_actions_confirm_create
-      description: Confirm a pending action. Commit happens on next prompt (v2.2 protocol).
-      parameters:
-      - in: path
-        name: action_id
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AISession'
-          description: ''
   /api/v1/ai/sessions/{id}/clear/:
     post:
       operationId: v1_ai_sessions_clear_create
-      description: Clear all messages in a session.
+      description: |-
+        Clear all messages in a session and delete the LangGraph checkpoint.
+
+        Deletes both Django messages and the LangGraph checkpoint state so broken
+        threads (e.g. dangling tool_calls) are fully reset on the next message.
       parameters:
       - in: path
         name: id
@@ -484,28 +548,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/AISession'
           description: ''
-  /api/v1/ai/sessions/{id}/pending-actions/active/:
-    get:
-      operationId: v1_ai_sessions_pending_actions_active_retrieve
-      description: Get active pending action for this session (for page refresh recovery).
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AISession'
-          description: ''
   /api/v1/ai/sessions/{id}/rename/:
     post:
       operationId: v1_ai_sessions_rename_create
@@ -539,16 +581,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/AISession'
           description: ''
-  /api/v1/ai/sessions/{id}/resume_stream/:
+  /api/v1/ai/sessions/{id}/runs/:
     post:
-      operationId: v1_ai_sessions_resume_stream_create
-      description: |-
-        Resume an interrupted agent and stream the result.
-
-        Proxies to ai-service /api/chat/resume endpoint.
-
-        Request body:
-        - decision: str (required) - "approve" or "reject"
+      operationId: v1_ai_sessions_runs_create
+      description: Create a durable backend-controlled chat run for a session.
       parameters:
       - in: path
         name: id
@@ -578,85 +614,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/AISession'
           description: ''
-  /api/v1/ai/sessions/{id}/send_message_stream/:
-    post:
-      operationId: v1_ai_sessions_send_message_stream_create
-      description: |-
-        Send a message and stream AI response (proxied to ai-service).
-
-        設計說明：
-        - 所有 session 必須與認證用戶關聯
-        - pk 可以是：
-          - 現存 session_id（Claude SDK session ID）- 恢復現存會話
-          - backend_session_id（新會話的 UUID）- 新會話（需要初始化）
-          - 'new' 特殊值（向後相容）- 新會話
-        - 不支持匿名會話
-
-        Request body:
-        - content: str (required) - The message content
-        - skill: str (optional) - Skill to use for this message
-        - model: str (optional) - Model to use: 'haiku', 'sonnet', 'opus' (default: 'haiku')
-        - reference: object (optional) - Problem reference context
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
+  /api/v1/ai/sessions/credit/:
+    get:
+      operationId: v1_ai_sessions_credit_retrieve
+      description: GET /api/v1/ai/sessions/credit/ — return current user's AI usage.
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AISession'
-          description: ''
-  /api/v1/ai/sessions/{id}/submit_answer/:
-    post:
-      operationId: v1_ai_sessions_submit_answer_create
-      description: |-
-        Submit user's answer to a pending AskUserQuestion request.
-
-        Request body:
-        - request_id: str (required) - The request ID from the user_input_request event
-        - answers: dict (required) - Mapping of question text to selected option label(s)
-
-        This endpoint forwards the answer to the AI Service, which will resume
-        the blocked chat_stream.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AISessionRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -674,7 +637,7 @@ paths:
         Create a new session placeholder before first message.
 
         此 endpoint 用於前端建立新會話時獲取一個後端 session ID。
-        實際的 AISession 會在發送第一條訊息時才建立。
+        AISession 會在此時建立，讓前端可以在第一個 run 之前先綁定 artifact。
 
         Returns:
             {
@@ -820,19 +783,6 @@ paths:
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/auth/dev/token:
-    post:
-      operationId: v1_auth_dev_token_create
-      description: APIView with serializer support for schema generation.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      - {}
       responses:
         '200':
           description: No response body
@@ -983,96 +933,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: ''
-  /api/v1/auth/me/api-key:
-    get:
-      operationId: v1_auth_me_api_key_retrieve
-      description: Get API key status (without exposing the actual key).
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SetAPIKey'
-          description: ''
-    post:
-      operationId: v1_auth_me_api_key_create
-      description: Set/update API key.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SetAPIKeyRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/SetAPIKeyRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/SetAPIKeyRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SetAPIKey'
-          description: ''
-    delete:
-      operationId: v1_auth_me_api_key_destroy
-      description: Delete API key.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/auth/me/api-key/usage:
-    get:
-      operationId: v1_auth_me_api_key_usage_retrieve
-      description: Get usage statistics.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/auth/me/api-key/validate:
-    post:
-      operationId: v1_auth_me_api_key_validate_create
-      description: Validate API key.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ValidateAPIKeyRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ValidateAPIKeyRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ValidateAPIKeyRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
   /api/v1/auth/me/avatar/upload:
     post:
       operationId: v1_auth_me_avatar_upload_create
@@ -1632,18 +1492,6 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -1652,7 +1500,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassroomDetail'
+                $ref: '#/components/schemas/NotifyAnnouncementResponse'
           description: ''
   /api/v1/classrooms/{id}/announcements/create/:
     post:
@@ -2764,7 +2612,19 @@ paths:
   /api/v1/contests/{contest_pk}/exam-answers/all-answers/:
     get:
       operationId: v1_contests_exam_answers_all_answers_retrieve
-      description: List all answers for all students (TA/admin only).
+      description: |-
+        List all answers for all students (TA/admin only).
+
+        Query params:
+        - `participant_id` / `user_id`: filter by participant.
+        - `question_id`: filter by question.
+        - `projection=grading`: return slim rows wrapped in
+          `{"data": [...], "meta": {"count": N, "projection": "grading"}}`.
+          Drops per-row question/participant name duplicates. Consumers join via
+          `/exam-questions/` and the participants list.
+
+        Without `projection`, returns a bare array of ExamAnswerDetailSerializer
+        payloads (backward compatible).
       parameters:
       - in: path
         name: contest_pk
@@ -2803,7 +2663,13 @@ paths:
   /api/v1/contests/{contest_pk}/exam-answers/dashboard-summary/:
     get:
       operationId: v1_contests_exam_answers_dashboard_summary_retrieve
-      description: Contest result dashboard summary (teacher/admin only).
+      description: |-
+        Contest result dashboard summary (teacher/admin only).
+
+        Supports ``?kind=<alias|csv of enums>`` to filter the per-question
+        ``questions`` array (e.g. ``?kind=subjective``). Contest-level summary
+        (average, median, score distribution) is always computed over all
+        questions so numbers stay consistent across callers.
       parameters:
       - in: path
         name: contest_pk
@@ -3334,40 +3200,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExamEventCreate'
           description: ''
-  /api/v1/contests/{contest_pk}/exam/takeover-approve/:
-    post:
-      operationId: v1_contests_exam_takeover_approve_create
-      description: Composed ExamViewSet — all actions preserved, URL unchanged.
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
   /api/v1/contests/{contest_pk}/exam/videos/:
     get:
       operationId: v1_contests_exam_videos_retrieve
@@ -3557,6 +3389,7 @@ paths:
       description: |-
         ViewSet for contest coding problems.
         Primary model is ContestQuestionBinding.
+        Supports: list, retrieve, create, update (partial), destroy.
       parameters:
       - in: path
         name: contest_pk
@@ -3621,6 +3454,7 @@ paths:
       description: |-
         ViewSet for contest coding problems.
         Primary model is ContestQuestionBinding.
+        Supports: list, retrieve, create, update (partial), destroy.
       parameters:
       - in: path
         name: contest_pk
@@ -3637,6 +3471,46 @@ paths:
         required: true
       tags:
       - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestProblem'
+          description: ''
+    patch:
+      operationId: v1_contests_problems_partial_update
+      description: PATCH support — delegates to update with partial=True.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this contest question binding.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedContestProblemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedContestProblemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContestProblemRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5213,8 +5087,14 @@ paths:
     post:
       operationId: v1_management_problems_test_run_create
       description: |-
-        Execute code with sample + custom inputs without creating a submission.
+        Execute code against all stored test cases without creating a submission.
         Returns execution results immediately.
+
+        Access mirrors Submission: any authenticated user may invoke test_run as
+        long as they hold the problem id. If a `contest_id` is supplied, the
+        same SubmissionAccessPolicy used by real submissions is applied so that
+        contest-level rules (status, schedule, participant, exam state) gate
+        the run.
       parameters:
       - in: path
         name: id
@@ -5447,570 +5327,22 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/problems/:
+  /api/v1/question-banks/:
     get:
-      operationId: v1_problems_list
-      description: ViewSet for viewing and editing problems.
+      operationId: v1_question_banks_list
       parameters:
-      - in: query
-        name: difficulty
-        schema:
-          type: array
-          items:
-            type: string
-            enum:
-            - easy
-            - hard
-            - medium
-        description: |-
-          * `easy` - easy
-          * `medium` - medium
-          * `hard` - hard
-        explode: true
-        style: form
       - name: ordering
         required: false
         in: query
         description: Which field to use when ordering the results.
         schema:
           type: string
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
       - name: search
         required: false
         in: query
         description: A search term.
         schema:
           type: string
-      - in: query
-        name: tags
-        schema:
-          type: string
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedProblemListList'
-          description: ''
-    post:
-      operationId: v1_problems_create
-      description: ViewSet for viewing and editing problems.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-  /api/v1/problems/{id}/:
-    get:
-      operationId: v1_problems_retrieve
-      description: ViewSet for viewing and editing problems.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-    put:
-      operationId: v1_problems_update
-      description: ViewSet for viewing and editing problems.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-    patch:
-      operationId: v1_problems_partial_update
-      description: ViewSet for viewing and editing problems.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedProblemDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedProblemDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedProblemDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-    delete:
-      operationId: v1_problems_destroy
-      description: ViewSet for viewing and editing problems.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/problems/{id}/statistics/:
-    get:
-      operationId: v1_problems_statistics_retrieve
-      description: |-
-        Get problem statistics including status distribution and submission trend.
-
-        Query params:
-        - contest: Contest ID to filter submissions (optional)
-        - limit: Number of recent submissions for trend data (default: 100)
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-  /api/v1/problems/{id}/test_run/:
-    post:
-      operationId: v1_problems_test_run_create
-      description: |-
-        Execute code with sample + custom inputs without creating a submission.
-        Returns execution results immediately.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 題目.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ProblemDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-  /api/v1/problems/drafts/:
-    get:
-      operationId: v1_problems_drafts_retrieve
-      description: |-
-        List CodingProblems not in any question bank.
-        Teachers see their own asset-backed drafts; admins also see unresolved orphans.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
-  /api/v1/problems/tags/:
-    get:
-      operationId: v1_problems_tags_list
-      description: ViewSet for viewing and editing tags.
-      parameters:
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedTagList'
-          description: ''
-    post:
-      operationId: v1_problems_tags_create
-      description: ViewSet for viewing and editing tags.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TagRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TagRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TagRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Tag'
-          description: ''
-  /api/v1/problems/tags/{slug}/:
-    get:
-      operationId: v1_problems_tags_retrieve
-      description: ViewSet for viewing and editing tags.
-      parameters:
-      - in: path
-        name: slug
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Tag'
-          description: ''
-    put:
-      operationId: v1_problems_tags_update
-      description: ViewSet for viewing and editing tags.
-      parameters:
-      - in: path
-        name: slug
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TagRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TagRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/TagRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Tag'
-          description: ''
-    patch:
-      operationId: v1_problems_tags_partial_update
-      description: ViewSet for viewing and editing tags.
-      parameters:
-      - in: path
-        name: slug
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedTagRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedTagRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedTagRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Tag'
-          description: ''
-    delete:
-      operationId: v1_problems_tags_destroy
-      description: ViewSet for viewing and editing tags.
-      parameters:
-      - in: path
-        name: slug
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/question-bank-items/{id}/:
-    get:
-      operationId: v1_question_bank_items_retrieve
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBankItemWrite'
-          description: ''
-    put:
-      operationId: v1_question_bank_items_update
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/QuestionBankItemWriteRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/QuestionBankItemWriteRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/QuestionBankItemWriteRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBankItemWrite'
-          description: ''
-    patch:
-      operationId: v1_question_bank_items_partial_update
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedQuestionBankItemWriteRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedQuestionBankItemWriteRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedQuestionBankItemWriteRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBankItemWrite'
-          description: ''
-    delete:
-      operationId: v1_question_bank_items_destroy
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/question-bank-items/{id}/clone-to-my-bank/:
-    post:
-      operationId: v1_question_bank_items_clone_to_my_bank_create
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/QuestionBankItemWriteRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/QuestionBankItemWriteRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/QuestionBankItemWriteRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBankItemWrite'
-          description: ''
-  /api/v1/question-banks/:
-    get:
-      operationId: v1_question_banks_list
       tags:
       - v1
       security:
@@ -6175,6 +5507,127 @@ paths:
     post:
       operationId: v1_question_banks_questions_create
       parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuestionBankRequest'
+        required: true
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+  /api/v1/question-banks/{uuid}/questions/{question_id}/:
+    get:
+      operationId: v1_question_banks_questions_retrieve_2
+      parameters:
+      - in: path
+        name: question_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+    patch:
+      operationId: v1_question_banks_questions_partial_update
+      parameters:
+      - in: path
+        name: question_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestionBankRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestionBankRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestionBankRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionBank'
+          description: ''
+    delete:
+      operationId: v1_question_banks_questions_destroy
+      parameters:
+      - in: path
+        name: question_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/question-banks/{uuid}/questions/{question_id}/clone-to-my-bank/:
+    post:
+      operationId: v1_question_banks_questions_clone_to_my_bank_create
+      parameters:
+      - in: path
+        name: question_id
+        schema:
+          type: string
+        required: true
       - in: path
         name: uuid
         schema:
@@ -6623,98 +6076,174 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/users/me/api-key:
-    get:
-      operationId: v1_users_me_api_key_retrieve
-      description: Get API key status (without exposing the actual key).
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SetAPIKey'
-          description: ''
-    post:
-      operationId: v1_users_me_api_key_create
-      description: Set/update API key.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SetAPIKeyRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/SetAPIKeyRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/SetAPIKeyRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SetAPIKey'
-          description: ''
-    delete:
-      operationId: v1_users_me_api_key_destroy
-      description: Delete API key.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
-  /api/v1/users/me/api-key/usage:
-    get:
-      operationId: v1_users_me_api_key_usage_retrieve
-      description: Get usage statistics.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/users/me/api-key/validate:
-    post:
-      operationId: v1_users_me_api_key_validate_create
-      description: Validate API key.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ValidateAPIKeyRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ValidateAPIKeyRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ValidateAPIKeyRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
 components:
   schemas:
+    AIArtifact:
+      type: object
+      description: Metadata view of an artifact (no content).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        session_id:
+          type: string
+          readOnly: true
+        run_id:
+          type: string
+          nullable: true
+          readOnly: true
+        step:
+          type: string
+          readOnly: true
+          description: SOP 階段識別（例：rubric、raw_answers、calibration、graded、final_delta）
+        filename:
+          type: string
+          readOnly: true
+        object_key:
+          type: string
+          readOnly: true
+          description: MinIO 物件 key：ai-artifacts/{session_id}/{step}/{filename}
+        content_type:
+          type: string
+          readOnly: true
+        size_bytes:
+          type: integer
+          readOnly: true
+        checksum:
+          type: string
+          readOnly: true
+          description: 內容 sha256，用於完整性檢查
+        metadata:
+          readOnly: true
+          description: 自由欄位：artifact_type、rubric 摘要、評分進度等
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - checksum
+      - content_type
+      - created_at
+      - filename
+      - id
+      - metadata
+      - object_key
+      - run_id
+      - session_id
+      - size_bytes
+      - step
+      - updated_at
+    AIChatRun:
+      type: object
+      description: Serializer for durable AI chat runs.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        session_id:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AIChatRunStatusEnum'
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          readOnly: true
+        model_id:
+          type: string
+          readOnly: true
+        thread_id:
+          type: string
+          readOnly: true
+        external_run_id:
+          type: string
+          readOnly: true
+        celery_task_id:
+          type: string
+          readOnly: true
+        error:
+          type: string
+          readOnly: true
+        approval_payload:
+          readOnly: true
+        question_payload:
+          readOnly: true
+        cancel_requested:
+          type: boolean
+          readOnly: true
+        last_event_seq:
+          type: integer
+          readOnly: true
+        user_message_id:
+          type: integer
+          readOnly: true
+        assistant_message_id:
+          type: integer
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - approval_payload
+      - assistant_message_id
+      - cancel_requested
+      - celery_task_id
+      - completed_at
+      - created_at
+      - error
+      - external_run_id
+      - id
+      - kind
+      - last_event_seq
+      - model_id
+      - question_payload
+      - session_id
+      - started_at
+      - status
+      - thread_id
+      - updated_at
+      - user_message_id
+    AIChatRunStatusEnum:
+      enum:
+      - queued
+      - running
+      - awaiting_approval
+      - awaiting_user_answer
+      - completed
+      - failed
+      - cancelled
+      type: string
+      description: |-
+        * `queued` - Queued
+        * `running` - Running
+        * `awaiting_approval` - Awaiting approval
+        * `awaiting_user_answer` - Awaiting user answer
+        * `completed` - Completed
+        * `failed` - Failed
+        * `cancelled` - Cancelled
     AIMessage:
       type: object
       description: Serializer for AI messages.
@@ -6837,6 +6366,9 @@ components:
           type: integer
           title: 用戶
           description: 該會話所屬的用戶
+        context:
+          title: 上下文資料
+          description: 存儲額外的會話元數據（如標題、自定義數據等）
         created_at:
           type: string
           format: date-time
@@ -6869,9 +6401,45 @@ components:
           description: 存儲額外的會話元數據（如標題、自定義數據等）
     ActionEnum:
       enum:
-      - takeover_lock
+      - takeover_recovery
       type: string
-      description: '* `takeover_lock` - takeover_lock'
+      description: '* `takeover_recovery` - takeover_recovery'
+    ActionTypeEnum:
+      enum:
+      - register
+      - enter_contest
+      - start_exam
+      - end_exam
+      - auto_submit
+      - lock_user
+      - unlock_user
+      - submit_code
+      - ask_question
+      - reply_question
+      - update_contest
+      - update_problem
+      - update_participant
+      - concurrent_login_detected
+      - announce
+      - other
+      type: string
+      description: |-
+        * `register` - Register
+        * `enter_contest` - Enter Contest
+        * `start_exam` - Start Exam
+        * `end_exam` - End Exam
+        * `auto_submit` - Auto Submit
+        * `lock_user` - Lock User
+        * `unlock_user` - Unlock User
+        * `submit_code` - Submit Code
+        * `ask_question` - Ask Question
+        * `reply_question` - Reply Question
+        * `update_contest` - Update Contest
+        * `update_problem` - Update Problem
+        * `update_participant` - Update Participant
+        * `concurrent_login_detected` - Concurrent Login Detected
+        * `announce` - Announce
+        * `other` - Other
     Announcement:
       type: object
       properties:
@@ -7303,101 +6871,6 @@ components:
       - name
       - owner_username
       - uuid
-    CodeRunRequest:
-      type: object
-      description: Request body for POST /internal/code/run.
-      properties:
-        code:
-          type: string
-          maxLength: 100000
-        language:
-          $ref: '#/components/schemas/Language443Enum'
-        test_cases:
-          type: array
-          items:
-            $ref: '#/components/schemas/CodeRunTestCase'
-        time_limit:
-          type: integer
-          maximum: 10000
-          minimum: 100
-          default: 1000
-        memory_limit:
-          type: integer
-          maximum: 512
-          minimum: 16
-          default: 128
-      required:
-      - code
-      - language
-      - test_cases
-    CodeRunRequestRequest:
-      type: object
-      description: Request body for POST /internal/code/run.
-      properties:
-        code:
-          type: string
-          minLength: 1
-          maxLength: 100000
-        language:
-          $ref: '#/components/schemas/Language443Enum'
-        test_cases:
-          type: array
-          items:
-            $ref: '#/components/schemas/CodeRunTestCaseRequest'
-        time_limit:
-          type: integer
-          maximum: 10000
-          minimum: 100
-          default: 1000
-        memory_limit:
-          type: integer
-          maximum: 512
-          minimum: 16
-          default: 128
-      required:
-      - code
-      - language
-      - test_cases
-    CodeRunTestCase:
-      type: object
-      description: Single test case for code execution.
-      properties:
-        input:
-          type: string
-        expected_output:
-          type: string
-      required:
-      - expected_output
-      - input
-    CodeRunTestCaseRequest:
-      type: object
-      description: Single test case for code execution.
-      properties:
-        input:
-          type: string
-        expected_output:
-          type: string
-      required:
-      - expected_output
-      - input
-    CommitAction:
-      type: object
-      description: Serializer for internal commit action request.
-      properties:
-        action_id:
-          type: string
-          format: uuid
-      required:
-      - action_id
-    CommitActionRequest:
-      type: object
-      description: Serializer for internal commit action request.
-      properties:
-        action_id:
-          type: string
-          format: uuid
-      required:
-      - action_id
     ContestActivity:
       type: object
       description: Serializer for contest activities.
@@ -7414,7 +6887,7 @@ components:
           readOnly: true
         action_type:
           allOf:
-          - $ref: '#/components/schemas/ContestActivityActionTypeEnum'
+          - $ref: '#/components/schemas/ActionTypeEnum'
           title: 動作類型
         details:
           type: string
@@ -7431,46 +6904,6 @@ components:
       - id
       - user
       - username
-    ContestActivityActionTypeEnum:
-      enum:
-      - register
-      - enter_contest
-      - start_exam
-      - end_exam
-      - auto_submit
-      - lock_user
-      - unlock_user
-      - submit_code
-      - ask_question
-      - reply_question
-      - update_contest
-      - update_problem
-      - update_participant
-      - concurrent_login_detected
-      - takeover_lock
-      - takeover_approve
-      - announce
-      - other
-      type: string
-      description: |-
-        * `register` - Register
-        * `enter_contest` - Enter Contest
-        * `start_exam` - Start Exam
-        * `end_exam` - End Exam
-        * `auto_submit` - Auto Submit
-        * `lock_user` - Lock User
-        * `unlock_user` - Unlock User
-        * `submit_code` - Submit Code
-        * `ask_question` - Ask Question
-        * `reply_question` - Reply Question
-        * `update_contest` - Update Contest
-        * `update_problem` - Update Problem
-        * `update_participant` - Update Participant
-        * `concurrent_login_detected` - Concurrent Login Detected
-        * `takeover_lock` - Takeover Lock
-        * `takeover_approve` - Takeover Approve
-        * `announce` - Announce
-        * `other` - Other
     ContestAnnouncement:
       type: object
       description: Serializer for contest announcements.
@@ -8206,8 +7639,7 @@ components:
       type: object
       description: |-
         Serializer for coding problems within a contest.
-        Reads from ContestQuestionBinding (the unified binding model).
-        API response shape is unchanged for backward compatibility.
+        Reads from ContestQuestionBinding. The ``id`` field is the binding UUID.
       properties:
         id:
           type: string
@@ -8215,6 +7647,8 @@ components:
           readOnly: true
         problem_id:
           type: string
+          format: uuid
+          nullable: true
           readOnly: true
         title:
           type: string
@@ -8227,13 +7661,15 @@ components:
           maximum: 2147483647
           minimum: -2147483648
         score:
-          type: string
+          type: integer
           readOnly: true
         max_score:
-          type: string
+          type: integer
           readOnly: true
         source_bank:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/SourceBankInfo'
+          nullable: true
           readOnly: true
         source_question_id:
           type: string
@@ -8258,9 +7694,10 @@ components:
           readOnly: true
         user_status:
           type: string
+          nullable: true
           readOnly: true
         in_question_bank:
-          type: string
+          type: boolean
           readOnly: true
       required:
       - binding_id
@@ -8282,8 +7719,7 @@ components:
       type: object
       description: |-
         Serializer for coding problems within a contest.
-        Reads from ContestQuestionBinding (the unified binding model).
-        API response shape is unchanged for backward compatibility.
+        Reads from ContestQuestionBinding. The ``id`` field is the binding UUID.
       properties:
         order:
           type: integer
@@ -8429,8 +7865,6 @@ components:
       - exam_entered
       - exam_submit_initiated
       - concurrent_login_detected
-      - takeover_locked
-      - takeover_approved
       - heartbeat
       - heartbeat_timeout
       - listener_tampered
@@ -8470,8 +7904,6 @@ components:
         * `exam_entered` - Exam Entered
         * `exam_submit_initiated` - Exam Submit Initiated
         * `concurrent_login_detected` - Concurrent Login Detected
-        * `takeover_locked` - Takeover Locked
-        * `takeover_approved` - Takeover Approved
         * `heartbeat` - Heartbeat
         * `heartbeat_timeout` - Heartbeat Timeout
         * `listener_tampered` - Listener Tampered
@@ -8517,6 +7949,14 @@ components:
           minLength: 1
       required:
       - email
+    KindEnum:
+      enum:
+      - chat
+      - resume
+      type: string
+      description: |-
+        * `chat` - Chat
+        * `resume` - Resume
     Language040Enum:
       enum:
       - python
@@ -8529,18 +7969,6 @@ components:
         * `cpp` - C++ 20
         * `c` - C 11
         * `java` - Java 17
-    Language443Enum:
-      enum:
-      - cpp
-      - c++
-      - python
-      - py
-      type: string
-      description: |-
-        * `cpp` - cpp
-        * `c++` - c++
-        * `python` - python
-        * `py` - py
     LanguageConfig:
       type: object
       description: Serializer for language configuration.
@@ -8656,6 +8084,47 @@ components:
       - display_name
       - is_default
       - model_id
+    NotifyAnnouncementResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        count:
+          type: integer
+      required:
+      - count
+      - detail
+    OAuthApproveRequestRequest:
+      type: object
+      properties:
+        client_id:
+          type: string
+          minLength: 1
+        redirect_uri:
+          type: string
+          minLength: 1
+        response_type:
+          type: string
+          minLength: 1
+        state:
+          type: string
+          minLength: 1
+        code_challenge:
+          type: string
+          minLength: 1
+        code_challenge_method:
+          type: string
+          minLength: 1
+      required:
+      - client_id
+      - redirect_uri
+    OAuthApproveResponse:
+      type: object
+      properties:
+        redirect_uri:
+          type: string
+      required:
+      - redirect_uri
     OAuthCallback:
       type: object
       description: Serializer for OAuth callback.
@@ -8694,6 +8163,52 @@ components:
       required:
       - code
       - redirect_uri
+    PaginatedAIArtifactList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIArtifact'
+    PaginatedAIChatRunList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIChatRun'
     PaginatedAISessionListList:
       type: object
       required:
@@ -9239,8 +8754,7 @@ components:
       type: object
       description: |-
         Serializer for coding problems within a contest.
-        Reads from ContestQuestionBinding (the unified binding model).
-        API response shape is unchanged for backward compatibility.
+        Reads from ContestQuestionBinding. The ``id`` field is the binding UUID.
       properties:
         order:
           type: integer
@@ -9317,44 +8831,6 @@ components:
         required_keywords:
           title: 必須關鍵字
           description: 提交代碼中必須包含的關鍵字列表 (substring match)
-    PatchedQuestionBankItemWriteRequest:
-      type: object
-      properties:
-        question_type:
-          $ref: '#/components/schemas/QuestionTypeEnum'
-        title:
-          type: string
-          maxLength: 255
-        prompt:
-          type: string
-        options: {}
-        correct_answer:
-          nullable: true
-        score:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-        order:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-        difficulty:
-          type: string
-          minLength: 1
-          maxLength: 10
-        time_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-        memory_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-        metadata: {}
-        coding_ext:
-          allOf:
-          - $ref: '#/components/schemas/QuestionCodingExtRequest'
-          nullable: true
     PatchedQuestionBankRequest:
       type: object
       properties:
@@ -9451,131 +8927,6 @@ components:
       properties:
         role:
           $ref: '#/components/schemas/UserRoleUpdateRoleEnum'
-    PendingAction:
-      type: object
-      description: Serializer for AIPendingAction.
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        session:
-          type: string
-          title: Claude SDK Session ID
-          description: 由 Claude Agent SDK 返回的唯一會話 ID
-          readOnly: true
-        action_type:
-          allOf:
-          - $ref: '#/components/schemas/PendingActionActionTypeEnum'
-          readOnly: true
-          title: 動作類型
-        target_problem:
-          type: string
-          format: uuid
-          readOnly: true
-          nullable: true
-          title: 目標題目
-        payload:
-          readOnly: true
-          title: 寫入資料
-          description: 完整題目 JSON (create) 或 RFC6902 patch ops (patch)
-        preview:
-          readOnly: true
-          title: 預覽資料
-          description: 人可讀的預覽
-        status:
-          allOf:
-          - $ref: '#/components/schemas/PendingActionStatusEnum'
-          readOnly: true
-          title: 狀態
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 建立時間
-        expires_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 過期時間
-          description: 預設 created_at + 30 分鐘
-      required:
-      - action_type
-      - created_at
-      - expires_at
-      - id
-      - payload
-      - preview
-      - session
-      - status
-      - target_problem
-    PendingActionActionTypeEnum:
-      enum:
-      - create
-      - patch
-      type: string
-      description: |-
-        * `create` - 建立題目
-        * `patch` - 修改題目
-    PendingActionStatusEnum:
-      enum:
-      - pending
-      - confirmed
-      - executed
-      - cancelled
-      - expired
-      - failed
-      type: string
-      description: |-
-        * `pending` - 等待確認
-        * `confirmed` - 已確認
-        * `executed` - 已執行
-        * `cancelled` - 已取消
-        * `expired` - 已過期
-        * `failed` - 執行失敗
-    PrepareAction:
-      type: object
-      description: Serializer for internal prepare action request.
-      properties:
-        session_id:
-          type: string
-          maxLength: 100
-        user_id:
-          type: integer
-        action_type:
-          $ref: '#/components/schemas/PrepareActionActionTypeEnum'
-        payload: {}
-      required:
-      - action_type
-      - payload
-      - session_id
-      - user_id
-    PrepareActionActionTypeEnum:
-      enum:
-      - create
-      - patch
-      type: string
-      description: |-
-        * `create` - create
-        * `patch` - patch
-    PrepareActionRequest:
-      type: object
-      description: Serializer for internal prepare action request.
-      properties:
-        session_id:
-          type: string
-          minLength: 1
-          maxLength: 100
-        user_id:
-          type: integer
-        action_type:
-          $ref: '#/components/schemas/PrepareActionActionTypeEnum'
-        payload: {}
-      required:
-      - action_type
-      - payload
-      - session_id
-      - user_id
     ProblemDetail:
       type: object
       description: Serializer for problem detail (full info).
@@ -9650,13 +9001,19 @@ components:
           type: string
           format: uuid
           readOnly: true
-        translation:
+        description:
+          type: string
+          readOnly: true
+        input_description:
+          type: string
+          readOnly: true
+        output_description:
+          type: string
+          readOnly: true
+        hint:
           type: string
           readOnly: true
         samples:
-          type: string
-          readOnly: true
-        translations:
           type: string
           readOnly: true
         test_cases:
@@ -9682,17 +9039,19 @@ components:
           description: 提交代碼中必須包含的關鍵字列表 (substring match)
       required:
       - acceptance_rate
+      - description
       - difficulty
+      - hint
       - id
+      - input_description
       - language_configs
+      - output_description
       - question_asset_id
       - question_version_id
       - samples
       - tags
       - test_cases
       - title
-      - translation
-      - translations
     ProblemDetailRequest:
       type: object
       description: Serializer for problem detail (full info).
@@ -9910,7 +9269,7 @@ components:
           type: string
           readOnly: true
         is_subscribed:
-          type: string
+          type: boolean
           readOnly: true
         created_at:
           type: string
@@ -9935,81 +9294,6 @@ components:
       - submitted_at
       - updated_at
       - verified
-    QuestionBankItemWrite:
-      type: object
-      properties:
-        question_type:
-          $ref: '#/components/schemas/QuestionTypeEnum'
-        title:
-          type: string
-          maxLength: 255
-        prompt:
-          type: string
-        options: {}
-        correct_answer:
-          nullable: true
-        score:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-        order:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-        difficulty:
-          type: string
-          maxLength: 10
-        time_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-        memory_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-        metadata: {}
-        coding_ext:
-          allOf:
-          - $ref: '#/components/schemas/QuestionCodingExt'
-          nullable: true
-    QuestionBankItemWriteRequest:
-      type: object
-      properties:
-        question_type:
-          $ref: '#/components/schemas/QuestionTypeEnum'
-        title:
-          type: string
-          maxLength: 255
-        prompt:
-          type: string
-        options: {}
-        correct_answer:
-          nullable: true
-        score:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-        order:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-        difficulty:
-          type: string
-          minLength: 1
-          maxLength: 10
-        time_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-        memory_limit:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-        metadata: {}
-        coding_ext:
-          allOf:
-          - $ref: '#/components/schemas/QuestionCodingExtRequest'
-          nullable: true
     QuestionBankRequest:
       type: object
       properties:
@@ -10032,30 +9316,6 @@ components:
           $ref: '#/components/schemas/VisibilityEnum'
       required:
       - name
-    QuestionCodingExt:
-      type: object
-      properties:
-        translations: {}
-        test_cases: {}
-        language_configs: {}
-        forbidden_keywords: {}
-        required_keywords: {}
-    QuestionCodingExtRequest:
-      type: object
-      properties:
-        translations: {}
-        test_cases: {}
-        language_configs: {}
-        forbidden_keywords: {}
-        required_keywords: {}
-    QuestionTypeEnum:
-      enum:
-      - coding
-      - exam
-      type: string
-      description: |-
-        * `coding` - Coding
-        * `exam` - Exam
     Register:
       type: object
       description: Serializer for user registration with email/password.
@@ -10125,7 +9385,7 @@ components:
       - token
     ResolveConflict:
       type: object
-      description: Serializer for login conflict resolution (device takeover lock).
+      description: Serializer for login conflict resolution (device takeover recovery).
       properties:
         conflict_token:
           type: string
@@ -10137,7 +9397,7 @@ components:
       - conflict_token
     ResolveConflictRequest:
       type: object
-      description: Serializer for login conflict resolution (device takeover lock).
+      description: Serializer for login conflict resolution (device takeover recovery).
       properties:
         conflict_token:
           type: string
@@ -10192,33 +9452,16 @@ components:
         * `copy` - 複製
         * `paste` - 貼上
         * `fullscreen_exit` - 退出全螢幕
-    SetAPIKey:
+    SourceBankInfo:
       type: object
-      description: Serializer for setting/updating API Key.
       properties:
-        key_name:
+        id:
           type: string
-          default: My API Key
-          description: Human-readable name for this API Key
-          maxLength: 100
-    SetAPIKeyRequest:
-      type: object
-      description: Serializer for setting/updating API Key.
-      properties:
-        api_key:
+        name:
           type: string
-          writeOnly: true
-          minLength: 1
-          description: Anthropic API Key (sk-ant-...)
-          maxLength: 255
-        key_name:
-          type: string
-          minLength: 1
-          default: My API Key
-          description: Human-readable name for this API Key
-          maxLength: 100
       required:
-      - api_key
+      - id
+      - name
     SourceTypeEnum:
       enum:
       - practice
@@ -10973,18 +10216,6 @@ components:
         * `student` - student
         * `teacher` - teacher
         * `admin` - admin
-    ValidateAPIKeyRequest:
-      type: object
-      description: Serializer for validating API Key.
-      properties:
-        api_key:
-          type: string
-          writeOnly: true
-          minLength: 1
-          description: Anthropic API Key to validate
-          maxLength: 255
-      required:
-      - api_key
     VisibilityEnum:
       enum:
       - public
@@ -11006,4 +10237,9 @@ components:
       bearerFormat: JWT
     oauth2:
       type: oauth2
-      flows: {}
+      flows:
+        authorizationCode:
+          authorizationUrl: null
+          tokenUrl: null
+          scopes:
+            mcp: Access QJudge via MCP

@@ -10,7 +10,6 @@ import type {
   RegisterCredentials,
   ChangePasswordRequest,
   UpdatePreferencesRequest,
-  SetAPIKeyRequest,
 } from "@/core/entities/auth.entity";
 import type {
   AuthResponseDto,
@@ -20,8 +19,6 @@ import type {
   TeacherActivationIssueResponseDto,
   TeacherActivationPreviewResponseDto,
   TeacherActivationConsumeResponseDto,
-  APIKeyResponseDto,
-  UsageStatsResponseDto,
   LoginRecordsResponseDto,
   UploadAvatarResponseDto,
 } from "@/infrastructure/api/dto/auth.dto";
@@ -229,40 +226,6 @@ export const getLoginRecords = async (): Promise<LoginRecordsResponseDto> => {
 };
 
 // ============================================================================
-// API Key Management
-// ============================================================================
-
-export const getAPIKeyInfo = async (): Promise<APIKeyResponseDto> => {
-  return requestJson<APIKeyResponseDto>(
-    httpClient.get("/api/v1/auth/me/api-key"),
-    "Failed to fetch API key info"
-  );
-};
-
-export const setAPIKey = async (data: SetAPIKeyRequest): Promise<APIKeyResponseDto> => {
-  return requestJson<APIKeyResponseDto>(
-    httpClient.post("/api/v1/auth/me/api-key", data),
-    "Failed to set API key"
-  );
-};
-
-export const deleteAPIKey = async (): Promise<void> => {
-  await ensureOk(httpClient.delete("/api/v1/auth/me/api-key"), "Failed to delete API key");
-};
-
-export const getUsageStats = async (params: {
-  start_date?: string;
-  end_date?: string;
-  granularity?: string;
-}): Promise<UsageStatsResponseDto> => {
-  const query = new URLSearchParams(params as any).toString();
-  return requestJson<UsageStatsResponseDto>(
-    httpClient.get(`/api/v1/auth/me/api-key/usage?${query}`),
-    "Failed to fetch usage data"
-  );
-};
-
-// ============================================================================
 // Repository Instance
 // ============================================================================
 
@@ -287,10 +250,6 @@ export const authRepository = {
   getOAuthUrl,
   oauthCallback,
   getLoginRecords,
-  getAPIKeyInfo,
-  setAPIKey,
-  deleteAPIKey,
-  getUsageStats,
 };
 
 export default authRepository;
