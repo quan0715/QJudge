@@ -63,11 +63,6 @@ def _serialize_bank_question_response(*, question=None, membership=None):
                 "question_asset",
                 "question_asset__latest_version",
                 "added_by",
-                "legacy_question",
-                "legacy_question__coding_ext",
-                "legacy_question__source_bank",
-                "legacy_question__created_by",
-                "legacy_question__question_version",
             )
             .filter(legacy_question=question)
             .first()
@@ -540,4 +535,3 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         cloned = clone_question_to_bank(source_question, target_bank, request.user)
         cloned.refresh_from_db()
         return Response(_serialize_bank_question_response(question=cloned), status=status.HTTP_201_CREATED)
-

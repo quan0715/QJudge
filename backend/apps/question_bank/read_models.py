@@ -98,26 +98,24 @@ def _question_type_for_asset_type(asset_type: str) -> str:
     return Question.QuestionType.CODING if asset_type == QuestionAsset.AssetType.CODING else Question.QuestionType.EXAM
 
 
+def _usage_ids_for_membership(membership: QuestionBankMembership) -> list[str]:
+    version = membership.question_asset.latest_version
+    payload = version.payload if version and isinstance(version.payload, dict) else {}
+    return [
+        str(value)
+        for value in (
+            payload.get("source_question_id"),
+            payload.get("legacy_problem_id"),
+            payload.get("legacy_exam_question_id"),
+            membership.question_asset_id,
+        )
+        if value
+    ]
+
+
 def _coding_ext_from_membership(membership: QuestionBankMembership, payload: dict) -> dict | None:
     from .question_assets import extract_content_from_payload
 
-    legacy_question = membership.legacy_question
-    if legacy_question and hasattr(legacy_question, "coding_ext"):
-        ext = legacy_question.coding_ext
-        # Flatten legacy translations[0] to top-level content fields
-        legacy_translations = ext.translations or []
-        if legacy_translations and isinstance(legacy_translations, list):
-            t = legacy_translations[0] if isinstance(legacy_translations[0], dict) else {}
-            content = {k: t.get(k, "") for k in ("description", "input_description", "output_description", "hint")}
-        else:
-            content = {"description": "", "input_description": "", "output_description": "", "hint": ""}
-        return {
-            **content,
-            "test_cases": ext.test_cases or [],
-            "language_configs": ext.language_configs or [],
-            "forbidden_keywords": ext.forbidden_keywords or [],
-            "required_keywords": ext.required_keywords or [],
-        }
     if membership.question_asset.asset_type != QuestionAsset.AssetType.CODING:
         return None
     content = extract_content_from_payload(payload)
@@ -136,26 +134,24 @@ def _build_bank_question_read_row(
     membership: QuestionBankMembership,
     usage_map: dict,
 ) -> BankQuestionReadRow:
-    legacy_question = membership.legacy_question
-    version = None
-    if legacy_question and legacy_question.question_version_id:
-        version = legacy_question.question_version
-    if version is None:
-        version = membership.question_asset.latest_version
+    version = membership.question_asset.latest_version
     payload = version.payload if version and isinstance(version.payload, dict) else {}
 
     row_id = str(membership.id)
-    question_type = (
-        legacy_question.question_type
-        if legacy_question
-        else _question_type_for_asset_type(membership.question_asset.asset_type)
+    question_type = _question_type_for_asset_type(membership.question_asset.asset_type)
+    source_question_id = (
+        payload.get("source_question_id")
+        or payload.get("legacy_problem_id")
+        or payload.get("legacy_exam_question_id")
     )
-    contest_usages = usage_map.get(str(legacy_question.id), []) if legacy_question else []
+    source_bank_id = payload.get("source_bank_id")
+    source_bank_name = payload.get("source_bank_name")
+    contest_usage_key = str(source_question_id) if source_question_id else str(membership.question_asset_id)
 
     return BankQuestionReadRow(
         id=row_id,
         bank_item_id=row_id,
-        adapter_question_id=str(legacy_question.id) if legacy_question else None,
+        adapter_question_id=None,
         bank=str(bank.uuid),
         question_type=question_type,
         title=(version.title if version else membership.question_asset.title) or "",
@@ -167,25 +163,21 @@ def _build_bank_question_read_row(
         difficulty=payload.get("difficulty") or "medium",
         time_limit=int(payload.get("time_limit") or 1000),
         memory_limit=int(payload.get("memory_limit") or 128),
-        source_question_id=str(legacy_question.source_question_id) if legacy_question and legacy_question.source_question_id else None,
-        source_bank_id=str(legacy_question.source_bank.uuid) if legacy_question and legacy_question.source_bank_id else None,
-        source_bank_name=legacy_question.source_bank.name if legacy_question and legacy_question.source_bank_id else None,
-        contest_usages=contest_usages,
+        source_question_id=str(source_question_id) if source_question_id else None,
+        source_bank_id=str(source_bank_id) if source_bank_id else None,
+        source_bank_name=str(source_bank_name) if source_bank_name else None,
+        contest_usages=usage_map.get(contest_usage_key, []),
         question_asset_id=str(membership.question_asset_id) if membership.question_asset_id else None,
         question_version_id=str(version.id) if version else None,
         metadata=(payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}) or {},
         created_by_username=(
-            legacy_question.created_by.username
-            if legacy_question and legacy_question.created_by_id
-            else (
-                membership.added_by.username
-                if membership.added_by_id
-                else membership.question_asset.owner.username
-            )
+            membership.added_by.username
+            if membership.added_by_id
+            else membership.question_asset.owner.username
         ),
         coding_ext=_coding_ext_from_membership(membership, payload),
-        created_at=legacy_question.created_at if legacy_question else membership.created_at,
-        updated_at=legacy_question.updated_at if legacy_question else membership.updated_at,
+        created_at=membership.created_at,
+        updated_at=membership.updated_at,
     )
 
 
@@ -262,7 +254,7 @@ def _build_legacy_bank_question_read_row(
 
 
 def build_read_row_for_membership(*, membership: QuestionBankMembership) -> BankQuestionReadRow:
-    usage_map = build_contest_usage_map([str(membership.legacy_question_id)] if membership.legacy_question_id else [])
+    usage_map = build_contest_usage_map(_usage_ids_for_membership(membership))
     return _build_bank_question_read_row(
         bank=membership.bank,
         membership=membership,
@@ -286,17 +278,13 @@ def get_bank_questions_payload(*, bank: QuestionBank) -> list[BankQuestionReadRo
             "question_asset__owner",
             "question_asset__latest_version",
             "added_by",
-            "legacy_question",
-            "legacy_question__coding_ext",
-            "legacy_question__source_bank",
-            "legacy_question__created_by",
-            "legacy_question__question_version",
         )
         .order_by("order", "id")
     )
-    legacy_question_ids = [str(membership.legacy_question_id) for membership in memberships if membership.legacy_question_id]
-    all_usage_ids = legacy_question_ids
-    usage_map = build_contest_usage_map(all_usage_ids)
+    usage_ids = []
+    for membership in memberships:
+        usage_ids.extend(_usage_ids_for_membership(membership))
+    usage_map = build_contest_usage_map(usage_ids)
     rows = [
         _build_bank_question_read_row(
             bank=bank,
@@ -347,11 +335,6 @@ def get_membership_queryset_for_user(*, user, allow_cloneable=False):
         "question_asset__owner",
         "question_asset__latest_version",
         "added_by",
-        "legacy_question",
-        "legacy_question__coding_ext",
-        "legacy_question__source_bank",
-        "legacy_question__created_by",
-        "legacy_question__question_version",
     ).filter(bank__is_archived=False)
 
     if allow_cloneable:
