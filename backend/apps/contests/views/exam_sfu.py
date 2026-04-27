@@ -15,6 +15,13 @@ from ..services.realtime_sfu import (
     build_room_id,
     get_realtime_sfu_config,
 )
+from ..services.realtime_sfu_registry import (
+    extract_first_local_track_name,
+    get_publisher,
+    refresh_publisher,
+    register_publisher,
+    remove_publisher,
+)
 
 
 def _sfu_error_response(exc: RealtimeSfuError) -> Response:
@@ -115,6 +122,7 @@ class ExamSfuMixin:
         if not isinstance(payload, dict):
             return Response({"error": "payload is required"}, status=status.HTTP_400_BAD_REQUEST)
 
+        participant = None
         if role == "subscriber":
             if not can_manage_contest(request.user, contest):
                 return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
@@ -131,9 +139,22 @@ class ExamSfuMixin:
                 return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            return Response(RealtimeSfuClient().add_tracks(str(session_id), payload))
+            response_payload = RealtimeSfuClient().add_tracks(str(session_id), payload)
         except RealtimeSfuError as exc:
             return _sfu_error_response(exc)
+
+        if role != "subscriber" and participant is not None:
+            track_name = extract_first_local_track_name(payload)
+            if track_name:
+                response_payload["publisher"] = register_publisher(
+                    contest_id=contest.id,
+                    user_id=participant.user_id,
+                    session_id=str(session_id),
+                    track_name=track_name,
+                    room_id=build_room_id(contest.id, participant.user_id),
+                )
+
+        return Response(response_payload)
 
     @action(
         detail=False,
@@ -156,3 +177,62 @@ class ExamSfuMixin:
             return Response(RealtimeSfuClient().renegotiate(str(session_id), payload))
         except RealtimeSfuError as exc:
             return _sfu_error_response(exc)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"sfu/publishers/(?P<target_user_id>\d+)",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def sfu_get_publisher(self, request, contest_pk=None, target_user_id=None):
+        contest = get_object_or_404(Contest, id=contest_pk)
+        if not can_manage_contest(request.user, contest):
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        target = ContestParticipant.objects.filter(
+            contest=contest,
+            user_id=target_user_id,
+        ).first()
+        if not target:
+            return Response({"error": "target participant not found"}, status=status.HTTP_404_NOT_FOUND)
+        publisher = get_publisher(contest.id, target.user_id)
+        return Response({"active": bool(publisher), "publisher": publisher})
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="sfu/publisher/heartbeat",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def sfu_publisher_heartbeat(self, request, contest_pk=None):
+        contest = get_object_or_404(Contest, id=contest_pk)
+        participant, error_response = validate_exam_operation(
+            contest,
+            request.user,
+            require_in_progress=False,
+            allow_admin_bypass=False,
+        )
+        if error_response:
+            return error_response
+        if participant is None:
+            return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
+        publisher = refresh_publisher(contest.id, participant.user_id)
+        return Response({"active": bool(publisher), "publisher": publisher})
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="sfu/publisher/stop",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def sfu_publisher_stop(self, request, contest_pk=None):
+        contest = get_object_or_404(Contest, id=contest_pk)
+        participant = ContestParticipant.objects.filter(contest=contest, user=request.user).first()
+        if not participant:
+            return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
+        session_id = request.data.get("session_id")
+        remaining = remove_publisher(
+            contest.id,
+            participant.user_id,
+            session_id=str(session_id) if session_id else None,
+        )
+        return Response({"active": bool(remaining), "publisher": remaining})

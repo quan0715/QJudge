@@ -247,6 +247,7 @@ export interface ParticipantEvidenceRowDto {
 
 export interface EventFeedItemDto {
   incident_key?: string;
+  event_id?: string | number;
   event_type?: string;
   priority?: number;
   category?: string;

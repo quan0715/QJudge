@@ -70,9 +70,15 @@ interface SideMenuProps {
   isOpen?: boolean;
   onClose?: () => void;
   variant?: "drawer" | "panel";
+  compact?: boolean;
 }
 
-export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, variant = "drawer" }) => {
+export const SideMenu: React.FC<SideMenuProps> = ({
+  isOpen = false,
+  onClose,
+  variant = "drawer",
+  compact = false,
+}) => {
   const isPanelMode = variant === "panel";
   const { t } = useTranslation("common");
   const { t: tClassroom } = useTranslation("classroom");
@@ -357,6 +363,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen = false, onClose, var
         className={[
           "side-menu",
           isPanelMode ? "side-menu--panel" : isOpen ? "side-menu--open" : "",
+          compact ? "side-menu--mini" : "",
         ].filter(Boolean).join(" ")}
         aria-label={t("header.sideNav", "Side navigation")}
       >

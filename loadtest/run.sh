@@ -185,7 +185,7 @@ case "$command" in
     DC ps
     ;;
   logs)
-    DC logs -f --tail=200 backend-test celery-test celery-video-test pgbouncer-test
+    DC logs -f --tail=200 backend-test celery-test pgbouncer-test
     ;;
   *)
     usage

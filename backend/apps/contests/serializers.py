@@ -16,7 +16,6 @@ from .models import (
     ExamStatus,
     AssignmentState,
     ExamAnswer,
-    ExamEvidenceVideo,
 )
 from django.db.models import Sum
 from .permissions import can_manage_contest, get_contest_permissions, get_user_role_in_contest
@@ -985,58 +984,6 @@ class ContestActivitySerializer(serializers.ModelSerializer):
         model = ContestActivity
         fields = ['id', 'user', 'username', 'action_type', 'details', 'created_at']
         read_only_fields = ['id', 'user', 'created_at']
-
-
-class ExamEvidenceVideoSerializer(serializers.ModelSerializer):
-    participant_user_id = serializers.IntegerField(source="participant.user_id", read_only=True)
-    participant_username = serializers.CharField(source="participant.user.username", read_only=True)
-    suspected_by_username = serializers.CharField(source="suspected_by.username", read_only=True)
-
-    class Meta:
-        model = ExamEvidenceVideo
-        fields = [
-            "id",
-            "participant_user_id",
-            "participant_username",
-            "source_module",
-            "upload_session_id",
-            "bucket",
-            "object_key",
-            "duration_seconds",
-            "frame_count",
-            "size_bytes",
-            "recording_started_at",
-            "recording_finished_at",
-            "is_suspected",
-            "suspected_note",
-            "suspected_by",
-            "suspected_by_username",
-            "suspected_at",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = [
-            "id",
-            "participant_user_id",
-            "participant_username",
-            "bucket",
-            "object_key",
-            "duration_seconds",
-            "frame_count",
-            "size_bytes",
-            "recording_started_at",
-            "recording_finished_at",
-            "suspected_by",
-            "suspected_by_username",
-            "suspected_at",
-            "created_at",
-            "updated_at",
-        ]
-
-
-class ExamEvidenceVideoFlagSerializer(serializers.Serializer):
-    is_suspected = serializers.BooleanField(required=True)
-    note = serializers.CharField(required=False, allow_blank=True, max_length=1000)
 
 
 # ============================================================================

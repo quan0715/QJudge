@@ -162,6 +162,15 @@ export interface RealtimeSfuSessionDto {
   [key: string]: unknown;
 }
 
+export interface RealtimeSfuPublisherDto {
+  contest_id: number;
+  user_id: number;
+  session_id: string;
+  track_name: string;
+  room_id: string;
+  updated_at: string;
+}
+
 export interface RealtimeSfuTrackRequest {
   sessionDescription?: RtcSessionDescriptionDto;
   tracks?: Array<Record<string, unknown>>;
@@ -171,6 +180,7 @@ export interface RealtimeSfuTrackResponse {
   requiresImmediateRenegotiation?: boolean;
   sessionDescription?: RtcSessionDescriptionDto;
   tracks?: Array<Record<string, unknown>>;
+  publisher?: RealtimeSfuPublisherDto;
   [key: string]: unknown;
 }
 
@@ -221,6 +231,37 @@ export const renegotiateRealtimeSfuSession = async (
       payload
     ),
     "Failed to renegotiate Realtime SFU session"
+  );
+};
+
+export const getRealtimeSfuPublisher = async (
+  contestId: string,
+  targetUserId: string | number
+): Promise<{ active: boolean; publisher: RealtimeSfuPublisherDto | null }> => {
+  return requestJson<{ active: boolean; publisher: RealtimeSfuPublisherDto | null }>(
+    httpClient.get(`/api/v1/contests/${contestId}/exam/sfu/publishers/${targetUserId}/`),
+    "Failed to fetch Realtime SFU publisher"
+  );
+};
+
+export const heartbeatRealtimeSfuPublisher = async (
+  contestId: string
+): Promise<{ active: boolean; publisher: RealtimeSfuPublisherDto | null }> => {
+  return requestJson<{ active: boolean; publisher: RealtimeSfuPublisherDto | null }>(
+    httpClient.post(`/api/v1/contests/${contestId}/exam/sfu/publisher/heartbeat/`, {}),
+    "Failed to refresh Realtime SFU publisher"
+  );
+};
+
+export const stopRealtimeSfuPublisher = async (
+  contestId: string,
+  sessionId?: string
+): Promise<{ active: boolean; publisher?: RealtimeSfuPublisherDto | null }> => {
+  return requestJson<{ active: boolean; publisher?: RealtimeSfuPublisherDto | null }>(
+    httpClient.post(`/api/v1/contests/${contestId}/exam/sfu/publisher/stop/`, {
+      session_id: sessionId,
+    }),
+    "Failed to stop Realtime SFU publisher"
   );
 };
 
@@ -486,112 +527,6 @@ export const uploadAnticheatBatch = async (
   );
 };
 
-export interface ExamVideoDto {
-  id: number;
-  job_id?: number;
-  participant_user_id: number;
-  participant_username: string;
-  source_module?: "screen_share" | "webcam";
-  upload_session_id: string;
-  bucket: string;
-  object_key: string;
-  duration_seconds: number;
-  frame_count: number;
-  size_bytes: number;
-  recording_started_at?: string | null;
-  recording_finished_at?: string | null;
-  is_suspected: boolean;
-  suspected_note: string;
-  suspected_by?: number | null;
-  suspected_by_username?: string | null;
-  suspected_at?: string | null;
-  created_at: string;
-  updated_at: string;
-  has_video?: boolean;
-  job_status?: "pending" | "running" | "success" | "failed" | "no_data";
-  job_error_message?: string;
-  job_raw_count?: number;
-  job_updated_at?: string;
-  last_activity_at?: string;
-}
-
-export const listExamVideos = async (
-  contestId: string,
-  params?: { user_id?: string; flagged?: boolean }
-): Promise<ExamVideoDto[]> => {
-  const search = new URLSearchParams();
-  if (params?.user_id) search.set("user_id", params.user_id);
-  if (params?.flagged) search.set("flagged", "true");
-  const query = search.toString();
-  return requestJson<ExamVideoDto[]>(
-    httpClient.get(`/api/v1/contests/${contestId}/exam/videos/${query ? `?${query}` : ""}`),
-    "Failed to fetch exam videos"
-  );
-};
-
-export const getExamVideoPlayUrl = async (
-  contestId: string,
-  videoId: number
-): Promise<{ url: string; expires_in: number }> => {
-  return requestJson<{ url: string; expires_in: number }>(
-    httpClient.get(`/api/v1/contests/${contestId}/exam/videos/${videoId}/play-url/`),
-    "Failed to fetch video play URL"
-  );
-};
-
-export const getExamVideoDownloadUrl = async (
-  contestId: string,
-  videoId: number
-): Promise<{ url: string; expires_in: number }> => {
-  return requestJson<{ url: string; expires_in: number }>(
-    httpClient.get(`/api/v1/contests/${contestId}/exam/videos/${videoId}/download-url/`),
-    "Failed to fetch video download URL"
-  );
-};
-
-export const compileExamVideos = async (
-  contestId: string,
-  targets: Array<{ user_id: number; upload_session_id?: string; source_module?: "screen_share" | "webcam" }>,
-): Promise<{ queued: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam" }> }> => {
-  return requestJson<{ queued: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam" }> }>(
-    httpClient.post(
-      `/api/v1/contests/${contestId}/exam/videos/compile/`,
-      { targets },
-    ),
-    "Failed to trigger video compilation"
-  );
-};
-
-export const deleteExamVideos = async (
-  contestId: string,
-  targets: Array<{ user_id: number; upload_session_id?: string; source_module?: "screen_share" | "webcam" }>,
-): Promise<{
-  deleted: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam" }>;
-  blocked: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam"; reason: string }>;
-}> => {
-  return requestJson<{
-    deleted: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam" }>;
-    blocked: Array<{ user_id: number; upload_session_id: string; source_module: "screen_share" | "webcam"; reason: string }>;
-  }>(
-    httpClient.post(
-      `/api/v1/contests/${contestId}/exam/videos/delete/`,
-      { targets },
-    ),
-    "Failed to delete exam videos"
-  );
-};
-
-export const flagExamVideo = async (
-  contestId: string,
-  videoId: number,
-  payload: { is_suspected: boolean; note?: string }
-): Promise<ExamVideoDto> => {
-  return requestJson<ExamVideoDto>(
-    httpClient.patch(`/api/v1/contests/${contestId}/exam/videos/${videoId}/flag/`, payload),
-    "Failed to update video flag"
-  );
-};
-
 export interface ScreenshotFrame {
   url: string;
   ts_ms: number;
@@ -606,6 +541,8 @@ export const fetchScreenshots = async (
     user_id: string;
     ts_from?: number;
     ts_to?: number;
+    event_id?: string | number;
+    evidence_cluster_id?: string;
     upload_session_id?: string;
     source_module?: "screen_share" | "webcam";
     object_keys?: string[];
@@ -616,6 +553,8 @@ export const fetchScreenshots = async (
   search.set("user_id", params.user_id);
   if (params.ts_from != null) search.set("ts_from", String(params.ts_from));
   if (params.ts_to != null) search.set("ts_to", String(params.ts_to));
+  if (params.event_id != null) search.set("event_id", String(params.event_id));
+  if (params.evidence_cluster_id) search.set("evidence_cluster_id", params.evidence_cluster_id);
   if (params.upload_session_id) search.set("upload_session_id", params.upload_session_id);
   if (params.source_module) search.set("source_module", params.source_module);
   if (params.object_keys?.length) {

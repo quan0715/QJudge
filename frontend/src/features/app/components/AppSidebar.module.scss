@@ -28,6 +28,11 @@
   justify-content: center;
 }
 
+.compact .header {
+  padding: 0;
+  justify-content: center;
+}
+
 // ── User area ──
 
 .userArea {
@@ -73,6 +78,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.compact .userTriggerName {
+  display: none;
 }
 
 .chevron {

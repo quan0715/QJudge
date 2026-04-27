@@ -16,6 +16,7 @@ import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
 import { ContestSettingsOverlay } from "@/features/contest/screens/admin/panels/AdminContestSettingsScreen";
+import { useWorkspacePanelMode } from "@/features/app/contexts/useWorkspacePanelMode";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
 import { useMediaQuery, useTabWithUrlParam } from "@/shared/hooks";
@@ -75,6 +76,7 @@ const AdminDashboardInner = () => {
 
   const [exportOpen, setExportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  useWorkspacePanelMode("mini");
   const availablePanels = useMemo(
     () => contestModule.admin.getAvailablePanels(contest),
     [contestModule, contest],

@@ -243,6 +243,7 @@ export interface ParticipantEvidenceRow {
 
 export interface EventFeedItem {
   incidentKey: string;
+  eventId?: string;
   eventType: string;
   priority: number;
   category: string;

@@ -25,10 +25,15 @@ import styles from "./AppSidebar.module.scss";
 
 interface AppSidebarProps {
   collapsed?: boolean;
+  compact?: boolean;
   onToggleCollapse?: () => void;
 }
 
-export function AppSidebar({ collapsed = false, onToggleCollapse }: AppSidebarProps) {
+export function AppSidebar({
+  collapsed = false,
+  compact = false,
+  onToggleCollapse,
+}: AppSidebarProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { t } = useTranslation("common");
@@ -64,13 +69,13 @@ export function AppSidebar({ collapsed = false, onToggleCollapse }: AppSidebarPr
   const name = displayName?.trim() || user?.username || user?.email || "User";
 
   return (
-    <div className={styles.sidebar}>
+    <div className={`${styles.sidebar} ${compact ? styles.compact : ""}`}>
 
       {/* ── Header: user trigger + collapse button ── */}
       <div className={styles.header}>
         <div className={styles.userArea} ref={userAreaRef}>
           {/* User dropdown panel */}
-          {menuOpen && !collapsed && (
+          {menuOpen && !collapsed && !compact && (
             <div className={styles.userPanel}>
               <div className={styles.userPanelHeader}>
                 <Avatar name={name} url={avatarUrl || undefined} size="sm" />
@@ -150,7 +155,7 @@ export function AppSidebar({ collapsed = false, onToggleCollapse }: AppSidebarPr
             aria-label={name}
           >
             <Avatar name={name} url={avatarUrl || undefined} size="sm" />
-            <span className={styles.userTriggerName}>{name}</span>
+            {!compact ? <span className={styles.userTriggerName}>{name}</span> : null}
             <ChevronDown
               size={14}
               className={`${styles.chevron} ${menuOpen ? styles.chevronOpen : ""}`}
@@ -173,7 +178,7 @@ export function AppSidebar({ collapsed = false, onToggleCollapse }: AppSidebarPr
 
       {/* ── Navigation ── */}
       <div className={styles.nav}>
-        <SideMenu variant="panel" />
+        <SideMenu variant="panel" compact={compact} />
       </div>
 
       <Modal

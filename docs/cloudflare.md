@@ -141,7 +141,6 @@ OBJECT_STORAGE_SECRET_KEY=<dev_r2_secret_access_key>
 
 ANTICHEAT_CORS_ALLOWED_ORIGINS=https://q-judge-dev.quan.wtf,http://localhost:5173,http://127.0.0.1:5173
 ANTICHEAT_RAW_BUCKET=qjudge-dev-anticheat-raw
-ANTICHEAT_VIDEO_BUCKET=qjudge-dev-anticheat-videos
 MARKDOWN_IMAGE_S3_BUCKET=qjudge-dev-markdown-images
 MARKDOWN_IMAGE_PUBLIC_BASE_URL=https://q-judge-dev.quan.wtf
 ```
@@ -156,7 +155,6 @@ OBJECT_STORAGE_ACCESS_KEY=<r2_access_key_id>
 OBJECT_STORAGE_SECRET_KEY=<r2_secret_access_key>
 
 ANTICHEAT_RAW_BUCKET=qjudge-anticheat-raw
-ANTICHEAT_VIDEO_BUCKET=qjudge-anticheat-videos
 MARKDOWN_IMAGE_S3_BUCKET=qjudge-markdown-images
 MARKDOWN_IMAGE_PUBLIC_BASE_URL=https://q-judge.com
 ```

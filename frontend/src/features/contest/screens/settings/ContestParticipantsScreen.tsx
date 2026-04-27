@@ -11,7 +11,6 @@ import type {
   ExamStatusType,
   ParticipantDashboardDetail,
 } from "@/core/entities/contest.entity";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { AddParticipantModal } from "@/features/contest/components/modals/AddParticipantModal";
@@ -47,7 +46,6 @@ const ContestParticipantsScreen = () => {
   const { participants, isRefreshing, refreshAdminData } = useContestAdmin();
   const { registerPanelRefresh } = useAdminPanelRefresh();
   const { contest } = useContest();
-  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const { confirm, modalProps } = useConfirmModal();
   const { showToast } = useToast();
@@ -70,12 +68,6 @@ const ContestParticipantsScreen = () => {
 
   const { data: dashboard, loading: dashboardLoading, error: dashboardError, refresh: refreshDashboard } =
     useParticipantDashboard(contestId, selectedUserId);
-
-  const canDeleteExamVideos = useMemo(() => {
-    if (!contest || !user) return false;
-    if (contest.permissions?.canDeleteContest) return true;
-    return Boolean(contest.ownerUsername && user.username === contest.ownerUsername);
-  }, [contest, user]);
 
   const rosterManagedByClassroom = Boolean(contest?.isClassroomBound);
 
@@ -558,7 +550,6 @@ const ContestParticipantsScreen = () => {
             onUnlock={handleUnlock}
             onReopenExam={handleReopenExam}
             onRemoveParticipant={rosterManagedByClassroom ? undefined : handleRemoveParticipant}
-            canDeleteExamVideos={canDeleteExamVideos}
             onOpenGrading={() => updateParams({ panel: "grading" })}
             onRefreshEvents={refreshBoth}
           />

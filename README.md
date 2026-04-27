@@ -81,7 +81,6 @@ GitHub (push to main)
 | `MINIO_API_CORS_ALLOW_ORIGIN` | local MinIO API CORS allow origin |
 | `ANTICHEAT_CORS_ALLOWED_ORIGINS` | anti-cheat presigned 上傳允許來源 |
 | `ANTICHEAT_RAW_BUCKET` | anti-cheat 原始截圖 bucket |
-| `ANTICHEAT_VIDEO_BUCKET` | anti-cheat 影片 bucket |
 | `MARKDOWN_IMAGE_S3_BUCKET` | Markdown 圖片 bucket |
 | `MARKDOWN_IMAGE_PUBLIC_BASE_URL` | Markdown 圖片 API 的 public base URL；通常設為前端正式網址 |
 | `TUNNEL_TOKEN` | Cloudflare Tunnel token |

@@ -135,7 +135,6 @@ access_key = (getattr(settings, "ANTICHEAT_S3_ACCESS_KEY", "") or "").strip()
 secret_key = (getattr(settings, "ANTICHEAT_S3_SECRET_KEY", "") or "").strip()
 region = (getattr(settings, "ANTICHEAT_S3_REGION", "us-east-1") or "us-east-1").strip()
 raw_bucket = (getattr(settings, "ANTICHEAT_RAW_BUCKET", "anticheat-raw") or "anticheat-raw").strip()
-video_bucket = (getattr(settings, "ANTICHEAT_VIDEO_BUCKET", "anticheat-videos") or "anticheat-videos").strip()
 
 if not endpoint or not access_key or not secret_key:
     print("[minio] skipped: missing ANTICHEAT_S3_* credentials/endpoint in env")
@@ -185,9 +184,7 @@ def purge_bucket(bucket: str, prefix: str = "") -> int:
 
 prefix = f"contest_{contest_id}/" if contest_id is not None else ""
 raw_deleted = purge_bucket(raw_bucket, prefix=prefix)
-video_deleted = purge_bucket(video_bucket, prefix=prefix)
 print(f"[minio] deleted_raw_objects={raw_deleted} bucket={raw_bucket} prefix={prefix or '(all)'}")
-print(f"[minio] deleted_video_objects={video_deleted} bucket={video_bucket} prefix={prefix or '(all)'}")
 PY
 
 echo "[done] Anti-cheat cleanup completed."

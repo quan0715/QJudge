@@ -17,7 +17,7 @@ from django.core.cache import cache
 
 
 class Command(BaseCommand):
-    help = "Check that all backend services (DB, Redis, MinIO, Celery, FFmpeg) are reachable"
+    help = "Check that all backend services (DB, Redis, MinIO, Celery) are reachable"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -32,9 +32,7 @@ class Command(BaseCommand):
             ("minio_connection", self._check_minio_connection),
             ("minio_buckets", self._check_minio_buckets),
             ("celery_default", self._check_celery_default),
-            ("celery_video", self._check_celery_video),
             ("celery_beat", self._check_celery_beat),
-            ("ffmpeg", self._check_ffmpeg),
         ]
 
         for name, fn in checks:
@@ -89,7 +87,7 @@ class Command(BaseCommand):
 
         client = get_s3_client()
         existing = {b["Name"] for b in client.list_buckets()["Buckets"]}
-        required = {settings.ANTICHEAT_RAW_BUCKET, settings.ANTICHEAT_VIDEO_BUCKET}
+        required = {settings.ANTICHEAT_RAW_BUCKET}
         missing = required - existing
         if missing:
             return False, f"missing buckets: {', '.join(sorted(missing))}"
@@ -97,9 +95,6 @@ class Command(BaseCommand):
 
     def _check_celery_default(self):
         return self._ping_celery_queue("celery")
-
-    def _check_celery_video(self):
-        return self._ping_celery_queue("video_queue")
 
     def _ping_celery_queue(self, queue_name):
         from config.celery import app as celery_app
@@ -140,18 +135,3 @@ class Command(BaseCommand):
             pass
 
         return True, "beat not verified (non-blocking)"
-
-    def _check_ffmpeg(self):
-        import subprocess
-
-        try:
-            result = subprocess.run(
-                ["ffmpeg", "-version"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            first_line = result.stdout.split("\n")[0] if result.stdout else "unknown"
-            return result.returncode == 0, first_line
-        except FileNotFoundError:
-            return False, "ffmpeg not found in PATH"

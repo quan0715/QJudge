@@ -651,6 +651,7 @@ const mapParticipantEvidenceRowDto = (dto: ParticipantEvidenceRowDto): Participa
 
 const mapEventFeedItemDto = (dto: EventFeedItemDto): EventFeedItem => ({
   incidentKey: dto?.incident_key || "",
+  eventId: dto?.event_id != null ? String(dto.event_id) : "",
   eventType: dto?.event_type || "",
   priority: Number(dto?.priority ?? 3),
   category: dto?.category || "system",

@@ -170,7 +170,6 @@ services:
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
       - ANTICHEAT_S3_SECRET_KEY=${ANTICHEAT_S3_SECRET_KEY:-minioadmin}
       - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
-      - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
       - ANTICHEAT_PRESIGNED_URL_TTL_SECONDS=${ANTICHEAT_PRESIGNED_URL_TTL_SECONDS:-300}
       - GLITCHTIP_DSN=${GLITCHTIP_DSN:-}
     depends_on:
@@ -209,43 +208,9 @@ services:
       - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
       - ANTICHEAT_S3_SECRET_KEY=${ANTICHEAT_S3_SECRET_KEY:-minioadmin}
       - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
-      - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
     depends_on:
       judge-image:
         condition: service_started
-      postgres:
-        condition: service_healthy
-      pgbouncer:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      backend:
-        condition: service_started
-    networks:
-      - oj_network_dev
-
-  celery-video:
-    build: *backend_dev_build
-    image: oj_backend_dev_img
-    container_name: oj_celery_video_dev
-    command: celery -A config.celery worker --loglevel=info -Q video_queue --concurrency=2
-    volumes:
-      - ./backend:/app
-      - judge_tmp:/judge_tmp
-    env_file:
-      - .env
-    environment:
-      - JUDGE_TMP_DIR=/judge_tmp
-      - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
-      - DB_HOST=pgbouncer
-      - DB_PORT=5432
-      - ANTICHEAT_S3_ENDPOINT_URL=${ANTICHEAT_S3_ENDPOINT_URL:-http://minio:9000}
-      - ANTICHEAT_S3_REGION=${ANTICHEAT_S3_REGION:-us-east-1}
-      - ANTICHEAT_S3_ACCESS_KEY=${ANTICHEAT_S3_ACCESS_KEY:-minioadmin}
-      - ANTICHEAT_S3_SECRET_KEY=${ANTICHEAT_S3_SECRET_KEY:-minioadmin}
-      - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
-      - ANTICHEAT_VIDEO_BUCKET=${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}
-    depends_on:
       postgres:
         condition: service_healthy
       pgbouncer:

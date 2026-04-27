@@ -48,7 +48,7 @@ import type {
   ParticipantDashboardStatus,
 } from "@/core/entities/contest.entity";
 import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
-import ExamVideoReviewModal from "@/features/contest/components/admin/ExamVideoReviewModal";
+import ExamLiveViewPanel from "@/features/contest/components/admin/ExamLiveViewPanel";
 import PaperQuestionOverviewTable from "@/features/contest/components/exam/PaperQuestionOverviewTable";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
@@ -73,7 +73,6 @@ interface ParticipantDashboardPaneProps {
   onReopenExam: () => void;
   /** When undefined, roster removal is hidden (e.g. classroom-managed contests). */
   onRemoveParticipant?: () => void;
-  canDeleteExamVideos: boolean;
   onOpenGrading: () => void;
   onRefreshEvents?: () => Promise<void> | void;
 }
@@ -131,7 +130,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   onUnlock,
   onReopenExam,
   onRemoveParticipant,
-  canDeleteExamVideos,
   onOpenGrading,
   onRefreshEvents,
 }) => {
@@ -413,7 +411,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           />
                           {dashboard.actions.canViewEvidence ? (
                             <MenuItem
-                              label={t("dashboard.openEvidence", "查看監控影片")}
+                              label={t("dashboard.openEvidence", "查看即時監看")}
                               renderIcon={View}
                               onClick={() => {
                                 if (activeDetail !== "evidence") {
@@ -701,12 +699,12 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                 {detail === "evidence" && dashboard.contestType === "paper_exam" ? (
                   <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>{t("dashboard.evidenceSessions", "監控影片與轉檔狀態")}</h5>
-                    <ExamVideoReviewModal
+                    <h5 className={styles.sectionTitle}>{t("dashboard.liveMonitoring", "即時監看與證據")}</h5>
+                    <ExamLiveViewPanel
                       contestId={contestId}
+                      userId={participant.userId}
+                      participantName={participant.displayName || participant.username}
                       open={activeDetail === "evidence"}
-                      userIdFilter={participant.userId}
-                      canDelete={canDeleteExamVideos}
                     />
                   </div>
                 ) : null}

@@ -14,7 +14,6 @@ Confirm all values are set and not left as local defaults:
 - `MINIO_API_CORS_ALLOW_ORIGIN` (frontend origin)
 - `ANTICHEAT_S3_REGION`
 - `ANTICHEAT_RAW_BUCKET`
-- `ANTICHEAT_VIDEO_BUCKET`
 - `ANTICHEAT_PRESIGNED_URL_TTL_SECONDS` (recommended: `300`)
 
 Optional override:
@@ -72,7 +71,6 @@ Must be healthy/running:
 
 - `backend`
 - `celery`
-- `celery-video`
 - `minio`
 
 ## 5) DB and worker compatibility
@@ -109,7 +107,6 @@ It should verify:
 Submit one exam session and verify:
 
 1. raw frames appear in `anticheat-raw`
-2. video job is created and consumed by `celery-video`
 3. final MP4 appears in `anticheat-videos`
 4. raw frames are deleted after success
 5. if job fails, raw objects are retained for retry

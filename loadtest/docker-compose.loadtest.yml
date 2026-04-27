@@ -11,7 +11,6 @@ services:
       - ANTICHEAT_S3_ACCESS_KEY=minioadmin
       - ANTICHEAT_S3_SECRET_KEY=minioadmin
       - ANTICHEAT_RAW_BUCKET=anticheat-raw
-      - ANTICHEAT_VIDEO_BUCKET=anticheat-videos
     depends_on:
       minio-test:
         condition: service_started
@@ -24,7 +23,6 @@ services:
       - ANTICHEAT_S3_ACCESS_KEY=minioadmin
       - ANTICHEAT_S3_SECRET_KEY=minioadmin
       - ANTICHEAT_RAW_BUCKET=anticheat-raw
-      - ANTICHEAT_VIDEO_BUCKET=anticheat-videos
     command: celery -A config worker -l info -Q celery,default,high_priority --concurrency=4
     depends_on:
       minio-test:
@@ -58,50 +56,10 @@ services:
         sleep 3 &&
         mc alias set local http://minio-test:9000 minioadmin minioadmin &&
         mc mb --ignore-existing local/anticheat-raw &&
-        mc mb --ignore-existing local/anticheat-videos &&
         mc mb --ignore-existing local/markdown-images &&
         mc anonymous set download local/anticheat-raw &&
-        mc anonymous set download local/anticheat-videos &&
         echo 'MinIO bucket ready'
       "
-    networks:
-      - test-network
-
-  # Same image as backend-test / celery-test (defined in docker-compose.test.yml; no duplicate build)
-  celery-video-test:
-    image: oj_backend_test_img
-    container_name: oj_celery_video_test
-    command: celery -A config worker -l info -Q video_queue --concurrency=2
-    environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.loadtest
-      - POSTGRES_DB=test_oj_e2e
-      - POSTGRES_USER=oj_user
-      - POSTGRES_PASSWORD=oj_password
-      - POSTGRES_HOST=pgbouncer-test
-      - POSTGRES_PORT=5432
-      - DB_CONN_MAX_AGE=0
-      - REDIS_HOST=redis-test
-      - REDIS_PORT=6379
-      - REDIS_URL=redis://redis-test:6379/0
-      - SECRET_KEY=test-secret-key-for-ci-only
-      - ANTICHEAT_S3_ENDPOINT_URL=http://minio-test:9000
-      - ANTICHEAT_S3_ACCESS_KEY=minioadmin
-      - ANTICHEAT_S3_SECRET_KEY=minioadmin
-      - ANTICHEAT_RAW_BUCKET=anticheat-raw
-      - ANTICHEAT_VIDEO_BUCKET=anticheat-videos
-    depends_on:
-      backend-test:
-        condition: service_started
-      postgres-test:
-        condition: service_healthy
-      pgbouncer-test:
-        condition: service_healthy
-      redis-test:
-        condition: service_healthy
-      minio-test:
-        condition: service_started
-    volumes:
-      - ./backend:/app
     networks:
       - test-network
 

@@ -15,7 +15,7 @@ RUN --mount=type=cache,target=/var/cache/apt/archives,sharing=locked \
     for i in 1 2 3 4 5; do \
       apt-get update && \
       apt-get install -y --no-install-recommends \
-        postgresql-client gcc ffmpeg curl \
+        postgresql-client gcc curl \
         libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 \
         libffi-dev libcairo2 shared-mime-info \
         fonts-noto-cjk fonts-noto-color-emoji && \

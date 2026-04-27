@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Tag, InlineLoading } from "@carbon/react";
-import { ChevronDown, ChevronUp } from "@carbon/icons-react";
+import { ChevronDown, ChevronUp, Close } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
@@ -11,6 +11,7 @@ import styles from "./IncidentCard.module.scss";
 // Keys already surfaced elsewhere in the card or that are pure noise
 const HIDDEN_META_KEYS = new Set([
   "reason", "source", "phase", "event_idempotency_key", "ts",
+  "event_id",
   // orchestrator internals — already reflected in incident priority & penalized flag
   "decision", "priority", "severity", "dedupe_hit", "reason_code",
   // opaque session ID — not actionable for admins
@@ -73,8 +74,8 @@ interface IncidentCardProps {
 
 export default function IncidentCard({
   incident,
-  screenshotWindowBeforeMs = 15_000,
-  screenshotWindowAfterMs = 15_000,
+  screenshotWindowBeforeMs = 20_000,
+  screenshotWindowAfterMs = 20_000,
   screenshotPreviewLimit = 10,
   screenshotCategories = ["critical", "violation"],
 }: IncidentCardProps) {
@@ -140,17 +141,38 @@ export default function IncidentCard({
         meta.module === "webcam" || meta.module === "screen_share"
           ? (meta.module as "screen_share" | "webcam")
           : undefined;
+      const evidenceClusterId = typeof meta.evidence_cluster_id === "string" ? meta.evidence_cluster_id : "";
+      const evidenceEventId =
+        incident.eventId ??
+        (typeof meta.event_id === "string" || typeof meta.event_id === "number"
+          ? String(meta.event_id)
+          : "");
+
+      const evidenceWindowStart =
+        typeof meta.evidence_window_start === "string" ? Date.parse(meta.evidence_window_start) : NaN;
+      const evidenceWindowEnd =
+        typeof meta.evidence_window_end === "string" ? Date.parse(meta.evidence_window_end) : NaN;
       const params: Parameters<typeof fetchScreenshots>[1] = {
         user_id: String(incident.userId),
         limit: screenshotPreviewLimit,
       };
       const firstMs = new Date(incident.firstAt).getTime();
       const lastMs = new Date(incident.lastAt).getTime();
-      params.ts_from = firstMs - screenshotWindowBeforeMs;
-      params.ts_to = lastMs + screenshotWindowAfterMs;
+      params.ts_from = Number.isFinite(evidenceWindowStart)
+        ? evidenceWindowStart
+        : firstMs - screenshotWindowBeforeMs;
+      params.ts_to = Number.isFinite(evidenceWindowEnd)
+        ? evidenceWindowEnd
+        : lastMs + screenshotWindowAfterMs;
       if (sessionId) {
         // Prefer the session attached to event metadata first.
         params.upload_session_id = sessionId;
+      }
+      if (evidenceEventId) {
+        params.event_id = evidenceEventId;
+      }
+      if (evidenceClusterId) {
+        params.evidence_cluster_id = evidenceClusterId;
       }
       if (sourceModule) {
         params.source_module = sourceModule;
@@ -205,16 +227,33 @@ export default function IncidentCard({
     }
   }, [expanded, shouldAttemptScreenshotPreview, screenshotLoaded, screenshotLoading, loadScreenshots]);
 
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightboxUrl(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxUrl]);
+
   return (
     <>
       <div
         className={`${styles.card} ${styles[`priority${incident.priority}`] ?? ""} ${expanded ? styles.cardExpanded : ""}`}
       >
         <div
-          className={styles.header}
+          className={`${styles.header} ${hasDetail ? styles.headerButton : ""}`}
           onClick={() => hasDetail && setExpanded((v) => !v)}
+          onKeyDown={(event) => {
+            if (!hasDetail) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setExpanded((v) => !v);
+            }
+          }}
           role={hasDetail ? "button" : undefined}
           tabIndex={hasDetail ? 0 : undefined}
+          aria-expanded={expanded}
         >
           <div className={styles.left}>
             <Tag type={tagColor} size="sm">{priorityLabel}</Tag>
@@ -319,7 +358,7 @@ export default function IncidentCard({
                         })
                       : didCrossSessionFallback
                         ? t("logs.detail.noScreenshotsBySession", "此事件場次無可用截圖，已改用跨場次查詢")
-                        : t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看影片證據")}
+                        : t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看即時監看")}
                   </span>
                 )}
               </div>
@@ -342,7 +381,24 @@ export default function IncidentCard({
 
       {/* Lightbox overlay */}
       {lightboxUrl && (
-        <div className={styles.lightbox} onClick={() => setLightboxUrl(null)}>
+        <div
+          className={styles.lightbox}
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightboxUrl(null)}
+          aria-label={t("logs.detail.lightboxLabel", "截圖預覽")}
+        >
+          <button
+            type="button"
+            className={styles.lightboxClose}
+            onClick={(event) => {
+              event.stopPropagation();
+              setLightboxUrl(null);
+            }}
+            aria-label={t("common.close", "關閉")}
+          >
+            <Close size={20} />
+          </button>
           <img src={lightboxUrl} alt="screenshot" />
         </div>
       )}

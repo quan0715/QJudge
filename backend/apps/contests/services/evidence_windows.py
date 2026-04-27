@@ -1,7 +1,7 @@
 """Event-keyed evidence window helpers.
 
-First pass stores window metadata on ExamEvent rows and keeps the existing
-ExamEvidenceVideo model available for uploaded clip metadata.
+Evidence window metadata is stored directly on ExamEvent rows so the review
+workflow can stay event-keyed without creating per-video jobs.
 """
 from __future__ import annotations
 

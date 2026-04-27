@@ -3,6 +3,7 @@ import { useFrameQueue } from "./anticheat/useFrameQueue";
 import { useCanvasProcessor } from "./anticheat/useCanvasProcessor";
 import { useAnticheatUploader } from "./anticheat/useAnticheatUploader";
 import { createEvidenceRingBuffer } from "./anticheat/evidenceRingBuffer";
+import { createSfuScreenSharePublisher } from "./anticheat/sfuScreenSharePublisher";
 import {
   registerForcedCaptureHandler,
   unregisterForcedCaptureHandler,
@@ -90,6 +91,8 @@ export const useAnticheatScreenCapture = ({
   const retryCountRef = useRef(0);
   const captureIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const sfuPublisherRef = useRef(createSfuScreenSharePublisher());
+  const lastSfuPublisherAttemptAtRef = useRef(0);
   const streamWasLiveRef = useRef(false);
   const prevMonitorStreamRef = useRef(monitorStream);
   const initialStreamExpectationCheckedRef = useRef(false);
@@ -107,13 +110,29 @@ export const useAnticheatScreenCapture = ({
 
   const handleDetectedScreenShareLoss = useCallback(() => {
     streamWasLiveRef.current = false;
+    lastSfuPublisherAttemptAtRef.current = 0;
+    void sfuPublisherRef.current.stop(contestId);
     setStreamActive(false);
     onScreenShareLostRef.current?.();
-  }, []);
+  }, [contestId]);
 
   const { ensureQueue } = useFrameQueue();
   const { encodeUnderBudget } = useCanvasProcessor();
   const { uploadBatch, uploadBatchDetailed } = useAnticheatUploader(contestId);
+
+  const ensureSfuPublisher = useCallback(
+    (stream: MediaStream) => {
+      if (!monitorStream || sfuPublisherRef.current.state) return;
+      const now = Date.now();
+      if (now - lastSfuPublisherAttemptAtRef.current < 30_000) return;
+      lastSfuPublisherAttemptAtRef.current = now;
+      sfuPublisherRef.current.start(contestId, stream).catch(() => {
+        // Live monitoring is best effort during Phase 1. Evidence capture must
+        // continue even if Cloudflare Realtime is unavailable.
+      });
+    },
+    [contestId, monitorStream],
+  );
 
   const stopStream = useCallback(() => {
     const stream = streamRef.current;
@@ -136,9 +155,11 @@ export const useAnticheatScreenCapture = ({
   );
 
   const acquireStream = useCallback(async (): Promise<MediaStream | null> => {
-    if (isStreamLive(streamRef.current)) {
+    const existingStream = streamRef.current;
+    if (existingStream && isStreamLive(existingStream)) {
       hasCaptureSessionRef.current = true;
-      return streamRef.current;
+      ensureSfuPublisher(existingStream);
+      return existingStream;
     }
     stopStream();
 
@@ -157,6 +178,7 @@ export const useAnticheatScreenCapture = ({
       streamWasLiveRef.current = true;
       setStreamActive(true);
       hasCaptureSessionRef.current = true;
+      ensureSfuPublisher(handoff);
       return handoff;
     }
 
@@ -170,7 +192,7 @@ export const useAnticheatScreenCapture = ({
     // No handoff available — stream died or was never shared.
     // Do NOT call getDisplayMedia() again to avoid repeated browser prompts.
     return null;
-  }, [handleDetectedScreenShareLoss, stopStream]);
+  }, [ensureSfuPublisher, handleDetectedScreenShareLoss, stopStream]);
 
   const captureFrameBlob = useCallback(async (): Promise<Blob | null> => {
     const stream = await acquireStream();
@@ -261,6 +283,7 @@ export const useAnticheatScreenCapture = ({
         clearInterval(captureIntervalRef.current);
         captureIntervalRef.current = null;
       }
+      void sfuPublisherRef.current.stop(contestId);
       streamWasLiveRef.current = false;
       hasCaptureSessionRef.current = false;
       setStreamActive(false);

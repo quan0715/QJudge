@@ -12,7 +12,6 @@ from apps.contests.models import (
     ContestActivity,
     ContestParticipant,
     ExamAnswer,
-    ExamEvidenceJob,
     ExamEvent,
     ExamQuestion,
     ExamQuestionType,
@@ -116,14 +115,6 @@ class ParticipantDashboardApiTests(APITestCase):
             action_type="start_exam",
             details="Started exam",
         )
-        ExamEvidenceJob.objects.create(
-            contest=contest,
-            participant=participant,
-            upload_session_id="paper-session-1",
-            status="pending",
-            raw_count=15,
-        )
-
         self.client.force_authenticate(user=self.teacher)
         response = self.client.get(
             f"/api/v1/contests/{contest.id}/participants/{participant.user_id}/dashboard/"
@@ -139,7 +130,10 @@ class ParticipantDashboardApiTests(APITestCase):
         self.assertEqual(response.data["report"]["question_details"][0]["feedback"], "Reasonable answer.")
         self.assertEqual(response.data["report"]["question_details"][0]["explanation"], "Snapshot explanation.")
         self.assertEqual(len(response.data["timeline"]), 2)
-        self.assertEqual(response.data["evidence"][0]["upload_session_id"], "paper-session-1")
+        self.assertEqual(response.data["evidence"], [])
+        self.assertIn("event_feed", response.data)
+        incident_event_ids = [item.get("event_id") for item in response.data["event_feed"]]
+        self.assertTrue(any(incident_event_ids))
 
     @patch(
         "apps.contests.services.participant_dashboard._build_coding_report",

@@ -237,6 +237,62 @@
   z-index: auto;
 }
 
+.side-menu--mini {
+  .side-menu__tabs,
+  .side-menu__section {
+    justify-content: center;
+  }
+
+  .side-menu__link,
+  .side-menu__classroom,
+  .side-menu__bank,
+  .side-menu__workspace-trigger,
+  .side-menu__workspace-name,
+  .side-menu__classroom-name,
+  .side-menu__classroom-check,
+  .side-menu__bank-name,
+  .side-menu__bank-meta,
+  .side-menu__bank-check,
+  .side-menu__tab-label,
+  .side-menu__section-header span,
+  .side-menu__workspace-chevron,
+  .side-menu__section-header {
+    text-align: center;
+  }
+
+  .side-menu__tab,
+  .side-menu__link,
+  .side-menu__classroom,
+  .side-menu__bank,
+  .side-menu__workspace-trigger {
+    justify-content: center;
+    gap: 0;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .side-menu__link > span,
+  .side-menu__classroom > span,
+  .side-menu__classroom-name,
+  .side-menu__classroom-check,
+  .side-menu__bank-name,
+  .side-menu__bank-meta,
+  .side-menu__bank-check,
+  .side-menu__workspace-name,
+  .side-menu__workspace-chevron,
+  .side-menu__section-header span,
+  .side-menu__tab-label {
+    display: none;
+  }
+
+  .side-menu__link,
+  .side-menu__classroom,
+  .side-menu__bank,
+  .side-menu__workspace-trigger {
+    overflow: hidden;
+  }
+}
+
 // ── Responsive ──
 
 @media (max-width: 672px) {

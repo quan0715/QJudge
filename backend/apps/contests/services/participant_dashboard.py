@@ -14,8 +14,6 @@ from apps.contests.models import (
     ContestParticipant,
     ExamAnswer,
     ExamEvent,
-    ExamEvidenceJob,
-    ExamEvidenceVideo,
     ExamQuestion,
     ExamQuestionType,
     ExamStatus,
@@ -127,80 +125,6 @@ def _serialize_timeline(contest: Contest, participant: ContestParticipant) -> li
 
     items.sort(key=lambda item: item["timestamp"] or "", reverse=True)
     return items
-
-
-def _serialize_evidence(contest: Contest, participant: ContestParticipant) -> list[dict[str, Any]]:
-    videos_qs = ExamEvidenceVideo.objects.filter(
-        contest=contest,
-        participant=participant,
-    ).select_related("suspected_by")
-    jobs_qs = ExamEvidenceJob.objects.filter(
-        contest=contest,
-        participant=participant,
-    )
-
-    jobs_by_key: dict[tuple[str, str], ExamEvidenceJob] = {}
-    for job in jobs_qs.order_by("-created_at"):
-        session_id = job.upload_session_id or "default"
-        source_module = job.source_module or "screen_share"
-        jobs_by_key.setdefault((session_id, source_module), job)
-
-    rows: list[dict[str, Any]] = []
-    seen_keys: set[tuple[str, str]] = set()
-    for video in videos_qs.order_by("-updated_at", "-created_at"):
-        session_id = video.upload_session_id or "default"
-        source_module = video.source_module or "screen_share"
-        key = (session_id, source_module)
-        seen_keys.add(key)
-        job = jobs_by_key.get(key)
-        rows.append(
-            {
-                "id": video.id,
-                "upload_session_id": session_id,
-                "source_module": source_module,
-                "has_video": True,
-                "job_status": job.status if job else "success",
-                "job_error_message": job.error_message if job else "",
-                "duration_seconds": video.duration_seconds,
-                "frame_count": video.frame_count,
-                "size_bytes": video.size_bytes,
-                "is_suspected": video.is_suspected,
-                "suspected_note": video.suspected_note,
-                "suspected_by_username": getattr(video.suspected_by, "username", None),
-                "updated_at": video.updated_at.isoformat(),
-                "created_at": video.created_at.isoformat(),
-                "video_id": video.id,
-            }
-        )
-
-    for job in jobs_qs.order_by("-updated_at", "-created_at"):
-        session_id = job.upload_session_id or "default"
-        source_module = job.source_module or "screen_share"
-        key = (session_id, source_module)
-        if key in seen_keys:
-            continue
-        rows.append(
-            {
-                "id": -job.id,
-                "upload_session_id": session_id,
-                "source_module": source_module,
-                "has_video": False,
-                "job_status": job.status,
-                "job_error_message": job.error_message,
-                "duration_seconds": 0,
-                "frame_count": job.raw_count,
-                "size_bytes": 0,
-                "is_suspected": False,
-                "suspected_note": "",
-                "suspected_by_username": None,
-                "updated_at": job.updated_at.isoformat(),
-                "created_at": job.created_at.isoformat(),
-                "video_id": None,
-            }
-        )
-
-    rows.sort(key=lambda item: item["updated_at"] or item["created_at"] or "", reverse=True)
-    return rows
 
 
 def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -482,6 +406,7 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
         new_inc: dict[str, Any] = {
             "incident_key": f"{et}:{ts.isoformat()}",
             "event_type": et,
+            "event_id": str(event.id),
             "priority": priority,
             "category": EVENT_CATEGORY.get(priority, "system"),
             "penalized": et in PENALIZED_EVENT_TYPES,
@@ -506,6 +431,7 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
         priority = EVENT_PRIORITY.get(at, 3)
         incidents.append({
             "incident_key": f"activity:{activity.id}",
+            "event_id": "",
             "event_type": at,
             "priority": priority,
             "category": EVENT_CATEGORY.get(priority, "system"),
@@ -560,7 +486,7 @@ def build_participant_dashboard(contest: Contest, participant: ContestParticipan
         overview, report = _build_paper_exam_report(contest, participant)
         payload["overview"] = overview
         payload["report"] = report
-        payload["evidence"] = _serialize_evidence(contest, participant)
+        payload["evidence"] = []
     else:
         overview, report = _build_coding_report(contest, participant)
         payload["overview"] = overview

@@ -1352,19 +1352,17 @@ def test_contest_detail_includes_classroom_binding_flags(
 
 
 # ---------------------------------------------------------------------------
-# remove_participant: evidence-data protection
+# remove_participant: classroom binding protection
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_remove_participant_blocked_when_evidence_job_exists(
+def test_remove_participant_blocked_for_unbound_contest(
     api_client: APIClient,
     owner: User,
     contest: Contest,
     student: User,
 ) -> None:
-    """Roster removal is gated; evidence checks are not reached for unbound contests."""
-    from apps.contests.models import ExamEvidenceJob, EvidenceJobStatus
-
+    """Roster removal is gated before legacy evidence cleanup concerns."""
     api_client.force_authenticate(user=owner)
 
     participant = ContestParticipant.objects.create(
@@ -1373,12 +1371,6 @@ def test_remove_participant_blocked_when_evidence_job_exists(
         exam_status=ExamStatus.SUBMITTED,
         started_at=timezone.now() - timedelta(minutes=30),
         left_at=timezone.now(),
-    )
-    ExamEvidenceJob.objects.create(
-        contest=contest,
-        participant=participant,
-        upload_session_id="sess-001",
-        status=EvidenceJobStatus.PENDING,
     )
 
     resp = api_client.post(
@@ -1390,7 +1382,6 @@ def test_remove_participant_blocked_when_evidence_job_exists(
     assert resp.status_code == status.HTTP_400_BAD_REQUEST
     assert resp.data["error"]["code"] == "contest_requires_classroom_binding"
     assert ContestParticipant.objects.filter(pk=participant.pk).exists()
-    assert ExamEvidenceJob.objects.filter(participant=participant).exists()
 
 
 @pytest.mark.django_db
@@ -1420,42 +1411,6 @@ def test_remove_participant_allowed_without_evidence(
     assert resp.status_code == status.HTTP_400_BAD_REQUEST
     assert resp.data["error"]["code"] == "contest_requires_classroom_binding"
     assert ContestParticipant.objects.filter(contest=contest, user=student).exists()
-
-
-@pytest.mark.django_db
-def test_remove_participant_blocked_even_for_succeeded_evidence(
-    api_client: APIClient,
-    owner: User,
-    contest: Contest,
-    student: User,
-) -> None:
-    """Roster removal gate runs before evidence enforcement for unbound contests."""
-    from apps.contests.models import ExamEvidenceJob, EvidenceJobStatus
-
-    api_client.force_authenticate(user=owner)
-
-    participant = ContestParticipant.objects.create(
-        contest=contest,
-        user=student,
-        exam_status=ExamStatus.SUBMITTED,
-    )
-    ExamEvidenceJob.objects.create(
-        contest=contest,
-        participant=participant,
-        upload_session_id="sess-done",
-        status=EvidenceJobStatus.SUCCESS,
-        raw_count=10,
-    )
-
-    resp = api_client.post(
-        f"/api/v1/contests/{contest.id}/remove_participant/",
-        {"user_id": student.id},
-        format="json",
-    )
-
-    assert resp.status_code == status.HTTP_400_BAD_REQUEST
-    assert resp.data["error"]["code"] == "contest_requires_classroom_binding"
-    assert ContestParticipant.objects.filter(pk=participant.pk).exists()
 
 
 @pytest.mark.django_db

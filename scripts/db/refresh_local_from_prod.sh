@@ -181,7 +181,6 @@ LOCAL_DB_USER="${DB_USER:-postgres}"
 LOCAL_DB_PASSWORD="${DB_PASSWORD:-postgres}"
 LOCAL_DB_PORT="${DB_PORT:-5432}"
 ANTICHEAT_RAW_BUCKET="${ANTICHEAT_RAW_BUCKET:-anticheat-raw}"
-ANTICHEAT_VIDEO_BUCKET="${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}"
 
 mkdir -p "$BACKUP_DIR"
 if [[ -z "$DUMP_FILE" ]]; then
@@ -207,7 +206,7 @@ EOF
   fi
 fi
 
-APP_SERVICES=(frontend backend celery celery-video celery-beat ai-service redis pgbouncer)
+APP_SERVICES=(frontend backend celery celery-beat ai-service redis pgbouncer)
 BUILD_ARGS=(-d)
 if [[ "$SKIP_BUILD" -ne 1 ]]; then
   BUILD_ARGS=( -d --build )
@@ -274,8 +273,8 @@ dc exec -T backend python manage.py migrate
 log "purging local anti-cheat evidence metadata"
 dc exec -T backend python manage.py shell -c "from apps.contests.models import ExamEvidenceJob, ExamEvidenceVideo; ExamEvidenceVideo.objects.all().delete(); ExamEvidenceJob.objects.all().delete(); print('deleted evidence metadata')"
 
-log "clearing local MinIO anti-cheat buckets"
-dc exec -T minio sh -lc "rm -rf '/data/${ANTICHEAT_RAW_BUCKET}' '/data/${ANTICHEAT_VIDEO_BUCKET}' && mkdir -p '/data/${ANTICHEAT_RAW_BUCKET}' '/data/${ANTICHEAT_VIDEO_BUCKET}'"
+log "clearing local MinIO anti-cheat bucket"
+dc exec -T minio sh -lc "rm -rf '/data/${ANTICHEAT_RAW_BUCKET}' && mkdir -p '/data/${ANTICHEAT_RAW_BUCKET}'"
 
 log "re-initializing MinIO buckets and policies"
 "$ROOT_DIR/scripts/minio/run-init.sh" "$COMPOSE_FILE"
