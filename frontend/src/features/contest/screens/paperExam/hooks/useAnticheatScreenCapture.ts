@@ -91,7 +91,10 @@ export const useAnticheatScreenCapture = ({
   const [streamActive, setStreamActive] = useState(false);
   const hasCaptureSessionRef = useRef(false);
   const onScreenShareLostRef = useRef(onScreenShareLost);
-  onScreenShareLostRef.current = onScreenShareLost;
+
+  useEffect(() => {
+    onScreenShareLostRef.current = onScreenShareLost;
+  }, [onScreenShareLost]);
 
   const handleDetectedScreenShareLoss = useCallback(() => {
     streamWasLiveRef.current = false;

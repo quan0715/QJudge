@@ -71,7 +71,10 @@ export const useAnticheatWebcamCapture = ({
   const prevMonitorRef = useRef(monitorStream);
   const [streamActive, setStreamActive] = useState(false);
   const onWebcamLostRef = useRef(onWebcamLost);
-  onWebcamLostRef.current = onWebcamLost;
+
+  useEffect(() => {
+    onWebcamLostRef.current = onWebcamLost;
+  }, [onWebcamLost]);
 
   const { encodeUnderBudget } = useCanvasProcessor();
 
