@@ -92,6 +92,34 @@ class ExamSfuBrokerTests(APITestCase):
         CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
         CLOUDFLARE_REALTIME_API_BASE_URL="https://rtc.example.test/v1",
     )
+    def test_sfu_upstream_error_response_redacts_payload(self):
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.json.return_value = {
+            "errorDescription": "stack trace: upstream internal detail",
+            "secret": "upstream-secret",
+        }
+
+        self.client.force_authenticate(user=self.student)
+        with patch("apps.contests.services.realtime_sfu.requests.request", return_value=mock_response):
+            response = self.client.post(
+                f"/api/v1/contests/{self.contest.id}/exam/sfu/sessions/",
+                {"role": "publisher"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        self.assertEqual(response.data, {"error": "Live monitoring is temporarily unavailable."})
+        self.assertNotIn("upstream_payload", response.data)
+        self.assertNotIn("stack trace", str(response.data))
+        self.assertNotIn("upstream-secret", str(response.data))
+
+    @override_settings(
+        LIVE_MONITORING_ENABLED=True,
+        CLOUDFLARE_REALTIME_APP_ID="app-test",
+        CLOUDFLARE_REALTIME_APP_SECRET="secret-test",
+        CLOUDFLARE_REALTIME_API_BASE_URL="https://rtc.example.test/v1",
+    )
     def test_teacher_can_proxy_subscriber_track_request(self):
         mock_response = Mock()
         mock_response.status_code = 200

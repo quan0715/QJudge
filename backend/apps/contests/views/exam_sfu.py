@@ -1,6 +1,8 @@
 """Cloudflare Realtime SFU live monitoring endpoints."""
 from __future__ import annotations
 
+import logging
+
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
 from rest_framework.decorators import action
@@ -25,16 +27,28 @@ from ..services.realtime_sfu_registry import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 def _sfu_error_response(exc: RealtimeSfuError) -> Response:
     status_code = exc.status_code or status.HTTP_502_BAD_GATEWAY
     if status_code >= 500 and status_code != status.HTTP_503_SERVICE_UNAVAILABLE:
         status_code = status.HTTP_502_BAD_GATEWAY
-    return Response(
-        {
-            "error": str(exc),
+    logger.warning(
+        "Realtime SFU proxy request failed",
+        extra={
             "upstream_status": exc.status_code,
             "upstream_payload": exc.payload,
+            "error": str(exc),
         },
+    )
+    message = "Live monitoring is temporarily unavailable."
+    if status_code == status.HTTP_403_FORBIDDEN:
+        message = "Live monitoring is disabled."
+    elif status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
+        message = "Live monitoring is not configured."
+    return Response(
+        {"error": message},
         status=status_code,
     )
 

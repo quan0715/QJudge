@@ -13,7 +13,10 @@ export function useWorkspacePanelMode(mode: LeftPanelVisualMode) {
   const id = useId();
 
   useEffect(() => {
-    if (mode === "full") return;
+    if (mode === "full") {
+      clearLeftVisualMode(id);
+      return undefined;
+    }
     setLeftVisualMode(id, mode);
     return () => {
       clearLeftVisualMode(id);
