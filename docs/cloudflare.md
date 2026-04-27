@@ -108,7 +108,7 @@ docker compose up -d
 
 The remote tunnel config lives in Cloudflare, so route changes should be made through the dashboard/API/Terraform and then verified with MCP.
 
-## R2 Migration Candidate
+## R2 Object Storage
 
 Use `OBJECT_STORAGE_*` as the only object storage connection settings. Older
 `MINIO_*` and `ANTICHEAT_S3_*` environment names are not read by the app.
@@ -177,14 +177,14 @@ LIVE_MONITORING_PUBLISHER_TTL_SECONDS=60
 `LIVE_MONITORING_SPIKE_ENABLED` is still accepted as a backward-compatible
 fallback, but new environments should use `LIVE_MONITORING_ENABLED`.
 
-Before switching from MinIO to R2:
+When changing object storage settings:
 
 1. Create separate buckets for anti-cheat event evidence screenshots, markdown images, and AI artifacts.
 2. Configure CORS for browser direct uploads from `https://q-judge.com`.
 3. Decide lifecycle policies for anti-cheat event evidence screenshots.
-4. Update production `.env` with `OBJECT_STORAGE_*` first, leaving old MinIO vars in place only as rollback notes.
+4. Update `.env` with `OBJECT_STORAGE_*`.
 5. Restart backend and Celery, then smoke-test presigned uploads/downloads.
-6. Remove MinIO from the critical path only after the smoke test and one real exam-like capture flow pass.
+6. Keep local MinIO only as a dev/migration source, not as the production critical path.
 
 ## Dev MinIO to R2 Migration
 

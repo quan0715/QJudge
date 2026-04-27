@@ -12,7 +12,7 @@
 
 | 層 | 職責 |
 |---|---|
-| **Django backend**（`backend/apps/ai/`） | `AIArtifact` model、MinIO storage service、internal HMAC API（供 ai-service）、public API（供前端 panel） |
+| **Django backend**（`backend/apps/ai/`） | `AIArtifact` model、object storage service、internal HMAC API（供 ai-service）、public API（供前端 panel） |
 | **ai-service**（`ai-service/services/`） | `artifact_tools.py`：LangChain 本地 tool（write/read/list），HTTP 打 Django internal endpoint；由 `deepagent_runner` 與 MCP tools 一起載入 |
 | **mcp-server** | **不動**。Artifact 為 session 私有資源，不暴露給外部 MCP client |
 | **Frontend** | Artifact Panel 呼叫 Django public API |
@@ -24,7 +24,7 @@
 
 **In**
 - Django `AIArtifact` model + migration
-- MinIO 儲存 service（參考 `markdown_image_storage.py` pattern）
+- Object storage service（參考 `markdown_image_storage.py` pattern）
 - Django internal/public artifact API
 - ai-service 本地 artifact LangChain tools
 - Exam Grading SOP Skill（文本／system prompt）
@@ -34,7 +34,7 @@
 - Batch / BudgetGuard / summary_mode
 - 系統層 checkpoint & resume
 - Rubric versioning（覆寫即可）
-- MinIO bucket versioning
+- Object storage bucket versioning
 - LangGraph / 新 system HITL 事件
 - Celery soft_time_limit 調整
 
@@ -85,7 +85,7 @@ artifact_list(filter?)
 - `GET  /api/v1/ai/artifacts?session_id=&run_id=`（session 授權）
 - `GET  /api/v1/ai/artifacts/{id}`（回 metadata + 預簽 URL）
 
-### MinIO 路徑
+### Object storage 路徑
 
 ```
 ai-artifacts/{session_id}/{run_id}/{step}/{filename}
@@ -158,7 +158,7 @@ T4 user: 繼續
 ## 實作順序
 
 1. Django `AIArtifact` model + migration
-2. `artifact_storage.py` service（MinIO via boto3）
+2. `artifact_storage.py` service（S3-compatible object storage via boto3）
 3. Django REST endpoints（internal HMAC + public）
 4. ai-service `artifact_tools.py` 本地 LangChain tool
 5. 測試（storage / API / tool 整合）

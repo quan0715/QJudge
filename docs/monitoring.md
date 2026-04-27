@@ -7,11 +7,11 @@
                     │         Cloudflare Tunnel            │
                     └──┬──────────┬──────────┬────────────┘
                        │          │          │
-              q-judge-dev    minio-dev    grafana-dev
+              q-judge-dev    storage-dev  grafana-dev
               .quan.wtf      .quan.wtf    .quan.wtf
                        │          │          │
                     ┌──▼──┐   ┌──▼──┐   ┌──▼───┐
-                    │nginx│   │minio│   │grafana│──→ Prometheus (internal)
+                    │nginx│   │store │   │grafana│──→ Prometheus (internal)
                     └──┬──┘   └─────┘   └──────┘        │
                        │                          ┌──────┴──────┐
                     ┌──▼───┐                      │  Exporters  │
@@ -84,7 +84,7 @@ Policy：
 |------|------|
 | PostgreSQL | Active connections、Transactions/s、Cache hit ratio、Deadlocks、DB size、Tuples/s |
 | Redis | Connected clients、Memory usage、Commands/s、Hit/miss ratio |
-| MinIO | S3 requests/s by API、Errors + traffic、Total objects、Disk usage、Process CPU/memory |
+| Object storage | S3-compatible requests/s、Errors + traffic、Total objects、Disk usage where available |
 | Container | CPU %、Memory usage |
 
 Dashboard URL：
