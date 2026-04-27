@@ -48,6 +48,7 @@ import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifec
 import {
   buildExamEntryDeviceMetadata,
   detectAnticheatCapability,
+  resolveEvidenceCaptureStrategy,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
@@ -104,6 +105,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const examEntryDeviceMetadata = useMemo(
     () => buildExamEntryDeviceMetadata(capability, monitoringPlan),
     [capability, monitoringPlan]
+  );
+  const evidenceCaptureStrategy = useMemo(
+    () => resolveEvidenceCaptureStrategy(monitoringPlan),
+    [monitoringPlan]
   );
   const submitProgress = useExamSubmissionProgress();
 
@@ -286,6 +291,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
       reason: "Student entered paper exam answering screen",
       source: "paper_exam:answering_screen",
       forceCaptureReason: "exam_entered:paper_exam_answering",
+      captureOptions: {
+        eventType: "exam_entered",
+        modules: evidenceCaptureStrategy.enabledCaptureModules,
+      },
       metadata: {
         upload_session_id: anticheatUploadSessionId || undefined,
         ...examEntryDeviceMetadata,
@@ -295,6 +304,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     anticheatUploadSessionId,
     contest,
     contestId,
+    evidenceCaptureStrategy.enabledCaptureModules,
     examEntryDeviceMetadata,
     precheckPassed,
   ]);

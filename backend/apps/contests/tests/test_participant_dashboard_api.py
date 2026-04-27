@@ -12,7 +12,6 @@ from apps.contests.models import (
     ContestActivity,
     ContestParticipant,
     ExamAnswer,
-    ExamEvidenceJob,
     ExamEvent,
     ExamQuestion,
     ExamQuestionType,
@@ -79,7 +78,7 @@ class ParticipantDashboardApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_paper_exam_dashboard_returns_report_timeline_and_evidence(self):
+    def test_paper_exam_dashboard_returns_report_and_timeline(self):
         contest = self._create_contest(contest_type="paper_exam")
         participant = self._create_participant(contest)
         question = ExamQuestion.objects.create(
@@ -108,7 +107,20 @@ class ParticipantDashboardApiTests(APITestCase):
             contest=contest,
             user=self.student,
             event_type="window_blur",
-            metadata={"reason": "left window"},
+            metadata={
+                "reason": "left window",
+                "forced_capture_uploaded": True,
+                "forced_capture_module_results": {
+                    "screen_share": {
+                        "uploaded": True,
+                        "uploadedObjectKeys": ["screen-1.webp"],
+                    },
+                    "webcam": {
+                        "uploaded": True,
+                        "uploadedObjectKeys": ["webcam-1.webp"],
+                    },
+                },
+            },
         )
         ContestActivity.objects.create(
             contest=contest,
@@ -116,14 +128,6 @@ class ParticipantDashboardApiTests(APITestCase):
             action_type="start_exam",
             details="Started exam",
         )
-        ExamEvidenceJob.objects.create(
-            contest=contest,
-            participant=participant,
-            upload_session_id="paper-session-1",
-            status="pending",
-            raw_count=15,
-        )
-
         self.client.force_authenticate(user=self.teacher)
         response = self.client.get(
             f"/api/v1/contests/{contest.id}/participants/{participant.user_id}/dashboard/"
@@ -139,7 +143,12 @@ class ParticipantDashboardApiTests(APITestCase):
         self.assertEqual(response.data["report"]["question_details"][0]["feedback"], "Reasonable answer.")
         self.assertEqual(response.data["report"]["question_details"][0]["explanation"], "Snapshot explanation.")
         self.assertEqual(len(response.data["timeline"]), 2)
-        self.assertEqual(response.data["evidence"][0]["upload_session_id"], "paper-session-1")
+        self.assertNotIn("evidence", response.data)
+        self.assertIn("event_feed", response.data)
+        incident_event_ids = [item.get("event_id") for item in response.data["event_feed"]]
+        self.assertTrue(any(incident_event_ids))
+        window_blur = next(item for item in response.data["event_feed"] if item["event_type"] == "window_blur")
+        self.assertEqual(window_blur["evidence_count"], 2)
 
     @patch(
         "apps.contests.services.participant_dashboard._build_coding_report",

@@ -1,4 +1,4 @@
-import type { User, UserPreferences, ManagedUser, TeacherActivationInvite, TeacherActivationPreview, UserLoginRecord, APIKeyInfo, UsageStatsData } from "@/core/entities/auth.entity";
+import type { User, UserPreferences, ManagedUser, TeacherActivationInvite, TeacherActivationPreview, UserLoginRecord } from "@/core/entities/auth.entity";
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -31,8 +31,6 @@ export type TeacherActivationConsumeResponseDto = ApiResponse<{
   user: User;
   invite: TeacherActivationInvite;
 }>;
-export type APIKeyResponseDto = ApiResponse<APIKeyInfo>;
-export type UsageStatsResponseDto = ApiResponse<UsageStatsData>;
 export type LoginRecordsResponseDto = ApiResponse<UserLoginRecord[]>;
 export type UploadAvatarResponseDto = ApiResponse<{
   avatar_url: string;

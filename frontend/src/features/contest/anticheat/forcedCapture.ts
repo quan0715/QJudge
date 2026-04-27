@@ -26,6 +26,12 @@ export interface ForcedCaptureModuleResult {
   errorCode?: string;
   uploadSessionId: string | null;
   seq: number | null;
+  uploadedSeqs?: number[];
+  uploadedObjectKeys?: string[];
+  evidencePreBufferAttempted?: boolean;
+  evidencePreBufferComplete?: boolean;
+  evidencePreBufferFrameCount?: number;
+  evidenceUploadedFrameCount?: number;
 }
 
 export interface ForcedCaptureResult {
@@ -36,6 +42,12 @@ export interface ForcedCaptureResult {
   errorCode?: string;
   uploadSessionId: string | null;
   seq: number | null;
+  uploadedSeqs?: number[];
+  uploadedObjectKeys?: string[];
+  evidencePreBufferAttempted?: boolean;
+  evidencePreBufferComplete?: boolean;
+  evidencePreBufferFrameCount?: number;
+  evidenceUploadedFrameCount?: number;
   modules?: ForcedCaptureModule[];
   module_results?: Partial<Record<ForcedCaptureModule, ForcedCaptureModuleResult>>;
 }
@@ -114,6 +126,12 @@ const toModuleResult = (result: ForcedCaptureResult): ForcedCaptureModuleResult 
   errorCode: result.errorCode,
   uploadSessionId: result.uploadSessionId,
   seq: result.seq,
+  uploadedSeqs: result.uploadedSeqs,
+  uploadedObjectKeys: result.uploadedObjectKeys,
+  evidencePreBufferAttempted: result.evidencePreBufferAttempted,
+  evidencePreBufferComplete: result.evidencePreBufferComplete,
+  evidencePreBufferFrameCount: result.evidencePreBufferFrameCount,
+  evidenceUploadedFrameCount: result.evidenceUploadedFrameCount,
 });
 
 const pickPrimaryResult = (results: ForcedCaptureModuleResult[]): ForcedCaptureModuleResult => {
@@ -126,6 +144,20 @@ const pickPrimaryResult = (results: ForcedCaptureModuleResult[]): ForcedCaptureM
   return results[0];
 };
 
+const aggregateModuleResults = (
+  results?: Partial<Record<ForcedCaptureModule, ForcedCaptureModuleResult>>
+) => {
+  const moduleResults = results ? Object.values(results).filter(Boolean) : [];
+  return {
+    uploadedSeqs: moduleResults.flatMap((result) => result.uploadedSeqs ?? []),
+    uploadedObjectKeys: moduleResults.flatMap((result) => result.uploadedObjectKeys ?? []),
+    uploadedFrameCount: moduleResults.reduce(
+      (sum, result) => sum + (result.evidenceUploadedFrameCount ?? 0),
+      0
+    ),
+  };
+};
+
 export const forceCaptureForContest = async (
   contestId: string,
   reason: string,
@@ -136,10 +168,14 @@ export const forceCaptureForContest = async (
     return unavailableCaptureResult(contestId);
   }
 
+  const hasExplicitModules = Array.isArray(options?.modules);
   const requestedModules =
     options?.modules?.filter((module): module is ForcedCaptureModule =>
       CAPTURE_MODULES.includes(module)
     ) ?? [];
+  if (hasExplicitModules && requestedModules.length === 0) {
+    return unavailableCaptureResult(contestId);
+  }
   const targetModules =
     requestedModules.length > 0
       ? requestedModules.filter((module) => moduleHandlers.has(module))
@@ -191,21 +227,53 @@ export const buildForcedCaptureMetadata = (
   contestId: string,
   reason: string,
   result: ForcedCaptureResult
-): Record<string, unknown> => ({
-  forced_capture_requested: true,
-  forced_capture_reason: reason,
-  forced_capture_result: toForcedCaptureResultLabel(result),
-  forced_capture_attempted: result.attempted,
-  forced_capture_captured: result.captured,
-  forced_capture_uploaded: result.uploaded,
-  ...(result.skipped ? { forced_capture_skipped: result.skipped } : {}),
-  ...(result.errorCode ? { forced_capture_error_code: result.errorCode } : {}),
-  ...(typeof result.seq === "number" ? { forced_capture_seq: result.seq } : {}),
-  ...(result.modules?.length ? { forced_capture_modules: result.modules } : {}),
-  ...(result.module_results ? { forced_capture_module_results: result.module_results } : {}),
-  upload_session_id:
-    result.uploadSessionId || getExamCaptureSessionId(contestId) || undefined,
-});
+): Record<string, unknown> => {
+  const aggregate = aggregateModuleResults(result.module_results);
+  const uploadedSeqs = aggregate.uploadedSeqs.length > 0
+    ? aggregate.uploadedSeqs
+    : result.uploadedSeqs;
+  const uploadedObjectKeys = aggregate.uploadedObjectKeys.length > 0
+    ? aggregate.uploadedObjectKeys
+    : result.uploadedObjectKeys;
+  const uploadedFrameCount = aggregate.uploadedFrameCount > 0
+    ? aggregate.uploadedFrameCount
+    : result.evidenceUploadedFrameCount;
+
+  return {
+    forced_capture_requested: true,
+    forced_capture_reason: reason,
+    forced_capture_result: toForcedCaptureResultLabel(result),
+    forced_capture_attempted: result.attempted,
+    forced_capture_captured: result.captured,
+    forced_capture_uploaded: result.uploaded,
+    ...(result.skipped ? { forced_capture_skipped: result.skipped } : {}),
+    ...(result.errorCode ? { forced_capture_error_code: result.errorCode } : {}),
+    ...(typeof result.seq === "number" ? { forced_capture_seq: result.seq } : {}),
+    ...(uploadedSeqs?.length ? { forced_capture_uploaded_seqs: uploadedSeqs } : {}),
+    ...(uploadedObjectKeys?.length
+      ? { forced_capture_uploaded_object_keys: uploadedObjectKeys }
+      : {}),
+    ...(typeof result.evidencePreBufferAttempted === "boolean"
+      ? { evidence_pre_buffer_attempted: result.evidencePreBufferAttempted }
+      : {}),
+    ...(typeof result.evidencePreBufferComplete === "boolean"
+      ? {
+          evidence_pre_buffer_complete: result.evidencePreBufferComplete,
+          pre_buffer_complete: result.evidencePreBufferComplete,
+        }
+      : {}),
+    ...(typeof result.evidencePreBufferFrameCount === "number"
+      ? { evidence_pre_buffer_frame_count: result.evidencePreBufferFrameCount }
+      : {}),
+    ...(typeof uploadedFrameCount === "number"
+      ? { evidence_uploaded_frame_count: uploadedFrameCount }
+      : {}),
+    ...(result.modules?.length ? { forced_capture_modules: result.modules } : {}),
+    ...(result.module_results ? { forced_capture_module_results: result.module_results } : {}),
+    upload_session_id:
+      result.uploadSessionId || getExamCaptureSessionId(contestId) || undefined,
+  };
+};
 
 export const recordExamEventWithForcedCapture = async (
   contestId: string,

@@ -41,7 +41,7 @@ Commands:
 Env knobs:
   LOCUST_HOST, LOCUST_USERS, LOCUST_SPAWN_RATE, LOCUST_RUN_TIME
   LT_CONTEST_NAME, LT_ALLOW_HIGH_RISK_BURST
-  ANTICHEAT_S3_PUBLIC_ENDPOINT_URL
+  OBJECT_STORAGE_PUBLIC_ENDPOINT_URL
 EOF
 }
 
@@ -185,7 +185,7 @@ case "$command" in
     DC ps
     ;;
   logs)
-    DC logs -f --tail=200 backend-test celery-test celery-video-test pgbouncer-test
+    DC logs -f --tail=200 backend-test celery-test pgbouncer-test
     ;;
   *)
     usage

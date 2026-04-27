@@ -28,6 +28,7 @@ from ..services.anti_cheat_session import (
 )
 from ..services.exam_submission import finalize_submission, normalize_source_module
 from ..services.exam_validation import validate_exam_operation
+from ..services.evidence_windows import attach_evidence_window_metadata
 from .activity import ContestActivityViewSet
 from apps.core.throttles import ExamEventsThrottle
 
@@ -397,12 +398,13 @@ class ExamEventsMixin:
             with transaction.atomic():
                 metadata["incident_family"] = family
                 metadata["incident_family_dup"] = bool(family_dup)
-                ExamEvent.objects.create(
+                event = ExamEvent.objects.create(
                     contest=contest,
                     user=request.user,
                     event_type=event_type,
                     metadata=metadata
                 )
+                attach_evidence_window_metadata(event)
                 if not family_dup:
                     participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
                     participant = self._process_penalized_event(
@@ -415,12 +417,13 @@ class ExamEventsMixin:
                         module_role=module_role,
                     )
         else:
-            ExamEvent.objects.create(
+            event = ExamEvent.objects.create(
                 contest=contest,
                 user=request.user,
                 event_type=event_type,
                 metadata=metadata
             )
+            attach_evidence_window_metadata(event)
 
         payload = self._build_event_response(participant, contest)
         logger.info(

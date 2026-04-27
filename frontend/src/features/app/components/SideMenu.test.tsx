@@ -124,4 +124,25 @@ describe("SideMenu contest admin workspace panels", () => {
       expect(mockGetContest).toHaveBeenCalledWith("contest-2");
     });
   });
+
+  it("limits compact contest admin nav to page panels", async () => {
+    mockGetContest.mockResolvedValue({
+      id: "contest-1",
+      contestType: "coding",
+      status: "draft",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=overview"]}>
+        <SideMenu variant="panel" compact />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("adminLayout.nav.overview")).toBeInTheDocument();
+    expect(screen.getByText("adminLayout.nav.problemManagement")).toBeInTheDocument();
+    expect(screen.getByText("adminLayout.nav.settings")).toBeInTheDocument();
+    expect(screen.queryByText("nav.dashboard")).not.toBeInTheDocument();
+    expect(screen.queryByText("nav.classrooms")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  });
 });

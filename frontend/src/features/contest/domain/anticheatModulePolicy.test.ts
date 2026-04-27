@@ -2,6 +2,7 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import {
   buildExamEntryDeviceMetadata,
   detectAnticheatCapability,
+  resolveEvidenceCaptureStrategy,
   resolveDeviceMonitoringPlan,
 } from "./anticheatModulePolicy";
 
@@ -124,6 +125,29 @@ describe("resolveDeviceMonitoringPlan", () => {
     expect(metadata.is_tablet).toBe(false);
     expect(metadata.supports_fine_pointer).toBe(true);
     expect(metadata.pointer_profile).toBe("mouse_like_pointer");
+  });
+
+  it("resolves evidence capture modules from active runtime sources", () => {
+    const plan = resolveDeviceMonitoringPlan(
+      {
+        deviceClass: "desktop",
+        osFamily: "macos",
+        screenShareSupported: true,
+        webcamSupported: true,
+        isTablet: false,
+        isIPadLike: false,
+        isPwaMode: false,
+        supportsFinePointer: true,
+        supportsHover: true,
+        pointerProfile: "mouse_like_pointer",
+      },
+      basePolicy
+    );
+
+    expect(resolveEvidenceCaptureStrategy(plan)).toEqual({
+      primarySourceModule: "screen_share",
+      enabledCaptureModules: ["screen_share", "webcam"],
+    });
   });
 
   it("treats enabled-but-unsupported source as missing", () => {

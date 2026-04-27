@@ -28,6 +28,10 @@
   justify-content: center;
 }
 
+.compact .header {
+  display: none;
+}
+
 // ── User area ──
 
 .userArea {
@@ -75,6 +79,10 @@
   white-space: nowrap;
 }
 
+.compact .userTriggerName {
+  display: none;
+}
+
 .chevron {
   flex-shrink: 0;
   color: var(--cds-text-secondary);
@@ -89,6 +97,7 @@
 
 .collapseBtn {
   flex-shrink: 0;
+  color: var(--cds-icon-primary);
 }
 
 // ── User dropdown panel ──

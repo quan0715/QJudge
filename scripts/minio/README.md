@@ -1,6 +1,6 @@
-# MinIO Public Endpoint Setup (Anti-Cheat Direct Upload)
+# Local MinIO Public Endpoint Setup (Anti-Cheat Direct Upload)
 
-For browser direct upload, students must be able to reach MinIO API over HTTPS.
+For browser direct upload with local MinIO, students must be able to reach the MinIO API over HTTPS. R2 deployments should use `OBJECT_STORAGE_*` directly and do not need this local setup.
 
 For production deployment validation, see:
 
@@ -26,7 +26,7 @@ Example target:
 
 Set these in `.env`:
 
-- `ANTICHEAT_S3_PUBLIC_ENDPOINT_URL=https://minio-dev.quan.wtf`
+- `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://minio-dev.quan.wtf`
 - `ANTICHEAT_CORS_ALLOWED_ORIGINS=https://q-judge-dev.quan.wtf`
 - `MINIO_API_CORS_ALLOW_ORIGIN=https://q-judge-dev.quan.wtf`
 

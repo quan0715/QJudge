@@ -268,6 +268,18 @@ class ContestAccessPolicy(permissions.BasePermission):
                             'You do not have permission to view the scoreboard'
                         )
                         return False
+            elif (
+                action == "anticheat_config"
+                and required_permission == "submit"
+                and required_permission not in role_permissions
+            ):
+                if not ContestParticipant.objects.filter(contest=contest, user=user).exists():
+                    request._permission_error = self._get_error_response(
+                        action,
+                        ErrorCodes.INSUFFICIENT_ROLE,
+                        'You do not have permission to perform this action'
+                    )
+                    return False
             elif required_permission not in role_permissions:
                 request._permission_error = self._get_error_response(
                     action,

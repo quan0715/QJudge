@@ -25,6 +25,7 @@ const MIN_PANEL_WIDTH = 320;
 const MAX_PANEL_WIDTH = 700;
 const DEFAULT_PANEL_WIDTH = 400;
 const STORAGE_KEY = "workspace_panel_width";
+const MINI_LEFT_PANEL_MIN_WIDTH_PX = 1024;
 
 function getSavedWidth(): number {
   try {
@@ -41,6 +42,22 @@ function getSavedWidth(): number {
 function getPortalRoot(): Element | null {
   if (typeof document === "undefined") return null;
   return document.getElementById("modal-portal-root") ?? document.body;
+}
+
+function useIsMiniLeftPanelEligible(): boolean {
+  const [eligible, setEligible] = useState(() => (
+    typeof window !== "undefined" && window.innerWidth >= MINI_LEFT_PANEL_MIN_WIDTH_PX
+  ));
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(min-width: ${MINI_LEFT_PANEL_MIN_WIDTH_PX}px)`);
+    const apply = () => setEligible(mql.matches);
+    apply();
+    mql.addEventListener("change", apply);
+    return () => mql.removeEventListener("change", apply);
+  }, []);
+
+  return eligible;
 }
 
 interface WorkspaceShellProps {
@@ -68,7 +85,7 @@ interface WorkspaceShellProps {
  * 宣告式禁用面板（例如 `/chat` 主畫面、競賽進行中）。
  */
 export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceShellProps) {
-  const { isMobile, left, right } = useWorkspace();
+  const { isMobile, left, right, leftVisualMode } = useWorkspace();
 
   const leftEnabled = !omitAppSidebar;
   const dockLeft = leftEnabled && !isMobile;
@@ -79,6 +96,10 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
 
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
+  const isMiniLeftPanelEligible = useIsMiniLeftPanelEligible();
+  const isMiniMode = !isMobile && isMiniLeftPanelEligible && leftVisualMode === "mini";
+  const isLeftCollapsed = !left.isOpen;
+  const isMiniCollapsed = isMiniMode && isLeftCollapsed;
 
   // Auto-close the mobile drawer on navigation — otherwise the drawer's
   // global open state persists and covers the newly-loaded page.
@@ -195,8 +216,16 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
   return (
     <div className={styles.shell}>
       {dockLeft && (
-        <aside className={`${styles.leftPanel} ${left.isOpen ? "" : styles.leftPanelCollapsed}`}>
-          <AppSidebar collapsed={!left.isOpen} onToggleCollapse={left.toggle} />
+        <aside className={[
+          styles.leftPanel,
+          isMiniCollapsed ? styles.leftPanelMini : "",
+          !isMiniMode && isLeftCollapsed ? styles.leftPanelCollapsed : "",
+        ].filter(Boolean).join(" ")}>
+          <AppSidebar
+            collapsed={isLeftCollapsed}
+            compact={isMiniCollapsed}
+            onToggleCollapse={left.toggle}
+          />
         </aside>
       )}
 

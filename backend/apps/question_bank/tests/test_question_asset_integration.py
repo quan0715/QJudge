@@ -200,16 +200,15 @@ def test_question_bank_question_create_builds_asset_and_membership(
     assert resp.status_code == status.HTTP_201_CREATED
 
     membership = QuestionBankMembership.objects.get(id=resp.data["id"])
-    question = membership.legacy_question
-    assert question.question_asset_id is not None
-    assert question.question_version_id is not None
-    assert question.question_asset.latest_version_id == question.question_version_id
-    assert question.question_asset.versions.count() == 1
-    assert question.question_asset.asset_type == QuestionAsset.AssetType.CODING
-    assert question.question_asset.latest_version.payload["description"] == ""
-    assert question.question_asset.latest_version.payload["test_cases"] == []
+    assert membership.legacy_question_id is None
+    assert Question.objects.count() == 0
+    assert membership.question_asset_id is not None
+    assert membership.question_asset.latest_version_id is not None
+    assert membership.question_asset.versions.count() == 1
+    assert membership.question_asset.asset_type == QuestionAsset.AssetType.CODING
+    assert membership.question_asset.latest_version.payload["description"] == ""
+    assert membership.question_asset.latest_version.payload["test_cases"] == []
     assert membership.bank_id == bank.id
-    assert membership.question_asset_id == question.question_asset_id
 
 
 @pytest.mark.django_db
@@ -257,13 +256,15 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
     )
 
     assert resp.status_code == status.HTTP_200_OK
+    membership = QuestionBankMembership.objects.get(legacy_question=question)
+    membership.question_asset.refresh_from_db()
     question.refresh_from_db()
-    assert question.question_version_id != original_version_id
-    assert question.question_asset.versions.count() == original_version_count + 1
-    assert question.question_asset.latest_version_id == question.question_version_id
-    assert question.question_version.payload["forbidden_keywords"] == ["scanf"]
-    assert question.question_version.title == "Patch Me v2"
-    assert QuestionBankMembership.objects.get(legacy_question=question).question_asset_id == question.question_asset_id
+    assert question.question_version_id == original_version_id
+    assert membership.question_asset.versions.count() == original_version_count + 1
+    assert membership.question_asset.latest_version_id != original_version_id
+    assert membership.question_asset.latest_version.payload["forbidden_keywords"] == ["scanf"]
+    assert membership.question_asset.latest_version.title == "Patch Me v2"
+    assert membership.question_asset_id == question.question_asset_id
 
 
 @pytest.mark.django_db
@@ -530,9 +531,8 @@ def test_question_viewset_can_patch_canonical_only_membership(
 
     assert resp.status_code == status.HTTP_200_OK
     membership.refresh_from_db()
-    assert membership.legacy_question_id is not None
-    membership.legacy_question.refresh_from_db()
-    assert membership.legacy_question.title == "After Patch"
+    assert membership.legacy_question_id is None
+    assert Question.objects.count() == 0
     assert membership.question_asset.latest_version.title == "After Patch"
     assert membership.question_asset.latest_version.payload["forbidden_keywords"] == ["scanf"]
 

@@ -42,7 +42,7 @@ from .serializers import (
     QuestionBankItemWriteSerializer,
 )
 from .permissions import IsQuestionBankAdminReviewer, IsQuestionBankOwner
-from .write_workflows import create_bank_question, update_bank_question
+from .write_workflows import create_bank_question, update_bank_question, update_bank_question_membership
 from .write_workflows import materialize_bank_question_adapter_for_membership
 from .bank_workflows import (
     clone_question_to_bank,
@@ -63,11 +63,6 @@ def _serialize_bank_question_response(*, question=None, membership=None):
                 "question_asset",
                 "question_asset__latest_version",
                 "added_by",
-                "legacy_question",
-                "legacy_question__coding_ext",
-                "legacy_question__source_bank",
-                "legacy_question__created_by",
-                "legacy_question__question_version",
             )
             .filter(legacy_question=question)
             .first()
@@ -417,13 +412,13 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         if bank.category == QuestionBank.Category.EXAM and question_type != Question.QuestionType.EXAM:
             raise DRFValidationError("Exam bank only accepts exam questions.")
 
-        question = create_bank_question(
+        membership = create_bank_question(
             bank=bank,
             created_by=request.user,
             validated_data=serializer.validated_data,
         )
-        question.refresh_from_db()
-        return Response(_serialize_bank_question_response(question=question), status=status.HTTP_201_CREATED)
+        membership.refresh_from_db()
+        return Response(_serialize_bank_question_response(membership=membership), status=status.HTTP_201_CREATED)
 
     @staticmethod
     def _resolve_bank_question_target_or_404(*, bank: QuestionBank, user, raw_id: str, allow_cloneable: bool = False):
@@ -478,13 +473,16 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         instance = target.legacy_question
         serializer = QuestionBankItemWriteSerializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        if instance is None:
-            if not target.membership:
-                raise Http404
-            instance = materialize_bank_question_adapter_for_membership(
+        if target.membership:
+            membership = update_bank_question_membership(
                 membership=target.membership,
+                validated_data=serializer.validated_data,
                 actor=request.user,
             )
+            membership.refresh_from_db()
+            return Response(_serialize_bank_question_response(membership=membership))
+        if instance is None:
+            raise Http404
         question = update_bank_question(
             question=instance,
             validated_data=serializer.validated_data,
@@ -540,4 +538,3 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         cloned = clone_question_to_bank(source_question, target_bank, request.user)
         cloned.refresh_from_db()
         return Response(_serialize_bank_question_response(question=cloned), status=status.HTTP_201_CREATED)
-

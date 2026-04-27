@@ -243,7 +243,7 @@ class AIArtifactUserViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "failed to presign artifact URL"},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-        return Response({"url": url, "ttl": settings.MINIO_PRESIGNED_URL_TTL_SECONDS})
+        return Response({"url": url, "ttl": settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS})
 
     @action(detail=True, methods=["get"], url_path="content")
     def content(self, request, pk=None):

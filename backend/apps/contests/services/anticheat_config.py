@@ -140,7 +140,7 @@ def build_contest_anticheat_config(contest) -> dict:
         "webcam_capture_interval_seconds": WEBCAM_CAPTURE_INTERVAL_SECONDS,
         "multi_display_check_interval_ms": EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS,
         "multi_display_report_cooldown_ms": EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS,
-        "presigned_url_ttl_seconds": int(settings.ANTICHEAT_PRESIGNED_URL_TTL_SECONDS),
+        "presigned_url_ttl_seconds": int(settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS),
     }
 
     device_policy = normalize_anticheat_device_policy(contest.anticheat_device_policy)

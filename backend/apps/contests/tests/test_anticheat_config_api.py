@@ -5,6 +5,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests.models import Contest, ContestParticipant
 from apps.users.models import User
 
@@ -89,6 +90,20 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("warning_timeout_seconds", contest_setting_keys)
         self.assertIn("screen_share_recovery_grace_ms", contest_setting_keys)
         self.assertIn("anticheat_device_policy", contest_setting_keys)
+
+    def test_contest_participant_can_fetch_anticheat_config_when_classroom_bound(self):
+        classroom = Classroom.objects.create(
+            name="Config Room",
+            owner=self.owner,
+            invite_code="CFGROOM1",
+        )
+        ClassroomContest.objects.create(classroom=classroom, contest=self.contest)
+
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn("effective", resp.data)
 
     def test_owner_can_update_screen_share_recovery_grace_and_runtime_uses_latest_value(self):
         self.client.force_authenticate(user=self.student)

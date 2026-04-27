@@ -11,7 +11,7 @@ CONFIRMED=0
 
 usage() {
   cat <<'EOF'
-Dev-only anti-cheat cleanup (DB + MinIO objects).
+Dev-only anti-cheat cleanup (DB + object storage objects).
 
 Usage:
   scripts/dev/cleanup-anticheat-dev.sh --yes [--contest-id <id>]
@@ -98,13 +98,9 @@ export CLEANUP_CONTEST_ID="$CONTEST_ID"
 "${compose[@]}" exec -T -e CLEANUP_CONTEST_ID "$BACKEND_SERVICE" bash -lc "cd /app && python manage.py shell" <<'PY'
 import os
 from django.conf import settings
-from django.db import transaction
-
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
-
-from apps.contests.models import ExamEvidenceJob, ExamEvidenceVideo
 
 env = (getattr(settings, "DJANGO_ENV", "") or "").strip().lower()
 if env in {"production", "prod"}:
@@ -113,32 +109,16 @@ if env in {"production", "prod"}:
 contest_id_raw = (os.getenv("CLEANUP_CONTEST_ID", "") or "").strip()
 contest_id = int(contest_id_raw) if contest_id_raw else None
 
-jobs_qs = ExamEvidenceJob.objects.all()
-videos_qs = ExamEvidenceVideo.objects.all()
-if contest_id is not None:
-    jobs_qs = jobs_qs.filter(contest_id=contest_id)
-    videos_qs = videos_qs.filter(contest_id=contest_id)
+print("[db] skipped: legacy exam evidence video/job tables have been dropped")
 
-jobs_before = jobs_qs.count()
-videos_before = videos_qs.count()
-
-with transaction.atomic():
-    deleted_videos, _ = videos_qs.delete()
-    deleted_jobs, _ = jobs_qs.delete()
-
-print(f"[db] deleted_exam_evidence_videos={deleted_videos}")
-print(f"[db] deleted_exam_evidence_jobs={deleted_jobs}")
-print(f"[db] before_videos={videos_before} before_jobs={jobs_before}")
-
-endpoint = (getattr(settings, "ANTICHEAT_S3_ENDPOINT_URL", "") or "").strip()
-access_key = (getattr(settings, "ANTICHEAT_S3_ACCESS_KEY", "") or "").strip()
-secret_key = (getattr(settings, "ANTICHEAT_S3_SECRET_KEY", "") or "").strip()
-region = (getattr(settings, "ANTICHEAT_S3_REGION", "us-east-1") or "us-east-1").strip()
+endpoint = (getattr(settings, "OBJECT_STORAGE_ENDPOINT_URL", "") or "").strip()
+access_key = (getattr(settings, "OBJECT_STORAGE_ACCESS_KEY", "") or "").strip()
+secret_key = (getattr(settings, "OBJECT_STORAGE_SECRET_KEY", "") or "").strip()
+region = (getattr(settings, "OBJECT_STORAGE_REGION", "us-east-1") or "us-east-1").strip()
 raw_bucket = (getattr(settings, "ANTICHEAT_RAW_BUCKET", "anticheat-raw") or "anticheat-raw").strip()
-video_bucket = (getattr(settings, "ANTICHEAT_VIDEO_BUCKET", "anticheat-videos") or "anticheat-videos").strip()
 
 if not endpoint or not access_key or not secret_key:
-    print("[minio] skipped: missing ANTICHEAT_S3_* credentials/endpoint in env")
+    print("[object-storage] skipped: missing OBJECT_STORAGE_* credentials/endpoint in env")
     raise SystemExit(0)
 
 s3 = boto3.client(
@@ -165,7 +145,7 @@ def purge_bucket(bucket: str, prefix: str = "") -> int:
         except ClientError as exc:
             code = exc.response.get("Error", {}).get("Code", "Unknown")
             if code in {"NoSuchBucket", "404"}:
-                print(f"[minio] bucket not found, skip: {bucket}")
+                print(f"[object-storage] bucket not found, skip: {bucket}")
                 return 0
             raise
 
@@ -185,9 +165,7 @@ def purge_bucket(bucket: str, prefix: str = "") -> int:
 
 prefix = f"contest_{contest_id}/" if contest_id is not None else ""
 raw_deleted = purge_bucket(raw_bucket, prefix=prefix)
-video_deleted = purge_bucket(video_bucket, prefix=prefix)
-print(f"[minio] deleted_raw_objects={raw_deleted} bucket={raw_bucket} prefix={prefix or '(all)'}")
-print(f"[minio] deleted_video_objects={video_deleted} bucket={video_bucket} prefix={prefix or '(all)'}")
+print(f"[object-storage] deleted_raw_objects={raw_deleted} bucket={raw_bucket} prefix={prefix or '(all)'}")
 PY
 
 echo "[done] Anti-cheat cleanup completed."

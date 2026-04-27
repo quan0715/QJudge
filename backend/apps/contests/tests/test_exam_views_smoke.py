@@ -67,7 +67,7 @@ class ContestExamViewsSmokeTests(APITestCase):
         self.assertEqual(repeat_response.status_code, status.HTTP_200_OK)
         self.assertEqual(repeat_response.data["exam_status"], ExamStatus.SUBMITTED)
 
-    def test_exam_evidence_routes_resolve_and_enforce_permissions(self):
+    def test_exam_screenshot_evidence_route_resolves_and_enforces_permissions(self):
         self.client.force_authenticate(user=self.student)
         self.client.post(
             reverse("contests:contest-exam-end-exam", args=[self.contest.id]),
@@ -77,50 +77,8 @@ class ContestExamViewsSmokeTests(APITestCase):
 
         self.client.force_authenticate(user=self.teacher)
 
-        videos_response = self.client.get(
-            reverse("contests:contest-exam-videos", args=[self.contest.id])
+        screenshots_response = self.client.get(
+            reverse("contests:contest-exam-screenshots", args=[self.contest.id]),
+            {"user_id": self.student.id, "upload_session_id": "session-smoke-2"},
         )
-        self.assertEqual(videos_response.status_code, status.HTTP_200_OK)
-
-        compile_response = self.client.post(
-            reverse("contests:contest-exam-video-compile", args=[self.contest.id]),
-            {
-                "targets": [
-                    {
-                        "user_id": self.student.id,
-                        "upload_session_id": "session-smoke-2",
-                    }
-                ]
-            },
-            format="json",
-        )
-        self.assertEqual(compile_response.status_code, status.HTTP_200_OK)
-
-        delete_response = self.client.post(
-            reverse("contests:contest-exam-video-delete", args=[self.contest.id]),
-            {
-                "targets": [
-                    {
-                        "user_id": self.student.id,
-                        "upload_session_id": "session-smoke-2",
-                    }
-                ]
-            },
-            format="json",
-        )
-        self.assertEqual(delete_response.status_code, status.HTTP_403_FORBIDDEN)
-
-        self.client.force_authenticate(user=self.owner)
-        owner_delete_response = self.client.post(
-            reverse("contests:contest-exam-video-delete", args=[self.contest.id]),
-            {
-                "targets": [
-                    {
-                        "user_id": self.student.id,
-                        "upload_session_id": "session-smoke-2",
-                    }
-                ]
-            },
-            format="json",
-        )
-        self.assertEqual(owner_delete_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(screenshots_response.status_code, status.HTTP_200_OK)

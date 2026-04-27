@@ -33,7 +33,6 @@ load_env_file "$ENV_FILE"
 MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}"
 MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-minioadmin}"
 ANTICHEAT_RAW_BUCKET="${ANTICHEAT_RAW_BUCKET:-anticheat-raw}"
-ANTICHEAT_VIDEO_BUCKET="${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}"
 
 log() {
   printf '[smoke] %s\n' "$1"
@@ -57,12 +56,9 @@ log "Running MinIO init script"
 ENV_FILE="$ENV_FILE" "$PROJECT_ROOT/scripts/minio/run-init.sh" "$COMPOSE_FILE"
 
 log "Checking required services"
-for svc in backend minio celery-video; do
+for svc in backend minio celery; do
   assert_running "$svc"
 done
-
-log "Checking ffmpeg in backend image"
-dc exec -T backend ffmpeg -version >/dev/null
 
 minio_cid="$(dc ps -q minio)"
 if [[ -z "$minio_cid" ]]; then
@@ -88,7 +84,6 @@ docker run --rm --network "$network_name" \
   minio/mc -c 'mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && mc ls local' >"$buckets_output"
 
 grep -q "${ANTICHEAT_RAW_BUCKET}/" "$buckets_output"
-grep -q "${ANTICHEAT_VIDEO_BUCKET}/" "$buckets_output"
 
 log "Checking MinIO lifecycle policies"
 docker run --rm --network "$network_name" \

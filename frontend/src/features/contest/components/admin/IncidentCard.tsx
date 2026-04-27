@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Tag, InlineLoading } from "@carbon/react";
-import { ChevronDown, ChevronUp } from "@carbon/icons-react";
+import { ChevronDown, ChevronUp, Close } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
@@ -11,6 +11,7 @@ import styles from "./IncidentCard.module.scss";
 // Keys already surfaced elsewhere in the card or that are pure noise
 const HIDDEN_META_KEYS = new Set([
   "reason", "source", "phase", "event_idempotency_key", "ts",
+  "event_id",
   // orchestrator internals — already reflected in incident priority & penalized flag
   "decision", "priority", "severity", "dedupe_hit", "reason_code",
   // opaque session ID — not actionable for admins
@@ -19,6 +20,13 @@ const HIDDEN_META_KEYS = new Set([
   "forced_capture_requested", "forced_capture_reason", "forced_capture_result",
   "forced_capture_attempted", "forced_capture_captured", "forced_capture_uploaded",
   "forced_capture_skipped", "forced_capture_error_code", "forced_capture_seq",
+  "forced_capture_uploaded_seqs", "forced_capture_uploaded_object_keys",
+  "evidence_pre_buffer_attempted", "evidence_pre_buffer_complete",
+  "evidence_pre_buffer_frame_count", "evidence_uploaded_frame_count",
+  "pre_buffer_complete", "evidence_cluster_id", "evidence_window_start",
+  "evidence_window_end", "evidence_window_before_seconds", "evidence_window_after_seconds",
+  "evidence_window_max_seconds", "evidence_source_module",
+  "forced_capture_modules", "forced_capture_module_results",
 ]);
 
 const META_LABEL_KEYS: Record<string, string> = {
@@ -37,6 +45,16 @@ interface CaptureInfo {
   seq?: number;
 }
 
+type SourceModule = "screen_share" | "webcam";
+
+const SOURCE_MODULE_LABELS: Record<SourceModule, string> = {
+  screen_share: "Screen",
+  webcam: "Webcam",
+};
+
+const isSourceModule = (value: unknown): value is SourceModule =>
+  value === "screen_share" || value === "webcam";
+
 function parseCaptureInfo(meta: Record<string, unknown>): CaptureInfo | null {
   if (!meta.forced_capture_requested) return null;
   const result = String(meta.forced_capture_result ?? "unknown");
@@ -47,6 +65,72 @@ function parseCaptureInfo(meta: Record<string, unknown>): CaptureInfo | null {
     errorCode: hasError ? String(meta.forced_capture_error_code) : undefined,
     seq: typeof meta.forced_capture_seq === "number" ? meta.forced_capture_seq : undefined,
   };
+}
+
+function getModuleResults(meta: Record<string, unknown>): Partial<Record<SourceModule, Record<string, unknown>>> {
+  const raw = meta.forced_capture_module_results;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown>).filter(
+      ([module, value]) => isSourceModule(module) && value && typeof value === "object" && !Array.isArray(value)
+    )
+  ) as Partial<Record<SourceModule, Record<string, unknown>>>;
+}
+
+function getEvidenceObjectKeys(meta: Record<string, unknown>): string[] {
+  const keys = new Set<string>();
+  const topLevelKeys = Array.isArray(meta.forced_capture_uploaded_object_keys)
+    ? meta.forced_capture_uploaded_object_keys
+    : [];
+  topLevelKeys.forEach((value) => {
+    if (typeof value === "string") keys.add(value);
+  });
+
+  Object.values(getModuleResults(meta)).forEach((result) => {
+    const moduleKeys = Array.isArray(result?.uploadedObjectKeys)
+      ? result.uploadedObjectKeys
+      : [];
+    moduleKeys.forEach((value) => {
+      if (typeof value === "string") keys.add(value);
+    });
+  });
+
+  return Array.from(keys);
+}
+
+function getEvidenceModules(meta: Record<string, unknown>, objectKeys: string[]): SourceModule[] {
+  const modules = new Set<SourceModule>();
+  const configuredModules = Array.isArray(meta.forced_capture_modules)
+    ? meta.forced_capture_modules
+    : [];
+  configuredModules.forEach((value) => {
+    if (isSourceModule(value)) modules.add(value);
+  });
+  Object.keys(getModuleResults(meta)).forEach((value) => {
+    if (isSourceModule(value)) modules.add(value);
+  });
+  objectKeys.forEach((key) => {
+    if (key.includes("/screen_share/")) modules.add("screen_share");
+    if (key.includes("/webcam/")) modules.add("webcam");
+  });
+  if (isSourceModule(meta.evidence_source_module)) modules.add(meta.evidence_source_module);
+  if (isSourceModule(meta.module)) modules.add(meta.module);
+  return Array.from(modules);
+}
+
+function parseModuleCaptureInfos(meta: Record<string, unknown>) {
+  return Object.entries(getModuleResults(meta))
+    .map(([module, result]) => {
+      if (!isSourceModule(module) || !result) return null;
+      const captureInfo: CaptureInfo = {
+        result: String(result.uploaded ? "uploaded" : result.skipped ? `skipped:${result.skipped}` : result.captured ? "captured" : "unknown"),
+        hasError: !!result.errorCode,
+        errorCode: result.errorCode ? String(result.errorCode) : undefined,
+        seq: typeof result.seq === "number" ? result.seq : undefined,
+      };
+      return { module, info: captureInfo };
+    })
+    .filter((value): value is { module: SourceModule; info: CaptureInfo } => !!value);
 }
 
 function formatMetaValue(key: string, value: unknown): string {
@@ -67,8 +151,8 @@ interface IncidentCardProps {
 
 export default function IncidentCard({
   incident,
-  screenshotWindowBeforeMs = 15_000,
-  screenshotWindowAfterMs = 15_000,
+  screenshotWindowBeforeMs = 20_000,
+  screenshotWindowAfterMs = 20_000,
   screenshotPreviewLimit = 10,
   screenshotCategories = ["critical", "violation"],
 }: IncidentCardProps) {
@@ -86,6 +170,26 @@ export default function IncidentCard({
   const meta = incident.metadata ?? {};
 
   const captureInfo = useMemo(() => parseCaptureInfo(meta), [meta]);
+  const evidenceObjectKeys = useMemo(() => getEvidenceObjectKeys(meta), [meta]);
+  const evidenceModules = useMemo(() => getEvidenceModules(meta, evidenceObjectKeys), [meta, evidenceObjectKeys]);
+  const moduleCaptureInfos = useMemo(() => parseModuleCaptureInfos(meta), [meta]);
+
+  // --- Screenshot lazy loading ---
+  const [screenshots, setScreenshots] = useState<ScreenshotFrame[]>([]);
+  const [screenshotLoading, setScreenshotLoading] = useState(false);
+  const [screenshotError, setScreenshotError] = useState(false);
+  const [screenshotLoaded, setScreenshotLoaded] = useState(false);
+  const [totalRawCount, setTotalRawCount] = useState(0);
+  const [didCrossSessionFallback, setDidCrossSessionFallback] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  const screenshotsByModule = useMemo(() => {
+    return screenshots.reduce<Partial<Record<SourceModule, ScreenshotFrame[]>>>((acc, frame) => {
+      const module = isSourceModule(frame.source_module) ? frame.source_module : "screen_share";
+      acc[module] = [...(acc[module] ?? []), frame];
+      return acc;
+    }, {});
+  }, [screenshots]);
 
   const meaningfulEntries = useMemo(() => {
     return Object.entries(meta)
@@ -112,15 +216,6 @@ export default function IncidentCard({
     incident.count > 1
   );
 
-  // --- Screenshot lazy loading ---
-  const [screenshots, setScreenshots] = useState<ScreenshotFrame[]>([]);
-  const [screenshotLoading, setScreenshotLoading] = useState(false);
-  const [screenshotError, setScreenshotError] = useState(false);
-  const [screenshotLoaded, setScreenshotLoaded] = useState(false);
-  const [totalRawCount, setTotalRawCount] = useState(0);
-  const [didCrossSessionFallback, setDidCrossSessionFallback] = useState(false);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-
   const loadScreenshots = useCallback(async () => {
     if (!contestId || !incident.userId || screenshotLoaded) return;
     setScreenshotLoading(true);
@@ -128,23 +223,47 @@ export default function IncidentCard({
     try {
       const sessionId = meta.upload_session_id as string | undefined;
       const sourceModule =
-        meta.module === "webcam" || meta.module === "screen_share"
-          ? (meta.module as "screen_share" | "webcam")
+        evidenceModules.length === 1 && evidenceObjectKeys.length === 0
+          ? evidenceModules[0]
           : undefined;
+      const evidenceClusterId = typeof meta.evidence_cluster_id === "string" ? meta.evidence_cluster_id : "";
+      const evidenceEventId =
+        incident.eventId ??
+        (typeof meta.event_id === "string" || typeof meta.event_id === "number"
+          ? String(meta.event_id)
+          : "");
+
+      const evidenceWindowStart =
+        typeof meta.evidence_window_start === "string" ? Date.parse(meta.evidence_window_start) : NaN;
+      const evidenceWindowEnd =
+        typeof meta.evidence_window_end === "string" ? Date.parse(meta.evidence_window_end) : NaN;
       const params: Parameters<typeof fetchScreenshots>[1] = {
         user_id: String(incident.userId),
         limit: screenshotPreviewLimit,
       };
       const firstMs = new Date(incident.firstAt).getTime();
       const lastMs = new Date(incident.lastAt).getTime();
-      params.ts_from = firstMs - screenshotWindowBeforeMs;
-      params.ts_to = lastMs + screenshotWindowAfterMs;
+      params.ts_from = Number.isFinite(evidenceWindowStart)
+        ? evidenceWindowStart
+        : firstMs - screenshotWindowBeforeMs;
+      params.ts_to = Number.isFinite(evidenceWindowEnd)
+        ? evidenceWindowEnd
+        : lastMs + screenshotWindowAfterMs;
       if (sessionId) {
         // Prefer the session attached to event metadata first.
         params.upload_session_id = sessionId;
       }
+      if (evidenceEventId) {
+        params.event_id = evidenceEventId;
+      }
+      if (evidenceClusterId) {
+        params.evidence_cluster_id = evidenceClusterId;
+      }
       if (sourceModule) {
         params.source_module = sourceModule;
+      }
+      if (evidenceObjectKeys.length > 0) {
+        params.object_keys = evidenceObjectKeys.slice(0, screenshotPreviewLimit);
       }
       const result = await fetchScreenshots(contestId, params);
 
@@ -179,6 +298,8 @@ export default function IncidentCard({
     contestId,
     incident.userId,
     meta,
+    evidenceObjectKeys,
+    evidenceModules,
     incident.firstAt,
     incident.lastAt,
     screenshotLoaded,
@@ -193,16 +314,33 @@ export default function IncidentCard({
     }
   }, [expanded, shouldAttemptScreenshotPreview, screenshotLoaded, screenshotLoading, loadScreenshots]);
 
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightboxUrl(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxUrl]);
+
   return (
     <>
       <div
         className={`${styles.card} ${styles[`priority${incident.priority}`] ?? ""} ${expanded ? styles.cardExpanded : ""}`}
       >
         <div
-          className={styles.header}
+          className={`${styles.header} ${hasDetail ? styles.headerButton : ""}`}
           onClick={() => hasDetail && setExpanded((v) => !v)}
+          onKeyDown={(event) => {
+            if (!hasDetail) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setExpanded((v) => !v);
+            }
+          }}
           role={hasDetail ? "button" : undefined}
           tabIndex={hasDetail ? 0 : undefined}
+          aria-expanded={expanded}
         >
           <div className={styles.left}>
             <Tag type={tagColor} size="sm">{priorityLabel}</Tag>
@@ -264,7 +402,31 @@ export default function IncidentCard({
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>{t("logs.detail.captureStatus", "截圖狀態")}</span>
                 <span className={styles.detailValue}>
-                  <CaptureStatusTag info={captureInfo} />
+                  {moduleCaptureInfos.length > 0 ? (
+                    <span className={styles.captureStatusList}>
+                      {moduleCaptureInfos.map(({ module, info }) => (
+                        <span key={module} className={styles.captureStatusItem}>
+                          <span className={styles.sourceText}>{SOURCE_MODULE_LABELS[module]}</span>
+                          <CaptureStatusTag info={info} />
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <CaptureStatusTag info={captureInfo} />
+                  )}
+                </span>
+              </div>
+            )}
+
+            {evidenceModules.length > 0 && (
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>{t("logs.detail.evidenceSources", "證據來源")}</span>
+                <span className={styles.sourceList}>
+                  {evidenceModules.map((module) => (
+                    <Tag key={module} type={module === "webcam" ? "purple" : "cyan"} size="sm">
+                      {SOURCE_MODULE_LABELS[module]}
+                    </Tag>
+                  ))}
                 </span>
               </div>
             )}
@@ -282,19 +444,31 @@ export default function IncidentCard({
                   </span>
                 )}
                 {screenshots.length > 0 && (
-                  <div className={styles.screenshotGrid}>
-                    {screenshots.map((frame) => (
-                      <button
-                        key={`${frame.ts_ms}_${frame.seq}`}
-                        className={styles.screenshotThumb}
-                        onClick={() => setLightboxUrl(frame.url)}
-                        title={new Date(frame.ts_ms).toLocaleTimeString()}
-                      >
-                        <img src={frame.url} alt={`seq ${frame.seq}`} loading="lazy" />
-                        <span className={styles.screenshotTime}>
-                          {new Date(frame.ts_ms).toLocaleTimeString()}
-                        </span>
-                      </button>
+                  <div className={styles.screenshotGroups}>
+                    {(Object.keys(screenshotsByModule) as SourceModule[]).map((module) => (
+                      <div key={module} className={styles.screenshotGroup}>
+                        <div className={styles.screenshotSourceHeader}>
+                          <Tag type={module === "webcam" ? "purple" : "cyan"} size="sm">
+                            {SOURCE_MODULE_LABELS[module]}
+                          </Tag>
+                          <span>{screenshotsByModule[module]?.length ?? 0}</span>
+                        </div>
+                        <div className={styles.screenshotGrid}>
+                          {(screenshotsByModule[module] ?? []).map((frame) => (
+                            <button
+                              key={`${frame.source_module ?? "unknown"}_${frame.ts_ms}_${frame.seq}`}
+                              className={styles.screenshotThumb}
+                              onClick={() => setLightboxUrl(frame.url)}
+                              title={new Date(frame.ts_ms).toLocaleTimeString()}
+                            >
+                              <img src={frame.url} alt={`${module} seq ${frame.seq}`} loading="lazy" />
+                              <span className={styles.screenshotTime}>
+                                {new Date(frame.ts_ms).toLocaleTimeString()}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -307,7 +481,7 @@ export default function IncidentCard({
                         })
                       : didCrossSessionFallback
                         ? t("logs.detail.noScreenshotsBySession", "此事件場次無可用截圖，已改用跨場次查詢")
-                        : t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看影片證據")}
+                        : t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看即時監看")}
                   </span>
                 )}
               </div>
@@ -330,7 +504,24 @@ export default function IncidentCard({
 
       {/* Lightbox overlay */}
       {lightboxUrl && (
-        <div className={styles.lightbox} onClick={() => setLightboxUrl(null)}>
+        <div
+          className={styles.lightbox}
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setLightboxUrl(null)}
+          aria-label={t("logs.detail.lightboxLabel", "截圖預覽")}
+        >
+          <button
+            type="button"
+            className={styles.lightboxClose}
+            onClick={(event) => {
+              event.stopPropagation();
+              setLightboxUrl(null);
+            }}
+            aria-label={t("common.close", "關閉")}
+          >
+            <Close size={20} />
+          </button>
           <img src={lightboxUrl} alt="screenshot" />
         </div>
       )}

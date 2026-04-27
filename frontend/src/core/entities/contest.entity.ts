@@ -99,6 +99,9 @@ export interface ContestParticipant {
   userDisplayName?: string;
   accountRole?: string;
   authProvider?: string;
+  connectionStatus?: "offline" | "online" | "live";
+  lastHeartbeatAt?: string | null;
+  liveMonitoringOnline?: boolean;
   score: number;
   rank?: number;
   joinedAt: string;
@@ -223,26 +226,9 @@ export interface ParticipantCodingTrendPoint {
   problemTitle?: string;
 }
 
-export interface ParticipantEvidenceRow {
-  id: number;
-  uploadSessionId: string;
-  sourceModule?: "screen_share" | "webcam";
-  hasVideo: boolean;
-  jobStatus: "pending" | "running" | "success" | "failed" | "no_data";
-  jobErrorMessage: string;
-  durationSeconds: number;
-  frameCount: number;
-  sizeBytes: number;
-  isSuspected: boolean;
-  suspectedNote: string;
-  suspectedByUsername: string | null;
-  updatedAt: string;
-  createdAt: string;
-  videoId: number | null;
-}
-
 export interface EventFeedItem {
   incidentKey: string;
+  eventId?: string;
   eventType: string;
   priority: number;
   category: string;
@@ -283,7 +269,6 @@ export interface ParticipantDashboard {
   timeline: ParticipantDashboardTimelineItem[];
   eventFeed: EventFeedItem[];
   actions: ParticipantDashboardActions;
-  evidence?: ParticipantEvidenceRow[];
 }
 
 export interface Contest {

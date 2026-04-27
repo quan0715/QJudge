@@ -176,6 +176,9 @@ export interface ContestParticipantDto {
   user_display_name?: string;
   account_role?: string;
   auth_provider?: string;
+  connection_status?: "offline" | "online" | "live";
+  last_heartbeat_at?: string | null;
+  live_monitoring_online?: boolean;
   score?: number;
   total_score?: number;
   rank?: number;
@@ -227,26 +230,9 @@ export interface ParticipantCodingProblemRowDto {
   time?: number | null;
 }
 
-export interface ParticipantEvidenceRowDto {
-  id?: number;
-  upload_session_id?: string;
-  source_module?: string;
-  has_video?: boolean;
-  job_status?: string;
-  job_error_message?: string;
-  duration_seconds?: number;
-  frame_count?: number;
-  size_bytes?: number;
-  is_suspected?: boolean;
-  suspected_note?: string;
-  suspected_by_username?: string | null;
-  updated_at?: string;
-  created_at?: string;
-  video_id?: number | null;
-}
-
 export interface EventFeedItemDto {
   incident_key?: string;
+  event_id?: string | number;
   event_type?: string;
   priority?: number;
   category?: string;
@@ -301,7 +287,6 @@ export interface ParticipantDashboardDto {
     can_view_evidence?: boolean;
     can_open_grading?: boolean;
   };
-  evidence?: ParticipantEvidenceRowDto[];
 }
 
 export interface ScoreboardRowDto {

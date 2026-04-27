@@ -20,6 +20,7 @@ import {
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import {
   detectAnticheatCapability,
+  resolveEvidenceCaptureStrategy,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
 
@@ -91,14 +92,8 @@ export const usePaperExamFlow = () => {
       detectAnticheatCapability(),
       contest?.anticheatDevicePolicy
     );
-    const sourceModule: "screen_share" | "webcam" = monitoringPlan.primarySourceModule;
-    const enabledCaptureModules: Array<"screen_share" | "webcam"> = [];
-    if (monitoringPlan.runtime.enableScreenShareCapture) {
-      enabledCaptureModules.push("screen_share");
-    }
-    if (monitoringPlan.runtime.enableWebcamCapture) {
-      enabledCaptureModules.push("webcam");
-    }
+    const { primarySourceModule: sourceModule, enabledCaptureModules } =
+      resolveEvidenceCaptureStrategy(monitoringPlan);
     const moduleRole = sourceModule === "screen_share"
       ? monitoringPlan.sources.screenShare.role ?? "primary"
       : monitoringPlan.sources.webcam.role ?? "primary";

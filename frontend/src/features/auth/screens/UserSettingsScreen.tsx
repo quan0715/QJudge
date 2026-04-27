@@ -1,21 +1,15 @@
 import React, { useState } from "react";
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from "@carbon/react";
-import { UserAvatar, Settings, Password, Catalog } from "@carbon/icons-react";
+import { UserAvatar, Settings, Catalog } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { ProfilePanel } from "@/features/auth/components/ProfilePanel";
 import { PreferencesPanel } from "@/features/auth/components/PreferencesPanel";
-import { APIKeyPanel } from "@/features/auth/components/APIKeyPanel";
 import { PlansPanel } from "@/features/auth/components/PlansPanel";
 import "./UserSettingsScreen.scss";
 
 export const UserSettingsScreen: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState(0);
-
-  const isTeacherOrAdmin =
-    user?.role === "teacher" || user?.role === "admin";
 
   return (
     <div className="user-settings-screen">
@@ -37,11 +31,6 @@ export const UserSettingsScreen: React.FC = () => {
             <Tab renderIcon={Settings}>
               {t("settings.tabs.preferences", "偏好設定")}
             </Tab>
-            {isTeacherOrAdmin && (
-              <Tab renderIcon={Password}>
-                {t("settings.tabs.apiKey", "API Key")}
-              </Tab>
-            )}
             <Tab renderIcon={Catalog}>
               {t("settings.tabs.plans", "探索方案")}
             </Tab>
@@ -54,11 +43,6 @@ export const UserSettingsScreen: React.FC = () => {
             <TabPanel>
               <PreferencesPanel />
             </TabPanel>
-            {isTeacherOrAdmin && (
-              <TabPanel>
-                <APIKeyPanel />
-              </TabPanel>
-            )}
             <TabPanel>
               <PlansPanel />
             </TabPanel>

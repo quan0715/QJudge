@@ -34,10 +34,20 @@ export interface PanelControl {
   enable: (id: string) => void;
 }
 
+export type LeftPanelVisualMode = "full" | "mini";
+
+interface LeftPanelModeOverride {
+  id: string;
+  mode: LeftPanelVisualMode;
+}
+
 export interface WorkspaceContextValue {
   isMobile: boolean;
   left: PanelControl;
   right: PanelControl;
+  leftVisualMode: LeftPanelVisualMode;
+  setLeftVisualMode: (id: string, mode: LeftPanelVisualMode) => void;
+  clearLeftVisualMode: (id: string) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -96,6 +106,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   );
   const [leftDisablers, setLeftDisablers] = useState<ReadonlySet<string>>(() => new Set());
   const [rightDisablers, setRightDisablers] = useState<ReadonlySet<string>>(() => new Set());
+  const [leftModeOverrides, setLeftModeOverrides] = useState<LeftPanelModeOverride[]>([]);
   const isMobile = useIsMobile();
 
   const persistLeft = useCallback((v: boolean) => {
@@ -139,6 +150,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return next;
     });
   }, []);
+  const setLeftVisualMode = useCallback((id: string, mode: LeftPanelVisualMode) => {
+    setLeftModeOverrides((prev) => {
+      const next = prev.filter(item => item.id !== id);
+      next.push({ id, mode });
+      return next;
+    });
+  }, []);
+  const clearLeftVisualMode = useCallback((id: string) => {
+    setLeftModeOverrides((prev) => prev.filter(item => item.id !== id));
+  }, []);
 
   const leftDisabled = leftDisablers.size > 0;
   const rightDisabled = rightDisablers.size > 0;
@@ -169,9 +190,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     enable: removeRightDisabler,
   }), [rightPref, rightDisabled, rightAllowed, persistRight, addRightDisabler, removeRightDisabler]);
 
+  const leftVisualMode = useMemo<LeftPanelVisualMode>(() => {
+    const latest = leftModeOverrides.at(-1);
+    return latest?.mode ?? "full";
+  }, [leftModeOverrides]);
+
   const value = useMemo<WorkspaceContextValue>(
-    () => ({ isMobile, left, right }),
-    [isMobile, left, right],
+    () => ({
+      isMobile,
+      left,
+      right,
+      leftVisualMode,
+      setLeftVisualMode,
+      clearLeftVisualMode,
+    }),
+    [isMobile, left, right, leftVisualMode, setLeftVisualMode, clearLeftVisualMode],
   );
 
   return (
@@ -197,6 +230,9 @@ const NULL_VALUE: WorkspaceContextValue = {
   isMobile: false,
   left: NULL_PANEL,
   right: NULL_PANEL,
+  leftVisualMode: "full",
+  setLeftVisualMode: () => {},
+  clearLeftVisualMode: () => {},
 };
 
 export function useWorkspace(): WorkspaceContextValue {

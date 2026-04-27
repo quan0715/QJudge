@@ -3,16 +3,12 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { useAnticheatScreenCapture } from "./useAnticheatScreenCapture";
 
 // ── Mocks ──────────────────────────────────────────────────────────
-vi.mock("./anticheat/useFrameQueue", () => ({
-  useFrameQueue: () => ({ ensureQueue: vi.fn() }),
-}));
-
 vi.mock("./anticheat/useCanvasProcessor", () => ({
   useCanvasProcessor: () => ({ encodeUnderBudget: vi.fn() }),
 }));
 
 vi.mock("./anticheat/useAnticheatUploader", () => ({
-  useAnticheatUploader: () => ({ uploadBatch: vi.fn().mockResolvedValue([]) }),
+  useAnticheatUploader: () => ({ uploadBatchDetailed: vi.fn().mockResolvedValue([]) }),
 }));
 
 vi.mock("@/features/contest/anticheat/forcedCapture", () => ({

@@ -18,6 +18,10 @@
   transition: width $chat-motion-duration $chat-motion-easing;
 }
 
+.leftPanelMini {
+  width: 3rem;
+}
+
 .leftPanelCollapsed {
   width: 0;
   border-right: none;

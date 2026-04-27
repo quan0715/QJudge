@@ -225,7 +225,8 @@
     "updateFailed": "Failed to update nickname, please try again later"
   },
   "button": {
-    "backToLobby": "Back to Contest Lobby"
+    "backToLobby": "Back to Contest Lobby",
+    "close": "Close"
   },
   "clarifications": {
     "notFound": "Contest not found",
@@ -307,7 +308,7 @@
     "duration": "Duration",
     "emptyList": "No participants match the current filters",
     "eventTimeline": "Event Timeline",
-    "evidenceSessions": "Evidence Sessions",
+    "evidenceSessions": "Live Monitoring & Captures",
     "feedback": "Feedback",
     "flagged": "Flagged",
     "frames": "Frames",
@@ -315,14 +316,14 @@
     "leftAt": "Last Left",
     "listSubtitle": "Select a participant to review answers, events, and report details",
     "loadFailed": "Failed to load participant dashboard",
-    "manageEvidence": "Open evidence manager",
-    "monitoringUseExistingUi": "This tab reuses the existing video manager UI. Use the button above to open it.",
+    "manageEvidence": "Open live monitoring",
+    "monitoringUseExistingUi": "This tab shows live monitoring and evidence captures.",
     "noAnswer": "No answer",
-    "noEvidence": "No evidence videos or pending transcodes yet",
+    "noEvidence": "No live evidence available yet",
     "noSubmissionData": "No submission data yet",
     "noTimeline": "No events yet",
     "noTrendData": "No trend data available",
-    "openEvidence": "Open evidence videos",
+    "openEvidence": "Open live view",
     "openGrading": "Go to grading",
     "partialLoadWarning": "Some data may be stale",
     "participantSummary": "Participant Summary",
@@ -412,6 +413,7 @@
     "alreadyLocked": "0 - Locked",
     "answerLocked": "Answer Locked",
     "antiCheatStarting": "Anti-cheat monitoring will start after countdown",
+    "anticheatConfigMissing": "Anti-cheat policy has not loaded. Return to the dashboard and refresh before answering.",
     "autoLockIn": "Auto-locking in {{seconds}} seconds",
     "autoSubmitNoMoreAnswer": "After confirming, the system will auto-submit for you and you cannot answer anymore.",
     "autoSubmittedDesc": "Screen sharing was interrupted and could not be restored within the time limit. Your exam has been automatically submitted.",
@@ -451,6 +453,7 @@
     "lockedReason": "Violation",
     "modeEnabled": "Cheat Detection Enabled",
     "monitoring": "Monitoring",
+    "monitoringDeviceUnsupported": "This device does not meet the monitoring policy for this exam. Return to the dashboard and run the environment check again.",
     "monitoringHint": "Exam monitoring - Click for details",
     "mouseLeaveRecoveryDesc": "Move your mouse back into the exam window within {{seconds}} seconds, or this will count as one violation.",
     "mouseLeaveRecoveryTitle": "Mouse left the window",
@@ -465,6 +468,8 @@
     "printBlocked": "Printing is disabled during exam",
     "processing": "Processing...",
     "recordingViolation": "Recording violation...",
+    "screenShareUnsupported": "This browser does not support screen sharing. Return to the dashboard and run the environment check again, or use a browser that supports screen sharing.",
+    "webcamUnsupported": "This device cannot use the webcam. Return to the dashboard and run the environment check again, or use a device with webcam access.",
     "remainingChances": "Remaining Chances",
     "requestingScreenShare": "Requesting share...",
     "reshareScreen": "Reshare Screen",
@@ -600,77 +605,6 @@
     "not_started": "Not Started",
     "paused": "Paused",
     "submitted": "Submitted"
-  },
-  "examVideoReview": {
-    "actions": {
-      "compile": "Start Transcode",
-      "delete": "Delete Video",
-      "deleting": "Deleting...",
-      "download": "Download Video",
-      "flag": "Mark as Suspected",
-      "submitting": "Submitting...",
-      "unflag": "Clear Suspected Flag"
-    },
-    "bulkCompile": "Transcode All ({{count}})",
-    "bulkCompiling": "Submitting...",
-    "confirmDelete": "Are you sure you want to delete {{name}}'s monitoring video data? This action cannot be undone.",
-    "empty": "No monitoring videos are available.",
-    "errors": {
-      "compile": "Failed to start transcode",
-      "compileAll": "Failed to start batch transcode",
-      "delete": "Failed to delete video",
-      "deleteBlocked": "The video is currently being processed and cannot be deleted yet.",
-      "load": "Failed to load videos",
-      "playUrl": "Failed to load playback URL"
-    },
-    "fields": {
-      "duration": "Duration",
-      "fileSize": "File Size",
-      "frameCount": "Frame Count",
-      "jobStatus": "Transcode Status",
-      "recordingEnd": "Recording End",
-      "recordingStart": "Recording Start",
-      "student": "Student"
-    },
-    "flag": {
-      "normal": "Normal",
-      "suspected": "Suspected"
-    },
-    "headers": {
-      "duration": "Duration",
-      "finishedAt": "Recording End",
-      "flag": "Flag",
-      "jobStatus": "Transcode Status",
-      "module": "Source",
-      "startedAt": "Recording Start",
-      "student": "Student",
-      "updatedAt": "Last Updated"
-    },
-    "listTitle": "Video List",
-    "loadErrorTitle": "Failed to load monitoring videos",
-    "modalHeading": "Exam Video Review",
-    "note": "Note",
-    "preview": {
-      "failed": "Video transcoding failed. Please retry later or review the error message.",
-      "noData": "No frames were captured for this source during the attempt, so no video was generated.",
-      "pending": "This video is pending transcode. It will appear here after you manually start transcoding.",
-      "running": "Video is being transcoded and will appear automatically when ready.",
-      "selectVideo": "Select a video"
-    },
-    "sessionGroup": "Attempt {{index}} ({{count}} sources)",
-    "status": {
-      "failed": "Transcode Failed",
-      "noData": "No Frames",
-      "pending": "Pending Transcode",
-      "ready": "Ready",
-      "running": "Transcoding"
-    },
-    "suspicion": {
-      "normal": "Normal",
-      "suspected": "Suspected Cheating"
-    },
-    "transcodeErrorTitle": "Transcode Error",
-    "videoCount": "{{count}} items"
   },
   "exit": "Exit",
   "exitFullscreen": "Exit Fullscreen",
@@ -864,8 +798,10 @@
       "count": "Count",
       "evidence": "Evidence Captures",
       "loadingScreenshots": "Loading screenshots…",
-      "noScreenshots": "Raw screenshots cleared or compiled into video",
+      "lightboxLabel": "Screenshot preview",
+      "noScreenshots": "No screenshots available for this time window. Open live monitoring for the latest stream.",
       "noScreenshotsInRange": "No screenshots in this time range. This user has {{count}} raw screenshot(s) total.",
+      "noScreenshotsBySession": "No screenshots in this session; cross-session search was attempted.",
       "penalized": "Penalized",
       "priority": "Priority",
       "reason": "Reason",
@@ -971,6 +907,30 @@
     },
     "totalCount": "{{total}} events total"
   },
+  "liveView": {
+    "idle": "Not connected",
+    "connecting": "Connecting…",
+    "connectError": "Live monitoring connection failed",
+    "connected": "Connected",
+    "connect": "Connecting live view…",
+    "description": "View this student's current shared exam screen.",
+    "descriptionWithName": "View {{name}}'s current shared exam screen.",
+    "empty": "Connect live view to display student stream here.",
+    "missingTarget": "Select a participant to start live monitoring.",
+    "noticeTitle": "Live monitoring unavailable",
+    "publisherSession": "publisher",
+    "refresh": "Reconnect",
+    "resubscribe": "Reconnect",
+    "stopped": "Stopped",
+    "subscribe": "Connect live view",
+    "stop": "Stop",
+    "title": "Live Monitoring",
+    "trackName": "track",
+    "userId": "User ID",
+    "streamingHint": "You can view the student's current shared screen here.",
+    "unavailable": "Unavailable",
+    "unknownError": "Live monitoring connection failed"
+  },
   "management": {
     "contestCount": "{{count}} contests in total",
     "description": "Manage your contests"
@@ -1067,15 +1027,27 @@
     "exportFailed": "Export failed",
     "filterStatus": "Filter status",
     "generatingReport": "Generating report for {{name}}...",
+    "connection": {
+      "live": "Live",
+      "offline": "Offline",
+      "online": "Online"
+    },
     "headers": {
+      "connection": "Connection",
+      "displayName": "Display name",
       "joinedAt": "Joined At",
       "lockReason": "Lock Reason",
+      "participant": "Participant",
+      "role": "Role",
       "score": "Score",
       "status": "Status",
       "username": "User"
     },
+    "detailPanel": "Participant details",
+    "gridView": "Grid",
     "listFooterCount": "Showing {{shown}} / {{total}} members",
     "listHeaderTitle": "Students",
+    "openDetail": "Details",
     "remove": "Remove",
     "removeFailed": "Failed to remove participant",
     "removed": "Participant removed",
@@ -1083,6 +1055,13 @@
     "reopenFailed": "Reopen failed",
     "reopened": "Exam reopened",
     "reportDownloaded": "Report for {{name}} downloaded",
+    "roles": {
+      "admin": "Admin",
+      "student": "Student",
+      "ta": "TA",
+      "teacher": "Teacher",
+      "unknown": "Unset"
+    },
     "searchLabel": "Search participants",
     "searchPlaceholder": "Search name or user ID...",
     "selectParticipant": "Select Participant",
@@ -1093,6 +1072,11 @@
     "unlockFailed": "Unlock failed",
     "unlocked": "Unlocked",
     "updateFailed": "Update failed",
+    "tableView": "Table",
+    "tableDescription": "Quickly inspect participant status, connection, and exam progress.",
+    "tableTitle": "Participants",
+    "tableToolbar": "Participant table toolbar",
+    "viewModeLabel": "Participant view mode",
     "viewTitle": "View Participants"
   },
   "participantsAdmin": {

@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useFrameQueue } from "./anticheat/useFrameQueue";
 import { useCanvasProcessor } from "./anticheat/useCanvasProcessor";
-import { useAnticheatUploader } from "./anticheat/useAnticheatUploader";
+import { useEventEvidenceCapture } from "./anticheat/useEventEvidenceCapture";
+import { createSfuScreenSharePublisher } from "./anticheat/sfuScreenSharePublisher";
 import {
   registerForcedCaptureHandler,
   unregisterForcedCaptureHandler,
-  type ForcedCaptureOptions,
-  type ForcedCaptureResult,
 } from "@/features/contest/anticheat/forcedCapture";
 import {
   getExamCaptureSessionId,
@@ -24,7 +22,6 @@ import {
 import { getAnticheatPhase } from "@/features/contest/anticheat/orchestrator";
 import { isStreamLive } from "@/features/contest/anticheat/mediaStreamHealth";
 
-import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
 import type {
   CaptureStopReason,
   CaptureStopResult,
@@ -43,7 +40,7 @@ interface CaptureLifecycleEvent {
 
 interface Options {
   contestId: string;
-  /** Controls capture interval + upload. When false, no screenshots are taken. */
+  /** Controls local evidence buffering. Persistent uploads happen only on forced capture. */
   enabled?: boolean;
   /** Controls stream lifecycle monitoring. Stream stays alive and loss is detected
    *  as long as this is true, even if `enabled` is false (e.g. on dashboard). */
@@ -52,6 +49,7 @@ interface Options {
   preserveStreamOnUnmount?: boolean;
   expectInitialStream?: boolean;
   intervalMs?: number;
+  /** Deprecated: event-keyed evidence no longer retries background frame uploads. */
   maxRetries?: number;
   forcedCaptureCooldownMs?: number;
   forcedCaptureP1CooldownMs?: number;
@@ -68,7 +66,6 @@ export const useAnticheatScreenCapture = ({
   preserveStreamOnUnmount = false,
   expectInitialStream = false,
   intervalMs = 5000,
-  maxRetries = 3,
   forcedCaptureCooldownMs = 1_000,
   forcedCaptureP1CooldownMs = 15_000,
   reportDegraded,
@@ -84,31 +81,44 @@ export const useAnticheatScreenCapture = ({
     setExamCaptureSessionId(contestId, newId);
     return newId;
   });
-  const isCapturingRef = useRef(false);
-  const isUploadingRef = useRef(false);
-  const retryCountRef = useRef(0);
-  const captureIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const sfuPublisherRef = useRef(createSfuScreenSharePublisher());
+  const lastSfuPublisherAttemptAtRef = useRef(0);
   const streamWasLiveRef = useRef(false);
   const prevMonitorStreamRef = useRef(monitorStream);
   const initialStreamExpectationCheckedRef = useRef(false);
   // Reactive stream status — ExamModeWrapper watches this for stream loss detection
   const [streamActive, setStreamActive] = useState(false);
   const hasCaptureSessionRef = useRef(false);
-  const initialCaptureAttemptedRef = useRef(false);
-  const lastForcedCaptureByTypeRef = useRef<Map<string, number>>(new Map());
   const onScreenShareLostRef = useRef(onScreenShareLost);
-  onScreenShareLostRef.current = onScreenShareLost;
+
+  useEffect(() => {
+    onScreenShareLostRef.current = onScreenShareLost;
+  }, [onScreenShareLost]);
 
   const handleDetectedScreenShareLoss = useCallback(() => {
     streamWasLiveRef.current = false;
+    lastSfuPublisherAttemptAtRef.current = 0;
+    void sfuPublisherRef.current.stop(contestId);
     setStreamActive(false);
     onScreenShareLostRef.current?.();
-  }, []);
+  }, [contestId]);
 
-  const { ensureQueue } = useFrameQueue();
   const { encodeUnderBudget } = useCanvasProcessor();
-  const { uploadBatch } = useAnticheatUploader(contestId);
+
+  const ensureSfuPublisher = useCallback(
+    (stream: MediaStream) => {
+      if (!monitorStream || sfuPublisherRef.current.state) return;
+      const now = Date.now();
+      if (now - lastSfuPublisherAttemptAtRef.current < 30_000) return;
+      lastSfuPublisherAttemptAtRef.current = now;
+      sfuPublisherRef.current.start(contestId, stream).catch(() => {
+        // Live monitoring is best effort during Phase 1. Evidence capture must
+        // continue even if Cloudflare Realtime is unavailable.
+      });
+    },
+    [contestId, monitorStream],
+  );
 
   const stopStream = useCallback(() => {
     const stream = streamRef.current;
@@ -131,9 +141,11 @@ export const useAnticheatScreenCapture = ({
   );
 
   const acquireStream = useCallback(async (): Promise<MediaStream | null> => {
-    if (isStreamLive(streamRef.current)) {
+    const existingStream = streamRef.current;
+    if (existingStream && isStreamLive(existingStream)) {
       hasCaptureSessionRef.current = true;
-      return streamRef.current;
+      ensureSfuPublisher(existingStream);
+      return existingStream;
     }
     stopStream();
 
@@ -152,6 +164,7 @@ export const useAnticheatScreenCapture = ({
       streamWasLiveRef.current = true;
       setStreamActive(true);
       hasCaptureSessionRef.current = true;
+      ensureSfuPublisher(handoff);
       return handoff;
     }
 
@@ -165,7 +178,7 @@ export const useAnticheatScreenCapture = ({
     // No handoff available — stream died or was never shared.
     // Do NOT call getDisplayMedia() again to avoid repeated browser prompts.
     return null;
-  }, [handleDetectedScreenShareLoss, stopStream]);
+  }, [ensureSfuPublisher, handleDetectedScreenShareLoss, stopStream]);
 
   const captureFrameBlob = useCallback(async (): Promise<Blob | null> => {
     const stream = await acquireStream();
@@ -188,61 +201,47 @@ export const useAnticheatScreenCapture = ({
     }
   }, [acquireStream, encodeUnderBudget]);
 
-  const captureAndQueue = useCallback(async () => {
-    if (isCapturingRef.current || !enabled) return;
-    isCapturingRef.current = true;
-    try {
-      const blob = await captureFrameBlob();
-      if (!blob) {
-        // Fallback: detect stream loss if the ended event didn't fire.
-        // If stream was previously live but now acquireStream returns null,
-        // the user has stopped sharing.
-        if (streamWasLiveRef.current && !isStreamLive(streamRef.current)) {
-          handleDetectedScreenShareLoss();
-        }
-        return;
-      }
-      const q = await ensureQueue();
-      await q.enqueue(blob);
-    } catch (err) {
-      console.error("Capture failed:", err);
-    } finally {
-      isCapturingRef.current = false;
-    }
-  }, [enabled, captureFrameBlob, ensureQueue, handleDetectedScreenShareLoss]);
+  const isScreenShareUnavailable = useCallback(
+    () => streamWasLiveRef.current && !isStreamLive(streamRef.current),
+    [],
+  );
 
-  const flushPendingUploads = useCallback(async () => {
-    if (isUploadingRef.current || !enabled) return;
-    isUploadingRef.current = true;
-    try {
-      const q = await ensureQueue();
-      const count = await q.count();
-      if (count === 0) return;
-      const items = await q.peek(10);
-      const uploadedIds = await uploadBatch(items, uploadSessionId, onUploadProgress);
-      await q.remove(uploadedIds);
-      retryCountRef.current = 0;
-      reportDegraded?.(false);
-    } catch {
-      retryCountRef.current += 1;
-      if (retryCountRef.current >= maxRetries) {
-        reportDegraded?.(true);
-      }
-    } finally {
-      isUploadingRef.current = false;
-    }
-  }, [enabled, ensureQueue, uploadBatch, uploadSessionId, onUploadProgress, reportDegraded, maxRetries]);
+  const markEvidenceBufferingStarted = useCallback(() => {
+    hasCaptureSessionRef.current = true;
+  }, []);
+
+  const {
+    flushPendingUploads,
+    forceCaptureNow,
+    stopEvidenceCapture,
+  } = useEventEvidenceCapture({
+    contestId,
+    module: "screen_share",
+    enabled,
+    intervalMs,
+    uploadSessionId,
+    captureFrameBlob,
+    isStreamUnavailable: isScreenShareUnavailable,
+    onStreamUnavailable: handleDetectedScreenShareLoss,
+    reportDegraded,
+    onUploadProgress,
+    onBufferingStarted: markEvidenceBufferingStarted,
+    cooldown: {
+      defaultMs: forcedCaptureCooldownMs,
+      p1Ms: forcedCaptureP1CooldownMs,
+    },
+  });
 
   const forceStopCapture = useCallback(
     (reason: CaptureStopReason = "manual"): CaptureStopResult => {
-      const hadInterval = captureIntervalRef.current != null;
+      const hadEvidenceCapture = stopEvidenceCapture();
       const hadPrecheckHandoff = !!peekPrecheckScreenShareHandoff();
       const hadRuntimeHandoff = !!peekRuntimeScreenShareHandoff();
       const hadStream = stopStream();
       const hadActiveSession = streamWasLiveRef.current || hasCaptureSessionRef.current;
 
       const status: CaptureStopResult["status"] =
-        hadInterval || hadPrecheckHandoff || hadRuntimeHandoff || hadStream || hadActiveSession
+        hadEvidenceCapture || hadPrecheckHandoff || hadRuntimeHandoff || hadStream || hadActiveSession
           ? "stopped"
           : "already_stopped";
       const result: CaptureStopResult = {
@@ -251,10 +250,7 @@ export const useAnticheatScreenCapture = ({
         timestamp: new Date().toISOString(),
       };
 
-      if (captureIntervalRef.current) {
-        clearInterval(captureIntervalRef.current);
-        captureIntervalRef.current = null;
-      }
+      void sfuPublisherRef.current.stop(contestId);
       streamWasLiveRef.current = false;
       hasCaptureSessionRef.current = false;
       setStreamActive(false);
@@ -270,7 +266,7 @@ export const useAnticheatScreenCapture = ({
       });
       return result;
     },
-    [contestId, emitCaptureLifecycleEvent, stopStream],
+    [contestId, emitCaptureLifecycleEvent, stopEvidenceCapture, stopStream],
   );
 
   useEffect(() => {
@@ -280,109 +276,6 @@ export const useAnticheatScreenCapture = ({
     };
   }, [contestId, forceStopCapture]);
 
-  const forceCaptureNow = useCallback(async (
-    _reason: string,
-    _options?: ForcedCaptureOptions & { eventType?: string },
-  ): Promise<ForcedCaptureResult> => {
-    const currentUploadSessionId =
-      uploadSessionId || (contestId ? getExamCaptureSessionId(contestId) : null);
-
-    if (!enabled) {
-      return {
-        attempted: false,
-        captured: false,
-        uploaded: false,
-        skipped: "disabled",
-        errorCode: "capture_disabled",
-        uploadSessionId: currentUploadSessionId,
-        seq: null,
-      };
-    }
-
-    const eventType = _options?.eventType;
-    const priority = eventType ? getEventPriority(eventType) : 1;
-    const now = Date.now();
-
-    // P0: no cooldown — always capture
-    // P1: 15s per-type cooldown
-    // P2/P3: should not reach here (handled by recordViolation.usecase)
-    if (priority > 0) {
-      const cooldownMs = priority === 1 ? forcedCaptureP1CooldownMs : forcedCaptureCooldownMs;
-      const cooldownKey = eventType || "_default";
-      const lastCapture = lastForcedCaptureByTypeRef.current.get(cooldownKey) || 0;
-      if (now - lastCapture < cooldownMs) {
-        return {
-          attempted: false,
-          captured: false,
-          uploaded: false,
-          skipped: "cooldown",
-          errorCode: "capture_cooldown",
-          uploadSessionId: currentUploadSessionId,
-          seq: null,
-        };
-      }
-      lastForcedCaptureByTypeRef.current.set(cooldownKey, now);
-    }
-
-    const blob = await captureFrameBlob();
-    if (!blob) {
-      // Fallback: detect stream loss if the ended event didn't fire
-      if (streamWasLiveRef.current && !isStreamLive(streamRef.current)) {
-        handleDetectedScreenShareLoss();
-      }
-      return {
-        attempted: true,
-        captured: false,
-        uploaded: false,
-        skipped: "stream_unavailable",
-        errorCode: "stream_unavailable",
-        uploadSessionId: currentUploadSessionId,
-        seq: null,
-      };
-    }
-
-    const q = await ensureQueue();
-    const frameId = await q.enqueue(blob);
-
-    try {
-      const uploadedIds = await uploadBatch(
-        [{ id: frameId, createdAt: Date.now(), blob }],
-        uploadSessionId,
-      );
-      if (uploadedIds.length > 0) {
-        await q.remove(uploadedIds);
-        return {
-          attempted: true,
-          captured: true,
-          uploaded: true,
-          uploadSessionId: currentUploadSessionId,
-          seq: frameId,
-        };
-      }
-    } catch {
-      void flushPendingUploads();
-    }
-
-    return {
-      attempted: true,
-      captured: true,
-      uploaded: false,
-      uploadSessionId: currentUploadSessionId,
-      seq: frameId,
-    };
-  }, [
-    enabled,
-    contestId,
-    uploadSessionId,
-    captureFrameBlob,
-    ensureQueue,
-    uploadBatch,
-    flushPendingUploads,
-    forcedCaptureCooldownMs,
-    forcedCaptureP1CooldownMs,
-    handleDetectedScreenShareLoss,
-  ]);
-
   // Register forced capture handler for use by recordExamEventWithForcedCapture
   useEffect(() => {
     if (!contestId) return;
@@ -391,40 +284,6 @@ export const useAnticheatScreenCapture = ({
       unregisterForcedCaptureHandler(contestId, "screen_share", forceCaptureNow);
     };
   }, [contestId, forceCaptureNow]);
-
-  // Interval-based capture + upload (only when enabled)
-  useEffect(() => {
-    if (!enabled) {
-      if (captureIntervalRef.current) clearInterval(captureIntervalRef.current);
-      captureIntervalRef.current = null;
-      initialCaptureAttemptedRef.current = false;
-      return;
-    }
-    hasCaptureSessionRef.current = true;
-
-    captureIntervalRef.current = setInterval(() => {
-      captureAndQueue();
-      flushPendingUploads();
-    }, intervalMs);
-
-    return () => {
-      if (captureIntervalRef.current) clearInterval(captureIntervalRef.current);
-    };
-  }, [enabled, intervalMs, captureAndQueue, flushPendingUploads]);
-
-  // Best effort: capture one frame immediately when source becomes enabled.
-  useEffect(() => {
-    if (!enabled) {
-      initialCaptureAttemptedRef.current = false;
-      return;
-    }
-    if (initialCaptureAttemptedRef.current) return;
-    initialCaptureAttemptedRef.current = true;
-    void (async () => {
-      await captureAndQueue();
-      await flushPendingUploads();
-    })();
-  }, [enabled, captureAndQueue, flushPendingUploads]);
 
   // Stream lifecycle — stop only on true -> false transition.
   // This avoids killing precheck handoff stream during initial mount while
@@ -440,10 +299,6 @@ export const useAnticheatScreenCapture = ({
   // Last-resort cleanup for route transitions/unmount.
   useEffect(
     () => () => {
-      if (captureIntervalRef.current) {
-        clearInterval(captureIntervalRef.current);
-        captureIntervalRef.current = null;
-      }
       const phase = getAnticheatPhase(contestId);
       const shouldPreserveStream =
         preserveStreamOnUnmount &&

@@ -4,7 +4,7 @@ Tests for exam anti-cheat API logic.
 Covers violation counting, auto-lock, warning timeout, force-submit,
 event logging for all participant roles, and auto-unlock eligibility checks.
 """
-from datetime import datetime as dt, timedelta, timezone as dt_timezone
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -16,8 +16,6 @@ from django.contrib.auth import get_user_model
 from apps.contests.models import (
     Contest,
     ContestParticipant,
-    ExamEvidenceJob,
-    ExamEvidenceVideo,
     ExamEvent,
     ExamStatus,
     ContestActivity,
@@ -27,6 +25,7 @@ from apps.contests.tasks import (
     check_force_submit_locked,
     FORCE_SUBMIT_LOCKED_SECONDS,
 )
+from apps.contests.services.evidence_windows import attach_evidence_window_metadata
 
 User = get_user_model()
 
@@ -117,61 +116,43 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
         self.assertEqual(self.participant.violation_count, 3)
 
-    def test_paused_violation_at_threshold_creates_pending_evidence_job(self):
+    def test_paused_violation_at_threshold_auto_submits_without_video_job(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.PAUSED
         self.participant.violation_count = self.contest.max_cheat_warnings - 1
         self.participant.save()
 
-        with patch("apps.contests.services.exam_submission.enqueue_compile_video") as mock_compile:
-            with self.captureOnCommitCallbacks(execute=True):
-                resp = self.client.post(
-                    self.events_url,
-                    {
-                        "event_type": "exit_fullscreen",
-                        "metadata": {"upload_session_id": "session-paused-1"},
-                    },
-                    format="json",
-                )
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post(
+                self.events_url,
+                {
+                    "event_type": "exit_fullscreen",
+                    "metadata": {"upload_session_id": "session-paused-1"},
+                },
+                format="json",
+            )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["exam_status"], ExamStatus.SUBMITTED)
-        mock_compile.assert_not_called()
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
         self.assertIn("Auto-submitted", self.participant.submit_reason)
-        self.assertTrue(
-            ExamEvidenceJob.objects.filter(
-                contest=self.contest,
-                participant=self.participant,
-                upload_session_id="session-paused-1",
-            ).exists()
-        )
 
-    def test_locked_violation_auto_submits_and_creates_pending_job(self):
+    def test_locked_violation_auto_submits_without_video_job(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.LOCKED
         self.participant.violation_count = self.contest.max_cheat_warnings
         self.participant.locked_at = timezone.now()
         self.participant.save()
 
-        with patch("apps.contests.services.exam_submission.enqueue_compile_video") as mock_compile:
-            with self.captureOnCommitCallbacks(execute=True):
-                resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["exam_status"], ExamStatus.SUBMITTED)
-        mock_compile.assert_not_called()
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
         self.assertIn("Auto-submitted", self.participant.submit_reason)
-        self.assertTrue(
-            ExamEvidenceJob.objects.filter(
-                contest=self.contest,
-                participant=self.participant,
-                upload_session_id="default",
-            ).exists()
-        )
 
     # ------------------------------------------------------------------
     # 3. warning_timeout forces lock regardless of count
@@ -578,105 +559,205 @@ class ExamAntiCheatTests(APITestCase):
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
 
-    def test_videos_lists_pending_job_for_submitted_participant(self):
-        self.client.force_authenticate(user=self.student)
-        end_url = reverse("contests:contest-exam-end-exam", args=[self.contest.id])
-        response = self.client.post(
-            end_url,
-            {"upload_session_id": "session-review-1"},
-            format="json",
+    def test_screenshots_can_presign_explicit_evidence_object_keys(self):
+        ts_ms = 1774106646951
+        raw_key = (
+            f"contest_{self.contest.id}/user_{self.student.id}/"
+            f"session_session-evidence-1/screen_share/ts_{ts_ms}_seq_0007.webp"
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         self.client.force_authenticate(user=self.teacher)
-        videos_url = reverse("contests:contest-exam-videos", args=[self.contest.id])
-        response = self.client.get(videos_url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["has_video"], False)
-        self.assertEqual(response.data[0]["upload_session_id"], "session-review-1")
-        self.assertEqual(response.data[0]["job_status"], "pending")
-
-    def test_videos_infers_and_persists_recording_bounds_from_raw_keys_when_missing(self):
-        job = ExamEvidenceJob.objects.create(
-            contest=self.contest,
-            participant=self.participant,
-            source_module="webcam",
-            upload_session_id="session-recording-bounds-1",
-            status="success",
-            raw_count=2,
-            recording_started_at=None,
-            recording_finished_at=None,
-        )
-        video = ExamEvidenceVideo.objects.create(
-            contest=self.contest,
-            participant=self.participant,
-            source_module="webcam",
-            upload_session_id="session-recording-bounds-1",
-            bucket="video-bucket",
-            object_key="video.mp4",
-            duration_seconds=2,
-            frame_count=2,
-            size_bytes=100,
-            recording_started_at=None,
-            recording_finished_at=None,
-            is_suspected=False,
-            suspected_note="",
-        )
-
-        ts_start = 1774106646951
-        ts_end = 1774106711964
-        raw_keys = [
-            f"contest_{self.contest.id}/user_{self.student.id}/session_session-recording-bounds-1/webcam/ts_{ts_start}_seq_0001.webp",
-            f"contest_{self.contest.id}/user_{self.student.id}/session_session-recording-bounds-1/webcam/ts_{ts_end}_seq_0002.webp",
-        ]
-        expected_start = dt.fromtimestamp(ts_start / 1000, tz=dt_timezone.utc).isoformat()
-        expected_end = dt.fromtimestamp(ts_end / 1000, tz=dt_timezone.utc).isoformat()
-
-        self.client.force_authenticate(user=self.teacher)
-        videos_url = reverse("contests:contest-exam-videos", args=[self.contest.id])
+        screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
         with patch(
-            "apps.contests.views.exam_evidence.ExamEvidenceMixin._safe_list_raw_evidence_keys",
-            return_value=raw_keys,
-        ):
-            response = self.client.get(videos_url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], video.id)
-        self.assertEqual(response.data[0]["recording_started_at"], expected_start)
-        self.assertEqual(response.data[0]["recording_finished_at"], expected_end)
-
-        job.refresh_from_db()
-        video.refresh_from_db()
-        self.assertIsNotNone(job.recording_started_at)
-        self.assertIsNotNone(job.recording_finished_at)
-        self.assertIsNotNone(video.recording_started_at)
-        self.assertIsNotNone(video.recording_finished_at)
-
-    def test_end_exam_never_auto_enqueues_video_compile(self):
-        self.client.force_authenticate(user=self.student)
-        end_url = reverse("contests:contest-exam-end-exam", args=[self.contest.id])
-
-        with patch("apps.contests.services.exam_submission.enqueue_compile_video") as mock_compile:
-            response = self.client.post(
-                end_url,
-                {"upload_session_id": "session-manual-only-1"},
-                format="json",
+            "apps.contests.views.exam_evidence.generate_get_url",
+            return_value="https://example.test/frame.webp",
+        ) as mock_get_url:
+            response = self.client.get(
+                screenshots_url,
+                {
+                    "user_id": self.student.id,
+                    "object_key": raw_key,
+                    "source_module": "screen_share",
+                },
             )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_compile.assert_not_called()
-        self.assertTrue(
-            ExamEvidenceJob.objects.filter(
-                contest=self.contest,
-                participant=self.participant,
-                upload_session_id="session-manual-only-1",
-            ).exists()
+        self.assertEqual(response.data["total_raw_count"], 1)
+        self.assertEqual(response.data["items"][0]["url"], "https://example.test/frame.webp")
+        self.assertEqual(response.data["items"][0]["ts_ms"], ts_ms)
+        self.assertEqual(response.data["items"][0]["seq"], 7)
+        mock_get_url.assert_called_once()
+
+    def test_screenshots_rejects_explicit_keys_for_other_participant(self):
+        other = User.objects.create_user(
+            username="other-student",
+            email="other-student@test.com",
+            password="pass",
+            role="student",
+        )
+        ContestParticipant.objects.create(
+            contest=self.contest,
+            user=other,
+            exam_status=ExamStatus.IN_PROGRESS,
+            started_at=timezone.now(),
+        )
+        raw_key = (
+            f"contest_{self.contest.id}/user_{other.id}/"
+            "session_session-evidence-1/screen_share/ts_1774106646951_seq_0007.webp"
         )
 
-    def test_end_exam_infers_webcam_only_sources_from_exam_entered_metadata(self):
+        self.client.force_authenticate(user=self.teacher)
+        screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
+        with patch("apps.contests.views.exam_evidence.generate_get_url") as mock_get_url:
+            response = self.client.get(
+                screenshots_url,
+                {
+                    "user_id": self.student.id,
+                    "object_key": raw_key,
+                    "source_module": "screen_share",
+                },
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_raw_count"], 0)
+        self.assertEqual(response.data["items"], [])
+        mock_get_url.assert_not_called()
+
+    def test_screenshots_can_use_event_id_to_derive_window(self):
+        ts_ms = 1774107000000
+        ts_left_in = ts_ms - 10_000
+        ts_left_out = ts_ms - 30_000
+        ts_right_in = ts_ms + 10_000
+        ts_right_out = ts_ms + 30_000
+        session_id = "session-event-window-1"
+
+        raw_key_in_left = (
+            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
+            f"screen_share/ts_{ts_left_in}_seq_0001.webp"
+        )
+        raw_key_out_left = (
+            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
+            f"screen_share/ts_{ts_left_out}_seq_0002.webp"
+        )
+        raw_key_in_right = (
+            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
+            f"screen_share/ts_{ts_right_in}_seq_0003.webp"
+        )
+        raw_key_out_right = (
+            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
+            f"screen_share/ts_{ts_right_out}_seq_0004.webp"
+        )
+        keys = [raw_key_out_left, raw_key_out_right, raw_key_in_left, raw_key_in_right]
+
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exit_fullscreen",
+            metadata={"module": "screen_share", "upload_session_id": session_id},
+        )
+        event.created_at = timezone.make_aware(datetime.fromtimestamp(ts_ms / 1000))
+        event.save(update_fields=["created_at"])
+        attach_evidence_window_metadata(event)
+
+        class FakePaginator:
+            def __init__(self, all_keys):
+                self._all_keys = all_keys
+
+            def paginate(self, Bucket: str, Prefix: str):
+                filtered = [key for key in self._all_keys if key.startswith(Prefix)]
+                yield {"Contents": [{"Key": key} for key in filtered]}
+
+        class FakeClient:
+            def __init__(self, all_keys):
+                self._all_keys = all_keys
+
+            def get_paginator(self, operation_name):
+                return FakePaginator(self._all_keys)
+
+        self.client.force_authenticate(user=self.teacher)
+        screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
+        with patch(
+            "apps.contests.views.exam_evidence.get_s3_client",
+            return_value=FakeClient(keys),
+        ), patch(
+            "apps.contests.views.exam_evidence.generate_get_url",
+            return_value="https://example.test/frame.webp",
+        ) as mock_get_url:
+            response = self.client.get(
+                screenshots_url,
+                {"event_id": event.id},
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_raw_count"], 2)
+        self.assertEqual(len(response.data["items"]), 2)
+        got_keys = sorted(item["ts_ms"] for item in response.data["items"])
+        self.assertEqual(got_keys, sorted([ts_left_in, ts_right_in]))
+        self.assertEqual(mock_get_url.call_count, 2)
+
+    def test_screenshots_event_lookup_returns_all_modules_by_default(self):
+        ts_ms = 1774107000000
+        session_id = "session-event-window-2"
+        screen_key = (
+            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
+            f"screen_share/ts_{ts_ms}_seq_0001.webp"
+        )
+        webcam_key = (
+            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
+            f"webcam/ts_{ts_ms}_seq_0002.webp"
+        )
+
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exit_fullscreen",
+            metadata={"module": "screen_share", "upload_session_id": session_id},
+        )
+        event.created_at = timezone.make_aware(datetime.fromtimestamp(ts_ms / 1000))
+        event.save(update_fields=["created_at"])
+        attach_evidence_window_metadata(event)
+
+        class FakePaginator:
+            def paginate(self, Bucket: str, Prefix: str):
+                yield {"Contents": [{"Key": screen_key}, {"Key": webcam_key}]}
+
+        class FakeClient:
+            def get_paginator(self, operation_name):
+                return FakePaginator()
+
+        self.client.force_authenticate(user=self.teacher)
+        screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
+        with patch(
+            "apps.contests.views.exam_evidence.get_s3_client",
+            return_value=FakeClient(),
+        ), patch(
+            "apps.contests.views.exam_evidence.generate_get_url",
+            return_value="https://example.test/frame.webp",
+        ):
+            response = self.client.get(screenshots_url, {"event_id": event.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_raw_count"], 2)
+        self.assertEqual(
+            sorted(item["source_module"] for item in response.data["items"]),
+            ["screen_share", "webcam"],
+        )
+
+    def test_end_exam_does_not_create_video_jobs(self):
+        self.client.force_authenticate(user=self.student)
+        end_url = reverse("contests:contest-exam-end-exam", args=[self.contest.id])
+
+        response = self.client.post(
+            end_url,
+            {"upload_session_id": "session-manual-only-1"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
+
+    def test_end_exam_preserves_webcam_only_source_metadata_without_video_jobs(self):
         ExamEvent.objects.create(
             contest=self.contest,
             user=self.student,
@@ -696,24 +777,10 @@ class ExamAntiCheatTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(
-            ExamEvidenceJob.objects.filter(
-                contest=self.contest,
-                participant=self.participant,
-                upload_session_id="session-webcam-only-1",
-                source_module="webcam",
-            ).exists()
-        )
-        self.assertFalse(
-            ExamEvidenceJob.objects.filter(
-                contest=self.contest,
-                participant=self.participant,
-                upload_session_id="session-webcam-only-1",
-                source_module="screen_share",
-            ).exists()
-        )
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
 
-    def test_end_exam_creates_jobs_for_all_active_sources(self):
+    def test_end_exam_accepts_multi_source_metadata_without_video_jobs(self):
         ExamEvent.objects.create(
             contest=self.contest,
             user=self.student,
@@ -733,24 +800,10 @@ class ExamAntiCheatTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(
-            ExamEvidenceJob.objects.filter(
-                contest=self.contest,
-                participant=self.participant,
-                upload_session_id="session-multi-source-1",
-                source_module="screen_share",
-            ).exists()
-        )
-        self.assertTrue(
-            ExamEvidenceJob.objects.filter(
-                contest=self.contest,
-                participant=self.participant,
-                upload_session_id="session-multi-source-1",
-                source_module="webcam",
-            ).exists()
-        )
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
 
-    def test_end_exam_prefers_latest_active_sources_over_conflicting_source_module(self):
+    def test_end_exam_accepts_conflicting_source_module_without_video_jobs(self):
         ExamEvent.objects.create(
             contest=self.contest,
             user=self.student,
@@ -773,145 +826,8 @@ class ExamAntiCheatTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(
-            ExamEvidenceJob.objects.filter(
-                contest=self.contest,
-                participant=self.participant,
-                upload_session_id="default",
-                source_module="webcam",
-            ).exists()
-        )
-        self.assertFalse(
-            ExamEvidenceJob.objects.filter(
-                contest=self.contest,
-                participant=self.participant,
-                upload_session_id="default",
-                source_module="screen_share",
-            ).exists()
-        )
-
-    def test_videos_get_does_not_create_missing_jobs(self):
-        self.client.force_authenticate(user=self.teacher)
-        videos_url = reverse("contests:contest-exam-videos", args=[self.contest.id])
-
-        response = self.client.get(videos_url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, [])
-        self.assertEqual(ExamEvidenceJob.objects.count(), 0)
-
-    def test_video_compile_uses_requested_session(self):
-        ExamEvidenceJob.objects.create(
-            contest=self.contest,
-            participant=self.participant,
-            upload_session_id="session-manual-1",
-        )
-
-        self.client.force_authenticate(user=self.teacher)
-        compile_url = reverse("contests:contest-exam-video-compile", args=[self.contest.id])
-        with patch("apps.contests.views.exam_evidence.enqueue_compile_video") as mock_compile:
-            response = self.client.post(
-                compile_url,
-                {
-                    "targets": [
-                        {
-                            "user_id": self.student.id,
-                            "upload_session_id": "session-manual-1",
-                        }
-                    ]
-                },
-                format="json",
-            )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_compile.assert_called_once_with(self.participant.id, "session-manual-1", "screen_share")
-
-    def test_owner_can_delete_exam_video_and_pending_job(self):
-        job = ExamEvidenceJob.objects.create(
-            contest=self.contest,
-            participant=self.participant,
-            upload_session_id="session-delete-1",
-        )
-        video = ExamEvidenceVideo.objects.create(
-            contest=self.contest,
-            participant=self.participant,
-            upload_session_id="session-delete-1",
-            bucket="anticheat-videos",
-            object_key="contest_1/user_1/session_delete_1.mp4",
-            duration_seconds=10,
-            frame_count=10,
-            size_bytes=1234,
-        )
-
-        paginator = type(
-            "Paginator",
-            (),
-            {
-                "paginate": lambda self, **kwargs: [
-                    {"Contents": [{"Key": "contest_1/user_1/session_session-delete-1/frame_000001.webp"}]}
-                ]
-            },
-        )()
-
-        self.client.force_authenticate(user=self.teacher)
-        delete_url = reverse("contests:contest-exam-video-delete", args=[self.contest.id])
-        with patch("apps.contests.views.exam_evidence.get_s3_client") as mock_get_client:
-            mock_client = mock_get_client.return_value
-            mock_client.get_paginator.return_value = paginator
-            response = self.client.post(
-                delete_url,
-                {
-                    "targets": [
-                        {
-                            "user_id": self.student.id,
-                            "upload_session_id": "session-delete-1",
-                        }
-                    ]
-                },
-                format="json",
-            )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["deleted"]), 1)
-        self.assertEqual(response.data["blocked"], [])
-        mock_client.delete_object.assert_called_once_with(
-            Bucket=video.bucket,
-            Key=video.object_key,
-        )
-        mock_client.delete_objects.assert_called()
-        self.assertFalse(ExamEvidenceJob.objects.filter(id=job.id).exists())
-        self.assertFalse(ExamEvidenceVideo.objects.filter(id=video.id).exists())
-
-    def test_co_owner_cannot_delete_exam_video(self):
-        ExamEvidenceJob.objects.create(
-            contest=self.contest,
-            participant=self.participant,
-            upload_session_id="session-delete-blocked",
-        )
-
-        self.client.force_authenticate(user=self.co_owner)
-        delete_url = reverse("contests:contest-exam-video-delete", args=[self.contest.id])
-        response = self.client.post(
-            delete_url,
-            {
-                "targets": [
-                    {
-                        "user_id": self.student.id,
-                        "upload_session_id": "session-delete-blocked",
-                    }
-                ]
-            },
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertTrue(
-            ExamEvidenceJob.objects.filter(
-                contest=self.contest,
-                participant=self.participant,
-                upload_session_id="session-delete-blocked",
-            ).exists()
-        )
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
 
 
 class ScreenShareEventTests(APITestCase):

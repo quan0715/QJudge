@@ -4,7 +4,6 @@ set -eu
 MINIO_ALIAS_NAME="local"
 MINIO_ENDPOINT="${MINIO_ENDPOINT:-http://minio:9000}"
 RAW_BUCKET="${ANTICHEAT_RAW_BUCKET:-anticheat-raw}"
-VIDEO_BUCKET="${ANTICHEAT_VIDEO_BUCKET:-anticheat-videos}"
 CORS_ALLOWED_ORIGINS="${ANTICHEAT_CORS_ALLOWED_ORIGINS:-http://localhost:5173}"
 MINIO_INIT_MAX_ATTEMPTS="${MINIO_INIT_MAX_ATTEMPTS:-120}"
 
@@ -61,7 +60,6 @@ until mc ls "$MINIO_ALIAS_NAME" >/dev/null 2>&1; do
 done
 
 mc mb -p "$MINIO_ALIAS_NAME/$RAW_BUCKET" >/dev/null 2>&1 || true
-mc mb -p "$MINIO_ALIAS_NAME/$VIDEO_BUCKET" >/dev/null 2>&1 || true
 
 tmp_cors_file="/tmp/minio-cors.xml"
 build_cors_xml "$tmp_cors_file"
@@ -69,11 +67,7 @@ build_cors_xml "$tmp_cors_file"
 if ! mc cors set "$MINIO_ALIAS_NAME/$RAW_BUCKET" "$tmp_cors_file" >/dev/null 2>&1; then
   echo "Bucket-level CORS unsupported; relying on global MinIO CORS config."
 fi
-if ! mc cors set "$MINIO_ALIAS_NAME/$VIDEO_BUCKET" "$tmp_cors_file" >/dev/null 2>&1; then
-  echo "Bucket-level CORS unsupported; relying on global MinIO CORS config."
-fi
 
 mc ilm import "$MINIO_ALIAS_NAME/$RAW_BUCKET" < /config/lifecycle-raw.json
-mc ilm import "$MINIO_ALIAS_NAME/$VIDEO_BUCKET" < /config/lifecycle-videos.json
 
-echo "MinIO anti-cheat buckets initialized."
+echo "MinIO anti-cheat bucket initialized."

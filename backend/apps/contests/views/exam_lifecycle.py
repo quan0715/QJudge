@@ -34,6 +34,7 @@ from .activity import ContestActivityViewSet
 from .exam_events import ExamEventsMixin
 from .exam_anticheat import ExamAnticheatMixin
 from .exam_evidence import ExamEvidenceMixin
+from .exam_sfu import ExamSfuMixin
 
 
 class ExamLifecycleMixin:
@@ -215,6 +216,7 @@ class ExamViewSet(
     ExamEventsMixin,
     ExamAnticheatMixin,
     ExamEvidenceMixin,
+    ExamSfuMixin,
     viewsets.GenericViewSet,
 ):
     """Composed ExamViewSet — all actions preserved, URL unchanged."""

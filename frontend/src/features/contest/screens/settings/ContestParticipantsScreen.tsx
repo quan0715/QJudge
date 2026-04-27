@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Button, ExpandableSearch, FluidDropdown } from "@carbon/react";
-import { Add, DocumentExport } from "@carbon/icons-react";
+import { Button, FluidDropdown, TableToolbarSearch } from "@carbon/react";
+import { Add, Close, DocumentExport } from "@carbon/icons-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
 import { useTranslation } from "react-i18next";
@@ -11,7 +13,6 @@ import type {
   ExamStatusType,
   ParticipantDashboardDetail,
 } from "@/core/entities/contest.entity";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { AddParticipantModal } from "@/features/contest/components/modals/AddParticipantModal";
@@ -29,17 +30,26 @@ import { useToast } from "@/shared/contexts/ToastContext";
 
 import ParticipantDashboardPane from "@/features/contest/components/participants/ParticipantDashboardPane";
 import ParticipantsListPane from "@/features/contest/components/participants/ParticipantsListPane";
-import ParticipantsMobileSelector from "@/features/contest/components/participants/ParticipantsMobileSelector";
 import ParticipantStatusEditModal from "@/features/contest/components/participants/ParticipantStatusEditModal";
 import useParticipantDashboard from "./participants/useParticipantDashboard";
 import {
   DETAIL_OPTIONS_BY_TYPE,
   EXAM_STATUS_KEYS,
-  getParticipantDisplayName,
   type SortKey,
-  STATUS_TAG_TYPE,
 } from "./participants/participantsScreen.config";
 import styles from "@/features/contest/components/participants/ContestParticipantsDashboard.module.scss";
+
+const DETAIL_PANEL_DEFAULT_WIDTH = 736;
+const DETAIL_PANEL_MIN_WIDTH = 512;
+const DETAIL_PANEL_MAX_WIDTH = 896;
+const DETAIL_PANEL_RESIZE_HANDLE_WIDTH = 4;
+const DETAIL_PANEL_TRANSITION = {
+  duration: 0.22,
+  ease: [0.2, 0, 0.38, 0.9] as const,
+};
+
+const clampDetailPanelWidth = (value: number) =>
+  Math.min(DETAIL_PANEL_MAX_WIDTH, Math.max(DETAIL_PANEL_MIN_WIDTH, value));
 
 const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -47,10 +57,10 @@ const ContestParticipantsScreen = () => {
   const { participants, isRefreshing, refreshAdminData } = useContestAdmin();
   const { registerPanelRefresh } = useAdminPanelRefresh();
   const { contest } = useContest();
-  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const { confirm, modalProps } = useConfirmModal();
   const { showToast } = useToast();
+  const prefersReducedMotion = useReducedMotion();
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -58,7 +68,8 @@ const ContestParticipantsScreen = () => {
   const [editExamStatus, setEditExamStatus] = useState<ExamStatusType>("not_started");
   const [editLockReason, setEditLockReason] = useState("");
   const [saving, setSaving] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isNarrowViewport, setIsNarrowViewport] = useState(false);
+  const [detailPanelWidth, setDetailPanelWidth] = useState(DETAIL_PANEL_DEFAULT_WIDTH);
   // filterOpen state removed — FilterPopover manages its own open/close
   const refreshInFlightRef = useRef(false);
 
@@ -70,12 +81,6 @@ const ContestParticipantsScreen = () => {
 
   const { data: dashboard, loading: dashboardLoading, error: dashboardError, refresh: refreshDashboard } =
     useParticipantDashboard(contestId, selectedUserId);
-
-  const canDeleteExamVideos = useMemo(() => {
-    if (!contest || !user) return false;
-    if (contest.permissions?.canDeleteContest) return true;
-    return Boolean(contest.ownerUsername && user.username === contest.ownerUsername);
-  }, [contest, user]);
 
   const rosterManagedByClassroom = Boolean(contest?.isClassroomBound);
 
@@ -159,12 +164,6 @@ const ContestParticipantsScreen = () => {
     return rows;
   }, [participants, searchQuery, statusFilter, sortKey]);
 
-  /** The currently selected participant object (from unfiltered list) */
-  const selectedParticipant = useMemo(
-    () => participants.find((p) => p.userId === selectedUserId),
-    [participants, selectedUserId],
-  );
-
   const updateParams = useCallback((updates: Record<string, string | null>) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -190,13 +189,47 @@ const ContestParticipantsScreen = () => {
     }, { replace: true });
   }, [setSearchParams]);
 
-  // Auto-select first participant + validate selected user / detail
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1056px)");
+    const syncViewport = () => setIsNarrowViewport(media.matches);
+    syncViewport();
+    media.addEventListener("change", syncViewport);
+    return () => media.removeEventListener("change", syncViewport);
+  }, []);
+
+  const handleDetailResizeStart = useCallback((startClientX: number) => {
+    const startWidth = detailPanelWidth;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      setDetailPanelWidth(clampDetailPanelWidth(startWidth - (event.clientX - startClientX)));
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+  }, [detailPanelWidth]);
+
+  const handleDetailResizeKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const delta = event.shiftKey ? 64 : 16;
+    setDetailPanelWidth((width) =>
+      clampDetailPanelWidth(width + (event.key === "ArrowLeft" ? delta : -delta)),
+    );
+  }, []);
+
+  // Validate selected user / detail without forcing a default selection.
   useEffect(() => {
     if (!selectedUserId) {
-      // Auto-select the first participant when data is ready
-      if (processedParticipants.length > 0 && !isRefreshing) {
-        updateParams({ user: processedParticipants[0].userId, detail: "overview" });
-      } else if (searchParams.has("detail")) {
+      if (searchParams.has("detail")) {
         updateParams({ detail: null });
       }
       return;
@@ -220,9 +253,7 @@ const ContestParticipantsScreen = () => {
     dashboard?.contestType,
     dashboardLoading,
     detail,
-    isRefreshing,
     participants,
-    processedParticipants,
     searchParams,
     selectedUserId,
     updateParams,
@@ -435,11 +466,81 @@ const ContestParticipantsScreen = () => {
     loading: isRefreshing,
   };
 
-  const selectedDisplayName = getParticipantDisplayName(selectedParticipant);
-
-  const selectedStatusTag = selectedParticipant?.examStatus
-    ? (STATUS_TAG_TYPE[selectedParticipant.examStatus] || "cool-gray")
-    : null;
+  const participantToolbarActions = (
+    <>
+      <TableToolbarSearch
+        labelText={t("participants.searchLabel", "搜尋參賽者")}
+        placeholder={t("participants.searchPlaceholder", "搜尋姓名或使用者 ID...")}
+        value={searchQuery}
+        onChange={(event) => {
+          if (event && typeof event !== "string" && "target" in event) {
+            updateParams({ q: event.target.value || null });
+          }
+        }}
+        persistent
+      />
+      <FilterPopover
+        hasActiveFilters={hasActiveFilters}
+        triggerLabel={t("participants.filters", "篩選")}
+        onReset={() => updateParams({ q: null, status: null, sort: null })}
+      >
+        <FluidDropdown
+          id="participants-toolbar-status"
+          titleText={t("participants.selectStatus", "狀態")}
+          label={t("participants.selectStatus", "狀態")}
+          items={statusOptions}
+          itemToString={(item) => (item as Option | null)?.label ?? ""}
+          selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
+          onChange={({ selectedItem }) =>
+            updateParams({
+              status:
+                (selectedItem as Option | null)?.id &&
+                (selectedItem as Option).id !== "all"
+                  ? (selectedItem as Option).id
+                  : null,
+            })
+          }
+        />
+        <FluidDropdown
+          id="participants-toolbar-sort"
+          titleText={t("dashboard.sortLabel", "排序")}
+          label={t("dashboard.sortLabel", "排序")}
+          items={sortOptions}
+          itemToString={(item) => (item as Option | null)?.label ?? ""}
+          selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
+          onChange={({ selectedItem }) =>
+            updateParams({
+              sort:
+                (selectedItem as Option | null)?.id &&
+                (selectedItem as Option).id !== "score_desc"
+                  ? (selectedItem as Option).id
+                  : null,
+            })
+          }
+        />
+      </FilterPopover>
+      <Button
+        kind="ghost"
+        size="lg"
+        data-testid="participants-toolbar-export-btn"
+        renderIcon={DocumentExport}
+        iconDescription={t("settings.exportCSV", "匯出 CSV")}
+        onClick={() => void handleExportResults()}
+        hasIconOnly
+      />
+      {!rosterManagedByClassroom ? (
+        <Button
+          kind="primary"
+          size="lg"
+          data-testid="participants-toolbar-add-btn"
+          renderIcon={Add}
+          onClick={() => setAddModalOpen(true)}
+        >
+          {t("participants.add", "新增參賽者")}
+        </Button>
+      ) : null}
+    </>
+  );
 
   return (
     <>
@@ -448,121 +549,84 @@ const ContestParticipantsScreen = () => {
           title={t("participants.viewTitle", "檢視參與者")}
           actions={
             <>
-              <ExpandableSearch
-                id="participants-toolbar-search"
-                size="md"
-                className={styles.localToolbarSearch}
-                labelText={t("participants.searchLabel", "搜尋參賽者")}
-                placeholder={t("participants.searchPlaceholder", "搜尋姓名或使用者 ID...")}
-                value={searchQuery}
-                onChange={(event) => updateParams({ q: event.target.value || null })}
-              />
-              <FilterPopover
-                hasActiveFilters={hasActiveFilters}
-                triggerLabel={t("participants.filters", "篩選")}
-                onReset={() => updateParams({ q: null, status: null, sort: null })}
-              >
-                <FluidDropdown
-                  id="participants-toolbar-status"
-                  titleText={t("participants.selectStatus", "狀態")}
-                  label={t("participants.selectStatus", "狀態")}
-                  items={statusOptions}
-                  itemToString={(item) => (item as Option | null)?.label ?? ""}
-                  selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
-                  onChange={({ selectedItem }) =>
-                    updateParams({
-                      status:
-                        (selectedItem as Option | null)?.id &&
-                        (selectedItem as Option).id !== "all"
-                          ? (selectedItem as Option).id
-                          : null,
-                    })
-                  }
-                />
-                <FluidDropdown
-                  id="participants-toolbar-sort"
-                  titleText={t("dashboard.sortLabel", "排序")}
-                  label={t("dashboard.sortLabel", "排序")}
-                  items={sortOptions}
-                  itemToString={(item) => (item as Option | null)?.label ?? ""}
-                  selectedItem={sortOptions.find((item) => item.id === sortKey) ?? null}
-                  onChange={({ selectedItem }) =>
-                    updateParams({
-                      sort:
-                        (selectedItem as Option | null)?.id &&
-                        (selectedItem as Option).id !== "score_desc"
-                          ? (selectedItem as Option).id
-                          : null,
-                    })
-                  }
-                />
-              </FilterPopover>
-              <Button
-                kind="ghost"
-                size="md"
-                data-testid="participants-toolbar-export-btn"
-                renderIcon={DocumentExport}
-                iconDescription={t("settings.exportCSV", "匯出 CSV")}
-                onClick={() => void handleExportResults()}
-                hasIconOnly
-              />
-              {!rosterManagedByClassroom ? (
+              {participantToolbarActions}
+              {selectedUserId ? (
                 <Button
-                  kind="primary"
+                  kind="ghost"
                   size="md"
-                  data-testid="participants-toolbar-add-btn"
-                  renderIcon={Add}
-                  iconDescription={t("participants.add", "新增參賽者")}
-                  onClick={() => setAddModalOpen(true)}
+                  renderIcon={Close}
+                  iconDescription={t("button.close", "關閉")}
                   hasIconOnly
+                  onClick={() => updateParams({ user: null, detail: null })}
                 />
               ) : null}
             </>
           }
         />
 
-        <div className={styles.root}>
-          <ParticipantsMobileSelector
-            drawerOpen={drawerOpen}
-            selectedDisplayName={selectedDisplayName}
-            selectedParticipant={selectedParticipant}
-            selectedStatusTag={selectedStatusTag}
-            selectedStatusLabel={
-              selectedParticipant?.examStatus
-                ? t(`examStatus.${selectedParticipant.examStatus}`, selectedParticipant.examStatus)
-                : null
-            }
-            selectParticipantLabel={t("participants.selectParticipant", "選擇參賽者")}
-            listPaneProps={listPaneProps}
-            onOpenDrawer={() => setDrawerOpen(true)}
-            onCloseDrawer={() => setDrawerOpen(false)}
-            onSelectUser={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
-          />
-
-          <div className={styles.listCol}>
+        <motion.div
+          className={styles.root}
+          animate={{
+            gridTemplateColumns: isNarrowViewport
+              ? "1fr"
+              : selectedUserId
+              ? `minmax(0, 1fr) ${DETAIL_PANEL_RESIZE_HANDLE_WIDTH}px ${detailPanelWidth}px`
+              : "minmax(0, 1fr) 0px 0px",
+          }}
+          transition={prefersReducedMotion ? { duration: 0 } : DETAIL_PANEL_TRANSITION}
+        >
+          <div className={styles.rosterCol}>
             <ParticipantsListPane
               {...listPaneProps}
               onSelect={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
             />
           </div>
 
-          <ParticipantDashboardPane
-            contestId={contestId}
-            dashboard={dashboard}
-            loading={dashboardLoading}
-            error={dashboardError}
-            activeDetail={detail}
-            onDetailChange={(nextDetail) => updateParams({ detail: nextDetail })}
-            onDownloadReport={handleDownloadReport}
-            onEditStatus={openEditModal}
-            onUnlock={handleUnlock}
-            onReopenExam={handleReopenExam}
-            onRemoveParticipant={rosterManagedByClassroom ? undefined : handleRemoveParticipant}
-            canDeleteExamVideos={canDeleteExamVideos}
-            onOpenGrading={() => updateParams({ panel: "grading" })}
-            onRefreshEvents={refreshBoth}
-          />
-        </div>
+          {selectedUserId && !isNarrowViewport ? (
+            <div
+              className={styles.detailResizeHandle}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t("participants.resizeDetailPanel", "調整詳細面板寬度")}
+              tabIndex={0}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                handleDetailResizeStart(event.clientX);
+              }}
+              onKeyDown={handleDetailResizeKeyDown}
+            />
+          ) : null}
+
+          <AnimatePresence initial={false}>
+            {selectedUserId ? (
+              <motion.aside
+                key={selectedUserId}
+                className={styles.detailCol}
+                aria-label={t("participants.detailPanel", "參賽者詳細資料")}
+                initial={prefersReducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: isNarrowViewport ? "100%" : 32 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={prefersReducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: isNarrowViewport ? "100%" : 32 }}
+                transition={prefersReducedMotion ? { duration: 0 } : DETAIL_PANEL_TRANSITION}
+              >
+                <ParticipantDashboardPane
+                  contestId={contestId}
+                  dashboard={dashboard}
+                  loading={dashboardLoading}
+                  error={dashboardError}
+                  activeDetail={detail}
+                  onDetailChange={(nextDetail) => updateParams({ detail: nextDetail })}
+                  onDownloadReport={handleDownloadReport}
+                  onEditStatus={openEditModal}
+                  onUnlock={handleUnlock}
+                  onReopenExam={handleReopenExam}
+                  onRemoveParticipant={rosterManagedByClassroom ? undefined : handleRemoveParticipant}
+                  onOpenGrading={() => updateParams({ panel: "grading" })}
+                  onRefreshEvents={refreshBoth}
+                />
+              </motion.aside>
+            ) : null}
+          </AnimatePresence>
+        </motion.div>
       </div>
 
       {!rosterManagedByClassroom ? (

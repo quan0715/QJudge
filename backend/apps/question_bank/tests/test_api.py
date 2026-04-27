@@ -21,7 +21,7 @@ from apps.question_bank.bank_workflows import (
     upsert_exam_question_into_bank,
     upsert_problem_into_bank,
 )
-from apps.question_bank.models import Question, QuestionAsset, QuestionBank, QuestionBankMembership
+from apps.question_bank.models import Question, QuestionAsset, QuestionBank, QuestionBankMembership, QuestionCodingExt
 from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
 from apps.users.models import User
 
@@ -511,6 +511,60 @@ class TestQuestionBankAPI:
         assert "question_version_id" in resp.data[0]
         assert resp.data[0]["question_asset_id"] == str(question.question_asset_id)
         assert resp.data[0]["question_version_id"] == str(question.question_version_id)
+
+    def test_list_bank_questions_projects_from_canonical_asset_not_legacy_adapter(
+        self,
+        api_client: APIClient,
+        teacher: User,
+        teacher_private_bank: QuestionBank,
+    ):
+        question = Question.objects.create(
+            bank=teacher_private_bank,
+            question_type=Question.QuestionType.CODING,
+            title="Canonical Title",
+            prompt="canonical prompt",
+            score=100,
+            created_by=teacher,
+        )
+        QuestionCodingExt.objects.create(
+            question=question,
+            translations=[
+                {
+                    "description": "canonical description",
+                    "input_description": "",
+                    "output_description": "",
+                    "hint": "",
+                }
+            ],
+            test_cases=[{"input": "1", "output": "1"}],
+        )
+        ensure_question_asset_for_bank_question(question=question, actor=teacher)
+
+        question.title = "Stale Legacy Title"
+        question.prompt = "stale legacy prompt"
+        question.save(update_fields=["title", "prompt", "updated_at"])
+        QuestionCodingExt.objects.filter(question=question).update(
+            translations=[
+                {
+                    "description": "stale legacy description",
+                    "input_description": "",
+                    "output_description": "",
+                    "hint": "",
+                }
+            ],
+            test_cases=[{"input": "2", "output": "2"}],
+        )
+
+        api_client.force_authenticate(user=teacher)
+        resp = api_client.get(f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/")
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert len(resp.data) == 1
+        assert resp.data[0]["adapter_question_id"] is None
+        assert resp.data[0]["title"] == "Canonical Title"
+        assert resp.data[0]["prompt"] == "canonical prompt"
+        assert resp.data[0]["coding_ext"]["description"] == "canonical description"
+        assert resp.data[0]["coding_ext"]["test_cases"] == [{"input": "1", "output": "1"}]
 
     def test_list_bank_questions_can_render_canonical_membership_without_legacy_question(
         self,
@@ -1188,7 +1242,7 @@ class TestQuestionCRUDPermissions:
         )
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data["title"] == "Updated"
-        assert resp.data["adapter_question_id"] == str(question.id)
+        assert resp.data["adapter_question_id"] is None
         assert resp.data["bank_item_id"]
         assert resp.data["id"] == resp.data["bank_item_id"]
 

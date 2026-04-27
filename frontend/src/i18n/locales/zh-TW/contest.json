@@ -227,7 +227,8 @@
     "requiresPassword": "需要密碼"
   },
   "button": {
-    "backToLobby": "返回競賽大廳"
+    "backToLobby": "返回競賽大廳",
+    "close": "關閉"
   },
   "clarifications": {
     "notFound": "找不到競賽",
@@ -307,7 +308,7 @@
     "duration": "長度",
     "emptyList": "目前沒有符合條件的參賽者",
     "eventTimeline": "事件時間線",
-    "evidenceSessions": "監控影片與轉檔狀態",
+    "evidenceSessions": "即時監看與截圖",
     "feedback": "批改評語",
     "flagged": "已標記",
     "frames": "影格",
@@ -315,14 +316,14 @@
     "leftAt": "最後離開",
     "listSubtitle": "選擇一位參賽者查看個人作答、事件與報告資訊",
     "loadFailed": "載入參賽者 dashboard 失敗",
-    "manageEvidence": "開啟影片管理",
-    "monitoringUseExistingUi": "此分頁沿用既有影片管理 UI，請點擊上方按鈕開啟。",
+    "manageEvidence": "開啟即時監看",
+    "monitoringUseExistingUi": "此分頁提供即時監看與截圖證據。",
     "noAnswer": "未作答",
-    "noEvidence": "目前沒有監控影片或待轉檔項目",
+    "noEvidence": "目前沒有可立即監看的證據資料",
     "noSubmissionData": "尚無提交資料",
     "noTimeline": "尚無事件紀錄",
     "noTrendData": "尚無可視化趨勢資料",
-    "openEvidence": "查看監控影片",
+    "openEvidence": "查看即時監看",
     "openGrading": "前往批改",
     "partialLoadWarning": "部分資料可能不是最新",
     "participantSummary": "參賽者摘要",
@@ -410,6 +411,7 @@
     "alreadyLocked": "0 - 已鎖定",
     "answerLocked": "作答已鎖定",
     "antiCheatStarting": "防作弊監控將在倒數結束後開始運作",
+    "anticheatConfigMissing": "防作弊策略尚未載入，請回到儀表板重新整理後再作答。",
     "autoLockIn": "將在 {{seconds}} 秒後自動鎖定",
     "autoSubmitNoMoreAnswer": "確認後系統將自動為您交卷，您將無法再作答。",
     "autoSubmittedDesc": "螢幕分享中斷後未能在時限內重新分享，系統已自動為您交卷。",
@@ -449,6 +451,7 @@
     "lockedReason": "違規行為",
     "modeEnabled": "作弊檢查已啟用",
     "monitoring": "監控中",
+    "monitoringDeviceUnsupported": "目前裝置不符合此考試的監考設定，請回到儀表板重新進行環境檢查。",
     "monitoringHint": "考試監控中 - 點擊查看詳情",
     "mouseLeaveRecoveryDesc": "請在 {{seconds}} 秒內將滑鼠移回考試視窗，否則將記錄一次違規。",
     "mouseLeaveRecoveryTitle": "滑鼠已離開視窗",
@@ -463,6 +466,8 @@
     "printBlocked": "禁止列印考試內容",
     "processing": "處理中...",
     "recordingViolation": "正在記錄違規行為...",
+    "screenShareUnsupported": "此瀏覽器不支援螢幕分享，請回到儀表板重新進行環境檢查，或改用支援螢幕分享的瀏覽器。",
+    "webcamUnsupported": "此裝置無法使用 Webcam，請回到儀表板重新進行環境檢查，或改用可開啟 Webcam 的裝置。",
     "remainingChances": "剩餘機會",
     "requestingScreenShare": "請求分享中...",
     "reshareScreen": "重新分享螢幕",
@@ -598,77 +603,6 @@
     "not_started": "未開始",
     "paused": "已暫停",
     "submitted": "已交卷"
-  },
-  "examVideoReview": {
-    "actions": {
-      "compile": "開始轉檔",
-      "delete": "刪除影片",
-      "deleting": "刪除中...",
-      "download": "下載影片",
-      "flag": "標記疑似作弊",
-      "submitting": "送出中...",
-      "unflag": "取消疑似標記"
-    },
-    "bulkCompile": "全部轉檔 ({{count}})",
-    "bulkCompiling": "送出中...",
-    "confirmDelete": "確定要刪除 {{name}} 的監控影片資料嗎？此操作不可復原。",
-    "empty": "目前沒有可顯示的監控影片。",
-    "errors": {
-      "compile": "觸發轉檔失敗",
-      "compileAll": "觸發批次轉檔失敗",
-      "delete": "刪除影片失敗",
-      "deleteBlocked": "影片正在處理中，暫時無法刪除",
-      "load": "載入影片失敗",
-      "playUrl": "載入播放連結失敗"
-    },
-    "fields": {
-      "duration": "影片長度",
-      "fileSize": "檔案大小",
-      "frameCount": "幀數",
-      "jobStatus": "轉檔狀態",
-      "recordingEnd": "錄製結束",
-      "recordingStart": "錄製開始",
-      "student": "學生"
-    },
-    "flag": {
-      "normal": "正常",
-      "suspected": "疑似"
-    },
-    "headers": {
-      "duration": "長度",
-      "finishedAt": "錄製結束",
-      "flag": "標記",
-      "jobStatus": "轉檔狀態",
-      "module": "來源",
-      "startedAt": "錄製開始",
-      "student": "學生",
-      "updatedAt": "最後更新"
-    },
-    "listTitle": "影片清單",
-    "loadErrorTitle": "載入監控影片失敗",
-    "modalHeading": "防弊影片檢視",
-    "note": "備註",
-    "preview": {
-      "failed": "影片轉檔失敗，請稍後重試或查看錯誤訊息。",
-      "noData": "此來源在本次作答沒有收到任何畫面，故不產生影片。",
-      "pending": "影片目前為待轉檔，手動送出轉檔後會顯示於此。",
-      "running": "影片轉檔中，完成後會自動顯示。",
-      "selectVideo": "請選擇影片"
-    },
-    "sessionGroup": "作答場次 {{index}}（{{count}} 個來源）",
-    "status": {
-      "failed": "轉檔失敗",
-      "noData": "無畫面",
-      "pending": "待轉檔",
-      "ready": "可播放",
-      "running": "轉檔中"
-    },
-    "suspicion": {
-      "normal": "正常",
-      "suspected": "疑似作弊"
-    },
-    "transcodeErrorTitle": "轉檔錯誤",
-    "videoCount": "{{count}} 筆"
   },
   "exit": "離開",
   "exitFullscreen": "離開全螢幕",
@@ -869,7 +803,9 @@
       "count": "次數",
       "evidence": "截圖證據",
       "loadingScreenshots": "載入截圖中…",
-      "noScreenshots": "原始截圖已清除或轉檔為影片",
+      "lightboxLabel": "截圖預覽",
+      "noScreenshots": "此事件前後時段無可用原始截圖，建議改看即時監看",
+      "noScreenshotsBySession": "此事件場次無可用截圖，已改用跨場次查詢",
       "noScreenshotsInRange": "此時段無截圖，該使用者共有 {{count}} 張原始截圖",
       "penalized": "計罰",
       "priority": "優先級",
@@ -976,6 +912,30 @@
     },
     "totalCount": "共 {{total}} 筆事件"
   },
+  "liveView": {
+    "idle": "尚未連線",
+    "connecting": "連線中…",
+    "connectError": "即時監看連線失敗",
+    "connected": "已連線",
+    "connect": "連線即時監看中…",
+    "description": "查看此學生目前分享中的考試畫面。",
+    "descriptionWithName": "查看 {{name}} 目前分享中的考試畫面。",
+    "empty": "按下「連線即時監看」後會在這裡顯示學生畫面。",
+    "missingTarget": "請先選擇參與者才能開始即時監看。",
+    "noticeTitle": "即時監看尚不可用",
+    "publisherSession": "publisher",
+    "refresh": "重新連線",
+    "resubscribe": "重新連線",
+    "stopped": "已停止",
+    "subscribe": "連線即時監看",
+    "stop": "停止",
+    "title": "即時監看",
+    "trackName": "track",
+    "userId": "使用者 ID",
+    "streamingHint": "可在此畫面查看學生目前分享的螢幕。",
+    "unavailable": "無法連線",
+    "unknownError": "即時監看連線失敗"
+  },
   "management": {
     "contestCount": "共 {{count}} 場競賽",
     "description": "管理您建立的競賽"
@@ -1072,15 +1032,27 @@
     "exportFailed": "匯出失敗",
     "filterStatus": "篩選狀態",
     "generatingReport": "正在產生 {{name}} 的報告...",
+    "connection": {
+      "live": "Live",
+      "offline": "離線",
+      "online": "在線"
+    },
     "headers": {
+      "connection": "連線",
+      "displayName": "Display name",
       "joinedAt": "加入時間",
       "lockReason": "鎖定原因",
+      "participant": "參賽者",
+      "role": "身份",
       "score": "分數",
       "status": "狀態",
       "username": "使用者"
     },
+    "detailPanel": "參賽者詳細資料",
+    "gridView": "卡片",
     "listFooterCount": "顯示 {{shown}} / {{total}} 位",
     "listHeaderTitle": "學生",
+    "openDetail": "詳情",
     "remove": "移除",
     "removeFailed": "移除參賽者失敗",
     "removed": "參賽者已移除",
@@ -1088,6 +1060,13 @@
     "reopenFailed": "重新開放失敗",
     "reopened": "已重新開放考試",
     "reportDownloaded": "{{name}} 的報告已下載",
+    "roles": {
+      "admin": "管理員",
+      "student": "學生",
+      "ta": "助教",
+      "teacher": "教師",
+      "unknown": "未設定"
+    },
     "searchLabel": "搜尋參賽者",
     "searchPlaceholder": "搜尋姓名或使用者 ID...",
     "selectParticipant": "選擇參賽者",
@@ -1098,6 +1077,11 @@
     "unlockFailed": "解除鎖定失敗",
     "unlocked": "已解除鎖定",
     "updateFailed": "更新失敗",
+    "tableView": "表格",
+    "tableDescription": "快速檢視參賽者狀態、連線與作答資訊",
+    "tableTitle": "參賽者",
+    "tableToolbar": "參賽者表格工具列",
+    "viewModeLabel": "參賽者檢視模式",
     "viewTitle": "檢視參與者"
   },
   "participantsAdmin": {

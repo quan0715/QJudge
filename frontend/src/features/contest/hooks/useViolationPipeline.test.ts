@@ -129,6 +129,35 @@ describe("useViolationPipeline", () => {
     expect(result.current.recoveryCountdown).toBeNull();
   });
 
+  it("uses configured evidence modules for force-submit capture", async () => {
+    const config = makeConfig({
+      forceSubmitExtras: {
+        sourceModule: "screen_share",
+        evidenceCaptureModules: ["screen_share", "webcam"],
+      },
+    });
+    const { result } = renderHook(() => useViolationPipeline(config));
+
+    act(() => { result.current.trigger(); });
+    act(() => { vi.advanceTimersByTime(3000); });
+
+    const request = (config.requestForceSubmit as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    await act(async () => {
+      await request.onRecording();
+    });
+
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      "contest-1",
+      "exam_submit_initiated",
+      expect.objectContaining({
+        captureOptions: {
+          eventType: "exam_submit_initiated",
+          modules: ["screen_share", "webcam"],
+        },
+      }),
+    );
+  });
+
   it("timeout fires log_only path (no requestForceSubmit call)", () => {
     const config = makeConfig({
       route: webcamRoute,
