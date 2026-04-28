@@ -1,6 +1,8 @@
 import { type ReactNode, type CSSProperties, forwardRef } from "react";
 import styles from "./AdminSplitLayout.module.scss";
 
+type AdminSplitLayoutMobileMode = "drawers" | "stacked" | "contentOnly";
+
 interface AdminSplitLayoutProps {
   toolbar?: ReactNode;
   sidebar: ReactNode;
@@ -15,6 +17,9 @@ interface AdminSplitLayoutProps {
   contentMaxWidth?: number;
   contentClassName?: string;
   className?: string;
+  mobileMode?: AdminSplitLayoutMobileMode;
+  mobileSidebarOpen?: boolean;
+  mobileDetailOpen?: boolean;
 }
 
 /**
@@ -37,9 +42,13 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
       contentMaxWidth = 740,
       contentClassName,
       className,
+      mobileMode = "drawers",
+      mobileSidebarOpen,
+      mobileDetailOpen,
     },
     ref,
   ) => {
+    const detailOpen = mobileDetailOpen ?? Boolean(rightPane);
     const cssVars = {
       "--sidebar-width": `${sidebarWidth}px`,
       "--content-max-width": `${contentMaxWidth}px`,
@@ -49,6 +58,7 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
 
     const rootClasses = [
       styles.root,
+      toolbar && styles.hasToolbar,
       !sidebarHidden && !middlePane && !rightPane && styles.noMiddle,
       !sidebarHidden && rightPane && !middlePane && styles.withRightOnly,
       !sidebarHidden && rightPane && middlePane && styles.withMiddleAndRight,
@@ -56,6 +66,14 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
       sidebarHidden && !middlePane && !!rightPane && styles.noSidebarWithRight,
       sidebarHidden && !!middlePane && !rightPane && styles.noSidebarWithMiddle,
       sidebarHidden && !!middlePane && !!rightPane && styles.noSidebarWithMiddleAndRight,
+      mobileMode === "drawers" && styles.mobileDrawerLayout,
+      mobileMode === "contentOnly" && styles.mobileContentOnly,
+      mobileSidebarOpen === true && styles.mobileSidebarOpen,
+      mobileMode === "drawers" &&
+        mobileSidebarOpen === false &&
+        styles.sidebarClosed,
+      detailOpen && styles.mobileDetailOpen,
+      mobileMode === "drawers" && !detailOpen && styles.detailClosed,
       className,
     ]
       .filter(Boolean)

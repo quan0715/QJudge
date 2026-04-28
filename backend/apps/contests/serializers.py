@@ -942,21 +942,29 @@ class ExamEventSerializer(serializers.ModelSerializer):
 
 class ExamEventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating exam events."""
-    METADATA_MAX_SIZE = 4096  # bytes
+    DEFAULT_METADATA_MAX_SIZE = 8192  # bytes
+    CLIPBOARD_METADATA_MAX_SIZE = 65536  # bytes
 
     class Meta:
         model = ExamEvent
         fields = ['event_type', 'metadata']
 
-    def validate_metadata(self, value):
-        if value is not None:
+    def validate(self, attrs):
+        metadata = attrs.get('metadata')
+        if metadata is not None:
             import json
-            serialized = json.dumps(value, ensure_ascii=False)
-            if len(serialized.encode('utf-8')) > self.METADATA_MAX_SIZE:
+            event_type = attrs.get('event_type')
+            max_size = (
+                self.CLIPBOARD_METADATA_MAX_SIZE
+                if event_type == 'clipboard_action'
+                else self.DEFAULT_METADATA_MAX_SIZE
+            )
+            serialized = json.dumps(metadata, ensure_ascii=False)
+            if len(serialized.encode('utf-8')) > max_size:
                 raise serializers.ValidationError(
-                    f"Metadata exceeds maximum size of {self.METADATA_MAX_SIZE} bytes."
+                    {'metadata': f"Metadata exceeds maximum size of {max_size} bytes."}
                 )
-        return value
+        return attrs
 
 
 class AnticheatUrlsQuerySerializer(serializers.Serializer):

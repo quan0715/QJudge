@@ -31,6 +31,7 @@ export type ExamViolationType =
   | "viewport_stopped"
   | "split_view_detected"
   | "capture_upload_degraded"
+  | "clipboard_action"
   | "exam_entered"
   | "exam_submit_initiated"
   | "concurrent_login_detected"

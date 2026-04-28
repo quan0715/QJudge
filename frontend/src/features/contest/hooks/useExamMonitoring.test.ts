@@ -1,6 +1,7 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useExamMonitoring } from "./useExamMonitoring";
+import { recordExamEvent } from "@/infrastructure/api/repositories";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -8,13 +9,16 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+vi.mock("@/infrastructure/api/repositories", () => ({
+  recordExamEvent: vi.fn().mockResolvedValue(null),
+}));
+
 describe("useExamMonitoring", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    vi.mocked(recordExamEvent).mockClear();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -38,30 +42,160 @@ describe("useExamMonitoring", () => {
     expect(addEventListenerSpy).toHaveBeenCalledWith("copy", expect.any(Function));
   });
 
-  it("blocks copy and notifies blocked action callback", () => {
+  it("records copy without blocking or storing content", async () => {
     const onViolation = vi.fn();
     const onBlockedAction = vi.fn();
-    renderHook(() => useExamMonitoring({ enabled: true, onViolation, onBlockedAction }));
+    renderHook(() => useExamMonitoring({
+      contestId: "contest-1",
+      enabled: true,
+      onViolation,
+      onBlockedAction,
+    }));
 
     const event = new Event("copy", { bubbles: true, cancelable: true });
     document.dispatchEvent(event);
 
-    expect(event.defaultPrevented).toBe(true);
-    expect(onViolation).not.toHaveBeenCalledWith("forbidden_action", "exam.forbiddenCopy");
-    expect(onBlockedAction).toHaveBeenCalledWith("exam.forbiddenCopy");
+    expect(event.defaultPrevented).toBe(false);
+    expect(onViolation).not.toHaveBeenCalled();
+    expect(onBlockedAction).not.toHaveBeenCalled();
+    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
+    expect(recordExamEvent).toHaveBeenCalledWith(
+      "contest-1",
+      "clipboard_action",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          action: "copy",
+          content_captured: false,
+          source: "clipboard_detector",
+        }),
+      }),
+    );
+    expect(
+      (vi.mocked(recordExamEvent).mock.calls[0][2] as { metadata?: Record<string, unknown> })?.metadata,
+    ).not.toHaveProperty("content");
   });
 
-  it("blocks paste and notifies blocked action callback", () => {
+  it("records paste content without blocking", async () => {
     const onViolation = vi.fn();
     const onBlockedAction = vi.fn();
-    renderHook(() => useExamMonitoring({ enabled: true, onViolation, onBlockedAction }));
+    renderHook(() => useExamMonitoring({
+      contestId: "contest-1",
+      enabled: true,
+      onViolation,
+      onBlockedAction,
+    }));
 
-    const event = new Event("paste", { bubbles: true, cancelable: true });
+    const event = new Event("paste", { bubbles: true, cancelable: true }) as ClipboardEvent;
+    Object.defineProperty(event, "clipboardData", {
+      value: {
+        getData: (type: string) => (type === "text/plain" ? "line 1\nline 2" : ""),
+      },
+    });
     document.dispatchEvent(event);
 
-    expect(event.defaultPrevented).toBe(true);
-    expect(onViolation).not.toHaveBeenCalledWith("forbidden_action", "exam.forbiddenPaste");
-    expect(onBlockedAction).toHaveBeenCalledWith("exam.forbiddenPaste");
+    expect(event.defaultPrevented).toBe(false);
+    expect(onViolation).not.toHaveBeenCalled();
+    expect(onBlockedAction).not.toHaveBeenCalled();
+    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
+    expect(recordExamEvent).toHaveBeenCalledWith(
+      "contest-1",
+      "clipboard_action",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          action: "paste",
+          content: "line 1\nline 2",
+          content_captured: true,
+          content_truncated: false,
+          line_count: 2,
+          text_length: 13,
+        }),
+      }),
+    );
+  });
+
+  it("truncates oversized paste content before recording", async () => {
+    const onViolation = vi.fn();
+    renderHook(() => useExamMonitoring({
+      contestId: "contest-1",
+      enabled: true,
+      onViolation,
+    }));
+
+    const content = "x".repeat(50001);
+    const event = new Event("paste", { bubbles: true, cancelable: true }) as ClipboardEvent;
+    Object.defineProperty(event, "clipboardData", {
+      value: {
+        getData: (type: string) => (type === "text/plain" ? content : ""),
+      },
+    });
+    document.dispatchEvent(event);
+
+    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
+    const metadata = (vi.mocked(recordExamEvent).mock.calls[0][2] as { metadata?: Record<string, unknown> })
+      ?.metadata as Record<string, unknown>;
+    expect(metadata.content).toBe("x".repeat(50000));
+    expect(metadata.content_truncated).toBe(true);
+    expect(metadata.original_text_length).toBe(50001);
+    expect(metadata.captured_text_length).toBe(50000);
+  });
+
+  it("truncates paste content by UTF-8 byte size", async () => {
+    const onViolation = vi.fn();
+    renderHook(() => useExamMonitoring({
+      contestId: "contest-1",
+      enabled: true,
+      onViolation,
+    }));
+
+    const content = "測".repeat(20000);
+    const event = new Event("paste", { bubbles: true, cancelable: true }) as ClipboardEvent;
+    Object.defineProperty(event, "clipboardData", {
+      value: {
+        getData: (type: string) => (type === "text/plain" ? content : ""),
+      },
+    });
+    document.dispatchEvent(event);
+
+    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
+    const metadata = (vi.mocked(recordExamEvent).mock.calls[0][2] as { metadata?: Record<string, unknown> })
+      ?.metadata as Record<string, unknown>;
+    const captured = metadata.content as string;
+    expect(new TextEncoder().encode(captured).byteLength).toBeLessThanOrEqual(50000);
+    expect(metadata.content_truncated).toBe(true);
+    expect(metadata.original_text_length).toBe(20000);
+    expect(metadata.captured_text_length).toBe(captured.length);
+  });
+
+  it("records cut without blocking or storing content", async () => {
+    const onViolation = vi.fn();
+    const onBlockedAction = vi.fn();
+    renderHook(() => useExamMonitoring({
+      contestId: "contest-1",
+      enabled: true,
+      onViolation,
+      onBlockedAction,
+    }));
+
+    const event = new Event("cut", { bubbles: true, cancelable: true });
+    document.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
+    expect(recordExamEvent).toHaveBeenCalledWith(
+      "contest-1",
+      "clipboard_action",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          action: "cut",
+          content_captured: false,
+        }),
+      }),
+    );
+    expect(onViolation).not.toHaveBeenCalled();
+    expect(onBlockedAction).not.toHaveBeenCalled();
+    expect(
+      (vi.mocked(recordExamEvent).mock.calls[0][2] as { metadata?: Record<string, unknown> })?.metadata,
+    ).not.toHaveProperty("content");
   });
 
   it("blocks context menu and notifies blocked action callback", () => {

@@ -455,6 +455,44 @@ def _merge_evidence_metadata(base: dict[str, Any], incoming: dict[str, Any]) -> 
     return merged
 
 
+def _clipboard_action_entry(meta: dict[str, Any]) -> dict[str, Any]:
+    entry: dict[str, Any] = {
+        "action": meta.get("action"),
+        "content_captured": bool(meta.get("content_captured", False)),
+        "content_truncated": bool(meta.get("content_truncated", False)),
+        "text_length": meta.get("text_length"),
+        "line_count": meta.get("line_count"),
+        "sha256": meta.get("sha256"),
+    }
+    if isinstance(meta.get("content"), str):
+        entry["content"] = meta["content"]
+    if meta.get("original_text_length") is not None:
+        entry["original_text_length"] = meta.get("original_text_length")
+    if meta.get("captured_text_length") is not None:
+        entry["captured_text_length"] = meta.get("captured_text_length")
+    return {key: value for key, value in entry.items() if value is not None}
+
+
+def _clipboard_action_metadata(meta: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(meta)
+    merged["clipboard_actions"] = [_clipboard_action_entry(meta)]
+    return merged
+
+
+def _merge_clipboard_metadata(base: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    actions = list(merged.get("clipboard_actions") or [])
+    actions.append(_clipboard_action_entry(incoming))
+    merged["clipboard_actions"] = actions
+    merged["action"] = incoming.get("action")
+    merged["content_captured"] = bool(merged.get("content_captured")) or bool(incoming.get("content_captured"))
+    merged["content_truncated"] = bool(merged.get("content_truncated")) or bool(incoming.get("content_truncated"))
+    for key in ("content", "text_length", "line_count", "sha256", "original_text_length", "captured_text_length"):
+        if incoming.get(key) is not None:
+            merged[key] = incoming[key]
+    return merged
+
+
 def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> list[dict[str, Any]]:
     """Build aggregated event feed with 60s-window incident grouping."""
     window = EVENT_FEED_AGGREGATION_WINDOW_SECONDS
@@ -489,6 +527,9 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
         uploaded_count = _forced_capture_uploaded_count(meta)
         has_evidence = uploaded_count > 0
 
+        if et == "clipboard_action":
+            meta = _clipboard_action_metadata(meta)
+
         should_group_event = et != "manual_proctor_note"
         idx = open_incidents.get(et) if should_group_event else None
         if idx is not None:
@@ -501,6 +542,9 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
                 if has_evidence:
                     inc["evidence_count"] += uploaded_count
                     inc["metadata"] = _merge_evidence_metadata(inc["metadata"], meta)
+                    inc["event_id"] = str(event.id)
+                if et == "clipboard_action":
+                    inc["metadata"] = _merge_clipboard_metadata(inc["metadata"], meta)
                     inc["event_id"] = str(event.id)
                 inc["summary"] = meta.get("reason") or inc["summary"]
                 continue

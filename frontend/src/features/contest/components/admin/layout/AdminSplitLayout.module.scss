@@ -1,12 +1,20 @@
 @use "@carbon/layout";
+@use "@carbon/motion";
 
 .root {
+  --mobile-drawer-top: 0px;
+
   display: grid;
   grid-template-columns: var(--sidebar-width) var(--middle-width, 0px) 1fr;
   grid-template-rows: auto 1fr;
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  transition: grid-template-columns 200ms motion.motion(standard, productive);
+}
+
+.hasToolbar {
+  --mobile-drawer-top: 2.5rem;
 }
 
 // When no middle pane, use 2-column layout
@@ -151,21 +159,101 @@
   }
 }
 
+.mobileDrawerLayout.sidebarClosed {
+  &.noMiddle {
+    grid-template-columns: 0 1fr;
+  }
+
+  &.withRightOnly {
+    grid-template-columns: 0 1fr var(--right-width);
+  }
+
+  &.withMiddleAndRight {
+    grid-template-columns: 0 var(--middle-width) 1fr var(--right-width);
+  }
+
+  > .sidebar {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+.mobileDrawerLayout.detailClosed {
+  &.withRightOnly {
+    grid-template-columns: var(--sidebar-width) 1fr 0;
+  }
+
+  &.withMiddleAndRight {
+    grid-template-columns: var(--sidebar-width) var(--middle-width) 1fr 0;
+  }
+
+  &.sidebarClosed.withRightOnly {
+    grid-template-columns: 0 1fr 0;
+  }
+
+  &.sidebarClosed.withMiddleAndRight {
+    grid-template-columns: 0 var(--middle-width) 1fr 0;
+  }
+
+  > .right {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+.mobileDrawerLayout {
+  > .sidebar,
+  > .right {
+    transition:
+      opacity 160ms motion.motion(standard, productive),
+      visibility 160ms motion.motion(standard, productive);
+  }
+
+  > .sidebar {
+    opacity: 1;
+  }
+
+  > .right {
+    opacity: 1;
+  }
+}
+
+.mobileDrawerLayout.sidebarClosed > .sidebar,
+.mobileDrawerLayout.detailClosed > .right {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root,
+  .mobileDrawerLayout > .sidebar,
+  .mobileDrawerLayout > .right {
+    transition: none;
+  }
+}
+
 @media (max-width: 900px) {
   .root,
   .noMiddle,
   .withRightOnly,
-  .withMiddleAndRight {
+  .withMiddleAndRight,
+  .noSidebarNoMiddle,
+  .noSidebarWithRight,
+  .noSidebarWithMiddle,
+  .noSidebarWithMiddleAndRight {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto 1fr;
-    height: auto;
+    grid-template-rows: auto;
+    grid-auto-rows: auto;
+    height: 100%;
     min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .sidebar {
     grid-column: 1;
     grid-row: 2;
-    max-height: 240px;
+    min-height: auto;
+    overflow: visible;
     border-right: none;
     border-bottom: 1px solid
       var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
@@ -174,30 +262,168 @@
   .middle {
     grid-column: 1;
     grid-row: 3;
-    max-height: 240px;
+    min-height: auto;
+    overflow: visible;
     border-right: none;
     border-bottom: 1px solid
       var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
   }
 
+  .noSidebarWithMiddle,
+  .noSidebarWithMiddleAndRight {
+    .middle {
+      grid-row: 2;
+    }
+  }
+
   .right {
     grid-column: 1;
-    grid-row: 4;
-    max-height: 240px;
+    grid-row: 5;
+    min-height: auto;
+    overflow: visible;
     border-left: none;
     border-top: 1px solid
       var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
   }
 
+  .withRightOnly,
+  .noSidebarWithMiddleAndRight {
+    .right {
+      grid-row: 4;
+    }
+  }
+
+  .noSidebarWithRight {
+    .right {
+      grid-row: 3;
+    }
+  }
+
   .content {
     grid-column: 1;
-    grid-row: 5;
+    grid-row: 4;
+    align-items: stretch;
+    overflow: visible;
+    padding: layout.$spacing-05;
+  }
+
+  .noMiddle,
+  .withRightOnly {
+    .content {
+      grid-row: 3;
+    }
+  }
+
+  .noSidebarNoMiddle,
+  .noSidebarWithRight {
+    .content {
+      grid-row: 2;
+    }
+  }
+
+  .noSidebarWithMiddle,
+  .noSidebarWithMiddleAndRight {
+    .content {
+      grid-row: 3;
+    }
+  }
+
+  .mobileDrawerLayout {
+    position: relative;
+    grid-template-rows: auto 1fr;
+    grid-auto-rows: auto;
+    height: 100%;
+    overflow: hidden;
+
+    > .toolbar {
+      position: relative;
+      z-index: 3;
+      background: var(--cds-background);
+    }
+
+    > .sidebar {
+      position: absolute;
+      inset: var(--mobile-drawer-top) auto 0 0;
+      z-index: 2;
+      width: min(88vw, var(--sidebar-width));
+      grid-row: 2;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateX(-100%);
+      transition:
+        transform 200ms motion.motion(standard, productive),
+        visibility 200ms motion.motion(standard, productive);
+      border-right: 1px solid
+        var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
+      border-bottom: 0;
+      box-shadow: 1rem 0 2rem rgb(0 0 0 / 18%);
+    }
+
+    > .middle {
+      display: none;
+    }
+
+    > .content {
+      grid-row: 2;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    > .right {
+      position: absolute;
+      inset: var(--mobile-drawer-top) 0 0 auto;
+      z-index: 2;
+      width: min(100%, var(--right-width));
+      display: flex;
+      min-height: 0;
+      grid-row: 2;
+      overflow: hidden;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateX(100%);
+      transition:
+        transform 200ms motion.motion(standard, productive),
+        visibility 200ms motion.motion(standard, productive);
+      border-top: 0;
+      border-left: 1px solid
+        var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
+      box-shadow: -1rem 0 2rem rgb(0 0 0 / 18%);
+    }
+  }
+
+  .mobileDrawerLayout.mobileSidebarOpen {
+    > .sidebar {
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+  }
+
+  .mobileDrawerLayout.mobileDetailOpen {
+    > .right {
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobileDrawerLayout {
+      > .sidebar,
+      > .right {
+        transition: none;
+      }
+    }
   }
 
   // Opt-in: hide sidebar & middle, show only content full-width.
   // Used by grading byQuestion mobile view.
   .mobileContentOnly {
     height: 100%;
+    overflow: hidden;
     grid-template-rows: auto 1fr;
 
     > .sidebar,

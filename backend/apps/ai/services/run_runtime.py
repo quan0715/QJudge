@@ -15,7 +15,7 @@ from celery.exceptions import CeleryError
 from django.db import connections, transaction
 from django.utils import timezone
 
-from ..models import AIChatRun, AIExecutionLog, AIMessage, AISession, AIStreamEvent
+from ..models import AIArtifact, AIChatRun, AIExecutionLog, AIMessage, AISession, AIStreamEvent
 from .stream_proxy import (
     ai_service_base_url,
     build_ai_service_headers,
@@ -53,6 +53,7 @@ _SSE_POLL_MAX_INTERVAL_SECONDS = 1.5
 _SSE_POLL_BACKOFF_FACTOR = 1.5
 _SSE_HEARTBEAT_INTERVAL_SECONDS = 15.0
 _TODO_TOOL_NAMES = {"write_todos", "update_todos"}
+_USER_UPLOAD_STEP = "user_upload"
 
 
 def _normalize_todo_status(status: Any) -> str:
@@ -66,6 +67,32 @@ def _normalize_todo_status(status: Any) -> str:
     if value in {"fail", "failed", "error"}:
         return "fail"
     return "pending"
+
+
+def _build_user_upload_context(content: str, session: AISession) -> str:
+    """Append a non-persisted attachment manifest for the ai-service turn."""
+    artifacts = list(
+        AIArtifact.objects.filter(session=session, step=_USER_UPLOAD_STEP)
+        .order_by("created_at")
+        .values("filename", "content_type", "size_bytes")
+    )
+    if not artifacts:
+        return content
+
+    lines = [
+        content,
+        "",
+        "[系統附件提示]",
+        "使用者已在本 session 上傳以下檔案；若問題提到這份檔案、附件或上傳內容，請先使用 artifact_list 查詢，PDF 請用 artifact_read_pdf，文字/CSV/JSON 請用 artifact_read，不要說沒有檔案。",
+    ]
+    for artifact in artifacts:
+        lines.append(
+            "- step=user_upload "
+            f"filename={artifact['filename']} "
+            f"content_type={artifact['content_type']} "
+            f"size_bytes={artifact['size_bytes']}"
+        )
+    return "\n".join(lines)
 
 
 def _normalize_todo_items(raw_todos: Any) -> list[dict[str, str]] | None:
@@ -356,7 +383,7 @@ def execute_run(run_id: str) -> None:
     else:
         endpoint = "/api/chat/stream"
         payload = {
-            "content": run.content,
+            "content": _build_user_upload_context(run.content, run.session),
             "conversation": [],
             "thread_id": run.thread_id or run.session.session_id,
             "run_id": str(run.id),

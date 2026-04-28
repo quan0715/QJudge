@@ -430,6 +430,7 @@ export default function GradingByStudentTabScreen({
         isQuestionPaneCollapsed ? GRADING_COLLAPSED_LIST_WIDTH : GRADING_SECONDARY_LIST_WIDTH
       }
       contentClassName={styles.gradingContent}
+      mobileMode="stacked"
     >
       <div className={styles.panel}>
         {activeSelectedStudentId && hasAnySubmission ? (

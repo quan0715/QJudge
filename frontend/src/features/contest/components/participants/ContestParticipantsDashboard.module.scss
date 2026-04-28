@@ -12,6 +12,16 @@
   min-height: 0;
 }
 
+.toolbarSearchDesktop {
+  display: inline-flex;
+  align-items: center;
+}
+
+.toolbarSearchMobile {
+  display: none;
+  align-items: center;
+}
+
 .operationsContent {
   align-items: stretch;
   padding: 0;
@@ -225,6 +235,10 @@ strong.operationsStatusMuted {
   color: var(--cds-text-secondary);
 }
 
+strong.operationsStatusDanger {
+  color: var(--cds-support-error);
+}
+
 .operationsStatusDot {
   position: relative;
   width: 0.5rem;
@@ -276,6 +290,42 @@ strong.operationsStatusMuted {
   padding: 0.875rem;
   border: 1px solid var(--cds-border-subtle);
   background: transparent;
+}
+
+.operationsAnswerStatusCard {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(0, 2fr);
+  gap: 0;
+  border: 1px solid var(--cds-border-subtle);
+  background: transparent;
+}
+
+.operationsAnswerStatusSummary {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.875rem;
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.operationsAnswerStatusSummary span {
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.operationsAnswerStatusSummary strong {
+  color: var(--cds-text-primary);
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.operationsAnswerStatusCard .operationsTimeCard {
+  border: 0;
+  min-height: 100%;
 }
 
 .operationsTimePoint {
@@ -460,6 +510,7 @@ strong.operationsStatusMuted {
 }
 
 .detailCol {
+  height: 100%;
   min-height: 0;
   min-width: 0;
   display: flex;
@@ -734,6 +785,9 @@ strong.operationsStatusMuted {
 .detailPaneCard {
   border: 0;
   background: var(--cds-background);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Inner wrapper: flex column, no padding — toolbar rows sit flush to card edges */
@@ -868,6 +922,7 @@ strong.operationsStatusMuted {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .tabsList {
@@ -898,6 +953,7 @@ strong.operationsStatusMuted {
 }
 
 .tabPanel {
+  height: 100%;
   min-height: 0;
   overflow: auto;
   padding: 0;
@@ -1196,10 +1252,9 @@ strong.operationsStatusMuted {
   }
 
   .detailCol {
-    position: fixed;
-    inset: 0;
-    z-index: 8000;
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+    position: static;
+    height: 100%;
+    box-shadow: none;
   }
 
   .participantsTableWrap {
@@ -1293,8 +1348,25 @@ strong.operationsStatusMuted {
 }
 
 @media (max-width: 672px) {
+  .toolbarSearchDesktop {
+    display: none;
+  }
+
+  .toolbarSearchMobile {
+    display: inline-flex;
+  }
+
   .toolbarMeta {
     align-items: flex-start;
+  }
+
+  .operationsAnswerStatusCard {
+    grid-template-columns: 1fr;
+  }
+
+  .operationsAnswerStatusSummary {
+    border-right: 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
   }
 
   .localToolbarMeta {

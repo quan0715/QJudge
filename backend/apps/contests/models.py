@@ -672,6 +672,7 @@ class ExamEvent(models.Model):
         ('multi_display_triggered', 'Multi Display Triggered'),
         ('multi_display_restored', 'Multi Display Restored'),
         ('display_api_degraded', 'Display API Degraded'),
+        ('clipboard_action', 'Clipboard Action'),
     ]
     event_type = models.CharField(
         max_length=50,

@@ -9,7 +9,7 @@ from django.test import TestCase, TransactionTestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.ai.models import AIChatRun, AIMessage, AISession, AIStreamEvent, UserAICredit
+from apps.ai.models import AIArtifact, AIChatRun, AIMessage, AISession, AIStreamEvent, UserAICredit
 from apps.ai.services.run_runtime import apply_event_to_run, execute_run, run_events_as_sse
 
 User = get_user_model()
@@ -37,6 +37,8 @@ class _MockStreamResponse:
 
 
 class _MockHttpClient:
+    calls = []
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -47,6 +49,7 @@ class _MockHttpClient:
         return False
 
     def stream(self, *args, **kwargs):
+        self.__class__.calls.append({"args": args, "kwargs": kwargs})
         return _MockStreamResponse()
 
 
@@ -264,6 +267,7 @@ class DurableRunAPITestCase(TransactionTestCase):
 
 class DurableRunWorkerTestCase(TestCase):
     def setUp(self):
+        _MockHttpClient.calls = []
         self.user = User.objects.create_user(
             username="workeruser",
             email="worker@example.com",
@@ -310,6 +314,51 @@ class DurableRunWorkerTestCase(TestCase):
         self.assertEqual(assistant_message.metadata["thinking"], "think")
         self.assertEqual(run.events.count(), 5)
         self.assertGreaterEqual(credit.total_credits, 1)
+
+    def test_execute_run_includes_user_upload_manifest_for_ai_service(self):
+        user_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.USER,
+            content="根據這份檔案",
+        )
+        assistant_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.ASSISTANT,
+            content="",
+            metadata={"run_status": "running"},
+        )
+        run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.RUNNING,
+            content="根據這份檔案",
+            user_message=user_message,
+            assistant_message=assistant_message,
+            thread_id=self.session.session_id,
+        )
+        AIArtifact.objects.create(
+            session=self.session,
+            step="user_upload",
+            filename="OS-2025-Midterm-2-QA.pdf",
+            object_key="ai-artifacts/session/user_upload/OS-2025-Midterm-2-QA.pdf",
+            content_type="application/pdf",
+            size_bytes=12345,
+            checksum="sha256:test",
+            metadata={"artifact_type": "user_upload"},
+        )
+
+        with patch(
+            "apps.ai.services.run_runtime.build_ai_service_headers",
+            return_value={"X-AI-Internal-Token": "test"},
+        ), patch("apps.ai.services.run_runtime.httpx.Client", _MockHttpClient):
+            execute_run(str(run.id))
+
+        payload = _MockHttpClient.calls[0]["kwargs"]["json"]
+        self.assertEqual(run.user_message.content, "根據這份檔案")
+        self.assertIn("[系統附件提示]", payload["content"])
+        self.assertIn("step=user_upload", payload["content"])
+        self.assertIn("filename=OS-2025-Midterm-2-QA.pdf", payload["content"])
+        self.assertIn("artifact_read_pdf", payload["content"])
 
     def test_execute_run_dispatches_next_queued_run_after_terminal_event(self):
         user_message = AIMessage.objects.create(

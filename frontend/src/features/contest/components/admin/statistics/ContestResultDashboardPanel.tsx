@@ -356,6 +356,8 @@ export default function ContestResultDashboardPanel({
       rightPane={rightPaneContent}
       rightPaneWidth={480}
       contentClassName={styles.questionColumn}
+      mobileMode="stacked"
+      mobileDetailOpen={Boolean(drawerQuestion)}
     >
       <div className={styles.questionHeader}>
         <h2 className={styles.questionHeaderTitle}>

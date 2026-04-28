@@ -375,6 +375,7 @@ export default function GradingByQuestionTabScreen({
       middlePane={middlePaneContent}
       middlePaneWidth={GRADING_SECONDARY_LIST_WIDTH}
       contentClassName={styles.gradingContent}
+      mobileMode="contentOnly"
       className={layoutStyles.mobileContentOnly}
     >
       <GradingMobileNav

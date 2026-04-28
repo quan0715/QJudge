@@ -5,7 +5,6 @@ import {
   MenuItem,
   MenuItemDivider,
   SkeletonText,
-  Tag,
 } from "@carbon/react";
 import {
   Calendar,
@@ -19,9 +18,9 @@ import {
   SendAlt,
   TrashCan,
   UserMultiple,
+  WarningAlt,
   View,
 } from "@carbon/icons-react";
-import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -54,31 +53,6 @@ const getParticipantDisplayName = (participant: ContestParticipant) =>
   participant.nickname ||
   participant.username;
 
-const toExamStatusTagType = (examStatus: string | null | undefined) => {
-  switch (examStatus) {
-    case "submitted":
-      return "green";
-    case "in_progress":
-      return "blue";
-    case "paused":
-      return "purple";
-    case "locked":
-      return "red";
-    default:
-      return "cool-gray";
-  }
-};
-
-const toConnectionTagType = (participant: ContestParticipant) => {
-  if (
-    participant.liveMonitoringOnline ||
-    participant.connectionStatus === "live"
-  )
-    return "green";
-  if (participant.connectionStatus === "online") return "blue";
-  return "cool-gray";
-};
-
 const formatClockTime = (value?: string | null) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -88,22 +62,6 @@ const formatClockTime = (value?: string | null) => {
         hour: "2-digit",
         minute: "2-digit",
       });
-};
-
-const getConnectionLabel = (
-  t: TFunction<"contest">,
-  participant: ContestParticipant,
-) => {
-  if (
-    participant.liveMonitoringOnline ||
-    participant.connectionStatus === "live"
-  ) {
-    return t("participants.connection.live", "監控中");
-  }
-  if (participant.connectionStatus === "online") {
-    return t("participants.connection.online", "在線");
-  }
-  return t("participants.connection.offline", "離線");
 };
 
 const ParticipantOperationsPane = ({
@@ -207,6 +165,16 @@ const ParticipantOperationsPane = ({
       label: t("dashboard.gradingProgress", "批改進度"),
       value: `${gradingProgressValue} ${t("dashboard.questionUnit", "題")}`,
     },
+    ...(showViolationKpi
+      ? [
+          {
+            icon: WarningAlt,
+            label: t("dashboard.violations", "違規次數"),
+            value: `${participant.violationCount} ${t("dashboard.countUnit", "次")}`,
+            tone: participant.violationCount > 0 ? "danger" : undefined,
+          },
+        ]
+      : []),
   ];
 
   const statusRows = [
@@ -251,6 +219,9 @@ const ParticipantOperationsPane = ({
   const endedAtLabel = participant.leftAt
     ? formatClockTime(participant.leftAt)
     : t("dashboard.inProgress", "進行中");
+  const answerStatusLabel = participant.examStatus
+    ? t(`examStatus.${participant.examStatus}`, participant.examStatus)
+    : "-";
 
   return (
     <div className={styles.operationsPane}>
@@ -268,42 +239,8 @@ const ParticipantOperationsPane = ({
           <div className={styles.operationsIdentity}>
             <div className={styles.operationsTitleRow}>
               <h2 className={styles.operationsTitle}>{displayName}</h2>
-              <Tag size="sm" type={toExamStatusTagType(participant.examStatus)}>
-                {t(
-                  `examStatus.${participant.examStatus}`,
-                  participant.examStatus,
-                )}
-              </Tag>
-              <Tag size="sm" type={toConnectionTagType(participant)}>
-                {getConnectionLabel(t, participant)}
-              </Tag>
             </div>
             <p className={styles.operationsSubtitle}>@{participant.username}</p>
-          </div>
-          <div
-            className={styles.operationsHeroKpis}
-            aria-label={t("dashboard.heroMetrics", "重點指標")}
-          >
-            <div className={styles.operationsHeroKpi}>
-              <span>{t("dashboard.score", "分數")}</span>
-              <strong>{scoreValue}</strong>
-              <small>{t("dashboard.pointsUnit", "分")}</small>
-            </div>
-            {showViolationKpi ? (
-              <div className={styles.operationsHeroKpi}>
-                <span>{t("dashboard.violations", "違規")}</span>
-                <strong
-                  className={
-                    participant.violationCount > 0
-                      ? styles.operationsHeroKpiWarning
-                      : undefined
-                  }
-                >
-                  {participant.violationCount}
-                </strong>
-                <small>{t("dashboard.countUnit", "次")}</small>
-              </div>
-            ) : null}
           </div>
         </div>
         {participant.lockReason ? (
@@ -363,25 +300,72 @@ const ParticipantOperationsPane = ({
 
       <section className={styles.operationsSection}>
         <div className={styles.operationsSectionHeader}>
-          <h3>{t("dashboard.examStatus", "考試狀態")}</h3>
+          <h3>{t("dashboard.quickNavigation", "快速前往")}</h3>
         </div>
-        <div
-          className={styles.operationsStatusList}
-          aria-label={t("dashboard.examStatus", "考試狀態")}
-        >
-          {examStatusRows.map(({ icon: Icon, label, value }) => (
-            <div key={label} className={styles.operationsStatusRow}>
-              <div className={styles.operationsStatusIcon}>
-                <Icon size={16} />
-              </div>
-              <div className={styles.operationsStatusText}>
-                <span>{label}</span>
-                <span className={styles.operationsStatusValueRow}>
-                  <strong>{value}</strong>
-                </span>
-              </div>
+        <div className={styles.operationsLinkGrid}>
+          <Button
+            kind="tertiary"
+            size="md"
+            renderIcon={View}
+            className={styles.operationsNavButton}
+            onClick={onOpenProctoring}
+          >
+            {t("dashboard.viewProctoring", "查看監控")}
+          </Button>
+          <Button
+            kind="tertiary"
+            size="md"
+            renderIcon={Calendar}
+            className={styles.operationsNavButton}
+            onClick={() => onOpenDetail("events")}
+          >
+            {t("dashboard.viewEvents", "查看事件紀錄")}
+          </Button>
+          <Button
+            kind="tertiary"
+            size="md"
+            renderIcon={DocumentTasks}
+            className={styles.operationsNavButton}
+            onClick={() => onOpenDetail("report")}
+          >
+            {t("dashboard.viewReport", "查看作答詳情")}
+          </Button>
+          {dashboard.contestType === "coding" ? (
+            <Button
+              kind="tertiary"
+              size="md"
+              renderIcon={SendAlt}
+              className={styles.operationsNavButton}
+              onClick={() => onOpenDetail("submissions")}
+            >
+              {t("dashboard.viewSubmissions", "查看提交")}
+            </Button>
+          ) : null}
+        </div>
+      </section>
+
+      <section className={styles.operationsSection}>
+        <div className={styles.operationsSectionHeader}>
+          <h3>{t("dashboard.answerStatus", "作答狀態")}</h3>
+        </div>
+        <div className={styles.operationsAnswerStatusCard}>
+          <div className={styles.operationsAnswerStatusSummary}>
+            <span>{t("dashboard.currentAnswerStatus", "目前狀態")}</span>
+            <strong>{answerStatusLabel}</strong>
+          </div>
+          <div className={styles.operationsTimeCard}>
+            <div className={styles.operationsTimePoint}>
+              <span>{t("dashboard.startedAt", "開始作答")}</span>
+              <strong>{startedAtLabel}</strong>
             </div>
-          ))}
+            <div className={styles.operationsTimeArrow} aria-hidden="true">
+              <ArrowRight size={20} />
+            </div>
+            <div className={styles.operationsTimePoint}>
+              <span>{t("dashboard.endedAt", "結束作答")}</span>
+              <strong>{endedAtLabel}</strong>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -428,66 +412,33 @@ const ParticipantOperationsPane = ({
 
       <section className={styles.operationsSection}>
         <div className={styles.operationsSectionHeader}>
-          <h3>{t("dashboard.answeringTime", "作答時間")}</h3>
+          <h3>{t("dashboard.examStatus", "考試狀態")}</h3>
         </div>
-        <div className={styles.operationsTimeCard}>
-          <div className={styles.operationsTimePoint}>
-            <span>{t("dashboard.startedAt", "開始作答")}</span>
-            <strong>{startedAtLabel}</strong>
-          </div>
-          <div className={styles.operationsTimeArrow} aria-hidden="true">
-            <ArrowRight size={20} />
-          </div>
-          <div className={styles.operationsTimePoint}>
-            <span>{t("dashboard.endedAt", "結束作答")}</span>
-            <strong>{endedAtLabel}</strong>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.operationsSection}>
-        <div className={styles.operationsSectionHeader}>
-          <h3>{t("dashboard.quickNavigation", "快速前往")}</h3>
-        </div>
-        <div className={styles.operationsLinkGrid}>
-          <Button
-            kind="tertiary"
-            size="md"
-            renderIcon={View}
-            className={styles.operationsNavButton}
-            onClick={onOpenProctoring}
-          >
-            {t("dashboard.viewProctoring", "查看監控")}
-          </Button>
-          <Button
-            kind="tertiary"
-            size="md"
-            renderIcon={Calendar}
-            className={styles.operationsNavButton}
-            onClick={() => onOpenDetail("events")}
-          >
-            {t("dashboard.viewEvents", "查看事件紀錄")}
-          </Button>
-          <Button
-            kind="tertiary"
-            size="md"
-            renderIcon={DocumentTasks}
-            className={styles.operationsNavButton}
-            onClick={() => onOpenDetail("report")}
-          >
-            {t("dashboard.viewReport", "查看作答詳情")}
-          </Button>
-          {dashboard.contestType === "coding" ? (
-            <Button
-              kind="tertiary"
-              size="md"
-              renderIcon={SendAlt}
-              className={styles.operationsNavButton}
-              onClick={() => onOpenDetail("submissions")}
-            >
-              {t("dashboard.viewSubmissions", "查看提交")}
-            </Button>
-          ) : null}
+        <div
+          className={styles.operationsStatusList}
+          aria-label={t("dashboard.examStatus", "考試狀態")}
+        >
+          {examStatusRows.map(({ icon: Icon, label, value, tone }) => (
+            <div key={label} className={styles.operationsStatusRow}>
+              <div className={styles.operationsStatusIcon}>
+                <Icon size={16} />
+              </div>
+              <div className={styles.operationsStatusText}>
+                <span>{label}</span>
+                <span className={styles.operationsStatusValueRow}>
+                  <strong
+                    className={
+                      tone === "danger"
+                        ? styles.operationsStatusDanger
+                        : undefined
+                    }
+                  >
+                    {value}
+                  </strong>
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>

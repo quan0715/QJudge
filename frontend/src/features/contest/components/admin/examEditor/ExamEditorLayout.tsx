@@ -132,6 +132,12 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   const lockedReason = "已有學生正式作答，競賽題目已鎖定";
   const isCompactScreen = useCompactScreen();
 
+  useEffect(() => {
+    if (isCompactScreen) {
+      setSidebarExpanded(false);
+    }
+  }, [isCompactScreen]);
+
   const examScrollItemsKey = useMemo(
     () => questions.map((question) => question.id).join(","),
     [questions],
@@ -558,6 +564,8 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
         rightPaneWidth={320}
         contentMaxWidth={720}
         contentClassName={styles.editorPane}
+        mobileSidebarOpen={sidebarExpanded}
+        mobileDetailOpen={Boolean(!isCompactScreen && sourcePanelExpanded)}
         ref={editorPaneRef}
       >
         <CardListEditor

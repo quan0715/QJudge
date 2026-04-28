@@ -14,6 +14,7 @@ export interface ViolationEvent {
   eventType: string;
   message: string;
   severity: ViolationSeverity;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CheckResult {
