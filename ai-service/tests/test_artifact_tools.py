@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import os
 import sys
 import types
+
+import pypdf
 
 os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
 os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
@@ -1026,3 +1029,230 @@ def test_explicit_step_still_works(monkeypatch):
     # step should be passed through
     list_call = stub.calls[0]
     assert list_call["params"]["step"] == "rubric"
+
+
+# ---------------------------------------------------------------------------
+# PDF reader tool tests
+# ---------------------------------------------------------------------------
+
+
+def _make_pdf_bytes(*page_texts: str) -> bytes:
+    """Create a minimal in-memory PDF with the given page texts."""
+    from pypdf.generic import (
+        DecodedStreamObject,
+        DictionaryObject,
+        NameObject,
+    )
+
+    writer = pypdf.PdfWriter()
+    for text in page_texts:
+        writer.add_blank_page(width=612, height=792)
+        page = writer.pages[-1]
+
+        font_dict = DictionaryObject()
+        font_dict[NameObject("/Type")] = NameObject("/Font")
+        font_dict[NameObject("/Subtype")] = NameObject("/Type1")
+        font_dict[NameObject("/BaseFont")] = NameObject("/Helvetica")
+
+        resources = DictionaryObject()
+        fonts = DictionaryObject()
+        fonts[NameObject("/F1")] = font_dict
+        resources[NameObject("/Font")] = fonts
+        page[NameObject("/Resources")] = resources
+
+        safe = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+        stream_content = f"BT /F1 12 Tf 72 720 Td ({safe}) Tj ET"
+        stream_obj = DecodedStreamObject()
+        stream_obj.set_data(stream_content.encode("latin-1"))
+        page[NameObject("/Contents")] = writer._add_object(stream_obj)
+
+    buf = io.BytesIO()
+    writer.write(buf)
+    return buf.getvalue()
+
+
+def _make_empty_pdf_bytes(num_pages: int = 1) -> bytes:
+    """Create a PDF with blank pages (no extractable text)."""
+    writer = pypdf.PdfWriter()
+    for _ in range(num_pages):
+        writer.add_blank_page(width=612, height=792)
+    buf = io.BytesIO()
+    writer.write(buf)
+    return buf.getvalue()
+
+
+def test_read_pdf_extracts_text(monkeypatch):
+    pdf_bytes = _make_pdf_bytes("Hello World", "Page Two Content")
+    stub = _StubClient([
+        {
+            "method": "GET",
+            "url_contains": "/_internal/artifacts/",
+            "status": 200,
+            "json": [
+                {
+                    "id": "pdf-1",
+                    "step": "user_upload",
+                    "filename": "report.pdf",
+                    "content_type": "application/pdf",
+                },
+            ],
+        },
+        {
+            "method": "GET",
+            "url_contains": "/pdf-1/content/",
+            "status": 200,
+            "content": pdf_bytes,
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read_pdf")
+    result = _run(tool.coroutine(filename="report.pdf"))
+    assert "is_error" not in result
+    assert result["total_pages"] == 2
+    assert result["start_page"] == 1
+    assert result["end_page"] == 2
+    assert "Hello World" in result["text"]
+    assert "Page Two Content" in result["text"]
+
+
+def test_read_pdf_page_range(monkeypatch):
+    pdf_bytes = _make_pdf_bytes("Page1", "Page2", "Page3")
+    stub = _StubClient([
+        {
+            "method": "GET",
+            "status": 200,
+            "json": [
+                {
+                    "id": "pdf-2",
+                    "step": "user_upload",
+                    "filename": "multi.pdf",
+                    "content_type": "application/pdf",
+                },
+            ],
+        },
+        {
+            "method": "GET",
+            "url_contains": "/pdf-2/content/",
+            "status": 200,
+            "content": pdf_bytes,
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read_pdf")
+    result = _run(tool.coroutine(filename="multi.pdf", start_page=2, end_page=2))
+    assert result["start_page"] == 2
+    assert result["end_page"] == 2
+    assert "Page2" in result["text"]
+    assert "Page1" not in result["text"]
+    assert "Page3" not in result["text"]
+
+
+def test_read_pdf_not_found(monkeypatch):
+    stub = _StubClient([
+        {"method": "GET", "status": 200, "json": []},
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read_pdf")
+    result = _run(tool.coroutine(filename="missing.pdf"))
+    assert result["is_error"] is True
+    assert "not found" in result["detail"]
+
+
+def test_read_pdf_invalid_bytes(monkeypatch):
+    stub = _StubClient([
+        {
+            "method": "GET",
+            "status": 200,
+            "json": [
+                {
+                    "id": "pdf-bad",
+                    "step": "user_upload",
+                    "filename": "corrupt.pdf",
+                    "content_type": "application/pdf",
+                },
+            ],
+        },
+        {
+            "method": "GET",
+            "url_contains": "/pdf-bad/content/",
+            "status": 200,
+            "content": b"this is not a pdf",
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read_pdf")
+    result = _run(tool.coroutine(filename="corrupt.pdf"))
+    assert result["is_error"] is True
+    assert "Failed" in result["detail"]
+
+
+def test_read_pdf_image_only(monkeypatch):
+    """Blank pages with no text should return an actionable error."""
+    pdf_bytes = _make_empty_pdf_bytes(2)
+    stub = _StubClient([
+        {
+            "method": "GET",
+            "status": 200,
+            "json": [
+                {
+                    "id": "pdf-img",
+                    "step": "user_upload",
+                    "filename": "scanned.pdf",
+                    "content_type": "application/pdf",
+                },
+            ],
+        },
+        {
+            "method": "GET",
+            "url_contains": "/pdf-img/content/",
+            "status": 200,
+            "content": pdf_bytes,
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read_pdf")
+    result = _run(tool.coroutine(filename="scanned.pdf"))
+    assert result["is_error"] is True
+    assert "scanned" in result["detail"].lower() or "image" in result["detail"].lower()
+
+
+def test_read_pdf_no_session():
+    tools = build_artifact_tools(
+        session_id=None,
+        run_id=None,
+        backend_base_url="http://backend",
+        internal_token="t",
+    )
+    tool = _tool(tools, "artifact_read_pdf")
+    result = _run(tool.coroutine(filename="report.pdf"))
+    assert result["is_error"] is True
+    assert "session_id" in result["detail"]
+
+
+def test_read_pdf_start_page_exceeds_total(monkeypatch):
+    pdf_bytes = _make_pdf_bytes("Only page")
+    stub = _StubClient([
+        {
+            "method": "GET",
+            "status": 200,
+            "json": [
+                {
+                    "id": "pdf-1p",
+                    "step": "user_upload",
+                    "filename": "one.pdf",
+                    "content_type": "application/pdf",
+                },
+            ],
+        },
+        {
+            "method": "GET",
+            "url_contains": "/pdf-1p/content/",
+            "status": 200,
+            "content": pdf_bytes,
+        },
+    ])
+    _patch_httpx(monkeypatch, stub)
+    tool = _tool(_tools(), "artifact_read_pdf")
+    result = _run(tool.coroutine(filename="one.pdf", start_page=5))
+    assert result["is_error"] is True
+    assert "exceeds" in result["detail"]
