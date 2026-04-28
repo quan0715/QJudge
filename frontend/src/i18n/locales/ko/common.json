@@ -42,11 +42,6 @@
       "takingOver": "처리 중...",
       "verifyingSession": "同步作業階段中..."
     },
-    "takeover": {
-      "stepInvalidate": "다른 기기의 로그인 세션을 정리하는 중...",
-      "stepRegister": "시험 연결을 재등록하는 중...",
-      "stepRedirect": "시험으로 돌아가는 중..."
-    },
     "campusSso": {
       "backToLogin": "로그인으로 돌아가기",
       "providers": {
@@ -119,6 +114,11 @@
       "title": "계정 만들기",
       "username": "사용자 이름",
       "usernamePlaceholder": "사용자 이름 선택"
+    },
+    "takeover": {
+      "stepInvalidate": "다른 기기의 로그인 세션을 정리하는 중...",
+      "stepRedirect": "시험으로 돌아가는 중...",
+      "stepRegister": "시험 연결을 재등록하는 중..."
     }
   },
   "button": {
@@ -264,6 +264,63 @@
     "switchedTo": "{{language}}로 전환되었습니다",
     "title": "언어"
   },
+  "mcp": {
+    "landing": {
+      "description": "在 Claude、ChatGPT、Google Gemini、Notion 中出題、批改、反饋",
+      "examples": {
+        "0": {
+          "aiMessage": "我為你設計了 3 道題目。已直接建立到你的 QJudge 題庫。",
+          "description": "教師在 Claude 中與 AI 討論題目需求，Claude 直接在 QJudge 中建立題目",
+          "feedback": "✓ 已建立",
+          "title": "快速生成題目",
+          "userMessage": "幫我設計一套 C++ 迴圈的競賽題目"
+        },
+        "1": {
+          "aiMessage": "第三題通過率 45%。常見問題是邊界條件處理不當。我提供了改進建議。",
+          "description": "教師在 Claude 中請求批改結果，Claude 自動從 QJudge 取得批改數據並提供分析",
+          "stats": "通過率 45%",
+          "title": "自動批改評論",
+          "userMessage": "請協助批改第三題"
+        }
+      },
+      "eyebrow": "無痛協作",
+      "features": {
+        "0": "快速生成競賽題目",
+        "1": "自動評分與分析",
+        "2": "提供個性化評論"
+      },
+      "features_description": {
+        "0": "與 AI 協商題目需求，直接建立到 QJudge",
+        "1": "取得批改結果、通過率統計和常見錯誤分析",
+        "2": "AI 分析常見錯誤並給改進建議"
+      },
+      "title": "與你的 AI 工具無痛協作",
+      "tools": {
+        "chatgpt": "ChatGPT",
+        "claude": "Claude",
+        "gemini": "Google Gemini",
+        "notion": "Notion"
+      }
+    },
+    "setup": {
+      "claudeCode": "Claude Code",
+      "codex": "Codex CLI",
+      "copySuccess": "복사됨",
+      "cursor": "Cursor",
+      "description": "MCP를 사용해 QJudge를 AI 도구에 연결합니다. remote MCP server를 지원하는 도구라면 server URL을 바로 붙여 넣을 수 있고, 처음 사용할 때 브라우저에서 OAuth를 완료하면 됩니다.",
+      "directConnect": "Direct Connect",
+      "directConnectExamples": "이 방식은 ChatGPT, Claude Desktop, VS Code 등 remote MCP를 지원하는 클라이언트에서 주로 사용됩니다.",
+      "directConnectIntro": "AI 도구에 MCP 또는 Connectors 설정 화면이 있다면 아래 remote MCP server URL을 추가하세요.",
+      "directConnectStep1": "AI 도구의 Connectors, MCP 또는 Integrations 설정에서 custom / remote MCP server를 추가합니다.",
+      "directConnectStep2": "위 server URL을 붙여 넣고 저장한 뒤 도구를 새로고침하거나 다시 시작합니다.",
+      "directConnectStep3": "처음 QJudge 도구를 호출할 때 브라우저 OAuth 흐름에 따라 로그인하고 권한을 승인합니다.",
+      "step1": "터미널에서 다음 명령을 실행하세요.",
+      "step1Cursor": "다음 설정을 .cursor/mcp.json에 추가하세요.",
+      "title": "AI 도구 연결",
+      "verifyHint": "첫 연결 시 OAuth가 자동으로 시작됩니다",
+      "verifyHintDetail": "API token을 수동으로 만들 필요가 없습니다. 브라우저 로그인 흐름이 끝나면 AI 도구가 자격 증명을 저장하고 재사용합니다."
+    }
+  },
   "message": {
     "comingSoon": "출시 예정",
     "deleteFailed": "삭제 실패",
@@ -274,29 +331,10 @@
     "saveFailed": "저장 실패",
     "success": "작업이 완료되었습니다"
   },
-  "mcp": {
-    "setup": {
-      "title": "AI 도구 연결",
-      "description": "MCP를 사용해 QJudge를 AI 도구에 연결합니다. remote MCP server를 지원하는 도구라면 server URL을 바로 붙여 넣을 수 있고, 처음 사용할 때 브라우저에서 OAuth를 완료하면 됩니다.",
-      "directConnect": "Direct Connect",
-      "directConnectIntro": "AI 도구에 MCP 또는 Connectors 설정 화면이 있다면 아래 remote MCP server URL을 추가하세요.",
-      "directConnectStep1": "AI 도구의 Connectors, MCP 또는 Integrations 설정에서 custom / remote MCP server를 추가합니다.",
-      "directConnectStep2": "위 server URL을 붙여 넣고 저장한 뒤 도구를 새로고침하거나 다시 시작합니다.",
-      "directConnectStep3": "처음 QJudge 도구를 호출할 때 브라우저 OAuth 흐름에 따라 로그인하고 권한을 승인합니다.",
-      "directConnectExamples": "이 방식은 ChatGPT, Claude Desktop, VS Code 등 remote MCP를 지원하는 클라이언트에서 주로 사용됩니다.",
-      "claudeCode": "Claude Code",
-      "cursor": "Cursor",
-      "codex": "Codex CLI",
-      "copySuccess": "복사됨",
-      "step1": "터미널에서 다음 명령을 실행하세요.",
-      "step1Cursor": "다음 설정을 .cursor/mcp.json에 추가하세요.",
-      "verifyHint": "첫 연결 시 OAuth가 자동으로 시작됩니다",
-      "verifyHintDetail": "API token을 수동으로 만들 필요가 없습니다. 브라우저 로그인 흐름이 끝나면 AI 도구가 자격 증명을 저장하고 재사용합니다."
-    }
-  },
   "nav": {
     "back": "뒤로",
     "backToProblemList": "문제 목록으로",
+    "changelog": "更新紀錄",
     "chat": "Chat",
     "classrooms": "교실",
     "contests": "대회",
@@ -305,8 +343,20 @@
     "marketplace": "문제 마켓플레이스",
     "problemList": "문제 목록",
     "problems": "문제",
+    "questionBanks": "題庫",
     "ranking": "랭킹",
     "submissions": "제출 기록"
+  },
+  "oauth": {
+    "authorize": {
+      "allow": "允許",
+      "deny": "拒絕",
+      "description": "{{clientName}} 正在請求存取你的 QJudge 帳號",
+      "error": "授權失敗，請稍後再試",
+      "invalidRequest": "無效的授權請求",
+      "loading": "處理中...",
+      "title": "授權請求"
+    }
   },
   "page": {
     "announcements": "공지 관리",
@@ -321,6 +371,7 @@
     "login": "로그인",
     "problemDetail": "문제 상세",
     "problemManagement": "문제 관리",
+    "problems": "題目列表",
     "questionBanks": "문제집",
     "register": "회원가입",
     "submissions": "제출 기록",
@@ -379,6 +430,7 @@
   "questionBank": {
     "addQuestion": "문제 추가",
     "allTypes": "전체 유형",
+    "applyToMarketplace": "마켓플레이스에 등록 신청",
     "bankCreated": "문제집이 생성되었습니다",
     "bankDeleted": "문제집이 삭제되었습니다",
     "bankNotFound": "문제집을 찾을 수 없습니다",
@@ -400,6 +452,7 @@
     "editBank": "문제집 수정",
     "editQuestion": "문제 수정",
     "emptyExplore": "탐색 가능한 문제집이 없습니다.",
+    "emptyQuestions": "이 문제 은행에는 아직 문제가 없습니다.",
     "exploreOnlyPlatform": "탐색은 현재 QJudge Community만 지원합니다",
     "exploreOnlyPlatformDesc": "Phase1에서는 교사 간 공유가 포함되지 않으며, 커뮤니티에서 검증된 문제집이 중심이 됩니다.",
     "importFromInbox": "드래프트 가져오기",
@@ -413,6 +466,7 @@
       "selectedCount": "{{count}}개 선택됨"
     },
     "loadQuestions": "문제 보기",
+    "marketplace": "마켓플레이스",
     "memoryLimit": "메모리 제한(MB)",
     "mockGalleryDesc": "UI 목업 미리보기입니다. QJudge Community 카드 예시를 보여줍니다.",
     "mockGalleryTitle": "Mock Card Gallery",
@@ -432,11 +486,20 @@
     "mockUserBank2Name": "임 선생님의 정기시험 문제집",
     "mockUserPublicTag": "사용자 공개",
     "mockVerifiedTag": "인증됨",
+    "needQuestionsToApply": "신청하려면 1개 이상의 문제가 필요합니다",
+    "notFound": "문제 은행을 찾을 수 없습니다",
     "openBank": "문제집 열기",
+    "pendingReview": "심사 중",
     "prompt": "문제 설명",
+    "published": "등록됨",
+    "questionCountLabel": "{{count}} 문제",
     "questionCreated": "문제가 생성되었습니다",
     "questionDeleted": "문제가 삭제되었습니다",
     "questionUpdated": "문제가 업데이트되었습니다",
+    "reapply": "재신청",
+    "rejected": "반려됨",
+    "reviewNoteLabel": "심사 메모",
+    "reviewStatusLabel": "등록 상태",
     "saveToBank": {
       "desc": "「{{title}}」 저장 위치:",
       "success": "저장 완료",
@@ -448,6 +511,11 @@
     "sortOldest": "오래된 업데이트",
     "sortOrder": "기본 순서",
     "sortType": "유형별",
+    "submitForReviewSuccess": "심사 신청이 제출되었습니다",
+    "subscribeBtn": "구독",
+    "subscribed": "구독했습니다",
+    "subscribedBtn": "구독 중",
+    "subscribedLabel": "구독 중",
     "tabs": {
       "explore": "탐색"
     },
@@ -456,28 +524,11 @@
     "tagPublic": "공개",
     "tagUserPublic": "사용자 공개",
     "timeLimit": "시간 제한(ms)",
-    "usedInContests": "시험 {{count}}건",
-    "subscribeBtn": "구독",
-    "subscribedBtn": "구독 중",
-    "subscribed": "구독했습니다",
-    "unsubscribed": "구독을 취소했습니다",
-    "subscribedLabel": "구독 중",
-    "verified": "인증됨",
-    "notFound": "문제 은행을 찾을 수 없습니다",
-    "emptyQuestions": "이 문제 은행에는 아직 문제가 없습니다.",
-    "questionCountLabel": "{{count}} 문제",
     "type": "유형",
+    "unsubscribed": "구독을 취소했습니다",
     "untitled": "제목 없음",
-    "marketplace": "마켓플레이스",
-    "reviewStatusLabel": "등록 상태",
-    "applyToMarketplace": "마켓플레이스에 등록 신청",
-    "reapply": "재신청",
-    "pendingReview": "심사 중",
-    "published": "등록됨",
-    "rejected": "반려됨",
-    "reviewNoteLabel": "심사 메모",
-    "needQuestionsToApply": "신청하려면 1개 이상의 문제가 필요합니다",
-    "submitForReviewSuccess": "심사 신청이 제출되었습니다"
+    "usedInContests": "시험 {{count}}건",
+    "verified": "인증됨"
   },
   "questionType": {
     "description": {
@@ -503,6 +554,16 @@
     "teacher": "교수"
   },
   "settings": {
+    "aiUsage": {
+      "inputTokens": "輸入 Tokens",
+      "lastUpdated": "最後更新",
+      "loadError": "無法載入使用量資料",
+      "noData": "無資料",
+      "outputTokens": "輸出 Tokens",
+      "title": "AI 使用量",
+      "totalCost": "累計費用",
+      "totalRequests": "總請求數"
+    },
     "apiKey": {
       "active": "활성",
       "addKey": "API Key 추가",
@@ -628,7 +689,9 @@
       "trialEndDate": "체험 종료일"
     },
     "tabs": {
+      "aiUsage": "AI 使用量",
       "apiKey": "API Key",
+      "mcp": "MCP 連線",
       "plans": "요금제",
       "preferences": "환경설정",
       "profile": "프로필",

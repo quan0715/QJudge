@@ -1,232 +1,545 @@
 {
-  "hero": {
-    "title": "QJudge - 가장 안전하고 안정적인 온라인 시험 플랫폼",
-    "subtitle": "학술 현장을 위해 구축된 고품질 시험 환경. AI 감독 감지, 지필형 문항 및 실시간 평가를 통합하여 모든 시험이 공정성, 효율성 및 심도를 갖추도록 합니다.",
+  "audience": {
+    "description": "從大學期末考到 APCS 模擬考，QJudge 提供對應的考試流程、題庫管理與學習分析能力。",
+    "eyebrow": "適用對象",
+    "items": {
+      "apcs": {
+        "background": "一家程式培訓機構需要頻繁舉辦 APCS 模擬考，但出題耗時且缺乏完整的模擬考場環境。",
+        "label": "APCS 模擬考",
+        "outcome": "模擬考準備時間大幅縮短，學生弱點自動偵測讓講師能針對性輔導，整體通過率提升。",
+        "solution": "使用 QJudge Coding 考試模式，搭配計時、防作弊與自動判題，完整模擬真實考場。AI 快速生成模擬題，題庫跨期複用。"
+      },
+      "experimental": {
+        "background": "一所實驗教育機構允許學生日常使用電腦與平板，但缺乏適合數位環境的考試工具，無法有效評量學習成果。",
+        "label": "實驗教育數位評量",
+        "outcome": "教師透過數據報告掌握每位學生的學習進度與弱點，實現個人化教學調整。評量流程從紙本完全轉型為數位化。",
+        "solution": "採用 QJudge 全線上考試環境，學生用電腦或平板即可作答。防作弊偵測確保考試公平性，數據分析追蹤每位學生的學習狀況。"
+      },
+      "independent": {
+        "background": "一家補習班希望累積自己的獨家題庫作為教學品牌資產，但題目散落在各次考試中無法統一管理。",
+        "label": "補習班品牌經營",
+        "outcome": "題庫越積越有價值，成為補習班的核心競爭力。數據化的教學成效報告讓家長更信任，招生轉化率提升。",
+        "solution": "利用 QJudge 個人題庫系統，按課程、難度、題型自動分類，跨學期複用。搭配 AI 擴充變題，快速擴大題庫規模。考試數據報告展現學生學習成效。"
+      },
+      "university": {
+        "background": "一所大學希望為其線上課程提供期末考試，確保有效評估學習成果，但現有工具缺乏防作弊且批改耗時。",
+        "label": "大學線上期末考",
+        "outcome": "學生可在任何地點完成考試，教師快速獲得考試結果與詳細的表現分析報告，教學品質與學生滿意度顯著提升。",
+        "solution": "透過 QJudge 設計期末考試，涵蓋選擇題、填空題、問答題等多樣化題型。題目隨機化、考試計時與防作弊偵測確保公平性，自動批改即時出分。"
+      }
+    },
+    "title": "企業、學校和職業認證等多功能考試應用"
+  },
+  "contact": {
+    "description": "피드백, 버그 신고, 협업 제안을 환영합니다.",
+    "email": {
+      "title": "이메일"
+    },
+    "eyebrow": "문의하기",
+    "github": {
+      "title": "GitHub"
+    },
+    "title": "질문이나 제안이 있으신가요?",
+    "university": {
+      "title": "협력 대학",
+      "value": "국립양명교통대학교"
+    }
+  },
+  "cta": {
+    "description": "QJudge와 함께 코딩 여정을 시작하세요. 무료로 이용 가능합니다.",
+    "docs": "자세히 보기",
     "signIn": "로그인",
-    "register": "회원가입",
-    "badge": {
-      "product": "QJudge",
-      "tagline": "전문 프로그래밍 테스트 플랫폼"
-    },
-    "signal": {
-      "realtime": "실시간 평가",
-      "sandbox": "샌드박스 실행",
-      "report": "상세 보고서"
-    },
-    "visual": {
-      "title": "프로그래밍 테스트 프로세스",
-      "desc": "Code -> Judge -> Verdict",
-      "proctoring": "감독 상태",
-      "fullscreen": "전체 화면 모드",
-      "detection": "탭 감지",
-      "violations": "위반 횟수",
-      "ai_monitoring": "AI 모니터링",
-      "proctoring_video": "화상 감독",
-      "remaining": "남은 시간"
-    }
+    "title": "지금 시작해 보세요"
   },
-  "modes": {
-    "eyebrow": "다양한 모드",
-    "title": "다양한 대회 및 학습 모드 지원",
-    "items": {
-      "coding": {
-        "label": "프로그래밍 테스트",
-        "desc": "전문적인 코딩 평가"
+  "exam": {
+    "description": "프로그래밍부터 일반 이론까지 QJudge가 완벽히 지원합니다. 내장된 LaTeX 수식과 Markdown 에디터로 문제 출제와 풀이 모두 매끄럽게 진행됩니다.",
+    "eyebrow": "온라인 시험",
+    "preview_text": "다음 적분을 계산하세요:",
+    "tag1": "LaTeX 지원",
+    "tag2": "다양한 문제 유형",
+    "tag3": "자동 채점",
+    "title": "포괄적인 시험 경험"
+  },
+  "faq": {
+    "description": "用清楚的答案說明 QJudge 的考試能力、導入方式與實際使用情境。",
+    "eyebrow": "FAQ",
+    "items": [
+      {
+        "question": "QJudge 跟 Google Forms 或其他問卷工具有什麼不同？",
+        "answer": "QJudge 專為考試設計，提供問卷工具缺乏的防作弊機制、鑑別度分析、個人題庫與自動批改。"
       },
-      "paper": {
-        "label": "지필형 시험",
-        "desc": "통합 디지털 시험 시스템"
+      {
+        "question": "支援哪些考試形式？",
+        "answer": "支援 Coding 上機考與考卷題型，可涵蓋選擇、填空、問答等情境，並可依課程需求配置。"
       },
-      "lab": {
-        "label": "실습 연습 모드",
-        "desc": "순수 연습용. 주제별 문제 세트를 통해 학생들이 압박감 없이 자율적으로 학습할 수 있습니다."
+      {
+        "question": "防作弊機制如何運作？",
+        "answer": "系統會記錄視窗跳離、作答行為與考試環境事件，並在考後產出可追溯的證據鏈報告。"
       },
-      "takehome": {
-        "label": "과제형 프로젝트",
-        "desc": "장기 과제 모드",
-        "comingSoon": "출시 예정"
+      {
+        "question": "AI 出題準確嗎？",
+        "answer": "AI 負責生成初稿與加速流程，教師保有完整審核與微調權限，最終品質仍由教師把關。"
       },
-      "hackathon": {
-        "label": "팀 해커톤",
-        "desc": "협업 경쟁 모드",
-        "comingSoon": "출시 예정"
+      {
+        "question": "如何開始使用？",
+        "answer": "註冊即可先從免費方案開始，之後再依照班級規模與需求決定是否升級。"
       },
-      "adaptive": {
-        "label": "AI 맞춤형 학습",
-        "desc": "개인화된 학습 경로",
-        "comingSoon": "출시 예정"
+      {
+        "question": "資料與題庫安全嗎？",
+        "answer": "教師保有題目與成績資料的控制權，平台則負責提供安全的考試流程與資料管理能力。"
       }
-    }
-  },
-  "interactive": {
-    "eyebrow": "솔루션 쇼케이스",
-    "title": "교육 과정의 모든 세부 사항에 깊이 뿌리 내린 기능",
-    "items": {
-      "editor": {
-        "label": "AI 출제 지원",
-        "desc": "AI 대화로 각 과목의 시험 문제를 빠르게 생성 및 수정. 설정부터 테스트 데이터까지 한 번에 완료."
-      },
-      "grading": {
-        "label": "채점 및 분석",
-        "desc": "시각적 성적 개요로 각 학생·각 문항의 답안과 채점 진행 상황을 즉시 파악."
-      },
-      "proctor": {
-        "label": "감독 및 부정행위 방지",
-        "desc": "창 이탈, 탭 전환 등 이상 행위를 실시간 감지하여 자동 경고 및 위반 기록."
-      },
-      "stats": {
-        "label": "시험 화면",
-        "desc": "명확한 문제 목록과 답안 영역으로 학생이 시험에 집중할 수 있는 환경."
-      }
-    }
-  },
-  "sections": {
-    "paper": {
-      "eyebrow": "지필형 시험",
-      "title": "코드 그 이상, 완전한 온라인 시험 시스템",
-      "description": "객관식, 다지선다, OX, 단답형 문제 지원. 내장된 Markdown 및 LaTeX 에디터로 복잡한 수학 공식과 기술 문서를 정확하게 렌더링하여 교양부터 이공계, 프로그래밍까지 다양한 니즈를 충족합니다."
-    },
-    "antiCheat": {
-      "eyebrow": "엄격한 감독",
-      "title": "설치 불필요, 업계 선두의 부정행위 방지 기술",
-      "description": "브라우저 기반의 전방위 감지 기능을 통해 수험생은 플러그인이나 소프트웨어 설치 없이 엄격한 감독 환경에 접속할 수 있습니다. 우리는 모든 노력을 보호하며 시험의 절대적인 공정성을 보장합니다."
-    },
-    "teacher": {
-      "eyebrow": "교사 친화적",
-      "title": "교사는 강의에만 집중하세요, 나머지는 QJudge가 해결합니다",
-      "description": "디지털 채점 경험을 새롭게 정의했습니다. 직관적인 3단 채점 패널, 실시간 감독 대시보드 및 자동 성적 통계 분석을 통해 관리 및 채점 시간을 70% 이상 절약할 수 있습니다."
-    }
+    ],
+    "title": "常見問題"
   },
   "feature": {
+    "antiCheat": {
+      "description": "전체 화면 강제 잠금, 탭 전환 감지, 녹화 증거 및 AI 위반 분석을 통해 온라인 시험의 절대적인 공정성을 보장합니다.",
+      "title": "엄격한 부정행위 방지 모니터링"
+    },
     "judge": {
-      "title": "탁월한 평가 경험",
-      "description": "20가지 이상의 프로그래밍 언어를 지원하며, 실행 시간과 메모리 정보를 즉시 반환합니다. 정확한 Diff 비교와 오류 추적 기능을 제공합니다."
+      "description": "20가지 이상의 프로그래밍 언어를 지원하며, 실행 시간과 메모리 정보를 즉시 반환합니다. 정확한 Diff 비교와 오류 추적 기능을 제공합니다.",
+      "title": "탁월한 평가 경험"
     },
     "paper": {
-      "title": "지필 고사 형식 통합 (온라인 시험)",
-      "description": "코드 그 이상을 담았습니다. 객관식, OX 문제, 주관식 등 다양한 지필 형식을 통합하고 LaTeX 수식과 Markdown을 지원하여 다각도 평가가 가능합니다."
-    },
-    "antiCheat": {
-      "title": "엄격한 부정행위 방지 모니터링",
-      "description": "전체 화면 강제 잠금, 탭 전환 감지, 녹화 증거 및 AI 위반 분석을 통해 온라인 시험의 절대적인 공정성을 보장합니다."
+      "description": "코드 그 이상을 담았습니다. 객관식, OX 문제, 주관식 등 다양한 지필 형식을 통합하고 LaTeX 수식과 Markdown을 지원하여 다각도 평가가 가능합니다.",
+      "title": "지필 고사 형식 통합 (온라인 시험)"
     },
     "teacher": {
-      "title": "더욱 편리한 교사 시스템",
-      "description": "직관적인 채점 패널, 실시간 감독 대시보드 및 상세 성적 통계를 통해 교사가 행정 업무 대신 교육에 집중할 수 있도록 돕습니다."
+      "description": "직관적인 채점 패널, 실시간 감독 대시보드 및 상세 성적 통계를 통해 교사가 행정 업무 대신 교육에 집중할 수 있도록 돕습니다.",
+      "title": "더욱 편리한 교사 시스템"
     }
   },
   "features": {
     "eyebrow": "핵심 가치",
     "title": "교육 현장을 위해 설계된 강력한 기능"
   },
-  "exam": {
-    "eyebrow": "온라인 시험",
-    "title": "포괄적인 시험 경험",
-    "description": "프로그래밍부터 일반 이론까지 QJudge가 완벽히 지원합니다. 내장된 LaTeX 수식과 Markdown 에디터로 문제 출제와 풀이 모두 매끄럽게 진행됩니다.",
-    "tag1": "LaTeX 지원",
-    "tag2": "다양한 문제 유형",
-    "tag3": "자동 채점",
-    "preview_text": "다음 적분을 계산하세요:"
+  "flow": {
+    "description": "QJudge 將原本分散在不同工具的出題、監考、批改、分析與題庫沉澱整合在同一條流程中，降低管理成本，也讓每一次考試都能回到教學改進。",
+    "eyebrow": "完整考試流程",
+    "items": [
+      {
+        "title": "建立考試與出題",
+        "description": "選擇考卷或 Coding 模式，設定題型、時間、作答規則，並完成題目配置與教師審核。",
+        "output": "完成後：可直接發布的正式考試"
+      },
+      {
+        "title": "執行與監考",
+        "description": "學生開始作答後，教師可掌握進度、線上狀態與異常事件。",
+        "output": "完成後：可追蹤的考試紀錄"
+      },
+      {
+        "title": "批改與發佈",
+        "description": "考後快速完成批改與結果確認，將分數、答題狀態與回饋發布給教師與學生。",
+        "output": "完成後：可發佈的成績與回饋"
+      },
+      {
+        "title": "考後數據分析與改進",
+        "description": "將考題、變化題與考後資料回收整理，逐步累積可複用的專屬題庫。",
+        "output": "完成後：跨學期延續的教學資產"
+      }
+    ],
+    "title": "從出題到分析，正式考試一次串接"
   },
-  "miniJudge": {
-    "eyebrow": "인터랙티브 데모",
-    "title": "QJudge 체험: 문제 읽기, 코딩, 제출, 결과 확인",
-    "problem": {
-      "title": "피보나치 수열의 n번째 항",
-      "description": "정수 n이 주어지면 피보나치 수열의 n번째 항을 반환합니다. F(0)=0, F(1)=1로 정의합니다.",
-      "input": "입력",
-      "output": "출력"
+  "footer": {
+    "attribution": "Illustration by Storyset. 若正式上線採用，請再確認授權與標註規則。",
+    "copyright": "© 2024 QJudge. Built with IBM Carbon Design System.",
+    "links": {
+      "contact": [
+        {
+          "label": "quan787887@gmail.com"
+        },
+        {
+          "label": "預約 Demo"
+        }
+      ],
+      "legal": [
+        {
+          "label": "服務條款"
+        },
+        {
+          "label": "隱私權政策"
+        }
+      ],
+      "product": [
+        {
+          "label": "功能介紹"
+        },
+        {
+          "label": "定價方案"
+        },
+        {
+          "label": "FAQ"
+        }
+      ]
     },
-    "editor": {
-      "title": "코드 입력",
-      "submit": "모의 제출"
-    },
-    "result": {
-      "title": "테스트 결과",
-      "idle": "미제출",
-      "running": "채점 중...",
-      "summary": "Passed {{passed}} / {{total}}"
-    }
+    "primaryCta": "免費開始使用",
+    "secondaryCta": "預約 Demo",
+    "subtitle": "立即體驗 QJudge 的線上考試流程，從建立試卷、執行考試到查看分析，快速評估是否符合你的教學需求。",
+    "title": "把時間還給教學，從這裡開始"
   },
-  "steps": {
-    "eyebrow": "사용 방법",
-    "title": "4단계로 시작",
-    "browse": {
-      "title": "문제 탐색",
-      "description": "난이도와 태그로 필터링하고 설명/샘플을 확인."
+  "hero": {
+    "badge": {
+      "product": "QJudge",
+      "tagline": "전문 프로그래밍 테스트 플랫폼"
     },
-    "code": {
-      "title": "코드 작성",
-      "description": "구문 강조와 자동 완성을 지원하는 내장 에디터를 사용하세요."
+    "eyebrow": "QJudge",
+    "panelCaption": "考試狀態、警示與分析集中管理",
+    "panelTitle": "教師後台總覽",
+    "primaryCta": "免費開始使用",
+    "register": "회원가입",
+    "secondaryCta": "預約 Demo",
+    "signIn": "로그인",
+    "signal": {
+      "realtime": "실시간 평가",
+      "report": "상세 보고서",
+      "sandbox": "샌드박스 실행"
     },
-    "submit": {
-      "title": "제출 및 채점",
-      "description": "원클릭 제출로 즉시 결과 확인."
+    "subtitle": "학술 현장을 위해 구축된 고품질 시험 환경. AI 감독 감지, 지필형 문항 및 실시간 평가를 통합하여 모든 시험이 공정성, 효율성 및 심도를 갖추도록 합니다.",
+    "title": "下世代的數位學習體驗",
+    "trust": {
+      "capacity": "150+ 人同時在線驗證",
+      "users": "已服務 200+ 位教師與學員",
+      "validation": "NYCU 課程合作驗證"
     },
-    "improve": {
-      "title": "실력 향상",
-      "description": "토론에 참여하고 풀이를 비교하며 대회/랩에 참가."
+    "visual": {
+      "ai_monitoring": "AI 모니터링",
+      "desc": "Code -> Judge -> Verdict",
+      "detection": "탭 감지",
+      "fullscreen": "전체 화면 모드",
+      "proctoring": "감독 상태",
+      "proctoring_video": "화상 감독",
+      "remaining": "남은 시간",
+      "title": "프로그래밍 테스트 프로세스",
+      "violations": "위반 횟수"
     }
   },
   "highlights": {
+    "docs": "문서 보기",
     "eyebrow": "QJudge 이유",
-    "title": "교육과 대회를 위해 설계",
     "item1": "랩 모드와 진행 추적",
     "item2": "실시간 대회/랭킹",
     "item3": "케이스 비교 및 diff",
     "item4": "토론/공지 통합",
     "item5": "IBM Carbon 기반의 모던 UI",
-    "docs": "문서 보기"
+    "title": "교육과 대회를 위해 설계"
   },
-  "testimonials": {
-    "eyebrow": "사용자 후기",
-    "title": "학생들의 이야기",
-    "quote1": "실시간 피드백으로 문제를 빠르게 찾을 수 있어 효율적입니다.",
-    "quote2": "차이 비교 기능 덕분에 디버깅이 쉬워졌습니다.",
-    "quote3": "랩 모드가 수업 진행과 잘 맞아 학습 효과가 좋습니다.",
-    "name1": "Wang",
-    "name2": "Lee",
-    "name3": "Chen",
-    "title1": "NYCU IM/Fin 3학년",
-    "title2": "NYCU IM/Fin 2학년",
-    "title3": "NYCU IM/Fin 3학년",
-    "badge": "국립양명교통대학교 정보관리·재무금융학과"
+  "interactive": {
+    "eyebrow": "솔루션 쇼케이스",
+    "items": {
+      "editor": {
+        "desc": "AI 대화로 각 과목의 시험 문제를 빠르게 생성 및 수정. 설정부터 테스트 데이터까지 한 번에 완료.",
+        "label": "AI 출제 지원"
+      },
+      "grading": {
+        "desc": "시각적 성적 개요로 각 학생·각 문항의 답안과 채점 진행 상황을 즉시 파악.",
+        "label": "채점 및 분석"
+      },
+      "proctor": {
+        "desc": "창 이탈, 탭 전환 등 이상 행위를 실시간 감지하여 자동 경고 및 위반 기록.",
+        "label": "감독 및 부정행위 방지"
+      },
+      "stats": {
+        "desc": "명확한 문제 목록과 답안 영역으로 학생이 시험에 집중할 수 있는 환경.",
+        "label": "시험 화면"
+      }
+    },
+    "title": "교육 과정의 모든 세부 사항에 깊이 뿌리 내린 기능"
   },
-  "contact": {
-    "eyebrow": "문의하기",
-    "title": "질문이나 제안이 있으신가요?",
-    "description": "피드백, 버그 신고, 협업 제안을 환영합니다.",
-    "email": {
-      "title": "이메일"
+  "mcp": {
+    "description": "在 Claude、ChatGPT、Cursor、Perplexity、Gemini、Notion 中出題、批改、反饋",
+    "examples": {
+      "0": {
+        "description": "透過 AI 快速建立題庫與考卷，並自動檢查題目邏輯與難易度，大幅節省命題時間。",
+        "eyebrow": "AI 出題與 Review",
+        "image": "/example-1.png",
+        "title": "智慧生成，精準審題"
+      },
+      "1": {
+        "description": "匯整整場考試的作答數據，生成全班成績分佈與錯題統計報表。協助教師從宏觀視角精準評估教學成效與學生學習盲點。",
+        "eyebrow": "全局考試分析",
+        "image": "/example-2.png",
+        "title": "請 AI 做進階考試數據分析、整合"
+      },
+      "2": {
+        "description": "突破傳統腳本限制，AI 能深度理解並批改學生的開放式回答。即時給出精準評分、具體評語與優化建議，大幅減輕批改負擔。",
+        "eyebrow": "AI 助教批改",
+        "title": "開放式問答，精準語義評分"
+      }
     },
-    "github": {
-      "title": "GitHub"
+    "eyebrow": "無痛協作",
+    "features": {
+      "0": "快速生成競賽題目",
+      "1": "自動評分與分析",
+      "2": "提供個性化評論"
     },
-    "university": {
-      "title": "협력 대학",
-      "value": "국립양명교통대학교"
+    "features_description": {
+      "0": "與 AI 協商題目需求，直接建立到 QJudge",
+      "1": "取得批改結果、通過率統計和常見錯誤分析",
+      "2": "AI 分析常見錯誤並給改進建議"
+    },
+    "title": "與你的 AI 工具無痛協作",
+    "tools": {
+      "chatgpt": "ChatGPT",
+      "claude": "Claude",
+      "cursor": "Cursor",
+      "gemini": "Gemini",
+      "notion": "Notion",
+      "perplexity": "Perplexity"
     }
+  },
+  "miniJudge": {
+    "editor": {
+      "submit": "모의 제출",
+      "title": "코드 입력"
+    },
+    "eyebrow": "인터랙티브 데모",
+    "problem": {
+      "description": "정수 n이 주어지면 피보나치 수열의 n번째 항을 반환합니다. F(0)=0, F(1)=1로 정의합니다.",
+      "input": "입력",
+      "output": "출력",
+      "title": "피보나치 수열의 n번째 항"
+    },
+    "result": {
+      "idle": "미제출",
+      "running": "채점 중...",
+      "summary": "Passed {{passed}} / {{total}}",
+      "title": "테스트 결과"
+    },
+    "title": "QJudge 체험: 문제 읽기, 코딩, 제출, 결과 확인"
+  },
+  "modes": {
+    "eyebrow": "다양한 모드",
+    "items": {
+      "adaptive": {
+        "comingSoon": "출시 예정",
+        "desc": "개인화된 학습 경로",
+        "label": "AI 맞춤형 학습"
+      },
+      "coding": {
+        "desc": "전문적인 코딩 평가",
+        "label": "프로그래밍 테스트"
+      },
+      "hackathon": {
+        "comingSoon": "출시 예정",
+        "desc": "협업 경쟁 모드",
+        "label": "팀 해커톤"
+      },
+      "lab": {
+        "desc": "순수 연습용. 주제별 문제 세트를 통해 학생들이 압박감 없이 자율적으로 학습할 수 있습니다.",
+        "label": "실습 연습 모드"
+      },
+      "paper": {
+        "desc": "통합 디지털 시험 시스템",
+        "label": "지필형 시험"
+      },
+      "takehome": {
+        "comingSoon": "출시 예정",
+        "desc": "장기 과제 모드",
+        "label": "과제형 프로젝트"
+      }
+    },
+    "title": "다양한 대회 및 학습 모드 지원"
+  },
+  "nav": {
+    "audience": "適用對象",
+    "faq": "常見問題",
+    "features": "產品主軸",
+    "pricing": "定價方案"
+  },
+  "pricing": {
+    "cards": {
+      "enterprise": {
+        "cta": "聯繫我們",
+        "description": "適用於學校、科系與需要資料治理、整合或專屬部署的團隊。",
+        "features": [
+          "專屬部署與資料治理",
+          "更高規模並發考試",
+          "客製流程與整合需求",
+          "專人支援與導入協助"
+        ],
+        "name": "Enterprise",
+        "price": "客製報價"
+      },
+      "free": {
+        "cta": "免費開始",
+        "description": "適合初次導入線上考試的教師與課程，先完成核心考試流程。",
+        "features": [
+          "建立線上考試",
+          "基本防作弊能力",
+          "自動批改與基礎分析",
+          "適合個人教師先上手"
+        ],
+        "name": "免費方案",
+        "price": "NT$0"
+      },
+      "pro": {
+        "badge": "註冊即享試用",
+        "cta": "查看方案",
+        "description": "適合固定有線上考試需求，並希望提升出題效率與分析深度的教師。",
+        "features": [
+          "AI 出題與更高使用額度",
+          "進階數據分析",
+          "更大的題庫容量",
+          "更高並行考試能力"
+        ],
+        "name": "Pro",
+        "period": "月",
+        "price": "NT$990"
+      }
+    },
+    "description": "免費方案可完成建立考試、基本監考與自動批改；當考試規模、題庫需求與分析深度提升時，再選擇更合適的方案。",
+    "disclaimer": "註冊即可開始使用，無需綁定信用卡。進階方案內容與實際額度請以 pricing 頁面為準。",
+    "eyebrow": "定價方案",
+    "title": "從免費開始，依需求擴充考試能力"
+  },
+  "proposition": {
+    "description": "QJudge 從考場控管、題型配置到數據分析，讓每一場考試都有依據、有彈性、有後續價值。",
+    "eyebrow": "產品主軸",
+    "items": {
+      "control": {
+        "description": "能記錄異常事件、保留完整考試脈絡，讓結果不只是可查看，也更有依據可以說明與佐證。",
+        "title": "正式考試更可控"
+      },
+      "flexibility": {
+        "description": "選擇題、問答題、Coding 上機考等不同題型與流程需求，都可在同一平台完成配置，不需要一直切換工具。",
+        "title": "不同考試場景都能配置"
+      },
+      "value": {
+        "description": "題目、結果與分析不只停在單次施測，而能成為後續教學調整與題庫迭代的基礎。",
+        "title": "每次考試都能留下價值"
+      }
+    },
+    "title": "為正式考試而設計，不只支援作答，更讓結果真正可用"
+  },
+  "sections": {
+    "antiCheat": {
+      "description": "브라우저 기반의 전방위 감지 기능을 통해 수험생은 플러그인이나 소프트웨어 설치 없이 엄격한 감독 환경에 접속할 수 있습니다. 우리는 모든 노력을 보호하며 시험의 절대적인 공정성을 보장합니다.",
+      "eyebrow": "엄격한 감독",
+      "proctoring": {
+        "ai": "AI Analysis",
+        "audio": "Audio Detection",
+        "face": "Face Identity",
+        "fullscreen": "Fullscreen Lock",
+        "mouseLeave": "Mouse Track",
+        "multiScreen": "Multi-screen Block",
+        "noCopy": "Copy/Paste Disabled",
+        "tabSwitch": "Tab Switch Detection",
+        "video": "Video Evidence"
+      },
+      "title": "설치 불필요, 업계 선두의 부정행위 방지 기술"
+    },
+    "paper": {
+      "description": "객관식, 다지선다, OX, 단답형 문제 지원. 내장된 Markdown 및 LaTeX 에디터로 복잡한 수학 공식과 기술 문서를 정확하게 렌더링하여 교양부터 이공계, 프로그래밍까지 다양한 니즈를 충족합니다.",
+      "eyebrow": "지필형 시험",
+      "title": "코드 그 이상, 완전한 온라인 시험 시스템"
+    },
+    "teacher": {
+      "description": "디지털 채점 경험을 새롭게 정의했습니다. 직관적인 3단 채점 패널, 실시간 감독 대시보드 및 자동 성적 통계 분석을 통해 관리 및 채점 시간을 70% 이상 절약할 수 있습니다.",
+      "eyebrow": "교사 친화적",
+      "title": "교사는 강의에만 집중하세요, 나머지는 QJudge가 해결합니다"
+    }
+  },
+  "seo": {
+    "description": "QJudge 是專為教師設計的 AI 線上考試平台，支援 Coding 上機考、選擇題、問答題等多元題型，具備嚴格防作弊監控與 AI 輔助出題功能，協助學校與補習班快速舉辦安全可靠的線上測驗。",
+    "keywords": "온라인 시험, 온라인 시험 시스템, AI 시험, 코딩 테스트, 부정행위 방지, Online Judge, 문제 은행, QJudge",
+    "ogDescription": "교육자를 위한 AI 온라인 시험 플랫폼. 코딩 테스트, 부정행위 방지, AI 문제 생성. 무료로 시작하세요.",
+    "ogTitle": "QJudge | AI 온라인 시험 플랫폼",
+    "title": "QJudge 線上考試平台｜AI 出題・防作弊・Coding 上機考"
+  },
+  "socialProof": {
+    "caseStudies": {
+      "coding": {
+        "challenge": "線上考試取代紙本後，仍需要可信任的作答環境、防作弊機制，以及可發布的批改結果。",
+        "challengeLabel": "實際痛點",
+        "context": "辨識字跡、猜測語意與整理無格式作答會耗費大量助教人力，希望從紙本轉型到線上考試。",
+        "contextLabel": "課堂轉型要求",
+        "course": "OS 作業系統",
+        "department": "資訊科學與工程研究所",
+        "imageAlt": "國立陽明交通大學資訊科學與工程研究所 OS 作業系統課程使用 QJudge 進行上機考",
+        "institution": "國立陽明交通大學",
+        "summary": "將紙本與人工批改流程轉為可追蹤的正式線上考試。",
+        "title": "研究所電腦教室上機考"
+      },
+      "midterm": {
+        "challenge": "手寫程式碼考試難以高效率且一致地反映學習成效，也缺乏後續批改與數據整理流程。",
+        "challengeLabel": "實際痛點分析",
+        "context": "希望以課堂內完成的正式評量取代課後作業，讓分數更能反映學生當下理解與作答能力。",
+        "contextLabel": "課堂轉型需求",
+        "course": "計算機概論課程",
+        "department": "資訊與財務工程學系",
+        "imageAlt": "國立陽明交通大學資訊與財務工程學系計算機概論課程使用 QJudge 進行正式考試",
+        "institution": "國立陽明交通大學",
+        "summary": "以定期課堂小考取代回家作業，作為學期計分核心。",
+        "title": "大型課堂正式考試"
+      }
+    },
+    "description": "從大班課堂考試到研究所上機考，QJudge 已能支撐真實教學現場的正式評量流程。",
+    "eyebrow": "真實使用場景",
+    "metrics": {
+      "capacity": {
+        "description": "已在正式考試情境中完成穩定驗證。",
+        "label": "人同時在線考試",
+        "value": "150+"
+      },
+      "users": {
+        "description": "來自真實課程與教學場景的持續使用。",
+        "label": "已註冊教師與學員",
+        "value": "200+"
+      },
+      "validation": {
+        "description": "來自國立陽明交通大學的實際課程合作。",
+        "label": "課程合作驗證",
+        "value": "NYCU"
+      }
+    },
+    "title": "真實校園應用場景"
   },
   "stats": {
     "problems": "문제",
     "submissions": "제출",
-    "users": "활성 사용자",
-    "uptime": "가용성"
+    "uptime": "가용성",
+    "users": "활성 사용자"
   },
-  "cta": {
-    "title": "지금 시작해 보세요",
-    "description": "QJudge와 함께 코딩 여정을 시작하세요. 무료로 이용 가능합니다.",
-    "signIn": "로그인",
-    "docs": "자세히 보기"
+  "steps": {
+    "browse": {
+      "description": "난이도와 태그로 필터링하고 설명/샘플을 확인.",
+      "title": "문제 탐색"
+    },
+    "code": {
+      "description": "구문 강조와 자동 완성을 지원하는 내장 에디터를 사용하세요.",
+      "title": "코드 작성"
+    },
+    "eyebrow": "사용 방법",
+    "improve": {
+      "description": "토론에 참여하고 풀이를 비교하며 대회/랩에 참가.",
+      "title": "실력 향상"
+    },
+    "submit": {
+      "description": "원클릭 제출로 즉시 결과 확인.",
+      "title": "제출 및 채점"
+    },
+    "title": "4단계로 시작"
   },
-  "footer": {
-    "copyright": "© 2024 QJudge. Built with IBM Carbon Design System."
+  "testimonials": {
+    "badge": "국립양명교통대학교 정보관리·재무금융학과",
+    "eyebrow": "사용자 후기",
+    "name1": "Wang",
+    "name2": "Lee",
+    "name3": "Chen",
+    "quote1": "실시간 피드백으로 문제를 빠르게 찾을 수 있어 효율적입니다.",
+    "quote2": "차이 비교 기능 덕분에 디버깅이 쉬워졌습니다.",
+    "quote3": "랩 모드가 수업 진행과 잘 맞아 학습 효과가 좋습니다.",
+    "title": "학생들의 이야기",
+    "title1": "NYCU IM/Fin 3학년",
+    "title2": "NYCU IM/Fin 2학년",
+    "title3": "NYCU IM/Fin 3학년"
   },
-  "seo": {
-    "title": "QJudge | AI 온라인 시험 플랫폼 - 부정행위 방지 & 코딩 테스트",
-    "description": "QJudge는 교육자를 위한 AI 온라인 시험 플랫폼입니다. 코딩 테스트, 다양한 문제 유형, 엄격한 부정행위 방지, AI 문제 생성을 지원합니다.",
-    "keywords": "온라인 시험, 온라인 시험 시스템, AI 시험, 코딩 테스트, 부정행위 방지, Online Judge, 문제 은행, QJudge",
-    "ogTitle": "QJudge | AI 온라인 시험 플랫폼",
-    "ogDescription": "교육자를 위한 AI 온라인 시험 플랫폼. 코딩 테스트, 부정행위 방지, AI 문제 생성. 무료로 시작하세요."
+  "visuals": {
+    "continuePractice": "Continue Practice",
+    "live": "LIVE",
+    "mathTitle": "Mathematics Rendering",
+    "personalizedPath": "Personalized Path",
+    "projectMode": "Project Mode",
+    "topics": "Problem Topics"
   }
 }
