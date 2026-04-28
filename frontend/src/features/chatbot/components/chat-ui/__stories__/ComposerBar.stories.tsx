@@ -13,7 +13,7 @@ const meta: Meta<typeof ComposerBar> = {
     },
   },
   args: {
-    onSend: () => {},
+    onSend: () => true,
     models: [
       { model_id: "openai-nano", display_name: "gpt-5-nano", description: "fast", is_default: true },
       { model_id: "openai-mini", display_name: "gpt-5.4-mini (low)", description: "reasoning low", is_default: false },

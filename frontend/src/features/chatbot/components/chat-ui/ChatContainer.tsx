@@ -39,7 +39,6 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
     deleteSession,
     renameSession,
     sendMessage,
-    uploadArtifact,
     stopStreaming,
     submitApproval,
     submitAnswer,
@@ -101,7 +100,6 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
         onRenameSession={renameSession}
         onDeleteSession={deleteSession}
         sendMessage={sendMessage}
-        uploadArtifact={uploadArtifact}
         stopStreaming={stopStreaming}
         onApproval={handleApproval}
         submitAnswer={submitAnswer}
@@ -134,7 +132,6 @@ interface ChatContainerBodyProps {
   onRenameSession: (id: string, title: string) => void;
   onDeleteSession: (id: string) => void;
   sendMessage: UseChatbotReturn["sendMessage"];
-  uploadArtifact: UseChatbotReturn["uploadArtifact"];
   stopStreaming: () => void;
   onApproval: (decision: "approve" | "reject") => void;
   submitAnswer: UseChatbotReturn["submitAnswer"];
@@ -162,7 +159,6 @@ function ChatContainerBody({
   onRenameSession,
   onDeleteSession,
   sendMessage,
-  uploadArtifact,
   stopStreaming,
   onApproval,
   submitAnswer,
@@ -177,11 +173,15 @@ function ChatContainerBody({
   // 重要：原本掃描 messages→artifact_* tool call→markToolFinished 的 effect 已搬至
   // `ArtifactPanelProvider`。ChatContainer 只在右側 panel 開著時才 mount，AI Grading
   // 等只看 artifacts（進度/grade.csv）而關閉 chat panel 的場景會丟失 refresh 觸發。
-  // `markToolFinished` 這裡保留給手動上傳成功後 nudge artifacts 列表用。
-  const handleUpload = useCallback(async (file: File) => {
-    await uploadArtifact(file);
-    markToolFinished("artifact_write");
-  }, [markToolFinished, uploadArtifact]);
+  // Pending composer files are uploaded inside sendMessage after the backend
+  // session is guaranteed to exist; nudge the artifact panel after that flow.
+  const handleSend = useCallback(async (text: string, pendingFiles: File[] = []) => {
+    const didSend = await sendMessage(text, pendingFiles);
+    if (didSend && pendingFiles.length > 0) {
+      markToolFinished("artifact_write");
+    }
+    return didSend;
+  }, [markToolFinished, sendMessage]);
 
   const chatMain = (
     <div className={styles.chatBody}>
@@ -201,8 +201,7 @@ function ChatContainerBody({
         />
         <div className={styles.composerFloat}>
           <ComposerBar
-            onSend={sendMessage}
-            onUpload={handleUpload}
+            onSend={handleSend}
             onStop={stopStreaming}
             isStreaming={isStreaming}
             sessionNotice={sessionNotice}
