@@ -23,8 +23,6 @@ export const ContentPage: React.FC<ContentPageProps> = ({
   className,
   contentStyle,
 }) => {
-  // const { theme } = useTheme();
-
   return (
     <div
       style={{

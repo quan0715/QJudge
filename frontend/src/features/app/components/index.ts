@@ -1,7 +1,6 @@
 export {
   default as ErrorBoundary,
   ErrorBoundary as ErrorBoundaryComponent,
-  withErrorBoundary,
   type ErrorBoundaryProps,
 } from "./ErrorBoundary";
 export { NotFound, type NotFoundProps } from "./NotFound";

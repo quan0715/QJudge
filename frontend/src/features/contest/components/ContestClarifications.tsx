@@ -269,7 +269,7 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                           content: clar.answer,
                           authorUsername: clar.answeredBy,
                           createdAt: clar.updatedAt,
-                          likeCount: 0, // TODO: 後端整合
+                          likeCount: 0,
                           isLiked: false,
                         },
                       ]
@@ -277,15 +277,15 @@ const ContestClarifications: React.FC<ContestClarificationsProps> = ({
                 }
                 authorUsername={clar.authorUsername}
                 createdAt={clar.createdAt}
-                likeCount={0} // TODO: 後端整合
+                likeCount={0}
                 isLiked={false}
                 canReply={isTeacherOrAdmin}
                 canDelete={isTeacherOrAdmin}
                 onReply={(_parentId, _type) => openReplyModal(clar)}
                 onDelete={(id, _type) => handleDeleteClarification(String(id))}
-                onLike={(id, type) =>
-                  console.log("TODO: 後端整合 - Like", id, type)
-                }
+                onLike={() => {
+                  // Like integration pending backend API
+                }}
               />
             ))}
           </div>

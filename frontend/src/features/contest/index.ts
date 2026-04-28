@@ -1,6 +1,8 @@
 // Contest Feature - Main exports
+// Only export what App.tsx route tree actually needs.
+// Internal consumers should import from deep paths
+// (e.g., "@/features/contest/contexts") instead of this barrel.
 
-// Routes
 export {
   classroomContestDetailRoutes,
   classroomContestAdminRoute,
@@ -8,15 +10,3 @@ export {
   classroomExamPrecheckRoute,
   classroomPracticeRoute,
 } from "./routes";
-
-// Screens
-export * from "./screens";
-
-// Components
-export * from "./components";
-
-// Contexts
-export * from "./contexts";
-
-// Hooks
-export * from "./hooks";

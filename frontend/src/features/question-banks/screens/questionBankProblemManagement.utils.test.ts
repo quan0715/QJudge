@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
 import {
   buildQuestionPreviewMeta,
-  filterQuestions,
+  filterAndSortQuestions,
   formatDownloadCount,
   getQuestionDisplayTitle,
   getQuestionTypeToken,
@@ -61,7 +61,7 @@ const questions: BankQuestion[] = [
 
 describe("questionBankProblemManagement.utils", () => {
   it("filters by keyword + difficulty + tags + types", () => {
-    const filtered = filterQuestions(questions, {
+    const filtered = filterAndSortQuestions(questions, {
       keyword: "索引",
       difficulty: ["easy"],
       tags: ["matrix"],

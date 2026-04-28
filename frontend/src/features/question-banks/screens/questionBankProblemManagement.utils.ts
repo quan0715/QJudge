@@ -179,12 +179,6 @@ export const filterAndSortQuestions = (
   });
 };
 
-/** @deprecated Use filterAndSortQuestions instead */
-export const filterQuestions = (
-  questions: BankQuestion[],
-  filterState: QuestionFilterState
-): BankQuestion[] => filterAndSortQuestions(questions, filterState);
-
 export const formatDownloadCount = (value: number): string => {
   if (!Number.isFinite(value) || value <= 0) return "0";
   if (value >= 1000) {

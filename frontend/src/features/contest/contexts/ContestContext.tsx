@@ -167,13 +167,7 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
     }
   }, [contestId, initialContest, fetchContest]);
 
-  // TODO: Standings 資料量大（127+ 人完整排行榜），overview 頁面不需要。
-  // 改為 lazy load — 只在進入 standings 面板時由該面板自行呼叫 refreshStandings()。
-  // useEffect(() => {
-  //   if (contest?.id && initialScoreboardData === undefined) {
-  //     void fetchStandings();
-  //   }
-  // }, [contest?.id, initialScoreboardData, fetchStandings]);
+  // Standings are lazy-loaded — only fetched when entering the standings tab.
 
   const value = useMemo(
     () => ({

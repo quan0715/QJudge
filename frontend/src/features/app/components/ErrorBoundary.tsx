@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import { Component } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import { Button, InlineNotification, Theme } from "@carbon/react";
 import { Renew, Home, Warning } from "@carbon/icons-react";
@@ -186,21 +186,3 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
 
 export { ErrorBoundary };
 export default ErrorBoundary;
-
-export const withErrorBoundary = <P extends object>(
-  WrappedComponent: React.ComponentType<P>,
-  fallback?: ReactNode,
-  onError?: (error: Error, errorInfo: ErrorInfo) => void
-): React.FC<P> => {
-  const WithErrorBoundary: React.FC<P> = (props) => (
-    <ErrorBoundary fallback={fallback} onError={onError}>
-      <WrappedComponent {...props} />
-    </ErrorBoundary>
-  );
-
-  WithErrorBoundary.displayName = `WithErrorBoundary(${
-    WrappedComponent.displayName || WrappedComponent.name || "Component"
-  })`;
-
-  return WithErrorBoundary;
-};
