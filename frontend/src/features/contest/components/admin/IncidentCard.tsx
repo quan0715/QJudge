@@ -12,7 +12,7 @@ import styles from "./IncidentCard.module.scss";
 const HIDDEN_META_KEYS = new Set([
   "reason", "source", "phase", "event_idempotency_key", "ts",
   // rendered as the dedicated event content block
-  "content",
+  "content", "clipboard_actions",
   "event_id",
   // orchestrator internals — already reflected in incident priority & penalized flag
   "decision", "priority", "severity", "dedupe_hit", "reason_code",
@@ -144,8 +144,26 @@ function formatMetaValue(key: string, value: unknown): string {
 }
 
 function getEventContent(meta: Record<string, unknown>) {
+  if (Array.isArray(meta.clipboard_actions)) {
+    const entries = meta.clipboard_actions
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item))
+      .map((item, index) => ({
+        id: `${String(item.action || "clipboard")}-${index}`,
+        content: typeof item.content === "string" ? item.content : "",
+        action: typeof item.action === "string" ? item.action : "",
+        truncated: item.content_truncated === true,
+        originalLength:
+          typeof item.original_text_length === "number" ? item.original_text_length : null,
+        capturedLength:
+          typeof item.captured_text_length === "number" ? item.captured_text_length : null,
+        textLength: typeof item.text_length === "number" ? item.text_length : null,
+        lineCount: typeof item.line_count === "number" ? item.line_count : null,
+      }));
+    return entries.length > 0 ? entries : null;
+  }
   if (typeof meta.content !== "string" || meta.content.length === 0) return null;
-  return {
+  return [{
+    id: "content-0",
     content: meta.content,
     action: typeof meta.action === "string" ? meta.action : "",
     truncated: meta.content_truncated === true,
@@ -153,7 +171,9 @@ function getEventContent(meta: Record<string, unknown>) {
       typeof meta.original_text_length === "number" ? meta.original_text_length : null,
     capturedLength:
       typeof meta.captured_text_length === "number" ? meta.captured_text_length : null,
-  };
+    textLength: typeof meta.text_length === "number" ? meta.text_length : null,
+    lineCount: typeof meta.line_count === "number" ? meta.line_count : null,
+  }];
 }
 
 interface IncidentCardProps {
@@ -490,22 +510,58 @@ export default function IncidentCard({
                     {t("logs.detail.eventContent", "事件內容")}
                   </span>
                   <span className={styles.eventContentMeta}>
-                    {eventContent.action
+                    {eventContent.length > 1
                       ? t("logs.detail.clipboardActionLabel", {
-                          defaultValue: "動作：{{action}}",
-                          action: eventContent.action,
+                          defaultValue: "{{count}} 筆剪貼簿操作",
+                          count: eventContent.length,
                         })
                       : null}
-                    {eventContent.truncated && eventContent.originalLength != null && eventContent.capturedLength != null
+                    {eventContent.some((entry) => entry.truncated)
                       ? t("logs.detail.contentTruncated", {
-                          defaultValue: "已截斷：{{captured}} / {{original}} 字",
-                          captured: eventContent.capturedLength,
-                          original: eventContent.originalLength,
+                          defaultValue: "部分內容已截斷",
                         })
                       : null}
                   </span>
                 </div>
-                <pre className={styles.eventContentValue}>{eventContent.content}</pre>
+                <div className={styles.eventContentList}>
+                  {eventContent.map((entry) => (
+                    <div key={entry.id} className={styles.eventContentItem}>
+                      <div className={styles.eventContentItemHeader}>
+                        <Tag type={entry.action === "paste" ? "teal" : "cool-gray"} size="sm">
+                          {entry.action || "clipboard"}
+                        </Tag>
+                        <span className={styles.eventContentMeta}>
+                          {entry.textLength != null
+                            ? t("logs.detail.clipboardTextLength", {
+                                defaultValue: "{{count}} 字",
+                                count: entry.textLength,
+                              })
+                            : null}
+                          {entry.lineCount != null
+                            ? t("logs.detail.clipboardLineCount", {
+                                defaultValue: "{{count}} 行",
+                                count: entry.lineCount,
+                              })
+                            : null}
+                          {entry.truncated && entry.originalLength != null && entry.capturedLength != null
+                            ? t("logs.detail.contentTruncated", {
+                                defaultValue: "已截斷：{{captured}} / {{original}} 字",
+                                captured: entry.capturedLength,
+                                original: entry.originalLength,
+                              })
+                            : null}
+                        </span>
+                      </div>
+                      {entry.content ? (
+                        <pre className={styles.eventContentValue}>{entry.content}</pre>
+                      ) : (
+                        <span className={styles.eventContentEmpty}>
+                          {t("logs.detail.noClipboardContent", "此操作未保存內容")}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

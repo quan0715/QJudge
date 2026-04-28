@@ -187,6 +187,28 @@ const getEventLabel = (t: TFunction<"contest">, eventType: string) =>
     ? t("proctoringPanel.manualEvidenceEvent", "助教手動採證")
     : t(`logs.eventTypes.${eventType}`, eventType);
 
+const getClipboardContentItems = (metadata?: Record<string, unknown>) => {
+  const meta = metadata || {};
+  const rawItems = Array.isArray(meta.clipboard_actions)
+    ? meta.clipboard_actions
+    : typeof meta.content === "string" || typeof meta.action === "string"
+      ? [meta]
+      : [];
+
+  return rawItems
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item))
+    .map((item, index) => ({
+      id: `${String(item.action || "clipboard")}-${index}`,
+      action: typeof item.action === "string" ? item.action : "clipboard",
+      content: typeof item.content === "string" ? item.content : "",
+      textLength: typeof item.text_length === "number" ? item.text_length : null,
+      lineCount: typeof item.line_count === "number" ? item.line_count : null,
+      truncated: item.content_truncated === true,
+      originalLength: typeof item.original_text_length === "number" ? item.original_text_length : null,
+      capturedLength: typeof item.captured_text_length === "number" ? item.captured_text_length : null,
+    }));
+};
+
 interface ManualEvidenceFrame {
   id: number;
   createdAt: number;
@@ -593,6 +615,10 @@ const EvidenceStrip = ({ contestId, participant, incident }: EvidenceStripProps)
   const [lightboxUrl, setLightboxUrl] = useState("");
 
   const incidentKey = incident?.incidentKey ?? "";
+  const clipboardContentItems = useMemo(
+    () => getClipboardContentItems(incident?.metadata),
+    [incident?.metadata],
+  );
   const incidentSummary = useMemo(() => {
     if (!incident) return "";
     const reason = incident.metadata?.reason;
@@ -668,6 +694,60 @@ const EvidenceStrip = ({ contestId, participant, incident }: EvidenceStripProps)
     }, {});
   }, [frames]);
 
+  const renderClipboardContent = () => {
+    if (clipboardContentItems.length === 0) return null;
+    return (
+      <div className={styles.eventContentSection}>
+        <div className={styles.eventContentHeader}>
+          <span>{t("logs.detail.eventContent", "事件內容")}</span>
+          <span>{t("logs.detail.clipboardActionLabel", {
+            defaultValue: "{{count}} 筆剪貼簿操作",
+            count: clipboardContentItems.length,
+          })}</span>
+        </div>
+        <div className={styles.eventContentList}>
+          {clipboardContentItems.map((item) => (
+            <div key={item.id} className={styles.eventContentItem}>
+              <div className={styles.eventContentItemHeader}>
+                <Tag type={item.action === "paste" ? "teal" : "cool-gray"} size="sm">
+                  {item.action}
+                </Tag>
+                <span className={styles.eventContentMeta}>
+                  {item.textLength != null
+                    ? t("logs.detail.clipboardTextLength", {
+                        defaultValue: "{{count}} 字",
+                        count: item.textLength,
+                      })
+                    : null}
+                  {item.lineCount != null
+                    ? t("logs.detail.clipboardLineCount", {
+                        defaultValue: "{{count}} 行",
+                        count: item.lineCount,
+                      })
+                    : null}
+                  {item.truncated && item.originalLength != null && item.capturedLength != null
+                    ? t("logs.detail.contentTruncated", {
+                        defaultValue: "已截斷：{{captured}} / {{original}} 字",
+                        captured: item.capturedLength,
+                        original: item.originalLength,
+                      })
+                    : null}
+                </span>
+              </div>
+              {item.content ? (
+                <pre className={styles.eventContentValue}>{item.content}</pre>
+              ) : (
+                <span className={styles.eventContentEmpty}>
+                  {t("logs.detail.noClipboardContent", "此操作未保存內容")}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   if (!incident) {
     return (
       <div className={styles.evidenceStrip}>
@@ -687,42 +767,46 @@ const EvidenceStrip = ({ contestId, participant, incident }: EvidenceStripProps)
         </div>
         <span className={styles.evidenceMeta}>{formatEventTime(incident.lastAt)}</span>
       </div>
-      {incidentSummary ? <div className={styles.evidenceSummary}>{incidentSummary}</div> : null}
-      {loading ? <div className={styles.evidenceEmpty}>{t("action.loading", "連線中...")}</div> : null}
-      {error ? <div className={styles.evidenceError}>{error}</div> : null}
-      {!loading && !error && frames.length === 0 ? (
-        <div className={styles.evidenceEmpty}>{t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看即時監看")}</div>
-      ) : null}
-      {frames.length > 0 ? (
-        <div className={styles.evidenceGroups}>
-          {SOURCE_ORDER.map((source) => {
-            const sourceFrames = framesByModule[source] ?? [];
-            if (sourceFrames.length === 0) return null;
-            return (
-              <div className={styles.evidenceGroup} key={source}>
-                <div className={styles.evidenceGroupHeader}>
-                  {source === "webcam"
-                    ? t("proctoringPanel.sourceWebcam", "Webcam")
-                    : t("proctoringPanel.sourceScreen", "Screen")}
+      <div className={styles.evidenceBody}>
+        {incidentSummary ? <div className={styles.evidenceSummary}>{incidentSummary}</div> : null}
+        {loading ? <div className={styles.evidenceEmpty}>{t("action.loading", "連線中...")}</div> : null}
+        {error ? <div className={styles.evidenceError}>{error}</div> : null}
+        {!loading && !error && frames.length === 0 ? renderClipboardContent() : null}
+        {frames.length > 0 ? (
+          <div className={styles.evidenceGroups}>
+            {SOURCE_ORDER.map((source) => {
+              const sourceFrames = framesByModule[source] ?? [];
+              if (sourceFrames.length === 0) return null;
+              return (
+                <div className={styles.evidenceGroup} key={source}>
+                  <div className={styles.evidenceGroupHeader}>
+                    {source === "webcam"
+                      ? t("proctoringPanel.sourceWebcam", "Webcam")
+                      : t("proctoringPanel.sourceScreen", "Screen")}
+                  </div>
+                  <div className={styles.evidenceFrames}>
+                    {sourceFrames.map((frame) => (
+                      <button
+                        type="button"
+                        key={`${source}-${frame.ts_ms}-${frame.seq}`}
+                        className={styles.evidenceFrame}
+                        onClick={() => setLightboxUrl(frame.url)}
+                      >
+                        <img src={frame.url} alt={`${source} ${frame.seq}`} loading="lazy" />
+                        <span>{formatEventTime(String(frame.ts_ms))}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className={styles.evidenceFrames}>
-                  {sourceFrames.map((frame) => (
-                    <button
-                      type="button"
-                      key={`${source}-${frame.ts_ms}-${frame.seq}`}
-                      className={styles.evidenceFrame}
-                      onClick={() => setLightboxUrl(frame.url)}
-                    >
-                      <img src={frame.url} alt={`${source} ${frame.seq}`} loading="lazy" />
-                      <span>{formatEventTime(String(frame.ts_ms))}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
+              );
+            })}
+          </div>
+        ) : null}
+        {frames.length > 0 ? renderClipboardContent() : null}
+        {!loading && !error && frames.length === 0 ? (
+          <div className={styles.evidenceEmpty}>{t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看即時監看")}</div>
+        ) : null}
+      </div>
       {lightboxUrl ? (
         <div className={styles.lightbox} role="presentation" onClick={() => setLightboxUrl("")}>
           <button

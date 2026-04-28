@@ -221,7 +221,7 @@ class ParticipantDashboardApiTests(APITestCase):
             ],
         )
 
-    def test_clipboard_action_feed_items_are_not_grouped(self):
+    def test_clipboard_action_feed_item_preserves_grouped_actions(self):
         contest = self._create_contest(contest_type="paper_exam")
         participant = self._create_participant(contest)
         first = ExamEvent.objects.create(
@@ -261,11 +261,19 @@ class ParticipantDashboardApiTests(APITestCase):
             item for item in response.data["event_feed"]
             if item["event_type"] == "clipboard_action"
         ]
-        self.assertEqual(len(clipboard_items), 2)
-        paste_item = next(item for item in clipboard_items if item["metadata"]["action"] == "paste")
-        self.assertEqual(paste_item["count"], 1)
-        self.assertEqual(paste_item["event_id"], str(second.id))
-        self.assertEqual(paste_item["metadata"]["content"], "print('visible')")
+        self.assertEqual(len(clipboard_items), 1)
+        clipboard_item = clipboard_items[0]
+        self.assertEqual(clipboard_item["count"], 2)
+        self.assertEqual(clipboard_item["event_id"], str(second.id))
+        self.assertEqual(clipboard_item["metadata"]["content"], "print('visible')")
+        self.assertEqual(
+            [item["action"] for item in clipboard_item["metadata"]["clipboard_actions"]],
+            ["copy", "paste"],
+        )
+        self.assertEqual(
+            clipboard_item["metadata"]["clipboard_actions"][1]["content"],
+            "print('visible')",
+        )
 
     def test_admin_can_create_manual_proctor_event(self):
         contest = self._create_contest(contest_type="paper_exam")

@@ -51,11 +51,53 @@ const buildActorAggregationKey = (event: {
   id?: string;
   timestamp?: string;
 }) => {
-  if (event.eventType === "clipboard_action") {
-    return `${event.eventType}:${event.id || event.timestamp || "unknown"}`;
-  }
   const actorKey = event.userId || event.userName || `${event.id || event.timestamp || "unknown"}`;
   return `${event.eventType}:${actorKey}`;
+};
+
+const buildClipboardActionEntry = (metadata?: Record<string, unknown>) => {
+  const meta = metadata || {};
+  const entry: Record<string, unknown> = {
+    action: meta.action,
+    content_captured: !!meta.content_captured,
+    content_truncated: !!meta.content_truncated,
+    text_length: meta.text_length,
+    line_count: meta.line_count,
+    sha256: meta.sha256,
+  };
+  if (typeof meta.content === "string") entry.content = meta.content;
+  if (meta.original_text_length != null) entry.original_text_length = meta.original_text_length;
+  if (meta.captured_text_length != null) entry.captured_text_length = meta.captured_text_length;
+  return Object.fromEntries(Object.entries(entry).filter(([, value]) => value != null));
+};
+
+const normalizeClipboardMetadata = (metadata?: Record<string, unknown>) => {
+  const meta = { ...(metadata || {}) };
+  if (!Array.isArray(meta.clipboard_actions)) {
+    meta.clipboard_actions = [buildClipboardActionEntry(meta)];
+  }
+  return meta;
+};
+
+const mergeClipboardMetadata = (
+  current?: Record<string, unknown>,
+  incoming?: Record<string, unknown>
+) => {
+  const base = normalizeClipboardMetadata(current);
+  const next = normalizeClipboardMetadata(incoming);
+  const incomingActions = Array.isArray(next.clipboard_actions)
+    ? next.clipboard_actions
+    : [buildClipboardActionEntry(next)];
+  return {
+    ...base,
+    ...next,
+    clipboard_actions: [
+      ...(Array.isArray(base.clipboard_actions) ? base.clipboard_actions : []),
+      ...incomingActions,
+    ],
+    content_captured: !!base.content_captured || !!next.content_captured,
+    content_truncated: !!base.content_truncated || !!next.content_truncated,
+  };
 };
 
 /**
@@ -96,6 +138,10 @@ const normalizeExternalEventFeed = (
         incident.evidenceCount += itemEvidenceCount;
         incident.lastAt =
           incidentLastTs >= lastTs ? incident.lastAt : (item.lastAt || item.firstAt);
+        if (item.eventType === "clipboard_action") {
+          incident.metadata = mergeClipboardMetadata(incident.metadata, item.metadata);
+          incident.eventId = item.eventId;
+        }
         if (item.summary) incident.summary = item.summary;
         continue;
       }
@@ -117,7 +163,9 @@ const normalizeExternalEventFeed = (
       source: "exam_event",
       userName: item.userName,
       userId: item.userId,
-      metadata: item.metadata,
+      metadata: item.eventType === "clipboard_action"
+        ? normalizeClipboardMetadata(item.metadata)
+        : item.metadata,
     });
     openIncidents.set(aggregateKey, incidents.length - 1);
   }
@@ -235,6 +283,10 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
           inc.count += 1;
           inc.lastAt = event.timestamp;
           if (event.metadata?.forced_capture_uploaded) inc.evidenceCount += 1;
+          if (et === "clipboard_action") {
+            inc.metadata = mergeClipboardMetadata(inc.metadata, event.metadata);
+            inc.eventId = event.id;
+          }
           if (event.reason) inc.summary = event.reason;
           continue;
         }
@@ -256,7 +308,9 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
         source: "exam_event",
         userName: event.userName,
         userId: event.userId,
-        metadata: event.metadata,
+        metadata: et === "clipboard_action"
+          ? normalizeClipboardMetadata(event.metadata)
+          : event.metadata,
       });
       openIncidents.set(aggregateKey, incidents.length - 1);
     }
@@ -352,11 +406,11 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     if (!sentinel || !container || !hasMore) return;
     const observer = new IntersectionObserver(
       (entries) => { if (entries[0].isIntersecting) handleLoadMore(); },
-      { root: container, rootMargin: "200px" },
+      { root: embedded ? null : container, rootMargin: "200px" },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, handleLoadMore]);
+  }, [embedded, hasMore, handleLoadMore]);
 
   const loading = antiCheatConfigLoading || (sourceEvents.length === 0 && isRefreshing);
   const isConfigUnavailable = !antiCheatConfig && !antiCheatConfigLoading;
