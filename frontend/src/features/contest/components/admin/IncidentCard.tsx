@@ -11,6 +11,8 @@ import styles from "./IncidentCard.module.scss";
 // Keys already surfaced elsewhere in the card or that are pure noise
 const HIDDEN_META_KEYS = new Set([
   "reason", "source", "phase", "event_idempotency_key", "ts",
+  // rendered as the dedicated event content block
+  "content",
   "event_id",
   // orchestrator internals — already reflected in incident priority & penalized flag
   "decision", "priority", "severity", "dedupe_hit", "reason_code",
@@ -141,6 +143,19 @@ function formatMetaValue(key: string, value: unknown): string {
   return String(value);
 }
 
+function getEventContent(meta: Record<string, unknown>) {
+  if (typeof meta.content !== "string" || meta.content.length === 0) return null;
+  return {
+    content: meta.content,
+    action: typeof meta.action === "string" ? meta.action : "",
+    truncated: meta.content_truncated === true,
+    originalLength:
+      typeof meta.original_text_length === "number" ? meta.original_text_length : null,
+    capturedLength:
+      typeof meta.captured_text_length === "number" ? meta.captured_text_length : null,
+  };
+}
+
 interface IncidentCardProps {
   incident: EventFeedItem;
   screenshotWindowBeforeMs?: number;
@@ -167,12 +182,13 @@ export default function IncidentCard({
   const lastTime = new Date(incident.lastAt).toLocaleTimeString();
   const timeRange = incident.count > 1 ? `${firstTime} — ${lastTime}` : firstTime;
 
-  const meta = incident.metadata ?? {};
+  const meta = useMemo(() => incident.metadata ?? {}, [incident.metadata]);
 
   const captureInfo = useMemo(() => parseCaptureInfo(meta), [meta]);
   const evidenceObjectKeys = useMemo(() => getEvidenceObjectKeys(meta), [meta]);
   const evidenceModules = useMemo(() => getEvidenceModules(meta, evidenceObjectKeys), [meta, evidenceObjectKeys]);
   const moduleCaptureInfos = useMemo(() => parseModuleCaptureInfos(meta), [meta]);
+  const eventContent = useMemo(() => getEventContent(meta), [meta]);
 
   // --- Screenshot lazy loading ---
   const [screenshots, setScreenshots] = useState<ScreenshotFrame[]>([]);
@@ -209,6 +225,7 @@ export default function IncidentCard({
     hasEvidence || suspiciousCategories.has(String(incident.category || "").toLowerCase());
   const hasDetail = !!(
     incident.summary ||
+    eventContent ||
     meaningfulEntries.length > 0 ||
     captureInfo ||
     shouldAttemptScreenshotPreview ||
@@ -281,6 +298,7 @@ export default function IncidentCard({
     evidenceObjectKeys,
     evidenceModules,
     incident.firstAt,
+    incident.eventId,
     incident.lastAt,
     screenshotLoaded,
     screenshotPreviewLimit,
@@ -462,6 +480,32 @@ export default function IncidentCard({
                       : t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看即時監看")}
                   </span>
                 )}
+              </div>
+            )}
+
+            {eventContent && (
+              <div className={styles.eventContentSection}>
+                <div className={styles.eventContentHeader}>
+                  <span className={styles.detailLabel}>
+                    {t("logs.detail.eventContent", "事件內容")}
+                  </span>
+                  <span className={styles.eventContentMeta}>
+                    {eventContent.action
+                      ? t("logs.detail.clipboardActionLabel", {
+                          defaultValue: "動作：{{action}}",
+                          action: eventContent.action,
+                        })
+                      : null}
+                    {eventContent.truncated && eventContent.originalLength != null && eventContent.capturedLength != null
+                      ? t("logs.detail.contentTruncated", {
+                          defaultValue: "已截斷：{{captured}} / {{original}} 字",
+                          captured: eventContent.capturedLength,
+                          original: eventContent.originalLength,
+                        })
+                      : null}
+                  </span>
+                </div>
+                <pre className={styles.eventContentValue}>{eventContent.content}</pre>
               </div>
             )}
 

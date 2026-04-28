@@ -221,6 +221,52 @@ class ParticipantDashboardApiTests(APITestCase):
             ],
         )
 
+    def test_clipboard_action_feed_items_are_not_grouped(self):
+        contest = self._create_contest(contest_type="paper_exam")
+        participant = self._create_participant(contest)
+        first = ExamEvent.objects.create(
+            contest=contest,
+            user=self.student,
+            event_type="clipboard_action",
+            metadata={
+                "action": "copy",
+                "content_captured": False,
+                "text_length": 4,
+                "line_count": 1,
+            },
+        )
+        second = ExamEvent.objects.create(
+            contest=contest,
+            user=self.student,
+            event_type="clipboard_action",
+            metadata={
+                "action": "paste",
+                "content": "print('visible')",
+                "content_captured": True,
+                "content_truncated": False,
+                "text_length": 16,
+                "line_count": 1,
+            },
+        )
+        second.created_at = first.created_at + timedelta(seconds=10)
+        second.save(update_fields=["created_at"])
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get(
+            f"/api/v1/contests/{contest.id}/participants/{participant.user_id}/dashboard/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        clipboard_items = [
+            item for item in response.data["event_feed"]
+            if item["event_type"] == "clipboard_action"
+        ]
+        self.assertEqual(len(clipboard_items), 2)
+        paste_item = next(item for item in clipboard_items if item["metadata"]["action"] == "paste")
+        self.assertEqual(paste_item["count"], 1)
+        self.assertEqual(paste_item["event_id"], str(second.id))
+        self.assertEqual(paste_item["metadata"]["content"], "print('visible')")
+
     def test_admin_can_create_manual_proctor_event(self):
         contest = self._create_contest(contest_type="paper_exam")
         participant = self._create_participant(contest)

@@ -43,6 +43,7 @@ export const EVENT_PRIORITY: Record<string, number> = {
   multi_display_triggered: 2,
   multi_display_restored: 2,
   display_api_degraded: 2,
+  clipboard_action: 2,
   // Legacy frontend penalty-timer event. Kept for historical display only.
   warning_timeout: 2,
   // P3: Lifecycle / management

@@ -5,6 +5,7 @@ import {
   KeyboardShortcutDetector,
   PopupGuardDetector,
 } from "@/features/contest/detectors";
+import { recordExamEvent } from "@/infrastructure/api/repositories";
 import type { ViolationEvent, ExamDetector } from "@/features/contest/detectors";
 import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/runtimeReauthState";
 
@@ -35,6 +36,14 @@ export function useExamMonitoring({
 
     const handleViolation = (event: ViolationEvent) => {
       if (isRuntimeScreenShareReauthActive(contestId)) {
+        return;
+      }
+      if (event.eventType === "clipboard_action") {
+        if (contestId) {
+          void recordExamEvent(contestId, "clipboard_action", {
+            metadata: event.metadata,
+          });
+        }
         return;
       }
       if (event.severity === "info") {

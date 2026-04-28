@@ -209,6 +209,71 @@ class ExamAntiCheatTests(APITestCase):
             ).exists()
         )
 
+    def test_clipboard_action_is_logged_without_penalty_or_lock(self):
+        self.client.force_authenticate(user=self.student)
+
+        response = self.client.post(
+            self.events_url,
+            {
+                "event_type": "clipboard_action",
+                "metadata": {
+                    "source": "clipboard_detector",
+                    "action": "paste",
+                    "content": "print('hello')",
+                    "content_captured": True,
+                    "content_truncated": False,
+                    "text_length": 14,
+                    "line_count": 1,
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["violation_count"], 0)
+        self.assertFalse(response.data["locked"])
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.violation_count, 0)
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+
+        event = ExamEvent.objects.get(
+            contest=self.contest,
+            user=self.student,
+            event_type="clipboard_action",
+        )
+        self.assertEqual(event.metadata["action"], "paste")
+        self.assertEqual(event.metadata["content"], "print('hello')")
+
+    def test_clipboard_action_accepts_metadata_larger_than_legacy_limit(self):
+        self.client.force_authenticate(user=self.student)
+        content = "x" * 5000
+
+        response = self.client.post(
+            self.events_url,
+            {
+                "event_type": "clipboard_action",
+                "metadata": {
+                    "source": "clipboard_detector",
+                    "action": "paste",
+                    "content": content,
+                    "content_captured": True,
+                    "content_truncated": False,
+                    "text_length": len(content),
+                    "line_count": 1,
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        event = ExamEvent.objects.get(
+            contest=self.contest,
+            user=self.student,
+            event_type="clipboard_action",
+        )
+        self.assertEqual(event.metadata["content"], content)
+
     def test_heartbeat_updates_runtime_state_without_db_event(self):
         self.client.force_authenticate(user=self.student)
 

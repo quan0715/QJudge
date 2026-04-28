@@ -51,6 +51,9 @@ const buildActorAggregationKey = (event: {
   id?: string;
   timestamp?: string;
 }) => {
+  if (event.eventType === "clipboard_action") {
+    return `${event.eventType}:${event.id || event.timestamp || "unknown"}`;
+  }
   const actorKey = event.userId || event.userName || `${event.id || event.timestamp || "unknown"}`;
   return `${event.eventType}:${actorKey}`;
 };
@@ -101,6 +104,7 @@ const normalizeExternalEventFeed = (
     const priority = Number.isFinite(item.priority) ? item.priority : getEventPriority(item.eventType);
     incidents.push({
       incidentKey: `${aggregateKey}:${item.firstAt}`,
+      eventId: item.eventId,
       eventType: item.eventType,
       priority,
       category: item.category || getEventCategory(item.eventType),
@@ -239,6 +243,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
       const priority = getEventPriority(et);
       incidents.push({
         incidentKey: `${aggregateKey}:${event.timestamp}`,
+        eventId: event.id,
         eventType: et,
         priority,
         category: getEventCategory(et),

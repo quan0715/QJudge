@@ -489,7 +489,7 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
         uploaded_count = _forced_capture_uploaded_count(meta)
         has_evidence = uploaded_count > 0
 
-        should_group_event = et != "manual_proctor_note"
+        should_group_event = et not in {"manual_proctor_note", "clipboard_action"}
         idx = open_incidents.get(et) if should_group_event else None
         if idx is not None:
             inc = incidents[idx]

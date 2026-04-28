@@ -942,7 +942,7 @@ class ExamEventSerializer(serializers.ModelSerializer):
 
 class ExamEventCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating exam events."""
-    METADATA_MAX_SIZE = 4096  # bytes
+    METADATA_MAX_SIZE = 65536  # bytes
 
     class Meta:
         model = ExamEvent
