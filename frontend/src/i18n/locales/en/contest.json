@@ -21,6 +21,7 @@
       "logs": "Event Logs",
       "overview": "Overview",
       "participants": "Participants",
+      "proctoring": "Proctoring",
       "problemManagement": "Problem Management",
       "settings": "Settings",
       "statistics": "Statistics"
@@ -930,6 +931,22 @@
     "streamingHint": "You can view the student's current shared screen here.",
     "unavailable": "Unavailable",
     "unknownError": "Live monitoring connection failed"
+  },
+  "proctoringPanel": {
+    "backToRoster": "Back to list",
+    "emptyDescription": "Use the list on the left to quickly switch between participant monitoring views.",
+    "emptyTitle": "Select a participant to start monitoring",
+    "highRiskCount": "{{count}} high risk",
+    "noSignal": "No signal",
+    "onlineCount": "{{count}} online",
+    "outOfWindowBody": "Monitoring is unavailable.",
+    "outOfWindowTitle": "Outside exam window",
+    "reviewCount": "{{count}} need review",
+    "roster": "Watchlist",
+    "searchPlaceholder": "Search monitored participants...",
+    "sourceScreen": "Screen",
+    "sourceWebcam": "Webcam",
+    "title": "Proctoring"
   },
   "management": {
     "contestCount": "{{count}} contests in total",

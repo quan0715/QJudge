@@ -116,6 +116,7 @@ describe("SideMenu contest admin workspace panels", () => {
     );
 
     expect(await screen.findByText("adminLayout.nav.examManagement")).toBeInTheDocument();
+    expect(screen.getByText("adminLayout.nav.proctoring")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.examGrading")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.examStatistics")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.settings")).toBeInTheDocument();

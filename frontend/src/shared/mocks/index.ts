@@ -6,4 +6,3 @@ export * from "./submission.mock";
 
 export * from "./contest.mock";
 // Add more mock exports here as needed:
-// export * from "./user.mock";

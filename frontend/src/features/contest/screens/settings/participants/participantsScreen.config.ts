@@ -17,7 +17,7 @@ export const DETAIL_OPTIONS_BY_TYPE: Record<
   ParticipantDashboardDetail[]
 > = {
   coding: ["overview", "report", "events", "submissions"],
-  paper_exam: ["overview", "report", "events", "evidence"],
+  paper_exam: ["overview", "report", "events"],
 };
 
 export type SortKey = "score_desc" | "joined_desc" | "violations_desc" | "name_asc";

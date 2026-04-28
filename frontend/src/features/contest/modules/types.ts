@@ -8,6 +8,7 @@ export type AdminPanelId =
   | "clarifications"
   | "logs"
   | "participants"
+  | "proctoring"
   | "problem_editor"
   | "grading"
   | "ai-grading"

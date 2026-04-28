@@ -311,12 +311,34 @@ class ExamEventsMixin:
         serializer = ExamEventCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Update heartbeat on every event received
-        touch_heartbeat(contest.id, request.user.id)
-
         event_type = serializer.validated_data['event_type']
         raw_metadata = serializer.validated_data.get('metadata')
         metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
+
+        if event_type == "heartbeat":
+            if participant.exam_status not in self.MONITORED_STATUSES:
+                return Response(
+                    {
+                        "ok": False,
+                        "event_type": event_type,
+                        "decision": "ignored",
+                        "exam_status": participant.exam_status,
+                    }
+                )
+            touch_heartbeat(contest.id, request.user.id)
+            return Response(
+                {
+                    "ok": True,
+                    "event_type": event_type,
+                    "decision": "heartbeat",
+                    "exam_status": participant.exam_status,
+                }
+            )
+
+        # Non-heartbeat events also refresh liveness, but only meaningful events
+        # are persisted to ExamEvent. High-frequency heartbeat stays Redis-only.
+        touch_heartbeat(contest.id, request.user.id)
+
         if event_type == "exam_entered":
             metadata = self._enrich_exam_entered_metadata(request, metadata)
         source_module, module_role = self._resolve_module_context(

@@ -1,14 +1,14 @@
+import { lazy, Suspense } from "react";
 import { Route } from "react-router";
 import ContestLayout from "./components/layout/ContestLayout";
 import { ContestProvider } from "./contexts/ContestContext";
-import AdminDashboardScreen from "./screens/admin/AdminDashboardScreen";
 import ContestDashboardScreen from "./screens/ContestDashboardScreen";
 import ContestSolveScreen from "./screens/ContestSolveScreen";
-import StudentExamDemoScreen from "./screens/examDemo/StudentExamDemoScreen";
 import ContestPracticeScreen from "./screens/ContestPracticeScreen";
-import {
-  ExamPrecheckScreen,
-} from "./screens/paperExam";
+
+const AdminDashboardScreen = lazy(() => import("./screens/admin/AdminDashboardScreen"));
+const StudentExamDemoScreen = lazy(() => import("./screens/examDemo/StudentExamDemoScreen"));
+const ExamPrecheckScreen = lazy(() => import("./screens/paperExam/ExamPrecheckScreen"));
 
 // ── Classroom-scoped contest routes (/classrooms/:classroomId/contest/:contestId) ──
 
@@ -29,7 +29,7 @@ export const classroomContestDetailRoutes = (
 export const classroomContestAdminRoute = (
   <Route
     path="/classrooms/:classroomId/contest/:contestId/admin"
-    element={<AdminDashboardScreen />}
+    element={<Suspense fallback={null}><AdminDashboardScreen /></Suspense>}
   />
 );
 
@@ -39,7 +39,7 @@ export const classroomContestAdminRoute = (
 export const classroomExamPreviewRoute = (
   <Route
     path="/classrooms/:classroomId/contest/:contestId/exam-preview"
-    element={<StudentExamDemoScreen />}
+    element={<Suspense fallback={null}><StudentExamDemoScreen /></Suspense>}
   />
 );
 
@@ -65,7 +65,7 @@ export const classroomExamPrecheckRoute = (
     path="/classrooms/:classroomId/contest/:contestId/exam-precheck"
     element={
       <ContestProvider>
-        <ExamPrecheckScreen />
+        <Suspense fallback={null}><ExamPrecheckScreen /></Suspense>
       </ContestProvider>
     }
   />

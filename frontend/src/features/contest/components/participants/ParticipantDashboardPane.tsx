@@ -35,7 +35,6 @@ import {
   TrashCan,
   Trophy,
   UserMultiple,
-  View,
   WarningAlt,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -48,7 +47,6 @@ import type {
   ParticipantDashboardStatus,
 } from "@/core/entities/contest.entity";
 import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
-import ExamLiveViewPanel from "@/features/contest/components/admin/ExamLiveViewPanel";
 import PaperQuestionOverviewTable from "@/features/contest/components/exam/PaperQuestionOverviewTable";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
@@ -107,11 +105,10 @@ const toExamStatusTagType = (examStatus: string | null | undefined) => {
   }
 };
 
-const TAB_ICON_BY_DETAIL: Record<ParticipantDashboardDetail, ComponentType<{ size?: number; className?: string }>> = {
+const TAB_ICON_BY_DETAIL: Partial<Record<ParticipantDashboardDetail, ComponentType<{ size?: number; className?: string }>>> = {
   overview: UserMultiple,
   report: DocumentTasks,
   events: Calendar,
-  evidence: View,
   submissions: SendAlt,
 };
 
@@ -141,7 +138,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   const availableDetails = useMemo(() => {
     if (!dashboard) return ["overview", "report", "events"] as ParticipantDashboardDetail[];
     if (dashboard.contestType === "paper_exam") {
-      return ["overview", "report", "events", "evidence"] as ParticipantDashboardDetail[];
+      return ["overview", "report", "events"] as ParticipantDashboardDetail[];
     }
     return ["overview", "report", "events", "submissions"] as ParticipantDashboardDetail[];
   }, [dashboard]);
@@ -402,17 +399,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                             renderIcon={Download}
                             onClick={onDownloadReport}
                           />
-                          {dashboard.actions.canViewEvidence ? (
-                            <MenuItem
-                              label={t("dashboard.openEvidence", "查看即時監看")}
-                              renderIcon={View}
-                              onClick={() => {
-                                if (activeDetail !== "evidence") {
-                                  onDetailChange("evidence");
-                                }
-                              }}
-                            />
-                          ) : null}
                           {dashboard.actions.canOpenGrading ? (
                             <MenuItem
                               label={t("dashboard.openGrading", "前往批改")}
@@ -688,18 +674,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                     eventFeed={dashboard?.eventFeed}
                     onRefresh={onRefreshEvents}
                   />
-                ) : null}
-
-                {detail === "evidence" && dashboard.contestType === "paper_exam" ? (
-                  <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>{t("dashboard.liveMonitoring", "即時監看與證據")}</h5>
-                    <ExamLiveViewPanel
-                      contestId={contestId}
-                      userId={participant.userId}
-                      participantName={participant.displayName || participant.username}
-                      open={activeDetail === "evidence"}
-                    />
-                  </div>
                 ) : null}
 
                 {detail === "submissions" && dashboard.contestType === "coding" ? (

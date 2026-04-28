@@ -1,0 +1,415 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--cds-background);
+}
+
+.toolbarStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.toolbarSearch {
+  width: 18rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 20rem minmax(0, 1fr);
+  background: var(--cds-background);
+}
+
+.rosterPane {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+}
+
+.rosterHeader {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 3rem;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.rosterList {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.rosterItem {
+  width: 100%;
+  min-height: 3.5rem;
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  background: transparent;
+  color: var(--cds-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rosterItem:hover {
+  background: var(--cds-layer-hover-01);
+}
+
+.rosterItemSelected {
+  border-left-color: var(--cds-border-interactive);
+  background: var(--cds-layer-selected-01);
+}
+
+.rosterItemSelected:hover {
+  background: var(--cds-layer-selected-hover-01);
+}
+
+.rosterItemLow {
+  border-left-color: var(--cds-support-warning);
+}
+
+.rosterItemMedium {
+  border-left-color: var(--cds-support-warning);
+  background: color-mix(in srgb, var(--cds-support-warning) 8%, transparent);
+}
+
+.rosterItemHigh {
+  border-left-color: var(--cds-support-error);
+}
+
+.rosterStatusIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cds-icon-secondary);
+}
+
+.rosterItemLow .rosterStatusIcon,
+.rosterItemMedium .rosterStatusIcon {
+  color: var(--cds-support-warning);
+}
+
+.rosterItemHigh .rosterStatusIcon {
+  color: var(--cds-support-error);
+}
+
+.rosterIdentity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.rosterName {
+  overflow: hidden;
+  color: var(--cds-text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rosterUsername {
+  overflow: hidden;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rosterSignals {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.violationPill {
+  min-width: 1.375rem;
+  height: 1.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.violationPillLow {
+  background: var(--cds-support-warning);
+  color: var(--cds-text-primary);
+}
+
+.violationPillMedium {
+  background: var(--cds-support-warning);
+  color: var(--cds-text-primary);
+  box-shadow: inset 0 0 0 1px var(--cds-border-strong);
+}
+
+.violationPillHigh {
+  background: var(--cds-support-error);
+  color: var(--cds-text-on-color);
+}
+
+.liveDot,
+.offlineDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+.liveDot {
+  background: var(--cds-support-success);
+}
+
+.offlineDot {
+  background: var(--cds-icon-disabled);
+}
+
+.monitorPane {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--cds-background);
+}
+
+.rosterPaneDisabled {
+  opacity: 0.72;
+}
+
+.rosterPaneDisabled .rosterItem {
+  cursor: default;
+}
+
+.rosterPaneDisabled .rosterItem:hover {
+  background: transparent;
+}
+
+.rosterPaneDisabled .rosterItemSelected:hover {
+  background: var(--cds-layer-selected-01);
+}
+
+.monitorStage {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--cds-background);
+}
+
+.monitorHeader {
+  flex: 0 0 auto;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  background: var(--cds-background);
+}
+
+.monitorHeaderLeft {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.monitorIdentity {
+  min-width: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.monitorName {
+  overflow: hidden;
+  color: var(--cds-text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monitorUsername {
+  overflow: hidden;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monitorActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+}
+
+.monitorError {
+  flex: 0 0 auto;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-accent-01);
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.videoGrid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem);
+  gap: 1px;
+  background: var(--cds-border-subtle);
+}
+
+.videoPane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.screenPane {
+  min-height: 0;
+}
+
+.webcamPane {
+  min-height: 0;
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.videoMeta {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 72%), transparent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.signalLive {
+  color: var(--cds-support-success);
+}
+
+.signalMuted {
+  color: rgb(255 255 255 / 72%);
+}
+
+.blankVideo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgb(255 255 255 / 64%);
+  font-size: 0.875rem;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+
+.noSelection {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.unavailableState {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 1.5rem;
+  background: var(--cds-background);
+  color: var(--cds-text-secondary);
+  text-align: center;
+}
+
+.unavailableState h3 {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.unavailableState p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 66rem) {
+  .toolbarStatus {
+    display: none;
+  }
+
+  .toolbarSearch {
+    width: min(14rem, 48vw);
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rosterPane {
+    border-right: 0;
+  }
+
+  .videoGrid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(12rem, 16rem);
+  }
+}
