@@ -180,7 +180,6 @@ export default function IncidentCard({
   const [screenshotError, setScreenshotError] = useState(false);
   const [screenshotLoaded, setScreenshotLoaded] = useState(false);
   const [totalRawCount, setTotalRawCount] = useState(0);
-  const [didCrossSessionFallback, setDidCrossSessionFallback] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const screenshotsByModule = useMemo(() => {
@@ -267,27 +266,8 @@ export default function IncidentCard({
       }
       const result = await fetchScreenshots(contestId, params);
 
-      let finalItems = result.items;
-      let finalTotalCount = result.total_raw_count;
-      let hasFallbackAttempt = false;
-
-      // Session metadata may be stale after evidence migration/retention.
-      // Fallback to all sessions so available raw screenshots are still reachable.
-      if (sessionId && result.items.length === 0 && result.total_raw_count === 0) {
-        hasFallbackAttempt = true;
-        const fallback = await fetchScreenshots(contestId, {
-          user_id: String(incident.userId),
-          ts_from: params.ts_from,
-          ts_to: params.ts_to,
-          limit: screenshotPreviewLimit,
-        });
-        finalItems = fallback.items;
-        finalTotalCount = fallback.total_raw_count;
-      }
-
-      setScreenshots(finalItems);
-      setTotalRawCount(finalTotalCount);
-      setDidCrossSessionFallback(hasFallbackAttempt);
+      setScreenshots(result.items);
+      setTotalRawCount(result.total_raw_count);
       setScreenshotLoaded(true);
     } catch {
       setScreenshotError(true);
@@ -479,9 +459,7 @@ export default function IncidentCard({
                           defaultValue: "此事件前後時段無截圖，該使用者共有 {{count}} 張原始截圖",
                           count: totalRawCount,
                         })
-                      : didCrossSessionFallback
-                        ? t("logs.detail.noScreenshotsBySession", "此事件場次無可用截圖，已改用跨場次查詢")
-                        : t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看即時監看")}
+                      : t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看即時監看")}
                   </span>
                 )}
               </div>

@@ -45,7 +45,9 @@ import type {
 } from "@/infrastructure/api/dto/contest.dto";
 import { DEFAULT_DEVICE_POLICY } from "@/features/contest/domain/anticheatModulePolicy";
 
-export function mapContestProblemSummaryDto(dto: ContestProblemSummaryDto): ContestProblemSummary {
+export function mapContestProblemSummaryDto(
+  dto: ContestProblemSummaryDto,
+): ContestProblemSummary {
   const resolvedMaxScore = dto.max_score ?? dto.score;
   return {
     id: dto.id?.toString() || "",
@@ -108,11 +110,17 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     deliveryMode: dto.delivery_mode ?? "exam",
     countsTowardGrade: dto.counts_toward_grade ?? true,
     cheatDetectionEnabled: !!dto.cheat_detection_enabled,
-    anticheatDevicePolicy: mapAnticheatDevicePolicyDto(dto.anticheat_device_policy),
+    anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
+      dto.anticheat_device_policy,
+    ),
     warningTimeoutSeconds:
-      typeof dto.warning_timeout_seconds === "number" ? dto.warning_timeout_seconds : 20,
+      typeof dto.warning_timeout_seconds === "number"
+        ? dto.warning_timeout_seconds
+        : 20,
     screenShareRecoveryGraceMs:
-      typeof dto.screen_share_recovery_grace_ms === "number" ? dto.screen_share_recovery_grace_ms : 30_000,
+      typeof dto.screen_share_recovery_grace_ms === "number"
+        ? dto.screen_share_recovery_grace_ms
+        : 30_000,
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
     anonymousModeEnabled: !!dto.anonymous_mode_enabled,
 
@@ -124,7 +132,9 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     questionEditLocked: !!dto.question_edit_locked,
     questionEditLockedAt: dto.question_edit_locked_at ?? null,
     questionEditLockTrigger: dto.question_edit_lock_trigger ?? null,
-    isExamQuestionsFrozen: !!(dto.question_edit_locked ?? dto.is_exam_questions_frozen),
+    isExamQuestionsFrozen: !!(
+      dto.question_edit_locked ?? dto.is_exam_questions_frozen
+    ),
     examQuestionsCount: dto.exam_questions_count ?? 0,
     myNickname: dto.my_nickname,
 
@@ -135,7 +145,7 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     lockReason: dto.lock_reason,
     submitReason: dto.submit_reason,
     examStatus: dto.exam_status,
-    assignmentState: dto.assignment_state as any ?? null,
+    assignmentState: (dto.assignment_state as any) ?? null,
     acceptedAt: dto.accepted_at ?? null,
     submittedAt: dto.submitted_at ?? null,
     autoUnlockAt: dto.auto_unlock_at,
@@ -170,28 +180,31 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
   };
 }
 
-export function mapAnticheatDevicePolicyDto(value: AnticheatDevicePolicyDto | undefined): ContestAnticheatDevicePolicy {
+export function mapAnticheatDevicePolicyDto(
+  value: AnticheatDevicePolicyDto | undefined,
+): ContestAnticheatDevicePolicy {
   const root = value || {};
 
   const parseSource = (
     sourceValue: any,
-    fallback: { enabled: boolean; captureIntervalSeconds: number }
+    fallback: { enabled: boolean; captureIntervalSeconds: number },
   ) => {
     const source = sourceValue || {};
     return {
-      enabled: typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
+      enabled:
+        typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
       captureIntervalSeconds:
         typeof source.capture_interval_seconds === "number"
           ? source.capture_interval_seconds
           : typeof source.captureIntervalSeconds === "number"
-          ? source.captureIntervalSeconds
-          : fallback.captureIntervalSeconds,
+            ? source.captureIntervalSeconds
+            : fallback.captureIntervalSeconds,
     };
   };
 
   const parseDetectors = (
     detectorValue: any,
-    fallback: ContestAnticheatDevicePolicy["desktop"]["detectors"]
+    fallback: ContestAnticheatDevicePolicy["desktop"]["detectors"],
   ) => {
     const detectors = detectorValue || {};
     return {
@@ -199,50 +212,54 @@ export function mapAnticheatDevicePolicyDto(value: AnticheatDevicePolicyDto | un
         typeof detectors.pwa_mode === "boolean"
           ? detectors.pwa_mode
           : typeof detectors.pwaMode === "boolean"
-          ? detectors.pwaMode
-          : fallback.pwaMode,
+            ? detectors.pwaMode
+            : fallback.pwaMode,
       fullscreen:
-        typeof detectors.fullscreen === "boolean" ? detectors.fullscreen : fallback.fullscreen,
-      focus: typeof detectors.focus === "boolean" ? detectors.focus : fallback.focus,
+        typeof detectors.fullscreen === "boolean"
+          ? detectors.fullscreen
+          : fallback.fullscreen,
+      focus:
+        typeof detectors.focus === "boolean" ? detectors.focus : fallback.focus,
       tabVisibility:
         typeof detectors.tab_visibility === "boolean"
           ? detectors.tab_visibility
           : typeof detectors.tabVisibility === "boolean"
-          ? detectors.tabVisibility
-          : fallback.tabVisibility,
+            ? detectors.tabVisibility
+            : fallback.tabVisibility,
       multiDisplay:
         typeof detectors.multi_display === "boolean"
           ? detectors.multi_display
           : typeof detectors.multiDisplay === "boolean"
-          ? detectors.multiDisplay
-          : fallback.multiDisplay,
+            ? detectors.multiDisplay
+            : fallback.multiDisplay,
       mouseLeave:
         typeof detectors.mouse_leave === "boolean"
           ? detectors.mouse_leave
           : typeof detectors.mouseLeave === "boolean"
-          ? detectors.mouseLeave
-          : fallback.mouseLeave,
+            ? detectors.mouseLeave
+            : fallback.mouseLeave,
       viewportIntegrity:
         typeof detectors.viewport_integrity === "boolean"
           ? detectors.viewport_integrity
           : typeof detectors.viewportIntegrity === "boolean"
-          ? detectors.viewportIntegrity
-          : fallback.viewportIntegrity,
+            ? detectors.viewportIntegrity
+            : fallback.viewportIntegrity,
     };
   };
 
   const parseDevice = (
     key: "desktop" | "tablet",
-    fallback: ContestAnticheatDevicePolicy["desktop"]
+    fallback: ContestAnticheatDevicePolicy["desktop"],
   ) => {
     const item = root[key] || {};
     const sources = item.sources || {};
     return {
-      enabled: typeof item.enabled === "boolean" ? item.enabled : fallback.enabled,
+      enabled:
+        typeof item.enabled === "boolean" ? item.enabled : fallback.enabled,
       sources: {
         screenShare: parseSource(
           sources.screen_share ?? (sources as any).screenShare,
-          fallback.sources.screenShare
+          fallback.sources.screenShare,
         ),
         webcam: parseSource(sources.webcam, fallback.sources.webcam),
       },
@@ -256,7 +273,9 @@ export function mapAnticheatDevicePolicyDto(value: AnticheatDevicePolicyDto | un
   };
 }
 
-export function mapContestOverviewMetricsDto(dto: ContestOverviewMetricsDto): ContestOverviewMetrics {
+export function mapContestOverviewMetricsDto(
+  dto: ContestOverviewMetricsDto,
+): ContestOverviewMetrics {
   const examStatus =
     dto?.exam?.status === "upcoming" ||
     dto?.exam?.status === "running" ||
@@ -264,7 +283,8 @@ export function mapContestOverviewMetricsDto(dto: ContestOverviewMetricsDto): Co
       ? (dto.exam.status as any)
       : "upcoming";
 
-  const contestType = dto?.exam?.contest_type === "paper_exam" ? "paper_exam" : "coding";
+  const contestType =
+    dto?.exam?.contest_type === "paper_exam" ? "paper_exam" : "coding";
 
   return {
     onlineNow: Number(dto?.online_now ?? 0),
@@ -285,41 +305,73 @@ export function mapContestOverviewMetricsDto(dto: ContestOverviewMetricsDto): Co
 }
 
 export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
-  const ensureObject = (value: unknown, path: string): Record<string, unknown> => {
+  const ensureObject = (
+    value: unknown,
+    path: string,
+  ): Record<string, unknown> => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new Error(`Invalid anti-cheat config payload: ${path} must be an object`);
+      throw new Error(
+        `Invalid anti-cheat config payload: ${path} must be an object`,
+      );
     }
     return value as Record<string, unknown>;
   };
 
-  const ensureNumber = (obj: Record<string, unknown>, key: string, path: string): number => {
+  const ensureNumber = (
+    obj: Record<string, unknown>,
+    key: string,
+    path: string,
+  ): number => {
     const value = obj[key];
     if (typeof value !== "number" || !Number.isFinite(value)) {
-      throw new Error(`Invalid anti-cheat config payload: ${path}.${key} must be a number`);
+      throw new Error(
+        `Invalid anti-cheat config payload: ${path}.${key} must be a number`,
+      );
     }
     return value;
   };
 
-  const ensureBoolean = (obj: Record<string, unknown>, key: string, path: string): boolean => {
+  const ensureBoolean = (
+    obj: Record<string, unknown>,
+    key: string,
+    path: string,
+  ): boolean => {
     const value = obj[key];
     if (typeof value !== "boolean") {
-      throw new Error(`Invalid anti-cheat config payload: ${path}.${key} must be a boolean`);
+      throw new Error(
+        `Invalid anti-cheat config payload: ${path}.${key} must be a boolean`,
+      );
     }
     return value;
   };
 
-  const ensureString = (obj: Record<string, unknown>, key: string, path: string): string => {
+  const ensureString = (
+    obj: Record<string, unknown>,
+    key: string,
+    path: string,
+  ): string => {
     const value = obj[key];
     if (typeof value !== "string") {
-      throw new Error(`Invalid anti-cheat config payload: ${path}.${key} must be a string`);
+      throw new Error(
+        `Invalid anti-cheat config payload: ${path}.${key} must be a string`,
+      );
     }
     return value;
   };
 
-  const ensureStringArray = (obj: Record<string, unknown>, key: string, path: string): string[] => {
+  const ensureStringArray = (
+    obj: Record<string, unknown>,
+    key: string,
+    path: string,
+  ): string[] => {
     const value = obj[key];
-    if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
-      throw new Error(`Invalid anti-cheat config payload: ${path}.${key} must be string[]`);
+    if (
+      !Array.isArray(value) ||
+      value.some((item) => typeof item !== "string")
+    ) {
+      throw new Error(
+        `Invalid anti-cheat config payload: ${path}.${key} must be string[]`,
+      );
     }
     return value;
   };
@@ -328,176 +380,311 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
     const parsed = ensureObject(item, "frontend_controlled_settings item");
     return {
       key: ensureString(parsed, "key", "frontend_controlled_settings item"),
-      description: ensureString(parsed, "description", "frontend_controlled_settings item"),
+      description: ensureString(
+        parsed,
+        "description",
+        "frontend_controlled_settings item",
+      ),
     };
   };
 
   const root = ensureObject(dto, "root");
-  const globalDefaults = ensureObject(root["global_defaults"], "global_defaults");
-  const contestSettings = ensureObject(root["contest_settings"], "contest_settings");
+  const globalDefaults = ensureObject(
+    root["global_defaults"],
+    "global_defaults",
+  );
+  const contestSettings = ensureObject(
+    root["contest_settings"],
+    "contest_settings",
+  );
   const effective = ensureObject(root["effective"], "effective");
   const frontendControlledSettings = ensureObject(
     root["frontend_controlled_settings"],
-    "frontend_controlled_settings"
+    "frontend_controlled_settings",
   );
 
   const rawGlobalSettings = frontendControlledSettings["global"];
   const rawContestSettings = frontendControlledSettings["contest"];
   if (!Array.isArray(rawGlobalSettings) || !Array.isArray(rawContestSettings)) {
     throw new Error(
-      "Invalid anti-cheat config payload: frontend_controlled_settings.global/contest must be arrays"
+      "Invalid anti-cheat config payload: frontend_controlled_settings.global/contest must be arrays",
     );
   }
 
   const version = root["version"];
   if (typeof version !== "number" || !Number.isFinite(version)) {
-    throw new Error("Invalid anti-cheat config payload: version must be a number");
+    throw new Error(
+      "Invalid anti-cheat config payload: version must be a number",
+    );
   }
 
-  const rawDevicePolicy = root["device_policy"] ?? contestSettings["anticheat_device_policy"];
-  const parsedDevicePolicy = mapAnticheatDevicePolicyDto(rawDevicePolicy as any);
+  const rawDevicePolicy =
+    root["device_policy"] ?? contestSettings["anticheat_device_policy"];
+  const parsedDevicePolicy = mapAnticheatDevicePolicyDto(
+    rawDevicePolicy as any,
+  );
 
   return {
     version,
     globalDefaults: {
-      captureIntervalSeconds: ensureNumber(globalDefaults, "capture_interval_seconds", "global_defaults"),
-      captureUploadMaxRetries: ensureNumber(globalDefaults, "capture_upload_max_retries", "global_defaults"),
-      warningTimeoutSeconds: ensureNumber(effective, "warning_timeout_seconds", "effective"),
-      forcedCaptureCooldownMs: ensureNumber(globalDefaults, "forced_capture_cooldown_ms", "global_defaults"),
-      forcedCaptureP1CooldownMs: ensureNumber(globalDefaults, "forced_capture_p1_cooldown_ms", "global_defaults"),
+      captureIntervalSeconds: ensureNumber(
+        globalDefaults,
+        "capture_interval_seconds",
+        "global_defaults",
+      ),
+      captureUploadMaxRetries: ensureNumber(
+        globalDefaults,
+        "capture_upload_max_retries",
+        "global_defaults",
+      ),
+      warningTimeoutSeconds: ensureNumber(
+        effective,
+        "warning_timeout_seconds",
+        "effective",
+      ),
+      forcedCaptureCooldownMs: ensureNumber(
+        globalDefaults,
+        "forced_capture_cooldown_ms",
+        "global_defaults",
+      ),
+      forcedCaptureP1CooldownMs: ensureNumber(
+        globalDefaults,
+        "forced_capture_p1_cooldown_ms",
+        "global_defaults",
+      ),
       eventFeedAggregationWindowSeconds: ensureNumber(
         globalDefaults,
         "event_feed_aggregation_window_seconds",
-        "global_defaults"
+        "global_defaults",
       ),
       incidentScreenshotWindowBeforeMs: ensureNumber(
         globalDefaults,
         "incident_screenshot_window_before_ms",
-        "global_defaults"
+        "global_defaults",
       ),
       incidentScreenshotWindowAfterMs: ensureNumber(
         globalDefaults,
         "incident_screenshot_window_after_ms",
-        "global_defaults"
+        "global_defaults",
       ),
       incidentScreenshotPreviewLimit: ensureNumber(
         globalDefaults,
         "incident_screenshot_preview_limit",
-        "global_defaults"
+        "global_defaults",
       ),
       incidentScreenshotCategories: ensureStringArray(
         globalDefaults,
         "incident_screenshot_categories",
-        "global_defaults"
+        "global_defaults",
       ),
-      monitoringRecoveryGraceMs: ensureNumber(globalDefaults, "monitoring_recovery_grace_ms", "global_defaults"),
-      mouseLeaveCooldownMs: ensureNumber(globalDefaults, "mouse_leave_cooldown_ms", "global_defaults"),
+      monitoringRecoveryGraceMs: ensureNumber(
+        globalDefaults,
+        "monitoring_recovery_grace_ms",
+        "global_defaults",
+      ),
+      mouseLeaveCooldownMs: ensureNumber(
+        globalDefaults,
+        "mouse_leave_cooldown_ms",
+        "global_defaults",
+      ),
       screenShareRecoveryGraceMs: ensureNumber(
         globalDefaults,
         "screen_share_recovery_grace_ms",
-        "global_defaults"
+        "global_defaults",
       ),
-      webcamRecoveryGraceMs: ensureNumber(globalDefaults, "webcam_recovery_grace_ms", "global_defaults"),
+      webcamRecoveryGraceMs: ensureNumber(
+        globalDefaults,
+        "webcam_recovery_grace_ms",
+        "global_defaults",
+      ),
       webcamCaptureIntervalSeconds: ensureNumber(
         globalDefaults,
         "webcam_capture_interval_seconds",
-        "global_defaults"
+        "global_defaults",
       ),
       multiDisplayCheckIntervalMs: ensureNumber(
         globalDefaults,
         "multi_display_check_interval_ms",
-        "global_defaults"
+        "global_defaults",
       ),
       multiDisplayReportCooldownMs: ensureNumber(
         globalDefaults,
         "multi_display_report_cooldown_ms",
-        "global_defaults"
+        "global_defaults",
       ),
-      presignedUrlTtlSeconds: ensureNumber(globalDefaults, "presigned_url_ttl_seconds", "global_defaults"),
+      presignedUrlTtlSeconds: ensureNumber(
+        globalDefaults,
+        "presigned_url_ttl_seconds",
+        "global_defaults",
+      ),
     },
     contestSettings: {
-      cheatDetectionEnabled: ensureBoolean(contestSettings, "cheat_detection_enabled", "contest_settings"),
-      allowMultipleJoins: ensureBoolean(contestSettings, "allow_multiple_joins", "contest_settings"),
-      maxCheatWarnings: ensureNumber(contestSettings, "max_cheat_warnings", "contest_settings"),
-      allowAutoUnlock: ensureBoolean(contestSettings, "allow_auto_unlock", "contest_settings"),
-      autoUnlockMinutes: ensureNumber(contestSettings, "auto_unlock_minutes", "contest_settings"),
+      cheatDetectionEnabled: ensureBoolean(
+        contestSettings,
+        "cheat_detection_enabled",
+        "contest_settings",
+      ),
+      allowMultipleJoins: ensureBoolean(
+        contestSettings,
+        "allow_multiple_joins",
+        "contest_settings",
+      ),
+      maxCheatWarnings: ensureNumber(
+        contestSettings,
+        "max_cheat_warnings",
+        "contest_settings",
+      ),
+      allowAutoUnlock: ensureBoolean(
+        contestSettings,
+        "allow_auto_unlock",
+        "contest_settings",
+      ),
+      autoUnlockMinutes: ensureNumber(
+        contestSettings,
+        "auto_unlock_minutes",
+        "contest_settings",
+      ),
       contestType:
-        ensureString(contestSettings, "contest_type", "contest_settings") === "paper_exam"
+        ensureString(contestSettings, "contest_type", "contest_settings") ===
+        "paper_exam"
           ? "paper_exam"
           : "coding",
-      warningTimeoutSeconds: ensureNumber(contestSettings, "warning_timeout_seconds", "contest_settings"),
+      warningTimeoutSeconds: ensureNumber(
+        contestSettings,
+        "warning_timeout_seconds",
+        "contest_settings",
+      ),
       screenShareRecoveryGraceMs: ensureNumber(
         contestSettings,
         "screen_share_recovery_grace_ms",
-        "contest_settings"
+        "contest_settings",
       ),
       anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
-        contestSettings["anticheat_device_policy"] as any
+        contestSettings["anticheat_device_policy"] as any,
       ),
     },
     effective: {
-      captureIntervalSeconds: ensureNumber(effective, "capture_interval_seconds", "effective"),
-      captureUploadMaxRetries: ensureNumber(effective, "capture_upload_max_retries", "effective"),
-      warningTimeoutSeconds: ensureNumber(effective, "warning_timeout_seconds", "effective"),
-      forcedCaptureCooldownMs: ensureNumber(effective, "forced_capture_cooldown_ms", "effective"),
-      forcedCaptureP1CooldownMs: ensureNumber(effective, "forced_capture_p1_cooldown_ms", "effective"),
+      captureIntervalSeconds: ensureNumber(
+        effective,
+        "capture_interval_seconds",
+        "effective",
+      ),
+      captureUploadMaxRetries: ensureNumber(
+        effective,
+        "capture_upload_max_retries",
+        "effective",
+      ),
+      warningTimeoutSeconds: ensureNumber(
+        effective,
+        "warning_timeout_seconds",
+        "effective",
+      ),
+      forcedCaptureCooldownMs: ensureNumber(
+        effective,
+        "forced_capture_cooldown_ms",
+        "effective",
+      ),
+      forcedCaptureP1CooldownMs: ensureNumber(
+        effective,
+        "forced_capture_p1_cooldown_ms",
+        "effective",
+      ),
       eventFeedAggregationWindowSeconds: ensureNumber(
         effective,
         "event_feed_aggregation_window_seconds",
-        "effective"
+        "effective",
       ),
       incidentScreenshotWindowBeforeMs: ensureNumber(
         effective,
         "incident_screenshot_window_before_ms",
-        "effective"
+        "effective",
       ),
       incidentScreenshotWindowAfterMs: ensureNumber(
         effective,
         "incident_screenshot_window_after_ms",
-        "effective"
+        "effective",
       ),
       incidentScreenshotPreviewLimit: ensureNumber(
         effective,
         "incident_screenshot_preview_limit",
-        "effective"
+        "effective",
       ),
       incidentScreenshotCategories: ensureStringArray(
         effective,
         "incident_screenshot_categories",
-        "effective"
+        "effective",
       ),
-      monitoringRecoveryGraceMs: ensureNumber(effective, "monitoring_recovery_grace_ms", "effective"),
-      mouseLeaveCooldownMs: ensureNumber(effective, "mouse_leave_cooldown_ms", "effective"),
+      monitoringRecoveryGraceMs: ensureNumber(
+        effective,
+        "monitoring_recovery_grace_ms",
+        "effective",
+      ),
+      mouseLeaveCooldownMs: ensureNumber(
+        effective,
+        "mouse_leave_cooldown_ms",
+        "effective",
+      ),
       screenShareRecoveryGraceMs: ensureNumber(
         effective,
         "screen_share_recovery_grace_ms",
-        "effective"
+        "effective",
       ),
-      webcamRecoveryGraceMs: ensureNumber(effective, "webcam_recovery_grace_ms", "effective"),
+      webcamRecoveryGraceMs: ensureNumber(
+        effective,
+        "webcam_recovery_grace_ms",
+        "effective",
+      ),
       webcamCaptureIntervalSeconds: ensureNumber(
         effective,
         "webcam_capture_interval_seconds",
-        "effective"
+        "effective",
       ),
       multiDisplayCheckIntervalMs: ensureNumber(
         effective,
         "multi_display_check_interval_ms",
-        "effective"
+        "effective",
       ),
       multiDisplayReportCooldownMs: ensureNumber(
         effective,
         "multi_display_report_cooldown_ms",
-        "effective"
+        "effective",
       ),
-      presignedUrlTtlSeconds: ensureNumber(effective, "presigned_url_ttl_seconds", "effective"),
-      cheatDetectionEnabled: ensureBoolean(effective, "cheat_detection_enabled", "effective"),
-      allowMultipleJoins: ensureBoolean(effective, "allow_multiple_joins", "effective"),
-      maxCheatWarnings: ensureNumber(effective, "max_cheat_warnings", "effective"),
-      allowAutoUnlock: ensureBoolean(effective, "allow_auto_unlock", "effective"),
-      autoUnlockMinutes: ensureNumber(effective, "auto_unlock_minutes", "effective"),
-      contestType: ensureString(effective, "contest_type", "effective") === "paper_exam" ? "paper_exam" : "coding",
+      presignedUrlTtlSeconds: ensureNumber(
+        effective,
+        "presigned_url_ttl_seconds",
+        "effective",
+      ),
+      cheatDetectionEnabled: ensureBoolean(
+        effective,
+        "cheat_detection_enabled",
+        "effective",
+      ),
+      allowMultipleJoins: ensureBoolean(
+        effective,
+        "allow_multiple_joins",
+        "effective",
+      ),
+      maxCheatWarnings: ensureNumber(
+        effective,
+        "max_cheat_warnings",
+        "effective",
+      ),
+      allowAutoUnlock: ensureBoolean(
+        effective,
+        "allow_auto_unlock",
+        "effective",
+      ),
+      autoUnlockMinutes: ensureNumber(
+        effective,
+        "auto_unlock_minutes",
+        "effective",
+      ),
+      contestType:
+        ensureString(effective, "contest_type", "effective") === "paper_exam"
+          ? "paper_exam"
+          : "coding",
       anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
-        effective["anticheat_device_policy"] as any
+        effective["anticheat_device_policy"] as any,
       ),
     },
     devicePolicy: parsedDevicePolicy,
@@ -508,12 +695,15 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
   };
 }
 
-export function mapContestParticipantDto(dto: ContestParticipantDto): ContestParticipant {
+export function mapContestParticipantDto(
+  dto: ContestParticipantDto,
+): ContestParticipant {
   return {
     userId: dto.user_id?.toString() || "",
     username: dto.username || "",
     email: dto.user?.email,
-    userDisplayName: dto.user_display_name || dto.user?.profile?.display_name || "",
+    userDisplayName:
+      dto.user_display_name || dto.user?.profile?.display_name || "",
     accountRole: dto.account_role || dto.user?.role || "",
     authProvider: dto.auth_provider || dto.user?.auth_provider || "",
     connectionStatus:
@@ -522,6 +712,11 @@ export function mapContestParticipantDto(dto: ContestParticipantDto): ContestPar
         : "offline",
     lastHeartbeatAt: dto.last_heartbeat_at ?? null,
     liveMonitoringOnline: !!dto.live_monitoring_online,
+    liveMonitoringSources: Array.isArray(dto.live_monitoring_sources)
+      ? dto.live_monitoring_sources.filter(
+          (source) => source === "screen_share" || source === "webcam",
+        )
+      : [],
     score: dto.total_score ?? dto.score ?? 0,
     rank: dto.rank,
     joinedAt: dto.joined_at || "",
@@ -534,13 +729,17 @@ export function mapContestParticipantDto(dto: ContestParticipantDto): ContestPar
   };
 }
 
-const mapParticipantDashboardStatusDto = (dto: ParticipantDashboardStatusDto): ParticipantDashboardStatus => ({
+const mapParticipantDashboardStatusDto = (
+  dto: ParticipantDashboardStatusDto,
+): ParticipantDashboardStatus => ({
   code: dto?.code || "",
   label: dto?.label || "",
   color: dto?.color || "gray",
 });
 
-const mapParticipantTimelineDto = (dto: ParticipantTimelineItemDto): ParticipantDashboardTimelineItem => ({
+const mapParticipantTimelineDto = (
+  dto: ParticipantTimelineItemDto,
+): ParticipantDashboardTimelineItem => ({
   id: dto?.id?.toString() || "",
   source: dto?.source === "exam_event" ? "exam_event" : "activity",
   eventType: dto?.event_type || "",
@@ -553,21 +752,32 @@ const mapParticipantOverviewDto = (dto: any): ParticipantOverviewSummary => ({
   totalScore: Number(dto?.total_score ?? 0),
   maxScore: Number(dto?.max_score ?? 0),
   solved: dto?.solved != null ? Number(dto.solved) : undefined,
-  totalProblems: dto?.total_problems != null ? Number(dto.total_problems) : undefined,
+  totalProblems:
+    dto?.total_problems != null ? Number(dto.total_problems) : undefined,
   rank: dto?.rank != null ? Number(dto.rank) : null,
   totalParticipants:
-    dto?.total_participants != null ? Number(dto.total_participants) : undefined,
+    dto?.total_participants != null
+      ? Number(dto.total_participants)
+      : undefined,
   effectiveSubmissions:
-    dto?.effective_submissions != null ? Number(dto.effective_submissions) : undefined,
+    dto?.effective_submissions != null
+      ? Number(dto.effective_submissions)
+      : undefined,
   acceptedSubmissions:
-    dto?.accepted_submissions != null ? Number(dto.accepted_submissions) : undefined,
-  acceptedRate: dto?.accepted_rate != null ? Number(dto.accepted_rate) : undefined,
+    dto?.accepted_submissions != null
+      ? Number(dto.accepted_submissions)
+      : undefined,
+  acceptedRate:
+    dto?.accepted_rate != null ? Number(dto.accepted_rate) : undefined,
   correctRate: dto?.correct_rate != null ? Number(dto.correct_rate) : undefined,
   gradedCount: dto?.graded_count != null ? Number(dto.graded_count) : undefined,
-  totalQuestions: dto?.total_questions != null ? Number(dto.total_questions) : undefined,
+  totalQuestions:
+    dto?.total_questions != null ? Number(dto.total_questions) : undefined,
 });
 
-const mapPaperOverviewRowDto = (dto: ParticipantPaperReportRowDto): ParticipantPaperReportOverviewRow => ({
+const mapPaperOverviewRowDto = (
+  dto: ParticipantPaperReportRowDto,
+): ParticipantPaperReportOverviewRow => ({
   questionId: dto?.question_id?.toString() || "",
   index: Number(dto?.index ?? 0),
   questionType: (dto?.question_type || "essay") as ExamQuestionType,
@@ -576,12 +786,16 @@ const mapPaperOverviewRowDto = (dto: ParticipantPaperReportRowDto): ParticipantP
   maxScore: Number(dto?.max_score ?? 0),
 });
 
-const mapPaperQuestionDetailDto = (dto: any): ParticipantPaperQuestionDetail => ({
+const mapPaperQuestionDetailDto = (
+  dto: any,
+): ParticipantPaperQuestionDetail => ({
   questionId: dto?.question_id?.toString() || "",
   index: Number(dto?.index ?? 0),
   questionType: (dto?.question_type || "essay") as ExamQuestionType,
   prompt: dto?.prompt || "",
-  options: Array.isArray(dto?.options) ? dto.options.map((item: unknown) => String(item)) : [],
+  options: Array.isArray(dto?.options)
+    ? dto.options.map((item: unknown) => String(item))
+    : [],
   correctAnswer: dto?.correct_answer,
   explanation: dto?.explanation || "",
   answer: dto?.answer || {},
@@ -594,7 +808,9 @@ const mapPaperQuestionDetailDto = (dto: any): ParticipantPaperQuestionDetail => 
   status: mapParticipantDashboardStatusDto(dto?.status || {}),
 });
 
-const mapCodingProblemRowDto = (dto: ParticipantCodingProblemRowDto): ParticipantCodingProblemRow => ({
+const mapCodingProblemRowDto = (
+  dto: ParticipantCodingProblemRowDto,
+): ParticipantCodingProblemRow => ({
   problemId: dto?.problem_id?.toString() || "",
   label: dto?.label || "",
   title: dto?.title || "",
@@ -606,7 +822,9 @@ const mapCodingProblemRowDto = (dto: ParticipantCodingProblemRowDto): Participan
   time: dto?.time != null ? Number(dto.time) : null,
 });
 
-const mapCodingProblemDetailDto = (dto: any): ParticipantCodingProblemDetail => ({
+const mapCodingProblemDetailDto = (
+  dto: any,
+): ParticipantCodingProblemDetail => ({
   ...mapCodingProblemRowDto(dto),
   bestSubmission: dto?.best_submission
     ? {
@@ -620,7 +838,8 @@ const mapCodingProblemDetailDto = (dto: any): ParticipantCodingProblemDetail => 
 });
 
 const mapCodingTrendPointDto = (dto: any): ParticipantCodingTrendPoint => ({
-  submissionId: dto?.submission_id != null ? dto.submission_id.toString() : undefined,
+  submissionId:
+    dto?.submission_id != null ? dto.submission_id.toString() : undefined,
   createdAt: dto?.created_at || "",
   minutesFromStart: Number(dto?.minutes_from_start ?? 0),
   score: Number(dto?.score ?? 0),
@@ -650,7 +869,9 @@ const mapEventFeedItemDto = (dto: EventFeedItemDto): EventFeedItem => ({
   metadata: dto?.metadata || {},
 });
 
-export function mapParticipantDashboardDto(dto: ParticipantDashboardDto): ParticipantDashboard {
+export function mapParticipantDashboardDto(
+  dto: ParticipantDashboardDto,
+): ParticipantDashboard {
   const participant = mapContestParticipantDto(dto?.participant || {});
   const baseParticipant = {
     ...participant,
@@ -659,7 +880,9 @@ export function mapParticipantDashboardDto(dto: ParticipantDashboardDto): Partic
     lockedAt: dto?.participant?.locked_at,
   };
 
-  const contestType = (dto?.contest_type === "paper_exam" ? "paper_exam" : "coding") as ContestType;
+  const contestType = (
+    dto?.contest_type === "paper_exam" ? "paper_exam" : "coding"
+  ) as ContestType;
   const report =
     contestType === "paper_exam"
       ? {
@@ -678,10 +901,14 @@ export function mapParticipantDashboardDto(dto: ParticipantDashboardDto): Partic
             ? dto.report.problem_details.map(mapCodingProblemDetailDto)
             : [],
           trend: {
-            submissionTimeline: Array.isArray(dto?.report?.trend?.submission_timeline)
+            submissionTimeline: Array.isArray(
+              dto?.report?.trend?.submission_timeline,
+            )
               ? dto.report.trend.submission_timeline.map(mapCodingTrendPointDto)
               : [],
-            cumulativeProgress: Array.isArray(dto?.report?.trend?.cumulative_progress)
+            cumulativeProgress: Array.isArray(
+              dto?.report?.trend?.cumulative_progress,
+            )
               ? dto.report.trend.cumulative_progress.map(mapCodingTrendPointDto)
               : [],
             statusCounts: dto?.report?.trend?.status_counts || {},
@@ -693,8 +920,12 @@ export function mapParticipantDashboardDto(dto: ParticipantDashboardDto): Partic
     participant: baseParticipant,
     overview: mapParticipantOverviewDto(dto?.overview || {}),
     report,
-    timeline: Array.isArray(dto?.timeline) ? dto.timeline.map(mapParticipantTimelineDto) : [],
-    eventFeed: Array.isArray(dto?.event_feed) ? dto.event_feed.map(mapEventFeedItemDto) : [],
+    timeline: Array.isArray(dto?.timeline)
+      ? dto.timeline.map(mapParticipantTimelineDto)
+      : [],
+    eventFeed: Array.isArray(dto?.event_feed)
+      ? dto.event_feed.map(mapEventFeedItemDto)
+      : [],
     actions: {
       canDownloadReport: !!dto?.actions?.can_download_report,
       canEditStatus: !!dto?.actions?.can_edit_status,
@@ -752,12 +983,17 @@ export function mapScoreboardDto(dto: ScoreboardDto): ScoreboardData {
 }
 
 export function mapExamEventDto(dto: any): ExamEvent {
-  const meta: Record<string, unknown> | undefined =
-    dto.metadata
-      ? typeof dto.metadata === "string"
-        ? (() => { try { return JSON.parse(dto.metadata); } catch { return { raw: dto.metadata }; } })()
-        : dto.metadata
-      : undefined;
+  const meta: Record<string, unknown> | undefined = dto.metadata
+    ? typeof dto.metadata === "string"
+      ? (() => {
+          try {
+            return JSON.parse(dto.metadata);
+          } catch {
+            return { raw: dto.metadata };
+          }
+        })()
+      : dto.metadata
+    : undefined;
 
   return {
     id: dto.id?.toString() || "",
@@ -843,7 +1079,9 @@ export function mapExamQuestionDto(dto: any): ExamQuestion {
   };
 }
 
-export function mapContestUpdateRequestToDto(request: ContestUpdateRequest): any {
+export function mapContestUpdateRequestToDto(
+  request: ContestUpdateRequest,
+): any {
   const anticheatDevicePolicy =
     request.anticheatDevicePolicy != null
       ? {
@@ -851,54 +1089,77 @@ export function mapContestUpdateRequestToDto(request: ContestUpdateRequest): any
             enabled: !!request.anticheatDevicePolicy.desktop?.enabled,
             sources: {
               screen_share: {
-                enabled: !!request.anticheatDevicePolicy.desktop?.sources?.screenShare?.enabled,
+                enabled:
+                  !!request.anticheatDevicePolicy.desktop?.sources?.screenShare
+                    ?.enabled,
                 capture_interval_seconds:
                   request.anticheatDevicePolicy.desktop?.sources?.screenShare
                     ?.captureIntervalSeconds ?? 5,
               },
               webcam: {
-                enabled: !!request.anticheatDevicePolicy.desktop?.sources?.webcam?.enabled,
+                enabled:
+                  !!request.anticheatDevicePolicy.desktop?.sources?.webcam
+                    ?.enabled,
                 capture_interval_seconds:
-                  request.anticheatDevicePolicy.desktop?.sources?.webcam?.captureIntervalSeconds ??
-                  10,
+                  request.anticheatDevicePolicy.desktop?.sources?.webcam
+                    ?.captureIntervalSeconds ?? 10,
               },
             },
             detectors: {
-              pwa_mode: !!request.anticheatDevicePolicy.desktop?.detectors?.pwaMode,
-              fullscreen: !!request.anticheatDevicePolicy.desktop?.detectors?.fullscreen,
+              pwa_mode:
+                !!request.anticheatDevicePolicy.desktop?.detectors?.pwaMode,
+              fullscreen:
+                !!request.anticheatDevicePolicy.desktop?.detectors?.fullscreen,
               focus: !!request.anticheatDevicePolicy.desktop?.detectors?.focus,
-              tab_visibility: !!request.anticheatDevicePolicy.desktop?.detectors?.tabVisibility,
-              multi_display: !!request.anticheatDevicePolicy.desktop?.detectors?.multiDisplay,
-              mouse_leave: !!request.anticheatDevicePolicy.desktop?.detectors?.mouseLeave,
+              tab_visibility:
+                !!request.anticheatDevicePolicy.desktop?.detectors
+                  ?.tabVisibility,
+              multi_display:
+                !!request.anticheatDevicePolicy.desktop?.detectors
+                  ?.multiDisplay,
+              mouse_leave:
+                !!request.anticheatDevicePolicy.desktop?.detectors?.mouseLeave,
               viewport_integrity:
-                !!request.anticheatDevicePolicy.desktop?.detectors?.viewportIntegrity,
+                !!request.anticheatDevicePolicy.desktop?.detectors
+                  ?.viewportIntegrity,
             },
           },
           tablet: {
             enabled: !!request.anticheatDevicePolicy.tablet?.enabled,
             sources: {
               screen_share: {
-                enabled: !!request.anticheatDevicePolicy.tablet?.sources?.screenShare?.enabled,
+                enabled:
+                  !!request.anticheatDevicePolicy.tablet?.sources?.screenShare
+                    ?.enabled,
                 capture_interval_seconds:
-                  request.anticheatDevicePolicy.tablet?.sources?.screenShare?.captureIntervalSeconds ??
-                  5,
+                  request.anticheatDevicePolicy.tablet?.sources?.screenShare
+                    ?.captureIntervalSeconds ?? 5,
               },
               webcam: {
-                enabled: !!request.anticheatDevicePolicy.tablet?.sources?.webcam?.enabled,
+                enabled:
+                  !!request.anticheatDevicePolicy.tablet?.sources?.webcam
+                    ?.enabled,
                 capture_interval_seconds:
-                  request.anticheatDevicePolicy.tablet?.sources?.webcam?.captureIntervalSeconds ??
-                  10,
+                  request.anticheatDevicePolicy.tablet?.sources?.webcam
+                    ?.captureIntervalSeconds ?? 10,
               },
             },
             detectors: {
-              pwa_mode: !!request.anticheatDevicePolicy.tablet?.detectors?.pwaMode,
-              fullscreen: !!request.anticheatDevicePolicy.tablet?.detectors?.fullscreen,
+              pwa_mode:
+                !!request.anticheatDevicePolicy.tablet?.detectors?.pwaMode,
+              fullscreen:
+                !!request.anticheatDevicePolicy.tablet?.detectors?.fullscreen,
               focus: !!request.anticheatDevicePolicy.tablet?.detectors?.focus,
-              tab_visibility: !!request.anticheatDevicePolicy.tablet?.detectors?.tabVisibility,
-              multi_display: !!request.anticheatDevicePolicy.tablet?.detectors?.multiDisplay,
-              mouse_leave: !!request.anticheatDevicePolicy.tablet?.detectors?.mouseLeave,
+              tab_visibility:
+                !!request.anticheatDevicePolicy.tablet?.detectors
+                  ?.tabVisibility,
+              multi_display:
+                !!request.anticheatDevicePolicy.tablet?.detectors?.multiDisplay,
+              mouse_leave:
+                !!request.anticheatDevicePolicy.tablet?.detectors?.mouseLeave,
               viewport_integrity:
-                !!request.anticheatDevicePolicy.tablet?.detectors?.viewportIntegrity,
+                !!request.anticheatDevicePolicy.tablet?.detectors
+                  ?.viewportIntegrity,
             },
           },
         }
@@ -916,8 +1177,8 @@ export function mapContestUpdateRequestToDto(request: ContestUpdateRequest): any
       typeof request.requiresPassword === "boolean"
         ? request.requiresPassword
         : typeof request.visibility === "string"
-        ? request.visibility === "private"
-        : undefined,
+          ? request.visibility === "private"
+          : undefined,
     password: request.password,
     cheat_detection_enabled: request.cheatDetectionEnabled,
     anticheat_device_policy: anticheatDevicePolicy,

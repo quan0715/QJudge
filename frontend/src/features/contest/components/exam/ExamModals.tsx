@@ -2,24 +2,16 @@ import React from "react";
 import { Modal } from "@carbon/react";
 import { WarningAlt, CheckmarkFilled, ScreenOff, DocumentExport, VideoOff, FitToScreen } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { ExamModeState } from "@/core/entities/contest.entity";
 import { ModalAlertContent } from "./ModalAlertContent";
 import styles from "./ModalAlertContent.module.scss";
 
 interface ExamModalsProps {
-  showWarning: boolean;
-  pendingApiResponse: boolean;
-  lastApiResponse: { locked?: boolean; isLocked?: boolean } | null;
-  warningEventType: string | null;
-  examState: ExamModeState;
-  onWarningClose: () => void;
   showUnlockNotification: boolean;
   onUnlockContinue: () => void;
   showFullscreenExitConfirm?: boolean;
   isSubmittingFromFullscreenExit?: boolean;
   onFullscreenExitConfirm?: () => void;
   onFullscreenExitCancel?: () => void;
-  warningCountdown?: number | null;
   recoveryCountdown?: number | null;
   recoverySource?: string | null;
   onRecoverFullscreen?: () => void;
@@ -40,19 +32,12 @@ interface ExamModalsProps {
 }
 
 export const ExamModals: React.FC<ExamModalsProps> = ({
-  showWarning,
-  pendingApiResponse,
-  lastApiResponse,
-  warningEventType,
-  examState,
-  onWarningClose,
   showUnlockNotification,
   onUnlockContinue,
   showFullscreenExitConfirm = false,
   isSubmittingFromFullscreenExit = false,
   onFullscreenExitConfirm,
   onFullscreenExitCancel,
-  warningCountdown,
   recoveryCountdown,
   recoverySource,
   onRecoverFullscreen,
@@ -73,103 +58,12 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
-  const isLocked = !!(lastApiResponse?.locked || lastApiResponse?.isLocked);
-  const warningCloseCooldownActive =
-    !pendingApiResponse && !isLocked && warningCountdown != null && warningCountdown > 0;
   const withButtonTestId = (testId: string, label: React.ReactNode) => (
     <span data-testid={testId}>{label}</span>
   );
 
   return (
     <>
-      {/* Warning Modal - blocks until API responds */}
-      <Modal
-        data-testid="exam-warning-modal"
-        open={showWarning}
-        modalHeading={t("exam.violationWarning")}
-        primaryButtonText={withButtonTestId(
-          "exam-warning-confirm-btn",
-          pendingApiResponse
-            ? t("exam.processing")
-            : warningCloseCooldownActive
-            ? t("exam.warningCloseCooling", { defaultValue: "請等待倒數結束" })
-            : isLocked
-            ? tc("button.confirm")
-            : t("exam.iUnderstand")
-        )}
-        primaryButtonDisabled={pendingApiResponse || warningCloseCooldownActive}
-        onRequestSubmit={onWarningClose}
-        onRequestClose={onWarningClose}
-        preventCloseOnClickOutside
-        danger
-        size="sm"
-      >
-        <ModalAlertContent
-          icon={
-            <WarningAlt
-              size={40}
-              style={{
-                color: pendingApiResponse
-                  ? "var(--cds-icon-disabled)"
-                  : "var(--cds-support-warning)",
-              }}
-            />
-          }
-          variant={pendingApiResponse ? "neutral" : "warning"}
-          title={pendingApiResponse ? t("exam.recordingViolation") : t("exam.abnormalBehavior")}
-        >
-          {/* Event type */}
-          <p className={styles.eventType}>
-            {warningEventType === "exit_fullscreen" && t("exam.exitedFullscreen")}
-            {warningEventType === "forbidden_action" && t("exam.forbiddenAction")}
-            {warningEventType === "multiple_displays" && t("exam.multipleDisplaysDetected")}
-            {warningEventType === "mouse_leave" && t("exam.mouseLeftWindow")}
-          </p>
-
-          <p className={styles.instruction}>{t("exam.stayInExamPage")}</p>
-
-          {/* Warning close cooldown */}
-          {warningCountdown != null && warningCountdown > 0 && !pendingApiResponse && !isLocked && (
-            <p data-testid="exam-warning-countdown" className={styles.warningCountdown}>
-              {t("exam.warningCloseIn", {
-                defaultValue: "可在 {{seconds}} 秒後關閉警告",
-                seconds: warningCountdown,
-              })}
-            </p>
-          )}
-
-          {/* Violation count box */}
-          {!pendingApiResponse &&
-            examState.violationCount !== undefined &&
-            examState.maxWarnings !== undefined && (
-              <div className={styles.statBox}>
-                <div className={styles.statRow}>
-                  <span className={styles.statLabel}>{t("exam.accumulatedViolations")}</span>
-                  <span className={styles.statValueError}>{examState.violationCount}</span>
-                </div>
-                <div className={styles.statRow}>
-                  <span className={styles.statLabel}>{t("exam.remainingChances")}</span>
-                  <span className={isLocked ? styles.statValueError : styles.statValueSuccess}>
-                    {isLocked
-                      ? t("exam.alreadyLocked")
-                      : Math.max(0, examState.maxWarnings + 1 - examState.violationCount)}
-                  </span>
-                </div>
-              </div>
-            )}
-
-          {/* Warning message */}
-          {isLocked ? (
-            <p className={styles.errorNote}>{t("exam.examLocked")}</p>
-          ) : (
-            <p className={styles.smallErrorNote}>{t("exam.zeroChanceWarning")}</p>
-          )}
-          <p className={styles.secondaryNote}>
-            {t("exam.monitoringStillActive", { defaultValue: "關閉警告後仍持續監控。" })}
-          </p>
-        </ModalAlertContent>
-      </Modal>
-
       {/* Recovery warning (grace window before counting a violation) */}
       <Modal
         data-testid="exam-recovery-modal"

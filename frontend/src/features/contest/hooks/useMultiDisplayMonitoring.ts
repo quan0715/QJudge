@@ -12,6 +12,7 @@ import type { ViolationEvent } from "@/features/contest/detectors";
 import { recordExamEvent } from "@/infrastructure/api/repositories";
 import { useViolationPipeline } from "./useViolationPipeline";
 import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
+import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 import { useTranslation } from "react-i18next";
 
 export interface UseMultiDisplayMonitoringConfig {
@@ -19,6 +20,7 @@ export interface UseMultiDisplayMonitoringConfig {
   enabled: boolean;
   examSubmitted: boolean;
   recoveryGraceMs?: number;
+  evidenceCaptureModules?: ForcedCaptureModule[];
   onViolation: (eventType: string, reason: string) => void;
   requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
 }
@@ -35,12 +37,15 @@ export function useMultiDisplayMonitoring({
   enabled,
   examSubmitted,
   recoveryGraceMs,
+  evidenceCaptureModules,
   onViolation,
   requestForceSubmit,
 }: UseMultiDisplayMonitoringConfig): UseMultiDisplayMonitoringReturn {
   const { t } = useTranslation("contest");
   const tRef = useRef(t);
-  useEffect(() => { tRef.current = t; }, [t]);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   const pipeline = useViolationPipeline({
     route: multiDisplayRoute,
@@ -51,17 +56,27 @@ export function useMultiDisplayMonitoring({
     moduleRole: "primary",
     requestForceSubmit,
     onViolation,
+    forceSubmitExtras: {
+      sourceModule: "screen_share",
+      evidenceCaptureModules,
+    },
   });
 
   const pipelineRef = useRef(pipeline);
-  useEffect(() => { pipelineRef.current = pipeline; }, [pipeline]);
+  useEffect(() => {
+    pipelineRef.current = pipeline;
+  }, [pipeline]);
 
   const detectorRef = useRef<MultiDisplayDetector | null>(null);
   const lastInteractionCheckRef = useRef(0);
 
   const triggerCheck = useCallback(() => {
     const now = Date.now();
-    if (now - lastInteractionCheckRef.current < EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS) return;
+    if (
+      now - lastInteractionCheckRef.current <
+      EXAM_MONITORING_USER_INTERACTION_DISPLAY_CHECK_COOLDOWN_MS
+    )
+      return;
     lastInteractionCheckRef.current = now;
     detectorRef.current?.triggerCheck();
   }, []);

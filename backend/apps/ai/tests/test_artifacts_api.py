@@ -343,6 +343,24 @@ class ArtifactUserEndpointTests(TestCase):
         mock_store.assert_called_once()
 
     @patch("apps.ai.artifact_views.artifact_storage.store_artifact")
+    def test_upload_pdf_creates_user_upload_artifact(self, mock_store):
+        self.client.force_authenticate(user=self.user1)
+        upload = SimpleUploadedFile(
+            "OS-2025-Midterm-2-QA.pdf",
+            b"%PDF-1.7\n",
+            content_type="application/pdf",
+        )
+        resp = self.client.post(
+            "/api/v1/ai/artifacts/upload/",
+            {"session_id": self.session1.session_id, "file": upload},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
+        self.assertEqual(resp.data["step"], "user_upload")
+        self.assertEqual(resp.data["filename"], "OS-2025-Midterm-2-QA.pdf")
+        self.assertEqual(resp.data["content_type"], "application/pdf")
+        mock_store.assert_called_once()
+
+    @patch("apps.ai.artifact_views.artifact_storage.store_artifact")
     def test_upload_csv_accepts_custom_step_for_session_artifact(self, mock_store):
         self.client.force_authenticate(user=self.user1)
         upload = SimpleUploadedFile(

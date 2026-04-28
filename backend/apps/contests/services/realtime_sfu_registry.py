@@ -115,6 +115,55 @@ def get_publisher(
     return payload if isinstance(payload, dict) else None
 
 
+def get_preferred_publishers(contest_id: int, user_ids: list[int]) -> dict[int, dict[str, Any] | None]:
+    if not user_ids:
+        return {}
+
+    key_to_user: dict[str, int] = {}
+    keys_by_user: dict[int, list[str]] = {}
+    for user_id in user_ids:
+        keys = [publisher_key(contest_id, user_id, source) for source in SOURCE_MODULES]
+        keys.append(publisher_key(contest_id, user_id))
+        keys_by_user[user_id] = keys
+        for key in keys:
+            key_to_user[key] = user_id
+
+    values = cache.get_many(key_to_user.keys())
+    result: dict[int, dict[str, Any] | None] = {}
+    for user_id, keys in keys_by_user.items():
+        publishers = [
+            payload
+            for key in keys
+            if isinstance((payload := values.get(key)), dict)
+        ]
+        result[user_id] = _preferred_publisher(publishers)
+    return result
+
+
+def get_publishers_by_user(contest_id: int, user_ids: list[int]) -> dict[int, list[dict[str, Any]]]:
+    if not user_ids:
+        return {}
+
+    key_to_user: dict[str, int] = {}
+    keys_by_user: dict[int, list[str]] = {}
+    for user_id in user_ids:
+        keys = [publisher_key(contest_id, user_id, source) for source in SOURCE_MODULES]
+        keys.append(publisher_key(contest_id, user_id))
+        keys_by_user[user_id] = keys
+        for key in keys:
+            key_to_user[key] = user_id
+
+    values = cache.get_many(key_to_user.keys())
+    result: dict[int, list[dict[str, Any]]] = {}
+    for user_id, keys in keys_by_user.items():
+        result[user_id] = [
+            payload
+            for key in keys
+            if isinstance((payload := values.get(key)), dict)
+        ]
+    return result
+
+
 def remove_publisher(
     contest_id: int,
     user_id: int,

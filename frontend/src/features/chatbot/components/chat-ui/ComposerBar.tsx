@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from "react";
-import { Add, ArrowUp, InProgress } from "@carbon/icons-react";
+import { Add, ArrowUp, Close, Document, InProgress } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ChatMessage, ModelInfo } from "@/core/types/chatbot.types";
 import { SessionBadges, useSessionBadgeSummary } from "./SessionBadges";
@@ -9,11 +9,10 @@ import styles from "./ComposerBar.module.scss";
 const TEXTAREA_MAX_HEIGHT = 160; // sync with $chat-textarea-max-height in _variables.scss
 
 interface ComposerBarProps {
-  onSend: (text: string) => void;
+  onSend: (text: string, pendingFiles?: File[]) => boolean | Promise<boolean>;
   models: ModelInfo[];
   selectedModelId: string;
   onModelChange: (modelId: string) => void;
-  onUpload?: (file: File) => Promise<void>;
   onStop?: () => void;
   isStreaming: boolean;
   disabled?: boolean;
@@ -28,7 +27,6 @@ export function ComposerBar({
   models,
   selectedModelId,
   onModelChange,
-  onUpload,
   onStop,
   isStreaming,
   disabled = false,
@@ -40,22 +38,25 @@ export function ComposerBar({
   const displayPlaceholder = placeholder || t("ui.inputPlaceholder");
 
   const [value, setValue] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   // Expanded layout: active when textarea wraps >= 2 visual lines OR the
   // session has badges to show. New chats with a single-line draft and no
   // badges stay in the compact pill layout.
   const [isWrapped, setIsWrapped] = useState(false);
   const badgeSummary = useSessionBadgeSummary(messages ?? []);
-  const isExpanded = isWrapped || badgeSummary.hasAny;
+  const isExpanded = isWrapped || badgeSummary.hasAny || pendingFiles.length > 0;
   const composingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     const trimmed = value.trim();
     if (!trimmed || disabled || isStreaming) return;
-    onSend(trimmed);
+    const didSend = await onSend(trimmed, pendingFiles);
+    if (!didSend) return;
     setValue("");
-  }, [value, disabled, isStreaming, onSend]);
+    setPendingFiles([]);
+  }, [value, pendingFiles, disabled, isStreaming, onSend]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -122,19 +123,25 @@ export function ComposerBar({
 
   const canSend = value.trim().length > 0 && !disabled && !isStreaming;
   const hasStatusBlock = Boolean(sessionNotice);
-  const canUpload = Boolean(onUpload) && !disabled && !isStreaming;
+  const canUpload = !disabled && !isStreaming;
 
   const handlePickFile = useCallback(() => {
     if (!canUpload) return;
     uploadInputRef.current?.click();
   }, [canUpload]);
 
-  const handleUploadChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !onUpload) return;
-    await onUpload(file);
+    if (!file) return;
+    setPendingFiles((files) => [...files, file]);
     e.target.value = "";
-  }, [onUpload]);
+  }, []);
+
+  const removePendingFile = useCallback((indexToRemove: number) => {
+    setPendingFiles((files) =>
+      files.filter((_file, index) => index !== indexToRemove),
+    );
+  }, []);
 
   return (
     <div className={styles.bar}>
@@ -158,7 +165,7 @@ export function ComposerBar({
         <input
           ref={uploadInputRef}
           type="file"
-          accept=".csv,.md,text/csv,text/markdown,text/plain"
+          accept=".csv,.md,.json,.pdf,text/csv,text/markdown,text/plain,application/json,application/pdf"
           className={styles.uploadInput}
           onChange={handleUploadChange}
           tabIndex={-1}
@@ -174,6 +181,25 @@ export function ComposerBar({
           >
             <Add size={16} />
           </button>
+        )}
+        {pendingFiles.length > 0 && (
+          <div className={styles.pendingFileList} aria-label={t("ui.pendingFiles", "待上傳檔案")}>
+            {pendingFiles.map((file, index) => (
+              <span className={styles.pendingFileTag} key={`${file.name}-${file.lastModified}-${index}`}>
+                <Document size={14} className={styles.pendingFileIcon} />
+                <span className={styles.pendingFileName}>{file.name}</span>
+                <button
+                  type="button"
+                  className={styles.pendingFileRemove}
+                  onClick={() => removePendingFile(index)}
+                  aria-label={t("ui.removeAttachment", "移除附件")}
+                  title={t("ui.removeAttachment", "移除附件")}
+                >
+                  <Close size={14} />
+                </button>
+              </span>
+            ))}
+          </div>
         )}
         <textarea
           ref={textareaRef}

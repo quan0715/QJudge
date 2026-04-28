@@ -4,11 +4,13 @@ import { useViewportMonitoring } from "./useViewportMonitoring";
 
 const triggerMock = vi.fn();
 const recoverMock = vi.fn();
+const resetInterruptionMock = vi.fn();
 
 vi.mock("./useViolationPipeline", () => ({
   useViolationPipeline: () => ({
     trigger: triggerMock,
     recover: recoverMock,
+    resetInterruption: resetInterruptionMock,
     recoveryCountdown: null,
     isInterrupted: false,
   }),
@@ -103,6 +105,7 @@ describe("useViewportMonitoring", () => {
         isTablet: true,
         primarySourceModule: "webcam",
         requestForceSubmit: vi.fn(),
+        onViolation: vi.fn(),
       }),
     );
 
@@ -129,6 +132,7 @@ describe("useViewportMonitoring", () => {
         isTablet: true,
         primarySourceModule: "webcam",
         requestForceSubmit: vi.fn(),
+        onViolation: vi.fn(),
       }),
     );
 

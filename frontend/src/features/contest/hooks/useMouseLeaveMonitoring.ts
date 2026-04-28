@@ -9,6 +9,7 @@ import { useEffect, useRef } from "react";
 import { VIOLATION_ROUTES_MAP } from "@/features/contest/domain/violationRoutes";
 import { useViolationPipeline } from "./useViolationPipeline";
 import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
+import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 
 const IME_COMPOSITION_GUARD_MS = 900;
 
@@ -28,6 +29,7 @@ export interface UseMouseLeaveMonitoringConfig {
   examSubmitted: boolean;
   recoveryGraceMs?: number;
   cooldownMs?: number;
+  evidenceCaptureModules?: ForcedCaptureModule[];
   onViolation: (eventType: string, reason: string) => void;
   requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
 }
@@ -46,6 +48,7 @@ export function useMouseLeaveMonitoring({
   examSubmitted,
   recoveryGraceMs,
   cooldownMs = 3000,
+  evidenceCaptureModules,
   onViolation,
   requestForceSubmit,
 }: UseMouseLeaveMonitoringConfig): UseMouseLeaveMonitoringReturn {
@@ -59,6 +62,10 @@ export function useMouseLeaveMonitoring({
     moduleRole: "primary",
     requestForceSubmit,
     onViolation,
+    forceSubmitExtras: {
+      sourceModule: "screen_share",
+      evidenceCaptureModules,
+    },
   });
 
   const isComposingRef = useRef(false);
@@ -85,7 +92,11 @@ export function useMouseLeaveMonitoring({
       if (idleMs > POINTER_IDLE_THRESHOLD_MS) return;
 
       if (isComposingRef.current) return;
-      if (Date.now() - lastCompositionEndAtRef.current < IME_COMPOSITION_GUARD_MS) return;
+      if (
+        Date.now() - lastCompositionEndAtRef.current <
+        IME_COMPOSITION_GUARD_MS
+      )
+        return;
       if (pipeline.isInterrupted) return;
 
       const now = Date.now();
@@ -109,18 +120,37 @@ export function useMouseLeaveMonitoring({
       lastCompositionEndAtRef.current = Date.now();
     };
 
-    document.documentElement.addEventListener("mousemove", handleMouseMove, { passive: true });
+    document.documentElement.addEventListener("mousemove", handleMouseMove, {
+      passive: true,
+    });
     document.documentElement.addEventListener("mouseleave", handleMouseLeave);
     document.documentElement.addEventListener("mouseenter", handleMouseEnter);
     document.addEventListener("compositionstart", handleCompositionStart, true);
     document.addEventListener("compositionend", handleCompositionEnd, true);
 
     return () => {
-      document.documentElement.removeEventListener("mousemove", handleMouseMove);
-      document.documentElement.removeEventListener("mouseleave", handleMouseLeave);
-      document.documentElement.removeEventListener("mouseenter", handleMouseEnter);
-      document.removeEventListener("compositionstart", handleCompositionStart, true);
-      document.removeEventListener("compositionend", handleCompositionEnd, true);
+      document.documentElement.removeEventListener(
+        "mousemove",
+        handleMouseMove,
+      );
+      document.documentElement.removeEventListener(
+        "mouseleave",
+        handleMouseLeave,
+      );
+      document.documentElement.removeEventListener(
+        "mouseenter",
+        handleMouseEnter,
+      );
+      document.removeEventListener(
+        "compositionstart",
+        handleCompositionStart,
+        true,
+      );
+      document.removeEventListener(
+        "compositionend",
+        handleCompositionEnd,
+        true,
+      );
     };
   }, [effectiveEnabled, examSubmitted, pipeline, cooldownMs]);
 

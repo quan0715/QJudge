@@ -21,7 +21,7 @@ from ..permissions import can_manage_contest
 from ..services.anti_cheat_session import (
     build_device_conflict_response,
     clear_active_session,
-    get_active_session,
+    get_active_sessions,
     get_device_id,
     set_active_session,
     touch_heartbeat,
@@ -169,9 +169,11 @@ class ExamAnticheatMixin:
             contest=contest,
             exam_status__in=[ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED],
         ).select_related("user")
+        participants = list(participants)
+        active_sessions = get_active_sessions(contest.id, [participant.user_id for participant in participants])
         rows = []
         for participant in participants:
-            session_data = get_active_session(contest.id, participant.user_id)
+            session_data = active_sessions.get(participant.user_id)
             if not session_data:
                 continue
             rows.append(

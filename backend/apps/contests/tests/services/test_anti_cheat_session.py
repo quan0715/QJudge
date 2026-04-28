@@ -9,6 +9,8 @@ from django.utils import timezone
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.services.anti_cheat_session import (
     _exam_allowed_jti_key,
+    active_session_key,
+    get_active_sessions,
     is_access_token_allowed,
     set_exam_allowed_jti,
 )
@@ -77,3 +79,23 @@ def test_exam_jti_pin_is_enforced_during_active_exam_lock(
 
     assert is_access_token_allowed(student.id, "other-jti") is False
     assert cache.get(_exam_allowed_jti_key(student.id, published_exam.id)) == "pinned-jti"
+
+
+@pytest.mark.django_db
+def test_get_active_sessions_reads_multiple_users(published_exam: Contest) -> None:
+    cache.set(
+        active_session_key(published_exam.id, 101),
+        {"device_id": "device-101"},
+        timeout=300,
+    )
+    cache.set(
+        active_session_key(published_exam.id, 102),
+        {"device_id": "device-102"},
+        timeout=300,
+    )
+
+    sessions = get_active_sessions(published_exam.id, [101, 102, 103])
+
+    assert sessions[101] == {"device_id": "device-101"}
+    assert sessions[102] == {"device_id": "device-102"}
+    assert sessions[103] is None

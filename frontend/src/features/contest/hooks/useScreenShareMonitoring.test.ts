@@ -5,7 +5,9 @@ import { clearRuntimeScreenShareReauth } from "@/features/contest/anticheat/runt
 
 // --- Mocks ---
 const mockRecordExamEvent = vi.fn().mockResolvedValue(undefined);
-const mockRecordExamEventWithForcedCapture = vi.fn().mockResolvedValue(undefined);
+const mockRecordExamEventWithForcedCapture = vi
+  .fn()
+  .mockResolvedValue(undefined);
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   recordExamEvent: (...args: unknown[]) => mockRecordExamEvent(...args),
@@ -48,14 +50,22 @@ describe("useScreenShareMonitoring", () => {
     const config = makeConfig();
     const { result } = renderHook(() => useScreenShareMonitoring(config));
 
-    act(() => { result.current.onStreamLost(); });
+    act(() => {
+      result.current.onStreamLost();
+    });
 
     expect(result.current.reauth.active).toBe(true);
     expect(result.current.reauth.inProgress).toBe(true);
-    expect(mockRecordExamEvent).toHaveBeenCalledWith(
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
       "screen_share_interrupted",
-      expect.objectContaining({ source: "anticheat:screen_capture" }),
+      expect.objectContaining({
+        source: "anticheat:screen_capture",
+        captureOptions: {
+          eventType: "screen_share_interrupted",
+          modules: ["screen_share"],
+        },
+      }),
     );
   });
 
@@ -63,8 +73,12 @@ describe("useScreenShareMonitoring", () => {
     const config = makeConfig();
     const { result } = renderHook(() => useScreenShareMonitoring(config));
 
-    act(() => { result.current.onStreamLost(); });
-    act(() => { result.current.onStreamRestored(); });
+    act(() => {
+      result.current.onStreamLost();
+    });
+    act(() => {
+      result.current.onStreamRestored();
+    });
 
     expect(result.current.reauth.inProgress).toBe(false);
     expect(mockRecordExamEvent).toHaveBeenCalledWith(
@@ -80,14 +94,19 @@ describe("useScreenShareMonitoring", () => {
     const config = makeConfig();
     const { result } = renderHook(() => useScreenShareMonitoring(config));
 
-    act(() => { result.current.onStreamLost(); });
-    mockRecordExamEvent.mockClear();
-    act(() => { result.current.onStreamLost(); });
+    act(() => {
+      result.current.onStreamLost();
+    });
+    mockRecordExamEventWithForcedCapture.mockClear();
+    act(() => {
+      result.current.onStreamLost();
+    });
 
     // Second call should not record another interrupted event (pipeline guard)
-    const interruptedCalls = mockRecordExamEvent.mock.calls.filter(
-      (c: unknown[]) => c[1] === "screen_share_interrupted",
-    );
+    const interruptedCalls =
+      mockRecordExamEventWithForcedCapture.mock.calls.filter(
+        (c: unknown[]) => c[1] === "screen_share_interrupted",
+      );
     expect(interruptedCalls).toHaveLength(0);
   });
 
@@ -95,7 +114,9 @@ describe("useScreenShareMonitoring", () => {
     const config = makeConfig({ enabled: false });
     const { result } = renderHook(() => useScreenShareMonitoring(config));
 
-    act(() => { result.current.onStreamLost(); });
+    act(() => {
+      result.current.onStreamLost();
+    });
 
     expect(result.current.reauth.active).toBe(false);
     expect(mockRecordExamEvent).not.toHaveBeenCalled();
@@ -108,7 +129,9 @@ describe("useScreenShareMonitoring", () => {
       { initialProps: config },
     );
 
-    act(() => { result.current.onStreamLost(); });
+    act(() => {
+      result.current.onStreamLost();
+    });
     expect(result.current.reauth.active).toBe(true);
 
     rerender({ ...config, examSubmitted: true });
@@ -123,7 +146,9 @@ describe("useScreenShareMonitoring", () => {
       { initialProps: config },
     );
 
-    act(() => { result.current.onStreamLost(); });
+    act(() => {
+      result.current.onStreamLost();
+    });
     expect(result.current.reauth.active).toBe(true);
 
     rerender({ ...config, monitoringDisabled: true });
@@ -131,30 +156,40 @@ describe("useScreenShareMonitoring", () => {
     expect(result.current.reauth.active).toBe(false);
   });
 
-  it("countdown reaches zero triggers requestForceSubmit", () => {
+  it("countdown reaches zero records stopped event with evidence", () => {
     const requestForceSubmit = vi.fn().mockResolvedValue(undefined);
+    const onEnvironmentPaused = vi.fn();
     const config = makeConfig({
       recoveryGraceMs: 3000,
       requestForceSubmit,
+      onEnvironmentPaused,
     });
     const { result } = renderHook(() => useScreenShareMonitoring(config));
 
-    act(() => { result.current.onStreamLost(); });
+    act(() => {
+      result.current.onStreamLost();
+    });
     expect(result.current.reauth.inProgress).toBe(true);
 
     // Advance timer past the recovery deadline — runtimeReauthState ticker fires every 300ms
-    act(() => { vi.advanceTimersByTime(3500); });
+    act(() => {
+      vi.advanceTimersByTime(3500);
+    });
 
-    expect(requestForceSubmit).toHaveBeenCalledWith(
+    expect(requestForceSubmit).not.toHaveBeenCalled();
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      "contest-1",
+      "screen_share_stopped",
       expect.objectContaining({
-        reason: "Force submit after screen share recovery timeout",
-        sourceModule: "screen_share",
-        stopCaptureKey: "screen_share_timeout_submit",
+        captureOptions: {
+          eventType: "screen_share_stopped",
+          modules: ["screen_share"],
+        },
       }),
     );
   });
 
-  it("uses configured evidence modules when timeout recording runs", async () => {
+  it("uses configured evidence modules when timeout records stopped event", () => {
     const requestForceSubmit = vi.fn().mockResolvedValue(undefined);
     const config = makeConfig({
       recoveryGraceMs: 3000,
@@ -163,23 +198,51 @@ describe("useScreenShareMonitoring", () => {
     });
     const { result } = renderHook(() => useScreenShareMonitoring(config));
 
-    act(() => { result.current.onStreamLost(); });
-    act(() => { vi.advanceTimersByTime(3500); });
+    act(() => {
+      result.current.onStreamLost();
+    });
+    act(() => {
+      vi.advanceTimersByTime(3500);
+    });
 
-    const request = requestForceSubmit.mock.calls[0][0];
+    expect(requestForceSubmit).not.toHaveBeenCalled();
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      "contest-1",
+      "screen_share_stopped",
+      expect.objectContaining({
+        captureOptions: {
+          eventType: "screen_share_stopped",
+          modules: ["screen_share", "webcam"],
+        },
+      }),
+    );
+  });
+
+  it("allows retry when timeout pause event fails", async () => {
+    mockRecordExamEventWithForcedCapture.mockResolvedValueOnce(undefined);
+    mockRecordExamEventWithForcedCapture.mockRejectedValueOnce(
+      new Error("network"),
+    );
+    const config = makeConfig({ recoveryGraceMs: 3000 });
+    const { result } = renderHook(() => useScreenShareMonitoring(config));
+
+    act(() => {
+      result.current.onStreamLost();
+    });
     await act(async () => {
-      await request.onRecording();
+      vi.advanceTimersByTime(3500);
+      await Promise.resolve();
+    });
+    mockRecordExamEventWithForcedCapture.mockClear();
+
+    act(() => {
+      result.current.onStreamLost();
     });
 
     expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
-      "exam_submit_initiated",
-      expect.objectContaining({
-        captureOptions: {
-          eventType: "exam_submit_initiated",
-          modules: ["screen_share", "webcam"],
-        },
-      }),
+      "screen_share_interrupted",
+      expect.any(Object),
     );
   });
 
@@ -191,12 +254,20 @@ describe("useScreenShareMonitoring", () => {
     });
     const { result } = renderHook(() => useScreenShareMonitoring(config));
 
-    act(() => { result.current.onStreamLost(); });
-    act(() => { vi.advanceTimersByTime(2000); });
-    act(() => { result.current.onStreamRestored(); });
+    act(() => {
+      result.current.onStreamLost();
+    });
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    act(() => {
+      result.current.onStreamRestored();
+    });
 
     // Advance past original deadline
-    act(() => { vi.advanceTimersByTime(5000); });
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
 
     expect(requestForceSubmit).not.toHaveBeenCalled();
     expect(result.current.reauth.inProgress).toBe(false);
@@ -204,16 +275,22 @@ describe("useScreenShareMonitoring", () => {
 
   it("unmount clears reauth state", () => {
     const config = makeConfig();
-    const { result, unmount } = renderHook(() => useScreenShareMonitoring(config));
+    const { result, unmount } = renderHook(() =>
+      useScreenShareMonitoring(config),
+    );
 
-    act(() => { result.current.onStreamLost(); });
+    act(() => {
+      result.current.onStreamLost();
+    });
     expect(result.current.reauth.active).toBe(true);
 
     unmount();
 
     // After unmount, runtimeReauth entry should be cleared
     // Verify by mounting a fresh hook and checking initial state is clean
-    const { result: result2 } = renderHook(() => useScreenShareMonitoring(config));
+    const { result: result2 } = renderHook(() =>
+      useScreenShareMonitoring(config),
+    );
     expect(result2.current.reauth.active).toBe(false);
   });
 
@@ -221,7 +298,9 @@ describe("useScreenShareMonitoring", () => {
     const config = makeConfig({ recoveryGraceMs: 10000 });
     const { result } = renderHook(() => useScreenShareMonitoring(config));
 
-    act(() => { result.current.onStreamLost(); });
+    act(() => {
+      result.current.onStreamLost();
+    });
 
     expect(result.current.reauth.remainingSeconds).not.toBeNull();
     expect(result.current.reauth.remainingSeconds).toBeGreaterThan(0);

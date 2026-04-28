@@ -103,6 +103,7 @@ export interface UseViewportMonitoringConfig {
   primarySourceModule: ForceSubmitRequest["sourceModule"];
   evidenceCaptureModules?: ForcedCaptureModule[];
   requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
+  onViolation: (eventType: string, reason: string) => void;
 }
 
 export interface UseViewportMonitoringReturn {
@@ -118,6 +119,7 @@ export function useViewportMonitoring({
   primarySourceModule,
   evidenceCaptureModules,
   requestForceSubmit,
+  onViolation,
 }: UseViewportMonitoringConfig): UseViewportMonitoringReturn {
   const baselineRef = useRef<ViewportSnapshot | null>(null);
   const isTabletRef = useRef(isTablet);
@@ -141,6 +143,7 @@ export function useViewportMonitoring({
     recoveryGraceMs,
     moduleRole: "primary",
     requestForceSubmit,
+    onViolation,
     forceSubmitExtras,
   });
   const pipelineTriggerRef = useRef(pipeline.trigger);

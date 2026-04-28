@@ -35,7 +35,7 @@ interface UseChatbotReturn {
   deleteSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => void;
   renameSession: (sessionId: string, title: string) => Promise<void>;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, pendingFiles?: File[]) => Promise<boolean>;
   uploadArtifact: (file: File) => Promise<void>;
   stopStreaming: () => void;
   refreshSessions: () => Promise<void>;
@@ -779,8 +779,8 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
    * 發送訊息（建立後端控管的 durable run）
    */
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!content.trim() || !currentSessionId) return;
+    async (content: string, pendingFiles: File[] = []) => {
+      if (!content.trim() || !currentSessionId) return false;
 
       setNextTurnOptions(null);
       const trimmedContent = content.trim();
@@ -808,7 +808,7 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         } catch (err) {
           console.error("Failed to create backend session:", err);
           setError(i18n.t("chatbot:errors.createBackendSessionFailed"));
-          return;
+          return false;
         }
       }
 
@@ -817,28 +817,32 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
       setError(null);
       setSessionNotice(null);
 
-      // 樂觀更新：立刻顯示 user bubble，不等 API 回來
-      setSessions((prev) =>
-        prev.map((session) =>
-          session.id === sessionIdForRequest || session.id === currentSessionId
-            ? {
-                ...session,
-                messages: [
-                  ...session.messages,
-                  {
-                    id: `optimistic-${Date.now()}`,
-                    role: "user" as const,
-                    content: trimmedContent,
-                    timestamp: new Date(),
-                    toolExecutions: [],
-                  },
-                ],
-              }
-            : session,
-        ),
-      );
-
       try {
+        for (const file of pendingFiles) {
+          await uploadUserArtifact(sessionIdForRequest, file);
+        }
+
+        // 樂觀更新：artifact 上傳成功後立刻顯示 user bubble，不等 run API 回來
+        setSessions((prev) =>
+          prev.map((session) =>
+            session.id === sessionIdForRequest || session.id === currentSessionId
+              ? {
+                  ...session,
+                  messages: [
+                    ...session.messages,
+                    {
+                      id: `optimistic-${Date.now()}`,
+                      role: "user" as const,
+                      content: trimmedContent,
+                      timestamp: new Date(),
+                      toolExecutions: [],
+                    },
+                  ],
+                }
+              : session,
+          ),
+        );
+
         const run = await chatbotRepository.startRun(
           sessionIdForRequest,
           trimmedContent,
@@ -857,12 +861,18 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
             : [freshSession, ...withoutTemp];
         });
         setCurrentSessionId(run.sessionId);
+        return true;
       } catch (err) {
         console.error("Failed to start AI run:", err);
-        setError(i18n.t("chatbot:errors.sendMessageFailed"));
+        setError(
+          pendingFiles.length > 0
+            ? i18n.t("chatbot:errors.uploadArtifactFailed", "無法上傳附件")
+            : i18n.t("chatbot:errors.sendMessageFailed"),
+        );
         setIsStreaming(false);
         setIsLoading(false);
         setSessionNotice(null);
+        return false;
       }
     },
     [currentSessionId, selectedModelIdState, setCurrentSessionId],

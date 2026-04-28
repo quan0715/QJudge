@@ -29,11 +29,12 @@ from .services import artifact_storage
 _UPLOAD_FILENAME_RE = re.compile(r"^[A-Za-z0-9._\-]{1,255}$")
 _UPLOAD_STEP_RE = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
 _USER_UPLOAD_STEP = "user_upload"
-_ALLOWED_UPLOAD_EXTS = {".csv", ".md", ".json"}
+_ALLOWED_UPLOAD_EXTS = {".csv", ".md", ".json", ".pdf"}
 _ALLOWED_UPLOAD_CONTENT_TYPES = {
     "text/csv",
     "application/csv",
     "application/json",
+    "application/pdf",
     "text/plain",
     "text/markdown",
     "text/x-markdown",
@@ -175,7 +176,7 @@ class AIArtifactUserViewSet(viewsets.ReadOnlyModelViewSet):
         ext = os.path.splitext(filename)[1].lower()
         if ext not in _ALLOWED_UPLOAD_EXTS:
             return Response(
-                {"detail": "Only .csv, .md and .json files are supported"},
+                {"detail": "Only .csv, .md, .json and .pdf files are supported"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not _UPLOAD_FILENAME_RE.match(filename):
@@ -187,6 +188,8 @@ class AIArtifactUserViewSet(viewsets.ReadOnlyModelViewSet):
                 content_type = "text/csv"
             elif ext == ".json":
                 content_type = "application/json"
+            elif ext == ".pdf":
+                content_type = "application/pdf"
             else:
                 content_type = "text/markdown"
 

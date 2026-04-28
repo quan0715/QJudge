@@ -1007,6 +1007,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     connection_status = serializers.SerializerMethodField()
     last_heartbeat_at = serializers.SerializerMethodField()
     live_monitoring_online = serializers.SerializerMethodField()
+    live_monitoring_sources = serializers.SerializerMethodField()
     
     auto_unlock_at = serializers.SerializerMethodField()
     remaining_unlock_seconds = serializers.SerializerMethodField()
@@ -1018,7 +1019,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             'joined_at', 'exam_status',
             'lock_reason', 'violation_count', 'submit_reason', 'auto_unlock_at', 'remaining_unlock_seconds',
             'nickname', 'display_name', 'user_display_name', 'account_role', 'auth_provider',
-            'connection_status', 'last_heartbeat_at', 'live_monitoring_online',
+            'connection_status', 'last_heartbeat_at', 'live_monitoring_online', 'live_monitoring_sources',
         ]
 
     def _get_last_heartbeat(self, obj):
@@ -1032,10 +1033,22 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     def _get_live_publisher(self, obj):
         if hasattr(obj, '_live_publisher_cached'):
             return obj._live_publisher_cached
+        if hasattr(obj, '_live_publishers_cached'):
+            publishers = obj._live_publishers_cached
+            obj._live_publisher_cached = publishers[0] if publishers else None
+            return obj._live_publisher_cached
         from apps.contests.services.realtime_sfu_registry import get_publisher
 
         obj._live_publisher_cached = get_publisher(obj.contest_id, obj.user_id)
         return obj._live_publisher_cached
+
+    def _get_live_publishers(self, obj):
+        if hasattr(obj, '_live_publishers_cached'):
+            return obj._live_publishers_cached
+        from apps.contests.services.realtime_sfu_registry import get_publishers
+
+        obj._live_publishers_cached = get_publishers(obj.contest_id, obj.user_id)
+        return obj._live_publishers_cached
 
     def get_connection_status(self, obj):
         if self._get_live_publisher(obj):
@@ -1049,6 +1062,14 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
 
     def get_live_monitoring_online(self, obj):
         return bool(self._get_live_publisher(obj))
+
+    def get_live_monitoring_sources(self, obj):
+        sources = []
+        for publisher in self._get_live_publishers(obj):
+            source = publisher.get('source_module') if isinstance(publisher, dict) else None
+            if source in ('screen_share', 'webcam') and source not in sources:
+                sources.append(source)
+        return sources
     
     def get_total_score(self, obj):
         """計算參賽者的實際總分（從提交記錄中計算，排除測試提交）

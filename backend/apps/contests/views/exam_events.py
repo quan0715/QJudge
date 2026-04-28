@@ -19,8 +19,9 @@ from ..serializers import (
     ExamEventCreateSerializer,
 )
 from ..permissions import can_manage_contest
-from ..constants import INCIDENT_FAMILY
+from ..constants import ENVIRONMENT_RECHECK_EVENT_TYPES, INCIDENT_FAMILY, RESTORE_EVENT_TO_INCIDENT_FAMILY
 from ..services.anti_cheat_session import (
+    clear_incident_family,
     get_device_id,
     is_duplicate_exam_event,
     is_duplicate_incident_family,
@@ -158,9 +159,31 @@ class ExamEventsMixin:
         return module, self.MODULE_ROLE_SECONDARY
 
     def _is_immediate_lock_event(self, event_type: str, module_role: str) -> bool:
+        return event_type in self.IMMEDIATE_LOCK_EVENT_TYPES
+
+    def _requires_recheck_pause(self, event_type: str, module_role: str) -> bool:
         if event_type in {self.WEBCAM_STOPPED_EVENT, self.VIEWPORT_STOPPED_EVENT}:
             return module_role == self.MODULE_ROLE_PRIMARY
-        return event_type in self.IMMEDIATE_LOCK_EVENT_TYPES
+        return event_type in ENVIRONMENT_RECHECK_EVENT_TYPES
+
+    def _environment_pause_reason(self, event_type: str) -> str:
+        if event_type == "heartbeat_timeout":
+            return "Heartbeat timeout: no client signal received for 60 seconds; pre-check is required to continue"
+        if event_type == "listener_tampered":
+            return "Listener tampered: anti-cheat integrity check failed; pre-check is required to continue"
+        if event_type == "exit_fullscreen":
+            return "Fullscreen recovery timed out; pre-check is required to continue"
+        if event_type == "screen_share_stopped":
+            return "Screen share recovery timed out; pre-check is required to continue"
+        if event_type == self.WEBCAM_STOPPED_EVENT:
+            return "Webcam recovery timed out; pre-check is required to continue"
+        if event_type == self.VIEWPORT_STOPPED_EVENT:
+            return "Viewport integrity recovery timed out; pre-check is required to continue"
+        if event_type == "split_view_detected":
+            return "Split view detected; pre-check is required to continue"
+        if event_type == "multiple_displays":
+            return "Multiple displays detected; pre-check is required to continue"
+        return f"Monitoring recovery required: {event_type}"
 
     def _build_event_response(self, participant, contest):
         auto_unlock_at = None
@@ -208,8 +231,8 @@ class ExamEventsMixin:
     ):
         """
         Unified anti-cheat state handling.
-        - in_progress: threshold => lock
-        - paused/locked: threshold => auto-submit
+        - in_progress: critical monitoring failure => pause for pre-check
+        - locked: manual TA lock remains terminal until TA action / configured unlock
         - submitted: no-op (already finished)
         """
         if participant.exam_status == ExamStatus.SUBMITTED:
@@ -223,18 +246,15 @@ class ExamEventsMixin:
             else self.MODULE_ROLE_SECONDARY
         )
         force_lock = self._is_immediate_lock_event(event_type, normalized_role)
-        reached_threshold = participant.violation_count >= contest.max_cheat_warnings
-        should_escalate = force_lock or reached_threshold
+        requires_recheck_pause = self._requires_recheck_pause(event_type, normalized_role)
+        should_escalate = force_lock or requires_recheck_pause
 
         if should_escalate:
             if participant.exam_status == ExamStatus.IN_PROGRESS:
-                participant.exam_status = ExamStatus.LOCKED
-                participant.locked_at = timezone.now()
                 if force_lock:
-                    if event_type == "warning_timeout":
-                        timeout = getattr(contest, "warning_timeout_seconds", 30)
-                        participant.lock_reason = f"Warning timeout: student did not acknowledge warning within {timeout} seconds"
-                    elif event_type == "screen_share_stopped":
+                    participant.exam_status = ExamStatus.LOCKED
+                    participant.locked_at = timezone.now()
+                    if event_type == "screen_share_stopped":
                         participant.lock_reason = "Screen share stopped during exam session"
                     elif event_type == self.WEBCAM_STOPPED_EVENT:
                         participant.lock_reason = "Webcam stopped during exam session"
@@ -242,33 +262,31 @@ class ExamEventsMixin:
                         participant.lock_reason = "Viewport integrity lost during exam session"
                     else:
                         participant.lock_reason = f"System lock (immediate): {event_type}"
+                    update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
+                    participant.save(update_fields=update_fields)
+                    ContestActivityViewSet.log_activity(
+                        contest,
+                        actor,
+                        'lock_user',
+                        f"Auto-locked due to {event_type}"
+                    )
+                    return participant
                 else:
-                    participant.lock_reason = f"System lock: {event_type}"
-                update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
+                    participant.exam_status = ExamStatus.PAUSED
+                    participant.locked_at = None
+                    participant.lock_reason = self._environment_pause_reason(event_type)
+                    update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
                 participant.save(update_fields=update_fields)
                 ContestActivityViewSet.log_activity(
                     contest,
                     actor,
-                    'lock_user',
-                    f"Auto-locked due to {event_type}"
+                    'update_participant',
+                    f"Paused for monitoring re-check due to {event_type}"
                 )
                 return participant
 
-            # paused/locked are non-answering states; escalate to immediate submission.
-            reason = (
-                f"Auto-submitted: violation while {participant.exam_status} "
-                f"(event={event_type}, count={participant.violation_count}/{contest.max_cheat_warnings})"
-            )
             participant.save(update_fields=update_fields)
-            self._auto_submit_participant(
-                participant,
-                contest,
-                actor,
-                reason,
-                upload_session_id=upload_session_id,
-                source_module=source_module,
-            )
-            return ContestParticipant.objects.get(pk=participant.pk)
+            return participant
 
         participant.save(update_fields=update_fields)
         return participant
@@ -446,6 +464,11 @@ class ExamEventsMixin:
                 metadata=metadata
             )
             attach_evidence_window_metadata(event)
+            clear_incident_family(
+                contest_id=contest.id,
+                user_id=request.user.id,
+                family=RESTORE_EVENT_TO_INCIDENT_FAMILY.get(event_type),
+            )
 
         payload = self._build_event_response(participant, contest)
         logger.info(

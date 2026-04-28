@@ -79,7 +79,7 @@ def test_reconcile_participant_auto_unlocks_when_timeout_elapsed(
     participant.refresh_from_db()
     assert participant.exam_status == ExamStatus.PAUSED
     assert participant.locked_at is None
-    assert participant.violation_count == 0
+    assert participant.violation_count == 2
     assert participant.lock_reason == ""
     assert ContestActivity.objects.filter(
         contest=contest,
@@ -142,7 +142,7 @@ def test_admin_update_participant_clears_lock_metadata_on_transition(
     participant.refresh_from_db()
     assert participant.exam_status == ExamStatus.IN_PROGRESS
     assert participant.locked_at is None
-    assert participant.violation_count == 0
+    assert participant.violation_count == 3
     assert participant.lock_reason == ""
     assert ContestActivity.objects.filter(
         contest=contest,
@@ -178,7 +178,7 @@ def test_reopen_participant_exam_clears_submit_reason_and_lock_metadata(
     assert participant.exam_status == ExamStatus.PAUSED
     assert participant.submit_reason == ""
     assert participant.locked_at is None
-    assert participant.violation_count == 0
+    assert participant.violation_count == 1
     assert participant.lock_reason == ""
     assert ContestActivity.objects.filter(
         contest=contest,

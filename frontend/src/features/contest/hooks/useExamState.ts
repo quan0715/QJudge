@@ -20,7 +20,6 @@ export interface UseExamStateProps {
   isBypassed: boolean;
   onRefresh?: () => Promise<void>;
   requestFullscreen: () => Promise<unknown>;
-  warningTimeoutSeconds?: number;
   evidenceCaptureModules?: ForcedCaptureModule[];
 }
 
@@ -46,11 +45,9 @@ export function useExamState({
   isBypassed,
   onRefresh,
   requestFullscreen,
-  warningTimeoutSeconds = 20,
   evidenceCaptureModules,
 }: UseExamStateProps) {
   const EVENT_RETRY_DELAY_MS = 1500;
-  const WARNING_TIMEOUT_SECONDS = Math.max(1, Math.floor(warningTimeoutSeconds));
 
   type ViolationPayload = {
     eventType: string;
@@ -66,9 +63,6 @@ export function useExamState({
     maxWarnings: 0,
   });
 
-  const [showWarning, setShowWarning] = useState(false);
-  const [warningEventType, setWarningEventType] = useState<string | null>(null);
-  const [pendingApiResponse, setPendingApiResponse] = useState(false);
   const [lastApiResponse, setLastApiResponse] = useState<
     | {
         status?: string;
@@ -85,26 +79,16 @@ export function useExamState({
     | null
   >(null);
   const [showUnlockNotification, setShowUnlockNotification] = useState(false);
-  const [warningCountdown, setWarningCountdown] = useState<number | null>(null);
 
   const isProcessingEventRef = useRef(false);
   const queuedViolationRef = useRef<ViolationPayload[]>([]);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const warningCountdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevExamStatusRef = useRef(examStatus);
   const evidenceCaptureModulesRef = useRef(evidenceCaptureModules);
 
   useEffect(() => {
     evidenceCaptureModulesRef.current = evidenceCaptureModules;
   }, [evidenceCaptureModules]);
-
-  const stopWarningCountdown = useCallback(() => {
-    if (warningCountdownTimerRef.current) {
-      clearInterval(warningCountdownTimerRef.current);
-      warningCountdownTimerRef.current = null;
-    }
-    setWarningCountdown(null);
-  }, []);
 
   const dispatchExamEvent = useCallback(
     async ({
@@ -149,24 +133,6 @@ export function useExamState({
     [contestId]
   );
 
-  const startWarningCountdown = useCallback(() => {
-    stopWarningCountdown();
-    setWarningCountdown(WARNING_TIMEOUT_SECONDS);
-    warningCountdownTimerRef.current = setInterval(() => {
-      setWarningCountdown((prev) => {
-        if (prev == null) return null;
-        if (prev <= 1) {
-          if (warningCountdownTimerRef.current) {
-            clearInterval(warningCountdownTimerRef.current);
-            warningCountdownTimerRef.current = null;
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [stopWarningCountdown, WARNING_TIMEOUT_SECONDS]);
-
   useEffect(() => {
     syncAnticheatPhaseWithExamStatus(contestId, examStatus);
 
@@ -197,11 +163,10 @@ export function useExamState({
         clearTimeout(retryTimerRef.current);
         retryTimerRef.current = null;
       }
-      stopWarningCountdown();
     }
 
     prevExamStatusRef.current = examStatus;
-  }, [contestId, examStatus, isExamMonitored, lockReason, isBypassed, stopWarningCountdown]);
+  }, [contestId, examStatus, isExamMonitored, lockReason, isBypassed]);
 
   const drainViolationQueue = useCallback(async () => {
     if (isProcessingEventRef.current) return;
@@ -219,11 +184,6 @@ export function useExamState({
         if (isBypassed || !(isExamMonitored ?? isMonitoredExamStatus(examStatus))) break;
 
         const currentViolation = queuedViolationRef.current[0];
-        setPendingApiResponse(true);
-        if (examStatus === "in_progress") {
-          setWarningEventType(currentViolation.eventType);
-          setShowWarning(true);
-        }
 
         try {
           const response = await dispatchExamEvent({
@@ -261,20 +221,13 @@ export function useExamState({
           queuedViolationRef.current.shift();
 
           if (response.exam_status === "submitted") {
-            stopWarningCountdown();
-            setShowWarning(false);
-            setWarningEventType(null);
             queuedViolationRef.current = [];
             break;
           }
 
           if (response.locked || response.exam_status === "locked") {
-            stopWarningCountdown();
             queuedViolationRef.current = [];
             break;
-          }
-          if (examStatus === "in_progress") {
-            startWarningCountdown();
           }
         } catch (error) {
           console.error("Failed to record event:", error);
@@ -283,8 +236,6 @@ export function useExamState({
             message: error instanceof Error ? error.message : "Failed to record event",
           });
           break;
-        } finally {
-          setPendingApiResponse(false);
         }
       }
     } finally {
@@ -299,7 +250,7 @@ export function useExamState({
         }, EVENT_RETRY_DELAY_MS);
       }
     }
-  }, [dispatchExamEvent, examStatus, isExamMonitored, isBypassed, onRefresh, startWarningCountdown, stopWarningCountdown]);
+  }, [dispatchExamEvent, examStatus, isExamMonitored, isBypassed, onRefresh]);
 
   const handleViolation = useCallback(
     async (
@@ -326,52 +277,6 @@ export function useExamState({
     [contestId, drainViolationQueue, examStatus, isExamMonitored, isBypassed]
   );
 
-  const handleWarningClose = useCallback(async () => {
-    if (pendingApiResponse) return;
-    if (warningCountdown != null && warningCountdown > 0) return;
-
-    setShowWarning(false);
-    stopWarningCountdown();
-
-    if (lastApiResponse?.locked) {
-      if (!isFullscreen()) {
-        try {
-          await requestFullscreen();
-        } catch (error) {
-          console.error("Failed to re-enter fullscreen:", error);
-        }
-      }
-      if (onRefresh) onRefresh();
-    } else {
-      if (!isFullscreen()) {
-        try {
-          await requestFullscreen();
-        } catch (error) {
-          console.error("Failed to re-enter fullscreen:", error);
-        }
-      }
-    }
-
-    setWarningEventType(null);
-    setLastApiResponse(null);
-
-    if (
-      !lastApiResponse?.locked &&
-      queuedViolationRef.current.length > 0 &&
-      !isProcessingEventRef.current
-    ) {
-      void drainViolationQueue();
-    }
-  }, [
-    drainViolationQueue,
-    pendingApiResponse,
-    warningCountdown,
-    lastApiResponse,
-    onRefresh,
-    requestFullscreen,
-    stopWarningCountdown,
-  ]);
-
   const handleUnlockContinue = useCallback(async () => {
     setShowUnlockNotification(false);
     if (!isFullscreen()) {
@@ -389,24 +294,15 @@ export function useExamState({
         clearTimeout(retryTimerRef.current);
         retryTimerRef.current = null;
       }
-      if (warningCountdownTimerRef.current) {
-        clearInterval(warningCountdownTimerRef.current);
-        warningCountdownTimerRef.current = null;
-      }
     };
   }, []);
 
   return {
     examState,
-    showWarning,
-    warningEventType,
-    pendingApiResponse,
     lastApiResponse,
-    warningCountdown,
     showUnlockNotification,
     isProcessingEventRef,
     handleViolation,
-    handleWarningClose,
     handleUnlockContinue,
   };
 }

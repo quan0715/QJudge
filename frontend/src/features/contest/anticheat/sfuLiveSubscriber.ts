@@ -28,16 +28,24 @@ export class SfuLiveSubscriber {
     onRemoteStream: (stream: MediaStream) => void,
     sourceModule?: RealtimeSfuSourceModule
   ): Promise<SfuLiveSubscriberState> {
+    const publisherResult = await getRealtimeSfuPublisher(contestId, targetUserId, sourceModule);
+    if (!publisherResult.active || !publisherResult.publisher) {
+      throw new Error("找不到該學生目前的 live publisher，請確認學生已進入考試並完成監控來源授權");
+    }
+    return this.subscribeToPublisher(contestId, targetUserId, publisherResult.publisher, onRemoteStream);
+  }
+
+  async subscribeToPublisher(
+    contestId: string,
+    targetUserId: string,
+    publisher: RealtimeSfuPublisherDto,
+    onRemoteStream: (stream: MediaStream) => void
+  ): Promise<SfuLiveSubscriberState> {
     this.stop();
 
     const config = await getRealtimeSfuConfig(contestId);
     if (!config.enabled || !config.configured) {
       throw new Error("Realtime SFU 尚未啟用或尚未設定");
-    }
-
-    const publisherResult = await getRealtimeSfuPublisher(contestId, targetUserId, sourceModule);
-    if (!publisherResult.active || !publisherResult.publisher) {
-      throw new Error("找不到該學生目前的 live publisher，請確認學生已進入考試並完成監控來源授權");
     }
 
     const subscriberSession = await createRealtimeSfuSession(contestId, {
@@ -60,8 +68,8 @@ export class SfuLiveSubscriber {
           tracks: [
             {
               location: "remote",
-              sessionId: publisherResult.publisher.session_id,
-              trackName: publisherResult.publisher.track_name,
+              sessionId: publisher.session_id,
+              trackName: publisher.track_name,
             },
           ],
         },
@@ -84,7 +92,7 @@ export class SfuLiveSubscriber {
 
     return {
       subscriberSession,
-      publisher: publisherResult.publisher,
+      publisher,
     };
   }
 

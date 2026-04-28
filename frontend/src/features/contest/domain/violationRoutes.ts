@@ -12,6 +12,12 @@ export interface ViolationRouteConfig {
   events: { triggered: string; escalated: string; restored?: string };
   defaultGraceMs: number;
   escalation: EscalationAction;
+  continued?: {
+    intervalMs: number;
+    maxEvents?: number;
+    eventType?: string;
+    reason?: string;
+  };
   /** Lower = higher priority. Used by selectPrimaryCountdownFromRegistry. */
   countdownPriority: number;
   /** Source string for exam event metadata. */
@@ -23,7 +29,7 @@ export const VIOLATION_ROUTES: ViolationRouteConfig[] = [
     id: "screen_share",
     events: { triggered: "screen_share_interrupted", escalated: "screen_share_stopped", restored: "screen_share_restored" },
     defaultGraceMs: 10_000,
-    escalation: "force_submit",
+    escalation: "penalized_event",
     countdownPriority: 0,
     eventSource: "anticheat:screen_capture",
   },
@@ -31,7 +37,7 @@ export const VIOLATION_ROUTES: ViolationRouteConfig[] = [
     id: "webcam",
     events: { triggered: "webcam_interrupted", escalated: "webcam_stopped", restored: "webcam_restored" },
     defaultGraceMs: 10_000,
-    escalation: "force_submit",
+    escalation: "penalized_event",
     countdownPriority: 1,
     eventSource: "anticheat:webcam_capture",
   },
@@ -46,8 +52,13 @@ export const VIOLATION_ROUTES: ViolationRouteConfig[] = [
   {
     id: "fullscreen",
     events: { triggered: "exit_fullscreen_triggered", escalated: "exit_fullscreen" },
-    defaultGraceMs: 3_000,
+    defaultGraceMs: 30_000,
     escalation: "penalized_event",
+    continued: {
+      intervalMs: 30_000,
+      maxEvents: 20,
+      reason: "fullscreen_continued",
+    },
     countdownPriority: 3,
     eventSource: "anticheat:fullscreen",
   },
@@ -56,6 +67,11 @@ export const VIOLATION_ROUTES: ViolationRouteConfig[] = [
     events: { triggered: "mouse_leave_triggered", escalated: "mouse_leave" },
     defaultGraceMs: 3_000,
     escalation: "penalized_event",
+    continued: {
+      intervalMs: 30_000,
+      maxEvents: 20,
+      reason: "mouse_leave_continued",
+    },
     countdownPriority: 4,
     eventSource: "anticheat:mouse_leave",
   },

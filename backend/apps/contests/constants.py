@@ -15,16 +15,14 @@ INCIDENT_FAMILY: dict[str, str] = {
     'viewport_stopped': 'viewport_loss',
     'split_view_detected': 'display_escape',
     'forbidden_focus_event': 'display_escape',
-    # P0 / immediate-lock events: each is its own family (no cross-dedup).
-    'warning_timeout': 'warning_timeout',
+    # P0 / re-check events: each is its own family (no cross-dedup).
     'heartbeat_timeout': 'heartbeat_timeout',
     'listener_tampered': 'listener_tampered',
 }
 
-# Priority levels: P0=critical, P1=violation, P2=info, P3=system
+# Priority levels: P0=critical re-check, P1=violation, P2=info, P3=system
 EVENT_PRIORITY: dict[str, int] = {
-    # P0: Immediate lock level
-    'warning_timeout': 0,
+    # P0: Critical monitoring failures that pause the exam and require pre-check.
     'screen_share_stopped': 0,
     'heartbeat_timeout': 0,
     'listener_tampered': 0,
@@ -59,12 +57,15 @@ EVENT_PRIORITY: dict[str, int] = {
     'multi_display_triggered': 2,
     'multi_display_restored': 2,
     'display_api_degraded': 2,
+    # Legacy frontend penalty-timer event. Kept for historical display only.
+    'warning_timeout': 2,
     # P3: Lifecycle / management
     'exam_entered': 3,
     'exam_submit_initiated': 3,
     'force_submit_locked': 3,
     'concurrent_login_detected': 3,
     'heartbeat': 3,
+    'manual_proctor_note': 3,
 }
 
 EVENT_CATEGORY: dict[int, str] = {
@@ -82,17 +83,30 @@ PENALIZED_EVENT_TYPES = {
     'webcam_stopped',
     'viewport_stopped',
     'split_view_detected',
-    'warning_timeout',
     'forbidden_focus_event',
     'heartbeat_timeout',
     'listener_tampered',
 }
 
-IMMEDIATE_LOCK_EVENT_TYPES = {
-    'warning_timeout',
+IMMEDIATE_LOCK_EVENT_TYPES = set()
+
+ENVIRONMENT_RECHECK_EVENT_TYPES = {
     'screen_share_stopped',
+    'webcam_stopped',
+    'viewport_stopped',
+    'split_view_detected',
+    'multiple_displays',
     'heartbeat_timeout',
     'listener_tampered',
+}
+
+RESTORE_EVENT_TO_INCIDENT_FAMILY = {
+    'screen_share_restored': 'capture_loss',
+    'webcam_restored': 'capture_loss',
+    'viewport_restored': 'viewport_loss',
+    'multi_display_restored': 'display_escape',
+    'tab_hidden_restored': 'display_escape',
+    'window_blur_restored': 'display_escape',
 }
 
 EVENT_FEED_AGGREGATION_WINDOW_SECONDS = 60

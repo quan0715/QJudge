@@ -83,10 +83,7 @@ describe("useExamState", () => {
         }),
       })
     );
-    expect(result.current.showWarning).toBe(true);
-    expect(result.current.warningEventType).toBe("window_blur");
     expect(result.current.examState.violationCount).toBe(1);
-    expect(result.current.warningCountdown).toBe(20);
   });
 
   it("uses configured evidence capture modules for violation evidence", async () => {
@@ -198,7 +195,7 @@ describe("useExamState", () => {
     expect(result.current.lastApiResponse?.message).toContain("Failed to record exam event");
   });
 
-  it("keeps warning modal in cooldown state without dispatching warning_timeout", async () => {
+  it("records violations without scheduling frontend warning cooldown", async () => {
     const props = withContestId("timeout-123");
     resetAnticheatOrchestrator(props.contestId);
     useStableFakeClock();
@@ -217,75 +214,13 @@ describe("useExamState", () => {
     await act(async () => {
       await result.current.handleViolation("window_blur", "Left window");
     });
-    expect(result.current.warningCountdown).toBe(20);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(20000);
     });
 
     expect(recordExamEventWithForcedCapture).toHaveBeenCalledTimes(1);
-    expect(result.current.warningCountdown).toBe(0);
     expect(onRefresh).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps countdown running when acknowledging before cooldown end", async () => {
-    const props = withContestId("ack-123");
-    resetAnticheatOrchestrator(props.contestId);
-    useStableFakeClock();
-    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({
-      violation_count: 1,
-      max_cheat_warnings: 3,
-      bypass: false,
-      locked: false,
-    });
-
-    const requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() =>
-      useExamState({ ...props, requestFullscreen: requestFullscreenMock })
-    );
-
-    await act(async () => {
-      await result.current.handleViolation("window_blur", "Left window");
-    });
-
-    await act(async () => {
-      await result.current.handleWarningClose();
-    });
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(21000);
-    });
-
-    expect(recordExamEventWithForcedCapture).toHaveBeenCalledTimes(1);
-    expect(result.current.warningCountdown).toBe(0);
-  });
-
-  it("does not allow warning close before cooldown reaches zero", async () => {
-    const props = withContestId("cooldown-123");
-    resetAnticheatOrchestrator(props.contestId);
-    useStableFakeClock();
-    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({
-      violation_count: 1,
-      max_cheat_warnings: 3,
-      bypass: false,
-      locked: false,
-    });
-
-    const requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() =>
-      useExamState({ ...props, requestFullscreen: requestFullscreenMock })
-    );
-
-    await act(async () => {
-      await result.current.handleViolation("window_blur", "Left window");
-    });
-
-    await act(async () => {
-      await result.current.handleWarningClose();
-    });
-
-    expect(result.current.showWarning).toBe(true);
-    expect(requestFullscreenMock).not.toHaveBeenCalled();
   });
 
   it("ignores violation if bypassed", async () => {
@@ -296,7 +231,6 @@ describe("useExamState", () => {
     });
 
     expect(recordExamEventWithForcedCapture).not.toHaveBeenCalled();
-    expect(result.current.showWarning).toBe(false);
   });
 
   it("records violations in locked state without opening warning modal", async () => {
@@ -321,35 +255,18 @@ describe("useExamState", () => {
       "tab_hidden",
       expect.objectContaining({ reason: "locked state event" })
     );
-    expect(result.current.showWarning).toBe(false);
   });
 
-  it("closes warning and requests fullscreen", async () => {
-    useStableFakeClock();
-    vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({
-      violation_count: 1,
-      max_cheat_warnings: 3,
-      bypass: false,
-      locked: false,
-    });
+  it("requests fullscreen when continuing after unlock notification", async () => {
     const requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
       useExamState({ ...defaultProps, requestFullscreen: requestFullscreenMock })
     );
 
     await act(async () => {
-      await result.current.handleViolation("window_blur", "Left window");
-    });
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(20000);
-    });
-
-    await act(async () => {
-      await result.current.handleWarningClose();
+      await result.current.handleUnlockContinue();
     });
 
     expect(requestFullscreenMock).toHaveBeenCalled();
-    expect(result.current.showWarning).toBe(false);
   });
 });

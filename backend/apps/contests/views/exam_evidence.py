@@ -178,7 +178,7 @@ class ExamEvidenceMixin:
           - ts_to: upper bound timestamp in ms (inclusive)
           - event_id: exam event id to auto-derive evidence window
           - evidence_cluster_id: fallback event group id (requires user_id)
-          - upload_session_id: specific session (default: all sessions)
+          - upload_session_id: specific session
           - source_module: "screen_share" or "webcam" (default: all modules)
           - object_key: explicit evidence object key, repeatable
           - limit: max frames to return (default 20, max 50)
@@ -257,10 +257,6 @@ class ExamEvidenceMixin:
                     continue
                 ts_ms = int(match.group("ts_ms"))
                 seq = int(match.group("seq"))
-                if ts_from is not None and ts_ms < ts_from:
-                    continue
-                if ts_to is not None and ts_ms > ts_to:
-                    continue
                 url = generate_get_url(settings.ANTICHEAT_RAW_BUCKET, key, expires_seconds=120)
                 items.append({
                     "url": url,
@@ -278,10 +274,14 @@ class ExamEvidenceMixin:
             if anchor_session_id:
                 upload_session_id = anchor_session_id
 
-        if upload_session_id:
-            prefix = f"contest_{contest.id}/user_{user_id}/session_{upload_session_id}/"
-        else:
-            prefix = f"contest_{contest.id}/user_{user_id}/"
+        if not upload_session_id:
+            return Response({
+                "items": [],
+                "total_raw_count": 0,
+                "storage_error": False,
+            })
+
+        prefix = f"contest_{contest.id}/user_{user_id}/session_{upload_session_id}/"
 
         storage_error = False
         try:

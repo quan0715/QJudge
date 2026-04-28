@@ -24,7 +24,7 @@ HEARTBEAT_TIMEOUT_SECONDS = 60
 HEARTBEAT_KEY_TTL_SECONDS = HEARTBEAT_TIMEOUT_SECONDS * 2
 CONFLICT_TOKEN_TTL_SECONDS = 300
 DEFAULT_ACTIVE_TTL_SECONDS = 2 * 60 * 60
-DEFAULT_EVENT_IDEMPOTENCY_TTL_SECONDS = 3
+DEFAULT_EVENT_IDEMPOTENCY_TTL_SECONDS = 1
 
 
 @dataclass
@@ -94,6 +94,10 @@ def exam_event_idempotency_key(contest_id: int, user_id: int, event_type: str, t
     return f"{EVENT_IDEMPOTENCY_KEY_PREFIX}:{contest_id}:{user_id}:{event_type}:{compact}"
 
 
+def incident_family_key(contest_id: int, user_id: int, family: str) -> str:
+    return f"{INCIDENT_FAMILY_KEY_PREFIX}:{contest_id}:{user_id}:{family}"
+
+
 def build_active_session_ttl(contest: Contest) -> int:
     if contest.end_time:
         remaining = int((contest.end_time - timezone.now()).total_seconds())
@@ -104,6 +108,17 @@ def build_active_session_ttl(contest: Contest) -> int:
 def get_active_session(contest_id: int, user_id: int) -> dict[str, Any] | None:
     value = cache.get(active_session_key(contest_id, user_id))
     return value if isinstance(value, dict) else None
+
+
+def get_active_sessions(contest_id: int, user_ids: list[int]) -> dict[int, dict[str, Any] | None]:
+    if not user_ids:
+        return {}
+    key_by_user_id = {user_id: active_session_key(contest_id, user_id) for user_id in user_ids}
+    values = cache.get_many(key_by_user_id.values())
+    return {
+        user_id: values.get(key) if isinstance(values.get(key), dict) else None
+        for user_id, key in key_by_user_id.items()
+    }
 
 
 def set_active_session(contest: Contest, participant: ContestParticipant, request, device_id: str) -> None:
@@ -235,8 +250,14 @@ def is_duplicate_incident_family(
     """
     if not family:
         return False
-    key = f"{INCIDENT_FAMILY_KEY_PREFIX}:{contest_id}:{user_id}:{family}"
+    key = incident_family_key(contest_id, user_id, family)
     return not cache.add(key, "1", timeout=max(1, ttl_seconds))
+
+
+def clear_incident_family(*, contest_id: int, user_id: int, family: str | None) -> None:
+    if not family:
+        return
+    cache.delete(incident_family_key(contest_id, user_id, family))
 
 
 def heartbeat_key(contest_id: int, user_id: int) -> str:
@@ -251,6 +272,17 @@ def touch_heartbeat(contest_id: int, user_id: int) -> None:
 def get_last_heartbeat(contest_id: int, user_id: int) -> str | None:
     value = cache.get(heartbeat_key(contest_id, user_id))
     return value if isinstance(value, str) else None
+
+
+def get_last_heartbeats(contest_id: int, user_ids: list[int]) -> dict[int, str | None]:
+    if not user_ids:
+        return {}
+    key_by_user_id = {user_id: heartbeat_key(contest_id, user_id) for user_id in user_ids}
+    values = cache.get_many(key_by_user_id.values())
+    return {
+        user_id: values.get(key) if isinstance(values.get(key), str) else None
+        for user_id, key in key_by_user_id.items()
+    }
 
 
 def clear_heartbeat(contest_id: int, user_id: int) -> None:

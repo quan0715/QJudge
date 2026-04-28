@@ -21,6 +21,7 @@ export interface UseWebcamMonitoringConfig {
   evidenceCaptureModules?: ForcedCaptureModule[];
   streamActive: boolean;
   requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
+  onViolation: (eventType: string, reason: string) => void;
 }
 
 export interface UseWebcamMonitoringReturn {
@@ -41,6 +42,7 @@ export function useWebcamMonitoring({
   evidenceCaptureModules,
   streamActive,
   requestForceSubmit,
+  onViolation,
 }: UseWebcamMonitoringConfig): UseWebcamMonitoringReturn {
   const pipeline = useViolationPipeline({
     route: webcamRoute,
@@ -51,6 +53,7 @@ export function useWebcamMonitoring({
     escalationOverride: isPrimary ? undefined : "log_only",
     moduleRole,
     requestForceSubmit,
+    onViolation,
     forceSubmitExtras: {
       sourceModule: "webcam",
       evidenceCaptureModules,
