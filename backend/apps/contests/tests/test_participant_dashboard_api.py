@@ -150,6 +150,122 @@ class ParticipantDashboardApiTests(APITestCase):
         window_blur = next(item for item in response.data["event_feed"] if item["event_type"] == "window_blur")
         self.assertEqual(window_blur["evidence_count"], 2)
 
+    def test_grouped_incident_preserves_latest_evidence_keys(self):
+        contest = self._create_contest(contest_type="paper_exam")
+        participant = self._create_participant(contest)
+        first = ExamEvent.objects.create(
+            contest=contest,
+            user=self.student,
+            event_type="mouse_leave_recovery_timeout",
+            metadata={"reason": "first timeout", "upload_session_id": "session-1"},
+        )
+        second = ExamEvent.objects.create(
+            contest=contest,
+            user=self.student,
+            event_type="mouse_leave_recovery_timeout",
+            metadata={
+                "reason": "second timeout",
+                "upload_session_id": "session-1",
+                "forced_capture_uploaded": True,
+                "forced_capture_uploaded_object_keys": [
+                    f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106646951_seq_0010.webp",
+                ],
+                "forced_capture_module_results": {
+                    "screen_share": {
+                        "uploaded": True,
+                        "uploadedSeqs": [10],
+                        "uploadedObjectKeys": [
+                            f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106646951_seq_0010.webp",
+                        ],
+                    },
+                },
+            },
+        )
+        second.created_at = first.created_at + timedelta(seconds=10)
+        second.save(update_fields=["created_at"])
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get(
+            f"/api/v1/contests/{contest.id}/participants/{participant.user_id}/dashboard/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        incident = next(
+            item for item in response.data["event_feed"]
+            if item["event_type"] == "mouse_leave_recovery_timeout"
+        )
+        self.assertEqual(incident["count"], 2)
+        self.assertEqual(incident["evidence_count"], 1)
+        self.assertEqual(incident["event_id"], str(second.id))
+        self.assertEqual(
+            incident["metadata"]["forced_capture_uploaded_object_keys"],
+            [
+                f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106646951_seq_0010.webp",
+            ],
+        )
+
+    def test_admin_can_create_manual_proctor_event(self):
+        contest = self._create_contest(contest_type="paper_exam")
+        participant = self._create_participant(contest)
+        started_at = timezone.now() - timedelta(seconds=20)
+        ended_at = timezone.now()
+        object_key = (
+            f"contest_{contest.id}/user_{self.student.id}/session_manual-session-1/"
+            "screen_share/ts_1774106646951_seq_0001.webp"
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.post(
+            f"/api/v1/contests/{contest.id}/manual_proctor_event/",
+            {
+                "user_id": participant.user_id,
+                "started_at": started_at.isoformat(),
+                "ended_at": ended_at.isoformat(),
+                "reason": "Suspicious screen activity",
+                "description": "TA observed rapid window changes.",
+                "upload_session_id": "manual-session-1",
+                "uploaded_object_keys": [object_key],
+                "uploaded_seqs": [1],
+                "module_results": {
+                    "screen_share": {
+                        "attempted": True,
+                        "captured": True,
+                        "uploaded": True,
+                        "uploadSessionId": "manual-session-1",
+                        "uploadedObjectKeys": [object_key],
+                        "uploadedSeqs": [1],
+                        "evidenceUploadedFrameCount": 1,
+                    },
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        event = ExamEvent.objects.get(id=response.data["event_id"])
+        self.assertEqual(event.event_type, "manual_proctor_note")
+        self.assertEqual(event.user_id, participant.user_id)
+        self.assertEqual(event.metadata["upload_session_id"], "manual-session-1")
+        self.assertEqual(event.metadata["reason"], "Suspicious screen activity")
+        self.assertEqual(event.metadata["description"], "TA observed rapid window changes.")
+        self.assertEqual(event.metadata["evidence_window_start"], started_at.isoformat())
+        self.assertEqual(event.metadata["evidence_window_end"], ended_at.isoformat())
+        self.assertTrue(event.metadata["forced_capture_uploaded"])
+        self.assertEqual(event.metadata["forced_capture_uploaded_object_keys"], [object_key])
+
+        dashboard_response = self.client.get(
+            f"/api/v1/contests/{contest.id}/participants/{participant.user_id}/dashboard/"
+        )
+        self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)
+        manual_items = [
+            item for item in dashboard_response.data["event_feed"]
+            if item["event_type"] == "manual_proctor_note"
+        ]
+        self.assertEqual(len(manual_items), 1)
+        self.assertEqual(manual_items[0]["summary"], "Suspicious screen activity")
+        self.assertEqual(manual_items[0]["metadata"]["upload_session_id"], "manual-session-1")
+        self.assertEqual(manual_items[0]["metadata"]["forced_capture_uploaded_object_keys"], [object_key])
+
     @patch(
         "apps.contests.services.participant_dashboard._build_coding_report",
         return_value=(

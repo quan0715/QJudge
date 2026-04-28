@@ -91,7 +91,6 @@ PENALIZED_EVENT_TYPES = {
 IMMEDIATE_LOCK_EVENT_TYPES = set()
 
 ENVIRONMENT_RECHECK_EVENT_TYPES = {
-    'exit_fullscreen',
     'screen_share_stopped',
     'webcam_stopped',
     'viewport_stopped',

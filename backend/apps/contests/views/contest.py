@@ -3,6 +3,7 @@ import logging
 
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
+from django.conf import settings
 from django.core.cache import cache
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
@@ -15,6 +16,7 @@ from ..models import (
     AssignmentState,
     Contest,
     ContestParticipant,
+    ExamEvent,
     ExamStatus,
 )
 from ..serializers import (
@@ -47,12 +49,23 @@ from ..services.participant_state import (
 from ..services.anti_cheat_session import get_active_session, get_last_heartbeat
 from ..services.participant_dashboard import build_participant_dashboard
 from ..services.anticheat_config import build_contest_anticheat_config
+from ..services.anticheat_storage import build_raw_object_key, build_upload_session_id, generate_put_url, get_s3_client
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from .activity import ContestActivityViewSet
 from apps.classrooms.permissions import get_user_role_in_classroom
 
 logger = logging.getLogger(__name__)
 ANTICHEAT_CONFIG_CACHE_TTL_SECONDS = 30
+MANUAL_PROCTOR_EVENT_TYPE = "manual_proctor_note"
+
+
+def _parse_manual_event_datetime(value, *, field_name: str):
+    parsed = parse_datetime(str(value or ""))
+    if parsed is None:
+        raise DRFValidationError({field_name: "Invalid datetime."})
+    if parsed.tzinfo is None:
+        parsed = timezone.make_aware(parsed)
+    return parsed
 
 
 class ContestViewSet(viewsets.ModelViewSet):
@@ -463,13 +476,15 @@ class ContestViewSet(viewsets.ModelViewSet):
         user_ids = [p.user_id for p in participants]
         if user_ids:
             from apps.contests.services.anti_cheat_session import get_last_heartbeats
-            from apps.contests.services.realtime_sfu_registry import get_preferred_publishers
+            from apps.contests.services.realtime_sfu_registry import get_preferred_publishers, get_publishers_by_user
 
             heartbeats = get_last_heartbeats(contest.id, user_ids)
             live_publishers = get_preferred_publishers(contest.id, user_ids)
+            live_publishers_by_user = get_publishers_by_user(contest.id, user_ids)
             for p in participants:
                 p._last_heartbeat_cached = heartbeats.get(p.user_id)
                 p._live_publisher_cached = live_publishers.get(p.user_id)
+                p._live_publishers_cached = live_publishers_by_user.get(p.user_id, [])
 
         serializer = ContestParticipantSerializer(participants, many=True)
         return Response(serializer.data)
@@ -546,6 +561,167 @@ class ContestViewSet(viewsets.ModelViewSet):
             )
 
         return Response(build_participant_dashboard(contest, participant))
+
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='manual_proctor_event')
+    def manual_proctor_event(self, request, pk=None):
+        """Create a TA-authored manual evidence event for a participant."""
+        contest = self.get_object()
+        user_id = request.data.get('user_id')
+        reason = str(request.data.get('reason') or '').strip()
+        description = str(request.data.get('description') or '').strip()
+        if not reason:
+            raise DRFValidationError({'reason': 'This field is required.'})
+
+        started_at = _parse_manual_event_datetime(
+            request.data.get('started_at'),
+            field_name='started_at',
+        )
+        ended_at = _parse_manual_event_datetime(
+            request.data.get('ended_at'),
+            field_name='ended_at',
+        )
+        if ended_at < started_at:
+            raise DRFValidationError({'ended_at': 'ended_at must be after started_at.'})
+
+        try:
+            participant = ContestParticipant.objects.select_related('user').get(
+                contest=contest,
+                user_id=user_id,
+            )
+        except ContestParticipant.DoesNotExist:
+            raise NotFound('Participant not found')
+
+        upload_session_id = str(request.data.get('upload_session_id') or '').strip()
+        uploaded_object_keys = [
+            str(value).strip()
+            for value in request.data.get('uploaded_object_keys', [])
+            if str(value).strip()
+        ]
+        uploaded_seqs = [
+            int(value)
+            for value in request.data.get('uploaded_seqs', [])
+            if str(value).strip().isdigit()
+        ]
+        module_results = request.data.get('module_results')
+        if not isinstance(module_results, dict):
+            module_results = {}
+
+        metadata = {
+            'manual_proctor_note': True,
+            'reason': reason,
+            'description': description,
+            'recorded_by_user_id': request.user.id,
+            'recorded_by_username': request.user.username,
+            'manual_recording_started_at': started_at.isoformat(),
+            'manual_recording_ended_at': ended_at.isoformat(),
+            'evidence_window_start': started_at.isoformat(),
+            'evidence_window_end': ended_at.isoformat(),
+            'forced_capture_requested': True,
+            'forced_capture_reason': reason,
+            'forced_capture_result': 'uploaded' if uploaded_object_keys else 'manual_window',
+            'forced_capture_attempted': True,
+            'forced_capture_captured': bool(uploaded_object_keys),
+            'forced_capture_uploaded': bool(uploaded_object_keys),
+            'forced_capture_modules': ['screen_share', 'webcam'],
+        }
+        if upload_session_id:
+            metadata['upload_session_id'] = upload_session_id
+        if uploaded_object_keys:
+            metadata['forced_capture_uploaded_object_keys'] = uploaded_object_keys
+            metadata['evidence_uploaded_frame_count'] = len(uploaded_object_keys)
+        if uploaded_seqs:
+            metadata['forced_capture_uploaded_seqs'] = uploaded_seqs
+            metadata['forced_capture_seq'] = uploaded_seqs[-1]
+        if module_results:
+            metadata['forced_capture_module_results'] = module_results
+
+        event = ExamEvent.objects.create(
+            contest=contest,
+            user=participant.user,
+            event_type=MANUAL_PROCTOR_EVENT_TYPE,
+            metadata=metadata,
+        )
+
+        return Response({
+            'status': 'created',
+            'event_id': str(event.id),
+            'event_type': event.event_type,
+            'metadata': event.metadata,
+            'created_at': event.created_at,
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='manual_proctor_evidence_urls')
+    def manual_proctor_evidence_urls(self, request, pk=None):
+        """Issue admin-side evidence upload URLs for manual proctoring captures."""
+        contest = self.get_object()
+        user_id = request.data.get('user_id')
+        module = str(request.data.get('module') or 'screen_share').strip()
+        if module not in {'screen_share', 'webcam'}:
+            raise DRFValidationError({'module': 'Invalid module.'})
+        try:
+            participant = ContestParticipant.objects.get(contest=contest, user_id=user_id)
+        except ContestParticipant.DoesNotExist:
+            raise NotFound('Participant not found')
+        if participant.exam_status not in ACTIVE_EXAM_STATUSES:
+            raise DRFValidationError({'user_id': 'Participant is not in an active exam state.'})
+
+        try:
+            count = int(request.data.get('count') or 1)
+            start_seq = int(request.data.get('start_seq') or 1)
+        except (TypeError, ValueError):
+            raise DRFValidationError({'count': 'Invalid count.'})
+        count = min(max(count, 1), 60)
+        start_seq = max(start_seq, 1)
+
+        upload_session_id = str(request.data.get('upload_session_id') or '').strip() or build_upload_session_id()
+        frame_timestamps = request.data.get('frame_timestamps')
+        if not isinstance(frame_timestamps, list):
+            frame_timestamps = []
+        now_ms = int(timezone.now().timestamp() * 1000)
+        presign_client = get_s3_client(
+            endpoint_url=(settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL or "").strip() or None
+        )
+        items = []
+        for i in range(count):
+            seq = start_seq + i
+            try:
+                ts_ms = int(frame_timestamps[i])
+            except (IndexError, TypeError, ValueError):
+                ts_ms = now_ms + i
+            object_key = build_raw_object_key(
+                contest_id=contest.id,
+                user_id=participant.user_id,
+                upload_session_id=upload_session_id,
+                ts_ms=ts_ms,
+                seq=seq,
+                module=module,
+            )
+            items.append({
+                'seq': seq,
+                'object_key': object_key,
+                'module': module,
+                'put_url': generate_put_url(
+                    settings.ANTICHEAT_RAW_BUCKET,
+                    object_key,
+                    expires_seconds=settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS,
+                    client=presign_client,
+                ),
+                'required_headers': {
+                    'Content-Type': 'image/webp',
+                    **(
+                        {'x-amz-tagging': 'cleanup=true'}
+                        if settings.OBJECT_STORAGE_OBJECT_TAGGING_ENABLED
+                        else {}
+                    ),
+                },
+            })
+
+        return Response({
+            'upload_session_id': upload_session_id,
+            'module': module,
+            'next_seq': start_seq + count,
+            'items': items,
+        })
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='unlock_participant')
     def unlock_participant(self, request, pk=None):

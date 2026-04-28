@@ -43,6 +43,15 @@ const mouseLeaveRoute: ViolationRouteConfig = {
   eventSource: "anticheat:mouse_leave",
 };
 
+const continuedMouseLeaveRoute: ViolationRouteConfig = {
+  ...mouseLeaveRoute,
+  continued: {
+    intervalMs: 30_000,
+    maxEvents: 2,
+    reason: "mouse_leave_continued",
+  },
+};
+
 const webcamRoute: ViolationRouteConfig = {
   id: "webcam",
   events: { triggered: "webcam_interrupted", escalated: "webcam_stopped", restored: "webcam_restored" },
@@ -188,6 +197,39 @@ describe("useViolationPipeline", () => {
 
     expect(onViolation).toHaveBeenCalledWith("mouse_leave", "mouse_leave_recovery_timeout");
     expect(config.requestForceSubmit).not.toHaveBeenCalled();
+  });
+
+  it("records continued penalized events until the incident recovers", () => {
+    const onViolation = vi.fn();
+    const config = makeConfig({ route: continuedMouseLeaveRoute, onViolation });
+    const { result } = renderHook(() => useViolationPipeline(config));
+
+    act(() => { result.current.trigger(); });
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(onViolation).toHaveBeenCalledWith("mouse_leave", "mouse_leave_recovery_timeout");
+
+    act(() => { vi.advanceTimersByTime(30_000); });
+    expect(onViolation).toHaveBeenCalledWith("mouse_leave", "mouse_leave_continued");
+
+    act(() => { result.current.recover("mouse_returned"); });
+    act(() => { vi.advanceTimersByTime(60_000); });
+
+    expect(onViolation).toHaveBeenCalledTimes(2);
+  });
+
+  it("caps continued events per incident", () => {
+    const onViolation = vi.fn();
+    const config = makeConfig({ route: continuedMouseLeaveRoute, onViolation });
+    const { result } = renderHook(() => useViolationPipeline(config));
+
+    act(() => { result.current.trigger(); });
+    act(() => { vi.advanceTimersByTime(3000); });
+    act(() => { vi.advanceTimersByTime(120_000); });
+
+    const continuedCalls = onViolation.mock.calls.filter(
+      (call) => call[1] === "mouse_leave_continued",
+    );
+    expect(continuedCalls).toHaveLength(2);
   });
 
   it("double trigger is idempotent", () => {

@@ -90,24 +90,21 @@ class ExamAntiCheatTests(APITestCase):
         )
 
     # ------------------------------------------------------------------
-    # 1. Fullscreen timeout pauses for pre-check
+    # 1. Fullscreen timeout records a violation without forcing pre-check
     # ------------------------------------------------------------------
-    def test_exit_fullscreen_pauses_for_precheck(self):
+    def test_exit_fullscreen_records_violation_without_precheck_pause(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["violation_count"], 1)
         self.assertFalse(resp.data["locked"])
-        self.assertEqual(resp.data["exam_status"], ExamStatus.PAUSED)
+        self.assertEqual(resp.data["exam_status"], ExamStatus.IN_PROGRESS)
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.violation_count, 1)
-        self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
-        self.assertEqual(
-            self.participant.lock_reason,
-            "Fullscreen recovery timed out; pre-check is required to continue",
-        )
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+        self.assertEqual(self.participant.lock_reason, "")
 
     # ------------------------------------------------------------------
     # 2. Reaching max_cheat_warnings does not auto-lock general risk events

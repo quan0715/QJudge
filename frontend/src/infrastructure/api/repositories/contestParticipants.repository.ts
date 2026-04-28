@@ -61,6 +61,62 @@ export const updateParticipant = async (
   );
 };
 
+export interface ManualProctorEventPayload {
+  user_id: string | number;
+  started_at: string;
+  ended_at: string;
+  reason: string;
+  description?: string;
+  upload_session_id?: string;
+  uploaded_object_keys?: string[];
+  uploaded_seqs?: number[];
+  module_results?: Record<string, unknown>;
+}
+
+export const createManualProctorEvent = async (
+  contestId: string,
+  payload: ManualProctorEventPayload,
+): Promise<{ status: string; event_id: string; event_type: string }> => {
+  return requestJson<{ status: string; event_id: string; event_type: string }>(
+    httpClient.post(`/api/v1/contests/${contestId}/manual_proctor_event/`, payload),
+    "Failed to create manual proctor event",
+  );
+};
+
+export interface ManualProctorEvidenceUrlsPayload {
+  user_id: string | number;
+  module: "screen_share" | "webcam";
+  count: number;
+  upload_session_id?: string;
+  start_seq?: number;
+  frame_timestamps?: number[];
+}
+
+export interface ManualProctorEvidenceUrlItem {
+  seq: number;
+  object_key: string;
+  module?: "screen_share" | "webcam";
+  put_url: string;
+  required_headers?: Record<string, string>;
+}
+
+export interface ManualProctorEvidenceUrlsResponse {
+  upload_session_id: string;
+  module?: "screen_share" | "webcam";
+  next_seq?: number;
+  items: ManualProctorEvidenceUrlItem[];
+}
+
+export const getManualProctorEvidenceUrls = async (
+  contestId: string,
+  payload: ManualProctorEvidenceUrlsPayload,
+): Promise<ManualProctorEvidenceUrlsResponse> => {
+  return requestJson<ManualProctorEvidenceUrlsResponse>(
+    httpClient.post(`/api/v1/contests/${contestId}/manual_proctor_evidence_urls/`, payload),
+    "Failed to create manual proctor evidence upload URLs",
+  );
+};
+
 export const addContestParticipant = async (
   contestId: string,
   username: string

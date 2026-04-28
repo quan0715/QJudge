@@ -1,8 +1,5 @@
 import { useMemo, useState, type ComponentType } from "react";
-import {
-  AreaChart,
-  DonutChart,
-} from "@carbon/charts-react";
+import { AreaChart, DonutChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
 import "@carbon/charts-react/styles.css";
 import {
@@ -64,6 +61,7 @@ interface ParticipantDashboardPaneProps {
   loading: boolean;
   error: string;
   activeDetail: ParticipantDashboardDetail;
+  hideOverviewTab?: boolean;
   onDetailChange: (detail: ParticipantDashboardDetail) => void;
   onDownloadReport: () => void;
   onEditStatus: () => void;
@@ -105,15 +103,26 @@ const toExamStatusTagType = (examStatus: string | null | undefined) => {
   }
 };
 
-const TAB_ICON_BY_DETAIL: Partial<Record<ParticipantDashboardDetail, ComponentType<{ size?: number; className?: string }>>> = {
+const TAB_ICON_BY_DETAIL: Partial<
+  Record<
+    ParticipantDashboardDetail,
+    ComponentType<{ size?: number; className?: string }>
+  >
+> = {
   overview: UserMultiple,
   report: DocumentTasks,
   events: Calendar,
   submissions: SendAlt,
 };
 
-type PaperReportPayload = Extract<ParticipantDashboard["report"], { overviewRows: unknown[] }>;
-type CodingReportPayload = Extract<ParticipantDashboard["report"], { problemGrid: unknown[] }>;
+type PaperReportPayload = Extract<
+  ParticipantDashboard["report"],
+  { overviewRows: unknown[] }
+>;
+type CodingReportPayload = Extract<
+  ParticipantDashboard["report"],
+  { problemGrid: unknown[] }
+>;
 
 const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   contestId,
@@ -121,6 +130,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   loading,
   error,
   activeDetail,
+  hideOverviewTab = false,
   onDetailChange,
   onDownloadReport,
   onEditStatus,
@@ -136,28 +146,34 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   const [submissionsPageSize, setSubmissionsPageSize] = useState(10);
 
   const availableDetails = useMemo(() => {
-    if (!dashboard) return ["overview", "report", "events"] as ParticipantDashboardDetail[];
-    if (dashboard.contestType === "paper_exam") {
-      return ["overview", "report", "events"] as ParticipantDashboardDetail[];
-    }
-    return ["overview", "report", "events", "submissions"] as ParticipantDashboardDetail[];
-  }, [dashboard]);
+    const details =
+      !dashboard || dashboard.contestType === "paper_exam"
+        ? (["overview", "report", "events"] as ParticipantDashboardDetail[])
+        : ([
+            "overview",
+            "report",
+            "events",
+            "submissions",
+          ] as ParticipantDashboardDetail[]);
+    return hideOverviewTab
+      ? details.filter((detail) => detail !== "overview")
+      : details;
+  }, [dashboard, hideOverviewTab]);
 
   const selectedIndex = Math.max(availableDetails.indexOf(activeDetail), 0);
-  const primaryAction =
-    dashboard?.actions.canUnlock
+  const primaryAction = dashboard?.actions.canUnlock
+    ? {
+        label: t("participants.actions.unlock", "解除鎖定"),
+        icon: Locked,
+        onClick: onUnlock,
+      }
+    : dashboard?.actions.canReopenExam
       ? {
-          label: t("participants.actions.unlock", "解除鎖定"),
-          icon: Locked,
-          onClick: onUnlock,
+          label: t("participants.actions.reopen", "重新開放考試"),
+          icon: DocumentTasks,
+          onClick: onReopenExam,
         }
-      : dashboard?.actions.canReopenExam
-        ? {
-            label: t("participants.actions.reopen", "重新開放考試"),
-            icon: DocumentTasks,
-            onClick: onReopenExam,
-          }
-        : null;
+      : null;
 
   const submissionsEnabled =
     dashboard?.contestType === "coding" && activeDetail === "submissions";
@@ -184,16 +200,30 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
     if (!dashboard || dashboard.contestType !== "coding") return [];
     const trend = (dashboard.report as CodingReportPayload).trend;
     return trend.cumulativeProgress.flatMap((point) => [
-      { group: t("dashboard.score", "分數"), date: point.createdAt, value: point.score },
-      { group: t("dashboard.solved", "解題"), date: point.createdAt, value: point.solved ?? 0 },
+      {
+        group: t("dashboard.score", "分數"),
+        date: point.createdAt,
+        value: point.score,
+      },
+      {
+        group: t("dashboard.solved", "解題"),
+        date: point.createdAt,
+        value: point.solved ?? 0,
+      },
     ]);
   }, [dashboard, t]);
 
   if (!dashboard && !loading && !error) {
     return (
-      <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} withLayer={false}>
+      <ContainerCard
+        className={`${styles.pane} ${styles.detailPaneCard}`}
+        withLayer={false}
+      >
         <div className={styles.detailEmpty}>
-          {t("dashboard.selectPrompt", "選擇一位參賽者以查看個人作答、報告、事件與監控資訊")}
+          {t(
+            "dashboard.selectPrompt",
+            "選擇一位參賽者以查看個人作答、報告、事件與監控資訊",
+          )}
         </div>
       </ContainerCard>
     );
@@ -201,7 +231,10 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   if (loading) {
     return (
-      <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} withLayer={false}>
+      <ContainerCard
+        className={`${styles.pane} ${styles.detailPaneCard}`}
+        withLayer={false}
+      >
         <div className={styles.skeletonStack}>
           <SkeletonText heading width="40%" />
           <SkeletonText width="65%" />
@@ -221,7 +254,10 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
   if (!dashboard) {
     return (
-      <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} withLayer={false}>
+      <ContainerCard
+        className={`${styles.pane} ${styles.detailPaneCard}`}
+        withLayer={false}
+      >
         <InlineNotification
           kind="error"
           lowContrast
@@ -307,7 +343,11 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
         ];
 
   return (
-    <ContainerCard className={`${styles.pane} ${styles.detailPaneCard}`} padding="none" withLayer={false}>
+    <ContainerCard
+      className={`${styles.pane} ${styles.detailPaneCard}`}
+      padding="none"
+      withLayer={false}
+    >
       {error ? (
         <InlineNotification
           kind="warning"
@@ -330,20 +370,25 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
             onDetailChange(nextDetail);
           }}
         >
-          <TabList className={styles.tabsList} aria-label={t("dashboard.detailTabs", "參賽者資料分頁")}>
+          <TabList
+            className={styles.tabsList}
+            aria-label={t("dashboard.detailTabs", "參賽者資料分頁")}
+          >
             {availableDetails.map((detail) => {
               const Icon = TAB_ICON_BY_DETAIL[detail];
               return (
                 <Tab key={detail} className={styles.detailTab}>
                   <span className={styles.tabLabel}>
-                    {Icon ? <Icon size={16} className={styles.tabLabelIcon} /> : null}
+                    {Icon ? (
+                      <Icon size={16} className={styles.tabLabelIcon} />
+                    ) : null}
                     <span>{t(`dashboard.tabs.${detail}`, detail)}</span>
                   </span>
                 </Tab>
               );
             })}
           </TabList>
-        <TabPanels>
+          <TabPanels>
             {availableDetails.map((detail) => (
               <TabPanel key={detail} className={styles.tabPanel}>
                 {detail === "overview" ? (
@@ -353,10 +398,19 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                       <div className={styles.profileIdentity}>
                         <div className={styles.profileNameRow}>
                           <span className={styles.primaryText}>
-                            {participant.userDisplayName || participant.displayName || participant.nickname || participant.username}
+                            {participant.userDisplayName ||
+                              participant.displayName ||
+                              participant.nickname ||
+                              participant.username}
                           </span>
-                          <Tag size="sm" type={toExamStatusTagType(participant.examStatus)}>
-                            {t(`examStatus.${participant.examStatus}`, participant.examStatus)}
+                          <Tag
+                            size="sm"
+                            type={toExamStatusTagType(participant.examStatus)}
+                          >
+                            {t(
+                              `examStatus.${participant.examStatus}`,
+                              participant.examStatus,
+                            )}
                           </Tag>
                         </div>
                         <span className={styles.secondaryText}>
@@ -366,7 +420,8 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                         {participant.lockReason ? (
                           <div className={styles.profileStatusNotice}>
                             <span className={styles.profileStatusNoticeItem}>
-                              {t("participants.headers.lockReason", "鎖定原因")}：{participant.lockReason}
+                              {t("participants.headers.lockReason", "鎖定原因")}
+                              ：{participant.lockReason}
                             </span>
                           </div>
                         ) : null}
@@ -395,7 +450,10 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           />
                           <MenuItemDivider />
                           <MenuItem
-                            label={t("participants.actions.download", "下載報告")}
+                            label={t(
+                              "participants.actions.download",
+                              "下載報告",
+                            )}
                             renderIcon={Download}
                             onClick={onDownloadReport}
                           />
@@ -408,14 +466,20 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           ) : null}
                           {dashboard.actions.canUnlock && !primaryAction ? (
                             <MenuItem
-                              label={t("participants.actions.unlock", "解除鎖定")}
+                              label={t(
+                                "participants.actions.unlock",
+                                "解除鎖定",
+                              )}
                               renderIcon={Locked}
                               onClick={onUnlock}
                             />
                           ) : null}
                           {dashboard.actions.canReopenExam && !primaryAction ? (
                             <MenuItem
-                              label={t("participants.actions.reopen", "重新開放考試")}
+                              label={t(
+                                "participants.actions.reopen",
+                                "重新開放考試",
+                              )}
                               renderIcon={DocumentTasks}
                               onClick={onReopenExam}
                             />
@@ -425,7 +489,10 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                               <MenuItemDivider />
                               <MenuItem
                                 kind="danger"
-                                label={t("participants.actions.remove", "移除參賽者")}
+                                label={t(
+                                  "participants.actions.remove",
+                                  "移除參賽者",
+                                )}
                                 renderIcon={TrashCan}
                                 onClick={onRemoveParticipant}
                               />
@@ -440,7 +507,8 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                       items={overviewItems.map((item) => ({
                         ...item,
                         tone:
-                          item.key === "violations" && participant.violationCount > 0
+                          item.key === "violations" &&
+                          participant.violationCount > 0
                             ? "warning"
                             : "default",
                       }))}
@@ -450,32 +518,95 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                     {/* Summary details */}
                     <div className={styles.sectionStack}>
-                      <h5 className={styles.sectionTitle}>{t("dashboard.participantSummary", "參賽者摘要")}</h5>
+                      <h5 className={styles.sectionTitle}>
+                        {t("dashboard.participantSummary", "參賽者摘要")}
+                      </h5>
                       <div className={styles.summaryList}>
                         {[
-                          { icon: UserMultiple, label: t("dashboard.username", "使用者"), value: participant.username || "-" },
-                          { icon: UserMultiple, label: t("dashboard.displayName", "顯示名稱"), value: participant.userDisplayName || "-" },
-                          { icon: UserMultiple, label: t("dashboard.accountRole", "身份"), value: participant.accountRole ? t(`user.role.${participant.accountRole}`, participant.accountRole) : "-" },
+                          {
+                            icon: UserMultiple,
+                            label: t("dashboard.username", "使用者"),
+                            value: participant.username || "-",
+                          },
+                          {
+                            icon: UserMultiple,
+                            label: t("dashboard.displayName", "顯示名稱"),
+                            value: participant.userDisplayName || "-",
+                          },
+                          {
+                            icon: UserMultiple,
+                            label: t("dashboard.accountRole", "身份"),
+                            value: participant.accountRole
+                              ? t(
+                                  `user.role.${participant.accountRole}`,
+                                  participant.accountRole,
+                                )
+                              : "-",
+                          },
                           {
                             icon: Login,
-                            label: t("dashboard.registrationIdentity", "註冊身份"),
+                            label: t(
+                              "dashboard.registrationIdentity",
+                              "註冊身份",
+                            ),
                             value:
-                              participant.authProvider && participant.authProvider !== "email"
+                              participant.authProvider &&
+                              participant.authProvider !== "email"
                                 ? t("dashboard.registrationIdentitySso", "SSO")
-                                : t("dashboard.registrationIdentityOther", "其他"),
+                                : t(
+                                    "dashboard.registrationIdentityOther",
+                                    "其他",
+                                  ),
                           },
-                          { icon: Calendar, label: t("participants.headers.joinedAt", "加入時間"), value: participant.joinedAt ? new Date(participant.joinedAt).toLocaleString() : "-" },
-                          { icon: Login, label: t("dashboard.startedAt", "開始作答"), value: participant.startedAt ? new Date(participant.startedAt).toLocaleString() : "-" },
-                          { icon: Logout, label: t("dashboard.leftAt", "最後離開"), value: participant.leftAt ? new Date(participant.leftAt).toLocaleString() : "-" },
-                          { icon: SendAlt, label: t("dashboard.submitReason", "交卷原因"), value: participant.submitReason || "-" },
-                          { icon: Locked, label: t("participants.headers.lockReason", "鎖定原因"), value: participant.lockReason || "-" },
+                          {
+                            icon: Calendar,
+                            label: t(
+                              "participants.headers.joinedAt",
+                              "加入時間",
+                            ),
+                            value: participant.joinedAt
+                              ? new Date(participant.joinedAt).toLocaleString()
+                              : "-",
+                          },
+                          {
+                            icon: Login,
+                            label: t("dashboard.startedAt", "開始作答"),
+                            value: participant.startedAt
+                              ? new Date(participant.startedAt).toLocaleString()
+                              : "-",
+                          },
+                          {
+                            icon: Logout,
+                            label: t("dashboard.leftAt", "最後離開"),
+                            value: participant.leftAt
+                              ? new Date(participant.leftAt).toLocaleString()
+                              : "-",
+                          },
+                          {
+                            icon: SendAlt,
+                            label: t("dashboard.submitReason", "交卷原因"),
+                            value: participant.submitReason || "-",
+                          },
+                          {
+                            icon: Locked,
+                            label: t(
+                              "participants.headers.lockReason",
+                              "鎖定原因",
+                            ),
+                            value: participant.lockReason || "-",
+                          },
                         ].map(({ icon: Icon, label, value }) => (
                           <div key={label} className={styles.summaryDataRow}>
                             <div className={styles.summaryDataLabel}>
-                              <Icon size={16} className={styles.summaryDataIcon} />
+                              <Icon
+                                size={16}
+                                className={styles.summaryDataIcon}
+                              />
                               <span>{label}</span>
                             </div>
-                            <span className={styles.summaryDataValue}>{value}</span>
+                            <span className={styles.summaryDataValue}>
+                              {value}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -485,11 +616,14 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                 {detail === "report" && paperReport ? (
                   <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>{t("dashboard.questionOverview", "題目總覽")}</h5>
+                    <h5 className={styles.sectionTitle}>
+                      {t("dashboard.questionOverview", "題目總覽")}
+                    </h5>
                     <PaperQuestionOverviewTable
                       rows={paperReport.overviewRows.map((row) => {
                         const questionDetail = paperReport.questionDetails.find(
-                          (detailRow) => detailRow.questionId === row.questionId,
+                          (detailRow) =>
+                            detailRow.questionId === row.questionId,
                         );
                         return {
                           id: row.questionId,
@@ -500,7 +634,8 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                             questionTypeLabel[row.questionType],
                           ),
                           maxScore: row.maxScore,
-                          scoreDisplay: row.score != null ? String(row.score) : "-",
+                          scoreDisplay:
+                            row.score != null ? String(row.score) : "-",
                           statusLabel: row.status.label,
                           statusTone: toTagType(row.status),
                         };
@@ -508,21 +643,34 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                       showScore
                     />
 
-                    <h5 className={styles.sectionTitle}>{t("dashboard.questionDetails", "逐題詳情")}</h5>
+                    <h5 className={styles.sectionTitle}>
+                      {t("dashboard.questionDetails", "逐題詳情")}
+                    </h5>
                     <div className={styles.questionList}>
                       {paperReport.questionDetails.map((row) => (
-                        <div key={row.questionId} className={styles.questionItem}>
+                        <div
+                          key={row.questionId}
+                          className={styles.questionItem}
+                        >
                           <div className={styles.questionHeader}>
                             <div>
                               <div className={styles.primaryText}>
-                                Q{row.index} · {t(`common:questionType.label.${row.questionType}`, questionTypeLabel[row.questionType])}
+                                Q{row.index} ·{" "}
+                                {t(
+                                  `common:questionType.label.${row.questionType}`,
+                                  questionTypeLabel[row.questionType],
+                                )}
                               </div>
                               <div className={styles.secondaryText}>
                                 {row.score ?? "-"} / {row.maxScore}
-                                {row.gradedByUsername ? ` • ${row.gradedByUsername}` : ""}
+                                {row.gradedByUsername
+                                  ? ` • ${row.gradedByUsername}`
+                                  : ""}
                               </div>
                             </div>
-                            <Tag type={toTagType(row.status)}>{row.status.label}</Tag>
+                            <Tag type={toTagType(row.status)}>
+                              {row.status.label}
+                            </Tag>
                           </div>
                           <div className={styles.questionBody}>
                             <div className={styles.markdownBlock}>
@@ -558,60 +706,94 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                 {detail === "report" && codingReport ? (
                   <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>{t("dashboard.problemGrid", "題目成績摘要")}</h5>
+                    <h5 className={styles.sectionTitle}>
+                      {t("dashboard.problemGrid", "題目成績摘要")}
+                    </h5>
                     <div className={styles.problemList}>
-                      {codingReport.problemGrid.map((row: ParticipantCodingProblemRow) => (
-                        <div key={row.problemId} className={styles.problemItem}>
-                          <div className={styles.problemHeader}>
-                            <div>
-                              <div className={styles.primaryText}>{row.label} · {row.title}</div>
-                              <div className={styles.secondaryText}>
-                                {row.difficulty || "-"} • {t("dashboard.tries", "提交次數")} {row.tries}
+                      {codingReport.problemGrid.map(
+                        (row: ParticipantCodingProblemRow) => (
+                          <div
+                            key={row.problemId}
+                            className={styles.problemItem}
+                          >
+                            <div className={styles.problemHeader}>
+                              <div>
+                                <div className={styles.primaryText}>
+                                  {row.label} · {row.title}
+                                </div>
+                                <div className={styles.secondaryText}>
+                                  {row.difficulty || "-"} •{" "}
+                                  {t("dashboard.tries", "提交次數")} {row.tries}
+                                </div>
                               </div>
-                            </div>
-                            <div className={styles.inlineMeta}>
-                              {row.status ? <Tag>{row.status}</Tag> : null}
-                              <span>{row.score} / {row.maxScore}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <h5 className={styles.sectionTitle}>{t("dashboard.problemDetails", "題目詳情")}</h5>
-                    <div className={styles.problemList}>
-                      {codingReport.problemDetails.map((row: ParticipantCodingProblemDetail) => (
-                        <div key={row.problemId} className={styles.problemItem}>
-                          <div className={styles.problemHeader}>
-                            <div>
-                              <div className={styles.primaryText}>{row.label} · {row.title}</div>
-                              <div className={styles.secondaryText}>
-                                {t("dashboard.tries", "提交次數")} {row.tries}
-                                {row.time != null ? ` • ${t("dashboard.solveTime", "通過時間")} ${row.time}m` : ""}
-                              </div>
-                            </div>
-                            <div className={styles.inlineMeta}>
-                              {row.status ? <Tag>{row.status}</Tag> : null}
-                              <span>{row.score} / {row.maxScore}</span>
-                            </div>
-                          </div>
-                          {row.bestSubmission ? (
-                            <div className={styles.problemBody}>
                               <div className={styles.inlineMeta}>
+                                {row.status ? <Tag>{row.status}</Tag> : null}
                                 <span>
-                                  {t("dashboard.bestSubmission", "最佳提交")} #{row.bestSubmission.id}
+                                  {row.score} / {row.maxScore}
                                 </span>
-                                <Tag type="green">{row.bestSubmission.status}</Tag>
-                                <span>{row.bestSubmission.language}</span>
-                                <span>{new Date(row.bestSubmission.createdAt).toLocaleString()}</span>
                               </div>
                             </div>
-                          ) : null}
-                        </div>
-                      ))}
+                          </div>
+                        ),
+                      )}
                     </div>
 
-                    <h5 className={styles.sectionTitle}>{t("dashboard.trendCharts", "提交趨勢")}</h5>
+                    <h5 className={styles.sectionTitle}>
+                      {t("dashboard.problemDetails", "題目詳情")}
+                    </h5>
+                    <div className={styles.problemList}>
+                      {codingReport.problemDetails.map(
+                        (row: ParticipantCodingProblemDetail) => (
+                          <div
+                            key={row.problemId}
+                            className={styles.problemItem}
+                          >
+                            <div className={styles.problemHeader}>
+                              <div>
+                                <div className={styles.primaryText}>
+                                  {row.label} · {row.title}
+                                </div>
+                                <div className={styles.secondaryText}>
+                                  {t("dashboard.tries", "提交次數")} {row.tries}
+                                  {row.time != null
+                                    ? ` • ${t("dashboard.solveTime", "通過時間")} ${row.time}m`
+                                    : ""}
+                                </div>
+                              </div>
+                              <div className={styles.inlineMeta}>
+                                {row.status ? <Tag>{row.status}</Tag> : null}
+                                <span>
+                                  {row.score} / {row.maxScore}
+                                </span>
+                              </div>
+                            </div>
+                            {row.bestSubmission ? (
+                              <div className={styles.problemBody}>
+                                <div className={styles.inlineMeta}>
+                                  <span>
+                                    {t("dashboard.bestSubmission", "最佳提交")}{" "}
+                                    #{row.bestSubmission.id}
+                                  </span>
+                                  <Tag type="green">
+                                    {row.bestSubmission.status}
+                                  </Tag>
+                                  <span>{row.bestSubmission.language}</span>
+                                  <span>
+                                    {new Date(
+                                      row.bestSubmission.createdAt,
+                                    ).toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        ),
+                      )}
+                    </div>
+
+                    <h5 className={styles.sectionTitle}>
+                      {t("dashboard.trendCharts", "提交趨勢")}
+                    </h5>
                     <div className={styles.chartGrid}>
                       <div className={styles.chartWrap}>
                         {donutData.length > 0 ? (
@@ -621,7 +803,10 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                               title: "",
                               donut: {
                                 center: {
-                                  label: t("dashboard.statusDistribution", "結果分佈"),
+                                  label: t(
+                                    "dashboard.statusDistribution",
+                                    "結果分佈",
+                                  ),
                                 },
                               },
                               height: "320px",
@@ -676,9 +861,12 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                   />
                 ) : null}
 
-                {detail === "submissions" && dashboard.contestType === "coding" ? (
+                {detail === "submissions" &&
+                dashboard.contestType === "coding" ? (
                   <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>{t("dashboard.submissionRecords", "提交紀錄")}</h5>
+                    <h5 className={styles.sectionTitle}>
+                      {t("dashboard.submissionRecords", "提交紀錄")}
+                    </h5>
                     <div className={styles.submissionList}>
                       {codingSubmissions.isLoading ? (
                         <div className={styles.skeletonStack}>
@@ -689,41 +877,65 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                             </div>
                           ))}
                         </div>
-                      ) : (codingSubmissions.data?.results || []).length === 0 ? (
+                      ) : (codingSubmissions.data?.results || []).length ===
+                        0 ? (
                         <div className={styles.emptyState}>
                           {t("dashboard.noSubmissionData", "尚無提交資料")}
                         </div>
                       ) : (
-                        (codingSubmissions.data?.results || []).map((submission) => (
-                          <div key={submission.id} className={styles.submissionItem}>
-                            <div className={styles.submissionHeader}>
-                              <div>
-                                <div className={styles.primaryText}>
-                                  {submission.problemTitle || submission.problemId}
+                        (codingSubmissions.data?.results || []).map(
+                          (submission) => (
+                            <div
+                              key={submission.id}
+                              className={styles.submissionItem}
+                            >
+                              <div className={styles.submissionHeader}>
+                                <div>
+                                  <div className={styles.primaryText}>
+                                    {submission.problemTitle ||
+                                      submission.problemId}
+                                  </div>
+                                  <div className={styles.secondaryText}>
+                                    #{submission.id} • {submission.language}
+                                  </div>
                                 </div>
-                                <div className={styles.secondaryText}>
-                                  #{submission.id} • {submission.language}
+                                <div className={styles.inlineMeta}>
+                                  <Tag
+                                    type={
+                                      submission.status === "AC"
+                                        ? "green"
+                                        : "cool-gray"
+                                    }
+                                  >
+                                    {submission.status}
+                                  </Tag>
+                                  {submission.score != null ? (
+                                    <span>{submission.score}</span>
+                                  ) : null}
                                 </div>
                               </div>
-                              <div className={styles.inlineMeta}>
-                                <Tag type={submission.status === "AC" ? "green" : "cool-gray"}>
-                                  {submission.status}
-                                </Tag>
-                                {submission.score != null ? <span>{submission.score}</span> : null}
+                              <div className={styles.submissionBody}>
+                                <div className={styles.inlineMeta}>
+                                  <span>
+                                    {new Date(
+                                      submission.createdAt,
+                                    ).toLocaleString()}
+                                  </span>
+                                  {submission.execTime != null ? (
+                                    <span>{submission.execTime} ms</span>
+                                  ) : null}
+                                  {submission.memoryUsage != null ? (
+                                    <span>{submission.memoryUsage} KB</span>
+                                  ) : null}
+                                </div>
                               </div>
                             </div>
-                            <div className={styles.submissionBody}>
-                              <div className={styles.inlineMeta}>
-                                <span>{new Date(submission.createdAt).toLocaleString()}</span>
-                                {submission.execTime != null ? <span>{submission.execTime} ms</span> : null}
-                                {submission.memoryUsage != null ? <span>{submission.memoryUsage} KB</span> : null}
-                              </div>
-                            </div>
-                          </div>
-                        ))
+                          ),
+                        )
                       )}
                     </div>
-                    {(codingSubmissions.data?.count || 0) > submissionsPageSize ? (
+                    {(codingSubmissions.data?.count || 0) >
+                    submissionsPageSize ? (
                       <div className={styles.paginationWrap}>
                         <Pagination
                           page={submissionsPage}

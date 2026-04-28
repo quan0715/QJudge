@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Button, FluidDropdown, TableToolbarSearch } from "@carbon/react";
 import { Add, Close, DocumentExport } from "@carbon/icons-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
 import { useTranslation } from "react-i18next";
@@ -13,7 +11,10 @@ import type {
   ExamStatusType,
   ParticipantDashboardDetail,
 } from "@/core/entities/contest.entity";
-import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
+import {
+  useAdminPanelRefresh,
+  useContestAdmin,
+} from "@/features/contest/contexts";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { AddParticipantModal } from "@/features/contest/components/modals/AddParticipantModal";
 import {
@@ -29,8 +30,10 @@ import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useToast } from "@/shared/contexts/ToastContext";
 
 import ParticipantDashboardPane from "@/features/contest/components/participants/ParticipantDashboardPane";
+import ParticipantOperationsPane from "@/features/contest/components/participants/ParticipantOperationsPane";
 import ParticipantsListPane from "@/features/contest/components/participants/ParticipantsListPane";
 import ParticipantStatusEditModal from "@/features/contest/components/participants/ParticipantStatusEditModal";
+import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import useParticipantDashboard from "./participants/useParticipantDashboard";
 import {
   DETAIL_OPTIONS_BY_TYPE,
@@ -38,18 +41,6 @@ import {
   type SortKey,
 } from "./participants/participantsScreen.config";
 import styles from "@/features/contest/components/participants/ContestParticipantsDashboard.module.scss";
-
-const DETAIL_PANEL_DEFAULT_WIDTH = 736;
-const DETAIL_PANEL_MIN_WIDTH = 512;
-const DETAIL_PANEL_MAX_WIDTH = 896;
-const DETAIL_PANEL_RESIZE_HANDLE_WIDTH = 4;
-const DETAIL_PANEL_TRANSITION = {
-  duration: 0.22,
-  ease: [0.2, 0, 0.38, 0.9] as const,
-};
-
-const clampDetailPanelWidth = (value: number) =>
-  Math.min(DETAIL_PANEL_MAX_WIDTH, Math.max(DETAIL_PANEL_MIN_WIDTH, value));
 
 const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
@@ -60,16 +51,15 @@ const ContestParticipantsScreen = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { confirm, modalProps } = useConfirmModal();
   const { showToast } = useToast();
-  const prefersReducedMotion = useReducedMotion();
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingParticipant, setEditingParticipant] = useState<ContestParticipant | null>(null);
-  const [editExamStatus, setEditExamStatus] = useState<ExamStatusType>("not_started");
+  const [editingParticipant, setEditingParticipant] =
+    useState<ContestParticipant | null>(null);
+  const [editExamStatus, setEditExamStatus] =
+    useState<ExamStatusType>("not_started");
   const [editLockReason, setEditLockReason] = useState("");
   const [saving, setSaving] = useState(false);
-  const [isNarrowViewport, setIsNarrowViewport] = useState(false);
-  const [detailPanelWidth, setDetailPanelWidth] = useState(DETAIL_PANEL_DEFAULT_WIDTH);
   // filterOpen state removed — FilterPopover manages its own open/close
   const refreshInFlightRef = useRef(false);
 
@@ -77,10 +67,19 @@ const ContestParticipantsScreen = () => {
   const statusFilter = searchParams.get("status") || "all";
   const sortKey = (searchParams.get("sort") as SortKey) || "score_desc";
   const selectedUserId = searchParams.get("user");
-  const detail = (searchParams.get("detail") as ParticipantDashboardDetail) || "overview";
+  const detailParam = searchParams.get("detail");
+  const detail =
+    detailParam && detailParam !== "overview"
+      ? (detailParam as ParticipantDashboardDetail)
+      : null;
+  const activeDetail = detail ?? "report";
 
-  const { data: dashboard, loading: dashboardLoading, error: dashboardError, refresh: refreshDashboard } =
-    useParticipantDashboard(contestId, selectedUserId);
+  const {
+    data: dashboard,
+    loading: dashboardLoading,
+    error: dashboardError,
+    refresh: refreshDashboard,
+  } = useParticipantDashboard(contestId, selectedUserId);
 
   const rosterManagedByClassroom = Boolean(contest?.isClassroomBound);
 
@@ -98,8 +97,14 @@ const ContestParticipantsScreen = () => {
   const sortOptions = useMemo(
     () => [
       { id: "score_desc", label: t("dashboard.sort.scoreDesc", "分數高到低") },
-      { id: "joined_desc", label: t("dashboard.sort.joinedDesc", "加入時間新到舊") },
-      { id: "violations_desc", label: t("dashboard.sort.violationsDesc", "違規次數高到低") },
+      {
+        id: "joined_desc",
+        label: t("dashboard.sort.joinedDesc", "加入時間新到舊"),
+      },
+      {
+        id: "violations_desc",
+        label: t("dashboard.sort.violationsDesc", "違規次數高到低"),
+      },
       { id: "name_asc", label: t("dashboard.sort.nameAsc", "姓名 A-Z") },
     ],
     [t],
@@ -116,7 +121,9 @@ const ContestParticipantsScreen = () => {
   const processedParticipants = useMemo(() => {
     let rows = [...participants];
     if (statusFilter !== "all") {
-      rows = rows.filter((participant) => participant.examStatus === statusFilter);
+      rows = rows.filter(
+        (participant) => participant.examStatus === statusFilter,
+      );
     }
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -140,7 +147,10 @@ const ContestParticipantsScreen = () => {
     rows.sort((left, right) => {
       switch (sortKey) {
         case "joined_desc":
-          return new Date(right.joinedAt).getTime() - new Date(left.joinedAt).getTime();
+          return (
+            new Date(right.joinedAt).getTime() -
+            new Date(left.joinedAt).getTime()
+          );
         case "violations_desc":
           return right.violationCount - left.violationCount;
         case "name_asc":
@@ -164,67 +174,36 @@ const ContestParticipantsScreen = () => {
     return rows;
   }, [participants, searchQuery, statusFilter, sortKey]);
 
-  const updateParams = useCallback((updates: Record<string, string | null>) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      let hasChanges = false;
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          let hasChanges = false;
 
-      Object.entries(updates).forEach(([key, value]) => {
-        const current = next.get(key);
-        if (value === null || value === undefined) {
-          if (current !== null) {
-            next.delete(key);
-            hasChanges = true;
-          }
-          return;
-        }
+          Object.entries(updates).forEach(([key, value]) => {
+            const current = next.get(key);
+            if (value === null || value === undefined) {
+              if (current !== null) {
+                next.delete(key);
+                hasChanges = true;
+              }
+              return;
+            }
 
-        if (current !== value) {
-          next.set(key, value);
-          hasChanges = true;
-        }
-      });
+            if (current !== value) {
+              next.set(key, value);
+              hasChanges = true;
+            }
+          });
 
-      return hasChanges ? next : prev;
-    }, { replace: true });
-  }, [setSearchParams]);
-
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 1056px)");
-    const syncViewport = () => setIsNarrowViewport(media.matches);
-    syncViewport();
-    media.addEventListener("change", syncViewport);
-    return () => media.removeEventListener("change", syncViewport);
-  }, []);
-
-  const handleDetailResizeStart = useCallback((startClientX: number) => {
-    const startWidth = detailPanelWidth;
-
-    const handlePointerMove = (event: PointerEvent) => {
-      setDetailPanelWidth(clampDetailPanelWidth(startWidth - (event.clientX - startClientX)));
-    };
-
-    const handlePointerUp = () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-  }, [detailPanelWidth]);
-
-  const handleDetailResizeKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    event.preventDefault();
-    const delta = event.shiftKey ? 64 : 16;
-    setDetailPanelWidth((width) =>
-      clampDetailPanelWidth(width + (event.key === "ArrowLeft" ? delta : -delta)),
-    );
-  }, []);
+          return hasChanges ? next : prev;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   // Validate selected user / detail without forcing a default selection.
   useEffect(() => {
@@ -235,24 +214,32 @@ const ContestParticipantsScreen = () => {
       return;
     }
 
-    const selectedExists = participants.some((participant) => participant.userId === selectedUserId);
+    if (detailParam === "overview") {
+      updateParams({ detail: null });
+      return;
+    }
+
+    const selectedExists = participants.some(
+      (participant) => participant.userId === selectedUserId,
+    );
     if (!dashboardLoading && !selectedExists) {
       updateParams({ user: null, detail: null });
       return;
     }
 
     const contestType = dashboard?.contestType ?? contest?.contestType;
-    if (!contestType) return;
+    if (!contestType || !detail) return;
 
     const allowedDetails = DETAIL_OPTIONS_BY_TYPE[contestType];
     if (!allowedDetails.includes(detail)) {
-      updateParams({ detail: "overview" });
+      updateParams({ detail: null });
     }
   }, [
     contest?.contestType,
     dashboard?.contestType,
     dashboardLoading,
     detail,
+    detailParam,
     participants,
     searchParams,
     selectedUserId,
@@ -287,7 +274,9 @@ const ContestParticipantsScreen = () => {
       });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : t("participants.addFailed", "新增參賽者失敗");
+        error instanceof Error
+          ? error.message
+          : t("participants.addFailed", "新增參賽者失敗");
       showToast({
         kind: "error",
         title: t("common.error", "錯誤"),
@@ -309,7 +298,9 @@ const ContestParticipantsScreen = () => {
       await exportContestResults(contestId);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : t("participants.exportFailed", "匯出失敗");
+        error instanceof Error
+          ? error.message
+          : t("participants.exportFailed", "匯出失敗");
       showToast({
         kind: "error",
         title: t("common.error", "錯誤"),
@@ -325,11 +316,15 @@ const ContestParticipantsScreen = () => {
       showToast({
         kind: "success",
         title: t("common.success", "成功"),
-        subtitle: t("participants.reportDownloaded", { name: dashboard.participant.username }),
+        subtitle: t("participants.reportDownloaded", {
+          name: dashboard.participant.username,
+        }),
       });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : t("participants.downloadFailed", "下載報告失敗");
+        error instanceof Error
+          ? error.message
+          : t("participants.downloadFailed", "下載報告失敗");
       showToast({
         kind: "error",
         title: t("common.error", "錯誤"),
@@ -357,7 +352,9 @@ const ContestParticipantsScreen = () => {
       });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : t("participants.unlockFailed", "解除鎖定失敗");
+        error instanceof Error
+          ? error.message
+          : t("participants.unlockFailed", "解除鎖定失敗");
       showToast({
         kind: "error",
         title: t("common.error", "錯誤"),
@@ -385,7 +382,9 @@ const ContestParticipantsScreen = () => {
       });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : t("participants.reopenFailed", "重新開放失敗");
+        error instanceof Error
+          ? error.message
+          : t("participants.reopenFailed", "重新開放失敗");
       showToast({
         kind: "error",
         title: t("common.error", "錯誤"),
@@ -397,7 +396,9 @@ const ContestParticipantsScreen = () => {
   const handleRemoveParticipant = async () => {
     if (!contestId || !selectedUserId || !dashboard) return;
     const confirmed = await confirm({
-      title: t("participants.confirmRemove", { name: dashboard.participant.username }),
+      title: t("participants.confirmRemove", {
+        name: dashboard.participant.username,
+      }),
       confirmLabel: t("participants.remove", "移除"),
       cancelLabel: t("button.cancel", "取消"),
       danger: true,
@@ -414,7 +415,9 @@ const ContestParticipantsScreen = () => {
       });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : t("participants.removeFailed", "移除參賽者失敗");
+        error instanceof Error
+          ? error.message
+          : t("participants.removeFailed", "移除參賽者失敗");
       showToast({
         kind: "error",
         title: t("common.error", "錯誤"),
@@ -448,7 +451,9 @@ const ContestParticipantsScreen = () => {
       });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : t("participants.updateFailed", "更新失敗");
+        error instanceof Error
+          ? error.message
+          : t("participants.updateFailed", "更新失敗");
       showToast({
         kind: "error",
         title: t("common.error", "錯誤"),
@@ -470,7 +475,10 @@ const ContestParticipantsScreen = () => {
     <>
       <TableToolbarSearch
         labelText={t("participants.searchLabel", "搜尋參賽者")}
-        placeholder={t("participants.searchPlaceholder", "搜尋姓名或使用者 ID...")}
+        placeholder={t(
+          "participants.searchPlaceholder",
+          "搜尋姓名或使用者 ID...",
+        )}
         value={searchQuery}
         onChange={(event) => {
           if (event && typeof event !== "string" && "target" in event) {
@@ -490,7 +498,9 @@ const ContestParticipantsScreen = () => {
           label={t("participants.selectStatus", "狀態")}
           items={statusOptions}
           itemToString={(item) => (item as Option | null)?.label ?? ""}
-          selectedItem={statusOptions.find((item) => item.id === statusFilter) ?? null}
+          selectedItem={
+            statusOptions.find((item) => item.id === statusFilter) ?? null
+          }
           onChange={({ selectedItem }) =>
             updateParams({
               status:
@@ -545,88 +555,96 @@ const ContestParticipantsScreen = () => {
   return (
     <>
       <div className={styles.page}>
-        <PanelToolbar
-          title={t("participants.viewTitle", "檢視參與者")}
-          actions={
-            <>
-              {participantToolbarActions}
-              {selectedUserId ? (
-                <Button
-                  kind="ghost"
-                  size="md"
-                  renderIcon={Close}
-                  iconDescription={t("button.close", "關閉")}
-                  hasIconOnly
-                  onClick={() => updateParams({ user: null, detail: null })}
-                />
-              ) : null}
-            </>
+        <AdminSplitLayout
+          className={styles.inspectorLayout}
+          toolbar={
+            <PanelToolbar
+              title={t("participants.viewTitle", "檢視參與者")}
+              actions={
+                <>
+                  {participantToolbarActions}
+                  {detail ? (
+                    <Button
+                      kind="ghost"
+                      size="md"
+                      renderIcon={Close}
+                      iconDescription={t(
+                        "participants.closeDetail",
+                        "關閉詳細",
+                      )}
+                      hasIconOnly
+                      onClick={() => updateParams({ detail: null })}
+                    />
+                  ) : null}
+                </>
+              }
+            />
           }
-        />
-
-        <motion.div
-          className={styles.root}
-          animate={{
-            gridTemplateColumns: isNarrowViewport
-              ? "1fr"
-              : selectedUserId
-              ? `minmax(0, 1fr) ${DETAIL_PANEL_RESIZE_HANDLE_WIDTH}px ${detailPanelWidth}px`
-              : "minmax(0, 1fr) 0px 0px",
-          }}
-          transition={prefersReducedMotion ? { duration: 0 } : DETAIL_PANEL_TRANSITION}
-        >
-          <div className={styles.rosterCol}>
+          sidebar={
             <ParticipantsListPane
               {...listPaneProps}
-              onSelect={(userId) => updateParams({ user: userId, detail: detail || "overview" })}
+              onSelect={(userId) =>
+                updateParams({
+                  user: userId,
+                })
+              }
             />
-          </div>
-
-          {selectedUserId && !isNarrowViewport ? (
-            <div
-              className={styles.detailResizeHandle}
-              role="separator"
-              aria-orientation="vertical"
-              aria-label={t("participants.resizeDetailPanel", "調整詳細面板寬度")}
-              tabIndex={0}
-              onPointerDown={(event) => {
-                event.preventDefault();
-                handleDetailResizeStart(event.clientX);
-              }}
-              onKeyDown={handleDetailResizeKeyDown}
-            />
-          ) : null}
-
-          <AnimatePresence initial={false}>
-            {selectedUserId ? (
-              <motion.aside
-                key={selectedUserId}
+          }
+          sidebarWidth={360}
+          rightPane={
+            selectedUserId && detail ? (
+              <div
                 className={styles.detailCol}
                 aria-label={t("participants.detailPanel", "參賽者詳細資料")}
-                initial={prefersReducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: isNarrowViewport ? "100%" : 32 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={prefersReducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: isNarrowViewport ? "100%" : 32 }}
-                transition={prefersReducedMotion ? { duration: 0 } : DETAIL_PANEL_TRANSITION}
               >
                 <ParticipantDashboardPane
                   contestId={contestId}
                   dashboard={dashboard}
                   loading={dashboardLoading}
                   error={dashboardError}
-                  activeDetail={detail}
-                  onDetailChange={(nextDetail) => updateParams({ detail: nextDetail })}
+                  activeDetail={activeDetail}
+                  hideOverviewTab
+                  onDetailChange={(nextDetail) =>
+                    updateParams({ detail: nextDetail })
+                  }
                   onDownloadReport={handleDownloadReport}
                   onEditStatus={openEditModal}
                   onUnlock={handleUnlock}
                   onReopenExam={handleReopenExam}
-                  onRemoveParticipant={rosterManagedByClassroom ? undefined : handleRemoveParticipant}
+                  onRemoveParticipant={
+                    rosterManagedByClassroom
+                      ? undefined
+                      : handleRemoveParticipant
+                  }
                   onOpenGrading={() => updateParams({ panel: "grading" })}
                   onRefreshEvents={refreshBoth}
                 />
-              </motion.aside>
-            ) : null}
-          </AnimatePresence>
-        </motion.div>
+              </div>
+            ) : undefined
+          }
+          rightPaneWidth={560}
+          contentMaxWidth={820}
+          contentClassName={styles.operationsContent}
+        >
+          <ParticipantOperationsPane
+            dashboard={dashboard}
+            loading={dashboardLoading}
+            error={dashboardError}
+            onDownloadReport={handleDownloadReport}
+            onEditStatus={openEditModal}
+            onUnlock={handleUnlock}
+            onReopenExam={handleReopenExam}
+            onRemoveParticipant={
+              rosterManagedByClassroom ? undefined : handleRemoveParticipant
+            }
+            onOpenDetail={(nextDetail) => updateParams({ detail: nextDetail })}
+            onOpenGrading={() => updateParams({ panel: "grading" })}
+            onOpenProctoring={() =>
+              updateParams({ panel: "proctoring", user: selectedUserId })
+            }
+            showViolationKpi={Boolean(contest?.cheatDetectionEnabled)}
+          />
+        </AdminSplitLayout>
       </div>
 
       {!rosterManagedByClassroom ? (

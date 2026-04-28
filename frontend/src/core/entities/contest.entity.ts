@@ -36,7 +36,8 @@ export type ExamViolationType =
   | "concurrent_login_detected"
   | "heartbeat"
   | "heartbeat_timeout"
-  | "listener_tampered";
+  | "listener_tampered"
+  | "manual_proctor_note";
 
 // Activity events (from ContestActivity model)
 export type ContestActivityType =
@@ -102,6 +103,7 @@ export interface ContestParticipant {
   connectionStatus?: "offline" | "online" | "live";
   lastHeartbeatAt?: string | null;
   liveMonitoringOnline?: boolean;
+  liveMonitoringSources?: Array<"screen_share" | "webcam">;
   score: number;
   rank?: number;
   joinedAt: string;
@@ -658,12 +660,15 @@ export const getContestState = (contest: {
   const now = new Date().getTime();
   const startTimeValue = contest.startTime || contest.start_time || "";
   const endTimeValue = contest.endTime || contest.end_time || "";
-  const startTime = new Date(
-    startTimeValue
-  ).getTime();
+  const startTime = new Date(startTimeValue).getTime();
   const endTime = new Date(endTimeValue).getTime();
 
-  if (!startTimeValue || !endTimeValue || Number.isNaN(startTime) || Number.isNaN(endTime)) {
+  if (
+    !startTimeValue ||
+    !endTimeValue ||
+    Number.isNaN(startTime) ||
+    Number.isNaN(endTime)
+  ) {
     return "running";
   }
 
@@ -694,7 +699,7 @@ export const getContestStateLabel = (state: ContestDisplayState): string => {
 };
 
 export const getContestStateColor = (
-  state: ContestDisplayState
+  state: ContestDisplayState,
 ):
   | "red"
   | "magenta"

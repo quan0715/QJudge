@@ -329,9 +329,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const handleFullscreenRecoveryTimeout = useCallback(
     (eventType: string, reason: string) => {
       void handleViolation(eventType, reason);
-      handleEnvironmentPaused();
     },
-    [handleEnvironmentPaused, handleViolation],
+    [handleViolation],
   );
 
   const fullscreen = useFullscreenMonitoring({

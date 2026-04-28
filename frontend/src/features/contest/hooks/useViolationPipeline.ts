@@ -80,10 +80,13 @@ export function useViolationPipeline({
 
   const recoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const continuedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const continuedCountRef = useRef(0);
   const interruptedRef = useRef(false);
   const isSubmittingRef = useRef(false);
   const awaitingRestoreAfterEscalationRef = useRef(false);
   const lastEscalatedAtRef = useRef(0);
+  const incidentStartedAtRef = useRef(0);
 
   // Keep latest props in refs to avoid stale closures
   const contestIdRef = useRef(contestId);
@@ -116,6 +119,15 @@ export function useViolationPipeline({
     setRecoveryCountdown(null);
   }, []);
 
+  const clearContinued = useCallback(() => {
+    if (continuedIntervalRef.current) {
+      clearInterval(continuedIntervalRef.current);
+      continuedIntervalRef.current = null;
+    }
+    continuedCountRef.current = 0;
+    incidentStartedAtRef.current = 0;
+  }, []);
+
   const resolveEscalation = useCallback((): EscalationAction => {
     return escalationOverrideRef.current ?? route.escalation;
   }, [route.escalation]);
@@ -131,6 +143,46 @@ export function useViolationPipeline({
 
   const ESCALATION_COOLDOWN_MS = 1_000;
 
+  const emitContinuedEvent = useCallback(() => {
+    const continued = route.continued;
+    if (!continued || examSubmitted || !enabled) return;
+    const maxEvents = continued.maxEvents ?? Number.POSITIVE_INFINITY;
+    if (continuedCountRef.current >= maxEvents) {
+      clearContinued();
+      return;
+    }
+    continuedCountRef.current += 1;
+    const eventType = continued.eventType ?? route.events.escalated;
+    const reason = continued.reason ?? `${route.id}_continued`;
+    const durationMs = incidentStartedAtRef.current > 0
+      ? Math.max(0, Date.now() - incidentStartedAtRef.current)
+      : undefined;
+
+    if (route.escalation === "penalized_event") {
+      onViolationRef.current?.(eventType, reason);
+      return;
+    }
+
+    recordExamEvent(contestIdRef.current, eventType, {
+      source: route.eventSource,
+      eventIdempotencyKey: `${eventType}:continued:${Date.now()}`,
+      metadata: {
+        reason,
+        continued: true,
+        continued_count: continuedCountRef.current,
+        ...(typeof durationMs === "number" ? { duration_ms: durationMs } : {}),
+        module: route.id,
+        module_role: moduleRoleRef.current,
+      },
+    }).catch(() => null);
+  }, [clearContinued, enabled, examSubmitted, route]);
+
+  const startContinued = useCallback(() => {
+    const continued = route.continued;
+    if (!continued || continuedIntervalRef.current) return;
+    continuedIntervalRef.current = setInterval(emitContinuedEvent, continued.intervalMs);
+  }, [emitContinuedEvent, route.continued]);
+
   const trigger = useCallback(
     (metadata?: Record<string, unknown>) => {
       if (!enabled || examSubmitted) return;
@@ -145,6 +197,7 @@ export function useViolationPipeline({
 
       awaitingRestoreAfterEscalationRef.current = false;
       interruptedRef.current = true;
+      incidentStartedAtRef.current = Date.now();
       setIsInterrupted(true);
       const cid = contestIdRef.current;
 
@@ -256,14 +309,20 @@ export function useViolationPipeline({
         lastEscalatedAtRef.current = Date.now();
         interruptedRef.current = false;
         setIsInterrupted(false);
+        startContinued();
       }, effectiveGraceMs);
     },
-    [enabled, examSubmitted, externalCountdown, route, checkSuppressed, resolveEscalation],
+    [enabled, examSubmitted, externalCountdown, route, checkSuppressed, resolveEscalation, startContinued],
   );
 
   const recover = useCallback(
     (reason?: string, metadata?: Record<string, unknown>) => {
-      if (!interruptedRef.current && !awaitingRestoreAfterEscalationRef.current) return;
+      if (
+        !interruptedRef.current &&
+        !awaitingRestoreAfterEscalationRef.current &&
+        !continuedIntervalRef.current
+      ) return;
+      clearContinued();
       awaitingRestoreAfterEscalationRef.current = false;
       lastEscalatedAtRef.current = 0;
       interruptedRef.current = false;
@@ -287,7 +346,7 @@ export function useViolationPipeline({
         }).catch(() => null);
       }
     },
-    [externalCountdown, route, clearRecovery],
+    [externalCountdown, route, clearRecovery, clearContinued],
   );
 
   // Reset on disable / exam submit — intentional synchronous setState to clear stale UI
@@ -296,12 +355,13 @@ export function useViolationPipeline({
       interruptedRef.current = false;
       awaitingRestoreAfterEscalationRef.current = false;
       lastEscalatedAtRef.current = 0;
+      clearContinued();
       setIsInterrupted(false); // eslint-disable-line react-hooks/set-state-in-effect
       if (!externalCountdown) {
         clearRecovery();
       }
     }
-  }, [enabled, examSubmitted, externalCountdown, clearRecovery]);
+  }, [enabled, examSubmitted, externalCountdown, clearRecovery, clearContinued]);
 
   // Unmount cleanup
   useEffect(() => {
@@ -309,8 +369,9 @@ export function useViolationPipeline({
       if (!externalCountdown) {
         clearRecovery();
       }
+      clearContinued();
     };
-  }, [externalCountdown, clearRecovery]);
+  }, [externalCountdown, clearRecovery, clearContinued]);
 
   return {
     trigger,

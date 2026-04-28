@@ -1,6 +1,12 @@
 import type { UserRole } from "@/core/entities/user.entity";
 import type { SubmissionStatus } from "@/core/entities/submission.entity";
-import type { ContestStatus, ContestVisibility, ContestType, ContestDeliveryMode, ExamStatusType } from "@/core/entities/contest.entity";
+import type {
+  ContestStatus,
+  ContestVisibility,
+  ContestType,
+  ContestDeliveryMode,
+  ExamStatusType,
+} from "@/core/entities/contest.entity";
 
 export interface ContestProblemSummaryDto {
   id?: number | string;
@@ -179,6 +185,7 @@ export interface ContestParticipantDto {
   connection_status?: "offline" | "online" | "live";
   last_heartbeat_at?: string | null;
   live_monitoring_online?: boolean;
+  live_monitoring_sources?: Array<"screen_share" | "webcam">;
   score?: number;
   total_score?: number;
   rank?: number;

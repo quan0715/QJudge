@@ -63,6 +63,17 @@ def _normalize_answer_value(question_type: str, value: Any) -> dict[str, Any]:
 
 def _serialize_participant(participant: ContestParticipant) -> dict[str, Any]:
     profile = getattr(participant.user, "profile", None)
+    from apps.contests.services.anti_cheat_session import get_last_heartbeat
+    from apps.contests.services.realtime_sfu_registry import get_publishers
+
+    heartbeat = get_last_heartbeat(participant.contest_id, participant.user_id)
+    publishers = get_publishers(participant.contest_id, participant.user_id)
+    live_sources: list[str] = []
+    for publisher in publishers:
+        source = publisher.get("source_module") if isinstance(publisher, dict) else None
+        if source in ("screen_share", "webcam") and source not in live_sources:
+            live_sources.append(source)
+    live_monitoring_online = bool(live_sources)
     return {
         "user_id": participant.user_id,
         "username": participant.user.username,
@@ -82,6 +93,10 @@ def _serialize_participant(participant: ContestParticipant) -> dict[str, Any]:
         "violation_count": participant.violation_count,
         "submit_reason": participant.submit_reason,
         "exam_status": participant.exam_status,
+        "connection_status": "live" if live_monitoring_online else ("online" if heartbeat else "offline"),
+        "last_heartbeat_at": heartbeat,
+        "live_monitoring_online": live_monitoring_online,
+        "live_monitoring_sources": live_sources,
     }
 
 
@@ -375,6 +390,69 @@ def _forced_capture_uploaded_count(meta: dict[str, Any]) -> int:
     return 1 if meta.get("forced_capture_uploaded") else 0
 
 
+def _merge_unique_list(left: Any, right: Any) -> list[Any]:
+    values: list[Any] = []
+    for item in [*(left if isinstance(left, list) else []), *(right if isinstance(right, list) else [])]:
+        if item not in values:
+            values.append(item)
+    return values
+
+
+def _merge_evidence_metadata(base: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    incoming_keys = incoming.get("forced_capture_uploaded_object_keys")
+    if isinstance(incoming_keys, list):
+        merged["forced_capture_uploaded_object_keys"] = _merge_unique_list(
+            merged.get("forced_capture_uploaded_object_keys"),
+            incoming_keys,
+        )
+
+    incoming_seqs = incoming.get("forced_capture_uploaded_seqs")
+    if isinstance(incoming_seqs, list):
+        merged["forced_capture_uploaded_seqs"] = _merge_unique_list(
+            merged.get("forced_capture_uploaded_seqs"),
+            incoming_seqs,
+        )
+
+    incoming_modules = incoming.get("forced_capture_module_results")
+    if isinstance(incoming_modules, dict):
+        module_results = dict(merged.get("forced_capture_module_results") or {})
+        for module, result in incoming_modules.items():
+            if not isinstance(result, dict):
+                continue
+            current = dict(module_results.get(module) or {})
+            current.update(result)
+            current_keys = _merge_unique_list(
+                current.get("uploadedObjectKeys"),
+                result.get("uploadedObjectKeys"),
+            )
+            if current_keys:
+                current["uploadedObjectKeys"] = current_keys
+            current_seqs = _merge_unique_list(
+                current.get("uploadedSeqs"),
+                result.get("uploadedSeqs"),
+            )
+            if current_seqs:
+                current["uploadedSeqs"] = current_seqs
+            module_results[module] = current
+        merged["forced_capture_module_results"] = module_results
+
+    for key in (
+        "forced_capture_uploaded",
+        "forced_capture_requested",
+        "evidence_pre_buffer_complete",
+        "pre_buffer_complete",
+    ):
+        if incoming.get(key):
+            merged[key] = incoming[key]
+
+    for key in ("upload_session_id", "evidence_window_start", "evidence_window_end"):
+        if incoming.get(key):
+            merged[key] = incoming[key]
+
+    return merged
+
+
 def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> list[dict[str, Any]]:
     """Build aggregated event feed with 60s-window incident grouping."""
     window = EVENT_FEED_AGGREGATION_WINDOW_SECONDS
@@ -409,7 +487,8 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
         uploaded_count = _forced_capture_uploaded_count(meta)
         has_evidence = uploaded_count > 0
 
-        idx = open_incidents.get(et)
+        should_group_event = et != "manual_proctor_note"
+        idx = open_incidents.get(et) if should_group_event else None
         if idx is not None:
             inc = incidents[idx]
             # Check if still within the 60s window from last_at
@@ -419,6 +498,8 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
                 inc["_last_at_dt"] = ts
                 if has_evidence:
                     inc["evidence_count"] += uploaded_count
+                    inc["metadata"] = _merge_evidence_metadata(inc["metadata"], meta)
+                    inc["event_id"] = str(event.id)
                 inc["summary"] = meta.get("reason") or inc["summary"]
                 continue
 
@@ -444,7 +525,8 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
             "_last_at_dt": ts,
         }
         incidents.append(new_inc)
-        open_incidents[et] = len(incidents) - 1
+        if should_group_event:
+            open_incidents[et] = len(incidents) - 1
 
     # Add ContestActivity items as individual incidents
     for activity in activities:

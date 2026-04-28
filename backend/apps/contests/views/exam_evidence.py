@@ -257,10 +257,6 @@ class ExamEvidenceMixin:
                     continue
                 ts_ms = int(match.group("ts_ms"))
                 seq = int(match.group("seq"))
-                if ts_from is not None and ts_ms < ts_from:
-                    continue
-                if ts_to is not None and ts_ms > ts_to:
-                    continue
                 url = generate_get_url(settings.ANTICHEAT_RAW_BUCKET, key, expires_seconds=120)
                 items.append({
                     "url": url,
