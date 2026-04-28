@@ -25,6 +25,7 @@ from apps.contests.tasks import (
     check_force_submit_locked,
     FORCE_SUBMIT_LOCKED_SECONDS,
 )
+from apps.contests.services.anti_cheat_session import get_last_heartbeat
 from apps.contests.services.evidence_windows import attach_evidence_window_metadata
 
 User = get_user_model()
@@ -193,6 +194,57 @@ class ExamAntiCheatTests(APITestCase):
                 event_type="capture_upload_degraded",
             ).exists()
         )
+
+    def test_heartbeat_updates_runtime_state_without_db_event(self):
+        self.client.force_authenticate(user=self.student)
+
+        before_count = ExamEvent.objects.filter(
+            contest=self.contest,
+            user=self.student,
+            event_type="heartbeat",
+        ).count()
+        response = self.client.post(
+            self.events_url,
+            {"event_type": "heartbeat", "metadata": {"ts": 123456}},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["ok"], True)
+        self.assertEqual(response.data["decision"], "heartbeat")
+        self.assertEqual(
+            ExamEvent.objects.filter(
+                contest=self.contest,
+                user=self.student,
+                event_type="heartbeat",
+            ).count(),
+            before_count,
+        )
+        self.assertIsNotNone(get_last_heartbeat(self.contest.id, self.student.id))
+
+    def test_heartbeat_is_ignored_after_submission_without_refreshing_runtime_state(self):
+        self.client.force_authenticate(user=self.student)
+        self.participant.exam_status = ExamStatus.SUBMITTED
+        self.participant.save(update_fields=["exam_status"])
+
+        response = self.client.post(
+            self.events_url,
+            {"event_type": "heartbeat"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["ok"], False)
+        self.assertEqual(response.data["decision"], "ignored")
+        self.assertEqual(
+            ExamEvent.objects.filter(
+                contest=self.contest,
+                user=self.student,
+                event_type="heartbeat",
+            ).count(),
+            0,
+        )
+        self.assertIsNone(get_last_heartbeat(self.contest.id, self.student.id))
 
     def test_exam_lifecycle_events_accept_forced_capture_metadata(self):
         self.client.force_authenticate(user=self.student)
