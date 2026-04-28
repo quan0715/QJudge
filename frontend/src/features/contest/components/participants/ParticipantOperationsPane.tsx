@@ -219,10 +219,9 @@ const ParticipantOperationsPane = ({
   const endedAtLabel = participant.leftAt
     ? formatClockTime(participant.leftAt)
     : t("dashboard.inProgress", "進行中");
-  const answerStatusLabel = t(
-    `examStatus.${participant.examStatus}`,
-    participant.examStatus || "-",
-  );
+  const answerStatusLabel = participant.examStatus
+    ? t(`examStatus.${participant.examStatus}`, participant.examStatus)
+    : "-";
 
   return (
     <div className={styles.operationsPane}>

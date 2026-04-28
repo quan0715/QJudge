@@ -274,6 +274,21 @@ class ExamAntiCheatTests(APITestCase):
         )
         self.assertEqual(event.metadata["content"], content)
 
+    def test_non_clipboard_event_rejects_oversized_metadata(self):
+        self.client.force_authenticate(user=self.student)
+
+        response = self.client.post(
+            self.events_url,
+            {
+                "event_type": "screen_share_stopped",
+                "metadata": {"content": "x" * 9000},
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("metadata", response.data["error"]["details"])
+
     def test_heartbeat_updates_runtime_state_without_db_event(self):
         self.client.force_authenticate(user=self.student)
 

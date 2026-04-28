@@ -756,6 +756,8 @@ const EvidenceStrip = ({ contestId, participant, incident }: EvidenceStripProps)
     );
   }
 
+  const hasClipboardContent = clipboardContentItems.length > 0;
+
   return (
     <div className={styles.evidenceStrip}>
       <div className={styles.evidenceHeader}>
@@ -803,7 +805,7 @@ const EvidenceStrip = ({ contestId, participant, incident }: EvidenceStripProps)
           </div>
         ) : null}
         {frames.length > 0 ? renderClipboardContent() : null}
-        {!loading && !error && frames.length === 0 ? (
+        {!loading && !error && frames.length === 0 && !hasClipboardContent ? (
           <div className={styles.evidenceEmpty}>{t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看即時監看")}</div>
         ) : null}
       </div>

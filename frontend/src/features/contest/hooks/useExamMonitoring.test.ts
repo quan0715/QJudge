@@ -139,6 +139,33 @@ describe("useExamMonitoring", () => {
     expect(metadata.captured_text_length).toBe(50000);
   });
 
+  it("truncates paste content by UTF-8 byte size", async () => {
+    const onViolation = vi.fn();
+    renderHook(() => useExamMonitoring({
+      contestId: "contest-1",
+      enabled: true,
+      onViolation,
+    }));
+
+    const content = "測".repeat(20000);
+    const event = new Event("paste", { bubbles: true, cancelable: true }) as ClipboardEvent;
+    Object.defineProperty(event, "clipboardData", {
+      value: {
+        getData: (type: string) => (type === "text/plain" ? content : ""),
+      },
+    });
+    document.dispatchEvent(event);
+
+    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
+    const metadata = (vi.mocked(recordExamEvent).mock.calls[0][2] as { metadata?: Record<string, unknown> })
+      ?.metadata as Record<string, unknown>;
+    const captured = metadata.content as string;
+    expect(new TextEncoder().encode(captured).byteLength).toBeLessThanOrEqual(50000);
+    expect(metadata.content_truncated).toBe(true);
+    expect(metadata.original_text_length).toBe(20000);
+    expect(metadata.captured_text_length).toBe(captured.length);
+  });
+
   it("records cut without blocking or storing content", async () => {
     const onViolation = vi.fn();
     const onBlockedAction = vi.fn();

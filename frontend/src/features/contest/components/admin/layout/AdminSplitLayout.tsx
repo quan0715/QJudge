@@ -43,7 +43,7 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
       contentClassName,
       className,
       mobileMode = "drawers",
-      mobileSidebarOpen = false,
+      mobileSidebarOpen,
       mobileDetailOpen,
     },
     ref,
@@ -68,8 +68,10 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
       sidebarHidden && !!middlePane && !!rightPane && styles.noSidebarWithMiddleAndRight,
       mobileMode === "drawers" && styles.mobileDrawerLayout,
       mobileMode === "contentOnly" && styles.mobileContentOnly,
-      mobileSidebarOpen && styles.mobileSidebarOpen,
-      mobileMode === "drawers" && !mobileSidebarOpen && styles.sidebarClosed,
+      mobileSidebarOpen === true && styles.mobileSidebarOpen,
+      mobileMode === "drawers" &&
+        mobileSidebarOpen === false &&
+        styles.sidebarClosed,
       detailOpen && styles.mobileDetailOpen,
       mobileMode === "drawers" && !detailOpen && styles.detailClosed,
       className,

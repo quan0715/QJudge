@@ -1,7 +1,7 @@
 import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
 import type { TFunction } from "i18next";
 
-const MAX_CAPTURED_PASTE_CHARS = 50000;
+const MAX_CAPTURED_PASTE_BYTES = 50000;
 
 type ClipboardAction = "copy" | "cut" | "paste";
 
@@ -49,6 +49,23 @@ const sha256Hex = async (text: string): Promise<string | undefined> => {
     .join("");
 };
 
+const truncateUtf8 = (text: string, maxBytes: number): string => {
+  const encoder = new TextEncoder();
+  if (encoder.encode(text).byteLength <= maxBytes) return text;
+
+  let low = 0;
+  let high = text.length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (encoder.encode(text.slice(0, mid)).byteLength <= maxBytes) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return text.slice(0, low);
+};
+
 export class ClipboardDetector implements ExamDetector {
   readonly id = "clipboard" as const;
   readonly severity = "info" as const;
@@ -73,7 +90,7 @@ export class ClipboardDetector implements ExamDetector {
           : getEditableText(e.target);
       const capturedText =
         action === "paste"
-          ? rawText.slice(0, MAX_CAPTURED_PASTE_CHARS)
+          ? truncateUtf8(rawText, MAX_CAPTURED_PASTE_BYTES)
           : "";
 
       void sha256Hex(rawText).catch(() => undefined).then((hash) => {
