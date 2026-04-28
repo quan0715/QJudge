@@ -247,6 +247,11 @@ const ContestParticipantsScreen = () => {
     updateParams,
   ]);
 
+  useEffect(() => {
+    if (selectedUserId || processedParticipants.length === 0) return;
+    updateParams({ user: processedParticipants[0].userId });
+  }, [processedParticipants, selectedUserId, updateParams]);
+
   const refreshBoth = useCallback(async () => {
     if (refreshInFlightRef.current) return;
     refreshInFlightRef.current = true;

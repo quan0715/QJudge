@@ -20,6 +20,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import httpx
+import pypdf
 from langchain_core.tools import BaseTool, StructuredTool
 
 logger = logging.getLogger(__name__)
@@ -893,6 +894,189 @@ def build_artifact_tools(
         coroutine=_artifact_csv_to_json,
     )
 
+    # ------------------------------------------------------------------
+    # PDF reader tool
+    # ------------------------------------------------------------------
+
+    _PDF_MAX_TEXT_CHARS = 200_000
+
+    async def _artifact_read_pdf(
+        filename: str = "",
+        step: str | None = None,
+        start_page: int = 1,
+        end_page: int | None = None,
+    ) -> dict[str, Any]:
+        """Read text from a PDF artifact, with optional page-range selection.
+
+        Fetches the binary content of a ``application/pdf`` artifact and
+        extracts readable text via *pypdf*.  Returns structured metadata
+        (filename, page count, selected range) plus the extracted text.
+
+        Page numbers are **1-based** (first page = 1).
+        """
+        err = _require_session()
+        if err:
+            return {"is_error": True, "detail": err}
+
+        listing = await _artifact_list(step=step, filename=filename)
+        if listing.get("is_error"):
+            return listing
+        artifacts = listing.get("artifacts") or []
+        if not artifacts:
+            detail = (
+                f"artifact not found: filename={filename}"
+                if not step
+                else f"artifact not found: step={step} filename={filename}"
+            )
+            return {"is_error": True, "detail": detail}
+        if len(artifacts) > 1:
+            steps = sorted(set(a["step"] for a in artifacts))
+            return {
+                "is_error": True,
+                "detail": (
+                    f"ambiguous filename '{filename}': found in steps {steps}. "
+                    f"Provide step= to disambiguate."
+                ),
+            }
+        artifact = artifacts[0]
+        artifact_id = artifact["id"]
+
+        content_url = f"{base}{_ARTIFACT_INTERNAL_PATH}{artifact_id}/content/"
+        try:
+            async with _client_context() as client:
+                resp = await client.get(content_url, headers=_headers(internal_token))
+        except httpx.HTTPError as exc:
+            return {"is_error": True, "detail": f"transport error: {exc!r}"}
+
+        if resp.status_code >= 400:
+            return {
+                "is_error": True,
+                "status": resp.status_code,
+                "detail": _safe_json(resp),
+            }
+
+        pdf_bytes = resp.content
+        try:
+            reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+        except pypdf.errors.PdfReadError as exc:
+            return {
+                "is_error": True,
+                "detail": f"Failed to parse PDF: {exc}",
+            }
+        except Exception as exc:  # noqa: BLE001 – defensive catch
+            return {
+                "is_error": True,
+                "detail": f"Failed to open PDF: {exc}",
+            }
+
+        if reader.is_encrypted:
+            return {
+                "is_error": True,
+                "detail": (
+                    "PDF is encrypted/password-protected and cannot be read. "
+                    "Please upload an unprotected version."
+                ),
+            }
+
+        total_pages = len(reader.pages)
+        if total_pages == 0:
+            return {
+                "is_error": True,
+                "detail": "PDF contains no pages.",
+            }
+
+        # Clamp page range (1-based).
+        start = max(int(start_page), 1)
+        end = min(int(end_page), total_pages) if end_page is not None else total_pages
+
+        if start > total_pages:
+            return {
+                "is_error": True,
+                "detail": (
+                    f"start_page ({start}) exceeds total pages ({total_pages})."
+                ),
+            }
+        if end < start:
+            return {
+                "is_error": True,
+                "detail": f"end_page ({end}) is before start_page ({start}).",
+            }
+
+        page_texts: list[str] = []
+        for idx in range(start - 1, end):  # 0-based index
+            try:
+                text = reader.pages[idx].extract_text() or ""
+            except Exception:  # noqa: BLE001
+                text = ""
+            page_texts.append(text)
+
+        # Check if any page yielded real text content.
+        if not any(t.strip() for t in page_texts):
+            return {
+                "is_error": True,
+                "detail": (
+                    "No extractable text found in the selected pages. "
+                    "The PDF may be scanned/image-only. "
+                    "Please provide a text-based PDF or paste the content manually."
+                ),
+            }
+
+        combined = "\n\n".join(
+            f"--- Page {page_num} ---\n{t}"
+            for page_num, t in enumerate(page_texts, start=start)
+        )
+
+        return {
+            "metadata": artifact,
+            "filename": artifact.get("filename", filename),
+            "total_pages": total_pages,
+            "start_page": start,
+            "end_page": end,
+            "text": _truncate(combined, _PDF_MAX_TEXT_CHARS),
+        }
+
+    pdf_read_tool = StructuredTool(
+        name="artifact_read_pdf",
+        description=(
+            "Extract text from a PDF artifact uploaded by the user."
+            " Use start_page / end_page (1-based) to read a subset of"
+            " pages and avoid loading the full document into context."
+            " Returns page count, selected range, and extracted text."
+            " Fails gracefully for encrypted or scanned/image-only PDFs."
+            " step is optional — omit to auto-resolve by filename."
+        ),
+        args_schema={
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "PDF artifact filename, e.g. 'report.pdf'.",
+                },
+                "step": {
+                    "type": "string",
+                    "description": (
+                        "Optional namespace. Omit to auto-resolve by filename."
+                    ),
+                },
+                "start_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "First page to read (1-based, default 1).",
+                },
+                "end_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": (
+                        "Last page to read (1-based, inclusive). "
+                        "Omit to read through the last page."
+                    ),
+                },
+            },
+            "required": ["filename"],
+        },
+        coroutine=_artifact_read_pdf,
+    )
+
     return [
         list_tool,
         read_tool,
@@ -902,6 +1086,7 @@ def build_artifact_tools(
         csv_patch_tool,
         csv_search_tool,
         csv_to_json_tool,
+        pdf_read_tool,
     ]
 
 
