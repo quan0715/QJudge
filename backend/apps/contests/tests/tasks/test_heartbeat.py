@@ -18,6 +18,7 @@ from apps.contests.models import (
 from apps.contests.services.anti_cheat_session import (
     touch_heartbeat,
     get_last_heartbeat,
+    get_last_heartbeats,
     clear_heartbeat,
     HEARTBEAT_TIMEOUT_SECONDS,
 )
@@ -62,6 +63,16 @@ class HeartbeatHelperTests(TestCase):
 
     def test_get_nonexistent_returns_none(self):
         self.assertIsNone(get_last_heartbeat(999, 999))
+
+    def test_get_last_heartbeats_reads_multiple_users(self):
+        touch_heartbeat(1, 42)
+        touch_heartbeat(1, 43)
+
+        values = get_last_heartbeats(1, [42, 43, 44])
+
+        self.assertIsNotNone(values[42])
+        self.assertIsNotNone(values[43])
+        self.assertIsNone(values[44])
 
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)

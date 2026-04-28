@@ -460,6 +460,17 @@ class ContestViewSet(viewsets.ModelViewSet):
         for p in participants:
             p.total_score_annotated = user_totals.get(p.user_id, 0)
 
+        user_ids = [p.user_id for p in participants]
+        if user_ids:
+            from apps.contests.services.anti_cheat_session import get_last_heartbeats
+            from apps.contests.services.realtime_sfu_registry import get_preferred_publishers
+
+            heartbeats = get_last_heartbeats(contest.id, user_ids)
+            live_publishers = get_preferred_publishers(contest.id, user_ids)
+            for p in participants:
+                p._last_heartbeat_cached = heartbeats.get(p.user_id)
+                p._live_publisher_cached = live_publishers.get(p.user_id)
+
         serializer = ContestParticipantSerializer(participants, many=True)
         return Response(serializer.data)
 

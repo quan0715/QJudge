@@ -7,7 +7,12 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
-from apps.contests.services.realtime_sfu_registry import get_publisher, get_publishers
+from apps.contests.services.realtime_sfu_registry import (
+    get_preferred_publishers,
+    get_publisher,
+    get_publishers,
+    register_publisher,
+)
 from apps.users.models import User
 
 
@@ -50,6 +55,40 @@ class ExamSfuBrokerTests(APITestCase):
         self.assertFalse(response.data["enabled"])
         self.assertFalse(response.data["configured"])
         self.assertEqual(response.data["app_id"], "")
+
+    def test_get_preferred_publishers_reads_multiple_users(self):
+        other = User.objects.create_user(
+            username="sfu-student-2",
+            email="sfu-student-2@test.com",
+            password="pass",
+            role="student",
+        )
+        ContestParticipant.objects.create(
+            contest=self.contest,
+            user=other,
+            exam_status=ExamStatus.IN_PROGRESS,
+            started_at=timezone.now(),
+        )
+        register_publisher(
+            contest_id=self.contest.id,
+            user_id=self.student.id,
+            session_id="screen-session",
+            track_name="screen_share-track",
+            room_id="room-1",
+        )
+        register_publisher(
+            contest_id=self.contest.id,
+            user_id=other.id,
+            session_id="webcam-session",
+            track_name="webcam-track",
+            room_id="room-2",
+        )
+
+        publishers = get_preferred_publishers(self.contest.id, [self.student.id, other.id, 999999])
+
+        self.assertEqual(publishers[self.student.id]["session_id"], "screen-session")
+        self.assertEqual(publishers[other.id]["session_id"], "webcam-session")
+        self.assertIsNone(publishers[999999])
 
     @override_settings(
         LIVE_MONITORING_ENABLED=True,

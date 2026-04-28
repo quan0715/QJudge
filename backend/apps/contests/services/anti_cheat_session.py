@@ -106,6 +106,17 @@ def get_active_session(contest_id: int, user_id: int) -> dict[str, Any] | None:
     return value if isinstance(value, dict) else None
 
 
+def get_active_sessions(contest_id: int, user_ids: list[int]) -> dict[int, dict[str, Any] | None]:
+    if not user_ids:
+        return {}
+    key_by_user_id = {user_id: active_session_key(contest_id, user_id) for user_id in user_ids}
+    values = cache.get_many(key_by_user_id.values())
+    return {
+        user_id: values.get(key) if isinstance(values.get(key), dict) else None
+        for user_id, key in key_by_user_id.items()
+    }
+
+
 def set_active_session(contest: Contest, participant: ContestParticipant, request, device_id: str) -> None:
     payload = {
         "contest_id": contest.id,
@@ -251,6 +262,17 @@ def touch_heartbeat(contest_id: int, user_id: int) -> None:
 def get_last_heartbeat(contest_id: int, user_id: int) -> str | None:
     value = cache.get(heartbeat_key(contest_id, user_id))
     return value if isinstance(value, str) else None
+
+
+def get_last_heartbeats(contest_id: int, user_ids: list[int]) -> dict[int, str | None]:
+    if not user_ids:
+        return {}
+    key_by_user_id = {user_id: heartbeat_key(contest_id, user_id) for user_id in user_ids}
+    values = cache.get_many(key_by_user_id.values())
+    return {
+        user_id: values.get(key) if isinstance(values.get(key), str) else None
+        for user_id, key in key_by_user_id.items()
+    }
 
 
 def clear_heartbeat(contest_id: int, user_id: int) -> None:
