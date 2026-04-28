@@ -194,7 +194,7 @@ const ParticipantOperationsPane = ({
   const examStatusRows = [
     {
       icon: DocumentTasks,
-      label: t("dashboard.totalScore", "總分"),
+      label: t("dashboard.score", "分數"),
       value: `${scoreValue} ${t("dashboard.pointsUnit", "分")}`,
     },
     {
@@ -285,7 +285,7 @@ const ParticipantOperationsPane = ({
             aria-label={t("dashboard.heroMetrics", "重點指標")}
           >
             <div className={styles.operationsHeroKpi}>
-              <span>{t("dashboard.score", "得分")}</span>
+              <span>{t("dashboard.score", "分數")}</span>
               <strong>{scoreValue}</strong>
               <small>{t("dashboard.pointsUnit", "分")}</small>
             </div>
