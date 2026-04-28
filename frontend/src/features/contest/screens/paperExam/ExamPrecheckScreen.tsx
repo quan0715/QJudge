@@ -697,11 +697,8 @@ const ExamPrecheckScreen: React.FC = () => {
                         : t("precheck.instruction.keepFullscreen"),
                     }}
                   />
-                  {(monitoringPlan.precheck.requireScreenShare ||
-                    monitoringPlan.precheck.requireWebcam) && (
-                    <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.monitoringActive") }} />
-                  )}
-                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.blockedActions") }} />
+                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.clipboardRecorded") }} />
+                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.randomInspection") }} />
                   <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.autoSave") }} />
                   <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.autoSubmit") }} />
                   {contest?.endTime && (
