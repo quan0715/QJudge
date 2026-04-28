@@ -123,6 +123,7 @@ const MinimalLiveStage = ({
     screen_share: createSfuLiveSubscriber(),
     webcam: createSfuLiveSubscriber(),
   });
+  const connectingSourcesRef = useRef<Set<LiveSource>>(new Set());
   const targetKeyRef = useRef("");
   const handledReloadKeyRef = useRef(reloadKey);
   const [sourceStates, setSourceStates] = useState(createInitialSourceState);
@@ -142,6 +143,7 @@ const MinimalLiveStage = ({
   );
 
   const stopSource = useCallback((source: LiveSource) => {
+    connectingSourcesRef.current.delete(source);
     subscriberRefs.current[source].stop();
     if (videoRefs.current[source]) {
       videoRefs.current[source]!.srcObject = null;
@@ -212,20 +214,23 @@ const MinimalLiveStage = ({
   const availableSourceSet = useMemo(() => new Set(availableSources), [availableSources]);
 
   const startSource = useCallback(async (source: LiveSource) => {
-    if (!contestId || !userId || !availableSourceSet.has(source)) return;
+    if (!contestId || !userId || connectingSourcesRef.current.has(source)) return;
+    const publisher = publishers.find((item) => inferSourceModule(item) === source);
+    if (!publisher) return;
+    connectingSourcesRef.current.add(source);
     setSourceStates((current) => ({
       ...current,
       [source]: { ...current[source], busy: true, errorMessage: "" },
     }));
     try {
-      await subscriberRefs.current[source].subscribe(
+      await subscriberRefs.current[source].subscribeToPublisher(
         contestId,
         userId,
+        publisher,
         (stream) => {
           const video = videoRefs.current[source];
           if (video) video.srcObject = stream;
         },
-        source,
       );
       setSourceStates((current) => ({
         ...current,
@@ -241,8 +246,10 @@ const MinimalLiveStage = ({
           errorMessage: error instanceof Error ? error.message : t("liveView.unknownError", "啟動 live view 失敗"),
         },
       }));
+    } finally {
+      connectingSourcesRef.current.delete(source);
     }
-  }, [availableSourceSet, contestId, t, userId]);
+  }, [contestId, publishers, t, userId]);
 
   useEffect(() => {
     if (!participant || discovering) return;

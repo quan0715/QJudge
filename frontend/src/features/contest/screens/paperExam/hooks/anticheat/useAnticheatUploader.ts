@@ -25,6 +25,7 @@ export const useAnticheatUploader = (
     nextSeq: 1,
     items: [],
   });
+  const refillPromiseRef = useRef<Promise<void> | null>(null);
 
   const refillPool = useCallback(
     async (sessionId: string, requiredCount: number) => {
@@ -35,24 +36,47 @@ export const useAnticheatUploader = (
       }
 
       while (urlPoolRef.current.items.length < requiredCount) {
+        if (refillPromiseRef.current) {
+          await refillPromiseRef.current;
+          continue;
+        }
+
         const fetchCount = Math.max(PREFETCH_BATCH_SIZE, requiredCount);
-        const response = await getAnticheatUrls(contestId, fetchCount, {
-          upload_session_id: sessionId,
-          start_seq: urlPoolRef.current.nextSeq,
-          module,
-        });
-        const fetched = response.items.map((item) => ({
-          seq: item.seq,
-          object_key: item.object_key,
-          put_url: item.put_url,
-          required_headers: item.required_headers,
-        }));
-        urlPoolRef.current.items.push(...fetched);
-        urlPoolRef.current.nextSeq =
-          typeof response.next_seq === "number"
-            ? response.next_seq
-            : urlPoolRef.current.nextSeq + fetched.length;
-        if (fetched.length === 0) break;
+        const startSeq = urlPoolRef.current.nextSeq;
+        const previousPoolSize = urlPoolRef.current.items.length;
+        const refillPromise = (async () => {
+          const response = await getAnticheatUrls(contestId, fetchCount, {
+            upload_session_id: sessionId,
+            start_seq: startSeq,
+            module,
+          });
+          if (urlPoolRef.current.sessionId !== sessionId) return;
+          const fetched = response.items.map((item) => ({
+            seq: item.seq,
+            object_key: item.object_key,
+            put_url: item.put_url,
+            required_headers: item.required_headers,
+          }));
+          urlPoolRef.current.items.push(...fetched);
+          urlPoolRef.current.nextSeq =
+            typeof response.next_seq === "number"
+              ? response.next_seq
+              : startSeq + fetched.length;
+        })();
+        refillPromiseRef.current = refillPromise;
+        try {
+          await refillPromise;
+        } finally {
+          if (refillPromiseRef.current === refillPromise) {
+            refillPromiseRef.current = null;
+          }
+        }
+        if (
+          urlPoolRef.current.sessionId !== sessionId ||
+          urlPoolRef.current.items.length === previousPoolSize
+        ) {
+          break;
+        }
       }
     },
     [contestId, module]
@@ -77,10 +101,10 @@ export const useAnticheatUploader = (
         const uploadPayload: AnticheatUploadBatchItem[] = items
           .slice(0, poolItems.length)
           .map((item, idx) => ({
-          blob: item.blob,
-          put_url: poolItems[idx].put_url,
-          required_headers: poolItems[idx].required_headers,
-        }));
+            blob: item.blob,
+            put_url: poolItems[idx].put_url,
+            required_headers: poolItems[idx].required_headers,
+          }));
 
         await uploadAnticheatBatch(uploadPayload);
         const uploadedCount = uploadPayload.length;

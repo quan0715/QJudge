@@ -675,6 +675,25 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(response.data["items"], [])
         mock_get_url.assert_not_called()
 
+    def test_screenshots_without_session_does_not_scan_all_user_objects(self):
+        self.client.force_authenticate(user=self.teacher)
+        screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
+        with patch("apps.contests.views.exam_evidence.get_s3_client") as mock_get_s3_client:
+            response = self.client.get(
+                screenshots_url,
+                {
+                    "user_id": self.student.id,
+                    "ts_from": 1774106600000,
+                    "ts_to": 1774106700000,
+                },
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["items"], [])
+        self.assertEqual(response.data["total_raw_count"], 0)
+        self.assertFalse(response.data["storage_error"])
+        mock_get_s3_client.assert_not_called()
+
     def test_screenshots_can_use_event_id_to_derive_window(self):
         ts_ms = 1774107000000
         ts_left_in = ts_ms - 10_000
