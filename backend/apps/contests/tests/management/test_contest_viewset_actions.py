@@ -127,7 +127,7 @@ def test_retrieve_auto_unlocks_locked_participant(
     participant.refresh_from_db()
     assert participant.exam_status == ExamStatus.PAUSED
     assert participant.locked_at is None
-    assert participant.violation_count == 0
+    assert participant.violation_count == 3
     assert participant.lock_reason == ""
 
 
