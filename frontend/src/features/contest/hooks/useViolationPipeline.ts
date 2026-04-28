@@ -60,6 +60,7 @@ export interface UseViolationPipelineConfig {
 export interface UseViolationPipelineReturn {
   trigger: (metadata?: Record<string, unknown>) => void;
   recover: (reason?: string, metadata?: Record<string, unknown>) => void;
+  resetInterruption: () => void;
   recoveryCountdown: number | null;
   isInterrupted: boolean;
 }
@@ -263,10 +264,10 @@ export function useViolationPipeline({
           modules: resolveEvidenceCaptureModules(),
         },
         metadata: {
+          ...metadata,
           reason: triggerReason,
           module: route.id,
           module_role: moduleRoleRef.current,
-          ...metadata,
         },
       }).catch(() => null);
 
@@ -436,6 +437,18 @@ export function useViolationPipeline({
     [externalCountdown, route, clearRecovery, clearContinued],
   );
 
+  const resetInterruption = useCallback(() => {
+    clearContinued();
+    awaitingRestoreAfterEscalationRef.current = false;
+    lastEscalatedAtRef.current = 0;
+    interruptedRef.current = false;
+    setIsInterrupted(false);
+
+    if (!externalCountdown) {
+      clearRecovery();
+    }
+  }, [externalCountdown, clearRecovery, clearContinued]);
+
   // Reset on disable / exam submit — intentional synchronous setState to clear stale UI
   useEffect(() => {
     if (!enabled || examSubmitted) {
@@ -469,6 +482,7 @@ export function useViolationPipeline({
   return {
     trigger,
     recover,
+    resetInterruption,
     recoveryCountdown: externalCountdown ? null : recoveryCountdown,
     isInterrupted,
   };

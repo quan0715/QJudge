@@ -421,15 +421,17 @@ def _merge_evidence_metadata(base: dict[str, Any], incoming: dict[str, Any]) -> 
             if not isinstance(result, dict):
                 continue
             current = dict(module_results.get(module) or {})
+            previous_keys = current.get("uploadedObjectKeys")
+            previous_seqs = current.get("uploadedSeqs")
             current.update(result)
             current_keys = _merge_unique_list(
-                current.get("uploadedObjectKeys"),
+                previous_keys,
                 result.get("uploadedObjectKeys"),
             )
             if current_keys:
                 current["uploadedObjectKeys"] = current_keys
             current_seqs = _merge_unique_list(
-                current.get("uploadedSeqs"),
+                previous_seqs,
                 result.get("uploadedSeqs"),
             )
             if current_seqs:

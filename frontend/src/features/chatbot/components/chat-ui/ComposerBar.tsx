@@ -130,10 +130,9 @@ export function ComposerBar({
     uploadInputRef.current?.click();
   }, [canUpload]);
 
-  const handleUploadChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await file.arrayBuffer();
     setPendingFiles((files) => [...files, file]);
     e.target.value = "";
   }, []);

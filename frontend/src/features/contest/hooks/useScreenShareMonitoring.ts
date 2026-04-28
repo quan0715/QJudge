@@ -158,6 +158,7 @@ export function useScreenShareMonitoring({
           onEnvironmentPausedRef.current?.(response);
         })
         .catch(() => {
+          pipeline.resetInterruption();
           onEnvironmentPausedRef.current?.(null);
         })
         .finally(() => {
@@ -165,7 +166,7 @@ export function useScreenShareMonitoring({
           endRuntimeScreenShareReauth(cid, 0);
         });
     }
-  }, [runtimeReauth.inProgress, runtimeReauth.remainingSeconds]);
+  }, [pipeline, runtimeReauth.inProgress, runtimeReauth.remainingSeconds]);
 
   // Clear reauth state when exam ends or monitoring is disabled
   useEffect(() => {

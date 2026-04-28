@@ -4,11 +4,13 @@ import { useViewportMonitoring } from "./useViewportMonitoring";
 
 const triggerMock = vi.fn();
 const recoverMock = vi.fn();
+const resetInterruptionMock = vi.fn();
 
 vi.mock("./useViolationPipeline", () => ({
   useViolationPipeline: () => ({
     trigger: triggerMock,
     recover: recoverMock,
+    resetInterruption: resetInterruptionMock,
     recoveryCountdown: null,
     isInterrupted: false,
   }),

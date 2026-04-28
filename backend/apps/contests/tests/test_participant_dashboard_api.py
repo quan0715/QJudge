@@ -157,7 +157,23 @@ class ParticipantDashboardApiTests(APITestCase):
             contest=contest,
             user=self.student,
             event_type="mouse_leave_recovery_timeout",
-            metadata={"reason": "first timeout", "upload_session_id": "session-1"},
+            metadata={
+                "reason": "first timeout",
+                "upload_session_id": "session-1",
+                "forced_capture_uploaded": True,
+                "forced_capture_uploaded_object_keys": [
+                    f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106645951_seq_0009.webp",
+                ],
+                "forced_capture_module_results": {
+                    "screen_share": {
+                        "uploaded": True,
+                        "uploadedSeqs": [9],
+                        "uploadedObjectKeys": [
+                            f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106645951_seq_0009.webp",
+                        ],
+                    },
+                },
+            },
         )
         second = ExamEvent.objects.create(
             contest=contest,
@@ -195,11 +211,12 @@ class ParticipantDashboardApiTests(APITestCase):
             if item["event_type"] == "mouse_leave_recovery_timeout"
         )
         self.assertEqual(incident["count"], 2)
-        self.assertEqual(incident["evidence_count"], 1)
+        self.assertEqual(incident["evidence_count"], 2)
         self.assertEqual(incident["event_id"], str(second.id))
         self.assertEqual(
             incident["metadata"]["forced_capture_uploaded_object_keys"],
             [
+                f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106645951_seq_0009.webp",
                 f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106646951_seq_0010.webp",
             ],
         )
@@ -265,6 +282,37 @@ class ParticipantDashboardApiTests(APITestCase):
         self.assertEqual(manual_items[0]["summary"], "Suspicious screen activity")
         self.assertEqual(manual_items[0]["metadata"]["upload_session_id"], "manual-session-1")
         self.assertEqual(manual_items[0]["metadata"]["forced_capture_uploaded_object_keys"], [object_key])
+
+    def test_manual_proctor_event_rejects_invalid_user_id(self):
+        contest = self._create_contest(contest_type="paper_exam")
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.post(
+            f"/api/v1/contests/{contest.id}/manual_proctor_event/",
+            {
+                "user_id": "not-a-number",
+                "started_at": timezone.now().isoformat(),
+                "ended_at": timezone.now().isoformat(),
+                "reason": "Suspicious screen activity",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("user_id", response.data["error"]["details"])
+
+    def test_manual_proctor_evidence_urls_rejects_invalid_user_id(self):
+        contest = self._create_contest(contest_type="paper_exam")
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.post(
+            f"/api/v1/contests/{contest.id}/manual_proctor_evidence_urls/",
+            {"user_id": "not-a-number"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("user_id", response.data["error"]["details"])
 
     @patch(
         "apps.contests.services.participant_dashboard._build_coding_report",

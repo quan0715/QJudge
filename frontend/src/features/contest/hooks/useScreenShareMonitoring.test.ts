@@ -218,6 +218,34 @@ describe("useScreenShareMonitoring", () => {
     );
   });
 
+  it("allows retry when timeout pause event fails", async () => {
+    mockRecordExamEventWithForcedCapture.mockResolvedValueOnce(undefined);
+    mockRecordExamEventWithForcedCapture.mockRejectedValueOnce(
+      new Error("network"),
+    );
+    const config = makeConfig({ recoveryGraceMs: 3000 });
+    const { result } = renderHook(() => useScreenShareMonitoring(config));
+
+    act(() => {
+      result.current.onStreamLost();
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(3500);
+      await Promise.resolve();
+    });
+    mockRecordExamEventWithForcedCapture.mockClear();
+
+    act(() => {
+      result.current.onStreamLost();
+    });
+
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      "contest-1",
+      "screen_share_interrupted",
+      expect.any(Object),
+    );
+  });
+
   it("onStreamRestored before timeout prevents force submit", () => {
     const requestForceSubmit = vi.fn().mockResolvedValue(undefined);
     const config = makeConfig({

@@ -68,6 +68,16 @@ def _parse_manual_event_datetime(value, *, field_name: str):
     return parsed
 
 
+def _parse_required_user_id(value):
+    try:
+        user_id = int(str(value or "").strip())
+    except (TypeError, ValueError):
+        raise DRFValidationError({"user_id": "Invalid user_id."})
+    if user_id <= 0:
+        raise DRFValidationError({"user_id": "Invalid user_id."})
+    return user_id
+
+
 class ContestViewSet(viewsets.ModelViewSet):
     """
     ViewSet for contests.
@@ -566,7 +576,7 @@ class ContestViewSet(viewsets.ModelViewSet):
     def manual_proctor_event(self, request, pk=None):
         """Create a TA-authored manual evidence event for a participant."""
         contest = self.get_object()
-        user_id = request.data.get('user_id')
+        user_id = _parse_required_user_id(request.data.get('user_id'))
         reason = str(request.data.get('reason') or '').strip()
         description = str(request.data.get('description') or '').strip()
         if not reason:
@@ -654,7 +664,7 @@ class ContestViewSet(viewsets.ModelViewSet):
     def manual_proctor_evidence_urls(self, request, pk=None):
         """Issue admin-side evidence upload URLs for manual proctoring captures."""
         contest = self.get_object()
-        user_id = request.data.get('user_id')
+        user_id = _parse_required_user_id(request.data.get('user_id'))
         module = str(request.data.get('module') or 'screen_share').strip()
         if module not in {'screen_share', 'webcam'}:
             raise DRFValidationError({'module': 'Invalid module.'})
