@@ -1022,7 +1022,8 @@ def build_artifact_tools(
             }
 
         combined = "\n\n".join(
-            f"--- Page {start + i} ---\n{t}" for i, t in enumerate(page_texts)
+            f"--- Page {page_num} ---\n{t}"
+            for page_num, t in enumerate(page_texts, start=start)
         )
 
         return {
