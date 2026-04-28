@@ -5,7 +5,9 @@ import type { ViolationRouteConfig } from "@/features/contest/domain/violationRo
 
 // --- Mocks ---
 const mockRecordExamEvent = vi.fn().mockResolvedValue(undefined);
-const mockRecordExamEventWithForcedCapture = vi.fn().mockResolvedValue(undefined);
+const mockRecordExamEventWithForcedCapture = vi
+  .fn()
+  .mockResolvedValue(undefined);
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   recordExamEvent: (...args: unknown[]) => mockRecordExamEvent(...args),
@@ -27,7 +29,11 @@ vi.mock("@/features/contest/anticheat/runtimeReauthState", () => ({
 // --- Helpers ---
 const viewportRoute: ViolationRouteConfig = {
   id: "viewport",
-  events: { triggered: "viewport_interrupted", escalated: "viewport_stopped", restored: "viewport_restored" },
+  events: {
+    triggered: "viewport_interrupted",
+    escalated: "viewport_stopped",
+    restored: "viewport_restored",
+  },
   defaultGraceMs: 3000,
   escalation: "force_submit",
   countdownPriority: 2,
@@ -54,7 +60,11 @@ const continuedMouseLeaveRoute: ViolationRouteConfig = {
 
 const webcamRoute: ViolationRouteConfig = {
   id: "webcam",
-  events: { triggered: "webcam_interrupted", escalated: "webcam_stopped", restored: "webcam_restored" },
+  events: {
+    triggered: "webcam_interrupted",
+    escalated: "webcam_stopped",
+    restored: "webcam_restored",
+  },
   defaultGraceMs: 10000,
   escalation: "force_submit",
   countdownPriority: 1,
@@ -85,12 +95,20 @@ describe("useViolationPipeline", () => {
     const config = makeConfig();
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
+    act(() => {
+      result.current.trigger();
+    });
 
-    expect(mockRecordExamEvent).toHaveBeenCalledWith(
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
       "viewport_interrupted",
-      expect.objectContaining({ source: "anticheat:viewport_integrity" }),
+      expect.objectContaining({
+        source: "anticheat:viewport_integrity",
+        captureOptions: {
+          eventType: "viewport_interrupted",
+          modules: ["screen_share"],
+        },
+      }),
     );
     expect(result.current.isInterrupted).toBe(true);
     expect(result.current.recoveryCountdown).toBe(3);
@@ -100,11 +118,17 @@ describe("useViolationPipeline", () => {
     const config = makeConfig();
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(1000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
     expect(result.current.recoveryCountdown).toBe(2);
 
-    act(() => { result.current.recover("viewport_integrity_recovered"); });
+    act(() => {
+      result.current.recover("viewport_integrity_recovered");
+    });
 
     expect(result.current.isInterrupted).toBe(false);
     expect(result.current.recoveryCountdown).toBeNull();
@@ -112,12 +136,16 @@ describe("useViolationPipeline", () => {
       "contest-1",
       "viewport_restored",
       expect.objectContaining({
-        metadata: expect.objectContaining({ reason: "viewport_integrity_recovered" }),
+        metadata: expect.objectContaining({
+          reason: "viewport_integrity_recovered",
+        }),
       }),
     );
 
     // Advance past grace period — force submit should NOT fire
-    act(() => { vi.advanceTimersByTime(5000); });
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
     expect(config.requestForceSubmit).not.toHaveBeenCalled();
   });
 
@@ -125,8 +153,12 @@ describe("useViolationPipeline", () => {
     const config = makeConfig();
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(3000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
 
     expect(config.requestForceSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -147,10 +179,15 @@ describe("useViolationPipeline", () => {
     });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(3000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
 
-    const request = (config.requestForceSubmit as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const request = (config.requestForceSubmit as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
     await act(async () => {
       await request.onRecording();
     });
@@ -174,8 +211,12 @@ describe("useViolationPipeline", () => {
     });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(10000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
 
     expect(config.requestForceSubmit).not.toHaveBeenCalled();
     expect(mockRecordExamEvent).toHaveBeenCalledWith(
@@ -192,10 +233,17 @@ describe("useViolationPipeline", () => {
     const config = makeConfig({ route: mouseLeaveRoute, onViolation });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(3000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
 
-    expect(onViolation).toHaveBeenCalledWith("mouse_leave", "mouse_leave_recovery_timeout");
+    expect(onViolation).toHaveBeenCalledWith(
+      "mouse_leave",
+      "mouse_leave_recovery_timeout",
+    );
     expect(config.requestForceSubmit).not.toHaveBeenCalled();
   });
 
@@ -204,15 +252,31 @@ describe("useViolationPipeline", () => {
     const config = makeConfig({ route: continuedMouseLeaveRoute, onViolation });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(3000); });
-    expect(onViolation).toHaveBeenCalledWith("mouse_leave", "mouse_leave_recovery_timeout");
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(onViolation).toHaveBeenCalledWith(
+      "mouse_leave",
+      "mouse_leave_recovery_timeout",
+    );
 
-    act(() => { vi.advanceTimersByTime(30_000); });
-    expect(onViolation).toHaveBeenCalledWith("mouse_leave", "mouse_leave_continued");
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(onViolation).toHaveBeenCalledWith(
+      "mouse_leave",
+      "mouse_leave_continued",
+    );
 
-    act(() => { result.current.recover("mouse_returned"); });
-    act(() => { vi.advanceTimersByTime(60_000); });
+    act(() => {
+      result.current.recover("mouse_returned");
+    });
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
 
     expect(onViolation).toHaveBeenCalledTimes(2);
   });
@@ -222,9 +286,15 @@ describe("useViolationPipeline", () => {
     const config = makeConfig({ route: continuedMouseLeaveRoute, onViolation });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(3000); });
-    act(() => { vi.advanceTimersByTime(120_000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    act(() => {
+      vi.advanceTimersByTime(120_000);
+    });
 
     const continuedCalls = onViolation.mock.calls.filter(
       (call) => call[1] === "mouse_leave_continued",
@@ -236,13 +306,18 @@ describe("useViolationPipeline", () => {
     const config = makeConfig();
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
-    act(() => { result.current.trigger(); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      result.current.trigger();
+    });
 
     // Only one triggered event
-    const triggeredCalls = mockRecordExamEvent.mock.calls.filter(
-      (c: unknown[]) => c[1] === "viewport_interrupted",
-    );
+    const triggeredCalls =
+      mockRecordExamEventWithForcedCapture.mock.calls.filter(
+        (c: unknown[]) => c[1] === "viewport_interrupted",
+      );
     expect(triggeredCalls).toHaveLength(1);
   });
 
@@ -250,7 +325,9 @@ describe("useViolationPipeline", () => {
     const config = makeConfig({ isSuppressed: () => true });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
+    act(() => {
+      result.current.trigger();
+    });
 
     expect(result.current.isInterrupted).toBe(false);
     expect(mockRecordExamEvent).not.toHaveBeenCalled();
@@ -260,7 +337,9 @@ describe("useViolationPipeline", () => {
     const config = makeConfig({ enabled: false });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
+    act(() => {
+      result.current.trigger();
+    });
     expect(result.current.isInterrupted).toBe(false);
   });
 
@@ -268,7 +347,9 @@ describe("useViolationPipeline", () => {
     const config = makeConfig({ examSubmitted: true });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
+    act(() => {
+      result.current.trigger();
+    });
     expect(result.current.isInterrupted).toBe(false);
   });
 
@@ -279,8 +360,12 @@ describe("useViolationPipeline", () => {
     });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(10000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
 
     // Should NOT call requestForceSubmit (webcam route default is force_submit)
     expect(config.requestForceSubmit).not.toHaveBeenCalled();
@@ -298,11 +383,15 @@ describe("useViolationPipeline", () => {
     const config = makeConfig();
     const { result, unmount } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
+    act(() => {
+      result.current.trigger();
+    });
     unmount();
 
     // Advance past grace period — force submit should NOT fire
-    act(() => { vi.advanceTimersByTime(5000); });
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
     expect(config.requestForceSubmit).not.toHaveBeenCalled();
   });
 
@@ -310,16 +399,24 @@ describe("useViolationPipeline", () => {
     const config = makeConfig();
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
+    act(() => {
+      result.current.trigger();
+    });
     expect(result.current.recoveryCountdown).toBe(3);
 
-    act(() => { vi.advanceTimersByTime(1000); });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
     expect(result.current.recoveryCountdown).toBe(2);
 
-    act(() => { vi.advanceTimersByTime(1000); });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
     expect(result.current.recoveryCountdown).toBe(1);
 
-    act(() => { vi.advanceTimersByTime(1000); });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
     // Timer expired, countdown cleared
     expect(result.current.recoveryCountdown).toBeNull();
   });
@@ -330,25 +427,35 @@ describe("useViolationPipeline", () => {
     const { result } = renderHook(() => useViolationPipeline(config));
 
     // First trigger → escalation
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(3000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
     expect(onViolation).toHaveBeenCalledTimes(1);
     expect(result.current.isInterrupted).toBe(false);
 
     // Advance past escalation cooldown (10s)
-    act(() => { vi.advanceTimersByTime(10_000); });
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
 
     // Second trigger should work (not be blocked by stale interruptedRef)
-    mockRecordExamEvent.mockClear();
-    act(() => { result.current.trigger(); });
+    mockRecordExamEventWithForcedCapture.mockClear();
+    act(() => {
+      result.current.trigger();
+    });
     expect(result.current.isInterrupted).toBe(true);
-    expect(mockRecordExamEvent).toHaveBeenCalledWith(
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
       "mouse_leave_triggered",
       expect.objectContaining({ source: "anticheat:mouse_leave" }),
     );
 
-    act(() => { vi.advanceTimersByTime(3000); });
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
     expect(onViolation).toHaveBeenCalledTimes(2);
   });
 
@@ -360,17 +467,27 @@ describe("useViolationPipeline", () => {
     const { result } = renderHook(() => useViolationPipeline(config));
 
     // First trigger → escalation
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(10000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
     expect(result.current.isInterrupted).toBe(false);
 
-    act(() => { vi.advanceTimersByTime(10_000); });
-    mockRecordExamEvent.mockClear();
-    act(() => { result.current.trigger(); });
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    mockRecordExamEventWithForcedCapture.mockClear();
+    act(() => {
+      result.current.trigger();
+    });
     expect(result.current.isInterrupted).toBe(false);
-    expect(mockRecordExamEvent).not.toHaveBeenCalled();
+    expect(mockRecordExamEventWithForcedCapture).not.toHaveBeenCalled();
 
-    act(() => { result.current.recover("stream_recovered"); });
+    act(() => {
+      result.current.recover("stream_recovered");
+    });
     expect(mockRecordExamEvent).toHaveBeenCalledWith(
       "contest-1",
       "webcam_restored",
@@ -379,13 +496,21 @@ describe("useViolationPipeline", () => {
       }),
     );
 
-    mockRecordExamEvent.mockClear();
-    act(() => { result.current.trigger(); });
+    mockRecordExamEventWithForcedCapture.mockClear();
+    act(() => {
+      result.current.trigger();
+    });
     expect(result.current.isInterrupted).toBe(true);
-    expect(mockRecordExamEvent).toHaveBeenCalledWith(
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
       "webcam_interrupted",
-      expect.objectContaining({ source: "anticheat:webcam_capture" }),
+      expect.objectContaining({
+        source: "anticheat:webcam_capture",
+        captureOptions: {
+          eventType: "webcam_interrupted",
+          modules: ["webcam"],
+        },
+      }),
     );
   });
 
@@ -394,23 +519,39 @@ describe("useViolationPipeline", () => {
     const { result } = renderHook(() => useViolationPipeline(config));
 
     // First trigger → force_submit escalation
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(3000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
     expect(config.requestForceSubmit).toHaveBeenCalledTimes(1);
     expect(result.current.isInterrupted).toBe(false);
 
     // Simulate onFinally callback to clear isSubmittingRef
-    const forceSubmitCall = (config.requestForceSubmit as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    act(() => { forceSubmitCall.onFinally(); });
+    const forceSubmitCall = (
+      config.requestForceSubmit as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0];
+    act(() => {
+      forceSubmitCall.onFinally();
+    });
 
-    act(() => { vi.advanceTimersByTime(10_000); });
-    act(() => { result.current.trigger(); });
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    act(() => {
+      result.current.trigger();
+    });
     expect(result.current.isInterrupted).toBe(false);
 
-    act(() => { result.current.recover("viewport_integrity_recovered"); });
+    act(() => {
+      result.current.recover("viewport_integrity_recovered");
+    });
 
     mockRecordExamEvent.mockClear();
-    act(() => { result.current.trigger(); });
+    act(() => {
+      result.current.trigger();
+    });
     expect(result.current.isInterrupted).toBe(true);
     expect(result.current.recoveryCountdown).toBe(3);
   });
@@ -422,16 +563,24 @@ describe("useViolationPipeline", () => {
     });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger(); });
-    act(() => { vi.advanceTimersByTime(10000); });
+    act(() => {
+      result.current.trigger();
+    });
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
 
-    act(() => { result.current.recover("stream_recovered"); });
-    mockRecordExamEvent.mockClear();
+    act(() => {
+      result.current.recover("stream_recovered");
+    });
+    mockRecordExamEventWithForcedCapture.mockClear();
 
-    act(() => { result.current.trigger(); });
+    act(() => {
+      result.current.trigger();
+    });
 
     expect(result.current.isInterrupted).toBe(true);
-    expect(mockRecordExamEvent).toHaveBeenCalledWith(
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
       "webcam_interrupted",
       expect.objectContaining({ source: "anticheat:webcam_capture" }),
@@ -442,23 +591,33 @@ describe("useViolationPipeline", () => {
     const config = makeConfig({ externalCountdown: true });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.trigger({ extra: "data" }); });
+    act(() => {
+      result.current.trigger({ extra: "data" });
+    });
 
     expect(result.current.isInterrupted).toBe(true);
     expect(result.current.recoveryCountdown).toBeNull(); // external mode
-    expect(mockRecordExamEvent).toHaveBeenCalledWith(
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
       "viewport_interrupted",
       expect.objectContaining({
+        captureOptions: {
+          eventType: "viewport_interrupted",
+          modules: ["screen_share"],
+        },
         metadata: expect.objectContaining({ extra: "data" }),
       }),
     );
 
     // Advance past grace — should NOT trigger force submit
-    act(() => { vi.advanceTimersByTime(5000); });
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
     expect(config.requestForceSubmit).not.toHaveBeenCalled();
 
-    act(() => { result.current.recover("user_reshared"); });
+    act(() => {
+      result.current.recover("user_reshared");
+    });
     expect(result.current.isInterrupted).toBe(false);
     expect(mockRecordExamEvent).toHaveBeenCalledWith(
       "contest-1",
@@ -473,7 +632,9 @@ describe("useViolationPipeline", () => {
     const config = makeConfig({ externalCountdown: true });
     const { result } = renderHook(() => useViolationPipeline(config));
 
-    act(() => { result.current.recover("spurious_recover"); });
+    act(() => {
+      result.current.recover("spurious_recover");
+    });
 
     expect(result.current.isInterrupted).toBe(false);
     expect(result.current.recoveryCountdown).toBeNull();

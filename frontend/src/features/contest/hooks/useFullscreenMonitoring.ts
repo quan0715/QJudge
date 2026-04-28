@@ -10,6 +10,7 @@ import { isFullscreen } from "@/core/usecases/exam";
 import { VIOLATION_ROUTES_MAP } from "@/features/contest/domain/violationRoutes";
 import { useViolationPipeline } from "./useViolationPipeline";
 import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
+import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 
 const FULLSCREEN_SETTLEMENT_MS = 100;
 const FULLSCREEN_RECOVERY_GRACE_MS = 30_000;
@@ -19,6 +20,7 @@ export interface UseFullscreenMonitoringConfig {
   contestId: string;
   enabled: boolean;
   examSubmitted: boolean;
+  evidenceCaptureModules?: ForcedCaptureModule[];
   onViolation: (eventType: string, reason: string) => void;
   requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
 }
@@ -33,6 +35,7 @@ export function useFullscreenMonitoring({
   contestId,
   enabled,
   examSubmitted,
+  evidenceCaptureModules,
   onViolation,
   requestForceSubmit,
 }: UseFullscreenMonitoringConfig): UseFullscreenMonitoringReturn {
@@ -45,10 +48,16 @@ export function useFullscreenMonitoring({
     moduleRole: "primary",
     requestForceSubmit,
     onViolation,
+    forceSubmitExtras: {
+      sourceModule: "screen_share",
+      evidenceCaptureModules,
+    },
   });
 
   const pipelineRef = useRef(pipeline);
-  useEffect(() => { pipelineRef.current = pipeline; }, [pipeline]);
+  useEffect(() => {
+    pipelineRef.current = pipeline;
+  }, [pipeline]);
 
   const lastVerifyResponseRef = useRef<string | null>(null);
 
@@ -57,7 +66,8 @@ export function useFullscreenMonitoring({
 
     const handleFullscreenChange = (event: Event) => {
       // Integrity verification token — not a real fullscreen change
-      const verifyToken = (event as Event & { __examVerify?: string }).__examVerify;
+      const verifyToken = (event as Event & { __examVerify?: string })
+        .__examVerify;
       if (verifyToken) {
         lastVerifyResponseRef.current = verifyToken;
         return;
@@ -85,7 +95,10 @@ export function useFullscreenMonitoring({
       document.dispatchEvent(synthetic);
 
       if (lastVerifyResponseRef.current !== token) {
-        onViolation("listener_tampered", "Fullscreen listener integrity check failed");
+        onViolation(
+          "listener_tampered",
+          "Fullscreen listener integrity check failed",
+        );
       }
     }, VERIFY_INTERVAL_MS);
 

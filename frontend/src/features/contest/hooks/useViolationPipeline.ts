@@ -11,7 +11,10 @@ import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/f
 import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/runtimeReauthState";
-import type { ViolationRouteConfig, EscalationAction } from "@/features/contest/domain/violationRoutes";
+import type {
+  ViolationRouteConfig,
+  EscalationAction,
+} from "@/features/contest/domain/violationRoutes";
 import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
 
 export interface ForceSubmitExtras {
@@ -75,12 +78,18 @@ export function useViolationPipeline({
   externalCountdown = false,
   forceSubmitExtras,
 }: UseViolationPipelineConfig): UseViolationPipelineReturn {
-  const [recoveryCountdown, setRecoveryCountdown] = useState<number | null>(null);
+  const [recoveryCountdown, setRecoveryCountdown] = useState<number | null>(
+    null,
+  );
   const [isInterrupted, setIsInterrupted] = useState(false);
 
   const recoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const continuedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
+  const continuedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const continuedCountRef = useRef(0);
   const interruptedRef = useRef(false);
   const isSubmittingRef = useRef(false);
@@ -98,14 +107,30 @@ export function useViolationPipeline({
   const isSuppressedRef = useRef(isSuppressed);
   const forceSubmitExtrasRef = useRef(forceSubmitExtras);
 
-  useEffect(() => { contestIdRef.current = contestId; }, [contestId]);
-  useEffect(() => { moduleRoleRef.current = moduleRole; }, [moduleRole]);
-  useEffect(() => { recoveryGraceMsRef.current = recoveryGraceMs; }, [recoveryGraceMs]);
-  useEffect(() => { requestForceSubmitRef.current = requestForceSubmit; }, [requestForceSubmit]);
-  useEffect(() => { onViolationRef.current = onViolation; }, [onViolation]);
-  useEffect(() => { escalationOverrideRef.current = escalationOverride; }, [escalationOverride]);
-  useEffect(() => { isSuppressedRef.current = isSuppressed; }, [isSuppressed]);
-  useEffect(() => { forceSubmitExtrasRef.current = forceSubmitExtras; }, [forceSubmitExtras]);
+  useEffect(() => {
+    contestIdRef.current = contestId;
+  }, [contestId]);
+  useEffect(() => {
+    moduleRoleRef.current = moduleRole;
+  }, [moduleRole]);
+  useEffect(() => {
+    recoveryGraceMsRef.current = recoveryGraceMs;
+  }, [recoveryGraceMs]);
+  useEffect(() => {
+    requestForceSubmitRef.current = requestForceSubmit;
+  }, [requestForceSubmit]);
+  useEffect(() => {
+    onViolationRef.current = onViolation;
+  }, [onViolation]);
+  useEffect(() => {
+    escalationOverrideRef.current = escalationOverride;
+  }, [escalationOverride]);
+  useEffect(() => {
+    isSuppressedRef.current = isSuppressed;
+  }, [isSuppressed]);
+  useEffect(() => {
+    forceSubmitExtrasRef.current = forceSubmitExtras;
+  }, [forceSubmitExtras]);
 
   const clearRecovery = useCallback(() => {
     if (recoveryTimerRef.current) {
@@ -143,6 +168,18 @@ export function useViolationPipeline({
 
   const ESCALATION_COOLDOWN_MS = 1_000;
 
+  const resolveEvidenceCaptureModules =
+    useCallback((): ForcedCaptureModule[] => {
+      const extras = forceSubmitExtrasRef.current;
+      if (extras?.evidenceCaptureModules?.length) {
+        return extras.evidenceCaptureModules;
+      }
+      if (extras?.sourceModule) {
+        return [extras.sourceModule];
+      }
+      return [route.id === "webcam" ? "webcam" : "screen_share"];
+    }, [route.id]);
+
   const emitContinuedEvent = useCallback(() => {
     const continued = route.continued;
     if (!continued || examSubmitted || !enabled) return;
@@ -154,9 +191,10 @@ export function useViolationPipeline({
     continuedCountRef.current += 1;
     const eventType = continued.eventType ?? route.events.escalated;
     const reason = continued.reason ?? `${route.id}_continued`;
-    const durationMs = incidentStartedAtRef.current > 0
-      ? Math.max(0, Date.now() - incidentStartedAtRef.current)
-      : undefined;
+    const durationMs =
+      incidentStartedAtRef.current > 0
+        ? Math.max(0, Date.now() - incidentStartedAtRef.current)
+        : undefined;
 
     if (route.escalation === "penalized_event") {
       onViolationRef.current?.(eventType, reason);
@@ -180,7 +218,10 @@ export function useViolationPipeline({
   const startContinued = useCallback(() => {
     const continued = route.continued;
     if (!continued || continuedIntervalRef.current) return;
-    continuedIntervalRef.current = setInterval(emitContinuedEvent, continued.intervalMs);
+    continuedIntervalRef.current = setInterval(
+      emitContinuedEvent,
+      continued.intervalMs,
+    );
   }, [emitContinuedEvent, route.continued]);
 
   const trigger = useCallback(
@@ -192,8 +233,13 @@ export function useViolationPipeline({
       // For sources with an explicit restored event, do not re-trigger while
       // the original condition is still unresolved. Once recover() records the
       // restored event, the next real violation should be sent immediately.
-      if (route.events.restored && awaitingRestoreAfterEscalationRef.current) return;
-      if (!route.events.restored && Date.now() - lastEscalatedAtRef.current < ESCALATION_COOLDOWN_MS) return;
+      if (route.events.restored && awaitingRestoreAfterEscalationRef.current)
+        return;
+      if (
+        !route.events.restored &&
+        Date.now() - lastEscalatedAtRef.current < ESCALATION_COOLDOWN_MS
+      )
+        return;
 
       awaitingRestoreAfterEscalationRef.current = false;
       interruptedRef.current = true;
@@ -201,13 +247,23 @@ export function useViolationPipeline({
       setIsInterrupted(true);
       const cid = contestIdRef.current;
 
-      // Record triggered event
+      // Record triggered event with evidence. A trigger is the first signal of
+      // a risk window; even if the condition recovers, the first frame matters.
       const eventIdempotencyKey = `${route.events.triggered}:${Date.now()}`;
-      recordExamEvent(cid, route.events.triggered, {
+      const triggerReason =
+        typeof metadata?.reason === "string"
+          ? metadata.reason
+          : `${route.id}_violation`;
+      recordExamEventWithForcedCapture(cid, route.events.triggered, {
         source: route.eventSource,
         eventIdempotencyKey,
+        forceCaptureReason: `${route.events.triggered}:${triggerReason}`,
+        captureOptions: {
+          eventType: route.events.triggered,
+          modules: resolveEvidenceCaptureModules(),
+        },
         metadata: {
-          reason: `${route.id}_violation`,
+          reason: triggerReason,
           module: route.id,
           module_role: moduleRoleRef.current,
           ...metadata,
@@ -219,9 +275,13 @@ export function useViolationPipeline({
 
       // Clear any previous timers
       if (recoveryTimerRef.current) clearTimeout(recoveryTimerRef.current);
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      if (countdownIntervalRef.current)
+        clearInterval(countdownIntervalRef.current);
 
-      const effectiveGraceMs = Math.max(1, recoveryGraceMsRef.current ?? route.defaultGraceMs);
+      const effectiveGraceMs = Math.max(
+        1,
+        recoveryGraceMsRef.current ?? route.defaultGraceMs,
+      );
       const recoverySec = Math.ceil(effectiveGraceMs / 1000);
       setRecoveryCountdown(recoverySec);
 
@@ -249,7 +309,9 @@ export function useViolationPipeline({
           const defaultSourceModule: ForceSubmitRequest["sourceModule"] =
             route.id === "webcam" ? "webcam" : "screen_share";
           const sourceModule = extras?.sourceModule ?? defaultSourceModule;
-          const evidenceCaptureModules = extras?.evidenceCaptureModules ?? [sourceModule];
+          const evidenceCaptureModules = extras?.evidenceCaptureModules ?? [
+            sourceModule,
+          ];
           const defaultStopCaptureKey: ForceSubmitRequest["stopCaptureKey"] =
             route.id === "screen_share"
               ? "screen_share_timeout_submit"
@@ -262,34 +324,49 @@ export function useViolationPipeline({
             stopCaptureKey: extras?.stopCaptureKey ?? defaultStopCaptureKey,
             stopWebcamFirst: extras?.stopWebcamFirst,
             onRecording: async () => {
-              await recordExamEvent(contestIdRef.current, route.events.escalated, {
-                source: route.eventSource,
-                eventIdempotencyKey: escalatedKey,
-                metadata: {
-                  reason: "recovery_timeout",
-                  module: route.id,
-                  module_role: moduleRoleRef.current,
+              await recordExamEvent(
+                contestIdRef.current,
+                route.events.escalated,
+                {
+                  source: route.eventSource,
+                  eventIdempotencyKey: escalatedKey,
+                  metadata: {
+                    reason: "recovery_timeout",
+                    module: route.id,
+                    module_role: moduleRoleRef.current,
+                  },
                 },
-              }).catch(() => null);
-              await recordExamEventWithForcedCapture(contestIdRef.current, "exam_submit_initiated", {
-                reason: `Force submit after ${route.id} recovery timeout`,
-                source: `exam_mode:${route.id}_recovery_timeout`,
-                forceCaptureReason: extras?.forceCaptureReason,
-                captureOptions: {
-                  eventType: "exam_submit_initiated",
-                  modules: evidenceCaptureModules,
+              ).catch(() => null);
+              await recordExamEventWithForcedCapture(
+                contestIdRef.current,
+                "exam_submit_initiated",
+                {
+                  reason: `Force submit after ${route.id} recovery timeout`,
+                  source: `exam_mode:${route.id}_recovery_timeout`,
+                  forceCaptureReason: extras?.forceCaptureReason,
+                  captureOptions: {
+                    eventType: "exam_submit_initiated",
+                    modules: evidenceCaptureModules,
+                  },
+                  metadata: {
+                    upload_session_id:
+                      getExamCaptureSessionId(contestIdRef.current) ||
+                      undefined,
+                    module: route.id,
+                    module_role: moduleRoleRef.current,
+                  },
                 },
-                metadata: {
-                  upload_session_id: getExamCaptureSessionId(contestIdRef.current) || undefined,
-                  module: route.id,
-                  module_role: moduleRoleRef.current,
-                },
-              }).catch(() => null);
+              ).catch(() => null);
             },
-            onFinally: () => { isSubmittingRef.current = false; },
+            onFinally: () => {
+              isSubmittingRef.current = false;
+            },
           });
         } else if (escalation === "penalized_event") {
-          onViolationRef.current?.(route.events.escalated, `${route.id}_recovery_timeout`);
+          onViolationRef.current?.(
+            route.events.escalated,
+            `${route.id}_recovery_timeout`,
+          );
         } else {
           // log_only
           recordExamEvent(contestIdRef.current, route.events.escalated, {
@@ -312,7 +389,16 @@ export function useViolationPipeline({
         startContinued();
       }, effectiveGraceMs);
     },
-    [enabled, examSubmitted, externalCountdown, route, checkSuppressed, resolveEscalation, startContinued],
+    [
+      enabled,
+      examSubmitted,
+      externalCountdown,
+      route,
+      checkSuppressed,
+      resolveEscalation,
+      resolveEvidenceCaptureModules,
+      startContinued,
+    ],
   );
 
   const recover = useCallback(
@@ -321,7 +407,8 @@ export function useViolationPipeline({
         !interruptedRef.current &&
         !awaitingRestoreAfterEscalationRef.current &&
         !continuedIntervalRef.current
-      ) return;
+      )
+        return;
       clearContinued();
       awaitingRestoreAfterEscalationRef.current = false;
       lastEscalatedAtRef.current = 0;
@@ -361,7 +448,13 @@ export function useViolationPipeline({
         clearRecovery();
       }
     }
-  }, [enabled, examSubmitted, externalCountdown, clearRecovery, clearContinued]);
+  }, [
+    enabled,
+    examSubmitted,
+    externalCountdown,
+    clearRecovery,
+    clearContinued,
+  ]);
 
   // Unmount cleanup
   useEffect(() => {

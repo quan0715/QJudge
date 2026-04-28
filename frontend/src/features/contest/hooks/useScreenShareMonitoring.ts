@@ -70,11 +70,21 @@ export function useScreenShareMonitoring({
   const evidenceCaptureModulesRef = useRef(evidenceCaptureModules);
   const onEnvironmentPausedRef = useRef(onEnvironmentPaused);
 
-  useEffect(() => { contestIdRef.current = contestId; }, [contestId]);
-  useEffect(() => { moduleRoleRef.current = moduleRole; }, [moduleRole]);
-  useEffect(() => { recoveryGraceMsRef.current = recoveryGraceMs; }, [recoveryGraceMs]);
-  useEffect(() => { evidenceCaptureModulesRef.current = evidenceCaptureModules; }, [evidenceCaptureModules]);
-  useEffect(() => { onEnvironmentPausedRef.current = onEnvironmentPaused; }, [onEnvironmentPaused]);
+  useEffect(() => {
+    contestIdRef.current = contestId;
+  }, [contestId]);
+  useEffect(() => {
+    moduleRoleRef.current = moduleRole;
+  }, [moduleRole]);
+  useEffect(() => {
+    recoveryGraceMsRef.current = recoveryGraceMs;
+  }, [recoveryGraceMs]);
+  useEffect(() => {
+    evidenceCaptureModulesRef.current = evidenceCaptureModules;
+  }, [evidenceCaptureModules]);
+  useEffect(() => {
+    onEnvironmentPausedRef.current = onEnvironmentPaused;
+  }, [onEnvironmentPaused]);
 
   const pipeline = useViolationPipeline({
     route: screenShareRoute,
@@ -87,6 +97,10 @@ export function useScreenShareMonitoring({
     requestForceSubmit,
     // Suppress default runtimeReauth check — screen_share IS the reauth source
     isSuppressed: () => false,
+    forceSubmitExtras: {
+      sourceModule: "screen_share",
+      evidenceCaptureModules,
+    },
   });
 
   const onStreamLost = useCallback(() => {
@@ -95,7 +109,8 @@ export function useScreenShareMonitoring({
 
     const recoveryMs = Math.max(
       1,
-      recoveryGraceMsRef.current ?? getTimingConfig().screenShareRecoveryGraceMs,
+      recoveryGraceMsRef.current ??
+        getTimingConfig().screenShareRecoveryGraceMs,
     );
     pipeline.trigger({ reason: "stream_ended" });
     beginRuntimeScreenShareReauth(contestIdRef.current, recoveryMs);
