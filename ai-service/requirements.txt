@@ -20,6 +20,9 @@ pydantic-settings>=2.2.0
 # SSE support
 sse-starlette>=2.0.0
 
+# PDF text extraction
+pypdf>=5.0.0
+
 # Utilities
 python-dotenv>=1.0.0
 pyyaml>=6.0.0

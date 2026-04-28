@@ -38,6 +38,7 @@ _ALLOWED_UPLOAD_CONTENT_TYPES = {
     "text/plain",
     "text/markdown",
     "text/x-markdown",
+    "application/pdf",
 }
 
 
