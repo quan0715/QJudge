@@ -7,10 +7,32 @@
 }
 
 .embeddedRoot {
-  height: 100%;
+  height: auto;
+
+  .root {
+    gap: 0;
+    padding: 0;
+  }
+
+  .feedSection {
+    min-height: 0;
+  }
+
+  .feedHeader {
+    padding: 0.75rem 1rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
 
   .feedScroll {
-    max-height: 36rem;
+    max-height: none;
+    overflow: visible;
+    padding: 0.75rem 1rem 0;
+  }
+
+  .statusFooter {
+    padding-inline: 1rem;
+    border-top: 1px solid var(--cds-border-subtle);
   }
 }
 

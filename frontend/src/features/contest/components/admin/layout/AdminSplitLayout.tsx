@@ -58,6 +58,7 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
 
     const rootClasses = [
       styles.root,
+      toolbar && styles.hasToolbar,
       !sidebarHidden && !middlePane && !rightPane && styles.noMiddle,
       !sidebarHidden && rightPane && !middlePane && styles.withRightOnly,
       !sidebarHidden && rightPane && middlePane && styles.withMiddleAndRight,
@@ -68,7 +69,9 @@ const AdminSplitLayout = forwardRef<HTMLDivElement, AdminSplitLayoutProps>(
       mobileMode === "drawers" && styles.mobileDrawerLayout,
       mobileMode === "contentOnly" && styles.mobileContentOnly,
       mobileSidebarOpen && styles.mobileSidebarOpen,
+      mobileMode === "drawers" && !mobileSidebarOpen && styles.sidebarClosed,
       detailOpen && styles.mobileDetailOpen,
+      mobileMode === "drawers" && !detailOpen && styles.detailClosed,
       className,
     ]
       .filter(Boolean)

@@ -1,7 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Button, FluidDropdown, TableToolbarSearch } from "@carbon/react";
-import { Add, Close, DocumentExport, UserMultiple } from "@carbon/icons-react";
+import {
+  Add,
+  Close,
+  DocumentExport,
+  Search,
+  UserMultiple,
+} from "@carbon/icons-react";
 import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
 import { useTranslation } from "react-i18next";
@@ -28,6 +41,7 @@ import {
 } from "@/infrastructure/api/repositories";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { useToast } from "@/shared/contexts/ToastContext";
+import { useMediaQuery } from "@/shared/hooks";
 
 import ParticipantDashboardPane from "@/features/contest/components/participants/ParticipantDashboardPane";
 import ParticipantOperationsPane from "@/features/contest/components/participants/ParticipantOperationsPane";
@@ -51,6 +65,7 @@ const ContestParticipantsScreen = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { confirm, modalProps } = useConfirmModal();
   const { showToast } = useToast();
+  const isCompactLayout = useMediaQuery("(max-width: 900px)");
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -60,7 +75,8 @@ const ContestParticipantsScreen = () => {
     useState<ExamStatusType>("not_started");
   const [editLockReason, setEditLockReason] = useState("");
   const [saving, setSaving] = useState(false);
-  const [mobileRosterOpen, setMobileRosterOpen] = useState(false);
+  const [rosterOpen, setRosterOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   // filterOpen state removed — FilterPopover manages its own open/close
   const refreshInFlightRef = useRef(false);
 
@@ -74,6 +90,10 @@ const ContestParticipantsScreen = () => {
       ? (detailParam as ParticipantDashboardDetail)
       : null;
   const activeDetail = detail ?? "report";
+
+  useEffect(() => {
+    setRosterOpen(!isCompactLayout);
+  }, [isCompactLayout]);
 
   const {
     data: dashboard,
@@ -470,6 +490,17 @@ const ContestParticipantsScreen = () => {
     }
   };
 
+  const handleSearchChange = useCallback(
+    (event: "" | ChangeEvent<HTMLInputElement>) => {
+      if (event === "") {
+        updateParams({ q: null });
+        return;
+      }
+      updateParams({ q: event.target.value || null });
+    },
+    [updateParams],
+  );
+
   const listPaneProps = {
     participants: processedParticipants,
     totalItems: participants.length,
@@ -479,20 +510,47 @@ const ContestParticipantsScreen = () => {
 
   const participantToolbarActions = (
     <>
-      <TableToolbarSearch
-        labelText={t("participants.searchLabel", "搜尋參賽者")}
-        placeholder={t(
-          "participants.searchPlaceholder",
-          "搜尋姓名或使用者 ID...",
+      <div className={styles.toolbarSearchDesktop}>
+        <TableToolbarSearch
+          id="participants-toolbar-search"
+          labelText={t("participants.searchLabel", "搜尋參賽者")}
+          placeholder={t(
+            "participants.searchPlaceholder",
+            "搜尋姓名或使用者 ID...",
+          )}
+          value={searchQuery}
+          onChange={handleSearchChange}
+          persistent
+          size="md"
+        />
+      </div>
+      <div className={styles.toolbarSearchMobile}>
+        {mobileSearchOpen || searchQuery ? (
+          <TableToolbarSearch
+            id="participants-toolbar-search-mobile"
+            labelText={t("participants.searchLabel", "搜尋參賽者")}
+            placeholder={t("participants.searchMobilePlaceholder", "搜尋")}
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onBlur={() => {
+              if (!searchQuery) setMobileSearchOpen(false);
+            }}
+            expanded
+            persistent
+            autoFocus
+            size="md"
+          />
+        ) : (
+          <Button
+            kind="ghost"
+            size="md"
+            renderIcon={Search}
+            iconDescription={t("participants.searchLabel", "搜尋參賽者")}
+            hasIconOnly
+            onClick={() => setMobileSearchOpen(true)}
+          />
         )}
-        value={searchQuery}
-        onChange={(event) => {
-          if (event && typeof event !== "string" && "target" in event) {
-            updateParams({ q: event.target.value || null });
-          }
-        }}
-        persistent
-      />
+      </div>
       <FilterPopover
         hasActiveFilters={hasActiveFilters}
         triggerLabel={t("participants.filters", "篩選")}
@@ -567,17 +625,17 @@ const ContestParticipantsScreen = () => {
             <PanelToolbar
               leftActions={
                 <Button
-                  kind={mobileRosterOpen ? "primary" : "ghost"}
+                  kind={rosterOpen ? "primary" : "ghost"}
                   size="md"
                   renderIcon={UserMultiple}
                   iconDescription={t(
-                    mobileRosterOpen
+                    rosterOpen
                       ? "participants.closeRoster"
                       : "participants.openRoster",
-                    mobileRosterOpen ? "關閉參賽者列表" : "開啟參賽者列表",
+                    rosterOpen ? "關閉參賽者列表" : "開啟參賽者列表",
                   )}
                   hasIconOnly
-                  onClick={() => setMobileRosterOpen((open) => !open)}
+                  onClick={() => setRosterOpen((open) => !open)}
                 />
               }
               title={t("participants.viewTitle", "檢視參與者")}
@@ -605,49 +663,51 @@ const ContestParticipantsScreen = () => {
             <ParticipantsListPane
               {...listPaneProps}
               onSelect={(userId) => {
-                setMobileRosterOpen(false);
+                if (isCompactLayout) setRosterOpen(false);
                 updateParams({
                   user: userId,
                 });
               }}
             />
           }
-          sidebarWidth={360}
+          sidebarWidth={320}
           rightPane={
-            selectedUserId && detail ? (
+            selectedUserId ? (
               <div
                 className={styles.detailCol}
                 aria-label={t("participants.detailPanel", "參賽者詳細資料")}
               >
-                <ParticipantDashboardPane
-                  contestId={contestId}
-                  dashboard={dashboard}
-                  loading={dashboardLoading}
-                  error={dashboardError}
-                  activeDetail={activeDetail}
-                  hideOverviewTab
-                  onDetailChange={(nextDetail) =>
-                    updateParams({ detail: nextDetail })
-                  }
-                  onDownloadReport={handleDownloadReport}
-                  onEditStatus={openEditModal}
-                  onUnlock={handleUnlock}
-                  onReopenExam={handleReopenExam}
-                  onRemoveParticipant={
-                    rosterManagedByClassroom
-                      ? undefined
-                      : handleRemoveParticipant
-                  }
-                  onOpenGrading={() => updateParams({ panel: "grading" })}
-                  onRefreshEvents={refreshBoth}
-                />
+                {detail ? (
+                  <ParticipantDashboardPane
+                    contestId={contestId}
+                    dashboard={dashboard}
+                    loading={dashboardLoading}
+                    error={dashboardError}
+                    activeDetail={activeDetail}
+                    hideOverviewTab
+                    onDetailChange={(nextDetail) =>
+                      updateParams({ detail: nextDetail })
+                    }
+                    onDownloadReport={handleDownloadReport}
+                    onEditStatus={openEditModal}
+                    onUnlock={handleUnlock}
+                    onReopenExam={handleReopenExam}
+                    onRemoveParticipant={
+                      rosterManagedByClassroom
+                        ? undefined
+                        : handleRemoveParticipant
+                    }
+                    onOpenGrading={() => updateParams({ panel: "grading" })}
+                    onRefreshEvents={refreshBoth}
+                  />
+                ) : null}
               </div>
             ) : undefined
           }
-          rightPaneWidth={560}
+          rightPaneWidth={480}
           contentMaxWidth={820}
           contentClassName={styles.operationsContent}
-          mobileSidebarOpen={mobileRosterOpen}
+          mobileSidebarOpen={rosterOpen}
           mobileDetailOpen={Boolean(selectedUserId && detail)}
         >
           <ParticipantOperationsPane
