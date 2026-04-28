@@ -106,6 +106,7 @@ export default function ExamStatisticsPanel() {
     <AdminSplitLayout
       sidebar={sidebarContent}
       contentMaxWidth={760}
+      mobileMode="stacked"
       ref={scrollPaneRef}
     >
       {safeStats.map((q) => (

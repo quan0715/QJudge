@@ -155,17 +155,25 @@
   .root,
   .noMiddle,
   .withRightOnly,
-  .withMiddleAndRight {
+  .withMiddleAndRight,
+  .noSidebarNoMiddle,
+  .noSidebarWithRight,
+  .noSidebarWithMiddle,
+  .noSidebarWithMiddleAndRight {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto 1fr;
-    height: auto;
+    grid-template-rows: auto;
+    grid-auto-rows: auto;
+    height: 100%;
     min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .sidebar {
     grid-column: 1;
     grid-row: 2;
-    max-height: 240px;
+    min-height: auto;
+    overflow: visible;
     border-right: none;
     border-bottom: 1px solid
       var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
@@ -174,30 +182,136 @@
   .middle {
     grid-column: 1;
     grid-row: 3;
-    max-height: 240px;
+    min-height: auto;
+    overflow: visible;
     border-right: none;
     border-bottom: 1px solid
       var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
   }
 
+  .noSidebarWithMiddle,
+  .noSidebarWithMiddleAndRight {
+    .middle {
+      grid-row: 2;
+    }
+  }
+
   .right {
     grid-column: 1;
-    grid-row: 4;
-    max-height: 240px;
+    grid-row: 5;
+    min-height: auto;
+    overflow: visible;
     border-left: none;
     border-top: 1px solid
       var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
   }
 
+  .withRightOnly,
+  .noSidebarWithMiddleAndRight {
+    .right {
+      grid-row: 4;
+    }
+  }
+
+  .noSidebarWithRight {
+    .right {
+      grid-row: 3;
+    }
+  }
+
   .content {
     grid-column: 1;
-    grid-row: 5;
+    grid-row: 4;
+    align-items: stretch;
+    overflow: visible;
+    padding: layout.$spacing-05;
+  }
+
+  .noMiddle,
+  .withRightOnly {
+    .content {
+      grid-row: 3;
+    }
+  }
+
+  .noSidebarNoMiddle,
+  .noSidebarWithRight {
+    .content {
+      grid-row: 2;
+    }
+  }
+
+  .noSidebarWithMiddle,
+  .noSidebarWithMiddleAndRight {
+    .content {
+      grid-row: 3;
+    }
+  }
+
+  .mobileDrawerLayout {
+    position: relative;
+    grid-template-rows: auto 1fr;
+    grid-auto-rows: auto;
+    height: 100%;
+    overflow: hidden;
+
+    > .sidebar {
+      position: absolute;
+      inset: 0 auto 0 0;
+      z-index: 2;
+      width: min(88vw, var(--sidebar-width));
+      grid-row: 2;
+      display: none;
+      min-height: 0;
+      overflow: hidden;
+      border-right: 1px solid
+        var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
+      border-bottom: 0;
+      box-shadow: 1rem 0 2rem rgb(0 0 0 / 18%);
+    }
+
+    > .middle {
+      display: none;
+    }
+
+    > .content {
+      grid-row: 2;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    > .right {
+      display: none;
+    }
+  }
+
+  .mobileDrawerLayout.mobileSidebarOpen {
+    > .sidebar {
+      display: flex;
+    }
+  }
+
+  .mobileDrawerLayout.mobileDetailOpen {
+    > .right {
+      position: absolute;
+      inset: 0 0 0 auto;
+      z-index: 2;
+      width: min(100%, var(--right-width));
+      display: flex;
+      grid-row: 2;
+      overflow: hidden;
+      border-top: 0;
+      border-left: 1px solid
+        var(--qg-panel-divider-strong-color, var(--qg-panel-divider-color, var(--cds-border-subtle)));
+      box-shadow: -1rem 0 2rem rgb(0 0 0 / 18%);
+    }
   }
 
   // Opt-in: hide sidebar & middle, show only content full-width.
   // Used by grading byQuestion mobile view.
   .mobileContentOnly {
     height: 100%;
+    overflow: hidden;
     grid-template-rows: auto 1fr;
 
     > .sidebar,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Button, FluidDropdown, TableToolbarSearch } from "@carbon/react";
-import { Add, Close, DocumentExport } from "@carbon/icons-react";
+import { Add, Close, DocumentExport, UserMultiple } from "@carbon/icons-react";
 import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
 import { useTranslation } from "react-i18next";
@@ -60,6 +60,7 @@ const ContestParticipantsScreen = () => {
     useState<ExamStatusType>("not_started");
   const [editLockReason, setEditLockReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const [mobileRosterOpen, setMobileRosterOpen] = useState(false);
   // filterOpen state removed — FilterPopover manages its own open/close
   const refreshInFlightRef = useRef(false);
 
@@ -559,6 +560,21 @@ const ContestParticipantsScreen = () => {
           className={styles.inspectorLayout}
           toolbar={
             <PanelToolbar
+              leftActions={
+                <Button
+                  kind={mobileRosterOpen ? "primary" : "ghost"}
+                  size="md"
+                  renderIcon={UserMultiple}
+                  iconDescription={t(
+                    mobileRosterOpen
+                      ? "participants.closeRoster"
+                      : "participants.openRoster",
+                    mobileRosterOpen ? "關閉參賽者列表" : "開啟參賽者列表",
+                  )}
+                  hasIconOnly
+                  onClick={() => setMobileRosterOpen((open) => !open)}
+                />
+              }
               title={t("participants.viewTitle", "檢視參與者")}
               actions={
                 <>
@@ -583,11 +599,12 @@ const ContestParticipantsScreen = () => {
           sidebar={
             <ParticipantsListPane
               {...listPaneProps}
-              onSelect={(userId) =>
+              onSelect={(userId) => {
+                setMobileRosterOpen(false);
                 updateParams({
                   user: userId,
-                })
-              }
+                });
+              }}
             />
           }
           sidebarWidth={360}
@@ -625,6 +642,8 @@ const ContestParticipantsScreen = () => {
           rightPaneWidth={560}
           contentMaxWidth={820}
           contentClassName={styles.operationsContent}
+          mobileSidebarOpen={mobileRosterOpen}
+          mobileDetailOpen={Boolean(selectedUserId && detail)}
         >
           <ParticipantOperationsPane
             dashboard={dashboard}

@@ -145,6 +145,12 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   }, [contest.problems]);
 
   useEffect(() => {
+    if (isCompactScreen) {
+      setSidebarExpanded(false);
+    }
+  }, [isCompactScreen]);
+
+  useEffect(() => {
     if (orderedProblems.length === 0) {
       if (selectedId !== null) setSelectedId(null);
       return;
@@ -490,6 +496,8 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
         rightPaneWidth={320}
         contentMaxWidth={720}
         contentClassName={contentPaneClassName}
+        mobileSidebarOpen={sidebarExpanded}
+        mobileDetailOpen={Boolean(!isCompactScreen && sourcePanelExpanded)}
       >
         <CardListEditor
           items={orderedProblems}
