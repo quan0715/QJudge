@@ -131,11 +131,13 @@ describe("useScreenShareMonitoring", () => {
     expect(result.current.reauth.active).toBe(false);
   });
 
-  it("countdown reaches zero triggers requestForceSubmit", () => {
+  it("countdown reaches zero records stopped event with evidence", () => {
     const requestForceSubmit = vi.fn().mockResolvedValue(undefined);
+    const onEnvironmentPaused = vi.fn();
     const config = makeConfig({
       recoveryGraceMs: 3000,
       requestForceSubmit,
+      onEnvironmentPaused,
     });
     const { result } = renderHook(() => useScreenShareMonitoring(config));
 
@@ -145,16 +147,20 @@ describe("useScreenShareMonitoring", () => {
     // Advance timer past the recovery deadline — runtimeReauthState ticker fires every 300ms
     act(() => { vi.advanceTimersByTime(3500); });
 
-    expect(requestForceSubmit).toHaveBeenCalledWith(
+    expect(requestForceSubmit).not.toHaveBeenCalled();
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      "contest-1",
+      "screen_share_stopped",
       expect.objectContaining({
-        reason: "Force submit after screen share recovery timeout",
-        sourceModule: "screen_share",
-        stopCaptureKey: "screen_share_timeout_submit",
+        captureOptions: {
+          eventType: "screen_share_stopped",
+          modules: ["screen_share"],
+        },
       }),
     );
   });
 
-  it("uses configured evidence modules when timeout recording runs", async () => {
+  it("uses configured evidence modules when timeout records stopped event", () => {
     const requestForceSubmit = vi.fn().mockResolvedValue(undefined);
     const config = makeConfig({
       recoveryGraceMs: 3000,
@@ -166,17 +172,13 @@ describe("useScreenShareMonitoring", () => {
     act(() => { result.current.onStreamLost(); });
     act(() => { vi.advanceTimersByTime(3500); });
 
-    const request = requestForceSubmit.mock.calls[0][0];
-    await act(async () => {
-      await request.onRecording();
-    });
-
+    expect(requestForceSubmit).not.toHaveBeenCalled();
     expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
-      "exam_submit_initiated",
+      "screen_share_stopped",
       expect.objectContaining({
         captureOptions: {
-          eventType: "exam_submit_initiated",
+          eventType: "screen_share_stopped",
           modules: ["screen_share", "webcam"],
         },
       }),

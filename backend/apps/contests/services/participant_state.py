@@ -43,10 +43,9 @@ def unlock_participant(
     """Reset a locked participant back to the paused state."""
     participant.exam_status = ExamStatus.PAUSED
     participant.locked_at = None
-    participant.violation_count = 0
     participant.lock_reason = ""
     participant.save(
-        update_fields=["exam_status", "locked_at", "violation_count", "lock_reason"]
+        update_fields=["exam_status", "locked_at", "lock_reason"]
     )
 
     if activity_user:
@@ -77,9 +76,6 @@ def _clear_lock_metadata(participant: ContestParticipant) -> list[str]:
     if participant.locked_at is not None:
         participant.locked_at = None
         changed.append("locked_at")
-    if participant.violation_count:
-        participant.violation_count = 0
-        changed.append("violation_count")
     if participant.lock_reason:
         participant.lock_reason = ""
         changed.append("lock_reason")

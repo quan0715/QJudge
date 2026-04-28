@@ -86,8 +86,8 @@ class CheckHeartbeatTimeoutTests(TestCase):
             username="hb_student", email="hb_student@test.com", password="pw"
         )
 
-    def test_no_heartbeat_and_started_long_ago_locks(self):
-        """Student who started >60s ago with no heartbeat should be locked."""
+    def test_no_heartbeat_and_started_long_ago_pauses_for_precheck(self):
+        """Student who started >60s ago with no heartbeat should be paused."""
         from apps.contests.tasks import check_heartbeat_timeout
 
         contest, participant = _make_active_exam(self.owner, self.student)
@@ -97,18 +97,21 @@ class CheckHeartbeatTimeoutTests(TestCase):
         check_heartbeat_timeout()
 
         participant.refresh_from_db()
-        self.assertEqual(participant.exam_status, ExamStatus.LOCKED)
+        self.assertEqual(participant.exam_status, ExamStatus.PAUSED)
         self.assertIn("Heartbeat timeout", participant.lock_reason)
+        self.assertIn("pre-check", participant.lock_reason)
 
         # Event created
-        self.assertTrue(
-            ExamEvent.objects.filter(
-                contest=contest, user=self.student, event_type="heartbeat_timeout"
-            ).exists()
+        event = ExamEvent.objects.get(
+            contest=contest,
+            user=self.student,
+            event_type="heartbeat_timeout",
         )
+        self.assertIn("evidence_window_start", event.metadata)
+        self.assertIn("evidence_window_end", event.metadata)
 
-    def test_recent_heartbeat_not_locked(self):
-        """Student with a fresh heartbeat should not be locked."""
+    def test_recent_heartbeat_not_paused(self):
+        """Student with a fresh heartbeat should not be paused."""
         from apps.contests.tasks import check_heartbeat_timeout
 
         contest, participant = _make_active_exam(self.owner, self.student)
@@ -119,8 +122,8 @@ class CheckHeartbeatTimeoutTests(TestCase):
         participant.refresh_from_db()
         self.assertEqual(participant.exam_status, ExamStatus.IN_PROGRESS)
 
-    def test_stale_heartbeat_locks(self):
-        """Student whose last heartbeat is >60s old should be locked."""
+    def test_stale_heartbeat_pauses_for_precheck(self):
+        """Student whose last heartbeat is >60s old should be paused."""
         from apps.contests.tasks import check_heartbeat_timeout
 
         contest, participant = _make_active_exam(self.owner, self.student)
@@ -136,7 +139,7 @@ class CheckHeartbeatTimeoutTests(TestCase):
         check_heartbeat_timeout()
 
         participant.refresh_from_db()
-        self.assertEqual(participant.exam_status, ExamStatus.LOCKED)
+        self.assertEqual(participant.exam_status, ExamStatus.PAUSED)
 
     def test_already_locked_not_double_locked(self):
         """Already-locked participant should not get a second heartbeat_timeout event."""
@@ -198,7 +201,7 @@ class CheckHeartbeatTimeoutTests(TestCase):
         participant.refresh_from_db()
         self.assertEqual(participant.exam_status, ExamStatus.IN_PROGRESS)
 
-    def test_idempotency_guard_prevents_double_lock(self):
+    def test_idempotency_guard_prevents_double_pause_event(self):
         """
         Two concurrent check_heartbeat_timeout calls should not create
         duplicate heartbeat_timeout events for the same participant.
@@ -210,7 +213,7 @@ class CheckHeartbeatTimeoutTests(TestCase):
         participant.save(update_fields=["started_at"])
 
         check_heartbeat_timeout()
-        # Second call — participant is now LOCKED, so query won't find them
+        # Second call — participant is now PAUSED, so query won't find them.
         check_heartbeat_timeout()
 
         events = ExamEvent.objects.filter(

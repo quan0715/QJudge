@@ -69,8 +69,7 @@ const INCIDENT_FAMILY: Record<string, string> = {
   forbidden_focus_event: "display_escape",
   mouse_leave: "pointer_escape",
   viewport_stopped: "viewport_loss",
-  // P0 / immediate-lock — each is its own family.
-  warning_timeout: "warning_timeout",
+  // Critical events keep independent families for arbitration/dedup.
   heartbeat_timeout: "heartbeat_timeout",
   listener_tampered: "listener_tampered",
 };
@@ -78,7 +77,7 @@ const INCIDENT_FAMILY: Record<string, string> = {
 export const getIncidentFamily = (eventType: string): string | null =>
   INCIDENT_FAMILY[eventType] ?? null;
 
-const HARD_SECURITY_EVENTS = new Set(["screen_share_stopped", "warning_timeout"]);
+const HARD_SECURITY_EVENTS = new Set(["screen_share_stopped"]);
 const WARNING_EVENTS = new Set([
   "exit_fullscreen",
   "multiple_displays",

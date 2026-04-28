@@ -34,7 +34,7 @@ describe("CheatDetectionPanel", () => {
 
     expect(screen.getByText("Access Policy")).toBeInTheDocument();
     expect(screen.getByText("Evidence Policy")).toBeInTheDocument();
-    expect(screen.getByText("Penalty Policy")).toBeInTheDocument();
+    expect(screen.queryByText("Penalty Policy")).not.toBeInTheDocument();
     expect(screen.queryByText("核心偵測器")).not.toBeInTheDocument();
     expect(screen.queryByText("監控來源")).not.toBeInTheDocument();
   });

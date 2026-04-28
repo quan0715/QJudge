@@ -55,7 +55,7 @@ describe("useFullscreenMonitoring", () => {
     act(() => { document.dispatchEvent(new Event("fullscreenchange")); });
     act(() => { vi.advanceTimersByTime(100); }); // settlement
 
-    expect(result.current.recoveryCountdown).toBe(3);
+    expect(result.current.recoveryCountdown).toBe(30);
   });
 
   it("fullscreen re-enter recovers + cancels countdown", () => {
@@ -66,7 +66,7 @@ describe("useFullscreenMonitoring", () => {
     mockIsFullscreen.mockReturnValue(false);
     act(() => { document.dispatchEvent(new Event("fullscreenchange")); });
     act(() => { vi.advanceTimersByTime(100); });
-    expect(result.current.recoveryCountdown).toBe(3);
+    expect(result.current.recoveryCountdown).toBe(30);
 
     // Re-enter fullscreen
     mockIsFullscreen.mockReturnValue(true);
@@ -89,6 +89,21 @@ describe("useFullscreenMonitoring", () => {
     act(() => { vi.advanceTimersByTime(100); }); // settlement reads isFullscreen() = true
 
     expect(result.current.recoveryCountdown).toBeNull();
+  });
+
+  it("timeout records exit_fullscreen after 30 seconds", () => {
+    const config = makeConfig();
+    renderHook(() => useFullscreenMonitoring(config));
+
+    mockIsFullscreen.mockReturnValue(false);
+    act(() => { document.dispatchEvent(new Event("fullscreenchange")); });
+    act(() => { vi.advanceTimersByTime(100); });
+    act(() => { vi.advanceTimersByTime(30_000); });
+
+    expect(config.onViolation).toHaveBeenCalledWith(
+      "exit_fullscreen",
+      "fullscreen_recovery_timeout",
+    );
   });
 
   it("enabled=false suppresses trigger", () => {

@@ -18,6 +18,7 @@ import { createFullscreenAdapter } from "@/features/contest/anticheat/fullscreen
 import { syncAnticheatPhaseWithExamStatus, resetAnticheatOrchestrator } from "@/features/contest/anticheat/orchestrator";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
+import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
 import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatScreenCapture";
 import { useAnticheatWebcamCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatWebcamCapture";
 import { ExamCaptureProvider } from "@/features/contest/contexts/ExamCaptureContext";
@@ -50,6 +51,7 @@ import { useFullscreenMonitoring } from "@/features/contest/hooks/useFullscreenM
 import { useMouseLeaveMonitoring } from "@/features/contest/hooks/useMouseLeaveMonitoring";
 import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisplayMonitoring";
 import { selectPrimaryCountdownFromRegistry } from "@/features/contest/domain/violationRoutes";
+import { shouldShowGenericRecoveryModalForRoute } from "@/features/contest/constants/studentInterruptionPolicy";
 
 interface ExamModeWrapperProps {
   contestId: string;
@@ -144,14 +146,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   const {
     examState,
-    showWarning,
-    warningEventType,
-    pendingApiResponse,
-    lastApiResponse,
-    warningCountdown,
     showUnlockNotification,
     handleViolation,
-    handleWarningClose,
     handleUnlockContinue,
   } = useExamState({
     contestId,
@@ -161,7 +157,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     isBypassed: false,
     onRefresh,
     requestFullscreen: fullscreenAdapterRef.current.request,
-    warningTimeoutSeconds: anticheatEffective?.warningTimeoutSeconds,
     evidenceCaptureModules,
   });
 
@@ -289,6 +284,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     onSuccess: () => setShowAutoSubmitNotice(true),
   });
 
+  const handleEnvironmentPaused = useCallback(() => {
+    clearExamPrecheckPassed(contestId);
+    void onRefresh?.();
+  }, [contestId, onRefresh]);
+
   // --- Domain monitoring hooks ---
   const screenShare = useScreenShareMonitoring({
     contestId,
@@ -299,6 +299,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     recoveryGraceMs: anticheatEffective?.screenShareRecoveryGraceMs,
     evidenceCaptureModules,
     requestForceSubmit,
+    onEnvironmentPaused: handleEnvironmentPaused,
   });
 
   const webcam = useWebcamMonitoring({
@@ -311,6 +312,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     evidenceCaptureModules,
     streamActive: webcamCapture.streamActive,
     requestForceSubmit,
+    onViolation: handleViolation,
   });
 
   const viewport = useViewportMonitoring({
@@ -321,18 +323,26 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     primarySourceModule,
     evidenceCaptureModules,
     requestForceSubmit,
+    onViolation: handleViolation,
   });
+
+  const handleFullscreenRecoveryTimeout = useCallback(
+    (eventType: string, reason: string) => {
+      void handleViolation(eventType, reason);
+      handleEnvironmentPaused();
+    },
+    [handleEnvironmentPaused, handleViolation],
+  );
 
   const fullscreen = useFullscreenMonitoring({
     contestId,
     enabled: effectiveMonitoringEnabled && effectiveRequiresFullscreen && monitoringPlan.detectors.fullscreen,
     examSubmitted: examStatus === "submitted",
-    recoveryGraceMs: anticheatEffective?.monitoringRecoveryGraceMs,
-    onViolation: handleViolation,
+    onViolation: handleFullscreenRecoveryTimeout,
     requestForceSubmit,
   });
 
-  const mouseLeave = useMouseLeaveMonitoring({
+  useMouseLeaveMonitoring({
     contestId,
     enabled: effectiveMonitoringEnabled && monitoringPlan.detectors.mouseLeave,
     isTablet: capability.isTablet,
@@ -378,10 +388,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     m.set("webcam", webcam.recoveryCountdown);
     m.set("viewport", viewport.recoveryCountdown);
     m.set("fullscreen", fullscreen.recoveryCountdown);
-    m.set("mouse_leave", mouseLeave.recoveryCountdown);
     m.set("multiple_displays", multiDisplay.recoveryCountdown);
     return m;
-  }, [screenShare.reauth, webcam.recoveryCountdown, viewport.recoveryCountdown, fullscreen.recoveryCountdown, mouseLeave.recoveryCountdown, multiDisplay.recoveryCountdown]);
+  }, [screenShare.reauth, webcam.recoveryCountdown, viewport.recoveryCountdown, fullscreen.recoveryCountdown, multiDisplay.recoveryCountdown]);
   const primaryCountdown = selectPrimaryCountdownFromRegistry(countdownMap);
 
   const [isRequestingScreenShare, setIsRequestingScreenShare] = useState(false);
@@ -689,22 +698,13 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           onBackToContest={handleBackToContest}
         />
         <ExamModals
-          showWarning={showWarning}
-          pendingApiResponse={pendingApiResponse}
-          lastApiResponse={lastApiResponse}
-          warningEventType={warningEventType}
-          examState={examState}
-          warningCountdown={warningCountdown}
           recoveryCountdown={
-            primaryCountdown.source === "fullscreen" ||
-            primaryCountdown.source === "mouse_leave" ||
-            primaryCountdown.source === "multiple_displays"
+            shouldShowGenericRecoveryModalForRoute(primaryCountdown.source)
               ? primaryCountdown.value
               : null
           }
           recoverySource={primaryCountdown.source}
           onRecoverFullscreen={handleRecoverFullscreen}
-          onWarningClose={handleWarningClose}
           showUnlockNotification={showUnlockNotification}
           onUnlockContinue={handleUnlockContinue}
           showFullscreenExitConfirm={showFullscreenExitConfirm}

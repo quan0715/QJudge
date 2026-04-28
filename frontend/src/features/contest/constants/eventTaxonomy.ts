@@ -1,15 +1,14 @@
 /**
  * Event Priority Taxonomy — shared classification for exam events.
  *
- * P0 = critical (immediate lock)
+ * P0 = critical monitoring failure (pause and require pre-check)
  * P1 = violation (penalized)
  * P2 = info (no penalty)
  * P3 = system / lifecycle
  */
 
 export const EVENT_PRIORITY: Record<string, number> = {
-  // P0: Immediate lock level
-  warning_timeout: 0,
+  // P0: Critical monitoring failures that pause the exam and require pre-check.
   screen_share_stopped: 0,
   heartbeat_timeout: 0,
   listener_tampered: 0,
@@ -44,12 +43,15 @@ export const EVENT_PRIORITY: Record<string, number> = {
   multi_display_triggered: 2,
   multi_display_restored: 2,
   display_api_degraded: 2,
+  // Legacy frontend penalty-timer event. Kept for historical display only.
+  warning_timeout: 2,
   // P3: Lifecycle / management
   exam_entered: 3,
   exam_submit_initiated: 3,
   force_submit_locked: 3,
   concurrent_login_detected: 3,
   heartbeat: 3,
+  manual_proctor_note: 3,
 };
 
 export const EVENT_CATEGORY: Record<number, string> = {

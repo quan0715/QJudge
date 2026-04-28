@@ -12,13 +12,13 @@ import { useViolationPipeline } from "./useViolationPipeline";
 import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
 
 const FULLSCREEN_SETTLEMENT_MS = 100;
+const FULLSCREEN_RECOVERY_GRACE_MS = 30_000;
 const VERIFY_INTERVAL_MS = 10_000;
 
 export interface UseFullscreenMonitoringConfig {
   contestId: string;
   enabled: boolean;
   examSubmitted: boolean;
-  recoveryGraceMs?: number;
   onViolation: (eventType: string, reason: string) => void;
   requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
 }
@@ -33,7 +33,6 @@ export function useFullscreenMonitoring({
   contestId,
   enabled,
   examSubmitted,
-  recoveryGraceMs,
   onViolation,
   requestForceSubmit,
 }: UseFullscreenMonitoringConfig): UseFullscreenMonitoringReturn {
@@ -42,7 +41,7 @@ export function useFullscreenMonitoring({
     contestId,
     enabled,
     examSubmitted,
-    recoveryGraceMs,
+    recoveryGraceMs: FULLSCREEN_RECOVERY_GRACE_MS,
     moduleRole: "primary",
     requestForceSubmit,
     onViolation,

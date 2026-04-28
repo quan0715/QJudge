@@ -19,8 +19,9 @@ from .services.anti_cheat_session import (
     get_last_heartbeat,
     HEARTBEAT_TIMEOUT_SECONDS,
 )
+from .services.evidence_windows import attach_evidence_window_metadata
 from .services.exam_submission import finalize_submission
-from .constants import PENALIZED_EVENT_TYPES
+from .constants import ENVIRONMENT_RECHECK_EVENT_TYPES, IMMEDIATE_LOCK_EVENT_TYPES, PENALIZED_EVENT_TYPES
 
 FORCE_SUBMIT_LOCKED_SECONDS = 180  # 3 minutes
 
@@ -28,8 +29,8 @@ FORCE_SUBMIT_LOCKED_SECONDS = 180  # 3 minutes
 def _apply_penalty_from_event(participant: ContestParticipant, event_type: str):
     """
     Unified server-side anti-cheat escalation.
-    - in_progress: threshold => lock
-    - paused/locked: threshold => auto-submit
+    - in_progress: critical monitoring failure => pause for pre-check
+    - locked: manual TA lock remains terminal until TA action / configured unlock
     - submitted: no-op (already finished)
 
     Uses transaction.atomic + select_for_update to ensure atomicity.
@@ -44,57 +45,53 @@ def _apply_penalty_from_event(participant: ContestParticipant, event_type: str):
         if participant.exam_status == ExamStatus.SUBMITTED:
             return participant
 
-        # heartbeat_timeout and listener_tampered target is LOCKED, not submission.
-        # If already locked, the intended action is complete — do not escalate to finalize.
-        LOCK_TERMINAL_EVENT_TYPES = {'heartbeat_timeout', 'listener_tampered'}
-        if event_type in LOCK_TERMINAL_EVENT_TYPES and participant.exam_status == ExamStatus.LOCKED:
-            return participant
-
         participant.violation_count += 1
         update_fields = ['violation_count']
-        IMMEDIATE_LOCK_EVENT_TYPES = {'warning_timeout', 'screen_share_stopped', 'heartbeat_timeout', 'listener_tampered'}
-        should_escalate = (
-            event_type in IMMEDIATE_LOCK_EVENT_TYPES
-            or participant.violation_count >= contest.max_cheat_warnings
-        )
+        requires_recheck_pause = event_type in ENVIRONMENT_RECHECK_EVENT_TYPES
+        should_escalate = event_type in IMMEDIATE_LOCK_EVENT_TYPES or requires_recheck_pause
 
         if should_escalate:
             if participant.exam_status == ExamStatus.IN_PROGRESS:
-                participant.exam_status = ExamStatus.LOCKED
-                participant.locked_at = timezone.now()
-                if event_type == 'warning_timeout':
-                    participant.lock_reason = "Warning timeout: student did not acknowledge warning within 30 seconds"
-                elif event_type == 'heartbeat_timeout':
-                    participant.lock_reason = "Heartbeat timeout: no client signal received for 60 seconds"
+                if event_type in IMMEDIATE_LOCK_EVENT_TYPES:
+                    participant.exam_status = ExamStatus.LOCKED
+                    participant.locked_at = timezone.now()
+                    update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
+                else:
+                    participant.exam_status = ExamStatus.PAUSED
+                    participant.locked_at = None
+                    update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
+
+                if event_type == 'heartbeat_timeout':
+                    participant.lock_reason = (
+                        "Heartbeat timeout: no client signal received for 60 seconds; "
+                        "pre-check is required to continue"
+                    )
                 elif event_type == 'listener_tampered':
-                    participant.lock_reason = "Listener tampered: anti-cheat integrity check failed"
+                    participant.lock_reason = (
+                        "Listener tampered: anti-cheat integrity check failed; "
+                        "pre-check is required to continue"
+                    )
+                elif event_type == 'exit_fullscreen':
+                    participant.lock_reason = "Fullscreen recovery timed out; pre-check is required to continue"
+                elif requires_recheck_pause:
+                    participant.lock_reason = f"Monitoring recovery required: {event_type}"
                 else:
                     participant.lock_reason = f"System lock: {event_type}"
-                update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
                 participant.save(update_fields=update_fields)
                 ContestActivity.objects.create(
                     contest=contest,
                     user=participant.user,
-                    action_type='lock_user',
-                    details=f"Auto-locked due to {event_type}",
+                    action_type='lock_user' if event_type in IMMEDIATE_LOCK_EVENT_TYPES else 'update_participant',
+                    details=(
+                        f"Auto-locked due to {event_type}"
+                        if event_type in IMMEDIATE_LOCK_EVENT_TYPES
+                        else f"Paused for monitoring re-check due to {event_type}"
+                    ),
                 )
                 return participant
 
-            if participant.exam_status in [ExamStatus.PAUSED, ExamStatus.LOCKED]:
-                reason = (
-                    f"Auto-submitted: violation while {participant.exam_status} "
-                    f"(event={event_type}, count={participant.violation_count}/{contest.max_cheat_warnings})"
-                )
-                participant.save(update_fields=update_fields)
-                finalize_submission(
-                    participant,
-                    submit_reason=reason,
-                    upload_session_id="default",
-                    activity_user=participant.user,
-                    activity_action_type="auto_submit",
-                    activity_details=reason,
-                )
-                return participant
+            participant.save(update_fields=update_fields)
+            return participant
 
         participant.save(update_fields=update_fields)
         return participant
@@ -212,8 +209,7 @@ def auto_unlock_participant(participant_id):
             participant.exam_status = ExamStatus.PAUSED
             participant.locked_at = None
             participant.lock_reason = ""
-            participant.violation_count = 0
-            participant.save(update_fields=['exam_status', 'locked_at', 'lock_reason', 'violation_count'])
+            participant.save(update_fields=['exam_status', 'locked_at', 'lock_reason'])
             return f"Unlocked participant {participant_id}"
             
         return f"Participant {participant_id} not locked"
@@ -315,7 +311,7 @@ def force_submit_locked_participant(participant_id):
 @shared_task
 def check_heartbeat_timeout():
     """
-    Periodic task: Lock students who haven't sent a heartbeat in 60 seconds.
+    Periodic task: Pause students who haven't sent a heartbeat in 60 seconds.
 
     Runs every 30 seconds via Celery Beat. Detects:
     - Disabled event listeners (student tampered with anti-cheat)
@@ -353,11 +349,11 @@ def check_heartbeat_timeout():
             _lock_for_heartbeat_timeout(participant)
             count += 1
 
-    return f"Checked heartbeat timeouts: {count} locked"
+    return f"Checked heartbeat timeouts: {count} paused"
 
 
 def _lock_for_heartbeat_timeout(participant: ContestParticipant):
-    """Create heartbeat_timeout event and apply penalty.
+    """Create heartbeat_timeout event and pause for pre-check.
 
     Uses cache.add() (Redis SETNX) as an idempotency guard so concurrent
     Celery workers don't double-fire on the same participant.
@@ -365,10 +361,11 @@ def _lock_for_heartbeat_timeout(participant: ContestParticipant):
     lock_key = f"hb_lock:{participant.pk}"
     if not cache.add(lock_key, 1, timeout=90):
         return  # Another worker is already processing this participant
-    ExamEvent.objects.create(
+    event = ExamEvent.objects.create(
         contest=participant.contest,
         user=participant.user,
         event_type='heartbeat_timeout',
         metadata={'source': 'celery_heartbeat_check'},
     )
+    attach_evidence_window_metadata(event)
     _apply_penalty_from_event(participant, 'heartbeat_timeout')

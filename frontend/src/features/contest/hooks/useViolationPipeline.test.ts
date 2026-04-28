@@ -322,10 +322,21 @@ describe("useViolationPipeline", () => {
     act(() => { vi.advanceTimersByTime(10000); });
     expect(result.current.isInterrupted).toBe(false);
 
-    // Advance past escalation cooldown (10s)
     act(() => { vi.advanceTimersByTime(10_000); });
+    mockRecordExamEvent.mockClear();
+    act(() => { result.current.trigger(); });
+    expect(result.current.isInterrupted).toBe(false);
+    expect(mockRecordExamEvent).not.toHaveBeenCalled();
 
-    // Second trigger should work
+    act(() => { result.current.recover("stream_recovered"); });
+    expect(mockRecordExamEvent).toHaveBeenCalledWith(
+      "contest-1",
+      "webcam_restored",
+      expect.objectContaining({
+        metadata: expect.objectContaining({ reason: "stream_recovered" }),
+      }),
+    );
+
     mockRecordExamEvent.mockClear();
     act(() => { result.current.trigger(); });
     expect(result.current.isInterrupted).toBe(true);
@@ -350,14 +361,39 @@ describe("useViolationPipeline", () => {
     const forceSubmitCall = (config.requestForceSubmit as ReturnType<typeof vi.fn>).mock.calls[0][0];
     act(() => { forceSubmitCall.onFinally(); });
 
-    // Advance past escalation cooldown (10s)
     act(() => { vi.advanceTimersByTime(10_000); });
+    act(() => { result.current.trigger(); });
+    expect(result.current.isInterrupted).toBe(false);
 
-    // Second trigger should work
+    act(() => { result.current.recover("viewport_integrity_recovered"); });
+
     mockRecordExamEvent.mockClear();
     act(() => { result.current.trigger(); });
     expect(result.current.isInterrupted).toBe(true);
     expect(result.current.recoveryCountdown).toBe(3);
+  });
+
+  it("restored event after escalation clears suppression so next incident records immediately", () => {
+    const config = makeConfig({
+      route: webcamRoute,
+      escalationOverride: "log_only" as const,
+    });
+    const { result } = renderHook(() => useViolationPipeline(config));
+
+    act(() => { result.current.trigger(); });
+    act(() => { vi.advanceTimersByTime(10000); });
+
+    act(() => { result.current.recover("stream_recovered"); });
+    mockRecordExamEvent.mockClear();
+
+    act(() => { result.current.trigger(); });
+
+    expect(result.current.isInterrupted).toBe(true);
+    expect(mockRecordExamEvent).toHaveBeenCalledWith(
+      "contest-1",
+      "webcam_interrupted",
+      expect.objectContaining({ source: "anticheat:webcam_capture" }),
+    );
   });
 
   it("externalCountdown=true skips local timer but records events", () => {

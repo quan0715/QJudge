@@ -27,6 +27,7 @@ const makeConfig = (overrides: Record<string, unknown> = {}) => ({
   moduleRole: "primary",
   streamActive: true,
   requestForceSubmit: vi.fn().mockResolvedValue(undefined),
+  onViolation: vi.fn(),
   ...overrides,
 });
 
@@ -59,14 +60,15 @@ describe("useWebcamMonitoring", () => {
     expect(result.current.recoveryCountdown).toBeNull();
   });
 
-  it("isPrimary=true uses default force_submit escalation", () => {
+  it("isPrimary=true records a penalized event instead of force submit", () => {
     const config = makeConfig({ isPrimary: true, streamActive: false });
     const { result } = renderHook(() => useWebcamMonitoring(config));
 
     act(() => { result.current.onStreamLost(); });
     act(() => { vi.advanceTimersByTime(10000); });
 
-    expect(config.requestForceSubmit).toHaveBeenCalled();
+    expect(config.requestForceSubmit).not.toHaveBeenCalled();
+    expect(config.onViolation).toHaveBeenCalledWith("webcam_stopped", "webcam_recovery_timeout");
   });
 
   it("isPrimary=false uses log_only escalation (no force submit)", () => {

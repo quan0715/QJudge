@@ -38,6 +38,12 @@ describe("useExamPrecheckGate", () => {
     expect(hasExamPrecheckPassed(contestId)).toBe(false);
   });
 
+  it("clears gate when paused for environment re-check", () => {
+    markExamPrecheckPassed(contestId);
+    syncExamPrecheckGateByStatus(contestId, "paused");
+    expect(hasExamPrecheckPassed(contestId)).toBe(false);
+  });
+
   it("falls back to in-memory gate when storage is unavailable", () => {
     const setItemSpy = vi
       .spyOn(Storage.prototype, "setItem")

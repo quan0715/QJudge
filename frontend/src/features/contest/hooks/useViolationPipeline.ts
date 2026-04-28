@@ -82,6 +82,7 @@ export function useViolationPipeline({
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const interruptedRef = useRef(false);
   const isSubmittingRef = useRef(false);
+  const awaitingRestoreAfterEscalationRef = useRef(false);
   const lastEscalatedAtRef = useRef(0);
 
   // Keep latest props in refs to avoid stale closures
@@ -128,7 +129,7 @@ export function useViolationPipeline({
     return fn();
   }, [defaultIsSuppressed]);
 
-  const ESCALATION_COOLDOWN_MS = 10_000;
+  const ESCALATION_COOLDOWN_MS = 1_000;
 
   const trigger = useCallback(
     (metadata?: Record<string, unknown>) => {
@@ -136,10 +137,13 @@ export function useViolationPipeline({
       if (isSubmittingRef.current) return;
       if (interruptedRef.current) return;
       if (checkSuppressed()) return;
-      // After an escalation, suppress re-triggers for a cooldown period to
-      // prevent the same ongoing condition from firing repeatedly.
-      if (Date.now() - lastEscalatedAtRef.current < ESCALATION_COOLDOWN_MS) return;
+      // For sources with an explicit restored event, do not re-trigger while
+      // the original condition is still unresolved. Once recover() records the
+      // restored event, the next real violation should be sent immediately.
+      if (route.events.restored && awaitingRestoreAfterEscalationRef.current) return;
+      if (!route.events.restored && Date.now() - lastEscalatedAtRef.current < ESCALATION_COOLDOWN_MS) return;
 
+      awaitingRestoreAfterEscalationRef.current = false;
       interruptedRef.current = true;
       setIsInterrupted(true);
       const cid = contestIdRef.current;
@@ -246,8 +250,9 @@ export function useViolationPipeline({
           }).catch(() => null);
         }
 
-        // Reset interrupted state after escalation so pipeline can retrigger,
-        // but record the time so the cooldown guard prevents immediate re-fire.
+        // Reset interrupted state after escalation. Sources that have a restored
+        // event will stay blocked until recover() confirms the condition ended.
+        awaitingRestoreAfterEscalationRef.current = !!route.events.restored;
         lastEscalatedAtRef.current = Date.now();
         interruptedRef.current = false;
         setIsInterrupted(false);
@@ -258,7 +263,9 @@ export function useViolationPipeline({
 
   const recover = useCallback(
     (reason?: string, metadata?: Record<string, unknown>) => {
-      if (!interruptedRef.current) return;
+      if (!interruptedRef.current && !awaitingRestoreAfterEscalationRef.current) return;
+      awaitingRestoreAfterEscalationRef.current = false;
+      lastEscalatedAtRef.current = 0;
       interruptedRef.current = false;
       setIsInterrupted(false);
 
@@ -287,6 +294,8 @@ export function useViolationPipeline({
   useEffect(() => {
     if (!enabled || examSubmitted) {
       interruptedRef.current = false;
+      awaitingRestoreAfterEscalationRef.current = false;
+      lastEscalatedAtRef.current = 0;
       setIsInterrupted(false); // eslint-disable-line react-hooks/set-state-in-effect
       if (!externalCountdown) {
         clearRecovery();

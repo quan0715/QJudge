@@ -239,7 +239,7 @@ class AutoUnlockTaskTests(TestCase):
         participant.refresh_from_db()
         self.assertEqual(participant.exam_status, ExamStatus.PAUSED)
         self.assertIsNone(participant.locked_at)
-        self.assertEqual(participant.violation_count, 0)
+        self.assertEqual(participant.violation_count, 3)
         self.assertEqual(participant.lock_reason, '')
         
     def test_no_unlock_before_timeout(self):

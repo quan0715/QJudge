@@ -25,7 +25,10 @@ from apps.contests.tasks import (
     check_force_submit_locked,
     FORCE_SUBMIT_LOCKED_SECONDS,
 )
-from apps.contests.services.anti_cheat_session import get_last_heartbeat
+from apps.contests.services.anti_cheat_session import (
+    get_last_heartbeat,
+    is_duplicate_incident_family as real_is_duplicate_incident_family,
+)
 from apps.contests.services.evidence_windows import attach_evidence_window_metadata
 
 User = get_user_model()
@@ -87,37 +90,41 @@ class ExamAntiCheatTests(APITestCase):
         )
 
     # ------------------------------------------------------------------
-    # 1. Single violation increments count, does not lock
+    # 1. Fullscreen timeout pauses for pre-check
     # ------------------------------------------------------------------
-    def test_violation_increments_count(self):
+    def test_exit_fullscreen_pauses_for_precheck(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["violation_count"], 1)
         self.assertFalse(resp.data["locked"])
+        self.assertEqual(resp.data["exam_status"], ExamStatus.PAUSED)
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.violation_count, 1)
-        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+        self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
+        self.assertEqual(
+            self.participant.lock_reason,
+            "Fullscreen recovery timed out; pre-check is required to continue",
+        )
 
     # ------------------------------------------------------------------
-    # 2. Reaching max_cheat_warnings locks participant
+    # 2. Reaching max_cheat_warnings does not auto-lock general risk events
     # ------------------------------------------------------------------
-    def test_violation_locks_at_threshold(self):
+    def test_violation_threshold_does_not_auto_lock(self):
         self.client.force_authenticate(user=self.student)
 
         for i in range(3):
-            resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
+            resp = self.client.post(self.events_url, {"event_type": "mouse_leave"})
             self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
-        # Third violation should trigger lock
-        self.assertTrue(resp.data["locked"])
+        self.assertFalse(resp.data["locked"])
         self.participant.refresh_from_db()
-        self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
         self.assertEqual(self.participant.violation_count, 3)
 
-    def test_paused_violation_at_threshold_auto_submits_without_video_job(self):
+    def test_paused_violation_at_threshold_does_not_auto_submit(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.PAUSED
         self.participant.violation_count = self.contest.max_cheat_warnings - 1
@@ -133,13 +140,14 @@ class ExamAntiCheatTests(APITestCase):
                 format="json",
             )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data["exam_status"], ExamStatus.SUBMITTED)
+        self.assertEqual(resp.data["exam_status"], ExamStatus.PAUSED)
 
         self.participant.refresh_from_db()
-        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
-        self.assertIn("Auto-submitted", self.participant.submit_reason)
+        self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
+        self.assertEqual(self.participant.violation_count, self.contest.max_cheat_warnings)
+        self.assertEqual(self.participant.submit_reason, "")
 
-    def test_locked_violation_auto_submits_without_video_job(self):
+    def test_locked_violation_does_not_auto_submit(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.LOCKED
         self.participant.violation_count = self.contest.max_cheat_warnings
@@ -149,25 +157,34 @@ class ExamAntiCheatTests(APITestCase):
         with self.captureOnCommitCallbacks(execute=True):
             resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data["exam_status"], ExamStatus.SUBMITTED)
+        self.assertEqual(resp.data["exam_status"], ExamStatus.LOCKED)
 
         self.participant.refresh_from_db()
-        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
-        self.assertIn("Auto-submitted", self.participant.submit_reason)
+        self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
+        self.assertEqual(self.participant.submit_reason, "")
 
     # ------------------------------------------------------------------
-    # 3. warning_timeout forces lock regardless of count
+    # 3. warning_timeout is a legacy informational event only
     # ------------------------------------------------------------------
-    def test_warning_timeout_forces_lock(self):
+    def test_warning_timeout_is_logged_without_penalty_or_lock(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self.events_url, {"event_type": "warning_timeout"})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.data["locked"])
+        self.assertFalse(resp.data["locked"])
+        self.assertEqual(resp.data["violation_count"], 0)
 
         self.participant.refresh_from_db()
-        self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
-        self.assertIn("Warning timeout", self.participant.lock_reason)
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+        self.assertEqual(self.participant.violation_count, 0)
+        self.assertEqual(self.participant.lock_reason, "")
+        self.assertTrue(
+            ExamEvent.objects.filter(
+                contest=self.contest,
+                user=self.student,
+                event_type="warning_timeout",
+            ).exists()
+        )
 
     # ------------------------------------------------------------------
     # 3b. capture_upload_degraded should be informational only
@@ -369,6 +386,41 @@ class ExamAntiCheatTests(APITestCase):
             1,
         )
 
+    def test_restore_event_clears_incident_family_dedupe(self):
+        self.client.force_authenticate(user=self.student)
+
+        with patch(
+            "apps.contests.views.exam_events.is_duplicate_incident_family",
+            side_effect=real_is_duplicate_incident_family,
+        ):
+            first = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
+            duplicate_family = self.client.post(self.events_url, {"event_type": "forbidden_focus_event"})
+            restored = self.client.post(self.events_url, {"event_type": "window_blur_restored"})
+            after_restore = self.client.post(self.events_url, {"event_type": "forbidden_focus_event"})
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(duplicate_family.status_code, status.HTTP_200_OK)
+        self.assertEqual(restored.status_code, status.HTTP_200_OK)
+        self.assertEqual(after_restore.status_code, status.HTTP_200_OK)
+
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.violation_count, 2)
+
+        duplicate_event = ExamEvent.objects.filter(
+            contest=self.contest,
+            user=self.student,
+            event_type="forbidden_focus_event",
+        ).order_by("id").first()
+        self.assertIsNotNone(duplicate_event)
+        self.assertTrue(duplicate_event.metadata["incident_family_dup"])
+        self.assertFalse(
+            ExamEvent.objects.filter(
+                contest=self.contest,
+                user=self.student,
+                event_type="forbidden_focus_event",
+            ).order_by("id").last().metadata["incident_family_dup"]
+        )
+
     def test_submitted_status_event_is_logged_without_escalation(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.SUBMITTED
@@ -410,7 +462,7 @@ class ExamAntiCheatTests(APITestCase):
         resp = self.client.post(
             self.events_url,
             {
-                "event_type": "warning_timeout",
+                "event_type": "screen_share_stopped",
                 "lock_reason": "Student opened DevTools",  # should be ignored
             },
         )
@@ -418,10 +470,9 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.participant.refresh_from_db()
         # Server sets lock_reason based on event_type, not client input
-        timeout = self.contest.warning_timeout_seconds
         self.assertEqual(
             self.participant.lock_reason,
-            f"Warning timeout: student did not acknowledge warning within {timeout} seconds",
+            "Screen share recovery timed out; pre-check is required to continue",
         )
 
     # ------------------------------------------------------------------
@@ -452,20 +503,34 @@ class ExamAntiCheatTests(APITestCase):
         )
 
     # ------------------------------------------------------------------
-    # 6. auto_unlock_at is returned when allow_auto_unlock is enabled
+    # 6. Critical monitoring failures pause for pre-check instead of locking
     # ------------------------------------------------------------------
-    def test_auto_unlock_at_in_response(self):
+    def test_heartbeat_timeout_pauses_for_precheck_without_auto_unlock(self):
         self.contest.allow_auto_unlock = True
         self.contest.auto_unlock_minutes = 5
         self.contest.save()
 
         self.client.force_authenticate(user=self.student)
-        # Trigger lock via warning_timeout
-        resp = self.client.post(self.events_url, {"event_type": "warning_timeout"})
+        resp = self.client.post(self.events_url, {"event_type": "heartbeat_timeout"})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.data["locked"])
-        self.assertIsNotNone(resp.data.get("auto_unlock_at"))
+        self.assertFalse(resp.data["locked"])
+        self.assertEqual(resp.data["exam_status"], ExamStatus.PAUSED)
+        self.assertIsNone(resp.data.get("auto_unlock_at"))
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
+        self.assertIn("pre-check", self.participant.lock_reason)
+
+    def test_listener_tampered_pauses_for_precheck(self):
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post(self.events_url, {"event_type": "listener_tampered"})
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertFalse(resp.data["locked"])
+        self.assertEqual(resp.data["exam_status"], ExamStatus.PAUSED)
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
+        self.assertIn("Listener tampered", self.participant.lock_reason)
 
     def test_webcam_stopped_uses_exam_entered_tablet_metadata_as_primary(self):
         ExamEvent.objects.create(
@@ -493,9 +558,9 @@ class ExamAntiCheatTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["locked"])
+        self.assertFalse(response.data["locked"])
         self.participant.refresh_from_db()
-        self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
+        self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
 
         event = ExamEvent.objects.filter(
             contest=self.contest,
@@ -674,6 +739,34 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(response.data["total_raw_count"], 0)
         self.assertEqual(response.data["items"], [])
         mock_get_url.assert_not_called()
+
+    def test_screenshots_presigns_explicit_keys_even_outside_event_window(self):
+        ts_ms = 1774106646951
+        raw_key = (
+            f"contest_{self.contest.id}/user_{self.student.id}/"
+            f"session_session-evidence-window/screen_share/ts_{ts_ms}_seq_0007.webp"
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
+        with patch(
+            "apps.contests.views.exam_evidence.generate_get_url",
+            return_value="https://example.test/frame.webp",
+        ) as mock_get_url:
+            response = self.client.get(
+                screenshots_url,
+                {
+                    "user_id": self.student.id,
+                    "object_key": raw_key,
+                    "ts_from": ts_ms + 60_000,
+                    "ts_to": ts_ms + 120_000,
+                },
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_raw_count"], 1)
+        self.assertEqual(response.data["items"][0]["seq"], 7)
+        mock_get_url.assert_called_once()
 
     def test_screenshots_without_session_does_not_scan_all_user_objects(self):
         self.client.force_authenticate(user=self.teacher)
@@ -930,9 +1023,9 @@ class ScreenShareEventTests(APITestCase):
         self.events_url = reverse("contests:contest-exam-events", args=[self.contest.id])
 
     # ------------------------------------------------------------------
-    # screen_share_stopped immediately locks (P0 event)
+    # screen_share_stopped pauses the exam and requires pre-check
     # ------------------------------------------------------------------
-    def test_screen_share_stopped_immediately_locks(self):
+    def test_screen_share_stopped_pauses_for_recheck(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(
             self.events_url,
@@ -941,10 +1034,11 @@ class ScreenShareEventTests(APITestCase):
         )
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertTrue(resp.data["locked"])
+        self.assertFalse(resp.data["locked"])
+        self.assertEqual(resp.data["exam_status"], ExamStatus.PAUSED)
 
         self.participant.refresh_from_db()
-        self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
+        self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
 
         # Event is recorded
         self.assertTrue(

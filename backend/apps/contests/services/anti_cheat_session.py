@@ -24,7 +24,7 @@ HEARTBEAT_TIMEOUT_SECONDS = 60
 HEARTBEAT_KEY_TTL_SECONDS = HEARTBEAT_TIMEOUT_SECONDS * 2
 CONFLICT_TOKEN_TTL_SECONDS = 300
 DEFAULT_ACTIVE_TTL_SECONDS = 2 * 60 * 60
-DEFAULT_EVENT_IDEMPOTENCY_TTL_SECONDS = 3
+DEFAULT_EVENT_IDEMPOTENCY_TTL_SECONDS = 1
 
 
 @dataclass
@@ -92,6 +92,10 @@ def conflict_token_key(token: str) -> str:
 def exam_event_idempotency_key(contest_id: int, user_id: int, event_type: str, token: str) -> str:
     compact = token.strip()[:128]
     return f"{EVENT_IDEMPOTENCY_KEY_PREFIX}:{contest_id}:{user_id}:{event_type}:{compact}"
+
+
+def incident_family_key(contest_id: int, user_id: int, family: str) -> str:
+    return f"{INCIDENT_FAMILY_KEY_PREFIX}:{contest_id}:{user_id}:{family}"
 
 
 def build_active_session_ttl(contest: Contest) -> int:
@@ -246,8 +250,14 @@ def is_duplicate_incident_family(
     """
     if not family:
         return False
-    key = f"{INCIDENT_FAMILY_KEY_PREFIX}:{contest_id}:{user_id}:{family}"
+    key = incident_family_key(contest_id, user_id, family)
     return not cache.add(key, "1", timeout=max(1, ttl_seconds))
+
+
+def clear_incident_family(*, contest_id: int, user_id: int, family: str | None) -> None:
+    if not family:
+        return
+    cache.delete(incident_family_key(contest_id, user_id, family))
 
 
 def heartbeat_key(contest_id: int, user_id: int) -> str:

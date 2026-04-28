@@ -15,12 +15,12 @@ import {
   clearRuntimeScreenShareReauth,
   useRuntimeScreenShareReauth,
 } from "@/features/contest/anticheat/runtimeReauthState";
-import { recordExamEvent } from "@/infrastructure/api/repositories";
 import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
 import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { useViolationPipeline } from "./useViolationPipeline";
 import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
+import type { ExamEventResponse } from "@/infrastructure/api/repositories/exam.repository";
 
 export interface UseScreenShareMonitoringConfig {
   contestId: string;
@@ -31,6 +31,7 @@ export interface UseScreenShareMonitoringConfig {
   recoveryGraceMs?: number;
   evidenceCaptureModules?: ForcedCaptureModule[];
   requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
+  onEnvironmentPaused?: (response: ExamEventResponse | null) => void;
 }
 
 export interface RuntimeReauthSnapshot {
@@ -56,6 +57,7 @@ export function useScreenShareMonitoring({
   recoveryGraceMs,
   evidenceCaptureModules,
   requestForceSubmit,
+  onEnvironmentPaused,
 }: UseScreenShareMonitoringConfig): UseScreenShareMonitoringReturn {
   const runtimeReauth = useRuntimeScreenShareReauth(contestId);
 
@@ -66,13 +68,13 @@ export function useScreenShareMonitoring({
   const moduleRoleRef = useRef(moduleRole);
   const recoveryGraceMsRef = useRef(recoveryGraceMs);
   const evidenceCaptureModulesRef = useRef(evidenceCaptureModules);
-  const requestForceSubmitRef = useRef(requestForceSubmit);
+  const onEnvironmentPausedRef = useRef(onEnvironmentPaused);
 
   useEffect(() => { contestIdRef.current = contestId; }, [contestId]);
   useEffect(() => { moduleRoleRef.current = moduleRole; }, [moduleRole]);
   useEffect(() => { recoveryGraceMsRef.current = recoveryGraceMs; }, [recoveryGraceMs]);
   useEffect(() => { evidenceCaptureModulesRef.current = evidenceCaptureModules; }, [evidenceCaptureModules]);
-  useEffect(() => { requestForceSubmitRef.current = requestForceSubmit; }, [requestForceSubmit]);
+  useEffect(() => { onEnvironmentPausedRef.current = onEnvironmentPaused; }, [onEnvironmentPaused]);
 
   const pipeline = useViolationPipeline({
     route: screenShareRoute,
@@ -122,39 +124,31 @@ export function useScreenShareMonitoring({
       const cid = contestIdRef.current;
       const role = moduleRoleRef.current;
 
-      requestForceSubmitRef.current({
-        reason: "Force submit after screen share recovery timeout",
-        sourceModule: "screen_share",
-        stopCaptureKey: "screen_share_timeout_submit",
-        onRecording: async () => {
-          await recordExamEvent(cid, "screen_share_stopped", {
-            source: "anticheat:screen_capture",
-            metadata: {
-              reason: "recovery_timeout",
-              module: "screen_share",
-              module_role: role,
-            },
-          }).catch(() => null);
-          await recordExamEventWithForcedCapture(cid, "exam_submit_initiated", {
-            reason: "Force submit after screen share recovery timeout",
-            source: "exam_mode:screen_share_recovery_timeout",
-            forceCaptureReason: "exam_submit_initiated:screen_share_timeout",
-            captureOptions: {
-              eventType: "exam_submit_initiated",
-              modules: evidenceCaptureModulesRef.current ?? ["screen_share"],
-            },
-            metadata: {
-              upload_session_id: getExamCaptureSessionId(cid) || undefined,
-              module: "screen_share",
-              module_role: role,
-            },
-          }).catch(() => null);
+      void recordExamEventWithForcedCapture(cid, "screen_share_stopped", {
+        reason: "Screen share recovery timeout",
+        source: "exam_mode:screen_share_recovery_timeout",
+        forceCaptureReason: "screen_share_stopped:screen_share_timeout",
+        captureOptions: {
+          eventType: "screen_share_stopped",
+          modules: evidenceCaptureModulesRef.current ?? ["screen_share"],
         },
-        onFinally: () => {
+        metadata: {
+          upload_session_id: getExamCaptureSessionId(cid) || undefined,
+          reason: "recovery_timeout",
+          module: "screen_share",
+          module_role: role,
+        },
+      })
+        .then((response) => {
+          onEnvironmentPausedRef.current?.(response);
+        })
+        .catch(() => {
+          onEnvironmentPausedRef.current?.(null);
+        })
+        .finally(() => {
           isSubmittingRef.current = false;
           endRuntimeScreenShareReauth(cid, 0);
-        },
-      });
+        });
     }
   }, [runtimeReauth.inProgress, runtimeReauth.remainingSeconds]);
 
