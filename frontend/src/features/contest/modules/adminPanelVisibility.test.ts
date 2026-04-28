@@ -29,7 +29,9 @@ describe("admin panel visibility in draft", () => {
 
     expect(codingPanels).toContain("grading");
     expect(codingPanels).toContain("participants");
+    expect(codingPanels).toContain("proctoring");
     expect(paperPanels).toContain("grading");
     expect(paperPanels).toContain("participants");
+    expect(paperPanels).toContain("proctoring");
   });
 });

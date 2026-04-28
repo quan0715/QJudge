@@ -5,6 +5,7 @@ import {
   Dashboard,
   Activity,
   UserMultiple,
+  View,
   Education,
   Settings,
   TaskComplete,
@@ -39,6 +40,7 @@ const NAV_ITEMS: Record<
   clarifications: { labelKey: "clarifications", icon: Chat },
   logs: { labelKey: "logs", icon: Activity },
   participants: { labelKey: "participants", icon: UserMultiple },
+  proctoring: { labelKey: "proctoring", icon: View },
   problem_editor: {
     labelKey: "problemManagement",
     examLabelKey: "examManagement",

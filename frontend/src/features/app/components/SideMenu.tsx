@@ -14,6 +14,7 @@ import {
   TaskComplete,
   Trophy,
   UserMultiple,
+  View,
   ChevronDown,
   Settings,
 } from "@carbon/icons-react";
@@ -53,6 +54,7 @@ const CONTEST_PANEL_META: Record<
   clarifications: { labelKey: "clarifications", Icon: ChatIcon },
   logs: { labelKey: "logs", Icon: Activity },
   participants: { labelKey: "participants", Icon: UserMultiple },
+  proctoring: { labelKey: "proctoring", Icon: View },
   problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: Education },
   grading: { labelKey: "grading", examLabelKey: "examGrading", Icon: TaskComplete },
   "ai-grading": { labelKey: "aiGrading", examLabelKey: "examAiGrading", Icon: AiLabel },

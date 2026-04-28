@@ -17,6 +17,7 @@
       "logs": "事件紀錄",
       "overview": "總覽",
       "participants": "參賽者",
+      "proctoring": "監考",
       "problemManagement": "題目管理",
       "settings": "設定",
       "statistics": "統計"
@@ -935,6 +936,22 @@
     "streamingHint": "可在此畫面查看學生目前分享的螢幕。",
     "unavailable": "無法連線",
     "unknownError": "即時監看連線失敗"
+  },
+  "proctoringPanel": {
+    "backToRoster": "返回列表",
+    "emptyDescription": "左側清單可快速切換不同參賽者的監考畫面。",
+    "emptyTitle": "選擇參賽者開始監考",
+    "highRiskCount": "{{count}} 高風險",
+    "noSignal": "無訊號",
+    "onlineCount": "{{count}} 人在線",
+    "outOfWindowBody": "監控功能無法使用。",
+    "outOfWindowTitle": "目前非考試時段",
+    "reviewCount": "{{count}} 需留意",
+    "roster": "監考對象",
+    "searchPlaceholder": "搜尋監考對象...",
+    "sourceScreen": "螢幕",
+    "sourceWebcam": "Webcam",
+    "title": "監考"
   },
   "management": {
     "contestCount": "共 {{count}} 場競賽",
