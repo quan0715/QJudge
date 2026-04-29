@@ -14,6 +14,7 @@ export { default as TeacherActivationScreen } from "./screens/TeacherActivationS
 export { default as AuthLayout } from "./components/layout/AuthLayout";
 export { default as ChangePasswordModal } from "./components/ChangePasswordModal";
 export { default as UserSettingsModal } from "./components/UserSettingsModal";
+export { default as UserPreferencesHydrator } from "./components/UserPreferencesHydrator";
 export {
   RequireAuth,
   RequireGuest,
