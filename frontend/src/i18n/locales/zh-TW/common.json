@@ -42,11 +42,6 @@
       "takingOver": "處理中...",
       "verifyingSession": "同步作業階段中..."
     },
-    "takeover": {
-      "stepInvalidate": "正在清除其他裝置的登入狀態...",
-      "stepRegister": "正在重新註冊考試連線...",
-      "stepRedirect": "即將返回考試現場..."
-    },
     "campusSso": {
       "backToLogin": "返回登入",
       "providers": {
@@ -91,6 +86,14 @@
       "confirmMessage": "確定登出？",
       "confirmTitle": "確認登出"
     },
+    "pendingAction": {
+      "classroomJoinSubtitle": "請先登入或註冊，完成後會自動加入教室。",
+      "classroomJoinTitle": "加入教室",
+      "examTakeoverSubtitle": "偵測到你有未完成的考試，請在此裝置接管並恢復。",
+      "examTakeoverTitle": "考試裝置接管",
+      "teacherActivationSubtitle": "請先登入或註冊，完成後會自動開通教師權限。",
+      "teacherActivationTitle": "教師開通"
+    },
     "register": {
       "confirmPassword": "確認密碼",
       "confirmPasswordPlaceholder": "再次輸入密碼",
@@ -112,13 +115,10 @@
       "username": "使用者名稱",
       "usernamePlaceholder": "選擇一個使用者名稱"
     },
-    "pendingAction": {
-      "classroomJoinSubtitle": "請先登入或註冊，完成後會自動加入教室。",
-      "classroomJoinTitle": "加入教室",
-      "examTakeoverSubtitle": "偵測到你有未完成的考試，請在此裝置接管並恢復。",
-      "examTakeoverTitle": "考試裝置接管",
-      "teacherActivationSubtitle": "請先登入或註冊，完成後會自動開通教師權限。",
-      "teacherActivationTitle": "教師開通"
+    "takeover": {
+      "stepInvalidate": "正在清除其他裝置的登入狀態...",
+      "stepRedirect": "即將返回考試現場...",
+      "stepRegister": "正在重新註冊考試連線..."
     }
   },
   "button": {
@@ -264,39 +264,26 @@
     "switchedTo": "已切換至 {{language}}",
     "title": "語言"
   },
-  "message": {
-    "comingSoon": "即將推出",
-    "deleteFailed": "刪除失敗",
-    "error": "發生錯誤",
-    "loading": "載入中...",
-    "noData": "暫無資料",
-    "notFound": "找不到該資源",
-    "saveFailed": "儲存失敗",
-    "success": "操作成功"
-  },
   "mcp": {
-    "setup": {
-      "title": "連接 AI 工具",
-      "description": "使用 MCP 協定將 QJudge 連接到你的 AI 工具。若工具支援 remote MCP server，可直接貼上 server URL；第一次使用時會自動開啟瀏覽器完成 OAuth 授權。",
-      "directConnect": "Direct Connect",
-      "directConnectIntro": "若你的 AI 工具有內建 MCP / Connectors 設定頁，直接加入以下 remote MCP server URL：",
-      "directConnectStep1": "在 AI 工具的 Connectors、MCP 或 Integrations 設定中新增 custom / remote MCP server。",
-      "directConnectStep2": "貼上上方的 server URL，儲存後重新整理或重啟工具。",
-      "directConnectStep3": "第一次呼叫 QJudge 工具時，依照瀏覽器中的 OAuth 畫面登入並授權。",
-      "directConnectExamples": "常見支援此流程的工具包含 ChatGPT、Claude Desktop、VS Code 與其他支援 remote MCP 的客戶端。",
-      "claudeCode": "Claude Code",
-      "cursor": "Cursor",
-      "codex": "Codex CLI",
-      "copySuccess": "已複製",
-      "step1": "在終端機執行以下指令：",
-      "step1Cursor": "將以下設定加入 .cursor/mcp.json：",
-      "verifyHint": "首次連線會觸發 OAuth 授權",
-      "verifyHintDetail": "不需要手動建立 API token。只要完成瀏覽器登入授權，之後就會由 AI 工具自動保存並重用憑證。"
-    },
     "landing": {
-      "eyebrow": "無痛協作",
-      "title": "與你的 AI 工具無痛協作",
       "description": "在 Claude、ChatGPT、Google Gemini、Notion 中出題、批改、反饋",
+      "examples": {
+        "0": {
+          "aiMessage": "我為你設計了 3 道題目。已直接建立到你的 QJudge 題庫。",
+          "description": "教師在 Claude 中與 AI 討論題目需求，Claude 直接在 QJudge 中建立題目",
+          "feedback": "✓ 已建立",
+          "title": "快速生成題目",
+          "userMessage": "幫我設計一套 C++ 迴圈的競賽題目"
+        },
+        "1": {
+          "aiMessage": "第三題通過率 45%。常見問題是邊界條件處理不當。我提供了改進建議。",
+          "description": "教師在 Claude 中請求批改結果，Claude 自動從 QJudge 取得批改數據並提供分析",
+          "stats": "通過率 45%",
+          "title": "自動批改評論",
+          "userMessage": "請協助批改第三題"
+        }
+      },
+      "eyebrow": "無痛協作",
       "features": {
         "0": "快速生成競賽題目",
         "1": "自動評分與分析",
@@ -307,29 +294,42 @@
         "1": "取得批改結果、通過率統計和常見錯誤分析",
         "2": "AI 分析常見錯誤並給改進建議"
       },
-      "examples": {
-        "0": {
-          "title": "快速生成題目",
-          "description": "教師在 Claude 中與 AI 討論題目需求，Claude 直接在 QJudge 中建立題目",
-          "userMessage": "幫我設計一套 C++ 迴圈的競賽題目",
-          "aiMessage": "我為你設計了 3 道題目。已直接建立到你的 QJudge 題庫。",
-          "feedback": "✓ 已建立"
-        },
-        "1": {
-          "title": "自動批改評論",
-          "description": "教師在 Claude 中請求批改結果，Claude 自動從 QJudge 取得批改數據並提供分析",
-          "userMessage": "請協助批改第三題",
-          "aiMessage": "第三題通過率 45%。常見問題是邊界條件處理不當。我提供了改進建議。",
-          "stats": "通過率 45%"
-        }
-      },
+      "title": "與你的 AI 工具無痛協作",
       "tools": {
-        "claude": "Claude",
         "chatgpt": "ChatGPT",
+        "claude": "Claude",
         "gemini": "Google Gemini",
         "notion": "Notion"
       }
+    },
+    "setup": {
+      "claudeCode": "Claude Code",
+      "codex": "Codex CLI",
+      "copySuccess": "已複製",
+      "cursor": "Cursor",
+      "description": "使用 MCP 協定將 QJudge 連接到你的 AI 工具。若工具支援 remote MCP server，可直接貼上 server URL；第一次使用時會自動開啟瀏覽器完成 OAuth 授權。",
+      "directConnect": "Direct Connect",
+      "directConnectExamples": "常見支援此流程的工具包含 ChatGPT、Claude Desktop、VS Code 與其他支援 remote MCP 的客戶端。",
+      "directConnectIntro": "若你的 AI 工具有內建 MCP / Connectors 設定頁，直接加入以下 remote MCP server URL：",
+      "directConnectStep1": "在 AI 工具的 Connectors、MCP 或 Integrations 設定中新增 custom / remote MCP server。",
+      "directConnectStep2": "貼上上方的 server URL，儲存後重新整理或重啟工具。",
+      "directConnectStep3": "第一次呼叫 QJudge 工具時，依照瀏覽器中的 OAuth 畫面登入並授權。",
+      "step1": "在終端機執行以下指令：",
+      "step1Cursor": "將以下設定加入 .cursor/mcp.json：",
+      "title": "連接 AI 工具",
+      "verifyHint": "首次連線會觸發 OAuth 授權",
+      "verifyHintDetail": "不需要手動建立 API token。只要完成瀏覽器登入授權，之後就會由 AI 工具自動保存並重用憑證。"
     }
+  },
+  "message": {
+    "comingSoon": "即將推出",
+    "deleteFailed": "刪除失敗",
+    "error": "發生錯誤",
+    "loading": "載入中...",
+    "noData": "暫無資料",
+    "notFound": "找不到該資源",
+    "saveFailed": "儲存失敗",
+    "success": "操作成功"
   },
   "nav": {
     "back": "返回",
@@ -346,6 +346,17 @@
     "questionBanks": "題庫",
     "ranking": "排行榜",
     "submissions": "提交紀錄"
+  },
+  "oauth": {
+    "authorize": {
+      "allow": "允許",
+      "deny": "拒絕",
+      "description": "{{clientName}} 正在請求存取你的 QJudge 帳號",
+      "error": "授權失敗，請稍後再試",
+      "invalidRequest": "無效的授權請求",
+      "loading": "處理中...",
+      "title": "授權請求"
+    }
   },
   "page": {
     "announcements": "公告管理",
@@ -418,6 +429,8 @@
   },
   "questionBank": {
     "addQuestion": "新增題目",
+    "allTypes": "全部題型",
+    "applyToMarketplace": "申請上架",
     "bankCreated": "題庫已建立",
     "bankDeleted": "題庫已刪除",
     "bankNotFound": "找不到題庫",
@@ -439,6 +452,7 @@
     "editBank": "編輯題庫",
     "editQuestion": "編輯題目",
     "emptyExplore": "探索題庫目前以 QJudge Community 為主；暫無可探索內容。",
+    "emptyQuestions": "此題庫目前沒有題目。",
     "exploreOnlyPlatform": "探索題庫目前以 QJudge Community 為主",
     "exploreOnlyPlatformDesc": "Phase1 不包含教師共享題庫，先以 Community 驗證題庫為主。",
     "importFromInbox": "匯入草稿",
@@ -452,6 +466,7 @@
       "selectedCount": "已選 {{count}} 題"
     },
     "loadQuestions": "查看題目",
+    "marketplace": "Marketplace",
     "memoryLimit": "記憶體限制(MB)",
     "mockGalleryDesc": "以下為 UI mock 預覽，示範 QJudge Community 題庫卡片。",
     "mockGalleryTitle": "Mock Card Gallery",
@@ -471,17 +486,20 @@
     "mockUserBank2Name": "林老師段考題庫",
     "mockUserPublicTag": "用戶 Public 題庫",
     "mockVerifiedTag": "verified",
+    "needQuestionsToApply": "至少需要 1 題才能申請上架",
+    "notFound": "找不到此題庫",
     "openBank": "進入題庫",
+    "pendingReview": "審核中",
     "prompt": "題目敘述",
+    "published": "已上架",
+    "questionCountLabel": "{{count}} 題",
     "questionCreated": "題目已建立",
     "questionDeleted": "題目已刪除",
     "questionUpdated": "題目已更新",
-    "allTypes": "全部題型",
-    "sortOrder": "預設排序",
-    "sortType": "依題型",
-    "sortNewest": "最新更新",
-    "sortOldest": "最早更新",
-    "usedInContests": "{{count}} 場考試",
+    "reapply": "重新申請",
+    "rejected": "已被退回",
+    "reviewNoteLabel": "審核備註",
+    "reviewStatusLabel": "上架狀態",
     "saveToBank": {
       "desc": "將「{{title}}」收錄到題庫：",
       "success": "已收錄到題庫",
@@ -489,6 +507,15 @@
     },
     "score": "分數",
     "selectTargetBank": "選擇目標題庫",
+    "sortNewest": "最新更新",
+    "sortOldest": "最早更新",
+    "sortOrder": "預設排序",
+    "sortType": "依題型",
+    "submitForReviewSuccess": "已提交審核申請",
+    "subscribeBtn": "訂閱",
+    "subscribed": "已訂閱",
+    "subscribedBtn": "已訂閱",
+    "subscribedLabel": "已訂閱",
     "tabs": {
       "explore": "探索題庫"
     },
@@ -497,27 +524,11 @@
     "tagPublic": "公開",
     "tagUserPublic": "用戶公開",
     "timeLimit": "時間限制(ms)",
-    "subscribeBtn": "訂閱",
-    "subscribedBtn": "已訂閱",
-    "subscribed": "已訂閱",
-    "unsubscribed": "已取消訂閱",
-    "subscribedLabel": "已訂閱",
-    "verified": "已認證",
-    "notFound": "找不到此題庫",
-    "emptyQuestions": "此題庫目前沒有題目。",
-    "questionCountLabel": "{{count}} 題",
     "type": "類型",
+    "unsubscribed": "已取消訂閱",
     "untitled": "未命名",
-    "marketplace": "Marketplace",
-    "reviewStatusLabel": "上架狀態",
-    "applyToMarketplace": "申請上架",
-    "reapply": "重新申請",
-    "pendingReview": "審核中",
-    "published": "已上架",
-    "rejected": "已被退回",
-    "reviewNoteLabel": "審核備註",
-    "needQuestionsToApply": "至少需要 1 題才能申請上架",
-    "submitForReviewSuccess": "已提交審核申請"
+    "usedInContests": "{{count}} 場考試",
+    "verified": "已認證"
   },
   "questionType": {
     "description": {
@@ -543,138 +554,149 @@
     "teacher": "教師"
   },
   "settings": {
+    "aiUsage": {
+      "inputTokens": "輸入 Tokens",
+      "lastUpdated": "最後更新",
+      "loadError": "無法載入使用量資料",
+      "noData": "無資料",
+      "outputTokens": "輸出 Tokens",
+      "title": "AI 使用量",
+      "totalCost": "累計費用",
+      "totalRequests": "總請求數"
+    },
     "apiKey": {
-      "active": "啟用中",
-      "addKey": "新增 Key",
-      "createdAtLabel": "建立時間",
-      "deleteConfirm": "刪除後將無法使用 AI 功能，確定？",
-      "deleteKey": "刪除 Key",
-      "description": "管理 Anthropic API Key",
-      "empty": "未設定 Key，請至控制台建立。",
+      "active": "有効",
+      "addKey": "API Key を追加",
+      "createdAtLabel": "作成日時",
+      "deleteConfirm": "API Key を削除してもよろしいですか？ AI機能が利用できなくなります。",
+      "deleteKey": "Key を削除",
+      "description": "AI機能用の Anthropic API Key を管理します",
+      "empty": "API Key が設定されていません。Anthropic Console で作成してください。",
       "error": {
-        "deleteFailed": "刪除失敗",
-        "inputRequired": "請輸入 API Key",
-        "invalidFormat": "無效的 API Key 格式，應以 'sk-ant-' 開頭",
-        "loadFailed": "載入 API Key 資訊失敗",
-        "saveFailed": "儲存失敗",
-        "usageLoadFailed": "載入用量資料失敗"
+        "deleteFailed": "削除に失敗しました",
+        "inputRequired": "API Key を入力してください",
+        "invalidFormat": "形式が正しくありません ('sk-ant-' で始まっている必要があります)",
+        "loadFailed": "API Key 情報の取得に失敗しました",
+        "saveFailed": "保存に失敗しました",
+        "usageLoadFailed": "利用データの取得に失敗しました"
       },
-      "inactive": "已停用",
-      "invalid": "未驗證",
+      "inactive": "無効",
+      "invalid": "未検証",
       "modal": {
-        "addTitle": "新增 API Key",
-        "deleteSuccess": "API Key 已刪除",
-        "helperText": "您的 API Key 將被加密儲存",
+        "addTitle": "API Key を追加",
+        "deleteSuccess": "API Key を削除しました",
+        "helperText": "API Key は暗号化して保存されます",
         "keyInput": "Anthropic API Key",
         "keyPlaceholder": "sk-ant-api03-...",
-        "nameInput": "名稱（選填）",
-        "saveSuccess": "API Key 已成功儲存！",
-        "updateTitle": "更新 API Key"
+        "nameInput": "名前 (任意)",
+        "saveSuccess": "API Key を保存しました",
+        "updateTitle": "API Key を更新"
       },
-      "nameLabel": "名稱",
-      "statusLabel": "狀態",
+      "nameLabel": "名前",
+      "statusLabel": "ステータス",
       "title": "API Key",
-      "updateKey": "更新 Key",
+      "updateKey": "Key を更新",
       "usage": {
-        "daily": "每日",
-        "description": "AI API 使用量摘要與明細",
-        "endDate": "結束日期",
+        "daily": "日次",
+        "description": "AI API の利用状況サマリーと詳細",
+        "endDate": "終了日",
         "granularity": "粒度",
-        "monthly": "每月",
-        "noData": "所選日期範圍內無用量資料",
-        "startDate": "開始日期",
+        "monthly": "月次",
+        "noData": "選択された範囲に利用データはありません",
+        "startDate": "開始日",
         "table": {
           "cost": "費用 (USD)",
-          "date": "日期",
-          "inputTokens": "輸入 Tokens",
-          "outputTokens": "輸出 Tokens",
-          "requests": "請求數"
+          "date": "日付",
+          "inputTokens": "入力トークン",
+          "outputTokens": "出力トークン",
+          "requests": "リクエスト数"
         },
-        "title": "用量統計",
-        "totalCost": "總費用",
-        "totalRequests": "總請求數",
-        "totalTokens": "總 Tokens",
-        "weekly": "每週"
+        "title": "利用統計",
+        "totalCost": "総費用",
+        "totalRequests": "総リクエスト数",
+        "totalTokens": "総トークン数",
+        "weekly": "週次"
       },
-      "validated": "已驗證"
+      "validated": "検証済み"
     },
-    "description": "管理您的偏好設定、API Key 和用量統計",
-    "descriptionStudent": "管理您的偏好設定",
+    "description": "設定、API Key、使用量統計を管理します",
+    "descriptionStudent": "設定を管理します",
     "loginRecords": {
-      "current": "此裝置",
-      "description": "最近 30 天登入的裝置",
-      "deviceName": "裝置名稱",
-      "empty": "沒有登入紀錄",
-      "lastActive": "最後活動",
-      "logoutError": "登出其他裝置失敗",
-      "logoutOther": "登出其他裝置",
-      "logoutOtherDesc": "登出除了此裝置以外的所有作用中工作階段",
-      "logoutSuccess": "已登出其他裝置",
+      "current": "現在のデバイス",
+      "description": "過去30日間のログイン履歴",
+      "deviceName": "デバイス名",
+      "empty": "履歴がありません",
+      "lastActive": "最終アクティビティ",
+      "logoutError": "ログアウトに失敗しました",
+      "logoutOther": "他デバイスからログアウト",
+      "logoutOtherDesc": "現在のデバイス以外のすべてのアクティブなセッションを終了します",
+      "logoutSuccess": "他デバイスからログアウトしました",
       "now": "現在",
-      "title": "裝置管理"
+      "title": "デバイス管理"
     },
     "plans": {
-      "contactUs": "聯繫我們",
-      "description": "所有方案皆包含完整功能，差異僅在用量額度",
-      "enterpriseCustom": "取得 Enterprise 客製方案。",
-      "enterpriseTitle": "需要更大規模？",
+      "contactUs": "お問い合わせ",
+      "description": "すべてのプランでフル機能をご利用いただけます。違いは制限値のみです。",
+      "enterpriseCustom": "カスタムエンタープライズプランをご案内します。",
+      "enterpriseTitle": "より大規模な利用をお考えですか？",
       "features": {
         "pro": [
-          "每場考試最多 200 人",
+          "試験あたり最大 200 人",
           "500 AI Credits / 月",
-          "無限題庫儲存",
-          "資料保留 1 年",
-          "10 GB 儲存空間"
+          "無制限の問題集ストレージ",
+          "1 年間のデータ保持",
+          "10 GB のストレージ容量"
         ],
         "team": [
-          "每場考試最多 500 人",
+          "試験あたり最大 500 人",
           "2,000 AI Credits / 月",
-          "無限題庫儲存",
-          "10 位管理者",
-          "50 GB 儲存空間"
+          "無制限の問題集ストレージ",
+          "最大 10 人の管理者",
+          "50 GB のストレージ容量"
         ]
       },
-      "freeTrial": "30 天免費",
+      "freeTrial": "30日間無料",
       "month": "月",
-      "openCheckoutFailed": "無法開啟結帳頁面，請稍後再試",
-      "processing": "處理中...",
-      "startingTrial": "開始免費試用",
-      "subscribeNow": "立即訂閱",
-      "title": "探索方案"
+      "openCheckoutFailed": "チェックアウトページの起動に失敗しました。後でもう一度お試しください。",
+      "processing": "処理中...",
+      "startingTrial": "無料試用を開始",
+      "subscribeNow": "今すぐ購読",
+      "title": "プランを見る"
     },
     "subscription": {
       "desc": {
-        "free": "目前使用免費方案，可隨時升級取得更高額度",
-        "pro": "有穩定考試需求的個人用戶",
-        "team": "學校、科系、培訓機構"
+        "free": "現在は無料プランです。いつでもアップグレード可能です。",
+        "pro": "安定した試験環境を求める個人ユーザー向け",
+        "team": "学校、学部、トレーニング機関向け"
       },
-      "manage": "管理訂閱",
-      "manageDesc": "變更付款方式、取消訂閱或查看發票",
-      "openPortalFailed": "無法開啟訂閱管理頁面",
-      "periodEndDate": "目前週期結束",
+      "manage": "購読を管理",
+      "manageDesc": "支払い方法の変更、解約、請求書の確認",
+      "openPortalFailed": "管理ページの起動に失敗しました",
+      "periodEndDate": "現在の期間終了",
       "status": {
-        "active": "啟用中",
-        "canceled": "已取消",
-        "expired": "已到期",
-        "past_due": "付款逾期",
+        "active": "有効",
+        "canceled": "解約済み",
+        "expired": "期限切れ",
+        "past_due": "支払い遅延",
         "trialing": "試用中"
       },
       "tier": {
-        "enterprise": "Enterprise",
-        "free": "免費方案",
-        "pro": "個人方案",
-        "team": "團隊方案"
+        "enterprise": "エンタープライズ",
+        "free": "無料プラン",
+        "pro": "プロプラン",
+        "team": "チームプラン"
       },
-      "trialEndDate": "試用到期日"
+      "trialEndDate": "試用終了日"
     },
     "tabs": {
+      "aiUsage": "AI 使用量",
       "apiKey": "API Key",
       "mcp": "MCP 連線",
-      "plans": "探索方案",
+      "plans": "方案",
       "preferences": "偏好設定",
       "profile": "個人檔案",
-      "subscription": "訂閱狀態",
-      "usage": "用量統計"
+      "subscription": "購読状況",
+      "usage": "利用統計"
     },
     "title": "設定"
   },
@@ -741,37 +763,6 @@
       "adminTA": "管理員 (TA)",
       "student": "學生",
       "teacher": "教師"
-    }
-  },
-  "oauth": {
-    "authorize": {
-      "title": "授權請求",
-      "description": "{{clientName}} 正在請求存取你的 QJudge 帳號",
-      "allow": "允許",
-      "deny": "拒絕",
-      "loading": "處理中...",
-      "error": "授權失敗，請稍後再試",
-      "invalidRequest": "無效的授權請求"
-    }
-  },
-  "settings": {
-    "title": "設定",
-    "tabs": {
-      "profile": "個人檔案",
-      "preferences": "偏好設定",
-      "aiUsage": "AI 使用量",
-      "mcp": "MCP 連線",
-      "plans": "方案"
-    },
-    "aiUsage": {
-      "title": "AI 使用量",
-      "totalRequests": "總請求數",
-      "inputTokens": "輸入 Tokens",
-      "outputTokens": "輸出 Tokens",
-      "totalCost": "累計費用",
-      "lastUpdated": "最後更新",
-      "loadError": "無法載入使用量資料",
-      "noData": "無資料"
     }
   }
 }

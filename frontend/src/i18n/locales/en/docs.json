@@ -17,6 +17,7 @@
     "back": "Back",
     "items": {
       "admin-overview": "Admin Features",
+      "classroom-management": "教室管理",
       "common-errors": "Common Errors",
       "contest-extension-architecture": "Contest Extension Architecture Guide",
       "contests": "Joining Contests",
@@ -29,7 +30,9 @@
       "exam-proctoring": "Proctoring & Interventions",
       "exam-statistics": "Exam Statistics & Review",
       "judge-system": "Judge System",
+      "mcp-setup": "MCP AI 工具連線",
       "overview": "Platform Overview",
+      "question-bank": "題庫管理",
       "quick-start": "Quick Start",
       "student-exam-guide": "Student Exam Guide",
       "submission": "Code Submission",

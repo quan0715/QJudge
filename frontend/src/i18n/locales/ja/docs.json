@@ -17,6 +17,7 @@
     "back": "戻る",
     "items": {
       "admin-overview": "管理者機能",
+      "classroom-management": "教室管理",
       "common-errors": "よくあるエラー",
       "contest-extension-architecture": "コンテスト拡張アーキテクチャガイド",
       "contests": "コンテストに参加",
@@ -29,7 +30,9 @@
       "exam-proctoring": "試験監督と手動介入",
       "exam-statistics": "試験統計と確認",
       "judge-system": "ジャッジシステム",
+      "mcp-setup": "MCP AI 工具連線",
       "overview": "プラットフォーム概要",
+      "question-bank": "題庫管理",
       "quick-start": "クイックスタート",
       "student-exam-guide": "学生試験ガイド",
       "submission": "コード提出",

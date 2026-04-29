@@ -42,11 +42,6 @@
       "takingOver": "Processing...",
       "verifyingSession": "Synchronizing session..."
     },
-    "takeover": {
-      "stepInvalidate": "Clearing login sessions on other devices...",
-      "stepRegister": "Re-registering exam connection...",
-      "stepRedirect": "Returning to exam..."
-    },
     "campusSso": {
       "backToLogin": "Back to login",
       "providers": {
@@ -119,6 +114,11 @@
       "title": "Create Account",
       "username": "Username",
       "usernamePlaceholder": "Choose a username"
+    },
+    "takeover": {
+      "stepInvalidate": "Clearing login sessions on other devices...",
+      "stepRedirect": "Returning to exam...",
+      "stepRegister": "Re-registering exam connection..."
     }
   },
   "button": {
@@ -264,39 +264,26 @@
     "switchedTo": "Switched to {{language}}",
     "title": "Language"
   },
-  "message": {
-    "comingSoon": "Coming Soon",
-    "deleteFailed": "Delete failed",
-    "error": "An error occurred",
-    "loading": "Loading...",
-    "noData": "No data available",
-    "notFound": "Resource not found",
-    "saveFailed": "Save failed",
-    "success": "Action completed successfully"
-  },
   "mcp": {
-    "setup": {
-      "title": "Connect AI Tools",
-      "description": "Connect QJudge to your AI tools using MCP. If your tool supports remote MCP servers, you can paste the server URL directly and complete OAuth in your browser on first use.",
-      "directConnect": "Direct Connect",
-      "directConnectIntro": "If your AI tool has built-in MCP or Connectors settings, add this remote MCP server URL:",
-      "directConnectStep1": "Open your AI tool's Connectors, MCP, or Integrations settings and add a custom or remote MCP server.",
-      "directConnectStep2": "Paste the server URL above, save the configuration, then reload or restart the tool.",
-      "directConnectStep3": "The first time you invoke a QJudge tool, follow the browser OAuth flow to sign in and grant access.",
-      "directConnectExamples": "This usually works with tools like ChatGPT, Claude Desktop, VS Code, and other clients that support remote MCP.",
-      "claudeCode": "Claude Code",
-      "cursor": "Cursor",
-      "codex": "Codex CLI",
-      "copySuccess": "Copied",
-      "step1": "Run the following command in your terminal:",
-      "step1Cursor": "Add the following configuration to .cursor/mcp.json:",
-      "verifyHint": "OAuth runs automatically on first connection",
-      "verifyHintDetail": "You do not need to create an API token manually. After the browser sign-in flow completes, your AI tool will store and reuse the credentials."
-    },
     "landing": {
-      "eyebrow": "Seamless Collaboration",
-      "title": "Collaborate Seamlessly with Your Favorite AI Tools",
       "description": "Create, grade, and provide feedback directly in Claude, ChatGPT, Google Gemini, and Notion",
+      "examples": {
+        "0": {
+          "aiMessage": "I've designed 3 problems for you. Created directly in your QJudge library.",
+          "description": "Teachers brainstorm with AI in Claude, and problems are created directly in QJudge",
+          "feedback": "✓ Created",
+          "title": "Quick Problem Generation",
+          "userMessage": "Design a set of C++ loop competition problems"
+        },
+        "1": {
+          "aiMessage": "Problem 3 has a 45% pass rate. Common issue: improper boundary handling. I've provided improvement suggestions.",
+          "description": "Teachers request grading results in Claude, AI fetches data and provides analysis",
+          "stats": "Pass rate 45%",
+          "title": "Automatic Grading & Review",
+          "userMessage": "Help me grade problem 3"
+        }
+      },
+      "eyebrow": "Seamless Collaboration",
       "features": {
         "0": "Generate competition problems quickly",
         "1": "Automatically grade student submissions",
@@ -307,29 +294,42 @@
         "1": "Get grading results and statistics automatically",
         "2": "AI analyzes common errors and suggests improvements"
       },
-      "examples": {
-        "0": {
-          "title": "Quick Problem Generation",
-          "description": "Teachers brainstorm with AI in Claude, and problems are created directly in QJudge",
-          "userMessage": "Design a set of C++ loop competition problems",
-          "aiMessage": "I've designed 3 problems for you. Created directly in your QJudge library.",
-          "feedback": "✓ Created"
-        },
-        "1": {
-          "title": "Automatic Grading & Review",
-          "description": "Teachers request grading results in Claude, AI fetches data and provides analysis",
-          "userMessage": "Help me grade problem 3",
-          "aiMessage": "Problem 3 has a 45% pass rate. Common issue: improper boundary handling. I've provided improvement suggestions.",
-          "stats": "Pass rate 45%"
-        }
-      },
+      "title": "Collaborate Seamlessly with Your Favorite AI Tools",
       "tools": {
-        "claude": "Claude",
         "chatgpt": "ChatGPT",
+        "claude": "Claude",
         "gemini": "Google Gemini",
         "notion": "Notion"
       }
+    },
+    "setup": {
+      "claudeCode": "Claude Code",
+      "codex": "Codex CLI",
+      "copySuccess": "Copied",
+      "cursor": "Cursor",
+      "description": "Connect QJudge to your AI tools using MCP. If your tool supports remote MCP servers, you can paste the server URL directly and complete OAuth in your browser on first use.",
+      "directConnect": "Direct Connect",
+      "directConnectExamples": "This usually works with tools like ChatGPT, Claude Desktop, VS Code, and other clients that support remote MCP.",
+      "directConnectIntro": "If your AI tool has built-in MCP or Connectors settings, add this remote MCP server URL:",
+      "directConnectStep1": "Open your AI tool's Connectors, MCP, or Integrations settings and add a custom or remote MCP server.",
+      "directConnectStep2": "Paste the server URL above, save the configuration, then reload or restart the tool.",
+      "directConnectStep3": "The first time you invoke a QJudge tool, follow the browser OAuth flow to sign in and grant access.",
+      "step1": "Run the following command in your terminal:",
+      "step1Cursor": "Add the following configuration to .cursor/mcp.json:",
+      "title": "Connect AI Tools",
+      "verifyHint": "OAuth runs automatically on first connection",
+      "verifyHintDetail": "You do not need to create an API token manually. After the browser sign-in flow completes, your AI tool will store and reuse the credentials."
     }
+  },
+  "message": {
+    "comingSoon": "Coming Soon",
+    "deleteFailed": "Delete failed",
+    "error": "An error occurred",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "notFound": "Resource not found",
+    "saveFailed": "Save failed",
+    "success": "Action completed successfully"
   },
   "nav": {
     "back": "Back",
@@ -343,8 +343,20 @@
     "marketplace": "Marketplace",
     "problemList": "Problem List",
     "problems": "Problems",
+    "questionBanks": "題庫",
     "ranking": "Ranking",
     "submissions": "Submissions"
+  },
+  "oauth": {
+    "authorize": {
+      "allow": "Allow",
+      "deny": "Deny",
+      "description": "{{clientName}} is requesting access to your QJudge account",
+      "error": "Authorization failed. Please try again.",
+      "invalidRequest": "Invalid authorization request",
+      "loading": "Processing...",
+      "title": "Authorization Request"
+    }
   },
   "page": {
     "announcements": "Announcements",
@@ -360,6 +372,7 @@
     "problemDetail": "Problem Detail",
     "problemManagement": "Problem Management",
     "problems": "Problem List",
+    "questionBanks": "題庫",
     "register": "Register",
     "submissions": "Submissions",
     "teacherDashboard": "Teacher Dashboard",
@@ -417,6 +430,7 @@
   "questionBank": {
     "addQuestion": "Add Question",
     "allTypes": "All Types",
+    "applyToMarketplace": "Apply to Marketplace",
     "bankCreated": "Question bank created",
     "bankDeleted": "Question bank deleted",
     "bankNotFound": "Bank Not Found",
@@ -438,6 +452,7 @@
     "editBank": "Edit Question Bank",
     "editQuestion": "Edit Question",
     "emptyExplore": "Explore is currently centered on QJudge Community; no content available yet.",
+    "emptyQuestions": "This question bank has no questions yet.",
     "exploreOnlyPlatform": "Explore is currently centered on QJudge Community",
     "exploreOnlyPlatformDesc": "Phase 1 does not include shared banks; focuses on Community validation first.",
     "importFromInbox": "Import Drafts",
@@ -451,6 +466,7 @@
       "selectedCount": "{{count}} selected"
     },
     "loadQuestions": "View Questions",
+    "marketplace": "Marketplace",
     "memoryLimit": "Memory Limit (MB)",
     "mockGalleryDesc": "UI mock preview demonstrating QJudge Community question bank cards.",
     "mockGalleryTitle": "Mock Card Gallery",
@@ -470,11 +486,20 @@
     "mockUserBank2Name": "Teacher Lin's Midterm Bank",
     "mockUserPublicTag": "Public Bank",
     "mockVerifiedTag": "verified",
+    "needQuestionsToApply": "At least 1 question is required to apply",
+    "notFound": "Question bank not found.",
     "openBank": "Open Bank",
+    "pendingReview": "Under Review",
     "prompt": "Prompt",
+    "published": "Published",
+    "questionCountLabel": "{{count}} questions",
     "questionCreated": "Question created",
     "questionDeleted": "Question deleted",
     "questionUpdated": "Question updated",
+    "reapply": "Reapply",
+    "rejected": "Rejected",
+    "reviewNoteLabel": "Review Note",
+    "reviewStatusLabel": "Listing Status",
     "saveToBank": {
       "desc": "Save \"{{title}}\" to question bank:",
       "success": "Saved to bank",
@@ -486,6 +511,11 @@
     "sortOldest": "Oldest First",
     "sortOrder": "Default Order",
     "sortType": "By Type",
+    "submitForReviewSuccess": "Review application submitted",
+    "subscribeBtn": "Subscribe",
+    "subscribed": "Subscribed",
+    "subscribedBtn": "Subscribed",
+    "subscribedLabel": "Subscribed",
     "tabs": {
       "explore": "Explore"
     },
@@ -494,28 +524,11 @@
     "tagPublic": "Public",
     "tagUserPublic": "Public",
     "timeLimit": "Time Limit (ms)",
-    "usedInContests": "{{count}} contest(s)",
-    "subscribeBtn": "Subscribe",
-    "subscribedBtn": "Subscribed",
-    "subscribed": "Subscribed",
-    "unsubscribed": "Unsubscribed",
-    "subscribedLabel": "Subscribed",
-    "verified": "Verified",
-    "notFound": "Question bank not found.",
-    "emptyQuestions": "This question bank has no questions yet.",
-    "questionCountLabel": "{{count}} questions",
     "type": "Type",
+    "unsubscribed": "Unsubscribed",
     "untitled": "Untitled",
-    "marketplace": "Marketplace",
-    "reviewStatusLabel": "Listing Status",
-    "applyToMarketplace": "Apply to Marketplace",
-    "reapply": "Reapply",
-    "pendingReview": "Under Review",
-    "published": "Published",
-    "rejected": "Rejected",
-    "reviewNoteLabel": "Review Note",
-    "needQuestionsToApply": "At least 1 question is required to apply",
-    "submitForReviewSuccess": "Review application submitted"
+    "usedInContests": "{{count}} contest(s)",
+    "verified": "Verified"
   },
   "questionType": {
     "description": {
@@ -541,138 +554,149 @@
     "teacher": "Teacher"
   },
   "settings": {
+    "aiUsage": {
+      "inputTokens": "Input Tokens",
+      "lastUpdated": "Last Updated",
+      "loadError": "Failed to load usage data",
+      "noData": "No data",
+      "outputTokens": "Output Tokens",
+      "title": "AI Usage",
+      "totalCost": "Total Cost",
+      "totalRequests": "Total Requests"
+    },
     "apiKey": {
-      "active": "Active",
-      "addKey": "Add API Key",
-      "createdAtLabel": "Created At",
-      "deleteConfirm": "AI features will be disabled after deletion. Confirm?",
-      "deleteKey": "Delete Key",
-      "description": "Manage your Anthropic API Key for AI features",
-      "empty": "No API Key set. Go to Anthropic Console to create one.",
+      "active": "有効",
+      "addKey": "API Key を追加",
+      "createdAtLabel": "作成日時",
+      "deleteConfirm": "API Key を削除してもよろしいですか？ AI機能が利用できなくなります。",
+      "deleteKey": "Key を削除",
+      "description": "AI機能用の Anthropic API Key を管理します",
+      "empty": "API Key が設定されていません。Anthropic Console で作成してください。",
       "error": {
-        "deleteFailed": "Delete failed",
-        "inputRequired": "Please enter API Key",
-        "invalidFormat": "Invalid API Key format, should start with 'sk-ant-'",
-        "loadFailed": "Failed to load API Key info",
-        "saveFailed": "Save failed",
-        "usageLoadFailed": "Failed to load usage data"
+        "deleteFailed": "削除に失敗しました",
+        "inputRequired": "API Key を入力してください",
+        "invalidFormat": "形式が正しくありません ('sk-ant-' で始まっている必要があります)",
+        "loadFailed": "API Key 情報の取得に失敗しました",
+        "saveFailed": "保存に失敗しました",
+        "usageLoadFailed": "利用データの取得に失敗しました"
       },
-      "inactive": "Inactive",
-      "invalid": "Invalid",
+      "inactive": "無効",
+      "invalid": "未検証",
       "modal": {
-        "addTitle": "Add API Key",
-        "deleteSuccess": "API Key deleted",
-        "helperText": "Your API Key will be stored encrypted",
+        "addTitle": "API Key を追加",
+        "deleteSuccess": "API Key を削除しました",
+        "helperText": "API Key は暗号化して保存されます",
         "keyInput": "Anthropic API Key",
         "keyPlaceholder": "sk-ant-api03-...",
-        "nameInput": "Name (Optional)",
-        "saveSuccess": "API Key saved successfully!",
-        "updateTitle": "Update API Key"
+        "nameInput": "名前 (任意)",
+        "saveSuccess": "API Key を保存しました",
+        "updateTitle": "API Key を更新"
       },
-      "nameLabel": "Name",
-      "statusLabel": "Status",
+      "nameLabel": "名前",
+      "statusLabel": "ステータス",
       "title": "API Key",
-      "updateKey": "Update Key",
+      "updateKey": "Key を更新",
       "usage": {
-        "daily": "Daily",
-        "description": "AI API usage summary and details",
-        "endDate": "End Date",
-        "granularity": "Granularity",
-        "monthly": "Monthly",
-        "noData": "No usage data in selected range",
-        "startDate": "Start Date",
+        "daily": "日次",
+        "description": "AI API の利用状況サマリーと詳細",
+        "endDate": "終了日",
+        "granularity": "粒度",
+        "monthly": "月次",
+        "noData": "選択された範囲に利用データはありません",
+        "startDate": "開始日",
         "table": {
-          "cost": "Cost (USD)",
-          "date": "Date",
-          "inputTokens": "Input Tokens",
-          "outputTokens": "Output Tokens",
-          "requests": "Requests"
+          "cost": "費用 (USD)",
+          "date": "日付",
+          "inputTokens": "入力トークン",
+          "outputTokens": "出力トークン",
+          "requests": "リクエスト数"
         },
-        "title": "Usage Statistics",
-        "totalCost": "Total Cost",
-        "totalRequests": "Total Requests",
-        "totalTokens": "Total Tokens",
-        "weekly": "Weekly"
+        "title": "利用統計",
+        "totalCost": "総費用",
+        "totalRequests": "総リクエスト数",
+        "totalTokens": "総トークン数",
+        "weekly": "週次"
       },
-      "validated": "Validated"
+      "validated": "検証済み"
     },
-    "description": "Manage your preferences, API keys and usage statistics",
-    "descriptionStudent": "Manage your preferences",
+    "description": "設定、API Key、使用量統計を管理します",
+    "descriptionStudent": "設定を管理します",
     "loginRecords": {
-      "current": "This device",
-      "description": "Devices logged in within the last 30 days",
-      "deviceName": "Device Name",
-      "empty": "No login records",
-      "lastActive": "Last Active",
-      "logoutError": "Failed to logout from other devices",
-      "logoutOther": "Logout Other Devices",
-      "logoutOtherDesc": "Logout from all active sessions except this device",
-      "logoutSuccess": "Logged out from other devices",
-      "now": "Now",
-      "title": "Device Management"
+      "current": "現在のデバイス",
+      "description": "過去30日間のログイン履歴",
+      "deviceName": "デバイス名",
+      "empty": "履歴がありません",
+      "lastActive": "最終アクティビティ",
+      "logoutError": "ログアウトに失敗しました",
+      "logoutOther": "他デバイスからログアウト",
+      "logoutOtherDesc": "現在のデバイス以外のすべてのアクティブなセッションを終了します",
+      "logoutSuccess": "他デバイスからログアウトしました",
+      "now": "現在",
+      "title": "デバイス管理"
     },
     "plans": {
-      "contactUs": "Contact Us",
-      "description": "All plans include full features, difference is only in limits",
-      "enterpriseCustom": "for custom Enterprise plans.",
-      "enterpriseTitle": "Need more scale?",
+      "contactUs": "お問い合わせ",
+      "description": "すべてのプランでフル機能をご利用いただけます。違いは制限値のみです。",
+      "enterpriseCustom": "カスタムエンタープライズプランをご案内します。",
+      "enterpriseTitle": "より大規模な利用をお考えですか？",
       "features": {
         "pro": [
-          "Max 200 participants per exam",
-          "500 AI Credits / month",
-          "Unlimited question bank storage",
-          "1 year data retention",
-          "10 GB storage space"
+          "試験あたり最大 200 人",
+          "500 AI Credits / 月",
+          "無制限の問題集ストレージ",
+          "1 年間のデータ保持",
+          "10 GB のストレージ容量"
         ],
         "team": [
-          "Max 500 participants per exam",
-          "2,000 AI Credits / month",
-          "Unlimited question bank storage",
-          "Up to 10 admins",
-          "50 GB storage space"
+          "試験あたり最大 500 人",
+          "2,000 AI Credits / 月",
+          "無制限の問題集ストレージ",
+          "最大 10 人の管理者",
+          "50 GB のストレージ容量"
         ]
       },
-      "freeTrial": "30 Days Free",
-      "month": "mo",
-      "openCheckoutFailed": "Failed to open checkout page, please try again later",
-      "processing": "Processing...",
-      "startingTrial": "Start Free Trial",
-      "subscribeNow": "Subscribe Now",
-      "title": "Explore Plans"
+      "freeTrial": "30日間無料",
+      "month": "月",
+      "openCheckoutFailed": "チェックアウトページの起動に失敗しました。後でもう一度お試しください。",
+      "processing": "処理中...",
+      "startingTrial": "無料試用を開始",
+      "subscribeNow": "今すぐ購読",
+      "title": "プランを見る"
     },
     "subscription": {
       "desc": {
-        "free": "Currently on Free plan, upgrade for higher limits",
-        "pro": "For individuals with steady exam needs",
-        "team": "For schools, departments, and training centers"
+        "free": "現在は無料プランです。いつでもアップグレード可能です。",
+        "pro": "安定した試験環境を求める個人ユーザー向け",
+        "team": "学校、学部、トレーニング機関向け"
       },
-      "manage": "Manage Subscription",
-      "manageDesc": "Change payment method, cancel subscription or view invoices",
-      "openPortalFailed": "Failed to open subscription management page",
-      "periodEndDate": "Current Period End",
+      "manage": "購読を管理",
+      "manageDesc": "支払い方法の変更、解約、請求書の確認",
+      "openPortalFailed": "管理ページの起動に失敗しました",
+      "periodEndDate": "現在の期間終了",
       "status": {
-        "active": "Active",
-        "canceled": "Canceled",
-        "expired": "Expired",
-        "past_due": "Past Due",
-        "trialing": "Trialing"
+        "active": "有効",
+        "canceled": "解約済み",
+        "expired": "期限切れ",
+        "past_due": "支払い遅延",
+        "trialing": "試用中"
       },
       "tier": {
-        "enterprise": "Enterprise",
-        "free": "Free Plan",
-        "pro": "Pro Plan",
-        "team": "Team Plan"
+        "enterprise": "エンタープライズ",
+        "free": "無料プラン",
+        "pro": "プロプラン",
+        "team": "チームプラン"
       },
-      "trialEndDate": "Trial End Date"
+      "trialEndDate": "試用終了日"
     },
     "tabs": {
+      "aiUsage": "AI Usage",
       "apiKey": "API Key",
       "mcp": "MCP Connection",
-      "plans": "Explore Plans",
+      "plans": "Plans",
       "preferences": "Preferences",
       "profile": "Profile",
-      "subscription": "Subscription",
-      "usage": "Usage Stats"
+      "subscription": "購読状況",
+      "usage": "利用統計"
     },
     "title": "Settings"
   },
@@ -739,37 +763,6 @@
       "adminTA": "Admin (TA)",
       "student": "Student",
       "teacher": "Teacher"
-    }
-  },
-  "oauth": {
-    "authorize": {
-      "title": "Authorization Request",
-      "description": "{{clientName}} is requesting access to your QJudge account",
-      "allow": "Allow",
-      "deny": "Deny",
-      "loading": "Processing...",
-      "error": "Authorization failed. Please try again.",
-      "invalidRequest": "Invalid authorization request"
-    }
-  },
-  "settings": {
-    "title": "Settings",
-    "tabs": {
-      "profile": "Profile",
-      "preferences": "Preferences",
-      "aiUsage": "AI Usage",
-      "mcp": "MCP Connection",
-      "plans": "Plans"
-    },
-    "aiUsage": {
-      "title": "AI Usage",
-      "totalRequests": "Total Requests",
-      "inputTokens": "Input Tokens",
-      "outputTokens": "Output Tokens",
-      "totalCost": "Total Cost",
-      "lastUpdated": "Last Updated",
-      "loadError": "Failed to load usage data",
-      "noData": "No data"
     }
   }
 }

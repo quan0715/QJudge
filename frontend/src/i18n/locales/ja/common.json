@@ -42,11 +42,6 @@
       "takingOver": "処理中...",
       "verifyingSession": "同步作業階段中..."
     },
-    "takeover": {
-      "stepInvalidate": "他のデバイスのログインセッションをクリア中...",
-      "stepRegister": "試験接続を再登録中...",
-      "stepRedirect": "試験に戻ります..."
-    },
     "campusSso": {
       "backToLogin": "ログインに戻る",
       "providers": {
@@ -119,6 +114,11 @@
       "title": "アカウント作成",
       "username": "ユーザー名",
       "usernamePlaceholder": "ユーザー名を選択"
+    },
+    "takeover": {
+      "stepInvalidate": "他のデバイスのログインセッションをクリア中...",
+      "stepRedirect": "試験に戻ります...",
+      "stepRegister": "試験接続を再登録中..."
     }
   },
   "button": {
@@ -264,6 +264,63 @@
     "switchedTo": "{{language}}に切り替えました",
     "title": "言語"
   },
+  "mcp": {
+    "landing": {
+      "description": "在 Claude、ChatGPT、Google Gemini、Notion 中出題、批改、反饋",
+      "examples": {
+        "0": {
+          "aiMessage": "我為你設計了 3 道題目。已直接建立到你的 QJudge 題庫。",
+          "description": "教師在 Claude 中與 AI 討論題目需求，Claude 直接在 QJudge 中建立題目",
+          "feedback": "✓ 已建立",
+          "title": "快速生成題目",
+          "userMessage": "幫我設計一套 C++ 迴圈的競賽題目"
+        },
+        "1": {
+          "aiMessage": "第三題通過率 45%。常見問題是邊界條件處理不當。我提供了改進建議。",
+          "description": "教師在 Claude 中請求批改結果，Claude 自動從 QJudge 取得批改數據並提供分析",
+          "stats": "通過率 45%",
+          "title": "自動批改評論",
+          "userMessage": "請協助批改第三題"
+        }
+      },
+      "eyebrow": "無痛協作",
+      "features": {
+        "0": "快速生成競賽題目",
+        "1": "自動評分與分析",
+        "2": "提供個性化評論"
+      },
+      "features_description": {
+        "0": "與 AI 協商題目需求，直接建立到 QJudge",
+        "1": "取得批改結果、通過率統計和常見錯誤分析",
+        "2": "AI 分析常見錯誤並給改進建議"
+      },
+      "title": "與你的 AI 工具無痛協作",
+      "tools": {
+        "chatgpt": "ChatGPT",
+        "claude": "Claude",
+        "gemini": "Google Gemini",
+        "notion": "Notion"
+      }
+    },
+    "setup": {
+      "claudeCode": "Claude Code",
+      "codex": "Codex CLI",
+      "copySuccess": "コピーしました",
+      "cursor": "Cursor",
+      "description": "MCP を使って QJudge を AI ツールに接続します。remote MCP server をサポートするツールでは server URL を直接貼り付けられ、初回利用時にブラウザで OAuth を完了します。",
+      "directConnect": "Direct Connect",
+      "directConnectExamples": "この方法は ChatGPT、Claude Desktop、VS Code など remote MCP をサポートするクライアントでよく使われます。",
+      "directConnectIntro": "AI ツールに MCP または Connectors の設定画面がある場合は、次の remote MCP server URL を追加してください。",
+      "directConnectStep1": "AI ツールの Connectors、MCP、または Integrations 設定を開き、custom / remote MCP server を追加します。",
+      "directConnectStep2": "上記の server URL を貼り付けて保存し、ツールを再読み込みまたは再起動します。",
+      "directConnectStep3": "初めて QJudge ツールを呼び出すときに、ブラウザの OAuth フローでログインと許可を完了します。",
+      "step1": "ターミナルで次のコマンドを実行してください。",
+      "step1Cursor": "次の設定を .cursor/mcp.json に追加してください。",
+      "title": "AI ツールに接続",
+      "verifyHint": "初回接続時に OAuth が自動で開始されます",
+      "verifyHintDetail": "API token を手動で作成する必要はありません。ブラウザでのサインインが完了すると、AI ツールが認証情報を保存して再利用します。"
+    }
+  },
   "message": {
     "comingSoon": "近日公開",
     "deleteFailed": "削除に失敗しました",
@@ -274,29 +331,10 @@
     "saveFailed": "保存に失敗しました",
     "success": "操作が完了しました"
   },
-  "mcp": {
-    "setup": {
-      "title": "AI ツールに接続",
-      "description": "MCP を使って QJudge を AI ツールに接続します。remote MCP server をサポートするツールでは server URL を直接貼り付けられ、初回利用時にブラウザで OAuth を完了します。",
-      "directConnect": "Direct Connect",
-      "directConnectIntro": "AI ツールに MCP または Connectors の設定画面がある場合は、次の remote MCP server URL を追加してください。",
-      "directConnectStep1": "AI ツールの Connectors、MCP、または Integrations 設定を開き、custom / remote MCP server を追加します。",
-      "directConnectStep2": "上記の server URL を貼り付けて保存し、ツールを再読み込みまたは再起動します。",
-      "directConnectStep3": "初めて QJudge ツールを呼び出すときに、ブラウザの OAuth フローでログインと許可を完了します。",
-      "directConnectExamples": "この方法は ChatGPT、Claude Desktop、VS Code など remote MCP をサポートするクライアントでよく使われます。",
-      "claudeCode": "Claude Code",
-      "cursor": "Cursor",
-      "codex": "Codex CLI",
-      "copySuccess": "コピーしました",
-      "step1": "ターミナルで次のコマンドを実行してください。",
-      "step1Cursor": "次の設定を .cursor/mcp.json に追加してください。",
-      "verifyHint": "初回接続時に OAuth が自動で開始されます",
-      "verifyHintDetail": "API token を手動で作成する必要はありません。ブラウザでのサインインが完了すると、AI ツールが認証情報を保存して再利用します。"
-    }
-  },
   "nav": {
     "back": "戻る",
     "backToProblemList": "問題リストへ",
+    "changelog": "更新紀錄",
     "chat": "Chat",
     "classrooms": "クラスルーム",
     "contests": "コンテスト",
@@ -308,6 +346,17 @@
     "questionBanks": "問題集",
     "ranking": "ランキング",
     "submissions": "提出履歴"
+  },
+  "oauth": {
+    "authorize": {
+      "allow": "允許",
+      "deny": "拒絕",
+      "description": "{{clientName}} 正在請求存取你的 QJudge 帳號",
+      "error": "授權失敗，請稍後再試",
+      "invalidRequest": "無效的授權請求",
+      "loading": "處理中...",
+      "title": "授權請求"
+    }
   },
   "page": {
     "announcements": "お知らせ管理",
@@ -381,6 +430,7 @@
   "questionBank": {
     "addQuestion": "問題を追加",
     "allTypes": "全ての題型",
+    "applyToMarketplace": "掲載を申請",
     "bankCreated": "問題集が作成されました",
     "bankDeleted": "問題集が削除されました",
     "bankNotFound": "問題集が見つかりません",
@@ -402,6 +452,7 @@
     "editBank": "問題集を編集",
     "editQuestion": "問題を編集",
     "emptyExplore": "探索可能な問題集はありません。",
+    "emptyQuestions": "この問題バンクにはまだ問題がありません。",
     "exploreOnlyPlatform": "探索は現在 QJudge Community のみ対応しています",
     "exploreOnlyPlatformDesc": "Phase1 では教員間の共有は含まれず、Community の検証済み問題集が中心となります。",
     "importFromInbox": "匯入草稿",
@@ -415,6 +466,7 @@
       "selectedCount": "{{count}} 件選択済み"
     },
     "loadQuestions": "問題を見る",
+    "marketplace": "マーケットプレイス",
     "memoryLimit": "メモリ制限(MB)",
     "mockGalleryDesc": "UI モックのプレビューです。QJudge Community のカード例を示します。",
     "mockGalleryTitle": "Mock Card Gallery",
@@ -434,11 +486,20 @@
     "mockUserBank2Name": "林先生の定期試験問題集",
     "mockUserPublicTag": "ユーザー公開",
     "mockVerifiedTag": "認証済み",
+    "needQuestionsToApply": "申請には1問以上が必要です",
+    "notFound": "問題バンクが見つかりません",
     "openBank": "問題集を開く",
+    "pendingReview": "審査中",
     "prompt": "問題文",
+    "published": "掲載中",
+    "questionCountLabel": "{{count}} 問",
     "questionCreated": "問題が作成されました",
     "questionDeleted": "問題が削除されました",
     "questionUpdated": "問題が更新されました",
+    "reapply": "再申請",
+    "rejected": "差し戻し",
+    "reviewNoteLabel": "審査コメント",
+    "reviewStatusLabel": "掲載ステータス",
     "saveToBank": {
       "desc": "「{{title}}」保存先:",
       "success": "保存完了",
@@ -450,6 +511,11 @@
     "sortOldest": "最古更新順",
     "sortOrder": "デフォルト順",
     "sortType": "題型別",
+    "submitForReviewSuccess": "審査申請を送信しました",
+    "subscribeBtn": "購読",
+    "subscribed": "購読しました",
+    "subscribedBtn": "購読中",
+    "subscribedLabel": "購読中",
     "tabs": {
       "explore": "探索"
     },
@@ -458,28 +524,11 @@
     "tagPublic": "公開",
     "tagUserPublic": "ユーザー公開",
     "timeLimit": "時間制限(ms)",
-    "usedInContests": "{{count}} 件の試験",
-    "subscribeBtn": "購読",
-    "subscribedBtn": "購読中",
-    "subscribed": "購読しました",
-    "unsubscribed": "購読を解除しました",
-    "subscribedLabel": "購読中",
-    "verified": "認証済み",
-    "notFound": "問題バンクが見つかりません",
-    "emptyQuestions": "この問題バンクにはまだ問題がありません。",
-    "questionCountLabel": "{{count}} 問",
     "type": "タイプ",
+    "unsubscribed": "購読を解除しました",
     "untitled": "無題",
-    "marketplace": "マーケットプレイス",
-    "reviewStatusLabel": "掲載ステータス",
-    "applyToMarketplace": "掲載を申請",
-    "reapply": "再申請",
-    "pendingReview": "審査中",
-    "published": "掲載中",
-    "rejected": "差し戻し",
-    "reviewNoteLabel": "審査コメント",
-    "needQuestionsToApply": "申請には1問以上が必要です",
-    "submitForReviewSuccess": "審査申請を送信しました"
+    "usedInContests": "{{count}} 件の試験",
+    "verified": "認証済み"
   },
   "questionType": {
     "description": {
@@ -505,6 +554,16 @@
     "teacher": "教員"
   },
   "settings": {
+    "aiUsage": {
+      "inputTokens": "輸入 Tokens",
+      "lastUpdated": "最後更新",
+      "loadError": "無法載入使用量資料",
+      "noData": "無資料",
+      "outputTokens": "輸出 Tokens",
+      "title": "AI 使用量",
+      "totalCost": "累計費用",
+      "totalRequests": "總請求數"
+    },
     "apiKey": {
       "active": "有効",
       "addKey": "API Key を追加",
@@ -630,7 +689,9 @@
       "trialEndDate": "試用終了日"
     },
     "tabs": {
+      "aiUsage": "AI 使用量",
       "apiKey": "API Key",
+      "mcp": "MCP 連線",
       "plans": "プラン",
       "preferences": "基本設定",
       "profile": "プロフィール",
