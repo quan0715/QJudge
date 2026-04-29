@@ -27,6 +27,7 @@ import {
   RequireCompletedOnboarding,
   SettingsDialogProvider,
   SettingsDialog,
+  UserPreferencesHydrator,
 } from "@/features/auth";
 import { problemDetailRoutes, problemSolveRoutes } from "@/features/problems";
 import { classroomContestDetailRoutes, classroomContestAdminRoute, classroomExamPreviewRoute, classroomExamPrecheckRoute, classroomPracticeRoute } from "@/features/contest";
@@ -94,6 +95,7 @@ function App() {
               <ThemeProvider>
                 <MarkdownImageUploadProvider uploadImage={markdownImageUploader}>
                   <AuthProvider>
+                    <UserPreferencesHydrator />
                     <SettingsDialogProvider>
                     <RecurProviderBridge>
                     <BrowserRouter>
