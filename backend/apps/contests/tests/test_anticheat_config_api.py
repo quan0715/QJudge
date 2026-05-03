@@ -83,6 +83,9 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         global_setting_keys = {item["key"] for item in resp.data["frontend_controlled_settings"]["global"]}
         contest_setting_keys = {item["key"] for item in resp.data["frontend_controlled_settings"]["contest"]}
         self.assertIn("capture_interval_seconds", global_setting_keys)
+        self.assertNotIn("capture_upload_max_retries", resp.data["global_defaults"])
+        self.assertNotIn("capture_upload_max_retries", resp.data["effective"])
+        self.assertNotIn("capture_upload_max_retries", global_setting_keys)
         self.assertIn("incident_screenshot_categories", global_setting_keys)
         self.assertIn("presigned_url_ttl_seconds", global_setting_keys)
         self.assertIn("cheat_detection_enabled", contest_setting_keys)

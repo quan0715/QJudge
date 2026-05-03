@@ -4,7 +4,6 @@ from __future__ import annotations
 from django.conf import settings
 
 from apps.contests.constants import (
-    CAPTURE_UPLOAD_MAX_RETRIES,
     EVENT_FEED_AGGREGATION_WINDOW_SECONDS,
     EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS,
     EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS,
@@ -125,7 +124,6 @@ def build_contest_anticheat_config(contest) -> dict:
 
     global_defaults = {
         "capture_interval_seconds": int(settings.ANTICHEAT_CAPTURE_INTERVAL_SECONDS),
-        "capture_upload_max_retries": CAPTURE_UPLOAD_MAX_RETRIES,
         "forced_capture_cooldown_ms": FORCED_CAPTURE_COOLDOWN_MS,
         "forced_capture_p1_cooldown_ms": FORCED_CAPTURE_P1_COOLDOWN_MS,
         "event_feed_aggregation_window_seconds": EVENT_FEED_AGGREGATION_WINDOW_SECONDS,
@@ -165,10 +163,6 @@ def build_contest_anticheat_config(contest) -> dict:
             {
                 "key": "capture_interval_seconds",
                 "description": "Background screenshot capture interval",
-            },
-            {
-                "key": "capture_upload_max_retries",
-                "description": "Retry attempts before marking upload degraded",
             },
             {
                 "key": "forced_capture_cooldown_ms",

@@ -437,7 +437,6 @@ export interface ContestAnticheatDevicePolicy {
 
 export interface ContestAnticheatEffectiveConfig {
   captureIntervalSeconds: number;
-  captureUploadMaxRetries: number;
   warningTimeoutSeconds: number;
   screenShareRecoveryGraceMs: number;
   forcedCaptureCooldownMs: number;

@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useExamMonitoring } from "./useExamMonitoring";
-import { recordExamEvent } from "@/infrastructure/api/repositories";
+import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -9,13 +9,13 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("@/infrastructure/api/repositories", () => ({
-  recordExamEvent: vi.fn().mockResolvedValue(null),
+vi.mock("@/features/contest/anticheat/forcedCapture", () => ({
+  recordExamEventWithForcedCapture: vi.fn().mockResolvedValue(null),
 }));
 
 describe("useExamMonitoring", () => {
   beforeEach(() => {
-    vi.mocked(recordExamEvent).mockClear();
+    vi.mocked(recordExamEventWithForcedCapture).mockClear();
   });
 
   afterEach(() => {
@@ -58,11 +58,17 @@ describe("useExamMonitoring", () => {
     expect(event.defaultPrevented).toBe(false);
     expect(onViolation).not.toHaveBeenCalled();
     expect(onBlockedAction).not.toHaveBeenCalled();
-    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
-    expect(recordExamEvent).toHaveBeenCalledWith(
+    await waitFor(() => expect(recordExamEventWithForcedCapture).toHaveBeenCalled());
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
       "clipboard_action",
       expect.objectContaining({
+        source: "clipboard_detector",
+        forceCaptureReason: "clipboard_action:clipboard_detector",
+        captureOptions: {
+          eventType: "clipboard_action",
+          modules: undefined,
+        },
         metadata: expect.objectContaining({
           action: "copy",
           content_captured: false,
@@ -71,8 +77,32 @@ describe("useExamMonitoring", () => {
       }),
     );
     expect(
-      (vi.mocked(recordExamEvent).mock.calls[0][2] as { metadata?: Record<string, unknown> })?.metadata,
+      (vi.mocked(recordExamEventWithForcedCapture).mock.calls[0][2] as { metadata?: Record<string, unknown> })?.metadata,
     ).not.toHaveProperty("content");
+  });
+
+  it("passes configured evidence modules to clipboard forced capture", async () => {
+    const onViolation = vi.fn();
+    renderHook(() => useExamMonitoring({
+      contestId: "contest-1",
+      enabled: true,
+      onViolation,
+      evidenceCaptureModules: ["screen_share", "webcam"],
+    }));
+
+    document.dispatchEvent(new Event("copy", { bubbles: true, cancelable: true }));
+
+    await waitFor(() => expect(recordExamEventWithForcedCapture).toHaveBeenCalled());
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      "contest-1",
+      "clipboard_action",
+      expect.objectContaining({
+        captureOptions: {
+          eventType: "clipboard_action",
+          modules: ["screen_share", "webcam"],
+        },
+      }),
+    );
   });
 
   it("records paste content without blocking", async () => {
@@ -96,8 +126,8 @@ describe("useExamMonitoring", () => {
     expect(event.defaultPrevented).toBe(false);
     expect(onViolation).not.toHaveBeenCalled();
     expect(onBlockedAction).not.toHaveBeenCalled();
-    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
-    expect(recordExamEvent).toHaveBeenCalledWith(
+    await waitFor(() => expect(recordExamEventWithForcedCapture).toHaveBeenCalled());
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
       "clipboard_action",
       expect.objectContaining({
@@ -130,8 +160,8 @@ describe("useExamMonitoring", () => {
     });
     document.dispatchEvent(event);
 
-    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
-    const metadata = (vi.mocked(recordExamEvent).mock.calls[0][2] as { metadata?: Record<string, unknown> })
+    await waitFor(() => expect(recordExamEventWithForcedCapture).toHaveBeenCalled());
+    const metadata = (vi.mocked(recordExamEventWithForcedCapture).mock.calls[0][2] as { metadata?: Record<string, unknown> })
       ?.metadata as Record<string, unknown>;
     expect(metadata.content).toBe("x".repeat(50000));
     expect(metadata.content_truncated).toBe(true);
@@ -156,8 +186,8 @@ describe("useExamMonitoring", () => {
     });
     document.dispatchEvent(event);
 
-    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
-    const metadata = (vi.mocked(recordExamEvent).mock.calls[0][2] as { metadata?: Record<string, unknown> })
+    await waitFor(() => expect(recordExamEventWithForcedCapture).toHaveBeenCalled());
+    const metadata = (vi.mocked(recordExamEventWithForcedCapture).mock.calls[0][2] as { metadata?: Record<string, unknown> })
       ?.metadata as Record<string, unknown>;
     const captured = metadata.content as string;
     expect(new TextEncoder().encode(captured).byteLength).toBeLessThanOrEqual(50000);
@@ -180,8 +210,8 @@ describe("useExamMonitoring", () => {
     document.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(false);
-    await waitFor(() => expect(recordExamEvent).toHaveBeenCalled());
-    expect(recordExamEvent).toHaveBeenCalledWith(
+    await waitFor(() => expect(recordExamEventWithForcedCapture).toHaveBeenCalled());
+    expect(recordExamEventWithForcedCapture).toHaveBeenCalledWith(
       "contest-1",
       "clipboard_action",
       expect.objectContaining({
@@ -194,7 +224,7 @@ describe("useExamMonitoring", () => {
     expect(onViolation).not.toHaveBeenCalled();
     expect(onBlockedAction).not.toHaveBeenCalled();
     expect(
-      (vi.mocked(recordExamEvent).mock.calls[0][2] as { metadata?: Record<string, unknown> })?.metadata,
+      (vi.mocked(recordExamEventWithForcedCapture).mock.calls[0][2] as { metadata?: Record<string, unknown> })?.metadata,
     ).not.toHaveProperty("content");
   });
 

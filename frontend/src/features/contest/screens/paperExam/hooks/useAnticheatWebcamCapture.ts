@@ -36,8 +36,8 @@ interface Options {
   autoAcquireOnStart?: boolean;
   publishLiveStream?: boolean;
   intervalMs?: number;
-  /** Deprecated: event-keyed evidence no longer retries background frame uploads. */
-  maxRetries?: number;
+  forcedCaptureCooldownMs?: number;
+  forcedCaptureP1CooldownMs?: number;
   reportDegraded?: (isDegraded: boolean) => void;
   onUploadProgress?: (count: number) => void;
   onWebcamLost?: () => void;
@@ -52,6 +52,8 @@ export const useAnticheatWebcamCapture = ({
   autoAcquireOnStart = false,
   publishLiveStream = false,
   intervalMs = 10_000,
+  forcedCaptureCooldownMs = 1_000,
+  forcedCaptureP1CooldownMs = 15_000,
   reportDegraded,
   onUploadProgress,
   onWebcamLost,
@@ -194,6 +196,10 @@ export const useAnticheatWebcamCapture = ({
     onStreamUnavailable: handleDetectedWebcamLoss,
     reportDegraded,
     onUploadProgress,
+    cooldown: {
+      defaultMs: forcedCaptureCooldownMs,
+      p1Ms: forcedCaptureP1CooldownMs,
+    },
   });
 
   const forceStopCapture = useCallback(() => {

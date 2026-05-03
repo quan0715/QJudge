@@ -49,8 +49,6 @@ interface Options {
   preserveStreamOnUnmount?: boolean;
   expectInitialStream?: boolean;
   intervalMs?: number;
-  /** Deprecated: event-keyed evidence no longer retries background frame uploads. */
-  maxRetries?: number;
   forcedCaptureCooldownMs?: number;
   forcedCaptureP1CooldownMs?: number;
   reportDegraded?: (isDegraded: boolean) => void;

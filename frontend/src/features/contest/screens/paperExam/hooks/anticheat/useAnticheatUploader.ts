@@ -114,18 +114,5 @@ export const useAnticheatUploader = (
     [contestId, module]
   );
 
-  const uploadBatch = useCallback(
-    async (
-      items: { id: number; createdAt: number; blob: Blob }[],
-      sessionId: string | null | undefined,
-      onProgress?: (count: number) => void,
-      context?: EvidenceUploadContext
-    ): Promise<number[]> => {
-      const uploaded = await uploadBatchDetailed(items, sessionId, onProgress, context);
-      return uploaded.map((item) => item.id);
-    },
-    [uploadBatchDetailed]
-  );
-
-  return { uploadBatch, uploadBatchDetailed };
+  return { uploadBatchDetailed };
 };

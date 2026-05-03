@@ -86,7 +86,6 @@ describe("contest mapper", () => {
         version: 1,
         global_defaults: {
           capture_interval_seconds: 5,
-          capture_upload_max_retries: 3,
           forced_capture_cooldown_ms: 1000,
           forced_capture_p1_cooldown_ms: 15000,
           event_feed_aggregation_window_seconds: 60,
@@ -116,7 +115,6 @@ describe("contest mapper", () => {
         },
         effective: {
           capture_interval_seconds: 5,
-          capture_upload_max_retries: 3,
           forced_capture_cooldown_ms: 1000,
           forced_capture_p1_cooldown_ms: 15000,
           event_feed_aggregation_window_seconds: 60,

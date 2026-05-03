@@ -200,7 +200,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       if (hasSentScreenDegradedRef.current) return;
       hasSentScreenDegradedRef.current = true;
       recordExamEvent(contestId, "capture_upload_degraded", {
-        reason: "Upload retries exhausted",
+        reason: "Evidence upload failed",
         source: "exam_mode:capture_degraded",
         metadata: {
           upload_session_id: getExamCaptureSessionId(contestId) || undefined,
@@ -220,7 +220,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       if (hasSentWebcamDegradedRef.current) return;
       hasSentWebcamDegradedRef.current = true;
       recordExamEvent(contestId, "capture_upload_degraded", {
-        reason: "Webcam upload retries exhausted",
+        reason: "Webcam evidence upload failed",
         source: "exam_mode:webcam_capture_degraded",
         metadata: {
           upload_session_id: getExamCaptureSessionId(contestId) || undefined,
@@ -263,9 +263,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     intervalMs:
       Math.max(1, monitoringPlan.sources.screenShare.captureIntervalSeconds) *
       1000,
-    maxRetries: anticheatEffective
-      ? Math.max(1, anticheatEffective.captureUploadMaxRetries)
-      : undefined,
     forcedCaptureCooldownMs: anticheatEffective
       ? Math.max(1, anticheatEffective.forcedCaptureCooldownMs)
       : undefined,
@@ -291,8 +288,11 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     publishLiveStream: webcamStreamMonitorEnabled,
     intervalMs:
       Math.max(1, monitoringPlan.sources.webcam.captureIntervalSeconds) * 1000,
-    maxRetries: anticheatEffective
-      ? Math.max(1, anticheatEffective.captureUploadMaxRetries)
+    forcedCaptureCooldownMs: anticheatEffective
+      ? Math.max(1, anticheatEffective.forcedCaptureCooldownMs)
+      : undefined,
+    forcedCaptureP1CooldownMs: anticheatEffective
+      ? Math.max(1, anticheatEffective.forcedCaptureP1CooldownMs)
       : undefined,
     reportDegraded: reportWebcamDegraded,
     onWebcamLost: () => {
@@ -650,6 +650,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     enabled: effectiveMonitoringEnabled,
     onViolation: handleViolation,
     onBlockedAction: handleBlockedAction,
+    evidenceCaptureModules,
   });
 
   useEffect(() => {

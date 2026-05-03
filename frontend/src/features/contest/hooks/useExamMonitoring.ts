@@ -5,15 +5,19 @@ import {
   KeyboardShortcutDetector,
   PopupGuardDetector,
 } from "@/features/contest/detectors";
-import { recordExamEvent } from "@/infrastructure/api/repositories";
 import type { ViolationEvent, ExamDetector } from "@/features/contest/detectors";
 import { isRuntimeScreenShareReauthActive } from "@/features/contest/anticheat/runtimeReauthState";
+import {
+  recordExamEventWithForcedCapture,
+  type ForcedCaptureModule,
+} from "@/features/contest/anticheat/forcedCapture";
 
 interface UseExamMonitoringProps {
   contestId?: string;
   enabled: boolean;
   onViolation: (eventType: string, reason: string) => Promise<void> | void;
   onBlockedAction?: (message: string) => void;
+  evidenceCaptureModules?: ForcedCaptureModule[];
 }
 
 export function useExamMonitoring({
@@ -21,14 +25,17 @@ export function useExamMonitoring({
   enabled,
   onViolation,
   onBlockedAction,
+  evidenceCaptureModules,
 }: UseExamMonitoringProps) {
   const { t } = useTranslation("contest");
   const onViolationRef = useRef(onViolation);
   const onBlockedActionRef = useRef(onBlockedAction);
+  const evidenceCaptureModulesRef = useRef(evidenceCaptureModules);
   const tRef = useRef(t);
 
   useEffect(() => { onViolationRef.current = onViolation; }, [onViolation]);
   useEffect(() => { onBlockedActionRef.current = onBlockedAction; }, [onBlockedAction]);
+  useEffect(() => { evidenceCaptureModulesRef.current = evidenceCaptureModules; }, [evidenceCaptureModules]);
   useEffect(() => { tRef.current = t; }, [t]);
 
   useEffect(() => {
@@ -40,7 +47,13 @@ export function useExamMonitoring({
       }
       if (event.eventType === "clipboard_action") {
         if (contestId) {
-          void recordExamEvent(contestId, "clipboard_action", {
+          void recordExamEventWithForcedCapture(contestId, "clipboard_action", {
+            source: "clipboard_detector",
+            forceCaptureReason: "clipboard_action:clipboard_detector",
+            captureOptions: {
+              eventType: "clipboard_action",
+              modules: evidenceCaptureModulesRef.current,
+            },
             metadata: event.metadata,
           });
         }

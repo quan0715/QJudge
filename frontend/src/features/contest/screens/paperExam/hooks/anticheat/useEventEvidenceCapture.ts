@@ -29,7 +29,6 @@ interface Options {
   };
 }
 
-const EVIDENCE_BUFFER_CAPTURE_INTERVAL_MS = 1_000;
 const ANCHOR_WINDOW_RADIUS_MS = 3_000;
 const PRE_LOSS_WINDOW_MS = 6_000;
 const MAX_WINDOW_WAIT_MS = 4_000;
@@ -46,6 +45,7 @@ export const useEventEvidenceCapture = ({
   contestId,
   module,
   enabled,
+  intervalMs,
   uploadSessionId,
   captureFrameBlob,
   isStreamUnavailable,
@@ -63,6 +63,7 @@ export const useEventEvidenceCapture = ({
   if (!evidenceBufferRef.current) {
     evidenceBufferRef.current = createEvidenceRingBuffer();
   }
+  const evidenceBufferCaptureIntervalMs = Math.max(1, Math.floor(intervalMs));
 
   const { uploadBatchDetailed } = useAnticheatUploader(contestId, module);
 
@@ -177,7 +178,8 @@ export const useEventEvidenceCapture = ({
 
     const bufferedFrames = evidenceBufferRef.current?.getWindow(windowStartMs, windowEndMs) ?? [];
     const preBufferComplete =
-      bufferedFrames.length > 0 && bufferedFrames[0].createdAt <= windowStartMs + EVIDENCE_BUFFER_CAPTURE_INTERVAL_MS;
+      bufferedFrames.length > 0 &&
+      bufferedFrames[0].createdAt <= windowStartMs + evidenceBufferCaptureIntervalMs;
     const evidenceFrames = bufferedFrames.filter(
       (frame, index, all) => all.findIndex((item) => item.id === frame.id) === index
     );
@@ -271,7 +273,7 @@ export const useEventEvidenceCapture = ({
     onBufferingStarted?.();
     captureTimerRef.current = setInterval(() => {
       void captureToEvidenceBuffer();
-    }, EVIDENCE_BUFFER_CAPTURE_INTERVAL_MS);
+    }, evidenceBufferCaptureIntervalMs);
 
     return () => {
       if (captureTimerRef.current) {
@@ -279,7 +281,13 @@ export const useEventEvidenceCapture = ({
         captureTimerRef.current = null;
       }
     };
-  }, [captureToEvidenceBuffer, enabled, onBufferingStarted, stopEvidenceCapture]);
+  }, [
+    captureToEvidenceBuffer,
+    enabled,
+    evidenceBufferCaptureIntervalMs,
+    onBufferingStarted,
+    stopEvidenceCapture,
+  ]);
 
   useEffect(() => {
     if (!enabled) {

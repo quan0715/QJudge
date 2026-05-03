@@ -432,11 +432,6 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
         "capture_interval_seconds",
         "global_defaults",
       ),
-      captureUploadMaxRetries: ensureNumber(
-        globalDefaults,
-        "capture_upload_max_retries",
-        "global_defaults",
-      ),
       warningTimeoutSeconds: ensureNumber(
         effective,
         "warning_timeout_seconds",
@@ -567,11 +562,6 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
       captureIntervalSeconds: ensureNumber(
         effective,
         "capture_interval_seconds",
-        "effective",
-      ),
-      captureUploadMaxRetries: ensureNumber(
-        effective,
-        "capture_upload_max_retries",
         "effective",
       ),
       warningTimeoutSeconds: ensureNumber(
