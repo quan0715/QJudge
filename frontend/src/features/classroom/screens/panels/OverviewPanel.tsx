@@ -12,25 +12,22 @@ import { EmptyState } from "@/shared/ui/EmptyState";
 import { ContestScheduleCard } from "@/shared/ui/scheduleCard";
 import { AnnouncementSection } from "../../components/AnnouncementSection";
 import { ClassroomContestPreviewModal } from "../../components/ClassroomContestPreviewModal";
-import {
-  ClassroomMonthSchedule,
-  type ClassroomScheduleViewMode,
-} from "../../components/ClassroomMonthSchedule";
+import { ClassroomActivityTimeline } from "../../components/ClassroomActivityTimeline";
 import "../../components/ClassroomActivitySchedule.scss";
 import {
-  buildClassroomMonthSchedule,
-  buildClassroomWeekSchedule,
+  buildCalendarDayRows,
   getUpcomingContestTasks,
-  localDateKeyFromMs,
 } from "../../domain/classroomActivityTimeline";
 import type { ClassroomAdminPanelId } from "../ClassroomAdminLayout";
+
+const TIMELINE_PAGE_DAYS = 14;
+const DAY_MS = 86_400_000;
 
 interface OverviewPanelProps {
   classroom: ClassroomDetail;
   isPrivileged: boolean;
   onCreateAnnouncement: () => void;
   onViewAnnouncement: (announcement: ClassroomAnnouncement) => void;
-  onCreateExam: () => void;
   onNavigateExam: (contestId: string) => void;
   onJumpToPanel: (panel: ClassroomAdminPanelId) => void;
 }
@@ -46,44 +43,33 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
   const { t } = useTranslation("classroom");
 
   const [nowMs] = useState(() => Date.now());
-  const [scheduleViewMode, setScheduleViewMode] =
-    useState<ClassroomScheduleViewMode>("month");
-  const [rangeAnchor, setRangeAnchor] = useState(() => {
-    const date = new Date(nowMs);
-    date.setHours(0, 0, 0, 0);
-    return date;
-  });
-  const [selectedDateKey, setSelectedDateKey] = useState(() =>
-    localDateKeyFromMs(nowMs),
+  const [timelineStartMs, setTimelineStartMs] = useState(
+    () => nowMs - TIMELINE_PAGE_DAYS * DAY_MS,
+  );
+  const [timelineEndMs, setTimelineEndMs] = useState(
+    () => nowMs + TIMELINE_PAGE_DAYS * DAY_MS,
   );
   const [previewContest, setPreviewContest] = useState<BoundContest | null>(
     null,
   );
 
-  const scheduleCells = useMemo(
+  const timelineRows = useMemo(
     () =>
-      scheduleViewMode === "week"
-        ? buildClassroomWeekSchedule(classroom.contests, rangeAnchor, nowMs)
-        : buildClassroomMonthSchedule(classroom.contests, rangeAnchor, nowMs),
-    [classroom.contests, rangeAnchor, scheduleViewMode, nowMs],
+      buildCalendarDayRows(
+        classroom.contests,
+        classroom.announcements,
+        timelineStartMs,
+        timelineEndMs,
+        nowMs,
+      ),
+    [
+      classroom.announcements,
+      classroom.contests,
+      nowMs,
+      timelineEndMs,
+      timelineStartMs,
+    ],
   );
-
-  const effectiveSelectedDateKey = useMemo(() => {
-    if (scheduleCells.some((cell) => cell.dateKey === selectedDateKey))
-      return selectedDateKey;
-    const firstEventCell = scheduleCells.find(
-      (cell) => cell.isCurrentMonth && cell.events.length > 0,
-    );
-    const firstCurrentMonthCell = scheduleCells.find(
-      (cell) => cell.isCurrentMonth,
-    );
-    return (
-      firstEventCell?.dateKey ??
-      firstCurrentMonthCell?.dateKey ??
-      scheduleCells[0]?.dateKey ??
-      selectedDateKey
-    );
-  }, [scheduleCells, selectedDateKey]);
 
   const upcomingTasks = useMemo(
     () => getUpcomingContestTasks(classroom.contests, nowMs, 3),
@@ -102,29 +88,13 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
     onNavigateExam(contestId);
   };
 
-  const handlePreviousRange = useCallback(() => {
-    setRangeAnchor((current) => {
-      const next = new Date(current);
-      if (scheduleViewMode === "week") {
-        next.setDate(current.getDate() - 7);
-      } else {
-        next.setMonth(current.getMonth() - 1);
-      }
-      return next;
-    });
-  }, [scheduleViewMode]);
+  const handleLoadEarlier = useCallback(() => {
+    setTimelineStartMs((current) => current - TIMELINE_PAGE_DAYS * DAY_MS);
+  }, []);
 
-  const handleNextRange = useCallback(() => {
-    setRangeAnchor((current) => {
-      const next = new Date(current);
-      if (scheduleViewMode === "week") {
-        next.setDate(current.getDate() + 7);
-      } else {
-        next.setMonth(current.getMonth() + 1);
-      }
-      return next;
-    });
-  }, [scheduleViewMode]);
+  const handleLoadLater = useCallback(() => {
+    setTimelineEndMs((current) => current + TIMELINE_PAGE_DAYS * DAY_MS);
+  }, []);
 
   return (
     <>
@@ -132,16 +102,12 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({
         className="classroom-overview-frame"
         sectionClassName="classroom-admin-overview-frame-section"
         main={
-          <ClassroomMonthSchedule
-            cells={scheduleCells}
-            rangeAnchor={rangeAnchor}
-            viewMode={scheduleViewMode}
-            selectedDateKey={effectiveSelectedDateKey}
-            onViewModeChange={setScheduleViewMode}
-            onSelectDate={setSelectedDateKey}
+          <ClassroomActivityTimeline
+            rows={timelineRows}
             onOpenContest={openContestPreview}
-            onPreviousRange={handlePreviousRange}
-            onNextRange={handleNextRange}
+            onViewAnnouncement={onViewAnnouncement}
+            onLoadEarlier={handleLoadEarlier}
+            onLoadLater={handleLoadLater}
           />
         }
         side={

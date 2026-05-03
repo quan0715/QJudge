@@ -44,7 +44,7 @@
   }
 
   .bodyGrid {
-    grid-template-columns: minmax(0, 2.4fr) minmax(20rem, 0.9fr);
+    grid-template-columns: minmax(0, 35fr) minmax(22rem, 65fr);
   }
 }
 
@@ -56,10 +56,6 @@
   .root:global(.classroom-overview-frame) {
     .bodyGrid {
       grid-template-columns: minmax(0, 1fr);
-    }
-
-    .mainCol {
-      display: none;
     }
   }
 }

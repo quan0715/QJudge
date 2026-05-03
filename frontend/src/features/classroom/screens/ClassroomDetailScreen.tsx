@@ -6,6 +6,7 @@ import { Button, Tag, Tabs, TabList, Tab } from "@carbon/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Bullhorn,
+  Calendar,
   Dashboard,
   Education,
   Settings,
@@ -37,6 +38,7 @@ import { ClassroomSkeleton } from "../components/ClassroomSkeleton";
 import { AnnouncementSection } from "../components/AnnouncementSection";
 import { AnnouncementViewModal } from "../components/AnnouncementViewModal";
 import { OverviewPanel } from "./panels/OverviewPanel";
+import { SchedulePanel } from "./panels/SchedulePanel";
 import { ContestPanel } from "./panels/ContestPanel";
 import { MembersPanel } from "./panels/MembersPanel";
 import { getClassroomIcon } from "../constants/classroomIcons";
@@ -80,6 +82,7 @@ const ClassroomDetailScreen: React.FC = () => {
     if (isPrivileged) {
       return [
         "overview",
+        "schedule",
         "announcements",
         "contests",
         "members",
@@ -329,9 +332,15 @@ const ClassroomDetailScreen: React.FC = () => {
                       setAnnouncementModalOpen(true);
                     }}
                     onViewAnnouncement={setViewingAnnouncement}
-                    onCreateExam={() => setCreateContestOpen(true)}
                     onNavigateExam={handleNavigateContest}
                     onJumpToPanel={handlePanelChange}
+                  />
+                )}
+
+                {activePanel === "schedule" && isPrivileged && (
+                  <SchedulePanel
+                    classroom={classroom}
+                    onNavigateExam={handleNavigateContest}
                   />
                 )}
 
@@ -447,6 +456,10 @@ const TAB_CONFIG: Record<
   overview: {
     label: (t) => t("sideMenu.overview", "概要"),
     icon: Dashboard,
+  },
+  schedule: {
+    label: (t) => t("sideMenu.schedule", "排程行事曆"),
+    icon: Calendar,
   },
   announcements: {
     label: (t) => t("sideMenu.announcements", "教室公告"),

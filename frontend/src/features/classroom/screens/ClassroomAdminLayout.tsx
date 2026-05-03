@@ -1,7 +1,13 @@
 import { type ReactNode } from "react";
 import styles from "./ClassroomAdminLayout.module.scss";
 
-export type ClassroomAdminPanelId = "overview" | "announcements" | "contests" | "members" | "settings";
+export type ClassroomAdminPanelId =
+  | "overview"
+  | "schedule"
+  | "announcements"
+  | "contests"
+  | "members"
+  | "settings";
 
 interface ClassroomAdminLayoutProps {
   children: ReactNode;
