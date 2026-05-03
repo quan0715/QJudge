@@ -823,6 +823,73 @@ def test_qjudge_exam_update_passes_explanation(monkeypatch):
     }
 
 
+def test_build_exam_question_diff_applies_patch_and_marks_changed_fields():
+    current = {
+        "id": "eq-1",
+        "question_type": "single_choice",
+        "prompt": "Old prompt",
+        "explanation": "Old explanation",
+        "score": 5,
+        "options": ["A", "B"],
+        "correct_answer": 0,
+    }
+    patch = {
+        "prompt": "New prompt",
+        "score": 8,
+        "options": ["A", "B"],
+    }
+
+    diff = server._build_exam_question_diff(current, patch)
+
+    assert diff["question_id"] == "eq-1"
+    assert diff["has_changes"] is True
+    assert diff["proposed_question"]["prompt"] == "New prompt"
+    assert diff["proposed_question"]["score"] == 8
+    assert diff["proposed_question"]["explanation"] == "Old explanation"
+    assert [change["field"] for change in diff["changes"]] == ["prompt", "score"]
+    assert diff["summary"] == {"changed": 2, "unchanged": 4}
+
+
+def test_preview_exam_question_update_fetches_current_and_returns_diff_widget(monkeypatch):
+    calls = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None, timeout=30.0):
+        calls.append((method, path, json_body))
+        if path == "/api/v1/contests/11111111-1111-1111-1111-111111111111/":
+            return contest_detail()
+        return {
+            "id": "eq-1",
+            "question_type": "essay",
+            "prompt": "Explain CAP.",
+            "explanation": "Old explanation",
+            "score": 10,
+            "options": None,
+            "correct_answer": None,
+        }
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    result = run(
+        server.preview_exam_question_update(
+            "11111111-1111-1111-1111-111111111111",
+            "eq-1",
+            DummyContext(),
+            prompt="Explain CAP theorem with an example.",
+            score=12,
+        )
+    )
+
+    assert result.structuredContent["kind"] == "exam_question_diff"
+    assert result.structuredContent["question_id"] == "eq-1"
+    assert result.structuredContent["summary"] == {"changed": 2, "unchanged": 4}
+    assert result.meta["ui"]["resourceUri"] == server.EXAM_QUESTION_DIFF_TEMPLATE_URI
+    assert result.meta["openai/outputTemplate"] == server.EXAM_QUESTION_DIFF_TEMPLATE_URI
+    assert calls == [
+        ("GET", "/api/v1/contests/11111111-1111-1111-1111-111111111111/", None),
+        ("GET", "/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions/eq-1/", None),
+    ]
+
+
 def test_qjudge_exam_batch_create_append(monkeypatch):
     calls = []
 

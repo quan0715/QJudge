@@ -564,62 +564,7 @@
       "totalCost": "累計費用",
       "totalRequests": "總請求數"
     },
-    "apiKey": {
-      "active": "有効",
-      "addKey": "API Key を追加",
-      "createdAtLabel": "作成日時",
-      "deleteConfirm": "API Key を削除してもよろしいですか？ AI機能が利用できなくなります。",
-      "deleteKey": "Key を削除",
-      "description": "AI機能用の Anthropic API Key を管理します",
-      "empty": "API Key が設定されていません。Anthropic Console で作成してください。",
-      "error": {
-        "deleteFailed": "削除に失敗しました",
-        "inputRequired": "API Key を入力してください",
-        "invalidFormat": "形式が正しくありません ('sk-ant-' で始まっている必要があります)",
-        "loadFailed": "API Key 情報の取得に失敗しました",
-        "saveFailed": "保存に失敗しました",
-        "usageLoadFailed": "利用データの取得に失敗しました"
-      },
-      "inactive": "無効",
-      "invalid": "未検証",
-      "modal": {
-        "addTitle": "API Key を追加",
-        "deleteSuccess": "API Key を削除しました",
-        "helperText": "API Key は暗号化して保存されます",
-        "keyInput": "Anthropic API Key",
-        "keyPlaceholder": "sk-ant-api03-...",
-        "nameInput": "名前 (任意)",
-        "saveSuccess": "API Key を保存しました",
-        "updateTitle": "API Key を更新"
-      },
-      "nameLabel": "名前",
-      "statusLabel": "ステータス",
-      "title": "API Key",
-      "updateKey": "Key を更新",
-      "usage": {
-        "daily": "日次",
-        "description": "AI API の利用状況サマリーと詳細",
-        "endDate": "終了日",
-        "granularity": "粒度",
-        "monthly": "月次",
-        "noData": "選択された範囲に利用データはありません",
-        "startDate": "開始日",
-        "table": {
-          "cost": "費用 (USD)",
-          "date": "日付",
-          "inputTokens": "入力トークン",
-          "outputTokens": "出力トークン",
-          "requests": "リクエスト数"
-        },
-        "title": "利用統計",
-        "totalCost": "総費用",
-        "totalRequests": "総リクエスト数",
-        "totalTokens": "総トークン数",
-        "weekly": "週次"
-      },
-      "validated": "検証済み"
-    },
-    "description": "設定、API Key、使用量統計を管理します",
+    "description": "プロフィール、環境設定、プラン、利用状況を管理します。",
     "descriptionStudent": "設定を管理します",
     "loginRecords": {
       "current": "現在のデバイス",
@@ -690,7 +635,6 @@
     },
     "tabs": {
       "aiUsage": "AI 使用量",
-      "apiKey": "API Key",
       "mcp": "MCP 連線",
       "plans": "プラン",
       "preferences": "基本設定",

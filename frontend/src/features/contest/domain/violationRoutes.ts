@@ -75,30 +75,12 @@ export const VIOLATION_ROUTES: ViolationRouteConfig[] = [
     countdownPriority: 4,
     eventSource: "anticheat:mouse_leave",
   },
-  // Legacy focus routes remain for compatibility with historical events/tests.
-  // The primary runtime no longer mounts these detectors.
-  {
-    id: "tab_hidden",
-    events: { triggered: "tab_hidden_triggered", escalated: "tab_hidden", restored: "tab_hidden_restored" },
-    defaultGraceMs: 3_000,
-    escalation: "penalized_event",
-    countdownPriority: 5,
-    eventSource: "anticheat:focus",
-  },
-  {
-    id: "window_blur",
-    events: { triggered: "window_blur_triggered", escalated: "window_blur", restored: "window_blur_restored" },
-    defaultGraceMs: 3_000,
-    escalation: "penalized_event",
-    countdownPriority: 6,
-    eventSource: "anticheat:focus",
-  },
   {
     id: "multiple_displays",
     events: { triggered: "multi_display_triggered", escalated: "multiple_displays", restored: "multi_display_restored" },
     defaultGraceMs: 10_000,
     escalation: "penalized_event",
-    countdownPriority: 7,
+    countdownPriority: 5,
     eventSource: "anticheat:multi_display",
   },
 ];

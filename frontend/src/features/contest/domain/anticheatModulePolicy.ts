@@ -48,8 +48,6 @@ export interface DeviceMonitoringPlan {
   detectors: {
     pwaMode: boolean;
     fullscreen: boolean;
-    focus: boolean;
-    tabVisibility: boolean;
     multiDisplay: boolean;
     mouseLeave: boolean;
     viewportIntegrity: boolean;
@@ -107,8 +105,6 @@ export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
     detectors: {
       pwaMode: false,
       fullscreen: true,
-      focus: false,
-      tabVisibility: false,
       multiDisplay: true,
       mouseLeave: true,
       viewportIntegrity: false,
@@ -129,8 +125,6 @@ export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
     detectors: {
       pwaMode: true,
       fullscreen: false,
-      focus: false,
-      tabVisibility: false,
       multiDisplay: false,
       mouseLeave: true,
       viewportIntegrity: true,
@@ -193,10 +187,6 @@ export const resolveDeviceMonitoringPlan = (
   const detectors = {
     pwaMode: !!selected.detectors.pwaMode,
     fullscreen: !!selected.detectors.fullscreen,
-    // Legacy focus detectors stay in schema for compatibility, but no longer
-    // participate in the primary runtime path.
-    focus: false,
-    tabVisibility: false,
     multiDisplay: !!selected.detectors.multiDisplay,
     mouseLeave: !!selected.detectors.mouseLeave && (!capability.isTablet || capability.supportsFinePointer),
     viewportIntegrity: !!selected.detectors.viewportIntegrity && capability.isTablet,

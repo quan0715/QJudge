@@ -2,10 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY pyproject.toml .
+COPY mcp-server/pyproject.toml .
 RUN pip install --no-cache-dir "mcp[cli]>=1.9.0" "httpx>=0.27.0"
 
-COPY . .
+COPY mcp-server/ .
+COPY frontend/dist/mcp-widgets/ ./mcp-widgets/
 
 EXPOSE 9000
 

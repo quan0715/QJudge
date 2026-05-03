@@ -400,8 +400,6 @@ export type AnticheatSourceKind = "screenShare" | "webcam";
 export type AnticheatDetectorKind =
   | "pwaMode"
   | "fullscreen"
-  | "focus"
-  | "tabVisibility"
   | "multiDisplay"
   | "mouseLeave"
   | "viewportIntegrity";
@@ -414,8 +412,6 @@ export interface ContestAnticheatSourcePolicy {
 export interface ContestAnticheatDetectorPolicy {
   pwaMode: boolean;
   fullscreen: boolean;
-  focus: boolean;
-  tabVisibility: boolean;
   multiDisplay: boolean;
   mouseLeave: boolean;
   viewportIntegrity: boolean;

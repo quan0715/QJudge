@@ -74,8 +74,6 @@ export interface AnticheatDevicePolicyDto {
     detectors?: {
       pwa_mode?: boolean;
       fullscreen?: boolean;
-      focus?: boolean;
-      tab_visibility?: boolean;
       multi_display?: boolean;
       mouse_leave?: boolean;
       viewport_integrity?: boolean;
@@ -90,8 +88,6 @@ export interface AnticheatDevicePolicyDto {
     detectors?: {
       pwa_mode?: boolean;
       fullscreen?: boolean;
-      focus?: boolean;
-      tab_visibility?: boolean;
       multi_display?: boolean;
       mouse_leave?: boolean;
       viewport_integrity?: boolean;

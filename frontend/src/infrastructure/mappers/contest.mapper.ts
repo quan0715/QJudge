@@ -218,14 +218,6 @@ export function mapAnticheatDevicePolicyDto(
         typeof detectors.fullscreen === "boolean"
           ? detectors.fullscreen
           : fallback.fullscreen,
-      focus:
-        typeof detectors.focus === "boolean" ? detectors.focus : fallback.focus,
-      tabVisibility:
-        typeof detectors.tab_visibility === "boolean"
-          ? detectors.tab_visibility
-          : typeof detectors.tabVisibility === "boolean"
-            ? detectors.tabVisibility
-            : fallback.tabVisibility,
       multiDisplay:
         typeof detectors.multi_display === "boolean"
           ? detectors.multi_display
@@ -1100,10 +1092,6 @@ export function mapContestUpdateRequestToDto(
                 !!request.anticheatDevicePolicy.desktop?.detectors?.pwaMode,
               fullscreen:
                 !!request.anticheatDevicePolicy.desktop?.detectors?.fullscreen,
-              focus: !!request.anticheatDevicePolicy.desktop?.detectors?.focus,
-              tab_visibility:
-                !!request.anticheatDevicePolicy.desktop?.detectors
-                  ?.tabVisibility,
               multi_display:
                 !!request.anticheatDevicePolicy.desktop?.detectors
                   ?.multiDisplay,
@@ -1139,10 +1127,6 @@ export function mapContestUpdateRequestToDto(
                 !!request.anticheatDevicePolicy.tablet?.detectors?.pwaMode,
               fullscreen:
                 !!request.anticheatDevicePolicy.tablet?.detectors?.fullscreen,
-              focus: !!request.anticheatDevicePolicy.tablet?.detectors?.focus,
-              tab_visibility:
-                !!request.anticheatDevicePolicy.tablet?.detectors
-                  ?.tabVisibility,
               multi_display:
                 !!request.anticheatDevicePolicy.tablet?.detectors?.multiDisplay,
               mouse_leave:

@@ -22,8 +22,6 @@ const basePolicy = {
     detectors: {
       pwaMode: false,
       fullscreen: true,
-      focus: true,
-      tabVisibility: true,
       multiDisplay: true,
       mouseLeave: true,
       viewportIntegrity: false,
@@ -44,8 +42,6 @@ const basePolicy = {
     detectors: {
       pwaMode: true,
       fullscreen: false,
-      focus: true,
-      tabVisibility: true,
       multiDisplay: false,
       mouseLeave: true,
       viewportIntegrity: true,
@@ -76,8 +72,6 @@ describe("resolveDeviceMonitoringPlan", () => {
     expect(plan.sources.webcam.role).toBe("primary");
     expect(plan.precheck.requireFullscreen).toBe(false);
     expect(plan.precheck.requirePwaMode).toBe(true);
-    expect(plan.detectors.focus).toBe(false);
-    expect(plan.detectors.tabVisibility).toBe(false);
     expect(plan.detectors.mouseLeave).toBe(false);
     expect(plan.runtime.enableViewportIntegrity).toBe(true);
   });

@@ -19,7 +19,7 @@ describe("selectPrimaryCountdownFromRegistry", () => {
   it("returns the single active countdown", () => {
     const m = new Map<string, number | null>();
     m.set("fullscreen", 5);
-    m.set("tab_hidden", null);
+    m.set("mouse_leave", null);
 
     const result = selectPrimaryCountdownFromRegistry(m);
     expect(result).toEqual({ value: 5, source: "fullscreen" });
@@ -29,7 +29,7 @@ describe("selectPrimaryCountdownFromRegistry", () => {
     const m = new Map<string, number | null>();
     m.set("screen_share", 8);    // priority 0
     m.set("fullscreen", 3);       // priority 3
-    m.set("tab_hidden", 5);       // priority 5
+    m.set("multiple_displays", 5); // priority 5
 
     const result = selectPrimaryCountdownFromRegistry(m);
     expect(result).toEqual({ value: 8, source: "screen_share" });

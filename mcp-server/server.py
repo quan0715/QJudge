@@ -2,7 +2,6 @@
 
 import csv
 import json
-import os
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -23,6 +22,16 @@ from config import (
     MCP_PORT,
     MCP_PUBLIC_URL,
     OAUTH_ISSUER_URL,
+)
+from exam_diff import (
+    EXAM_QUESTION_DIFF_TEMPLATE_URI,
+    build_exam_question_diff,
+)
+from widgets import (
+    CLASSROOM_LIST_TEMPLATE_URI,
+    MCP_APP_RESOURCE_MIME_TYPE,
+    read_widget_js,
+    widget_html,
 )
 
 
@@ -541,6 +550,7 @@ _TOOL_HELP = {
         "qjudge_browse": "Discovery only: list/get classrooms, list classroom contests, list/get contests, get_help",
         "qjudge_contest_manager": "Contest operations: get_detail, list_problems, reorder (requires contest_id UUID)",
         "qjudge_exam": "Paper-exam contest questions: get, create, update, delete, batch_create, import_from_bank (no list/reorder — use qjudge_contest_manager)",
+        "preview_exam_question_update": "Read-only paper-exam question update preview: fetch current question and render before/after diff UI",
         "qjudge_coding_problems": "Coding contest problems: get, create, update, delete (no list — use qjudge_contest_manager list_problems)",
         "qjudge_code_runner": "Execute code against test cases: run code, get results",
         "qjudge_grading": "Grading: list_answers, question_detail, dashboard, grade, batch_grade, ungrade",
@@ -550,6 +560,7 @@ _TOOL_HELP = {
         "unknown_id": "If classroom_id/contest_id is unknown, use qjudge_browse first.",
         "contest_ops": "Once contest_id is known, use qjudge_contest_manager for get_detail/list_problems/reorder.",
         "single_item_crud": "Use qjudge_exam (paper_exam) or qjudge_coding_problems (coding) for single-item CRUD.",
+        "preview_before_update": "Use preview_exam_question_update before qjudge_exam update when the user should approve an exam question diff.",
         "code_execution": "Use qjudge_code_runner for running source code.",
     },
     "coding_tools_how_to_choose": {
@@ -653,8 +664,8 @@ mcp = FastMCP(
     token_verifier=DjangoTokenVerifier(),
 )
 
-MCP_APP_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app"
-CLASSROOM_LIST_TEMPLATE_URI = "ui://widget/classroom-list-v2.html"
+def _build_exam_question_diff(current_question: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+    return build_exam_question_diff(current_question, patch)
 
 
 def _classroom_list_widget_result(classrooms: list[dict[str, Any]]) -> CallToolResult:
@@ -664,6 +675,17 @@ def _classroom_list_widget_result(classrooms: list[dict[str, Any]]) -> CallToolR
         _meta={
             "ui": {"resourceUri": CLASSROOM_LIST_TEMPLATE_URI},
             "openai/outputTemplate": CLASSROOM_LIST_TEMPLATE_URI,
+        },
+    )
+
+
+def _exam_question_diff_widget_result(diff: dict[str, Any]) -> CallToolResult:
+    return CallToolResult(
+        content=[TextContent(type="text", text="已產生 exam question 更新前後差異，請在面板中確認。")],
+        structuredContent=diff,
+        _meta={
+            "ui": {"resourceUri": EXAM_QUESTION_DIFF_TEMPLATE_URI},
+            "openai/outputTemplate": EXAM_QUESTION_DIFF_TEMPLATE_URI,
         },
     )
 
@@ -685,36 +707,27 @@ def _classroom_list_widget_result(classrooms: list[dict[str, Any]]) -> CallToolR
     },
 )
 def serve_classroom_list_widget() -> str:
-    widget_js_candidates = [
-        os.getenv("MCP_WIDGET_CLASSROOM_LIST_JS", ""),
-        os.path.join(os.path.dirname(__file__), "mcp-widgets/mcp-classroom-list.js"),
-        os.path.join(os.path.dirname(__file__), "../frontend/dist/mcp-widgets/mcp-classroom-list.js"),
-    ]
+    return widget_html(read_widget_js("mcp-classroom-list", base_dir=str(Path(__file__).parent)))
 
-    try:
-        widget_js_path = next(path for path in widget_js_candidates if path and os.path.exists(path))
-        with open(widget_js_path, "r", encoding="utf-8") as f:
-            js_code = f.read()
-    except FileNotFoundError:
-        js_code = "document.body.innerHTML = '<h1>UI bundle not found. Please run npm run build in frontend.</h1>';"
-    except StopIteration:
-        js_code = "document.body.innerHTML = '<h1>UI bundle not found. Please run npm run build in frontend.</h1>';"
 
-    html_content = f"""
-    <!DOCTYPE html>
-    <html lang="zh-Hant">
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      </head>
-      <body>
-        <div id="root"></div>
-        <script type="module">{js_code}</script>
-      </body>
-    </html>
-    """
-
-    return html_content
+@mcp.resource(
+    EXAM_QUESTION_DIFF_TEMPLATE_URI,
+    title="QJudge Exam Question Diff",
+    description="ChatGPT App widget for reviewing an exam question before applying updates.",
+    mime_type=MCP_APP_RESOURCE_MIME_TYPE,
+    meta={
+        "ui": {
+            "prefersBorder": True,
+            "csp": {
+                "connectDomains": [],
+                "resourceDomains": [],
+            },
+        },
+        "openai/widgetDescription": "Shows field-level before/after differences for a QJudge exam question update.",
+    },
+)
+def serve_exam_question_diff_widget() -> str:
+    return widget_html(read_widget_js("mcp-exam-question-diff", base_dir=str(Path(__file__).parent)))
 
 
 @mcp.tool(
@@ -789,6 +802,88 @@ async def show_qjudge_classrooms_ui(
         ]
 
     return _classroom_list_widget_result([_compact_classroom(row) for row in classrooms])
+
+
+@mcp.tool(
+    title="Preview exam question update",
+    description=(
+        "Use this when the user wants to edit a QJudge paper exam question but "
+        "should review a before/after diff before approving the actual update. "
+        "This tool is read-only and does not modify the question."
+    ),
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    ),
+    meta={
+        "ui": {"resourceUri": EXAM_QUESTION_DIFF_TEMPLATE_URI},
+        "openai/outputTemplate": EXAM_QUESTION_DIFF_TEMPLATE_URI,
+        "openai/toolInvocation/invoking": "Preparing question diff",
+        "openai/toolInvocation/invoked": "Question diff ready",
+    },
+)
+async def preview_exam_question_update(
+    contest_id: str,
+    question_id: str,
+    ctx: Context,
+    question_type: str | None = None,
+    prompt: str | None = None,
+    explanation: str | None = None,
+    score: int | None = None,
+    options: list[str] | None = None,
+    correct_answer: Any | None = None,
+) -> Any:
+    """Fetch one paper-exam question and render a field-level update diff."""
+    uuid_error = _require_uuid(
+        contest_id,
+        field_name="contest_id",
+        tool_name="preview_exam_question_update",
+        hint="Use qjudge_browse list_contests or list_classroom_contests first to get contest_id.",
+    )
+    if uuid_error:
+        return uuid_error
+    if not question_id:
+        return _tool_error(tool_name="preview_exam_question_update", detail="question_id is required")
+
+    patch = _build_exam_question_body(
+        question_type=question_type,
+        prompt=prompt,
+        explanation=explanation,
+        score=score,
+        options=options,
+        correct_answer=correct_answer,
+    )
+    if not patch:
+        return _tool_error(tool_name="preview_exam_question_update", detail="No fields to preview")
+
+    type_error = await _ensure_contest_type(
+        contest_id=contest_id,
+        ctx=ctx,
+        expected_type="paper_exam",
+        tool_name="preview_exam_question_update",
+        allowed_label="paper_exam",
+        disallowed_tool_name="qjudge_coding_problems",
+    )
+    if type_error:
+        return type_error
+
+    current_question = await django_api(
+        "GET",
+        f"/api/v1/contests/{contest_id}/exam-questions/{question_id}/",
+        ctx,
+    )
+    if isinstance(current_question, dict) and current_question.get("error"):
+        return current_question
+    if not isinstance(current_question, dict):
+        return _tool_error(
+            tool_name="preview_exam_question_update",
+            detail="Expected an exam question object",
+            status=500,
+        )
+
+    return _exam_question_diff_widget_result(_build_exam_question_diff(current_question, patch))
 
 
 @mcp.tool(

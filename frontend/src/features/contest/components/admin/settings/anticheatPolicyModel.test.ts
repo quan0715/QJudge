@@ -40,10 +40,8 @@ describe("anticheatPolicyModel", () => {
       expect(next.desktop.enabled).toBe(true);
     });
 
-    it("enforces legacy constraints on every mutation", () => {
+    it("enforces device constraints on every mutation", () => {
       const next = updateAllowedDevice(defaultPolicy(), "desktop", true);
-      expect(next.desktop.detectors.focus).toBe(false);
-      expect(next.desktop.detectors.tabVisibility).toBe(false);
       expect(next.tablet.sources.screenShare.enabled).toBe(false);
     });
   });
@@ -99,7 +97,7 @@ describe("anticheatPolicyModel", () => {
       expect(next.tablet.sources.webcam.enabled).toBe(false);
     });
 
-    it("enforces legacy constraints even when raw policy has them on", () => {
+    it("enforces device constraints even when raw policy has impossible tablet settings", () => {
       const rawPolicy = createMockContest({
         anticheatDevicePolicy: {
           desktop: {
@@ -111,8 +109,6 @@ describe("anticheatPolicyModel", () => {
             detectors: {
               pwaMode: false,
               fullscreen: true,
-              focus: true,
-              tabVisibility: true,
               multiDisplay: true,
               mouseLeave: true,
               viewportIntegrity: false,
@@ -127,8 +123,6 @@ describe("anticheatPolicyModel", () => {
             detectors: {
               pwaMode: true,
               fullscreen: false,
-              focus: true,
-              tabVisibility: true,
               multiDisplay: false,
               mouseLeave: true,
               viewportIntegrity: true,
@@ -138,10 +132,6 @@ describe("anticheatPolicyModel", () => {
       }).anticheatDevicePolicy;
 
       const next = updateEvidenceTracking(rawPolicy, true);
-      expect(next.desktop.detectors.focus).toBe(false);
-      expect(next.desktop.detectors.tabVisibility).toBe(false);
-      expect(next.tablet.detectors.focus).toBe(false);
-      expect(next.tablet.detectors.tabVisibility).toBe(false);
       expect(next.tablet.sources.screenShare.enabled).toBe(false);
       expect(next.tablet.detectors.fullscreen).toBe(false);
       expect(next.tablet.detectors.multiDisplay).toBe(false);

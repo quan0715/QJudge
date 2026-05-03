@@ -11,8 +11,6 @@ export const ROUTE_STUDENT_INTERRUPTION_POLICY: Record<string, StudentInterrupti
   fullscreen: "recovery_modal",
   multiple_displays: "recovery_modal",
   mouse_leave: "silent",
-  tab_hidden: "silent",
-  window_blur: "silent",
 };
 
 export const EVENT_STUDENT_INTERRUPTION_POLICY: Record<string, StudentInterruptionPolicy> = {

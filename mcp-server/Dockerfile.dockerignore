@@ -1,0 +1,7 @@
+**
+!mcp-server
+!mcp-server/**
+!frontend
+!frontend/dist
+!frontend/dist/mcp-widgets
+!frontend/dist/mcp-widgets/**

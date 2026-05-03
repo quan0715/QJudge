@@ -87,11 +87,15 @@ export default defineConfig(({ mode }) => {
         input: {
           main: path.resolve(__dirname, 'index.html'),
           'mcp-classroom-list': path.resolve(__dirname, 'src/mcp-widgets/ClassroomListWidget.tsx'),
+          'mcp-exam-question-diff': path.resolve(__dirname, 'src/mcp-widgets/ExamQuestionDiffWidget.ts'),
         },
         output: {
           entryFileNames: (assetInfo) => {
             if (assetInfo.name === 'mcp-classroom-list') {
               return 'mcp-widgets/mcp-classroom-list.js';
+            }
+            if (assetInfo.name === 'mcp-exam-question-diff') {
+              return 'mcp-widgets/mcp-exam-question-diff.js';
             }
             return 'assets/[name]-[hash].js';
           }

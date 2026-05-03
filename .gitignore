@@ -166,3 +166,6 @@ running/
 .superpowers/
 .agents/
 .mcp.json
+
+# Generated media experiments
+qjudge-promo-abstract/

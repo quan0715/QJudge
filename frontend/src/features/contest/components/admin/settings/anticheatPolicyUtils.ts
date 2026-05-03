@@ -51,14 +51,6 @@ export const normalizeDetectors = (
           : fallback.pwaMode,
     fullscreen:
       typeof det.fullscreen === "boolean" ? det.fullscreen : fallback.fullscreen,
-    focus:
-      typeof det.focus === "boolean" ? det.focus : fallback.focus,
-    tabVisibility:
-      typeof det.tabVisibility === "boolean"
-        ? det.tabVisibility
-        : typeof det.tab_visibility === "boolean"
-          ? (det.tab_visibility as boolean)
-          : fallback.tabVisibility,
     multiDisplay:
       typeof det.multiDisplay === "boolean"
         ? det.multiDisplay
@@ -124,12 +116,6 @@ export const sanitizeAnticheatPolicy = (
   };
 
   // High-level policy constraints — mirrors backend normalize_anticheat_device_policy().
-  // focus / tab_visibility are legacy, always off.
-  sanitized.desktop.detectors.focus = false;
-  sanitized.desktop.detectors.tabVisibility = false;
-  sanitized.tablet.detectors.focus = false;
-  sanitized.tablet.detectors.tabVisibility = false;
-  // Device-specific constraints.
   sanitized.desktop.detectors.pwaMode = false;
   sanitized.desktop.detectors.viewportIntegrity = false;
   sanitized.tablet.sources.screenShare.enabled = false;

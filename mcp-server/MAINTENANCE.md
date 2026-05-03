@@ -12,8 +12,9 @@ ChatGPT App widget integration.
 - Dev public URL: `https://mcp-dev.quan.wtf`
 - Dev MCP endpoint: `https://mcp-dev.quan.wtf/mcp`
 - OAuth issuer: `https://q-judge-dev.quan.wtf`
-- Widget resource URI: `ui://widget/classroom-list-v2.html`
-- Widget bundle path in container: `/app/mcp-widgets/mcp-classroom-list.js`
+- Classroom widget resource URI: `ui://widget/classroom-list-v2.html`
+- Exam question diff widget resource URI: `ui://widget/exam-question-diff-v1.html`
+- Widget bundle directory in container: `/app/mcp-widgets`
 
 ChatGPT currently sends MCP requests to both `/mcp` and `/`. The server keeps
 `/mcp` as the canonical route and registers `/` as a compatibility alias.
@@ -40,22 +41,17 @@ When checking runtime values, inspect only the specific safe variables needed.
 
 ## Build And Restart
 
-The MCP container reads the built widget bundle from the frontend build output.
-Build the frontend before restarting the MCP server:
+The MCP image copies built widget bundles from the frontend build output.
+Build the frontend before rebuilding the MCP image:
 
 ```bash
 npm --prefix frontend run build
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build qjudge-mcp
 ```
 
-If only the mounted widget bundle changed and `server.py` did not change, a
-restart is enough:
-
-```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev restart qjudge-mcp
-```
-
-If `server.py`, `config.py`, or the Docker image content changed, rebuild.
+Because widget bundles are packaged into the image, rebuilding `qjudge-mcp` is
+required after widget changes. A restart is only enough for external service
+state changes that do not touch image content.
 
 ## OAuth Flow
 
@@ -94,6 +90,12 @@ The classroom widget is registered as an MCP resource:
 ui://widget/classroom-list-v2.html
 ```
 
+The exam question diff widget is registered as:
+
+```text
+ui://widget/exam-question-diff-v1.html
+```
+
 The resource MIME type must stay:
 
 ```text
@@ -124,10 +126,23 @@ The UI entry tools are:
   widget in one call.
 - `render_classroom_list`: renders a widget from an already fetched classroom
   list.
+- `preview_exam_question_update`: fetches one paper-exam question, applies a
+  proposed patch in memory, and renders a before/after diff widget without
+  modifying the question.
 
-Both tools return:
+The classroom tools return:
 
 - `structuredContent.classrooms` for the model and widget
+- `_meta.ui.resourceUri`
+- `_meta["openai/outputTemplate"]`
+
+The exam diff tool returns:
+
+- `structuredContent.kind = "exam_question_diff"`
+- `structuredContent.current_question`
+- `structuredContent.proposed_question`
+- `structuredContent.changes[]`
+- `structuredContent.risk_flags[]`
 - `_meta.ui.resourceUri`
 - `_meta["openai/outputTemplate"]`
 
@@ -145,7 +160,7 @@ mcp-server/.venv/bin/python -m pytest mcp-server/tests/test_server.py
 Verify the built widget is self-contained:
 
 ```bash
-rg -n "^import|from[\\\"']\\.\\." frontend/dist/mcp-widgets/mcp-classroom-list.js
+rg -n "^import|from[\\\"']\\.\\." frontend/dist/mcp-widgets/*.js
 ```
 
 No matches should be returned.
@@ -154,7 +169,7 @@ Verify the container can read the widget:
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T qjudge-mcp \
-  ls -l /app/mcp-widgets/mcp-classroom-list.js
+  ls -l /app/mcp-widgets/mcp-classroom-list.js /app/mcp-widgets/mcp-exam-question-diff.js
 ```
 
 Verify the resource content from inside the container:
@@ -164,10 +179,15 @@ Verify the resource content from inside the container:
 import server
 
 html = server.serve_classroom_list_widget()
+diff_html = server.serve_exam_question_diff_widget()
 print("template_uri=", server.CLASSROOM_LIST_TEMPLATE_URI)
+print("diff_template_uri=", server.EXAM_QUESTION_DIFF_TEMPLATE_URI)
 print("has_bundle_missing=", "UI bundle not found" in html)
+print("diff_has_bundle_missing=", "UI bundle not found" in diff_html)
 print("has_external_import=", 'from"../assets/' in html or "from'../assets/" in html)
+print("diff_has_external_import=", 'from"../assets/' in diff_html or "from'../assets/" in diff_html)
 print("has_tool_output_reader=", "toolOutput" in html)
+print("diff_has_tool_output_reader=", "toolOutput" in diff_html)
 PY
 ```
 
@@ -175,9 +195,13 @@ Expected:
 
 ```text
 template_uri= ui://widget/classroom-list-v2.html
+diff_template_uri= ui://widget/exam-question-diff-v1.html
 has_bundle_missing= False
+diff_has_bundle_missing= False
 has_external_import= False
+diff_has_external_import= False
 has_tool_output_reader= True
+diff_has_tool_output_reader= True
 ```
 
 ## Troubleshooting
@@ -185,9 +209,8 @@ has_tool_output_reader= True
 `UI bundle not found`
 
 - Run `npm --prefix frontend run build`.
-- Confirm `frontend/dist/mcp-widgets/mcp-classroom-list.js` exists.
-- Confirm the compose mount exists:
-  `./frontend/dist/mcp-widgets:/app/mcp-widgets:ro`.
+- Confirm the relevant file exists under `frontend/dist/mcp-widgets/`.
+- Rebuild `qjudge-mcp` so the bundle is copied into the image.
 
 Blank iframe
 

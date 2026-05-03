@@ -69,11 +69,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         data-testid="exam-recovery-modal"
         open={recoveryCountdown != null}
         modalHeading={
-          recoverySource === "tab_hidden"
-            ? t("exam.tabHiddenRecoveryTitle", "偵測到分頁切換")
-            : recoverySource === "window_blur"
-            ? t("exam.windowBlurRecoveryTitle", "偵測到離開視窗")
-            : recoverySource === "multiple_displays"
+          recoverySource === "multiple_displays"
             ? t("exam.multiDisplayRecoveryTitle", "偵測到多螢幕")
             : recoverySource === "mouse_leave"
             ? t("exam.mouseLeaveRecoveryTitle")
@@ -94,11 +90,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
       >
         <div className={styles.recoveryWrapper}>
           <p className={styles.recoveryText}>
-            {recoverySource === "tab_hidden"
-              ? t("exam.tabHiddenRecoveryDesc", { defaultValue: "請在 {{seconds}} 秒內回到考試分頁，否則將記錄一次違規。", seconds: recoveryCountdown ?? 0 })
-              : recoverySource === "window_blur"
-              ? t("exam.windowBlurRecoveryDesc", { defaultValue: "請在 {{seconds}} 秒內回到考試視窗，否則將記錄一次違規。", seconds: recoveryCountdown ?? 0 })
-              : recoverySource === "multiple_displays"
+            {recoverySource === "multiple_displays"
               ? t("exam.multiDisplayRecoveryDesc", { defaultValue: "請在 {{seconds}} 秒內中斷外接螢幕，否則將記錄一次違規。", seconds: recoveryCountdown ?? 0 })
               : recoverySource === "mouse_leave"
               ? t("exam.mouseLeaveRecoveryDesc", { seconds: recoveryCountdown ?? 0 })
