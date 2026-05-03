@@ -70,10 +70,9 @@ class ExamLifecycleMixin:
         # Check if already submitted
         if participant.exam_status == ExamStatus.SUBMITTED:
             if contest.allow_multiple_joins:
-                # Reset for re-entry - clear violation count for fresh start
+                # Re-entry keeps historical violations as the backend source of truth.
                 participant.exam_status = ExamStatus.IN_PROGRESS
-                participant.violation_count = 0
-                participant.save()
+                participant.save(update_fields=["exam_status"])
             else:
                 return Response(
                     {'error': 'You have already finished this exam.'},
@@ -154,6 +153,8 @@ class ExamLifecycleMixin:
                 'status': 'finished',
                 'exam_status': ExamStatus.SUBMITTED,
                 'submit_reason': participant.submit_reason,
+                'violation_count': participant.violation_count,
+                'max_cheat_warnings': contest.max_cheat_warnings,
                 'already_submitted': True,
             })
 
@@ -207,6 +208,8 @@ class ExamLifecycleMixin:
             'status': 'finished',
             'exam_status': ExamStatus.SUBMITTED,
             'submit_reason': submit_reason,
+            'violation_count': participant.violation_count,
+            'max_cheat_warnings': contest.max_cheat_warnings,
             'already_submitted': False,
         })
 

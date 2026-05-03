@@ -28,11 +28,11 @@ interface ContestSettingsModalProps extends ContestSettingsPanelProps {
   onDelete: () => void;
 }
 
-const NAV_ITEMS: SettingsModalNavItem[] = [
-  { id: "general", label: "基本資訊", icon: Information },
-  { id: "access", label: "狀態與權限", icon: Locked },
-  { id: "display", label: "顯示設定", icon: View },
-  { id: "cheatDetection", label: "作弊檢查", icon: Security },
+const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { labelKey: string; fallback: string })[] = [
+  { id: "general", labelKey: "settings.basicInfo", fallback: "基本資訊", icon: Information },
+  { id: "access", labelKey: "settings.accessControl", fallback: "狀態與權限", icon: Locked },
+  { id: "display", labelKey: "settings.displaySettings", fallback: "顯示設定", icon: View },
+  { id: "cheatDetection", labelKey: "settings.examModeSettings", fallback: "防作弊監控設定", icon: Security },
 ];
 
 export default function ContestSettingsModal({
@@ -64,6 +64,10 @@ export default function ContestSettingsModal({
   const sharedProps: ContestSettingsPanelProps = {
     t, tc, contest, form, getState, onRetry, onChange, onConfirmedChange,
   };
+  const navItems = NAV_ITEM_DEFS.map(({ labelKey, fallback, ...item }) => ({
+    ...item,
+    label: t(labelKey, fallback),
+  }));
 
   const renderPanel = (activeId: string) => {
     switch (activeId) {
@@ -107,7 +111,7 @@ export default function ContestSettingsModal({
       open={open}
       onRequestClose={onRequestClose}
       modalHeading={t("settings.title", "競賽設定")}
-      navItems={NAV_ITEMS}
+      navItems={navItems}
       renderPanel={renderPanel}
     />
   );

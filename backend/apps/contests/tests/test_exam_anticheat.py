@@ -7,8 +7,10 @@ event logging for all participant roles, and auto-unlock eligibility checks.
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+from botocore.exceptions import ClientError
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
@@ -16,6 +18,7 @@ from django.contrib.auth import get_user_model
 from apps.contests.models import (
     Contest,
     ContestParticipant,
+    ExamEvidenceFrame,
     ExamEvent,
     ExamStatus,
     ContestActivity,
@@ -87,6 +90,34 @@ class ExamAntiCheatTests(APITestCase):
 
         self.events_url = reverse(
             "contests:contest-exam-events", args=[self.contest.id]
+        )
+
+    def _uploaded_evidence_frame(
+        self,
+        event: ExamEvent,
+        ts_ms: int,
+        seq: int = 1,
+        source_module: str = "screen_share",
+        upload_session_id: str = "session-evidence-1",
+    ) -> ExamEvidenceFrame:
+        metadata = event.metadata if isinstance(event.metadata, dict) else {}
+        object_key = (
+            f"contest_{event.contest_id}/user_{event.user_id}/session_{upload_session_id}/"
+            f"{source_module}/ts_{ts_ms}_seq_{seq:04d}.webp"
+        )
+        return ExamEvidenceFrame.objects.create(
+            contest=event.contest,
+            user=event.user,
+            exam_event=event,
+            evidence_cluster_id=str(metadata.get("evidence_cluster_id") or ""),
+            source_module=source_module,
+            evidence_mode=str(metadata.get("evidence_mode") or "anchor_window"),
+            upload_session_id=upload_session_id,
+            seq=seq,
+            object_key=object_key,
+            client_captured_at_ms=ts_ms,
+            status=ExamEvidenceFrame.Status.UPLOADED,
+            storage_confirmed_at=timezone.now(),
         )
 
     # ------------------------------------------------------------------
@@ -753,12 +784,16 @@ class ExamAntiCheatTests(APITestCase):
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
 
-    def test_screenshots_can_presign_explicit_evidence_object_keys(self):
+    def test_screenshots_can_presign_manifest_evidence_frames(self):
         ts_ms = 1774106646951
-        raw_key = (
-            f"contest_{self.contest.id}/user_{self.student.id}/"
-            f"session_session-evidence-1/screen_share/ts_{ts_ms}_seq_0007.webp"
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exit_fullscreen",
+            metadata={"module": "screen_share", "evidence_anchor_at_ms": ts_ms},
         )
+        event = attach_evidence_window_metadata(event)
+        frame = self._uploaded_evidence_frame(event, ts_ms, seq=7)
 
         self.client.force_authenticate(user=self.teacher)
         screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
@@ -770,7 +805,7 @@ class ExamAntiCheatTests(APITestCase):
                 screenshots_url,
                 {
                     "user_id": self.student.id,
-                    "object_key": raw_key,
+                    "event_id": event.id,
                     "source_module": "screen_share",
                 },
             )
@@ -780,9 +815,10 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(response.data["items"][0]["url"], "https://example.test/frame.webp")
         self.assertEqual(response.data["items"][0]["ts_ms"], ts_ms)
         self.assertEqual(response.data["items"][0]["seq"], 7)
+        self.assertEqual(response.data["items"][0]["evidence_frame_id"], frame.id)
         mock_get_url.assert_called_once()
 
-    def test_screenshots_rejects_explicit_keys_for_other_participant(self):
+    def test_screenshots_rejects_manifest_frames_for_other_participant(self):
         other = User.objects.create_user(
             username="other-student",
             email="other-student@test.com",
@@ -795,10 +831,14 @@ class ExamAntiCheatTests(APITestCase):
             exam_status=ExamStatus.IN_PROGRESS,
             started_at=timezone.now(),
         )
-        raw_key = (
-            f"contest_{self.contest.id}/user_{other.id}/"
-            "session_session-evidence-1/screen_share/ts_1774106646951_seq_0007.webp"
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=other,
+            event_type="exit_fullscreen",
+            metadata={"module": "screen_share", "evidence_anchor_at_ms": 1774106646951},
         )
+        event = attach_evidence_window_metadata(event)
+        self._uploaded_evidence_frame(event, 1774106646951, seq=7)
 
         self.client.force_authenticate(user=self.teacher)
         screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
@@ -807,7 +847,6 @@ class ExamAntiCheatTests(APITestCase):
                 screenshots_url,
                 {
                     "user_id": self.student.id,
-                    "object_key": raw_key,
                     "source_module": "screen_share",
                 },
             )
@@ -817,33 +856,34 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(response.data["items"], [])
         mock_get_url.assert_not_called()
 
-    def test_screenshots_presigns_explicit_keys_even_outside_event_window(self):
+    def test_screenshots_filters_manifest_frames_by_requested_window(self):
         ts_ms = 1774106646951
-        raw_key = (
-            f"contest_{self.contest.id}/user_{self.student.id}/"
-            f"session_session-evidence-window/screen_share/ts_{ts_ms}_seq_0007.webp"
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exit_fullscreen",
+            metadata={"module": "screen_share", "evidence_anchor_at_ms": ts_ms},
         )
+        event = attach_evidence_window_metadata(event)
+        self._uploaded_evidence_frame(event, ts_ms, seq=7)
 
         self.client.force_authenticate(user=self.teacher)
         screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
-        with patch(
-            "apps.contests.views.exam_evidence.generate_get_url",
-            return_value="https://example.test/frame.webp",
-        ) as mock_get_url:
+        with patch("apps.contests.views.exam_evidence.generate_get_url") as mock_get_url:
             response = self.client.get(
                 screenshots_url,
                 {
                     "user_id": self.student.id,
-                    "object_key": raw_key,
+                    "event_id": event.id,
                     "ts_from": ts_ms + 60_000,
                     "ts_to": ts_ms + 120_000,
                 },
             )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["total_raw_count"], 1)
-        self.assertEqual(response.data["items"][0]["seq"], 7)
-        mock_get_url.assert_called_once()
+        self.assertEqual(response.data["total_raw_count"], 0)
+        self.assertEqual(response.data["items"], [])
+        mock_get_url.assert_not_called()
 
     def test_screenshots_without_session_does_not_scan_all_user_objects(self):
         self.client.force_authenticate(user=self.teacher)
@@ -864,63 +904,262 @@ class ExamAntiCheatTests(APITestCase):
         self.assertFalse(response.data["storage_error"])
         mock_get_s3_client.assert_not_called()
 
+    def test_event_api_returns_manifest_evidence_window(self):
+        anchor_ms = 1774106646951
+        self.client.force_authenticate(user=self.student)
+        response = self.client.post(
+            self.events_url,
+            {
+                "event_type": "mouse_leave",
+                "metadata": {
+                    "module": "screen_share",
+                    "evidence_anchor_at_ms": anchor_ms,
+                    "client_observed_at_ms": anchor_ms,
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["evidence_mode"], "anchor_window")
+        self.assertEqual(response.data["evidence_anchor_at_ms"], anchor_ms)
+        self.assertTrue(response.data["event_id"])
+        self.assertTrue(response.data["evidence_cluster_id"])
+        self.assertEqual(
+            int(parse_datetime(response.data["evidence_window_start"]).timestamp() * 1000),
+            anchor_ms - 3_000,
+        )
+        self.assertEqual(
+            int(parse_datetime(response.data["evidence_window_end"]).timestamp() * 1000),
+            anchor_ms + 3_000,
+        )
+
+    def test_evidence_upload_intents_and_confirm_use_manifest_rows(self):
+        anchor_ms = 1774106646951
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="screen_share_stopped",
+            metadata={
+                "module": "screen_share",
+                "evidence_anchor_at_ms": anchor_ms,
+                "loss_detected_at_ms": anchor_ms,
+                "evidence_mode": "pre_loss",
+            },
+        )
+        event = attach_evidence_window_metadata(event)
+
+        self.client.force_authenticate(user=self.student)
+        intent_url = reverse("contests:contest-exam-evidence-upload-intents", args=[self.contest.id])
+        with patch("apps.contests.views.exam_evidence.get_s3_client"), patch(
+            "apps.contests.views.exam_evidence.generate_put_url",
+            return_value="https://example.test/put",
+        ):
+            response = self.client.post(
+                intent_url,
+                {
+                    "event_id": event.id,
+                    "evidence_cluster_id": event.metadata["evidence_cluster_id"],
+                    "source_module": "screen_share",
+                    "evidence_mode": "pre_loss",
+                    "upload_session_id": "session-upload-1",
+                    "frames": [{"client_captured_at_ms": anchor_ms - 1_000, "seq": 1}],
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = response.data["items"][0]
+        frame = ExamEvidenceFrame.objects.get(id=item["evidence_frame_id"])
+        self.assertEqual(frame.status, ExamEvidenceFrame.Status.ISSUED)
+        self.assertEqual(frame.object_key, item["object_key"])
+
+        confirm_url = reverse("contests:contest-exam-evidence-upload-confirm", args=[self.contest.id])
+        with patch("apps.contests.views.exam_evidence.get_s3_client") as mock_get_s3_client:
+            mock_get_s3_client.return_value.head_object.return_value = {
+                "ContentLength": 4321,
+                "ContentType": "image/webp",
+                "ETag": '"storage-etag"',
+            }
+            response = self.client.post(
+                confirm_url,
+                {
+                    "event_id": event.id,
+                    "upload_session_id": "session-upload-1",
+                    "frames": [
+                        {
+                            "evidence_frame_id": item["evidence_frame_id"],
+                            "object_key": item["object_key"],
+                            "byte_size": 1234,
+                        }
+                    ],
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        frame.refresh_from_db()
+        self.assertEqual(frame.status, ExamEvidenceFrame.Status.UPLOADED)
+        self.assertEqual(frame.byte_size, 4321)
+        self.assertEqual(frame.content_type, "image/webp")
+        self.assertEqual(frame.sha256, "")
+        self.assertEqual(frame.metadata["storage_head"]["etag"], "storage-etag")
+
+    def test_evidence_upload_confirm_rejects_missing_storage_object(self):
+        anchor_ms = 1774106646951
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="mouse_leave",
+            metadata={
+                "module": "screen_share",
+                "evidence_anchor_at_ms": anchor_ms,
+                "evidence_mode": "anchor_window",
+            },
+        )
+        event = attach_evidence_window_metadata(event)
+        frame = ExamEvidenceFrame.objects.create(
+            contest=self.contest,
+            user=self.student,
+            exam_event=event,
+            evidence_cluster_id=event.metadata["evidence_cluster_id"],
+            source_module="screen_share",
+            evidence_mode="anchor_window",
+            upload_session_id="session-upload-1",
+            seq=1,
+            object_key=(
+                f"contest_{self.contest.id}/user_{self.student.id}/session_session-upload-1/"
+                f"screen_share/ts_{anchor_ms}_seq_0001.webp"
+            ),
+            client_captured_at_ms=anchor_ms,
+            status=ExamEvidenceFrame.Status.ISSUED,
+        )
+
+        self.client.force_authenticate(user=self.student)
+        confirm_url = reverse("contests:contest-exam-evidence-upload-confirm", args=[self.contest.id])
+        missing_error = ClientError(
+            {"Error": {"Code": "NoSuchKey", "Message": "not found"}},
+            "HeadObject",
+        )
+        with patch("apps.contests.views.exam_evidence.get_s3_client") as mock_get_s3_client:
+            mock_get_s3_client.return_value.head_object.side_effect = missing_error
+            response = self.client.post(
+                confirm_url,
+                {
+                    "event_id": event.id,
+                    "upload_session_id": "session-upload-1",
+                    "frames": [
+                        {
+                            "evidence_frame_id": frame.id,
+                            "object_key": frame.object_key,
+                            "byte_size": 1234,
+                        }
+                    ],
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        frame.refresh_from_db()
+        self.assertEqual(frame.status, ExamEvidenceFrame.Status.ISSUED)
+        self.assertIsNone(frame.storage_confirmed_at)
+        self.assertIsNone(frame.byte_size)
+
+    def test_stream_loss_upload_intent_rejects_post_loss_frame(self):
+        anchor_ms = 1774106646951
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="screen_share_stopped",
+            metadata={
+                "module": "screen_share",
+                "evidence_anchor_at_ms": anchor_ms,
+                "loss_detected_at_ms": anchor_ms,
+                "evidence_mode": "pre_loss",
+            },
+        )
+        event = attach_evidence_window_metadata(event)
+
+        self.client.force_authenticate(user=self.student)
+        intent_url = reverse("contests:contest-exam-evidence-upload-intents", args=[self.contest.id])
+        response = self.client.post(
+            intent_url,
+            {
+                "event_id": event.id,
+                "source_module": "screen_share",
+                "evidence_mode": "pre_loss",
+                "upload_session_id": "session-upload-2",
+                "frames": [{"client_captured_at_ms": anchor_ms + 2_000, "seq": 1}],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("post-loss", response.data["error"])
+
+    def test_evidence_upload_intent_records_unavailable_manifest_row(self):
+        anchor_ms = 1774106646951
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="heartbeat_timeout",
+            metadata={
+                "module": "screen_share",
+                "evidence_anchor_at_ms": anchor_ms,
+                "evidence_mode": "anchor_window",
+            },
+        )
+        event = attach_evidence_window_metadata(event)
+
+        self.client.force_authenticate(user=self.student)
+        intent_url = reverse("contests:contest-exam-evidence-upload-intents", args=[self.contest.id])
+        response = self.client.post(
+            intent_url,
+            {
+                "event_id": event.id,
+                "source_module": "screen_share",
+                "evidence_mode": "anchor_window",
+                "upload_session_id": "session-unavailable-1",
+                "frames": [],
+                "unavailable_reason": "ring_buffer_empty",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        frame = ExamEvidenceFrame.objects.get(id=response.data["unavailable_frame_id"])
+        self.assertEqual(frame.status, ExamEvidenceFrame.Status.UNAVAILABLE)
+        self.assertEqual(frame.metadata["reason"], "ring_buffer_empty")
+
     def test_screenshots_can_use_event_id_to_derive_window(self):
         ts_ms = 1774107000000
-        ts_left_in = ts_ms - 10_000
-        ts_left_out = ts_ms - 30_000
-        ts_right_in = ts_ms + 10_000
-        ts_right_out = ts_ms + 30_000
+        ts_left_in = ts_ms - 2_000
+        ts_left_out = ts_ms - 5_000
+        ts_right_in = ts_ms + 2_000
+        ts_right_out = ts_ms + 5_000
         session_id = "session-event-window-1"
-
-        raw_key_in_left = (
-            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
-            f"screen_share/ts_{ts_left_in}_seq_0001.webp"
-        )
-        raw_key_out_left = (
-            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
-            f"screen_share/ts_{ts_left_out}_seq_0002.webp"
-        )
-        raw_key_in_right = (
-            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
-            f"screen_share/ts_{ts_right_in}_seq_0003.webp"
-        )
-        raw_key_out_right = (
-            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
-            f"screen_share/ts_{ts_right_out}_seq_0004.webp"
-        )
-        keys = [raw_key_out_left, raw_key_out_right, raw_key_in_left, raw_key_in_right]
 
         event = ExamEvent.objects.create(
             contest=self.contest,
             user=self.student,
             event_type="exit_fullscreen",
-            metadata={"module": "screen_share", "upload_session_id": session_id},
+            metadata={
+                "module": "screen_share",
+                "upload_session_id": session_id,
+                "evidence_anchor_at_ms": ts_ms,
+            },
         )
         event.created_at = timezone.make_aware(datetime.fromtimestamp(ts_ms / 1000))
         event.save(update_fields=["created_at"])
-        attach_evidence_window_metadata(event)
-
-        class FakePaginator:
-            def __init__(self, all_keys):
-                self._all_keys = all_keys
-
-            def paginate(self, Bucket: str, Prefix: str):
-                filtered = [key for key in self._all_keys if key.startswith(Prefix)]
-                yield {"Contents": [{"Key": key} for key in filtered]}
-
-        class FakeClient:
-            def __init__(self, all_keys):
-                self._all_keys = all_keys
-
-            def get_paginator(self, operation_name):
-                return FakePaginator(self._all_keys)
+        event = attach_evidence_window_metadata(event)
+        self._uploaded_evidence_frame(event, ts_left_out, seq=2, upload_session_id=session_id)
+        self._uploaded_evidence_frame(event, ts_right_out, seq=4, upload_session_id=session_id)
+        self._uploaded_evidence_frame(event, ts_left_in, seq=1, upload_session_id=session_id)
+        self._uploaded_evidence_frame(event, ts_right_in, seq=3, upload_session_id=session_id)
 
         self.client.force_authenticate(user=self.teacher)
         screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
         with patch(
-            "apps.contests.views.exam_evidence.get_s3_client",
-            return_value=FakeClient(keys),
-        ), patch(
             "apps.contests.views.exam_evidence.generate_get_url",
             return_value="https://example.test/frame.webp",
         ) as mock_get_url:
@@ -939,39 +1178,38 @@ class ExamAntiCheatTests(APITestCase):
     def test_screenshots_event_lookup_returns_all_modules_by_default(self):
         ts_ms = 1774107000000
         session_id = "session-event-window-2"
-        screen_key = (
-            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
-            f"screen_share/ts_{ts_ms}_seq_0001.webp"
-        )
-        webcam_key = (
-            f"contest_{self.contest.id}/user_{self.student.id}/session_{session_id}/"
-            f"webcam/ts_{ts_ms}_seq_0002.webp"
-        )
 
         event = ExamEvent.objects.create(
             contest=self.contest,
             user=self.student,
             event_type="exit_fullscreen",
-            metadata={"module": "screen_share", "upload_session_id": session_id},
+            metadata={
+                "module": "screen_share",
+                "upload_session_id": session_id,
+                "evidence_anchor_at_ms": ts_ms,
+            },
         )
         event.created_at = timezone.make_aware(datetime.fromtimestamp(ts_ms / 1000))
         event.save(update_fields=["created_at"])
-        attach_evidence_window_metadata(event)
-
-        class FakePaginator:
-            def paginate(self, Bucket: str, Prefix: str):
-                yield {"Contents": [{"Key": screen_key}, {"Key": webcam_key}]}
-
-        class FakeClient:
-            def get_paginator(self, operation_name):
-                return FakePaginator()
+        event = attach_evidence_window_metadata(event)
+        self._uploaded_evidence_frame(
+            event,
+            ts_ms,
+            seq=1,
+            source_module="screen_share",
+            upload_session_id=session_id,
+        )
+        self._uploaded_evidence_frame(
+            event,
+            ts_ms,
+            seq=2,
+            source_module="webcam",
+            upload_session_id=session_id,
+        )
 
         self.client.force_authenticate(user=self.teacher)
         screenshots_url = reverse("contests:contest-exam-screenshots", args=[self.contest.id])
         with patch(
-            "apps.contests.views.exam_evidence.get_s3_client",
-            return_value=FakeClient(),
-        ), patch(
             "apps.contests.views.exam_evidence.generate_get_url",
             return_value="https://example.test/frame.webp",
         ):

@@ -21,6 +21,12 @@ export interface ExamEventResponse {
   status?: string;
   message?: string;
   error?: string;
+  event_id?: number | string;
+  evidence_cluster_id?: string;
+  evidence_window_start?: string;
+  evidence_window_end?: string;
+  evidence_mode?: EvidenceMode;
+  evidence_anchor_at_ms?: number;
   violation_count?: number;
   max_cheat_warnings?: number;
   exam_status?: ExamStatusType;
@@ -29,6 +35,9 @@ export interface ExamEventResponse {
   bypass?: boolean;
   auto_unlock_at?: string;
 }
+
+export type EvidenceMode = "anchor_window" | "pre_loss" | "audit";
+export type EvidenceSourceModule = "screen_share" | "webcam";
 
 export interface RecordExamEventOptions {
   reason?: string;
@@ -545,11 +554,79 @@ export const uploadAnticheatBatch = async (
   );
 };
 
+export interface EvidenceUploadIntentFrame {
+  client_captured_at_ms: number;
+  seq: number;
+}
+
+export interface EvidenceUploadIntentRequest {
+  event_id: number | string;
+  evidence_cluster_id?: string;
+  source_module: EvidenceSourceModule;
+  evidence_mode: EvidenceMode;
+  upload_session_id?: string;
+  frames: EvidenceUploadIntentFrame[];
+  unavailable_reason?: string;
+}
+
+export interface EvidenceUploadIntentItem {
+  evidence_frame_id: number;
+  seq: number;
+  object_key: string;
+  source_module: EvidenceSourceModule;
+  client_captured_at_ms: number;
+  put_url: string;
+  required_headers?: Record<string, string>;
+}
+
+export interface EvidenceUploadIntentResponse {
+  upload_session_id: string;
+  evidence_cluster_id?: string;
+  evidence_mode?: EvidenceMode;
+  expires_at?: string;
+  unavailable?: boolean;
+  unavailable_frame_id?: number;
+  items: EvidenceUploadIntentItem[];
+}
+
+export interface EvidenceUploadConfirmFrame {
+  evidence_frame_id: number;
+  object_key: string;
+  byte_size?: number;
+  sha256?: string;
+}
+
+export const createEvidenceUploadIntent = async (
+  contestId: string,
+  payload: EvidenceUploadIntentRequest
+): Promise<EvidenceUploadIntentResponse> => {
+  return requestJson<EvidenceUploadIntentResponse>(
+    httpClient.post(`/api/v1/contests/${contestId}/exam/evidence/upload-intents/`, payload),
+    "Failed to create evidence upload intent"
+  );
+};
+
+export const confirmEvidenceUpload = async (
+  contestId: string,
+  payload: {
+    event_id?: number | string;
+    upload_session_id?: string;
+    frames: EvidenceUploadConfirmFrame[];
+  }
+): Promise<{ confirmed_count: number }> => {
+  return requestJson<{ confirmed_count: number }>(
+    httpClient.post(`/api/v1/contests/${contestId}/exam/evidence/upload-confirm/`, payload),
+    "Failed to confirm evidence upload"
+  );
+};
+
 export interface ScreenshotFrame {
   url: string;
   ts_ms: number;
   seq: number;
-  source_module?: "screen_share" | "webcam";
+  source_module?: EvidenceSourceModule;
+  evidence_frame_id?: number;
+  evidence_mode?: EvidenceMode;
   expires_in: number;
 }
 

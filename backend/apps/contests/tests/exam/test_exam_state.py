@@ -50,6 +50,8 @@ class ExamStateTests(APITestCase):
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["exam_status"], ExamStatus.SUBMITTED)
+        self.assertEqual(response.data["violation_count"], 0)
+        self.assertEqual(response.data["max_cheat_warnings"], self.contest.max_cheat_warnings)
         self.assertFalse(response.data["already_submitted"])
         
         p.refresh_from_db()
@@ -60,7 +62,8 @@ class ExamStateTests(APITestCase):
         p.exam_status = ExamStatus.SUBMITTED
         p.started_at = timezone.now()
         p.submit_reason = "Already submitted"
-        p.save(update_fields=["exam_status", "started_at", "submit_reason"])
+        p.violation_count = 2
+        p.save(update_fields=["exam_status", "started_at", "submit_reason", "violation_count"])
 
         url = reverse('contests:contest-exam-end-exam', args=[self.contest.id])
         response = self.client.post(url)
@@ -69,6 +72,24 @@ class ExamStateTests(APITestCase):
         self.assertEqual(response.data["exam_status"], ExamStatus.SUBMITTED)
         self.assertTrue(response.data["already_submitted"])
         self.assertEqual(response.data["submit_reason"], "Already submitted")
+        self.assertEqual(response.data["violation_count"], 2)
+
+    def test_start_exam_with_multiple_joins_preserves_violation_count(self):
+        self.contest.allow_multiple_joins = True
+        self.contest.save(update_fields=["allow_multiple_joins"])
+        p = ContestParticipant.objects.get(user=self.user, contest=self.contest)
+        p.exam_status = ExamStatus.SUBMITTED
+        p.started_at = timezone.now()
+        p.violation_count = 3
+        p.save(update_fields=["exam_status", "started_at", "violation_count"])
+
+        url = reverse('contests:contest-exam-start-exam', args=[self.contest.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        p.refresh_from_db()
+        self.assertEqual(p.exam_status, ExamStatus.IN_PROGRESS)
+        self.assertEqual(p.violation_count, 3)
 
     def test_unlock_participant(self):
         # Lock user

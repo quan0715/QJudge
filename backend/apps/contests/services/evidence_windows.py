@@ -6,7 +6,7 @@ workflow can stay event-keyed without creating per-video jobs.
 from __future__ import annotations
 
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.db import transaction
 from django.utils import timezone
@@ -16,11 +16,15 @@ from apps.contests.constants import PENALIZED_EVENT_TYPES
 from apps.contests.models import ExamEvent
 
 
-EVIDENCE_WINDOW_BEFORE_SECONDS = 20
-EVIDENCE_WINDOW_AFTER_SECONDS = 20
+EVIDENCE_WINDOW_BEFORE_SECONDS = 3
+EVIDENCE_WINDOW_AFTER_SECONDS = 3
+PRE_LOSS_EVIDENCE_WINDOW_BEFORE_SECONDS = 6
 EVIDENCE_WINDOW_MERGE_GAP_SECONDS = 20
 EVIDENCE_WINDOW_MAX_SECONDS = 120
 EVIDENCE_WINDOW_LOOKBACK_SECONDS = 300
+ANCHOR_WINDOW_MODE = "anchor_window"
+PRE_LOSS_MODE = "pre_loss"
+AUDIT_MODE = "audit"
 
 
 def _parse_datetime(value):
@@ -34,8 +38,28 @@ def _parse_datetime(value):
     return parsed
 
 
+def _parse_ms(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        if value >= 0:
+            return int(value)
+        return None
+    if isinstance(value, str):
+        try:
+            parsed = int(float(value))
+        except ValueError:
+            return None
+        return parsed if parsed >= 0 else None
+    return None
+
+
+def _datetime_from_ms(value: int):
+    return datetime.fromtimestamp(value / 1000, tz=dt_timezone.utc)
+
+
 def _iso(value) -> str:
-    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    return value.astimezone(dt_timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _source_module(metadata: dict) -> str:
@@ -48,14 +72,39 @@ def _is_relevant_event(event: ExamEvent) -> bool:
     phase = str(metadata.get("phase") or "").strip().upper()
     if phase in {"TERMINATING", "TERMINAL"}:
         return False
-    return event.event_type in PENALIZED_EVENT_TYPES
+    return (
+        event.event_type in PENALIZED_EVENT_TYPES
+        or bool(metadata.get("evidence_anchor_at"))
+        or _parse_ms(metadata.get("evidence_anchor_at_ms")) is not None
+        or str(metadata.get("evidence_mode") or "").strip() == AUDIT_MODE
+    )
 
 
 def _candidate_bounds(event: ExamEvent):
-    occurred_at = event.created_at or timezone.now()
+    metadata = event.metadata if isinstance(event.metadata, dict) else {}
+    anchor_ms = _parse_ms(metadata.get("evidence_anchor_at_ms"))
+    anchor_at = (
+        _datetime_from_ms(anchor_ms)
+        if anchor_ms is not None
+        else _parse_datetime(metadata.get("evidence_anchor_at")) or event.created_at or timezone.now()
+    )
+    mode = str(metadata.get("evidence_mode") or ANCHOR_WINDOW_MODE).strip() or ANCHOR_WINDOW_MODE
+    if mode == PRE_LOSS_MODE:
+        before_seconds = PRE_LOSS_EVIDENCE_WINDOW_BEFORE_SECONDS
+        after_seconds = 0
+    elif mode == AUDIT_MODE:
+        before_seconds = 0
+        after_seconds = 0
+    else:
+        before_seconds = metadata.get("evidence_window_before_seconds")
+        after_seconds = metadata.get("evidence_window_after_seconds")
+        if not isinstance(before_seconds, (int, float)) or before_seconds < 0:
+            before_seconds = EVIDENCE_WINDOW_BEFORE_SECONDS
+        if not isinstance(after_seconds, (int, float)) or after_seconds < 0:
+            after_seconds = EVIDENCE_WINDOW_AFTER_SECONDS
     return (
-        occurred_at - timedelta(seconds=EVIDENCE_WINDOW_BEFORE_SECONDS),
-        occurred_at + timedelta(seconds=EVIDENCE_WINDOW_AFTER_SECONDS),
+        anchor_at - timedelta(seconds=before_seconds),
+        anchor_at + timedelta(seconds=after_seconds),
     )
 
 
@@ -99,12 +148,7 @@ def _find_merge_target(event: ExamEvent, source_module: str, new_start):
 
 @transaction.atomic
 def attach_evidence_window_metadata(event: ExamEvent) -> ExamEvent:
-    """Attach or merge evidence window metadata for an exam event.
-
-    This intentionally avoids a new table for the first implementation pass.
-    The metadata is enough for UI/API wiring and lets us validate clustering
-    behavior before normalizing the schema.
-    """
+    """Attach a manifest-backed evidence window to an exam event."""
     if not _is_relevant_event(event):
         return event
 
@@ -112,26 +156,29 @@ def attach_evidence_window_metadata(event: ExamEvent) -> ExamEvent:
     metadata = dict(event.metadata or {})
     source_module = _source_module(metadata)
     new_start, new_end = _candidate_bounds(event)
-
-    merge_target = _find_merge_target(event, source_module, new_start)
-    if merge_target:
-        _, target_metadata, cluster_start, cluster_end = merge_target
-        cluster_id = str(target_metadata["evidence_cluster_id"])
-        window_start = cluster_start
-        max_end = window_start + timedelta(seconds=EVIDENCE_WINDOW_MAX_SECONDS)
-        window_end = min(max(cluster_end, new_end), max_end)
-    else:
-        cluster_id = uuid.uuid4().hex
-        window_start = new_start
-        window_end = min(new_end, window_start + timedelta(seconds=EVIDENCE_WINDOW_MAX_SECONDS))
+    cluster_id = str(metadata.get("evidence_cluster_id") or uuid.uuid4().hex)
+    window_start = new_start
+    window_end = min(new_end, window_start + timedelta(seconds=EVIDENCE_WINDOW_MAX_SECONDS))
+    anchor_ms = _parse_ms(metadata.get("evidence_anchor_at_ms"))
+    if anchor_ms is None:
+        anchor = _parse_datetime(metadata.get("evidence_anchor_at")) or event.created_at or timezone.now()
+        anchor_ms = int(anchor.timestamp() * 1000)
+    evidence_mode = str(metadata.get("evidence_mode") or ANCHOR_WINDOW_MODE).strip() or ANCHOR_WINDOW_MODE
+    if evidence_mode not in {ANCHOR_WINDOW_MODE, PRE_LOSS_MODE, AUDIT_MODE}:
+        evidence_mode = ANCHOR_WINDOW_MODE
+    before_seconds = max(0, int(((_datetime_from_ms(anchor_ms)) - window_start).total_seconds()))
+    after_seconds = max(0, int((window_end - _datetime_from_ms(anchor_ms)).total_seconds()))
 
     metadata.update(
         {
             "evidence_cluster_id": cluster_id,
+            "evidence_mode": evidence_mode,
+            "evidence_anchor_at_ms": anchor_ms,
+            "evidence_anchor_at": _iso(_datetime_from_ms(anchor_ms)),
             "evidence_window_start": _iso(window_start),
             "evidence_window_end": _iso(window_end),
-            "evidence_window_before_seconds": EVIDENCE_WINDOW_BEFORE_SECONDS,
-            "evidence_window_after_seconds": EVIDENCE_WINDOW_AFTER_SECONDS,
+            "evidence_window_before_seconds": before_seconds,
+            "evidence_window_after_seconds": after_seconds,
             "evidence_window_max_seconds": EVIDENCE_WINDOW_MAX_SECONDS,
             "evidence_source_module": source_module,
             "pre_buffer_complete": bool(metadata.get("pre_buffer_complete", False)),
@@ -139,18 +186,5 @@ def attach_evidence_window_metadata(event: ExamEvent) -> ExamEvent:
     )
     event.metadata = metadata
     event.save(update_fields=["metadata"])
-
-    cluster_events = ExamEvent.objects.filter(
-        contest=event.contest,
-        user=event.user,
-        metadata__evidence_cluster_id=cluster_id,
-    ).exclude(pk=event.pk)
-    for cluster_event in cluster_events:
-        cluster_metadata = dict(cluster_event.metadata or {})
-        cluster_metadata["evidence_window_start"] = _iso(window_start)
-        cluster_metadata["evidence_window_end"] = _iso(window_end)
-        cluster_metadata["evidence_window_max_seconds"] = EVIDENCE_WINDOW_MAX_SECONDS
-        cluster_event.metadata = cluster_metadata
-        cluster_event.save(update_fields=["metadata"])
 
     return event

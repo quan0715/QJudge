@@ -12,6 +12,7 @@ from apps.contests.models import (
     ContestActivity,
     ContestParticipant,
     ExamAnswer,
+    ExamEvidenceFrame,
     ExamEvent,
     ExamQuestion,
     ExamQuestionType,
@@ -103,7 +104,7 @@ class ParticipantDashboardApiTests(APITestCase):
             graded_by=self.teacher,
             graded_at=timezone.now(),
         )
-        ExamEvent.objects.create(
+        blur_event = ExamEvent.objects.create(
             contest=contest,
             user=self.student,
             event_type="window_blur",
@@ -122,6 +123,20 @@ class ParticipantDashboardApiTests(APITestCase):
                 },
             },
         )
+        for seq, module in enumerate(("screen_share", "webcam"), start=1):
+            ExamEvidenceFrame.objects.create(
+                contest=contest,
+                user=self.student,
+                exam_event=blur_event,
+                source_module=module,
+                evidence_mode="anchor_window",
+                upload_session_id="session-dashboard-1",
+                seq=seq,
+                object_key=f"{module}-{seq}.webp",
+                client_captured_at_ms=1774106646000 + seq,
+                status=ExamEvidenceFrame.Status.UPLOADED,
+                storage_confirmed_at=timezone.now(),
+            )
         ContestActivity.objects.create(
             contest=contest,
             user=self.student,
@@ -199,6 +214,20 @@ class ParticipantDashboardApiTests(APITestCase):
         )
         second.created_at = first.created_at + timedelta(seconds=10)
         second.save(update_fields=["created_at"])
+        for event, seq in ((first, 9), (second, 10)):
+            ExamEvidenceFrame.objects.create(
+                contest=contest,
+                user=self.student,
+                exam_event=event,
+                source_module="screen_share",
+                evidence_mode="anchor_window",
+                upload_session_id="session-1",
+                seq=seq,
+                object_key=event.metadata["forced_capture_uploaded_object_keys"][0],
+                client_captured_at_ms=1774106640000 + seq,
+                status=ExamEvidenceFrame.Status.UPLOADED,
+                storage_confirmed_at=timezone.now(),
+            )
 
         self.client.force_authenticate(user=self.teacher)
         response = self.client.get(

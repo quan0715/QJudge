@@ -16,6 +16,7 @@ vi.mock("@/shared/state/examCaptureSessionStore", () => ({
 }));
 
 import { recordExamEvent } from "@/infrastructure/api/repositories";
+import type { ExamEventResponse } from "@/infrastructure/api/repositories";
 
 describe("forcedCapture", () => {
   beforeEach(() => {
@@ -23,8 +24,8 @@ describe("forcedCapture", () => {
     unregisterForcedCaptureHandler("contest-1");
   });
 
-  it("records event with forced-capture metadata when capture succeeds", async () => {
-    registerForcedCaptureHandler("contest-1", "screen_share", vi.fn().mockResolvedValue({
+  it("records event with evidence anchor metadata and schedules capture after event id", async () => {
+    const handler = vi.fn().mockResolvedValue({
       attempted: true,
       captured: true,
       uploaded: true,
@@ -36,13 +37,22 @@ describe("forcedCapture", () => {
       evidencePreBufferComplete: true,
       evidencePreBufferFrameCount: 3,
       evidenceUploadedFrameCount: 4,
-    }));
-    vi.mocked(recordExamEvent).mockResolvedValue({ status: "ok" } as any);
+    });
+    registerForcedCaptureHandler("contest-1", "screen_share", handler);
+    vi.mocked(recordExamEvent).mockResolvedValue({
+      status: "ok",
+      event_id: 42,
+      evidence_cluster_id: "cluster-1",
+      evidence_mode: "anchor_window",
+      evidence_anchor_at_ms: 1774106646951,
+      evidence_window_start: "2026-03-21T10:03:58.951Z",
+      evidence_window_end: "2026-03-21T10:04:04.951Z",
+    } satisfies ExamEventResponse);
 
     await recordExamEventWithForcedCapture("contest-1", "tab_hidden", {
       reason: "window hidden",
       source: "detector:test",
-      metadata: { existing: true },
+      metadata: { existing: true, evidence_anchor_at_ms: 1774106646951 },
       forceCaptureReason: "tab_hidden:window hidden",
     });
 
@@ -55,24 +65,26 @@ describe("forcedCapture", () => {
           existing: true,
           forced_capture_requested: true,
           forced_capture_reason: "tab_hidden:window hidden",
-          forced_capture_result: "uploaded",
-          forced_capture_uploaded: true,
-          forced_capture_seq: 7,
-          forced_capture_uploaded_seqs: [3, 4, 5, 7],
-          forced_capture_uploaded_object_keys: ["raw/3.webp", "raw/4.webp", "raw/5.webp", "raw/7.webp"],
-          evidence_pre_buffer_attempted: true,
-          evidence_pre_buffer_complete: true,
-          pre_buffer_complete: true,
-          evidence_pre_buffer_frame_count: 3,
-          evidence_uploaded_frame_count: 4,
+          evidence_anchor_at_ms: 1774106646951,
+          client_observed_at_ms: 1774106646951,
+          evidence_mode: "anchor_window",
           upload_session_id: "session-123",
         }),
       })
     );
+    expect(handler).toHaveBeenCalledWith(
+      "tab_hidden:window hidden",
+      expect.objectContaining({
+        eventId: 42,
+        evidenceClusterId: "cluster-1",
+        evidenceMode: "anchor_window",
+        evidenceAnchorAtMs: 1774106646951,
+      })
+    );
   });
 
-  it("falls back to capture_unavailable when no handler is registered", async () => {
-    vi.mocked(recordExamEvent).mockResolvedValue({ status: "ok" } as any);
+  it("records evidence request metadata when no handler is registered", async () => {
+    vi.mocked(recordExamEvent).mockResolvedValue({ status: "ok" } satisfies ExamEventResponse);
 
     await recordExamEventWithForcedCapture("contest-1", "exam_entered", {
       reason: "entered exam",
@@ -83,8 +95,9 @@ describe("forcedCapture", () => {
       "exam_entered",
       expect.objectContaining({
         metadata: expect.objectContaining({
-          forced_capture_result: "skipped:capture_unavailable",
-          forced_capture_error_code: "capture_unavailable",
+          forced_capture_requested: true,
+          forced_capture_reason: "exam_entered",
+          evidence_mode: "anchor_window",
           upload_session_id: "session-123",
         }),
       })
@@ -148,8 +161,8 @@ describe("forcedCapture", () => {
     expect(result.modules).toEqual(["screen_share", "webcam"]);
   });
 
-  it("records aggregate object keys when multiple modules upload evidence", async () => {
-    registerForcedCaptureHandler("contest-1", "screen_share", vi.fn().mockResolvedValue({
+  it("passes event evidence context to all requested modules", async () => {
+    const screenHandler = vi.fn().mockResolvedValue({
       attempted: true,
       captured: true,
       uploaded: true,
@@ -158,8 +171,8 @@ describe("forcedCapture", () => {
       uploadedSeqs: [1],
       uploadedObjectKeys: ["contest_1/user_1/session_s/screen_share/ts_1_seq_0001.webp"],
       evidenceUploadedFrameCount: 1,
-    }));
-    registerForcedCaptureHandler("contest-1", "webcam", vi.fn().mockResolvedValue({
+    });
+    const webcamHandler = vi.fn().mockResolvedValue({
       attempted: true,
       captured: true,
       uploaded: true,
@@ -168,8 +181,15 @@ describe("forcedCapture", () => {
       uploadedSeqs: [2],
       uploadedObjectKeys: ["contest_1/user_1/session_s/webcam/ts_2_seq_0002.webp"],
       evidenceUploadedFrameCount: 1,
-    }));
-    vi.mocked(recordExamEvent).mockResolvedValue({ status: "ok" } as any);
+    });
+    registerForcedCaptureHandler("contest-1", "screen_share", screenHandler);
+    registerForcedCaptureHandler("contest-1", "webcam", webcamHandler);
+    vi.mocked(recordExamEvent).mockResolvedValue({
+      status: "ok",
+      event_id: 77,
+      evidence_cluster_id: "cluster-submit",
+      evidence_mode: "anchor_window",
+    } satisfies ExamEventResponse);
 
     await recordExamEventWithForcedCapture("contest-1", "exam_submit_initiated", {
       reason: "submit",
@@ -179,24 +199,17 @@ describe("forcedCapture", () => {
       },
     });
 
-    expect(recordExamEvent).toHaveBeenCalledWith(
-      "contest-1",
+    expect(screenHandler).toHaveBeenCalledWith(
       "exam_submit_initiated",
       expect.objectContaining({
-        metadata: expect.objectContaining({
-          forced_capture_modules: ["screen_share", "webcam"],
-          forced_capture_uploaded_seqs: [1, 2],
-          forced_capture_uploaded_object_keys: [
-            "contest_1/user_1/session_s/screen_share/ts_1_seq_0001.webp",
-            "contest_1/user_1/session_s/webcam/ts_2_seq_0002.webp",
-          ],
-          evidence_uploaded_frame_count: 2,
-          forced_capture_module_results: expect.objectContaining({
-            screen_share: expect.objectContaining({ uploaded: true }),
-            webcam: expect.objectContaining({ uploaded: true }),
-          }),
-        }),
+        eventId: 77,
+        evidenceClusterId: "cluster-submit",
+        modules: ["screen_share", "webcam"],
       })
+    );
+    expect(webcamHandler).toHaveBeenCalledWith(
+      "exam_submit_initiated",
+      expect.objectContaining({ eventId: 77, evidenceClusterId: "cluster-submit" })
     );
   });
 

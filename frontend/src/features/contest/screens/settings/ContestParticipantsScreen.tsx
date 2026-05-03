@@ -56,10 +56,13 @@ import {
 } from "./participants/participantsScreen.config";
 import styles from "@/features/contest/components/participants/ContestParticipantsDashboard.module.scss";
 
+const PARTICIPANT_STATUS_REFRESH_MS = 10000;
+
 const ContestParticipantsScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
   const { t } = useTranslation("contest");
-  const { participants, isRefreshing, refreshAdminData } = useContestAdmin();
+  const { participants, isRefreshing, refreshAdminData, refreshParticipants } =
+    useContestAdmin();
   const { registerPanelRefresh } = useAdminPanelRefresh();
   const { contest } = useContest();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -195,6 +198,30 @@ const ContestParticipantsScreen = () => {
     return rows;
   }, [participants, searchQuery, statusFilter, sortKey]);
 
+  const selectedParticipant = useMemo(
+    () =>
+      selectedUserId
+        ? participants.find(
+            (participant) => participant.userId === selectedUserId,
+          )
+        : null,
+    [participants, selectedUserId],
+  );
+
+  const liveDashboard = useMemo(() => {
+    if (!dashboard || !selectedParticipant) return dashboard;
+    return {
+      ...dashboard,
+      participant: {
+        ...dashboard.participant,
+        ...selectedParticipant,
+        startedAt: dashboard.participant.startedAt,
+        leftAt: dashboard.participant.leftAt,
+        lockedAt: dashboard.participant.lockedAt,
+      },
+    };
+  }, [dashboard, selectedParticipant]);
+
   const updateParams = useCallback(
     (updates: Record<string, string | null>) => {
       setSearchParams(
@@ -287,6 +314,39 @@ const ContestParticipantsScreen = () => {
       await refreshBoth();
     });
   }, [refreshBoth, registerPanelRefresh]);
+
+  useEffect(() => {
+    if (!contestId) return;
+
+    const refreshLiveStatuses = async () => {
+      if (document.visibilityState !== "visible") return;
+      if (refreshInFlightRef.current) return;
+
+      refreshInFlightRef.current = true;
+      try {
+        await refreshParticipants();
+      } finally {
+        refreshInFlightRef.current = false;
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void refreshLiveStatuses();
+    }, PARTICIPANT_STATUS_REFRESH_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshLiveStatuses();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [contestId, refreshParticipants]);
 
   const handleAddParticipant = async (username: string) => {
     if (!contestId) return;
@@ -680,7 +740,7 @@ const ContestParticipantsScreen = () => {
                 {detail ? (
                   <ParticipantDashboardPane
                     contestId={contestId}
-                    dashboard={dashboard}
+                    dashboard={liveDashboard}
                     loading={dashboardLoading}
                     error={dashboardError}
                     activeDetail={activeDetail}
@@ -711,7 +771,7 @@ const ContestParticipantsScreen = () => {
           mobileDetailOpen={Boolean(selectedUserId && detail)}
         >
           <ParticipantOperationsPane
-            dashboard={dashboard}
+            dashboard={liveDashboard}
             loading={dashboardLoading}
             error={dashboardError}
             onDownloadReport={handleDownloadReport}

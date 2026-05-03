@@ -31,10 +31,13 @@ export default function CheatDetectionPanel({
   };
 
   return (
-    <Section title="作弊檢查">
+    <Section title={t("settings.examModeSettings", "防作弊監控設定")}>
       <ActionRow
         label={t("settings.enableExamMode")}
-        description="啟用後將開啟全螢幕監控、作弊偵測與答案鎖定機制"
+        description={t(
+          "settings.enableExamModeDesc",
+          "啟用後會依裝置政策套用考前檢查、監考來源與異常事件記錄。"
+        )}
         saveState={getState("cheatDetectionEnabled")}
         onRetry={() => onRetry("cheatDetectionEnabled")}
       >
@@ -47,8 +50,11 @@ export default function CheatDetectionPanel({
           toggled={(form.cheatDetectionEnabled as boolean) ?? false}
           onToggle={(checked) => {
             const msg = checked
-              ? "開啟作弊檢查後將啟用作弊偵測和答案鎖定機制，確定開啟？"
-              : "關閉作弊檢查將停用所有監控功能，確定關閉？";
+              ? t(
+                  "settings.confirmEnableExamMode",
+                  "啟用後將依裝置政策套用考前檢查、監考來源與異常事件記錄，確定啟用？"
+                )
+              : t("settings.confirmDisableExamMode", "關閉後將停用本場考試的防作弊監控，確定關閉？");
             onConfirmedChange("cheatDetectionEnabled", checked, msg);
           }}
         />
@@ -64,18 +70,21 @@ export default function CheatDetectionPanel({
                 marginBottom: "0.75rem",
               }}
             >
-              Access Policy
+              {t("settings.anticheat.accessPolicy", "Access Policy")}
             </h5>
 
             <ActionRow
-              label="允許桌機作答"
-              description="Windows / macOS / Linux 桌面瀏覽器使用這套規則。"
+              label={t("settings.anticheat.allowDesktop", "允許桌機作答")}
+              description={t(
+                "settings.anticheat.allowDesktopDesc",
+                "Windows / macOS / Linux 桌面瀏覽器使用這套規則。"
+              )}
               saveState={getState("anticheatDevicePolicy")}
               onRetry={() => onRetry("anticheatDevicePolicy")}
             >
               <Toggle
                 id="settings-allow-desktop"
-                labelText="允許桌機作答"
+                labelText={t("settings.anticheat.allowDesktop", "允許桌機作答")}
                 hideLabel
                 labelA={tc("toggle.off")}
                 labelB={tc("toggle.on")}
@@ -90,14 +99,17 @@ export default function CheatDetectionPanel({
             </ActionRow>
 
             <ActionRow
-              label="允許平板作答"
-              description="iPad / Android tablet 仍視為 tablet，即使外接鍵盤滑鼠也不會改成 desktop。"
+              label={t("settings.anticheat.allowTablet", "允許平板作答")}
+              description={t(
+                "settings.anticheat.allowTabletDesc",
+                "iPad / Android tablet 仍視為 tablet，即使外接鍵盤滑鼠也不會改成 desktop。"
+              )}
               saveState={getState("anticheatDevicePolicy")}
               onRetry={() => onRetry("anticheatDevicePolicy")}
             >
               <Toggle
                 id="settings-allow-tablet"
-                labelText="允許平板作答"
+                labelText={t("settings.anticheat.allowTablet", "允許平板作答")}
                 hideLabel
                 labelA={tc("toggle.off")}
                 labelB={tc("toggle.on")}
@@ -112,14 +124,17 @@ export default function CheatDetectionPanel({
             </ActionRow>
 
             <ActionRow
-              label="允許桌機多螢幕"
-              description="關閉時，桌機會啟用多螢幕偵測並視為違規。"
+              label={t("settings.anticheat.allowDesktopMultiDisplay", "允許桌機多螢幕")}
+              description={t(
+                "settings.anticheat.allowDesktopMultiDisplayDesc",
+                "關閉時，桌機會啟用多螢幕偵測並記錄為異常事件。"
+              )}
               saveState={getState("anticheatDevicePolicy")}
               onRetry={() => onRetry("anticheatDevicePolicy")}
             >
               <Toggle
                 id="settings-allow-desktop-multi-display"
-                labelText="允許桌機多螢幕"
+                labelText={t("settings.anticheat.allowDesktopMultiDisplay", "允許桌機多螢幕")}
                 hideLabel
                 labelA={tc("toggle.forbid")}
                 labelB={tc("toggle.allow")}
@@ -136,7 +151,10 @@ export default function CheatDetectionPanel({
 
             <ActionRow
               label={t("settings.allowMultipleJoins")}
-              description="允許學生在已提交或離開後重新進入考試，並接管原有的作答進度。"
+              description={t(
+                "settings.allowMultipleJoinsDesc",
+                "允許學生在離開後重新進入考試，並接管原有的作答進度。"
+              )}
               saveState={getState("allowMultipleJoins")}
               onRetry={() => onRetry("allowMultipleJoins")}
             >
@@ -161,18 +179,21 @@ export default function CheatDetectionPanel({
                 marginBottom: "0.75rem",
               }}
             >
-              Evidence Policy
+              {t("settings.anticheat.evidencePolicy", "Evidence Policy")}
             </h5>
 
             <ActionRow
-              label="啟用證據追蹤"
-              description="桌機預設要求螢幕共享；平板預設要求 webcam。"
+              label={t("settings.anticheat.enableEvidenceTracking", "啟用證據追蹤")}
+              description={t(
+                "settings.anticheat.enableEvidenceTrackingDesc",
+                "桌機預設要求螢幕分享；平板預設要求 Webcam。"
+              )}
               saveState={getState("anticheatDevicePolicy")}
               onRetry={() => onRetry("anticheatDevicePolicy")}
             >
               <Toggle
                 id="settings-evidence-enabled"
-                labelText="啟用證據追蹤"
+                labelText={t("settings.anticheat.enableEvidenceTracking", "啟用證據追蹤")}
                 hideLabel
                 labelA={tc("toggle.off")}
                 labelB={tc("toggle.on")}
@@ -193,23 +214,31 @@ export default function CheatDetectionPanel({
                 }}
               >
                 <FieldRow
-                  label="桌機主證據來源"
-                  description="桌機固定以 screen share 為主來源；全螢幕與多螢幕規則也會跟著 desktop runtime 執行。"
+                  label={t("settings.anticheat.desktopPrimaryEvidence", "桌機主證據來源")}
+                  description={t(
+                    "settings.anticheat.desktopPrimaryEvidenceDesc",
+                    "桌機以螢幕分享為主來源；全螢幕與多螢幕規則會依桌機監控流程執行。"
+                  )}
                 >
                   <span style={{ fontSize: "0.875rem", color: "var(--cds-text-primary)" }}>
-                    {evidencePolicy.desktopScreenShare ? "Screen share" : "未啟用"}
+                    {evidencePolicy.desktopScreenShare
+                      ? t("settings.anticheat.sourceScreenShare", "Screen share")
+                      : t("common:disabled", "未啟用")}
                   </span>
                 </FieldRow>
 
                 <ActionRow
-                  label="桌機輔助 webcam"
-                  description="開啟後，desktop 會在 screen share 之外額外要求 webcam。"
+                  label={t("settings.anticheat.desktopWebcamAssist", "桌機輔助 Webcam")}
+                  description={t(
+                    "settings.anticheat.desktopWebcamAssistDesc",
+                    "開啟後，桌機會在螢幕分享之外額外要求 Webcam。"
+                  )}
                   saveState={getState("anticheatDevicePolicy")}
                   onRetry={() => onRetry("anticheatDevicePolicy")}
                 >
                   <Toggle
                     id="settings-desktop-webcam-assist"
-                    labelText="桌機輔助 webcam"
+                    labelText={t("settings.anticheat.desktopWebcamAssist", "桌機輔助 Webcam")}
                     hideLabel
                     labelA={tc("toggle.off")}
                     labelB={tc("toggle.on")}
@@ -225,17 +254,25 @@ export default function CheatDetectionPanel({
                 </ActionRow>
 
                 <FieldRow
-                  label="平板主證據來源"
-                  description="平板不走 desktop 的 fullscreen / blur / tab hidden；進場以 PWA，執行期以 viewport integrity 為主。"
+                  label={t("settings.anticheat.tabletPrimaryEvidence", "平板主證據來源")}
+                  description={t(
+                    "settings.anticheat.tabletPrimaryEvidenceDesc",
+                    "平板不使用 desktop 的全螢幕、失焦與分頁隱藏規則；進場以 PWA，執行期以視窗完整性檢查為主。"
+                  )}
                 >
                   <span style={{ fontSize: "0.875rem", color: "var(--cds-text-primary)" }}>
-                    {evidencePolicy.tabletWebcam ? "Webcam" : "未啟用"}
+                    {evidencePolicy.tabletWebcam
+                      ? t("settings.anticheat.sourceWebcam", "Webcam")
+                      : t("common:disabled", "未啟用")}
                   </span>
                 </FieldRow>
 
                 <ActionRow
-                  label="螢幕共享恢復時限"
-                  description="螢幕共享中斷後，學生可重新分享的寬限秒數；前端 runtime 會直接依後端儲存值執行。"
+                  label={t("settings.anticheat.screenShareRecoveryGrace", "螢幕分享恢復時限")}
+                  description={t(
+                    "settings.anticheat.screenShareRecoveryGraceDesc",
+                    "螢幕分享中斷後，學生可重新分享的寬限秒數；runtime 會依後端儲存值執行。"
+                  )}
                   saveState={getState("screenShareRecoveryGraceMs")}
                   onRetry={() => onRetry("screenShareRecoveryGraceMs")}
                 >

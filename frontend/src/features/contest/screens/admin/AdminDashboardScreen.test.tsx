@@ -7,6 +7,7 @@ import AdminDashboardScreen from "./AdminDashboardScreen";
 const mockRefreshContest = vi.fn();
 const mockRefreshAllAdminData = vi.fn();
 const mockRefreshAdminData = vi.fn();
+const mockRefreshParticipants = vi.fn();
 
 const mockContest = {
   id: "contest-1",
@@ -35,6 +36,7 @@ vi.mock("@/features/contest/contexts", () => ({
   useContestAdmin: () => ({
     refreshAllAdminData: mockRefreshAllAdminData,
     refreshAdminData: mockRefreshAdminData,
+    refreshParticipants: mockRefreshParticipants,
   }),
   useAdminPanelRefresh: () => ({
     triggerPanelRefresh: vi.fn(),

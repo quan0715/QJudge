@@ -259,7 +259,7 @@ export default function IncidentCard({
     try {
       const sessionId = meta.upload_session_id as string | undefined;
       const sourceModule =
-        evidenceModules.length === 1 && evidenceObjectKeys.length === 0
+        evidenceModules.length === 1
           ? evidenceModules[0]
           : undefined;
       const evidenceClusterId = typeof meta.evidence_cluster_id === "string" ? meta.evidence_cluster_id : "";
@@ -298,9 +298,6 @@ export default function IncidentCard({
       if (sourceModule) {
         params.source_module = sourceModule;
       }
-      if (evidenceObjectKeys.length > 0) {
-        params.object_keys = evidenceObjectKeys.slice(0, screenshotPreviewLimit);
-      }
       const result = await fetchScreenshots(contestId, params);
 
       setScreenshots(result.items);
@@ -315,7 +312,6 @@ export default function IncidentCard({
     contestId,
     incident.userId,
     meta,
-    evidenceObjectKeys,
     evidenceModules,
     incident.firstAt,
     incident.eventId,

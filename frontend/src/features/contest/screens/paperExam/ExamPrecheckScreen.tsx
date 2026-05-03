@@ -98,6 +98,24 @@ const ExamPrecheckScreen: React.FC = () => {
         )
         .join(" + ")
     : t("precheck.entryDevice.source.none", "未啟用監考來源");
+  const environmentRequirements = [
+    t("precheck.environment.requirements.browser"),
+    ...(monitoringPlan.precheck.requireSingleMonitor
+      ? [
+          t("precheck.environment.requirements.permission"),
+          t("precheck.environment.requirements.display"),
+        ]
+      : []),
+    ...(monitoringPlan.precheck.requireScreenShare
+      ? [t("precheck.environment.requirements.sharing")]
+      : []),
+    ...(monitoringPlan.precheck.enableWebcam
+      ? [t("precheck.environment.requirements.webcam", "請允許瀏覽器使用 Webcam。")]
+      : []),
+    ...(monitoringPlan.precheck.requirePwaMode
+      ? [t("precheck.environment.requirements.pwa", "請從主畫面啟動 PWA 視窗作答。")]
+      : []),
+  ];
 
   const getPostPrecheckRoute = useCallback(() => {
     if (!contestId) return "";
@@ -386,7 +404,9 @@ const ExamPrecheckScreen: React.FC = () => {
     monitoringPlan.allowed,
     monitoringPlan.missingEnabledSources,
     monitoringPlan.precheck.requireScreenShare,
+    monitoringPlan.precheck.requireSingleMonitor,
     monitoringPlan.precheck.requireWebcam,
+    monitoringPlan.precheck.enableWebcam,
     monitoringPlan.precheck.requirePwaMode,
     skipFullscreenCheck,
     t,
@@ -403,6 +423,7 @@ const ExamPrecheckScreen: React.FC = () => {
         requireScreenShare: monitoringPlan.precheck.requireScreenShare,
         requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
         requireWebcam: monitoringPlan.precheck.requireWebcam,
+        enableWebcam: monitoringPlan.precheck.enableWebcam,
         requirePwaOnTablet: monitoringPlan.precheck.requirePwaMode,
         isPwaMode: capability.isPwaMode,
         skipFullscreenCheck,
@@ -437,7 +458,9 @@ const ExamPrecheckScreen: React.FC = () => {
     capability.isPwaMode,
     countdown,
     contestId,
+    monitoringPlan.precheck.enableWebcam,
     monitoringPlan.precheck.requireScreenShare,
+    monitoringPlan.precheck.requireSingleMonitor,
     monitoringPlan.precheck.requireWebcam,
     monitoringPlan.precheck.requirePwaMode,
     getPostPrecheckRoute,
@@ -633,10 +656,12 @@ const ExamPrecheckScreen: React.FC = () => {
                 </h4>
                 <div style={{ marginTop: 0, marginBottom: "1rem", color: "var(--cds-text-secondary)", lineHeight: 1.6 }}>
                   <b>{t("precheck.environment.requirements.title")}</b><br/>
-                  1. {t("precheck.environment.requirements.browser")}<br/>
-                  2. {t("precheck.environment.requirements.permission")}<br/>
-                  3. {t("precheck.environment.requirements.display")}<br/>
-                  4. {t("precheck.environment.requirements.sharing")}
+                  {environmentRequirements.map((requirement, index) => (
+                    <React.Fragment key={requirement}>
+                      {index + 1}. {requirement}
+                      <br/>
+                    </React.Fragment>
+                  ))}
                 </div>
                 {renderCheckList(envChecks)}
               </Tile>
@@ -698,7 +723,15 @@ const ExamPrecheckScreen: React.FC = () => {
                     }}
                   />
                   <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.clipboardRecorded") }} />
-                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.randomInspection") }} />
+                  {entryDeviceMetadata.active_sources.length > 0 && (
+                    <li
+                      dangerouslySetInnerHTML={{
+                        __html: t("precheck.instruction.randomInspection", {
+                          sources: entrySourceLabel,
+                        }),
+                      }}
+                    />
+                  )}
                   <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.autoSave") }} />
                   <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.autoSubmit") }} />
                   {contest?.endTime && (

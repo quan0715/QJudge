@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from django.db.models import Count
 from django.utils import timezone
 
 from apps.contests.exporters.data_service import ContestDataService
@@ -13,6 +14,7 @@ from apps.contests.models import (
     ContestActivity,
     ContestParticipant,
     ExamAnswer,
+    ExamEvidenceFrame,
     ExamEvent,
     ExamQuestion,
     ExamQuestionType,
@@ -506,6 +508,16 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
             user_id=participant.user_id,
         ).exclude(event_type="heartbeat").order_by("created_at")
     )
+    evidence_counts_by_event = {
+        row["exam_event_id"]: row["count"]
+        for row in ExamEvidenceFrame.objects.filter(
+            contest=contest,
+            user_id=participant.user_id,
+            status=ExamEvidenceFrame.Status.UPLOADED,
+        )
+        .values("exam_event_id")
+        .annotate(count=Count("id"))
+    }
 
     # Fetch contest activities
     activities = list(
@@ -524,7 +536,7 @@ def _serialize_event_feed(contest: Contest, participant: ContestParticipant) -> 
         et = event.event_type
         ts = event.created_at
         meta = event.metadata or {}
-        uploaded_count = _forced_capture_uploaded_count(meta)
+        uploaded_count = evidence_counts_by_event.get(event.id, 0)
         has_evidence = uploaded_count > 0
 
         if et == "clipboard_action":

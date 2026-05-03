@@ -457,6 +457,19 @@
     "monitoring": "Monitoring",
     "monitoringDeviceUnsupported": "This device does not meet the monitoring policy for this exam. Return to the dashboard and run the environment check again.",
     "monitoringHint": "Exam monitoring - Click for details",
+    "monitoringIssueHint": "Restore monitoring from the prompt; event evidence has been preserved.",
+    "monitoringCountdown": "{{seconds}}s",
+    "monitoringReminder": {
+      "fullscreen": "Return fullscreen",
+      "mouse_leave": "Mouse left",
+      "multiple_displays": "Multi-display",
+      "policy_unavailable": "Monitoring action",
+      "pwa_required": "PWA required",
+      "screen_share": "Screen share lost",
+      "split_view": "Split view",
+      "viewport": "Window issue",
+      "webcam": "Webcam lost"
+    },
     "mouseLeaveRecoveryDesc": "Move your mouse back into the exam window within {{seconds}} seconds, or this will count as one violation.",
     "mouseLeaveRecoveryTitle": "Mouse left the window",
     "mouseLeftWindow": "Mouse left the window",
@@ -1178,7 +1191,8 @@
         "fullscreen": "Fullscreen Mode",
         "interaction": "Interaction Check",
         "monitor": "Display Count",
-        "sharing": "Screen Sharing"
+        "sharing": "Screen Sharing",
+        "webcam": "Webcam Access"
       },
       "errors": {
         "browserNotSupported": "Your browser does not support display management. Please use Chrome or Edge.",
@@ -1191,21 +1205,28 @@
         "noScreenDetails": "Unable to confirm display count. Please retry the environment check.",
         "notMonitor": "You must share your 'Entire Screen'. Sharing windows or tabs is not permitted.",
         "sharingFailed": "Screen sharing failed. Please allow sharing your 'Entire Screen'.",
-        "sharingInterrupted": "Screen sharing interrupted. Please complete the check again."
+        "sharingInterrupted": "Screen sharing interrupted. Please complete the check again.",
+        "webcamUnsupported": "This browser does not support Webcam.",
+        "webcamFailed": "Webcam is unavailable. Please grant permission again.",
+        "tabletRequiresPwa": "iPad proctoring requires PWA mode. Add QJudge to the home screen, reopen it from there, and try again."
       },
       "requirements": {
         "browser": "Use latest Google Chrome or Microsoft Edge.",
         "display": "Single physical monitor required; disconnect external displays.",
         "permission": "Grant \"Window and Display Management\" permission when prompted.",
         "sharing": "Please choose \"Entire Screen\" for screen sharing.",
-        "title": "Environment Requirements:"
+        "title": "Environment Requirements:",
+        "webcam": "Allow browser access to Webcam.",
+        "pwa": "Launch the PWA window from the home screen."
       },
       "status": {
         "checking": "Checking...",
         "monitorCount": "{{count}} monitor(s)",
         "next": "Next: Confirmation",
         "retry": "Retry Test",
-        "start": "Start Test"
+        "start": "Start Test",
+        "optionalSkipped": "Webcam not enabled (optional)",
+        "pwaFullscreenBypass": "PWA mode: fullscreen check skipped"
       },
       "title": "Environment Check"
     },
@@ -1218,7 +1239,7 @@
       "keepFullscreen": "Stay in <b>fullscreen at all times</b>; exiting fullscreen will be <b>silently recorded</b> as anomalous behavior.",
       "keepPwaMode": "On iPad, use the <b>home-screen PWA</b> throughout the exam; leaving will be <b>silently recorded</b>.",
       "noSwitch": "Switching tabs, losing window focus, and similar actions will be <b>silently recorded</b> by the system for later review.",
-      "randomInspection": "During the exam, proctors may <b>randomly inspect</b> your screen at any time; screen captures serve as <b>evidence</b>.",
+      "randomInspection": "During the exam, proctors may <b>randomly inspect</b> {{sources}}; captured content is used as <b>evidence</b>.",
       "title": "Exam Rules"
     },
     "steps": {
@@ -1345,7 +1366,27 @@
       "securityDetectors": "Violation Detection Mechanism",
       "tabletLabel": "Tablet / iPad Settings",
       "webcam": "Video Monitoring (Webcam)",
-      "webcamDesc": "Capture student webcam as monitoring evidence"
+      "webcamDesc": "Capture student webcam as monitoring evidence",
+      "accessPolicy": "Access Policy",
+      "allowDesktop": "Allow Desktop",
+      "allowDesktopDesc": "Windows, macOS, and Linux desktop browsers use this policy.",
+      "allowTablet": "Allow Tablet",
+      "allowTabletDesc": "iPad and Android tablets remain classified as tablets, even with an external keyboard or mouse.",
+      "allowDesktopMultiDisplay": "Allow Desktop Multi-display",
+      "allowDesktopMultiDisplayDesc": "When disabled, desktop multi-display detection is enabled and recorded as an anomaly event.",
+      "evidencePolicy": "Evidence Policy",
+      "enableEvidenceTracking": "Enable Evidence Tracking",
+      "enableEvidenceTrackingDesc": "Desktop defaults to screen sharing; tablet defaults to Webcam.",
+      "desktopPrimaryEvidence": "Desktop Primary Evidence Source",
+      "desktopPrimaryEvidenceDesc": "Desktop uses screen share as the primary source; fullscreen and multi-display rules follow the desktop monitoring flow.",
+      "desktopWebcamAssist": "Desktop Webcam Assist",
+      "desktopWebcamAssistDesc": "When enabled, desktop requires Webcam in addition to screen sharing.",
+      "tabletPrimaryEvidence": "Tablet Primary Evidence Source",
+      "tabletPrimaryEvidenceDesc": "Tablet does not use desktop fullscreen, focus, or tab-hidden rules; entry uses PWA and runtime relies on viewport integrity checks.",
+      "screenShareRecoveryGrace": "Screen Share Recovery Grace",
+      "screenShareRecoveryGraceDesc": "Seconds students have to reshare after screen sharing stops; runtime follows the saved backend value.",
+      "sourceScreenShare": "Screen share",
+      "sourceWebcam": "Webcam"
     },
     "archiveContest": "Archive Contest",
     "archiveDesc": "Once archived, the contest will become read-only and cannot be activated again.",
@@ -1364,7 +1405,7 @@
     "deleteContest": "Delete Contest",
     "deleteDesc": "This action cannot be undone. All related data (including submissions and rankings) will be permanently deleted.",
     "deleteFailed": "Delete failed",
-    "enableExamMode": "Enable Cheat Detection",
+    "enableExamMode": "Enable Anti-cheat Monitoring",
     "examModeSettings": "Cheat Detection Settings",
     "exportCSV": "Export CSV",
     "exportData": "Export Data",
@@ -1397,7 +1438,12 @@
     "title": "Contest Settings",
     "updateFailed": "Update failed, please check fields",
     "updated": "Settings updated",
-    "warningCooldown": "Warning Cooldown (sec)"
+    "warningCooldown": "Warning Cooldown (sec)",
+    "displaySettings": "Display Settings",
+    "enableExamModeDesc": "Apply pre-checks, monitoring sources, and anomaly event logging according to the device policy.",
+    "confirmEnableExamMode": "This will apply pre-checks, monitoring sources, and anomaly event logging according to the device policy. Enable it?",
+    "confirmDisableExamMode": "This will disable anti-cheat monitoring for this exam. Disable it?",
+    "allowMultipleJoinsDesc": "Allow students to re-enter the exam after leaving and resume their existing progress."
   },
   "standings": {
     "icpcRules": "Ranking Rules: Rankings are based on total score first, then number of problems solved, finally penalty time (solve time + 20 min per wrong attempt).",

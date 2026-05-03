@@ -1,5 +1,6 @@
 """ExamEventsMixin — event logging and penalty processing."""
 import logging
+from datetime import datetime, timezone as dt_timezone
 
 from django.utils import timezone
 from django.db import transaction
@@ -43,6 +44,18 @@ class ExamEventsMixin:
     MODULE_ROLE_SECONDARY = "secondary"
     WEBCAM_STOPPED_EVENT = "webcam_stopped"
     VIEWPORT_STOPPED_EVENT = "viewport_stopped"
+    STREAM_LOSS_EVENT_TYPES = {"screen_share_stopped", "webcam_stopped"}
+    ANCHOR_WINDOW_EVIDENCE_EVENT_TYPES = {
+        "exit_fullscreen",
+        "exit_fullscreen_triggered",
+        "forbidden_focus_event",
+        "mouse_leave",
+        "mouse_leave_triggered",
+        "multiple_displays",
+        "multi_display_triggered",
+        "split_view_detected",
+        "viewport_stopped",
+    }
 
     def _normalize_upload_session_id(self, value) -> str:
         normalized = str(value or "").strip()
@@ -184,6 +197,76 @@ class ExamEventsMixin:
         if event_type == "multiple_displays":
             return "Multiple displays detected; pre-check is required to continue"
         return f"Monitoring recovery required: {event_type}"
+
+    def _parse_evidence_ms(self, value) -> int | None:
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            return int(value) if value >= 0 else None
+        if isinstance(value, str):
+            try:
+                parsed = int(float(value))
+            except ValueError:
+                return None
+            return parsed if parsed >= 0 else None
+        return None
+
+    def _evidence_anchor_iso(self, anchor_ms: int) -> str:
+        return datetime.fromtimestamp(anchor_ms / 1000, tz=dt_timezone.utc).isoformat().replace("+00:00", "Z")
+
+    def _normalize_evidence_metadata(self, event_type: str, metadata: dict, validated_data: dict) -> dict:
+        normalized = dict(metadata or {})
+        for key in (
+            "client_observed_at_ms",
+            "server_time_offset_ms",
+            "evidence_anchor_at_ms",
+            "evidence_mode",
+            "event_idempotency_key",
+        ):
+            if key in validated_data and validated_data.get(key) not in (None, ""):
+                normalized[key] = validated_data[key]
+
+        evidence_requested = (
+            event_type in self.PENALIZED_EVENT_TYPES
+            or event_type in self.ANCHOR_WINDOW_EVIDENCE_EVENT_TYPES
+            or bool(normalized.get("forced_capture_requested"))
+            or self._parse_evidence_ms(normalized.get("evidence_anchor_at_ms")) is not None
+        )
+        if not evidence_requested:
+            return normalized
+
+        anchor_ms = self._parse_evidence_ms(normalized.get("evidence_anchor_at_ms"))
+        if anchor_ms is None:
+            anchor_ms = self._parse_evidence_ms(normalized.get("client_observed_at_ms"))
+        if anchor_ms is None:
+            anchor_ms = int(timezone.now().timestamp() * 1000)
+
+        evidence_mode = str(normalized.get("evidence_mode") or "").strip()
+        if not evidence_mode:
+            evidence_mode = "pre_loss" if event_type in self.STREAM_LOSS_EVENT_TYPES else "anchor_window"
+
+        normalized["evidence_anchor_at_ms"] = anchor_ms
+        normalized["evidence_anchor_at"] = self._evidence_anchor_iso(anchor_ms)
+        normalized["client_observed_at_ms"] = self._parse_evidence_ms(
+            normalized.get("client_observed_at_ms")
+        ) or anchor_ms
+        normalized["evidence_mode"] = evidence_mode
+        if evidence_mode == "pre_loss":
+            normalized.setdefault("loss_detected_at_ms", anchor_ms)
+        return normalized
+
+    def _event_response_metadata(self, event: ExamEvent | None) -> dict:
+        if event is None:
+            return {}
+        metadata = event.metadata if isinstance(event.metadata, dict) else {}
+        return {
+            "event_id": event.id,
+            "evidence_cluster_id": metadata.get("evidence_cluster_id") or "",
+            "evidence_window_start": metadata.get("evidence_window_start"),
+            "evidence_window_end": metadata.get("evidence_window_end"),
+            "evidence_mode": metadata.get("evidence_mode"),
+            "evidence_anchor_at_ms": metadata.get("evidence_anchor_at_ms"),
+        }
 
     def _build_event_response(self, participant, contest):
         auto_unlock_at = None
@@ -359,6 +442,7 @@ class ExamEventsMixin:
 
         if event_type == "exam_entered":
             metadata = self._enrich_exam_entered_metadata(request, metadata)
+        metadata = self._normalize_evidence_metadata(event_type, metadata, serializer.validated_data)
         source_module, module_role = self._resolve_module_context(
             contest,
             request.user,
@@ -370,6 +454,7 @@ class ExamEventsMixin:
         upload_session_id = str(metadata.get("upload_session_id") or "").strip() or None
         event_phase = str(metadata.get("phase") or "").upper()
         idempotency_token = str(metadata.get("event_idempotency_key") or "").strip()
+        existing_event = None
 
         if is_duplicate_exam_event(
             contest_id=contest.id,
@@ -377,6 +462,17 @@ class ExamEventsMixin:
             event_type=event_type,
             token=idempotency_token or None,
         ):
+            if idempotency_token:
+                existing_event = (
+                    ExamEvent.objects.filter(
+                        contest=contest,
+                        user=request.user,
+                        event_type=event_type,
+                        metadata__event_idempotency_key=idempotency_token,
+                    )
+                    .order_by("-created_at")
+                    .first()
+                )
             logger.info(
                 "anticheat_event_decision contest=%s user=%s event=%s decision=dedupe_hit phase=%s",
                 contest.id,
@@ -390,17 +486,19 @@ class ExamEventsMixin:
                     'max_cheat_warnings': contest.max_cheat_warnings,
                     'decision': 'dedupe_hit',
                     'dedupe_hit': True,
+                    **self._event_response_metadata(existing_event),
                 }
             )
             return Response(payload)
 
         if participant.exam_status == ExamStatus.SUBMITTED:
-            ExamEvent.objects.create(
+            event = ExamEvent.objects.create(
                 contest=contest,
                 user=request.user,
                 event_type=event_type,
                 metadata=metadata,
             )
+            event = attach_evidence_window_metadata(event)
             logger.info(
                 "anticheat_event_decision contest=%s user=%s event=%s decision=terminal_guard status=submitted",
                 contest.id,
@@ -413,6 +511,7 @@ class ExamEventsMixin:
                     'max_cheat_warnings': contest.max_cheat_warnings,
                     'decision': 'terminal_guard',
                     'dedupe_hit': False,
+                    **self._event_response_metadata(event),
                 }
             )
             return Response(payload)
@@ -444,7 +543,7 @@ class ExamEventsMixin:
                     event_type=event_type,
                     metadata=metadata
                 )
-                attach_evidence_window_metadata(event)
+                event = attach_evidence_window_metadata(event)
                 if not family_dup:
                     participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
                     participant = self._process_penalized_event(
@@ -463,7 +562,7 @@ class ExamEventsMixin:
                 event_type=event_type,
                 metadata=metadata
             )
-            attach_evidence_window_metadata(event)
+            event = attach_evidence_window_metadata(event)
             clear_incident_family(
                 contest_id=contest.id,
                 user_id=request.user.id,
@@ -484,6 +583,7 @@ class ExamEventsMixin:
                 'max_cheat_warnings': contest.max_cheat_warnings,
                 'decision': 'terminal_guard' if terminal_phase_guard else 'accepted',
                 'dedupe_hit': False,
+                **self._event_response_metadata(event),
             }
         )
         return Response(payload)

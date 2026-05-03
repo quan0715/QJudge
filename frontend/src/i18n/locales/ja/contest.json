@@ -457,6 +457,19 @@
     "monitoring": "監視中",
     "monitoringDeviceUnsupported": "目前裝置不符合此考試的監考設定，請回到儀表板重新進行環境檢查。",
     "monitoringHint": "試験監視中 - 詳細はクリック",
+    "monitoringIssueHint": "案内に従って監視状態を復旧してください。イベント証跡は保存されています。",
+    "monitoringCountdown": "{{seconds}}s",
+    "monitoringReminder": {
+      "fullscreen": "全画面に戻る",
+      "mouse_leave": "マウス離脱",
+      "multiple_displays": "複数画面",
+      "policy_unavailable": "監視確認",
+      "pwa_required": "PWA 必須",
+      "screen_share": "画面共有切断",
+      "split_view": "分割表示",
+      "viewport": "画面サイズ異常",
+      "webcam": "Webcam 切断"
+    },
     "mouseLeaveRecoveryDesc": "{{seconds}} 秒以内にマウスを試験ウィンドウ内に戻さない場合、違反として1回記録されます。",
     "mouseLeaveRecoveryTitle": "マウスがウィンドウ外に出ました",
     "mouseLeftWindow": "マウスがウィンドウ外に出ました",
@@ -1178,7 +1191,8 @@
         "fullscreen": "フルスクリーンテスト",
         "interaction": "操作入力の確認",
         "monitor": "モニター数確認",
-        "sharing": "画面共有の許可"
+        "sharing": "画面共有の許可",
+        "webcam": "Webcam 権限"
       },
       "errors": {
         "browserNotSupported": "お使いのブラウザはディスプレイ管理に対応していません。Chrome または Edge を使用してください。",
@@ -1191,21 +1205,28 @@
         "noScreenDetails": "モニター数を確認できません。環境テストをやり直してください。",
         "notMonitor": "「画面全体 (monitor)」を共有する必要があります。ウィンドウやタブの共有は許可されていません。",
         "sharingFailed": "画面共有の許可に失敗しました。「画面全体」の共有を許可してください。",
-        "sharingInterrupted": "画面共有が中断されました。再度チェックを完了してください。"
+        "sharingInterrupted": "画面共有が中断されました。再度チェックを完了してください。",
+        "webcamUnsupported": "このブラウザは Webcam をサポートしていません。",
+        "webcamFailed": "Webcam を使用できません。権限を再度許可してください。",
+        "tabletRequiresPwa": "iPad 監視には PWA モードが必要です。ホーム画面に追加し、そこから開き直して再試行してください。"
       },
       "requirements": {
         "browser": "最新版 Chrome または Edge を使用してください。",
         "display": "単一モニター限定（外部モニターは外してください）。",
         "permission": "「ウィンドウとディスプレイの管理」を許可してください。",
         "sharing": "共有時は必ず「画面全体」を選択してください。",
-        "title": "環境要件："
+        "title": "環境要件：",
+        "webcam": "ブラウザに Webcam の使用を許可してください。",
+        "pwa": "ホーム画面から PWA ウィンドウを起動してください。"
       },
       "status": {
         "checking": "チェック中...",
         "monitorCount": "{{count}} 個のモニター",
         "next": "次へ：開始確認",
         "retry": "再テスト",
-        "start": "テスト開始"
+        "start": "テスト開始",
+        "optionalSkipped": "Webcam は未有効（任意）",
+        "pwaFullscreenBypass": "PWA モード：全画面チェックをスキップしました"
       },
       "title": "環境テスト"
     },
@@ -1218,7 +1239,7 @@
       "keepFullscreen": "<b>常に全画面を維持</b>してください。解除すると<b>サイレント記録</b>され、異常行為として扱われます。",
       "keepPwaMode": "iPad では<b>ホーム画面から起動した PWA</b> で受験してください。離れると<b>サイレント記録</b>されます。",
       "noSwitch": "タブ切替・ウィンドウ フォーカス喪失などの操作はシステムにより<b>サイレント記録</b>され、後日の審査対象となります。",
-      "randomInspection": "試験中、試験監督が<b>ランダムに抽検</b>で画面を確認する場合があります。画面キャプチャは<b>証拠</b>として使用されます。",
+      "randomInspection": "試験中、監督者が {{sources}} を<b>ランダムに確認</b>する場合があります。取得内容は<b>証拠</b>として使用されます。",
       "title": "受験ルール"
     },
     "steps": {
@@ -1345,7 +1366,27 @@
       "securityDetectors": "不正検知メカニズム",
       "tabletLabel": "タブレット / iPad 設定",
       "webcam": "ウェブカメラ (Webcam)",
-      "webcamDesc": "監視証拠として学生のカメラ映像をキャプチャする"
+      "webcamDesc": "監視証拠として学生のカメラ映像をキャプチャする",
+      "accessPolicy": "受験デバイスポリシー",
+      "allowDesktop": "デスクトップを許可",
+      "allowDesktopDesc": "Windows / macOS / Linux のデスクトップブラウザにこのルールを適用します。",
+      "allowTablet": "タブレットを許可",
+      "allowTabletDesc": "iPad / Android tablet は、外部キーボードやマウス接続時も tablet として扱います。",
+      "allowDesktopMultiDisplay": "デスクトップの複数画面を許可",
+      "allowDesktopMultiDisplayDesc": "無効にすると、デスクトップでは複数画面検出が有効になり、異常イベントとして記録されます。",
+      "evidencePolicy": "証拠追跡ポリシー",
+      "enableEvidenceTracking": "証拠追跡を有効化",
+      "enableEvidenceTrackingDesc": "デスクトップは画面共有、タブレットは Webcam を既定で要求します。",
+      "desktopPrimaryEvidence": "デスクトップの主証拠ソース",
+      "desktopPrimaryEvidenceDesc": "デスクトップは画面共有を主ソースとし、全画面と複数画面ルールはデスクトップ監視フローに従います。",
+      "desktopWebcamAssist": "デスクトップ補助 Webcam",
+      "desktopWebcamAssistDesc": "有効にすると、デスクトップでは画面共有に加えて Webcam も要求します。",
+      "tabletPrimaryEvidence": "タブレットの主証拠ソース",
+      "tabletPrimaryEvidenceDesc": "タブレットでは desktop の全画面、フォーカス、タブ非表示ルールを使わず、入場は PWA、実行中は viewport integrity を中心に確認します。",
+      "screenShareRecoveryGrace": "画面共有復旧猶予",
+      "screenShareRecoveryGraceDesc": "画面共有が停止した後、学生が再共有できる猶予秒数です。runtime は保存済みのバックエンド値に従います。",
+      "sourceScreenShare": "画面共有",
+      "sourceWebcam": "Webcam"
     },
     "archiveContest": "コンテストをアーカイブ",
     "archiveDesc": "アーカイブすると、コンテストは読み取り専用になり、再び有効にすることはできません。",
@@ -1364,7 +1405,7 @@
     "deleteContest": "コンテストを削除",
     "deleteDesc": "この操作は元に戻せません。すべての関連データ（提出記録とランキングを含む）が完全に削除されます。",
     "deleteFailed": "削除に失敗しました",
-    "enableExamMode": "不正検出を有効にする",
+    "enableExamMode": "不正対策監視を有効化",
     "examModeSettings": "不正検出設定",
     "exportCSV": "CSVをエクスポート",
     "exportData": "データをエクスポート",
@@ -1397,7 +1438,12 @@
     "title": "コンテスト設定",
     "updateFailed": "更新に失敗しました。フィールドを確認してください",
     "updated": "設定が更新されました",
-    "warningCooldown": "警告表示時間 (秒)"
+    "warningCooldown": "警告表示時間 (秒)",
+    "displaySettings": "表示設定",
+    "enableExamModeDesc": "デバイスポリシーに基づき、事前チェック、監視ソース、異常イベント記録を適用します。",
+    "confirmEnableExamMode": "デバイスポリシーに基づき、事前チェック、監視ソース、異常イベント記録を適用します。有効にしますか？",
+    "confirmDisableExamMode": "この試験の不正対策監視を無効にします。よろしいですか？",
+    "allowMultipleJoinsDesc": "学生が退出後に試験へ再入場し、既存の解答進捗を引き継げるようにします。"
   },
   "standings": {
     "icpcRules": "ICPCルール：解決した問題数を優先し、次に総ペナルティ時間（解決時間 + 誤答につき20分）で順位を決定します。",

@@ -26,6 +26,10 @@ import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/ho
 import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatScreenCapture";
 import { useAnticheatWebcamCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatWebcamCapture";
 import { ExamCaptureProvider } from "@/features/contest/contexts/ExamCaptureContext";
+import {
+  ExamMonitoringStatusProvider,
+  type ExamMonitoringReminder,
+} from "@/features/contest/contexts/ExamMonitoringStatusContext";
 import { createStreamAdapter } from "@/features/contest/anticheat/streamAdapter";
 import {
   setRuntimeScreenShareHandoff,
@@ -45,8 +49,8 @@ import ExamSubmissionProgressModal from "@/features/contest/components/exam/Exam
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 import {
   detectAnticheatCapability,
-  resolveEvidenceCaptureStrategy,
   resolveDeviceMonitoringPlan,
+  type AnticheatSourceModule,
 } from "@/features/contest/domain/anticheatModulePolicy";
 import { useForceSubmitArbiter } from "@/features/contest/hooks/useForceSubmitArbiter";
 import { useViewportMonitoring } from "@/features/contest/hooks/useViewportMonitoring";
@@ -89,6 +93,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const { classroomId } = useParams<{ classroomId?: string }>();
   const containerRef = useRef<HTMLDivElement>(null);
   const lastBlockedActionToastAt = useRef<number>(0);
+  const lastAllowedExamPathRef = useRef<string | null>(null);
+  const lastRouteViolationPathRef = useRef<string | null>(null);
   const fullscreenAdapterRef = useRef(createFullscreenAdapter());
   const { showToast } = useToast();
   const streamAdapterRef = useRef(createStreamAdapter());
@@ -104,18 +110,22 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     capability,
     anticheatConfig?.devicePolicy ?? anticheatEffective?.anticheatDevicePolicy,
   );
-  const evidenceCaptureStrategy = useMemo(
-    () => resolveEvidenceCaptureStrategy(monitoringPlan),
-    [
-      monitoringPlan.primarySourceModule,
-      monitoringPlan.runtime.enableScreenShareCapture,
-      monitoringPlan.runtime.enableWebcamCapture,
-    ],
-  );
+  const primarySourceModule = monitoringPlan.primarySourceModule;
+  const evidenceCaptureModules = useMemo<AnticheatSourceModule[]>(() => {
+    const modules: AnticheatSourceModule[] = [];
+    if (monitoringPlan.runtime.enableScreenShareCapture) {
+      modules.push("screen_share");
+    }
+    if (monitoringPlan.runtime.enableWebcamCapture) {
+      modules.push("webcam");
+    }
+    return modules;
+  }, [
+    monitoringPlan.runtime.enableScreenShareCapture,
+    monitoringPlan.runtime.enableWebcamCapture,
+  ]);
   const effectiveRequiresFullscreen =
     requiresFullscreen && monitoringPlan.precheck.requireFullscreen;
-  const { primarySourceModule, enabledCaptureModules: evidenceCaptureModules } =
-    evidenceCaptureStrategy;
   const screenModuleRole =
     monitoringPlan.sources.screenShare.role ?? "secondary";
   const webcamModuleRole = monitoringPlan.sources.webcam.role ?? "secondary";
@@ -385,7 +395,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     requestForceSubmit,
   });
 
-  useMouseLeaveMonitoring({
+  const mouseLeave = useMouseLeaveMonitoring({
     contestId,
     enabled: effectiveMonitoringEnabled && monitoringPlan.detectors.mouseLeave,
     isTablet: capability.isTablet,
@@ -427,6 +437,142 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     [showToast],
   );
 
+  const isAllowedExamRoute = useCallback(
+    (pathname: string) => {
+      const normalizedPath = pathname.replace(/\/+$/, "");
+      const standaloneContestPath = `/contest/${contestId}`;
+      if (
+        normalizedPath === standaloneContestPath ||
+        normalizedPath.startsWith(`${standaloneContestPath}/`)
+      ) {
+        return true;
+      }
+
+      if (classroomId) {
+        const classroomContestPath = getClassroomContestDashboardPath(
+          classroomId,
+          contestId,
+        );
+        return (
+          normalizedPath === classroomContestPath ||
+          normalizedPath.startsWith(`${classroomContestPath}/`)
+        );
+      }
+
+      return false;
+    },
+    [classroomId, contestId],
+  );
+
+  const recordForbiddenRouteAttempt = useCallback(
+    (targetPath: string) => {
+      if (lastRouteViolationPathRef.current === targetPath) return;
+      lastRouteViolationPathRef.current = targetPath;
+      void handleViolation("forbidden_focus_event", "exam_route_changed", {
+        source: "exam_mode:route_guard",
+        severity: "violation",
+      });
+    },
+    [handleViolation],
+  );
+
+  const getExamFallbackPath = useCallback(() => {
+    return (
+      lastAllowedExamPathRef.current ||
+      (classroomId
+        ? `${getClassroomContestDashboardPath(classroomId, contestId)}/solve`
+        : `/contest/${contestId}`)
+    );
+  }, [classroomId, contestId]);
+
+  useEffect(() => {
+    if (
+      !effectiveMonitoringEnabled ||
+      examStatus !== "in_progress" ||
+      !precheckPassed
+    ) {
+      lastAllowedExamPathRef.current = null;
+      lastRouteViolationPathRef.current = null;
+      return;
+    }
+
+    const currentPath = `${location.pathname}${location.search}${location.hash}`;
+    if (isAllowedExamRoute(location.pathname)) {
+      lastAllowedExamPathRef.current = currentPath;
+      lastRouteViolationPathRef.current = null;
+      return;
+    }
+
+    recordForbiddenRouteAttempt(currentPath);
+
+    const fallbackPath = getExamFallbackPath();
+    if (fallbackPath && currentPath !== fallbackPath) {
+      navigate(fallbackPath, { replace: true });
+    }
+  }, [
+    effectiveMonitoringEnabled,
+    examStatus,
+    getExamFallbackPath,
+    isAllowedExamRoute,
+    location.hash,
+    location.pathname,
+    location.search,
+    navigate,
+    precheckPassed,
+    recordForbiddenRouteAttempt,
+  ]);
+
+  useEffect(() => {
+    if (
+      !effectiveMonitoringEnabled ||
+      examStatus !== "in_progress" ||
+      !precheckPassed
+    ) {
+      return;
+    }
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      if (anchor.target && anchor.target !== "_self") return;
+
+      let url: URL;
+      try {
+        url = new URL(anchor.href, window.location.href);
+      } catch {
+        return;
+      }
+      const targetPath = `${url.pathname}${url.search}${url.hash}`;
+      if (url.origin === window.location.origin && isAllowedExamRoute(url.pathname)) {
+        return;
+      }
+
+      event.preventDefault();
+      recordForbiddenRouteAttempt(targetPath);
+      const fallbackPath = getExamFallbackPath();
+      if (fallbackPath) {
+        navigate(fallbackPath, { replace: true });
+      }
+    };
+
+    document.addEventListener("click", handleDocumentClick, true);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick, true);
+    };
+  }, [
+    effectiveMonitoringEnabled,
+    examStatus,
+    getExamFallbackPath,
+    isAllowedExamRoute,
+    navigate,
+    precheckPassed,
+    recordForbiddenRouteAttempt,
+  ]);
+
   const [showFullscreenExitConfirm, setShowFullscreenExitConfirm] =
     useState(false);
   const [isSubmittingFromFullscreenExit, setIsSubmittingFromFullscreenExit] =
@@ -444,6 +590,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     m.set("webcam", webcam.recoveryCountdown);
     m.set("viewport", viewport.recoveryCountdown);
     m.set("fullscreen", fullscreen.recoveryCountdown);
+    m.set("mouse_leave", mouseLeave.recoveryCountdown);
     m.set("multiple_displays", multiDisplay.recoveryCountdown);
     return m;
   }, [
@@ -451,6 +598,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     webcam.recoveryCountdown,
     viewport.recoveryCountdown,
     fullscreen.recoveryCountdown,
+    mouseLeave.recoveryCountdown,
     multiDisplay.recoveryCountdown,
   ]);
   const primaryCountdown = selectPrimaryCountdownFromRegistry(countdownMap);
@@ -477,7 +625,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     } finally {
       setIsRequestingScreenShare(false);
     }
-  }, [contestId, effectiveRequiresFullscreen, screenShare]);
+  }, [effectiveRequiresFullscreen, screenShare]);
 
   const handleWebcamReacquire = useCallback(async () => {
     if (!supportsUserMediaApi()) return;
@@ -495,7 +643,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     } finally {
       setIsRequestingWebcam(false);
     }
-  }, [contestId, webcam]);
+  }, [webcam]);
 
   useExamMonitoring({
     contestId,
@@ -720,7 +868,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     }
   }, [effectiveRequiresFullscreen]);
 
-  const isAnsweringPath = () => {
+  const isAnsweringPath = useCallback(() => {
     const contestBasePath = classroomId
       ? getClassroomContestDashboardPath(classroomId, contestId)
       : null;
@@ -730,7 +878,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       normalizedPath === `${contestBasePath}/solve` ||
       normalizedPath.startsWith(`${contestBasePath}/solve/`)
     );
-  };
+  }, [classroomId, contestId, location.pathname]);
 
   const shouldShowPolicyUnavailableScreen =
     policyUnavailable && isAnsweringPath();
@@ -778,6 +926,49 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     examStatus: examStatus ?? null,
   });
 
+  const monitoringReminder = useMemo<ExamMonitoringReminder | null>(() => {
+    if (shouldShowPolicyUnavailableScreen) {
+      return {
+        source: "policy_unavailable",
+        tone: "critical",
+        countdownSeconds: null,
+      };
+    }
+
+    if (pwaGuardFailed && isAnsweringPath()) {
+      return {
+        source: "pwa_required",
+        tone: "critical",
+        countdownSeconds: null,
+      };
+    }
+
+    if (primaryCountdown.value == null || !primaryCountdown.source) {
+      return null;
+    }
+
+    return {
+      source:
+        primaryCountdown.source === "viewport" && capability.isTablet
+          ? "split_view"
+          : primaryCountdown.source,
+      tone:
+        primaryCountdown.source === "screen_share" ||
+        (primaryCountdown.source === "webcam" && webcamModuleRole === "primary")
+          ? "critical"
+          : "warning",
+      countdownSeconds: primaryCountdown.value,
+    };
+  }, [
+    capability.isTablet,
+    isAnsweringPath,
+    primaryCountdown.source,
+    primaryCountdown.value,
+    pwaGuardFailed,
+    shouldShowPolicyUnavailableScreen,
+    webcamModuleRole,
+  ]);
+
   const handleBackToContest = async () => {
     await refreshAnticheatConfig();
     if (!classroomId) return;
@@ -786,66 +977,68 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   };
 
   return (
-    <ExamCaptureProvider value={examCaptureContextValue}>
-      <div
-        ref={containerRef}
-        style={{ position: "relative", width: "100%", height: "100%", flex: 1 }}
-      >
-        {children}
-        <ExamOverlays
-          showGracePeriod={false}
-          gracePeriodCountdown={0}
-          showLockScreen={shouldShowLockScreen}
-          lockReason={lockReasonText}
-          timeLeft={unlockTimeLeft}
-          onBackToContest={handleBackToContest}
-        />
-        <ExamModals
-          recoveryCountdown={
-            shouldShowGenericRecoveryModalForRoute(primaryCountdown.source)
-              ? primaryCountdown.value
-              : null
-          }
-          recoverySource={primaryCountdown.source}
-          onRecoverFullscreen={handleRecoverFullscreen}
-          showUnlockNotification={showUnlockNotification}
-          onUnlockContinue={handleUnlockContinue}
-          showFullscreenExitConfirm={showFullscreenExitConfirm}
-          isSubmittingFromFullscreenExit={isSubmittingFromFullscreenExit}
-          onFullscreenExitConfirm={handleFullscreenExitConfirm}
-          onFullscreenExitCancel={handleFullscreenExitCancel}
-          screenShareRecoveryCountdown={
-            screenShare.reauth.inProgress
-              ? (screenShare.reauth.remainingSeconds ?? 0)
-              : null
-          }
-          isRequestingScreenShare={isRequestingScreenShare}
-          isSubmittingFromScreenShareLoss={isForceSubmitting}
-          onScreenShareReacquire={handleScreenShareReacquire}
-          webcamRecoveryCountdown={webcam.recoveryCountdown}
-          isSubmittingFromWebcamLoss={isForceSubmitting}
-          isRequestingWebcam={isRequestingWebcam}
-          onWebcamReacquire={handleWebcamReacquire}
-          webcamModuleRole={webcamModuleRole}
-          viewportRecoveryCountdown={viewport.recoveryCountdown}
-          isSubmittingFromViewportLoss={isForceSubmitting}
-          isTablet={capability.isTablet}
-          showAutoSubmitNotice={showAutoSubmitNotice}
-          onAutoSubmitReturnToDashboard={() => {
-            setShowAutoSubmitNotice(false);
-            if (classroomId) {
-              navigate(
-                getClassroomContestDashboardPath(classroomId, contestId),
-              );
+    <ExamMonitoringStatusProvider value={monitoringReminder}>
+      <ExamCaptureProvider value={examCaptureContextValue}>
+        <div
+          ref={containerRef}
+          style={{ position: "relative", width: "100%", height: "100%", flex: 1 }}
+        >
+          {children}
+          <ExamOverlays
+            showGracePeriod={false}
+            gracePeriodCountdown={0}
+            showLockScreen={shouldShowLockScreen}
+            lockReason={lockReasonText}
+            timeLeft={unlockTimeLeft}
+            onBackToContest={handleBackToContest}
+          />
+          <ExamModals
+            recoveryCountdown={
+              shouldShowGenericRecoveryModalForRoute(primaryCountdown.source)
+                ? primaryCountdown.value
+                : null
             }
-          }}
-        />
-        <ExamSubmissionProgressModal
-          state={submissionProgress.state}
-          onRequestClose={submissionProgress.close}
-        />
-      </div>
-    </ExamCaptureProvider>
+            recoverySource={primaryCountdown.source}
+            onRecoverFullscreen={handleRecoverFullscreen}
+            showUnlockNotification={showUnlockNotification}
+            onUnlockContinue={handleUnlockContinue}
+            showFullscreenExitConfirm={showFullscreenExitConfirm}
+            isSubmittingFromFullscreenExit={isSubmittingFromFullscreenExit}
+            onFullscreenExitConfirm={handleFullscreenExitConfirm}
+            onFullscreenExitCancel={handleFullscreenExitCancel}
+            screenShareRecoveryCountdown={
+              screenShare.reauth.inProgress
+                ? (screenShare.reauth.remainingSeconds ?? 0)
+                : null
+            }
+            isRequestingScreenShare={isRequestingScreenShare}
+            isSubmittingFromScreenShareLoss={isForceSubmitting}
+            onScreenShareReacquire={handleScreenShareReacquire}
+            webcamRecoveryCountdown={webcam.recoveryCountdown}
+            isSubmittingFromWebcamLoss={isForceSubmitting}
+            isRequestingWebcam={isRequestingWebcam}
+            onWebcamReacquire={handleWebcamReacquire}
+            webcamModuleRole={webcamModuleRole}
+            viewportRecoveryCountdown={viewport.recoveryCountdown}
+            isSubmittingFromViewportLoss={isForceSubmitting}
+            isTablet={capability.isTablet}
+            showAutoSubmitNotice={showAutoSubmitNotice}
+            onAutoSubmitReturnToDashboard={() => {
+              setShowAutoSubmitNotice(false);
+              if (classroomId) {
+                navigate(
+                  getClassroomContestDashboardPath(classroomId, contestId),
+                );
+              }
+            }}
+          />
+          <ExamSubmissionProgressModal
+            state={submissionProgress.state}
+            onRequestClose={submissionProgress.close}
+          />
+        </div>
+      </ExamCaptureProvider>
+    </ExamMonitoringStatusProvider>
   );
 };
 

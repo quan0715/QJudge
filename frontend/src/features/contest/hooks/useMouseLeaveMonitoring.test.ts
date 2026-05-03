@@ -3,12 +3,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useMouseLeaveMonitoring } from "./useMouseLeaveMonitoring";
 
 // --- Mocks ---
+const mockRecordExamEventWithForcedCapture = vi.hoisted(() =>
+  vi.fn().mockResolvedValue(undefined),
+);
+
 vi.mock("@/infrastructure/api/repositories", () => ({
   recordExamEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/features/contest/anticheat/forcedCapture", () => ({
-  recordExamEventWithForcedCapture: vi.fn().mockResolvedValue(undefined),
+  recordExamEventWithForcedCapture: (...args: unknown[]) =>
+    mockRecordExamEventWithForcedCapture(...args),
 }));
 
 vi.mock("@/shared/state/examCaptureSessionStore", () => ({
@@ -57,6 +62,28 @@ describe("useMouseLeaveMonitoring", () => {
     act(() => { fireMouseLeave(null); });
 
     expect(result.current.recoveryCountdown).toBe(3);
+  });
+
+  it("records mouse leave trigger with a 3-second evidence window anchored to the event", () => {
+    vi.setSystemTime(new Date("2026-04-29T08:00:00.000Z"));
+    const config = makeConfig();
+    renderHook(() => useMouseLeaveMonitoring(config));
+
+    act(() => { fireMouseLeave(null); });
+
+    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
+      "contest-1",
+      "mouse_leave_triggered",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          reason: "mouse_left_exam_window",
+          observed_at: "2026-04-29T08:00:00.000Z",
+          evidence_anchor_at: "2026-04-29T08:00:00.000Z",
+          evidence_window_before_seconds: 3,
+          evidence_window_after_seconds: 3,
+        }),
+      }),
+    );
   });
 
   it("mouse re-enter recovers + cancels countdown", () => {

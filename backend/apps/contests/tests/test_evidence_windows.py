@@ -81,6 +81,30 @@ class EvidenceWindowMetadataTests(TestCase):
 
         self.assertNotIn("evidence_cluster_id", event.metadata or {})
 
+    def test_non_penalized_event_with_anchor_gets_requested_window_metadata(self):
+        occurred_at = timezone.now().replace(microsecond=0)
+        anchor = occurred_at + timedelta(seconds=10)
+
+        event = self._event_at(
+            "mouse_leave_triggered",
+            occurred_at,
+            {
+                "evidence_anchor_at": anchor.isoformat(),
+                "evidence_window_before_seconds": 3,
+                "evidence_window_after_seconds": 3,
+            },
+        )
+
+        self.assertIn("evidence_cluster_id", event.metadata)
+        self.assertEqual(
+            self._metadata_dt(event, "evidence_window_start"),
+            anchor - timedelta(seconds=3),
+        )
+        self.assertEqual(
+            self._metadata_dt(event, "evidence_window_end"),
+            anchor + timedelta(seconds=3),
+        )
+
     def test_terminal_phase_penalized_event_does_not_get_evidence_window(self):
         occurred_at = timezone.now().replace(microsecond=0)
 
@@ -92,7 +116,7 @@ class EvidenceWindowMetadataTests(TestCase):
 
         self.assertNotIn("evidence_cluster_id", event.metadata or {})
 
-    def test_nearby_penalized_events_merge_into_one_cluster_and_extend_window(self):
+    def test_nearby_penalized_events_keep_unique_evidence_clusters(self):
         base = timezone.now().replace(microsecond=0)
         first = self._event_at("exit_fullscreen", base)
         first_cluster = first.metadata["evidence_cluster_id"]
@@ -100,31 +124,35 @@ class EvidenceWindowMetadataTests(TestCase):
         second = self._event_at("multiple_displays", base + timedelta(seconds=15))
 
         first.refresh_from_db()
-        self.assertEqual(second.metadata["evidence_cluster_id"], first_cluster)
+        self.assertNotEqual(second.metadata["evidence_cluster_id"], first_cluster)
         self.assertEqual(first.metadata["evidence_cluster_id"], first_cluster)
         self.assertEqual(
             self._metadata_dt(first, "evidence_window_end"),
-            base + timedelta(seconds=35),
+            base + timedelta(seconds=EVIDENCE_WINDOW_AFTER_SECONDS),
         )
         self.assertEqual(
             self._metadata_dt(second, "evidence_window_start"),
-            base - timedelta(seconds=20),
+            base + timedelta(seconds=15 - EVIDENCE_WINDOW_BEFORE_SECONDS),
         )
 
-    def test_cluster_is_capped_at_max_duration_then_new_cluster_starts(self):
+    def test_stream_loss_uses_pre_loss_only_window(self):
         base = timezone.now().replace(microsecond=0)
-        first = self._event_at("exit_fullscreen", base)
-        cluster_id = first.metadata["evidence_cluster_id"]
+        anchor_ms = int(base.timestamp() * 1000)
 
-        for offset in (35, 70, 105):
-            event = self._event_at("multiple_displays", base + timedelta(seconds=offset))
-            self.assertEqual(event.metadata["evidence_cluster_id"], cluster_id)
-
-        first.refresh_from_db()
-        self.assertEqual(
-            self._metadata_dt(first, "evidence_window_end"),
-            base - timedelta(seconds=20) + timedelta(seconds=EVIDENCE_WINDOW_MAX_SECONDS),
+        event = self._event_at(
+            "screen_share_stopped",
+            base,
+            {
+                "module": "screen_share",
+                "evidence_anchor_at_ms": anchor_ms,
+                "loss_detected_at_ms": anchor_ms,
+                "evidence_mode": "pre_loss",
+            },
         )
 
-        next_event = self._event_at("mouse_leave", base + timedelta(seconds=140))
-        self.assertNotEqual(next_event.metadata["evidence_cluster_id"], cluster_id)
+        self.assertEqual(event.metadata["evidence_mode"], "pre_loss")
+        self.assertEqual(
+            self._metadata_dt(event, "evidence_window_start"),
+            base - timedelta(seconds=6),
+        )
+        self.assertEqual(self._metadata_dt(event, "evidence_window_end"), base)

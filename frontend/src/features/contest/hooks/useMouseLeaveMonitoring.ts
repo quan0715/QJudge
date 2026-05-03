@@ -20,6 +20,7 @@ const IME_COMPOSITION_GUARD_MS = 900;
  * longer than this threshold — it's an auto-hide, not a real window exit.
  */
 const POINTER_IDLE_THRESHOLD_MS = 2_000;
+const MOUSE_LEAVE_EVIDENCE_WINDOW_SECONDS = 3;
 
 export interface UseMouseLeaveMonitoringConfig {
   contestId: string;
@@ -103,7 +104,14 @@ export function useMouseLeaveMonitoring({
       if (now - lastTriggerAtRef.current < cooldownMs) return;
       lastTriggerAtRef.current = now;
 
-      pipeline.trigger();
+      const observedAt = new Date(now).toISOString();
+      pipeline.trigger({
+        reason: "mouse_left_exam_window",
+        observed_at: observedAt,
+        evidence_anchor_at: observedAt,
+        evidence_window_before_seconds: MOUSE_LEAVE_EVIDENCE_WINDOW_SECONDS,
+        evidence_window_after_seconds: MOUSE_LEAVE_EVIDENCE_WINDOW_SECONDS,
+      });
     };
 
     const handleMouseEnter = () => {

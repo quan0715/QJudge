@@ -36,6 +36,7 @@ interface UserMenuProps {
   contestMode?: boolean;
   contest?: ContestDetail | null;
   onContestRefresh?: () => void;
+  settingsOnly?: boolean;
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({
@@ -44,6 +45,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   contestMode = false,
   contest,
   onContestRefresh,
+  settingsOnly = false,
 }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -90,6 +92,10 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   }, [isExpanded, onExpandedChange, t]);
 
   const handleToggle = () => {
+    if (settingsOnly) {
+      openSettings();
+      return;
+    }
     const newState = !isExpandedInternal;
     setIsExpandedInternal(newState);
     onExpandedChange?.(newState);

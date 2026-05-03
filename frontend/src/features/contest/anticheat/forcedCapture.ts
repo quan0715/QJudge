@@ -1,6 +1,7 @@
 import {
   recordExamEvent,
   type ExamEventResponse,
+  type EvidenceMode,
   type RecordExamEventOptions,
 } from "@/infrastructure/api/repositories";
 import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
@@ -16,6 +17,12 @@ export type ForcedCaptureModule = "screen_share" | "webcam";
 export interface ForcedCaptureOptions {
   allowStreamRecovery?: boolean;
   modules?: ForcedCaptureModule[];
+  eventId?: number | string;
+  evidenceClusterId?: string;
+  evidenceMode?: EvidenceMode;
+  evidenceAnchorAtMs?: number;
+  evidenceWindowStart?: string;
+  evidenceWindowEnd?: string;
 }
 
 export interface ForcedCaptureModuleResult {
@@ -28,6 +35,8 @@ export interface ForcedCaptureModuleResult {
   seq: number | null;
   uploadedSeqs?: number[];
   uploadedObjectKeys?: string[];
+  evidenceFrameIds?: number[];
+  clientCapturedAtMs?: number[];
   evidencePreBufferAttempted?: boolean;
   evidencePreBufferComplete?: boolean;
   evidencePreBufferFrameCount?: number;
@@ -44,6 +53,8 @@ export interface ForcedCaptureResult {
   seq: number | null;
   uploadedSeqs?: number[];
   uploadedObjectKeys?: string[];
+  evidenceFrameIds?: number[];
+  clientCapturedAtMs?: number[];
   evidencePreBufferAttempted?: boolean;
   evidencePreBufferComplete?: boolean;
   evidencePreBufferFrameCount?: number;
@@ -128,6 +139,8 @@ const toModuleResult = (result: ForcedCaptureResult): ForcedCaptureModuleResult 
   seq: result.seq,
   uploadedSeqs: result.uploadedSeqs,
   uploadedObjectKeys: result.uploadedObjectKeys,
+  evidenceFrameIds: result.evidenceFrameIds,
+  clientCapturedAtMs: result.clientCapturedAtMs,
   evidencePreBufferAttempted: result.evidencePreBufferAttempted,
   evidencePreBufferComplete: result.evidencePreBufferComplete,
   evidencePreBufferFrameCount: result.evidencePreBufferFrameCount,
@@ -151,6 +164,8 @@ const aggregateModuleResults = (
   return {
     uploadedSeqs: moduleResults.flatMap((result) => result.uploadedSeqs ?? []),
     uploadedObjectKeys: moduleResults.flatMap((result) => result.uploadedObjectKeys ?? []),
+    evidenceFrameIds: moduleResults.flatMap((result) => result.evidenceFrameIds ?? []),
+    clientCapturedAtMs: moduleResults.flatMap((result) => result.clientCapturedAtMs ?? []),
     uploadedFrameCount: moduleResults.reduce(
       (sum, result) => sum + (result.evidenceUploadedFrameCount ?? 0),
       0
@@ -235,6 +250,12 @@ export const buildForcedCaptureMetadata = (
   const uploadedObjectKeys = aggregate.uploadedObjectKeys.length > 0
     ? aggregate.uploadedObjectKeys
     : result.uploadedObjectKeys;
+  const evidenceFrameIds = aggregate.evidenceFrameIds.length > 0
+    ? aggregate.evidenceFrameIds
+    : result.evidenceFrameIds;
+  const clientCapturedAtMs = aggregate.clientCapturedAtMs.length > 0
+    ? aggregate.clientCapturedAtMs
+    : result.clientCapturedAtMs;
   const uploadedFrameCount = aggregate.uploadedFrameCount > 0
     ? aggregate.uploadedFrameCount
     : result.evidenceUploadedFrameCount;
@@ -253,6 +274,8 @@ export const buildForcedCaptureMetadata = (
     ...(uploadedObjectKeys?.length
       ? { forced_capture_uploaded_object_keys: uploadedObjectKeys }
       : {}),
+    ...(evidenceFrameIds?.length ? { evidence_frame_ids: evidenceFrameIds } : {}),
+    ...(clientCapturedAtMs?.length ? { evidence_client_captured_at_ms: clientCapturedAtMs } : {}),
     ...(typeof result.evidencePreBufferAttempted === "boolean"
       ? { evidence_pre_buffer_attempted: result.evidencePreBufferAttempted }
       : {}),
@@ -275,25 +298,73 @@ export const buildForcedCaptureMetadata = (
   };
 };
 
+const STREAM_LOSS_EVENT_TYPES = new Set(["screen_share_stopped", "webcam_stopped"]);
+
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) return Math.round(value);
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 0) return Math.round(parsed);
+  }
+  return null;
+};
+
+const resolveEvidenceMode = (
+  eventType: string,
+  options?: RecordExamEventWithCaptureOptions
+): EvidenceMode => {
+  if (options?.captureOptions?.evidenceMode) {
+    return options.captureOptions.evidenceMode;
+  }
+  const metadataMode = options?.metadata?.evidence_mode;
+  if (metadataMode === "pre_loss" || metadataMode === "anchor_window" || metadataMode === "audit") {
+    return metadataMode;
+  }
+  return STREAM_LOSS_EVENT_TYPES.has(eventType) ? "pre_loss" : "anchor_window";
+};
+
 export const recordExamEventWithForcedCapture = async (
   contestId: string,
   eventType: string,
   options?: RecordExamEventWithCaptureOptions
 ): Promise<ExamEventResponse | null> => {
   const captureReason = options?.forceCaptureReason || eventType;
-  const captureResult = await forceCaptureForContest(
-    contestId,
-    captureReason,
-    options?.captureOptions
-  );
-
+  const originalMetadata = options?.metadata || {};
+  const anchorMs =
+    toNumber(originalMetadata.evidence_anchor_at_ms) ??
+    toNumber(originalMetadata.client_observed_at_ms) ??
+    Date.now();
+  const evidenceMode = resolveEvidenceMode(eventType, options);
   const mergedMetadata = {
-    ...(options?.metadata || {}),
-    ...buildForcedCaptureMetadata(contestId, captureReason, captureResult),
+    ...originalMetadata,
+    forced_capture_requested: true,
+    forced_capture_reason: captureReason,
+    evidence_anchor_at_ms: anchorMs,
+    client_observed_at_ms: toNumber(originalMetadata.client_observed_at_ms) ?? anchorMs,
+    evidence_mode: evidenceMode,
+    upload_session_id:
+      originalMetadata.upload_session_id || getExamCaptureSessionId(contestId) || undefined,
   };
 
-  return recordExamEvent(contestId, eventType, {
+  const response = await recordExamEvent(contestId, eventType, {
     ...options,
     metadata: mergedMetadata,
   });
+
+  if (!response?.event_id) {
+    return response;
+  }
+
+  void forceCaptureForContest(contestId, captureReason, {
+    ...(options?.captureOptions || {}),
+    eventType,
+    eventId: response.event_id,
+    evidenceClusterId: response.evidence_cluster_id,
+    evidenceMode: response.evidence_mode || evidenceMode,
+    evidenceAnchorAtMs: response.evidence_anchor_at_ms ?? anchorMs,
+    evidenceWindowStart: response.evidence_window_start,
+    evidenceWindowEnd: response.evidence_window_end,
+  }).catch(() => undefined);
+
+  return response;
 };

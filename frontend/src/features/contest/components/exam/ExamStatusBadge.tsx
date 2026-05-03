@@ -1,5 +1,6 @@
 import type { ExamStatusType } from "@/core/entities/contest.entity";
 import { View, Locked, WarningAltFilled } from "@carbon/icons-react";
+import { useExamMonitoringStatus } from "@/features/contest/contexts/ExamMonitoringStatusContext";
 import { useTranslation } from "react-i18next";
 import styles from "../layout/ContestLayout.module.scss";
 
@@ -23,6 +24,25 @@ const ExamStatusBadge: React.FC<ExamStatusBadgeProps> = ({
   onClick,
 }) => {
   const { t } = useTranslation("contest");
+  const monitoringReminder = useExamMonitoringStatus();
+
+  const getMonitoringReminderLabel = (source: string) => {
+    const defaultLabels: Record<string, string> = {
+      screen_share: "螢幕分享中斷",
+      webcam: "Webcam 中斷",
+      split_view: "分割畫面",
+      viewport: "視窗異常",
+      fullscreen: "請回全螢幕",
+      mouse_leave: "滑鼠離開",
+      multiple_displays: "多螢幕",
+      policy_unavailable: "監控需處理",
+      pwa_required: "需用 PWA",
+    };
+
+    return t(`exam.monitoringReminder.${source}`, {
+      defaultValue: defaultLabels[source] ?? t("exam.monitoring"),
+    });
+  };
 
   if (!cheatDetectionEnabled) return null;
 
@@ -53,14 +73,42 @@ const ExamStatusBadge: React.FC<ExamStatusBadgeProps> = ({
   }
 
   if (examStatus === "in_progress") {
+    const reminderLabel = monitoringReminder
+      ? getMonitoringReminderLabel(monitoringReminder.source)
+      : t("exam.monitoring");
+    const reminderTitle = monitoringReminder
+      ? t("exam.monitoringIssueHint", {
+          defaultValue: "請依提示恢復監控狀態；系統已保留事件採證。",
+        })
+      : t("exam.monitoringHint");
+    const reminderClassName =
+      monitoringReminder?.tone === "critical"
+        ? styles.examStatusCritical
+        : monitoringReminder?.tone === "warning"
+          ? styles.examStatusWarning
+          : styles.examStatusInProgress;
+
     return (
       <div
-        title={t("exam.monitoringHint")}
+        title={reminderTitle}
         onClick={onClick}
-        className={styles.examStatusInProgress}
+        className={reminderClassName}
+        data-testid="exam-monitoring-status-badge"
       >
-        <View size={16} />
-        <span>{t("exam.monitoring")}</span>
+        {monitoringReminder ? (
+          <WarningAltFilled size={16} />
+        ) : (
+          <View size={16} />
+        )}
+        <span>{reminderLabel}</span>
+        {monitoringReminder?.countdownSeconds != null && (
+          <span className={styles.examTimeDisplay}>
+            {t("exam.monitoringCountdown", {
+              defaultValue: "{{seconds}}s",
+              seconds: monitoringReminder.countdownSeconds,
+            })}
+          </span>
+        )}
         {timeLeft && <span className={styles.examTimeDisplay}>{timeLeft}</span>}
       </div>
     );

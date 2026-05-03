@@ -12,6 +12,7 @@ from .models import (
     ContestAnnouncement,
     Clarification,
     ExamEvent,
+    ExamEvidenceFrame,
     ContestActivity,
     ExamStatus,
     AssignmentState,
@@ -945,9 +946,26 @@ class ExamEventCreateSerializer(serializers.ModelSerializer):
     DEFAULT_METADATA_MAX_SIZE = 8192  # bytes
     CLIPBOARD_METADATA_MAX_SIZE = 65536  # bytes
 
+    client_observed_at_ms = serializers.IntegerField(required=False, min_value=0)
+    server_time_offset_ms = serializers.IntegerField(required=False)
+    evidence_anchor_at_ms = serializers.IntegerField(required=False, min_value=0)
+    evidence_mode = serializers.ChoiceField(
+        required=False,
+        choices=ExamEvidenceFrame.EvidenceMode.choices,
+    )
+    event_idempotency_key = serializers.CharField(required=False, allow_blank=True, max_length=160)
+
     class Meta:
         model = ExamEvent
-        fields = ['event_type', 'metadata']
+        fields = [
+            'event_type',
+            'metadata',
+            'client_observed_at_ms',
+            'server_time_offset_ms',
+            'evidence_anchor_at_ms',
+            'evidence_mode',
+            'event_idempotency_key',
+        ]
 
     def validate(self, attrs):
         metadata = attrs.get('metadata')
@@ -978,6 +996,52 @@ class AnticheatUrlsQuerySerializer(serializers.Serializer):
     )
     start_seq = serializers.IntegerField(required=False, min_value=1, default=1)
     module = serializers.ChoiceField(required=False, choices=MODULE_CHOICES, default="screen_share")
+
+
+class EvidenceUploadIntentFrameSerializer(serializers.Serializer):
+    client_captured_at_ms = serializers.IntegerField(min_value=0)
+    seq = serializers.IntegerField(min_value=1)
+
+
+class EvidenceUploadIntentSerializer(serializers.Serializer):
+    event_id = serializers.IntegerField(min_value=1)
+    evidence_cluster_id = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    source_module = serializers.ChoiceField(choices=ExamEvidenceFrame.SourceModule.choices)
+    evidence_mode = serializers.ChoiceField(
+        choices=ExamEvidenceFrame.EvidenceMode.choices,
+        default=ExamEvidenceFrame.EvidenceMode.ANCHOR_WINDOW,
+    )
+    upload_session_id = serializers.RegexField(
+        required=False,
+        allow_blank=True,
+        max_length=64,
+        regex=r"^[A-Za-z0-9_-]+$",
+    )
+    frames = EvidenceUploadIntentFrameSerializer(many=True, allow_empty=True, max_length=30)
+    unavailable_reason = serializers.CharField(required=False, allow_blank=True, max_length=160)
+
+
+class EvidenceUploadConfirmItemSerializer(serializers.Serializer):
+    evidence_frame_id = serializers.IntegerField(min_value=1)
+    object_key = serializers.CharField()
+    byte_size = serializers.IntegerField(required=False, min_value=0)
+    sha256 = serializers.RegexField(
+        required=False,
+        allow_blank=True,
+        max_length=64,
+        regex=r"^[A-Fa-f0-9]{64}$|^$",
+    )
+
+
+class EvidenceUploadConfirmSerializer(serializers.Serializer):
+    event_id = serializers.IntegerField(required=False, min_value=1)
+    upload_session_id = serializers.RegexField(
+        required=False,
+        allow_blank=True,
+        max_length=64,
+        regex=r"^[A-Za-z0-9_-]+$",
+    )
+    frames = EvidenceUploadConfirmItemSerializer(many=True, allow_empty=False, max_length=30)
 
 
 class ActiveSessionClearSerializer(serializers.Serializer):

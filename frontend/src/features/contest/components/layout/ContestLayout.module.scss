@@ -179,6 +179,20 @@
   cursor: pointer;
 }
 
+.examStatusWarning {
+  composes: examStatusBase;
+  background-color: color-mix(in srgb, var(--cds-support-warning) 15%, transparent);
+  color: var(--cds-support-warning);
+  cursor: pointer;
+}
+
+.examStatusCritical {
+  composes: examStatusBase;
+  background-color: color-mix(in srgb, var(--cds-support-error) 12%, transparent);
+  color: var(--cds-support-error);
+  cursor: pointer;
+}
+
 .examTimeDisplay {
   font-family: var(--cds-code-font-family, monospace);
   margin-left: 0.5rem;

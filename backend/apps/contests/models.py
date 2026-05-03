@@ -703,6 +703,94 @@ class ExamEvent(models.Model):
         return f"{self.event_type} by {self.user.username} at {self.created_at}"
 
 
+class ExamEvidenceFrame(models.Model):
+    """Manifest row for a student-local anti-cheat evidence frame."""
+
+    class SourceModule(models.TextChoices):
+        SCREEN_SHARE = "screen_share", "Screen Share"
+        WEBCAM = "webcam", "Webcam"
+
+    class CaptureOrigin(models.TextChoices):
+        STUDENT_LOCAL = "student_local", "Student Local"
+
+    class EvidenceMode(models.TextChoices):
+        ANCHOR_WINDOW = "anchor_window", "Anchor Window"
+        PRE_LOSS = "pre_loss", "Pre Loss"
+        AUDIT = "audit", "Audit"
+
+    class Status(models.TextChoices):
+        ISSUED = "issued", "Issued"
+        UPLOADED = "uploaded", "Uploaded"
+        FAILED = "failed", "Failed"
+        UNAVAILABLE = "unavailable", "Unavailable"
+
+    contest = models.ForeignKey(
+        Contest,
+        on_delete=models.CASCADE,
+        related_name="exam_evidence_frames",
+        verbose_name="考試",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="exam_evidence_frames",
+        verbose_name="學生",
+    )
+    exam_event = models.ForeignKey(
+        ExamEvent,
+        on_delete=models.CASCADE,
+        related_name="evidence_frames",
+        verbose_name="考試事件",
+    )
+    evidence_cluster_id = models.CharField(max_length=64, blank=True, default="")
+    source_module = models.CharField(
+        max_length=20,
+        choices=SourceModule.choices,
+        default=SourceModule.SCREEN_SHARE,
+    )
+    capture_origin = models.CharField(
+        max_length=32,
+        choices=CaptureOrigin.choices,
+        default=CaptureOrigin.STUDENT_LOCAL,
+    )
+    evidence_mode = models.CharField(
+        max_length=20,
+        choices=EvidenceMode.choices,
+        default=EvidenceMode.ANCHOR_WINDOW,
+    )
+    upload_session_id = models.CharField(max_length=64, blank=True, default="")
+    seq = models.PositiveIntegerField(default=0)
+    object_key = models.TextField(blank=True, default="")
+    client_captured_at_ms = models.BigIntegerField(null=True, blank=True)
+    server_issued_at = models.DateTimeField(auto_now_add=True)
+    storage_confirmed_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ISSUED,
+    )
+    content_type = models.CharField(max_length=64, default="image/webp")
+    byte_size = models.PositiveIntegerField(null=True, blank=True)
+    sha256 = models.CharField(max_length=64, blank=True, default="")
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        db_table = "exam_evidence_frames"
+        verbose_name = "考試證據影格"
+        verbose_name_plural = "考試證據影格"
+        ordering = ["client_captured_at_ms", "seq", "id"]
+        indexes = [
+            models.Index(fields=["contest", "user", "exam_event"]),
+            models.Index(fields=["evidence_cluster_id"]),
+            models.Index(fields=["upload_session_id"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["client_captured_at_ms"]),
+        ]
+
+    def __str__(self):
+        return f"{self.source_module} frame {self.seq} for event {self.exam_event_id}"
+
+
 class ExamAnswer(models.Model):
     """
     Student answer for a paper-style exam question.

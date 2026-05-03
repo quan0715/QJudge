@@ -57,6 +57,7 @@ interface SourceViewState {
 const SOURCE_ORDER: LiveSource[] = ["screen_share", "webcam"];
 const EMPTY_EVENT_FEED: EventFeedItem[] = [];
 const AUTO_REFRESH_MS = 30000;
+const LIVE_STATUS_REFRESH_MS = 10000;
 const MANUAL_EVIDENCE_CAPTURE_INTERVAL_MS = 5000;
 const MANUAL_PROCTOR_EVENT_TYPE = "manual_proctor_note";
 const PANEL_TRANSITION = {
@@ -1011,7 +1012,12 @@ export default function AdminProctoringPanel({
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useMediaQuery("(max-width: 66rem)");
   const prefersReducedMotion = useReducedMotion();
-  const { participants, isRefreshing, refreshAdminData } = useContestAdmin();
+  const {
+    participants,
+    isRefreshing,
+    refreshAdminData,
+    refreshParticipants,
+  } = useContestAdmin();
   const { registerPanelRefresh } = useAdminPanelRefresh();
   const { confirm, modalProps } = useConfirmModal();
   const { showToast } = useToast();
@@ -1340,6 +1346,32 @@ export default function AdminProctoringPanel({
     }, AUTO_REFRESH_MS);
     return () => window.clearInterval(intervalId);
   }, [refreshPanel]);
+
+  useEffect(() => {
+    if (!contestId) return;
+
+    const refreshLiveStatuses = async () => {
+      if (document.visibilityState !== "visible") return;
+      await refreshParticipants();
+    };
+
+    const intervalId = window.setInterval(() => {
+      void refreshLiveStatuses();
+    }, LIVE_STATUS_REFRESH_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshLiveStatuses();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [contestId, refreshParticipants]);
 
   useEffect(() => {
     setLastSeenEventAt(Date.now());
