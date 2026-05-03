@@ -31,8 +31,6 @@ export const createMockContest = (
       detectors: {
         pwaMode: false,
         fullscreen: true,
-        focus: true,
-        tabVisibility: true,
         multiDisplay: true,
         mouseLeave: true,
         viewportIntegrity: false,
@@ -47,8 +45,6 @@ export const createMockContest = (
       detectors: {
         pwaMode: true,
         fullscreen: false,
-        focus: true,
-        tabVisibility: true,
         multiDisplay: false,
         mouseLeave: true,
         viewportIntegrity: true,
