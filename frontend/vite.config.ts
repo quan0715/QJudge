@@ -106,6 +106,14 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_TARGET || 'http://localhost:8000',
           changeOrigin: true,
         },
+        '/.well-known': {
+          target: env.VITE_API_TARGET || 'http://localhost:8000',
+          changeOrigin: true,
+        },
+        '^/o/': {
+          target: env.VITE_API_TARGET || 'http://localhost:8000',
+          changeOrigin: true,
+        },
         '/django-admin': {
           target: env.VITE_API_TARGET || 'http://localhost:8000',
           changeOrigin: true,

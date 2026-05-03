@@ -2,6 +2,7 @@
 
 import csv
 import json
+import os
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -11,6 +12,9 @@ import httpx
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP, Context
+from mcp.types import CallToolResult, TextContent, ToolAnnotations
+from starlette.routing import Route
+import uvicorn
 
 from config import (
     DJANGO_BASE_URL,
@@ -649,23 +653,53 @@ mcp = FastMCP(
     token_verifier=DjangoTokenVerifier(),
 )
 
-import os
+MCP_APP_RESOURCE_MIME_TYPE = "text/html;profile=mcp-app"
+CLASSROOM_LIST_TEMPLATE_URI = "ui://widget/classroom-list-v2.html"
 
-CLASSROOM_LIST_TEMPLATE_URI = "ui://widget/classroom-list.html"
 
-@mcp.resource(CLASSROOM_LIST_TEMPLATE_URI)
-def serve_classroom_list_widget() -> str:
-    widget_js_path = os.path.join(
-        os.path.dirname(__file__), 
-        "../frontend/dist/mcp-widgets/mcp-classroom-list.js"
+def _classroom_list_widget_result(classrooms: list[dict[str, Any]]) -> CallToolResult:
+    return CallToolResult(
+        content=[TextContent(type="text", text="正在為您顯示教室列表面板...")],
+        structuredContent={"classrooms": classrooms},
+        _meta={
+            "ui": {"resourceUri": CLASSROOM_LIST_TEMPLATE_URI},
+            "openai/outputTemplate": CLASSROOM_LIST_TEMPLATE_URI,
+        },
     )
-    
+
+
+@mcp.resource(
+    CLASSROOM_LIST_TEMPLATE_URI,
+    title="QJudge Classroom List",
+    description="ChatGPT App widget for rendering QJudge classrooms.",
+    mime_type=MCP_APP_RESOURCE_MIME_TYPE,
+    meta={
+        "ui": {
+            "prefersBorder": True,
+            "csp": {
+                "connectDomains": [],
+                "resourceDomains": [],
+            },
+        },
+        "openai/widgetDescription": "Shows the user's manageable QJudge classrooms.",
+    },
+)
+def serve_classroom_list_widget() -> str:
+    widget_js_candidates = [
+        os.getenv("MCP_WIDGET_CLASSROOM_LIST_JS", ""),
+        os.path.join(os.path.dirname(__file__), "mcp-widgets/mcp-classroom-list.js"),
+        os.path.join(os.path.dirname(__file__), "../frontend/dist/mcp-widgets/mcp-classroom-list.js"),
+    ]
+
     try:
+        widget_js_path = next(path for path in widget_js_candidates if path and os.path.exists(path))
         with open(widget_js_path, "r", encoding="utf-8") as f:
             js_code = f.read()
     except FileNotFoundError:
         js_code = "document.body.innerHTML = '<h1>UI bundle not found. Please run npm run build in frontend.</h1>';"
-    
+    except StopIteration:
+        js_code = "document.body.innerHTML = '<h1>UI bundle not found. Please run npm run build in frontend.</h1>';"
+
     html_content = f"""
     <!DOCTYPE html>
     <html lang="zh-Hant">
@@ -675,32 +709,96 @@ def serve_classroom_list_widget() -> str:
       </head>
       <body>
         <div id="root"></div>
-        <script type="module">{{js_code}}</script>
+        <script type="module">{js_code}</script>
       </body>
     </html>
     """
-    
+
     return html_content
 
-@mcp.tool()
-def render_classroom_list(classrooms: list[dict[str, Any]]) -> dict[str, Any]:
+
+@mcp.tool(
+    title="Render classroom list",
+    description=(
+        "Use this when the user asks to show, display, render, or open a UI for "
+        "QJudge classrooms after fetching classrooms with qjudge_browse."
+    ),
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    ),
+    meta={
+        "ui": {"resourceUri": CLASSROOM_LIST_TEMPLATE_URI},
+        "openai/outputTemplate": CLASSROOM_LIST_TEMPLATE_URI,
+        "openai/toolInvocation/invoking": "Rendering classrooms",
+        "openai/toolInvocation/invoked": "Classrooms rendered",
+    },
+)
+def render_classroom_list(classrooms: list[dict[str, Any]]) -> CallToolResult:
+    """Use this when the user asks to show, render, display, or open a UI for QJudge classrooms.
+
+    Call `qjudge_browse(action="list_classrooms")` first, then pass its `items`
+    array to this tool as `classrooms`. This tool exists only to render the
+    ChatGPT App widget; do not use a Markdown table when the user asks for UI.
     """
-    Render a visually appealing classroom list UI.
-    MUST be called AFTER calling `qjudge_browse` (action="list_classrooms") to fetch the classrooms data.
-    """
-    return {
-        "content": [{"type": "text", "text": "正在為您顯示教室列表面板..."}],
-        "structuredContent": {
-            "classrooms": classrooms
-        },
-        "_meta": {
-            "ui": { "resourceUri": CLASSROOM_LIST_TEMPLATE_URI },
-            "openai/outputTemplate": CLASSROOM_LIST_TEMPLATE_URI
-        }
-    }
+    return _classroom_list_widget_result(classrooms)
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Show QJudge classrooms UI",
+    description=(
+        "Use this when the user asks to list, show, display, render, or open a UI "
+        "for QJudge classrooms. This tool fetches the user's manageable classrooms "
+        "and returns the ChatGPT App classroom widget directly."
+    ),
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    ),
+    meta={
+        "ui": {"resourceUri": CLASSROOM_LIST_TEMPLATE_URI},
+        "openai/outputTemplate": CLASSROOM_LIST_TEMPLATE_URI,
+        "openai/toolInvocation/invoking": "Loading classrooms",
+        "openai/toolInvocation/invoked": "Classrooms loaded",
+    },
+)
+async def show_qjudge_classrooms_ui(
+    ctx: Context,
+    search: str | None = None,
+) -> Any:
+    """Fetch manageable QJudge classrooms and render them with the classroom widget."""
+    query = {"scope": "manage"}
+    if search:
+        query["search"] = search
+    classrooms_res = await django_api("GET", f"/api/v1/classrooms/?{urlencode(query)}", ctx)
+    if isinstance(classrooms_res, dict) and classrooms_res.get("error"):
+        return classrooms_res
+
+    classrooms = _extract_results(classrooms_res)
+    if search and not classrooms:
+        all_classrooms_res = await django_api("GET", "/api/v1/classrooms/?scope=manage", ctx)
+        if isinstance(all_classrooms_res, dict) and all_classrooms_res.get("error"):
+            return all_classrooms_res
+        classrooms = [
+            row for row in _extract_results(all_classrooms_res)
+            if _matches_keyword(row, search, ("name", "description"))
+        ]
+
+    return _classroom_list_widget_result([_compact_classroom(row) for row in classrooms])
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=True,
+    )
+)
 def artifact_csv_delete_rows(
     file_path: str,
     row_index: int | None = None,
@@ -794,7 +892,14 @@ def artifact_csv_delete_rows(
 # Tool 1: qjudge_browse — 唯讀查詢教室、競賽、題庫
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+)
 async def qjudge_browse(
     action: str,
     ctx: Context,
@@ -980,7 +1085,14 @@ async def qjudge_browse(
 # ---------------------------------------------------------------------------
 # Tool 1b: qjudge_contest_manager — contest operations (requires contest_id UUID)
 # ---------------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
+    )
+)
 async def qjudge_contest_manager(
     action: str,
     ctx: Context,
@@ -1283,7 +1395,14 @@ async def qjudge_contest_manager(
 # Tool 3: qjudge_exam — 競賽筆試題目 CRUD（場內題目列表與順序 → qjudge_contest_manager）
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
+    )
+)
 async def qjudge_exam(
     action: str,
     contest_id: str,
@@ -1454,7 +1573,14 @@ async def qjudge_exam(
 # Tool 4: qjudge_grading — 作答查看 + 批改
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
+    )
+)
 async def qjudge_grading(
     action: str,
     contest_id: str,
@@ -1562,7 +1688,14 @@ async def qjudge_grading(
 # Tool 5: qjudge_coding_problems — 競賽程式題目管理（程式碼執行請用 qjudge_code_runner）
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
+    )
+)
 async def qjudge_coding_problems(
     action: str,
     ctx: Context,
@@ -1745,7 +1878,14 @@ async def qjudge_coding_problems(
 # Tool 6: qjudge_code_runner — 程式碼執行驗證
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+)
 async def qjudge_code_runner(
     problem_id: str,
     language: str,
@@ -1817,4 +1957,25 @@ async def qjudge_code_runner(
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    app = mcp.streamable_http_app()
+    mcp_route = next(
+        route
+        for route in app.routes
+        if isinstance(route, Route) and route.path == mcp.settings.streamable_http_path
+    )
+    app.routes.insert(
+        0,
+        Route(
+            "/",
+            endpoint=mcp_route.endpoint,
+            methods=mcp_route.methods,
+            name="mcp-root",
+            include_in_schema=False,
+        ),
+    )
+    uvicorn.run(
+        app,
+        host=mcp.settings.host,
+        port=mcp.settings.port,
+        log_level=mcp.settings.log_level.lower(),
+    )

@@ -333,9 +333,11 @@ services:
     container_name: oj_mcp_dev
     ports:
       - "9002:9000"
+    volumes:
+      - ./frontend/dist/mcp-widgets:/app/mcp-widgets:ro
     environment:
       - DJANGO_BASE_URL=http://backend:8000
-      - MCP_PUBLIC_URL=http://localhost:9002
+      - MCP_PUBLIC_URL=${MCP_PUBLIC_URL:-http://localhost:9002}
       - OAUTH_ISSUER_URL=${OAUTH_ISSUER_URL:-http://localhost:8000}
     depends_on:
       - backend
