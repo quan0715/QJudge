@@ -28,6 +28,7 @@ interface ContestAdminContextType {
   initialLoading: boolean;
   isRefreshing: boolean;
   isOverviewRefreshing: boolean;
+  refreshParticipants: () => Promise<void>;
   refreshAdminData: () => Promise<void>;
   refreshOverviewMetrics: () => Promise<void>;
   refreshAllAdminData: () => Promise<void>;
@@ -58,6 +59,17 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
   const [initialLoading, setInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOverviewRefreshing, setIsOverviewRefreshing] = useState(false);
+
+  const refreshParticipants = useCallback(async () => {
+    if (!contestId) return;
+
+    try {
+      const participantsData = await getContestParticipants(contestId);
+      setParticipants(participantsData);
+    } catch (err) {
+      console.error("Failed to fetch contest participants:", err);
+    }
+  }, [contestId]);
 
   const refreshAdminData = useCallback(async () => {
     if (!contestId) return;
@@ -117,6 +129,7 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
       initialLoading,
       isRefreshing,
       isOverviewRefreshing,
+      refreshParticipants,
       refreshAdminData,
       refreshOverviewMetrics,
       refreshAllAdminData,
@@ -128,6 +141,7 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
       initialLoading,
       isRefreshing,
       isOverviewRefreshing,
+      refreshParticipants,
       refreshAdminData,
       refreshOverviewMetrics,
       refreshAllAdminData,
