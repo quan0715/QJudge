@@ -13,7 +13,7 @@ ChatGPT App widget integration.
 - Dev MCP endpoint: `https://mcp-dev.quan.wtf/mcp`
 - OAuth issuer: `https://q-judge-dev.quan.wtf`
 - Classroom widget resource URI: `ui://widget/classroom-list-v2.html`
-- Exam question diff widget resource URI: `ui://widget/exam-question-diff-v1.html`
+- Exam problem preview widget resource URI: `ui://widget/exam-problem-preview-v1.html`
 - Widget bundle directory in container: `/app/mcp-widgets`
 
 ChatGPT currently sends MCP requests to both `/mcp` and `/`. The server keeps
@@ -90,10 +90,10 @@ The classroom widget is registered as an MCP resource:
 ui://widget/classroom-list-v2.html
 ```
 
-The exam question diff widget is registered as:
+The exam problem preview widget is registered as:
 
 ```text
-ui://widget/exam-question-diff-v1.html
+ui://widget/exam-problem-preview-v1.html
 ```
 
 The resource MIME type must stay:
@@ -126,9 +126,9 @@ The UI entry tools are:
   widget in one call.
 - `render_classroom_list`: renders a widget from an already fetched classroom
   list.
-- `preview_exam_question_update`: fetches one paper-exam question, applies a
-  proposed patch in memory, and renders a before/after diff widget without
-  modifying the question.
+- `preview_exam_problem`: fetches one paper-exam question, applies a proposed
+  patch in memory, and renders the proposed student-facing problem preview
+  without modifying the question.
 
 The classroom tools return:
 
@@ -136,12 +136,12 @@ The classroom tools return:
 - `_meta.ui.resourceUri`
 - `_meta["openai/outputTemplate"]`
 
-The exam diff tool returns:
+The exam problem preview tool returns:
 
-- `structuredContent.kind = "exam_question_diff"`
-- `structuredContent.current_question`
-- `structuredContent.proposed_question`
-- `structuredContent.changes[]`
+- `structuredContent.kind = "exam_problem_preview"`
+- `structuredContent.source_question`
+- `structuredContent.preview_problem`
+- `structuredContent.update_summary`
 - `structuredContent.risk_flags[]`
 - `_meta.ui.resourceUri`
 - `_meta["openai/outputTemplate"]`
@@ -169,7 +169,7 @@ Verify the container can read the widget:
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T qjudge-mcp \
-  ls -l /app/mcp-widgets/mcp-classroom-list.js /app/mcp-widgets/mcp-exam-question-diff.js
+  ls -l /app/mcp-widgets/mcp-classroom-list.js /app/mcp-widgets/mcp-exam-problem-preview.js
 ```
 
 Verify the resource content from inside the container:
@@ -179,15 +179,15 @@ Verify the resource content from inside the container:
 import server
 
 html = server.serve_classroom_list_widget()
-diff_html = server.serve_exam_question_diff_widget()
+preview_html = server.serve_exam_problem_preview_widget()
 print("template_uri=", server.CLASSROOM_LIST_TEMPLATE_URI)
-print("diff_template_uri=", server.EXAM_QUESTION_DIFF_TEMPLATE_URI)
+print("preview_template_uri=", server.EXAM_PROBLEM_PREVIEW_TEMPLATE_URI)
 print("has_bundle_missing=", "UI bundle not found" in html)
-print("diff_has_bundle_missing=", "UI bundle not found" in diff_html)
+print("preview_has_bundle_missing=", "UI bundle not found" in preview_html)
 print("has_external_import=", 'from"../assets/' in html or "from'../assets/" in html)
-print("diff_has_external_import=", 'from"../assets/' in diff_html or "from'../assets/" in diff_html)
+print("preview_has_external_import=", 'from"../assets/' in preview_html or "from'../assets/" in preview_html)
 print("has_tool_output_reader=", "toolOutput" in html)
-print("diff_has_tool_output_reader=", "toolOutput" in diff_html)
+print("preview_has_tool_output_reader=", "toolOutput" in preview_html)
 PY
 ```
 
@@ -195,13 +195,13 @@ Expected:
 
 ```text
 template_uri= ui://widget/classroom-list-v2.html
-diff_template_uri= ui://widget/exam-question-diff-v1.html
+preview_template_uri= ui://widget/exam-problem-preview-v1.html
 has_bundle_missing= False
-diff_has_bundle_missing= False
+preview_has_bundle_missing= False
 has_external_import= False
-diff_has_external_import= False
+preview_has_external_import= False
 has_tool_output_reader= True
-diff_has_tool_output_reader= True
+preview_has_tool_output_reader= True
 ```
 
 ## Troubleshooting
