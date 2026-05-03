@@ -309,7 +309,8 @@ services:
   # MCP Server (OAuth 2.1 + tool proxy)
   qjudge-mcp:
     build:
-      context: ./mcp-server
+      context: .
+      dockerfile: mcp-server/Dockerfile
     container_name: oj_mcp
     environment:
       - DJANGO_BASE_URL=http://backend:8000
