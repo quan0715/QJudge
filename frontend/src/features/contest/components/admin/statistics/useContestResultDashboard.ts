@@ -6,7 +6,10 @@ import {
   type ExamDashboardQuestionDetailDto,
   type ExamDashboardSummaryDto,
 } from "@/infrastructure/api/repositories/exam.repository";
-import type { DashboardMockData, QuestionDetailMock } from "./contestResultDashboard.mock";
+import type {
+  DashboardMockData,
+  QuestionDetailMock,
+} from "./contestResultDashboard.mock";
 
 interface UseDashboardResult {
   data: DashboardMockData | null;
@@ -19,11 +22,14 @@ interface UseDashboardResult {
 
 export function useContestResultDashboard(
   contest: ContestDetail | null | undefined,
+  refreshKey = 0,
 ): UseDashboardResult {
   const [data, setData] = useState<DashboardMockData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [detailLoadingIds, setDetailLoadingIds] = useState<Record<string, boolean>>({});
+  const [detailLoadingIds, setDetailLoadingIds] = useState<
+    Record<string, boolean>
+  >({});
   const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
   const cancelRef = useRef(false);
   const hydratedContestIdRef = useRef<string | null>(null);
@@ -67,7 +73,9 @@ export function useContestResultDashboard(
         setLoading(false);
       } catch (err) {
         if (cancelRef.current) return;
-        setError(err instanceof Error ? err.message : "Failed to load dashboard");
+        setError(
+          err instanceof Error ? err.message : "Failed to load dashboard",
+        );
         setLoading(false);
       }
     })();
@@ -75,50 +83,65 @@ export function useContestResultDashboard(
     return () => {
       cancelRef.current = true;
     };
-  }, [contestId, contestType]);
+  }, [contestId, contestType, refreshKey]);
 
-  const loadQuestionDetail = useCallback(async (questionId: string) => {
-    if (!contestId) return;
-    if (loadedDetailIdsRef.current.has(questionId)) return;
-    if (inFlightDetailIdsRef.current.has(questionId)) return;
+  const loadQuestionDetail = useCallback(
+    async (questionId: string) => {
+      if (!contestId) return;
+      if (loadedDetailIdsRef.current.has(questionId)) return;
+      if (inFlightDetailIdsRef.current.has(questionId)) return;
 
-    inFlightDetailIdsRef.current.add(questionId);
-    setDetailLoadingIds((previous) => ({ ...previous, [questionId]: true }));
-    setDetailErrors((previous) => {
-      const next = { ...previous };
-      delete next[questionId];
-      return next;
-    });
-    try {
-      const detail = await getExamDashboardQuestionDetail(contestId, questionId);
-      loadedDetailIdsRef.current.add(questionId);
-      setData((previous) => {
-        if (!previous) return previous;
-        return {
-          ...previous,
-          details: {
-            ...previous.details,
-            [questionId]: mapQuestionDetail(detail),
-          },
-        };
-      });
-    } catch (err) {
-      setDetailErrors((previous) => ({
-        ...previous,
-        [questionId]:
-          err instanceof Error ? err.message : "Failed to load question detail",
-      }));
-    } finally {
-      inFlightDetailIdsRef.current.delete(questionId);
-      setDetailLoadingIds((previous) => {
+      inFlightDetailIdsRef.current.add(questionId);
+      setDetailLoadingIds((previous) => ({ ...previous, [questionId]: true }));
+      setDetailErrors((previous) => {
         const next = { ...previous };
         delete next[questionId];
         return next;
       });
-    }
-  }, [contestId]);
+      try {
+        const detail = await getExamDashboardQuestionDetail(
+          contestId,
+          questionId,
+        );
+        loadedDetailIdsRef.current.add(questionId);
+        setData((previous) => {
+          if (!previous) return previous;
+          return {
+            ...previous,
+            details: {
+              ...previous.details,
+              [questionId]: mapQuestionDetail(detail),
+            },
+          };
+        });
+      } catch (err) {
+        setDetailErrors((previous) => ({
+          ...previous,
+          [questionId]:
+            err instanceof Error
+              ? err.message
+              : "Failed to load question detail",
+        }));
+      } finally {
+        inFlightDetailIdsRef.current.delete(questionId);
+        setDetailLoadingIds((previous) => {
+          const next = { ...previous };
+          delete next[questionId];
+          return next;
+        });
+      }
+    },
+    [contestId],
+  );
 
-  return { data, loading, error, loadQuestionDetail, detailLoadingIds, detailErrors };
+  return {
+    data,
+    loading,
+    error,
+    loadQuestionDetail,
+    detailLoadingIds,
+    detailErrors,
+  };
 }
 
 function mapDashboardSummary(dto: ExamDashboardSummaryDto): DashboardMockData {
@@ -169,7 +192,9 @@ function mapDashboardSummary(dto: ExamDashboardSummaryDto): DashboardMockData {
   };
 }
 
-function mapQuestionDetail(dto: ExamDashboardQuestionDetailDto): QuestionDetailMock {
+function mapQuestionDetail(
+  dto: ExamDashboardQuestionDetailDto,
+): QuestionDetailMock {
   if (
     dto.kind === "single_choice" ||
     dto.kind === "multiple_choice" ||
