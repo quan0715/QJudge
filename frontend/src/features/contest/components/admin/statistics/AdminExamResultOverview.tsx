@@ -115,14 +115,6 @@ export default function AdminExamResultOverview({
             <SkeletonText heading width="7rem" />
             <SkeletonPlaceholder className={styles.chartSkeleton} />
           </div>
-          <div className={styles.metricGrid}>
-            {Array.from({ length: 2 }).map((_, index) => (
-              <div className={styles.metricCell} key={index}>
-                <SkeletonText width="5rem" />
-                <SkeletonText heading width="7rem" />
-              </div>
-            ))}
-          </div>
         </div>
       </section>
     );
@@ -138,58 +130,21 @@ export default function AdminExamResultOverview({
     );
   }
 
-  const completionRate =
-    dashboard.contest.participantCount > 0
-      ? Math.round(
-          (dashboard.contest.completedCount /
-            dashboard.contest.participantCount) *
-            100,
-        )
-      : 0;
-  const averageScoreRate =
-    dashboard.summary.maxTotalScore > 0
-      ? Math.round(
-          (dashboard.summary.averageScore / dashboard.summary.maxTotalScore) *
-            100,
-        )
-      : 0;
-  const metrics = [
-    {
-      key: "average",
-      label: t("statistics.avgTotalScore", "平均總分"),
-      value: `${dashboard.summary.averageScore.toFixed(1)} / ${dashboard.summary.maxTotalScore}`,
-      isSuccess: averageScoreRate >= 100,
-    },
-    {
-      key: "completion",
-      label: t("statistics.completionRate", "完成率"),
-      value: `${completionRate}%`,
-      isSuccess: completionRate >= 100,
-    },
-  ];
-
   return (
     <section className={styles.root} aria-label="考試結果總覽">
       <div className={styles.contentGrid}>
         <div className={styles.chartColumn}>
-          <div>
-            <h3>{t("statistics.scoreDistribution", "分數分布")}</h3>
+          <div className={styles.chartHeader}>
+            <span>{t("statistics.scoreDistribution", "分數分布")}</span>
+            <strong>
+              {t("statistics.averageScoreInline", "平均分數")}{" "}
+              {dashboard.summary.averageScore.toFixed(1)} /{" "}
+              {dashboard.summary.maxTotalScore}
+            </strong>
           </div>
           <div className={styles.chartFrame}>
             <LollipopChart data={chartData} options={chartOptions} />
           </div>
-        </div>
-        <div className={styles.metricGrid}>
-          {metrics.map((metric) => (
-            <div className={styles.metricCell} key={metric.key}>
-              <span>{metric.label}</span>
-              <strong
-                className={metric.isSuccess ? styles.metricValueSuccess : undefined}
-              >
-                {metric.value}
-              </strong>
-            </div>
-          ))}
         </div>
       </div>
     </section>

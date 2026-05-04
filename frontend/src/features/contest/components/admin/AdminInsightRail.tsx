@@ -182,34 +182,40 @@ const DistributionOverview = ({
           ))}
         </div>
       ) : (
-        <div className={styles.distributionChartFrame}>
-          <MeterChart
-            data={distributionChartData}
-            options={{
-              title: "考生分佈總覽",
-              height: "180px",
-              resizable: true,
-              theme,
-              meter: {
-                height: 8,
-                proportional: {
-                  unit: "人",
-                  breakdownFormatter: () =>
-                    `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
-                  totalFormatter: (value) => `考生總數 ${value} 人`,
+        <>
+          <div className={styles.cardHeader}>
+            <span>考生分佈總覽</span>
+            <strong>{completionPercent}%</strong>
+          </div>
+          <div className={styles.distributionChartFrame}>
+            <MeterChart
+              data={distributionChartData}
+              options={{
+                title: "",
+                height: "180px",
+                resizable: true,
+                theme,
+                meter: {
+                  height: 8,
+                  proportional: {
+                    unit: "人",
+                    breakdownFormatter: () =>
+                      `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
+                    totalFormatter: (value) => `考生總數 ${value} 人`,
+                  },
                 },
-              },
-              legend: {
-                enabled: true,
-                position: "bottom",
-              },
-              color: {
-                scale: chartColorScale,
-              },
-              toolbar: { enabled: false },
-            }}
-          />
-        </div>
+                legend: {
+                  enabled: true,
+                  position: "bottom",
+                },
+                color: {
+                  scale: chartColorScale,
+                },
+                toolbar: { enabled: false },
+              }}
+            />
+          </div>
+        </>
       )}
     </section>
   );
