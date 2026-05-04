@@ -17,21 +17,27 @@ from locust.exception import StopUser
 RUN_ID = os.getenv("LOADTEST_RUN_ID", "").strip()
 CONTEST_ID = os.getenv("LOADTEST_CONTEST_ID", "").strip()
 USERS_CSV = os.getenv("LOADTEST_USERS_CSV", "loadtests/anticheat_exam/users.example.csv")
+SCENARIO = os.getenv("LOADTEST_SCENARIO", "normal").strip().lower().replace("-", "_")
 FRAME_COUNT = int(os.getenv("LOADTEST_FRAME_COUNT", "7"))
 PRE_LOSS_FRAME_COUNT = int(os.getenv("LOADTEST_PRE_LOSS_FRAME_COUNT", "6"))
 THINK_MIN = float(os.getenv("LOADTEST_THINK_MIN_SECONDS", "3"))
 THINK_MAX = float(os.getenv("LOADTEST_THINK_MAX_SECONDS", "12"))
 REQUEST_TIMEOUT = float(os.getenv("LOADTEST_REQUEST_TIMEOUT_SECONDS", "10"))
 HEARTBEAT_INTERVAL = float(os.getenv("LOADTEST_HEARTBEAT_INTERVAL_SECONDS", "15"))
+EVIDENCE_EVENT_TYPE = os.getenv("LOADTEST_EVIDENCE_EVENT_TYPE", "mouse_leave").strip() or "mouse_leave"
+EVIDENCE_SOURCE_MODULE = os.getenv("LOADTEST_EVIDENCE_SOURCE_MODULE", "screen_share").strip() or "screen_share"
+EVIDENCE_EVENTS_PER_USER = int(os.getenv("LOADTEST_EVIDENCE_EVENTS_PER_USER", "1"))
+EVIDENCE_EVENT_SPACING_SECONDS = float(os.getenv("LOADTEST_EVIDENCE_EVENT_SPACING_SECONDS", "0"))
 ENABLE_SUBMIT = os.getenv("LOADTEST_ENABLE_SUBMIT", "false").lower() == "true"
 ENABLE_ADMIN = os.getenv("LOADTEST_ENABLE_ADMIN", "false").lower() == "true"
 CALL_CONTEST_ENTER = os.getenv("LOADTEST_CALL_CONTEST_ENTER", "false").lower() == "true"
-ENABLE_MOUSE_LEAVE = os.getenv("LOADTEST_ENABLE_MOUSE_LEAVE", "true").lower() == "true"
+ENABLE_MOUSE_LEAVE = os.getenv("LOADTEST_ENABLE_MOUSE_LEAVE", "false").lower() == "true"
 ENABLE_STREAM_LOSS = os.getenv("LOADTEST_ENABLE_STREAM_LOSS", "false").lower() == "true"
 FORCE_EVIDENCE_ON_START = os.getenv("LOADTEST_FORCE_EVIDENCE_ON_START", "false").lower() == "true"
 ADMIN_EMAIL = os.getenv("LOADTEST_ADMIN_EMAIL", "").strip()
 ADMIN_PASSWORD = os.getenv("LOADTEST_ADMIN_PASSWORD", "").strip()
 ADMIN_USERS = 1 if ENABLE_ADMIN and ADMIN_EMAIL and ADMIN_PASSWORD else 0
+VALID_SCENARIOS = {"normal", "evidence_anchor", "stream_loss"}
 
 # Small RIFF/WebP-like payload. The current backend validates object presence,
 # Content-Type, and size via storage HEAD; it does not decode image bytes.
@@ -84,6 +90,10 @@ def _init_environment(environment, **_kwargs):
         raise RuntimeError("LOADTEST_RUN_ID is required")
     if not CONTEST_ID:
         raise RuntimeError("LOADTEST_CONTEST_ID is required")
+    if SCENARIO not in VALID_SCENARIOS:
+        raise RuntimeError(f"unsupported LOADTEST_SCENARIO={SCENARIO!r}; expected one of {sorted(VALID_SCENARIOS)}")
+    if EVIDENCE_EVENTS_PER_USER < 0:
+        raise RuntimeError("LOADTEST_EVIDENCE_EVENTS_PER_USER must be >= 0")
     global account_pool
     account_pool = AccountPool(USERS_CSV)
     abort_on_5xx = os.getenv("LOADTEST_ABORT_ON_5XX", "true").lower() == "true"
@@ -148,12 +158,14 @@ class ExamStudentUser(HttpUser):
         self.token = ""
         self.question_ids: list[str] = []
         self._next_heartbeat_at = 0.0
+        self._startup_incident_uploaded = False
         self.login()
         self.enter_and_start_exam()
         self.record_exam_event("exam_entered", evidence_mode="audit")
         self.send_heartbeat()
         self.load_questions()
-        if FORCE_EVIDENCE_ON_START and ENABLE_MOUSE_LEAVE:
+        self.run_startup_incident_scenario()
+        if SCENARIO == "normal" and FORCE_EVIDENCE_ON_START and ENABLE_MOUSE_LEAVE:
             self.mouse_leave_with_evidence()
 
     def login(self):
@@ -221,7 +233,13 @@ class ExamStudentUser(HttpUser):
             data = data.get("results") or data.get("data") or []
         self.question_ids = [str(item.get("id")) for item in data if isinstance(item, dict) and item.get("id")]
 
-    def record_exam_event(self, event_type: str, *, evidence_mode: str = "anchor_window") -> dict[str, Any]:
+    def record_exam_event(
+        self,
+        event_type: str,
+        *,
+        evidence_mode: str = "anchor_window",
+        source_module: str = EVIDENCE_SOURCE_MODULE,
+    ) -> dict[str, Any]:
         anchor_ms = now_ms()
         payload = {
             "event_type": event_type,
@@ -234,8 +252,8 @@ class ExamStudentUser(HttpUser):
                 "evidence_anchor_at_ms": anchor_ms,
                 "evidence_mode": evidence_mode,
                 "event_idempotency_key": f"{RUN_ID}:{self.username}:{event_type}:{uuid.uuid4().hex}",
-                "module": "screen_share",
-                "primary_source_module": "screen_share",
+                "module": source_module,
+                "primary_source_module": source_module,
             },
         }
         if evidence_mode == "pre_loss":
@@ -252,7 +270,14 @@ class ExamStudentUser(HttpUser):
         finally:
             close_response(response)
 
-    def upload_evidence_for_event(self, event: dict[str, Any], event_type: str, *, evidence_mode: str):
+    def upload_evidence_for_event(
+        self,
+        event: dict[str, Any],
+        event_type: str,
+        *,
+        evidence_mode: str,
+        source_module: str = EVIDENCE_SOURCE_MODULE,
+    ):
         event_id = event.get("event_id")
         cluster_id = event.get("evidence_cluster_id")
         anchor_ms = int(event.get("evidence_anchor_at_ms") or now_ms())
@@ -270,7 +295,7 @@ class ExamStudentUser(HttpUser):
         intent_payload = {
             "event_id": event_id,
             "evidence_cluster_id": cluster_id,
-            "source_module": "screen_share",
+            "source_module": source_module,
             "evidence_mode": evidence_mode,
             "upload_session_id": upload_session_id,
             "frames": [
@@ -336,6 +361,40 @@ class ExamStudentUser(HttpUser):
             )
             close_response(response)
 
+    def run_startup_incident_scenario(self):
+        if SCENARIO == "normal" or self._startup_incident_uploaded:
+            return
+        self._startup_incident_uploaded = True
+        if SCENARIO == "evidence_anchor":
+            self.upload_startup_incident_bundle(
+                event_type=EVIDENCE_EVENT_TYPE,
+                evidence_mode="anchor_window",
+                source_module=EVIDENCE_SOURCE_MODULE,
+            )
+        elif SCENARIO == "stream_loss":
+            self.upload_startup_incident_bundle(
+                event_type="screen_share_stopped",
+                evidence_mode="pre_loss",
+                source_module=EVIDENCE_SOURCE_MODULE,
+            )
+
+    def upload_startup_incident_bundle(self, *, event_type: str, evidence_mode: str, source_module: str):
+        for index in range(EVIDENCE_EVENTS_PER_USER):
+            if index > 0 and EVIDENCE_EVENT_SPACING_SECONDS > 0:
+                time.sleep(EVIDENCE_EVENT_SPACING_SECONDS)
+            event = self.record_exam_event(
+                event_type,
+                evidence_mode=evidence_mode,
+                source_module=source_module,
+            )
+            self.upload_evidence_for_event(
+                event,
+                event_type,
+                evidence_mode=evidence_mode,
+                source_module=source_module,
+            )
+            self.maybe_send_heartbeat()
+
     @task(8)
     def heartbeat(self):
         self.send_heartbeat()
@@ -351,6 +410,8 @@ class ExamStudentUser(HttpUser):
     @task(4)
     def autosave_answer(self):
         self.maybe_send_heartbeat()
+        if SCENARIO != "normal":
+            return
         if not self.question_ids:
             self.load_questions()
         if not self.question_ids:
@@ -380,6 +441,8 @@ class ExamStudentUser(HttpUser):
     @task(2)
     def normal_navigation(self):
         self.maybe_send_heartbeat()
+        if SCENARIO != "normal":
+            return
         response = self.client.get(
             f"/api/v1/contests/{CONTEST_ID}/exam-answers/my-answers/",
             headers=auth_headers(self.token, self.device_id),
@@ -391,18 +454,40 @@ class ExamStudentUser(HttpUser):
     @task(1)
     def mouse_leave_with_evidence(self):
         self.maybe_send_heartbeat()
+        if SCENARIO != "normal":
+            return
         if not ENABLE_MOUSE_LEAVE:
             return
-        event = self.record_exam_event("mouse_leave", evidence_mode="anchor_window")
-        self.upload_evidence_for_event(event, "mouse_leave", evidence_mode="anchor_window")
+        event = self.record_exam_event(
+            "mouse_leave",
+            evidence_mode="anchor_window",
+            source_module=EVIDENCE_SOURCE_MODULE,
+        )
+        self.upload_evidence_for_event(
+            event,
+            "mouse_leave",
+            evidence_mode="anchor_window",
+            source_module=EVIDENCE_SOURCE_MODULE,
+        )
 
     @task(1)
     def screen_share_stopped_with_pre_loss_evidence(self):
         self.maybe_send_heartbeat()
+        if SCENARIO != "normal":
+            return
         if not ENABLE_STREAM_LOSS:
             return
-        event = self.record_exam_event("screen_share_stopped", evidence_mode="pre_loss")
-        self.upload_evidence_for_event(event, "screen_share_stopped", evidence_mode="pre_loss")
+        event = self.record_exam_event(
+            "screen_share_stopped",
+            evidence_mode="pre_loss",
+            source_module=EVIDENCE_SOURCE_MODULE,
+        )
+        self.upload_evidence_for_event(
+            event,
+            "screen_share_stopped",
+            evidence_mode="pre_loss",
+            source_module=EVIDENCE_SOURCE_MODULE,
+        )
 
     def on_stop(self):
         if ENABLE_SUBMIT and self.token:
