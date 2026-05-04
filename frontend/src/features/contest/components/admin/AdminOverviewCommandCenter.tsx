@@ -78,6 +78,7 @@ interface AdminOverviewCommandCenterProps {
   contestId?: string;
   antiCheatEnabled?: boolean;
   classroomBound?: boolean;
+  contestInProgress?: boolean;
   onOpenPanel: (panel: AdminPanelId) => void;
   participants: ContestParticipant[];
   primary: ReactNode;
@@ -269,6 +270,7 @@ export default function AdminOverviewCommandCenter({
   contestId,
   antiCheatEnabled = false,
   classroomBound = false,
+  contestInProgress = false,
   onOpenPanel,
   participants,
   primary,

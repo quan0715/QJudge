@@ -2,7 +2,14 @@
  * Data hook for exam grading.
  * Fetches real data from API.
  */
-import { useState, useMemo, useCallback, useEffect, useContext } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useContext,
+  useRef,
+} from "react";
 import { useParams } from "react-router-dom";
 import {
   getAllExamAnswersForGrading,
@@ -26,6 +33,7 @@ import type {
 
 interface UseGradingDataOptions {
   participantsOverride?: ContestParticipant[];
+  refetchOnParticipantsChange?: boolean;
 }
 
 export function useGradingData(options: UseGradingDataOptions = {}) {
@@ -35,6 +43,8 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     () => options.participantsOverride ?? contestAdminContext?.participants ?? [],
     [options.participantsOverride, contestAdminContext?.participants],
   );
+  const refetchOnParticipantsChange =
+    options.refetchOnParticipantsChange ?? true;
   const { contest, scoreboardData } = useContest();
 
   const [answers, setAnswers] = useState<GradingAnswerRow[]>([]);
@@ -153,6 +163,10 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     }
     return map;
   }, [participants]);
+  const participantMapRef = useRef(participantMap);
+  useEffect(() => {
+    participantMapRef.current = participantMap;
+  }, [participantMap]);
 
   // Fetch real data
   const fetchData = useCallback(async () => {
@@ -197,7 +211,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         const rows: GradingAnswerRow[] = Array.from(
           latestSubmissionByStudentProblem.values(),
         ).map((submission) => {
-          const student = participantMap.get(submission.userId);
+          const student = participantMapRef.current.get(submission.userId);
           const canonicalProblemId =
             codingSubmissionToCanonicalMap.get(String(submission.problemId)) || String(submission.problemId);
           const problemMeta = codingProblemMetaMap.get(canonicalProblemId);
@@ -246,7 +260,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         for (const standingRow of scoreboardData?.rows || []) {
           const studentId = String(standingRow.userId || "");
           if (!studentId) continue;
-          const student = participantMap.get(studentId);
+          const student = participantMapRef.current.get(studentId);
 
           for (const [rawProblemId, rawStats] of Object.entries(standingRow.problems || {})) {
             const canonicalProblemId =
@@ -331,7 +345,11 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       setQuestions(sortedQuestions);
 
-      const rows = buildGradingRows(allAnswers, questions, participantMap);
+      const rows = buildGradingRows(
+        allAnswers,
+        questions,
+        participantMapRef.current,
+      );
       setAnswers(rows);
     } catch (err) {
       console.error("Failed to fetch grading data:", err);
@@ -345,12 +363,11 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     codingSubmissionToCanonicalMap,
     contest?.contestType,
     contestId,
-    participantMap,
   ]);
 
   useEffect(() => {
     void fetchData();
-  }, [fetchData]);
+  }, [fetchData, refetchOnParticipantsChange ? participantMap : null]);
 
   // ── Derived: unique question info (source of truth = question list; fallback = answers) ──
   const questionInfoMap = useMemo(() => {

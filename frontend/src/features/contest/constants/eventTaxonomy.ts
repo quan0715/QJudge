@@ -69,10 +69,10 @@ export const PRIORITY_LABELS: Record<number, string> = {
   3: "P3",
 };
 
-export const PRIORITY_TAG_COLOR: Record<number, "red" | "magenta" | "teal" | "cool-gray"> = {
+export const PRIORITY_TAG_COLOR: Record<number, "red" | "magenta" | "purple" | "cool-gray"> = {
   0: "red",
   1: "magenta",
-  2: "teal",
+  2: "purple",
   3: "cool-gray",
 };
 

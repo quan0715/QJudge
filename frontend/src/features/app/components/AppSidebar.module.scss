@@ -4,10 +4,15 @@
   height: 100%;
   background: var(--cds-layer);
   overflow: hidden;
+  border-right: 0;
+}
+
+.sidebar:not(.collapsed) {
+  border-right: 1px solid var(--cds-border-subtle-01, #e0e0e0);
 }
 
 .collapsed {
-  width: 0;
+  width: 100%;
 }
 
 .compact {

@@ -1,6 +1,20 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Tag, InlineLoading } from "@carbon/react";
-import { ChevronDown, ChevronUp, Close } from "@carbon/icons-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  CheckmarkFilled,
+  Chat,
+  Close,
+  Locked,
+  View,
+  WarningFilled,
+  Policy,
+  Information,
+  Time,
+  WarningAlt,
+  ImageSearch,
+} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
@@ -86,6 +100,53 @@ const SOURCE_MODULE_LABELS: Record<SourceModule, string> = {
 
 const isSourceModule = (value: unknown): value is SourceModule =>
   value === "screen_share" || value === "webcam";
+
+const EVENT_TYPE_LABEL_FALLBACK: Record<string, string> = {
+  mouse_leave_triggered: "滑鼠離開視窗（觸發）",
+  exit_fullscreen_triggered: "退出全螢幕（觸發）",
+  tab_hidden_triggered: "分頁隱藏（觸發）",
+  tab_hidden_restored: "分頁可見（恢復）",
+  window_blur_triggered: "視窗失焦（觸發）",
+  window_blur_restored: "回到考試視窗（恢復）",
+  multi_display_triggered: "多螢幕偵測（觸發）",
+  multi_display_restored: "多螢幕狀態恢復",
+  screen_share_interrupted: "螢幕分享中斷",
+  screen_share_restored: "螢幕分享恢復",
+  webcam_interrupted: "Webcam 中斷",
+  webcam_restored: "Webcam 恢復",
+  webcam_quality_degraded: "Webcam 品質下降",
+  viewport_interrupted: "視窗完整性中斷",
+  viewport_restored: "視窗完整性恢復",
+};
+
+const getPriorityIcon = (priority: number) => {
+  if (priority === 0) return WarningFilled;
+  if (priority === 1) return Policy;
+  if (priority === 2) return Information;
+  return Time;
+};
+
+const getEventTypeIcon = (eventType: string, priority: number) => {
+  if (eventType.includes("screen_share")) return View;
+  if (eventType.includes("webcam")) return ImageSearch;
+  if (eventType.includes("tab_hidden") || eventType.includes("window_blur"))
+    return View;
+  if (eventType.includes("mouse_leave")) return WarningAlt;
+  if (
+    eventType.includes("multi_display") ||
+    eventType.includes("multiple_displays") ||
+    eventType.includes("split_view") ||
+    eventType.includes("viewport")
+  )
+    return View;
+  if (eventType.includes("lock")) return Locked;
+  if (eventType.includes("restored") || eventType.includes("unlock"))
+    return CheckmarkFilled;
+  if (eventType.includes("ask_question") || eventType.includes("reply_question"))
+    return Chat;
+  if (eventType.includes("heartbeat")) return Time;
+  return getPriorityIcon(priority);
+};
 
 function parseCaptureInfo(meta: Record<string, unknown>): CaptureInfo | null {
   if (!meta.forced_capture_requested) return null;
@@ -274,6 +335,17 @@ export default function IncidentCard({
 
   const priorityLabel = PRIORITY_LABELS[incident.priority] ?? "P3";
   const tagColor = PRIORITY_TAG_COLOR[incident.priority] ?? "cool-gray";
+  const EventIcon = getEventTypeIcon(incident.eventType, incident.priority);
+  const eventTypeLabel = useMemo(() => {
+    const translated = String(
+      t(`logs.eventTypes.${incident.eventType}`, incident.eventType),
+    );
+    if (translated !== incident.eventType) return translated;
+    return (
+      EVENT_TYPE_LABEL_FALLBACK[incident.eventType] ??
+      incident.eventType.replaceAll("_", " ")
+    );
+  }, [incident.eventType, t]);
 
   const firstTime = new Date(incident.firstAt).toLocaleTimeString();
   const lastTime = new Date(incident.lastAt).toLocaleTimeString();
@@ -466,11 +538,18 @@ export default function IncidentCard({
           aria-expanded={canToggle ? expanded : undefined}
         >
           <div className={styles.left}>
+            <span
+              className={styles.priorityIcon}
+              aria-label={priorityLabel}
+              title={priorityLabel}
+            >
+              <EventIcon size={16} />
+            </span>
             <Tag type={tagColor} size="sm">
               {priorityLabel}
             </Tag>
             <span className={styles.eventType}>
-              {t(`logs.eventTypes.${incident.eventType}`, incident.eventType)}
+              {eventTypeLabel}
             </span>
             {incident.userName && (
               <span className={styles.userName}>{incident.userName}</span>

@@ -3,6 +3,10 @@
   border: 1px solid var(--cds-border-subtle);
 }
 
+.headerRow {
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
 .topGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);

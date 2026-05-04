@@ -12,7 +12,16 @@
   min-height: 0;
   min-width: 0;
   overflow: auto;
-  padding: 1.5rem;
+  padding: 0;
+}
+
+.contestHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.5rem;
+  padding: 0.875rem 1rem;
 }
 
 .dashboardTitleBlock {
@@ -44,21 +53,22 @@
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
 
-.primaryStack {
-  display: grid;
-  grid-auto-rows: max-content;
-  align-content: start;
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex: 0 0 auto;
 }
 
-.contestInfo {
-  display: grid;
-  align-content: start;
-  min-height: 7.5rem;
-  border-bottom: 1px solid var(--cds-border-subtle);
-}
+@media (max-width: 900px) {
+  .contestHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 
-.dashboardTitleBlock {
-  padding: 1rem 1.25rem;
+  .headerActions {
+    align-self: flex-end;
+  }
 }
 
 .publishSummary {

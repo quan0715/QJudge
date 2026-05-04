@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { ScaleTypes } from "@carbon/charts";
-import { LineChart as CarbonLineChart } from "@carbon/charts-react";
+import {
+  LineChart as CarbonLineChart,
+  MeterChart,
+} from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
 import { ProgressBar, SkeletonPlaceholder, SkeletonText } from "@carbon/react";
 import type {
@@ -57,10 +60,13 @@ const DISTRIBUTION_TONE_COLOR: Record<DistributionItem["key"], string> = {
   offline: "var(--cds-icon-disabled)",
 };
 
+const normalizePrioritySeriesGroup = (series: DashboardChartSeries) =>
+  (series.key || series.label || "P2").toUpperCase();
+
 const toLineChartData = (series: DashboardChartSeries[]) => {
   const data = series.flatMap((item) =>
     item.values.map((point) => ({
-      group: item.label,
+      group: normalizePrioritySeriesGroup(item),
       label: point.label,
       value: point.value,
     })),
@@ -111,9 +117,9 @@ const PriorityLineChart = ({
       },
       color: {
         scale: {
-          P0: "var(--cds-support-error)",
-          P1: "var(--cds-support-warning)",
-          P2: "var(--cds-purple-60)",
+          P0: "#da1e28",
+          P1: "#ff832b",
+          P2: "#a56eff",
         },
       },
       curve: "curveMonotoneX",
@@ -137,13 +143,30 @@ const PriorityLineChart = ({
 const DistributionOverview = ({
   distribution,
   loading = false,
+  theme,
 }: {
   distribution: DistributionItem[];
   loading?: boolean;
+  theme: "white" | "g10" | "g90" | "g100";
 }) => {
   const visibleDistribution = distribution.filter(
     (item) => item.key !== "offline",
   );
+  const total = visibleDistribution.reduce((sum, item) => sum + item.value, 0);
+  const segments = visibleDistribution;
+  const distributionChartData = segments.map((item) => ({
+    group: item.label,
+    value: item.value,
+  }));
+  const submittedCount =
+    visibleDistribution.find((item) => item.key === "submitted")?.value ?? 0;
+  const completionPercent =
+    total > 0 ? Math.round((submittedCount / total) * 100) : 0;
+  const remainingCount = Math.max(0, total - submittedCount);
+  const chartColorScale = segments.reduce<Record<string, string>>((scale, item) => {
+    scale[item.label] = DISTRIBUTION_TONE_COLOR[item.key];
+    return scale;
+  }, {});
   if (visibleDistribution.length === 0 && !loading) return null;
 
   return (
@@ -152,9 +175,6 @@ const DistributionOverview = ({
       aria-busy={loading}
       aria-label="考生分佈總覽"
     >
-      <div className={styles.cardHeader}>
-        <span>考生分佈總覽</span>
-      </div>
       {loading ? (
         <div className={styles.distributionList}>
           {Array.from({ length: 4 }).map((_, index) => (
@@ -165,31 +185,35 @@ const DistributionOverview = ({
           ))}
         </div>
       ) : (
-        <div className={styles.distributionList}>
-          {visibleDistribution.map((item) => (
-            <div key={item.key} className={styles.distributionItem}>
-              <div className={styles.distributionMeta}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-              <div
-                className={styles.distributionTrack}
-                role="progressbar"
-                aria-label={item.label}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={item.percent}
-              >
-                <div
-                  className={styles.distributionFill}
-                  style={{
-                    width: `${item.percent}%`,
-                    background: DISTRIBUTION_TONE_COLOR[item.key],
-                  }}
-                />
-              </div>
-            </div>
-          ))}
+        <div className={styles.distributionChartFrame}>
+          <p className={styles.distributionDescription}>
+            已交卷 {submittedCount} / {total} 人（完成率 {completionPercent}%），
+            尚有 {remainingCount} 人未完成。
+          </p>
+          <MeterChart
+            data={distributionChartData}
+            options={{
+              title: "考生分佈總覽",
+              height: "180px",
+              resizable: true,
+              theme,
+              meter: {
+                height: 8,
+                proportional: {
+                  total,
+                  unit: "人",
+                },
+              },
+              legend: {
+                enabled: true,
+                position: "bottom",
+              },
+              color: {
+                scale: chartColorScale,
+              },
+              toolbar: { enabled: false },
+            }}
+          />
         </div>
       )}
     </section>
@@ -227,6 +251,7 @@ export default function AdminInsightRail({
       <DistributionOverview
         distribution={distribution}
         loading={distributionLoading}
+        theme={chartTheme}
       />
       {gradingCards.map((card) => (
         <InsightCard

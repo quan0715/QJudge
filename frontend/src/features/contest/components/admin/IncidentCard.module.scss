@@ -25,7 +25,7 @@
 }
 
 .priority2 {
-  border-left-color: var(--cds-support-info);
+  border-left-color: #a56eff;
 }
 
 .priority3 {
@@ -55,6 +55,26 @@
   align-items: center;
   gap: 0.375rem;
   min-width: 0;
+}
+
+.priorityIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cds-icon-secondary);
+  flex: 0 0 auto;
+}
+
+.priority0 .priorityIcon {
+  color: var(--cds-support-error);
+}
+
+.priority1 .priorityIcon {
+  color: #ff832b;
+}
+
+.priority2 .priorityIcon {
+  color: #a56eff;
 }
 
 .right {

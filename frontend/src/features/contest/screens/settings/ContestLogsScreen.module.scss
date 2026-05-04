@@ -62,6 +62,10 @@
   flex-direction: column;
 }
 
+.skeletonFeed {
+  padding: 0.75rem 1rem 1rem;
+}
+
 .feedHeader {
   display: flex;
   align-items: center;
@@ -185,6 +189,30 @@
   line-height: 1;
 }
 
+.compactPriorityIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.compactPriorityIcon0 {
+  color: var(--cds-support-error);
+}
+
+.compactPriorityIcon1 {
+  color: #ff832b;
+}
+
+.compactPriorityIcon2 {
+  color: #a56eff;
+}
+
+.compactPriorityIcon3 {
+  color: var(--cds-icon-secondary);
+}
+
 .compactPriority0 {
   border-left-color: var(--cds-support-error);
 }
@@ -194,7 +222,7 @@
 }
 
 .compactPriority2 {
-  border-left-color: var(--cds-support-info);
+  border-left-color: #a56eff;
 }
 
 .compactPriority3 {
