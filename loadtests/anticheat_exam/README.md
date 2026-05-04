@@ -52,6 +52,15 @@ lt_001@test.com,lt_001,loadtest123
 lt_002@test.com,lt_002,loadtest123
 ```
 
+For runs that should skip the login ramp-up, generate a token CSV and set
+`LOADTEST_AUTH_MODE=token_csv`:
+
+```csv
+email,username,access_token
+lt_001@test.com,lt_001,<jwt_access_token>
+lt_002@test.com,lt_002,<jwt_access_token>
+```
+
 ## Smoke Run
 
 Run 5 users first:
@@ -131,6 +140,10 @@ one admin reviewer.
   anchor-window evidence burst tests, and `stream_loss` for pre-loss evidence
   tests. Incident scenarios keep users alive with heartbeat after the startup
   evidence bundle and do not autosave answers.
+- `LOADTEST_AUTH_MODE=login|token_csv`: default `login` calls the login API in
+  each Locust user. Use `token_csv` with an `access_token` column when the
+  measured run should start directly at exam traffic and avoid single-IP login
+  rate limits.
 - `LOADTEST_CALL_CONTEST_ENTER=true`: also call the contest enter endpoint before
   `exam/start`. Keep this off for local seeded paper exams that are already
   registered.

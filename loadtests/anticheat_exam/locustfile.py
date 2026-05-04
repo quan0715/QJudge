@@ -18,6 +18,7 @@ RUN_ID = os.getenv("LOADTEST_RUN_ID", "").strip()
 CONTEST_ID = os.getenv("LOADTEST_CONTEST_ID", "").strip()
 USERS_CSV = os.getenv("LOADTEST_USERS_CSV", "loadtests/anticheat_exam/users.example.csv")
 SCENARIO = os.getenv("LOADTEST_SCENARIO", "normal").strip().lower().replace("-", "_")
+AUTH_MODE = os.getenv("LOADTEST_AUTH_MODE", "login").strip().lower().replace("-", "_")
 FRAME_COUNT = int(os.getenv("LOADTEST_FRAME_COUNT", "7"))
 PRE_LOSS_FRAME_COUNT = int(os.getenv("LOADTEST_PRE_LOSS_FRAME_COUNT", "6"))
 THINK_MIN = float(os.getenv("LOADTEST_THINK_MIN_SECONDS", "3"))
@@ -38,6 +39,7 @@ ADMIN_EMAIL = os.getenv("LOADTEST_ADMIN_EMAIL", "").strip()
 ADMIN_PASSWORD = os.getenv("LOADTEST_ADMIN_PASSWORD", "").strip()
 ADMIN_USERS = 1 if ENABLE_ADMIN and ADMIN_EMAIL and ADMIN_PASSWORD else 0
 VALID_SCENARIOS = {"normal", "evidence_anchor", "stream_loss"}
+VALID_AUTH_MODES = {"login", "token_csv"}
 
 # Small RIFF/WebP-like payload. The current backend validates object presence,
 # Content-Type, and size via storage HEAD; it does not decode image bytes.
@@ -69,9 +71,22 @@ class AccountPool:
             email = (row.get("email") or "").strip()
             username = (row.get("username") or "").strip()
             password = (row.get("password") or "").strip()
-            if not password or not (email or username):
+            access_token = (row.get("access_token") or "").strip()
+            if not (email or username):
                 continue
-            accounts.append({"email": email, "username": username, "password": password})
+            if AUTH_MODE == "token_csv":
+                if not access_token:
+                    continue
+            elif not password:
+                continue
+            accounts.append(
+                {
+                    "email": email,
+                    "username": username,
+                    "password": password,
+                    "access_token": access_token,
+                }
+            )
         if not accounts:
             raise RuntimeError(f"users CSV has no usable accounts: {path}")
         return accounts
@@ -92,6 +107,8 @@ def _init_environment(environment, **_kwargs):
         raise RuntimeError("LOADTEST_CONTEST_ID is required")
     if SCENARIO not in VALID_SCENARIOS:
         raise RuntimeError(f"unsupported LOADTEST_SCENARIO={SCENARIO!r}; expected one of {sorted(VALID_SCENARIOS)}")
+    if AUTH_MODE not in VALID_AUTH_MODES:
+        raise RuntimeError(f"unsupported LOADTEST_AUTH_MODE={AUTH_MODE!r}; expected one of {sorted(VALID_AUTH_MODES)}")
     if EVIDENCE_EVENTS_PER_USER < 0:
         raise RuntimeError("LOADTEST_EVIDENCE_EVENTS_PER_USER must be >= 0")
     global account_pool
@@ -159,7 +176,12 @@ class ExamStudentUser(HttpUser):
         self.question_ids: list[str] = []
         self._next_heartbeat_at = 0.0
         self._startup_incident_uploaded = False
-        self.login()
+        if AUTH_MODE == "token_csv":
+            self.token = self.account.get("access_token", "")
+        else:
+            self.login()
+        if not self.token:
+            raise StopUser()
         self.enter_and_start_exam()
         self.record_exam_event("exam_entered", evidence_mode="audit")
         self.send_heartbeat()
