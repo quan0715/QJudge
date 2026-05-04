@@ -15,6 +15,7 @@ import {
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 import { UserMenu } from "@/features/app/components/UserMenu";
+import { WorkspaceShell } from "@/features/chatbot/components/workspace/WorkspaceShell";
 import AdminShellLayout, { type NavItem } from "@/shared/layout/AdminShellLayout";
 
 interface AdminDashboardLayoutProps {
@@ -170,7 +171,9 @@ export default function AdminDashboardLayout({
       sideNavAriaLabel={t("common:header.adminNavigation")}
       sideNavMode={{ variant: "rail" }}
       navItems={navItems}
-      enableAI
+      contentWrapper={(content) => (
+        <WorkspaceShell omitAppSidebar>{content}</WorkspaceShell>
+      )}
     >
       {children}
     </AdminShellLayout>

@@ -6,7 +6,6 @@ import {
   SideNavItems,
   SideNavLink,
 } from "@carbon/react";
-import { WorkspaceShell } from "@/features/chatbot/components/workspace/WorkspaceShell";
 import styles from "./AdminShellLayout.module.scss";
 
 export interface NavItem {
@@ -32,8 +31,7 @@ export interface AdminShellLayoutProps {
   headerZIndex?: number;
   className?: string;
   contentClassName?: string;
-  /** Enable AI workspace split panel */
-  enableAI?: boolean;
+  contentWrapper?: (content: ReactNode) => ReactNode;
 }
 
 const AdminShellLayout = ({
@@ -47,7 +45,7 @@ const AdminShellLayout = ({
   headerZIndex,
   className,
   contentClassName,
-  enableAI = false,
+  contentWrapper,
 }: AdminShellLayoutProps) => {
   const isRail = sideNavMode.variant === "rail";
   const sidenavWidth = isRail
@@ -69,6 +67,12 @@ const AdminShellLayout = ({
     "--admin-shell-sidenav-width": sidenavWidth,
     ...(headerZIndex != null && { "--admin-shell-header-z": String(headerZIndex) }),
   } as React.CSSProperties;
+
+  const content = (
+    <div className={`${styles.contentViewport}${contentClassName ? ` ${contentClassName}` : ""}`}>
+      {children}
+    </div>
+  );
 
   return (
     <div
@@ -100,17 +104,7 @@ const AdminShellLayout = ({
       </SideNav>
 
       <main className={styles.content}>
-        {enableAI ? (
-          <WorkspaceShell omitAppSidebar>
-            <div className={`${styles.contentViewport}${contentClassName ? ` ${contentClassName}` : ""}`}>
-              {children}
-            </div>
-          </WorkspaceShell>
-        ) : (
-          <div className={`${styles.contentViewport}${contentClassName ? ` ${contentClassName}` : ""}`}>
-            {children}
-          </div>
-        )}
+        {contentWrapper ? contentWrapper(content) : content}
       </main>
     </div>
   );

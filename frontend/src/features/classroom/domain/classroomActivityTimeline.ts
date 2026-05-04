@@ -1,7 +1,10 @@
-import type {
-  BoundContest,
-  ClassroomAnnouncement,
+import {
+  getBoundContestTimeRange,
+  type BoundContest,
+  type ClassroomAnnouncement,
 } from "@/core/entities/classroom.entity";
+
+export { getBoundContestTimeRange } from "@/core/entities/classroom.entity";
 
 // ── Calendar day row (consecutive, including empty days) ──────────────────────
 
@@ -195,18 +198,6 @@ export function buildCalendarDayRows(
 }
 
 // ── Time helpers ──────────────────────────────────────────────────────────────
-
-export function getBoundContestTimeRange(contest: BoundContest): {
-  startMs: number;
-  endMs: number;
-} {
-  const startIso = contest.contestStartTime || contest.boundAt;
-  const endIso = contest.contestEndTime || contest.boundAt;
-  return {
-    startMs: new Date(startIso).getTime(),
-    endMs: new Date(endIso).getTime(),
-  };
-}
 
 export function localDateKeyFromMs(ms: number): string {
   const d = new Date(ms);

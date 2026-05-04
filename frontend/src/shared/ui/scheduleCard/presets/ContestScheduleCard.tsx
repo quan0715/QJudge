@@ -5,14 +5,16 @@ import {
   CheckmarkFilled,
   InProgress,
 } from "@carbon/icons-react";
-import type { BoundContest } from "@/core/entities/classroom.entity";
+import {
+  getBoundContestTimeRange,
+  type BoundContest,
+} from "@/core/entities/classroom.entity";
 import {
   getContestState,
   getContestStateColor,
   getContestStateLabel,
   type ContestDisplayState,
 } from "@/core/entities/contest.entity";
-import { getBoundContestTimeRange } from "@/features/classroom/domain/classroomActivityTimeline";
 import { ScheduleCard } from "../ScheduleCard";
 
 const ACCENT: Record<string, string> = {
