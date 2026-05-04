@@ -94,7 +94,7 @@ describe("AdminQuestionStatsGallery", () => {
 
     await userEvent.type(
       screen.getByRole("searchbox", { name: "搜尋題目" }),
-      "Q3",
+      "Q4",
     );
 
     expect(screen.getByText("簡答：演算法複雜度說明")).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe("AdminQuestionStatsGallery", () => {
     );
 
     expect(
-      screen.getByRole("dialog", { name: "Q2 作答數據" }),
+      screen.getByRole("dialog", { name: "Q3 作答數據" }),
     ).toBeInTheDocument();
     expect(screen.getByText("批改進度")).toBeInTheDocument();
     expect(screen.getByText("29 / 47")).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe("AdminQuestionStatsGallery", () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: "Q2 作答數據" }),
+        screen.queryByRole("dialog", { name: "Q3 作答數據" }),
       ).not.toBeInTheDocument(),
     );
   });

@@ -40,6 +40,9 @@ type AttentionToneKey = "critical" | "warning" | "success";
 type FocusMetricKey = "score_rate" | "missing_rate" | "zero_rate";
 type FilterOption = { id: string; label: string };
 
+// Backend `order` is 0-based; the UI labels questions starting from 1.
+const getDisplayOrder = (order: number) => order + 1;
+
 const focusMetrics: Array<{
   key: FocusMetricKey;
   label: string;
@@ -173,7 +176,7 @@ export default function AdminQuestionStatsGallery({
       const normalizedQuery = searchQuery.trim().toLowerCase();
       if (!normalizedQuery) return true;
       return [
-        `Q${question.order}`,
+        `Q${getDisplayOrder(question.order)}`,
         question.title,
         getQuestionVisual(question.kind).label,
       ]
@@ -368,7 +371,7 @@ function QuestionStatsCard({
       <div className={styles.cardMeta}>
         <div className={styles.cardMetaLeft}>
           {questionVisual.Icon ? <questionVisual.Icon size={14} /> : null}
-          <span>Q{question.order}</span>
+          <span>Q{getDisplayOrder(question.order)}</span>
           <span>{questionVisual.label}</span>
         </div>
       </div>
@@ -429,7 +432,7 @@ function QuestionStatsDrawer({
         className={styles.drawer}
         role="dialog"
         aria-modal="true"
-        aria-label={`Q${question.order} 作答數據`}
+        aria-label={`Q${getDisplayOrder(question.order)} 作答數據`}
         initial={{ x: 24, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: 24, opacity: 0 }}
@@ -439,7 +442,7 @@ function QuestionStatsDrawer({
           <div>
             <h3>
               {questionVisual.Icon ? <questionVisual.Icon size={18} /> : null}Q
-              {question.order} · {questionVisual.label}
+              {getDisplayOrder(question.order)} · {questionVisual.label}
             </h3>
             <p>{question.title}</p>
           </div>
