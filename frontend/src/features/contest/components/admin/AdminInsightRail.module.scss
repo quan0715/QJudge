@@ -45,6 +45,14 @@
   height: 7rem;
 }
 
+.emptyState {
+  display: grid;
+  place-items: center;
+  min-height: 7rem;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
 .rightPanelProgressBar :global(.cds--progress-bar__track),
 .rightPanelProgressBar :global(.cds--progress-bar__bar) {
   height: 0.5rem;
@@ -60,8 +68,22 @@
   gap: 0.75rem;
 }
 
+.distributionCard {
+  gap: 0.5rem;
+  min-height: 0;
+}
+
 .distributionChartFrame {
-  min-height: 8rem;
+  /* 固定高度下圖內會多出 layout spacer；用 display 收斂，無需與 inline height 競爭 */
+  min-height: 0;
+  line-height: 0;
+}
+
+/* 比例 meter 會插入多個 layout spacer（條上方、圖例上方）；皆以 display 收斂且不與 inline height 競爭 */
+.distributionChartFrame :global(.chart-holder .graph-frame > .layout-child.spacer),
+.distributionChartFrame
+  :global(.chart-holder .layout-child.full-frame > .layout-child.spacer) {
+  display: none;
 }
 
 .distributionItem {

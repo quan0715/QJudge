@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { createElement, forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, Modal, TableToolbarSearch, Tag, TextArea, TextInput } from "@carbon/react";
 import {
@@ -22,7 +22,9 @@ import { useTranslation } from "react-i18next";
 import type { ContestDetail, ContestParticipant, EventFeedItem, ParticipantDashboard } from "@/core/entities/contest.entity";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
 import { createSfuLiveSubscriber } from "@/features/contest/anticheat/sfuLiveSubscriber";
-import { PRIORITY_LABELS, PRIORITY_TAG_COLOR } from "@/features/contest/constants/eventTaxonomy";
+import EventIncidentCard from "@/features/contest/components/admin/EventIncidentCard";
+import { buildIncidentScreenshotQuery } from "@/features/contest/components/admin/incidentEvidence";
+import { getEventTypeIcon } from "@/features/contest/constants/eventTaxonomy";
 import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
 import {
   createManualProctorEvent,
@@ -130,53 +132,6 @@ const getParticipantSearchText = (participant: ContestParticipant) =>
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
-
-const getModuleResults = (metadata: Record<string, unknown>) => {
-  const raw = metadata.forced_capture_module_results;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  return raw as Partial<Record<LiveSource, Record<string, unknown>>>;
-};
-
-const getEvidenceObjectKeys = (metadata: Record<string, unknown>): string[] => {
-  const keys = new Set<string>();
-  const topLevelKeys = Array.isArray(metadata.forced_capture_uploaded_object_keys)
-    ? metadata.forced_capture_uploaded_object_keys
-    : [];
-  topLevelKeys.forEach((value) => {
-    if (typeof value === "string") keys.add(value);
-  });
-  Object.values(getModuleResults(metadata)).forEach((result) => {
-    const moduleKeys = Array.isArray(result?.uploadedObjectKeys)
-      ? result.uploadedObjectKeys
-      : [];
-    moduleKeys.forEach((value) => {
-      if (typeof value === "string") keys.add(value);
-    });
-  });
-  return Array.from(keys);
-};
-
-const getEvidenceModules = (metadata: Record<string, unknown>, objectKeys: string[]): LiveSource[] => {
-  const modules = new Set<LiveSource>();
-  const configuredModules = Array.isArray(metadata.forced_capture_modules)
-    ? metadata.forced_capture_modules
-    : [];
-  configuredModules.forEach((value) => {
-    if (value === "screen_share" || value === "webcam") modules.add(value);
-  });
-  Object.keys(getModuleResults(metadata)).forEach((value) => {
-    if (value === "screen_share" || value === "webcam") modules.add(value);
-  });
-  objectKeys.forEach((key) => {
-    if (key.includes("/screen_share/")) modules.add("screen_share");
-    if (key.includes("/webcam/")) modules.add("webcam");
-  });
-  if (metadata.module === "screen_share" || metadata.module === "webcam") modules.add(metadata.module);
-  if (metadata.evidence_source_module === "screen_share" || metadata.evidence_source_module === "webcam") {
-    modules.add(metadata.evidence_source_module);
-  }
-  return Array.from(modules);
-};
 
 const formatEventTime = (value: string | number) => {
   const time = typeof value === "number" ? new Date(value) : new Date(value);
@@ -616,6 +571,11 @@ const EvidenceStrip = ({ contestId, participant, incident }: EvidenceStripProps)
   const [lightboxUrl, setLightboxUrl] = useState("");
 
   const incidentKey = incident?.incidentKey ?? "";
+  const eventIcon = useMemo(() => {
+    if (!incident) return null;
+    const Icon = getEventTypeIcon(incident.eventType, incident.priority);
+    return createElement(Icon, { size: 18 });
+  }, [incident]);
   const clipboardContentItems = useMemo(
     () => getClipboardContentItems(incident?.metadata),
     [incident?.metadata],
@@ -644,32 +604,15 @@ const EvidenceStrip = ({ contestId, participant, incident }: EvidenceStripProps)
 
     let cancelled = false;
     const load = async () => {
-      const metadata = incident.metadata ?? {};
-      const objectKeys = getEvidenceObjectKeys(metadata);
-      const modules = getEvidenceModules(metadata, objectKeys);
-      const sessionId = typeof metadata.upload_session_id === "string" ? metadata.upload_session_id : "";
-      const evidenceClusterId = typeof metadata.evidence_cluster_id === "string" ? metadata.evidence_cluster_id : "";
-      const evidenceWindowStart =
-        typeof metadata.evidence_window_start === "string" ? Date.parse(metadata.evidence_window_start) : NaN;
-      const evidenceWindowEnd =
-        typeof metadata.evidence_window_end === "string" ? Date.parse(metadata.evidence_window_end) : NaN;
-      const firstMs = new Date(incident.firstAt).getTime();
-      const lastMs = new Date(incident.lastAt).getTime();
-
       setLoading(true);
       setError("");
       try {
-        const result = await fetchScreenshots(contestId, {
-          user_id: participant.userId,
-          event_id: incident.eventId || undefined,
-          evidence_cluster_id: evidenceClusterId || undefined,
-          upload_session_id: sessionId || undefined,
-          source_module: modules.length === 1 && objectKeys.length === 0 ? modules[0] : undefined,
-          object_keys: objectKeys.length > 0 ? objectKeys.slice(0, 12) : undefined,
-          ts_from: Number.isFinite(evidenceWindowStart) ? evidenceWindowStart : firstMs - 20_000,
-          ts_to: Number.isFinite(evidenceWindowEnd) ? evidenceWindowEnd : lastMs + 20_000,
-          limit: 12,
-        });
+        const result = await fetchScreenshots(
+          contestId,
+          buildIncidentScreenshotQuery(incident, {
+            userId: participant.userId,
+          }),
+        );
         if (!cancelled) setFrames(result.items);
       } catch (err) {
         if (!cancelled) {
@@ -763,9 +706,7 @@ const EvidenceStrip = ({ contestId, participant, incident }: EvidenceStripProps)
     <div className={styles.evidenceStrip}>
       <div className={styles.evidenceHeader}>
         <div className={styles.evidenceTitle}>
-          <Tag type={PRIORITY_TAG_COLOR[incident.priority] ?? "cool-gray"} size="sm">
-            {PRIORITY_LABELS[incident.priority] ?? "P3"}
-          </Tag>
+          {eventIcon}
           <span>{getEventLabel(t, incident.eventType)}</span>
         </div>
         <span className={styles.evidenceMeta}>{formatEventTime(incident.lastAt)}</span>
@@ -860,24 +801,12 @@ const EventTimelinePane = ({
         {events.map((event) => {
           const selected = event.incidentKey === selectedKey;
           return (
-            <button
-              type="button"
+            <EventIncidentCard
               key={event.incidentKey}
-              className={[styles.eventItem, selected && styles.eventItemSelected].filter(Boolean).join(" ")}
-              onClick={() => onSelect(event)}
-            >
-              <span className={styles.eventItemTop}>
-                <Tag type={PRIORITY_TAG_COLOR[event.priority] ?? "cool-gray"} size="sm">
-                  {PRIORITY_LABELS[event.priority] ?? "P3"}
-                </Tag>
-                <span className={styles.eventType}>{getEventLabel(t, event.eventType)}</span>
-              </span>
-              <span className={styles.eventItemMeta}>
-                <span>{formatEventTime(event.lastAt)}</span>
-                {event.count > 1 ? <span>x{event.count}</span> : null}
-                {event.evidenceCount > 0 ? <span>{t("proctoringPanel.evidenceCount", "截圖 {{count}}", { count: event.evidenceCount })}</span> : null}
-              </span>
-            </button>
+              incident={event}
+              selected={selected}
+              onSelect={onSelect}
+            />
           );
         })}
       </div>

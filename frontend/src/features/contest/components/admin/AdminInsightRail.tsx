@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ScaleTypes } from "@carbon/charts";
 import {
   LineChart as CarbonLineChart,
@@ -17,6 +18,8 @@ import styles from "./AdminInsightRail.module.scss";
 interface AdminInsightRailProps {
   cards: DashboardInsightCard[];
   distribution?: DistributionItem[];
+  /** 僅在總覽右欄第一區塊設為 true，避免多個 rail 重複顯示「考試進度」（考生比例）卡片。 */
+  showDistribution?: boolean;
   loadingCardKeys?: string[];
   distributionLoading?: boolean;
 }
@@ -62,20 +65,13 @@ const normalizePrioritySeriesGroup = (series: DashboardChartSeries) =>
   (series.key || series.label || "P2").toUpperCase();
 
 const toLineChartData = (series: DashboardChartSeries[]) => {
-  const data = series.flatMap((item) =>
+  return series.flatMap((item) =>
     item.values.map((point) => ({
       group: normalizePrioritySeriesGroup(item),
       label: point.label,
       value: point.value,
     })),
   );
-
-  if (data.length > 0) return data;
-  return [
-    { group: "P0", label: "目前", value: 0 },
-    { group: "P1", label: "目前", value: 0 },
-    { group: "P2", label: "目前", value: 0 },
-  ];
 };
 
 const PriorityLineChart = ({
@@ -147,9 +143,15 @@ const DistributionOverview = ({
   loading?: boolean;
   theme: "white" | "g10" | "g90" | "g100";
 }) => {
+  const { t } = useTranslation("contest");
+  const title = t(
+    "adminOverview.widgets.examProgress",
+    "考試進度",
+  );
   const visibleDistribution = distribution.filter(
     (item) => item.key !== "offline",
   );
+  const hasDistributionData = visibleDistribution.some((item) => item.value > 0);
   const total = visibleDistribution.reduce((sum, item) => sum + item.value, 0);
   const segments = visibleDistribution;
   const distributionChartData = segments.map((item) => ({
@@ -164,13 +166,11 @@ const DistributionOverview = ({
     scale[item.label] = DISTRIBUTION_TONE_COLOR[item.key];
     return scale;
   }, {});
-  if (visibleDistribution.length === 0 && !loading) return null;
-
   return (
     <section
-      className={styles.card}
+      className={`${styles.card} ${styles.distributionCard}`}
       aria-busy={loading}
-      aria-label="考生分佈總覽"
+      aria-label={title}
     >
       {loading ? (
         <div className={styles.distributionList}>
@@ -184,37 +184,40 @@ const DistributionOverview = ({
       ) : (
         <>
           <div className={styles.cardHeader}>
-            <span>考生分佈總覽</span>
+            <span>{title}</span>
             <strong>{completionPercent}%</strong>
           </div>
-          <div className={styles.distributionChartFrame}>
-            <MeterChart
-              data={distributionChartData}
-              options={{
-                title: "",
-                height: "180px",
-                resizable: true,
-                theme,
-                meter: {
-                  height: 8,
-                  proportional: {
-                    unit: "人",
-                    breakdownFormatter: () =>
-                      `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
-                    totalFormatter: (value) => `考生總數 ${value} 人`,
+          {hasDistributionData ? (
+            <div className={styles.distributionChartFrame}>
+              <MeterChart
+                data={distributionChartData}
+                options={{
+                  title: "",
+                  height: "108px",
+                  resizable: true,
+                  theme,
+                  meter: {
+                    height: 8,
+                    proportional: {
+                      unit: "人",
+                      breakdownFormatter: () =>
+                        `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
+                      totalFormatter: (value) => `考生總數 ${value} 人`,
+                    },
                   },
-                },
-                legend: {
-                  enabled: true,
-                  position: "bottom",
-                },
-                color: {
-                  scale: chartColorScale,
-                },
-                toolbar: { enabled: false },
-              }}
-            />
-          </div>
+                  color: {
+                    scale: chartColorScale,
+                  },
+                  legend: {
+                    enabled: false,
+                  },
+                  toolbar: { enabled: false },
+                }}
+              />
+            </div>
+          ) : (
+            <div className={styles.emptyState}>尚無考生分佈資料</div>
+          )}
         </>
       )}
     </section>
@@ -224,6 +227,7 @@ const DistributionOverview = ({
 export default function AdminInsightRail({
   cards,
   distribution = [],
+  showDistribution = false,
   loadingCardKeys = [],
   distributionLoading = false,
 }: AdminInsightRailProps) {
@@ -248,11 +252,13 @@ export default function AdminInsightRail({
           loading={loadingKeys.has(card.key)}
         />
       ))}
-      <DistributionOverview
-        distribution={distribution}
-        loading={distributionLoading}
-        theme={chartTheme}
-      />
+      {showDistribution ? (
+        <DistributionOverview
+          distribution={distribution}
+          loading={distributionLoading}
+          theme={chartTheme}
+        />
+      ) : null}
       {gradingCards.map((card) => (
         <InsightCard
           key={card.key}
@@ -302,6 +308,11 @@ function InsightCard({
   loading: boolean;
 }) {
   const isGradingCard = card.key === "grading_progress";
+  const hasPriorityEventData =
+    card.kind !== "line" ||
+    (card.series ?? []).some((group) =>
+      group.values.some((point) => point.value > 0),
+    );
   return (
     <section className={styles.card} aria-busy={loading}>
       <div className={styles.cardHeader}>
@@ -325,7 +336,11 @@ function InsightCard({
           <SkeletonText width="100%" />
         )
       ) : card.kind === "line" ? (
-        <PriorityLineChart series={card.series ?? []} theme={chartTheme} />
+        hasPriorityEventData ? (
+          <PriorityLineChart series={card.series ?? []} theme={chartTheme} />
+        ) : (
+          <div className={styles.emptyState}>尚無違規事件資料</div>
+        )
       ) : (
         <ProgressChart card={card} />
       )}

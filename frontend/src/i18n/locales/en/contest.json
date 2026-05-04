@@ -144,6 +144,7 @@
       "disabled": "Disabled",
       "enabled": "Enabled",
       "examProgress": "Exam progress",
+      "timelineProgress": "Time progress",
       "goEventPanel": "Go to event panel",
       "goParticipantList": "Open participant list",
       "goProblemManagement": "Go to problem management",

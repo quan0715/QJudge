@@ -49,6 +49,14 @@
   background: transparent;
 }
 
+.chartEmptyState {
+  display: grid;
+  place-items: center;
+  min-height: 13.75rem;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
 .chartSkeleton {
   width: 100%;
   height: 13.75rem;

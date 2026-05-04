@@ -144,6 +144,7 @@
       "disabled": "無効",
       "enabled": "有効",
       "examProgress": "試験進捗",
+      "timelineProgress": "時間進捗",
       "goEventPanel": "イベントパネルへ移動",
       "goParticipantList": "参加者リストを開く",
       "goProblemManagement": "問題管理へ移動",

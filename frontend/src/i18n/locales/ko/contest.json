@@ -144,6 +144,7 @@
       "disabled": "비활성화",
       "enabled": "활성화",
       "examProgress": "시험 진행률",
+      "timelineProgress": "시간 진행",
       "goEventPanel": "이벤트 패널로 이동",
       "goParticipantList": "참가자 목록 열기",
       "goProblemManagement": "문제 관리로 이동",

@@ -64,6 +64,10 @@ export default function AdminExamResultOverview({
         : [],
     [dashboard],
   );
+  const hasScoreDistributionData = useMemo(
+    () => chartData.some((item) => item.value > 0),
+    [chartData],
+  );
 
   const chartTheme = resolveCarbonChartTheme(theme);
   const chartOptions = useMemo(
@@ -142,7 +146,13 @@ export default function AdminExamResultOverview({
             </strong>
           </div>
           <div className={styles.chartFrame}>
-            <LollipopChart data={chartData} options={chartOptions} />
+            {hasScoreDistributionData ? (
+              <LollipopChart data={chartData} options={chartOptions} />
+            ) : (
+              <div className={styles.chartEmptyState}>
+                {t("statistics.noScoreDistributionData", "尚無分數資料")}
+              </div>
+            )}
           </div>
         </div>
       </div>

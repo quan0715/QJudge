@@ -181,6 +181,30 @@ const PARTICIPANT_METRIC_OPTIONS: Array<{
   { key: "gradingProgress", label: "批改進度" },
 ];
 
+const DATE_TIME_LABEL_REGEX = /^(\d{4}\/\d{2}\/\d{2})\s+(\d{2}:\d{2})$/;
+
+const normalizeScheduleLabels = (
+  startLabel: string,
+  endLabel: string,
+): { start: string; end: string } => {
+  const startMatch = startLabel.match(DATE_TIME_LABEL_REGEX);
+  const endMatch = endLabel.match(DATE_TIME_LABEL_REGEX);
+  if (!startMatch || !endMatch) {
+    return { start: startLabel, end: endLabel };
+  }
+
+  const [, startDate, startTime] = startMatch;
+  const [, endDate, endTime] = endMatch;
+  if (startDate === endDate) {
+    return { start: startTime, end: endTime };
+  }
+
+  return {
+    start: `${startDate}\n${startTime}`,
+    end: `${endDate}\n${endTime}`,
+  };
+};
+
 type ParticipantStatusFilter =
   | "all"
   | "needs_attention"
@@ -632,6 +656,10 @@ export default function AdminOverviewCommandCenter({
   );
   const examProgressStatus =
     examProgressPercent >= 100 ? "finished" : "active";
+  const scheduleLabels = normalizeScheduleLabels(
+    data.timeline.startDateTimeLabel,
+    data.timeline.endDateTimeLabel,
+  );
   const examStatusSummary = (
     <section className={styles.examStatusPanel} aria-label="考試狀態摘要">
       <div className={styles.examStatusMatrix}>
@@ -647,11 +675,11 @@ export default function AdminOverviewCommandCenter({
       <div className={styles.examScheduleGrid} aria-label="考試時間">
         <div className={styles.examScheduleItem}>
           <span>開始時間</span>
-          <strong>{data.timeline.startDateTimeLabel}</strong>
+          <strong>{scheduleLabels.start}</strong>
         </div>
         <div className={styles.examScheduleItem}>
           <span>結束時間</span>
-          <strong>{data.timeline.endDateTimeLabel}</strong>
+          <strong>{scheduleLabels.end}</strong>
         </div>
       </div>
       <div className={styles.examProgressBlock}>
@@ -662,7 +690,10 @@ export default function AdminOverviewCommandCenter({
           </strong>
         </div>
         <ProgressBar
-          label="考試進度"
+          label={t(
+            "adminOverview.widgets.timelineProgress",
+            "時間進度",
+          )}
           hideLabel
           size="small"
           value={examProgressPercent}
@@ -939,24 +970,21 @@ export default function AdminOverviewCommandCenter({
             <AdminInsightRail
               cards={[]}
               distribution={data.distribution}
+              showDistribution
               distributionLoading={adminLoading}
             />
             <AdminInsightRail
               cards={gradingInsightCards}
-              distribution={[]}
               loadingCardKeys={gradingLoading ? ["grading_progress"] : []}
-              distributionLoading={false}
             />
             {resultOverview}
             <AdminInsightRail
               cards={nonGradingInsightCards}
-              distribution={[]}
               loadingCardKeys={[
                 ...(adminLoading || examEventsLoading
                   ? ["priority_events"]
                   : []),
               ]}
-              distributionLoading={false}
             />
             <section className={styles.eventLogPanel} aria-label="事件紀錄">
               <PriorityEventsInsightCard

@@ -144,6 +144,7 @@
       "disabled": "未啟用",
       "enabled": "已啟用",
       "examProgress": "考試進度",
+      "timelineProgress": "時間進度",
       "goEventPanel": "前往事件面板",
       "goParticipantList": "進入參賽者列表",
       "goProblemManagement": "前往題目管理",

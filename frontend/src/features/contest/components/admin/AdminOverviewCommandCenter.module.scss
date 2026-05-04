@@ -106,12 +106,12 @@
 }
 
 .examScheduleItem strong {
-  overflow: hidden;
+  overflow: visible;
   color: var(--cds-text-primary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 1.5rem;
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.15;
+  white-space: pre-line;
 }
 
 .panelHeader {

@@ -27,11 +27,11 @@ import { KpiCard } from "@/shared/ui/dataCard/KpiCard";
 import {
   getEventPriority,
   getEventCategory,
-  getEventTypeIcon,
   getEventTypeLabel,
-  PRIORITY_LABELS,
 } from "@/features/contest/constants/eventTaxonomy";
+import EventIncidentCard from "@/features/contest/components/admin/EventIncidentCard";
 import IncidentCard from "@/features/contest/components/admin/IncidentCard";
+import { getIncidentEvidenceFrameCount } from "@/features/contest/components/admin/incidentEvidence";
 import { useContestAnticheatConfig } from "@/features/contest/hooks/useContestAnticheatConfig";
 import styles from "./ContestLogsScreen.module.scss";
 
@@ -321,6 +321,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
       const ts = new Date(event.timestamp).getTime();
       const aggregateKey = buildActorAggregationKey(event);
       const idx = openIncidents.get(aggregateKey);
+      const evidenceCount = getIncidentEvidenceFrameCount(event.metadata);
 
       if (idx !== undefined) {
         const inc = incidents[idx];
@@ -328,7 +329,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
         if (ts - lastTs <= aggregationWindowMs) {
           inc.count += 1;
           inc.lastAt = event.timestamp;
-          if (event.metadata?.forced_capture_uploaded) inc.evidenceCount += 1;
+          inc.evidenceCount += evidenceCount;
           if (et === "clipboard_action") {
             inc.metadata = mergeClipboardMetadata(inc.metadata, event.metadata);
             inc.eventId = event.id;
@@ -349,7 +350,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
         firstAt: event.timestamp,
         lastAt: event.timestamp,
         count: 1,
-        evidenceCount: event.metadata?.forced_capture_uploaded ? 1 : 0,
+        evidenceCount,
         summary: event.reason || "",
         source: "exam_event",
         userName: event.userName,
@@ -631,55 +632,12 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   );
 
   const renderCompactIncident = (incident: EventFeedItem) => {
-    const priorityLabel = PRIORITY_LABELS[incident.priority] ?? "P3";
-    const EventIcon = getEventTypeIcon(incident.eventType, incident.priority);
-    const eventLabel = getEventTypeLabel(
-      (key, fallback) => String(t(key, fallback ?? "")),
-      incident.eventType,
-    );
-    const timeLabel = new Date(incident.firstAt).toLocaleTimeString("zh-Hant-TW", {
-      timeZone: "Asia/Taipei",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
     return (
-      <button
-        type="button"
+      <EventIncidentCard
         key={incident.incidentKey}
-        className={`${styles.compactEventRow} ${
-          styles[`compactPriority${incident.priority}`] ?? ""
-        }`}
-        onClick={() => setSelectedIncident(incident)}
-      >
-        <span
-          className={`${styles.compactPriority} ${styles.compactPriorityIcon} ${
-            styles[`compactPriorityIcon${incident.priority}`] ?? ""
-          }`}
-          aria-label={priorityLabel}
-          title={priorityLabel}
-        >
-          <EventIcon size={18} />
-        </span>
-        <div className={styles.compactEventMain}>
-          <strong>
-            {eventLabel}
-          </strong>
-          <span>
-            {[incident.userName, timeLabel].filter(Boolean).join(" · ")}
-          </span>
-        </div>
-        <div className={styles.compactEventMeta}>
-          {incident.count > 1 ? <span>×{incident.count}</span> : null}
-          {incident.evidenceCount > 0 ? (
-            <span>
-              {t("logs.evidenceCompact", "證據 {{count}}", {
-                count: incident.evidenceCount,
-              })}
-            </span>
-          ) : null}
-        </div>
-      </button>
+        incident={incident}
+        onSelect={setSelectedIncident}
+      />
     );
   };
 

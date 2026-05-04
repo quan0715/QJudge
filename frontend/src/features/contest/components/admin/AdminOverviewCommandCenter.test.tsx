@@ -249,21 +249,17 @@ describe("AdminOverviewCommandCenter", () => {
     expect(within(examSummary).getByText("1")).toBeInTheDocument();
     const examSchedule = within(examSummary).getByLabelText("考試時間");
     expect(within(examSchedule).getByText("開始時間")).toBeInTheDocument();
-    expect(
-      within(examSchedule).getByText("2026/05/04 09:00"),
-    ).toBeInTheDocument();
+    expect(within(examSchedule).getByText("09:00")).toBeInTheDocument();
     expect(within(examSchedule).getByText("結束時間")).toBeInTheDocument();
-    expect(
-      within(examSchedule).getByText("2026/05/04 11:00"),
-    ).toBeInTheDocument();
+    expect(within(examSchedule).getByText("11:00")).toBeInTheDocument();
     expect(within(examSummary).getByText("倒數計時")).toBeInTheDocument();
     expect(within(examSummary).getByText("剩餘 45:00")).toBeInTheDocument();
     expect(screen.getAllByText("批改進度").length).toBeGreaterThan(0);
     expect(
-      screen.getByRole("progressbar", { name: "考試進度" }),
+      screen.getByRole("progressbar", { name: "時間進度" }),
     ).toHaveAttribute("aria-valuenow", "62");
     expect(screen.getAllByText("違規事件").length).toBeGreaterThan(0);
-    const distributionOverview = screen.getByLabelText("考生分佈總覽");
+    const distributionOverview = screen.getByLabelText("考試進度");
     expect(distributionOverview).toBeInTheDocument();
     expect(
       within(distributionOverview).queryByText("離線"),
@@ -324,7 +320,7 @@ describe("AdminOverviewCommandCenter", () => {
   it("keeps only essential drilldown content in the left overview column", () => {
     renderCommandCenter();
 
-    expect(screen.getByLabelText("考生分佈總覽")).toBeInTheDocument();
+    expect(screen.getByLabelText("考試進度")).toBeInTheDocument();
     expect(screen.queryByText("auto_submit")).not.toBeInTheDocument();
     expect(screen.getByText("陳小華")).toBeInTheDocument();
     expect(screen.queryByText("競賽發布")).not.toBeInTheDocument();
@@ -431,7 +427,7 @@ describe("AdminOverviewCommandCenter", () => {
 
     expect(screen.getByLabelText("考生列表載入中")).toBeInTheDocument();
     expect(screen.getByLabelText("批改資料載入中")).toBeInTheDocument();
-    expect(screen.getByLabelText("考生分佈總覽")).toBeInTheDocument();
+    expect(screen.getByLabelText("考試進度")).toBeInTheDocument();
   });
 
   it("keeps generic panel entries out of the live dashboard", () => {
