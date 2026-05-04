@@ -18,7 +18,7 @@ from ..constants import (
 from ..permissions import can_manage_contest
 from ..services.anti_cheat_session import (
     blacklist_other_tokens,
-    build_device_conflict_response,
+    build_device_conflict_payload,
     clear_exam_allowed_jti,
     get_device_id,
     get_refresh_jti,
@@ -29,12 +29,12 @@ from ..services.anti_cheat_session import (
 )
 from ..models import ExamEvent as _ExamEvent  # noqa: used in lifecycle
 from ..services.exam_submission import finalize_submission
-from ..services.exam_validation import validate_exam_operation
 from .activity import ContestActivityViewSet
 from .exam_events import ExamEventsMixin
 from .exam_anticheat import ExamAnticheatMixin
 from .exam_evidence import ExamEvidenceMixin
 from .exam_sfu import ExamSfuMixin
+from .exam_validation_response import validate_exam_operation_for_view
 
 
 class ExamLifecycleMixin:
@@ -48,10 +48,10 @@ class ExamLifecycleMixin:
         contest = get_object_or_404(Contest, id=contest_pk)
 
         # 3-layer permission check (don't require in_progress for start)
-        participant, error_response = validate_exam_operation(
+        participant, error_response = validate_exam_operation_for_view(
             contest, request.user, require_in_progress=False
         )
-        if error_response:
+        if error_response is not None:
             return error_response
         if participant is None:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
@@ -140,10 +140,10 @@ class ExamLifecycleMixin:
         contest = get_object_or_404(Contest, id=contest_pk)
 
         # Don't require in_progress - allow submission from in_progress, locked, or paused
-        participant, error_response = validate_exam_operation(
+        participant, error_response = validate_exam_operation_for_view(
             contest, request.user, require_in_progress=False
         )
-        if error_response:
+        if error_response is not None:
             return error_response
         if participant is None:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
@@ -176,8 +176,8 @@ class ExamLifecycleMixin:
             )
 
         # Soft device check — log event but do NOT block submission
-        conflict = build_device_conflict_response(contest, participant, request)
-        if conflict is not None:
+        conflict_payload = build_device_conflict_payload(contest, participant, request)
+        if conflict_payload is not None:
             _ExamEvent.objects.create(
                 contest=contest,
                 user=request.user,

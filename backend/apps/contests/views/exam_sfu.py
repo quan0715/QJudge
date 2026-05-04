@@ -10,7 +10,6 @@ from rest_framework.response import Response
 
 from ..models import Contest, ContestParticipant
 from ..permissions import can_manage_contest
-from ..services.exam_validation import validate_exam_operation
 from ..services.realtime_sfu import (
     RealtimeSfuClient,
     RealtimeSfuError,
@@ -25,6 +24,7 @@ from ..services.realtime_sfu_registry import (
     register_publisher,
     remove_publisher,
 )
+from .exam_validation_response import validate_exam_operation_for_view
 
 
 logger = logging.getLogger(__name__)
@@ -103,13 +103,13 @@ class ExamSfuMixin:
             else:
                 room_id = f"{build_room_id(contest.id, request.user.id)}-subscriber"
         else:
-            participant, error_response = validate_exam_operation(
+            participant, error_response = validate_exam_operation_for_view(
                 contest,
                 request.user,
                 require_in_progress=False,
                 allow_admin_bypass=False,
             )
-            if error_response:
+            if error_response is not None:
                 return error_response
             if participant is None:
                 return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
@@ -142,13 +142,13 @@ class ExamSfuMixin:
             if not can_manage_contest(request.user, contest):
                 return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
         else:
-            participant, error_response = validate_exam_operation(
+            participant, error_response = validate_exam_operation_for_view(
                 contest,
                 request.user,
                 require_in_progress=False,
                 allow_admin_bypass=False,
             )
-            if error_response:
+            if error_response is not None:
                 return error_response
             if participant is None:
                 return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
@@ -231,13 +231,13 @@ class ExamSfuMixin:
     )
     def sfu_publisher_heartbeat(self, request, contest_pk=None):
         contest = get_object_or_404(Contest, id=contest_pk)
-        participant, error_response = validate_exam_operation(
+        participant, error_response = validate_exam_operation_for_view(
             contest,
             request.user,
             require_in_progress=False,
             allow_admin_bypass=False,
         )
-        if error_response:
+        if error_response is not None:
             return error_response
         if participant is None:
             return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)

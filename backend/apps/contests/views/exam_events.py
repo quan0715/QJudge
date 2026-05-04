@@ -29,9 +29,9 @@ from ..services.anti_cheat_session import (
     touch_heartbeat,
 )
 from ..services.exam_submission import finalize_submission, normalize_source_module
-from ..services.exam_validation import validate_exam_operation
 from ..services.evidence_windows import attach_evidence_window_metadata
 from .activity import ContestActivityViewSet
+from .exam_validation_response import validate_exam_operation_for_view
 from apps.core.throttles import ExamEventsThrottle
 
 logger = logging.getLogger(__name__)
@@ -396,10 +396,10 @@ class ExamEventsMixin:
         contest = get_object_or_404(Contest, id=contest_pk)
 
         # 3-layer permission check (status validated below)
-        participant, error_response = validate_exam_operation(
+        participant, error_response = validate_exam_operation_for_view(
             contest, request.user, require_in_progress=False, allow_admin_bypass=False
         )
-        if error_response:
+        if error_response is not None:
             return error_response
 
         if participant is None:

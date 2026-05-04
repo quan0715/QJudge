@@ -28,9 +28,11 @@ from ..serializers import (
 )
 from ..permissions import can_manage_contest
 from apps.core.api.envelope import envelope
-from ..services.anti_cheat_session import build_device_conflict_response
-from ..services.exam_validation import validate_exam_operation
 from ..services.question_edit_lock import maybe_lock_from_exam_answer
+from .exam_validation_response import (
+    build_device_conflict_response_for_view,
+    validate_exam_operation_for_view,
+)
 
 
 class ExamAnswerViewSet(viewsets.GenericViewSet):
@@ -177,16 +179,16 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
     def submit_answer(self, request, contest_pk=None):
         """Submit or update a single answer (auto-save)."""
         contest = self._get_contest(contest_pk)
-        participant, error = validate_exam_operation(
+        participant, error_response = validate_exam_operation_for_view(
             contest, request.user, require_in_progress=True
         )
-        if error:
-            return error
+        if error_response is not None:
+            return error_response
 
         # Device guard (hard block)
-        conflict = build_device_conflict_response(contest, participant, request)
-        if conflict is not None:
-            return conflict
+        conflict_response = build_device_conflict_response_for_view(contest, participant, request)
+        if conflict_response is not None:
+            return conflict_response
 
         serializer = ExamAnswerSubmitSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -225,11 +227,11 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
     def my_answers(self, request, contest_pk=None):
         """Get all answers for the current student in this contest."""
         contest = self._get_contest(contest_pk)
-        participant, error = validate_exam_operation(
+        participant, error_response = validate_exam_operation_for_view(
             contest, request.user, require_in_progress=False
         )
-        if error:
-            return error
+        if error_response is not None:
+            return error_response
         if participant is None:
             return Response(
                 {'error': 'Not registered for this contest.'},
@@ -238,9 +240,9 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         # Device guard (hard block, skip if already submitted)
         if participant.exam_status != ExamStatus.SUBMITTED:
-            conflict = build_device_conflict_response(contest, participant, request)
-            if conflict is not None:
-                return conflict
+            conflict_response = build_device_conflict_response_for_view(contest, participant, request)
+            if conflict_response is not None:
+                return conflict_response
 
         answers = ExamAnswer.objects.filter(
             participant=participant

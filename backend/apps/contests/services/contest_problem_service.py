@@ -1,73 +1,9 @@
 """Shared helpers for importing bank questions into contests."""
-from uuid import UUID
-
-from rest_framework.exceptions import (
-    NotFound,
-    PermissionDenied,
-    ValidationError as DRFValidationError,
-)
 
 from apps.problems.serializers import ProblemAdminSerializer
-from apps.question_bank.models import (
-    Question,
-    QuestionBank,
-    QuestionBankMembership,
-)
-from apps.question_bank.bank_workflows import is_publicly_accessible_bank
+from apps.question_bank.import_resolver import resolve_bank_question_for_import
+from apps.question_bank.models import Question
 from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
-from apps.question_bank.write_workflows import (
-    materialize_bank_question_adapter_for_membership,
-)
-
-
-def resolve_bank_question_for_import(*, user, question_bank_id, question_id):
-    """Resolve a bank question for import.
-
-    Returns ``(bank, question)`` on success.
-    Raises DRF exceptions on error instead of returning a ``Response``.
-    """
-    try:
-        normalized_bank_uuid = str(UUID(str(question_bank_id)))
-    except (TypeError, ValueError):
-        raise DRFValidationError({"question_bank_id": "Must be a valid UUID."})
-
-    bank = QuestionBank.objects.filter(uuid=normalized_bank_uuid, is_archived=False).first()
-    if not bank:
-        raise NotFound("Question bank not found")
-
-    if bank.owner_id != user.id and not is_publicly_accessible_bank(bank):
-        raise PermissionDenied("No access to this question bank")
-
-    try:
-        normalized_question_uuid = str(UUID(str(question_id)))
-    except (TypeError, ValueError):
-        raise DRFValidationError({"question_id": "Must be a valid UUID."})
-
-    membership = (
-        QuestionBankMembership.objects.filter(
-            bank=bank, id=normalized_question_uuid,
-        )
-        .select_related("question_asset", "question_asset__latest_version", "legacy_question")
-        .first()
-    )
-
-    if membership:
-        if membership.legacy_question_id:
-            question = membership.legacy_question
-        else:
-            question = materialize_bank_question_adapter_for_membership(
-                membership=membership, actor=user,
-            )
-    else:
-        question = None
-
-    if not question:
-        raise NotFound("Question not found in bank")
-
-    if question.question_type != Question.QuestionType.CODING:
-        raise DRFValidationError("Only coding bank questions can be imported here")
-
-    return bank, question
 
 
 def materialize_problem_from_bank_question(*, contest, question, user, request=None):
