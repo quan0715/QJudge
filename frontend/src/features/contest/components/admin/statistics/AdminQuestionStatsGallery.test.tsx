@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
@@ -120,9 +120,11 @@ describe("AdminQuestionStatsGallery", () => {
       screen.getByRole("button", { name: "關閉題目作答數據" }),
     );
 
-    expect(
-      screen.queryByRole("dialog", { name: "Q2 作答數據" }),
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Q2 作答數據" }),
+      ).not.toBeInTheDocument(),
+    );
     expect(useContestResultDashboard).toHaveBeenCalledWith(contest, 2);
   });
 

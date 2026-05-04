@@ -50,7 +50,6 @@ const getPaperExamTabs = (contest?: ContestDetail | null) => {
 const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
   "clarifications",
-  "participants",
   "proctoring",
   "problem_editor",
   "grading",

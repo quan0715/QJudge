@@ -19,9 +19,7 @@
       "examManagement": "Exam Management",
       "examStatistics": "Exam Statistics",
       "grading": "Answer Results",
-      "logs": "Event Logs",
       "overview": "Overview",
-      "participants": "Participants",
       "problemManagement": "Problem Management",
       "proctoring": "Proctoring",
       "settings": "Settings",
@@ -84,6 +82,7 @@
       "actions": {
         "settings": "Contest settings",
         "contestHome": "Contest home",
+        "addParticipant": "Add participant",
         "refresh": "Refresh",
         "refreshing": "Refreshing",
         "export": "Export results",

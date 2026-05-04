@@ -19,9 +19,7 @@
       "examManagement": "Exam 管理",
       "examStatistics": "Exam 統計",
       "grading": "作答結果",
-      "logs": "事件紀錄",
       "overview": "總覽",
-      "participants": "參賽者",
       "problemManagement": "題目管理",
       "proctoring": "監考",
       "settings": "設定",
@@ -84,6 +82,7 @@
       "actions": {
         "settings": "競賽設定",
         "contestHome": "競賽主頁",
+        "addParticipant": "新增參賽者",
         "refresh": "重新整理",
         "refreshing": "重新整理中",
         "export": "匯出成績",

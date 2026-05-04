@@ -120,22 +120,21 @@ describe("ContestLogsScreen", () => {
     );
     expect(screen.getByRole("tab", { name: "考試事件" })).toBeInTheDocument();
     expect(screen.queryByText("事件紀錄")).not.toBeInTheDocument();
+    const violationPanel = screen.getByRole("tabpanel");
+    expect(within(violationPanel).getByText("tab hidden")).toBeInTheDocument();
     expect(
-      within(screen.getByRole("tabpanel")).getByText("tab_hidden"),
+      within(violationPanel).getByText("滑鼠離開視窗（觸發）"),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByRole("tabpanel")).getByText("mouse_leave_triggered"),
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("tabpanel")).queryByText("exam_entered"),
+      within(violationPanel).queryByText("exam entered"),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId("full-incident-card")).not.toBeInTheDocument();
     expect(screen.getByText("王小明 · 09:10")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /tab_hidden/ }));
+    await userEvent.click(screen.getByRole("button", { name: /tab hidden/ }));
 
     expect(
-      screen.getByRole("dialog", { name: "tab_hidden" }),
+      screen.getByRole("dialog", { name: "tab hidden" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("full-incident-card")).toHaveTextContent(
       "tab_hidden",
@@ -151,11 +150,10 @@ describe("ContestLogsScreen", () => {
       "aria-selected",
       "true",
     );
+    const examPanel = screen.getByRole("tabpanel");
+    expect(within(examPanel).getByText("exam entered")).toBeInTheDocument();
     expect(
-      within(screen.getByRole("tabpanel")).getByText("exam_entered"),
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("tabpanel")).queryByText("mouse_leave_triggered"),
+      within(examPanel).queryByText("滑鼠離開視窗（觸發）"),
     ).not.toBeInTheDocument();
   });
 });

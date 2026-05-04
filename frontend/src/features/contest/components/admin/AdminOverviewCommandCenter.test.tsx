@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ContestParticipant } from "@/core/entities/contest.entity";
@@ -49,6 +49,21 @@ vi.mock("@/features/contest/screens/settings/ContestLogsScreen", () => ({
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   downloadParticipantReport: vi.fn(),
+  removeParticipant: vi.fn(),
+  reopenExam: vi.fn(),
+  unlockParticipant: vi.fn(),
+  updateParticipant: vi.fn(),
+}));
+
+vi.mock("@/shared/contexts/ToastContext", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
+vi.mock("@/features/contest/contexts", () => ({
+  useContestAdmin: () => ({
+    refreshAllAdminData: vi.fn(),
+    refreshParticipants: vi.fn(),
+  }),
 }));
 
 const data: AdminOverviewDashboardData = {
@@ -441,9 +456,11 @@ describe("AdminOverviewCommandCenter", () => {
       screen.getByRole("button", { name: "關閉學生詳細資訊" }),
     );
 
-    expect(
-      screen.queryByRole("dialog", { name: "學生詳細資訊" }),
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "學生詳細資訊" }),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it("shows independent skeleton regions for admin and grading API data", () => {

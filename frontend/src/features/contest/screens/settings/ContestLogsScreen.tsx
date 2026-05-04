@@ -15,16 +15,19 @@ import {
   WarningAlt,
   Policy,
   WarningFilled,
+  CheckmarkFilled,
+  Chat,
+  Information,
+  Locked,
+  Time,
+  View,
   ImageSearch,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
-import {
-  useAdminPanelRefresh,
-  useContestAdmin,
-} from "@/features/contest/contexts";
+import { useContestAdmin } from "@/features/contest/contexts";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import { KpiCard } from "@/shared/ui/dataCard/KpiCard";
 import {
@@ -47,6 +50,62 @@ const PAGE_SIZE = 50;
 const TAB_DEFAULT_CATEGORIES: Record<number, string[]> = {
   0: ["critical", "violation", "info"],
   1: ["system"],
+};
+
+const EVENT_TYPE_LABEL_FALLBACK: Record<string, string> = {
+  mouse_leave_triggered: "滑鼠離開視窗（觸發）",
+  exit_fullscreen_triggered: "退出全螢幕（觸發）",
+  tab_hidden_triggered: "分頁隱藏（觸發）",
+  tab_hidden_restored: "分頁可見（恢復）",
+  window_blur_triggered: "視窗失焦（觸發）",
+  window_blur_restored: "回到考試視窗（恢復）",
+  multi_display_triggered: "多螢幕偵測（觸發）",
+  multi_display_restored: "多螢幕狀態恢復",
+  screen_share_interrupted: "螢幕分享中斷",
+  screen_share_restored: "螢幕分享恢復",
+  webcam_interrupted: "Webcam 中斷",
+  webcam_restored: "Webcam 恢復",
+  webcam_quality_degraded: "Webcam 品質下降",
+  viewport_interrupted: "視窗完整性中斷",
+  viewport_restored: "視窗完整性恢復",
+};
+
+const getPriorityIcon = (priority: number) => {
+  if (priority === 0) return WarningFilled;
+  if (priority === 1) return Policy;
+  if (priority === 2) return Information;
+  return Time;
+};
+
+const getEventTypeIcon = (eventType: string, priority: number) => {
+  if (eventType.includes("screen_share")) return View;
+  if (eventType.includes("webcam")) return ImageSearch;
+  if (eventType.includes("tab_hidden") || eventType.includes("window_blur"))
+    return View;
+  if (eventType.includes("mouse_leave")) return WarningAlt;
+  if (
+    eventType.includes("multi_display") ||
+    eventType.includes("multiple_displays") ||
+    eventType.includes("split_view") ||
+    eventType.includes("viewport")
+  )
+    return View;
+  if (eventType.includes("lock")) return Locked;
+  if (eventType.includes("restored") || eventType.includes("unlock"))
+    return CheckmarkFilled;
+  if (eventType.includes("ask_question") || eventType.includes("reply_question"))
+    return Chat;
+  if (eventType.includes("heartbeat")) return Time;
+  return getPriorityIcon(priority);
+};
+
+const getEventTypeLabel = (
+  t: (key: string, defaultValue?: string) => string,
+  eventType: string,
+) => {
+  const translated = t(`logs.eventTypes.${eventType}`, eventType);
+  if (translated !== eventType) return translated;
+  return EVENT_TYPE_LABEL_FALLBACK[eventType] ?? eventType.replaceAll("_", " ");
 };
 
 const buildActorAggregationKey = (event: {
@@ -250,7 +309,9 @@ const LogsSkeleton = ({ showKpis = true }: { showKpis?: boolean }) => (
         ))}
       </div>
     ) : null}
-    <SkeletonText paragraph lineCount={10} />
+    <div className={styles.skeletonFeed}>
+      <SkeletonText paragraph lineCount={10} />
+    </div>
   </div>
 );
 
@@ -269,7 +330,6 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 }) => {
   const { contestId } = useParams<{ contestId: string }>();
   const { examEvents, isRefreshing, refreshAdminData } = useContestAdmin();
-  const { registerPanelRefresh } = useAdminPanelRefresh();
   const { t } = useTranslation("contest");
   const {
     config: antiCheatConfig,
@@ -499,12 +559,6 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     refreshAntiCheatConfig,
   ]);
 
-  useEffect(() => {
-    if (embedded) return;
-    return registerPanelRefresh("logs", async () => {
-      await handleRefresh();
-    });
-  }, [embedded, handleRefresh, registerPanelRefresh]);
 
   const handleKpiClick = (category: string) => {
     if (activeTab !== 0) return;
@@ -632,6 +686,11 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 
   const renderCompactIncident = (incident: EventFeedItem) => {
     const priorityLabel = PRIORITY_LABELS[incident.priority] ?? "P3";
+    const EventIcon = getEventTypeIcon(incident.eventType, incident.priority);
+    const eventLabel = getEventTypeLabel(
+      (key, fallback) => String(t(key, fallback ?? "")),
+      incident.eventType,
+    );
     const timeLabel = new Date(incident.firstAt).toLocaleTimeString("zh-Hant-TW", {
       timeZone: "Asia/Taipei",
       hour: "2-digit",
@@ -647,10 +706,18 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
         }`}
         onClick={() => setSelectedIncident(incident)}
       >
-        <span className={styles.compactPriority}>{priorityLabel}</span>
+        <span
+          className={`${styles.compactPriority} ${styles.compactPriorityIcon} ${
+            styles[`compactPriorityIcon${incident.priority}`] ?? ""
+          }`}
+          aria-label={priorityLabel}
+          title={priorityLabel}
+        >
+          <EventIcon size={18} />
+        </span>
         <div className={styles.compactEventMain}>
           <strong>
-            {t(`logs.eventTypes.${incident.eventType}`, incident.eventType)}
+            {eventLabel}
           </strong>
           <span>
             {[incident.userName, timeLabel].filter(Boolean).join(" · ")}
@@ -770,8 +837,8 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   };
 
   const selectedIncidentTitle = selectedIncident
-    ? t(
-        `logs.eventTypes.${selectedIncident.eventType}`,
+    ? getEventTypeLabel(
+        (key, fallback) => String(t(key, fallback ?? "")),
         selectedIncident.eventType,
       )
     : t("logs.eventDetail", "事件詳情");

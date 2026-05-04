@@ -6,7 +6,6 @@ import {
   Checkmark,
   Globe,
   Chat as ChatIcon,
-  Activity,
   AiLabel,
   Bullhorn,
   ChartColumn,
@@ -48,14 +47,17 @@ const CONTEST_PANEL_META: Record<
 > = {
   overview: { labelKey: "overview", Icon: Dashboard },
   clarifications: { labelKey: "clarifications", Icon: ChatIcon },
-  logs: { labelKey: "logs", Icon: Activity },
-  participants: { labelKey: "participants", Icon: UserMultiple },
   proctoring: { labelKey: "proctoring", Icon: View },
   problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: Education },
   grading: { labelKey: "grading", examLabelKey: "examGrading", Icon: TaskComplete },
   "ai-grading": { labelKey: "aiGrading", examLabelKey: "examAiGrading", Icon: AiLabel },
   statistics: { labelKey: "statistics", examLabelKey: "examStatistics", Icon: ChartColumn },
   settings: { labelKey: "settings", Icon: Settings },
+};
+
+const getClassroomAvatarInitial = (name: string): string => {
+  const trimmed = name.trim();
+  return (trimmed[0] ?? "?").toUpperCase();
 };
 
 interface SideMenuProps {
@@ -96,7 +98,9 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     return match?.[1];
   }, [location.pathname]);
   const contestAdminContext = useMemo(() => {
-    const match = location.pathname.match(/^\/classrooms\/([^/]+)\/contest\/([^/]+)\/admin\/?$/);
+    const match = location.pathname.match(
+      /^\/classrooms\/([^/]+)\/contest\/([^/]+)\/admin(?:\/.*)?$/,
+    );
     if (!match) return null;
     return { classroomId: match[1], contestId: match[2] };
   }, [location.pathname]);
@@ -506,6 +510,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                       {classrooms.map((c) => {
                         const isCurrent = c.id === classroomId;
                         const Icon = getClassroomIcon(c.icon);
+                        const avatarInitial = getClassroomAvatarInitial(c.name);
                         return (
                           <button
                             key={c.id}
@@ -515,7 +520,13 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                             className={`side-menu__classroom${isCurrent ? " side-menu__classroom--active" : ""}`}
                             onClick={() => go(`/classrooms/${c.id}`)}
                           >
-                            <Icon size={16} />
+                            {compact ? (
+                              <div className="side-menu__classroom-avatar" aria-hidden="true">
+                                {avatarInitial}
+                              </div>
+                            ) : (
+                              <Icon size={16} />
+                            )}
                             <span className="side-menu__classroom-name">{c.name}</span>
                             {isCurrent && <Checkmark size={16} className="side-menu__classroom-check" />}
                           </button>
@@ -537,7 +548,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
               className="side-menu__link"
               onClick={goToContestHome}
             >
-              <Home size={16} />
+              <Education size={16} />
               <span>{contestHomeLabel}</span>
             </button>
           </div>

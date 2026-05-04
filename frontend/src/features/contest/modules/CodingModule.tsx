@@ -82,7 +82,6 @@ const getCodingTabs = (contest?: ContestDetail | null) => {
 const CODING_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
   "clarifications",
-  "participants",
   "proctoring",
   "problem_editor",
   "grading",
