@@ -64,6 +64,8 @@ vi.mock("@/features/contest/contexts", () => ({
   useContestAdmin: () => ({
     refreshAllAdminData: vi.fn(),
     refreshParticipants: vi.fn(),
+    refreshExamEvents: vi.fn(),
+    examEventsLoading: false,
   }),
 }));
 

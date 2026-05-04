@@ -18,6 +18,7 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/features/contest/contexts", () => ({
   useContestAdmin: () => ({
     examEvents: [],
+    examEventsLoading: false,
     isRefreshing: false,
     refreshAdminData: vi.fn(),
   }),

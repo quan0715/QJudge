@@ -329,7 +329,12 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   onRefresh,
 }) => {
   const { contestId } = useParams<{ contestId: string }>();
-  const { examEvents, isRefreshing, refreshAdminData } = useContestAdmin();
+  const {
+    examEvents,
+    examEventsLoading,
+    isRefreshing,
+    refreshAdminData,
+  } = useContestAdmin();
   const { t } = useTranslation("contest");
   const {
     config: antiCheatConfig,
@@ -533,7 +538,8 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   }, [embedded, hasMore, handleLoadMore]);
 
   const loading =
-    antiCheatConfigLoading || (sourceEvents.length === 0 && isRefreshing);
+    antiCheatConfigLoading ||
+    (sourceEvents.length === 0 && (isRefreshing || examEventsLoading));
   const isConfigUnavailable = !antiCheatConfig && !antiCheatConfigLoading;
 
   const handleRefresh = useCallback(async () => {

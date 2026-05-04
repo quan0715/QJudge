@@ -278,7 +278,8 @@ export default function AdminOverviewCommandCenter({
   const { t } = useTranslation("contest");
   const { showToast } = useToast();
   const { confirm, modalProps: confirmModalProps } = useConfirmModal();
-  const { refreshAllAdminData, refreshParticipants } = useContestAdmin();
+  const { refreshAllAdminData, refreshParticipants, examEventsLoading } =
+    useContestAdmin();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [participantMetric, setParticipantMetric] =
     useState<ParticipantMetricKey>("score");
@@ -317,6 +318,9 @@ export default function AdminOverviewCommandCenter({
 
   useEffect(() => {
     if (!contestId) return;
+    // Background poll: keep cadence light (30s) and skip when the tab is
+    // hidden; refreshParticipants is dedupe'd inside the context so identical
+    // payloads won't trigger re-renders.
     let inFlight = false;
     const tick = async () => {
       if (document.visibilityState !== "visible" || inFlight) return;
@@ -329,14 +333,9 @@ export default function AdminOverviewCommandCenter({
     };
     const intervalId = window.setInterval(() => {
       void tick();
-    }, 10000);
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") void tick();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
+    }, 30000);
     return () => {
       window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [contestId, refreshParticipants]);
 
@@ -859,7 +858,9 @@ export default function AdminOverviewCommandCenter({
               cards={insightCards}
               distribution={data.distribution}
               loadingCardKeys={[
-                ...(adminLoading ? ["priority_events"] : []),
+                ...(adminLoading || examEventsLoading
+                  ? ["priority_events"]
+                  : []),
                 ...(gradingLoading ? ["grading_progress"] : []),
               ]}
               distributionLoading={adminLoading}
@@ -868,7 +869,7 @@ export default function AdminOverviewCommandCenter({
             <section className={styles.eventLogPanel} aria-label="事件紀錄">
               <PriorityEventsInsightCard
                 card={priorityEventsCard}
-                loading={adminLoading}
+                loading={adminLoading || examEventsLoading}
               />
               <ContestLogsScreen embedded />
             </section>
