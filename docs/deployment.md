@@ -105,7 +105,7 @@ placeholder values. Required groups:
 
 | Group | Variables |
 | --- | --- |
-| Django | `SECRET_KEY`, `ENCRYPTION_KEY`, `FRONTEND_URL`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` |
+| Django | `SECRET_KEY`, `FRONTEND_URL`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` |
 | Database | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE`, `REDIS_URL` |
 | AI | `AI_SERVICE_INTERNAL_TOKEN` |
 | Frontend billing | `RECUR_PUBLISHABLE_KEY` |

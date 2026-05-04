@@ -94,7 +94,6 @@ required_env_keys=(
   DB_PASSWORD
   DB_SSLMODE
   SECRET_KEY
-  ENCRYPTION_KEY
   FRONTEND_URL
   ALLOWED_HOSTS
   CORS_ALLOWED_ORIGINS
@@ -115,7 +114,6 @@ for key in "${required_env_keys[@]}"; do
 done
 
 reject_env_placeholder "SECRET_KEY"
-reject_env_placeholder "ENCRYPTION_KEY"
 reject_env_placeholder "AI_SERVICE_INTERNAL_TOKEN"
 reject_env_placeholder "TUNNEL_TOKEN"
 reject_env_placeholder "GLITCHTIP_SECRET_KEY"

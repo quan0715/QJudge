@@ -74,7 +74,7 @@ cp .env.example .env
 
 | 變數 | 說明 |
 | --- | --- |
-| `SECRET_KEY`, `ENCRYPTION_KEY` | Django 與 API key 加密金鑰 |
+| `SECRET_KEY` | Django secret key |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE` | PostgreSQL / PgBouncer 設定 |
 | `FRONTEND_URL`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | public URL 與 browser security |
 | `REDIS_URL` | Redis 連線位址，production compose 會覆蓋為 `redis://redis:6379/0` |
