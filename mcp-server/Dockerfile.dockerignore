@@ -2,6 +2,14 @@
 !mcp-server
 !mcp-server/**
 !frontend
-!frontend/dist
-!frontend/dist/mcp-widgets
-!frontend/dist/mcp-widgets/**
+!frontend/index.html
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig.json
+!frontend/tsconfig.app.json
+!frontend/tsconfig.node.json
+!frontend/vite.config.ts
+!frontend/public
+!frontend/public/**
+!frontend/src
+!frontend/src/**
