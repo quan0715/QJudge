@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
-import { IconButton } from "@carbon/react";
-import { OpenPanelLeft } from "@carbon/icons-react";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
+import { WorkspaceTopNav } from "@/features/app/components/workspace/WorkspaceTopNav";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
-import {
-  WorkspaceToolbarSlotProvider,
-  usePageToolbarMounted,
-} from "@/features/app/contexts/WorkspaceToolbarSlot";
+import { WorkspaceToolbarSlotProvider } from "@/features/app/contexts/WorkspaceToolbarSlot";
 import { ChatContainer } from "../chat-ui/ChatContainer";
 import {
   WorkspaceBackdrop,
@@ -18,14 +14,12 @@ import {
   WorkspacePanelPresence,
   WorkspaceSlideInLeftPanel,
 } from "./WorkspacePanelMotion";
-import toolbarStyles from "@/features/app/components/WorkspaceToolBar.module.scss";
 import styles from "./WorkspaceShell.module.scss";
 
 const MIN_PANEL_WIDTH = 320;
 const MAX_PANEL_WIDTH = 700;
 const DEFAULT_PANEL_WIDTH = 400;
 const STORAGE_KEY = "workspace_panel_width";
-const MINI_LEFT_PANEL_MIN_WIDTH_PX = 1024;
 
 function getSavedWidth(): number {
   try {
@@ -44,22 +38,6 @@ function getPortalRoot(): Element | null {
   return document.getElementById("modal-portal-root") ?? document.body;
 }
 
-function useIsMiniLeftPanelEligible(): boolean {
-  const [eligible, setEligible] = useState(() => (
-    typeof window !== "undefined" && window.innerWidth >= MINI_LEFT_PANEL_MIN_WIDTH_PX
-  ));
-
-  useEffect(() => {
-    const mql = window.matchMedia(`(min-width: ${MINI_LEFT_PANEL_MIN_WIDTH_PX}px)`);
-    const apply = () => setEligible(mql.matches);
-    apply();
-    mql.addEventListener("change", apply);
-    return () => mql.removeEventListener("change", apply);
-  }, []);
-
-  return eligible;
-}
-
 interface WorkspaceShellProps {
   children: React.ReactNode;
   /**
@@ -75,17 +53,14 @@ interface WorkspaceShellProps {
  * - 桌面：左 AppSidebar + 中（children）+ 右 ChatContainer
  * - 行動：中（children）為主；左以 portal drawer、右以 portal bottom-sheet 呈現
  *
- * Toolbar 策略（slot-based）：
- * - 頁面在 main content 內 render `<WorkspaceToolBar>` → Shell 不另外補
- * - 頁面沒 render，且 left panel 關閉（或處於 mobile）→ Shell 補一個 minimal
- *   fallback（只有展開/關閉按鈕），確保使用者永遠能開啟 sidebar
- * - 頁面沒 render，且 left panel 在 desktop 已展開 → 不顯示任何 toolbar
+ * Top nav 由 Shell 統一提供；mobile sidebar 入口也在 top nav 內，
+ * 避免頁面自行 toolbar 與 Shell chrome 出現重複控制。
  *
  * 行為由 `useWorkspace()` 管理；頁面可呼叫 `useDisablePanel('right')` 等 hook
  * 宣告式禁用面板（例如 `/chat` 主畫面、競賽進行中）。
  */
 export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceShellProps) {
-  const { isMobile, left, right, leftVisualMode } = useWorkspace();
+  const { isMobile, left, right } = useWorkspace();
 
   const leftEnabled = !omitAppSidebar;
   const dockLeft = leftEnabled && !isMobile;
@@ -96,10 +71,7 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
 
   const panelRef = useRef<HTMLElement>(null);
   const dragging = useRef(false);
-  const isMiniLeftPanelEligible = useIsMiniLeftPanelEligible();
-  const isMiniMode = !isMobile && isMiniLeftPanelEligible && leftVisualMode === "mini";
   const isLeftCollapsed = !left.isOpen;
-  const isMiniCollapsed = isMiniMode && isLeftCollapsed;
 
   // Auto-close the mobile drawer on navigation — otherwise the drawer's
   // global open state persists and covers the newly-loaded page.
@@ -215,50 +187,55 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
 
   return (
     <div className={styles.shell}>
-      {dockLeft && (
-        <aside className={[
-          styles.leftPanel,
-          isMiniCollapsed ? styles.leftPanelMini : "",
-          !isMiniMode && isLeftCollapsed ? styles.leftPanelCollapsed : "",
-        ].filter(Boolean).join(" ")}>
-          <AppSidebar
-            collapsed={isLeftCollapsed}
-            compact={isMiniCollapsed}
-            onToggleCollapse={left.toggle}
-          />
-        </aside>
-      )}
+      {leftEnabled ? (
+        <WorkspaceTopNav showSidebarControl={isMobile} />
+      ) : null}
 
-      <div className={styles.mainColumn}>
-        <WorkspaceToolbarSlotProvider>
-          <MainColumnBody leftEnabled={leftEnabled} chatOpen={right.isOpen}>
-            {children}
-          </MainColumnBody>
-        </WorkspaceToolbarSlotProvider>
-      </div>
-
-      <aside
-        ref={panelRef}
-        className={`${styles.panel} ${dockRight ? styles.panelOpen : ""}`}
-        style={dockRight ? { width: getSavedWidth() } : undefined}
-      >
-        {dockRight && (
-          <>
-            <div
-              className={styles.resizeHandle}
-              onMouseDown={handleMouseDown}
-              onTouchStart={handleTouchStart}
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="調整面板寬度"
-              tabIndex={0}
+      <div className={styles.bodyRow}>
+        {dockLeft && (
+          <aside className={[
+            styles.leftPanel,
+            isLeftCollapsed ? styles.leftPanelCollapsed : "",
+          ].filter(Boolean).join(" ")}>
+            <AppSidebar
+              collapsed={isLeftCollapsed}
+              compact={isLeftCollapsed}
+              onToggleCollapse={left.toggle}
             />
-            <div className={styles.panelContent}>
-              <ChatContainer mode="sidebar" onClose={right.close} />
-            </div>
-          </>
+          </aside>
         )}
-      </aside>
+
+        <div className={styles.mainColumn}>
+          <WorkspaceToolbarSlotProvider>
+            <MainColumnBody chatOpen={right.isOpen}>
+              {children}
+            </MainColumnBody>
+          </WorkspaceToolbarSlotProvider>
+        </div>
+
+        <aside
+          ref={panelRef}
+          className={`${styles.panel} ${dockRight ? styles.panelOpen : ""}`}
+          style={dockRight ? { width: getSavedWidth() } : undefined}
+        >
+          {dockRight && (
+            <>
+              <div
+                className={styles.resizeHandle}
+                onMouseDown={handleMouseDown}
+                onTouchStart={handleTouchStart}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="調整面板寬度"
+                tabIndex={0}
+              />
+              <div className={styles.panelContent}>
+                <ChatContainer mode="sidebar" onClose={right.close} />
+              </div>
+            </>
+          )}
+        </aside>
+      </div>
 
       {portalRoot && createPortal(
         <WorkspacePanelPresence show={showLeftMobileOverlay}>
@@ -322,59 +299,21 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
 }
 
 /**
- * Main column 的子樹：在 SlotProvider 內偵測頁面是否有自己的 WorkspaceToolBar，
- * 若無且 left panel 不可見時補一個 minimal fallback。
+ * Main column content owns the scrollable application surface below Shell chrome.
  */
 function MainColumnBody({
   children,
-  leftEnabled,
   chatOpen,
 }: {
   children: React.ReactNode;
-  leftEnabled: boolean;
   chatOpen: boolean;
 }) {
-  const pageHasToolbar = usePageToolbarMounted();
-  const { left } = useWorkspace();
-
-  // Fallback chrome：頁面沒自行 render toolbar 且 left panel 關閉時出現。
-  // mobile drawer 開啟時不需要，因為 drawer 覆蓋整個 viewport，AppSidebar
-  // 自己已經帶有關閉按鈕。
-  const needsFallback = leftEnabled && !pageHasToolbar && !left.isOpen;
-
   return (
-    <>
-      {needsFallback && <ShellFallbackToolbar />}
-      <div
-        className={styles.content}
-        data-chatbot-sidebar-open={chatOpen ? "true" : "false"}
-      >
-        {children}
-      </div>
-    </>
-  );
-}
-
-/**
- * Shell 自己的 fallback chrome — 只有展開按鈕（關閉由 drawer 內部的 AppSidebar
- * 自行提供）。使用 WorkspaceToolBar 的 CSS class 保持視覺一致，但不掛 slot
- * 註冊（避免 Shell 的 fallback 反而讓 pageHasToolbar=true）。
- */
-function ShellFallbackToolbar() {
-  const { left } = useWorkspace();
-  return (
-    <div className={toolbarStyles.root}>
-      <div className={toolbarStyles.leading}>
-        <IconButton
-          kind="ghost"
-          size="md"
-          align="bottom"
-          label="Expand sidebar"
-          onClick={left.open}
-        >
-          <OpenPanelLeft size={20} />
-        </IconButton>
-      </div>
+    <div
+      className={styles.content}
+      data-chatbot-sidebar-open={chatOpen ? "true" : "false"}
+    >
+      {children}
     </div>
   );
 }

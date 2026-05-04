@@ -37,10 +37,10 @@ export function WorkspaceToolBar({
   hideSidebarControl = false,
   className,
 }: WorkspaceToolBarProps) {
-  const { left } = useWorkspace();
+  const { isMobile, left } = useWorkspace();
   useRegisterPageToolbar();
 
-  const showExpand = !hideSidebarControl && !left.isOpen;
+  const showExpand = !hideSidebarControl && isMobile && !left.isOpen;
 
   return (
     <div className={`${styles.root}${className ? ` ${className}` : ""}`}>
