@@ -124,7 +124,7 @@ describe("ContestLogsScreen", () => {
     const violationPanel = screen.getByRole("tabpanel");
     expect(within(violationPanel).getByText("tab hidden")).toBeInTheDocument();
     expect(
-      within(violationPanel).getByText("滑鼠離開視窗（觸發）"),
+      within(violationPanel).getByText("mouse leave triggered"),
     ).toBeInTheDocument();
     expect(
       within(violationPanel).queryByText("exam entered"),
@@ -154,7 +154,7 @@ describe("ContestLogsScreen", () => {
     const examPanel = screen.getByRole("tabpanel");
     expect(within(examPanel).getByText("exam entered")).toBeInTheDocument();
     expect(
-      within(examPanel).queryByText("滑鼠離開視窗（觸發）"),
+      within(examPanel).queryByText("mouse leave triggered"),
     ).not.toBeInTheDocument();
   });
 });

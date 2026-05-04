@@ -1,11 +1,4 @@
 {
-  "workspaceTopNav": {
-    "expandSidebar": "Expand sidebar",
-    "contextLabel": "Workspace context",
-    "contestFallback": "Contest",
-    "adminConsole": "Admin console",
-    "contestHome": "Contest home"
-  },
   "action": {
     "adding": "Adding...",
     "deleting": "Deleting...",
@@ -715,5 +708,12 @@
       "student": "Student",
       "teacher": "Teacher"
     }
+  },
+  "workspaceTopNav": {
+    "adminConsole": "Admin console",
+    "contestFallback": "Contest",
+    "contestHome": "Contest home",
+    "contextLabel": "Workspace context",
+    "expandSidebar": "Expand sidebar"
   }
 }

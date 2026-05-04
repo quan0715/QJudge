@@ -708,5 +708,12 @@
       "student": "학생",
       "teacher": "교수"
     }
+  },
+  "workspaceTopNav": {
+    "adminConsole": "管理後台",
+    "contestFallback": "競賽",
+    "contestHome": "競賽主頁",
+    "contextLabel": "工作區內容",
+    "expandSidebar": "展開側欄"
   }
 }

@@ -91,6 +91,29 @@
       "problemUnit": "問",
       "time": "時間進捗"
     },
+    "screen": {
+      "actions": {
+        "addParticipant": "受験者を追加",
+        "contestHome": "競賽主頁",
+        "export": "匯出成績",
+        "exporting": "匯出中",
+        "refresh": "重新整理",
+        "refreshing": "重新整理中",
+        "settings": "競賽設定"
+      },
+      "contestInfoLabel": "競賽資訊",
+      "contestStatus": {
+        "archived": "已封存",
+        "draft": "草稿",
+        "published": "已發布"
+      },
+      "contestType": {
+        "coding": "Coding Test",
+        "paperExam": "考卷"
+      },
+      "exportFailed": "匯出失敗",
+      "title": "管理總覽"
+    },
     "sidebar": {
       "activeSessions": "アクティブセッション",
       "contestState": "コンテスト状態",
@@ -138,6 +161,44 @@
       "title": "コマンドセンター",
       "violationCount": "異常イベント数",
       "violationCountAria": "異常イベント数、イベントパネルへ移動"
+    }
+  },
+  "adminPreparationDashboard": {
+    "ariaLabel": "準備與成績儀表板",
+    "entries": {
+      "grading": {
+        "description": "進入批改、統計與成績發布",
+        "title": "批改與成績"
+      },
+      "participants": {
+        "description": "檢查名單、狀態與個別操作",
+        "title": "參賽者管理"
+      },
+      "problemEditor": {
+        "description": "維護題目、考卷內容與分數",
+        "title": "題目編輯與管理"
+      },
+      "settings": {
+        "description": "調整時間、規則與考試模式",
+        "title": "競賽設定"
+      }
+    },
+    "grading": {
+      "description": "考後查看批改剩餘量與成績發布狀態。",
+      "openButton": "前往批改與成績",
+      "progressLabel": "批改進度",
+      "resultsStatus": "成績狀態",
+      "title": "批改與成績",
+      "ungraded": "待批改"
+    },
+    "readiness": {
+      "description": "非考試時段優先確認能否順利開考與收尾。",
+      "title": "準備狀態"
+    },
+    "tabs": {
+      "entries": "管理入口",
+      "grading": "批改與成績",
+      "readiness": "準備狀態"
     }
   },
   "answering": {
@@ -453,10 +514,10 @@
     "lockedReason": "違反",
     "modeEnabled": "不正検出が有効",
     "monitoring": "監視中",
+    "monitoringCountdown": "{{seconds}}s",
     "monitoringDeviceUnsupported": "現在のデバイスはこの試験の監視設定に適合しません。ダッシュボードに戻って環境チェックを再実行してください。",
     "monitoringHint": "試験監視中 - 詳細はクリック",
     "monitoringIssueHint": "案内に従って監視状態を復旧してください。イベント証跡は保存されています。",
-    "monitoringCountdown": "{{seconds}}s",
     "monitoringReminder": {
       "fullscreen": "全画面に戻る",
       "mouse_leave": "マウス離脱",
@@ -870,6 +931,7 @@
       "exam_entered": "試験画面に入室",
       "exam_submit_initiated": "提出開始",
       "exit_fullscreen": "全画面終了",
+      "exit_fullscreen_triggered": "全画面終了（発生）",
       "forbidden_action": "禁止操作",
       "forbidden_focus_event": "禁止フォーカスイベント",
       "force_submit_locked": "ロック時強制提出",
@@ -880,6 +942,9 @@
       "lock": "ロック",
       "lock_user": "ユーザーロック",
       "mouse_leave": "マウスがウィンドウ外に出る",
+      "mouse_leave_triggered": "マウス離脱（発生）",
+      "multi_display_restored": "マルチディスプレイ解消（回復）",
+      "multi_display_triggered": "マルチディスプレイ検出（発生）",
       "multiple_displays": "マルチディスプレイ検出",
       "other": "その他",
       "pause_exam": "試験一時停止",
@@ -888,12 +953,16 @@
       "reopen_exam": "試験再開放",
       "reply_question": "質問回答",
       "resume_exam": "試験再開",
+      "screen_share_interrupted": "画面共有中断",
       "screen_share_invalid_surface": "画面共有ソース異常",
+      "screen_share_restored": "画面共有復旧",
       "screen_share_stopped": "画面共有停止",
       "start_exam": "試験開始",
       "submit": "提出",
       "submit_code": "コード提出",
       "tab_hidden": "タブ非表示",
+      "tab_hidden_restored": "タブ表示（回復）",
+      "tab_hidden_triggered": "タブ非表示（発生）",
       "tab_switch": "タブ切替",
       "unlock": "ロック解除",
       "unlock_user": "ユーザーロック解除",
@@ -901,8 +970,15 @@
       "update_contest": "コンテスト設定更新",
       "update_participant": "参加者更新",
       "update_problem": "問題更新",
+      "viewport_interrupted": "ビューポート中断",
+      "viewport_restored": "ビューポート復旧",
       "warning_timeout": "警告タイムアウト",
-      "window_blur": "ウィンドウ離脱"
+      "webcam_interrupted": "Webcam 中断",
+      "webcam_quality_degraded": "Webcam 品質低下",
+      "webcam_restored": "Webcam 復旧",
+      "window_blur": "ウィンドウ離脱",
+      "window_blur_restored": "ウィンドウ復帰（回復）",
+      "window_blur_triggered": "ウィンドウ離脱（発生）"
     },
     "evidenceCount": "証拠 {{count}}",
     "filterCategory": "優先度で絞り込み",
@@ -1204,27 +1280,27 @@
         "notMonitor": "「画面全体 (monitor)」を共有する必要があります。ウィンドウやタブの共有は許可されていません。",
         "sharingFailed": "画面共有の許可に失敗しました。「画面全体」の共有を許可してください。",
         "sharingInterrupted": "画面共有が中断されました。再度チェックを完了してください。",
-        "webcamUnsupported": "このブラウザは Webcam をサポートしていません。",
+        "tabletRequiresPwa": "iPad 監視には PWA モードが必要です。ホーム画面に追加し、そこから開き直して再試行してください。",
         "webcamFailed": "Webcam を使用できません。権限を再度許可してください。",
-        "tabletRequiresPwa": "iPad 監視には PWA モードが必要です。ホーム画面に追加し、そこから開き直して再試行してください。"
+        "webcamUnsupported": "このブラウザは Webcam をサポートしていません。"
       },
       "requirements": {
         "browser": "最新版 Chrome または Edge を使用してください。",
         "display": "単一モニター限定（外部モニターは外してください）。",
         "permission": "「ウィンドウとディスプレイの管理」を許可してください。",
+        "pwa": "ホーム画面から PWA ウィンドウを起動してください。",
         "sharing": "共有時は必ず「画面全体」を選択してください。",
         "title": "環境要件：",
-        "webcam": "ブラウザに Webcam の使用を許可してください。",
-        "pwa": "ホーム画面から PWA ウィンドウを起動してください。"
+        "webcam": "ブラウザに Webcam の使用を許可してください。"
       },
       "status": {
         "checking": "チェック中...",
         "monitorCount": "{{count}} 個のモニター",
         "next": "次へ：開始確認",
-        "retry": "再テスト",
-        "start": "テスト開始",
         "optionalSkipped": "Webcam は未有効（任意）",
-        "pwaFullscreenBypass": "PWA モード：全画面チェックをスキップしました"
+        "pwaFullscreenBypass": "PWA モード：全画面チェックをスキップしました",
+        "retry": "再テスト",
+        "start": "テスト開始"
       },
       "title": "環境テスト"
     },
@@ -1332,12 +1408,24 @@
     "accessControl": "アクセス制御",
     "allowAutoUnlock": "自動ロック解除を許可",
     "allowMultipleJoins": "複数回の参加を許可",
+    "allowMultipleJoinsDesc": "学生が退出後に試験へ再入場し、既存の解答進捗を引き継げるようにします。",
     "alreadyArchived": "既にアーカイブ済み",
     "anonymousMode": "匿名モード",
     "anonymousModeHelp": "有効にすると、参加者はニックネームを設定できます。スコアボードと提出リストにニックネームが表示されます",
     "anticheat": {
+      "accessPolicy": "受験デバイスポリシー",
+      "allowDesktop": "デスクトップを許可",
+      "allowDesktopDesc": "Windows / macOS / Linux のデスクトップブラウザにこのルールを適用します。",
+      "allowDesktopMultiDisplay": "デスクトップの複数画面を許可",
+      "allowDesktopMultiDisplayDesc": "無効にすると、デスクトップでは複数画面検出が有効になり、異常イベントとして記録されます。",
+      "allowTablet": "タブレットを許可",
+      "allowTabletDesc": "iPad / Android tablet は、外部キーボードやマウス接続時も tablet として扱います。",
       "captureInterval": "キャプチャ間隔 (秒)",
       "desktopLabel": "デスクトップ / ノート PC 設定",
+      "desktopPrimaryEvidence": "デスクトップの主証拠ソース",
+      "desktopPrimaryEvidenceDesc": "デスクトップは画面共有を主ソースとし、全画面と複数画面ルールはデスクトップ監視フローに従います。",
+      "desktopWebcamAssist": "デスクトップ補助 Webcam",
+      "desktopWebcamAssistDesc": "有効にすると、デスクトップでは画面共有に加えて Webcam も要求します。",
       "detectors": {
         "focus": "ウィンドウフォーカス検知",
         "focusDesc": "試験ウィンドウを離れると違反として記録される",
@@ -1355,36 +1443,25 @@
         "viewportIntegrityDesc": "iPad のスプリットビューやスライドオーバーなどの使用を禁止する"
       },
       "disabledDesc": "{{device}} 端の制限が無効",
+      "enableEvidenceTracking": "証拠追跡を有効化",
+      "enableEvidenceTrackingDesc": "デスクトップは画面共有、タブレットは Webcam を既定で要求します。",
       "enableMonitoring": "監視を有効にする",
       "enabledDesc": "{{device}} 端の不正防止機能が有効",
+      "evidencePolicy": "証拠追跡ポリシー",
       "forceEnable": "強制有効",
       "monitoringSources": "監視ソース設定",
       "screenShare": "画面共有 (Screen)",
       "screenShareDesc": "監視証拠として学生の画面をキャプチャする",
-      "securityDetectors": "不正検知メカニズム",
-      "tabletLabel": "タブレット / iPad 設定",
-      "webcam": "ウェブカメラ (Webcam)",
-      "webcamDesc": "監視証拠として学生のカメラ映像をキャプチャする",
-      "accessPolicy": "受験デバイスポリシー",
-      "allowDesktop": "デスクトップを許可",
-      "allowDesktopDesc": "Windows / macOS / Linux のデスクトップブラウザにこのルールを適用します。",
-      "allowTablet": "タブレットを許可",
-      "allowTabletDesc": "iPad / Android tablet は、外部キーボードやマウス接続時も tablet として扱います。",
-      "allowDesktopMultiDisplay": "デスクトップの複数画面を許可",
-      "allowDesktopMultiDisplayDesc": "無効にすると、デスクトップでは複数画面検出が有効になり、異常イベントとして記録されます。",
-      "evidencePolicy": "証拠追跡ポリシー",
-      "enableEvidenceTracking": "証拠追跡を有効化",
-      "enableEvidenceTrackingDesc": "デスクトップは画面共有、タブレットは Webcam を既定で要求します。",
-      "desktopPrimaryEvidence": "デスクトップの主証拠ソース",
-      "desktopPrimaryEvidenceDesc": "デスクトップは画面共有を主ソースとし、全画面と複数画面ルールはデスクトップ監視フローに従います。",
-      "desktopWebcamAssist": "デスクトップ補助 Webcam",
-      "desktopWebcamAssistDesc": "有効にすると、デスクトップでは画面共有に加えて Webcam も要求します。",
-      "tabletPrimaryEvidence": "タブレットの主証拠ソース",
-      "tabletPrimaryEvidenceDesc": "タブレットでは desktop の全画面、フォーカス、タブ非表示ルールを使わず、入場は PWA、実行中はウィンドウ整合性チェックを中心に確認します。",
       "screenShareRecoveryGrace": "画面共有復旧猶予",
       "screenShareRecoveryGraceDesc": "画面共有が停止した後、学生が再共有できる猶予秒数です。runtime は保存済みのバックエンド値に従います。",
+      "securityDetectors": "不正検知メカニズム",
       "sourceScreenShare": "画面共有",
-      "sourceWebcam": "Webcam"
+      "sourceWebcam": "Webcam",
+      "tabletLabel": "タブレット / iPad 設定",
+      "tabletPrimaryEvidence": "タブレットの主証拠ソース",
+      "tabletPrimaryEvidenceDesc": "タブレットでは desktop の全画面、フォーカス、タブ非表示ルールを使わず、入場は PWA、実行中はウィンドウ整合性チェックを中心に確認します。",
+      "webcam": "ウェブカメラ (Webcam)",
+      "webcamDesc": "監視証拠として学生のカメラ映像をキャプチャする"
     },
     "archiveContest": "コンテストをアーカイブ",
     "archiveDesc": "アーカイブすると、コンテストは読み取り専用になり、再び有効にすることはできません。",
@@ -1395,6 +1472,8 @@
     "basicInfo": "基本情報",
     "confirmArchive": "このコンテストをアーカイブしてもよろしいですか？",
     "confirmDelete": "このコンテストを削除してもよろしいですか？この操作は元に戻せません！",
+    "confirmDisableExamMode": "この試験の不正対策監視を無効にします。よろしいですか？",
+    "confirmEnableExamMode": "デバイスポリシーに基づき、事前チェック、監視ソース、異常イベント記録を適用します。有効にしますか？",
     "contestDescription": "コンテストの説明",
     "contestName": "コンテスト名",
     "contestRules": "コンテストルール",
@@ -1403,7 +1482,9 @@
     "deleteContest": "コンテストを削除",
     "deleteDesc": "この操作は元に戻せません。すべての関連データ（提出記録とランキングを含む）が完全に削除されます。",
     "deleteFailed": "削除に失敗しました",
+    "displaySettings": "表示設定",
     "enableExamMode": "不正対策監視を有効化",
+    "enableExamModeDesc": "デバイスポリシーに基づき、事前チェック、監視ソース、異常イベント記録を適用します。",
     "examModeSettings": "不正検出設定",
     "exportCSV": "CSVをエクスポート",
     "exportData": "データをエクスポート",
@@ -1436,12 +1517,7 @@
     "title": "コンテスト設定",
     "updateFailed": "更新に失敗しました。フィールドを確認してください",
     "updated": "設定が更新されました",
-    "warningCooldown": "警告表示時間 (秒)",
-    "displaySettings": "表示設定",
-    "enableExamModeDesc": "デバイスポリシーに基づき、事前チェック、監視ソース、異常イベント記録を適用します。",
-    "confirmEnableExamMode": "デバイスポリシーに基づき、事前チェック、監視ソース、異常イベント記録を適用します。有効にしますか？",
-    "confirmDisableExamMode": "この試験の不正対策監視を無効にします。よろしいですか？",
-    "allowMultipleJoinsDesc": "学生が退出後に試験へ再入場し、既存の解答進捗を引き継げるようにします。"
+    "warningCooldown": "警告表示時間 (秒)"
   },
   "standings": {
     "icpcRules": "ICPCルール：解決した問題数を優先し、次に総ペナルティ時間（解決時間 + 誤答につき20分）で順位を決定します。",

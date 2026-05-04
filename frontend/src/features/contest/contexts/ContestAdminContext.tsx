@@ -45,6 +45,19 @@ const ContestAdminContext = createContext<ContestAdminContextType | undefined>(
  * identical to what we already hold. We compare the volatile fields the UI
  * actually reads so background polls don't trigger noisy re-renders.
  */
+const sameLiveMonitoringSources = (
+  a?: ContestParticipant["liveMonitoringSources"],
+  b?: ContestParticipant["liveMonitoringSources"],
+): boolean => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
 const sameParticipantSnapshot = (
   prev: ContestParticipant[],
   next: ContestParticipant[],
@@ -62,7 +75,8 @@ const sameParticipantSnapshot = (
       a.score !== b.score ||
       a.violationCount !== b.violationCount ||
       a.lockReason !== b.lockReason ||
-      a.submitReason !== b.submitReason
+      a.submitReason !== b.submitReason ||
+      !sameLiveMonitoringSources(a.liveMonitoringSources, b.liveMonitoringSources)
     ) {
       return false;
     }
