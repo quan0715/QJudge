@@ -319,10 +319,11 @@ export default function AdminOverviewCommandCenter({
   }, [selectedUserId]);
 
   useEffect(() => {
-    if (!contestId) return;
-    // Background poll: keep cadence light (30s) and skip when the tab is
-    // hidden; refreshParticipants is dedupe'd inside the context so identical
-    // payloads won't trigger re-renders.
+    if (!contestId || !contestInProgress) return;
+    // Background poll: only while the contest is actually running. Stays at a
+    // light 30s cadence and skips when the tab is hidden; refreshParticipants
+    // is dedupe'd inside the context so identical payloads won't trigger
+    // re-renders.
     let inFlight = false;
     const tick = async () => {
       if (document.visibilityState !== "visible" || inFlight) return;
@@ -339,7 +340,7 @@ export default function AdminOverviewCommandCenter({
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [contestId, refreshParticipants]);
+  }, [contestId, contestInProgress, refreshParticipants]);
 
   const refreshAfterAction = useCallback(async () => {
     await Promise.all([refreshAllAdminData(), participantDashboard.refresh()]);

@@ -83,6 +83,14 @@ export default function AdminOverviewScreen({
   const [resultRefreshKey, setResultRefreshKey] = useState(0);
   const [addParticipantOpen, setAddParticipantOpen] = useState(false);
   const classroomBound = Boolean(contest?.isClassroomBound);
+  const contestInProgress = useMemo(() => {
+    if (!contest || contest.status !== "published") return false;
+    const startMs = new Date(contest.startTime).getTime();
+    const endMs = new Date(contest.endTime).getTime();
+    if (Number.isNaN(startMs) || Number.isNaN(endMs)) return false;
+    const now = Date.now();
+    return now >= startMs && now < endMs;
+  }, [contest]);
   const handleAddParticipant = useCallback(
     async (username: string) => {
       if (!contest?.id) return;
@@ -307,6 +315,7 @@ export default function AdminOverviewScreen({
             contestId={contest.id}
             antiCheatEnabled={contest.cheatDetectionEnabled}
             classroomBound={classroomBound}
+            contestInProgress={contestInProgress}
             onOpenPanel={openPanel}
             participants={participants}
             primary={null}
