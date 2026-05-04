@@ -137,7 +137,6 @@ export default function AdminExamResultOverview({
           <div className={styles.chartHeader}>
             <span>{t("statistics.scoreDistribution", "分數分布")}</span>
             <strong>
-              {t("statistics.averageScoreInline", "平均分數")}{" "}
               {dashboard.summary.averageScore.toFixed(1)} /{" "}
               {dashboard.summary.maxTotalScore}
             </strong>
