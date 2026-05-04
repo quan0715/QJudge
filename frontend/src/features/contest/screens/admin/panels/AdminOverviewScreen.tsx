@@ -13,6 +13,7 @@ import { useSearchParams } from "react-router-dom";
 import AdminOverviewCommandCenter from "@/features/contest/components/admin/AdminOverviewCommandCenter";
 import AdminExamResultOverview from "@/features/contest/components/admin/statistics/AdminExamResultOverview";
 import AdminQuestionStatsGallery from "@/features/contest/components/admin/statistics/AdminQuestionStatsGallery";
+import { useContestResultDashboard } from "@/features/contest/components/admin/statistics/useContestResultDashboard";
 import { AddParticipantModal } from "@/features/contest/components/modals/AddParticipantModal";
 import {
   useAdminPanelRefresh,
@@ -110,7 +111,16 @@ export default function AdminOverviewScreen({
   );
   const { globalStats, loading: gradingLoading } = useGradingData({
     participantsOverride: participants,
+    refetchOnParticipantsChange: false,
   });
+  const {
+    data: resultDashboard,
+    loading: resultDashboardLoading,
+    error: resultDashboardError,
+    loadQuestionDetail: loadResultQuestionDetail,
+    detailLoadingIds: resultDetailLoadingIds,
+    detailErrors: resultDetailErrors,
+  } = useContestResultDashboard(contest, resultRefreshKey);
 
   const dashboardData = useMemo(() => {
     if (!contest) return null;
@@ -303,13 +313,20 @@ export default function AdminOverviewScreen({
             resultOverview={
               <AdminExamResultOverview
                 contest={contest}
-                refreshKey={resultRefreshKey}
+                dashboard={resultDashboard}
+                loading={resultDashboardLoading}
+                error={resultDashboardError}
               />
             }
             questionStatsGallery={
               <AdminQuestionStatsGallery
                 contest={contest}
-                refreshKey={resultRefreshKey}
+                dashboard={resultDashboard}
+                loading={resultDashboardLoading}
+                error={resultDashboardError}
+                loadQuestionDetail={loadResultQuestionDetail}
+                detailLoadingIds={resultDetailLoadingIds}
+                detailErrors={resultDetailErrors}
               />
             }
           />

@@ -6,7 +6,7 @@ import { SkeletonPlaceholder, SkeletonText } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
-import { useContestResultDashboard } from "./useContestResultDashboard";
+import type { DashboardMockData } from "./contestResultDashboard.mock";
 import styles from "./AdminExamResultOverview.module.scss";
 
 const resolveCarbonChartTheme = (
@@ -40,20 +40,19 @@ const isFailingScoreBucket = (label: string) => {
 
 interface AdminExamResultOverviewProps {
   contest: ContestDetail | null | undefined;
-  refreshKey?: number;
+  dashboard: DashboardMockData | null;
+  loading: boolean;
+  error: string | null;
 }
 
 export default function AdminExamResultOverview({
   contest,
-  refreshKey = 0,
+  dashboard,
+  loading,
+  error,
 }: AdminExamResultOverviewProps) {
   const { t } = useTranslation("contest");
   const { theme } = useTheme();
-  const {
-    data: dashboard,
-    loading,
-    error,
-  } = useContestResultDashboard(contest, refreshKey);
 
   const chartData = useMemo(
     () =>

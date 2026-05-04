@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { createContestResultDashboardMock } from "./contestResultDashboard.mock";
 import AdminExamResultOverview from "./AdminExamResultOverview";
-import { useContestResultDashboard } from "./useContestResultDashboard";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -43,10 +42,6 @@ vi.mock("@carbon/charts-react", () => ({
     chartProps.lollipop(props);
     return <div data-testid="score-distribution-chart" />;
   },
-}));
-
-vi.mock("./useContestResultDashboard", () => ({
-  useContestResultDashboard: vi.fn(),
 }));
 
 const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
@@ -90,16 +85,16 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
 describe("AdminExamResultOverview", () => {
   it("renders score distribution and the exam overview KPI grid", () => {
     const contest = buildContest();
-    vi.mocked(useContestResultDashboard).mockReturnValue({
-      data: createContestResultDashboardMock(contest),
-      loading: false,
-      error: null,
-      loadQuestionDetail: vi.fn(),
-      detailLoadingIds: {},
-      detailErrors: {},
-    });
+    const dashboard = createContestResultDashboardMock(contest);
 
-    render(<AdminExamResultOverview contest={contest} refreshKey={1} />);
+    render(
+      <AdminExamResultOverview
+        contest={contest}
+        dashboard={dashboard}
+        loading={false}
+        error={null}
+      />,
+    );
 
     expect(screen.getByLabelText("考試結果總覽")).toBeInTheDocument();
     expect(screen.queryByText("考試總覽")).not.toBeInTheDocument();
@@ -122,21 +117,19 @@ describe("AdminExamResultOverview", () => {
         }),
       }),
     );
-    expect(useContestResultDashboard).toHaveBeenCalledWith(contest, 1);
   });
 
   it("does not render for coding contests", () => {
     const contest = buildContest({ contestType: "coding" });
-    vi.mocked(useContestResultDashboard).mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-      loadQuestionDetail: vi.fn(),
-      detailLoadingIds: {},
-      detailErrors: {},
-    });
 
-    const { container } = render(<AdminExamResultOverview contest={contest} />);
+    const { container } = render(
+      <AdminExamResultOverview
+        contest={contest}
+        dashboard={null}
+        loading={false}
+        error={null}
+      />,
+    );
 
     expect(container).toBeEmptyDOMElement();
   });

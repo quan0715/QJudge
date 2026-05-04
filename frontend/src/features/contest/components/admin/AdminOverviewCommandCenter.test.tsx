@@ -17,6 +17,7 @@ const participantDashboardState = vi.hoisted(() => ({
 
 vi.mock("@carbon/charts-react", () => ({
   LineChart: () => <div data-testid="priority-events-chart" />,
+  MeterChart: () => <div data-testid="proportional-meter-chart" />,
 }));
 
 vi.mock("@/shared/ui/theme/ThemeContext", () => ({
@@ -358,10 +359,7 @@ describe("AdminOverviewCommandCenter", () => {
   it("keeps only essential drilldown content in the left overview column", () => {
     renderCommandCenter();
 
-    expect(screen.getByRole("progressbar", { name: "作答中" })).toHaveAttribute(
-      "aria-valuenow",
-      "63",
-    );
+    expect(screen.getByLabelText("考生分佈總覽")).toBeInTheDocument();
     expect(screen.queryByText("auto_submit")).not.toBeInTheDocument();
     expect(screen.getByText("陳小華")).toBeInTheDocument();
     expect(screen.queryByText("競賽發布")).not.toBeInTheDocument();
@@ -468,7 +466,7 @@ describe("AdminOverviewCommandCenter", () => {
 
     expect(screen.getByLabelText("考生列表載入中")).toBeInTheDocument();
     expect(screen.getByLabelText("批改資料載入中")).toBeInTheDocument();
-    expect(screen.getByText("考生分佈總覽")).toBeInTheDocument();
+    expect(screen.getByLabelText("考生分佈總覽")).toBeInTheDocument();
   });
 
   it("keeps generic panel entries out of the live dashboard", () => {

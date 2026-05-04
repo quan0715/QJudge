@@ -9,20 +9,26 @@ import {
   Tag,
 } from "@carbon/react";
 import { Close, Filter } from "@carbon/icons-react";
+import { AnimatePresence, motion } from "motion/react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
 import {
+  type DashboardMockData,
   type QuestionDetailMock,
   type QuestionSummaryMock,
 } from "@/features/contest/components/admin/statistics/contestResultDashboard.mock";
-import { useContestResultDashboard } from "@/features/contest/components/admin/statistics/useContestResultDashboard";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import { resolveExamQuestionTypeFromRaw } from "@/shared/ui/questionVisual";
 import styles from "./AdminQuestionStatsGallery.module.scss";
 
 interface AdminQuestionStatsGalleryProps {
   contest: ContestDetail | null | undefined;
-  refreshKey?: number;
+  dashboard: DashboardMockData | null;
+  loading: boolean;
+  error: string | null;
+  loadQuestionDetail: (questionId: string) => Promise<void>;
+  detailLoadingIds: Record<string, boolean>;
+  detailErrors: Record<string, string>;
 }
 
 type AttentionToneKey = "critical" | "warning" | "success";
@@ -53,7 +59,12 @@ const focusMetrics: Array<{
 
 export default function AdminQuestionStatsGallery({
   contest,
-  refreshKey = 0,
+  dashboard,
+  loading,
+  error,
+  loadQuestionDetail,
+  detailLoadingIds,
+  detailErrors,
 }: AdminQuestionStatsGalleryProps) {
   const [focusMetric, setFocusMetric] = useState<FocusMetricKey>("score_rate");
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,14 +72,6 @@ export default function AdminQuestionStatsGallery({
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
     null,
   );
-  const {
-    data: dashboard,
-    loading,
-    error,
-    loadQuestionDetail,
-    detailLoadingIds,
-    detailErrors,
-  } = useContestResultDashboard(contest, refreshKey);
 
   useEffect(() => {
     if (!selectedQuestionId) return;
@@ -202,15 +205,17 @@ export default function AdminQuestionStatsGallery({
           ))}
         </div>
       )}
-      {selectedQuestion ? (
-        <QuestionStatsDrawer
-          question={selectedQuestion}
-          detail={selectedDetail}
-          loading={selectedDetailLoading}
-          error={selectedDetailError}
-          onClose={() => setSelectedQuestionId(null)}
-        />
-      ) : null}
+      <AnimatePresence>
+        {selectedQuestion ? (
+          <QuestionStatsDrawer
+            question={selectedQuestion}
+            detail={selectedDetail}
+            loading={selectedDetailLoading}
+            error={selectedDetailError}
+            onClose={() => setSelectedQuestionId(null)}
+          />
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }
@@ -372,18 +377,33 @@ function QuestionStatsDrawer({
     : 0;
 
   return (
-    <div className={styles.drawerLayer}>
-      <button
+    <motion.div
+      className={styles.drawerLayer}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.16, ease: "easeOut" }}
+    >
+      <motion.button
         type="button"
         className={styles.drawerBackdrop}
         aria-label="關閉題目作答數據背景"
         onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.16, ease: "easeOut" }}
       />
-      <aside
+      <motion.aside
+        key={question.questionId}
         className={styles.drawer}
         role="dialog"
         aria-modal="true"
         aria-label={`Q${question.order} 作答數據`}
+        initial={{ x: 24, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 24, opacity: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       >
         <div className={styles.drawerHeader}>
           <div>
@@ -502,8 +522,8 @@ function QuestionStatsDrawer({
             <SkeletonPlaceholder className={styles.drawerBarSkeleton} />
           </div>
         )}
-      </aside>
-    </div>
+      </motion.aside>
+    </motion.div>
   );
 }
 
