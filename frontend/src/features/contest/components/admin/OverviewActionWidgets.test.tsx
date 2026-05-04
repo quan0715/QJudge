@@ -112,7 +112,7 @@ describe("OverviewActionWidgets", () => {
     fireEvent.click(screen.getByRole("button", { name: "允許重新加入 啟用重進" }));
     fireEvent.click(screen.getByRole("button", { name: "密碼保護 啟用密碼" }));
     fireEvent.click(screen.getByRole("button", { name: "發佈代辦事件數量 檢視代辦" }));
-    fireEvent.click(screen.getByRole("button", { name: "嚴格考試模式 啟用模式" }));
+    fireEvent.click(screen.getByRole("button", { name: "防作弊監控 啟用模式" }));
     fireEvent.click(screen.getByRole("button", { name: "考試進度 編輯時間" }));
 
     expect(onPublishContest).toHaveBeenCalledTimes(1);

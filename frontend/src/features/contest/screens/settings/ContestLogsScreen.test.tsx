@@ -130,7 +130,7 @@ describe("ContestLogsScreen", () => {
       within(screen.getByRole("tabpanel")).queryByText("exam_entered"),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId("full-incident-card")).not.toBeInTheDocument();
-    expect(screen.getByText("王小明 · 09:10 AM")).toBeInTheDocument();
+    expect(screen.getByText("王小明 · 09:10")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /tab_hidden/ }));
 

@@ -632,9 +632,11 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 
   const renderCompactIncident = (incident: EventFeedItem) => {
     const priorityLabel = PRIORITY_LABELS[incident.priority] ?? "P3";
-    const timeLabel = new Date(incident.firstAt).toLocaleTimeString([], {
+    const timeLabel = new Date(incident.firstAt).toLocaleTimeString("zh-Hant-TW", {
+      timeZone: "Asia/Taipei",
       hour: "2-digit",
       minute: "2-digit",
+      hour12: false,
     });
     return (
       <button

@@ -95,7 +95,7 @@ describe("AdminDashboardScreen", () => {
     mockRefreshAdminData.mockReset();
   });
 
-  it("renders workspace toolbar without admin action buttons", () => {
+  it("does not render the legacy workspace toolbar", () => {
     render(
       <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=overview"]}>
         <Routes>
@@ -104,7 +104,7 @@ describe("AdminDashboardScreen", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId("toolbar-actions")).toBeEmptyDOMElement();
+    expect(screen.queryByTestId("toolbar-actions")).not.toBeInTheDocument();
   });
 
   it("maps ?panel=settings to open overlay and rewrites panel query to overview", async () => {

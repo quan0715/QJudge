@@ -186,22 +186,45 @@ const displayName = (participant: ContestParticipant) =>
   participant.username ||
   participant.userId;
 
+const DISPLAY_TIME_ZONE = "Asia/Taipei";
+
+const TIME_FORMATTER = new Intl.DateTimeFormat("zh-Hant-TW", {
+  timeZone: DISPLAY_TIME_ZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("zh-Hant-TW", {
+  timeZone: DISPLAY_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+const partsToMap = (parts: Intl.DateTimeFormatPart[]) => {
+  const map: Record<string, string> = {};
+  for (const part of parts) map[part.type] = part.value;
+  return map;
+};
+
 const formatTime = (value?: string | null) => {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleTimeString("zh-TW", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const parts = partsToMap(TIME_FORMATTER.formatToParts(date));
+  return `${parts.hour ?? "00"}:${parts.minute ?? "00"}`;
 };
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  const pad = (part: number) => String(part).padStart(2, "0");
-  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const parts = partsToMap(DATE_TIME_FORMATTER.formatToParts(date));
+  return `${parts.year ?? "0000"}/${parts.month ?? "00"}/${parts.day ?? "00"} ${parts.hour ?? "00"}:${parts.minute ?? "00"}`;
 };
 
 const formatWindow = (contest: ContestDetail) => {

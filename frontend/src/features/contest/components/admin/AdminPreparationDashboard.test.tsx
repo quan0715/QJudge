@@ -141,7 +141,7 @@ describe("AdminPreparationDashboard", () => {
     expect(
       screen.getByRole("progressbar", { name: "考試進度" }),
     ).toHaveAttribute("aria-valuenow", "0");
-    expect(screen.getByText("違規事件")).toBeInTheDocument();
+    expect(screen.queryByText("違規事件")).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "準備狀態" }),
     ).toBeInTheDocument();
