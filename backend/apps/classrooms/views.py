@@ -46,7 +46,6 @@ from .serializers import (
 )
 from .permissions import IsClassroomOwnerOrAdmin, IsClassroomMember, get_user_role_in_classroom
 from .services import generate_invite_code, sync_classroom_participants, on_member_joined
-from apps.contests.services.detail_cache import bump_contest_detail_cache_version
 
 User = get_user_model()
 
@@ -372,7 +371,6 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             classroom=classroom, contest=contest,
         )
         if created:
-            bump_contest_detail_cache_version(contest.id)
             count = sync_classroom_participants(classroom, contest)
             return Response({
                 'detail': f'Contest bound. {count} participants registered.',
@@ -393,7 +391,6 @@ class ClassroomViewSet(viewsets.ModelViewSet):
 
         if deleted == 0:
             raise NotFound('Binding not found.')
-        bump_contest_detail_cache_version(serializer.validated_data['contest_id'])
         return Response({'detail': 'Contest unbound.'})
 
     # ── Labs facade ─────────────────────────────────────
@@ -470,7 +467,6 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             update_fields.append('exam_status')
         if update_fields:
             participant.save(update_fields=update_fields)
-            bump_contest_detail_cache_version(binding.contest_id)
 
         serializer = ClassroomLabDetailSerializer(binding, context={'request': request})
         return Response(serializer.data)

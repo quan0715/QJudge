@@ -17,7 +17,7 @@ from ..serializers import ContestProblemSerializer
 from ..permissions import can_manage_contest
 from ..services.question_edit_lock import ensure_contest_question_editable
 from .activity import ContestActivityViewSet
-from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+from apps.question_bank.models import ContestQuestionBinding, Question, QuestionAsset
 
 
 class ContestProblemViewSet(viewsets.ModelViewSet):
@@ -348,7 +348,11 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
                     raise DRFValidationError("Each item requires question_bank_id and question_id")
 
                 bank, bank_question = resolve_bank_question_for_import(
-                    user=user, question_bank_id=question_bank_id, question_id=question_id,
+                    user=user,
+                    question_bank_id=question_bank_id,
+                    question_id=question_id,
+                    allowed_question_types={Question.QuestionType.CODING},
+                    invalid_type_message="Only coding bank questions can be imported here",
                 )
 
                 problem = materialize_problem_from_bank_question(

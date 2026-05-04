@@ -22,7 +22,7 @@ from ..services.anticheat_storage import (
     get_s3_client,
 )
 from ..services.exam_submission import normalize_source_module
-from ..services.exam_validation import validate_exam_operation
+from .exam_validation_response import validate_exam_operation_for_view
 
 FRAME_WINDOW_TOLERANCE_MS = 1_000
 PRE_LOSS_WINDOW_MS = 6_000
@@ -214,13 +214,13 @@ class ExamEvidenceMixin:
     """Mixin for manifest-backed evidence lookup and upload intent APIs."""
 
     def _validate_evidence_participant(self, request, contest: Contest):
-        participant, error_response = validate_exam_operation(
+        participant, error_response = validate_exam_operation_for_view(
             contest,
             request.user,
             require_in_progress=False,
             allow_admin_bypass=False,
         )
-        if error_response:
+        if error_response is not None:
             return None, error_response
         if participant is None:
             return None, Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)

@@ -125,13 +125,13 @@ class SubmissionViewSet(viewsets.ModelViewSet):
         # Device guard for contest submissions with anticheat enabled
         if contest and getattr(contest, "cheat_detection_enabled", False):
             from apps.contests.models import ContestParticipant
-            from apps.contests.services.anti_cheat_session import build_device_conflict_response
+            from apps.contests.services.anti_cheat_session import build_device_conflict_payload
             participant = ContestParticipant.objects.filter(
                 contest=contest, user=user
             ).first()
             if participant:
-                conflict = build_device_conflict_response(contest, participant, self.request)
-                if conflict is not None:
+                conflict_payload = build_device_conflict_payload(contest, participant, self.request)
+                if conflict_payload is not None:
                     from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
                     raise DRFPermissionDenied(
                         "Another device is currently active for this exam session."
