@@ -134,7 +134,6 @@ if [ "$local_object_storage" = "1" ]; then
   require_env_key "MINIO_ROOT_USER"
   require_env_key "MINIO_ROOT_PASSWORD"
   require_env_key "MINIO_API_CORS_ALLOW_ORIGIN"
-  require_env_key "ANTICHEAT_CORS_ALLOWED_ORIGINS"
   reject_env_values "MINIO_ROOT_USER" "minioadmin" "admin"
   reject_env_values "MINIO_ROOT_PASSWORD" "minioadmin" "password"
 else
