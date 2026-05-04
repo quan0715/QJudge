@@ -1,7 +1,8 @@
-import type {
-  AnticheatDeviceKind,
-  ContestAnticheatDevicePolicy,
-  AnticheatDetectorKind,
+import {
+  DEFAULT_DEVICE_POLICY,
+  type AnticheatDeviceKind,
+  type ContestAnticheatDevicePolicy,
+  type AnticheatDetectorKind,
 } from "@/core/entities/contest.entity";
 import {
   classifyAnticheatDevice,
@@ -88,49 +89,6 @@ export interface EvidenceCaptureStrategy {
   primarySourceModule: AnticheatSourceModule;
   enabledCaptureModules: AnticheatSourceModule[];
 }
-
-export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
-  desktop: {
-    enabled: true,
-    sources: {
-      screenShare: {
-        enabled: true,
-        captureIntervalSeconds: 5,
-      },
-      webcam: {
-        enabled: false,
-        captureIntervalSeconds: 10,
-      },
-    },
-    detectors: {
-      pwaMode: false,
-      fullscreen: true,
-      multiDisplay: true,
-      mouseLeave: true,
-      viewportIntegrity: false,
-    },
-  },
-  tablet: {
-    enabled: true,
-    sources: {
-      screenShare: {
-        enabled: false,
-        captureIntervalSeconds: 5,
-      },
-      webcam: {
-        enabled: true,
-        captureIntervalSeconds: 10,
-      },
-    },
-    detectors: {
-      pwaMode: true,
-      fullscreen: false,
-      multiDisplay: false,
-      mouseLeave: true,
-      viewportIntegrity: true,
-    },
-  },
-};
 
 export const detectAnticheatCapability = (): AnticheatCapability => {
   return classifyAnticheatDevice();

@@ -431,6 +431,49 @@ export interface ContestAnticheatDevicePolicy {
   tablet: ContestAnticheatDevicePolicyItem;
 }
 
+export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
+  desktop: {
+    enabled: true,
+    sources: {
+      screenShare: {
+        enabled: true,
+        captureIntervalSeconds: 5,
+      },
+      webcam: {
+        enabled: false,
+        captureIntervalSeconds: 10,
+      },
+    },
+    detectors: {
+      pwaMode: false,
+      fullscreen: true,
+      multiDisplay: true,
+      mouseLeave: true,
+      viewportIntegrity: false,
+    },
+  },
+  tablet: {
+    enabled: true,
+    sources: {
+      screenShare: {
+        enabled: false,
+        captureIntervalSeconds: 5,
+      },
+      webcam: {
+        enabled: true,
+        captureIntervalSeconds: 10,
+      },
+    },
+    detectors: {
+      pwaMode: true,
+      fullscreen: false,
+      multiDisplay: false,
+      mouseLeave: true,
+      viewportIntegrity: true,
+    },
+  },
+};
+
 export interface ContestAnticheatEffectiveConfig {
   captureIntervalSeconds: number;
   warningTimeoutSeconds: number;

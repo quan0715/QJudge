@@ -2,13 +2,13 @@
 
 QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測系統。
 
-## 目前專案現狀（2026-03-09）
+## 目前專案現狀（2026-05-04）
 
 - Production domain：`q-judge.com`
 - AI 助教：已導入 DeepAgent（LangGraph）流程，並完成前後端 SSE 事件串流對接
 - 考試系統：Exam V2 已有資料模型、API 與前端流程骨架（註冊/前檢/作答/檢查/評分/結果）
 - CI/CD：GitHub Actions CI（Unit Tests + Judge Tests）通過後，透過 Tailscale SSH 自動部署
-- 本地容器化開發：`docker-compose.dev.yml` 可直接拉起 frontend/backend/ai-service/postgres/redis/celery
+- 本地容器化開發：`docker-compose.dev.yml` 可直接拉起 frontend/backend/ai-service/postgres/redis/celery/storybook
 
 ## 技術棧
 
@@ -24,7 +24,10 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 ## 快速啟動（建議）
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d --build
+cp .env.example .env
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
+./scripts/dev/check-dev-services.sh
 ```
 
 啟動後預設入口：
@@ -32,12 +35,15 @@ docker compose -f docker-compose.dev.yml up -d --build
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:8000`
 - AI Service: `http://localhost:8001`
+- Storybook: `http://localhost:6006`
+- MCP Server: `http://localhost:9002/mcp`
 
 ## 目前已知狀態
 
 - `ai-service` 健康檢查可通過（`/health`）
 - 前端/後端仍有部分既有型別與測試環境問題（非單一功能可一次清除）
-- 若要跑 backend 測試，建議顯式指定 `config.settings.test` 與本機 `DATABASE_URL`，避免誤連雲端 DB
+- compose 矩陣固定為 `docker-compose.yml` / `docker-compose.dev.yml` / `docker-compose.test.yml`
+- 若要跑 backend 測試，使用 `docker-compose.test.yml` 或顯式指定 `config.settings.test`，避免誤連 dev/prod DB
 
 ## 部署架構
 
@@ -58,36 +64,27 @@ GitHub (push to main)
 
 ### 環境變數
 
-生產環境 `.env` 需包含：
+根目錄 `.env` 不進 git。從範本開始：
+
+```bash
+cp .env.example .env
+```
+
+生產環境 `.env` 由 `scripts/deploy-prod.sh` 做 fail-fast 檢查，至少需包含：
 
 | 變數 | 說明 |
 | --- | --- |
-| `SECRET_KEY` | Django secret key |
-| `ENCRYPTION_KEY` | API key 加密金鑰（production 必須更換） |
-| `DJANGO_ENV` | 應設為 `production` |
-| `DB_PASSWORD` | PostgreSQL 密碼 |
-| `DB_SSLMODE` | 本地 Docker postgres 設 `disable` |
-| `FRONTEND_URL` | 前端正式網址 |
-| `CORS_ALLOWED_ORIGINS` | 後端允許的跨域來源（含前端網址） |
-| `CSRF_TRUSTED_ORIGINS` | Django CSRF 信任來源（含前端網址） |
-| `REDIS_URL` | Redis 連線位址 |
-| `AI_SERVICE_INTERNAL_TOKEN` | Backend ↔ AI service 內部 token |
-| `OBJECT_STORAGE_ENDPOINT_URL` | S3-compatible endpoint；local MinIO 例：`http://minio:9000`，Cloudflare R2 例：`https://<account_id>.r2.cloudflarestorage.com` |
-| `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` | 瀏覽器 presigned URL 使用的公開 endpoint；R2 通常同上 |
-| `OBJECT_STORAGE_REGION` | local MinIO 通常 `us-east-1`；Cloudflare R2 使用 `auto` |
-| `OBJECT_STORAGE_ACCESS_KEY/SECRET_KEY` | S3-compatible access key；R2 請使用 R2 API token 產生的 access key |
-| `MINIO_ROOT_USER` | local MinIO 管理帳號（勿用預設值） |
-| `MINIO_ROOT_PASSWORD` | local MinIO 管理密碼（勿用預設值） |
-| `MINIO_API_CORS_ALLOW_ORIGIN` | local MinIO API CORS allow origin |
-| `ANTICHEAT_CORS_ALLOWED_ORIGINS` | anti-cheat presigned 上傳允許來源 |
-| `OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS` | presigned upload/download URL TTL；預設 `300` 秒 |
-| `ANTICHEAT_RAW_BUCKET` | anti-cheat 事件證據截圖 bucket（只在事件觸發時上傳 bounded window） |
-| `MARKDOWN_IMAGE_S3_BUCKET` | Markdown 圖片 bucket |
-| `MARKDOWN_IMAGE_PUBLIC_BASE_URL` | Markdown 圖片 API 的 public base URL；通常設為前端正式網址 |
-| `TUNNEL_TOKEN` | Cloudflare Tunnel token |
-| `NYCU_OAUTH_CLIENT_ID/SECRET` | NYCU OAuth |
+| `SECRET_KEY`, `ENCRYPTION_KEY` | Django 與 API key 加密金鑰 |
+| `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE` | PostgreSQL / PgBouncer 設定 |
+| `FRONTEND_URL`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | public URL 與 browser security |
+| `REDIS_URL` | Redis 連線位址，production compose 會覆蓋為 `redis://redis:6379/0` |
+| `AI_SERVICE_INTERNAL_TOKEN` | Backend 與 AI service 內部 token |
+| `OBJECT_STORAGE_*`, `ANTICHEAT_RAW_BUCKET`, `MARKDOWN_IMAGE_S3_BUCKET`, `AI_ARTIFACT_S3_BUCKET` | R2 或 S3-compatible object storage |
+| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `MINIO_API_CORS_ALLOW_ORIGIN` | 只在使用 local MinIO fallback 時需要 |
+| `TUNNEL_TOKEN`, `MCP_PUBLIC_URL`, `OAUTH_ISSUER_URL` | Cloudflare Tunnel 與 MCP OAuth |
+| `GLITCHTIP_SECRET_KEY`, `GRAFANA_PASSWORD` | production operations |
 
-完整範例見 `example.env`。
+完整清單與 production/dev/test compose 掃描見 [`docs/deployment.md`](docs/deployment.md) 與 `.env.example`。
 
 ### GitHub Secrets（CD Pipeline）
 
@@ -103,7 +100,7 @@ GitHub (push to main)
 
 - [使用者與教師手冊](docs/user-guide.md)：教室、題庫、競賽功能說明。
 - [開發者指南](docs/developer-guide.md)：系統架構、環境設定、開發規範。
-- [架構／API／部署／測試盤點（依 repo 實際檢視範圍）](docs/project-architecture-inventory-2026-04-05.md)：後端路由、`INSTALLED_APPS` 與 models 位置、Compose/CI 摘要、安全與技術債線索。
+- [部署與 Docker Compose 手冊](docs/deployment.md)：production/dev/test compose 矩陣、環境變數、部署與驗證流程。
 - 後端測試指南：`backend/RUN_TESTS.md`
 - 壓力測試說明：`docs/loadtest.md`
 - 監控部署說明：`docs/monitoring.md`

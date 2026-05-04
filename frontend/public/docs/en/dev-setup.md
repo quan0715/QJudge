@@ -12,7 +12,7 @@ This guide explains how to set up the QJudge local development environment.
 ```bash
 git clone https://github.com/quan0715/QJudge.git
 cd QJudge
-cp example.env .env   # Edit .env with your settings
+cp .env.example .env   # Edit .env with your settings
 bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
 bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
 ./scripts/dev/check-dev-services.sh
@@ -76,7 +76,7 @@ QJudge/
 ├── scripts/               # Deploy & utility scripts
 ├── docker-compose.yml     # Production compose
 ├── docker-compose.dev.yml # Development compose
-└── example.env            # Environment variable template
+└── .env.example           # Environment variable template
 ```
 
 ## Common Commands
@@ -103,7 +103,7 @@ QJudge/
 
 ## Environment Variables
 
-Copy `example.env` to `.env` and fill in the values. Key variables:
+Copy `.env.example` to `.env` and fill in the values. Key variables:
 
 | Variable | Description |
 | --- | --- |
@@ -115,7 +115,7 @@ Copy `example.env` to `.env` and fill in the values. Key variables:
 | `NYCU_OAUTH_CLIENT_ID/SECRET` | NYCU OAuth credentials |
 | `AI_SERVICE_INTERNAL_TOKEN` | Backend ↔ AI service auth |
 
-See `example.env` for the complete list with documentation.
+See `.env.example` and `docs/deployment.md` for the complete list with documentation.
 
 ## Common Issues
 

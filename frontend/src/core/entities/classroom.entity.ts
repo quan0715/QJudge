@@ -45,6 +45,18 @@ export interface BoundContest {
   boundAt: string;
 }
 
+export function getBoundContestTimeRange(contest: BoundContest): {
+  startMs: number;
+  endMs: number;
+} {
+  const startIso = contest.contestStartTime || contest.boundAt;
+  const endIso = contest.contestEndTime || contest.boundAt;
+  return {
+    startMs: new Date(startIso).getTime(),
+    endMs: new Date(endIso).getTime(),
+  };
+}
+
 export type ClassroomLabType = "coding" | "paper_exam";
 export type ClassroomLabAssignmentState =
   | "unaccepted"

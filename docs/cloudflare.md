@@ -82,6 +82,7 @@ The existing production app deployment remains:
 - Workflow: `.github/workflows/cd-prod.yml`
 - Domain: `https://q-judge.com`
 - Runtime: Cloudflare Tunnel -> remote Docker Compose host
+- Compose/env details: `docs/deployment.md`
 
 ## Tunnel Operations
 
@@ -99,11 +100,12 @@ Required production environment variable:
 TUNNEL_TOKEN=<Cloudflare tunnel token for QJudge_Production>
 ```
 
-Deployment remains the existing path:
+Deployment remains the existing path through `scripts/deploy-prod.sh`. For
+manual compose validation on the remote host:
 
 ```bash
-docker compose build
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml config -q
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d --build
 ```
 
 The remote tunnel config lives in Cloudflare, so route changes should be made through the dashboard/API/Terraform and then verified with MCP.

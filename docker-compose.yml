@@ -128,9 +128,9 @@ services:
       - .env
     environment:
       - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:5432/${DB_NAME:-online_judge}
-      - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN}
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:?AI_SERVICE_INTERNAL_TOKEN is required}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     volumes:
       - ./ai-service:/app
     networks:
@@ -168,12 +168,16 @@ services:
     env_file:
       - .env
     environment:
+      - DJANGO_ENV=production
+      - DEBUG=False
       - DJANGO_SETTINGS_MODULE=config.settings.prod
       # Route all Django DB traffic through pgBouncer (overrides .env DB_HOST/PORT).
       - DB_HOST=pgbouncer
       - DB_PORT=5432
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - REDIS_URL=redis://redis:6379/0
       - AI_SERVICE_URL=http://ai-service:8001
-      - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN}
+      - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:?AI_SERVICE_INTERNAL_TOKEN is required}
       - FRONTEND_URL=${FRONTEND_URL:-https://q-judge.com}
       - JUDGE_TMP_DIR=/judge_tmp
       - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:-http://minio:9000}
@@ -219,9 +223,13 @@ services:
       - .env
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
+      - DJANGO_ENV=production
+      - DEBUG=False
       - DJANGO_SETTINGS_MODULE=config.settings.prod
       - DB_HOST=pgbouncer
       - DB_PORT=5432
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - REDIS_URL=redis://redis:6379/0
       - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:-http://minio:9000}
       - OBJECT_STORAGE_REGION=${OBJECT_STORAGE_REGION:-us-east-1}
       - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:-minioadmin}
@@ -234,6 +242,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      judge-image:
+        condition: service_started
       backend:
         condition: service_started
     networks:
@@ -258,9 +268,13 @@ services:
       - .env
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
+      - DJANGO_ENV=production
+      - DEBUG=False
       - DJANGO_SETTINGS_MODULE=config.settings.prod
       - DB_HOST=pgbouncer
       - DB_PORT=5432
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - REDIS_URL=redis://redis:6379/0
       - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:-http://minio:9000}
       - OBJECT_STORAGE_REGION=${OBJECT_STORAGE_REGION:-us-east-1}
       - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:-minioadmin}
@@ -273,6 +287,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      judge-image:
+        condition: service_started
       backend:
         condition: service_started
     networks:
@@ -293,9 +309,13 @@ services:
     env_file:
       - .env
     environment:
+      - DJANGO_ENV=production
+      - DEBUG=False
       - DJANGO_SETTINGS_MODULE=config.settings.prod
       - DB_HOST=pgbouncer
       - DB_PORT=5432
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
         condition: service_healthy
@@ -343,7 +363,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: oj_cloudflared
     restart: always
-    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:?TUNNEL_TOKEN is required}
     networks:
       - oj_network
 

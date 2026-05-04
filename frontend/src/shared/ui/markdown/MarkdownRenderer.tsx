@@ -61,7 +61,7 @@ hljs.registerLanguage("css", cssLang);
 hljs.registerLanguage("html", xml);
 hljs.registerLanguage("xml", xml);
 
-import { normalizeChatMarkdownText } from "@/features/chatbot/utils/chatText";
+import { normalizeMarkdownText } from "@/shared/utils/markdownText";
 
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github-dark.css";
@@ -271,7 +271,7 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
 
   const components = enableCopy ? COMPONENTS_WITH_COPY : BASE_COMPONENTS;
 
-  const normalizedChildren = normalizeChatMarkdownText(children);
+  const normalizedChildren = normalizeMarkdownText(children);
 
   return (
     <div className={`markdown-body ${className}`.trim()} style={style}>

@@ -124,8 +124,8 @@ services:
     environment:
       - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:5432/${DB_NAME:-online_judge}
       - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     volumes:
       - ./ai-service:/app
     networks:
@@ -157,11 +157,16 @@ services:
     env_file:
       - .env
     environment:
-      - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
+      - DJANGO_ENV=development
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=config.settings.dev
+      - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT:-}
       - AI_SERVICE_URL=http://ai-service:8001
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:-dev-ai-internal-token-change-me}
       - DB_HOST=pgbouncer
       - DB_PORT=5432
+      - DB_SSLMODE=disable
+      - REDIS_URL=redis://redis:6379/0
       - OAUTH_ISSUER_URL=${OAUTH_ISSUER_URL:-http://localhost:8000}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
       - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:-http://minio:9000}
@@ -200,9 +205,14 @@ services:
       - .env
     environment:
       - JUDGE_TMP_DIR=/judge_tmp
-      - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT}
+      - DJANGO_ENV=development
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=config.settings.dev
+      - HOST_PROJECT_ROOT=${HOST_PROJECT_ROOT:-}
       - DB_HOST=pgbouncer
       - DB_PORT=5432
+      - DB_SSLMODE=disable
+      - REDIS_URL=redis://redis:6379/0
       - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:-http://minio:9000}
       - OBJECT_STORAGE_REGION=${OBJECT_STORAGE_REGION:-us-east-1}
       - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:-minioadmin}
@@ -233,8 +243,13 @@ services:
     env_file:
       - .env
     environment:
+      - DJANGO_ENV=development
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=config.settings.dev
       - DB_HOST=pgbouncer
       - DB_PORT=5432
+      - DB_SSLMODE=disable
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
         condition: service_healthy
@@ -260,6 +275,7 @@ services:
       - .env
     environment:
       - VITE_STORYBOOK_TARGET=http://storybook:6006
+      - VITE_MCP_PUBLIC_URL=${VITE_MCP_PUBLIC_URL:-http://localhost:9002/mcp}
     depends_on:
       - backend
       - storybook
@@ -322,8 +338,9 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: oj_cloudflared
+    profiles: ["tunnel"]
     restart: always
-    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:-}
     networks:
       - oj_network_dev
 
@@ -346,7 +363,6 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:
   judge_tmp:
   minio_data:
 

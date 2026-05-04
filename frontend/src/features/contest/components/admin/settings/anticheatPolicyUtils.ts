@@ -7,8 +7,8 @@
  */
 import {
   DEFAULT_DEVICE_POLICY,
-} from "@/features/contest/domain/anticheatModulePolicy";
-import type { ContestAnticheatDevicePolicy } from "@/core/entities/contest.entity";
+  type ContestAnticheatDevicePolicy,
+} from "@/core/entities/contest.entity";
 
 type DevicePolicy = ContestAnticheatDevicePolicy["desktop"];
 type SourcePolicy = DevicePolicy["sources"]["screenShare"];
