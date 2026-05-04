@@ -29,7 +29,67 @@
     },
     "title": "管理後台"
   },
+  "adminPreparationDashboard": {
+    "ariaLabel": "準備與成績儀表板",
+    "tabs": {
+      "readiness": "準備狀態",
+      "grading": "批改與成績",
+      "entries": "管理入口"
+    },
+    "readiness": {
+      "title": "準備狀態",
+      "description": "非考試時段優先確認能否順利開考與收尾。"
+    },
+    "grading": {
+      "title": "批改與成績",
+      "description": "考後查看批改剩餘量與成績發布狀態。",
+      "progressLabel": "批改進度",
+      "ungraded": "待批改",
+      "resultsStatus": "成績狀態",
+      "openButton": "前往批改與成績"
+    },
+    "entries": {
+      "problemEditor": {
+        "title": "題目編輯與管理",
+        "description": "維護題目、考卷內容與分數"
+      },
+      "participants": {
+        "title": "參賽者管理",
+        "description": "檢查名單、狀態與個別操作"
+      },
+      "grading": {
+        "title": "批改與成績",
+        "description": "進入批改、統計與成績發布"
+      },
+      "settings": {
+        "title": "競賽設定",
+        "description": "調整時間、規則與考試模式"
+      }
+    }
+  },
   "adminOverview": {
+    "screen": {
+      "title": "管理總覽",
+      "contestInfoLabel": "競賽資訊",
+      "exportFailed": "匯出失敗",
+      "contestStatus": {
+        "draft": "草稿",
+        "archived": "已封存",
+        "published": "已發布"
+      },
+      "contestType": {
+        "paperExam": "考卷",
+        "coding": "Coding Test"
+      },
+      "actions": {
+        "settings": "競賽設定",
+        "contestHome": "競賽主頁",
+        "refresh": "重新整理",
+        "refreshing": "重新整理中",
+        "export": "匯出成績",
+        "exporting": "匯出中"
+      }
+    },
     "actions": {
       "editSettings": "設定",
       "openContestHomepage": "開啟競賽主頁",

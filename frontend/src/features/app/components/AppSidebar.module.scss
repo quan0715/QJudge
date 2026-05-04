@@ -6,6 +6,14 @@
   overflow: hidden;
 }
 
+.collapsed {
+  width: 0;
+}
+
+.compact {
+  align-items: stretch;
+}
+
 .nav {
   flex: 1;
   min-height: 0;

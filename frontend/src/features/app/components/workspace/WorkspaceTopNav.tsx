@@ -2,6 +2,7 @@ import { createElement, useCallback, useEffect, useMemo, useRef, useState } from
 import { useLocation, useNavigate } from "react-router-dom";
 import { IconButton } from "@carbon/react";
 import { ChevronDown, Education, Home, OpenPanelLeft, Settings } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import type { BoundContest, Classroom, ClassroomDetail } from "@/core/entities/classroom.entity";
 import { getClassroom, getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
@@ -34,6 +35,7 @@ interface WorkspaceTopNavProps {
 }
 
 export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
+  const { t } = useTranslation("common");
   const { left } = useWorkspace();
   const location = useLocation();
   const navigate = useNavigate();
@@ -84,13 +86,22 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
 
   useEffect(() => {
     if (!openMenu) return;
-    const handle = (event: MouseEvent) => {
+    const handlePointer = (event: MouseEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) {
         setOpenMenu(null);
       }
     };
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, [openMenu]);
 
   const currentClassroom = useMemo(
@@ -146,7 +157,7 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
             kind="ghost"
             size="md"
             align="bottom"
-            label="展開側欄"
+            label={t("workspaceTopNav.expandSidebar", "展開側欄")}
             onClick={left.open}
             className={styles.sidebarButton}
           >
@@ -154,7 +165,11 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
           </IconButton>
         ) : null}
 
-        <nav className={styles.context} aria-label="Workspace context" ref={menuRef}>
+        <nav
+          className={styles.context}
+          aria-label={t("workspaceTopNav.contextLabel", "Workspace context")}
+          ref={menuRef}
+        >
           {currentClassroom ? (
             <>
               <div className={styles.menuAnchor}>
@@ -202,7 +217,10 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                   aria-expanded={openMenu === "contest"}
                   onClick={() => setOpenMenu((menu) => menu === "contest" ? null : "contest")}
                 >
-                  <span>{currentContest?.contestName ?? "Contest"}</span>
+                  <span>
+                    {currentContest?.contestName ??
+                      t("workspaceTopNav.contestFallback", "Contest")}
+                  </span>
                   <ChevronDown size={14} />
                 </button>
                 {openMenu === "contest" ? (
@@ -233,7 +251,7 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                       aria-expanded={openMenu === "contestMode"}
                       onClick={() => setOpenMenu((menu) => menu === "contestMode" ? null : "contestMode")}
                     >
-                      <span>管理後台</span>
+                      <span>{t("workspaceTopNav.adminConsole", "管理後台")}</span>
                       <ChevronDown size={14} />
                     </button>
                     {openMenu === "contestMode" ? (
@@ -245,7 +263,9 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                           onClick={goToContestHome}
                         >
                           <Home size={16} />
-                          <span>競賽主頁</span>
+                          <span>
+                            {t("workspaceTopNav.contestHome", "競賽主頁")}
+                          </span>
                         </button>
                         <button
                           type="button"
@@ -254,7 +274,9 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                           onClick={goToContestAdmin}
                         >
                           <Settings size={16} />
-                          <span>管理後台</span>
+                          <span>
+                            {t("workspaceTopNav.adminConsole", "管理後台")}
+                          </span>
                         </button>
                       </div>
                     ) : null}

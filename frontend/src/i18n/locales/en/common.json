@@ -1,4 +1,11 @@
 {
+  "workspaceTopNav": {
+    "expandSidebar": "Expand sidebar",
+    "contextLabel": "Workspace context",
+    "contestFallback": "Contest",
+    "adminConsole": "Admin console",
+    "contestHome": "Contest home"
+  },
   "action": {
     "adding": "Adding...",
     "deleting": "Deleting...",

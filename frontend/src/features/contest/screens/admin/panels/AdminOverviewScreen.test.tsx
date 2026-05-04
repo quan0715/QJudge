@@ -54,6 +54,10 @@ vi.mock("@/infrastructure/api/repositories/contestExports.repository", () => ({
   exportContestResults: vi.fn(),
 }));
 
+vi.mock("@/shared/contexts/ToastContext", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 vi.mock("@/features/contest/contexts", () => ({
   useContest: () => ({
     contest: mockState.contest,

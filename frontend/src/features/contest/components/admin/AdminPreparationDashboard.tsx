@@ -9,6 +9,7 @@ import {
   UserMultiple,
   WarningAlt,
 } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import AdminInsightRail from "@/features/contest/components/admin/AdminInsightRail";
 import AdminSegmentedDashboard from "@/features/contest/components/admin/AdminSegmentedDashboard";
 import type { AdminPanelId } from "@/features/contest/modules/types";
@@ -44,6 +45,7 @@ export default function AdminPreparationDashboard({
   onOpenSettings,
   primary,
 }: AdminPreparationDashboardProps) {
+  const { t } = useTranslation("contest");
   const panelEntries: Array<{
     key: string;
     title: string;
@@ -53,29 +55,53 @@ export default function AdminPreparationDashboard({
   }> = [
     {
       key: "problem-editor",
-      title: "題目編輯與管理",
-      description: "維護題目、考卷內容與分數",
+      title: t(
+        "adminPreparationDashboard.entries.problemEditor.title",
+        "題目編輯與管理",
+      ),
+      description: t(
+        "adminPreparationDashboard.entries.problemEditor.description",
+        "維護題目、考卷內容與分數",
+      ),
       icon: DocumentTasks,
       onClick: () => onOpenPanel("problem_editor"),
     },
     {
       key: "participants",
-      title: "參賽者管理",
-      description: "檢查名單、狀態與個別操作",
+      title: t(
+        "adminPreparationDashboard.entries.participants.title",
+        "參賽者管理",
+      ),
+      description: t(
+        "adminPreparationDashboard.entries.participants.description",
+        "檢查名單、狀態與個別操作",
+      ),
       icon: UserMultiple,
       onClick: () => onOpenPanel("participants"),
     },
     {
       key: "grading",
-      title: "批改與成績",
-      description: "進入批改、統計與成績發布",
+      title: t(
+        "adminPreparationDashboard.entries.grading.title",
+        "批改與成績",
+      ),
+      description: t(
+        "adminPreparationDashboard.entries.grading.description",
+        "進入批改、統計與成績發布",
+      ),
       icon: ChartBar,
       onClick: () => onOpenPanel("grading"),
     },
     {
       key: "settings",
-      title: "競賽設定",
-      description: "調整時間、規則與考試模式",
+      title: t(
+        "adminPreparationDashboard.entries.settings.title",
+        "競賽設定",
+      ),
+      description: t(
+        "adminPreparationDashboard.entries.settings.description",
+        "調整時間、規則與考試模式",
+      ),
       icon: Settings,
       onClick: onOpenSettings,
     },
@@ -83,19 +109,29 @@ export default function AdminPreparationDashboard({
 
   return (
     <AdminSegmentedDashboard
-      ariaLabel="準備與成績儀表板"
+      ariaLabel={t("adminPreparationDashboard.ariaLabel", "準備與成績儀表板")}
       primary={primary}
       side={<AdminInsightRail cards={data.insightCards} />}
       tabs={[
         {
           key: "readiness",
-          label: "準備狀態",
+          label: t("adminPreparationDashboard.tabs.readiness", "準備狀態"),
           content: (
             <>
               <div className={styles.panelHeader}>
                 <div>
-                  <h3>準備狀態</h3>
-                  <p>非考試時段優先確認能否順利開考與收尾。</p>
+                  <h3>
+                    {t(
+                      "adminPreparationDashboard.readiness.title",
+                      "準備狀態",
+                    )}
+                  </h3>
+                  <p>
+                    {t(
+                      "adminPreparationDashboard.readiness.description",
+                      "非考試時段優先確認能否順利開考與收尾。",
+                    )}
+                  </p>
                 </div>
                 <TaskComplete size={18} />
               </div>
@@ -118,20 +154,33 @@ export default function AdminPreparationDashboard({
         },
         {
           key: "grading",
-          label: "批改與成績",
+          label: t("adminPreparationDashboard.tabs.grading", "批改與成績"),
           content: (
             <div className={styles.gradingPanel}>
               <div className={styles.panelHeader}>
                 <div>
-                  <h3>批改與成績</h3>
-                  <p>考後查看批改剩餘量與成績發布狀態。</p>
+                  <h3>
+                    {t(
+                      "adminPreparationDashboard.grading.title",
+                      "批改與成績",
+                    )}
+                  </h3>
+                  <p>
+                    {t(
+                      "adminPreparationDashboard.grading.description",
+                      "考後查看批改剩餘量與成績發布狀態。",
+                    )}
+                  </p>
                 </div>
                 <ChartBar size={18} />
               </div>
               <div
                 className={styles.progressTrack}
                 role="progressbar"
-                aria-label="批改進度"
+                aria-label={t(
+                  "adminPreparationDashboard.grading.progressLabel",
+                  "批改進度",
+                )}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={data.grading.progressPercent}
@@ -143,27 +192,45 @@ export default function AdminPreparationDashboard({
               </div>
               <dl className={styles.gradingList}>
                 <div>
-                  <dt>批改進度</dt>
+                  <dt>
+                    {t(
+                      "adminPreparationDashboard.grading.progressLabel",
+                      "批改進度",
+                    )}
+                  </dt>
                   <dd>{data.grading.progressLabel}</dd>
                 </div>
                 <div>
-                  <dt>待批改</dt>
+                  <dt>
+                    {t(
+                      "adminPreparationDashboard.grading.ungraded",
+                      "待批改",
+                    )}
+                  </dt>
                   <dd>{data.grading.ungradedAnswers}</dd>
                 </div>
                 <div>
-                  <dt>成績狀態</dt>
+                  <dt>
+                    {t(
+                      "adminPreparationDashboard.grading.resultsStatus",
+                      "成績狀態",
+                    )}
+                  </dt>
                   <dd>{data.grading.resultsLabel}</dd>
                 </div>
               </dl>
               <Button kind="primary" onClick={() => onOpenPanel("grading")}>
-                前往批改與成績
+                {t(
+                  "adminPreparationDashboard.grading.openButton",
+                  "前往批改與成績",
+                )}
               </Button>
             </div>
           ),
         },
         {
           key: "entries",
-          label: "管理入口",
+          label: t("adminPreparationDashboard.tabs.entries", "管理入口"),
           content: (
             <div className={styles.entryGrid}>
               {panelEntries.map((entry) => {

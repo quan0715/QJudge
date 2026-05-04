@@ -29,7 +29,67 @@
     },
     "title": "Admin Dashboard"
   },
+  "adminPreparationDashboard": {
+    "ariaLabel": "Preparation and grading dashboard",
+    "tabs": {
+      "readiness": "Readiness",
+      "grading": "Grading & results",
+      "entries": "Management entries"
+    },
+    "readiness": {
+      "title": "Readiness",
+      "description": "Confirm everything is set before the exam starts and after it ends."
+    },
+    "grading": {
+      "title": "Grading & results",
+      "description": "Review remaining grading work and result publishing status after the exam.",
+      "progressLabel": "Grading progress",
+      "ungraded": "Pending",
+      "resultsStatus": "Results status",
+      "openButton": "Open grading & results"
+    },
+    "entries": {
+      "problemEditor": {
+        "title": "Question editor",
+        "description": "Maintain questions, exam content and scores"
+      },
+      "participants": {
+        "title": "Participants",
+        "description": "Inspect roster, status and individual actions"
+      },
+      "grading": {
+        "title": "Grading & results",
+        "description": "Open grading, statistics and result publishing"
+      },
+      "settings": {
+        "title": "Contest settings",
+        "description": "Adjust schedule, rules and exam mode"
+      }
+    }
+  },
   "adminOverview": {
+    "screen": {
+      "title": "Admin overview",
+      "contestInfoLabel": "Contest info",
+      "exportFailed": "Export failed",
+      "contestStatus": {
+        "draft": "Draft",
+        "archived": "Archived",
+        "published": "Published"
+      },
+      "contestType": {
+        "paperExam": "Paper exam",
+        "coding": "Coding test"
+      },
+      "actions": {
+        "settings": "Contest settings",
+        "contestHome": "Contest home",
+        "refresh": "Refresh",
+        "refreshing": "Refreshing",
+        "export": "Export results",
+        "exporting": "Exporting"
+      }
+    },
     "actions": {
       "editSettings": "Settings",
       "openContestHomepage": "Open contest homepage",

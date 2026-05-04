@@ -1,4 +1,11 @@
 {
+  "workspaceTopNav": {
+    "expandSidebar": "展開側欄",
+    "contextLabel": "工作區內容",
+    "contestFallback": "競賽",
+    "adminConsole": "管理後台",
+    "contestHome": "競賽主頁"
+  },
   "action": {
     "adding": "新增中",
     "deleting": "刪除中",

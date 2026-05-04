@@ -33,6 +33,7 @@ export function useContestResultDashboard(
   const [detailErrors, setDetailErrors] = useState<Record<string, string>>({});
   const cancelRef = useRef(false);
   const hydratedContestIdRef = useRef<string | null>(null);
+  const lastRefreshKeyRef = useRef<number>(refreshKey);
   const inFlightDetailIdsRef = useRef<Set<string>>(new Set());
   const loadedDetailIdsRef = useRef<Set<string>>(new Set());
 
@@ -55,9 +56,11 @@ export function useContestResultDashboard(
 
     cancelRef.current = false;
     const isSameContest = hydratedContestIdRef.current === contestId;
+    const refreshKeyChanged = lastRefreshKeyRef.current !== refreshKey;
+    lastRefreshKeyRef.current = refreshKey;
     setLoading(!isSameContest || data === null);
     setError(null);
-    if (!isSameContest) {
+    if (!isSameContest || refreshKeyChanged) {
       setDetailLoadingIds({});
       setDetailErrors({});
       inFlightDetailIdsRef.current = new Set();
