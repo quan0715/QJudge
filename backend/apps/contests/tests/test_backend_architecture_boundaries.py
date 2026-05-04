@@ -31,6 +31,21 @@ def test_question_bank_import_resolver_is_shared_by_contest_imports():
     assert "apps.question_bank.import_resolver" in contest_problem_source
 
 
+def test_device_conflict_response_adapter_is_shared_by_exam_views():
+    adapter_source = _read("apps/contests/views/exam_validation_response.py")
+    assert "def build_device_conflict_response_for_view" in adapter_source
+    assert "build_device_conflict_payload" in adapter_source
+
+    for path in [
+        "apps/contests/views/exam_answer.py",
+        "apps/contests/views/exam_anticheat.py",
+        "apps/contests/views/exam_question.py",
+    ]:
+        source = _read(path)
+        assert "build_device_conflict_response_for_view" in source
+        assert "Response(conflict_payload" not in source
+
+
 def test_contest_detail_cache_helper_has_been_removed():
     assert not (BACKEND_ROOT / "apps/contests/services/detail_cache.py").exists()
 

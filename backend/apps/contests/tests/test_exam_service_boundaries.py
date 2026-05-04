@@ -11,6 +11,10 @@ from apps.contests.services.anti_cheat_session import (
     active_session_key,
 )
 from apps.contests.services.exam_validation import validate_exam_operation
+from apps.contests.views.exam_validation_response import (
+    build_device_conflict_response_for_view,
+    validate_exam_operation_for_view,
+)
 from apps.users.models import User
 
 
@@ -89,6 +93,41 @@ def test_validate_exam_operation_returns_participant_on_success_and_raises_valid
 
 
 @pytest.mark.django_db
+def test_validate_exam_operation_view_adapter_preserves_legacy_error_response(
+    teacher: User,
+    student: User,
+    published_contest: Contest,
+):
+    draft_contest = Contest.objects.create(
+        name="Draft View Adapter Contest",
+        owner=teacher,
+        status="draft",
+        visibility="private",
+        contest_type="paper_exam",
+    )
+
+    participant, response = validate_exam_operation_for_view(
+        draft_contest,
+        student,
+        allow_admin_bypass=False,
+    )
+
+    assert participant is None
+    assert response.status_code == 403
+    assert response.data == {"error": "Contest is not published."}
+
+    participant, response = validate_exam_operation_for_view(
+        published_contest,
+        student,
+        allow_admin_bypass=False,
+    )
+
+    assert participant is None
+    assert response.status_code == 400
+    assert response.data == {"error": "Not registered for this contest."}
+
+
+@pytest.mark.django_db
 def test_device_conflict_service_returns_payload_not_response(
     student: User,
     published_contest: Contest,
@@ -131,3 +170,28 @@ def test_device_conflict_service_returns_payload_not_response(
         metadata__existing_device_id="existing-device",
         metadata__incoming_device_id="incoming-device",
     ).exists()
+
+
+@pytest.mark.django_db
+def test_device_conflict_view_adapter_wraps_payload_as_legacy_response(
+    student: User,
+    published_contest: Contest,
+):
+    participant = ContestParticipant.objects.create(
+        contest=published_contest,
+        user=student,
+        exam_status=ExamStatus.IN_PROGRESS,
+        started_at=timezone.now(),
+    )
+    cache.set(
+        active_session_key(published_contest.id, student.id),
+        {"device_id": "existing-device"},
+        timeout=60,
+    )
+    request = APIRequestFactory().get("/", HTTP_X_DEVICE_ID="incoming-device")
+
+    response = build_device_conflict_response_for_view(published_contest, participant, request)
+
+    assert response.status_code == 409
+    assert response.data["code"] == "EXAM_ACTIVE_OTHER_DEVICE"
+    assert response.data["active_exam"]["contest_id"] == published_contest.id

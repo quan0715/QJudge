@@ -28,9 +28,11 @@ from ..serializers import (
 )
 from ..permissions import can_manage_contest
 from apps.core.api.envelope import envelope
-from ..services.anti_cheat_session import build_device_conflict_payload
 from ..services.question_edit_lock import maybe_lock_from_exam_answer
-from .exam_validation_response import validate_exam_operation_for_view
+from .exam_validation_response import (
+    build_device_conflict_response_for_view,
+    validate_exam_operation_for_view,
+)
 
 
 class ExamAnswerViewSet(viewsets.GenericViewSet):
@@ -184,9 +186,9 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             return error_response
 
         # Device guard (hard block)
-        conflict_payload = build_device_conflict_payload(contest, participant, request)
-        if conflict_payload is not None:
-            return Response(conflict_payload, status=status.HTTP_409_CONFLICT)
+        conflict_response = build_device_conflict_response_for_view(contest, participant, request)
+        if conflict_response is not None:
+            return conflict_response
 
         serializer = ExamAnswerSubmitSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -238,9 +240,9 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         # Device guard (hard block, skip if already submitted)
         if participant.exam_status != ExamStatus.SUBMITTED:
-            conflict_payload = build_device_conflict_payload(contest, participant, request)
-            if conflict_payload is not None:
-                return Response(conflict_payload, status=status.HTTP_409_CONFLICT)
+            conflict_response = build_device_conflict_response_for_view(contest, participant, request)
+            if conflict_response is not None:
+                return conflict_response
 
         answers = ExamAnswer.objects.filter(
             participant=participant

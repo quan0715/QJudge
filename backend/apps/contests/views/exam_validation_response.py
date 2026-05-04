@@ -1,9 +1,10 @@
-"""View-layer adapters for exam validation errors."""
+"""View-layer adapters for legacy exam endpoint responses."""
 
 from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 
+from ..services.anti_cheat_session import build_device_conflict_payload
 from ..services.exam_validation import validate_exam_operation
 
 
@@ -31,3 +32,11 @@ def validate_exam_operation_for_view(*args, **kwargs):
             {"error": message},
             status=getattr(exc, "status_code", status.HTTP_400_BAD_REQUEST),
         )
+
+
+def build_device_conflict_response_for_view(contest, participant, request) -> Response | None:
+    """Return a legacy 409 response for active-device conflicts."""
+    conflict_payload = build_device_conflict_payload(contest, participant, request)
+    if conflict_payload is None:
+        return None
+    return Response(conflict_payload, status=status.HTTP_409_CONFLICT)

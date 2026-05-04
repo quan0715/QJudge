@@ -28,7 +28,6 @@ from ..serializers import (
     ExamQuestionStudentSerializer,
 )
 from ..permissions import can_manage_contest
-from ..services.anti_cheat_session import build_device_conflict_payload
 from ..services.export_service import (
     ExportValidationError,
     build_paper_exam_sheet_response,
@@ -36,6 +35,7 @@ from ..services.export_service import (
 )
 from ..services.question_edit_lock import ensure_contest_question_editable
 from .activity import ContestActivityViewSet
+from .exam_validation_response import build_device_conflict_response_for_view
 
 logger = logging.getLogger(__name__)
 
@@ -103,10 +103,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         participant = contest.registrations.filter(user=self.request.user).first()
         if not participant or participant.exam_status == ExamStatus.SUBMITTED:
             return None
-        conflict_payload = build_device_conflict_payload(contest, participant, self.request)
-        if conflict_payload is None:
-            return None
-        return Response(conflict_payload, status=status.HTTP_409_CONFLICT)
+        return build_device_conflict_response_for_view(contest, participant, self.request)
 
     # Aliases consumed by the `?kind=` filter in addition to raw enum values.
     _KIND_ALIAS = {

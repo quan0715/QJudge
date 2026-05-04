@@ -19,7 +19,6 @@ from ..serializers import (
 )
 from ..permissions import can_manage_contest
 from ..services.anti_cheat_session import (
-    build_device_conflict_payload,
     clear_active_session,
     get_active_sessions,
     get_device_id,
@@ -33,7 +32,10 @@ from ..services.anticheat_storage import (
     get_s3_client,
 )
 from .activity import ContestActivityViewSet
-from .exam_validation_response import validate_exam_operation_for_view
+from .exam_validation_response import (
+    build_device_conflict_response_for_view,
+    validate_exam_operation_for_view,
+)
 from apps.core.throttles import ExamAnticheatUrlsThrottle
 from ..constants import WEBCAM_CAPTURE_INTERVAL_SECONDS
 
@@ -43,9 +45,9 @@ class ExamAnticheatMixin:
 
     def _ensure_active_device_session(self, contest, participant, request):
         """Delegate to the shared helper, then refresh the active session."""
-        conflict_payload = build_device_conflict_payload(contest, participant, request)
-        if conflict_payload is not None:
-            return Response(conflict_payload, status=status.HTTP_409_CONFLICT)
+        conflict_response = build_device_conflict_response_for_view(contest, participant, request)
+        if conflict_response is not None:
+            return conflict_response
         set_active_session(contest, participant, request, get_device_id(request))
         return None
 
