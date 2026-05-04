@@ -11,6 +11,7 @@ from threading import Lock
 from typing import Any
 
 from locust import HttpUser, between, events, task
+from locust.exception import StopUser
 
 
 RUN_ID = os.getenv("LOADTEST_RUN_ID", "").strip()
@@ -20,9 +21,12 @@ FRAME_COUNT = int(os.getenv("LOADTEST_FRAME_COUNT", "7"))
 PRE_LOSS_FRAME_COUNT = int(os.getenv("LOADTEST_PRE_LOSS_FRAME_COUNT", "6"))
 THINK_MIN = float(os.getenv("LOADTEST_THINK_MIN_SECONDS", "3"))
 THINK_MAX = float(os.getenv("LOADTEST_THINK_MAX_SECONDS", "12"))
+REQUEST_TIMEOUT = float(os.getenv("LOADTEST_REQUEST_TIMEOUT_SECONDS", "10"))
+HEARTBEAT_INTERVAL = float(os.getenv("LOADTEST_HEARTBEAT_INTERVAL_SECONDS", "15"))
 ENABLE_SUBMIT = os.getenv("LOADTEST_ENABLE_SUBMIT", "false").lower() == "true"
 ENABLE_ADMIN = os.getenv("LOADTEST_ENABLE_ADMIN", "false").lower() == "true"
 CALL_CONTEST_ENTER = os.getenv("LOADTEST_CALL_CONTEST_ENTER", "false").lower() == "true"
+ENABLE_MOUSE_LEAVE = os.getenv("LOADTEST_ENABLE_MOUSE_LEAVE", "true").lower() == "true"
 ENABLE_STREAM_LOSS = os.getenv("LOADTEST_ENABLE_STREAM_LOSS", "false").lower() == "true"
 FORCE_EVIDENCE_ON_START = os.getenv("LOADTEST_FORCE_EVIDENCE_ON_START", "false").lower() == "true"
 ADMIN_EMAIL = os.getenv("LOADTEST_ADMIN_EMAIL", "").strip()
@@ -103,7 +107,12 @@ def auth_headers(token: str, device_id: str) -> dict[str, str]:
         "Authorization": f"Bearer {token}",
         "X-Device-Id": device_id,
         "Content-Type": "application/json",
+        "Connection": "close",
     }
+
+
+def base_headers() -> dict[str, str]:
+    return {"Connection": "close"}
 
 
 def json_or_empty(response) -> dict[str, Any]:
@@ -112,6 +121,12 @@ def json_or_empty(response) -> dict[str, Any]:
     except Exception:
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def close_response(response) -> None:
+    close = getattr(response, "close", None)
+    if callable(close):
+        close()
 
 
 def short_upload_session_id(event_type: str) -> str:
@@ -132,11 +147,13 @@ class ExamStudentUser(HttpUser):
         self.device_id = f"loadtest-{RUN_ID}-{self.username}"
         self.token = ""
         self.question_ids: list[str] = []
+        self._next_heartbeat_at = 0.0
         self.login()
         self.enter_and_start_exam()
         self.record_exam_event("exam_entered", evidence_mode="audit")
+        self.send_heartbeat()
         self.load_questions()
-        if FORCE_EVIDENCE_ON_START:
+        if FORCE_EVIDENCE_ON_START and ENABLE_MOUSE_LEAVE:
             self.mouse_leave_with_evidence()
 
     def login(self):
@@ -147,30 +164,59 @@ class ExamStudentUser(HttpUser):
         with self.client.post(
             "/api/v1/auth/email/login",
             json=payload,
+            headers=base_headers(),
+            timeout=REQUEST_TIMEOUT,
             name="auth login",
             catch_response=True,
         ) as response:
-            data = json_or_empty(response).get("data") or {}
-            token = data.get("access_token")
-            if response.status_code != 200 or not token:
-                response.failure(f"login failed status={response.status_code}")
-                return
-            self.token = str(token)
+            try:
+                data = json_or_empty(response).get("data") or {}
+                token = data.get("access_token")
+                if response.status_code != 200 or not token:
+                    response.failure(f"login failed status={response.status_code}")
+                    return
+                self.token = str(token)
+            finally:
+                close_response(response)
 
     def enter_and_start_exam(self):
         headers = auth_headers(self.token, self.device_id)
-        self.client.get(f"/api/v1/contests/{CONTEST_ID}/", headers=headers, name="contest detail")
+        response = self.client.get(
+            f"/api/v1/contests/{CONTEST_ID}/",
+            headers=headers,
+            timeout=REQUEST_TIMEOUT,
+            name="contest detail",
+        )
+        close_response(response)
         if CALL_CONTEST_ENTER:
-            self.client.post(f"/api/v1/contests/{CONTEST_ID}/enter/", headers=headers, json={}, name="contest enter")
-        self.client.post(f"/api/v1/contests/{CONTEST_ID}/exam/start/", headers=headers, json={}, name="exam start")
+            response = self.client.post(
+                f"/api/v1/contests/{CONTEST_ID}/enter/",
+                headers=headers,
+                json={},
+                timeout=REQUEST_TIMEOUT,
+                name="contest enter",
+            )
+            close_response(response)
+        response = self.client.post(
+            f"/api/v1/contests/{CONTEST_ID}/exam/start/",
+            headers=headers,
+            json={},
+            timeout=REQUEST_TIMEOUT,
+            name="exam start",
+        )
+        close_response(response)
 
     def load_questions(self):
         response = self.client.get(
             f"/api/v1/contests/{CONTEST_ID}/exam-questions/",
             headers=auth_headers(self.token, self.device_id),
+            timeout=REQUEST_TIMEOUT,
             name="exam questions list",
         )
-        data = response.json() if response.status_code == 200 else []
+        try:
+            data = response.json() if response.status_code == 200 else []
+        finally:
+            close_response(response)
         if isinstance(data, dict):
             data = data.get("results") or data.get("data") or []
         self.question_ids = [str(item.get("id")) for item in data if isinstance(item, dict) and item.get("id")]
@@ -198,9 +244,13 @@ class ExamStudentUser(HttpUser):
             f"/api/v1/contests/{CONTEST_ID}/exam/events/",
             headers=auth_headers(self.token, self.device_id),
             json=payload,
+            timeout=REQUEST_TIMEOUT,
             name=f"exam event {event_type}",
         )
-        return json_or_empty(response) if response.status_code == 200 else {}
+        try:
+            return json_or_empty(response) if response.status_code == 200 else {}
+        finally:
+            close_response(response)
 
     def upload_evidence_for_event(self, event: dict[str, Any], event_type: str, *, evidence_mode: str):
         event_id = event.get("event_id")
@@ -232,15 +282,19 @@ class ExamStudentUser(HttpUser):
             f"/api/v1/contests/{CONTEST_ID}/exam/evidence/upload-intents/",
             headers=auth_headers(self.token, self.device_id),
             json=intent_payload,
+            timeout=REQUEST_TIMEOUT,
             name="evidence upload intents",
             catch_response=True,
         ) as intent_response:
-            if intent_response.status_code not in (200, 201):
-                intent_response.failure(
-                    f"upload intent failed status={intent_response.status_code} body={intent_response.text[:500]}"
-                )
-                return
-            items = json_or_empty(intent_response).get("items") or []
+            try:
+                if intent_response.status_code not in (200, 201):
+                    intent_response.failure(
+                        f"upload intent failed status={intent_response.status_code} body={intent_response.text[:500]}"
+                    )
+                    return
+                items = json_or_empty(intent_response).get("items") or []
+            finally:
+                close_response(intent_response)
 
         confirm_frames = []
         for item in items:
@@ -253,19 +307,23 @@ class ExamStudentUser(HttpUser):
                 put_url,
                 data=WEBP_BYTES,
                 headers=headers,
+                timeout=REQUEST_TIMEOUT,
                 name="storage PUT evidence frame",
             )
-            if 200 <= put_response.status_code < 300:
-                confirm_frames.append(
-                    {
-                        "evidence_frame_id": item["evidence_frame_id"],
-                        "object_key": item["object_key"],
-                        "byte_size": len(WEBP_BYTES),
-                    }
-                )
+            try:
+                if 200 <= put_response.status_code < 300:
+                    confirm_frames.append(
+                        {
+                            "evidence_frame_id": item["evidence_frame_id"],
+                            "object_key": item["object_key"],
+                            "byte_size": len(WEBP_BYTES),
+                        }
+                    )
+            finally:
+                close_response(put_response)
 
         if confirm_frames:
-            self.client.post(
+            response = self.client.post(
                 f"/api/v1/contests/{CONTEST_ID}/exam/evidence/upload-confirm/",
                 headers=auth_headers(self.token, self.device_id),
                 json={
@@ -273,15 +331,26 @@ class ExamStudentUser(HttpUser):
                     "upload_session_id": upload_session_id,
                     "frames": confirm_frames,
                 },
+                timeout=REQUEST_TIMEOUT,
                 name="evidence upload confirm",
             )
+            close_response(response)
 
     @task(8)
     def heartbeat(self):
+        self.send_heartbeat()
+
+    def send_heartbeat(self):
         self.record_exam_event("heartbeat", evidence_mode="audit")
+        self._next_heartbeat_at = time.monotonic() + HEARTBEAT_INTERVAL
+
+    def maybe_send_heartbeat(self):
+        if time.monotonic() >= self._next_heartbeat_at:
+            self.send_heartbeat()
 
     @task(4)
     def autosave_answer(self):
+        self.maybe_send_heartbeat()
         if not self.question_ids:
             self.load_questions()
         if not self.question_ids:
@@ -298,27 +367,38 @@ class ExamStudentUser(HttpUser):
             f"/api/v1/contests/{CONTEST_ID}/exam-answers/submit/",
             headers=auth_headers(self.token, self.device_id),
             json=payload,
+            timeout=REQUEST_TIMEOUT,
             name="exam answer autosave",
             catch_response=True,
         ) as response:
-            if response.status_code not in (200, 201):
-                response.failure(f"answer autosave failed status={response.status_code} body={response.text[:300]}")
+            try:
+                if response.status_code not in (200, 201):
+                    response.failure(f"answer autosave failed status={response.status_code} body={response.text[:300]}")
+            finally:
+                close_response(response)
 
     @task(2)
     def normal_navigation(self):
-        self.client.get(
+        self.maybe_send_heartbeat()
+        response = self.client.get(
             f"/api/v1/contests/{CONTEST_ID}/exam-answers/my-answers/",
             headers=auth_headers(self.token, self.device_id),
+            timeout=REQUEST_TIMEOUT,
             name="exam my answers",
         )
+        close_response(response)
 
     @task(1)
     def mouse_leave_with_evidence(self):
+        self.maybe_send_heartbeat()
+        if not ENABLE_MOUSE_LEAVE:
+            return
         event = self.record_exam_event("mouse_leave", evidence_mode="anchor_window")
         self.upload_evidence_for_event(event, "mouse_leave", evidence_mode="anchor_window")
 
     @task(1)
     def screen_share_stopped_with_pre_loss_evidence(self):
+        self.maybe_send_heartbeat()
         if not ENABLE_STREAM_LOSS:
             return
         event = self.record_exam_event("screen_share_stopped", evidence_mode="pre_loss")
@@ -326,60 +406,73 @@ class ExamStudentUser(HttpUser):
 
     def on_stop(self):
         if ENABLE_SUBMIT and self.token:
-            self.client.post(
+            response = self.client.post(
                 f"/api/v1/contests/{CONTEST_ID}/exam/end/",
                 headers=auth_headers(self.token, self.device_id),
                 json={
                     "submit_reason": "loadtest_completed",
                     "source_module": "screen_share",
                 },
+                timeout=REQUEST_TIMEOUT,
                 name="exam submit",
             )
+            close_response(response)
 
 
 class AdminReviewerUser(HttpUser):
     wait_time = between(5, 15)
+    weight = ADMIN_USERS
     fixed_count = ADMIN_USERS
 
     def on_start(self):
         self.device_id = f"loadtest-{RUN_ID}-admin"
         self.token = ""
         if not ADMIN_USERS:
-            self.environment.runner.quit()
-            return
+            raise StopUser()
         with self.client.post(
             "/api/v1/auth/email/login",
             json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD},
+            headers=base_headers(),
+            timeout=REQUEST_TIMEOUT,
             name="admin auth login",
             catch_response=True,
         ) as response:
-            data = json_or_empty(response).get("data") or {}
-            token = data.get("access_token")
-            if response.status_code != 200 or not token:
-                response.failure(f"admin login failed status={response.status_code}")
-                return
-            self.token = str(token)
+            try:
+                data = json_or_empty(response).get("data") or {}
+                token = data.get("access_token")
+                if response.status_code != 200 or not token:
+                    response.failure(f"admin login failed status={response.status_code}")
+                    return
+                self.token = str(token)
+            finally:
+                close_response(response)
 
     @task(5)
     def incident_list(self):
-        self.client.get(
+        response = self.client.get(
             f"/api/v1/contests/{CONTEST_ID}/exam/events/",
             headers=auth_headers(self.token, self.device_id),
+            timeout=REQUEST_TIMEOUT,
             name="admin exam events list",
         )
+        close_response(response)
 
     @task(2)
     def dashboard_summary(self):
-        self.client.get(
+        response = self.client.get(
             f"/api/v1/contests/{CONTEST_ID}/exam-answers/dashboard-summary/",
             headers=auth_headers(self.token, self.device_id),
+            timeout=REQUEST_TIMEOUT,
             name="admin dashboard summary",
         )
+        close_response(response)
 
     @task(1)
     def screenshots_manifest_lookup(self):
-        self.client.get(
+        response = self.client.get(
             f"/api/v1/contests/{CONTEST_ID}/exam/screenshots/?evidence_cluster_id=missing-{uuid.uuid4().hex[:8]}",
             headers=auth_headers(self.token, self.device_id),
+            timeout=REQUEST_TIMEOUT,
             name="admin screenshots manifest lookup",
         )
+        close_response(response)

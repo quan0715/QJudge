@@ -131,7 +131,15 @@ one admin reviewer.
   `exam/start`. Keep this off for local seeded paper exams that are already
   registered.
 - `LOADTEST_FORCE_EVIDENCE_ON_START=true`: each student uploads one startup
-  `mouse_leave` evidence bundle. Useful for smoke tests.
+  `mouse_leave` evidence bundle. Useful for smoke tests. This is ignored when
+  `LOADTEST_ENABLE_MOUSE_LEAVE=false`.
+- `LOADTEST_ENABLE_MOUSE_LEAVE=false`: disables the penalized `mouse_leave`
+  scenario so long normal-capacity runs keep participants in progress.
+- `LOADTEST_REQUEST_TIMEOUT_SECONDS=10`: caps each HTTP call from the load-test
+  client and forces stale client-side connections to fail instead of freezing the
+  Locust run.
+- `LOADTEST_HEARTBEAT_INTERVAL_SECONDS=15`: sends deterministic per-student
+  heartbeat refreshes; keep this below the backend heartbeat timeout.
 - `LOADTEST_ENABLE_STREAM_LOSS=true`: enables `screen_share_stopped` pre-loss
   evidence. This can pause the participant by policy, so use it in a separate
   incident scenario instead of a long answer-autosave throughput run.
