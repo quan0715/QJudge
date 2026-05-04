@@ -133,7 +133,6 @@
 
 .drilldownTabPanel {
   padding: 0;
-  border-top: 1px solid var(--cds-border-subtle);
 }
 
 .drilldownPanel {
@@ -380,8 +379,16 @@
 }
 
 @media (max-width: 672px) {
-  .drilldownToolbar {
+  .tabRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .tabRowToolbar {
     grid-template-columns: 1fr;
+    max-width: none;
+    padding: 0 1rem 0.5rem;
   }
 
   .participantDrawerBackdrop {
