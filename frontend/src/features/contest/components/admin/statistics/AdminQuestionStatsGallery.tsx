@@ -9,25 +9,39 @@ import {
   Tag,
 } from "@carbon/react";
 import { Close, Filter } from "@carbon/icons-react";
+import { AnimatePresence, motion } from "motion/react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
 import {
+  type DashboardMockData,
   type QuestionDetailMock,
   type QuestionSummaryMock,
 } from "@/features/contest/components/admin/statistics/contestResultDashboard.mock";
-import { useContestResultDashboard } from "@/features/contest/components/admin/statistics/useContestResultDashboard";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import { resolveExamQuestionTypeFromRaw } from "@/shared/ui/questionVisual";
 import styles from "./AdminQuestionStatsGallery.module.scss";
 
 interface AdminQuestionStatsGalleryProps {
   contest: ContestDetail | null | undefined;
-  refreshKey?: number;
+  dashboard: DashboardMockData | null;
+  loading: boolean;
+  error: string | null;
+  loadQuestionDetail: (questionId: string) => Promise<void>;
+  detailLoadingIds: Record<string, boolean>;
+  detailErrors: Record<string, string>;
+  searchQuery?: string;
+  onSearchQueryChange?: (query: string) => void;
+  questionKindFilter?: string;
+  onQuestionKindFilterChange?: (kind: string) => void;
+  showFilterToolbar?: boolean;
 }
 
 type AttentionToneKey = "critical" | "warning" | "success";
 type FocusMetricKey = "score_rate" | "missing_rate" | "zero_rate";
 type FilterOption = { id: string; label: string };
+
+// Backend `order` is 0-based; the UI labels questions starting from 1.
+const getDisplayOrder = (order: number) => order + 1;
 
 const focusMetrics: Array<{
   key: FocusMetricKey;
@@ -53,22 +67,40 @@ const focusMetrics: Array<{
 
 export default function AdminQuestionStatsGallery({
   contest,
-  refreshKey = 0,
+  dashboard,
+  loading,
+  error,
+  loadQuestionDetail,
+  detailLoadingIds,
+  detailErrors,
+  searchQuery: controlledSearchQuery,
+  onSearchQueryChange,
+  questionKindFilter: controlledQuestionKindFilter,
+  onQuestionKindFilterChange,
+  showFilterToolbar = true,
 }: AdminQuestionStatsGalleryProps) {
   const [focusMetric, setFocusMetric] = useState<FocusMetricKey>("score_rate");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [questionKindFilter, setQuestionKindFilter] = useState<string>("all");
+  const [uncontrolledSearchQuery, setUncontrolledSearchQuery] = useState("");
+  const [uncontrolledQuestionKindFilter, setUncontrolledQuestionKindFilter] =
+    useState<string>("all");
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
     null,
   );
-  const {
-    data: dashboard,
-    loading,
-    error,
-    loadQuestionDetail,
-    detailLoadingIds,
-    detailErrors,
-  } = useContestResultDashboard(contest, refreshKey);
+  const searchQuery = controlledSearchQuery ?? uncontrolledSearchQuery;
+  const questionKindFilter =
+    controlledQuestionKindFilter ?? uncontrolledQuestionKindFilter;
+  const handleSearchQueryChange = (query: string) => {
+    onSearchQueryChange?.(query);
+    if (controlledSearchQuery === undefined) {
+      setUncontrolledSearchQuery(query);
+    }
+  };
+  const handleQuestionKindFilterChange = (kind: string) => {
+    onQuestionKindFilterChange?.(kind);
+    if (controlledQuestionKindFilter === undefined) {
+      setUncontrolledQuestionKindFilter(kind);
+    }
+  };
 
   useEffect(() => {
     if (!selectedQuestionId) return;
@@ -144,7 +176,7 @@ export default function AdminQuestionStatsGallery({
       const normalizedQuery = searchQuery.trim().toLowerCase();
       if (!normalizedQuery) return true;
       return [
-        `Q${question.order}`,
+        `Q${getDisplayOrder(question.order)}`,
         question.title,
         getQuestionVisual(question.kind).label,
       ]
@@ -181,11 +213,12 @@ export default function AdminQuestionStatsGallery({
         focusMetric={focusMetric}
         onFocusMetricChange={setFocusMetric}
         searchQuery={searchQuery}
-        onSearchChange={(event) => setSearchQuery(event.target.value)}
-        onSearchClear={() => setSearchQuery("")}
+        onSearchChange={(event) => handleSearchQueryChange(event.target.value)}
+        onSearchClear={() => handleSearchQueryChange("")}
         questionKindOptions={questionKindOptions}
         selectedQuestionKind={selectedQuestionKind}
-        onQuestionKindChange={setQuestionKindFilter}
+        onQuestionKindChange={handleQuestionKindFilterChange}
+        showFilterToolbar={showFilterToolbar}
       />
       {sortedQuestions.length === 0 ? (
         <div className={styles.emptyState}>目前沒有題目資料</div>
@@ -202,15 +235,17 @@ export default function AdminQuestionStatsGallery({
           ))}
         </div>
       )}
-      {selectedQuestion ? (
-        <QuestionStatsDrawer
-          question={selectedQuestion}
-          detail={selectedDetail}
-          loading={selectedDetailLoading}
-          error={selectedDetailError}
-          onClose={() => setSelectedQuestionId(null)}
-        />
-      ) : null}
+      <AnimatePresence>
+        {selectedQuestion ? (
+          <QuestionStatsDrawer
+            question={selectedQuestion}
+            detail={selectedDetail}
+            loading={selectedDetailLoading}
+            error={selectedDetailError}
+            onClose={() => setSelectedQuestionId(null)}
+          />
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }
@@ -225,6 +260,7 @@ function GalleryHeader({
   questionKindOptions = [],
   selectedQuestionKind,
   onQuestionKindChange,
+  showFilterToolbar = true,
 }: {
   count?: number;
   focusMetric: FocusMetricKey;
@@ -235,9 +271,11 @@ function GalleryHeader({
   questionKindOptions?: FilterOption[];
   selectedQuestionKind?: FilterOption;
   onQuestionKindChange?: (kind: string) => void;
+  showFilterToolbar?: boolean;
 }) {
   const selectedMetric = focusMetrics.find((item) => item.key === focusMetric);
-  const showFilterToolbar = Boolean(onSearchChange && onQuestionKindChange);
+  const showToolbar =
+    showFilterToolbar && Boolean(onSearchChange && onQuestionKindChange);
   const isFilterActive =
     selectedQuestionKind != null && selectedQuestionKind.id !== "all";
   return (
@@ -268,7 +306,7 @@ function GalleryHeader({
           ))}
         </div>
       </div>
-      {showFilterToolbar ? (
+      {showToolbar ? (
         <div
           className={`${styles.filterToolbar} ${
             isFilterActive ? styles.filterToolbarActive : ""
@@ -333,7 +371,7 @@ function QuestionStatsCard({
       <div className={styles.cardMeta}>
         <div className={styles.cardMetaLeft}>
           {questionVisual.Icon ? <questionVisual.Icon size={14} /> : null}
-          <span>Q{question.order}</span>
+          <span>Q{getDisplayOrder(question.order)}</span>
           <span>{questionVisual.label}</span>
         </div>
       </div>
@@ -372,24 +410,39 @@ function QuestionStatsDrawer({
     : 0;
 
   return (
-    <div className={styles.drawerLayer}>
-      <button
+    <motion.div
+      className={styles.drawerLayer}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.16, ease: "easeOut" }}
+    >
+      <motion.button
         type="button"
         className={styles.drawerBackdrop}
         aria-label="關閉題目作答數據背景"
         onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.16, ease: "easeOut" }}
       />
-      <aside
+      <motion.aside
+        key={question.questionId}
         className={styles.drawer}
         role="dialog"
         aria-modal="true"
-        aria-label={`Q${question.order} 作答數據`}
+        aria-label={`Q${getDisplayOrder(question.order)} 作答數據`}
+        initial={{ x: 24, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 24, opacity: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       >
         <div className={styles.drawerHeader}>
           <div>
             <h3>
               {questionVisual.Icon ? <questionVisual.Icon size={18} /> : null}Q
-              {question.order} · {questionVisual.label}
+              {getDisplayOrder(question.order)} · {questionVisual.label}
             </h3>
             <p>{question.title}</p>
           </div>
@@ -502,8 +555,8 @@ function QuestionStatsDrawer({
             <SkeletonPlaceholder className={styles.drawerBarSkeleton} />
           </div>
         )}
-      </aside>
-    </div>
+      </motion.aside>
+    </motion.div>
   );
 }
 

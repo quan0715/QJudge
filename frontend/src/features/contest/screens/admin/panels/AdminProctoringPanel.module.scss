@@ -13,6 +13,21 @@
   display: flex;
   align-items: center;
   overflow: hidden;
+
+  /* 與 PanelToolbar 列背景一致，拿掉 Search field 的灰底（含 persistent 外層） */
+  :global(div[class*="toolbar-search-container"]),
+  :global(div[class*="cds--search"]),
+  :global(div[class*="cds--search-magnifier"]),
+  :global(input[type="search"]) {
+    background-color: var(--cds-background);
+    background-image: none;
+    box-shadow: none;
+  }
+
+  :global(input[type="search"]:hover),
+  :global(input[type="search"]:focus) {
+    background-color: var(--cds-background);
+  }
 }
 
 .rosterToggle {
@@ -63,7 +78,8 @@
   flex-direction: column;
   overflow: hidden;
   border-right: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer-01);
+  /* 與頁首 PanelToolbar / .workspace 同色 */
+  background: var(--cds-background);
 }
 
 .rosterHeader {
@@ -85,6 +101,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  background: var(--cds-background);
 }
 
 .rosterItem {
@@ -279,7 +296,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--cds-layer-01);
+  background: var(--cds-background);
 }
 
 .eventsMotionSlot {
@@ -287,6 +304,7 @@
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  background: var(--cds-background);
 }
 
 .eventsHeader {
@@ -308,61 +326,13 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  background: var(--cds-background);
 }
 
 .eventsLoading {
   color: var(--cds-text-secondary);
   font-size: 0.75rem;
   font-weight: 400;
-}
-
-.eventItem {
-  width: 100%;
-  min-height: 4rem;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.5rem;
-  padding: 0.625rem 0.75rem;
-  border: 0;
-  border-left: 3px solid transparent;
-  border-bottom: 1px solid var(--cds-border-subtle);
-  background: transparent;
-  color: var(--cds-text-primary);
-  text-align: left;
-  cursor: pointer;
-}
-
-.eventItem:hover {
-  background: var(--cds-layer-hover-01);
-}
-
-.eventItemSelected {
-  border-left-color: var(--cds-border-interactive);
-  background: var(--cds-layer-selected-01);
-}
-
-.eventItemTop,
-.eventItemMeta {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.eventType {
-  overflow: hidden;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.eventItemMeta {
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
-  line-height: 1.2;
 }
 
 .eventsEmpty,
@@ -495,7 +465,7 @@
   flex-direction: column;
   overflow: hidden;
   border-top: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer-01);
+  background: var(--cds-background);
 }
 
 .evidenceBody {
@@ -566,7 +536,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--cds-layer-01);
+  background: var(--cds-background);
 }
 
 .evidenceGroupHeader {
@@ -636,7 +606,7 @@
   min-width: 0;
   padding: 0.75rem;
   border-bottom: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer-01);
+  background: var(--cds-background);
 }
 
 .eventContentHeader {

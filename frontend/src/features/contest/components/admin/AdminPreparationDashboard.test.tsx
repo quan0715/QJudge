@@ -164,15 +164,16 @@ describe("AdminPreparationDashboard", () => {
     await userEvent.click(
       screen.getByRole("button", { name: /題目編輯與管理/ }),
     );
-    await userEvent.click(screen.getByRole("button", { name: /參賽者管理/ }));
     await userEvent.click(
       screen.getAllByRole("button", { name: /批改與成績/ })[0],
     );
     await userEvent.click(screen.getByRole("button", { name: /競賽設定/ }));
 
+    expect(
+      screen.queryByRole("button", { name: /參賽者管理/ }),
+    ).not.toBeInTheDocument();
     expect(onOpenPanel).toHaveBeenNthCalledWith(1, "problem_editor");
-    expect(onOpenPanel).toHaveBeenNthCalledWith(2, "participants");
-    expect(onOpenPanel).toHaveBeenNthCalledWith(3, "grading");
+    expect(onOpenPanel).toHaveBeenNthCalledWith(2, "grading");
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 

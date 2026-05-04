@@ -1,14 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { createContestResultDashboardMock } from "./contestResultDashboard.mock";
 import AdminQuestionStatsGallery from "./AdminQuestionStatsGallery";
-import { useContestResultDashboard } from "./useContestResultDashboard";
-
-vi.mock("./useContestResultDashboard", () => ({
-  useContestResultDashboard: vi.fn(),
-}));
 
 const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
   ({
@@ -52,16 +47,19 @@ describe("AdminQuestionStatsGallery", () => {
   it("renders question answer data cards from the result dashboard", async () => {
     const contest = buildContest();
     const loadQuestionDetail = vi.fn();
-    vi.mocked(useContestResultDashboard).mockReturnValue({
-      data: createContestResultDashboardMock(contest),
-      loading: false,
-      error: null,
-      loadQuestionDetail,
-      detailLoadingIds: {},
-      detailErrors: {},
-    });
+    const dashboard = createContestResultDashboardMock(contest);
 
-    render(<AdminQuestionStatsGallery contest={contest} refreshKey={2} />);
+    render(
+      <AdminQuestionStatsGallery
+        contest={contest}
+        dashboard={dashboard}
+        loading={false}
+        error={null}
+        loadQuestionDetail={loadQuestionDetail}
+        detailLoadingIds={{}}
+        detailErrors={{}}
+      />,
+    );
 
     expect(screen.getByLabelText("各題作答數據")).toBeInTheDocument();
     expect(screen.getByText("8 題")).toBeInTheDocument();
@@ -96,7 +94,7 @@ describe("AdminQuestionStatsGallery", () => {
 
     await userEvent.type(
       screen.getByRole("searchbox", { name: "搜尋題目" }),
-      "Q3",
+      "Q4",
     );
 
     expect(screen.getByText("簡答：演算法複雜度說明")).toBeInTheDocument();
@@ -110,7 +108,7 @@ describe("AdminQuestionStatsGallery", () => {
     );
 
     expect(
-      screen.getByRole("dialog", { name: "Q2 作答數據" }),
+      screen.getByRole("dialog", { name: "Q3 作答數據" }),
     ).toBeInTheDocument();
     expect(screen.getByText("批改進度")).toBeInTheDocument();
     expect(screen.getByText("29 / 47")).toBeInTheDocument();
@@ -120,25 +118,26 @@ describe("AdminQuestionStatsGallery", () => {
       screen.getByRole("button", { name: "關閉題目作答數據" }),
     );
 
-    expect(
-      screen.queryByRole("dialog", { name: "Q2 作答數據" }),
-    ).not.toBeInTheDocument();
-    expect(useContestResultDashboard).toHaveBeenCalledWith(contest, 2);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Q3 作答數據" }),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it("does not render for coding contests", () => {
     const contest = buildContest({ contestType: "coding" });
-    vi.mocked(useContestResultDashboard).mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-      loadQuestionDetail: vi.fn(),
-      detailLoadingIds: {},
-      detailErrors: {},
-    });
 
     const { container } = render(
-      <AdminQuestionStatsGallery contest={contest} />,
+      <AdminQuestionStatsGallery
+        contest={contest}
+        dashboard={null}
+        loading={false}
+        error={null}
+        loadQuestionDetail={vi.fn()}
+        detailLoadingIds={{}}
+        detailErrors={{}}
+      />,
     );
 
     expect(container).toBeEmptyDOMElement();

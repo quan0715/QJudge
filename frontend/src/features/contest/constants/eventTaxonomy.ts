@@ -6,6 +6,18 @@
  * P2 = info (no penalty)
  * P3 = system / lifecycle
  */
+import {
+  CheckmarkFilled,
+  Chat,
+  Locked,
+  View,
+  WarningFilled,
+  Policy,
+  Information,
+  Time,
+  WarningAlt,
+  ImageSearch,
+} from "@carbon/icons-react";
 
 export const EVENT_PRIORITY: Record<string, number> = {
   // P0: Critical monitoring failures that pause the exam and require pre-check.
@@ -69,10 +81,10 @@ export const PRIORITY_LABELS: Record<number, string> = {
   3: "P3",
 };
 
-export const PRIORITY_TAG_COLOR: Record<number, "red" | "magenta" | "teal" | "cool-gray"> = {
+export const PRIORITY_TAG_COLOR: Record<number, "red" | "magenta" | "purple" | "cool-gray"> = {
   0: "red",
   1: "magenta",
-  2: "teal",
+  2: "purple",
   3: "cool-gray",
 };
 
@@ -81,3 +93,45 @@ export const getEventPriority = (eventType: string): number =>
 
 export const getEventCategory = (eventType: string): string =>
   EVENT_CATEGORY[getEventPriority(eventType)] ?? "system";
+
+const humanizeEventType = (eventType: string): string =>
+  eventType.replaceAll("_", " ");
+
+type TranslateFn = (key: string, defaultValue: string) => unknown;
+
+export const getEventTypeLabel = (
+  t: TranslateFn,
+  eventType: string,
+): string => {
+  const translated = String(t(`logs.eventTypes.${eventType}`, eventType));
+  return translated !== eventType ? translated : humanizeEventType(eventType);
+};
+
+export const getPriorityIcon = (priority: number) => {
+  if (priority === 0) return WarningFilled;
+  if (priority === 1) return Policy;
+  if (priority === 2) return Information;
+  return Time;
+};
+
+export const getEventTypeIcon = (eventType: string, priority: number) => {
+  if (eventType.includes("screen_share")) return View;
+  if (eventType.includes("webcam")) return ImageSearch;
+  if (eventType.includes("tab_hidden") || eventType.includes("window_blur"))
+    return View;
+  if (eventType.includes("mouse_leave")) return WarningAlt;
+  if (
+    eventType.includes("multi_display") ||
+    eventType.includes("multiple_displays") ||
+    eventType.includes("split_view") ||
+    eventType.includes("viewport")
+  )
+    return View;
+  if (eventType.includes("lock")) return Locked;
+  if (eventType.includes("restored") || eventType.includes("unlock"))
+    return CheckmarkFilled;
+  if (eventType.includes("ask_question") || eventType.includes("reply_question"))
+    return Chat;
+  if (eventType.includes("heartbeat")) return Time;
+  return getPriorityIcon(priority);
+};

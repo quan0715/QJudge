@@ -227,6 +227,23 @@ const formatDateTime = (value?: string | null) => {
   return `${parts.year ?? "0000"}/${parts.month ?? "00"}/${parts.day ?? "00"} ${parts.hour ?? "00"}:${parts.minute ?? "00"}`;
 };
 
+const formatDateKey = (value?: string | null) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = partsToMap(DATE_TIME_FORMATTER.formatToParts(date));
+  return `${parts.year ?? "0000"}-${parts.month ?? "00"}-${parts.day ?? "00"}`;
+};
+
+const formatScheduleDateTime = (
+  value: string | null | undefined,
+  includeDate: boolean,
+) => {
+  if (!includeDate) return formatTime(value);
+  const dateTime = formatDateTime(value);
+  return dateTime === "-" ? dateTime : dateTime.replace(" ", "\n");
+};
+
 const formatWindow = (contest: ContestDetail) => {
   const start = formatTime(contest.startTime);
   const end = formatTime(contest.endTime);
@@ -249,8 +266,13 @@ const buildTimelineSummary = ({
   const end = Date.parse(contest.endTime);
   const nowMs = now.getTime();
   const timeWindowLabel = formatWindow(contest);
-  const startDateTimeLabel = formatDateTime(contest.startTime);
-  const endDateTimeLabel = formatDateTime(contest.endTime);
+  const startDateKey = formatDateKey(contest.startTime);
+  const endDateKey = formatDateKey(contest.endTime);
+  const isCrossDay = Boolean(
+    startDateKey && endDateKey && startDateKey !== endDateKey,
+  );
+  const startDateTimeLabel = formatScheduleDateTime(contest.startTime, isCrossDay);
+  const endDateTimeLabel = formatScheduleDateTime(contest.endTime, isCrossDay);
 
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
     return {

@@ -73,7 +73,7 @@ docker run --rm \
   -e MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}" \
   -e MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-minioadmin}" \
   -e ANTICHEAT_RAW_BUCKET="${ANTICHEAT_RAW_BUCKET:-anticheat-raw}" \
-  -e ANTICHEAT_CORS_ALLOWED_ORIGINS="${ANTICHEAT_CORS_ALLOWED_ORIGINS:-http://localhost:5173}" \
+  -e MINIO_API_CORS_ALLOW_ORIGIN="${MINIO_API_CORS_ALLOW_ORIGIN:-http://localhost:5173}" \
   minio/mc:latest /config/init-minio.sh
 
 echo "[minio-init] completed"

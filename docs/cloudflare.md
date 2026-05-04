@@ -112,8 +112,9 @@ The remote tunnel config lives in Cloudflare, so route changes should be made th
 
 ## R2 Object Storage
 
-Use `OBJECT_STORAGE_*` as the only object storage connection settings. Older
-`MINIO_*` and `ANTICHEAT_S3_*` environment names are not read by the app.
+Use `OBJECT_STORAGE_*` as the only object storage connection settings for the
+app. Local MinIO environment values only configure the MinIO service and its
+initialization scripts.
 
 Current production R2 buckets:
 
@@ -140,7 +141,6 @@ OBJECT_STORAGE_REGION=auto
 OBJECT_STORAGE_ACCESS_KEY=<dev_r2_access_key_id>
 OBJECT_STORAGE_SECRET_KEY=<dev_r2_secret_access_key>
 
-ANTICHEAT_CORS_ALLOWED_ORIGINS=https://q-judge-dev.quan.wtf,http://localhost:5173,http://127.0.0.1:5173
 ANTICHEAT_RAW_BUCKET=qjudge-dev-anticheat-raw
 MARKDOWN_IMAGE_S3_BUCKET=qjudge-dev-markdown-images
 MARKDOWN_IMAGE_PUBLIC_BASE_URL=https://q-judge-dev.quan.wtf

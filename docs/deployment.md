@@ -132,7 +132,6 @@ For local MinIO production fallback, also set non-default values:
 MINIO_ROOT_USER=
 MINIO_ROOT_PASSWORD=
 MINIO_API_CORS_ALLOW_ORIGIN=https://q-judge.com
-ANTICHEAT_CORS_ALLOWED_ORIGINS=https://q-judge.com,https://www.q-judge.com
 ```
 
 The backend only reads `OBJECT_STORAGE_*` for S3-compatible access. `MINIO_*`

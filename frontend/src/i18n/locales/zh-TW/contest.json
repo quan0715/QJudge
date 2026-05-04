@@ -19,9 +19,7 @@
       "examManagement": "Exam 管理",
       "examStatistics": "Exam 統計",
       "grading": "作答結果",
-      "logs": "事件紀錄",
       "overview": "總覽",
-      "participants": "參賽者",
       "problemManagement": "題目管理",
       "proctoring": "監考",
       "settings": "設定",
@@ -29,67 +27,7 @@
     },
     "title": "管理後台"
   },
-  "adminPreparationDashboard": {
-    "ariaLabel": "準備與成績儀表板",
-    "tabs": {
-      "readiness": "準備狀態",
-      "grading": "批改與成績",
-      "entries": "管理入口"
-    },
-    "readiness": {
-      "title": "準備狀態",
-      "description": "非考試時段優先確認能否順利開考與收尾。"
-    },
-    "grading": {
-      "title": "批改與成績",
-      "description": "考後查看批改剩餘量與成績發布狀態。",
-      "progressLabel": "批改進度",
-      "ungraded": "待批改",
-      "resultsStatus": "成績狀態",
-      "openButton": "前往批改與成績"
-    },
-    "entries": {
-      "problemEditor": {
-        "title": "題目編輯與管理",
-        "description": "維護題目、考卷內容與分數"
-      },
-      "participants": {
-        "title": "參賽者管理",
-        "description": "檢查名單、狀態與個別操作"
-      },
-      "grading": {
-        "title": "批改與成績",
-        "description": "進入批改、統計與成績發布"
-      },
-      "settings": {
-        "title": "競賽設定",
-        "description": "調整時間、規則與考試模式"
-      }
-    }
-  },
   "adminOverview": {
-    "screen": {
-      "title": "管理總覽",
-      "contestInfoLabel": "競賽資訊",
-      "exportFailed": "匯出失敗",
-      "contestStatus": {
-        "draft": "草稿",
-        "archived": "已封存",
-        "published": "已發布"
-      },
-      "contestType": {
-        "paperExam": "考卷",
-        "coding": "Coding Test"
-      },
-      "actions": {
-        "settings": "競賽設定",
-        "contestHome": "競賽主頁",
-        "refresh": "重新整理",
-        "refreshing": "重新整理中",
-        "export": "匯出成績",
-        "exporting": "匯出中"
-      }
-    },
     "actions": {
       "editSettings": "設定",
       "openContestHomepage": "開啟競賽主頁",
@@ -153,6 +91,29 @@
       "problemUnit": "題",
       "time": "時間進度"
     },
+    "screen": {
+      "actions": {
+        "addParticipant": "新增參賽者",
+        "contestHome": "競賽主頁",
+        "export": "匯出成績",
+        "exporting": "匯出中",
+        "refresh": "重新整理",
+        "refreshing": "重新整理中",
+        "settings": "競賽設定"
+      },
+      "contestInfoLabel": "競賽資訊",
+      "contestStatus": {
+        "archived": "已封存",
+        "draft": "草稿",
+        "published": "已發布"
+      },
+      "contestType": {
+        "coding": "Coding Test",
+        "paperExam": "考卷"
+      },
+      "exportFailed": "匯出失敗",
+      "title": "管理總覽"
+    },
     "sidebar": {
       "activeSessions": "Active Sessions",
       "contestState": "競賽狀態",
@@ -183,6 +144,7 @@
       "disabled": "未啟用",
       "enabled": "已啟用",
       "examProgress": "考試進度",
+      "timelineProgress": "時間進度",
       "goEventPanel": "前往事件面板",
       "goParticipantList": "進入參賽者列表",
       "goProblemManagement": "前往題目管理",
@@ -200,6 +162,44 @@
       "title": "控制台",
       "violationCount": "異常事件數",
       "violationCountAria": "異常事件數 前往事件面板"
+    }
+  },
+  "adminPreparationDashboard": {
+    "ariaLabel": "準備與成績儀表板",
+    "entries": {
+      "grading": {
+        "description": "進入批改、統計與成績發布",
+        "title": "批改與成績"
+      },
+      "participants": {
+        "description": "檢查名單、狀態與個別操作",
+        "title": "參賽者管理"
+      },
+      "problemEditor": {
+        "description": "維護題目、考卷內容與分數",
+        "title": "題目編輯與管理"
+      },
+      "settings": {
+        "description": "調整時間、規則與考試模式",
+        "title": "競賽設定"
+      }
+    },
+    "grading": {
+      "description": "考後查看批改剩餘量與成績發布狀態。",
+      "openButton": "前往批改與成績",
+      "progressLabel": "批改進度",
+      "resultsStatus": "成績狀態",
+      "title": "批改與成績",
+      "ungraded": "待批改"
+    },
+    "readiness": {
+      "description": "非考試時段優先確認能否順利開考與收尾。",
+      "title": "準備狀態"
+    },
+    "tabs": {
+      "entries": "管理入口",
+      "grading": "批改與成績",
+      "readiness": "準備狀態"
     }
   },
   "answering": {
@@ -515,10 +515,10 @@
     "lockedReason": "違規行為",
     "modeEnabled": "作弊檢查已啟用",
     "monitoring": "監控中",
+    "monitoringCountdown": "{{seconds}}s",
     "monitoringDeviceUnsupported": "目前裝置不符合此考試的監考設定，請回到儀表板重新進行環境檢查。",
     "monitoringHint": "考試監控中 - 點擊查看詳情",
     "monitoringIssueHint": "請依提示恢復監控狀態；系統已保留事件採證。",
-    "monitoringCountdown": "{{seconds}}s",
     "monitoringReminder": {
       "fullscreen": "請回全螢幕",
       "mouse_leave": "滑鼠離開",
@@ -932,6 +932,7 @@
       "exam_entered": "進入考試作答",
       "exam_submit_initiated": "發起交卷",
       "exit_fullscreen": "退出全螢幕",
+      "exit_fullscreen_triggered": "退出全螢幕（觸發）",
       "forbidden_action": "禁止操作",
       "forbidden_focus_event": "禁止焦點事件",
       "force_submit_locked": "鎖定後強制交卷",
@@ -942,6 +943,9 @@
       "lock": "鎖定",
       "lock_user": "鎖定用戶",
       "mouse_leave": "滑鼠離開視窗",
+      "mouse_leave_triggered": "滑鼠離開視窗（觸發）",
+      "multi_display_restored": "多螢幕狀態恢復",
+      "multi_display_triggered": "多螢幕偵測（觸發）",
       "multiple_displays": "多螢幕偵測",
       "other": "其他",
       "pause_exam": "暫停考試",
@@ -950,12 +954,16 @@
       "reopen_exam": "重新開放考試",
       "reply_question": "回覆提問",
       "resume_exam": "繼續考試",
+      "screen_share_interrupted": "螢幕分享中斷",
       "screen_share_invalid_surface": "螢幕分享來源異常",
+      "screen_share_restored": "螢幕分享恢復",
       "screen_share_stopped": "螢幕分享中斷",
       "start_exam": "開始考試",
       "submit": "提交",
       "submit_code": "提交程式碼",
       "tab_hidden": "隱藏分頁",
+      "tab_hidden_restored": "分頁可見（恢復）",
+      "tab_hidden_triggered": "分頁隱藏（觸發）",
       "tab_switch": "切換分頁",
       "unlock": "解鎖",
       "unlock_user": "解鎖用戶",
@@ -963,8 +971,15 @@
       "update_contest": "更新競賽設定",
       "update_participant": "更新參與者",
       "update_problem": "更新題目",
+      "viewport_interrupted": "視窗完整性中斷",
+      "viewport_restored": "視窗完整性恢復",
       "warning_timeout": "警告逾時",
-      "window_blur": "離開視窗"
+      "webcam_interrupted": "Webcam 中斷",
+      "webcam_quality_degraded": "Webcam 品質下降",
+      "webcam_restored": "Webcam 恢復",
+      "window_blur": "離開視窗",
+      "window_blur_restored": "回到考試視窗（恢復）",
+      "window_blur_triggered": "視窗失焦（觸發）"
     },
     "evidenceCount": "證據 {{count}}",
     "filterCategory": "篩選優先級",
@@ -1266,27 +1281,27 @@
         "notMonitor": "必須選擇分享「整個螢幕 (monitor)」，不允許僅分享視窗或分頁。",
         "sharingFailed": "螢幕分享授權失敗，請重新分享並選擇「整個螢幕」。",
         "sharingInterrupted": "螢幕分享已中斷，請重新完成檢查。",
-        "webcamUnsupported": "此瀏覽器不支援 Webcam。",
+        "tabletRequiresPwa": "iPad 監考需使用 PWA 模式。請先將系統加入主畫面，並從主畫面開啟後重試。",
         "webcamFailed": "Webcam 無法使用，請重新授權。",
-        "tabletRequiresPwa": "iPad 監考需使用 PWA 模式。請先將系統加入主畫面，並從主畫面開啟後重試。"
+        "webcamUnsupported": "此瀏覽器不支援 Webcam。"
       },
       "requirements": {
         "browser": "限用最新版 Chrome 或 Edge 瀏覽器。",
         "display": "限單一螢幕，請務必拔除外接顯示器。",
         "permission": "請授權瀏覽器「管理視窗與顯示器」權限。",
+        "pwa": "請從主畫面啟動 PWA 視窗作答。",
         "sharing": "分享時請務必選擇「整個螢幕 (Entire Screen)」。",
         "title": "環境要求：",
-        "webcam": "請允許瀏覽器使用 Webcam。",
-        "pwa": "請從主畫面啟動 PWA 視窗作答。"
+        "webcam": "請允許瀏覽器使用 Webcam。"
       },
       "status": {
         "checking": "檢測中...",
         "monitorCount": "{{count}} 個螢幕",
         "next": "下一步：確認開始",
-        "retry": "重新測試",
-        "start": "開始環境測試",
         "optionalSkipped": "Webcam 未啟用（可選）",
-        "pwaFullscreenBypass": "PWA 模式：已略過全螢幕檢查"
+        "pwaFullscreenBypass": "PWA 模式：已略過全螢幕檢查",
+        "retry": "重新測試",
+        "start": "開始環境測試"
       },
       "title": "環境檢測"
     },
@@ -1394,12 +1409,24 @@
     "accessControl": "存取控制與權限",
     "allowAutoUnlock": "啟用逾時自動解鎖機制",
     "allowMultipleJoins": "允許重新登入與接管",
+    "allowMultipleJoinsDesc": "允許學生在離開後重新進入考試，並接管原有的作答進度。",
     "alreadyArchived": "已封存",
     "anonymousMode": "參賽者匿名化模式",
     "anonymousModeHelp": "啟用後，參賽者將以自定義暱稱顯示於排行榜，保護個人隱私",
     "anticheat": {
+      "accessPolicy": "作答裝置政策",
+      "allowDesktop": "允許桌機作答",
+      "allowDesktopDesc": "Windows / macOS / Linux 桌面瀏覽器使用這套規則。",
+      "allowDesktopMultiDisplay": "允許桌機多螢幕",
+      "allowDesktopMultiDisplayDesc": "關閉時，桌機會啟用多螢幕偵測並記錄為異常事件。",
+      "allowTablet": "允許平板作答",
+      "allowTabletDesc": "iPad / Android tablet 仍視為 tablet，即使外接鍵盤滑鼠也不會改成 desktop。",
       "captureInterval": "擷取頻率 (秒)",
       "desktopLabel": "Desktop / Laptop 設定",
+      "desktopPrimaryEvidence": "桌機主證據來源",
+      "desktopPrimaryEvidenceDesc": "桌機以螢幕分享為主來源；全螢幕與多螢幕規則會依桌機監控流程執行。",
+      "desktopWebcamAssist": "桌機輔助 Webcam",
+      "desktopWebcamAssistDesc": "開啟後，桌機會在螢幕分享之外額外要求 Webcam。",
       "detectors": {
         "focus": "視窗焦點偵測",
         "focusDesc": "離開考試視窗即記錄異常事件",
@@ -1417,36 +1444,25 @@
         "viewportIntegrityDesc": "禁止 iPad 使用割屏、側拉或小視窗模式"
       },
       "disabledDesc": "{{device}} 端監控未啟用",
+      "enableEvidenceTracking": "啟用證據追蹤",
+      "enableEvidenceTrackingDesc": "桌機預設要求螢幕分享；平板預設要求 Webcam。",
       "enableMonitoring": "啟用監控",
       "enabledDesc": "{{device}} 端監控已啟用",
+      "evidencePolicy": "證據追蹤政策",
       "forceEnable": "強制開啟",
       "monitoringSources": "監控來源設定",
       "screenShare": "螢幕監控 (Screen)",
       "screenShareDesc": "擷取學生螢幕畫面作為監控證據",
-      "securityDetectors": "異常事件偵測",
-      "tabletLabel": "Tablet / iPad 設定",
-      "webcam": "視訊監控 (Webcam)",
-      "webcamDesc": "擷取學生攝像頭畫面作為監控證據",
-      "accessPolicy": "作答裝置政策",
-      "allowDesktop": "允許桌機作答",
-      "allowDesktopDesc": "Windows / macOS / Linux 桌面瀏覽器使用這套規則。",
-      "allowTablet": "允許平板作答",
-      "allowTabletDesc": "iPad / Android tablet 仍視為 tablet，即使外接鍵盤滑鼠也不會改成 desktop。",
-      "allowDesktopMultiDisplay": "允許桌機多螢幕",
-      "allowDesktopMultiDisplayDesc": "關閉時，桌機會啟用多螢幕偵測並記錄為異常事件。",
-      "evidencePolicy": "證據追蹤政策",
-      "enableEvidenceTracking": "啟用證據追蹤",
-      "enableEvidenceTrackingDesc": "桌機預設要求螢幕分享；平板預設要求 Webcam。",
-      "desktopPrimaryEvidence": "桌機主證據來源",
-      "desktopPrimaryEvidenceDesc": "桌機以螢幕分享為主來源；全螢幕與多螢幕規則會依桌機監控流程執行。",
-      "desktopWebcamAssist": "桌機輔助 Webcam",
-      "desktopWebcamAssistDesc": "開啟後，桌機會在螢幕分享之外額外要求 Webcam。",
-      "tabletPrimaryEvidence": "平板主證據來源",
-      "tabletPrimaryEvidenceDesc": "平板不使用 desktop 的全螢幕、失焦與分頁隱藏規則；進場以 PWA，執行期以視窗完整性檢查為主。",
       "screenShareRecoveryGrace": "螢幕分享恢復時限",
       "screenShareRecoveryGraceDesc": "螢幕分享中斷後，學生可重新分享的寬限秒數；runtime 會依後端儲存值執行。",
+      "securityDetectors": "異常事件偵測",
       "sourceScreenShare": "螢幕分享",
-      "sourceWebcam": "Webcam"
+      "sourceWebcam": "Webcam",
+      "tabletLabel": "Tablet / iPad 設定",
+      "tabletPrimaryEvidence": "平板主證據來源",
+      "tabletPrimaryEvidenceDesc": "平板不使用 desktop 的全螢幕、失焦與分頁隱藏規則；進場以 PWA，執行期以視窗完整性檢查為主。",
+      "webcam": "視訊監控 (Webcam)",
+      "webcamDesc": "擷取學生攝像頭畫面作為監控證據"
     },
     "archiveContest": "封存競賽 (Archive Contest)",
     "archiveDesc": "封存後競賽將變為唯讀狀態，無法再被啟用。",
@@ -1457,6 +1473,8 @@
     "basicInfo": "基本資訊",
     "confirmArchive": "確定要封存此競賽嗎？",
     "confirmDelete": "確定要刪除此競賽嗎？此動作無法復原！",
+    "confirmDisableExamMode": "關閉後將停用本場考試的防作弊監控，確定關閉？",
+    "confirmEnableExamMode": "啟用後將依裝置政策套用考前檢查、監考來源與異常事件記錄，確定啟用？",
     "contestDescription": "競賽描述",
     "contestName": "競賽名稱",
     "contestRules": "競賽規則",
@@ -1465,7 +1483,9 @@
     "deleteContest": "刪除競賽 (Delete Contest)",
     "deleteDesc": "此動作無法復原。所有相關資料（包含提交紀錄、排名）將被永久刪除。",
     "deleteFailed": "刪除失敗",
+    "displaySettings": "顯示設定",
     "enableExamMode": "啟用防作弊監控",
+    "enableExamModeDesc": "啟用後會依裝置政策套用考前檢查、監考來源與異常事件記錄。",
     "examModeSettings": "防作弊監控設定",
     "exportCSV": "匯出 CSV",
     "exportData": "匯出資料",
@@ -1498,12 +1518,7 @@
     "title": "競賽設定",
     "updateFailed": "更新失敗，請檢查欄位",
     "updated": "設定已更新",
-    "warningCooldown": "警告訊息停留時長 (秒)",
-    "displaySettings": "顯示設定",
-    "enableExamModeDesc": "啟用後會依裝置政策套用考前檢查、監考來源與異常事件記錄。",
-    "confirmEnableExamMode": "啟用後將依裝置政策套用考前檢查、監考來源與異常事件記錄，確定啟用？",
-    "confirmDisableExamMode": "關閉後將停用本場考試的防作弊監控，確定關閉？",
-    "allowMultipleJoinsDesc": "允許學生在離開後重新進入考試，並接管原有的作答進度。"
+    "warningCooldown": "警告訊息停留時長 (秒)"
   },
   "standings": {
     "icpcRules": "排名規則：優先依據總分，其次為解題數，最後為總罰時（解題時間 + 20分鐘/錯誤嘗試）。",

@@ -3,15 +3,11 @@ import { ProgressBar, Tile, SkeletonText } from "@carbon/react";
 import {
   Education,
   Time,
-  UserMultiple,
   TaskComplete,
-  Warning,
   Undo,
   Security,
   Edit,
   Send,
-  Activity,
-  Group,
   Locked,
   Login,
   CheckmarkOutline,
@@ -33,7 +29,6 @@ interface OverviewActionWidgetsProps {
   contest: ContestDetail;
   kpi: ParticipantStatusKpi;
   gradingStats?: GlobalStats;
-  violationCount: number;
   loading?: boolean;
   onOpenPanel: (panel: AdminPanelId) => void;
   onOpenChecklist?: () => void;
@@ -50,9 +45,7 @@ interface OverviewActionWidgetsProps {
 
 export default function OverviewActionWidgets({
   contest,
-  kpi,
   gradingStats,
-  violationCount,
   loading = false,
   onOpenPanel,
   onOpenChecklist,
@@ -476,34 +469,6 @@ export default function OverviewActionWidgets({
           />
         )}
 
-        {!isDraftMode && (
-          <ActionWidgetCard
-            title={t("adminOverview.widgets.violationCount", "違規次數")}
-            icon={Warning}
-            actionIcon={Activity}
-            actionIntent="danger"
-            active={violationCount > 0}
-            value={violationCount}
-            valueColor={violationCount > 0 ? "var(--cds-support-error, #da1e28)" : undefined}
-            unit={t("adminOverview.kpi.caseUnit", "次")}
-            cta={t("adminOverview.widgets.goEventPanel", "前往事件面板")}
-            notificationDot={violationCount > 0}
-            onClick={() => onOpenPanel("logs")}
-          />
-        )}
-
-        {!isDraftMode && (
-          <ActionWidgetCard
-            title={t("adminOverview.widgets.participants", "參賽者")}
-            icon={UserMultiple}
-            actionIcon={Group}
-            actionIntent="navigate"
-            value={kpi.totalParticipants}
-            unit={t("adminOverview.kpi.personUnit", "人")}
-            cta={t("adminOverview.widgets.goParticipantList", "進入參賽者列表")}
-            onClick={() => onOpenPanel("participants")}
-          />
-        )}
       </div>
     </section>
   );

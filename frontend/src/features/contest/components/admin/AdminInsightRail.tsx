@@ -1,6 +1,10 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ScaleTypes } from "@carbon/charts";
-import { LineChart as CarbonLineChart } from "@carbon/charts-react";
+import {
+  LineChart as CarbonLineChart,
+  MeterChart,
+} from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
 import { ProgressBar, SkeletonPlaceholder, SkeletonText } from "@carbon/react";
 import type {
@@ -14,13 +18,10 @@ import styles from "./AdminInsightRail.module.scss";
 interface AdminInsightRailProps {
   cards: DashboardInsightCard[];
   distribution?: DistributionItem[];
+  /** 僅在總覽右欄第一區塊設為 true，避免多個 rail 重複顯示「考試進度」（考生比例）卡片。 */
+  showDistribution?: boolean;
   loadingCardKeys?: string[];
   distributionLoading?: boolean;
-  gradingDetails?: {
-    progressLabel: string;
-    ungradedAnswers: number;
-    resultsLabel: string;
-  };
 }
 
 const resolveCarbonChartTheme = (
@@ -39,12 +40,15 @@ const resolveCarbonChartTheme = (
 
 const ProgressChart = ({ card }: { card: DashboardInsightCard }) => {
   const progress = Math.max(0, Math.min(100, card.progressPercent ?? 0));
+  const progressValue = Math.round(progress);
   return (
     <ProgressBar
       label={card.title}
       hideLabel
       size="small"
-      value={Math.round(progress)}
+      value={progressValue}
+      status={progressValue >= 100 ? "finished" : "active"}
+      className={styles.rightPanelProgressBar}
     />
   );
 };
@@ -57,21 +61,17 @@ const DISTRIBUTION_TONE_COLOR: Record<DistributionItem["key"], string> = {
   offline: "var(--cds-icon-disabled)",
 };
 
+const normalizePrioritySeriesGroup = (series: DashboardChartSeries) =>
+  (series.key || series.label || "P2").toUpperCase();
+
 const toLineChartData = (series: DashboardChartSeries[]) => {
-  const data = series.flatMap((item) =>
+  return series.flatMap((item) =>
     item.values.map((point) => ({
-      group: item.label,
+      group: normalizePrioritySeriesGroup(item),
       label: point.label,
       value: point.value,
     })),
   );
-
-  if (data.length > 0) return data;
-  return [
-    { group: "P0", label: "目前", value: 0 },
-    { group: "P1", label: "目前", value: 0 },
-    { group: "P2", label: "目前", value: 0 },
-  ];
 };
 
 const PriorityLineChart = ({
@@ -111,9 +111,9 @@ const PriorityLineChart = ({
       },
       color: {
         scale: {
-          P0: "var(--cds-support-error)",
-          P1: "var(--cds-support-warning)",
-          P2: "var(--cds-purple-60)",
+          P0: "#da1e28",
+          P1: "#ff832b",
+          P2: "#a56eff",
         },
       },
       curve: "curveMonotoneX",
@@ -137,24 +137,41 @@ const PriorityLineChart = ({
 const DistributionOverview = ({
   distribution,
   loading = false,
+  theme,
 }: {
   distribution: DistributionItem[];
   loading?: boolean;
+  theme: "white" | "g10" | "g90" | "g100";
 }) => {
+  const { t } = useTranslation("contest");
+  const title = t(
+    "adminOverview.widgets.examProgress",
+    "考試進度",
+  );
   const visibleDistribution = distribution.filter(
     (item) => item.key !== "offline",
   );
-  if (visibleDistribution.length === 0 && !loading) return null;
-
+  const hasDistributionData = visibleDistribution.some((item) => item.value > 0);
+  const total = visibleDistribution.reduce((sum, item) => sum + item.value, 0);
+  const segments = visibleDistribution;
+  const distributionChartData = segments.map((item) => ({
+    group: item.label,
+    value: item.value,
+  }));
+  const submittedCount =
+    visibleDistribution.find((item) => item.key === "submitted")?.value ?? 0;
+  const completionPercent =
+    total > 0 ? Math.round((submittedCount / total) * 100) : 0;
+  const chartColorScale = segments.reduce<Record<string, string>>((scale, item) => {
+    scale[item.label] = DISTRIBUTION_TONE_COLOR[item.key];
+    return scale;
+  }, {});
   return (
     <section
-      className={styles.card}
+      className={`${styles.card} ${styles.distributionCard}`}
       aria-busy={loading}
-      aria-label="考生分佈總覽"
+      aria-label={title}
     >
-      <div className={styles.cardHeader}>
-        <span>考生分佈總覽</span>
-      </div>
       {loading ? (
         <div className={styles.distributionList}>
           {Array.from({ length: 4 }).map((_, index) => (
@@ -165,32 +182,43 @@ const DistributionOverview = ({
           ))}
         </div>
       ) : (
-        <div className={styles.distributionList}>
-          {visibleDistribution.map((item) => (
-            <div key={item.key} className={styles.distributionItem}>
-              <div className={styles.distributionMeta}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-              <div
-                className={styles.distributionTrack}
-                role="progressbar"
-                aria-label={item.label}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={item.percent}
-              >
-                <div
-                  className={styles.distributionFill}
-                  style={{
-                    width: `${item.percent}%`,
-                    background: DISTRIBUTION_TONE_COLOR[item.key],
-                  }}
-                />
-              </div>
+        <>
+          <div className={styles.cardHeader}>
+            <span>{title}</span>
+            <strong>{completionPercent}%</strong>
+          </div>
+          {hasDistributionData ? (
+            <div className={styles.distributionChartFrame}>
+              <MeterChart
+                data={distributionChartData}
+                options={{
+                  title: "",
+                  height: "108px",
+                  resizable: true,
+                  theme,
+                  meter: {
+                    height: 8,
+                    proportional: {
+                      unit: "人",
+                      breakdownFormatter: () =>
+                        `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
+                      totalFormatter: (value) => `考生總數 ${value} 人`,
+                    },
+                  },
+                  color: {
+                    scale: chartColorScale,
+                  },
+                  legend: {
+                    enabled: false,
+                  },
+                  toolbar: { enabled: false },
+                }}
+              />
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className={styles.emptyState}>尚無考生分佈資料</div>
+          )}
+        </>
       )}
     </section>
   );
@@ -199,9 +227,9 @@ const DistributionOverview = ({
 export default function AdminInsightRail({
   cards,
   distribution = [],
+  showDistribution = false,
   loadingCardKeys = [],
   distributionLoading = false,
-  gradingDetails,
 }: AdminInsightRailProps) {
   const { theme } = useTheme();
   const chartTheme = resolveCarbonChartTheme(theme);
@@ -224,17 +252,19 @@ export default function AdminInsightRail({
           loading={loadingKeys.has(card.key)}
         />
       ))}
-      <DistributionOverview
-        distribution={distribution}
-        loading={distributionLoading}
-      />
+      {showDistribution ? (
+        <DistributionOverview
+          distribution={distribution}
+          loading={distributionLoading}
+          theme={chartTheme}
+        />
+      ) : null}
       {gradingCards.map((card) => (
         <InsightCard
           key={card.key}
           card={card}
           chartTheme={chartTheme}
           loading={loadingKeys.has(card.key)}
-          gradingDetails={gradingDetails}
         />
       ))}
     </div>
@@ -272,18 +302,17 @@ function InsightCard({
   card,
   chartTheme,
   loading,
-  gradingDetails,
 }: {
   card: DashboardInsightCard;
   chartTheme: "white" | "g10" | "g90" | "g100";
   loading: boolean;
-  gradingDetails?: {
-    progressLabel: string;
-    ungradedAnswers: number;
-    resultsLabel: string;
-  };
 }) {
   const isGradingCard = card.key === "grading_progress";
+  const hasPriorityEventData =
+    card.kind !== "line" ||
+    (card.series ?? []).some((group) =>
+      group.values.some((point) => point.value > 0),
+    );
   return (
     <section className={styles.card} aria-busy={loading}>
       <div className={styles.cardHeader}>
@@ -307,27 +336,13 @@ function InsightCard({
           <SkeletonText width="100%" />
         )
       ) : card.kind === "line" ? (
-        <PriorityLineChart series={card.series ?? []} theme={chartTheme} />
+        hasPriorityEventData ? (
+          <PriorityLineChart series={card.series ?? []} theme={chartTheme} />
+        ) : (
+          <div className={styles.emptyState}>尚無違規事件資料</div>
+        )
       ) : (
-        <>
-          <ProgressChart card={card} />
-          {isGradingCard && gradingDetails ? (
-            <dl className={styles.gradingDetails}>
-              <div>
-                <dt>批改進度</dt>
-                <dd>{gradingDetails.progressLabel}</dd>
-              </div>
-              <div>
-                <dt>待批改</dt>
-                <dd>{gradingDetails.ungradedAnswers}</dd>
-              </div>
-              <div>
-                <dt>成績狀態</dt>
-                <dd>{gradingDetails.resultsLabel}</dd>
-              </div>
-            </dl>
-          ) : null}
-        </>
+        <ProgressChart card={card} />
       )}
     </section>
   );

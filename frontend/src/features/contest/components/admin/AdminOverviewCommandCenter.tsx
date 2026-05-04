@@ -24,16 +24,22 @@ import {
   WarningFilled,
 } from "@carbon/icons-react";
 import {
+  cloneElement,
+  isValidElement,
   useMemo,
   useCallback,
   useEffect,
   useState,
   type ChangeEvent,
   type ElementType,
+  type ReactElement,
   type ReactNode,
 } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 import type {
   ContestParticipant,
+  ExamStatusType,
   ParticipantDashboardDetail,
 } from "@/core/entities/contest.entity";
 import AdminInsightRail, {
@@ -42,27 +48,38 @@ import AdminInsightRail, {
 import AdminSegmentedDashboard from "@/features/contest/components/admin/AdminSegmentedDashboard";
 import ParticipantDashboardPane from "@/features/contest/components/participants/ParticipantDashboardPane";
 import ParticipantOperationsPane from "@/features/contest/components/participants/ParticipantOperationsPane";
+import ParticipantStatusEditModal from "@/features/contest/components/participants/ParticipantStatusEditModal";
 import {
   EXAM_STATUS_LABELS,
   getExamStatusLabel,
 } from "@/features/contest/constants/examLabels";
+import { useContestAdmin } from "@/features/contest/contexts";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 import useParticipantDashboard from "@/features/contest/screens/settings/participants/useParticipantDashboard";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import type {
   AdminOverviewDashboardData,
-  AdminPreparationDashboardData,
 } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
-import { downloadParticipantReport } from "@/infrastructure/api/repositories";
+import {
+  downloadParticipantReport,
+  removeParticipant,
+  reopenExam,
+  unlockParticipant,
+  updateParticipant,
+} from "@/infrastructure/api/repositories";
+import { useToast } from "@/shared/contexts/ToastContext";
+import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import styles from "./AdminOverviewCommandCenter.module.scss";
 
 interface AdminOverviewCommandCenterProps {
+  header?: ReactNode;
   data: AdminOverviewDashboardData;
-  preparationData: AdminPreparationDashboardData;
   adminLoading?: boolean;
   gradingLoading?: boolean;
   contestId?: string;
   antiCheatEnabled?: boolean;
+  classroomBound?: boolean;
+  contestInProgress?: boolean;
   onOpenPanel: (panel: AdminPanelId) => void;
   participants: ContestParticipant[];
   primary: ReactNode;
@@ -164,17 +181,41 @@ const PARTICIPANT_METRIC_OPTIONS: Array<{
   { key: "gradingProgress", label: "批改進度" },
 ];
 
+const DATE_TIME_LABEL_REGEX = /^(\d{4}\/\d{2}\/\d{2})\s+(\d{2}:\d{2})$/;
+
+const normalizeScheduleLabels = (
+  startLabel: string,
+  endLabel: string,
+): { start: string; end: string } => {
+  const startMatch = startLabel.match(DATE_TIME_LABEL_REGEX);
+  const endMatch = endLabel.match(DATE_TIME_LABEL_REGEX);
+  if (!startMatch || !endMatch) {
+    return { start: startLabel, end: endLabel };
+  }
+
+  const [, startDate, startTime] = startMatch;
+  const [, endDate, endTime] = endMatch;
+  if (startDate === endDate) {
+    return { start: startTime, end: endTime };
+  }
+
+  return {
+    start: `${startDate}\n${startTime}`,
+    end: `${endDate}\n${endTime}`,
+  };
+};
+
 type ParticipantStatusFilter =
   | "all"
   | "needs_attention"
   | NonNullable<ContestParticipant["examStatus"]>;
 
-type FilterOption = {
-  id: ParticipantStatusFilter;
+type FilterOption<TId extends string = string> = {
+  id: TId;
   label: string;
 };
 
-const PARTICIPANT_STATUS_FILTERS: FilterOption[] = [
+const PARTICIPANT_STATUS_FILTERS: FilterOption<ParticipantStatusFilter>[] = [
   { id: "all", label: "全部狀態" },
   { id: "needs_attention", label: "需要處理" },
   { id: "in_progress", label: "作答中" },
@@ -182,6 +223,15 @@ const PARTICIPANT_STATUS_FILTERS: FilterOption[] = [
   { id: "not_started", label: "未開始" },
   { id: "locked", label: "鎖定" },
   { id: "paused", label: "暫停" },
+];
+
+const QUESTION_KIND_FILTERS: FilterOption[] = [
+  { id: "all", label: "全部題型" },
+  { id: "single_choice", label: "單選題" },
+  { id: "multiple_choice", label: "多選題" },
+  { id: "true_false", label: "是非題" },
+  { id: "short_answer", label: "簡答題" },
+  { id: "essay", label: "申論題" },
 ];
 
 const getAnswerProgressMetric = (participant: ContestParticipant) => {
@@ -246,18 +296,25 @@ const getParticipantMetric = (
 };
 
 export default function AdminOverviewCommandCenter({
+  header,
   data,
-  preparationData,
   adminLoading = false,
   gradingLoading = false,
   contestId,
   antiCheatEnabled = false,
+  classroomBound = false,
+  contestInProgress = false,
   onOpenPanel,
   participants,
   primary,
   questionStatsGallery,
   resultOverview,
 }: AdminOverviewCommandCenterProps) {
+  const { t } = useTranslation("contest");
+  const { showToast } = useToast();
+  const { confirm, modalProps: confirmModalProps } = useConfirmModal();
+  const { refreshAllAdminData, refreshParticipants, examEventsLoading } =
+    useContestAdmin();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [participantMetric, setParticipantMetric] =
     useState<ParticipantMetricKey>("score");
@@ -265,8 +322,18 @@ export default function AdminOverviewCommandCenter({
   const [participantStatusFilter, setParticipantStatusFilter] =
     useState<ParticipantStatusFilter>("all");
   const [activePanelTab, setActivePanelTab] = useState(0);
+  const [questionStatsSearch, setQuestionStatsSearch] = useState("");
+  const [questionStatsKindFilter, setQuestionStatsKindFilter] =
+    useState<string>("all");
   const [activeParticipantDetail, setActiveParticipantDetail] =
     useState<ParticipantDashboardDetail>("overview");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingParticipant, setEditingParticipant] =
+    useState<ContestParticipant | null>(null);
+  const [editExamStatus, setEditExamStatus] =
+    useState<ExamStatusType>("not_started");
+  const [editLockReason, setEditLockReason] = useState("");
+  const [savingStatus, setSavingStatus] = useState(false);
   const participantDashboard = useParticipantDashboard(
     contestId,
     selectedUserId,
@@ -287,18 +354,204 @@ export default function AdminOverviewCommandCenter({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [selectedUserId]);
 
+  useEffect(() => {
+    if (!contestId || !contestInProgress) return;
+    // Background poll: only while the contest is actually running. Stays at a
+    // light 30s cadence and skips when the tab is hidden; refreshParticipants
+    // is dedupe'd inside the context so identical payloads won't trigger
+    // re-renders.
+    let inFlight = false;
+    const tick = async () => {
+      if (document.visibilityState !== "visible" || inFlight) return;
+      inFlight = true;
+      try {
+        await refreshParticipants();
+      } finally {
+        inFlight = false;
+      }
+    };
+    const intervalId = window.setInterval(() => {
+      void tick();
+    }, 30000);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [contestId, contestInProgress, refreshParticipants]);
+
+  const refreshAfterAction = useCallback(async () => {
+    await Promise.all([refreshAllAdminData(), participantDashboard.refresh()]);
+  }, [refreshAllAdminData, participantDashboard]);
+
   const handleDownloadParticipantReport = useCallback(async () => {
     if (!contestId || !selectedUserId) return;
     try {
       await downloadParticipantReport(contestId, selectedUserId);
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.reportDownloaded", "報告已下載"),
+      });
     } catch (error) {
-      console.error("Download participant report failed:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("participants.downloadFailed", "下載報告失敗");
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
     }
-  }, [contestId, selectedUserId]);
+  }, [contestId, selectedUserId, showToast, t]);
 
-  const openParticipantsPanel = useCallback(() => {
-    onOpenPanel("participants");
-  }, [onOpenPanel]);
+  const openEditModal = useCallback(() => {
+    if (!participantDashboard.data) return;
+    setEditingParticipant(participantDashboard.data.participant);
+    setEditExamStatus(
+      participantDashboard.data.participant.examStatus || "not_started",
+    );
+    setEditLockReason(participantDashboard.data.participant.lockReason || "");
+    setEditModalOpen(true);
+  }, [participantDashboard.data]);
+
+  const handleUpdateParticipant = useCallback(async () => {
+    if (!contestId || !editingParticipant) return;
+    setSavingStatus(true);
+    try {
+      await updateParticipant(contestId, Number(editingParticipant.userId), {
+        exam_status: editExamStatus,
+        lock_reason: editExamStatus === "locked" ? editLockReason : "",
+      });
+      setEditModalOpen(false);
+      await refreshAfterAction();
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.statusUpdated", "參賽者狀態已更新"),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("participants.updateFailed", "更新失敗");
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
+    } finally {
+      setSavingStatus(false);
+    }
+  }, [
+    contestId,
+    editingParticipant,
+    editExamStatus,
+    editLockReason,
+    refreshAfterAction,
+    showToast,
+    t,
+  ]);
+
+  const handleUnlock = useCallback(async () => {
+    if (!contestId || !selectedUserId) return;
+    const confirmed = await confirm({
+      title: t("participants.confirmUnlock", "確定要解除此學生的鎖定嗎？"),
+      confirmLabel: t("participants.unlock", "解除"),
+      cancelLabel: t("button.cancel", "取消"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await unlockParticipant(contestId, Number(selectedUserId));
+      await refreshAfterAction();
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.unlocked", "已解除鎖定"),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("participants.unlockFailed", "解除鎖定失敗");
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
+    }
+  }, [confirm, contestId, refreshAfterAction, selectedUserId, showToast, t]);
+
+  const handleReopenExam = useCallback(async () => {
+    if (!contestId || !selectedUserId) return;
+    const confirmed = await confirm({
+      title: t("participants.confirmReopen", "確定要重新開放此學生考試嗎？"),
+      confirmLabel: t("participants.reopen", "重新開放"),
+      cancelLabel: t("button.cancel", "取消"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await reopenExam(contestId, Number(selectedUserId));
+      await refreshAfterAction();
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.reopened", "已重新開放考試"),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("participants.reopenFailed", "重新開放失敗");
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
+    }
+  }, [confirm, contestId, refreshAfterAction, selectedUserId, showToast, t]);
+
+  const handleRemoveParticipant = useCallback(async () => {
+    if (!contestId || !selectedUserId || !participantDashboard.data) return;
+    const confirmed = await confirm({
+      title: t("participants.confirmRemove", {
+        name: participantDashboard.data.participant.username,
+      }),
+      confirmLabel: t("participants.remove", "移除"),
+      cancelLabel: t("button.cancel", "取消"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await removeParticipant(contestId, Number(selectedUserId));
+      await refreshAllAdminData();
+      setSelectedUserId(null);
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.removed", "參賽者已移除"),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("participants.removeFailed", "移除參賽者失敗");
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
+    }
+  }, [
+    confirm,
+    contestId,
+    participantDashboard.data,
+    refreshAllAdminData,
+    selectedUserId,
+    showToast,
+    t,
+  ]);
 
   const studentParticipants = participants
     .filter(isStudentParticipant)
@@ -371,6 +624,7 @@ export default function AdminOverviewCommandCenter({
     setParticipantSearch(event.target.value);
   };
   const isFilterActive = participantStatusFilter !== "all";
+  const isQuestionStatsFilterActive = questionStatsKindFilter !== "all";
   const participantMetricTags = (
     <div className={styles.metricTagGroup} aria-label="考生卡片資料切換">
       {PARTICIPANT_METRIC_OPTIONS.map((option) => (
@@ -388,11 +642,23 @@ export default function AdminOverviewCommandCenter({
   const insightCards = data.insightCards.filter(
     (card) => card.key !== "exam_progress",
   );
+  const gradingInsightCards = insightCards.filter(
+    (card) => card.key === "grading_progress",
+  );
+  const nonGradingInsightCards = insightCards.filter(
+    (card) => card.key !== "grading_progress",
+  );
   const priorityEventsCard = insightCards.find(
     (card) => card.key === "priority_events",
   );
   const examProgressPercent = Math.round(
     Math.max(0, Math.min(100, data.timeline.progressPercent)),
+  );
+  const examProgressStatus =
+    examProgressPercent >= 100 ? "finished" : "active";
+  const scheduleLabels = normalizeScheduleLabels(
+    data.timeline.startDateTimeLabel,
+    data.timeline.endDateTimeLabel,
   );
   const examStatusSummary = (
     <section className={styles.examStatusPanel} aria-label="考試狀態摘要">
@@ -409,23 +675,30 @@ export default function AdminOverviewCommandCenter({
       <div className={styles.examScheduleGrid} aria-label="考試時間">
         <div className={styles.examScheduleItem}>
           <span>開始時間</span>
-          <strong>{data.timeline.startDateTimeLabel}</strong>
+          <strong>{scheduleLabels.start}</strong>
         </div>
         <div className={styles.examScheduleItem}>
           <span>結束時間</span>
-          <strong>{data.timeline.endDateTimeLabel}</strong>
+          <strong>{scheduleLabels.end}</strong>
         </div>
       </div>
       <div className={styles.examProgressBlock}>
         <div className={styles.examProgressHeader}>
-          <span>倒數計時</span>
-          <strong>{data.timeline.primaryTimeLabel}</strong>
+          <span className={styles.examProgressTitle}>倒數計時</span>
+          <strong className={styles.examProgressValue}>
+            {data.timeline.primaryTimeLabel}
+          </strong>
         </div>
         <ProgressBar
-          label="考試進度"
+          label={t(
+            "adminOverview.widgets.timelineProgress",
+            "時間進度",
+          )}
           hideLabel
           size="small"
           value={examProgressPercent}
+          status={examProgressStatus}
+          className={styles.rightPanelProgressBar}
         />
       </div>
     </section>
@@ -452,9 +725,12 @@ export default function AdminOverviewCommandCenter({
       loading={participantDashboard.loading}
       error={participantDashboard.error}
       onDownloadReport={() => void handleDownloadParticipantReport()}
-      onEditStatus={openParticipantsPanel}
-      onUnlock={openParticipantsPanel}
-      onReopenExam={openParticipantsPanel}
+      onEditStatus={openEditModal}
+      onUnlock={() => void handleUnlock()}
+      onReopenExam={() => void handleReopenExam()}
+      onRemoveParticipant={
+        classroomBound ? undefined : () => void handleRemoveParticipant()
+      }
       onOpenDetail={setActiveParticipantDetail}
       onOpenGrading={() => onOpenPanel("grading")}
       onOpenProctoring={() => onOpenPanel("proctoring")}
@@ -548,9 +824,6 @@ export default function AdminOverviewCommandCenter({
           <h3>考生列表</h3>
           <p>依異常程度排序，快速掃描考生狀態。</p>
         </div>
-        <Button kind="ghost" onClick={() => onOpenPanel("participants")}>
-          查看全部
-        </Button>
       </div>
       {participantMetricTags}
       {participantContent}
@@ -596,9 +869,64 @@ export default function AdminOverviewCommandCenter({
   );
   const questionStatsPanel = (
     <div className={`${styles.drilldownPanel} ${styles.drilldownPanelFlush}`}>
-      {questionStatsGallery ?? (
+      {isValidElement(questionStatsGallery)
+        ? cloneElement(
+            questionStatsGallery as ReactElement<{
+              searchQuery?: string;
+              onSearchQueryChange?: (q: string) => void;
+              questionKindFilter?: string;
+              onQuestionKindFilterChange?: (kind: string) => void;
+              showFilterToolbar?: boolean;
+            }>,
+            {
+              searchQuery: questionStatsSearch,
+              onSearchQueryChange: setQuestionStatsSearch,
+              questionKindFilter: questionStatsKindFilter,
+              onQuestionKindFilterChange: setQuestionStatsKindFilter,
+              showFilterToolbar: false,
+            },
+          )
+        : questionStatsGallery ?? (
         <div className={styles.emptyState}>目前沒有作答分佈資料</div>
       )}
+    </div>
+  );
+  const questionStatsTabToolbar = (
+    <div
+      className={`${styles.tabRowToolbar} ${
+        isQuestionStatsFilterActive ? styles.tabRowToolbarActive : ""
+      }`}
+    >
+      <Search
+        id="overview-question-stats-search"
+        labelText="搜尋題目"
+        placeholder="搜尋題號或題目..."
+        value={questionStatsSearch}
+        onChange={(event) => setQuestionStatsSearch(event.target.value)}
+        onClear={() => setQuestionStatsSearch("")}
+        size="md"
+        className={styles.tabRowSearch}
+      />
+      <OverflowMenu
+        renderIcon={Filter}
+        iconDescription="篩選題型"
+        size="md"
+        flipped
+        className={styles.tabRowFilterMenu}
+        aria-label="篩選題型"
+      >
+        {QUESTION_KIND_FILTERS.map((option) => (
+          <OverflowMenuItem
+            key={option.id}
+            itemText={
+              questionStatsKindFilter === option.id
+                ? `✓  ${option.label}`
+                : option.label
+            }
+            onClick={() => setQuestionStatsKindFilter(option.id)}
+          />
+        ))}
+      </OverflowMenu>
     </div>
   );
   const drilldownPanel = (
@@ -612,7 +940,7 @@ export default function AdminOverviewCommandCenter({
             <Tab>參與者</Tab>
             <Tab>作答分佈</Tab>
           </TabList>
-          {activePanelTab === 0 ? participantTabToolbar : null}
+          {activePanelTab === 0 ? participantTabToolbar : questionStatsTabToolbar}
         </div>
         <TabPanels>
           <TabPanel className={styles.drilldownTabPanel}>
@@ -629,6 +957,7 @@ export default function AdminOverviewCommandCenter({
     <>
       <AdminSegmentedDashboard
         ariaLabel="教師管理總覽"
+        header={header}
         primary={
           <div className={styles.leftOverviewColumn}>
             {primary}
@@ -638,71 +967,112 @@ export default function AdminOverviewCommandCenter({
         side={
           <div className={styles.rightOverviewColumn}>
             {examStatusSummary}
+            <AdminInsightRail
+              cards={[]}
+              distribution={data.distribution}
+              showDistribution
+              distributionLoading={adminLoading}
+            />
+            <AdminInsightRail
+              cards={gradingInsightCards}
+              loadingCardKeys={gradingLoading ? ["grading_progress"] : []}
+            />
             {resultOverview}
             <AdminInsightRail
-              cards={insightCards}
-              distribution={data.distribution}
+              cards={nonGradingInsightCards}
               loadingCardKeys={[
-                ...(adminLoading ? ["priority_events"] : []),
-                ...(gradingLoading ? ["grading_progress"] : []),
+                ...(adminLoading || examEventsLoading
+                  ? ["priority_events"]
+                  : []),
               ]}
-              distributionLoading={adminLoading}
-              gradingDetails={preparationData.grading}
             />
             <section className={styles.eventLogPanel} aria-label="事件紀錄">
               <PriorityEventsInsightCard
                 card={priorityEventsCard}
-                loading={adminLoading}
+                loading={adminLoading || examEventsLoading}
               />
               <ContestLogsScreen embedded />
             </section>
           </div>
         }
       />
-      {selectedUserId ? (
-        <div className={styles.participantDrawerLayer}>
-          <button
-            type="button"
-            className={styles.participantDrawerBackdrop}
-            aria-label="關閉學生詳細資訊背景"
-            onClick={() => setSelectedUserId(null)}
-          />
-          <aside
-            className={styles.participantDrawer}
-            role="dialog"
-            aria-modal="true"
-            aria-label="學生詳細資訊"
+      <AnimatePresence>
+        {selectedUserId ? (
+          <motion.div
+            className={styles.participantDrawerLayer}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
           >
-            <div className={styles.participantDrawerToolbar}>
-              <h3>學生詳細資訊</h3>
-              <Button
-                kind="ghost"
-                hasIconOnly
-                renderIcon={Close}
-                iconDescription="關閉學生詳細資訊"
-                onClick={() => setSelectedUserId(null)}
-              />
-            </div>
-            <div className={styles.participantDrawerBody}>
-              <ParticipantDashboardPane
-                contestId={contestId}
-                dashboard={liveParticipantDashboard}
-                loading={participantDashboard.loading}
-                error={participantDashboard.error}
-                activeDetail={activeParticipantDetail}
-                overviewContent={participantOverviewContent}
-                onDetailChange={setActiveParticipantDetail}
-                onDownloadReport={() => void handleDownloadParticipantReport()}
-                onEditStatus={openParticipantsPanel}
-                onUnlock={openParticipantsPanel}
-                onReopenExam={openParticipantsPanel}
-                onOpenGrading={() => onOpenPanel("grading")}
-                onRefreshEvents={participantDashboard.refresh}
-              />
-            </div>
-          </aside>
-        </div>
-      ) : null}
+            <motion.button
+              type="button"
+              className={styles.participantDrawerBackdrop}
+              aria-label="關閉學生詳細資訊背景"
+              onClick={() => setSelectedUserId(null)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+            />
+            <motion.aside
+              className={styles.participantDrawer}
+              role="dialog"
+              aria-modal="true"
+              aria-label="學生詳細資訊"
+              initial={{ x: 24, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 24, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <div className={styles.participantDrawerToolbar}>
+                <h3>學生詳細資訊</h3>
+                <Button
+                  kind="ghost"
+                  hasIconOnly
+                  renderIcon={Close}
+                  iconDescription="關閉學生詳細資訊"
+                  onClick={() => setSelectedUserId(null)}
+                />
+              </div>
+              <div className={styles.participantDrawerBody}>
+                <ParticipantDashboardPane
+                  contestId={contestId}
+                  dashboard={liveParticipantDashboard}
+                  loading={participantDashboard.loading}
+                  error={participantDashboard.error}
+                  activeDetail={activeParticipantDetail}
+                  overviewContent={participantOverviewContent}
+                  onDetailChange={setActiveParticipantDetail}
+                  onDownloadReport={() => void handleDownloadParticipantReport()}
+                  onEditStatus={openEditModal}
+                  onUnlock={() => void handleUnlock()}
+                  onReopenExam={() => void handleReopenExam()}
+                  onRemoveParticipant={
+                    classroomBound
+                      ? undefined
+                      : () => void handleRemoveParticipant()
+                  }
+                  onOpenGrading={() => onOpenPanel("grading")}
+                  onRefreshEvents={participantDashboard.refresh}
+                />
+              </div>
+            </motion.aside>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+      <ParticipantStatusEditModal
+        open={editModalOpen}
+        saving={savingStatus}
+        participantUsername={editingParticipant?.username}
+        examStatus={editExamStatus}
+        lockReason={editLockReason}
+        onClose={() => setEditModalOpen(false)}
+        onSubmit={() => void handleUpdateParticipant()}
+        onExamStatusChange={setEditExamStatus}
+        onLockReasonChange={setEditLockReason}
+      />
+      <ConfirmModal {...confirmModalProps} />
     </>
   );
 }

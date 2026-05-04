@@ -15,4 +15,3 @@ export {
 
 // Settings Screens
 export { default as ContestLogsScreen } from "./settings/ContestLogsScreen";
-export { default as ContestParticipantsScreen } from "./settings/ContestParticipantsScreen";

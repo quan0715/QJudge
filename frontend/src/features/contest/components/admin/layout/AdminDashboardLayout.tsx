@@ -3,8 +3,6 @@ import { Breadcrumb, BreadcrumbItem, HeaderGlobalAction } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import {
   Dashboard,
-  Activity,
-  UserMultiple,
   View,
   Education,
   Settings,
@@ -39,8 +37,6 @@ const NAV_ITEMS: Record<
 > = {
   overview: { labelKey: "overview", icon: Dashboard },
   clarifications: { labelKey: "clarifications", icon: Chat },
-  logs: { labelKey: "logs", icon: Activity },
-  participants: { labelKey: "participants", icon: UserMultiple },
   proctoring: { labelKey: "proctoring", icon: View },
   problem_editor: {
     labelKey: "problemManagement",

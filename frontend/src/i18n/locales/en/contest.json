@@ -19,9 +19,7 @@
       "examManagement": "Exam Management",
       "examStatistics": "Exam Statistics",
       "grading": "Answer Results",
-      "logs": "Event Logs",
       "overview": "Overview",
-      "participants": "Participants",
       "problemManagement": "Problem Management",
       "proctoring": "Proctoring",
       "settings": "Settings",
@@ -29,67 +27,7 @@
     },
     "title": "Admin Dashboard"
   },
-  "adminPreparationDashboard": {
-    "ariaLabel": "Preparation and grading dashboard",
-    "tabs": {
-      "readiness": "Readiness",
-      "grading": "Grading & results",
-      "entries": "Management entries"
-    },
-    "readiness": {
-      "title": "Readiness",
-      "description": "Confirm everything is set before the exam starts and after it ends."
-    },
-    "grading": {
-      "title": "Grading & results",
-      "description": "Review remaining grading work and result publishing status after the exam.",
-      "progressLabel": "Grading progress",
-      "ungraded": "Pending",
-      "resultsStatus": "Results status",
-      "openButton": "Open grading & results"
-    },
-    "entries": {
-      "problemEditor": {
-        "title": "Question editor",
-        "description": "Maintain questions, exam content and scores"
-      },
-      "participants": {
-        "title": "Participants",
-        "description": "Inspect roster, status and individual actions"
-      },
-      "grading": {
-        "title": "Grading & results",
-        "description": "Open grading, statistics and result publishing"
-      },
-      "settings": {
-        "title": "Contest settings",
-        "description": "Adjust schedule, rules and exam mode"
-      }
-    }
-  },
   "adminOverview": {
-    "screen": {
-      "title": "Admin overview",
-      "contestInfoLabel": "Contest info",
-      "exportFailed": "Export failed",
-      "contestStatus": {
-        "draft": "Draft",
-        "archived": "Archived",
-        "published": "Published"
-      },
-      "contestType": {
-        "paperExam": "Paper exam",
-        "coding": "Coding test"
-      },
-      "actions": {
-        "settings": "Contest settings",
-        "contestHome": "Contest home",
-        "refresh": "Refresh",
-        "refreshing": "Refreshing",
-        "export": "Export results",
-        "exporting": "Exporting"
-      }
-    },
     "actions": {
       "editSettings": "Settings",
       "openContestHomepage": "Open contest homepage",
@@ -153,6 +91,29 @@
       "problemUnit": "problems",
       "time": "Time Progress"
     },
+    "screen": {
+      "actions": {
+        "addParticipant": "Add participant",
+        "contestHome": "Contest home",
+        "export": "Export results",
+        "exporting": "Exporting",
+        "refresh": "Refresh",
+        "refreshing": "Refreshing",
+        "settings": "Contest settings"
+      },
+      "contestInfoLabel": "Contest info",
+      "contestStatus": {
+        "archived": "Archived",
+        "draft": "Draft",
+        "published": "Published"
+      },
+      "contestType": {
+        "coding": "Coding test",
+        "paperExam": "Paper exam"
+      },
+      "exportFailed": "Export failed",
+      "title": "Admin overview"
+    },
     "sidebar": {
       "activeSessions": "Active Sessions",
       "contestState": "Contest state",
@@ -183,6 +144,7 @@
       "disabled": "Disabled",
       "enabled": "Enabled",
       "examProgress": "Exam progress",
+      "timelineProgress": "Time progress",
       "goEventPanel": "Go to event panel",
       "goParticipantList": "Open participant list",
       "goProblemManagement": "Go to problem management",
@@ -200,6 +162,44 @@
       "title": "Command Center",
       "violationCount": "Anomaly events",
       "violationCountAria": "Anomaly events, go to event panel"
+    }
+  },
+  "adminPreparationDashboard": {
+    "ariaLabel": "Preparation and grading dashboard",
+    "entries": {
+      "grading": {
+        "description": "Open grading, statistics and result publishing",
+        "title": "Grading & results"
+      },
+      "participants": {
+        "description": "Inspect roster, status and individual actions",
+        "title": "Participants"
+      },
+      "problemEditor": {
+        "description": "Maintain questions, exam content and scores",
+        "title": "Question editor"
+      },
+      "settings": {
+        "description": "Adjust schedule, rules and exam mode",
+        "title": "Contest settings"
+      }
+    },
+    "grading": {
+      "description": "Review remaining grading work and result publishing status after the exam.",
+      "openButton": "Open grading & results",
+      "progressLabel": "Grading progress",
+      "resultsStatus": "Results status",
+      "title": "Grading & results",
+      "ungraded": "Pending"
+    },
+    "readiness": {
+      "description": "Confirm everything is set before the exam starts and after it ends.",
+      "title": "Readiness"
+    },
+    "tabs": {
+      "entries": "Management entries",
+      "grading": "Grading & results",
+      "readiness": "Readiness"
     }
   },
   "answering": {
@@ -515,10 +515,10 @@
     "lockedReason": "Violation",
     "modeEnabled": "Cheat Detection Enabled",
     "monitoring": "Monitoring",
+    "monitoringCountdown": "{{seconds}}s",
     "monitoringDeviceUnsupported": "This device does not meet the monitoring policy for this exam. Return to the dashboard and run the environment check again.",
     "monitoringHint": "Exam monitoring - Click for details",
     "monitoringIssueHint": "Restore monitoring from the prompt; event evidence has been preserved.",
-    "monitoringCountdown": "{{seconds}}s",
     "monitoringReminder": {
       "fullscreen": "Return fullscreen",
       "mouse_leave": "Mouse left",
@@ -932,6 +932,7 @@
       "exam_entered": "Exam Entered",
       "exam_submit_initiated": "Exam Submit Initiated",
       "exit_fullscreen": "Exit Fullscreen",
+      "exit_fullscreen_triggered": "Exit Fullscreen (Triggered)",
       "forbidden_action": "Forbidden Action",
       "forbidden_focus_event": "Forbidden Focus Event",
       "force_submit_locked": "Force Submit (Locked)",
@@ -942,6 +943,9 @@
       "lock": "Lock",
       "lock_user": "Lock User",
       "mouse_leave": "Mouse Leave",
+      "mouse_leave_triggered": "Mouse Leave (Triggered)",
+      "multi_display_restored": "Multiple Displays Resolved",
+      "multi_display_triggered": "Multiple Displays (Triggered)",
       "multiple_displays": "Multiple Displays",
       "other": "Other",
       "pause_exam": "Pause Exam",
@@ -950,12 +954,16 @@
       "reopen_exam": "Reopen Exam",
       "reply_question": "Reply Question",
       "resume_exam": "Resume Exam",
+      "screen_share_interrupted": "Screen Share Interrupted",
       "screen_share_invalid_surface": "Screen Share Invalid Surface",
+      "screen_share_restored": "Screen Share Restored",
       "screen_share_stopped": "Screen Share Stopped",
       "start_exam": "Start Exam",
       "submit": "Submit",
       "submit_code": "Submit Code",
       "tab_hidden": "Tab Hidden",
+      "tab_hidden_restored": "Tab Visible (Restored)",
+      "tab_hidden_triggered": "Tab Hidden (Triggered)",
       "tab_switch": "Tab Switch",
       "unlock": "Unlock",
       "unlock_user": "Unlock User",
@@ -963,8 +971,15 @@
       "update_contest": "Update Contest",
       "update_participant": "Update Participant",
       "update_problem": "Update Problem",
+      "viewport_interrupted": "Viewport Interrupted",
+      "viewport_restored": "Viewport Restored",
       "warning_timeout": "Warning Timeout",
-      "window_blur": "Window Blur"
+      "webcam_interrupted": "Webcam Interrupted",
+      "webcam_quality_degraded": "Webcam Quality Degraded",
+      "webcam_restored": "Webcam Restored",
+      "window_blur": "Window Blur",
+      "window_blur_restored": "Window Refocused (Restored)",
+      "window_blur_triggered": "Window Blur (Triggered)"
     },
     "evidenceCount": "Evidence {{count}}",
     "filterCategory": "Filter priority",
@@ -1266,27 +1281,27 @@
         "notMonitor": "You must share your 'Entire Screen'. Sharing windows or tabs is not permitted.",
         "sharingFailed": "Screen sharing failed. Please allow sharing your 'Entire Screen'.",
         "sharingInterrupted": "Screen sharing interrupted. Please complete the check again.",
-        "webcamUnsupported": "This browser does not support Webcam.",
+        "tabletRequiresPwa": "iPad proctoring requires PWA mode. Add QJudge to the home screen, reopen it from there, and try again.",
         "webcamFailed": "Webcam is unavailable. Please grant permission again.",
-        "tabletRequiresPwa": "iPad proctoring requires PWA mode. Add QJudge to the home screen, reopen it from there, and try again."
+        "webcamUnsupported": "This browser does not support Webcam."
       },
       "requirements": {
         "browser": "Use latest Google Chrome or Microsoft Edge.",
         "display": "Single physical monitor required; disconnect external displays.",
         "permission": "Grant \"Window and Display Management\" permission when prompted.",
+        "pwa": "Launch the PWA window from the home screen.",
         "sharing": "Please choose \"Entire Screen\" for screen sharing.",
         "title": "Environment Requirements:",
-        "webcam": "Allow browser access to Webcam.",
-        "pwa": "Launch the PWA window from the home screen."
+        "webcam": "Allow browser access to Webcam."
       },
       "status": {
         "checking": "Checking...",
         "monitorCount": "{{count}} monitor(s)",
         "next": "Next: Confirmation",
-        "retry": "Retry Test",
-        "start": "Start Test",
         "optionalSkipped": "Webcam not enabled (optional)",
-        "pwaFullscreenBypass": "PWA mode: fullscreen check skipped"
+        "pwaFullscreenBypass": "PWA mode: fullscreen check skipped",
+        "retry": "Retry Test",
+        "start": "Start Test"
       },
       "title": "Environment Check"
     },
@@ -1394,12 +1409,24 @@
     "accessControl": "Access Control",
     "allowAutoUnlock": "Allow Auto-Unlock",
     "allowMultipleJoins": "Allow Multiple Joins",
+    "allowMultipleJoinsDesc": "Allow students to re-enter the exam after leaving and resume their existing progress.",
     "alreadyArchived": "Already Archived",
     "anonymousMode": "Anonymous Mode",
     "anonymousModeHelp": "When enabled, participants can set nicknames. Scoreboard and submission list will display nicknames",
     "anticheat": {
+      "accessPolicy": "Access Policy",
+      "allowDesktop": "Allow Desktop",
+      "allowDesktopDesc": "Windows, macOS, and Linux desktop browsers use this policy.",
+      "allowDesktopMultiDisplay": "Allow Desktop Multi-display",
+      "allowDesktopMultiDisplayDesc": "When disabled, desktop multi-display detection is enabled and recorded as an anomaly event.",
+      "allowTablet": "Allow Tablet",
+      "allowTabletDesc": "iPad and Android tablets remain classified as tablets, even with an external keyboard or mouse.",
       "captureInterval": "Capture Interval (sec)",
       "desktopLabel": "Desktop / Laptop Settings",
+      "desktopPrimaryEvidence": "Desktop Primary Evidence Source",
+      "desktopPrimaryEvidenceDesc": "Desktop uses screen share as the primary source; fullscreen and multi-display rules follow the desktop monitoring flow.",
+      "desktopWebcamAssist": "Desktop Webcam Assist",
+      "desktopWebcamAssistDesc": "When enabled, desktop requires Webcam in addition to screen sharing.",
       "detectors": {
         "focus": "Window Focus Detection",
         "focusDesc": "Leaving the exam window will be recorded as a violation",
@@ -1417,36 +1444,25 @@
         "viewportIntegrityDesc": "Prevent iPad from using split-screen, slide-over, or small window modes"
       },
       "disabledDesc": "Restrictions disabled for {{device}}",
+      "enableEvidenceTracking": "Enable Evidence Tracking",
+      "enableEvidenceTrackingDesc": "Desktop defaults to screen sharing; tablet defaults to Webcam.",
       "enableMonitoring": "Enable Monitoring",
       "enabledDesc": "Anti-cheat mechanism enabled for {{device}}",
+      "evidencePolicy": "Evidence Policy",
       "forceEnable": "Force Enable",
       "monitoringSources": "Monitoring Source Settings",
       "screenShare": "Screen Monitoring (Screen)",
       "screenShareDesc": "Capture student screen as monitoring evidence",
-      "securityDetectors": "Violation Detection Mechanism",
-      "tabletLabel": "Tablet / iPad Settings",
-      "webcam": "Video Monitoring (Webcam)",
-      "webcamDesc": "Capture student webcam as monitoring evidence",
-      "accessPolicy": "Access Policy",
-      "allowDesktop": "Allow Desktop",
-      "allowDesktopDesc": "Windows, macOS, and Linux desktop browsers use this policy.",
-      "allowTablet": "Allow Tablet",
-      "allowTabletDesc": "iPad and Android tablets remain classified as tablets, even with an external keyboard or mouse.",
-      "allowDesktopMultiDisplay": "Allow Desktop Multi-display",
-      "allowDesktopMultiDisplayDesc": "When disabled, desktop multi-display detection is enabled and recorded as an anomaly event.",
-      "evidencePolicy": "Evidence Policy",
-      "enableEvidenceTracking": "Enable Evidence Tracking",
-      "enableEvidenceTrackingDesc": "Desktop defaults to screen sharing; tablet defaults to Webcam.",
-      "desktopPrimaryEvidence": "Desktop Primary Evidence Source",
-      "desktopPrimaryEvidenceDesc": "Desktop uses screen share as the primary source; fullscreen and multi-display rules follow the desktop monitoring flow.",
-      "desktopWebcamAssist": "Desktop Webcam Assist",
-      "desktopWebcamAssistDesc": "When enabled, desktop requires Webcam in addition to screen sharing.",
-      "tabletPrimaryEvidence": "Tablet Primary Evidence Source",
-      "tabletPrimaryEvidenceDesc": "Tablet does not use desktop fullscreen, focus, or tab-hidden rules; entry uses PWA and runtime relies on viewport integrity checks.",
       "screenShareRecoveryGrace": "Screen Share Recovery Grace",
       "screenShareRecoveryGraceDesc": "Seconds students have to reshare after screen sharing stops; runtime follows the saved backend value.",
+      "securityDetectors": "Violation Detection Mechanism",
       "sourceScreenShare": "Screen share",
-      "sourceWebcam": "Webcam"
+      "sourceWebcam": "Webcam",
+      "tabletLabel": "Tablet / iPad Settings",
+      "tabletPrimaryEvidence": "Tablet Primary Evidence Source",
+      "tabletPrimaryEvidenceDesc": "Tablet does not use desktop fullscreen, focus, or tab-hidden rules; entry uses PWA and runtime relies on viewport integrity checks.",
+      "webcam": "Video Monitoring (Webcam)",
+      "webcamDesc": "Capture student webcam as monitoring evidence"
     },
     "archiveContest": "Archive Contest",
     "archiveDesc": "Once archived, the contest will become read-only and cannot be activated again.",
@@ -1457,6 +1473,8 @@
     "basicInfo": "Basic Information",
     "confirmArchive": "Are you sure you want to archive this contest?",
     "confirmDelete": "Are you sure you want to delete this contest? This action cannot be undone!",
+    "confirmDisableExamMode": "This will disable anti-cheat monitoring for this exam. Disable it?",
+    "confirmEnableExamMode": "This will apply pre-checks, monitoring sources, and anomaly event logging according to the device policy. Enable it?",
     "contestDescription": "Contest Description",
     "contestName": "Contest Name",
     "contestRules": "Contest Rules",
@@ -1465,7 +1483,9 @@
     "deleteContest": "Delete Contest",
     "deleteDesc": "This action cannot be undone. All related data (including submissions and rankings) will be permanently deleted.",
     "deleteFailed": "Delete failed",
+    "displaySettings": "Display Settings",
     "enableExamMode": "Enable Anti-cheat Monitoring",
+    "enableExamModeDesc": "Apply pre-checks, monitoring sources, and anomaly event logging according to the device policy.",
     "examModeSettings": "Cheat Detection Settings",
     "exportCSV": "Export CSV",
     "exportData": "Export Data",
@@ -1498,12 +1518,7 @@
     "title": "Contest Settings",
     "updateFailed": "Update failed, please check fields",
     "updated": "Settings updated",
-    "warningCooldown": "Warning Cooldown (sec)",
-    "displaySettings": "Display Settings",
-    "enableExamModeDesc": "Apply pre-checks, monitoring sources, and anomaly event logging according to the device policy.",
-    "confirmEnableExamMode": "This will apply pre-checks, monitoring sources, and anomaly event logging according to the device policy. Enable it?",
-    "confirmDisableExamMode": "This will disable anti-cheat monitoring for this exam. Disable it?",
-    "allowMultipleJoinsDesc": "Allow students to re-enter the exam after leaving and resume their existing progress."
+    "warningCooldown": "Warning Cooldown (sec)"
   },
   "standings": {
     "icpcRules": "Ranking Rules: Rankings are based on total score first, then number of problems solved, finally penalty time (solve time + 20 min per wrong attempt).",

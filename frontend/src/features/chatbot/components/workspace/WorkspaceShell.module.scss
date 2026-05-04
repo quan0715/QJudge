@@ -26,7 +26,6 @@
   width: var(--workspace-left-panel-expanded-width);
   height: 100%;
   overflow: hidden;
-  border-right: 1px solid var(--cds-border-subtle-01, #e0e0e0);
   background: var(--cds-layer);
   transition: width $chat-motion-duration $chat-motion-easing;
 }

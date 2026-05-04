@@ -424,8 +424,8 @@ AI_CREDIT_SCALE_PER_CREDIT = int(os.getenv("AI_CREDIT_SCALE_PER_CREDIT", "400000
 # ---------------------------------------------------------------------------
 # S3-compatible object storage connection settings.
 #
-# OBJECT_STORAGE_* is the only supported external configuration surface.
-# Legacy MINIO_* / ANTICHEAT_S3_* environment names are intentionally not read.
+# OBJECT_STORAGE_* is the only supported external configuration surface for
+# app-level S3-compatible object storage access.
 # ---------------------------------------------------------------------------
 OBJECT_STORAGE_ENDPOINT_URL = os.getenv("OBJECT_STORAGE_ENDPOINT_URL", "")
 # Browser-facing endpoint used for presigned URLs. For R2 this is usually the

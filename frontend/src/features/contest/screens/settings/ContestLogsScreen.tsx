@@ -11,28 +11,27 @@ import {
   Tabs,
 } from "@carbon/react";
 import {
+  ImageSearch,
+  Policy,
   Renew,
   WarningAlt,
-  Policy,
   WarningFilled,
-  ImageSearch,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
-import {
-  useAdminPanelRefresh,
-  useContestAdmin,
-} from "@/features/contest/contexts";
+import { useContestAdmin } from "@/features/contest/contexts";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import { KpiCard } from "@/shared/ui/dataCard/KpiCard";
 import {
   getEventPriority,
   getEventCategory,
-  PRIORITY_LABELS,
+  getEventTypeLabel,
 } from "@/features/contest/constants/eventTaxonomy";
+import EventIncidentCard from "@/features/contest/components/admin/EventIncidentCard";
 import IncidentCard from "@/features/contest/components/admin/IncidentCard";
+import { getIncidentEvidenceFrameCount } from "@/features/contest/components/admin/incidentEvidence";
 import { useContestAnticheatConfig } from "@/features/contest/hooks/useContestAnticheatConfig";
 import styles from "./ContestLogsScreen.module.scss";
 
@@ -250,7 +249,9 @@ const LogsSkeleton = ({ showKpis = true }: { showKpis?: boolean }) => (
         ))}
       </div>
     ) : null}
-    <SkeletonText paragraph lineCount={10} />
+    <div className={styles.skeletonFeed}>
+      <SkeletonText paragraph lineCount={10} />
+    </div>
   </div>
 );
 
@@ -268,8 +269,12 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   onRefresh,
 }) => {
   const { contestId } = useParams<{ contestId: string }>();
-  const { examEvents, isRefreshing, refreshAdminData } = useContestAdmin();
-  const { registerPanelRefresh } = useAdminPanelRefresh();
+  const {
+    examEvents,
+    examEventsLoading,
+    isRefreshing,
+    refreshAdminData,
+  } = useContestAdmin();
   const { t } = useTranslation("contest");
   const {
     config: antiCheatConfig,
@@ -316,6 +321,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
       const ts = new Date(event.timestamp).getTime();
       const aggregateKey = buildActorAggregationKey(event);
       const idx = openIncidents.get(aggregateKey);
+      const evidenceCount = getIncidentEvidenceFrameCount(event.metadata);
 
       if (idx !== undefined) {
         const inc = incidents[idx];
@@ -323,7 +329,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
         if (ts - lastTs <= aggregationWindowMs) {
           inc.count += 1;
           inc.lastAt = event.timestamp;
-          if (event.metadata?.forced_capture_uploaded) inc.evidenceCount += 1;
+          inc.evidenceCount += evidenceCount;
           if (et === "clipboard_action") {
             inc.metadata = mergeClipboardMetadata(inc.metadata, event.metadata);
             inc.eventId = event.id;
@@ -344,7 +350,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
         firstAt: event.timestamp,
         lastAt: event.timestamp,
         count: 1,
-        evidenceCount: event.metadata?.forced_capture_uploaded ? 1 : 0,
+        evidenceCount,
         summary: event.reason || "",
         source: "exam_event",
         userName: event.userName,
@@ -473,7 +479,8 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   }, [embedded, hasMore, handleLoadMore]);
 
   const loading =
-    antiCheatConfigLoading || (sourceEvents.length === 0 && isRefreshing);
+    antiCheatConfigLoading ||
+    (sourceEvents.length === 0 && (isRefreshing || examEventsLoading));
   const isConfigUnavailable = !antiCheatConfig && !antiCheatConfigLoading;
 
   const handleRefresh = useCallback(async () => {
@@ -499,12 +506,6 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     refreshAntiCheatConfig,
   ]);
 
-  useEffect(() => {
-    if (embedded) return;
-    return registerPanelRefresh("logs", async () => {
-      await handleRefresh();
-    });
-  }, [embedded, handleRefresh, registerPanelRefresh]);
 
   const handleKpiClick = (category: string) => {
     if (activeTab !== 0) return;
@@ -631,42 +632,12 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   );
 
   const renderCompactIncident = (incident: EventFeedItem) => {
-    const priorityLabel = PRIORITY_LABELS[incident.priority] ?? "P3";
-    const timeLabel = new Date(incident.firstAt).toLocaleTimeString("zh-Hant-TW", {
-      timeZone: "Asia/Taipei",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
     return (
-      <button
-        type="button"
+      <EventIncidentCard
         key={incident.incidentKey}
-        className={`${styles.compactEventRow} ${
-          styles[`compactPriority${incident.priority}`] ?? ""
-        }`}
-        onClick={() => setSelectedIncident(incident)}
-      >
-        <span className={styles.compactPriority}>{priorityLabel}</span>
-        <div className={styles.compactEventMain}>
-          <strong>
-            {t(`logs.eventTypes.${incident.eventType}`, incident.eventType)}
-          </strong>
-          <span>
-            {[incident.userName, timeLabel].filter(Boolean).join(" · ")}
-          </span>
-        </div>
-        <div className={styles.compactEventMeta}>
-          {incident.count > 1 ? <span>×{incident.count}</span> : null}
-          {incident.evidenceCount > 0 ? (
-            <span>
-              {t("logs.evidenceCompact", "證據 {{count}}", {
-                count: incident.evidenceCount,
-              })}
-            </span>
-          ) : null}
-        </div>
-      </button>
+        incident={incident}
+        onSelect={setSelectedIncident}
+      />
     );
   };
 
@@ -770,8 +741,8 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   };
 
   const selectedIncidentTitle = selectedIncident
-    ? t(
-        `logs.eventTypes.${selectedIncident.eventType}`,
+    ? getEventTypeLabel(
+        (key, fallback) => String(t(key, fallback ?? "")),
         selectedIncident.eventType,
       )
     : t("logs.eventDetail", "事件詳情");

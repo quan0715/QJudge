@@ -28,13 +28,16 @@ vi.mock(
   "@/features/contest/components/admin/AdminOverviewCommandCenter",
   () => ({
     default: ({
+      header,
       primary,
       resultOverview,
     }: {
+      header?: ReactNode;
       primary?: ReactNode;
       resultOverview?: ReactNode;
     }) => (
       <div>
+        {header}
         {primary}
         {resultOverview}
         <div data-testid="live-dashboard">考試進行內容</div>
@@ -153,9 +156,6 @@ describe("AdminOverviewScreen", () => {
     renderScreen("/contest/contest-1/admin?panel=overview&view=live");
 
     expect(screen.getByTestId("live-dashboard")).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "管理總覽" }),
-    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "重新整理" }),
     ).toBeInTheDocument();

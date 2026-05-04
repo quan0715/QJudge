@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { createContestResultDashboardMock } from "./contestResultDashboard.mock";
 import AdminExamResultOverview from "./AdminExamResultOverview";
-import { useContestResultDashboard } from "./useContestResultDashboard";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -45,10 +44,6 @@ vi.mock("@carbon/charts-react", () => ({
   },
 }));
 
-vi.mock("./useContestResultDashboard", () => ({
-  useContestResultDashboard: vi.fn(),
-}));
-
 const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
   ({
     id: "contest-1",
@@ -88,26 +83,25 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
   }) as ContestDetail;
 
 describe("AdminExamResultOverview", () => {
-  it("renders score distribution and the exam overview KPI grid", () => {
+  it("renders score distribution with average score header", () => {
     const contest = buildContest();
-    vi.mocked(useContestResultDashboard).mockReturnValue({
-      data: createContestResultDashboardMock(contest),
-      loading: false,
-      error: null,
-      loadQuestionDetail: vi.fn(),
-      detailLoadingIds: {},
-      detailErrors: {},
-    });
+    const dashboard = createContestResultDashboardMock(contest);
 
-    render(<AdminExamResultOverview contest={contest} refreshKey={1} />);
+    render(
+      <AdminExamResultOverview
+        contest={contest}
+        dashboard={dashboard}
+        loading={false}
+        error={null}
+      />,
+    );
 
     expect(screen.getByLabelText("考試結果總覽")).toBeInTheDocument();
     expect(screen.queryByText("考試總覽")).not.toBeInTheDocument();
     expect(screen.getByText("71.8 / 100")).toBeInTheDocument();
     expect(screen.queryByText("74.0")).not.toBeInTheDocument();
-    expect(screen.getByText("92%")).toBeInTheDocument();
+    expect(screen.queryByText("92%")).not.toBeInTheDocument();
     expect(screen.queryByText("不及格率")).not.toBeInTheDocument();
-    expect(screen.getByText(/< 60% 顯示紅色/)).toBeInTheDocument();
     expect(screen.getByText("分數分布")).toBeInTheDocument();
     expect(screen.getByTestId("score-distribution-chart")).toBeInTheDocument();
     expect(chartProps.lollipop).toHaveBeenCalledWith(
@@ -122,21 +116,19 @@ describe("AdminExamResultOverview", () => {
         }),
       }),
     );
-    expect(useContestResultDashboard).toHaveBeenCalledWith(contest, 1);
   });
 
   it("does not render for coding contests", () => {
     const contest = buildContest({ contestType: "coding" });
-    vi.mocked(useContestResultDashboard).mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-      loadQuestionDetail: vi.fn(),
-      detailLoadingIds: {},
-      detailErrors: {},
-    });
 
-    const { container } = render(<AdminExamResultOverview contest={contest} />);
+    const { container } = render(
+      <AdminExamResultOverview
+        contest={contest}
+        dashboard={null}
+        loading={false}
+        error={null}
+      />,
+    );
 
     expect(container).toBeEmptyDOMElement();
   });

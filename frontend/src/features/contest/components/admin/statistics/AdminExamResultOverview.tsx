@@ -6,7 +6,7 @@ import { SkeletonPlaceholder, SkeletonText } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
-import { useContestResultDashboard } from "./useContestResultDashboard";
+import type { DashboardMockData } from "./contestResultDashboard.mock";
 import styles from "./AdminExamResultOverview.module.scss";
 
 const resolveCarbonChartTheme = (
@@ -40,20 +40,19 @@ const isFailingScoreBucket = (label: string) => {
 
 interface AdminExamResultOverviewProps {
   contest: ContestDetail | null | undefined;
-  refreshKey?: number;
+  dashboard: DashboardMockData | null;
+  loading: boolean;
+  error: string | null;
 }
 
 export default function AdminExamResultOverview({
   contest,
-  refreshKey = 0,
+  dashboard,
+  loading,
+  error,
 }: AdminExamResultOverviewProps) {
   const { t } = useTranslation("contest");
   const { theme } = useTheme();
-  const {
-    data: dashboard,
-    loading,
-    error,
-  } = useContestResultDashboard(contest, refreshKey);
 
   const chartData = useMemo(
     () =>
@@ -64,6 +63,10 @@ export default function AdminExamResultOverview({
           }))
         : [],
     [dashboard],
+  );
+  const hasScoreDistributionData = useMemo(
+    () => chartData.some((item) => item.value > 0),
+    [chartData],
   );
 
   const chartTheme = resolveCarbonChartTheme(theme);
@@ -116,14 +119,6 @@ export default function AdminExamResultOverview({
             <SkeletonText heading width="7rem" />
             <SkeletonPlaceholder className={styles.chartSkeleton} />
           </div>
-          <div className={styles.metricGrid}>
-            {Array.from({ length: 2 }).map((_, index) => (
-              <div className={styles.metricCell} key={index}>
-                <SkeletonText width="5rem" />
-                <SkeletonText heading width="7rem" />
-              </div>
-            ))}
-          </div>
         </div>
       </section>
     );
@@ -139,60 +134,26 @@ export default function AdminExamResultOverview({
     );
   }
 
-  const completionRate =
-    dashboard.contest.participantCount > 0
-      ? Math.round(
-          (dashboard.contest.completedCount /
-            dashboard.contest.participantCount) *
-            100,
-        )
-      : 0;
-  const averageScoreRate =
-    dashboard.summary.maxTotalScore > 0
-      ? Math.round(
-          (dashboard.summary.averageScore / dashboard.summary.maxTotalScore) *
-            100,
-        )
-      : 0;
-  const metrics = [
-    {
-      key: "average",
-      label: t("statistics.avgTotalScore", "平均總分"),
-      value: `${dashboard.summary.averageScore.toFixed(1)} / ${dashboard.summary.maxTotalScore}`,
-      caption: `${averageScoreRate}%`,
-    },
-    {
-      key: "completion",
-      label: t("statistics.completionRate", "完成率"),
-      value: `${completionRate}%`,
-      caption: `${dashboard.contest.completedCount} / ${dashboard.contest.participantCount}`,
-    },
-  ];
-
   return (
     <section className={styles.root} aria-label="考試結果總覽">
       <div className={styles.contentGrid}>
         <div className={styles.chartColumn}>
-          <div>
-            <h3>{t("statistics.scoreDistribution", "分數分布")}</h3>
-            <p>
-              {t("statistics.averageReference", "平均")}{" "}
-              {dashboard.summary.averageScore.toFixed(1)} · {"< "}
-              {PASSING_SCORE_THRESHOLD_PERCENT}% 顯示紅色
-            </p>
+          <div className={styles.chartHeader}>
+            <span>{t("statistics.scoreDistribution", "分數分布")}</span>
+            <strong>
+              {dashboard.summary.averageScore.toFixed(1)} /{" "}
+              {dashboard.summary.maxTotalScore}
+            </strong>
           </div>
           <div className={styles.chartFrame}>
-            <LollipopChart data={chartData} options={chartOptions} />
+            {hasScoreDistributionData ? (
+              <LollipopChart data={chartData} options={chartOptions} />
+            ) : (
+              <div className={styles.chartEmptyState}>
+                {t("statistics.noScoreDistributionData", "尚無分數資料")}
+              </div>
+            )}
           </div>
-        </div>
-        <div className={styles.metricGrid}>
-          {metrics.map((metric) => (
-            <div className={styles.metricCell} key={metric.key}>
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
-              <small>{metric.caption}</small>
-            </div>
-          ))}
         </div>
       </div>
     </section>

@@ -5,9 +5,17 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import {
-  PRIORITY_LABELS,
-  PRIORITY_TAG_COLOR,
+  getEventTypeIcon,
+  getEventTypeLabel,
 } from "@/features/contest/constants/eventTaxonomy";
+import {
+  buildIncidentScreenshotQuery,
+  getIncidentEvidenceModules,
+  getIncidentEvidenceObjectKeys,
+  INCIDENT_EVIDENCE_SOURCE_LABELS,
+  isIncidentEvidenceSource,
+  type IncidentEvidenceSource,
+} from "@/features/contest/components/admin/incidentEvidence";
 import {
   fetchScreenshots,
   type ScreenshotFrame,
@@ -59,6 +67,19 @@ const HIDDEN_META_KEYS = new Set([
   "evidence_source_module",
   "forced_capture_modules",
   "forced_capture_module_results",
+  "module",
+  "module_role",
+  "evidence_mode",
+  "incident_family",
+  "incident_family_dup",
+  "evidence_anchor_at",
+  "evidence_anchor_at_ms",
+  "client_observed_at",
+  "client_observed_at_ms",
+  "server_observed_at",
+  "anchor_window",
+  "anchor_event",
+  "anchor_event_id",
 ]);
 
 const META_LABEL_KEYS: Record<string, string> = {
@@ -70,123 +91,19 @@ const META_LABEL_KEYS: Record<string, string> = {
   retry_count: "logs.meta.retryCount",
 };
 
-interface CaptureInfo {
-  result: string;
-  hasError: boolean;
-  errorCode?: string;
-  seq?: number;
-}
+const isHiddenMetaKey = (key: string) =>
+  HIDDEN_META_KEYS.has(key) ||
+  key.includes("anchor") ||
+  key.startsWith("forced_capture_") ||
+  key.startsWith("evidence_window_") ||
+  key.startsWith("evidence_pre_buffer_") ||
+  key.startsWith("client_observed_") ||
+  key.startsWith("incident_family");
 
-type SourceModule = "screen_share" | "webcam";
-
-const SOURCE_MODULE_LABELS: Record<SourceModule, string> = {
-  screen_share: "Screen",
-  webcam: "Webcam",
-};
-
-const isSourceModule = (value: unknown): value is SourceModule =>
-  value === "screen_share" || value === "webcam";
-
-function parseCaptureInfo(meta: Record<string, unknown>): CaptureInfo | null {
-  if (!meta.forced_capture_requested) return null;
-  const result = String(meta.forced_capture_result ?? "unknown");
-  const hasError = !!meta.forced_capture_error_code;
-  return {
-    result,
-    hasError,
-    errorCode: hasError ? String(meta.forced_capture_error_code) : undefined,
-    seq:
-      typeof meta.forced_capture_seq === "number"
-        ? meta.forced_capture_seq
-        : undefined,
-  };
-}
-
-function getModuleResults(
-  meta: Record<string, unknown>,
-): Partial<Record<SourceModule, Record<string, unknown>>> {
-  const raw = meta.forced_capture_module_results;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  return Object.fromEntries(
-    Object.entries(raw as Record<string, unknown>).filter(
-      ([module, value]) =>
-        isSourceModule(module) &&
-        value &&
-        typeof value === "object" &&
-        !Array.isArray(value),
-    ),
-  ) as Partial<Record<SourceModule, Record<string, unknown>>>;
-}
-
-function getEvidenceObjectKeys(meta: Record<string, unknown>): string[] {
-  const keys = new Set<string>();
-  const topLevelKeys = Array.isArray(meta.forced_capture_uploaded_object_keys)
-    ? meta.forced_capture_uploaded_object_keys
-    : [];
-  topLevelKeys.forEach((value) => {
-    if (typeof value === "string") keys.add(value);
-  });
-
-  Object.values(getModuleResults(meta)).forEach((result) => {
-    const moduleKeys = Array.isArray(result?.uploadedObjectKeys)
-      ? result.uploadedObjectKeys
-      : [];
-    moduleKeys.forEach((value) => {
-      if (typeof value === "string") keys.add(value);
-    });
-  });
-
-  return Array.from(keys);
-}
-
-function getEvidenceModules(
-  meta: Record<string, unknown>,
-  objectKeys: string[],
-): SourceModule[] {
-  const modules = new Set<SourceModule>();
-  const configuredModules = Array.isArray(meta.forced_capture_modules)
-    ? meta.forced_capture_modules
-    : [];
-  configuredModules.forEach((value) => {
-    if (isSourceModule(value)) modules.add(value);
-  });
-  Object.keys(getModuleResults(meta)).forEach((value) => {
-    if (isSourceModule(value)) modules.add(value);
-  });
-  objectKeys.forEach((key) => {
-    if (key.includes("/screen_share/")) modules.add("screen_share");
-    if (key.includes("/webcam/")) modules.add("webcam");
-  });
-  if (isSourceModule(meta.evidence_source_module))
-    modules.add(meta.evidence_source_module);
-  if (isSourceModule(meta.module)) modules.add(meta.module);
-  return Array.from(modules);
-}
-
-function parseModuleCaptureInfos(meta: Record<string, unknown>) {
-  return Object.entries(getModuleResults(meta))
-    .map(([module, result]) => {
-      if (!isSourceModule(module) || !result) return null;
-      const captureInfo: CaptureInfo = {
-        result: String(
-          result.uploaded
-            ? "uploaded"
-            : result.skipped
-              ? `skipped:${result.skipped}`
-              : result.captured
-                ? "captured"
-                : "unknown",
-        ),
-        hasError: !!result.errorCode,
-        errorCode: result.errorCode ? String(result.errorCode) : undefined,
-        seq: typeof result.seq === "number" ? result.seq : undefined,
-      };
-      return { module, info: captureInfo };
-    })
-    .filter(
-      (value): value is { module: SourceModule; info: CaptureInfo } => !!value,
-    );
-}
+const isDisplayableMetaValue = (value: unknown) =>
+  typeof value === "string" ||
+  typeof value === "number" ||
+  typeof value === "boolean";
 
 function formatMetaValue(key: string, value: unknown): string {
   if (key === "locked_at" && typeof value === "string") {
@@ -272,8 +189,11 @@ export default function IncidentCard({
   const { contestId } = useParams<{ contestId: string }>();
   const [expanded, setExpanded] = useState(initialExpanded || !collapsible);
 
-  const priorityLabel = PRIORITY_LABELS[incident.priority] ?? "P3";
-  const tagColor = PRIORITY_TAG_COLOR[incident.priority] ?? "cool-gray";
+  const EventIcon = getEventTypeIcon(incident.eventType, incident.priority);
+  const eventTypeLabel = useMemo(
+    () => getEventTypeLabel(t, incident.eventType),
+    [incident.eventType, t],
+  );
 
   const firstTime = new Date(incident.firstAt).toLocaleTimeString();
   const lastTime = new Date(incident.lastAt).toLocaleTimeString();
@@ -282,15 +202,10 @@ export default function IncidentCard({
 
   const meta = useMemo(() => incident.metadata ?? {}, [incident.metadata]);
 
-  const captureInfo = useMemo(() => parseCaptureInfo(meta), [meta]);
-  const evidenceObjectKeys = useMemo(() => getEvidenceObjectKeys(meta), [meta]);
+  const evidenceObjectKeys = useMemo(() => getIncidentEvidenceObjectKeys(meta), [meta]);
   const evidenceModules = useMemo(
-    () => getEvidenceModules(meta, evidenceObjectKeys),
+    () => getIncidentEvidenceModules(meta, evidenceObjectKeys),
     [meta, evidenceObjectKeys],
-  );
-  const moduleCaptureInfos = useMemo(
-    () => parseModuleCaptureInfos(meta),
-    [meta],
   );
   const eventContent = useMemo(() => getEventContent(meta), [meta]);
 
@@ -303,9 +218,9 @@ export default function IncidentCard({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const screenshotsByModule = useMemo(() => {
-    return screenshots.reduce<Partial<Record<SourceModule, ScreenshotFrame[]>>>(
+    return screenshots.reduce<Partial<Record<IncidentEvidenceSource, ScreenshotFrame[]>>>(
       (acc, frame) => {
-        const module = isSourceModule(frame.source_module)
+        const module = isIncidentEvidenceSource(frame.source_module)
           ? frame.source_module
           : "screen_share";
         acc[module] = [...(acc[module] ?? []), frame];
@@ -317,7 +232,7 @@ export default function IncidentCard({
 
   const meaningfulEntries = useMemo(() => {
     return Object.entries(meta)
-      .filter(([k]) => !HIDDEN_META_KEYS.has(k))
+      .filter(([k, v]) => !isHiddenMetaKey(k) && isDisplayableMetaValue(v))
       .map(([k, v]) => ({
         key: k,
         label: META_LABEL_KEYS[k]
@@ -339,7 +254,6 @@ export default function IncidentCard({
     incident.summary ||
     eventContent ||
     meaningfulEntries.length > 0 ||
-    captureInfo ||
     shouldAttemptScreenshotPreview ||
     incident.count > 1
   );
@@ -350,52 +264,12 @@ export default function IncidentCard({
     setScreenshotLoading(true);
     setScreenshotError(false);
     try {
-      const sessionId = meta.upload_session_id as string | undefined;
-      const sourceModule =
-        evidenceModules.length === 1 ? evidenceModules[0] : undefined;
-      const evidenceClusterId =
-        typeof meta.evidence_cluster_id === "string"
-          ? meta.evidence_cluster_id
-          : "";
-      const evidenceEventId =
-        incident.eventId ??
-        (typeof meta.event_id === "string" || typeof meta.event_id === "number"
-          ? String(meta.event_id)
-          : "");
-
-      const evidenceWindowStart =
-        typeof meta.evidence_window_start === "string"
-          ? Date.parse(meta.evidence_window_start)
-          : NaN;
-      const evidenceWindowEnd =
-        typeof meta.evidence_window_end === "string"
-          ? Date.parse(meta.evidence_window_end)
-          : NaN;
-      const params: Parameters<typeof fetchScreenshots>[1] = {
-        user_id: String(incident.userId),
-        limit: screenshotPreviewLimit,
-      };
-      const firstMs = new Date(incident.firstAt).getTime();
-      const lastMs = new Date(incident.lastAt).getTime();
-      params.ts_from = Number.isFinite(evidenceWindowStart)
-        ? evidenceWindowStart
-        : firstMs - screenshotWindowBeforeMs;
-      params.ts_to = Number.isFinite(evidenceWindowEnd)
-        ? evidenceWindowEnd
-        : lastMs + screenshotWindowAfterMs;
-      if (sessionId) {
-        // Prefer the session attached to event metadata first.
-        params.upload_session_id = sessionId;
-      }
-      if (evidenceEventId) {
-        params.event_id = evidenceEventId;
-      }
-      if (evidenceClusterId) {
-        params.evidence_cluster_id = evidenceClusterId;
-      }
-      if (sourceModule) {
-        params.source_module = sourceModule;
-      }
+      const params = buildIncidentScreenshotQuery(incident, {
+        userId: String(incident.userId),
+        windowBeforeMs: screenshotWindowBeforeMs,
+        windowAfterMs: screenshotWindowAfterMs,
+        fallbackLimit: screenshotPreviewLimit,
+      });
       const result = await fetchScreenshots(contestId, params);
 
       setScreenshots(result.items);
@@ -408,12 +282,7 @@ export default function IncidentCard({
     }
   }, [
     contestId,
-    incident.userId,
-    meta,
-    evidenceModules,
-    incident.firstAt,
-    incident.eventId,
-    incident.lastAt,
+    incident,
     screenshotLoaded,
     screenshotPreviewLimit,
     screenshotWindowBeforeMs,
@@ -466,11 +335,15 @@ export default function IncidentCard({
           aria-expanded={canToggle ? expanded : undefined}
         >
           <div className={styles.left}>
-            <Tag type={tagColor} size="sm">
-              {priorityLabel}
-            </Tag>
+            <span
+              className={styles.priorityIcon}
+              aria-label={eventTypeLabel}
+              title={eventTypeLabel}
+            >
+              <EventIcon size={16} />
+            </span>
             <span className={styles.eventType}>
-              {t(`logs.eventTypes.${incident.eventType}`, incident.eventType)}
+              {eventTypeLabel}
             </span>
             {incident.userName && (
               <span className={styles.userName}>{incident.userName}</span>
@@ -537,31 +410,6 @@ export default function IncidentCard({
               </div>
             )}
 
-            {/* Forced capture summary */}
-            {captureInfo && (
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>
-                  {t("logs.detail.captureStatus", "截圖狀態")}
-                </span>
-                <span className={styles.detailValue}>
-                  {moduleCaptureInfos.length > 0 ? (
-                    <span className={styles.captureStatusList}>
-                      {moduleCaptureInfos.map(({ module, info }) => (
-                        <span key={module} className={styles.captureStatusItem}>
-                          <span className={styles.sourceText}>
-                            {SOURCE_MODULE_LABELS[module]}
-                          </span>
-                          <CaptureStatusTag info={info} />
-                        </span>
-                      ))}
-                    </span>
-                  ) : (
-                    <CaptureStatusTag info={captureInfo} />
-                  )}
-                </span>
-              </div>
-            )}
-
             {evidenceModules.length > 0 && (
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>
@@ -574,7 +422,7 @@ export default function IncidentCard({
                       type={module === "webcam" ? "purple" : "cyan"}
                       size="sm"
                     >
-                      {SOURCE_MODULE_LABELS[module]}
+                      {INCIDENT_EVIDENCE_SOURCE_LABELS[module]}
                     </Tag>
                   ))}
                 </span>
@@ -601,7 +449,7 @@ export default function IncidentCard({
                 )}
                 {screenshots.length > 0 && (
                   <div className={styles.screenshotGroups}>
-                    {(Object.keys(screenshotsByModule) as SourceModule[]).map(
+                    {(Object.keys(screenshotsByModule) as IncidentEvidenceSource[]).map(
                       (module) => (
                         <div key={module} className={styles.screenshotGroup}>
                           <div className={styles.screenshotSourceHeader}>
@@ -609,7 +457,7 @@ export default function IncidentCard({
                               type={module === "webcam" ? "purple" : "cyan"}
                               size="sm"
                             >
-                              {SOURCE_MODULE_LABELS[module]}
+                              {INCIDENT_EVIDENCE_SOURCE_LABELS[module]}
                             </Tag>
                             <span>
                               {screenshotsByModule[module]?.length ?? 0}
@@ -774,54 +622,5 @@ export default function IncidentCard({
         </div>
       )}
     </>
-  );
-}
-
-/** Render capture result as a colored tag */
-function CaptureStatusTag({ info }: { info: CaptureInfo }) {
-  const { t } = useTranslation("contest");
-  if (info.result === "uploaded") {
-    return (
-      <Tag type="green" size="sm">
-        {t("logs.capture.uploaded", "已上傳")}
-        {info.seq != null ? ` #${info.seq}` : ""}
-      </Tag>
-    );
-  }
-  if (info.result === "captured") {
-    return (
-      <Tag type="blue" size="sm">
-        {t("logs.capture.capturedNotUploaded", "已擷取（未上傳）")}
-      </Tag>
-    );
-  }
-  if (info.result.startsWith("skipped:")) {
-    const reason = info.result.replace("skipped:", "");
-    const skipLabelKeys: Record<string, string> = {
-      disabled: "logs.capture.skipDisabled",
-      cooldown: "logs.capture.skipCooldown",
-      stream_unavailable: "logs.capture.skipStreamUnavailable",
-      capture_unavailable: "logs.capture.skipCaptureUnavailable",
-    };
-    const label = skipLabelKeys[reason]
-      ? String(t(skipLabelKeys[reason], { defaultValue: reason }))
-      : reason;
-    return (
-      <Tag type="cool-gray" size="sm">
-        {t("logs.capture.skipped", "略過")}: {label}
-      </Tag>
-    );
-  }
-  if (info.hasError) {
-    return (
-      <Tag type="red" size="sm">
-        {t("logs.capture.failed", "失敗")}: {info.errorCode}
-      </Tag>
-    );
-  }
-  return (
-    <Tag type="cool-gray" size="sm">
-      {info.result}
-    </Tag>
   );
 }

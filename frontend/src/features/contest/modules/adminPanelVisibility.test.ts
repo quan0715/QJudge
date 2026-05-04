@@ -28,13 +28,13 @@ describe("admin panel visibility in draft", () => {
     } as any);
 
     expect(codingPanels).toContain("grading");
-    expect(codingPanels).toContain("participants");
     expect(codingPanels).toContain("proctoring");
+    expect(codingPanels).not.toContain("participants");
     expect(codingPanels).not.toContain("logs");
     expect(codingPanels).not.toContain("statistics");
     expect(paperPanels).toContain("grading");
-    expect(paperPanels).toContain("participants");
     expect(paperPanels).toContain("proctoring");
+    expect(paperPanels).not.toContain("participants");
     expect(paperPanels).not.toContain("logs");
     expect(paperPanels).not.toContain("statistics");
   });

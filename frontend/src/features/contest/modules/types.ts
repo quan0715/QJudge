@@ -6,8 +6,6 @@ import type { Params } from "react-router-dom";
 export type AdminPanelId =
   | "overview"
   | "clarifications"
-  | "logs"
-  | "participants"
   | "proctoring"
   | "problem_editor"
   | "grading"

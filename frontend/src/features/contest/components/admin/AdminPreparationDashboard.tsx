@@ -6,7 +6,6 @@ import {
   DocumentTasks,
   Settings,
   TaskComplete,
-  UserMultiple,
   WarningAlt,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -65,19 +64,6 @@ export default function AdminPreparationDashboard({
       ),
       icon: DocumentTasks,
       onClick: () => onOpenPanel("problem_editor"),
-    },
-    {
-      key: "participants",
-      title: t(
-        "adminPreparationDashboard.entries.participants.title",
-        "參賽者管理",
-      ),
-      description: t(
-        "adminPreparationDashboard.entries.participants.description",
-        "檢查名單、狀態與個別操作",
-      ),
-      icon: UserMultiple,
-      onClick: () => onOpenPanel("participants"),
     },
     {
       key: "grading",

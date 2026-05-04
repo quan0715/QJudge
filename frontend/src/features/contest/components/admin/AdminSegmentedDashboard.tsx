@@ -10,6 +10,7 @@ export interface AdminSegmentedDashboardTab {
 
 interface AdminSegmentedDashboardProps {
   ariaLabel: string;
+  header?: ReactNode;
   primary: ReactNode;
   side: ReactNode;
   tabs?: AdminSegmentedDashboardTab[];
@@ -17,12 +18,14 @@ interface AdminSegmentedDashboardProps {
 
 export default function AdminSegmentedDashboard({
   ariaLabel,
+  header,
   primary,
   side,
   tabs,
 }: AdminSegmentedDashboardProps) {
   return (
     <section className={styles.root} aria-label={ariaLabel}>
+      {header ? <div className={styles.headerRow}>{header}</div> : null}
       <div className={styles.topGrid}>
         <Tile className={styles.primaryPanel}>{primary}</Tile>
         <Tile className={styles.sidePanel}>{side}</Tile>

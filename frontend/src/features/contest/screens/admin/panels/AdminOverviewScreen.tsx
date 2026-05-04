@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Tag } from "@carbon/react";
-import { Download, Launch, Renew, Settings } from "@carbon/icons-react";
+import {
+  Download,
+  Launch,
+  Renew,
+  Settings,
+  UserFollow,
+} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
 import AdminOverviewCommandCenter from "@/features/contest/components/admin/AdminOverviewCommandCenter";
 import AdminExamResultOverview from "@/features/contest/components/admin/statistics/AdminExamResultOverview";
 import AdminQuestionStatsGallery from "@/features/contest/components/admin/statistics/AdminQuestionStatsGallery";
+import { useContestResultDashboard } from "@/features/contest/components/admin/statistics/useContestResultDashboard";
+import { AddParticipantModal } from "@/features/contest/components/modals/AddParticipantModal";
 import {
   useAdminPanelRefresh,
   useContest,
@@ -17,13 +25,10 @@ import type {
   AdminPanelProps,
 } from "@/features/contest/modules/types";
 import { useGradingData } from "@/features/contest/screens/settings/grading";
+import { addContestParticipant } from "@/infrastructure/api/repositories";
 import { exportContestResults } from "@/infrastructure/api/repositories/contestExports.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
-import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
-import {
-  buildAdminOverviewDashboard,
-  buildAdminPreparationDashboard,
-} from "./adminOverviewDashboard.model";
+import { buildAdminOverviewDashboard } from "./adminOverviewDashboard.model";
 import styles from "./AdminOverviewScreen.module.scss";
 
 type ContestStatusDisplay = {
@@ -40,10 +45,15 @@ const useContestStatusDisplay = () => {
           label: t("adminOverview.screen.contestStatus.draft", "草稿"),
           type: "gray",
         };
-      if (status === "archived")
+      if (
+        status === "archived" ||
+        status === "ended" ||
+        status === "completed" ||
+        status === "success"
+      )
         return {
           label: t("adminOverview.screen.contestStatus.archived", "已封存"),
-          type: "cool-gray",
+          type: "green",
         };
       return {
         label: t("adminOverview.screen.contestStatus.published", "已發布"),
@@ -73,9 +83,54 @@ export default function AdminOverviewScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [resultRefreshKey, setResultRefreshKey] = useState(0);
+  const [addParticipantOpen, setAddParticipantOpen] = useState(false);
+  const classroomBound = Boolean(contest?.isClassroomBound);
+  const contestInProgress = useMemo(() => {
+    if (!contest || contest.status !== "published") return false;
+    const startMs = new Date(contest.startTime).getTime();
+    const endMs = new Date(contest.endTime).getTime();
+    if (Number.isNaN(startMs) || Number.isNaN(endMs)) return false;
+    const now = Date.now();
+    return now >= startMs && now < endMs;
+  }, [contest]);
+  const handleAddParticipant = useCallback(
+    async (username: string) => {
+      if (!contest?.id) return;
+      try {
+        await addContestParticipant(contest.id, username);
+        await refreshAllAdminData();
+        showToast({
+          kind: "success",
+          title: t("common.success", "成功"),
+          subtitle: t("participants.added", "參賽者已新增"),
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : t("participants.addFailed", "新增參賽者失敗");
+        showToast({
+          kind: "error",
+          title: t("common.error", "錯誤"),
+          subtitle: message,
+        });
+        throw error;
+      }
+    },
+    [contest?.id, refreshAllAdminData, showToast, t],
+  );
   const { globalStats, loading: gradingLoading } = useGradingData({
     participantsOverride: participants,
+    refetchOnParticipantsChange: false,
   });
+  const {
+    data: resultDashboard,
+    loading: resultDashboardLoading,
+    error: resultDashboardError,
+    loadQuestionDetail: loadResultQuestionDetail,
+    detailLoadingIds: resultDetailLoadingIds,
+    detailErrors: resultDetailErrors,
+  } = useContestResultDashboard(contest, resultRefreshKey);
 
   const dashboardData = useMemo(() => {
     if (!contest) return null;
@@ -87,15 +142,6 @@ export default function AdminOverviewScreen({
       gradingStats: globalStats,
     });
   }, [contest, participants, examEvents, overviewMetrics, globalStats]);
-
-  const preparationData = useMemo(() => {
-    if (!contest) return null;
-    return buildAdminPreparationDashboard({
-      contest,
-      participants,
-      gradingStats: globalStats,
-    });
-  }, [contest, participants, globalStats]);
 
   const openPanel = useCallback(
     (panel: AdminPanelId) => {
@@ -165,119 +211,138 @@ export default function AdminOverviewScreen({
     contest.contestType === "paper_exam"
       ? t("adminOverview.screen.contestType.paperExam", "考卷")
       : t("adminOverview.screen.contestType.coding", "Coding Test");
-  const renderContestInfo = () => (
-    <div className={styles.primaryStack}>
-      <section
-        className={styles.contestInfo}
-        aria-label={t("adminOverview.screen.contestInfoLabel", "競賽資訊")}
-      >
-        <div className={styles.dashboardTitleBlock}>
-          <div className={styles.dashboardTitleRow}>
-            <h2>{contest.name}</h2>
-            <Tag type={status.type} size="sm">
-              {status.label}
-            </Tag>
-            <Tag type="cool-gray" size="sm">
-              {contestTypeLabel}
-            </Tag>
-          </div>
-          {contest.description ? (
-            <p className={styles.dashboardDescription}>{contest.description}</p>
-          ) : null}
+  const renderContestHeader = () => (
+    <section
+      className={styles.contestHeader}
+      aria-label={t("adminOverview.screen.contestInfoLabel", "競賽資訊")}
+    >
+      <div className={styles.dashboardTitleBlock}>
+        <div className={styles.dashboardTitleRow}>
+          <h2>{contest.name}</h2>
+          <Tag type={status.type} size="sm">
+            {status.label}
+          </Tag>
+          <Tag type="cool-gray" size="sm">
+            {contestTypeLabel}
+          </Tag>
         </div>
-      </section>
-    </div>
+        {contest.description ? (
+          <p className={styles.dashboardDescription}>{contest.description}</p>
+        ) : null}
+      </div>
+      <div className={styles.headerActions}>
+        <Button
+          kind="ghost"
+          hasIconOnly
+          renderIcon={Settings}
+          iconDescription={t(
+            "adminOverview.screen.actions.settings",
+            "競賽設定",
+          )}
+          onClick={openSettings}
+        />
+        <Button
+          kind="ghost"
+          hasIconOnly
+          renderIcon={Launch}
+          iconDescription={t(
+            "adminOverview.screen.actions.contestHome",
+            "競賽主頁",
+          )}
+          disabled={!contestHomePath}
+          onClick={() => {
+            if (!contestHomePath) return;
+            window.open(contestHomePath, "_blank", "noopener,noreferrer");
+          }}
+        />
+        {classroomBound ? null : (
+          <Button
+            kind="ghost"
+            hasIconOnly
+            renderIcon={UserFollow}
+            iconDescription={t(
+              "adminOverview.screen.actions.addParticipant",
+              "新增參賽者",
+            )}
+            onClick={() => setAddParticipantOpen(true)}
+          />
+        )}
+        <Button
+          kind="ghost"
+          hasIconOnly
+          renderIcon={Renew}
+          iconDescription={
+            refreshing
+              ? t("adminOverview.screen.actions.refreshing", "重新整理中")
+              : t("adminOverview.screen.actions.refresh", "重新整理")
+          }
+          disabled={refreshing}
+          onClick={() => void handleRefresh()}
+        />
+        <Button
+          kind="ghost"
+          hasIconOnly
+          renderIcon={Download}
+          iconDescription={
+            exporting
+              ? t("adminOverview.screen.actions.exporting", "匯出中")
+              : t("adminOverview.screen.actions.export", "匯出成績")
+          }
+          disabled={exporting || !contest.id}
+          onClick={() => void handleExport()}
+        />
+      </div>
+    </section>
   );
 
   return (
     <div className={styles.page}>
-      <PanelToolbar
-        title={t("adminOverview.screen.title", "管理總覽")}
-        status={
-          <Tag type={status.type} size="sm">
-            {status.label}
-          </Tag>
-        }
-        actions={
-          <>
-            <Button
-              kind="ghost"
-              hasIconOnly
-              renderIcon={Settings}
-              iconDescription={t(
-                "adminOverview.screen.actions.settings",
-                "競賽設定",
-              )}
-              onClick={openSettings}
-            />
-            <Button
-              kind="ghost"
-              hasIconOnly
-              renderIcon={Launch}
-              iconDescription={t(
-                "adminOverview.screen.actions.contestHome",
-                "競賽主頁",
-              )}
-              disabled={!contestHomePath}
-              onClick={() => {
-                if (!contestHomePath) return;
-                window.open(contestHomePath, "_blank", "noopener,noreferrer");
-              }}
-            />
-            <Button
-              kind="ghost"
-              hasIconOnly
-              renderIcon={Renew}
-              iconDescription={
-                refreshing
-                  ? t("adminOverview.screen.actions.refreshing", "重新整理中")
-                  : t("adminOverview.screen.actions.refresh", "重新整理")
-              }
-              disabled={refreshing}
-              onClick={() => void handleRefresh()}
-            />
-            <Button
-              kind="ghost"
-              hasIconOnly
-              renderIcon={Download}
-              iconDescription={
-                exporting
-                  ? t("adminOverview.screen.actions.exporting", "匯出中")
-                  : t("adminOverview.screen.actions.export", "匯出成績")
-              }
-              disabled={exporting || !contest.id}
-              onClick={() => void handleExport()}
-            />
-          </>
-        }
-      />
       <div className={styles.content}>
-        {dashboardData && preparationData && (
+        {dashboardData && (
           <AdminOverviewCommandCenter
+            header={renderContestHeader()}
             data={dashboardData}
-            preparationData={preparationData}
             adminLoading={adminInitialLoading}
             gradingLoading={gradingLoading}
             contestId={contest.id}
             antiCheatEnabled={contest.cheatDetectionEnabled}
+            classroomBound={classroomBound}
+            contestInProgress={contestInProgress}
             onOpenPanel={openPanel}
             participants={participants}
-            primary={renderContestInfo()}
+            primary={null}
             resultOverview={
               <AdminExamResultOverview
                 contest={contest}
-                refreshKey={resultRefreshKey}
+                dashboard={resultDashboard}
+                loading={resultDashboardLoading}
+                error={resultDashboardError}
               />
             }
             questionStatsGallery={
               <AdminQuestionStatsGallery
                 contest={contest}
-                refreshKey={resultRefreshKey}
+                dashboard={resultDashboard}
+                loading={resultDashboardLoading}
+                error={resultDashboardError}
+                loadQuestionDetail={loadResultQuestionDetail}
+                detailLoadingIds={resultDetailLoadingIds}
+                detailErrors={resultDetailErrors}
               />
             }
           />
         )}
       </div>
+      {classroomBound ? null : (
+        <AddParticipantModal
+          isOpen={addParticipantOpen}
+          onClose={() => setAddParticipantOpen(false)}
+          onSubmit={async (username) => {
+            await handleAddParticipant(username);
+            setAddParticipantOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
