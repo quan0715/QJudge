@@ -102,7 +102,6 @@ describe("AdminExamResultOverview", () => {
     expect(screen.queryByText("74.0")).not.toBeInTheDocument();
     expect(screen.getByText("92%")).toBeInTheDocument();
     expect(screen.queryByText("不及格率")).not.toBeInTheDocument();
-    expect(screen.getByText(/< 60% 顯示紅色/)).toBeInTheDocument();
     expect(screen.getByText("分數分布")).toBeInTheDocument();
     expect(screen.getByTestId("score-distribution-chart")).toBeInTheDocument();
     expect(chartProps.lollipop).toHaveBeenCalledWith(

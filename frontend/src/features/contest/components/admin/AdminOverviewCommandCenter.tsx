@@ -24,6 +24,8 @@ import {
   WarningFilled,
 } from "@carbon/icons-react";
 import {
+  cloneElement,
+  isValidElement,
   useMemo,
   useCallback,
   useEffect,
@@ -56,7 +58,6 @@ import useParticipantDashboard from "@/features/contest/screens/settings/partici
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import type {
   AdminOverviewDashboardData,
-  AdminPreparationDashboardData,
 } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
 import {
   downloadParticipantReport,
@@ -72,7 +73,6 @@ import styles from "./AdminOverviewCommandCenter.module.scss";
 interface AdminOverviewCommandCenterProps {
   header?: ReactNode;
   data: AdminOverviewDashboardData;
-  preparationData: AdminPreparationDashboardData;
   adminLoading?: boolean;
   gradingLoading?: boolean;
   contestId?: string;
@@ -200,6 +200,15 @@ const PARTICIPANT_STATUS_FILTERS: FilterOption[] = [
   { id: "paused", label: "暫停" },
 ];
 
+const QUESTION_KIND_FILTERS: FilterOption[] = [
+  { id: "all", label: "全部題型" },
+  { id: "single_choice", label: "單選題" },
+  { id: "multiple_choice", label: "多選題" },
+  { id: "true_false", label: "是非題" },
+  { id: "short_answer", label: "簡答題" },
+  { id: "essay", label: "申論題" },
+];
+
 const getAnswerProgressMetric = (participant: ContestParticipant) => {
   switch (participant.examStatus) {
     case "submitted":
@@ -264,7 +273,6 @@ const getParticipantMetric = (
 export default function AdminOverviewCommandCenter({
   header,
   data,
-  preparationData,
   adminLoading = false,
   gradingLoading = false,
   contestId,
@@ -289,6 +297,9 @@ export default function AdminOverviewCommandCenter({
   const [participantStatusFilter, setParticipantStatusFilter] =
     useState<ParticipantStatusFilter>("all");
   const [activePanelTab, setActivePanelTab] = useState(0);
+  const [questionStatsSearch, setQuestionStatsSearch] = useState("");
+  const [questionStatsKindFilter, setQuestionStatsKindFilter] =
+    useState<string>("all");
   const [activeParticipantDetail, setActiveParticipantDetail] =
     useState<ParticipantDashboardDetail>("overview");
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -588,6 +599,7 @@ export default function AdminOverviewCommandCenter({
     setParticipantSearch(event.target.value);
   };
   const isFilterActive = participantStatusFilter !== "all";
+  const isQuestionStatsFilterActive = questionStatsKindFilter !== "all";
   const participantMetricTags = (
     <div className={styles.metricTagGroup} aria-label="考生卡片資料切換">
       {PARTICIPANT_METRIC_OPTIONS.map((option) => (
@@ -604,6 +616,12 @@ export default function AdminOverviewCommandCenter({
   );
   const insightCards = data.insightCards.filter(
     (card) => card.key !== "exam_progress",
+  );
+  const gradingInsightCards = insightCards.filter(
+    (card) => card.key === "grading_progress",
+  );
+  const nonGradingInsightCards = insightCards.filter(
+    (card) => card.key !== "grading_progress",
   );
   const priorityEventsCard = insightCards.find(
     (card) => card.key === "priority_events",
@@ -643,6 +661,7 @@ export default function AdminOverviewCommandCenter({
           hideLabel
           size="small"
           value={examProgressPercent}
+          className={styles.rightPanelProgressBar}
         />
       </div>
     </section>
@@ -813,9 +832,55 @@ export default function AdminOverviewCommandCenter({
   );
   const questionStatsPanel = (
     <div className={`${styles.drilldownPanel} ${styles.drilldownPanelFlush}`}>
-      {questionStatsGallery ?? (
+      {isValidElement(questionStatsGallery)
+        ? cloneElement(questionStatsGallery, {
+            searchQuery: questionStatsSearch,
+            onSearchQueryChange: setQuestionStatsSearch,
+            questionKindFilter: questionStatsKindFilter,
+            onQuestionKindFilterChange: setQuestionStatsKindFilter,
+            showFilterToolbar: false,
+          })
+        : questionStatsGallery ?? (
         <div className={styles.emptyState}>目前沒有作答分佈資料</div>
       )}
+    </div>
+  );
+  const questionStatsTabToolbar = (
+    <div
+      className={`${styles.tabRowToolbar} ${
+        isQuestionStatsFilterActive ? styles.tabRowToolbarActive : ""
+      }`}
+    >
+      <Search
+        id="overview-question-stats-search"
+        labelText="搜尋題目"
+        placeholder="搜尋題號或題目..."
+        value={questionStatsSearch}
+        onChange={(event) => setQuestionStatsSearch(event.target.value)}
+        onClear={() => setQuestionStatsSearch("")}
+        size="md"
+        className={styles.tabRowSearch}
+      />
+      <OverflowMenu
+        renderIcon={Filter}
+        iconDescription="篩選題型"
+        size="md"
+        flipped
+        className={styles.tabRowFilterMenu}
+        aria-label="篩選題型"
+      >
+        {QUESTION_KIND_FILTERS.map((option) => (
+          <OverflowMenuItem
+            key={option.id}
+            itemText={
+              questionStatsKindFilter === option.id
+                ? `✓  ${option.label}`
+                : option.label
+            }
+            onClick={() => setQuestionStatsKindFilter(option.id)}
+          />
+        ))}
+      </OverflowMenu>
     </div>
   );
   const drilldownPanel = (
@@ -829,7 +894,7 @@ export default function AdminOverviewCommandCenter({
             <Tab>參與者</Tab>
             <Tab>作答分佈</Tab>
           </TabList>
-          {activePanelTab === 0 ? participantTabToolbar : null}
+          {activePanelTab === 0 ? participantTabToolbar : questionStatsTabToolbar}
         </div>
         <TabPanels>
           <TabPanel className={styles.drilldownTabPanel}>
@@ -856,18 +921,27 @@ export default function AdminOverviewCommandCenter({
         side={
           <div className={styles.rightOverviewColumn}>
             {examStatusSummary}
+            <AdminInsightRail
+              cards={[]}
+              distribution={data.distribution}
+              distributionLoading={adminLoading}
+            />
+            <AdminInsightRail
+              cards={gradingInsightCards}
+              distribution={[]}
+              loadingCardKeys={gradingLoading ? ["grading_progress"] : []}
+              distributionLoading={false}
+            />
             {resultOverview}
             <AdminInsightRail
-              cards={insightCards}
-              distribution={data.distribution}
+              cards={nonGradingInsightCards}
+              distribution={[]}
               loadingCardKeys={[
                 ...(adminLoading || examEventsLoading
                   ? ["priority_events"]
                   : []),
-                ...(gradingLoading ? ["grading_progress"] : []),
               ]}
-              distributionLoading={adminLoading}
-              gradingDetails={preparationData.grading}
+              distributionLoading={false}
             />
             <section className={styles.eventLogPanel} aria-label="事件紀錄">
               <PriorityEventsInsightCard

@@ -77,6 +77,11 @@
   white-space: nowrap;
 }
 
+.rightPanelProgressBar :global(.cds--progress-bar__track),
+.rightPanelProgressBar :global(.cds--progress-bar__bar) {
+  height: 0.5rem;
+}
+
 .examScheduleGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -165,12 +170,12 @@
   max-width: 24rem;
   width: 100%;
   align-self: center;
-  border: 1px solid var(--cds-border-subtle);
-  background: var(--cds-field);
+  border: 0;
+  background: transparent;
 }
 
 .tabRowToolbarActive {
-  border-color: var(--cds-focus);
+  border-color: transparent;
 }
 
 .tabRowSearch {
@@ -189,7 +194,7 @@
 
 .tabRowFilterMenu {
   flex: 0 0 auto;
-  border-left: 1px solid var(--cds-border-subtle);
+  border-left: 0;
 }
 
 .emptyState {

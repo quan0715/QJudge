@@ -29,6 +29,11 @@ interface AdminQuestionStatsGalleryProps {
   loadQuestionDetail: (questionId: string) => Promise<void>;
   detailLoadingIds: Record<string, boolean>;
   detailErrors: Record<string, string>;
+  searchQuery?: string;
+  onSearchQueryChange?: (query: string) => void;
+  questionKindFilter?: string;
+  onQuestionKindFilterChange?: (kind: string) => void;
+  showFilterToolbar?: boolean;
 }
 
 type AttentionToneKey = "critical" | "warning" | "success";
@@ -65,13 +70,34 @@ export default function AdminQuestionStatsGallery({
   loadQuestionDetail,
   detailLoadingIds,
   detailErrors,
+  searchQuery: controlledSearchQuery,
+  onSearchQueryChange,
+  questionKindFilter: controlledQuestionKindFilter,
+  onQuestionKindFilterChange,
+  showFilterToolbar = true,
 }: AdminQuestionStatsGalleryProps) {
   const [focusMetric, setFocusMetric] = useState<FocusMetricKey>("score_rate");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [questionKindFilter, setQuestionKindFilter] = useState<string>("all");
+  const [uncontrolledSearchQuery, setUncontrolledSearchQuery] = useState("");
+  const [uncontrolledQuestionKindFilter, setUncontrolledQuestionKindFilter] =
+    useState<string>("all");
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
     null,
   );
+  const searchQuery = controlledSearchQuery ?? uncontrolledSearchQuery;
+  const questionKindFilter =
+    controlledQuestionKindFilter ?? uncontrolledQuestionKindFilter;
+  const handleSearchQueryChange = (query: string) => {
+    onSearchQueryChange?.(query);
+    if (controlledSearchQuery === undefined) {
+      setUncontrolledSearchQuery(query);
+    }
+  };
+  const handleQuestionKindFilterChange = (kind: string) => {
+    onQuestionKindFilterChange?.(kind);
+    if (controlledQuestionKindFilter === undefined) {
+      setUncontrolledQuestionKindFilter(kind);
+    }
+  };
 
   useEffect(() => {
     if (!selectedQuestionId) return;
@@ -184,11 +210,12 @@ export default function AdminQuestionStatsGallery({
         focusMetric={focusMetric}
         onFocusMetricChange={setFocusMetric}
         searchQuery={searchQuery}
-        onSearchChange={(event) => setSearchQuery(event.target.value)}
-        onSearchClear={() => setSearchQuery("")}
+        onSearchChange={(event) => handleSearchQueryChange(event.target.value)}
+        onSearchClear={() => handleSearchQueryChange("")}
         questionKindOptions={questionKindOptions}
         selectedQuestionKind={selectedQuestionKind}
-        onQuestionKindChange={setQuestionKindFilter}
+        onQuestionKindChange={handleQuestionKindFilterChange}
+        showFilterToolbar={showFilterToolbar}
       />
       {sortedQuestions.length === 0 ? (
         <div className={styles.emptyState}>目前沒有題目資料</div>
@@ -230,6 +257,7 @@ function GalleryHeader({
   questionKindOptions = [],
   selectedQuestionKind,
   onQuestionKindChange,
+  showFilterToolbar = true,
 }: {
   count?: number;
   focusMetric: FocusMetricKey;
@@ -240,9 +268,11 @@ function GalleryHeader({
   questionKindOptions?: FilterOption[];
   selectedQuestionKind?: FilterOption;
   onQuestionKindChange?: (kind: string) => void;
+  showFilterToolbar?: boolean;
 }) {
   const selectedMetric = focusMetrics.find((item) => item.key === focusMetric);
-  const showFilterToolbar = Boolean(onSearchChange && onQuestionKindChange);
+  const showToolbar =
+    showFilterToolbar && Boolean(onSearchChange && onQuestionKindChange);
   const isFilterActive =
     selectedQuestionKind != null && selectedQuestionKind.id !== "all";
   return (
@@ -273,7 +303,7 @@ function GalleryHeader({
           ))}
         </div>
       </div>
-      {showFilterToolbar ? (
+      {showToolbar ? (
         <div
           className={`${styles.filterToolbar} ${
             isFilterActive ? styles.filterToolbarActive : ""

@@ -28,10 +28,7 @@ import { useGradingData } from "@/features/contest/screens/settings/grading";
 import { addContestParticipant } from "@/infrastructure/api/repositories";
 import { exportContestResults } from "@/infrastructure/api/repositories/contestExports.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
-import {
-  buildAdminOverviewDashboard,
-  buildAdminPreparationDashboard,
-} from "./adminOverviewDashboard.model";
+import { buildAdminOverviewDashboard } from "./adminOverviewDashboard.model";
 import styles from "./AdminOverviewScreen.module.scss";
 
 type ContestStatusDisplay = {
@@ -140,15 +137,6 @@ export default function AdminOverviewScreen({
       gradingStats: globalStats,
     });
   }, [contest, participants, examEvents, overviewMetrics, globalStats]);
-
-  const preparationData = useMemo(() => {
-    if (!contest) return null;
-    return buildAdminPreparationDashboard({
-      contest,
-      participants,
-      gradingStats: globalStats,
-    });
-  }, [contest, participants, globalStats]);
 
   const openPanel = useCallback(
     (panel: AdminPanelId) => {
@@ -305,11 +293,10 @@ export default function AdminOverviewScreen({
   return (
     <div className={styles.page}>
       <div className={styles.content}>
-        {dashboardData && preparationData && (
+        {dashboardData && (
           <AdminOverviewCommandCenter
             header={renderContestHeader()}
             data={dashboardData}
-            preparationData={preparationData}
             adminLoading={adminInitialLoading}
             gradingLoading={gradingLoading}
             contestId={contest.id}

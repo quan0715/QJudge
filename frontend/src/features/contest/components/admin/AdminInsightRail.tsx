@@ -19,11 +19,6 @@ interface AdminInsightRailProps {
   distribution?: DistributionItem[];
   loadingCardKeys?: string[];
   distributionLoading?: boolean;
-  gradingDetails?: {
-    progressLabel: string;
-    ungradedAnswers: number;
-    resultsLabel: string;
-  };
 }
 
 const resolveCarbonChartTheme = (
@@ -48,6 +43,7 @@ const ProgressChart = ({ card }: { card: DashboardInsightCard }) => {
       hideLabel
       size="small"
       value={Math.round(progress)}
+      className={styles.rightPanelProgressBar}
     />
   );
 };
@@ -162,7 +158,6 @@ const DistributionOverview = ({
     visibleDistribution.find((item) => item.key === "submitted")?.value ?? 0;
   const completionPercent =
     total > 0 ? Math.round((submittedCount / total) * 100) : 0;
-  const remainingCount = Math.max(0, total - submittedCount);
   const chartColorScale = segments.reduce<Record<string, string>>((scale, item) => {
     scale[item.label] = DISTRIBUTION_TONE_COLOR[item.key];
     return scale;
@@ -186,10 +181,6 @@ const DistributionOverview = ({
         </div>
       ) : (
         <div className={styles.distributionChartFrame}>
-          <p className={styles.distributionDescription}>
-            已交卷 {submittedCount} / {total} 人（完成率 {completionPercent}%），
-            尚有 {remainingCount} 人未完成。
-          </p>
           <MeterChart
             data={distributionChartData}
             options={{
@@ -200,8 +191,10 @@ const DistributionOverview = ({
               meter: {
                 height: 8,
                 proportional: {
-                  total,
                   unit: "人",
+                  breakdownFormatter: () =>
+                    `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
+                  totalFormatter: (value) => `考生總數 ${value} 人`,
                 },
               },
               legend: {
@@ -225,7 +218,6 @@ export default function AdminInsightRail({
   distribution = [],
   loadingCardKeys = [],
   distributionLoading = false,
-  gradingDetails,
 }: AdminInsightRailProps) {
   const { theme } = useTheme();
   const chartTheme = resolveCarbonChartTheme(theme);
@@ -259,7 +251,6 @@ export default function AdminInsightRail({
           card={card}
           chartTheme={chartTheme}
           loading={loadingKeys.has(card.key)}
-          gradingDetails={gradingDetails}
         />
       ))}
     </div>
@@ -297,16 +288,10 @@ function InsightCard({
   card,
   chartTheme,
   loading,
-  gradingDetails,
 }: {
   card: DashboardInsightCard;
   chartTheme: "white" | "g10" | "g90" | "g100";
   loading: boolean;
-  gradingDetails?: {
-    progressLabel: string;
-    ungradedAnswers: number;
-    resultsLabel: string;
-  };
 }) {
   const isGradingCard = card.key === "grading_progress";
   return (
@@ -334,25 +319,7 @@ function InsightCard({
       ) : card.kind === "line" ? (
         <PriorityLineChart series={card.series ?? []} theme={chartTheme} />
       ) : (
-        <>
-          <ProgressChart card={card} />
-          {isGradingCard && gradingDetails ? (
-            <dl className={styles.gradingDetails}>
-              <div>
-                <dt>批改進度</dt>
-                <dd>{gradingDetails.progressLabel}</dd>
-              </div>
-              <div>
-                <dt>待批改</dt>
-                <dd>{gradingDetails.ungradedAnswers}</dd>
-              </div>
-              <div>
-                <dt>成績狀態</dt>
-                <dd>{gradingDetails.resultsLabel}</dd>
-              </div>
-            </dl>
-          ) : null}
-        </>
+        <ProgressChart card={card} />
       )}
     </section>
   );

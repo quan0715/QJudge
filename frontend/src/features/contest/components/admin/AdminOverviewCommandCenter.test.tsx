@@ -2,10 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ContestParticipant } from "@/core/entities/contest.entity";
-import type {
-  AdminOverviewDashboardData,
-  AdminPreparationDashboardData,
-} from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
+import type { AdminOverviewDashboardData } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
 import AdminOverviewCommandCenter from "./AdminOverviewCommandCenter";
 
 const participantDashboardState = vi.hoisted(() => ({
@@ -185,38 +182,6 @@ const data: AdminOverviewDashboardData = {
   ],
 };
 
-const preparationData: AdminPreparationDashboardData = {
-  timeline: {
-    phaseLabel: "進行中",
-    primaryTimeLabel: "剩餘 45:00",
-    timeWindowLabel: "09:00-11:00",
-    startDateTimeLabel: "2026/05/04 09:00",
-    endDateTimeLabel: "2026/05/04 11:00",
-    progressPercent: 62,
-  },
-  railItems: [],
-  insightCards: data.insightCards,
-  summaryItems: [],
-  checklistItems: [
-    {
-      key: "publish",
-      label: "競賽發布",
-      status: "done",
-      statusLabel: "完成",
-      description: "參賽者可依權限進入競賽",
-    },
-  ],
-  grading: {
-    totalAnswers: 40,
-    gradedAnswers: 30,
-    ungradedAnswers: 10,
-    progressPercent: 75,
-    progressLabel: "30 / 40",
-    resultsLabel: "未發布",
-    resultsTone: "warning",
-  },
-};
-
 const participants: ContestParticipant[] = [
   {
     userId: "1",
@@ -262,7 +227,6 @@ describe("AdminOverviewCommandCenter", () => {
     render(
       <AdminOverviewCommandCenter
         data={overrideData}
-        preparationData={preparationData}
         adminLoading={adminLoading}
         gradingLoading={gradingLoading}
         contestId="contest-1"
@@ -331,9 +295,8 @@ describe("AdminOverviewCommandCenter", () => {
     expect(screen.getByTestId("embedded-event-log")).toHaveTextContent(
       "右側事件紀錄",
     );
-    expect(screen.getByText("30 / 40")).toBeInTheDocument();
-    expect(screen.getByText("待批改")).toBeInTheDocument();
-    expect(screen.getByText("未發布")).toBeInTheDocument();
+    expect(screen.queryByText("30 / 40")).not.toBeInTheDocument();
+    expect(screen.queryByText("待批改")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("tab", { name: "待處理考生" }),
     ).not.toBeInTheDocument();

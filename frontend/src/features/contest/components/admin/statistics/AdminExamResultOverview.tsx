@@ -146,25 +146,16 @@ export default function AdminExamResultOverview({
             100,
         )
       : 0;
-  const averageScoreRate =
-    dashboard.summary.maxTotalScore > 0
-      ? Math.round(
-          (dashboard.summary.averageScore / dashboard.summary.maxTotalScore) *
-            100,
-        )
-      : 0;
   const metrics = [
     {
       key: "average",
       label: t("statistics.avgTotalScore", "平均總分"),
       value: `${dashboard.summary.averageScore.toFixed(1)} / ${dashboard.summary.maxTotalScore}`,
-      caption: `${averageScoreRate}%`,
     },
     {
       key: "completion",
       label: t("statistics.completionRate", "完成率"),
       value: `${completionRate}%`,
-      caption: `${dashboard.contest.completedCount} / ${dashboard.contest.participantCount}`,
     },
   ];
 
@@ -174,11 +165,6 @@ export default function AdminExamResultOverview({
         <div className={styles.chartColumn}>
           <div>
             <h3>{t("statistics.scoreDistribution", "分數分布")}</h3>
-            <p>
-              {t("statistics.averageReference", "平均")}{" "}
-              {dashboard.summary.averageScore.toFixed(1)} · {"< "}
-              {PASSING_SCORE_THRESHOLD_PERCENT}% 顯示紅色
-            </p>
           </div>
           <div className={styles.chartFrame}>
             <LollipopChart data={chartData} options={chartOptions} />
@@ -189,7 +175,6 @@ export default function AdminExamResultOverview({
             <div className={styles.metricCell} key={metric.key}>
               <span>{metric.label}</span>
               <strong>{metric.value}</strong>
-              <small>{metric.caption}</small>
             </div>
           ))}
         </div>
