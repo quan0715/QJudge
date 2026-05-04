@@ -3,7 +3,7 @@ import logging
 
 from django.db import transaction
 from django.utils import timezone
-from django.db.models import Max
+from django.db.models import F, Max
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
@@ -180,20 +180,39 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             actor_id=getattr(self.request.user, "id", None),
             action="exam_question.create",
         )
-        if 'order' not in self.request.data:
-            last_order = ExamQuestion.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
-            serializer.save(contest=contest, order=(last_order if last_order is not None else -1) + 1)
+
+        with transaction.atomic():
+            # Lock the contest's existing exam questions so concurrent
+            # create / import / reorder operations serialize and we can't
+            # race past the unique (contest, order) constraint.
+            existing = (
+                ExamQuestion.objects.select_for_update()
+                .filter(contest=contest)
+                .order_by('order')
+            )
+
+            if 'order' not in self.request.data:
+                last_order = existing.aggregate(Max('order'))['order__max']
+                target_order = (last_order if last_order is not None else -1) + 1
+                serializer.save(contest=contest, order=target_order)
+            else:
+                try:
+                    requested_order = int(self.request.data['order'])
+                except (TypeError, ValueError):
+                    raise DRFValidationError({'order': 'order must be an integer'})
+
+                # Push semantics: shift everything at or after the requested
+                # slot one step down so the new question can occupy it
+                # without colliding with existing rows.
+                existing.filter(order__gte=requested_order).update(
+                    order=F('order') + 1,
+                )
+                serializer.save(contest=contest, order=requested_order)
+
             ensure_contest_binding_for_exam_question(
                 exam_question=serializer.instance,
                 actor=self.request.user,
             )
-            return
-
-        serializer.save(contest=contest)
-        ensure_contest_binding_for_exam_question(
-            exam_question=serializer.instance,
-            actor=self.request.user,
-        )
 
         ContestActivityViewSet.log_activity(
             contest,
@@ -298,11 +317,18 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         if not isinstance(items, list) or not items:
             raise DRFValidationError('items must be a non-empty list')
 
-        current_max_order = ExamQuestion.objects.filter(contest=contest).aggregate(Max('order'))['order__max']
-        next_order = (current_max_order if current_max_order is not None else -1) + 1
         created_rows = []
 
         with transaction.atomic():
+            # Lock existing rows so concurrent imports / creates can't both
+            # observe the same max(order) and produce overlapping inserts.
+            current_max_order = (
+                ExamQuestion.objects.select_for_update()
+                .filter(contest=contest)
+                .aggregate(Max('order'))['order__max']
+            )
+            next_order = (current_max_order if current_max_order is not None else -1) + 1
+
             for item in items:
                 if not isinstance(item, dict):
                     raise DRFValidationError('Invalid item payload')
@@ -377,18 +403,28 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         if not isinstance(orders, list) or not orders:
             raise DRFValidationError('No orders provided')
 
-        for item in orders:
-            question_id = item.get('id')
-            new_order = item.get('order')
-            if question_id is None or new_order is None:
-                continue
-            ExamQuestion.objects.filter(contest=contest, id=question_id).update(order=new_order)
+        with transaction.atomic():
+            # Lock the contest's questions so concurrent reorders can't race;
+            # the unique (contest, order) constraint is deferrable so the
+            # intermediate updates within this transaction stay legal until
+            # the final state is committed.
+            ExamQuestion.objects.select_for_update().filter(contest=contest).exists()
 
-        questions = ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
-        for idx, question in enumerate(questions):
-            if question.order != idx:
-                question.order = idx
-                question.save(update_fields=['order'])
+            for item in orders:
+                question_id = item.get('id')
+                new_order = item.get('order')
+                if question_id is None or new_order is None:
+                    continue
+                ExamQuestion.objects.filter(
+                    contest=contest, id=question_id
+                ).update(order=new_order)
+
+            # Compact gaps so the final state is contiguous 0..N-1.
+            questions = ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+            for idx, question in enumerate(questions):
+                if question.order != idx:
+                    question.order = idx
+                    question.save(update_fields=['order'])
 
         ContestActivityViewSet.log_activity(
             contest,

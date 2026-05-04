@@ -408,6 +408,16 @@ class ExamQuestion(models.Model):
             models.Index(fields=['contest', 'order']),
             models.Index(fields=['source_question_id']),
         ]
+        constraints = [
+            # Deferrable so reorder transactions can swap orders mid-flight
+            # (e.g. drag-and-drop) without violating the constraint until
+            # commit time.
+            models.UniqueConstraint(
+                fields=['contest', 'order'],
+                name='uq_exam_question_contest_order',
+                deferrable=models.Deferrable.DEFERRED,
+            ),
+        ]
 
     def __str__(self):
         return f"{self.contest_id}#{self.id}({self.question_type})"
