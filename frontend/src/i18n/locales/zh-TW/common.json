@@ -1,4 +1,11 @@
 {
+  "workspaceTopNav": {
+    "expandSidebar": "展開側欄",
+    "contextLabel": "工作區內容",
+    "contestFallback": "競賽",
+    "adminConsole": "管理後台",
+    "contestHome": "競賽主頁"
+  },
   "action": {
     "adding": "新增中",
     "deleting": "刪除中",
@@ -565,73 +572,73 @@
       "totalRequests": "總請求數"
     },
     "description": "管理個人檔案、偏好設定、方案與使用量。",
-    "descriptionStudent": "設定を管理します",
+    "descriptionStudent": "管理個人設定。",
     "loginRecords": {
-      "current": "現在のデバイス",
-      "description": "過去30日間のログイン履歴",
-      "deviceName": "デバイス名",
-      "empty": "履歴がありません",
-      "lastActive": "最終アクティビティ",
-      "logoutError": "ログアウトに失敗しました",
-      "logoutOther": "他デバイスからログアウト",
-      "logoutOtherDesc": "現在のデバイス以外のすべてのアクティブなセッションを終了します",
-      "logoutSuccess": "他デバイスからログアウトしました",
+      "current": "目前裝置",
+      "description": "最近 30 天的登入紀錄",
+      "deviceName": "裝置名稱",
+      "empty": "沒有登入紀錄",
+      "lastActive": "最後活動時間",
+      "logoutError": "登出其他裝置失敗",
+      "logoutOther": "登出其他裝置",
+      "logoutOtherDesc": "登出除了此裝置以外的所有作用中工作階段。",
+      "logoutSuccess": "已登出其他裝置",
       "now": "現在",
-      "title": "デバイス管理"
+      "title": "裝置管理"
     },
     "plans": {
-      "contactUs": "お問い合わせ",
-      "description": "すべてのプランでフル機能をご利用いただけます。違いは制限値のみです。",
-      "enterpriseCustom": "カスタムエンタープライズプランをご案内します。",
-      "enterpriseTitle": "より大規模な利用をお考えですか？",
+      "contactUs": "聯絡我們",
+      "description": "所有方案皆可使用完整功能，差異僅在使用額度。",
+      "enterpriseCustom": "我們可以為你規劃客製化企業方案。",
+      "enterpriseTitle": "需要更大規模的使用嗎？",
       "features": {
         "pro": [
-          "試験あたり最大 200 人",
-          "500 AI Credits / 月",
-          "無制限の問題集ストレージ",
-          "1 年間のデータ保持",
-          "10 GB のストレージ容量"
+          "每場考試最多 200 人",
+          "每月 500 AI Credits",
+          "無限制題庫儲存",
+          "資料保留 1 年",
+          "10 GB 儲存空間"
         ],
         "team": [
-          "試験あたり最大 500 人",
-          "2,000 AI Credits / 月",
-          "無制限の問題集ストレージ",
-          "最大 10 人の管理者",
-          "50 GB のストレージ容量"
+          "每場考試最多 500 人",
+          "每月 2,000 AI Credits",
+          "無限制題庫儲存",
+          "最多 10 位管理者",
+          "50 GB 儲存空間"
         ]
       },
-      "freeTrial": "30日間無料",
+      "freeTrial": "免費試用 30 天",
       "month": "月",
-      "openCheckoutFailed": "チェックアウトページの起動に失敗しました。後でもう一度お試しください。",
-      "processing": "処理中...",
-      "startingTrial": "無料試用を開始",
-      "subscribeNow": "今すぐ購読",
-      "title": "プランを見る"
+      "openCheckoutFailed": "無法開啟結帳頁面，請稍後再試。",
+      "processing": "處理中...",
+      "startingTrial": "開始免費試用",
+      "subscribeNow": "立即訂閱",
+      "title": "查看方案"
     },
     "subscription": {
       "desc": {
-        "free": "現在は無料プランです。いつでもアップグレード可能です。",
-        "pro": "安定した試験環境を求める個人ユーザー向け",
-        "team": "学校、学部、トレーニング機関向け"
+        "free": "目前使用免費方案，可隨時升級。",
+        "pro": "適合需要穩定考試環境的個人用戶",
+        "team": "適合學校、科系與培訓機構"
       },
-      "manage": "購読を管理",
-      "manageDesc": "支払い方法の変更、解約、請求書の確認",
-      "openPortalFailed": "管理ページの起動に失敗しました",
-      "periodEndDate": "現在の期間終了",
+      "manage": "管理訂閱",
+      "manageDesc": "變更付款方式、取消訂閱或查看發票",
+      "openPortalFailed": "無法開啟訂閱管理頁面",
+      "periodEndDate": "目前週期結束",
       "status": {
-        "active": "有効",
-        "canceled": "解約済み",
-        "expired": "期限切れ",
-        "past_due": "支払い遅延",
+        "active": "啟用中",
+        "canceled": "已取消",
+        "expired": "已到期",
+        "past_due": "付款逾期",
         "trialing": "試用中"
       },
       "tier": {
-        "enterprise": "エンタープライズ",
-        "free": "無料プラン",
-        "pro": "プロプラン",
-        "team": "チームプラン"
+        "enterprise": "企業方案",
+        "free": "免費方案",
+        "pro": "Pro 方案",
+        "team": "Team 方案"
       },
-      "trialEndDate": "試用終了日"
+      "trialEndDate": "試用結束日"
     },
     "tabs": {
       "aiUsage": "AI 使用量",
@@ -639,8 +646,8 @@
       "plans": "方案",
       "preferences": "偏好設定",
       "profile": "個人檔案",
-      "subscription": "購読状況",
-      "usage": "利用統計"
+      "subscription": "訂閱狀態",
+      "usage": "使用量"
     },
     "title": "設定"
   },

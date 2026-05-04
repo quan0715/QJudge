@@ -64,25 +64,24 @@
 // ── Sections ──
 
 .side-menu__section {
-  padding: 0.5rem 0;
+  padding: 0.375rem 0;
 }
 
 .side-menu__divider {
   height: 1px;
   background: var(--cds-border-subtle);
-  margin: 0 1rem;
+  margin: 0.375rem 1rem;
 }
 
 .side-menu__section-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  color: var(--cds-icon-primary);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.32px;
+  padding: 0.625rem 1rem 0.375rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 // ── Link item ──
@@ -91,10 +90,12 @@
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  width: 100%;
-  padding: 0.625rem 1rem;
+  width: calc(100% - 1rem);
+  min-height: 2.5rem;
+  margin: 0.125rem 0.5rem;
+  padding: 0.5rem 0.75rem;
   border: 0;
-  border-left: 3px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: var(--cds-text-primary);
   font-size: 0.875rem;
@@ -113,17 +114,12 @@
 }
 
 .side-menu__link svg,
-.side-menu__classroom svg,
-.side-menu__bank svg,
-.side-menu__workspace-trigger svg,
-.side-menu__workspace-option svg,
-.side-menu__tab svg {
+.side-menu__classroom svg {
   color: var(--cds-icon-primary);
 }
 
 .side-menu__link--active {
-  border-left-color: var(--cds-border-interactive);
-  background: var(--cds-layer-selected);
+  background: var(--cds-layer-selected-01);
   font-weight: 600;
 }
 
@@ -138,10 +134,12 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem 1rem 0.5rem 1.5rem;
+  width: calc(100% - 1rem);
+  min-height: 2.5rem;
+  margin: 0.125rem 0.5rem;
+  padding: 0.5rem 0.75rem;
   border: 0;
-  border-left: 3px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: var(--cds-text-primary);
   font-size: 0.875rem;
@@ -160,8 +158,7 @@
 }
 
 .side-menu__classroom--active {
-  border-left-color: var(--cds-border-interactive);
-  background: var(--cds-layer-selected);
+  background: var(--cds-layer-selected-01);
   font-weight: 600;
 }
 
@@ -177,60 +174,18 @@
   color: var(--cds-icon-interactive);
 }
 
-// ── Question Bank list ──
-
-.side-menu__bank-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.side-menu__bank {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.375rem 1rem 0.375rem 1.5rem;
-  border: 0;
-  border-left: 3px solid transparent;
-  background: transparent;
-  color: var(--cds-text-primary);
-  font-size: 0.8125rem;
-  line-height: 1.125rem;
-  text-align: left;
-  cursor: pointer;
-
-  &:hover {
-    background: var(--cds-layer-hover);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--cds-focus);
-    outline-offset: -2px;
-  }
-}
-
-.side-menu__bank--active {
-  border-left-color: var(--cds-border-interactive);
-  background: var(--cds-layer-selected);
-  font-weight: 600;
-}
-
-.side-menu__bank-name {
+.side-menu__chat-panel {
   flex: 1;
-  white-space: nowrap;
+  min-height: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  border-top: 1px solid var(--cds-border-subtle);
 }
 
-.side-menu__bank-meta {
+.side-menu__bottom {
+  margin-top: auto;
+  padding: 0.375rem 0;
+  border-top: 1px solid var(--cds-border-subtle);
   flex-shrink: 0;
-  font-size: 0.75rem;
-  color: var(--cds-text-secondary);
-}
-
-.side-menu__bank-check {
-  flex-shrink: 0;
-  color: var(--cds-icon-interactive);
 }
 
 // ── Panel variant (persistent, always visible, flows in layout) ──
@@ -244,63 +199,56 @@
   transform: none;
   transition: none;
   z-index: auto;
+  width: 100%;
+  border-right: none;
+  background: transparent;
 }
 
 .side-menu--mini {
   width: 100%;
 
-  .side-menu__tabs,
   .side-menu__section {
-    justify-content: center;
+    align-items: center;
   }
 
   .side-menu__link,
   .side-menu__classroom,
-  .side-menu__bank,
-  .side-menu__workspace-trigger,
-  .side-menu__workspace-name,
   .side-menu__classroom-name,
   .side-menu__classroom-check,
-  .side-menu__bank-name,
-  .side-menu__bank-meta,
-  .side-menu__bank-check,
-  .side-menu__tab-label,
   .side-menu__section-header span,
-  .side-menu__workspace-chevron,
   .side-menu__section-header {
     text-align: center;
   }
 
-  .side-menu__tab,
   .side-menu__link,
-  .side-menu__classroom,
-  .side-menu__bank,
-  .side-menu__workspace-trigger {
+  .side-menu__classroom {
     justify-content: center;
     gap: 0;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0;
+    border-radius: 8px;
   }
 
   .side-menu__link > span,
   .side-menu__classroom > span,
   .side-menu__classroom-name,
   .side-menu__classroom-check,
-  .side-menu__bank-name,
-  .side-menu__bank-meta,
-  .side-menu__bank-check,
-  .side-menu__workspace-name,
-  .side-menu__workspace-chevron,
-  .side-menu__section-header span,
-  .side-menu__tab-label {
+  .side-menu__section-header span {
     display: none;
   }
 
   .side-menu__link,
-  .side-menu__classroom,
-  .side-menu__bank,
-  .side-menu__workspace-trigger {
+  .side-menu__classroom {
     overflow: hidden;
+  }
+
+  .side-menu__chat-panel {
+    display: none;
   }
 }
 
@@ -310,158 +258,4 @@
   .side-menu {
     width: 100%;
   }
-}
-
-
-// ── Tab bar — Notion pill style ──
-
-.side-menu__tabs {
-  display: flex;
-  align-items: center;
-  padding: 0.375rem 0.5rem;
-  gap: 0.125rem;
-  background: transparent;
-  border-bottom: 1px solid var(--cds-border-subtle-01);
-  flex-shrink: 0;
-}
-
-// Inactive tab: icon only, compact
-.side-menu__tab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  padding: 0.3125rem;
-  min-width: 2rem;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--cds-text-secondary);
-  transition: background 150ms ease, color 150ms ease;
-  white-space: nowrap;
-
-  &:hover {
-    background: var(--cds-layer-hover-01);
-    color: var(--cds-text-primary);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--cds-focus);
-    outline-offset: -2px;
-  }
-}
-
-// Active tab: pill with icon + label
-.side-menu__tab--active {
-  padding: 0.3125rem 0.625rem;
-  background: var(--cds-layer-selected-01);
-  color: var(--cds-text-primary);
-  font-weight: 500;
-}
-
-.side-menu__tab-label {
-  font-size: 0.8125rem;
-}
-
-// ── Chat tab content ──
-
-.side-menu__chat-tab {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-// ── Classroom workspace selector ──
-
-.side-menu__workspace {
-  padding: 0.5rem;
-  position: relative;
-  border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
-  flex-shrink: 0;
-}
-
-.side-menu__workspace-trigger {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem 0.625rem;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--cds-text-primary);
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: left;
-
-  &:hover {
-    background: var(--cds-layer-hover);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--cds-focus);
-    outline-offset: -2px;
-  }
-}
-
-.side-menu__workspace-icon {
-  flex-shrink: 0;
-  color: var(--cds-icon-primary);
-}
-
-.side-menu__workspace-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.side-menu__workspace-chevron {
-  flex-shrink: 0;
-  color: var(--cds-text-secondary);
-  transition: transform 150ms ease;
-}
-
-.side-menu__workspace-chevron--open {
-  transform: rotate(180deg);
-}
-
-.side-menu__workspace-dropdown {
-  position: absolute;
-  top: calc(100% - 0.25rem);
-  left: 0.5rem;
-  right: 0.5rem;
-  background: var(--cds-layer);
-  border: 1px solid var(--cds-border-subtle-01, #e0e0e0);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  z-index: 100;
-  overflow: hidden;
-}
-
-.side-menu__workspace-option {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 0;
-  background: transparent;
-  color: var(--cds-text-primary);
-  font-size: 0.8125rem;
-  text-align: left;
-  cursor: pointer;
-
-  &:hover {
-    background: var(--cds-layer-hover);
-  }
-}
-
-.side-menu__workspace-option--active {
-  background: var(--cds-layer-selected-01);
-  font-weight: 500;
 }

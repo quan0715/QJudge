@@ -47,8 +47,8 @@
     }
   },
   "editor": {
-    "header": "題目編輯器",
-    "selectLanguage": "選擇語言"
+    "header": "問題エディタ",
+    "selectLanguage": "言語を選択"
   },
   "filter": {
     "difficulty": "難易度",
@@ -60,18 +60,18 @@
   },
   "form": {
     "placeholder": {
-      "title": "請輸入題目名稱"
+      "title": "問題名を入力してください"
     },
     "slug": "URLスラッグ",
     "title": "タイトル"
   },
   "hero": {
-    "acRate": "通過率",
-    "accepted": "通過次數",
-    "memoryLimit": "記憶體限制",
-    "score": "配分",
-    "submissions": "提交次數",
-    "timeLimit": "時間限制"
+    "acRate": "正答率",
+    "accepted": "正解数",
+    "memoryLimit": "メモリ制限",
+    "score": "配点",
+    "submissions": "提出数",
+    "timeLimit": "時間制限"
   },
   "list": {
     "acrRate": "正解率",

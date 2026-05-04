@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Breadcrumb, BreadcrumbItem, IconButton, Loading } from "@carbon/react";
-import { ArrowLeft } from "@carbon/icons-react";
-import { useTranslation } from "react-i18next";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Loading } from "@carbon/react";
 
 import {
   ContestProvider,
@@ -11,7 +9,6 @@ import {
   useContest,
 } from "@/features/contest/contexts";
 import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
-import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
@@ -19,7 +16,7 @@ import { ContestSettingsOverlay } from "@/features/contest/screens/admin/panels/
 // import { useWorkspacePanelMode } from "@/features/app/contexts/useWorkspacePanelMode";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
-import { useMediaQuery, useTabWithUrlParam } from "@/shared/hooks";
+import { useTabWithUrlParam } from "@/shared/hooks";
 import styles from "./AdminDashboardScreen.module.scss";
 
 /** Dynamic panel dispatch — registry pattern requires runtime lookup; state is stable because
@@ -41,14 +38,11 @@ const LEGACY_PANEL_ALIAS: Record<string, AdminPanelId> = {
 };
 
 const AdminDashboardInner = () => {
-  const { t } = useTranslation("contest");
-  const { t: tc } = useTranslation("common");
   const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { contest, loading } = useContest();
-  const isCompactBreadcrumb = useMediaQuery("(max-width: 900px)");
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const hasManagementRole =
     contest?.currentUserRole !== undefined &&
@@ -125,60 +119,6 @@ const AdminDashboardInner = () => {
 
   return (
     <div className={styles.page}>
-      <WorkspaceToolBar
-        className={styles.toolbar}
-        title={(
-          <div className={styles.toolbarTitle}>
-            {isCompactBreadcrumb ? (
-              <>
-                <IconButton
-                  kind="ghost"
-                  size="sm"
-                  align="bottom"
-                  label={tc("common.back", "返回")}
-                  onClick={() => {
-                    const backPath = effectiveClassroomId
-                      ? `/classrooms/${effectiveClassroomId}`
-                      : "/dashboard";
-                    navigate(backPath);
-                  }}
-                  className={styles.backButton}
-                >
-                  <ArrowLeft size={20} />
-                </IconButton>
-                <h2 className={styles.mobileTitle}>
-                  {t("adminLayout.mobileTitle", "競賽後台")}
-                </h2>
-              </>
-            ) : (
-              <>
-                <Link to="/dashboard" className={styles.brandLink}>
-                  {tc("header.prefix", "QJudge")}
-                </Link>
-                <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
-                  <BreadcrumbItem>
-                    <Link to="/dashboard">{tc("nav.dashboard")}</Link>
-                  </BreadcrumbItem>
-                  {effectiveClassroomId && (
-                    <BreadcrumbItem>
-                      <Link to={`/classrooms/${effectiveClassroomId}`}>
-                        {tc("nav.classrooms", "教室")}
-                      </Link>
-                    </BreadcrumbItem>
-                  )}
-                  <BreadcrumbItem>
-                    {contest?.name || "Loading..."}
-                  </BreadcrumbItem>
-                  <BreadcrumbItem isCurrentPage>
-                    {t("adminLayout.title", "管理")}
-                  </BreadcrumbItem>
-                </Breadcrumb>
-              </>
-            )}
-          </div>
-        )}
-      />
-
       <div className={styles.panelBody}>
         <AdminPanelSlot
           panelId={activePanel}

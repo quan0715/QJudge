@@ -1,8 +1,55 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { AdminOverviewDashboardData } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
+import type { ContestParticipant } from "@/core/entities/contest.entity";
+import type {
+  AdminOverviewDashboardData,
+  AdminPreparationDashboardData,
+} from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
 import AdminOverviewCommandCenter from "./AdminOverviewCommandCenter";
+
+const participantDashboardState = vi.hoisted(() => ({
+  data: null,
+  loading: false,
+  error: "",
+  refresh: vi.fn(),
+}));
+
+vi.mock("@carbon/charts-react", () => ({
+  LineChart: () => <div data-testid="priority-events-chart" />,
+}));
+
+vi.mock("@/shared/ui/theme/ThemeContext", () => ({
+  useTheme: () => ({ theme: "white" }),
+}));
+
+vi.mock(
+  "@/features/contest/screens/settings/participants/useParticipantDashboard",
+  () => ({
+    default: vi.fn(() => participantDashboardState),
+  }),
+);
+
+vi.mock(
+  "@/features/contest/components/participants/ParticipantDashboardPane",
+  () => ({
+    default: () => (
+      <div data-testid="participant-dashboard-pane">既有學生詳細資訊</div>
+    ),
+  }),
+);
+
+vi.mock("@/features/contest/screens/settings/ContestLogsScreen", () => ({
+  default: ({ embedded }: { embedded?: boolean }) => (
+    <div data-testid="embedded-event-log">
+      {embedded ? "右側事件紀錄" : "事件紀錄"}
+    </div>
+  ),
+}));
+
+vi.mock("@/infrastructure/api/repositories", () => ({
+  downloadParticipantReport: vi.fn(),
+}));
 
 const data: AdminOverviewDashboardData = {
   kpis: [
@@ -11,6 +58,55 @@ const data: AdminOverviewDashboardData = {
     { key: "submitted", label: "已交卷", value: "21", tone: "neutral" },
     { key: "locked", label: "鎖定", value: "3", tone: "danger" },
     { key: "attention", label: "待處理事件", value: "5", tone: "warning" },
+  ],
+  timeline: {
+    phaseLabel: "進行中",
+    primaryTimeLabel: "剩餘 45:00",
+    timeWindowLabel: "09:00-11:00",
+    startDateTimeLabel: "2026/05/04 09:00",
+    endDateTimeLabel: "2026/05/04 11:00",
+    progressPercent: 62,
+  },
+  railItems: [
+    { key: "online", label: "在線", value: "96 / 128", tone: "neutral" },
+    { key: "in_progress", label: "作答中", value: "80", tone: "neutral" },
+    { key: "not_started", label: "未開始", value: "20", tone: "warning" },
+    { key: "submitted", label: "已交卷", value: "21", tone: "neutral" },
+    {
+      key: "locked_offline",
+      label: "鎖定 / 離線",
+      value: "3 / 4",
+      tone: "danger",
+    },
+  ],
+  insightCards: [
+    {
+      key: "grading_progress",
+      title: "批改進度",
+      value: "82%",
+      kind: "progress",
+      progressPercent: 82,
+      series: [],
+    },
+    {
+      key: "exam_progress",
+      title: "考試進度",
+      value: "62%",
+      kind: "progress",
+      progressPercent: 62,
+      series: [],
+    },
+    {
+      key: "priority_events",
+      title: "違規事件",
+      value: "3",
+      kind: "line",
+      series: [
+        { key: "p0", label: "P0", values: [{ label: "10:00", value: 1 }] },
+        { key: "p1", label: "P1", values: [{ label: "10:00", value: 1 }] },
+        { key: "p2", label: "P2", values: [{ label: "10:00", value: 1 }] },
+      ],
+    },
   ],
   attentionRows: [
     {
@@ -71,63 +167,325 @@ const data: AdminOverviewDashboardData = {
   ],
 };
 
+const preparationData: AdminPreparationDashboardData = {
+  timeline: {
+    phaseLabel: "進行中",
+    primaryTimeLabel: "剩餘 45:00",
+    timeWindowLabel: "09:00-11:00",
+    startDateTimeLabel: "2026/05/04 09:00",
+    endDateTimeLabel: "2026/05/04 11:00",
+    progressPercent: 62,
+  },
+  railItems: [],
+  insightCards: data.insightCards,
+  summaryItems: [],
+  checklistItems: [
+    {
+      key: "publish",
+      label: "競賽發布",
+      status: "done",
+      statusLabel: "完成",
+      description: "參賽者可依權限進入競賽",
+    },
+  ],
+  grading: {
+    totalAnswers: 40,
+    gradedAnswers: 30,
+    ungradedAnswers: 10,
+    progressPercent: 75,
+    progressLabel: "30 / 40",
+    resultsLabel: "未發布",
+    resultsTone: "warning",
+  },
+};
+
+const participants: ContestParticipant[] = [
+  {
+    userId: "1",
+    username: "ming",
+    userDisplayName: "王小明",
+    connectionStatus: "online",
+    liveMonitoringOnline: true,
+    score: 82,
+    joinedAt: "2026-05-03T09:00:00+08:00",
+    examStatus: "locked",
+    assignmentState: "accepted",
+    violationCount: 2,
+  },
+  {
+    userId: "2",
+    username: "hua",
+    userDisplayName: "陳小華",
+    connectionStatus: "offline",
+    score: 74,
+    joinedAt: "2026-05-03T09:00:00+08:00",
+    examStatus: "submitted",
+    assignmentState: "submitted",
+    violationCount: 0,
+  },
+] as ContestParticipant[];
+
 describe("AdminOverviewCommandCenter", () => {
-  it("renders teacher overview sections without monitoring sources or submission trends", () => {
-    render(<AdminOverviewCommandCenter data={data} onOpenPanel={vi.fn()} />);
-
-    expect(screen.getByText("待處理考生")).toBeInTheDocument();
-    expect(screen.getByText("考務狀態")).toBeInTheDocument();
-    expect(screen.getByText("考生分布")).toBeInTheDocument();
-    expect(screen.getByText("考務事件")).toBeInTheDocument();
-    expect(screen.getByText("下一步")).toBeInTheDocument();
-    expect(
-      screen.queryByText(/webcam|screen share|fullscreen|監控來源/i),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText(/提交趨勢|submission trend/i)).not.toBeInTheDocument();
-  });
-
-  it("opens the target admin panel from row actions", async () => {
-    const onOpenPanel = vi.fn();
-    render(<AdminOverviewCommandCenter data={data} onOpenPanel={onOpenPanel} />);
-
-    await userEvent.click(screen.getByRole("button", { name: "處理 王小明" }));
-
-    expect(onOpenPanel).toHaveBeenCalledWith("participants");
-  });
-
-  it("renders next step as panel entries only", async () => {
-    const onOpenPanel = vi.fn();
+  const primary = <div>競賽資訊</div>;
+  const questionStatsGallery = <div>各題作答數據</div>;
+  const renderCommandCenter = ({
+    onOpenPanel = vi.fn(),
+    overrideData = data,
+    adminLoading = false,
+    gradingLoading = false,
+    antiCheatEnabled = true,
+  }: {
+    onOpenPanel?: (panel: string) => void;
+    overrideData?: AdminOverviewDashboardData;
+    adminLoading?: boolean;
+    gradingLoading?: boolean;
+    antiCheatEnabled?: boolean;
+  } = {}) =>
     render(
       <AdminOverviewCommandCenter
-        data={{
-          ...data,
-          nextActions: [
-            ...data.nextActions,
-            {
-              key: "results",
-              title: "發布成績",
-              description: "成績已發布",
-              panelTarget: "grading",
-              disabled: true,
-            },
-          ],
-        }}
+        data={overrideData}
+        preparationData={preparationData}
+        adminLoading={adminLoading}
+        gradingLoading={gradingLoading}
+        contestId="contest-1"
+        antiCheatEnabled={antiCheatEnabled}
         onOpenPanel={onOpenPanel}
+        participants={participants}
+        primary={primary}
+        questionStatsGallery={questionStatsGallery}
       />,
     );
 
-    expect(screen.getByRole("button", { name: /即時監控/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /題目編輯與管理/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /參賽者管理/ })).toBeInTheDocument();
+  it("renders contest information, insight charts, and merged overview panels", () => {
+    renderCommandCenter();
+
+    expect(screen.getByText("競賽資訊")).toBeInTheDocument();
+    const examSummary = screen.getByLabelText("考試狀態摘要");
+    expect(within(examSummary).getByText("考試人數")).toBeInTheDocument();
+    expect(within(examSummary).getByText("2")).toBeInTheDocument();
+    expect(within(examSummary).getByText("在線人數")).toBeInTheDocument();
+    expect(within(examSummary).getByText("1")).toBeInTheDocument();
+    const examSchedule = within(examSummary).getByLabelText("考試時間");
+    expect(within(examSchedule).getByText("開始時間")).toBeInTheDocument();
+    expect(
+      within(examSchedule).getByText("2026/05/04 09:00"),
+    ).toBeInTheDocument();
+    expect(within(examSchedule).getByText("結束時間")).toBeInTheDocument();
+    expect(
+      within(examSchedule).getByText("2026/05/04 11:00"),
+    ).toBeInTheDocument();
+    expect(within(examSummary).getByText("倒數計時")).toBeInTheDocument();
+    expect(within(examSummary).getByText("剩餘 45:00")).toBeInTheDocument();
+    expect(screen.getAllByText("批改進度").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("progressbar", { name: "考試進度" }),
+    ).toHaveAttribute("aria-valuenow", "62");
+    expect(screen.getAllByText("違規事件").length).toBeGreaterThan(0);
+    const distributionOverview = screen.getByLabelText("考生分佈總覽");
+    expect(distributionOverview).toBeInTheDocument();
+    expect(
+      within(distributionOverview).queryByText("離線"),
+    ).not.toBeInTheDocument();
+    const eventLogPanel = screen.getByLabelText("事件紀錄");
+    const priorityChartTitle = within(eventLogPanel).getByText("違規事件");
+    const embeddedEventLog = screen.getByTestId("embedded-event-log");
+    expect(
+      priorityChartTitle.compareDocumentPosition(embeddedEventLog) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("tab", { name: "監考總覽" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("tab", { name: "準備與批改" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("tab", { name: "管理入口" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("考生列表")).toBeInTheDocument();
+    expect(screen.getByText("王小明")).toBeInTheDocument();
+    expect(screen.getByText("@ming")).toBeInTheDocument();
+    expect(screen.getByText("陳小華")).toBeInTheDocument();
+    expect(screen.queryByText("考務事件")).not.toBeInTheDocument();
+    expect(screen.queryByText("競賽發布")).not.toBeInTheDocument();
+    expect(screen.getByText("各題作答數據")).toBeInTheDocument();
+    expect(screen.queryByText("批改與成績")).not.toBeInTheDocument();
+    expect(screen.getByTestId("embedded-event-log")).toHaveTextContent(
+      "右側事件紀錄",
+    );
+    expect(screen.getByText("30 / 40")).toBeInTheDocument();
+    expect(screen.getByText("待批改")).toBeInTheDocument();
+    expect(screen.getByText("未發布")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("tab", { name: "待處理考生" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("tab", { name: "考生分布" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("下一步")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/webcam|screen share|fullscreen|監控來源/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/提交趨勢|submission trend/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps online headcount visible when anti-cheat is disabled", () => {
+    renderCommandCenter({ antiCheatEnabled: false });
+
+    const examSummary = screen.getByLabelText("考試狀態摘要");
+    expect(within(examSummary).getByText("在線人數")).toBeInTheDocument();
+    expect(within(examSummary).getByText("1")).toBeInTheDocument();
+    expect(within(examSummary).queryByText("違規事件")).not.toBeInTheDocument();
+  });
+
+  it("keeps only essential drilldown content in the left overview column", () => {
+    renderCommandCenter();
+
+    expect(screen.getByRole("progressbar", { name: "作答中" })).toHaveAttribute(
+      "aria-valuenow",
+      "63",
+    );
+    expect(screen.queryByText("auto_submit")).not.toBeInTheDocument();
+    expect(screen.getByText("陳小華")).toBeInTheDocument();
+    expect(screen.queryByText("競賽發布")).not.toBeInTheDocument();
+    expect(screen.getByText("各題作答數據")).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole("progressbar", { name: "批改進度" })
+        .some((bar) => bar.getAttribute("aria-valuenow") === "82"),
+    ).toBe(true);
+    expect(screen.queryByText("題目統計")).not.toBeInTheDocument();
+  });
+
+  it("groups participants by status and switches the card metric", async () => {
+    renderCommandCenter();
+
+    expect(screen.getByText("需要處理")).toBeInTheDocument();
+    expect(screen.getAllByText("已交卷").length).toBeGreaterThan(0);
+
+    const lockedCard = screen.getByRole("button", { name: /王小明/ });
+    expect(within(lockedCard).getByText("分數")).toBeInTheDocument();
+    expect(within(lockedCard).getByText("82")).toBeInTheDocument();
+    expect(within(lockedCard).queryByText("違規")).not.toBeInTheDocument();
+    expect(within(lockedCard).getByText("@ming")).toBeInTheDocument();
+    expect(within(lockedCard).getByText("在線")).toBeInTheDocument();
+    const metricSwitch = screen.getByLabelText("考生卡片資料切換");
+
+    await userEvent.click(within(metricSwitch).getByText("違規"));
+
+    expect(within(lockedCard).getByText("違規")).toBeInTheDocument();
+    expect(within(lockedCard).getByText("2")).toBeInTheDocument();
+
+    await userEvent.click(within(metricSwitch).getByText("作答進度"));
+
+    expect(within(lockedCard).getByText("作答進度")).toBeInTheDocument();
+    expect(within(lockedCard).getByText("中斷")).toBeInTheDocument();
+    expect(within(lockedCard).getByText("已鎖定")).toBeInTheDocument();
+
+    const offlineCard = screen.getByRole("button", { name: /陳小華/ });
+    expect(within(offlineCard).getByText("離線")).toBeInTheDocument();
+    expect(within(offlineCard).getByLabelText("離線")).toBeInTheDocument();
+    expect(within(offlineCard).getByText("@hua")).toBeInTheDocument();
+  });
+
+  it("filters participant cards from the overview tab search", async () => {
+    renderCommandCenter();
+
+    const searchInput = screen.getByRole("searchbox", { name: "搜尋考生" });
+    await userEvent.type(searchInput, "hua");
+
+    expect(
+      screen.queryByRole("button", { name: /王小明/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /陳小華/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "篩選狀態" }),
+    ).toBeInTheDocument();
+  });
+
+  it("switches the drilldown section between participants and answer distribution", async () => {
+    renderCommandCenter();
+
+    expect(screen.getByRole("tab", { name: "參與者" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("考生列表");
+
+    await userEvent.click(screen.getByRole("tab", { name: "作答分佈" }));
+
+    expect(screen.getByRole("tab", { name: "作答分佈" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("各題作答數據");
+  });
+
+  it("opens existing participant detail content from student cards", async () => {
+    const onOpenPanel = vi.fn();
+    renderCommandCenter({ onOpenPanel });
+
+    await userEvent.click(screen.getByRole("button", { name: /王小明/ }));
+
+    expect(
+      screen.getByRole("dialog", { name: "學生詳細資訊" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("participant-dashboard-pane")).toHaveTextContent(
+      "既有學生詳細資訊",
+    );
+    expect(onOpenPanel).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "關閉學生詳細資訊" }),
+    );
+
+    expect(
+      screen.queryByRole("dialog", { name: "學生詳細資訊" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows independent skeleton regions for admin and grading API data", () => {
+    renderCommandCenter({ adminLoading: true, gradingLoading: true });
+
+    expect(screen.getByLabelText("考生列表載入中")).toBeInTheDocument();
+    expect(screen.getByLabelText("批改資料載入中")).toBeInTheDocument();
+    expect(screen.getByText("考生分佈總覽")).toBeInTheDocument();
+  });
+
+  it("keeps generic panel entries out of the live dashboard", () => {
+    const onOpenPanel = vi.fn();
+    renderCommandCenter({
+      onOpenPanel,
+      overrideData: {
+        ...data,
+        nextActions: [
+          ...data.nextActions,
+          {
+            key: "results",
+            title: "發布成績",
+            description: "成績已發布",
+            panelTarget: "grading",
+            disabled: true,
+          },
+        ],
+      },
+    });
+
+    expect(
+      screen.queryByRole("button", { name: /即時監控/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /題目編輯與管理/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /參賽者管理/ }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("管理操作")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /發布成績/ })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: /即時監控/ }));
-    await userEvent.click(screen.getByRole("button", { name: /題目編輯與管理/ }));
-    await userEvent.click(screen.getByRole("button", { name: /參賽者管理/ }));
-
-    expect(onOpenPanel).toHaveBeenNthCalledWith(1, "proctoring");
-    expect(onOpenPanel).toHaveBeenNthCalledWith(2, "problem_editor");
-    expect(onOpenPanel).toHaveBeenNthCalledWith(3, "participants");
+    expect(
+      screen.queryByRole("button", { name: /發布成績/ }),
+    ).not.toBeInTheDocument();
+    expect(onOpenPanel).not.toHaveBeenCalled();
   });
 });

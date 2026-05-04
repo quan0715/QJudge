@@ -1,4 +1,4 @@
-import { useMemo, useState, type ComponentType } from "react";
+import { useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { AreaChart, DonutChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
 import "@carbon/charts-react/styles.css";
@@ -62,6 +62,7 @@ interface ParticipantDashboardPaneProps {
   error: string;
   activeDetail: ParticipantDashboardDetail;
   hideOverviewTab?: boolean;
+  overviewContent?: ReactNode;
   onDetailChange: (detail: ParticipantDashboardDetail) => void;
   onDownloadReport: () => void;
   onEditStatus: () => void;
@@ -131,6 +132,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   error,
   activeDetail,
   hideOverviewTab = false,
+  overviewContent,
   onDetailChange,
   onDownloadReport,
   onEditStatus,
@@ -391,7 +393,10 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
           <TabPanels>
             {availableDetails.map((detail) => (
               <TabPanel key={detail} className={styles.tabPanel}>
-                {detail === "overview" ? (
+                {detail === "overview" && overviewContent
+                  ? overviewContent
+                  : null}
+                {detail === "overview" && !overviewContent ? (
                   <div className={styles.overviewPanel}>
                     {/* Profile header */}
                     <div className={styles.profileHeader}>

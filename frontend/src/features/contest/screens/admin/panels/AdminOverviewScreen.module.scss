@@ -1,7 +1,64 @@
-.mainColumn {
+.page {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--cds-background);
+}
+
+.content {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  padding: 1.5rem;
+}
+
+.dashboardTitleBlock {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.dashboardTitleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.dashboardTitleRow h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--cds-text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.dashboardDescription {
+  max-width: 52rem;
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
+.primaryStack {
+  display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
+}
+
+.contestInfo {
+  display: grid;
+  align-content: start;
+  min-height: 7.5rem;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.dashboardTitleBlock {
+  padding: 1rem 1.25rem;
 }
 
 .publishSummary {
@@ -28,7 +85,6 @@
   padding: 0.5rem 0.625rem;
   border: 1px solid var(--cds-border-subtle);
   border-radius: 0.375rem;
-  background: var(--cds-layer-01);
 }
 
 .publishSummaryLabel {

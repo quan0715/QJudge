@@ -273,7 +273,7 @@ export default function OverviewActionWidgets({
         />
 
         <ActionWidgetCard
-          title={t("adminOverview.widgets.strictExamMode", "嚴格考試模式")}
+          title={t("adminOverview.widgets.strictExamMode", "防作弊監控")}
           icon={Security}
           actionIcon={Security}
           actionIntent="toggle"

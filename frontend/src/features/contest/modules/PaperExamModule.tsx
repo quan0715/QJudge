@@ -4,25 +4,28 @@ import {
   isContestParticipant,
   isStrictSubmittedBeforeEnd,
 } from "@/features/contest/domain/contestRuntimePolicy";
-import { toContestTabSpecs, type ContestTabKey } from "@/features/contest/tabConfig";
+import {
+  toContestTabSpecs,
+  type ContestTabKey,
+} from "@/features/contest/tabConfig";
 import type {
   AdminPanelId,
   ContestStudentTabContentKind,
   ContestTypeModule,
 } from "@/features/contest/modules/types";
 import ExamEditorLayout from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
-import ContestResultDashboardPanel from "@/features/contest/components/admin/statistics/ContestResultDashboardPanel";
 import PaperExamAnsweringScreen from "@/features/contest/screens/paperExam/PaperExamAnsweringScreen";
 import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 
 const getPaperExamTabs = (contest?: ContestDetail | null) => {
-  const keyToContentKind: Record<ContestTabKey, ContestStudentTabContentKind> = {
-    overview: "overview",
-    problems: "paper_exam_problems",
-    submissions: "submissions",
-    standings: "standings",
-    clarifications: "clarifications",
-  };
+  const keyToContentKind: Record<ContestTabKey, ContestStudentTabContentKind> =
+    {
+      overview: "overview",
+      problems: "paper_exam_problems",
+      submissions: "submissions",
+      standings: "standings",
+      clarifications: "clarifications",
+    };
   const toTabDefinitions = (keys: ContestTabKey[]) =>
     toContestTabSpecs(keys).map((tab) => ({
       ...tab,
@@ -47,33 +50,33 @@ const getPaperExamTabs = (contest?: ContestDetail | null) => {
 const PAPER_EXAM_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
   "clarifications",
-  "logs",
   "participants",
   "proctoring",
   "problem_editor",
   "grading",
   "ai-grading",
-  "statistics",
 ];
 const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];
 
 export const paperExamContestModule: ContestTypeModule = {
   type: "paper_exam",
-    student: {
-      getTabs: (contest) => getPaperExamTabs(contest),
-      getSolveRenderer: () => () => <PaperExamAnsweringScreen />,
-      getAnsweringEntryPath: (contestId, contest) => {
-        const classroomId = contest?.boundClassroomId;
-        if (!classroomId) {
-          return "/dashboard";
-        }
-        return getClassroomContestSolvePath(classroomId, contestId);
-      },
+  student: {
+    getTabs: (contest) => getPaperExamTabs(contest),
+    getSolveRenderer: () => () => <PaperExamAnsweringScreen />,
+    getAnsweringEntryPath: (contestId, contest) => {
+      const classroomId = contest?.boundClassroomId;
+      if (!classroomId) {
+        return "/dashboard";
+      }
+      return getClassroomContestSolvePath(classroomId, contestId);
     },
+  },
   admin: {
     editorKind: "paper_exam",
     getAvailablePanels: (contest) =>
-      contest?.status === "draft" ? DRAFT_ADMIN_PANELS : PAPER_EXAM_ADMIN_PANELS,
+      contest?.status === "draft"
+        ? DRAFT_ADMIN_PANELS
+        : PAPER_EXAM_ADMIN_PANELS,
     getPanelRenderers: () => ({
       problem_editor: (props) => {
         if (!props.contest) return null;
@@ -86,7 +89,6 @@ export const paperExamContestModule: ContestTypeModule = {
           />
         );
       },
-      statistics: (props) => <ContestResultDashboardPanel {...props} />,
     }),
     getExportTargets: () => ["exam-question", "exam-answer"],
   },

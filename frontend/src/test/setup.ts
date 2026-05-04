@@ -6,7 +6,8 @@ import { vi } from "vitest";
 vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, defaultOrOptions?: unknown) =>
+      typeof defaultOrOptions === "string" ? defaultOrOptions : key,
     i18n: { language: "zh-TW", changeLanguage: vi.fn() },
   }),
   Trans: ({ children }: { children: React.ReactNode }) => children,

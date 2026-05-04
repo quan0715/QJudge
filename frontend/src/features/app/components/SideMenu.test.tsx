@@ -102,7 +102,7 @@ describe("SideMenu contest admin workspace panels", () => {
     expect(screen.getByTestId("location-search")).toHaveTextContent("panel=settings");
   });
 
-  it("shows published panel set including grading and statistics", async () => {
+  it("shows published panel set including grading", async () => {
     mockGetContest.mockResolvedValue({
       id: "contest-2",
       contestType: "paper_exam",
@@ -118,7 +118,9 @@ describe("SideMenu contest admin workspace panels", () => {
     expect(await screen.findByText("adminLayout.nav.examManagement")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.proctoring")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.examGrading")).toBeInTheDocument();
-    expect(screen.getByText("adminLayout.nav.examStatistics")).toBeInTheDocument();
+    expect(
+      screen.queryByText("adminLayout.nav.examStatistics"),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.settings")).toBeInTheDocument();
 
     await waitFor(() => {

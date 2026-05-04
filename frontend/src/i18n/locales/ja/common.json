@@ -16,19 +16,19 @@
   "auth": {
     "callback": {
       "conflictTitle": "試験の競合",
-      "connecting": "連線中...",
+      "connecting": "接続中...",
       "errorTitle": "ログイン失敗",
       "examConflict": "進行中の試験セッションが検出されました。引き継ぎを選択してください。",
       "failed": "ログインに失敗しました。もう一度お試しください。",
-      "finalTouch": "正在進行最後確認...",
+      "finalTouch": "最終確認中...",
       "loading": "本人確認中",
       "loadingDesc": "学生情報を取得しています。しばらくお待ちください...",
       "loadingSubtitle": "あなた専用のプログラミングステージを準備中...",
       "loadingTitle": "プログラミング評価プラットフォームへようこそ",
       "noCode": "認証コードが受信されませんでした。",
-      "pleaseWait": "請稍候",
+      "pleaseWait": "しばらくお待ちください",
       "steps": {
-        "almost": "就快好了，請稍候",
+        "almost": "もうすぐ完了します。しばらくお待ちください",
         "assembling": "ワークスペースを構築中...",
         "igniting": "エンジン点火中...",
         "preparing": "冒険を準備中...",
@@ -40,7 +40,7 @@
       "takeoverExpired": "引き継ぎトークンが期限切れです。再度ログインしてください。",
       "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。",
       "takingOver": "処理中...",
-      "verifyingSession": "同步作業階段中..."
+      "verifyingSession": "セッションを同期中..."
     },
     "campusSso": {
       "backToLogin": "ログインに戻る",
@@ -188,8 +188,8 @@
     "questionBanksSection": {
       "empty": "問題集がまだありません。",
       "emptyHint": "問題集を作成して問題を整理しましょう。",
-      "showLess": "收起",
-      "showMore": "顯示更多",
+      "showLess": "閉じる",
+      "showMore": "もっと表示",
       "title": "マイ問題集",
       "viewAll": "すべて表示"
     },
@@ -197,7 +197,7 @@
       "noStats": "統計データを読み込めません",
       "problems": "問",
       "solvedCount": "/ {{total}} 解決済み",
-      "title": "解題統計"
+      "title": "解答統計"
     },
     "subtitle": "Online Judge",
     "welcomeBack": "おかえりなさい、{{name}}さん"
@@ -266,35 +266,35 @@
   },
   "mcp": {
     "landing": {
-      "description": "在 Claude、ChatGPT、Google Gemini、Notion 中出題、批改、反饋",
+      "description": "Claude、ChatGPT、Google Gemini、Notion で出題、採点、フィードバックを行えます",
       "examples": {
         "0": {
-          "aiMessage": "我為你設計了 3 道題目。已直接建立到你的 QJudge 題庫。",
-          "description": "教師在 Claude 中與 AI 討論題目需求，Claude 直接在 QJudge 中建立題目",
-          "feedback": "✓ 已建立",
-          "title": "快速生成題目",
-          "userMessage": "幫我設計一套 C++ 迴圈的競賽題目"
+          "aiMessage": "3問を設計しました。QJudge の問題バンクに直接作成済みです。",
+          "description": "教師が Claude と問題要件を相談し、Claude が QJudge に直接問題を作成します",
+          "feedback": "✓ 作成済み",
+          "title": "問題を素早く生成",
+          "userMessage": "C++ のループに関するコンテスト問題セットを設計してください"
         },
         "1": {
-          "aiMessage": "第三題通過率 45%。常見問題是邊界條件處理不當。我提供了改進建議。",
-          "description": "教師在 Claude 中請求批改結果，Claude 自動從 QJudge 取得批改數據並提供分析",
-          "stats": "通過率 45%",
-          "title": "自動批改評論",
-          "userMessage": "請協助批改第三題"
+          "aiMessage": "第3問の正答率は45%です。よくある問題は境界条件の扱いです。改善案を提示しました。",
+          "description": "教師が Claude に採点結果を依頼すると、Claude が QJudge からデータを取得して分析します",
+          "stats": "正答率 45%",
+          "title": "自動採点レビュー",
+          "userMessage": "第3問の採点を手伝ってください"
         }
       },
-      "eyebrow": "無痛協作",
+      "eyebrow": "シームレスな連携",
       "features": {
-        "0": "快速生成競賽題目",
-        "1": "自動評分與分析",
-        "2": "提供個性化評論"
+        "0": "コンテスト問題を素早く生成",
+        "1": "自動採点と分析",
+        "2": "個別フィードバックを提供"
       },
       "features_description": {
-        "0": "與 AI 協商題目需求，直接建立到 QJudge",
-        "1": "取得批改結果、通過率統計和常見錯誤分析",
-        "2": "AI 分析常見錯誤並給改進建議"
+        "0": "AI と問題要件を調整し、そのまま QJudge に作成",
+        "1": "採点結果、正答率統計、よくある誤答分析を取得",
+        "2": "AI がよくある誤りを分析し、改善案を提示"
       },
-      "title": "與你的 AI 工具無痛協作",
+      "title": "AI ツールとスムーズに連携",
       "tools": {
         "chatgpt": "ChatGPT",
         "claude": "Claude",
@@ -334,7 +334,7 @@
   "nav": {
     "back": "戻る",
     "backToProblemList": "問題リストへ",
-    "changelog": "更新紀錄",
+    "changelog": "変更履歴",
     "chat": "Chat",
     "classrooms": "クラスルーム",
     "contests": "コンテスト",
@@ -349,13 +349,13 @@
   },
   "oauth": {
     "authorize": {
-      "allow": "允許",
-      "deny": "拒絕",
-      "description": "{{clientName}} 正在請求存取你的 QJudge 帳號",
-      "error": "授權失敗，請稍後再試",
-      "invalidRequest": "無效的授權請求",
-      "loading": "處理中...",
-      "title": "授權請求"
+      "allow": "許可",
+      "deny": "拒否",
+      "description": "{{clientName}} があなたの QJudge アカウントへのアクセスを要求しています",
+      "error": "認可に失敗しました。後でもう一度お試しください",
+      "invalidRequest": "無効な認可リクエスト",
+      "loading": "処理中...",
+      "title": "認可リクエスト"
     }
   },
   "page": {
@@ -395,7 +395,7 @@
     "currentPassword": "現在のパスワード",
     "displayName": "表示名",
     "displayNameDescription": "プラットフォームで表示される名前を設定します",
-    "displayNameSaveFailed": "更新失敗",
+    "displayNameSaveFailed": "更新に失敗しました",
     "displayNameSaved": "更新されました",
     "editAvatar": "アバターを編集",
     "editor": "エディター設定",
@@ -455,7 +455,7 @@
     "emptyQuestions": "この問題バンクにはまだ問題がありません。",
     "exploreOnlyPlatform": "探索は現在 QJudge Community のみ対応しています",
     "exploreOnlyPlatformDesc": "Phase1 では教員間の共有は含まれず、Community の検証済み問題集が中心となります。",
-    "importFromInbox": "匯入草稿",
+    "importFromInbox": "下書きをインポート",
     "inbox": {
       "clearSelection": "選択を解除",
       "empty": "現在、選択可能な問題はありません。",
@@ -550,19 +550,19 @@
     "admin": "管理者",
     "adminTA": "管理者 (TA)",
     "student": "学生",
-    "ta": "助教",
+    "ta": "TA",
     "teacher": "教員"
   },
   "settings": {
     "aiUsage": {
-      "inputTokens": "輸入 Tokens",
-      "lastUpdated": "最後更新",
-      "loadError": "無法載入使用量資料",
-      "noData": "無資料",
-      "outputTokens": "輸出 Tokens",
+      "inputTokens": "入力 Tokens",
+      "lastUpdated": "最終更新",
+      "loadError": "使用量データを読み込めません",
+      "noData": "データなし",
+      "outputTokens": "出力 Tokens",
       "title": "AI 使用量",
       "totalCost": "累計費用",
-      "totalRequests": "總請求數"
+      "totalRequests": "総リクエスト数"
     },
     "description": "プロフィール、環境設定、プラン、利用状況を管理します。",
     "descriptionStudent": "設定を管理します",
@@ -635,7 +635,7 @@
     },
     "tabs": {
       "aiUsage": "AI 使用量",
-      "mcp": "MCP 連線",
+      "mcp": "MCP 接続",
       "plans": "プラン",
       "preferences": "基本設定",
       "profile": "プロフィール",

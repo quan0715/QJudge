@@ -1,9 +1,21 @@
 @use "../chat-ui/variables" as *;
 
 .shell {
+  --workspace-left-panel-expanded-width: 18rem;
+  --workspace-left-panel-collapsed-width: 3rem;
+
   display: flex;
+  flex-direction: column;
   flex: 1;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bodyRow {
+  display: flex;
+  flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
@@ -11,20 +23,16 @@
 // ── Left panel (desktop docked) ──
 .leftPanel {
   flex-shrink: 0;
-  width: 18rem;
+  width: var(--workspace-left-panel-expanded-width);
   height: 100%;
   overflow: hidden;
   border-right: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  background: var(--cds-layer);
   transition: width $chat-motion-duration $chat-motion-easing;
 }
 
-.leftPanelMini {
-  width: 3rem;
-}
-
 .leftPanelCollapsed {
-  width: 0;
-  border-right: none;
+  width: var(--workspace-left-panel-collapsed-width);
 }
 
 // ── Main column (children) ──

@@ -47,8 +47,8 @@
     }
   },
   "editor": {
-    "header": "題目編輯器",
-    "selectLanguage": "選擇語言"
+    "header": "코드 에디터",
+    "selectLanguage": "언어 선택"
   },
   "filter": {
     "difficulty": "난이도",
@@ -60,18 +60,18 @@
   },
   "form": {
     "placeholder": {
-      "title": "請輸入題目名稱"
+      "title": "문제 제목을 입력하세요"
     },
     "slug": "URL 슬러그",
     "title": "제목"
   },
   "hero": {
-    "acRate": "通過率",
-    "accepted": "通過次數",
-    "memoryLimit": "記憶體限制",
-    "score": "配分",
-    "submissions": "提交次數",
-    "timeLimit": "時間限制"
+    "acRate": "정답률",
+    "accepted": "정답",
+    "memoryLimit": "메모리 제한",
+    "score": "점수",
+    "submissions": "제출",
+    "timeLimit": "시간 제한"
   },
   "list": {
     "acrRate": "정답률",
