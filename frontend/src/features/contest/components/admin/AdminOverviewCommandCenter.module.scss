@@ -41,7 +41,6 @@
 }
 
 .examStatusMetric span,
-.examProgressHeader span,
 .examScheduleItem span {
   color: var(--cds-text-secondary);
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
@@ -61,18 +60,22 @@
 }
 
 .examProgressHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  display: grid;
+  gap: 0.5rem;
 }
 
-.examProgressHeader strong {
+.examProgressTitle {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
+.examProgressValue {
   min-width: 0;
   overflow: hidden;
   color: var(--cds-text-primary);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 600;
+  line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

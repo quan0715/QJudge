@@ -32,6 +32,7 @@ import {
   useState,
   type ChangeEvent,
   type ElementType,
+  type ReactElement,
   type ReactNode,
 } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -185,12 +186,12 @@ type ParticipantStatusFilter =
   | "needs_attention"
   | NonNullable<ContestParticipant["examStatus"]>;
 
-type FilterOption = {
-  id: ParticipantStatusFilter;
+type FilterOption<TId extends string = string> = {
+  id: TId;
   label: string;
 };
 
-const PARTICIPANT_STATUS_FILTERS: FilterOption[] = [
+const PARTICIPANT_STATUS_FILTERS: FilterOption<ParticipantStatusFilter>[] = [
   { id: "all", label: "全部狀態" },
   { id: "needs_attention", label: "需要處理" },
   { id: "in_progress", label: "作答中" },
@@ -629,6 +630,8 @@ export default function AdminOverviewCommandCenter({
   const examProgressPercent = Math.round(
     Math.max(0, Math.min(100, data.timeline.progressPercent)),
   );
+  const examProgressStatus =
+    examProgressPercent >= 100 ? "finished" : "active";
   const examStatusSummary = (
     <section className={styles.examStatusPanel} aria-label="考試狀態摘要">
       <div className={styles.examStatusMatrix}>
@@ -653,14 +656,17 @@ export default function AdminOverviewCommandCenter({
       </div>
       <div className={styles.examProgressBlock}>
         <div className={styles.examProgressHeader}>
-          <span>倒數計時</span>
-          <strong>{data.timeline.primaryTimeLabel}</strong>
+          <span className={styles.examProgressTitle}>倒數計時</span>
+          <strong className={styles.examProgressValue}>
+            {data.timeline.primaryTimeLabel}
+          </strong>
         </div>
         <ProgressBar
           label="考試進度"
           hideLabel
           size="small"
           value={examProgressPercent}
+          status={examProgressStatus}
           className={styles.rightPanelProgressBar}
         />
       </div>
@@ -833,13 +839,22 @@ export default function AdminOverviewCommandCenter({
   const questionStatsPanel = (
     <div className={`${styles.drilldownPanel} ${styles.drilldownPanelFlush}`}>
       {isValidElement(questionStatsGallery)
-        ? cloneElement(questionStatsGallery, {
-            searchQuery: questionStatsSearch,
-            onSearchQueryChange: setQuestionStatsSearch,
-            questionKindFilter: questionStatsKindFilter,
-            onQuestionKindFilterChange: setQuestionStatsKindFilter,
-            showFilterToolbar: false,
-          })
+        ? cloneElement(
+            questionStatsGallery as ReactElement<{
+              searchQuery?: string;
+              onSearchQueryChange?: (q: string) => void;
+              questionKindFilter?: string;
+              onQuestionKindFilterChange?: (kind: string) => void;
+              showFilterToolbar?: boolean;
+            }>,
+            {
+              searchQuery: questionStatsSearch,
+              onSearchQueryChange: setQuestionStatsSearch,
+              questionKindFilter: questionStatsKindFilter,
+              onQuestionKindFilterChange: setQuestionStatsKindFilter,
+              showFilterToolbar: false,
+            },
+          )
         : questionStatsGallery ?? (
         <div className={styles.emptyState}>目前沒有作答分佈資料</div>
       )}

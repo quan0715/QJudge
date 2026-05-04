@@ -146,16 +146,25 @@ export default function AdminExamResultOverview({
             100,
         )
       : 0;
+  const averageScoreRate =
+    dashboard.summary.maxTotalScore > 0
+      ? Math.round(
+          (dashboard.summary.averageScore / dashboard.summary.maxTotalScore) *
+            100,
+        )
+      : 0;
   const metrics = [
     {
       key: "average",
       label: t("statistics.avgTotalScore", "平均總分"),
       value: `${dashboard.summary.averageScore.toFixed(1)} / ${dashboard.summary.maxTotalScore}`,
+      isSuccess: averageScoreRate >= 100,
     },
     {
       key: "completion",
       label: t("statistics.completionRate", "完成率"),
       value: `${completionRate}%`,
+      isSuccess: completionRate >= 100,
     },
   ];
 
@@ -174,7 +183,11 @@ export default function AdminExamResultOverview({
           {metrics.map((metric) => (
             <div className={styles.metricCell} key={metric.key}>
               <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
+              <strong
+                className={metric.isSuccess ? styles.metricValueSuccess : undefined}
+              >
+                {metric.value}
+              </strong>
             </div>
           ))}
         </div>

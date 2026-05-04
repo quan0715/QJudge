@@ -97,8 +97,10 @@ export const getEventCategory = (eventType: string): string =>
 const humanizeEventType = (eventType: string): string =>
   eventType.replaceAll("_", " ");
 
+type TranslateFn = (key: string, defaultValue: string) => unknown;
+
 export const getEventTypeLabel = (
-  t: (key: string, defaultValue?: string) => string,
+  t: TranslateFn,
   eventType: string,
 ): string => {
   const translated = String(t(`logs.eventTypes.${eventType}`, eventType));

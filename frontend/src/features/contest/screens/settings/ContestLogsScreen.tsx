@@ -29,7 +29,6 @@ import {
   getEventCategory,
   getEventTypeIcon,
   getEventTypeLabel,
-  getPriorityIcon,
   PRIORITY_LABELS,
 } from "@/features/contest/constants/eventTaxonomy";
 import IncidentCard from "@/features/contest/components/admin/IncidentCard";

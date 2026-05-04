@@ -37,12 +37,14 @@ const resolveCarbonChartTheme = (
 
 const ProgressChart = ({ card }: { card: DashboardInsightCard }) => {
   const progress = Math.max(0, Math.min(100, card.progressPercent ?? 0));
+  const progressValue = Math.round(progress);
   return (
     <ProgressBar
       label={card.title}
       hideLabel
       size="small"
-      value={Math.round(progress)}
+      value={progressValue}
+      status={progressValue >= 100 ? "finished" : "active"}
       className={styles.rightPanelProgressBar}
     />
   );

@@ -45,10 +45,15 @@ const useContestStatusDisplay = () => {
           label: t("adminOverview.screen.contestStatus.draft", "草稿"),
           type: "gray",
         };
-      if (status === "archived")
+      if (
+        status === "archived" ||
+        status === "ended" ||
+        status === "completed" ||
+        status === "success"
+      )
         return {
           label: t("adminOverview.screen.contestStatus.archived", "已封存"),
-          type: "cool-gray",
+          type: "green",
         };
       return {
         label: t("adminOverview.screen.contestStatus.published", "已發布"),
