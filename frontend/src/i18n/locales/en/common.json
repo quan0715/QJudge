@@ -343,7 +343,7 @@
     "marketplace": "Marketplace",
     "problemList": "Problem List",
     "problems": "Problems",
-    "questionBanks": "題庫",
+    "questionBanks": "Question Banks",
     "ranking": "Ranking",
     "submissions": "Submissions"
   },
@@ -372,7 +372,7 @@
     "problemDetail": "Problem Detail",
     "problemManagement": "Problem Management",
     "problems": "Problem List",
-    "questionBanks": "題庫",
+    "questionBanks": "Question Banks",
     "register": "Register",
     "submissions": "Submissions",
     "teacherDashboard": "Teacher Dashboard",
@@ -565,73 +565,73 @@
       "totalRequests": "Total Requests"
     },
     "description": "Manage profile, preferences, plans, and usage.",
-    "descriptionStudent": "設定を管理します",
+    "descriptionStudent": "Manage your settings.",
     "loginRecords": {
-      "current": "現在のデバイス",
-      "description": "過去30日間のログイン履歴",
-      "deviceName": "デバイス名",
-      "empty": "履歴がありません",
-      "lastActive": "最終アクティビティ",
-      "logoutError": "ログアウトに失敗しました",
-      "logoutOther": "他デバイスからログアウト",
-      "logoutOtherDesc": "現在のデバイス以外のすべてのアクティブなセッションを終了します",
-      "logoutSuccess": "他デバイスからログアウトしました",
-      "now": "現在",
-      "title": "デバイス管理"
+      "current": "Current device",
+      "description": "Login history from the last 30 days",
+      "deviceName": "Device name",
+      "empty": "No login records",
+      "lastActive": "Last active",
+      "logoutError": "Failed to log out other devices",
+      "logoutOther": "Log out other devices",
+      "logoutOtherDesc": "End all active sessions except this device.",
+      "logoutSuccess": "Logged out other devices",
+      "now": "Now",
+      "title": "Device Management"
     },
     "plans": {
-      "contactUs": "お問い合わせ",
-      "description": "すべてのプランでフル機能をご利用いただけます。違いは制限値のみです。",
-      "enterpriseCustom": "カスタムエンタープライズプランをご案内します。",
-      "enterpriseTitle": "より大規模な利用をお考えですか？",
+      "contactUs": "Contact us",
+      "description": "All plans include full functionality. Only usage limits differ.",
+      "enterpriseCustom": "We can prepare a custom enterprise plan for you.",
+      "enterpriseTitle": "Need a larger deployment?",
       "features": {
         "pro": [
-          "試験あたり最大 200 人",
-          "500 AI Credits / 月",
-          "無制限の問題集ストレージ",
-          "1 年間のデータ保持",
-          "10 GB のストレージ容量"
+          "Up to 200 students per exam",
+          "500 AI Credits / month",
+          "Unlimited question bank storage",
+          "1 year data retention",
+          "10 GB storage"
         ],
         "team": [
-          "試験あたり最大 500 人",
-          "2,000 AI Credits / 月",
-          "無制限の問題集ストレージ",
-          "最大 10 人の管理者",
-          "50 GB のストレージ容量"
+          "Up to 500 students per exam",
+          "2,000 AI Credits / month",
+          "Unlimited question bank storage",
+          "Up to 10 admins",
+          "50 GB storage"
         ]
       },
-      "freeTrial": "30日間無料",
-      "month": "月",
-      "openCheckoutFailed": "チェックアウトページの起動に失敗しました。後でもう一度お試しください。",
-      "processing": "処理中...",
-      "startingTrial": "無料試用を開始",
-      "subscribeNow": "今すぐ購読",
-      "title": "プランを見る"
+      "freeTrial": "30-day free trial",
+      "month": "month",
+      "openCheckoutFailed": "Failed to open checkout. Please try again later.",
+      "processing": "Processing...",
+      "startingTrial": "Start free trial",
+      "subscribeNow": "Subscribe now",
+      "title": "View plans"
     },
     "subscription": {
       "desc": {
-        "free": "現在は無料プランです。いつでもアップグレード可能です。",
-        "pro": "安定した試験環境を求める個人ユーザー向け",
-        "team": "学校、学部、トレーニング機関向け"
+        "free": "You are currently on the free plan. You can upgrade at any time.",
+        "pro": "For individual users who need a reliable exam environment",
+        "team": "For schools, departments, and training organizations"
       },
-      "manage": "購読を管理",
-      "manageDesc": "支払い方法の変更、解約、請求書の確認",
-      "openPortalFailed": "管理ページの起動に失敗しました",
-      "periodEndDate": "現在の期間終了",
+      "manage": "Manage subscription",
+      "manageDesc": "Change payment method, cancel subscription, or view invoices",
+      "openPortalFailed": "Failed to open the subscription portal",
+      "periodEndDate": "Current period ends",
       "status": {
-        "active": "有効",
-        "canceled": "解約済み",
-        "expired": "期限切れ",
-        "past_due": "支払い遅延",
-        "trialing": "試用中"
+        "active": "Active",
+        "canceled": "Canceled",
+        "expired": "Expired",
+        "past_due": "Past due",
+        "trialing": "Trialing"
       },
       "tier": {
-        "enterprise": "エンタープライズ",
-        "free": "無料プラン",
-        "pro": "プロプラン",
-        "team": "チームプラン"
+        "enterprise": "Enterprise",
+        "free": "Free",
+        "pro": "Pro",
+        "team": "Team"
       },
-      "trialEndDate": "試用終了日"
+      "trialEndDate": "Trial ends"
     },
     "tabs": {
       "aiUsage": "AI Usage",
@@ -639,8 +639,8 @@
       "plans": "Plans",
       "preferences": "Preferences",
       "profile": "Profile",
-      "subscription": "購読状況",
-      "usage": "利用統計"
+      "subscription": "Subscription",
+      "usage": "Usage"
     },
     "title": "Settings"
   },

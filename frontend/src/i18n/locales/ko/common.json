@@ -28,7 +28,7 @@
       "noCode": "인증 코드를 받지 못했습니다.",
       "pleaseWait": "잠시만 기다려주세요",
       "steps": {
-        "almost": "就快好了，請稍候",
+        "almost": "거의 완료되었습니다. 잠시만 기다려주세요",
         "assembling": "작업 공간을 구성 중입니다...",
         "igniting": "엔진 점화 중...",
         "preparing": "모험을 준비 중입니다...",
@@ -40,7 +40,7 @@
       "takeoverExpired": "인수 토큰이 만료되었습니다. 다시 로그인하세요.",
       "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오.",
       "takingOver": "처리 중...",
-      "verifyingSession": "同步作業階段中..."
+      "verifyingSession": "세션을 동기화하는 중..."
     },
     "campusSso": {
       "backToLogin": "로그인으로 돌아가기",
@@ -266,35 +266,35 @@
   },
   "mcp": {
     "landing": {
-      "description": "在 Claude、ChatGPT、Google Gemini、Notion 中出題、批改、反饋",
+      "description": "Claude, ChatGPT, Google Gemini, Notion에서 출제, 채점, 피드백을 진행하세요",
       "examples": {
         "0": {
-          "aiMessage": "我為你設計了 3 道題目。已直接建立到你的 QJudge 題庫。",
-          "description": "教師在 Claude 中與 AI 討論題目需求，Claude 直接在 QJudge 中建立題目",
-          "feedback": "✓ 已建立",
-          "title": "快速生成題目",
-          "userMessage": "幫我設計一套 C++ 迴圈的競賽題目"
+          "aiMessage": "문제 3개를 설계했습니다. QJudge 문제 은행에 바로 생성했습니다.",
+          "description": "교사가 Claude와 문제 요구사항을 논의하면 Claude가 QJudge에 직접 문제를 생성합니다",
+          "feedback": "✓ 생성됨",
+          "title": "문제 빠르게 생성",
+          "userMessage": "C++ 반복문 경진대회 문제 세트를 설계해줘"
         },
         "1": {
-          "aiMessage": "第三題通過率 45%。常見問題是邊界條件處理不當。我提供了改進建議。",
-          "description": "教師在 Claude 中請求批改結果，Claude 自動從 QJudge 取得批改數據並提供分析",
-          "stats": "通過率 45%",
-          "title": "自動批改評論",
-          "userMessage": "請協助批改第三題"
+          "aiMessage": "3번 문제의 통과율은 45%입니다. 흔한 문제는 경계 조건 처리입니다. 개선 제안을 제공했습니다.",
+          "description": "교사가 Claude에 채점 결과를 요청하면 Claude가 QJudge에서 데이터를 가져와 분석합니다",
+          "stats": "통과율 45%",
+          "title": "자동 채점 리뷰",
+          "userMessage": "3번 문제 채점을 도와줘"
         }
       },
-      "eyebrow": "無痛協作",
+      "eyebrow": "매끄러운 협업",
       "features": {
-        "0": "快速生成競賽題目",
-        "1": "自動評分與分析",
-        "2": "提供個性化評論"
+        "0": "경진대회 문제 빠르게 생성",
+        "1": "자동 채점 및 분석",
+        "2": "개인화된 피드백 제공"
       },
       "features_description": {
-        "0": "與 AI 協商題目需求，直接建立到 QJudge",
-        "1": "取得批改結果、通過率統計和常見錯誤分析",
-        "2": "AI 分析常見錯誤並給改進建議"
+        "0": "AI와 문제 요구사항을 조율하고 QJudge에 바로 생성",
+        "1": "채점 결과, 통과율 통계, 흔한 오류 분석을 확인",
+        "2": "AI가 흔한 오류를 분석하고 개선 제안을 제공"
       },
-      "title": "與你的 AI 工具無痛協作",
+      "title": "AI 도구와 매끄럽게 협업",
       "tools": {
         "chatgpt": "ChatGPT",
         "claude": "Claude",
@@ -334,7 +334,7 @@
   "nav": {
     "back": "뒤로",
     "backToProblemList": "문제 목록으로",
-    "changelog": "更新紀錄",
+    "changelog": "변경 내역",
     "chat": "Chat",
     "classrooms": "교실",
     "contests": "대회",
@@ -343,19 +343,19 @@
     "marketplace": "문제 마켓플레이스",
     "problemList": "문제 목록",
     "problems": "문제",
-    "questionBanks": "題庫",
+    "questionBanks": "문제 은행",
     "ranking": "랭킹",
     "submissions": "제출 기록"
   },
   "oauth": {
     "authorize": {
-      "allow": "允許",
-      "deny": "拒絕",
-      "description": "{{clientName}} 正在請求存取你的 QJudge 帳號",
-      "error": "授權失敗，請稍後再試",
-      "invalidRequest": "無效的授權請求",
-      "loading": "處理中...",
-      "title": "授權請求"
+      "allow": "허용",
+      "deny": "거부",
+      "description": "{{clientName}}이(가) QJudge 계정 접근을 요청합니다",
+      "error": "권한 부여에 실패했습니다. 나중에 다시 시도해주세요",
+      "invalidRequest": "유효하지 않은 권한 요청",
+      "loading": "처리 중...",
+      "title": "권한 요청"
     }
   },
   "page": {
@@ -371,7 +371,7 @@
     "login": "로그인",
     "problemDetail": "문제 상세",
     "problemManagement": "문제 관리",
-    "problems": "題目列表",
+    "problems": "문제 목록",
     "questionBanks": "문제집",
     "register": "회원가입",
     "submissions": "제출 기록",
@@ -555,14 +555,14 @@
   },
   "settings": {
     "aiUsage": {
-      "inputTokens": "輸入 Tokens",
-      "lastUpdated": "最後更新",
-      "loadError": "無法載入使用量資料",
-      "noData": "無資料",
-      "outputTokens": "輸出 Tokens",
-      "title": "AI 使用量",
-      "totalCost": "累計費用",
-      "totalRequests": "總請求數"
+      "inputTokens": "입력 Tokens",
+      "lastUpdated": "마지막 업데이트",
+      "loadError": "사용량 데이터를 불러오지 못했습니다",
+      "noData": "데이터 없음",
+      "outputTokens": "출력 Tokens",
+      "title": "AI 사용량",
+      "totalCost": "누적 비용",
+      "totalRequests": "총 요청 수"
     },
     "description": "프로필, 환경설정, 요금제 및 사용량을 관리합니다.",
     "descriptionStudent": "환경설정을 관리합니다",
@@ -634,8 +634,8 @@
       "trialEndDate": "체험 종료일"
     },
     "tabs": {
-      "aiUsage": "AI 使用量",
-      "mcp": "MCP 連線",
+      "aiUsage": "AI 사용량",
+      "mcp": "MCP 연결",
       "plans": "요금제",
       "preferences": "환경설정",
       "profile": "프로필",

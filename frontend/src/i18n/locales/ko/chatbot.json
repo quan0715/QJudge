@@ -36,7 +36,7 @@
     "testCaseSkillsPrompt": "Please share techniques and best practices for test case design."
   },
   "ui": {
-    "addAttachment": "新增附件",
+    "addAttachment": "첨부 추가",
     "addComment": "댓글 추가",
     "agentQuestion": "AI 조교 질문",
     "cancelAction": "취소",
@@ -49,7 +49,7 @@
     "defaultSessionTitle": "채팅 {{id}}...",
     "delete": "삭제",
     "expandSidebar": "사이드바 펼치기",
-    "fileList": "檔案列表",
+    "fileList": "파일 목록",
     "groupLast7Days": "지난 7일",
     "groupOlder": "이전",
     "groupToday": "오늘",
@@ -58,7 +58,7 @@
     "inputAriaLabel": "메시지 입력",
     "inputPlaceholder": "메시지를 입력하세요...",
     "loading": "로딩 중...",
-    "modelLabel": "模型",
+    "modelLabel": "모델",
     "moreOptions": "대화 옵션",
     "newChat": "새 채팅",
     "noHistory": "채팅 기록이 없습니다",
@@ -76,7 +76,7 @@
     "stepOutput": "출력",
     "stopGenerating": "생성 중지",
     "submitAnswer": "답변 제출",
-    "taskList": "任務列表",
+    "taskList": "작업 목록",
     "toolConfirm": "도구 호출 확인",
     "useSkill": "스킬 사용 {{skillName}}",
     "welcome": "안녕하세요! QJudge AI 조교입니다. 무엇을 도와드릴까요?"
