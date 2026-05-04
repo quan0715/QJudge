@@ -16,9 +16,7 @@ QJudge 採用微服務化的單體架構，主要由以下模組組成：
 | **Judge** | 程式碼安全隔離執行 | Docker, Python |
 | **Store** | 資料庫、快取與物件儲存 | PostgreSQL 15, Redis 7, S3-compatible object storage（prod: R2, local dev: MinIO） |
 
-開發環境另含 **PgBouncer**（session mode）作為連線池，與 Django `CONN_MAX_AGE` 預設行為一致；細節見 `docker-compose.dev.yml` 與 `backend/config/settings/base.py` 註解。
-
-**較新的總表（含 API 前綴、CI job、models 檔案位置與已載明之檢視範圍）**：[project-architecture-inventory-2026-04-05.md](./project-architecture-inventory-2026-04-05.md)。
+開發環境另含 **PgBouncer**（session mode）作為連線池，與 Django `CONN_MAX_AGE` 預設行為一致；細節見 `docker-compose.dev.yml`、`backend/config/settings/base.py` 與 [部署與 Docker Compose 手冊](./deployment.md)。
 
 ---
 
@@ -27,7 +25,10 @@ QJudge 採用微服務化的單體架構，主要由以下模組組成：
 ### 2.1 快速啟動
 推薦使用 Docker Compose 進行開發：
 ```bash
-docker compose -f docker-compose.dev.yml up -d --build
+cp .env.example .env
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
+./scripts/dev/check-dev-services.sh
 ```
 
 ### 2.2 前端開發
@@ -93,11 +94,13 @@ python manage.py migrate
 
 ### 5.2 監控系統
 QJudge 使用 Prometheus + Grafana 監控系統狀態。
-- 啟動監控：`docker compose -f docker-compose.monitoring.yml up -d`
+- Dev 啟動監控：`docker compose -f docker-compose.dev.yml -f docker-compose.monitoring.yml up -d`
+- Production 啟動監控：`docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d`
 - 詳細說明請參閱 `docs/monitoring.md`。
 
 ### 5.3 文件維護
-- **README.md**：存放快速入門與環境變數說明。
+- **README.md**：存放快速入門與核心環境變數摘要。
+- **docs/deployment.md**：存放 production/dev/test compose、部署與環境變數細節。
 - **docs/**：存放功能細節、API 契約與運維手冊。
 - **CLAUDE.md**：存放開發備忘與專案協作指南。
 
@@ -108,6 +111,6 @@ QJudge 使用 Prometheus + Grafana 監控系統狀態。
 為了確保手冊內容與程式碼保持同步，請遵守以下規範：
 
 - **新功能開發**：在開發新功能（如新的題型、教室設定）時，請同步更新 `docs/user-guide.md`。
-- **架構調整**：若變動了專案結構或服務組建，請同步更新 `docs/developer-guide.md`。
-- **遺留文件處理**：過時的設計計畫或過渡期的 API 契約應移至 `docs/archive/`。
+- **架構調整**：若變動了專案結構或服務組建，請同步更新 `docs/developer-guide.md` 與 `docs/deployment.md`。
+- **遺留文件處理**：過時的設計計畫、部署快照或過渡期 API 契約應直接刪除；不要新增 `docs/archive/`。
 - **i18n**：新增前端文案時，務必執行 `npm run sync:i18n` 並檢查翻譯覆蓋率。

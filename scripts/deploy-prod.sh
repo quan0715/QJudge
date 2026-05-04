@@ -36,22 +36,125 @@ if [ ! -f ".env" ]; then
   exit 1
 fi
 
+get_env_value() {
+  local key="$1"
+  local line
+  line="$(grep -E "^[[:space:]]*${key}[[:space:]]*=" .env | tail -n1 || true)"
+  if [ -z "$line" ]; then
+    return 0
+  fi
+  line="${line#*=}"
+  line="${line#"${line%%[![:space:]]*}"}"
+  line="${line%"${line##*[![:space:]]}"}"
+  line="${line%\"}"
+  line="${line#\"}"
+  line="${line%\'}"
+  line="${line#\'}"
+  printf '%s\n' "$line"
+}
+
 require_env_key() {
   local key="$1"
-  if ! grep -Eq "^${key}=.+" .env; then
+  local value
+  value="$(get_env_value "$key")"
+  if [ -z "$value" ]; then
     echo ".env is missing required key: ${key}" >&2
     exit 1
   fi
 }
 
-require_env_key "DB_PASSWORD"
-require_env_key "SECRET_KEY"
-require_env_key "RECUR_PUBLISHABLE_KEY"
-
-get_env_value() {
+reject_env_placeholder() {
   local key="$1"
-  grep -E "^${key}=" .env | tail -n1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+  local value
+  value="$(get_env_value "$key")"
+  case "$value" in
+    change-me*|replace-*|replace_with*|REPLACE_*|example|example-*|dev-*|test-*)
+      echo ".env key ${key} still contains a placeholder value" >&2
+      exit 1
+      ;;
+  esac
 }
+
+reject_env_values() {
+  local key="$1"
+  shift
+  local value
+  value="$(get_env_value "$key")"
+  for disallowed in "$@"; do
+    if [ "$value" = "$disallowed" ]; then
+      echo ".env key ${key} contains an unsafe production value" >&2
+      exit 1
+    fi
+  done
+}
+
+required_env_keys=(
+  DB_NAME
+  DB_USER
+  DB_PASSWORD
+  DB_SSLMODE
+  SECRET_KEY
+  ENCRYPTION_KEY
+  FRONTEND_URL
+  ALLOWED_HOSTS
+  CORS_ALLOWED_ORIGINS
+  CSRF_TRUSTED_ORIGINS
+  REDIS_URL
+  AI_SERVICE_INTERNAL_TOKEN
+  RECUR_PUBLISHABLE_KEY
+  TUNNEL_TOKEN
+  MCP_PUBLIC_URL
+  OAUTH_ISSUER_URL
+  GLITCHTIP_SECRET_KEY
+  GRAFANA_PASSWORD
+  OBJECT_STORAGE_ENDPOINT_URL
+)
+
+for key in "${required_env_keys[@]}"; do
+  require_env_key "$key"
+done
+
+reject_env_placeholder "SECRET_KEY"
+reject_env_placeholder "ENCRYPTION_KEY"
+reject_env_placeholder "AI_SERVICE_INTERNAL_TOKEN"
+reject_env_placeholder "TUNNEL_TOKEN"
+reject_env_placeholder "GLITCHTIP_SECRET_KEY"
+reject_env_values "DB_PASSWORD" "postgres" "password"
+reject_env_values "GRAFANA_PASSWORD" "admin" "password"
+
+object_storage_endpoint="$(get_env_value "OBJECT_STORAGE_ENDPOINT_URL")"
+case "$object_storage_endpoint" in
+  http://minio:*|http://minio/*)
+    local_object_storage=1
+    ;;
+  *)
+    local_object_storage=0
+    ;;
+esac
+
+if [ "$local_object_storage" = "1" ]; then
+  require_env_key "MINIO_ROOT_USER"
+  require_env_key "MINIO_ROOT_PASSWORD"
+  require_env_key "MINIO_API_CORS_ALLOW_ORIGIN"
+  require_env_key "ANTICHEAT_CORS_ALLOWED_ORIGINS"
+  reject_env_values "MINIO_ROOT_USER" "minioadmin" "admin"
+  reject_env_values "MINIO_ROOT_PASSWORD" "minioadmin" "password"
+else
+  for key in \
+    OBJECT_STORAGE_PUBLIC_ENDPOINT_URL \
+    OBJECT_STORAGE_REGION \
+    OBJECT_STORAGE_ACCESS_KEY \
+    OBJECT_STORAGE_SECRET_KEY \
+    ANTICHEAT_RAW_BUCKET \
+    MARKDOWN_IMAGE_S3_BUCKET \
+    MARKDOWN_IMAGE_PUBLIC_BASE_URL \
+    AI_ARTIFACT_S3_BUCKET
+  do
+    require_env_key "$key"
+  done
+  reject_env_placeholder "OBJECT_STORAGE_ACCESS_KEY"
+  reject_env_placeholder "OBJECT_STORAGE_SECRET_KEY"
+fi
 
 # ── deploy ─────────────────────────────────────────────────────
 
@@ -78,9 +181,8 @@ docker compose "${COMPOSE_FILES[@]}" build
 echo "[deploy] start services"
 docker compose "${COMPOSE_FILES[@]}" up -d --remove-orphans
 
-object_storage_endpoint="$(get_env_value "OBJECT_STORAGE_ENDPOINT_URL" || true)"
 skip_minio_init="$(get_env_value "SKIP_MINIO_INIT" || true)"
-if [[ "$skip_minio_init" == "1" || "$object_storage_endpoint" == *".r2.cloudflarestorage.com"* ]]; then
+if [[ "$skip_minio_init" == "1" || "$local_object_storage" == "0" ]]; then
   echo "[deploy] skip MinIO bucket initialization (external object storage configured)"
 else
   echo "[deploy] initialize local MinIO anti-cheat bucket/policy"
