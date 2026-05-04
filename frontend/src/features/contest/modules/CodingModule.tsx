@@ -4,18 +4,22 @@ import {
   isContestParticipant,
   isStrictSubmittedBeforeEnd,
 } from "@/features/contest/domain/contestRuntimePolicy";
-import { toContestTabSpecs, type ContestTabKey } from "@/features/contest/tabConfig";
+import {
+  toContestTabSpecs,
+  type ContestTabKey,
+} from "@/features/contest/tabConfig";
 import type {
   AdminPanelId,
   ContestStudentTabContentKind,
   ContestTypeModule,
 } from "@/features/contest/modules/types";
 import CodingTestEditorLayout from "@/features/contest/components/admin/examEditor/CodingTestEditorLayout";
-import ContestResultDashboardPanel from "@/features/contest/components/admin/statistics/ContestResultDashboardPanel";
 import ContestProblemScreen from "@/features/contest/screens/ContestProblemScreen";
 import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
 
-const getFirstProblemId = (contest?: ContestDetail | null): string | undefined => {
+const getFirstProblemId = (
+  contest?: ContestDetail | null,
+): string | undefined => {
   if (!contest?.problems?.length) return undefined;
   const firstProblem = [...contest.problems].sort(
     (a, b) => (a.order ?? 0) - (b.order ?? 0),
@@ -35,13 +39,14 @@ const canShowStandingsTab = (contest?: ContestDetail | null): boolean => {
 };
 
 const getCodingTabs = (contest?: ContestDetail | null) => {
-  const keyToContentKind: Record<ContestTabKey, ContestStudentTabContentKind> = {
-    overview: "overview",
-    problems: "coding_problems",
-    submissions: "submissions",
-    standings: "standings",
-    clarifications: "clarifications",
-  };
+  const keyToContentKind: Record<ContestTabKey, ContestStudentTabContentKind> =
+    {
+      overview: "overview",
+      problems: "coding_problems",
+      submissions: "submissions",
+      standings: "standings",
+      clarifications: "clarifications",
+    };
   const toTabDefinitions = (keys: ContestTabKey[]) =>
     toContestTabSpecs(keys).map((tab) => ({
       ...tab,
@@ -77,13 +82,11 @@ const getCodingTabs = (contest?: ContestDetail | null) => {
 const CODING_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
   "clarifications",
-  "logs",
   "participants",
   "proctoring",
   "problem_editor",
   "grading",
   "ai-grading",
-  "statistics",
 ];
 const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];
 
@@ -117,7 +120,6 @@ export const codingContestModule: ContestTypeModule = {
           />
         );
       },
-      statistics: (props) => <ContestResultDashboardPanel {...props} />,
     }),
     getExportTargets: () => ["coding-pdf", "coding-markdown"],
   },
