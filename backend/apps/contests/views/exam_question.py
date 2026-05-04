@@ -1,22 +1,21 @@
 """ContestExamQuestionViewSet."""
 import logging
-from uuid import UUID
 
 from django.db import transaction
 from django.utils import timezone
 from django.db.models import Max
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError as DRFValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
-from apps.question_bank.models import Question, QuestionBank
+from apps.question_bank.import_resolver import resolve_bank_question_for_import
+from apps.question_bank.models import Question
 from apps.question_bank.question_assets import (
     ensure_contest_binding_for_exam_question,
     ensure_question_asset_for_bank_question,
 )
-from apps.question_bank.bank_workflows import is_publicly_accessible_bank
 
 from ..models import (
     Contest,
@@ -29,7 +28,7 @@ from ..serializers import (
     ExamQuestionStudentSerializer,
 )
 from ..permissions import can_manage_contest
-from ..services.anti_cheat_session import build_device_conflict_response
+from ..services.anti_cheat_session import build_device_conflict_payload
 from ..services.export_service import (
     ExportValidationError,
     build_paper_exam_sheet_response,
@@ -50,12 +49,6 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
-    @staticmethod
-    def _normalize_uuid(value, *, field_name: str) -> str:
-        try:
-            return str(UUID(str(value)))
-        except (TypeError, ValueError):
-            raise DRFValidationError({field_name: "Must be a valid UUID."})
 
     def _get_contest(self):
         contest_pk = self.kwargs.get('contest_pk')
@@ -67,49 +60,6 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     def _ensure_admin_permission(self, contest):
         if not self._is_admin(contest):
             raise PermissionDenied('Only contest owner/admin can manage exam questions')
-
-    def _resolve_bank_question_for_import(self, *, user, question_bank_id, question_id):
-        normalized_bank_uuid = self._normalize_uuid(
-            question_bank_id, field_name="question_bank_id"
-        )
-
-        bank = QuestionBank.objects.filter(uuid=normalized_bank_uuid, is_archived=False).first()
-        if not bank:
-            raise NotFound("Question bank not found")
-
-        if bank.owner_id != user.id and not is_publicly_accessible_bank(bank):
-            raise PermissionDenied("No access to this question bank")
-
-        normalized_question_uuid = self._normalize_uuid(
-            question_id, field_name="question_id"
-        )
-
-        # Primary lookup: QuestionBankMembership (bank_item_id from frontend)
-        from apps.question_bank.models import QuestionBankMembership
-        from apps.question_bank.write_workflows import materialize_bank_question_adapter_for_membership
-
-        membership = (
-            QuestionBankMembership.objects.filter(
-                bank=bank, id=normalized_question_uuid,
-            )
-            .select_related("question_asset", "question_asset__latest_version", "legacy_question")
-            .first()
-        )
-
-        if membership:
-            if membership.legacy_question_id:
-                question = membership.legacy_question
-            else:
-                question = materialize_bank_question_adapter_for_membership(
-                    membership=membership, actor=user,
-                )
-        else:
-            question = None
-
-        if not question:
-            raise NotFound("Question not found in bank")
-
-        return bank, question
 
     @staticmethod
     def _normalize_exam_question_type(question: Question) -> str:
@@ -153,7 +103,10 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         participant = contest.registrations.filter(user=self.request.user).first()
         if not participant or participant.exam_status == ExamStatus.SUBMITTED:
             return None
-        return build_device_conflict_response(contest, participant, self.request)
+        conflict_payload = build_device_conflict_payload(contest, participant, self.request)
+        if conflict_payload is None:
+            return None
+        return Response(conflict_payload, status=status.HTTP_409_CONFLICT)
 
     # Aliases consumed by the `?kind=` filter in addition to raw enum values.
     _KIND_ALIAS = {
@@ -362,10 +315,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 if not question_bank_id or question_id is None:
                     raise DRFValidationError('Each item requires question_bank_id and question_id')
 
-                bank, bank_question = self._resolve_bank_question_for_import(
+                bank, bank_question = resolve_bank_question_for_import(
                     user=request.user,
                     question_bank_id=question_bank_id,
                     question_id=question_id,
+                    allowed_question_types={Question.QuestionType.EXAM},
                 )
 
                 prompt = (bank_question.prompt or bank_question.title or "").strip()

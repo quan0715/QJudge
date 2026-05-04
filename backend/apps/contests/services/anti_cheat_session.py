@@ -439,16 +439,15 @@ def blacklist_other_tokens(user, access_jti: str, refresh_jti: str = "", contest
 # Part B: Standalone device-conflict check (usable outside ViewSet mixins)
 # ---------------------------------------------------------------------------
 
-def build_device_conflict_response(contest, participant, request):
-    """Return a 409 ``Response`` if the request comes from a different device
-    than the one holding the active session.  Returns ``None`` when there is
-    no conflict.
+def build_device_conflict_payload(contest, participant, request) -> dict[str, Any] | None:
+    """Return conflict payload if the request comes from a different device.
+
+    Returns ``None`` when there is no conflict. Views own HTTP response
+    serialization and status codes.
 
     This check applies to ALL exam contests (not just cheat_detection_enabled)
     because device-session integrity is fundamental to exam fairness.
     """
-    from rest_framework.response import Response
-    from rest_framework import status as http_status
     from ..models import ExamEvent
 
     device_id = get_device_id(request)
@@ -464,17 +463,14 @@ def build_device_conflict_response(contest, participant, request):
                 "source": "device_guard",
             },
         )
-        return Response(
-            {
-                "code": "EXAM_ACTIVE_OTHER_DEVICE",
-                "message": "Another device is currently active for this exam session.",
-                "active_exam": {
-                    "contest_id": contest.id,
-                    "contest_name": contest.name,
-                    "exam_status": participant.exam_status,
-                    "started_at": participant.started_at,
-                },
+        return {
+            "code": "EXAM_ACTIVE_OTHER_DEVICE",
+            "message": "Another device is currently active for this exam session.",
+            "active_exam": {
+                "contest_id": contest.id,
+                "contest_name": contest.name,
+                "exam_status": participant.exam_status,
+                "started_at": participant.started_at,
             },
-            status=http_status.HTTP_409_CONFLICT,
-        )
+        }
     return None

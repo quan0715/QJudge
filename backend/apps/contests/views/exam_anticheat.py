@@ -19,7 +19,7 @@ from ..serializers import (
 )
 from ..permissions import can_manage_contest
 from ..services.anti_cheat_session import (
-    build_device_conflict_response,
+    build_device_conflict_payload,
     clear_active_session,
     get_active_sessions,
     get_device_id,
@@ -32,8 +32,8 @@ from ..services.anticheat_storage import (
     generate_put_url,
     get_s3_client,
 )
-from ..services.exam_validation import validate_exam_operation
 from .activity import ContestActivityViewSet
+from .exam_validation_response import validate_exam_operation_for_view
 from apps.core.throttles import ExamAnticheatUrlsThrottle
 from ..constants import WEBCAM_CAPTURE_INTERVAL_SECONDS
 
@@ -41,23 +41,11 @@ from ..constants import WEBCAM_CAPTURE_INTERVAL_SECONDS
 class ExamAnticheatMixin:
     """Mixin for anticheat URL generation, active sessions, and takeover."""
 
-    def _conflict_payload(self, contest, participant):
-        return {
-            "code": "EXAM_ACTIVE_OTHER_DEVICE",
-            "message": "Another device is currently active for this exam session.",
-            "active_exam": {
-                "contest_id": contest.id,
-                "contest_name": contest.name,
-                "exam_status": participant.exam_status,
-                "started_at": participant.started_at,
-            },
-        }
-
     def _ensure_active_device_session(self, contest, participant, request):
         """Delegate to the shared helper, then refresh the active session."""
-        conflict = build_device_conflict_response(contest, participant, request)
-        if conflict is not None:
-            return conflict
+        conflict_payload = build_device_conflict_payload(contest, participant, request)
+        if conflict_payload is not None:
+            return Response(conflict_payload, status=status.HTTP_409_CONFLICT)
         set_active_session(contest, participant, request, get_device_id(request))
         return None
 
@@ -70,10 +58,10 @@ class ExamAnticheatMixin:
     )
     def anticheat_urls(self, request, contest_pk=None):
         contest = get_object_or_404(Contest, id=contest_pk)
-        participant, error_response = validate_exam_operation(
+        participant, error_response = validate_exam_operation_for_view(
             contest, request.user, require_in_progress=False
         )
-        if error_response:
+        if error_response is not None:
             return error_response
         if participant is None:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
