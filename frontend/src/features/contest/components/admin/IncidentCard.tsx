@@ -4,31 +4,61 @@ import { ChevronDown, ChevronUp, Close } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
-import { PRIORITY_LABELS, PRIORITY_TAG_COLOR } from "@/features/contest/constants/eventTaxonomy";
-import { fetchScreenshots, type ScreenshotFrame } from "@/infrastructure/api/repositories/exam.repository";
+import {
+  PRIORITY_LABELS,
+  PRIORITY_TAG_COLOR,
+} from "@/features/contest/constants/eventTaxonomy";
+import {
+  fetchScreenshots,
+  type ScreenshotFrame,
+} from "@/infrastructure/api/repositories/exam.repository";
 import styles from "./IncidentCard.module.scss";
 
 // Keys already surfaced elsewhere in the card or that are pure noise
 const HIDDEN_META_KEYS = new Set([
-  "reason", "source", "phase", "event_idempotency_key", "ts",
+  "reason",
+  "source",
+  "phase",
+  "event_idempotency_key",
+  "ts",
   // rendered as the dedicated event content block
-  "content", "clipboard_actions",
+  "content",
+  "clipboard_actions",
   "event_id",
   // orchestrator internals — already reflected in incident priority & penalized flag
-  "decision", "priority", "severity", "dedupe_hit", "reason_code",
+  "decision",
+  "priority",
+  "severity",
+  "dedupe_hit",
+  "reason_code",
   // opaque session ID — not actionable for admins
   "upload_session_id",
   // forced_capture_* are summarised as a group
-  "forced_capture_requested", "forced_capture_reason", "forced_capture_result",
-  "forced_capture_attempted", "forced_capture_captured", "forced_capture_uploaded",
-  "forced_capture_skipped", "forced_capture_error_code", "forced_capture_seq",
-  "forced_capture_uploaded_seqs", "forced_capture_uploaded_object_keys",
-  "evidence_pre_buffer_attempted", "evidence_pre_buffer_complete",
-  "evidence_pre_buffer_frame_count", "evidence_uploaded_frame_count",
-  "pre_buffer_complete", "evidence_cluster_id", "evidence_window_start",
-  "evidence_window_end", "evidence_window_before_seconds", "evidence_window_after_seconds",
-  "evidence_window_max_seconds", "evidence_source_module",
-  "forced_capture_modules", "forced_capture_module_results",
+  "forced_capture_requested",
+  "forced_capture_reason",
+  "forced_capture_result",
+  "forced_capture_attempted",
+  "forced_capture_captured",
+  "forced_capture_uploaded",
+  "forced_capture_skipped",
+  "forced_capture_error_code",
+  "forced_capture_seq",
+  "forced_capture_uploaded_seqs",
+  "forced_capture_uploaded_object_keys",
+  "evidence_pre_buffer_attempted",
+  "evidence_pre_buffer_complete",
+  "evidence_pre_buffer_frame_count",
+  "evidence_uploaded_frame_count",
+  "pre_buffer_complete",
+  "evidence_cluster_id",
+  "evidence_window_start",
+  "evidence_window_end",
+  "evidence_window_before_seconds",
+  "evidence_window_after_seconds",
+  "evidence_window_max_seconds",
+  "evidence_source_module",
+  "forced_capture_modules",
+  "forced_capture_module_results",
 ]);
 
 const META_LABEL_KEYS: Record<string, string> = {
@@ -65,17 +95,26 @@ function parseCaptureInfo(meta: Record<string, unknown>): CaptureInfo | null {
     result,
     hasError,
     errorCode: hasError ? String(meta.forced_capture_error_code) : undefined,
-    seq: typeof meta.forced_capture_seq === "number" ? meta.forced_capture_seq : undefined,
+    seq:
+      typeof meta.forced_capture_seq === "number"
+        ? meta.forced_capture_seq
+        : undefined,
   };
 }
 
-function getModuleResults(meta: Record<string, unknown>): Partial<Record<SourceModule, Record<string, unknown>>> {
+function getModuleResults(
+  meta: Record<string, unknown>,
+): Partial<Record<SourceModule, Record<string, unknown>>> {
   const raw = meta.forced_capture_module_results;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   return Object.fromEntries(
     Object.entries(raw as Record<string, unknown>).filter(
-      ([module, value]) => isSourceModule(module) && value && typeof value === "object" && !Array.isArray(value)
-    )
+      ([module, value]) =>
+        isSourceModule(module) &&
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value),
+    ),
   ) as Partial<Record<SourceModule, Record<string, unknown>>>;
 }
 
@@ -100,7 +139,10 @@ function getEvidenceObjectKeys(meta: Record<string, unknown>): string[] {
   return Array.from(keys);
 }
 
-function getEvidenceModules(meta: Record<string, unknown>, objectKeys: string[]): SourceModule[] {
+function getEvidenceModules(
+  meta: Record<string, unknown>,
+  objectKeys: string[],
+): SourceModule[] {
   const modules = new Set<SourceModule>();
   const configuredModules = Array.isArray(meta.forced_capture_modules)
     ? meta.forced_capture_modules
@@ -115,7 +157,8 @@ function getEvidenceModules(meta: Record<string, unknown>, objectKeys: string[])
     if (key.includes("/screen_share/")) modules.add("screen_share");
     if (key.includes("/webcam/")) modules.add("webcam");
   });
-  if (isSourceModule(meta.evidence_source_module)) modules.add(meta.evidence_source_module);
+  if (isSourceModule(meta.evidence_source_module))
+    modules.add(meta.evidence_source_module);
   if (isSourceModule(meta.module)) modules.add(meta.module);
   return Array.from(modules);
 }
@@ -125,19 +168,33 @@ function parseModuleCaptureInfos(meta: Record<string, unknown>) {
     .map(([module, result]) => {
       if (!isSourceModule(module) || !result) return null;
       const captureInfo: CaptureInfo = {
-        result: String(result.uploaded ? "uploaded" : result.skipped ? `skipped:${result.skipped}` : result.captured ? "captured" : "unknown"),
+        result: String(
+          result.uploaded
+            ? "uploaded"
+            : result.skipped
+              ? `skipped:${result.skipped}`
+              : result.captured
+                ? "captured"
+                : "unknown",
+        ),
         hasError: !!result.errorCode,
         errorCode: result.errorCode ? String(result.errorCode) : undefined,
         seq: typeof result.seq === "number" ? result.seq : undefined,
       };
       return { module, info: captureInfo };
     })
-    .filter((value): value is { module: SourceModule; info: CaptureInfo } => !!value);
+    .filter(
+      (value): value is { module: SourceModule; info: CaptureInfo } => !!value,
+    );
 }
 
 function formatMetaValue(key: string, value: unknown): string {
   if (key === "locked_at" && typeof value === "string") {
-    try { return new Date(value).toLocaleString(); } catch { /* fall through */ }
+    try {
+      return new Date(value).toLocaleString();
+    } catch {
+      /* fall through */
+    }
   }
   if (typeof value === "boolean") return value ? "Yes" : "No";
   return String(value);
@@ -146,34 +203,50 @@ function formatMetaValue(key: string, value: unknown): string {
 function getEventContent(meta: Record<string, unknown>) {
   if (Array.isArray(meta.clipboard_actions)) {
     const entries = meta.clipboard_actions
-      .filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item))
+      .filter(
+        (item): item is Record<string, unknown> =>
+          !!item && typeof item === "object" && !Array.isArray(item),
+      )
       .map((item, index) => ({
         id: `${String(item.action || "clipboard")}-${index}`,
         content: typeof item.content === "string" ? item.content : "",
         action: typeof item.action === "string" ? item.action : "",
         truncated: item.content_truncated === true,
         originalLength:
-          typeof item.original_text_length === "number" ? item.original_text_length : null,
+          typeof item.original_text_length === "number"
+            ? item.original_text_length
+            : null,
         capturedLength:
-          typeof item.captured_text_length === "number" ? item.captured_text_length : null,
-        textLength: typeof item.text_length === "number" ? item.text_length : null,
+          typeof item.captured_text_length === "number"
+            ? item.captured_text_length
+            : null,
+        textLength:
+          typeof item.text_length === "number" ? item.text_length : null,
         lineCount: typeof item.line_count === "number" ? item.line_count : null,
       }));
     return entries.length > 0 ? entries : null;
   }
-  if (typeof meta.content !== "string" || meta.content.length === 0) return null;
-  return [{
-    id: "content-0",
-    content: meta.content,
-    action: typeof meta.action === "string" ? meta.action : "",
-    truncated: meta.content_truncated === true,
-    originalLength:
-      typeof meta.original_text_length === "number" ? meta.original_text_length : null,
-    capturedLength:
-      typeof meta.captured_text_length === "number" ? meta.captured_text_length : null,
-    textLength: typeof meta.text_length === "number" ? meta.text_length : null,
-    lineCount: typeof meta.line_count === "number" ? meta.line_count : null,
-  }];
+  if (typeof meta.content !== "string" || meta.content.length === 0)
+    return null;
+  return [
+    {
+      id: "content-0",
+      content: meta.content,
+      action: typeof meta.action === "string" ? meta.action : "",
+      truncated: meta.content_truncated === true,
+      originalLength:
+        typeof meta.original_text_length === "number"
+          ? meta.original_text_length
+          : null,
+      capturedLength:
+        typeof meta.captured_text_length === "number"
+          ? meta.captured_text_length
+          : null,
+      textLength:
+        typeof meta.text_length === "number" ? meta.text_length : null,
+      lineCount: typeof meta.line_count === "number" ? meta.line_count : null,
+    },
+  ];
 }
 
 interface IncidentCardProps {
@@ -182,6 +255,8 @@ interface IncidentCardProps {
   screenshotWindowAfterMs?: number;
   screenshotPreviewLimit?: number;
   screenshotCategories?: string[];
+  initialExpanded?: boolean;
+  collapsible?: boolean;
 }
 
 export default function IncidentCard({
@@ -190,24 +265,33 @@ export default function IncidentCard({
   screenshotWindowAfterMs = 20_000,
   screenshotPreviewLimit = 10,
   screenshotCategories = ["critical", "violation"],
+  initialExpanded = false,
+  collapsible = true,
 }: IncidentCardProps) {
   const { t } = useTranslation("contest");
   const { contestId } = useParams<{ contestId: string }>();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initialExpanded || !collapsible);
 
   const priorityLabel = PRIORITY_LABELS[incident.priority] ?? "P3";
   const tagColor = PRIORITY_TAG_COLOR[incident.priority] ?? "cool-gray";
 
   const firstTime = new Date(incident.firstAt).toLocaleTimeString();
   const lastTime = new Date(incident.lastAt).toLocaleTimeString();
-  const timeRange = incident.count > 1 ? `${firstTime} — ${lastTime}` : firstTime;
+  const timeRange =
+    incident.count > 1 ? `${firstTime} — ${lastTime}` : firstTime;
 
   const meta = useMemo(() => incident.metadata ?? {}, [incident.metadata]);
 
   const captureInfo = useMemo(() => parseCaptureInfo(meta), [meta]);
   const evidenceObjectKeys = useMemo(() => getEvidenceObjectKeys(meta), [meta]);
-  const evidenceModules = useMemo(() => getEvidenceModules(meta, evidenceObjectKeys), [meta, evidenceObjectKeys]);
-  const moduleCaptureInfos = useMemo(() => parseModuleCaptureInfos(meta), [meta]);
+  const evidenceModules = useMemo(
+    () => getEvidenceModules(meta, evidenceObjectKeys),
+    [meta, evidenceObjectKeys],
+  );
+  const moduleCaptureInfos = useMemo(
+    () => parseModuleCaptureInfos(meta),
+    [meta],
+  );
   const eventContent = useMemo(() => getEventContent(meta), [meta]);
 
   // --- Screenshot lazy loading ---
@@ -219,11 +303,16 @@ export default function IncidentCard({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const screenshotsByModule = useMemo(() => {
-    return screenshots.reduce<Partial<Record<SourceModule, ScreenshotFrame[]>>>((acc, frame) => {
-      const module = isSourceModule(frame.source_module) ? frame.source_module : "screen_share";
-      acc[module] = [...(acc[module] ?? []), frame];
-      return acc;
-    }, {});
+    return screenshots.reduce<Partial<Record<SourceModule, ScreenshotFrame[]>>>(
+      (acc, frame) => {
+        const module = isSourceModule(frame.source_module)
+          ? frame.source_module
+          : "screen_share";
+        acc[module] = [...(acc[module] ?? []), frame];
+        return acc;
+      },
+      {},
+    );
   }, [screenshots]);
 
   const meaningfulEntries = useMemo(() => {
@@ -231,7 +320,9 @@ export default function IncidentCard({
       .filter(([k]) => !HIDDEN_META_KEYS.has(k))
       .map(([k, v]) => ({
         key: k,
-        label: META_LABEL_KEYS[k] ? String(t(META_LABEL_KEYS[k], { defaultValue: k })) : k,
+        label: META_LABEL_KEYS[k]
+          ? String(t(META_LABEL_KEYS[k], { defaultValue: k }))
+          : k,
         value: formatMetaValue(k, v),
       }));
   }, [meta, t]);
@@ -239,10 +330,11 @@ export default function IncidentCard({
   const hasEvidence = incident.evidenceCount > 0;
   const suspiciousCategories = useMemo(
     () => new Set(screenshotCategories.map((v) => v.toLowerCase())),
-    [screenshotCategories]
+    [screenshotCategories],
   );
   const shouldAttemptScreenshotPreview =
-    hasEvidence || suspiciousCategories.has(String(incident.category || "").toLowerCase());
+    hasEvidence ||
+    suspiciousCategories.has(String(incident.category || "").toLowerCase());
   const hasDetail = !!(
     incident.summary ||
     eventContent ||
@@ -251,6 +343,7 @@ export default function IncidentCard({
     shouldAttemptScreenshotPreview ||
     incident.count > 1
   );
+  const canToggle = collapsible && hasDetail;
 
   const loadScreenshots = useCallback(async () => {
     if (!contestId || !incident.userId || screenshotLoaded) return;
@@ -259,10 +352,11 @@ export default function IncidentCard({
     try {
       const sessionId = meta.upload_session_id as string | undefined;
       const sourceModule =
-        evidenceModules.length === 1
-          ? evidenceModules[0]
-          : undefined;
-      const evidenceClusterId = typeof meta.evidence_cluster_id === "string" ? meta.evidence_cluster_id : "";
+        evidenceModules.length === 1 ? evidenceModules[0] : undefined;
+      const evidenceClusterId =
+        typeof meta.evidence_cluster_id === "string"
+          ? meta.evidence_cluster_id
+          : "";
       const evidenceEventId =
         incident.eventId ??
         (typeof meta.event_id === "string" || typeof meta.event_id === "number"
@@ -270,9 +364,13 @@ export default function IncidentCard({
           : "");
 
       const evidenceWindowStart =
-        typeof meta.evidence_window_start === "string" ? Date.parse(meta.evidence_window_start) : NaN;
+        typeof meta.evidence_window_start === "string"
+          ? Date.parse(meta.evidence_window_start)
+          : NaN;
       const evidenceWindowEnd =
-        typeof meta.evidence_window_end === "string" ? Date.parse(meta.evidence_window_end) : NaN;
+        typeof meta.evidence_window_end === "string"
+          ? Date.parse(meta.evidence_window_end)
+          : NaN;
       const params: Parameters<typeof fetchScreenshots>[1] = {
         user_id: String(incident.userId),
         limit: screenshotPreviewLimit,
@@ -323,10 +421,21 @@ export default function IncidentCard({
   ]);
 
   useEffect(() => {
-    if (expanded && shouldAttemptScreenshotPreview && !screenshotLoaded && !screenshotLoading) {
+    if (
+      expanded &&
+      shouldAttemptScreenshotPreview &&
+      !screenshotLoaded &&
+      !screenshotLoading
+    ) {
       void loadScreenshots();
     }
-  }, [expanded, shouldAttemptScreenshotPreview, screenshotLoaded, screenshotLoading, loadScreenshots]);
+  }, [
+    expanded,
+    shouldAttemptScreenshotPreview,
+    screenshotLoaded,
+    screenshotLoading,
+    loadScreenshots,
+  ]);
 
   useEffect(() => {
     if (!lightboxUrl) return;
@@ -343,21 +452,23 @@ export default function IncidentCard({
         className={`${styles.card} ${styles[`priority${incident.priority}`] ?? ""} ${expanded ? styles.cardExpanded : ""}`}
       >
         <div
-          className={`${styles.header} ${hasDetail ? styles.headerButton : ""}`}
-          onClick={() => hasDetail && setExpanded((v) => !v)}
+          className={`${styles.header} ${canToggle ? styles.headerButton : ""}`}
+          onClick={() => canToggle && setExpanded((v) => !v)}
           onKeyDown={(event) => {
-            if (!hasDetail) return;
+            if (!canToggle) return;
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               setExpanded((v) => !v);
             }
           }}
-          role={hasDetail ? "button" : undefined}
-          tabIndex={hasDetail ? 0 : undefined}
-          aria-expanded={expanded}
+          role={canToggle ? "button" : undefined}
+          tabIndex={canToggle ? 0 : undefined}
+          aria-expanded={canToggle ? expanded : undefined}
         >
           <div className={styles.left}>
-            <Tag type={tagColor} size="sm">{priorityLabel}</Tag>
+            <Tag type={tagColor} size="sm">
+              {priorityLabel}
+            </Tag>
             <span className={styles.eventType}>
               {t(`logs.eventTypes.${incident.eventType}`, incident.eventType)}
             </span>
@@ -368,19 +479,25 @@ export default function IncidentCard({
           <div className={styles.right}>
             <div className={styles.badges}>
               {incident.penalized && (
-                <Tag type="red" size="sm">{t("logs.penalized", "計罰")}</Tag>
+                <Tag type="red" size="sm">
+                  {t("logs.penalized", "計罰")}
+                </Tag>
               )}
               {incident.count > 1 && (
-                <Tag type="outline" size="sm">×{incident.count}</Tag>
+                <Tag type="outline" size="sm">
+                  ×{incident.count}
+                </Tag>
               )}
               {incident.evidenceCount > 0 && (
                 <Tag type="teal" size="sm">
-                  {t("logs.evidenceCount", "{{count}} 截圖", { count: incident.evidenceCount })}
+                  {t("logs.evidenceCount", "{{count}} 截圖", {
+                    count: incident.evidenceCount,
+                  })}
                 </Tag>
               )}
             </div>
             <span className={styles.time}>{timeRange}</span>
-            {hasDetail && (
+            {canToggle && (
               <span className={styles.chevron}>
                 {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </span>
@@ -392,35 +509,48 @@ export default function IncidentCard({
           <div className={styles.detail}>
             {incident.summary && (
               <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>{t("logs.detail.reason", "原因")}</span>
+                <span className={styles.detailLabel}>
+                  {t("logs.detail.reason", "原因")}
+                </span>
                 <span className={styles.detailValue}>{incident.summary}</span>
               </div>
             )}
             {incident.count > 1 && (
               <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>{t("logs.detail.timeRange", "時間範圍")}</span>
+                <span className={styles.detailLabel}>
+                  {t("logs.detail.timeRange", "時間範圍")}
+                </span>
                 <span className={styles.detailValue}>
-                  {new Date(incident.firstAt).toLocaleString()} — {new Date(incident.lastAt).toLocaleString()}
+                  {new Date(incident.firstAt).toLocaleString()} —{" "}
+                  {new Date(incident.lastAt).toLocaleString()}
                 </span>
               </div>
             )}
             {incident.penalized && (
               <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>{t("logs.detail.penalized", "計罰")}</span>
-                <Tag type="red" size="sm">{t("common.yes", "是")}</Tag>
+                <span className={styles.detailLabel}>
+                  {t("logs.detail.penalized", "計罰")}
+                </span>
+                <Tag type="red" size="sm">
+                  {t("common.yes", "是")}
+                </Tag>
               </div>
             )}
 
             {/* Forced capture summary */}
             {captureInfo && (
               <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>{t("logs.detail.captureStatus", "截圖狀態")}</span>
+                <span className={styles.detailLabel}>
+                  {t("logs.detail.captureStatus", "截圖狀態")}
+                </span>
                 <span className={styles.detailValue}>
                   {moduleCaptureInfos.length > 0 ? (
                     <span className={styles.captureStatusList}>
                       {moduleCaptureInfos.map(({ module, info }) => (
                         <span key={module} className={styles.captureStatusItem}>
-                          <span className={styles.sourceText}>{SOURCE_MODULE_LABELS[module]}</span>
+                          <span className={styles.sourceText}>
+                            {SOURCE_MODULE_LABELS[module]}
+                          </span>
                           <CaptureStatusTag info={info} />
                         </span>
                       ))}
@@ -434,10 +564,16 @@ export default function IncidentCard({
 
             {evidenceModules.length > 0 && (
               <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>{t("logs.detail.evidenceSources", "證據來源")}</span>
+                <span className={styles.detailLabel}>
+                  {t("logs.detail.evidenceSources", "證據來源")}
+                </span>
                 <span className={styles.sourceList}>
                   {evidenceModules.map((module) => (
-                    <Tag key={module} type={module === "webcam" ? "purple" : "cyan"} size="sm">
+                    <Tag
+                      key={module}
+                      type={module === "webcam" ? "purple" : "cyan"}
+                      size="sm"
+                    >
                       {SOURCE_MODULE_LABELS[module]}
                     </Tag>
                   ))}
@@ -448,9 +584,15 @@ export default function IncidentCard({
             {/* Screenshot thumbnails */}
             {shouldAttemptScreenshotPreview && (
               <div className={styles.screenshotSection}>
-                <span className={styles.detailLabel}>{t("logs.detail.evidence", "截圖證據")}</span>
+                <span className={styles.detailLabel}>
+                  {t("logs.detail.evidence", "截圖證據")}
+                </span>
                 {screenshotLoading && (
-                  <InlineLoading description={String(t("logs.detail.loadingScreenshots", "載入截圖中…"))} />
+                  <InlineLoading
+                    description={String(
+                      t("logs.detail.loadingScreenshots", "載入截圖中…"),
+                    )}
+                  />
                 )}
                 {screenshotError && (
                   <span className={styles.screenshotError}>
@@ -459,43 +601,64 @@ export default function IncidentCard({
                 )}
                 {screenshots.length > 0 && (
                   <div className={styles.screenshotGroups}>
-                    {(Object.keys(screenshotsByModule) as SourceModule[]).map((module) => (
-                      <div key={module} className={styles.screenshotGroup}>
-                        <div className={styles.screenshotSourceHeader}>
-                          <Tag type={module === "webcam" ? "purple" : "cyan"} size="sm">
-                            {SOURCE_MODULE_LABELS[module]}
-                          </Tag>
-                          <span>{screenshotsByModule[module]?.length ?? 0}</span>
-                        </div>
-                        <div className={styles.screenshotGrid}>
-                          {(screenshotsByModule[module] ?? []).map((frame) => (
-                            <button
-                              key={`${frame.source_module ?? "unknown"}_${frame.ts_ms}_${frame.seq}`}
-                              className={styles.screenshotThumb}
-                              onClick={() => setLightboxUrl(frame.url)}
-                              title={new Date(frame.ts_ms).toLocaleTimeString()}
+                    {(Object.keys(screenshotsByModule) as SourceModule[]).map(
+                      (module) => (
+                        <div key={module} className={styles.screenshotGroup}>
+                          <div className={styles.screenshotSourceHeader}>
+                            <Tag
+                              type={module === "webcam" ? "purple" : "cyan"}
+                              size="sm"
                             >
-                              <img src={frame.url} alt={`${module} seq ${frame.seq}`} loading="lazy" />
-                              <span className={styles.screenshotTime}>
-                                {new Date(frame.ts_ms).toLocaleTimeString()}
-                              </span>
-                            </button>
-                          ))}
+                              {SOURCE_MODULE_LABELS[module]}
+                            </Tag>
+                            <span>
+                              {screenshotsByModule[module]?.length ?? 0}
+                            </span>
+                          </div>
+                          <div className={styles.screenshotGrid}>
+                            {(screenshotsByModule[module] ?? []).map(
+                              (frame) => (
+                                <button
+                                  key={`${frame.source_module ?? "unknown"}_${frame.ts_ms}_${frame.seq}`}
+                                  className={styles.screenshotThumb}
+                                  onClick={() => setLightboxUrl(frame.url)}
+                                  title={new Date(
+                                    frame.ts_ms,
+                                  ).toLocaleTimeString()}
+                                >
+                                  <img
+                                    src={frame.url}
+                                    alt={`${module} seq ${frame.seq}`}
+                                    loading="lazy"
+                                  />
+                                  <span className={styles.screenshotTime}>
+                                    {new Date(frame.ts_ms).toLocaleTimeString()}
+                                  </span>
+                                </button>
+                              ),
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 )}
-                {screenshotLoaded && screenshots.length === 0 && !screenshotError && (
-                  <span className={styles.screenshotEmpty}>
-                    {totalRawCount > 0
-                      ? t("logs.detail.noScreenshotsInRange", {
-                          defaultValue: "此事件前後時段無截圖，該使用者共有 {{count}} 張原始截圖",
-                          count: totalRawCount,
-                        })
-                      : t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看即時監看")}
-                  </span>
-                )}
+                {screenshotLoaded &&
+                  screenshots.length === 0 &&
+                  !screenshotError && (
+                    <span className={styles.screenshotEmpty}>
+                      {totalRawCount > 0
+                        ? t("logs.detail.noScreenshotsInRange", {
+                            defaultValue:
+                              "此事件前後時段無截圖，該使用者共有 {{count}} 張原始截圖",
+                            count: totalRawCount,
+                          })
+                        : t(
+                            "logs.detail.noScreenshots",
+                            "此事件前後時段無可用原始截圖，建議改看即時監看",
+                          )}
+                    </span>
+                  )}
               </div>
             )}
 
@@ -523,7 +686,10 @@ export default function IncidentCard({
                   {eventContent.map((entry) => (
                     <div key={entry.id} className={styles.eventContentItem}>
                       <div className={styles.eventContentItemHeader}>
-                        <Tag type={entry.action === "paste" ? "teal" : "cool-gray"} size="sm">
+                        <Tag
+                          type={entry.action === "paste" ? "teal" : "cool-gray"}
+                          size="sm"
+                        >
                           {entry.action || "clipboard"}
                         </Tag>
                         <span className={styles.eventContentMeta}>
@@ -539,9 +705,12 @@ export default function IncidentCard({
                                 count: entry.lineCount,
                               })
                             : null}
-                          {entry.truncated && entry.originalLength != null && entry.capturedLength != null
+                          {entry.truncated &&
+                          entry.originalLength != null &&
+                          entry.capturedLength != null
                             ? t("logs.detail.contentTruncated", {
-                                defaultValue: "已截斷：{{captured}} / {{original}} 字",
+                                defaultValue:
+                                  "已截斷：{{captured}} / {{original}} 字",
                                 captured: entry.capturedLength,
                                 original: entry.originalLength,
                               })
@@ -549,10 +718,15 @@ export default function IncidentCard({
                         </span>
                       </div>
                       {entry.content ? (
-                        <pre className={styles.eventContentValue}>{entry.content}</pre>
+                        <pre className={styles.eventContentValue}>
+                          {entry.content}
+                        </pre>
                       ) : (
                         <span className={styles.eventContentEmpty}>
-                          {t("logs.detail.noClipboardContent", "此操作未保存內容")}
+                          {t(
+                            "logs.detail.noClipboardContent",
+                            "此操作未保存內容",
+                          )}
                         </span>
                       )}
                     </div>
@@ -607,10 +781,19 @@ export default function IncidentCard({
 function CaptureStatusTag({ info }: { info: CaptureInfo }) {
   const { t } = useTranslation("contest");
   if (info.result === "uploaded") {
-    return <Tag type="green" size="sm">{t("logs.capture.uploaded", "已上傳")}{info.seq != null ? ` #${info.seq}` : ""}</Tag>;
+    return (
+      <Tag type="green" size="sm">
+        {t("logs.capture.uploaded", "已上傳")}
+        {info.seq != null ? ` #${info.seq}` : ""}
+      </Tag>
+    );
   }
   if (info.result === "captured") {
-    return <Tag type="blue" size="sm">{t("logs.capture.capturedNotUploaded", "已擷取（未上傳）")}</Tag>;
+    return (
+      <Tag type="blue" size="sm">
+        {t("logs.capture.capturedNotUploaded", "已擷取（未上傳）")}
+      </Tag>
+    );
   }
   if (info.result.startsWith("skipped:")) {
     const reason = info.result.replace("skipped:", "");
@@ -620,11 +803,25 @@ function CaptureStatusTag({ info }: { info: CaptureInfo }) {
       stream_unavailable: "logs.capture.skipStreamUnavailable",
       capture_unavailable: "logs.capture.skipCaptureUnavailable",
     };
-    const label = skipLabelKeys[reason] ? String(t(skipLabelKeys[reason], { defaultValue: reason })) : reason;
-    return <Tag type="cool-gray" size="sm">{t("logs.capture.skipped", "略過")}: {label}</Tag>;
+    const label = skipLabelKeys[reason]
+      ? String(t(skipLabelKeys[reason], { defaultValue: reason }))
+      : reason;
+    return (
+      <Tag type="cool-gray" size="sm">
+        {t("logs.capture.skipped", "略過")}: {label}
+      </Tag>
+    );
   }
   if (info.hasError) {
-    return <Tag type="red" size="sm">{t("logs.capture.failed", "失敗")}: {info.errorCode}</Tag>;
+    return (
+      <Tag type="red" size="sm">
+        {t("logs.capture.failed", "失敗")}: {info.errorCode}
+      </Tag>
+    );
   }
-  return <Tag type="cool-gray" size="sm">{info.result}</Tag>;
+  return (
+    <Tag type="cool-gray" size="sm">
+      {info.result}
+    </Tag>
+  );
 }

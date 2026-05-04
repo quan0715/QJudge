@@ -75,13 +75,103 @@ export interface NextActionItem {
   disabled?: boolean;
 }
 
+export type DashboardTone = "neutral" | "warning" | "danger";
+
+export interface DashboardTimelineSummary {
+  phaseLabel: string;
+  primaryTimeLabel: string;
+  timeWindowLabel: string;
+  startDateTimeLabel: string;
+  endDateTimeLabel: string;
+  progressPercent: number;
+}
+
+export interface DashboardRailItem {
+  key: string;
+  label: string;
+  value: string;
+  tone: DashboardTone;
+}
+
+export interface DashboardChartSeries {
+  key: string;
+  label: string;
+  values: Array<{
+    label: string;
+    value: number;
+  }>;
+}
+
+export interface DashboardInsightCard {
+  key: "grading_progress" | "exam_progress" | "priority_events";
+  title: string;
+  value: string;
+  kind: "progress" | "line";
+  progressPercent?: number;
+  series?: DashboardChartSeries[];
+}
+
 export interface AdminOverviewDashboardData {
   kpis: OverviewKpiItem[];
+  timeline: DashboardTimelineSummary;
+  railItems: DashboardRailItem[];
+  insightCards: DashboardInsightCard[];
   attentionRows: TeacherAttentionRow[];
   distribution: DistributionItem[];
   examStatus: ExamStatusSummary;
   recentEvents: RecentExamEventItem[];
   nextActions: NextActionItem[];
+}
+
+export type PreparationSummaryKey =
+  | "status"
+  | "schedule"
+  | "work_items"
+  | "participants"
+  | "grading"
+  | "results";
+
+export type PreparationReadinessState = "done" | "warning" | "missing";
+
+export interface PreparationSummaryItem {
+  key: PreparationSummaryKey;
+  label: string;
+  value: string;
+  description: string;
+  tone: "neutral" | "warning" | "danger";
+}
+
+export interface PreparationChecklistItem {
+  key:
+    | "publish"
+    | "work_items"
+    | "schedule"
+    | "participants"
+    | "rules"
+    | "anti_cheat";
+  label: string;
+  status: PreparationReadinessState;
+  statusLabel: string;
+  description: string;
+}
+
+export interface PreparationGradingSummary {
+  totalAnswers: number;
+  gradedAnswers: number;
+  ungradedAnswers: number;
+  progressPercent: number;
+  progressLabel: string;
+  resultsLabel: string;
+  resultsTone: "neutral" | "warning" | "danger";
+}
+
+export interface AdminPreparationDashboardData {
+  timeline: DashboardTimelineSummary;
+  railItems: DashboardRailItem[];
+  insightCards: DashboardInsightCard[];
+  summaryItems: PreparationSummaryItem[];
+  checklistItems: PreparationChecklistItem[];
+  grading: PreparationGradingSummary;
 }
 
 const studentParticipants = (participants: ContestParticipant[]) =>
@@ -106,6 +196,14 @@ const formatTime = (value?: string | null) => {
   });
 };
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 const formatWindow = (contest: ContestDetail) => {
   const start = formatTime(contest.startTime);
   const end = formatTime(contest.endTime);
@@ -113,8 +211,93 @@ const formatWindow = (contest: ContestDetail) => {
   return `${start}-${end}`;
 };
 
+const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
+
+const buildTimelineSummary = ({
+  contest,
+  now,
+  progressPercent,
+}: {
+  contest: ContestDetail;
+  now: Date;
+  progressPercent?: number;
+}): DashboardTimelineSummary => {
+  const start = Date.parse(contest.startTime);
+  const end = Date.parse(contest.endTime);
+  const nowMs = now.getTime();
+  const timeWindowLabel = formatWindow(contest);
+  const startDateTimeLabel = formatDateTime(contest.startTime);
+  const endDateTimeLabel = formatDateTime(contest.endTime);
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return {
+      phaseLabel: "時間未設定",
+      primaryTimeLabel: "未設定",
+      timeWindowLabel,
+      startDateTimeLabel,
+      endDateTimeLabel,
+      progressPercent: 0,
+    };
+  }
+
+  if (nowMs < start) {
+    return {
+      phaseLabel: "尚未開始",
+      primaryTimeLabel: `距離開始 ${formatDuration((start - nowMs) / 1000)}`,
+      timeWindowLabel,
+      startDateTimeLabel,
+      endDateTimeLabel,
+      progressPercent: 0,
+    };
+  }
+
+  if (nowMs >= end) {
+    return {
+      phaseLabel: "已結束",
+      primaryTimeLabel: "考試已結束",
+      timeWindowLabel,
+      startDateTimeLabel,
+      endDateTimeLabel,
+      progressPercent: 100,
+    };
+  }
+
+  const resolvedProgress =
+    progressPercent ?? ((nowMs - start) / Math.max(1, end - start)) * 100;
+  return {
+    phaseLabel: "進行中",
+    primaryTimeLabel: `剩餘 ${formatDuration((end - nowMs) / 1000)}`,
+    timeWindowLabel,
+    startDateTimeLabel,
+    endDateTimeLabel,
+    progressPercent: clampPercent(resolvedProgress),
+  };
+};
+
+const isValidSchedule = (contest: ContestDetail) => {
+  const start = Date.parse(contest.startTime);
+  const end = Date.parse(contest.endTime);
+  return Number.isFinite(start) && Number.isFinite(end) && end > start;
+};
+
+const getWorkItemCount = (contest: ContestDetail) =>
+  contest.contestType === "paper_exam"
+    ? contest.examQuestionsCount
+    : contest.problems.length;
+
 const percentage = (value: number, total: number) =>
   total <= 0 ? 0 : Math.round((value / total) * 100);
+
+const buildProgressSeries = (percent: number): DashboardChartSeries[] => [
+  {
+    key: "progress",
+    label: "進度",
+    values: [
+      { label: "開始", value: 0 },
+      { label: "目前", value: clampPercent(percent) },
+    ],
+  },
+];
 
 const latestEventByUser = (events: ExamEvent[]) => {
   const map = new Map<string, ExamEvent>();
@@ -244,7 +427,9 @@ const buildDistribution = (
     {
       key: "locked" as const,
       label: "鎖定",
-      value: count((p) => p.examStatus === "locked" || p.examStatus === "paused"),
+      value: count(
+        (p) => p.examStatus === "locked" || p.examStatus === "paused",
+      ),
     },
     {
       key: "offline" as const,
@@ -275,6 +460,98 @@ const buildRecentEvents = (examEvents: ExamEvent[]): RecentExamEventItem[] =>
       };
     });
 
+const buildPriorityEventSeries = (
+  examEvents: ExamEvent[],
+): DashboardChartSeries[] => {
+  const priorityEvents = examEvents
+    .filter((event) => {
+      const priority = getEventPriority(event.eventType);
+      return priority >= 0 && priority <= 2;
+    })
+    .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+  const bucketLabels = Array.from(
+    new Set(priorityEvents.map((event) => formatTime(event.timestamp))),
+  ).slice(-8);
+
+  const safeLabels = bucketLabels.length > 0 ? bucketLabels : ["目前"];
+  const countFor = (priority: number, label: string) =>
+    priorityEvents.filter(
+      (event) =>
+        getEventPriority(event.eventType) === priority &&
+        formatTime(event.timestamp) === label,
+    ).length;
+
+  return [
+    {
+      key: "p0",
+      label: "P0",
+      values: safeLabels.map((label) => ({
+        label,
+        value: countFor(0, label),
+      })),
+    },
+    {
+      key: "p1",
+      label: "P1",
+      values: safeLabels.map((label) => ({
+        label,
+        value: countFor(1, label),
+      })),
+    },
+    {
+      key: "p2",
+      label: "P2",
+      values: safeLabels.map((label) => ({
+        label,
+        value: countFor(2, label),
+      })),
+    },
+  ];
+};
+
+const buildInsightCards = ({
+  gradingPercent,
+  gradingLabel,
+  examProgressPercent,
+  examEvents,
+}: {
+  gradingPercent: number;
+  gradingLabel: string;
+  examProgressPercent: number;
+  examEvents: ExamEvent[];
+}): DashboardInsightCard[] => {
+  const priorityTotal = examEvents.filter((event) => {
+    const priority = getEventPriority(event.eventType);
+    return priority >= 0 && priority <= 2;
+  }).length;
+
+  return [
+    {
+      key: "grading_progress",
+      title: "批改進度",
+      value: gradingLabel,
+      kind: "progress",
+      progressPercent: gradingPercent,
+      series: buildProgressSeries(gradingPercent),
+    },
+    {
+      key: "exam_progress",
+      title: "考試進度",
+      value: `${Math.round(clampPercent(examProgressPercent))}%`,
+      kind: "progress",
+      progressPercent: examProgressPercent,
+      series: buildProgressSeries(examProgressPercent),
+    },
+    {
+      key: "priority_events",
+      title: "違規事件",
+      value: String(priorityTotal),
+      kind: "line",
+      series: buildPriorityEventSeries(examEvents),
+    },
+  ];
+};
+
 export const buildAdminOverviewDashboard = ({
   contest,
   participants,
@@ -297,6 +574,15 @@ export const buildAdminOverviewDashboard = ({
   const locked = students.filter(
     (p) => p.examStatus === "locked" || p.examStatus === "paused",
   ).length;
+  const inProgress = students.filter(
+    (p) => p.examStatus === "in_progress",
+  ).length;
+  const notStarted = students.filter(
+    (p) => p.examStatus === "not_started",
+  ).length;
+  const offline = students.filter(
+    (p) => p.connectionStatus === "offline",
+  ).length;
   const attentionRows = getTeacherAttentionRows({
     participants,
     examEvents,
@@ -309,10 +595,8 @@ export const buildAdminOverviewDashboard = ({
   const totalAnswers = gradingStats?.totalAnswers ?? 0;
   const gradingPercent =
     totalAnswers > 0 ? Math.round((gradedAnswers / totalAnswers) * 100) : 0;
-  const workItemCount =
-    contest.contestType === "paper_exam"
-      ? contest.examQuestionsCount
-      : contest.problems.length;
+  const gradingLabel = totalAnswers > 0 ? `${gradingPercent}%` : "尚無批改資料";
+  const workItemCount = getWorkItemCount(contest);
 
   return {
     kpis: [
@@ -347,6 +631,49 @@ export const buildAdminOverviewDashboard = ({
         tone: attentionRows.length > 0 ? "warning" : "neutral",
       },
     ],
+    timeline: buildTimelineSummary({
+      contest,
+      now,
+      progressPercent: liveTimeProgress.progressPercent,
+    }),
+    railItems: [
+      {
+        key: "online",
+        label: "在線",
+        value: `${overviewMetrics?.onlineNow ?? 0} / ${total}`,
+        tone: "neutral",
+      },
+      {
+        key: "in_progress",
+        label: "作答中",
+        value: String(inProgress),
+        tone: "neutral",
+      },
+      {
+        key: "not_started",
+        label: "未開始",
+        value: String(notStarted),
+        tone: notStarted > 0 ? "warning" : "neutral",
+      },
+      {
+        key: "submitted",
+        label: "已交卷",
+        value: String(submitted),
+        tone: "neutral",
+      },
+      {
+        key: "locked_offline",
+        label: "鎖定 / 離線",
+        value: `${locked} / ${offline}`,
+        tone: locked > 0 || offline > 0 ? "danger" : "neutral",
+      },
+    ],
+    insightCards: buildInsightCards({
+      gradingPercent,
+      gradingLabel,
+      examProgressPercent: liveTimeProgress.progressPercent,
+      examEvents,
+    }),
     attentionRows,
     distribution: buildDistribution(participants),
     examStatus: {
@@ -356,7 +683,7 @@ export const buildAdminOverviewDashboard = ({
         : formatDuration(liveTimeProgress.remainingSeconds),
       timeProgressPercent: liveTimeProgress.progressPercent,
       resultsLabel: contest.resultsPublished ? "已發布" : "未發布",
-      gradingLabel: totalAnswers > 0 ? `${gradingPercent}%` : "尚無批改資料",
+      gradingLabel,
       workItemLabel:
         contest.contestType === "paper_exam" ? "考卷題目" : "程式題目",
       workItemCount,
@@ -376,7 +703,8 @@ export const buildAdminOverviewDashboard = ({
       {
         key: "grading",
         title: "前往批改",
-        description: totalAnswers > 0 ? `已批改 ${gradingPercent}%` : "考後可開始批改",
+        description:
+          totalAnswers > 0 ? `已批改 ${gradingPercent}%` : "考後可開始批改",
         panelTarget: "grading",
       },
       {
@@ -387,5 +715,217 @@ export const buildAdminOverviewDashboard = ({
         disabled: contest.resultsPublished,
       },
     ],
+  };
+};
+
+const contestStatusLabel = (status: ContestDetail["status"]) => {
+  if (status === "draft") return "草稿";
+  if (status === "archived") return "已封存";
+  return "已發布";
+};
+
+const readinessLabel = (status: PreparationReadinessState) => {
+  if (status === "done") return "完成";
+  if (status === "missing") return "缺少";
+  return "待確認";
+};
+
+export const buildAdminPreparationDashboard = ({
+  contest,
+  participants,
+  gradingStats,
+  now = new Date(),
+}: {
+  contest: ContestDetail;
+  participants: ContestParticipant[];
+  gradingStats?: GlobalStats;
+  now?: Date;
+}): AdminPreparationDashboardData => {
+  const students = studentParticipants(participants);
+  const participantTotal = Math.max(
+    students.length,
+    contest.participantCount || 0,
+  );
+  const workItemCount = getWorkItemCount(contest);
+  const scheduleReady = isValidSchedule(contest);
+  const hasRules = Boolean(contest.rules?.trim());
+  const totalAnswers = gradingStats?.totalAnswers ?? 0;
+  const gradedAnswers = gradingStats?.gradedAnswers ?? 0;
+  const ungradedAnswers =
+    gradingStats?.ungradedAnswers ?? Math.max(totalAnswers - gradedAnswers, 0);
+  const gradingPercent = percentage(gradedAnswers, totalAnswers);
+  const gradingLabel = totalAnswers > 0 ? `${gradingPercent}%` : "尚無資料";
+  const workItemLabel =
+    contest.contestType === "paper_exam" ? "考卷題目" : "程式題目";
+  const publishState: PreparationReadinessState =
+    contest.status === "published" ? "done" : "warning";
+
+  const checklistItems: PreparationChecklistItem[] = [
+    {
+      key: "publish",
+      label: "競賽發布",
+      status: publishState,
+      statusLabel: readinessLabel(publishState),
+      description:
+        contest.status === "published"
+          ? "參賽者可依權限進入競賽"
+          : `目前狀態：${contestStatusLabel(contest.status)}`,
+    },
+    {
+      key: "work_items",
+      label: workItemLabel,
+      status: workItemCount > 0 ? "done" : "missing",
+      statusLabel: readinessLabel(workItemCount > 0 ? "done" : "missing"),
+      description:
+        workItemCount > 0
+          ? `已設定 ${workItemCount} 題`
+          : "尚未建立可作答的題目",
+    },
+    {
+      key: "schedule",
+      label: "考試時段",
+      status: scheduleReady ? "done" : "missing",
+      statusLabel: readinessLabel(scheduleReady ? "done" : "missing"),
+      description: scheduleReady
+        ? formatWindow(contest)
+        : "開始與結束時間未完整設定",
+    },
+    {
+      key: "participants",
+      label: "參賽者名單",
+      status: participantTotal > 0 ? "done" : "warning",
+      statusLabel: readinessLabel(participantTotal > 0 ? "done" : "warning"),
+      description:
+        participantTotal > 0
+          ? `${participantTotal} 位參賽者`
+          : "尚未看到參賽者資料",
+    },
+    {
+      key: "rules",
+      label: "作答規則",
+      status: hasRules ? "done" : "warning",
+      statusLabel: readinessLabel(hasRules ? "done" : "warning"),
+      description: hasRules ? "已填寫規則說明" : "可補上考試規則與注意事項",
+    },
+    {
+      key: "anti_cheat",
+      label: "防作弊設定",
+      status: contest.cheatDetectionEnabled ? "done" : "warning",
+      statusLabel: readinessLabel(
+        contest.cheatDetectionEnabled ? "done" : "warning",
+      ),
+      description: contest.cheatDetectionEnabled
+        ? "防作弊監控已啟用"
+        : "可依考試需求啟用",
+    },
+  ];
+
+  return {
+    timeline: buildTimelineSummary({
+      contest,
+      now,
+    }),
+    railItems: [
+      {
+        key: "status",
+        label: "競賽狀態",
+        value: contestStatusLabel(contest.status),
+        tone: contest.status === "published" ? "neutral" : "warning",
+      },
+      {
+        key: "work_items",
+        label: workItemLabel,
+        value: String(workItemCount),
+        tone: workItemCount > 0 ? "neutral" : "danger",
+      },
+      {
+        key: "participants",
+        label: "參賽者",
+        value: String(participantTotal),
+        tone: participantTotal > 0 ? "neutral" : "warning",
+      },
+      {
+        key: "anti_cheat",
+        label: "防作弊",
+        value: contest.cheatDetectionEnabled ? "已啟用" : "未啟用",
+        tone: contest.cheatDetectionEnabled ? "neutral" : "warning",
+      },
+      {
+        key: "results",
+        label: "成績",
+        value: contest.resultsPublished ? "已發布" : "未發布",
+        tone: contest.resultsPublished ? "neutral" : "warning",
+      },
+    ],
+    insightCards: buildInsightCards({
+      gradingPercent,
+      gradingLabel,
+      examProgressPercent: buildTimelineSummary({ contest, now })
+        .progressPercent,
+      examEvents: [],
+    }),
+    summaryItems: [
+      {
+        key: "status",
+        label: "競賽狀態",
+        value: contestStatusLabel(contest.status),
+        description:
+          contest.status === "published" ? "已開放給參賽者" : "尚未正式開放",
+        tone: contest.status === "published" ? "neutral" : "warning",
+      },
+      {
+        key: "schedule",
+        label: "考試時段",
+        value: formatWindow(contest),
+        description: scheduleReady ? "時間設定完整" : "需要補齊時間",
+        tone: scheduleReady ? "neutral" : "danger",
+      },
+      {
+        key: "work_items",
+        label: workItemLabel,
+        value: String(workItemCount),
+        description: workItemCount > 0 ? "內容已建立" : "尚未建立內容",
+        tone: workItemCount > 0 ? "neutral" : "danger",
+      },
+      {
+        key: "participants",
+        label: "參賽者",
+        value: String(participantTotal),
+        description: participantTotal > 0 ? "名單可供管理" : "尚無參賽者資料",
+        tone: participantTotal > 0 ? "neutral" : "warning",
+      },
+      {
+        key: "grading",
+        label: "批改進度",
+        value: gradingLabel,
+        description:
+          totalAnswers > 0
+            ? `${gradedAnswers} / ${totalAnswers} 份`
+            : "考後才會產生批改資料",
+        tone: ungradedAnswers > 0 ? "warning" : "neutral",
+      },
+      {
+        key: "results",
+        label: "成績",
+        value: contest.resultsPublished ? "已發布" : "未發布",
+        description: contest.resultsPublished
+          ? "參賽者可查看"
+          : "確認批改後發布",
+        tone: contest.resultsPublished ? "neutral" : "warning",
+      },
+    ],
+    checklistItems,
+    grading: {
+      totalAnswers,
+      gradedAnswers,
+      ungradedAnswers,
+      progressPercent: gradingPercent,
+      progressLabel:
+        totalAnswers > 0
+          ? `${gradedAnswers} / ${totalAnswers}`
+          : "尚無作答資料",
+      resultsLabel: contest.resultsPublished ? "已發布" : "未發布",
+      resultsTone: contest.resultsPublished ? "neutral" : "warning",
+    },
   };
 };

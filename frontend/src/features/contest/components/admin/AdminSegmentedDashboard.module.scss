@@ -1,0 +1,40 @@
+.root {
+  overflow: hidden;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.primaryPanel,
+.sidePanel {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.primaryPanel {
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.tabsPanel {
+  border-top: 0;
+}
+
+.tabPanel {
+  padding: 0;
+}
+
+@media (max-width: 1056px) {
+  .topGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .primaryPanel {
+    border-right: 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+}

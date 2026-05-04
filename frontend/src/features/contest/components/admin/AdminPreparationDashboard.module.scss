@@ -1,0 +1,172 @@
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.panelHeader h3 {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.panelHeader p {
+  margin: 0.25rem 0 0;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
+.checklist {
+  display: grid;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.checklistItem {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.875rem 0;
+}
+
+.checklistItem:not(:last-child) {
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.checklistText {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.checklistText strong {
+  color: var(--cds-text-primary);
+  font-weight: 600;
+}
+
+.checklistText span {
+  overflow-wrap: anywhere;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
+.statusDone {
+  color: var(--cds-support-success);
+}
+
+.statusWarning {
+  color: var(--cds-support-warning);
+}
+
+.gradingPanel {
+  display: grid;
+  gap: 1rem;
+  max-width: 40rem;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 9999px;
+  background: color-mix(
+    in srgb,
+    var(--cds-layer-02) 88%,
+    var(--cds-text-primary) 12%
+  );
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cds-interactive);
+}
+
+.gradingList {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.gradingList div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.gradingList dt,
+.gradingList dd {
+  margin: 0;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
+.gradingList dt {
+  color: var(--cds-text-secondary);
+}
+
+.gradingList dd {
+  color: var(--cds-text-primary);
+  font-weight: 600;
+}
+
+.entryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.entryButton {
+  width: 100%;
+  max-width: none;
+  min-height: 5.5rem;
+  border: 0;
+  border-right: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--cds-border-subtle);
+  text-align: left;
+}
+
+.entryButton:nth-child(2n) {
+  border-right: 0;
+}
+
+.entryButton:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.entryText {
+  display: grid;
+  gap: 0.125rem;
+  margin-right: auto;
+}
+
+.entryText small {
+  color: inherit;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  opacity: 0.78;
+}
+
+@media (max-width: 672px) {
+  .checklistItem,
+  .entryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .entryButton,
+  .entryButton:nth-child(2n),
+  .entryButton:nth-last-child(-n + 2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+
+  .entryButton:last-child {
+    border-bottom: 0;
+  }
+}
