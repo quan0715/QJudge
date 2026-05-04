@@ -113,7 +113,7 @@ const PriorityLineChart = ({
         scale: {
           P0: "var(--cds-support-error)",
           P1: "var(--cds-support-warning)",
-          P2: "var(--cds-support-info)",
+          P2: "var(--cds-purple-60)",
         },
       },
       curve: "curveMonotoneX",
@@ -143,13 +143,6 @@ const DistributionOverview = ({
 }) => {
   const visibleDistribution = distribution.filter(
     (item) => item.key !== "offline",
-  );
-  const submittedItem = distribution.find((item) => item.key === "submitted");
-  const totalParticipants = distribution
-    .filter((item) => item.key !== "offline")
-    .reduce((total, item) => total + item.value, 0);
-  const submittedPercent = Math.round(
-    Math.max(0, Math.min(100, submittedItem?.percent ?? 0)),
   );
   if (visibleDistribution.length === 0 && !loading) return null;
 
@@ -199,30 +192,6 @@ const DistributionOverview = ({
           ))}
         </div>
       )}
-      {!loading ? (
-        <div className={styles.answerProgressBlock}>
-          <div className={styles.answerProgressHeader}>
-            <span>作答進度</span>
-            <strong>{submittedPercent}%</strong>
-          </div>
-          <ProgressBar
-            label="作答進度"
-            hideLabel
-            size="small"
-            value={submittedPercent}
-          />
-          <dl className={styles.progressDetails}>
-            <div>
-              <dt>已交卷</dt>
-              <dd>{submittedItem?.value ?? 0}</dd>
-            </div>
-            <div>
-              <dt>考試人數</dt>
-              <dd>{totalParticipants}</dd>
-            </div>
-          </dl>
-        </div>
-      ) : null}
     </section>
   );
 };

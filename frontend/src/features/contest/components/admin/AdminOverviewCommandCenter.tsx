@@ -1,20 +1,22 @@
 import {
   Button,
-  FluidDropdown,
+  OverflowMenu,
+  OverflowMenuItem,
   ProgressBar,
+  Search,
   SelectableTag,
   SkeletonText,
   Tab,
   TabList,
   TabPanel,
   TabPanels,
-  TableToolbarSearch,
   Tabs,
 } from "@carbon/react";
 import {
   CheckmarkFilled,
   CircleDash,
   Close,
+  Filter,
   InProgress,
   Locked,
   PauseFilled,
@@ -363,19 +365,12 @@ export default function AdminOverviewCommandCenter({
     })),
   ];
   const liveStudentCount = studentParticipants.filter(isParticipantLive).length;
-  const selectedStatusFilter =
-    PARTICIPANT_STATUS_FILTERS.find(
-      (item) => item.id === participantStatusFilter,
-    ) ?? PARTICIPANT_STATUS_FILTERS[0];
   const handleParticipantSearchChange = (
-    event: "" | ChangeEvent<HTMLInputElement>,
+    event: ChangeEvent<HTMLInputElement>,
   ) => {
-    if (event === "") {
-      setParticipantSearch("");
-      return;
-    }
     setParticipantSearch(event.target.value);
   };
+  const isFilterActive = participantStatusFilter !== "all";
   const participantMetricTags = (
     <div className={styles.metricTagGroup} aria-label="考生卡片資料切換">
       {PARTICIPANT_METRIC_OPTIONS.map((option) => (
@@ -562,30 +557,41 @@ export default function AdminOverviewCommandCenter({
     </div>
   );
   const participantTabToolbar = (
-    <div className={styles.tabRowToolbar}>
-      <TableToolbarSearch
+    <div
+      className={`${styles.tabRowToolbar} ${
+        isFilterActive ? styles.tabRowToolbarActive : ""
+      }`}
+    >
+      <Search
         id="overview-participants-search"
         labelText="搜尋考生"
-        placeholder="搜尋姓名、帳號或狀態"
+        placeholder="搜尋姓名或使用者 ID..."
         value={participantSearch}
         onChange={handleParticipantSearchChange}
-        persistent
+        onClear={() => setParticipantSearch("")}
         size="md"
+        className={styles.tabRowSearch}
       />
-      <FluidDropdown
-        id="overview-participants-status-filter"
-        titleText="狀態"
-        label="狀態"
-        items={PARTICIPANT_STATUS_FILTERS}
-        itemToString={(item: FilterOption | null) => item?.label ?? ""}
-        selectedItem={selectedStatusFilter}
-        onChange={({ selectedItem }) =>
-          setParticipantStatusFilter(
-            (selectedItem as FilterOption | null)?.id ?? "all",
-          )
-        }
+      <OverflowMenu
+        renderIcon={Filter}
+        iconDescription="篩選狀態"
         size="md"
-      />
+        flipped
+        className={styles.tabRowFilterMenu}
+        aria-label="篩選考生狀態"
+      >
+        {PARTICIPANT_STATUS_FILTERS.map((option) => (
+          <OverflowMenuItem
+            key={option.id}
+            itemText={
+              participantStatusFilter === option.id
+                ? `✓  ${option.label}`
+                : option.label
+            }
+            onClick={() => setParticipantStatusFilter(option.id)}
+          />
+        ))}
+      </OverflowMenu>
     </div>
   );
   const questionStatsPanel = (

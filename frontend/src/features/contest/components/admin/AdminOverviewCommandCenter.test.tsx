@@ -286,9 +286,6 @@ describe("AdminOverviewCommandCenter", () => {
     expect(
       within(distributionOverview).queryByText("離線"),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("progressbar", { name: "作答進度" }),
-    ).toHaveAttribute("aria-valuenow", "16");
     const eventLogPanel = screen.getByLabelText("事件紀錄");
     const priorityChartTitle = within(eventLogPanel).getByText("違規事件");
     const embeddedEventLog = screen.getByTestId("embedded-event-log");
@@ -403,7 +400,9 @@ describe("AdminOverviewCommandCenter", () => {
       screen.queryByRole("button", { name: /王小明/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /陳小華/ })).toBeInTheDocument();
-    expect(screen.getByText("狀態")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "篩選狀態" }),
+    ).toBeInTheDocument();
   });
 
   it("switches the drilldown section between participants and answer distribution", async () => {

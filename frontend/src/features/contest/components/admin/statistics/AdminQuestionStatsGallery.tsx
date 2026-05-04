@@ -1,14 +1,14 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useState, type ChangeEvent, type ComponentType } from "react";
 import {
   Button,
-  FluidDropdown,
+  OverflowMenu,
+  OverflowMenuItem,
+  Search,
   SkeletonPlaceholder,
   SkeletonText,
-  TableToolbarSearch,
   Tag,
 } from "@carbon/react";
-import { Close } from "@carbon/icons-react";
-import type { ChangeEvent } from "react";
+import { Close, Filter } from "@carbon/icons-react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
 import {
@@ -181,16 +181,11 @@ export default function AdminQuestionStatsGallery({
         focusMetric={focusMetric}
         onFocusMetricChange={setFocusMetric}
         searchQuery={searchQuery}
-        onSearchChange={(event) => {
-          if (event === "") {
-            setSearchQuery("");
-            return;
-          }
-          setSearchQuery(event.target.value);
-        }}
+        onSearchChange={(event) => setSearchQuery(event.target.value)}
+        onSearchClear={() => setSearchQuery("")}
         questionKindOptions={questionKindOptions}
         selectedQuestionKind={selectedQuestionKind}
-        onQuestionKindChange={(kind) => setQuestionKindFilter(kind)}
+        onQuestionKindChange={setQuestionKindFilter}
       />
       {sortedQuestions.length === 0 ? (
         <div className={styles.emptyState}>目前沒有題目資料</div>
@@ -226,6 +221,7 @@ function GalleryHeader({
   onFocusMetricChange,
   searchQuery = "",
   onSearchChange,
+  onSearchClear,
   questionKindOptions = [],
   selectedQuestionKind,
   onQuestionKindChange,
@@ -234,12 +230,16 @@ function GalleryHeader({
   focusMetric: FocusMetricKey;
   onFocusMetricChange: (metric: FocusMetricKey) => void;
   searchQuery?: string;
-  onSearchChange?: (event: "" | ChangeEvent<HTMLInputElement>) => void;
+  onSearchChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+  onSearchClear?: () => void;
   questionKindOptions?: FilterOption[];
   selectedQuestionKind?: FilterOption;
   onQuestionKindChange?: (kind: string) => void;
 }) {
   const selectedMetric = focusMetrics.find((item) => item.key === focusMetric);
+  const showFilterToolbar = Boolean(onSearchChange && onQuestionKindChange);
+  const isFilterActive =
+    selectedQuestionKind != null && selectedQuestionKind.id !== "all";
   return (
     <div className={styles.header}>
       <div>
@@ -268,31 +268,42 @@ function GalleryHeader({
           ))}
         </div>
       </div>
-      {onSearchChange && onQuestionKindChange ? (
-        <div className={styles.filterToolbar}>
-          <TableToolbarSearch
+      {showFilterToolbar ? (
+        <div
+          className={`${styles.filterToolbar} ${
+            isFilterActive ? styles.filterToolbarActive : ""
+          }`}
+        >
+          <Search
             id="overview-question-stats-search"
             labelText="搜尋題目"
             placeholder="搜尋題號或題目"
             value={searchQuery}
             onChange={onSearchChange}
-            persistent
+            onClear={onSearchClear}
             size="md"
+            className={styles.filterToolbarSearch}
           />
-          <FluidDropdown
-            id="overview-question-kind-filter"
-            titleText="題型"
-            label="題型"
-            items={questionKindOptions}
-            itemToString={(item: FilterOption | null) => item?.label ?? ""}
-            selectedItem={selectedQuestionKind ?? null}
-            onChange={({ selectedItem }) =>
-              onQuestionKindChange(
-                (selectedItem as FilterOption | null)?.id ?? "all",
-              )
-            }
+          <OverflowMenu
+            renderIcon={Filter}
+            iconDescription="篩選題型"
             size="md"
-          />
+            flipped
+            className={styles.filterToolbarMenu}
+            aria-label="篩選題型"
+          >
+            {questionKindOptions.map((option) => (
+              <OverflowMenuItem
+                key={option.id}
+                itemText={
+                  selectedQuestionKind?.id === option.id
+                    ? `✓  ${option.label}`
+                    : option.label
+                }
+                onClick={() => onQuestionKindChange?.(option.id)}
+              />
+            ))}
+          </OverflowMenu>
         </div>
       ) : null}
     </div>

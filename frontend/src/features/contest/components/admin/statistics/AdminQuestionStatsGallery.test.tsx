@@ -74,7 +74,9 @@ describe("AdminQuestionStatsGallery", () => {
     expect(
       screen.getByRole("searchbox", { name: "搜尋題目" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("全部題型")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "篩選題型" }),
+    ).toBeInTheDocument();
     expect(screen.getAllByText("得分率").length).toBeGreaterThan(0);
     expect(screen.getAllByText("47 人作答").length).toBeGreaterThan(0);
     expect(screen.queryByText("批改率")).not.toBeInTheDocument();
