@@ -137,8 +137,8 @@ describe("adminOverviewDashboard.model", () => {
     );
     expect(data.timeline.phaseLabel).toBe("進行中");
     expect(data.timeline.primaryTimeLabel).toBe("剩餘 45:00");
-    expect(data.timeline.startDateTimeLabel).toBe("2026/05/03 09:00");
-    expect(data.timeline.endDateTimeLabel).toBe("2026/05/03 11:00");
+    expect(data.timeline.startDateTimeLabel).toBe("09:00");
+    expect(data.timeline.endDateTimeLabel).toBe("11:00");
     expect(data.timeline.progressPercent).toBe(37.5);
     expect(data.railItems.map((item) => item.key)).toEqual([
       "online",
@@ -288,8 +288,8 @@ describe("adminOverviewDashboard.model", () => {
     expect(before.timeline.progressPercent).toBe(0);
     expect(during.timeline.phaseLabel).toBe("進行中");
     expect(during.timeline.primaryTimeLabel).toBe("剩餘 1:00:00");
-    expect(during.timeline.startDateTimeLabel).toBe("2026/05/03 09:00");
-    expect(during.timeline.endDateTimeLabel).toBe("2026/05/03 11:00");
+    expect(during.timeline.startDateTimeLabel).toBe("09:00");
+    expect(during.timeline.endDateTimeLabel).toBe("11:00");
     expect(during.timeline.progressPercent).toBe(50);
     expect(after.timeline.phaseLabel).toBe("已結束");
     expect(after.timeline.primaryTimeLabel).toBe("考試已結束");
