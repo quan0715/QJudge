@@ -1,0 +1,92 @@
+.root {
+  display: flex;
+  min-width: 0;
+}
+
+.bordered {
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.stack {
+  flex-direction: column;
+}
+
+.stack.dividers > *:not(:last-child) {
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.split {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.split > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.split.dividers > *:not(:last-child) {
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+@media (max-width: 1056px) {
+  .split {
+    flex-direction: column;
+  }
+
+  .split.dividers > *:not(:last-child) {
+    border-right: 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+}
+
+.grid {
+  display: grid;
+}
+
+.gridCols2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gridCols3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gridCols4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gridColsAuto {
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+}
+
+.grid.dividers > * {
+  border-right: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.grid.dividers.gridCols2 > *:nth-child(2n) {
+  border-right: 0;
+}
+
+.grid.dividers.gridCols3 > *:nth-child(3n) {
+  border-right: 0;
+}
+
+.grid.dividers.gridCols4 > *:nth-child(4n) {
+  border-right: 0;
+}
+
+.grid.dividers > *:last-child {
+  border-right: 0;
+}
+
+@media (max-width: 672px) {
+  .grid:not(.gridColsAuto) {
+    grid-template-columns: 1fr;
+  }
+
+  .grid.dividers:not(.gridColsAuto) > * {
+    border-right: 0;
+  }
+}

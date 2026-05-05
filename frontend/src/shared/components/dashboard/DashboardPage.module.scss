@@ -1,0 +1,18 @@
+.root {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+@media (max-width: 672px) {
+  .inner {
+    padding: 0.75rem;
+  }
+}
