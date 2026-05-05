@@ -96,6 +96,35 @@
   color: var(--cds-text-primary);
 }
 
+.announcementList {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.announcementItem {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.announcementItem:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.announcementMeta {
+  flex: 0 0 auto;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  line-height: var(--cds-label-01-line-height, 1.33333);
+}
+
+.announcementContent {
+  color: var(--cds-text-primary);
+}
+
 .warningIcon {
   color: var(--cds-support-warning);
 }

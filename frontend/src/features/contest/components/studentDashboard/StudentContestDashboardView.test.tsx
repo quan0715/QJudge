@@ -10,6 +10,7 @@ import {
   getMyExamAnswers,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { getExamDashboardSummary } from "@/infrastructure/api/repositories/exam.repository";
+import { getContestAnnouncements } from "@/infrastructure/api/repositories/contestAnnouncements.repository";
 import StudentContestDashboard from "./StudentContestDashboardView";
 
 vi.mock("react-i18next", () => ({
@@ -75,8 +76,16 @@ vi.mock("@carbon/react", () => ({
   Tab: ({ children }: { children: ReactNode }) => (
     <button type="button">{children}</button>
   ),
-  TabList: ({ children }: { children: ReactNode }) => (
-    <div role="tablist">{children}</div>
+  TabList: ({
+    children,
+    ...props
+  }: {
+    children: ReactNode;
+    "aria-label"?: string;
+  }) => (
+    <div role="tablist" aria-label={props["aria-label"]}>
+      {children}
+    </div>
   ),
   TabPanel: ({ children }: { children: ReactNode }) => (
     <div role="tabpanel">{children}</div>
@@ -164,6 +173,10 @@ vi.mock("@/infrastructure/api/repositories/exam.repository", () => ({
   })),
 }));
 
+vi.mock("@/infrastructure/api/repositories/contestAnnouncements.repository", () => ({
+  getContestAnnouncements: vi.fn(() => new Promise(() => {})),
+}));
+
 const createContest = (
   overrides: Partial<ContestDetail> = {},
 ): ContestDetail =>
@@ -241,6 +254,25 @@ describe("StudentContestDashboard", () => {
     expect(screen.getByRole("main", { name: "學生競賽首頁" })).toBeInTheDocument();
     expect(screen.getByText("總時長")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /加入競賽/ })).toBeInTheDocument();
+  });
+
+  it("renders contest announcements above the tabs", async () => {
+    vi.mocked(getContestAnnouncements).mockResolvedValueOnce([
+      {
+        id: "ann-1",
+        title: "考試公告",
+        content: "請準時進入考場",
+        created_at: "2099-05-05T09:00:00.000Z",
+        updated_at: "2099-05-05T09:00:00.000Z",
+        created_by: { username: "teacher" },
+      },
+    ]);
+
+    renderDashboard(createContest());
+
+    expect(await screen.findByText("考試公告")).toBeInTheDocument();
+    expect(screen.getByText("請準時進入考場")).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "競賽資訊切換" })).toBeInTheDocument();
   });
 
   it("does not show answer records before the participant starts", () => {

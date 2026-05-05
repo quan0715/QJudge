@@ -719,14 +719,16 @@ export default function StudentContestDashboard({
       <div className={styles.announcementList}>
         {announcements.map((announcement) => (
           <article className={styles.announcementItem} key={announcement.id}>
-            <div className={styles.announcementHeader}>
-              <h3 className={styles.announcementTitle}>{announcement.title}</h3>
-              {announcement.createdAt ? (
-                <span className={styles.announcementMeta}>
-                  {formatDate(announcement.createdAt, { includeSeconds: false })}
-                </span>
-              ) : null}
-            </div>
+            <BlockHeader
+              title={announcement.title}
+              actions={
+                announcement.createdAt ? (
+                  <span className={styles.announcementMeta}>
+                    {formatDate(announcement.createdAt, { includeSeconds: false })}
+                  </span>
+                ) : null
+              }
+            />
             <div className={styles.announcementContent}>
               <MarkdownRenderer>{announcement.content}</MarkdownRenderer>
             </div>
