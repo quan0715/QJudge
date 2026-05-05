@@ -2,7 +2,7 @@ import type { ExamStatusType } from "@/core/entities/contest.entity";
 import { View, Locked, WarningAltFilled } from "@carbon/icons-react";
 import { useExamMonitoringStatus } from "@/features/contest/contexts/ExamMonitoringStatusContext";
 import { useTranslation } from "react-i18next";
-import styles from "../layout/ContestLayout.module.scss";
+import styles from "./ExamStatusBadge.module.scss";
 
 interface ExamStatusBadgeProps {
   examStatus?: ExamStatusType;

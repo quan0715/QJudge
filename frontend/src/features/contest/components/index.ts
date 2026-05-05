@@ -1,5 +1,4 @@
 // Layout Components
-export { default as ContestLayout } from "./layout/ContestLayout";
 export { default as ContestHero } from "./layout/ContestHero";
 export { default as ContestTabs } from "./layout/ContestTabs";
 export { default as ContestExitModal } from "./layout/ContestExitModal";
