@@ -19,10 +19,6 @@ import {
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import ExamModeWrapper from "@/features/contest/components/ExamModeWrapper";
-import ContestPreRegistrationScreen from "@/features/contest/screens/ContestPreRegistrationScreen";
-import ContestHero from "@/features/contest/components/layout/ContestHero";
-import ContestTabs from "@/features/contest/components/layout/ContestTabs";
-import { ContentPage } from "@/shared/layout/ContentPage";
 import { ContestProvider } from "@/features/contest/contexts/ContestContext";
 import { ExamModeMonitorModal } from "@/features/contest/components/modals/ExamModeMonitorModal";
 import ExamStatusBadge from "@/features/contest/components/exam/ExamStatusBadge";
@@ -51,7 +47,6 @@ const ContestLayout = () => {
     isSolvePage,
     isPaperExamPage,
     hasEnded,
-    isUpcoming,
     isAdmin,
     userScore,
     totalMaxScore,
@@ -76,8 +71,11 @@ const ContestLayout = () => {
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const isContestParticipant = !!contest?.hasJoined;
   const lockContestMenu =
-    !!contest?.cheatDetectionEnabled && contest.examStatus === "in_progress";
+    isContestParticipant &&
+    !!contest?.cheatDetectionEnabled &&
+    contest.examStatus === "in_progress";
 
   const { timeLeft, isCountdownToStart, unlockTimeLeft } = useContestTimers({
     contest,
@@ -191,7 +189,17 @@ const ContestLayout = () => {
   const renderMainContent = () => {
     const outletContent = (
       <ContestProvider initialContest={contest} initialScoreboardData={scoreboardData} onRefresh={refreshContest}>
-        <Outlet context={{ refreshContest }} />
+        <Outlet
+          context={{
+            refreshContest,
+            onJoin: handleJoin,
+            onStartExam: handleStartExam,
+            onEndExam: handleEndExam,
+            onGoToAnswering: handleGoToAnswering,
+            onOpenAdminPanel: isAdmin ? () => navigate(adminPath) : undefined,
+            isAdmin,
+          }}
+        />
       </ContestProvider>
     );
 
@@ -199,66 +207,23 @@ const ContestLayout = () => {
       return outletContent;
     }
 
-    if (isUpcoming && contest) {
-      return (
-        <div className={styles.scrollableContent}>
-          <ContestPreRegistrationScreen
-            contest={contest}
-            onJoin={handleJoin}
-            isAdmin={isAdmin}
-            onOpenAdminPanel={
-              isAdmin ? () => navigate(adminPath) : undefined
-            }
-          />
-        </div>
-      );
-    }
-
-    if (contest && !contest.hasJoined) {
-      return (
-        <div className={styles.scrollableContent}>
-          <ContestPreRegistrationScreen
-            contest={contest}
-            onJoin={handleJoin}
-            isAdmin={isAdmin}
-            onOpenAdminPanel={
-              isAdmin ? () => navigate(adminPath) : undefined
-            }
-          />
-        </div>
-      );
-    }
-
     if (isSolvePage) {
       return outletContent;
     }
 
     return (
-      <ContentPage
-        hero={
-          <ContestHero
-            contest={contest}
-            onStartExam={handleStartExam}
-            onEndExam={handleEndExam}
-            onGoToAnswering={handleGoToAnswering}
-            onRefreshContest={refreshContest}
-            maxWidth="1056px"
-          />
-        }
-        stickyHeader={
-            contest ? <ContestTabs contest={contest} maxWidth="1056px" /> : undefined
-        }
-      >
+      <div className={styles.dashboardContent}>
         {outletContent}
-      </ContentPage>
+      </div>
     );
   };
 
   const examModeProps = {
     contestId: contestId || "",
-    cheatDetectionEnabled: !!contest?.cheatDetectionEnabled,
-    isExamMonitored: !!contest?.isExamMonitored,
-    requiresFullscreen: !!contest?.requiresFullscreen,
+    cheatDetectionEnabled:
+      isContestParticipant && !!contest?.cheatDetectionEnabled,
+    isExamMonitored: isContestParticipant && !!contest?.isExamMonitored,
+    requiresFullscreen: isContestParticipant && !!contest?.requiresFullscreen,
     hasEnded,
     lockReason: contest?.lockReason,
     examStatus: contest?.examStatus,

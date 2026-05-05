@@ -86,7 +86,7 @@ export default function QuestionStatisticsDetail({
             {(stat.subjectiveEntries ?? []).map((entry, idx) => (
               <AccordionItem
                 key={idx}
-                title={`${entry.studentNickname} — ${
+                title={`${entry.studentDisplayName} — ${
                   entry.score !== null
                     ? t("statistics.scoreUnit", "{{score}} 分", {
                         score: entry.score,

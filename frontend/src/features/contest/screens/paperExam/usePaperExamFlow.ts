@@ -45,7 +45,7 @@ export const usePaperExamFlow = () => {
 
   const clearError = () => setError(null);
 
-  const register = async (data?: { nickname?: string; password?: string }) => {
+  const register = async (data?: { password?: string }) => {
     const id = guardContestId();
     setLoading(true);
     setError(null);

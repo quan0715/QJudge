@@ -38,7 +38,6 @@ export interface StandingRow {
     username: string;
   };
   displayName?: string;
-  nickname?: string;
   solved: number;
   total_score: number;
   time: number;
@@ -92,13 +91,12 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
   const rows = standings.map((s, index) => {
     // Use rank + index for unique ID since multiple users could have same rank
     const rowId = `row_${s.rank}_${s.user?.id || index}`;
-    // Use displayName if available (for anonymous mode), fallback to username
+    // Use profile display name when available, fallback to username.
     const displayName = s.displayName || s.user?.username || "Unknown";
     const row: {
       id: string;
       rank: number;
       user: string;
-      nickname?: string;
       realUsername?: string;
       solved: number;
       total_score: number;
@@ -108,7 +106,6 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
       id: rowId,
       rank: s.rank,
       user: displayName,
-      nickname: s.nickname,
       realUsername: s.user?.username,
       solved: s.solved || 0,
       total_score: s.total_score || 0,

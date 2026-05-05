@@ -74,7 +74,7 @@ class ParticipantDTO:
     user_id: int
     username: str
     email: str = ''
-    nickname: str = ''
+    display_name: str = ''
     exam_status: str = ''
     started_at: Optional[datetime] = None
     left_at: Optional[datetime] = None

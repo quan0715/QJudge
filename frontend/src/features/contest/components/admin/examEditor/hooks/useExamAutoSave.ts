@@ -46,7 +46,6 @@ const FIELD_NAME_MAP: Record<string, keyof ContestUpdatePayload> = {
   warningTimeoutSeconds: "warningTimeoutSeconds",
   screenShareRecoveryGraceMs: "screenShareRecoveryGraceMs",
   scoreboardVisibleDuringContest: "scoreboardVisibleDuringContest",
-  anonymousModeEnabled: "anonymousModeEnabled",
   maxCheatWarnings: "maxCheatWarnings",
   allowMultipleJoins: "allowMultipleJoins",
   allowAutoUnlock: "allowAutoUnlock",

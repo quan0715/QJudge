@@ -65,6 +65,11 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         ).select_related('user')
 
     @staticmethod
+    def _participant_display_name(participant):
+        profile = getattr(participant.user, 'profile', None)
+        return getattr(profile, 'display_name', '') or ''
+
+    @staticmethod
     def _build_score_distribution(scores, max_score):
         buckets = [
             {
@@ -151,8 +156,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                         participants.append({
                             'participant_id': participant.id,
                             'username': participant.user.username,
-                            'nickname': participant.nickname or None,
-                            'display_name': participant.nickname or participant.user.username,
+                            'display_name': cls._participant_display_name(participant),
                         })
 
             if isinstance(correct_answer, list):
@@ -544,8 +548,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             {
                 'participant_id': participant.id,
                 'username': participant.user.username,
-                'nickname': participant.nickname or None,
-                'display_name': participant.nickname or participant.user.username,
+                'display_name': self._participant_display_name(participant),
             }
             for participant in participants
             if participant.id not in answered_participant_ids
@@ -560,10 +563,8 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                     'exam_answer_id': answer['id'],
                     'participant_id': answer['participant_id'],
                     'username': participants_by_id[answer['participant_id']].user.username,
-                    'nickname': participants_by_id[answer['participant_id']].nickname or None,
-                    'display_name': (
-                        participants_by_id[answer['participant_id']].nickname
-                        or participants_by_id[answer['participant_id']].user.username
+                    'display_name': self._participant_display_name(
+                        participants_by_id[answer['participant_id']],
                     ),
                     'score': float(answer['score']) if answer['score'] is not None else None,
                     'graded_at': answer['graded_at'],

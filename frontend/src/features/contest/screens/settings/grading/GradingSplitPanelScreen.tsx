@@ -355,9 +355,9 @@ export default function GradingSplitPanelScreen({
           transition={{ layout: { duration: 0.18, ease: "easeOut" } }}
         >
           <span className={styles.studentLine}>
-            {answer.studentNickname === answer.studentUsername
-              ? answer.studentNickname
-              : `${answer.studentNickname} (${answer.studentUsername})`}
+            {answer.studentDisplayName === answer.studentUsername
+              ? answer.studentDisplayName
+              : `${answer.studentDisplayName} (${answer.studentUsername})`}
           </span>
 
           <div className={styles.questionPrompt}>

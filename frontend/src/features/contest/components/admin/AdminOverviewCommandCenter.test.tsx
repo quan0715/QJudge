@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ContestParticipant } from "@/core/entities/contest.entity";
 import type { AdminOverviewDashboardData } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
+import type { InsightCardAction } from "./AdminInsightRail";
 import AdminOverviewCommandCenter from "./AdminOverviewCommandCenter";
 
 const participantDashboardState = vi.hoisted(() => ({
@@ -186,7 +187,7 @@ const participants: ContestParticipant[] = [
   {
     userId: "1",
     username: "ming",
-    userDisplayName: "王小明",
+    displayName: "王小明",
     connectionStatus: "online",
     liveMonitoringOnline: true,
     score: 82,
@@ -198,7 +199,7 @@ const participants: ContestParticipant[] = [
   {
     userId: "2",
     username: "hua",
-    userDisplayName: "陳小華",
+    displayName: "陳小華",
     connectionStatus: "offline",
     score: 74,
     joinedAt: "2026-05-03T09:00:00+08:00",
@@ -217,12 +218,14 @@ describe("AdminOverviewCommandCenter", () => {
     adminLoading = false,
     gradingLoading = false,
     antiCheatEnabled = true,
+    gradingAction,
   }: {
     onOpenPanel?: (panel: string) => void;
     overrideData?: AdminOverviewDashboardData;
     adminLoading?: boolean;
     gradingLoading?: boolean;
     antiCheatEnabled?: boolean;
+    gradingAction?: InsightCardAction;
   } = {}) =>
     render(
       <AdminOverviewCommandCenter
@@ -235,6 +238,7 @@ describe("AdminOverviewCommandCenter", () => {
         participants={participants}
         primary={primary}
         questionStatsGallery={questionStatsGallery}
+        gradingAction={gradingAction}
       />,
     );
 
@@ -259,8 +263,13 @@ describe("AdminOverviewCommandCenter", () => {
       screen.getByRole("progressbar", { name: "時間進度" }),
     ).toHaveAttribute("aria-valuenow", "62");
     expect(screen.getAllByText("違規事件").length).toBeGreaterThan(0);
-    const distributionOverview = screen.getByLabelText("考試進度");
+    const distributionOverview = screen.getByLabelText("考生分佈總覽");
     expect(distributionOverview).toBeInTheDocument();
+    expect(
+      within(distributionOverview).getByRole("progressbar", {
+        name: "作答進度",
+      }),
+    ).toHaveAttribute("aria-valuenow", "17");
     expect(
       within(distributionOverview).queryByText("離線"),
     ).not.toBeInTheDocument();
@@ -320,7 +329,7 @@ describe("AdminOverviewCommandCenter", () => {
   it("keeps only essential drilldown content in the left overview column", () => {
     renderCommandCenter();
 
-    expect(screen.getByLabelText("考試進度")).toBeInTheDocument();
+    expect(screen.getByLabelText("考生分佈總覽")).toBeInTheDocument();
     expect(screen.queryByText("auto_submit")).not.toBeInTheDocument();
     expect(screen.getByText("陳小華")).toBeInTheDocument();
     expect(screen.queryByText("競賽發布")).not.toBeInTheDocument();
@@ -331,6 +340,21 @@ describe("AdminOverviewCommandCenter", () => {
         .some((bar) => bar.getAttribute("aria-valuenow") === "82"),
     ).toBe(true);
     expect(screen.queryByText("題目統計")).not.toBeInTheDocument();
+  });
+
+  it("shows the publish results action under grading progress", async () => {
+    const onPublishResults = vi.fn();
+
+    renderCommandCenter({
+      gradingAction: {
+        label: "發布成績",
+        onClick: onPublishResults,
+      },
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "發布成績" }));
+
+    expect(onPublishResults).toHaveBeenCalledTimes(1);
   });
 
   it("groups participants by status and switches the card metric", async () => {
@@ -427,7 +451,7 @@ describe("AdminOverviewCommandCenter", () => {
 
     expect(screen.getByLabelText("考生列表載入中")).toBeInTheDocument();
     expect(screen.getByLabelText("批改資料載入中")).toBeInTheDocument();
-    expect(screen.getByLabelText("考試進度")).toBeInTheDocument();
+    expect(screen.getByLabelText("考生分佈總覽")).toBeInTheDocument();
   });
 
   it("keeps generic panel entries out of the live dashboard", () => {

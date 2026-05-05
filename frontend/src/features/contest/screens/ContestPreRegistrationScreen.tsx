@@ -20,7 +20,7 @@ import styles from "./ContestPreRegistrationScreen.module.scss";
 interface ContestPreRegistrationScreenProps {
   contest: ContestDetail;
   loading?: boolean;
-  onJoin?: (data?: { nickname?: string; password?: string }) => void;
+  onJoin?: (data?: { password?: string }) => void;
   isAdmin?: boolean;
   onOpenAdminPanel?: () => void;
 }
@@ -136,7 +136,7 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
     setShowRegisterModal(true);
   };
 
-  const handleRegisterSubmit = (data: { nickname?: string; password?: string }) => {
+  const handleRegisterSubmit = (data: { password?: string }) => {
     setShowRegisterModal(false);
     onJoin?.(data);
   };
@@ -228,18 +228,6 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
             />
           )}
 
-          {contest.anonymousModeEnabled && (
-            <InlineNotification
-              kind="info"
-              title={t("preRegistration.anonymousTitle", "匿名模式")}
-              subtitle={t(
-                "hero.anonymousModeHint",
-                "本競賽已啟用匿名模式，您可以設定一個暱稱。排行榜和提交列表將顯示您的暱稱而非真實帳號。"
-              )}
-              lowContrast
-              hideCloseButton
-            />
-          )}
         </div>
 
         {contest.rules && (

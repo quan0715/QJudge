@@ -52,11 +52,11 @@ export function useAiGradingScreenData(
   const contestAdminContext = useContext(ContestAdminContext);
 
   const participantMap = useMemo(() => {
-    const map = new Map<string, { username: string; nickname: string }>();
+    const map = new Map<string, { username: string; displayName: string }>();
     for (const p of contestAdminContext?.participants ?? []) {
       map.set(String(p.userId), {
         username: p.username,
-        nickname: p.nickname ?? p.displayName ?? p.username,
+        displayName: p.displayName ?? p.username,
       });
     }
     return map;

@@ -47,10 +47,8 @@ interface ParticipantOperationsPaneProps {
   showViolationKpi?: boolean;
 }
 
-const getParticipantDisplayName = (participant: ContestParticipant) =>
-  participant.userDisplayName ||
+const getProfileDisplayName = (participant: ContestParticipant) =>
   participant.displayName ||
-  participant.nickname ||
   participant.username;
 
 const formatClockTime = (value?: string | null) => {
@@ -127,7 +125,7 @@ const ParticipantOperationsPane = ({
   }
 
   const participant = dashboard.participant;
-  const displayName = getParticipantDisplayName(participant);
+  const profileDisplayName = getProfileDisplayName(participant);
   const primaryAction = dashboard.actions.canUnlock
     ? {
         label: t("participants.actions.unlock", "解除鎖定"),
@@ -238,7 +236,9 @@ const ParticipantOperationsPane = ({
         <div className={styles.operationsHeroTop}>
           <div className={styles.operationsIdentity}>
             <div className={styles.operationsTitleRow}>
-              <h2 className={styles.operationsTitle}>{displayName}</h2>
+              <h2 className={styles.operationsTitle}>
+                {profileDisplayName}
+              </h2>
             </div>
             <p className={styles.operationsSubtitle}>@{participant.username}</p>
           </div>

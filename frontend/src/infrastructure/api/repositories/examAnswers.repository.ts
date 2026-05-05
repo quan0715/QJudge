@@ -34,7 +34,7 @@ export interface ExamAnswerDetailDto extends ExamAnswerDto {
   question_snapshot?: QuestionSnapshotDto | null;
   participant_user_id?: number;
   participant_username?: string;
-  participant_nickname?: string;
+  participant_display_name?: string;
 }
 
 export interface ExamAnswer {
@@ -68,7 +68,7 @@ export interface ExamAnswerDetail extends ExamAnswer {
   questionSnapshot?: QuestionSnapshot | null;
   participantUserId?: string;
   participantUsername?: string;
-  participantNickname?: string;
+  participantDisplayName?: string;
 }
 
 /**
@@ -159,7 +159,7 @@ const mapAnswerDetailDto = (dto: ExamAnswerDetailDto): ExamAnswerDetail => ({
     : null,
   participantUserId: dto.participant_user_id != null ? String(dto.participant_user_id) : undefined,
   participantUsername: dto.participant_username,
-  participantNickname: dto.participant_nickname,
+  participantDisplayName: dto.participant_display_name,
 });
 
 // ── Student API ──

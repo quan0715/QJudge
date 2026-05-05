@@ -29,10 +29,8 @@ interface ParticipantsListPaneProps {
   onSelect: (userId: string) => void;
 }
 
-const getParticipantDisplayName = (participant: ContestParticipant) =>
-  participant.userDisplayName ||
+const getProfileDisplayName = (participant: ContestParticipant) =>
   participant.displayName ||
-  participant.nickname ||
   participant.username;
 
 const NEEDS_ATTENTION_STATUSES = new Set(["locked", "paused"]);
@@ -113,7 +111,7 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
             <div className={styles.gridCardHeader}>
               <div className={styles.gridCardIdentity}>
                 <ListItemTitle className={styles.gridCardName}>
-                  {getParticipantDisplayName(participant)}
+                  {getProfileDisplayName(participant)}
                 </ListItemTitle>
                 <ListItemMeta className={styles.gridCardUsername}>
                   @{participant.username}

@@ -249,7 +249,6 @@ const ContestSettingsOverlay = ({ open, onClose }: ContestSettingsOverlayProps) 
       warningTimeoutSeconds: contest.warningTimeoutSeconds ?? 20,
       screenShareRecoveryGraceMs: contest.screenShareRecoveryGraceMs ?? 30_000,
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
-      anonymousModeEnabled: contest.anonymousModeEnabled ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
       maxCheatWarnings: contest.maxCheatWarnings ?? 0,
       allowAutoUnlock: contest.allowAutoUnlock ?? false,

@@ -32,22 +32,6 @@ export default function DisplaySettingsPanel({
         />
       </ActionRow>
 
-      <ActionRow
-        label={t("settings.anonymousMode")}
-        description={t("settings.anonymousModeHelp")}
-        saveState={getState("anonymousModeEnabled")}
-        onRetry={() => onRetry("anonymousModeEnabled")}
-      >
-        <Toggle
-          id="settings-anonymous"
-          labelText=""
-          hideLabel
-          labelA={tc("toggle.off")}
-          labelB={tc("toggle.on")}
-          toggled={(form.anonymousModeEnabled as boolean) ?? false}
-          onToggle={(checked) => onChange("anonymousModeEnabled", checked)}
-        />
-      </ActionRow>
     </Section>
   );
 }

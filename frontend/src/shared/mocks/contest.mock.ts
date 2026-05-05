@@ -54,7 +54,6 @@ export const createMockContest = (
   warningTimeoutSeconds: 20,
   screenShareRecoveryGraceMs: 30000,
   scoreboardVisibleDuringContest: false,
-  anonymousModeEnabled: false,
   allowMultipleJoins: false,
   maxCheatWarnings: 3,
   allowAutoUnlock: true,

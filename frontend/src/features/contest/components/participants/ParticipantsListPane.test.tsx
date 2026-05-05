@@ -27,7 +27,6 @@ const participant: ContestParticipant = {
   userId: "1",
   username: "student1",
   displayName: "Student One",
-  userDisplayName: "Real Name",
   accountRole: "student",
   authProvider: "google",
   score: 90,
@@ -50,7 +49,9 @@ describe("ParticipantsListPane", () => {
     );
 
     expect(screen.getByText("顯示 1 / 3 位")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Real Name"));
+    expect(screen.getByText("Student One")).toBeInTheDocument();
+    expect(screen.getByText("@student1")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Student One"));
     expect(onSelect).toHaveBeenCalledWith("1");
   });
 
@@ -65,7 +66,7 @@ describe("ParticipantsListPane", () => {
       />,
     );
 
-    expect(screen.queryByText("顯示名稱 Real Name")).not.toBeInTheDocument();
+    expect(screen.queryByText("顯示名稱 Student One")).not.toBeInTheDocument();
     expect(screen.queryByText("身份 student")).not.toBeInTheDocument();
     expect(screen.queryByText("註冊身份 SSO")).not.toBeInTheDocument();
   });

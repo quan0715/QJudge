@@ -1,0 +1,353 @@
+.root {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.dashboard {
+  max-width: 1056px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.summaryPanel,
+.infoGrid,
+.progressGrid {
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.summaryPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+}
+
+.summaryMain,
+.actionPanel,
+.infoCell,
+.progressPanel,
+.rulesPanel {
+  padding: 1.5rem;
+}
+
+.summaryMain {
+  min-width: 0;
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.titleRow,
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.titleRow {
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  margin-bottom: 1rem;
+}
+
+.title {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: var(--cds-heading-04-font-size, 1.75rem);
+  font-weight: 600;
+  line-height: var(--cds-heading-04-line-height, 1.28572);
+}
+
+.phaseTitle,
+.sectionTitle {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: var(--cds-heading-compact-02-font-size, 1rem);
+  font-weight: 600;
+  line-height: var(--cds-heading-compact-02-line-height, 1.375);
+}
+
+.phaseDescription,
+.sectionDescription,
+.recordMeta,
+.emptyText,
+.metricLabel {
+  color: var(--cds-text-secondary);
+}
+
+.phaseDescription {
+  margin: 0.25rem 0 0;
+  max-width: 44rem;
+  font-size: var(--cds-body-01-font-size, 0.875rem);
+  line-height: var(--cds-body-01-line-height, 1.42857);
+}
+
+.markdown,
+.rulesContent {
+  margin-top: 1rem;
+  color: var(--cds-text-primary);
+}
+
+.markdown {
+  max-width: 48rem;
+}
+
+.actionPanel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.actionStack,
+.modalStack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.timerValue {
+  margin: 0.25rem 0 0;
+  color: var(--cds-text-primary);
+  font-family: var(--cds-code-font-family, monospace);
+  font-size: var(--cds-heading-05-font-size, 2rem);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 0;
+}
+
+.infoCell {
+  min-width: 0;
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.infoCell:last-child {
+  border-right: 0;
+}
+
+.metricLabel {
+  margin: 0;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  line-height: var(--cds-label-01-line-height, 1.33333);
+}
+
+.metricValue {
+  margin: 0.375rem 0 0;
+  color: var(--cds-text-primary);
+  font-size: var(--cds-body-compact-02-font-size, 1rem);
+  font-weight: 600;
+  line-height: var(--cds-body-compact-02-line-height, 1.375);
+}
+
+.progressGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 24rem);
+  border-top: 0;
+}
+
+.progressPanel {
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.progressTrack {
+  position: relative;
+  block-size: 0.5rem;
+  margin-top: 1.5rem;
+  overflow: hidden;
+  background: var(--cds-layer-accent-01);
+}
+
+.progressFill {
+  block-size: 100%;
+  min-inline-size: 0;
+  background: var(--cds-support-success);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.rulesPanel {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.warningIcon {
+  color: var(--cds-support-warning);
+}
+
+.successIcon {
+  color: var(--cds-support-success);
+}
+
+.inlineRecordsPanel {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.inlineRecordsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.inlineRecordsTitle {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: var(--cds-heading-compact-01-font-size, 0.875rem);
+  font-weight: 600;
+  line-height: var(--cds-heading-compact-01-line-height, 1.28572);
+}
+
+.recordList {
+  display: grid;
+  margin-top: 1rem;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.recordRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.recordRow:last-child {
+  border-bottom: 0;
+}
+
+.recordTitle {
+  color: var(--cds-text-primary);
+  font-size: var(--cds-body-compact-02-font-size, 1rem);
+  font-weight: 600;
+  line-height: var(--cds-body-compact-02-line-height, 1.375);
+}
+
+.recordMeta {
+  margin-top: 0.25rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
+.recordScore {
+  color: var(--cds-text-primary);
+  font-family: var(--cds-code-font-family, monospace);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.problemReportList {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.problemReportItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.problemReportMeta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.errorText {
+  margin: 1rem 0 0;
+  color: var(--cds-text-error);
+}
+
+.emptyText {
+  margin: 1rem 0 0;
+}
+
+@media (max-width: 1056px) {
+  .summaryPanel,
+  .progressGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryMain,
+  .progressPanel {
+    border-right: 0;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+
+  .infoGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .infoCell:nth-child(2) {
+    border-right: 0;
+  }
+
+  .infoCell:nth-child(n + 3) {
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+}
+
+@media (max-width: 672px) {
+  .dashboard {
+    padding: 0.75rem;
+  }
+
+  .summaryMain,
+  .actionPanel,
+  .infoCell,
+  .progressPanel,
+  .rulesPanel {
+    padding: 1rem;
+  }
+
+  .infoGrid,
+  .statGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .infoCell {
+    border-right: 0;
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+
+  .infoCell:first-child {
+    border-top: 0;
+  }
+
+  .recordRow {
+    grid-template-columns: 1fr;
+  }
+
+  .recordScore {
+    white-space: normal;
+  }
+
+  .problemReportItem {
+    grid-template-columns: 1fr;
+  }
+
+  .problemReportMeta {
+    justify-content: flex-start;
+  }
+
+  .inlineRecordsHeader {
+    display: grid;
+  }
+
+}

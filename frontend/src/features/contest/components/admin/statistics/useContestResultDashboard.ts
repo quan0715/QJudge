@@ -210,7 +210,6 @@ function mapQuestionDetail(
       responses: dto.responses.map((response) => ({
         participantId: response.participant_id,
         username: response.username,
-        nickname: response.nickname,
         displayName: response.display_name,
         score: response.score,
         gradedAt: response.graded_at,
@@ -225,7 +224,6 @@ function mapQuestionDetail(
         participants: (item.participants ?? []).map((participant) => ({
           participantId: participant.participant_id,
           username: participant.username,
-          nickname: participant.nickname,
           displayName: participant.display_name,
         })),
       })),
@@ -233,7 +231,6 @@ function mapQuestionDetail(
       omittedParticipants: (dto.omitted_participants ?? []).map((item) => ({
         participantId: item.participant_id,
         username: item.username,
-        nickname: item.nickname,
         displayName: item.display_name,
       })),
     };
@@ -246,7 +243,6 @@ function mapQuestionDetail(
     responses: dto.responses.map((response) => ({
       participantId: response.participant_id,
       username: response.username,
-      nickname: response.nickname,
       displayName: response.display_name,
       score: response.score,
       gradedAt: response.graded_at,

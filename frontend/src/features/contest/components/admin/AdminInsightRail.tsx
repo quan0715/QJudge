@@ -6,7 +6,7 @@ import {
   MeterChart,
 } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
-import { ProgressBar, SkeletonPlaceholder, SkeletonText } from "@carbon/react";
+import { Button, ProgressBar, SkeletonPlaceholder, SkeletonText } from "@carbon/react";
 import type {
   DashboardChartSeries,
   DashboardInsightCard,
@@ -18,10 +18,20 @@ import styles from "./AdminInsightRail.module.scss";
 interface AdminInsightRailProps {
   cards: DashboardInsightCard[];
   distribution?: DistributionItem[];
-  /** 僅在總覽右欄第一區塊設為 true，避免多個 rail 重複顯示「考試進度」（考生比例）卡片。 */
+  /** 僅在總覽右欄第一區塊設為 true，避免多個 rail 重複顯示考生分佈卡片。 */
   showDistribution?: boolean;
   loadingCardKeys?: string[];
   distributionLoading?: boolean;
+  gradingAction?: InsightCardAction;
+}
+
+export interface InsightCardAction {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  loadingLabel?: string;
+  kind?: "primary" | "secondary" | "tertiary" | "danger--tertiary";
 }
 
 const resolveCarbonChartTheme = (
@@ -145,8 +155,12 @@ const DistributionOverview = ({
 }) => {
   const { t } = useTranslation("contest");
   const title = t(
-    "adminOverview.widgets.examProgress",
-    "考試進度",
+    "adminOverview.widgets.studentDistribution",
+    "考生分佈總覽",
+  );
+  const answerProgressLabel = t(
+    "adminOverview.widgets.answerProgress",
+    "作答進度",
   );
   const visibleDistribution = distribution.filter(
     (item) => item.key !== "offline",
@@ -185,36 +199,52 @@ const DistributionOverview = ({
         <>
           <div className={styles.cardHeader}>
             <span>{title}</span>
-            <strong>{completionPercent}%</strong>
+            <strong>{total} 人</strong>
           </div>
           {hasDistributionData ? (
-            <div className={styles.distributionChartFrame}>
-              <MeterChart
-                data={distributionChartData}
-                options={{
-                  title: "",
-                  height: "108px",
-                  resizable: true,
-                  theme,
-                  meter: {
-                    height: 8,
-                    proportional: {
-                      unit: "人",
-                      breakdownFormatter: () =>
-                        `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
-                      totalFormatter: (value) => `考生總數 ${value} 人`,
+            <>
+              <div className={styles.distributionChartFrame}>
+                <MeterChart
+                  data={distributionChartData}
+                  options={{
+                    title: "",
+                    height: "108px",
+                    resizable: true,
+                    theme,
+                    meter: {
+                      height: 8,
+                      proportional: {
+                        unit: "人",
+                        breakdownFormatter: () =>
+                          `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
+                        totalFormatter: (value) => `考生總數 ${value} 人`,
+                      },
                     },
-                  },
-                  color: {
-                    scale: chartColorScale,
-                  },
-                  legend: {
-                    enabled: false,
-                  },
-                  toolbar: { enabled: false },
-                }}
-              />
-            </div>
+                    color: {
+                      scale: chartColorScale,
+                    },
+                    legend: {
+                      enabled: false,
+                    },
+                    toolbar: { enabled: false },
+                  }}
+                />
+              </div>
+              <div className={styles.answerProgress}>
+                <div className={styles.answerProgressHeader}>
+                  <span>{answerProgressLabel}</span>
+                  <strong>{completionPercent}%</strong>
+                </div>
+                <ProgressBar
+                  label={answerProgressLabel}
+                  hideLabel
+                  size="small"
+                  value={completionPercent}
+                  status={completionPercent >= 100 ? "finished" : "active"}
+                  className={styles.rightPanelProgressBar}
+                />
+              </div>
+            </>
           ) : (
             <div className={styles.emptyState}>尚無考生分佈資料</div>
           )}
@@ -230,6 +260,7 @@ export default function AdminInsightRail({
   showDistribution = false,
   loadingCardKeys = [],
   distributionLoading = false,
+  gradingAction,
 }: AdminInsightRailProps) {
   const { theme } = useTheme();
   const chartTheme = resolveCarbonChartTheme(theme);
@@ -265,6 +296,7 @@ export default function AdminInsightRail({
           card={card}
           chartTheme={chartTheme}
           loading={loadingKeys.has(card.key)}
+          action={gradingAction}
         />
       ))}
     </div>
@@ -302,10 +334,12 @@ function InsightCard({
   card,
   chartTheme,
   loading,
+  action,
 }: {
   card: DashboardInsightCard;
   chartTheme: "white" | "g10" | "g90" | "g100";
   loading: boolean;
+  action?: InsightCardAction;
 }) {
   const isGradingCard = card.key === "grading_progress";
   const hasPriorityEventData =
@@ -344,6 +378,16 @@ function InsightCard({
       ) : (
         <ProgressChart card={card} />
       )}
+      {isGradingCard && action ? (
+        <Button
+          kind={action.kind ?? "primary"}
+          onClick={action.onClick}
+          disabled={loading || action.disabled || action.loading}
+          className={styles.cardActionButton}
+        >
+          {action.loading ? action.loadingLabel ?? action.label : action.label}
+        </Button>
+      ) : null}
     </section>
   );
 }

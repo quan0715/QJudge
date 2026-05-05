@@ -99,11 +99,13 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const { showToast } = useToast();
   const streamAdapterRef = useRef(createStreamAdapter());
   const { t } = useTranslation("contest");
+  const policyRequired =
+    cheatDetectionEnabled && (isExamMonitored || isMonitoredStatus(examStatus));
   const {
     config: anticheatConfig,
     loading: anticheatConfigLoading,
     refresh: refreshAnticheatConfig,
-  } = useContestAnticheatConfig(contestId);
+  } = useContestAnticheatConfig(policyRequired ? contestId : undefined);
   const anticheatEffective = anticheatConfig?.effective;
   const capability = detectAnticheatCapability();
   const monitoringPlan = resolveDeviceMonitoringPlan(
@@ -129,8 +131,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const screenModuleRole =
     monitoringPlan.sources.screenShare.role ?? "secondary";
   const webcamModuleRole = monitoringPlan.sources.webcam.role ?? "secondary";
-  const policyRequired =
-    cheatDetectionEnabled && (isExamMonitored || isMonitoredStatus(examStatus));
   const policyConfigMissing =
     policyRequired && !anticheatConfigLoading && !anticheatConfig;
   const policyDeviceUnavailable =

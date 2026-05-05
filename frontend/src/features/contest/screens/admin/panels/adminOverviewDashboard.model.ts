@@ -180,9 +180,8 @@ const studentParticipants = (participants: ContestParticipant[]) =>
       !participant.accountRole || participant.accountRole === "student",
   );
 
-const displayName = (participant: ContestParticipant) =>
+const getProfileDisplayName = (participant: ContestParticipant) =>
   participant.displayName ||
-  participant.userDisplayName ||
   participant.username ||
   participant.userId;
 
@@ -381,7 +380,7 @@ export const getTeacherAttentionRows = ({
     const common = {
       id: participant.userId,
       userId: participant.userId,
-      studentName: displayName(participant),
+      studentName: getProfileDisplayName(participant),
       timeLabel: formatTime(
         latestEvent?.timestamp ||
           participantTimestamps.lockedAt ||

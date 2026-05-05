@@ -8,12 +8,12 @@ export interface ContestRegistrationModalProps {
   open: boolean;
   contest: ContestDetail;
   onClose: () => void;
-  onSubmit: (data: { nickname?: string; password?: string }) => void;
+  onSubmit: (data: { password?: string }) => void;
 }
 
 /**
  * 競賽報名確認 Modal
- * 支援私有競賽密碼輸入、匿名模式暱稱設定
+ * 支援私有競賽密碼輸入
  */
 export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> = ({
   open,
@@ -23,23 +23,17 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
 }) => {
   const { t } = useTranslation("contest");
   const requiresPassword = contest.requiresPassword ?? contest.visibility === "private";
-  const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = () => {
     onSubmit({
-      nickname: nickname || undefined,
       password: password || undefined,
     });
-    // Reset form
-    setNickname("");
     setPassword("");
   };
 
   const handleClose = () => {
     onClose();
-    // Reset form
-    setNickname("");
     setPassword("");
   };
 
@@ -70,37 +64,6 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-          </div>
-        )}
-
-        {/* Anonymous mode nickname input */}
-        {contest.anonymousModeEnabled && (
-          <div>
-            <p style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>
-              {t(
-                "registration.anonymousHint",
-                "本競賽已啟用匿名模式，您可以設定一個暱稱。排行榜和提交列表將顯示您的暱稱而非真實帳號。",
-              )}
-            </p>
-            <TextInput
-              id="registration-nickname"
-              labelText={t("registration.nicknameLabel", "暱稱 (選填)")}
-              placeholder={t("registration.nicknamePlaceholder", "留空則使用預設帳號名稱")}
-              value={nickname}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNickname(e.target.value)
-              }
-              maxLength={50}
-            />
-            <p
-              style={{
-                fontSize: "0.875rem",
-                color: "var(--cds-text-secondary)",
-                marginTop: "0.5rem",
-              }}
-            >
-              {t("registration.nicknameHint", "您可以在報名後隨時修改暱稱。")}
-            </p>
           </div>
         )}
 

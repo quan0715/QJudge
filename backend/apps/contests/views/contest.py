@@ -212,7 +212,6 @@ class ContestViewSet(viewsets.ModelViewSet):
                     if contest.delivery_mode == "practice"
                     else AssignmentState.ACCEPTED
                 ),
-                "nickname": user.username,
             },
         )
         return participant, created, None
@@ -855,9 +854,6 @@ class ContestViewSet(viewsets.ModelViewSet):
         )
         if error_response is not None:
             return error_response
-        if participant.nickname != user.username and not participant.nickname:
-            participant.nickname = user.username
-            participant.save(update_fields=["nickname"])
         if not created:
             raise DRFValidationError('Already registered')
         ContestActivityViewSet.log_activity(
@@ -870,46 +866,6 @@ class ContestViewSet(viewsets.ModelViewSet):
             {'message': 'Successfully registered'},
             status=status.HTTP_201_CREATED,
         )
-
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_path='update_nickname')
-    def update_nickname(self, request, pk=None):
-        """
-        Allow user to update their nickname in an anonymous contest.
-        """
-        contest = self.get_object()
-        user = request.user
-
-        if not contest.anonymous_mode_enabled:
-            return Response(
-                {'error': 'Anonymous mode is not enabled for this contest'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            participant = ContestParticipant.objects.get(contest=contest, user=user)
-        except ContestParticipant.DoesNotExist:
-            return Response(
-                {'error': 'Not registered for this contest'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        nickname = request.data.get('nickname', '').strip()
-        if not nickname:
-            nickname = user.username
-
-        if len(nickname) > 50:
-            return Response(
-                {'error': 'Nickname is too long (max 50 characters)'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        participant.nickname = nickname
-        participant.save()
-
-        return Response({
-            'status': 'updated',
-            'nickname': nickname
-        })
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def enter(self, request, pk=None):

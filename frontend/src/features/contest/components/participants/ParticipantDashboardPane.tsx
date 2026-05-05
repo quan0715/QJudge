@@ -403,10 +403,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                       <div className={styles.profileIdentity}>
                         <div className={styles.profileNameRow}>
                           <span className={styles.primaryText}>
-                            {participant.userDisplayName ||
-                              participant.displayName ||
-                              participant.nickname ||
-                              participant.username}
+                            {participant.displayName || participant.username}
                           </span>
                           <Tag
                             size="sm"
@@ -530,13 +527,13 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                         {[
                           {
                             icon: UserMultiple,
-                            label: t("dashboard.username", "使用者"),
+                            label: t("dashboard.username", "使用者名稱"),
                             value: participant.username || "-",
                           },
                           {
                             icon: UserMultiple,
                             label: t("dashboard.displayName", "顯示名稱"),
-                            value: participant.userDisplayName || "-",
+                            value: participant.displayName || "-",
                           },
                           {
                             icon: UserMultiple,

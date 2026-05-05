@@ -39,7 +39,7 @@ const answer: GradingAnswerRow = {
   id: "a-1",
   studentId: "s-1",
   studentUsername: "student1",
-  studentNickname: "Student One",
+  studentDisplayName: "Student One",
   questionId: "q-1",
   questionIndex: 1,
   questionPrompt: "Question prompt",

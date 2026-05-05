@@ -3,10 +3,28 @@ import {
   mapContestAnticheatConfigDto,
   mapContestDetailDto,
   mapContestOverviewMetricsDto,
+  mapContestParticipantDto,
   mapContestUpdateRequestToDto,
 } from "./contest.mapper";
 
 describe("contest mapper", () => {
+  describe("mapContestParticipantDto", () => {
+    it("maps participant display name from profile display_name", () => {
+      const result = mapContestParticipantDto({
+        user_id: 1,
+        username: "student1",
+        display_name: "Student One",
+        score: 0,
+        joined_at: "2026-05-03T08:50:00+08:00",
+        exam_status: "not_started",
+        violation_count: 0,
+      });
+
+      expect(result.displayName).toBe("Student One");
+      expect(result.username).toBe("student1");
+    });
+  });
+
   describe("mapContestOverviewMetricsDto", () => {
     it("maps overview metrics payload with heartbeat and time progress", () => {
       const dto = {

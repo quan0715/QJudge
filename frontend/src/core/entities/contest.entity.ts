@@ -98,7 +98,7 @@ export interface ContestParticipant {
   userId: string;
   username: string;
   email?: string;
-  userDisplayName?: string;
+  displayName?: string;
   accountRole?: string;
   authProvider?: string;
   connectionStatus?: "offline" | "online" | "live";
@@ -115,9 +115,6 @@ export interface ContestParticipant {
   lockReason?: string;
   violationCount: number;
   submitReason?: string;
-  // Anonymous mode fields
-  nickname?: string;
-  displayName?: string;
 }
 
 export type ParticipantDashboardDetail =
@@ -323,10 +320,6 @@ export interface ContestDetail extends Contest {
   warningTimeoutSeconds?: number;
   screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest: boolean;
-
-  // Anonymous mode
-  anonymousModeEnabled?: boolean;
-  myNickname?: string;
 
   // Advanced settings
   allowMultipleJoins: boolean;
@@ -546,7 +539,6 @@ export interface ScoreboardProblemCell {
 export interface ScoreboardRow {
   userId: string;
   displayName: string;
-  nickname?: string;
   solvedCount: number;
   totalScore: number;
   penalty: number;
@@ -663,7 +655,6 @@ export interface ContestUpdateRequest {
   warningTimeoutSeconds?: number;
   screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest?: boolean;
-  anonymousModeEnabled?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;
   allowAutoUnlock?: boolean;

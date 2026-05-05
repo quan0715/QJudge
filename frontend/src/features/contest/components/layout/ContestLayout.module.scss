@@ -55,6 +55,13 @@
   flex: 1;
 }
 
+.dashboardContent {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
 // Header brand with embedded breadcrumb
 .headerBrand {
   display: inline-flex;

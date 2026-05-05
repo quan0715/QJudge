@@ -23,7 +23,7 @@ export interface GradingAnswerRow {
   id: string;
   studentId: string;
   studentUsername: string;
-  studentNickname: string;
+  studentDisplayName: string;
   questionId: string;
   questionIndex: number; // 1-based
   questionPrompt: string;

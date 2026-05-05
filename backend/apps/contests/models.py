@@ -215,13 +215,6 @@ class Contest(models.Model):
         help_text='TA 完成批改後手動設為 True，學生才能查看成績'
     )
     
-    # Anonymous mode settings
-    anonymous_mode_enabled = models.BooleanField(
-        default=False,
-        verbose_name='啟用匿名模式',
-        help_text='啟用後學生可使用暱稱參與競賽，排行榜和提交列表顯示暱稱'
-    )
-    
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新時間')
     
@@ -481,15 +474,6 @@ class ContestParticipant(models.Model):
         default='',
         verbose_name='交卷原因',
         help_text='手動或系統自動交卷原因'
-    )
-    
-    # Anonymous mode nickname
-    nickname = models.CharField(
-        max_length=50,
-        blank=True,
-        default='',
-        verbose_name='暱稱',
-        help_text='匿名模式下顯示的名稱，預設為用戶名'
     )
     
     # Explicit exam state (primary state field for UI)

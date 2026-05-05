@@ -31,6 +31,13 @@
   line-height: 1.2;
 }
 
+.cardActionButton {
+  justify-self: start;
+  width: fit-content;
+  min-width: 7.5rem;
+  justify-content: center;
+}
+
 .chartFrame {
   --cds-grid-bg: transparent;
 
@@ -79,6 +86,30 @@
   line-height: 0;
 }
 
+.answerProgress {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.answerProgressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.answerProgressHeader span {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
+.answerProgressHeader strong {
+  color: var(--cds-text-primary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-weight: 600;
+}
+
 /* 比例 meter 會插入多個 layout spacer（條上方、圖例上方）；皆以 display 收斂且不與 inline height 競爭 */
 .distributionChartFrame :global(.chart-holder .graph-frame > .layout-child.spacer),
 .distributionChartFrame
@@ -111,4 +142,3 @@
   font-size: var(--cds-label-01-font-size, 0.75rem);
   font-weight: 500;
 }
-

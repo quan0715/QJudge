@@ -80,9 +80,7 @@ const inferSourceModule = (publisher: RealtimeSfuPublisherDto): LiveSource => {
 };
 
 const getParticipantDisplayName = (participant: ContestParticipant) =>
-  participant.userDisplayName ||
   participant.displayName ||
-  participant.nickname ||
   participant.username;
 
 const isParticipantLive = (participant: ContestParticipant) =>
@@ -123,9 +121,7 @@ const isContestInExamWindow = (contest: ContestDetail | null | undefined, now: n
 const getParticipantSearchText = (participant: ContestParticipant) =>
   [
     participant.username,
-    participant.userDisplayName,
     participant.displayName,
-    participant.nickname,
     participant.email,
     participant.examStatus,
   ]

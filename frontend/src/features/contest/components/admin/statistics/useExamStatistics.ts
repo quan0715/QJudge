@@ -15,7 +15,7 @@ export interface OptionStat {
 }
 
 export interface SubjectiveEntry {
-  studentNickname: string;
+  studentDisplayName: string;
   studentUsername: string;
   answerText: string;
   score: number | null;
@@ -62,7 +62,7 @@ export function useExamStatistics() {
         optionDistribution = buildOptionDistribution(answers);
       } else {
         subjectiveEntries = answers.map((a) => ({
-          studentNickname: a.studentNickname ?? "",
+          studentDisplayName: a.studentDisplayName ?? "",
           studentUsername: a.studentUsername ?? "",
           answerText: extractAnswerText(a),
           score: a.score,

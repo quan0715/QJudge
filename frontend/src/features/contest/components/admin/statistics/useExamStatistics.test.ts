@@ -18,7 +18,7 @@ function buildAnswerRow(partial: Partial<GradingAnswerRow> = {}): GradingAnswerR
     id: partial.id ?? "a-1",
     studentId: partial.studentId ?? "u-1",
     studentUsername: partial.studentUsername ?? "student",
-    studentNickname: partial.studentNickname ?? "Student",
+    studentDisplayName: partial.studentDisplayName ?? "Student",
     questionId: partial.questionId ?? "q-1",
     questionIndex: partial.questionIndex ?? 1,
     questionPrompt: partial.questionPrompt ?? "Question 1",

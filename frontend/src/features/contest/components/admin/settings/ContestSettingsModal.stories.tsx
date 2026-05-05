@@ -31,7 +31,6 @@ function useFormState() {
     warningTimeoutSeconds: mockContest.warningTimeoutSeconds,
     screenShareRecoveryGraceMs: mockContest.screenShareRecoveryGraceMs,
     scoreboardVisibleDuringContest: mockContest.scoreboardVisibleDuringContest,
-    anonymousModeEnabled: mockContest.anonymousModeEnabled,
     allowMultipleJoins: mockContest.allowMultipleJoins,
     maxCheatWarnings: mockContest.maxCheatWarnings,
     allowAutoUnlock: mockContest.allowAutoUnlock,
@@ -188,7 +187,7 @@ export const Display: Story = {
   parameters: {
     docs: {
       description: {
-        story: "顯示設定 panel：排行榜可見性、匿名模式。",
+        story: "顯示設定 panel：排行榜可見性。",
       },
     },
   },

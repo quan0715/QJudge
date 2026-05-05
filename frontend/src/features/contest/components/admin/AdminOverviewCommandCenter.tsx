@@ -44,6 +44,7 @@ import type {
 } from "@/core/entities/contest.entity";
 import AdminInsightRail, {
   PriorityEventsInsightCard,
+  type InsightCardAction,
 } from "@/features/contest/components/admin/AdminInsightRail";
 import AdminSegmentedDashboard from "@/features/contest/components/admin/AdminSegmentedDashboard";
 import ParticipantDashboardPane from "@/features/contest/components/participants/ParticipantDashboardPane";
@@ -85,14 +86,14 @@ interface AdminOverviewCommandCenterProps {
   primary: ReactNode;
   questionStatsGallery?: ReactNode;
   resultOverview?: ReactNode;
+  gradingAction?: InsightCardAction;
 }
 
 const isStudentParticipant = (participant: ContestParticipant) =>
   !participant.accountRole || participant.accountRole === "student";
 
-const displayName = (participant: ContestParticipant) =>
+const getProfileDisplayName = (participant: ContestParticipant) =>
   participant.displayName ||
-  participant.userDisplayName ||
   participant.username ||
   participant.userId;
 
@@ -309,6 +310,7 @@ export default function AdminOverviewCommandCenter({
   primary,
   questionStatsGallery,
   resultOverview,
+  gradingAction,
 }: AdminOverviewCommandCenterProps) {
   const { t } = useTranslation("contest");
   const { showToast } = useToast();
@@ -558,7 +560,10 @@ export default function AdminOverviewCommandCenter({
     .sort(
       (left, right) =>
         getParticipantSortScore(right) - getParticipantSortScore(left) ||
-        displayName(left).localeCompare(displayName(right), "zh-TW"),
+        getProfileDisplayName(left).localeCompare(
+          getProfileDisplayName(right),
+          "zh-TW",
+        ),
     );
   const filteredStudentParticipants = useMemo(() => {
     const normalizedQuery = participantSearch.trim().toLowerCase();
@@ -573,7 +578,7 @@ export default function AdminOverviewCommandCenter({
       }
       if (!normalizedQuery) return true;
       return [
-        displayName(participant),
+        getProfileDisplayName(participant),
         participant.username,
         participant.email,
         participant.lockReason,
@@ -783,7 +788,7 @@ export default function AdminOverviewCommandCenter({
                   >
                     <div className={styles.participantCardHeader}>
                       <div className={styles.participantIdentity}>
-                        <strong>{displayName(participant)}</strong>
+                        <strong>{getProfileDisplayName(participant)}</strong>
                         <span>@{participant.username}</span>
                         <span className={styles.participantConnection}>
                           <span
@@ -838,7 +843,7 @@ export default function AdminOverviewCommandCenter({
       <Search
         id="overview-participants-search"
         labelText="搜尋考生"
-        placeholder="搜尋姓名或使用者 ID..."
+        placeholder="搜尋顯示名稱或使用者名稱..."
         value={participantSearch}
         onChange={handleParticipantSearchChange}
         onClear={() => setParticipantSearch("")}
@@ -976,6 +981,7 @@ export default function AdminOverviewCommandCenter({
             <AdminInsightRail
               cards={gradingInsightCards}
               loadingCardKeys={gradingLoading ? ["grading_progress"] : []}
+              gradingAction={gradingAction}
             />
             {resultOverview}
             <AdminInsightRail

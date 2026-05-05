@@ -50,8 +50,8 @@ const questionProgress: QuestionProgress[] = [
 ];
 
 const students = [
-  { studentId: "s-1", username: "u1", nickname: "Student A" },
-  { studentId: "s-2", username: "u2", nickname: "Student B" },
+  { studentId: "s-1", username: "u1", displayName: "Student A" },
+  { studentId: "s-2", username: "u2", displayName: "Student B" },
 ];
 
 const answersByQuestion = new Map<string, GradingAnswerRow[]>([
@@ -62,7 +62,7 @@ const answersByQuestion = new Map<string, GradingAnswerRow[]>([
         id: "a-1",
         studentId: "s-1",
         studentUsername: "u1",
-        studentNickname: "Student A",
+        studentDisplayName: "Student A",
         questionId: "q-1",
         questionIndex: 1,
         questionPrompt: "Question 1",
@@ -81,7 +81,7 @@ const answersByQuestion = new Map<string, GradingAnswerRow[]>([
         id: "a-2",
         studentId: "s-2",
         studentUsername: "u2",
-        studentNickname: "Student B",
+        studentDisplayName: "Student B",
         questionId: "q-1",
         questionIndex: 1,
         questionPrompt: "Question 1",

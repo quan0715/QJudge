@@ -163,7 +163,8 @@ def build_paper_exam_results_csv_response(contest):
     participant_count = len(students)
 
     for p in students:
-        display_name = p.nickname or p.user.username
+        profile = getattr(p.user, 'profile', None)
+        display_name = getattr(profile, 'display_name', '') or ''
         status_label = p.get_exam_status_display()
         p_answers = answer_lookup.get(p.id, {})
         graded_count = sum(

@@ -252,30 +252,3 @@ class ContestParticipationTests(APITestCase):
         # Try to enter again
         response = self.client.post(url_enter)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_update_nickname_requires_anonymous_mode(self):
-        ContestParticipant.objects.create(contest=self.public_contest, user=self.user)
-        url = reverse('contests:contest-update-nickname', args=[self.public_contest.id])
-        response = self.client.post(url, {'nickname': 'alias'})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data.get('error'), 'Anonymous mode is not enabled for this contest')
-
-    def test_update_nickname_rejects_long_value(self):
-        contest = Contest.objects.create(
-            name='Anonymous Contest',
-            start_time=timezone.now(),
-            end_time=timezone.now() + timedelta(hours=2),
-            owner=self.admin,
-            visibility='public',
-            status='published',
-            anonymous_mode_enabled=True,
-        )
-        ContestParticipant.objects.create(contest=contest, user=self.user)
-        long_nickname = 'n' * 51
-        url = reverse('contests:contest-update-nickname', args=[contest.id])
-        response = self.client.post(url, {'nickname': long_nickname})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            response.data.get('error'),
-            'Nickname is too long (max 50 characters)',
-        )

@@ -1,14 +1,13 @@
 import type { ContestDetail, ContestStatus, ContestType, ExamStatusType } from "@/core/entities/contest.entity";
 
 type ContestTypeTarget = Pick<ContestDetail, "contestType"> | null | undefined;
-type ParticipantTarget = Pick<ContestDetail, "hasJoined" | "isRegistered"> | null | undefined;
+type ParticipantTarget = Pick<ContestDetail, "hasJoined"> | null | undefined;
 type ExamStatusTarget = Pick<ContestDetail, "examStatus"> | null | undefined;
 type TabTarget =
   | Pick<
       ContestDetail,
       | "contestType"
       | "hasJoined"
-      | "isRegistered"
       | "examStatus"
       | "endTime"
       | "cheatDetectionEnabled"
@@ -54,7 +53,7 @@ const isExamStatusIn = (
 ): boolean => (status ? allowed.has(status) : false);
 
 export const isContestParticipant = (contest: ParticipantTarget): boolean =>
-  !!(contest?.hasJoined || contest?.isRegistered);
+  !!contest?.hasJoined;
 
 export const hasStartedExam = (contest: ExamStatusTarget): boolean =>
   !!contest && isExamStatusIn(contest.examStatus, EXAM_STARTED_STATUSES);

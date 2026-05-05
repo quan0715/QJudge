@@ -25,7 +25,7 @@ import type {
   AdminPanelProps,
 } from "@/features/contest/modules/types";
 import { useGradingData } from "@/features/contest/screens/settings/grading";
-import { addContestParticipant } from "@/infrastructure/api/repositories";
+import { addContestParticipant, updateContest } from "@/infrastructure/api/repositories";
 import { exportContestResults } from "@/infrastructure/api/repositories/contestExports.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { buildAdminOverviewDashboard } from "./adminOverviewDashboard.model";
@@ -82,6 +82,7 @@ export default function AdminOverviewScreen({
   const [, setSearchParams] = useSearchParams();
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [publishingResults, setPublishingResults] = useState(false);
   const [resultRefreshKey, setResultRefreshKey] = useState(0);
   const [addParticipantOpen, setAddParticipantOpen] = useState(false);
   const classroomBound = Boolean(contest?.isClassroomBound);
@@ -197,6 +198,46 @@ export default function AdminOverviewScreen({
     }
   }, [contest?.id, exporting, showToast, t]);
 
+  const handleToggleResultsPublished = useCallback(async () => {
+    if (!contest?.id || publishingResults) return;
+    const nextPublished = !contest.resultsPublished;
+    setPublishingResults(true);
+    try {
+      await updateContest(contest.id, { resultsPublished: nextPublished });
+      await Promise.all([refreshContest(), refreshAllAdminData()]);
+      setResultRefreshKey((current) => current + 1);
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: nextPublished
+          ? t("adminOverview.actions.publishResultsSuccess", "成績已發布")
+          : t("adminOverview.actions.revokeResultsSuccess", "已撤回成績發布"),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : nextPublished
+            ? t("adminOverview.actions.publishResultsFailed", "發布失敗")
+            : t("adminOverview.actions.revokeResultsFailed", "撤回失敗");
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
+    } finally {
+      setPublishingResults(false);
+    }
+  }, [
+    contest?.id,
+    contest?.resultsPublished,
+    publishingResults,
+    refreshAllAdminData,
+    refreshContest,
+    showToast,
+    t,
+  ]);
+
   useEffect(() => {
     return registerPanelRefresh("overview", handleRefresh);
   }, [handleRefresh, registerPanelRefresh]);
@@ -311,6 +352,16 @@ export default function AdminOverviewScreen({
             onOpenPanel={openPanel}
             participants={participants}
             primary={null}
+            gradingAction={{
+              label: contest.resultsPublished
+                ? t("adminOverview.actions.revokeResults", "撤回發布")
+                : t("adminOverview.actions.publishResults", "發布成績"),
+              loadingLabel: t("action.processing", "處理中..."),
+              onClick: () => void handleToggleResultsPublished(),
+              disabled: !contest.id,
+              loading: publishingResults,
+              kind: contest.resultsPublished ? "danger--tertiary" : "primary",
+            }}
             resultOverview={
               <AdminExamResultOverview
                 contest={contest}

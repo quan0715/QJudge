@@ -292,7 +292,7 @@ class Command(BaseCommand):
         for student in students:
             if student.id not in existing:
                 new_participants.append(
-                    ContestParticipant(contest=contest, user=student, nickname=student.username)
+                    ContestParticipant(contest=contest, user=student)
                 )
         if new_participants:
             ContestParticipant.objects.bulk_create(new_participants, ignore_conflicts=True)
