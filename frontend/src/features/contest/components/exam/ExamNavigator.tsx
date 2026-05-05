@@ -23,6 +23,7 @@ interface ExamNavigatorProps {
   overviewLabel?: string;
   onSelectOverview?: () => void;
   onToggleCollapse?: () => void;
+  hideHeader?: boolean;
 }
 
 export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
@@ -35,6 +36,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
   overviewLabel,
   onSelectOverview,
   onToggleCollapse,
+  hideHeader = false,
 }) => {
   const { t } = useTranslation("contest");
   const answeredCount = items.filter((item) => {
@@ -58,9 +60,10 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
       <nav className={`${styles.navigator} ${styles.navigatorMini}`}>
         <ListPanel
           className={styles.panel}
+          scrollAreaClassName={styles.miniScrollArea}
           footer={
-            <ListFooter className={styles.panelFooter}>
-              {onToggleCollapse && (
+            onToggleCollapse ? (
+              <ListFooter className={styles.panelFooter}>
                 <button
                   type="button"
                   className={styles.panelToggle}
@@ -68,10 +71,10 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                   aria-label={t("answering.navigation.showList")}
                   title={t("answering.navigation.showList")}
                 >
-                  <SidePanelOpen size={20} />
+                  <SidePanelClose size={20} />
                 </button>
-              )}
-            </ListFooter>
+              </ListFooter>
+            ) : null
           }
         >
           {onSelectOverview && (
@@ -115,7 +118,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
     <nav className={styles.navigator}>
       <ListPanel
         className={styles.panel}
-        header={
+        header={!hideHeader ? (
           <ListHeader
             title={t("answering.navigation.questionList")}
             className={styles.panelHeader}
@@ -128,12 +131,12 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                   aria-label={t("answering.navigation.hideList")}
                   title={t("answering.navigation.hideList")}
                 >
-                  <SidePanelClose size={20} />
+                  <SidePanelOpen size={20} />
                 </button>
               ) : null
             }
           />
-        }
+        ) : null}
         footer={
           <ListFooter className={styles.panelFooter}>
             <span className={styles.summaryText}>
@@ -152,7 +155,10 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
             <ListItemContent>
               <ListItemTitle className={styles.overviewTitle}>
                 <Home size={18} />
-                <span>{overviewLabel ?? t("contestShell.home", "總覽")}</span>
+                <span>
+                  {overviewLabel ??
+                    t("contestShell.backToContestHome", "返回競賽主頁")}
+                </span>
               </ListItemTitle>
             </ListItemContent>
           </ListItem>

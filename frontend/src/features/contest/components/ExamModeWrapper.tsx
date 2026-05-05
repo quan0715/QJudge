@@ -177,16 +177,20 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   });
 
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
+  const shouldMonitorActiveExam = isMonitoredStatus(examStatus);
   const screenCaptureEnabled =
     effectiveMonitoringEnabled &&
+    shouldMonitorActiveExam &&
     precheckPassed &&
     monitoringPlan.runtime.enableScreenShareCapture;
   const webcamCaptureEnabled =
     effectiveMonitoringEnabled &&
+    shouldMonitorActiveExam &&
     precheckPassed &&
     monitoringPlan.runtime.enableWebcamCapture;
   const viewportMonitorEnabled =
     effectiveMonitoringEnabled &&
+    shouldMonitorActiveExam &&
     precheckPassed &&
     monitoringPlan.runtime.enableViewportIntegrity;
   const hasSentScreenDegradedRef = useRef(false);
@@ -231,7 +235,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     },
     [contestId, webcamModuleRole],
   );
-  const streamMonitorEnabled = effectiveMonitoringEnabled;
+  const streamMonitorEnabled = effectiveMonitoringEnabled && shouldMonitorActiveExam;
   const screenStreamMonitorEnabled =
     streamMonitorEnabled && monitoringPlan.runtime.monitorScreenShareStream;
   const webcamStreamMonitorEnabled =
@@ -239,6 +243,17 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const lockedFullscreenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const isAnsweringPath = useCallback(() => {
+    const contestBasePath = classroomId
+      ? getClassroomContestDashboardPath(classroomId, contestId)
+      : null;
+    if (!contestBasePath) return false;
+    const normalizedPath = location.pathname.replace(/\/+$/, "");
+    return (
+      normalizedPath === `${contestBasePath}/solve` ||
+      normalizedPath.startsWith(`${contestBasePath}/solve/`)
+    );
+  }, [classroomId, contestId, location.pathname]);
 
   // When config refreshes and screen share is no longer required, discard any
   // lingering precheck/runtime handoff streams so they don't trigger "螢幕分享已中斷"
@@ -675,6 +690,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   useEffect(() => {
     if (initialFullscreenCheckDone.current || !cheatDetectionEnabled) return;
+    if (!isAnsweringPath()) return;
     if (runtimeReauthActive) return;
 
     if (
@@ -697,6 +713,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   }, [
     examStatus,
     cheatDetectionEnabled,
+    isAnsweringPath,
     isSubmittingFromFullscreenExit,
     effectiveRequiresFullscreen,
     runtimeReauthActive,
@@ -719,6 +736,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       cheatDetectionEnabled &&
       examStatus === "locked" &&
       effectiveRequiresFullscreen &&
+      isAnsweringPath() &&
       !fullscreenAdapterRef.current.isActive()
     ) {
       if (lockedFullscreenTimerRef.current) {
@@ -738,6 +756,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     effectiveRequiresFullscreen,
     forceStopCapture,
     forceStopWebcamCapture,
+    isAnsweringPath,
     runtimeReauthActive,
   ]);
 
@@ -745,7 +764,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     const shouldMonitorFullscreen =
       cheatDetectionEnabled &&
       effectiveRequiresFullscreen &&
-      examStatus === "locked";
+      examStatus === "locked" &&
+      isAnsweringPath();
 
     if (!shouldMonitorFullscreen) return;
 
@@ -774,6 +794,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     cheatDetectionEnabled,
     effectiveRequiresFullscreen,
     examStatus,
+    isAnsweringPath,
     isSubmittingFromFullscreenExit,
     runtimeReauthActive,
   ]);
@@ -868,18 +889,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       await fullscreenAdapterRef.current.request();
     }
   }, [effectiveRequiresFullscreen]);
-
-  const isAnsweringPath = useCallback(() => {
-    const contestBasePath = classroomId
-      ? getClassroomContestDashboardPath(classroomId, contestId)
-      : null;
-    if (!contestBasePath) return false;
-    const normalizedPath = location.pathname.replace(/\/+$/, "");
-    return (
-      normalizedPath === `${contestBasePath}/solve` ||
-      normalizedPath.startsWith(`${contestBasePath}/solve/`)
-    );
-  }, [classroomId, contestId, location.pathname]);
 
   const shouldShowPolicyUnavailableScreen =
     policyUnavailable && isAnsweringPath();

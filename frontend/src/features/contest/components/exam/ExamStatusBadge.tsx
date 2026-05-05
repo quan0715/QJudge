@@ -12,6 +12,7 @@ interface ExamStatusBadgeProps {
   lockReason?: string;
   autoUnlockAt?: string | null;
   onClick?: () => void;
+  hideWhenNormal?: boolean;
 }
 
 const ExamStatusBadge: React.FC<ExamStatusBadgeProps> = ({
@@ -22,6 +23,7 @@ const ExamStatusBadge: React.FC<ExamStatusBadgeProps> = ({
   lockReason,
   autoUnlockAt,
   onClick,
+  hideWhenNormal = false,
 }) => {
   const { t } = useTranslation("contest");
   const monitoringReminder = useExamMonitoringStatus();
@@ -73,6 +75,8 @@ const ExamStatusBadge: React.FC<ExamStatusBadgeProps> = ({
   }
 
   if (examStatus === "in_progress") {
+    if (hideWhenNormal && !monitoringReminder) return null;
+
     const reminderLabel = monitoringReminder
       ? getMonitoringReminderLabel(monitoringReminder.source)
       : t("exam.monitoring");

@@ -15,18 +15,27 @@
   padding: 0;
 }
 
-.headerMeta {
-  display: grid;
-  gap: 0.375rem;
+.overviewHeader {
+  display: flex;
+  min-height: 3rem;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-inline: 1rem;
 }
 
-.headerTags {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.headerMeta p {
+.overviewHeaderTitle {
   margin: 0;
-  max-width: 52rem;
+  color: var(--cds-text-primary);
+  font-size: var(--cds-heading-compact-02-font-size, 1rem);
+  font-weight: var(--cds-heading-compact-02-font-weight, 600);
+  line-height: var(--cds-heading-compact-02-line-height, 1.375);
+}
+
+.overviewHeaderActions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.25rem;
 }

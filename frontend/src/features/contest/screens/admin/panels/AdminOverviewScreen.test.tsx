@@ -156,6 +156,8 @@ describe("AdminOverviewScreen", () => {
     renderScreen("/contest/contest-1/admin?panel=overview&view=live");
 
     expect(screen.getByTestId("live-dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Overview")).toBeInTheDocument();
+    expect(screen.queryByText("演算法期中考")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "重新整理" }),
     ).toBeInTheDocument();

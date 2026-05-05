@@ -93,6 +93,45 @@ def test_validate_exam_operation_returns_participant_on_success_and_raises_valid
 
 
 @pytest.mark.django_db
+def test_validate_exam_operation_admin_bypass_returns_participant_not_tuple(
+    teacher: User,
+    published_contest: Contest,
+):
+    participant = ContestParticipant.objects.create(
+        contest=published_contest,
+        user=teacher,
+        exam_status=ExamStatus.NOT_STARTED,
+    )
+
+    assert validate_exam_operation(published_contest, teacher) == participant
+
+    adapted_participant, response = validate_exam_operation_for_view(
+        published_contest,
+        teacher,
+    )
+
+    assert response is None
+    assert adapted_participant == participant
+    assert not isinstance(adapted_participant, tuple)
+
+
+@pytest.mark.django_db
+def test_validate_exam_operation_admin_bypass_without_participant_returns_none(
+    teacher: User,
+    published_contest: Contest,
+):
+    assert validate_exam_operation(published_contest, teacher) is None
+
+    adapted_participant, response = validate_exam_operation_for_view(
+        published_contest,
+        teacher,
+    )
+
+    assert adapted_participant is None
+    assert response is None
+
+
+@pytest.mark.django_db
 def test_validate_exam_operation_view_adapter_preserves_legacy_error_response(
     teacher: User,
     student: User,

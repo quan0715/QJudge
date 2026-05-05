@@ -46,7 +46,8 @@ import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/f
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
-import { useContestLayoutHeaderSlot } from "@/features/contest/components/layout/ContestLayoutHeaderSlotContext";
+import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";
+import { useContestRuntimeMode } from "@/features/contest/hooks";
 import {
   buildExamEntryDeviceMetadata,
   detectAnticheatCapability,
@@ -113,7 +114,8 @@ const PaperExamAnsweringScreen: React.FC = () => {
     [monitoringPlan]
   );
   const submitProgress = useExamSubmissionProgress();
-  const contestLayoutHeaderSlot = useContestLayoutHeaderSlot();
+  const setPageHeaderActions = usePageHeaderActions();
+  const { isRuntime } = useContestRuntimeMode();
 
   const { items, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
@@ -359,22 +361,17 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }, [flushAll]);
 
   const shouldUseHeaderActions =
-    !!contestLayoutHeaderSlot &&
-    !autoSubmitted &&
-    !isSubmitted &&
-    !loadingQuestions &&
-    items.length > 0;
+    isRuntime && !autoSubmitted && !isSubmitted && !loadingQuestions && items.length > 0;
 
   useEffect(() => {
-    if (!contestLayoutHeaderSlot) return;
     if (!shouldUseHeaderActions) {
-      contestLayoutHeaderSlot.setHeaderActions(null);
+      setPageHeaderActions(null);
       return;
     }
 
-    contestLayoutHeaderSlot.setHeaderActions(
+    setPageHeaderActions(
       <div className={styles.headerActions}>
-        {saveStatus !== "idle" && (
+        {saveStatus !== "idle" ? (
           <span
             className={`${styles.headerSaveStatus} ${
               saveStatus === "error" ? styles.saveStatusError : ""
@@ -382,14 +379,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
           >
             {saveStatusLabel}
           </span>
-        )}
+        ) : null}
         <Button
           kind="primary"
-          size="md"
           className={styles.headerSubmitButton}
           data-testid="paper-exam-open-submit-review-btn"
           renderIcon={SendFilled}
           onClick={openSubmitReview}
+          disabled={!isInProgress}
         >
           {t("answering.submit.button")}
         </Button>
@@ -397,13 +394,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
     );
 
     return () => {
-      contestLayoutHeaderSlot.setHeaderActions(null);
+      setPageHeaderActions(null);
     };
   }, [
-    contestLayoutHeaderSlot,
-    openSubmitReview,
     saveStatus,
     saveStatusLabel,
+    isInProgress,
+    openSubmitReview,
+    setPageHeaderActions,
     shouldUseHeaderActions,
     t,
   ]);
@@ -470,8 +468,9 @@ const PaperExamAnsweringScreen: React.FC = () => {
         syncIndex={syncIndex}
         renderItem={renderItem}
         onActiveIndexChange={handleActiveIndexChange}
-        showToolbar={!contestLayoutHeaderSlot}
-        overviewLabel={t("contestShell.home", "總覽")}
+        showToolbar={!isRuntime}
+        externalNavigator={isRuntime}
+        overviewLabel={t("contestShell.backToContestHome", "返回競賽主頁")}
         onSelectOverview={() => dashboardPath && navigate(dashboardPath)}
         toolbarLeft={(
           <>

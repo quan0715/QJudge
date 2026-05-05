@@ -31,7 +31,8 @@ import {
 } from "@/features/auth";
 import { problemDetailRoutes, problemSolveRoutes } from "@/features/problems";
 import {
-  classroomContestRoutes,
+  classroomContestRouteChildren,
+  ContestWorkspaceLayout,
   classroomContestAdminRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,
@@ -152,8 +153,16 @@ function App() {
                               />
                               {/* Classroom Detail - inside MainLayout for shared sidebar */}
                               {classroomDetailRoute}
-                              {/* Classroom Contest - dashboard + runtime, all under shared MainLayout/WorkspaceShell */}
-                              {classroomContestRoutes}
+                            </Route>
+
+                            {/* Classroom Contest - ContestProvider wraps MainLayout/WorkspaceShell */}
+                            <Route
+                              path="/classrooms/:classroomId/contest/:contestId"
+                              element={<ContestWorkspaceLayout />}
+                            >
+                              <Route element={<MainLayout />}>
+                                {classroomContestRouteChildren}
+                              </Route>
                             </Route>
 
                             {/* Legacy hidden routes */}

@@ -4,6 +4,8 @@ import { InlineLoading, Modal } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
 import { ContestProvider } from "@/features/contest/contexts/ContestContext";
+import { ContestRuntimeNavigatorProvider } from "@/features/contest/contexts/ContestRuntimeNavigatorContext";
+import ExamModeWrapper from "@/features/contest/components/ExamModeWrapper";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
 import { useContestExamActions } from "@/features/contest/hooks/useContestExamActions";
 import { useContestLayoutState } from "@/features/contest/hooks/useContestLayoutState";
@@ -13,6 +15,13 @@ import {
   shouldRouteToPrecheck,
 } from "@/features/contest/domain/contestRoutePolicy";
 import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
+
+const PROTECTED_EXAM_STATUSES = new Set([
+  "in_progress",
+  "paused",
+  "locked",
+  "submitted",
+]);
 
 const ContestWorkspaceLayout = () => {
   const { classroomId } = useParams<{ classroomId?: string }>();
@@ -87,6 +96,45 @@ const ContestWorkspaceLayout = () => {
     onError: showError,
   });
 
+  const outlet = (
+    <Outlet
+      context={{
+        refreshContest,
+        onJoin: handleJoin,
+        onStartExam: handleStartExam,
+        onEndExam: handleEndExam,
+        onGoToAnswering: handleGoToAnswering,
+        onOpenAdminPanel: isAdmin ? () => navigate(adminPath) : undefined,
+        isAdmin,
+      }}
+    />
+  );
+
+  const shouldProtectContestSurface =
+    !!contestId &&
+    !!contest &&
+    !!contest.hasJoined &&
+    !!contest.cheatDetectionEnabled &&
+    !!contest.examStatus &&
+    PROTECTED_EXAM_STATUSES.has(contest.examStatus);
+
+  const contestSurface = shouldProtectContestSurface ? (
+    <ExamModeWrapper
+      contestId={contestId || ""}
+      cheatDetectionEnabled={!!contest?.cheatDetectionEnabled}
+      isExamMonitored={!!contest?.isExamMonitored}
+      requiresFullscreen={!!contest?.requiresFullscreen}
+      hasEnded={hasEnded}
+      lockReason={contest?.lockReason}
+      examStatus={contest?.examStatus}
+      onRefresh={refreshContest}
+    >
+      {outlet}
+    </ExamModeWrapper>
+  ) : (
+    outlet
+  );
+
   if (contestLoading) {
     return (
       <div style={{ padding: "2rem" }}>
@@ -105,17 +153,9 @@ const ContestWorkspaceLayout = () => {
       initialScoreboardData={scoreboardData}
       onRefresh={refreshContest}
     >
-      <Outlet
-        context={{
-          refreshContest,
-          onJoin: handleJoin,
-          onStartExam: handleStartExam,
-          onEndExam: handleEndExam,
-          onGoToAnswering: handleGoToAnswering,
-          onOpenAdminPanel: isAdmin ? () => navigate(adminPath) : undefined,
-          isAdmin,
-        }}
-      />
+      <ContestRuntimeNavigatorProvider>
+        {contestSurface}
+      </ContestRuntimeNavigatorProvider>
 
       <ExamSubmissionProgressModal
         state={submissionProgress.state}

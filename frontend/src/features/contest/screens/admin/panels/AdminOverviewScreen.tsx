@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Tag } from "@carbon/react";
+import { Button } from "@carbon/react";
 import {
   Download,
   Launch,
@@ -29,47 +29,10 @@ import { addContestParticipant, updateContest } from "@/infrastructure/api/repos
 import { exportContestResults } from "@/infrastructure/api/repositories/contestExports.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
 import {
-  BlockHeader,
-  DashboardBlock,
-} from "@/shared/components/dashboard";
-import {
   buildAdminOverviewDashboard,
   type DashboardText,
 } from "./adminOverviewDashboard.model";
 import styles from "./AdminOverviewScreen.module.scss";
-
-type ContestStatusDisplay = {
-  label: string;
-  type: "gray" | "cool-gray" | "green";
-};
-
-const useContestStatusDisplay = () => {
-  const { t } = useTranslation("contest");
-  return useCallback(
-    (status: string): ContestStatusDisplay => {
-      if (status === "draft")
-        return {
-          label: t("adminOverview.screen.contestStatus.draft", "草稿"),
-          type: "gray",
-        };
-      if (
-        status === "archived" ||
-        status === "ended" ||
-        status === "completed" ||
-        status === "success"
-      )
-        return {
-          label: t("adminOverview.screen.contestStatus.archived", "已封存"),
-          type: "green",
-        };
-      return {
-        label: t("adminOverview.screen.contestStatus.published", "已發布"),
-        type: "green",
-      };
-    },
-    [t],
-  );
-};
 
 export default function AdminOverviewScreen({
   onOpenSettings,
@@ -88,7 +51,6 @@ export default function AdminOverviewScreen({
     [t],
   );
   const { showToast } = useToast();
-  const contestStatusDisplay = useContestStatusDisplay();
   const { contest, refreshContest } = useContest();
   const {
     participants,
@@ -264,7 +226,6 @@ export default function AdminOverviewScreen({
 
   if (!contest) return null;
 
-  const status = contestStatusDisplay(contest.status ?? "draft");
   const contestHomePath = contest.boundClassroomId
     ? `/classrooms/${contest.boundClassroomId}/contest/${contest.id}`
     : null;
@@ -273,26 +234,15 @@ export default function AdminOverviewScreen({
       ? t("adminOverview.screen.contestType.paperExam", "考卷")
       : t("adminOverview.screen.contestType.coding", "Coding Test");
   const renderContestHeader = () => (
-    <DashboardBlock
-      padding="compact"
-      ariaLabel={t("adminOverview.screen.contestInfoLabel", "競賽資訊")}
+    <section
+      className={styles.overviewHeader}
+      aria-label={t("adminOverview.screen.contestInfoLabel", "競賽資訊")}
     >
-      <BlockHeader
-        title={contest.name}
-        description={
-          <div className={styles.headerMeta}>
-            <div className={styles.headerTags}>
-              <Tag type={status.type} size="sm">
-                {status.label}
-              </Tag>
-              <Tag type="cool-gray" size="sm">
-                {contestTypeLabel}
-              </Tag>
-            </div>
-            {contest.description ? <p>{contest.description}</p> : null}
-          </div>
-        }
-        actions={
+      <h2 className={styles.overviewHeaderTitle}>
+        {t("adminOverview.screen.title", "Overview")}
+      </h2>
+      <div className={styles.overviewHeaderActions}>
+        {
           <>
             <Button
               kind="ghost"
@@ -356,8 +306,8 @@ export default function AdminOverviewScreen({
             />
           </>
         }
-      />
-    </DashboardBlock>
+      </div>
+    </section>
   );
 
   return (
@@ -376,6 +326,9 @@ export default function AdminOverviewScreen({
             onOpenPanel={openPanel}
             participants={participants}
             primary={null}
+            overviewInfo={{
+              contestTypeLabel,
+            }}
             gradingAction={{
               label: contest.resultsPublished
                 ? t("adminOverview.actions.revokeResults", "撤回發布")

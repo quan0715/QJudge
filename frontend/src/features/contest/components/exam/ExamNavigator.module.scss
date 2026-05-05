@@ -5,17 +5,57 @@
 .navigator {
   display: flex;
   flex-direction: column;
-  width: clamp(17rem, 22vw, 22rem);
-  min-width: 17rem;
-  max-width: 22rem;
-  border-right: 1px solid var(--cds-border-subtle-01);
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  border-right: 0;
   background: var(--cds-background);
+  flex: 1;
+  min-height: 0;
 }
 
 .navigatorMini {
   width: 3rem;
   min-width: 3rem;
   max-width: 3rem;
+}
+
+.miniScrollArea {
+  position: relative;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+
+  &:hover,
+  &:focus-within {
+    scrollbar-width: thin;
+    scrollbar-color: var(--cds-border-strong-01) transparent;
+  }
+
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  &:hover::-webkit-scrollbar-thumb,
+  &:focus-within::-webkit-scrollbar-thumb {
+    background: var(--cds-border-strong-01);
+  }
+
+  &:hover::-webkit-scrollbar,
+  &:focus-within::-webkit-scrollbar {
+    width: 0.35rem;
+    height: 0;
+  }
 }
 
 .panel {
@@ -70,6 +110,8 @@
 .miniOverviewItem,
 .miniItem {
   width: 3rem;
+  max-width: 3rem;
+  box-sizing: border-box;
   height: 3rem;
   min-height: 3rem;
   max-height: 3rem;

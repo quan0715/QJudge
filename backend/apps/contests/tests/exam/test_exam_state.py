@@ -38,6 +38,17 @@ class ExamStateTests(APITestCase):
         
         p = ContestParticipant.objects.get(user=self.user, contest=self.contest)
         self.assertEqual(p.exam_status, ExamStatus.IN_PROGRESS)
+
+    def test_owner_participant_can_start_exam(self):
+        ContestParticipant.objects.create(contest=self.contest, user=self.admin)
+        self.client.force_authenticate(user=self.admin)
+
+        url = reverse('contests:contest-exam-start-exam', args=[self.contest.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        p = ContestParticipant.objects.get(user=self.admin, contest=self.contest)
+        self.assertEqual(p.exam_status, ExamStatus.IN_PROGRESS)
         
     def test_end_exam(self):
         # Start first

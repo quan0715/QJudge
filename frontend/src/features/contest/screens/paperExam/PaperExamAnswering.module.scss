@@ -56,7 +56,11 @@
 .slideInLeft     { @include exam.exam-slide-in-left; }
 
 .body            { @include exam.exam-body; }
-.navWrapper      { @include exam.exam-nav-wrapper; }
+.navWrapper {
+  @include exam.exam-nav-wrapper;
+
+  width: clamp(17rem, 22vw, 22rem);
+}
 .navWrapperCollapsed { width: 3rem; }
 .navWrapperHidden { @include exam.exam-nav-wrapper-hidden; }
 .navToggle       { @include exam.exam-nav-toggle; }

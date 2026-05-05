@@ -251,6 +251,7 @@ describe("AdminOverviewCommandCenter", () => {
         onOpenPanel={onOpenPanel}
         participants={participants}
         primary={primary}
+        overviewInfo={{ contestTypeLabel: "考卷" }}
         questionStatsGallery={questionStatsGallery}
         gradingAction={gradingAction}
       />,
@@ -260,16 +261,24 @@ describe("AdminOverviewCommandCenter", () => {
     renderCommandCenter();
 
     expect(screen.getByText("競賽資訊")).toBeInTheDocument();
+    const contestInfo = screen.getByLabelText("競賽基本資訊");
+    expect(within(contestInfo).getByText("考卷題型")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("考卷")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("題目數量")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("12")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("開始時間")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("09:00")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("結束時間")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("11:00")).toBeInTheDocument();
+    expect(
+      contestInfo.compareDocumentPosition(screen.getByText("考生列表")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     const examSummary = screen.getByLabelText("考試狀態摘要");
     expect(within(examSummary).getByText("考試人數")).toBeInTheDocument();
     expect(within(examSummary).getByText("2")).toBeInTheDocument();
     expect(within(examSummary).getByText("在線人數")).toBeInTheDocument();
     expect(within(examSummary).getByText("1")).toBeInTheDocument();
-    const examSchedule = within(examSummary).getByLabelText("考試時間");
-    expect(within(examSchedule).getByText("開始時間")).toBeInTheDocument();
-    expect(within(examSchedule).getByText("09:00")).toBeInTheDocument();
-    expect(within(examSchedule).getByText("結束時間")).toBeInTheDocument();
-    expect(within(examSchedule).getByText("11:00")).toBeInTheDocument();
     expect(within(examSummary).getByText("剩餘時間")).toBeInTheDocument();
     expect(screen.getAllByText("批改進度").length).toBeGreaterThan(0);
     expect(

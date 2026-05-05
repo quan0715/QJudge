@@ -29,6 +29,7 @@ import { useAiSessionParam } from "@/features/chatbot/lib/aiSessionUrl";
 import { useOptionalChatbotContext } from "@/features/chatbot/contexts/ChatbotProvider";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { ChatHistoryPanel } from "@/features/chatbot/components/chat-ui/ChatHistoryPanel";
+import { useOptionalContest } from "@/features/contest/contexts";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
@@ -114,6 +115,10 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   }, [location.pathname]);
 
   const contestIdToFetch = contestAdminContext?.contestId ?? contestMatch?.contestId ?? null;
+  const contestContext = useOptionalContest();
+  const contextContestForNav =
+    contestContext?.contest?.id === contestIdToFetch ? contestContext.contest : null;
+  const effectiveContestForNav = contextContestForNav ?? contestForNav;
 
   const { isRuntime } = useContestRuntimeMode();
 
@@ -164,7 +169,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   }, [contestIdToFetch]);
 
   useEffect(() => {
-    if (!contestIdToFetch || contestFetched) return;
+    if (!contestIdToFetch || contestFetched || contextContestForNav) return;
     let active = true;
     const loadContest = async () => {
       try {
@@ -181,7 +186,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     return () => {
       active = false;
     };
-  }, [contestIdToFetch, contestFetched]);
+  }, [contestIdToFetch, contestFetched, contextContestForNav]);
 
   useEffect(() => {
     if (isPanelMode || !isOpen) return;
@@ -288,10 +293,10 @@ export const SideMenu: React.FC<SideMenuProps> = ({
 
   const contestPanelNavItems = useMemo<ContestPanelNavItem[]>(() => {
     if (!contestAdminContext) return [];
-    const module = getContestTypeModule(contestForNav?.contestType);
+    const module = getContestTypeModule(effectiveContestForNav?.contestType);
     const isExamMode = module.admin.editorKind === "paper_exam";
     const panels = Array.from(new Set<AdminPanelId>([
-      ...module.admin.getAvailablePanels(contestForNav),
+      ...module.admin.getAvailablePanels(effectiveContestForNav),
       "settings",
     ]));
     return panels.flatMap((panel) => {
@@ -304,7 +309,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         Icon: meta.Icon,
       }];
     });
-  }, [contestAdminContext, contestForNav, tContest]);
+  }, [contestAdminContext, effectiveContestForNav, tContest]);
 
   const goToPanel = useCallback((panel: string) => {
     navigate(`/classrooms/${classroomId}?panel=${panel}`);
@@ -343,10 +348,9 @@ export const SideMenu: React.FC<SideMenuProps> = ({
           <SideMenuContestRuntimeSection
             classroomId={contestMatch.classroomId}
             contestId={contestMatch.contestId}
-            activeTab="solve"
             activeProblemId={activeProblemId}
             compact={compact}
-            problems={contestForNav?.problems ?? []}
+            problems={effectiveContestForNav?.problems ?? []}
           />
         ) : inContestIdle && contestMatch ? (
           <SideMenuContestIdleSection

@@ -8,6 +8,7 @@ import {
   ListBulleted,
 } from "@carbon/icons-react";
 import { ExamNavigator } from "./ExamNavigator";
+import { useRegisterContestRuntimeNavigator } from "@/features/contest/contexts";
 import type { ExamItem, ExamViewMode } from "../../types/exam.types";
 
 function useScrollDirection(ref: React.RefObject<HTMLElement | null>) {
@@ -44,6 +45,7 @@ interface PaperExamCoreProps {
   toolbarLeft?: React.ReactNode;
   toolbarCenter?: React.ReactNode;
   showToolbar?: boolean;
+  externalNavigator?: boolean;
   overviewLabel?: string;
   onSelectOverview?: () => void;
   renderItem: (item: ExamItem, index: number, mode: ExamViewMode) => React.ReactNode;
@@ -59,6 +61,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   toolbarLeft,
   toolbarCenter,
   showToolbar = true,
+  externalNavigator = false,
   overviewLabel,
   onSelectOverview,
   renderItem,
@@ -166,6 +169,41 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
     }
   }, []);
 
+  const navigatorState = useMemo(
+    () =>
+      externalNavigator
+        ? {
+            items,
+            activeIndex:
+              effectiveViewMode === "single"
+                ? effectiveActiveIndex
+                : effectiveAllModeActiveIndex,
+            answeredIds,
+            markedIds,
+            overviewLabel,
+            onSelect:
+              effectiveViewMode === "single"
+                ? handleSetActiveIndex
+                : handleScrollToItem,
+            onSelectOverview,
+          }
+        : null,
+    [
+      answeredIds,
+      effectiveActiveIndex,
+      effectiveAllModeActiveIndex,
+      effectiveViewMode,
+      externalNavigator,
+      handleScrollToItem,
+      handleSetActiveIndex,
+      items,
+      markedIds,
+      onSelectOverview,
+      overviewLabel,
+    ],
+  );
+  useRegisterContestRuntimeNavigator(navigatorState);
+
   const renderSingleMode = () => {
     const item = items[effectiveActiveIndex];
     if (!item) return null;
@@ -255,19 +293,21 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
       </div>
 
       <div className={styles.body}>
-        <div className={`${styles.navWrapper} ${navCollapsed ? styles.navWrapperCollapsed : ""}`}>
-          <ExamNavigator
-            items={items}
-            activeIndex={effectiveViewMode === "single" ? effectiveActiveIndex : effectiveAllModeActiveIndex}
-            answeredIds={answeredIds}
-            markedIds={markedIds}
-            collapsed={navCollapsed}
-            overviewLabel={overviewLabel}
-            onSelectOverview={onSelectOverview}
-            onToggleCollapse={() => setNavCollapsed((collapsed) => !collapsed)}
-            onSelect={effectiveViewMode === "single" ? handleSetActiveIndex : handleScrollToItem}
-          />
-        </div>
+        {!externalNavigator && (
+          <div className={`${styles.navWrapper} ${navCollapsed ? styles.navWrapperCollapsed : ""}`}>
+            <ExamNavigator
+              items={items}
+              activeIndex={effectiveViewMode === "single" ? effectiveActiveIndex : effectiveAllModeActiveIndex}
+              answeredIds={answeredIds}
+              markedIds={markedIds}
+              collapsed={navCollapsed}
+              overviewLabel={overviewLabel}
+              onSelectOverview={onSelectOverview}
+              onToggleCollapse={() => setNavCollapsed((collapsed) => !collapsed)}
+              onSelect={effectiveViewMode === "single" ? handleSetActiveIndex : handleScrollToItem}
+            />
+          </div>
+        )}
 
         {effectiveViewMode === "single" ? renderSingleMode() : renderAllMode()}
       </div>

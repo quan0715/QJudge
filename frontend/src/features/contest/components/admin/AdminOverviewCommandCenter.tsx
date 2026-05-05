@@ -79,6 +79,9 @@ import styles from "./AdminOverviewCommandCenter.module.scss";
 interface AdminOverviewCommandCenterProps {
   header?: ReactNode;
   data: AdminOverviewDashboardData;
+  overviewInfo?: {
+    contestTypeLabel: string;
+  };
   adminLoading?: boolean;
   gradingLoading?: boolean;
   contestId?: string;
@@ -346,6 +349,7 @@ const getParticipantMetric = (
 export default function AdminOverviewCommandCenter({
   header,
   data,
+  overviewInfo,
   adminLoading = false,
   gradingLoading = false,
   contestId,
@@ -737,6 +741,39 @@ export default function AdminOverviewCommandCenter({
     data.timeline.startDateTimeLabel,
     data.timeline.endDateTimeLabel,
   );
+  const contestInfoRow = (
+    <DashboardContainer
+      layout="grid"
+      columns={4}
+      dividers="auto"
+      ariaLabel={t("adminOverview.command.contestInfo", "競賽基本資訊")}
+    >
+      <DashboardBlock>
+        <MetricBlock
+          label={t("adminOverview.command.metrics.contestType", "考卷題型")}
+          value={overviewInfo?.contestTypeLabel ?? "—"}
+        />
+      </DashboardBlock>
+      <DashboardBlock>
+        <MetricBlock
+          label={t("adminOverview.command.metrics.questionCount", "題目數量")}
+          value={data.examStatus.workItemCount}
+        />
+      </DashboardBlock>
+      <DashboardBlock>
+        <MetricBlock
+          label={t("adminOverview.command.metrics.startTime", "開始時間")}
+          value={scheduleLabels.start}
+        />
+      </DashboardBlock>
+      <DashboardBlock>
+        <MetricBlock
+          label={t("adminOverview.command.metrics.endTime", "結束時間")}
+          value={scheduleLabels.end}
+        />
+      </DashboardBlock>
+    </DashboardContainer>
+  );
   const examStatusSummary = (
     <DashboardContainer
       layout="stack"
@@ -755,27 +792,6 @@ export default function AdminOverviewCommandCenter({
           <MetricBlock
             label={t("adminOverview.command.metrics.onlineParticipants", "在線人數")}
             value={liveStudentCount}
-            size="lg"
-          />
-        </DashboardBlock>
-      </DashboardContainer>
-      <DashboardContainer
-        layout="grid"
-        columns={2}
-        dividers="auto"
-        ariaLabel={t("adminOverview.command.examTime", "考試時間")}
-      >
-        <DashboardBlock>
-          <MetricBlock
-            label={t("adminOverview.command.metrics.startTime", "開始時間")}
-            value={scheduleLabels.start}
-            size="lg"
-          />
-        </DashboardBlock>
-        <DashboardBlock>
-          <MetricBlock
-            label={t("adminOverview.command.metrics.endTime", "結束時間")}
-            value={scheduleLabels.end}
             size="lg"
           />
         </DashboardBlock>
@@ -1091,6 +1107,7 @@ export default function AdminOverviewCommandCenter({
         header={header}
         primary={
           <div className={styles.leftOverviewColumn}>
+            {contestInfoRow}
             {primary}
             {drilldownPanel}
           </div>
