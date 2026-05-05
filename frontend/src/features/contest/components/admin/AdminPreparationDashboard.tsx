@@ -16,6 +16,7 @@ import type {
   AdminPreparationDashboardData,
   PreparationReadinessState,
 } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
+import { BlockHeader } from "@/shared/components/dashboard";
 import styles from "./AdminPreparationDashboard.module.scss";
 
 interface AdminPreparationDashboardProps {
@@ -104,23 +105,17 @@ export default function AdminPreparationDashboard({
           label: t("adminPreparationDashboard.tabs.readiness", "準備狀態"),
           content: (
             <>
-              <div className={styles.panelHeader}>
-                <div>
-                  <h3>
-                    {t(
-                      "adminPreparationDashboard.readiness.title",
-                      "準備狀態",
-                    )}
-                  </h3>
-                  <p>
-                    {t(
-                      "adminPreparationDashboard.readiness.description",
-                      "非考試時段優先確認能否順利開考與收尾。",
-                    )}
-                  </p>
-                </div>
-                <TaskComplete size={18} />
-              </div>
+              <BlockHeader
+                title={t(
+                  "adminPreparationDashboard.readiness.title",
+                  "準備狀態",
+                )}
+                description={t(
+                  "adminPreparationDashboard.readiness.description",
+                  "非考試時段優先確認能否順利開考與收尾。",
+                )}
+                actions={<TaskComplete size={18} />}
+              />
               <ul className={styles.checklist}>
                 {data.checklistItems.map((item) => (
                   <li key={item.key} className={styles.checklistItem}>
@@ -143,23 +138,17 @@ export default function AdminPreparationDashboard({
           label: t("adminPreparationDashboard.tabs.grading", "批改與成績"),
           content: (
             <div className={styles.gradingPanel}>
-              <div className={styles.panelHeader}>
-                <div>
-                  <h3>
-                    {t(
-                      "adminPreparationDashboard.grading.title",
-                      "批改與成績",
-                    )}
-                  </h3>
-                  <p>
-                    {t(
-                      "adminPreparationDashboard.grading.description",
-                      "考後查看批改剩餘量與成績發布狀態。",
-                    )}
-                  </p>
-                </div>
-                <ChartBar size={18} />
-              </div>
+              <BlockHeader
+                title={t(
+                  "adminPreparationDashboard.grading.title",
+                  "批改與成績",
+                )}
+                description={t(
+                  "adminPreparationDashboard.grading.description",
+                  "考後查看批改剩餘量與成績發布狀態。",
+                )}
+                actions={<ChartBar size={18} />}
+              />
               <div
                 className={styles.progressTrack}
                 role="progressbar"

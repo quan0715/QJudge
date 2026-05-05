@@ -9,6 +9,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ExamEvent } from "@/core/entities/contest.entity";
 import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
+import { SectionTitle } from "@/shared/components/dashboard";
 import styles from "./OverviewEventSummaryPanel.module.scss";
 
 interface OverviewEventSummaryPanelProps {
@@ -71,9 +72,9 @@ export default function OverviewEventSummaryPanel({
   if (loading) {
     return (
       <section className={styles.section}>
-        <h3 className={styles.title}>
+        <SectionTitle as="h3">
           {t("adminOverview.events.title", "事件摘要")}
-        </h3>
+        </SectionTitle>
         <div className={styles.statsGrid}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Tile key={i} className={styles.statTile}>
@@ -94,9 +95,9 @@ export default function OverviewEventSummaryPanel({
 
   return (
     <section className={styles.section}>
-      <h3 className={styles.title}>
+      <SectionTitle as="h3">
         {t("adminOverview.events.title", "事件摘要")}
-      </h3>
+      </SectionTitle>
 
       <div className={styles.statsGrid}>
         {[
