@@ -23,6 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { Avatar } from "@/shared/ui/avatar";
 import "./UserMenu.scss";
 
@@ -40,7 +41,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   onExpandedChange,
   contestMode = false,
   contest,
-  settingsOnly = false,
+  settingsOnly,
 }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -49,6 +50,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   const { avatarUrl, displayName } =
     useUserPreferences();
   const { open: openSettings } = useSettingsDialog();
+
+  const { isRuntime } = useContestRuntimeMode();
+  const effectiveSettingsOnly = settingsOnly ?? isRuntime;
 
   const [isExpandedInternal, setIsExpandedInternal] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -78,7 +82,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   }, [isExpanded, onExpandedChange, t]);
 
   const handleToggle = () => {
-    if (settingsOnly) {
+    if (effectiveSettingsOnly) {
       openSettings();
       return;
     }
