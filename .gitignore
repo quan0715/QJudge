@@ -87,8 +87,12 @@ celerybeat.pid
 
 # Database
 *.sql
+*.sql.gz
+*.dump
+*.backup
 *.sqlite
 *.db
+backups/
 artifacts/db_backups/
 
 # Migrations (optional - uncomment if you want to ignore migrations)
