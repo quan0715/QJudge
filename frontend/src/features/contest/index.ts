@@ -4,8 +4,7 @@
 // (e.g., "@/features/contest/contexts") instead of this barrel.
 
 export {
-  classroomContestDetailRoutes,
-  classroomContestRuntimeRoutes,
+  classroomContestRoutes,
   classroomContestAdminRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,
