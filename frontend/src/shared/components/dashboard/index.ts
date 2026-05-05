@@ -1,4 +1,5 @@
 export * from "./typography";
+export * from "./tabs";
 export { DashboardPage, type DashboardPageProps } from "./DashboardPage";
 export {
   DashboardContainer,
