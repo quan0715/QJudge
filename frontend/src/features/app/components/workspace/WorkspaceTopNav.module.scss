@@ -136,3 +136,11 @@
     font-size: 0.875rem;
   }
 }
+
+.runtimeTimer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.5rem;
+}

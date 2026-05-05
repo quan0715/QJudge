@@ -9,6 +9,12 @@ import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons"
 import { getClassroomContestAdminPath, getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { UserMenu } from "@/features/app/components/UserMenu";
+import { useContestRuntimeMode } from "@/features/contest/hooks";
+import { useContestRuntimeContext } from "@/features/contest/contexts/ContestRuntimeContext";
+import { useContestLayoutState } from "@/features/contest/hooks/useContestLayoutState";
+import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
+import ExamStatusBadge from "@/features/contest/components/exam/ExamStatusBadge";
+import { TimeDisplay } from "@/shared/components/dashboard";
 import styles from "./WorkspaceTopNav.module.scss";
 
 type MenuKind = "classroom" | "contest" | "contestMode" | null;
@@ -149,6 +155,15 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
     navigate(getClassroomContestAdminPath(classroomId, contestRouteId));
   }, [classroomId, contestRouteId, navigate]);
 
+  const { isRuntime } = useContestRuntimeMode();
+  const { openMonitor } = useContestRuntimeContext();
+  const { contest, contestId, refreshContest } = useContestLayoutState();
+  const { timeLeft, isCountdownToStart, unlockTimeLeft } = useContestTimers({
+    contest,
+    contestId,
+    refreshContest,
+  });
+
   return (
     <header className={styles.root}>
       <div className={styles.left}>
@@ -179,6 +194,7 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                   aria-haspopup="menu"
                   aria-expanded={openMenu === "classroom"}
                   onClick={() => setOpenMenu((menu) => menu === "classroom" ? null : "classroom")}
+                  disabled={isRuntime}
                 >
                   {createElement(getClassroomIcon(currentClassroom.icon), { size: 18 })}
                   <span>{currentClassroom.name}</span>
@@ -216,6 +232,7 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                   aria-haspopup="menu"
                   aria-expanded={openMenu === "contest"}
                   onClick={() => setOpenMenu((menu) => menu === "contest" ? null : "contest")}
+                  disabled={isRuntime}
                 >
                   <span>
                     {currentContest?.contestName ??
@@ -250,6 +267,7 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                       aria-haspopup="menu"
                       aria-expanded={openMenu === "contestMode"}
                       onClick={() => setOpenMenu((menu) => menu === "contestMode" ? null : "contestMode")}
+                      disabled={isRuntime}
                     >
                       <span>{t("workspaceTopNav.adminConsole", "管理後台")}</span>
                       <ChevronDown size={14} />
@@ -289,6 +307,25 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
       </div>
 
       <div className={styles.actions}>
+        {isRuntime && contest && (
+          <>
+            <ExamStatusBadge
+              examStatus={contest.examStatus}
+              cheatDetectionEnabled={contest.cheatDetectionEnabled}
+              timeLeft={timeLeft}
+              unlockTimeLeft={unlockTimeLeft}
+              lockReason={contest.lockReason}
+              autoUnlockAt={contest.autoUnlockAt}
+              onClick={openMonitor}
+            />
+            <div className={styles.runtimeTimer}>
+              <TimeDisplay
+                variant="header"
+                value={isCountdownToStart ? `(待開始) ${timeLeft}` : timeLeft}
+              />
+            </div>
+          </>
+        )}
         <UserMenu />
       </div>
     </header>
