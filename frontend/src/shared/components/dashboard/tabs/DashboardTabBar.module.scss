@@ -6,6 +6,12 @@
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
+// padding="default" — keep the tab strip from hugging the block edge.
+// Mirrors the inline padding used by DashboardBlock padding="default".
+.padded {
+  padding-inline: 1rem;
+}
+
 .tabs {
   flex: 0 1 auto;
   min-width: 0;
@@ -15,7 +21,6 @@
   display: inline-flex;
   align-items: center;
   flex: 0 1 auto;
-  margin: 0 1rem;
   align-self: center;
   max-width: 24rem;
   width: 100%;
@@ -28,8 +33,11 @@
     gap: 0.5rem;
   }
 
+  .padded {
+    padding-block-end: 0.5rem;
+  }
+
   .toolbar {
-    margin: 0 1rem 0.5rem;
     max-width: none;
   }
 }
