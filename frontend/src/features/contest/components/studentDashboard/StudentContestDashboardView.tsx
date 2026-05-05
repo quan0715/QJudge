@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
+import { ScaleTypes } from "@carbon/charts";
+import { LollipopChart } from "@carbon/charts-react";
+import "@carbon/charts-react/styles.css";
 import {
   Button,
   InlineNotification,
   Modal,
   Select,
   SelectItem,
+  SkeletonPlaceholder,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
   Tag,
 } from "@carbon/react";
 import {
@@ -23,6 +32,7 @@ import { useTranslation } from "react-i18next";
 import type {
   ContestDetail,
   ExamQuestion,
+  ExamQuestionType,
 } from "@/core/entities/contest.entity";
 import {
   getContestState,
@@ -30,6 +40,10 @@ import {
   getContestStateLabel,
 } from "@/core/entities/contest.entity";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
+import {
+  getExamDashboardSummary,
+  type ExamDashboardSummaryDto,
+} from "@/infrastructure/api/repositories/exam.repository";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import {
   getExamResults,
@@ -38,12 +52,20 @@ import {
   type ExamAnswerDetail,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { formatDate } from "@/shared/utils/format";
 import { useInterval } from "@/shared/hooks/useInterval";
-import PaperQuestionOverviewTable, {
-  type PaperQuestionOverviewRow,
-} from "@/features/contest/components/exam/PaperQuestionOverviewTable";
+import {
+  BlockHeader,
+  DashboardBlock,
+  DashboardContainer,
+  DashboardPage,
+  MetricBlock,
+  TimeDisplay,
+} from "@/shared/components/dashboard";
 import { ContestRegistrationModal } from "@/features/contest/components/modals/ContestRegistrationModal";
+import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
+import { getMarkedQuestionIds } from "@/features/contest/screens/paperExam/hooks";
 import {
   buildCodingProgressSummary,
   formatCompactDuration,
@@ -90,44 +112,33 @@ const QUESTION_TYPE_LABEL: Record<string, string> = {
   essay: "申論題",
 };
 
-const getPhaseCopy = (
-  phase: StudentContestPhase,
-  resultsPublished: boolean,
-): { title: string; description: string } => {
-  if (phase === "before") {
-    return {
-      title: "考試前",
-      description: "確認報名狀態、規則與監控設定，等待考試開始。",
-    };
+const PASSING_SCORE_THRESHOLD_PERCENT = 60;
+
+const resolveCarbonChartTheme = (
+  theme: string,
+): "white" | "g10" | "g90" | "g100" => {
+  switch (theme) {
+    case "g10":
+    case "g90":
+    case "g100":
+    case "white":
+      return theme;
+    default:
+      return "white";
   }
-  if (phase === "during") {
-    return {
-      title: "考試中",
-      description: "追蹤作答進度與剩餘時間，必要時回到作答畫面。",
-    };
-  }
-  return {
-    title: "考試後",
-    description: resultsPublished
-      ? "成績已發布，可查看作答紀錄與成績。"
-      : "作答已結束，成績尚未發布。",
-  };
 };
 
-const getExamStatusLabel = (contest: ContestDetail): string => {
-  switch (contest.examStatus) {
-    case "in_progress":
-      return "作答中";
-    case "paused":
-      return "待恢復";
-    case "locked":
-      return "已鎖定";
-    case "submitted":
-      return "已交卷";
-    case "not_started":
-    default:
-      return isParticipant(contest) ? "尚未開始" : "尚未加入";
-  }
+const getBucketUpperPercent = (label: string): number | null => {
+  const values = label.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  if (values.length === 0) return null;
+  return Math.max(...values);
+};
+
+const isFailingScoreBucket = (label: string) => {
+  const upperPercent = getBucketUpperPercent(label);
+  return (
+    upperPercent !== null && upperPercent < PASSING_SCORE_THRESHOLD_PERCENT
+  );
 };
 
 const getRemainingLabel = (
@@ -195,6 +206,7 @@ export default function StudentContestDashboard({
 }: StudentContestDashboardProps) {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
+  const { theme } = useTheme();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -204,10 +216,16 @@ export default function StudentContestDashboard({
   const [reportError, setReportError] = useState<string | null>(null);
   const [paperData, setPaperData] =
     useState<PaperExamDashboardData>(EMPTY_PAPER_DATA);
+  const [scoreSummary, setScoreSummary] =
+    useState<ExamDashboardSummaryDto | null>(null);
+  const [scoreSummaryLoading, setScoreSummaryLoading] = useState(false);
+  const [scoreSummaryError, setScoreSummaryError] = useState<string | null>(null);
   const [paperReloadKey, setPaperReloadKey] = useState(0);
+  const [markedQuestionIds, setMarkedQuestionIds] = useState<Set<string>>(
+    () => getMarkedQuestionIds(contest.id),
+  );
 
   const phase = resolveStudentContestPhase(contest, nowMs);
-  const phaseCopy = getPhaseCopy(phase, contest.resultsPublished);
   const participant = isParticipant(contest);
   const requiresPassword =
     contest.requiresPassword ?? contest.visibility === "private";
@@ -236,11 +254,13 @@ export default function StudentContestDashboard({
   useEffect(() => {
     if (!shouldLoadPaperData) {
       setPaperData(EMPTY_PAPER_DATA);
+      setMarkedQuestionIds(getMarkedQuestionIds(contest.id));
       return;
     }
 
     let cancelled = false;
     setPaperData((previous) => ({ ...previous, loading: true, error: null }));
+    setMarkedQuestionIds(getMarkedQuestionIds(contest.id));
     const load = async () => {
       const [questionsResult, answersResult] =
         await Promise.allSettled([
@@ -271,6 +291,7 @@ export default function StudentContestDashboard({
         answers,
         results,
       });
+      setMarkedQuestionIds(getMarkedQuestionIds(contest.id));
     };
     void load();
     return () => {
@@ -282,6 +303,48 @@ export default function StudentContestDashboard({
     contest.resultsPublished,
     paperReloadKey,
     shouldLoadPaperData,
+  ]);
+
+  useEffect(() => {
+    if (
+      contest.contestType !== "paper_exam" ||
+      !participant ||
+      !contest.resultsPublished
+    ) {
+      setScoreSummary(null);
+      setScoreSummaryLoading(false);
+      setScoreSummaryError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setScoreSummaryLoading(true);
+    setScoreSummaryError(null);
+    void (async () => {
+      try {
+        const summary = await getExamDashboardSummary(contest.id);
+        if (cancelled) return;
+        setScoreSummary(summary);
+      } catch (error) {
+        if (cancelled) return;
+        setScoreSummary(null);
+        setScoreSummaryError(
+          error instanceof Error ? error.message : "成績分布暫時無法載入",
+        );
+      } finally {
+        if (!cancelled) setScoreSummaryLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    contest.contestType,
+    contest.id,
+    contest.resultsPublished,
+    participant,
+    paperReloadKey,
   ]);
 
   const progressSummary = useMemo(() => {
@@ -311,6 +374,12 @@ export default function StudentContestDashboard({
   const canResumeExam = participant && examStatus === "paused";
   const canGoToAnswering = participant && examStatus === "in_progress";
   const canSubmitExam = participant && examStatus === "in_progress";
+  const canRestartSubmittedExam =
+    participant &&
+    contest.status === "published" &&
+    contestState !== "ended" &&
+    examStatus === "submitted" &&
+    contest.allowMultipleJoins;
   const scoreDisplay = contest.resultsPublished
     ? progressSummary.totalScore === null
       ? "成績已發布"
@@ -325,6 +394,65 @@ export default function StudentContestDashboard({
             : scoreDisplay,
       }
     : remaining;
+  const reportDownloadLabel = contest.resultsPublished
+    ? "下載成績單"
+    : "下載作答證明";
+  const startMs = Date.parse(contest.startTime);
+  const endMs = Date.parse(contest.endTime);
+  const durationDisplay =
+    Number.isFinite(startMs) && Number.isFinite(endMs)
+      ? formatCompactDuration(endMs - startMs)
+      : "-";
+  const chartTheme = resolveCarbonChartTheme(theme);
+  const scoreDistributionData = useMemo(
+    () =>
+      scoreSummary
+        ? scoreSummary.score_distribution.map((bucket) => ({
+            group: bucket.range_label,
+            value: bucket.count,
+          }))
+        : [],
+    [scoreSummary],
+  );
+  const hasScoreDistributionData = scoreDistributionData.some(
+    (item) => item.value > 0,
+  );
+  const scoreDistributionOptions = useMemo(
+    () => ({
+      title: "",
+      height: "180px",
+      theme: chartTheme,
+      toolbar: { enabled: false },
+      legend: { enabled: false },
+      axes: {
+        left: {
+          mapsTo: "group",
+          scaleType: ScaleTypes.LABELS,
+          visible: false,
+        },
+        bottom: {
+          mapsTo: "value",
+          scaleType: ScaleTypes.LINEAR,
+          visible: false,
+        },
+      },
+      grid: {
+        x: { enabled: false },
+        y: { enabled: false },
+      },
+      color: {
+        scale: (scoreSummary?.score_distribution ?? []).reduce<
+          Record<string, string>
+        >((acc, bucket) => {
+          acc[bucket.range_label] = isFailingScoreBucket(bucket.range_label)
+            ? "var(--cds-support-error)"
+            : "var(--cds-link-primary)";
+          return acc;
+        }, {}),
+      },
+    }),
+    [chartTheme, scoreSummary?.score_distribution],
+  );
 
   const handleRegisterSubmit = (data: { password?: string }) => {
     setShowRegisterModal(false);
@@ -370,15 +498,22 @@ export default function StudentContestDashboard({
         </Button>
       );
     }
-    if (contest.examStatus === "submitted") {
+    if (examStatus === "submitted") {
       return (
-        <Button
-          kind="tertiary"
-          renderIcon={Document}
-          onClick={() => setShowReportModal(true)}
-        >
-          下載作答報告
-        </Button>
+        <>
+          <Button
+            kind="tertiary"
+            renderIcon={Document}
+            onClick={() => setShowReportModal(true)}
+          >
+            {reportDownloadLabel}
+          </Button>
+          {canRestartSubmittedExam ? (
+            <Button renderIcon={Play} onClick={onStartExam}>
+              重新加入
+            </Button>
+          ) : null}
+        </>
       );
     }
     return (
@@ -452,92 +587,267 @@ export default function StudentContestDashboard({
     const answerMap = new Map(
       paperData.answers.map((answer) => [String(answer.questionId), answer]),
     );
-    const rows: PaperQuestionOverviewRow[] = paperData.questions.map(
-      (question, index) => {
-        const result = resultMap.get(String(question.id));
-        const answer = answerMap.get(String(question.id));
-        const answered = !!result || !!answer;
-        const questionType =
-          result?.questionType ??
-          result?.questionSnapshot?.questionType ??
-          question.questionType;
-        const maxScore =
-          question.score ?? result?.maxScore ?? result?.questionSnapshot?.score ?? 0;
-        const status =
-          !answered
-            ? { label: "未作答", tone: "warm-gray" as const }
-            : !contest.resultsPublished
-              ? { label: "已作答", tone: "cool-gray" as const }
-            : result?.isCorrect === true
-                ? { label: "正確", tone: "green" as const }
-                : result?.isCorrect === false
-                  ? (result?.score ?? 0) > 0
-                    ? { label: "部分得分", tone: "cyan" as const }
-                    : { label: "未得分", tone: "red" as const }
-                  : { label: result?.gradedAt ? "已批改" : "待批改", tone: "warm-gray" as const };
-
-        return {
-          id: String(question.id),
-          index: index + 1,
-          prompt:
-            result?.questionPrompt ??
-            result?.questionSnapshot?.prompt ??
-            question.prompt,
-          typeLabel: t(
-            `common:questionType.label.${questionType}`,
-            QUESTION_TYPE_LABEL[questionType] ?? questionType,
-          ),
-          maxScore,
-          scoreDisplay: contest.resultsPublished
-            ? String(result?.score ?? 0)
-            : result
-              ? "已作答"
-              : "-",
-          statusLabel: status.label,
-          statusTone: status.tone,
-        };
-      },
-    );
 
     return (
-      <PaperQuestionOverviewTable
-        rows={rows}
-        showScore={contest.resultsPublished}
-        showFeedback={false}
-      />
+      <div className={styles.questionList}>
+        {paperData.questions.map((question, index) => {
+          const result = resultMap.get(String(question.id));
+          const answer = answerMap.get(String(question.id));
+          const marked = markedQuestionIds.has(String(question.id));
+          const answerPayload = result?.answer ?? answer?.answer;
+          const answered = !!answerPayload;
+          const questionType = (
+            result?.questionType ??
+            result?.questionSnapshot?.questionType ??
+            question.questionType
+          ) as ExamQuestionType;
+          const maxScore =
+            question.score ?? result?.maxScore ?? result?.questionSnapshot?.score ?? 0;
+          const status =
+            marked
+              ? {
+                  label: "已標記",
+                  tone: "warm-gray" as const,
+                  emphasis: "warning" as const,
+                }
+              : !answered
+              ? { label: "未作答", tone: "warm-gray" as const }
+              : !contest.resultsPublished
+                ? {
+                    label: "已作答",
+                    tone: "cool-gray" as const,
+                  }
+                : result?.isCorrect === true
+                  ? { label: "正確", tone: "green" as const }
+                  : result?.isCorrect === false
+                    ? (result?.score ?? 0) > 0
+                      ? { label: "部分得分", tone: "cyan" as const }
+                      : { label: "未得分", tone: "red" as const }
+                    : {
+                        label: result?.gradedAt ? "已批改" : "待批改",
+                        tone: "warm-gray" as const,
+                      };
+          const prompt =
+            result?.questionPrompt ??
+            result?.questionSnapshot?.prompt ??
+            question.prompt;
+
+          return (
+            <PaperQuestionReportCard
+              key={question.id}
+              questionId={String(question.id)}
+              index={index + 1}
+              questionType={questionType}
+              typeLabel={t(
+                `common:questionType.label.${questionType}`,
+                QUESTION_TYPE_LABEL[questionType] ?? questionType,
+              )}
+              prompt={prompt}
+              options={question.options}
+              answer={answerPayload ?? {}}
+              statusLabel={status.label}
+              statusTone={status.tone}
+              statusEmphasis={status.emphasis}
+              showGrading={contest.resultsPublished}
+              score={result?.score}
+              maxScore={maxScore}
+              gradedByUsername={result?.gradedByUsername}
+              feedback={result?.feedback}
+              correctAnswer={
+                result?.questionSnapshot?.correctAnswer ?? question.correctAnswer
+              }
+              explanation={
+                result?.questionExplanation ??
+                result?.questionSnapshot?.explanation ??
+                question.explanation
+              }
+            />
+          );
+        })}
+      </div>
     );
   };
 
+  const tagRow = (
+    <div className={styles.tagRow}>
+      <Tag type={getContestStateColor(contestState)}>
+        {getContestStateLabel(contestState)}
+      </Tag>
+      <Tag type={participant ? "green" : "gray"}>
+        {participant ? "已加入" : "未加入"}
+      </Tag>
+      {contest.cheatDetectionEnabled ? <Tag type="red">監控中</Tag> : null}
+    </div>
+  );
+
   return (
-    <main className={styles.root} aria-label="學生競賽首頁">
-      <div className={styles.dashboard}>
-        <section className={styles.summaryPanel} aria-label="競賽狀態">
-          <div className={styles.summaryMain}>
-            <div className={styles.titleRow}>
-              <h1 className={styles.title}>{contest.name}</h1>
-              <Tag type={getContestStateColor(contestState)}>
-                {getContestStateLabel(contestState)}
-              </Tag>
-              <Tag type={participant ? "green" : "gray"}>
-                {participant ? "已加入" : "未加入"}
-              </Tag>
-              {contest.cheatDetectionEnabled ? (
-                <Tag type="red">監控中</Tag>
-              ) : null}
+    <DashboardPage ariaLabel="學生競賽首頁">
+      <DashboardContainer layout="split" bordered dividers="auto">
+        <DashboardContainer layout="stack" dividers="auto" ariaLabel="競賽主要內容">
+          <DashboardBlock>
+            <BlockHeader
+              titleSize="page"
+              title={contest.name}
+              description={tagRow}
+              actions={
+                <Button
+                  kind="ghost"
+                  renderIcon={Renew}
+                  onClick={() => {
+                    setPaperReloadKey((value) => value + 1);
+                    void onRefreshContest?.();
+                  }}
+                >
+                  重新整理
+                </Button>
+              }
+            />
+          </DashboardBlock>
+
+          <DashboardContainer
+            layout="grid"
+            columns={3}
+            dividers="auto"
+            ariaLabel="競賽資訊"
+          >
+            <DashboardBlock>
+              <MetricBlock
+                label="開始時間"
+                value={formatDate(contest.startTime, { includeSeconds: false })}
+              />
+            </DashboardBlock>
+            <DashboardBlock>
+              <MetricBlock
+                label="截止時間"
+                value={formatDate(contest.endTime, { includeSeconds: false })}
+              />
+            </DashboardBlock>
+            <DashboardBlock>
+              <MetricBlock label="總時長" value={durationDisplay} />
+            </DashboardBlock>
+          </DashboardContainer>
+
+          <DashboardBlock padding="flush">
+            <Tabs>
+              <TabList aria-label="競賽資訊切換">
+                <Tab>規則說明</Tab>
+                <Tab>作答紀錄</Tab>
+              </TabList>
+              <TabPanels>
+                <TabPanel className={styles.tabPanel}>
+                  <div className={styles.tabContent}>
+                    <div className={styles.sectionHeader}>
+                      <div>
+                        <h3 className={styles.inlineRecordsTitle}>規則說明</h3>
+                        <p className={styles.sectionDescription}>
+                          {requiresPassword
+                            ? "此競賽需要密碼。"
+                            : "此競賽不需要密碼。"}
+                        </p>
+                      </div>
+                      {contest.cheatDetectionEnabled ? (
+                        <WarningAlt size={20} className={styles.warningIcon} />
+                      ) : (
+                        <Checkmark size={20} className={styles.successIcon} />
+                      )}
+                    </div>
+                    {contest.cheatDetectionEnabled ? (
+                      <InlineNotification
+                        kind="warning"
+                        lowContrast
+                        hideCloseButton
+                        title="已啟用監控"
+                        subtitle="進入作答後會啟用全螢幕、分頁切換與裝置監控。"
+                      />
+                    ) : null}
+                    {contest.description ? (
+                      <div className={styles.rulesContent}>
+                        <MarkdownRenderer>{contest.description}</MarkdownRenderer>
+                      </div>
+                    ) : null}
+                    {contest.rules ? (
+                      <div className={styles.rulesContent}>
+                        <MarkdownRenderer>{contest.rules}</MarkdownRenderer>
+                      </div>
+                    ) : (
+                      <p className={styles.emptyText}>沒有額外規則。</p>
+                    )}
+                  </div>
+                </TabPanel>
+                <TabPanel className={styles.tabPanel}>
+                  <div className={styles.tabContent}>
+                    <div className={styles.inlineRecordsHeader}>
+                      <div>
+                        <h3 className={styles.inlineRecordsTitle}>
+                          {phase === "during"
+                            ? "目前作答狀況"
+                            : phase === "after" && contest.resultsPublished
+                              ? "作答紀錄與成績"
+                              : "作答紀錄"}
+                        </h3>
+                      </div>
+                    </div>
+                    {contest.contestType === "paper_exam"
+                      ? renderPaperRecords()
+                      : renderCodingRecords()}
+                  </div>
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
+          </DashboardBlock>
+        </DashboardContainer>
+
+        <DashboardContainer layout="stack" dividers="auto" ariaLabel="競賽摘要">
+          <DashboardBlock>
+            <TimeDisplay
+              variant="countdown"
+              label={primaryStatus.label}
+              value={primaryStatus.value}
+            />
+          </DashboardBlock>
+
+          <DashboardBlock>
+            <div className={styles.chartHeader}>
+              <span className={styles.metricLabel}>完成率</span>
+              <strong className={styles.metricValue}>{progressPercent}%</strong>
             </div>
-            <p className={styles.phaseTitle}>{phaseCopy.title}</p>
-            <p className={styles.phaseDescription}>{phaseCopy.description}</p>
-            {contest.description ? (
-              <div className={styles.markdown}>
-                <MarkdownRenderer>{contest.description}</MarkdownRenderer>
+            <div className={styles.progressTrack} aria-hidden="true">
+              <div
+                className={styles.progressFill}
+                style={{ inlineSize: `${progressPercent}%` }}
+              />
+            </div>
+          </DashboardBlock>
+
+          {contest.resultsPublished && contest.contestType === "paper_exam" ? (
+            <DashboardBlock ariaLabel="成績分布">
+              <div className={styles.chartHeader}>
+                <span className={styles.metricLabel}>成績分布</span>
+                {scoreSummary ? (
+                  <strong className={styles.metricValue}>
+                    平均 {scoreSummary.summary.average_score.toFixed(1)} /{" "}
+                    {scoreSummary.summary.max_total_score}
+                  </strong>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-          <aside className={styles.actionPanel} aria-label="主要操作">
-            <div>
-              <p className={styles.metricLabel}>{primaryStatus.label}</p>
-              <p className={styles.timerValue}>{primaryStatus.value}</p>
-            </div>
+              <div className={styles.scoreDistributionChart}>
+                {scoreSummaryLoading ? (
+                  <SkeletonPlaceholder className={styles.chartSkeleton} />
+                ) : scoreSummaryError ? (
+                  <p className={styles.emptyText}>{scoreSummaryError}</p>
+                ) : hasScoreDistributionData ? (
+                  <LollipopChart
+                    data={scoreDistributionData}
+                    options={scoreDistributionOptions}
+                  />
+                ) : (
+                  <p className={styles.emptyText}>尚無成績分布資料。</p>
+                )}
+              </div>
+            </DashboardBlock>
+          ) : null}
+
+          <DashboardBlock>
             <div className={styles.actionStack}>
               {renderPrimaryAction()}
               {canSubmitExam ? (
@@ -555,148 +865,9 @@ export default function StudentContestDashboard({
                 </Button>
               ) : null}
             </div>
-          </aside>
-        </section>
-
-        <section className={styles.infoGrid} aria-label="考試資訊">
-          <div className={styles.infoCell}>
-            <p className={styles.metricLabel}>開始時間</p>
-            <p className={styles.metricValue}>
-              {formatDate(contest.startTime, { includeSeconds: false })}
-            </p>
-          </div>
-          <div className={styles.infoCell}>
-            <p className={styles.metricLabel}>結束時間</p>
-            <p className={styles.metricValue}>
-              {formatDate(contest.endTime, { includeSeconds: false })}
-            </p>
-          </div>
-          <div className={styles.infoCell}>
-            <p className={styles.metricLabel}>作答狀態</p>
-            <p className={styles.metricValue}>{getExamStatusLabel(contest)}</p>
-          </div>
-          <div className={styles.infoCell}>
-            <p className={styles.metricLabel}>題目數</p>
-            <p className={styles.metricValue}>
-              {contest.contestType === "paper_exam"
-                ? paperData.questions.length || contest.examQuestionsCount
-                : progressSummary.totalItems}
-            </p>
-          </div>
-        </section>
-
-        <section className={styles.progressGrid} aria-label="作答狀況">
-          <div className={styles.progressPanel}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <h2 className={styles.sectionTitle}>
-                  作答狀況
-                </h2>
-                <p className={styles.sectionDescription}>
-                  {phase === "before"
-                    ? "開始後會在這裡顯示作答進度。"
-                    : contest.resultsPublished
-                      ? "依已發布成績與題目資料計算。"
-                      : "依自動儲存答案與題目資料計算。"}
-                </p>
-              </div>
-              <Tag type="cool-gray">{progressPercent}%</Tag>
-            </div>
-            <div className={styles.progressTrack} aria-hidden="true">
-              <div
-                className={styles.progressFill}
-                style={{ inlineSize: `${progressPercent}%` }}
-              />
-            </div>
-            <div className={styles.statGrid}>
-              <div>
-                <p className={styles.metricLabel}>已完成</p>
-                <p className={styles.metricValue}>
-                  {progressSummary.completedItems} / {progressSummary.totalItems}
-                </p>
-              </div>
-              <div>
-                <p className={styles.metricLabel}>已嘗試</p>
-                <p className={styles.metricValue}>
-                  {progressSummary.attemptedItems}
-                </p>
-              </div>
-              <div>
-                <p className={styles.metricLabel}>目前分數</p>
-                <p className={styles.metricValue}>
-                  {progressSummary.totalScore === null
-                    ? scoreDisplay
-                    : `${progressSummary.totalScore} / ${progressSummary.maxScore}`}
-                </p>
-              </div>
-            </div>
-            <div className={styles.inlineRecordsPanel} aria-label="作答紀錄">
-              <div className={styles.inlineRecordsHeader}>
-                <div>
-                  <h3 className={styles.inlineRecordsTitle}>
-                    {phase === "during"
-                      ? "目前作答狀況"
-                      : phase === "after" && contest.resultsPublished
-                        ? "作答紀錄與成績"
-                        : "作答紀錄"}
-                  </h3>
-                  <p className={styles.sectionDescription}>
-                    {contest.resultsPublished
-                      ? "成績已發布，以下顯示目前可見的分數資料。"
-                      : phase === "during"
-                        ? "依自動儲存答案顯示，尚未代表已交卷。"
-                        : "成績尚未發布時，只顯示目前可見的作答狀態。"}
-                  </p>
-                </div>
-                <Button
-                  kind="ghost"
-                  renderIcon={Renew}
-                  onClick={() => {
-                    setPaperReloadKey((value) => value + 1);
-                    void onRefreshContest?.();
-                  }}
-                >
-                  重新整理
-                </Button>
-              </div>
-              {contest.contestType === "paper_exam"
-                ? renderPaperRecords()
-                : renderCodingRecords()}
-            </div>
-          </div>
-          <div className={styles.rulesPanel}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <h2 className={styles.sectionTitle}>規則與監控</h2>
-                <p className={styles.sectionDescription}>
-                  {requiresPassword ? "此競賽需要密碼。" : "此競賽不需要密碼。"}
-                </p>
-              </div>
-              {contest.cheatDetectionEnabled ? (
-                <WarningAlt size={20} className={styles.warningIcon} />
-              ) : (
-                <Checkmark size={20} className={styles.successIcon} />
-              )}
-            </div>
-            {contest.cheatDetectionEnabled ? (
-              <InlineNotification
-                kind="warning"
-                lowContrast
-                hideCloseButton
-                title="已啟用監控"
-                subtitle="進入作答後會啟用全螢幕、分頁切換與裝置監控。"
-              />
-            ) : null}
-            {contest.rules ? (
-              <div className={styles.rulesContent}>
-                <MarkdownRenderer>{contest.rules}</MarkdownRenderer>
-              </div>
-            ) : (
-              <p className={styles.emptyText}>沒有額外規則。</p>
-            )}
-          </div>
-        </section>
-      </div>
+          </DashboardBlock>
+        </DashboardContainer>
+      </DashboardContainer>
 
       <ContestRegistrationModal
         open={showRegisterModal}
@@ -722,7 +893,7 @@ export default function StudentContestDashboard({
 
       <Modal
         open={showReportModal}
-        modalHeading="下載作答報告"
+        modalHeading={reportDownloadLabel}
         primaryButtonText={reportDownloading ? "準備中" : "下載"}
         secondaryButtonText={tc("button.cancel")}
         primaryButtonDisabled={reportDownloading}
@@ -755,6 +926,6 @@ export default function StudentContestDashboard({
           ) : null}
         </div>
       </Modal>
-    </main>
+    </DashboardPage>
   );
 }

@@ -23,7 +23,7 @@ export function BlockHeader({
     <header className={styles.root}>
       <div className={styles.text}>
         <TitleComp as={titleAs}>{title}</TitleComp>
-        {description && <p className={styles.description}>{description}</p>}
+        {description && <div className={styles.description}>{description}</div>}
       </div>
       {actions && <div className={styles.actions}>{actions}</div>}
     </header>

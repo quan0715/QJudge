@@ -9,6 +9,7 @@ import {
   getExamResults,
   getMyExamAnswers,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
+import { getExamDashboardSummary } from "@/infrastructure/api/repositories/exam.repository";
 import StudentContestDashboard from "./StudentContestDashboardView";
 
 vi.mock("react-i18next", () => ({
@@ -70,8 +71,28 @@ vi.mock("@carbon/react", () => ({
   SelectItem: ({ value, text }: { value: string; text: string }) => (
     <option value={value}>{text}</option>
   ),
+  SkeletonPlaceholder: () => <div data-testid="skeleton-placeholder" />,
+  Tab: ({ children }: { children: ReactNode }) => (
+    <button type="button">{children}</button>
+  ),
+  TabList: ({ children }: { children: ReactNode }) => (
+    <div role="tablist">{children}</div>
+  ),
+  TabPanel: ({ children }: { children: ReactNode }) => (
+    <div role="tabpanel">{children}</div>
+  ),
+  TabPanels: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Tabs: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   Tag: ({ children }: { children: ReactNode }) => <span>{children}</span>,
   TextInput: () => <input aria-label="text input" />,
+}));
+
+vi.mock("@carbon/charts-react", () => ({
+  LollipopChart: () => <div data-testid="score-distribution-chart" />,
+}));
+
+vi.mock("@/shared/ui/theme/ThemeContext", () => ({
+  useTheme: () => ({ theme: "white" }),
 }));
 
 vi.mock("@carbon/icons-react", () => {
@@ -93,37 +114,6 @@ vi.mock("@/shared/ui/markdown/MarkdownRenderer", () => ({
   default: ({ children }: { children: string }) => <div>{children}</div>,
 }));
 
-vi.mock("@/features/contest/components/exam/PaperQuestionOverviewTable", () => ({
-  default: ({
-    rows,
-    showScore,
-    showFeedback,
-  }: {
-    rows: Array<{
-      id: string;
-      index: number;
-      prompt: string;
-      scoreDisplay?: string;
-      feedbackDisplay?: string;
-      statusLabel?: string;
-    }>;
-    showScore?: boolean;
-    showFeedback?: boolean;
-  }) => (
-    <div>
-      {rows.map((row) => (
-        <div key={row.id}>
-          <span>{row.index}</span>
-          <span>{row.prompt}</span>
-          <span>{row.statusLabel}</span>
-          {showScore ? <span>{row.scoreDisplay}</span> : null}
-          {showFeedback ? <span>{row.feedbackDisplay}</span> : null}
-        </div>
-      ))}
-    </div>
-  ),
-}));
-
 vi.mock("@/features/contest/components/modals/ContestRegistrationModal", () => ({
   ContestRegistrationModal: ({ open }: { open: boolean }) =>
     open ? <div>registration modal</div> : null,
@@ -140,6 +130,38 @@ vi.mock("@/infrastructure/api/repositories/examQuestions.repository", () => ({
 vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({
   getExamResults: vi.fn(async () => []),
   getMyExamAnswers: vi.fn(async () => []),
+}));
+
+vi.mock("@/infrastructure/api/repositories/exam.repository", () => ({
+  getExamDashboardSummary: vi.fn(async () => ({
+    contest: {
+      id: "contest-1",
+      name: "測試競賽",
+      course: "",
+      contest_type: "paper_exam",
+      participant_count: 2,
+      completed_count: 2,
+      results_published: true,
+    },
+    summary: {
+      average_score: 75,
+      median_score: 75,
+      max_total_score: 100,
+    },
+    score_distribution: [
+      { range_label: "0-9%", count: 0 },
+      { range_label: "10-19%", count: 0 },
+      { range_label: "20-29%", count: 0 },
+      { range_label: "30-39%", count: 0 },
+      { range_label: "40-49%", count: 0 },
+      { range_label: "50-59%", count: 1 },
+      { range_label: "60-69%", count: 0 },
+      { range_label: "70-79%", count: 1 },
+      { range_label: "80-89%", count: 0 },
+      { range_label: "90-100%", count: 0 },
+    ],
+    questions: [],
+  })),
 }));
 
 const createContest = (
@@ -217,14 +239,14 @@ describe("StudentContestDashboard", () => {
     );
 
     expect(screen.getByRole("main", { name: "學生競賽首頁" })).toBeInTheDocument();
-    expect(screen.getByText("考試前")).toBeInTheDocument();
+    expect(screen.getByText("總時長")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /加入競賽/ })).toBeInTheDocument();
   });
 
   it("does not show answer records before the participant starts", () => {
     renderDashboard(createContest());
 
-    expect(screen.getByText("考試前")).toBeInTheDocument();
+    expect(screen.getByText("總時長")).toBeInTheDocument();
     expect(screen.getByText("尚無作答紀錄。")).toBeInTheDocument();
     expect(screen.queryByText("Two Sum")).not.toBeInTheDocument();
   });
@@ -249,9 +271,11 @@ describe("StudentContestDashboard", () => {
       }),
     );
 
-    expect(screen.getByText("考試中")).toBeInTheDocument();
+    expect(screen.getByText("總時長")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /回到作答/ })).toBeInTheDocument();
-    expect(screen.getByText("1 / 1")).toBeInTheDocument();
+    expect(screen.getByText("100%")).toBeInTheDocument();
+    expect(screen.queryByText("已完成")).not.toBeInTheDocument();
+    expect(screen.queryByText("已嘗試")).not.toBeInTheDocument();
   });
 
   it("renders in-exam paper progress from autosaved answers", async () => {
@@ -303,27 +327,50 @@ describe("StudentContestDashboard", () => {
     );
 
     expect(await screen.findByText("目前作答狀況")).toBeInTheDocument();
-    expect(await screen.findByText("1 / 2")).toBeInTheDocument();
+    expect(await screen.findByText("50%")).toBeInTheDocument();
+    expect(screen.queryByText("已完成")).not.toBeInTheDocument();
+    expect(screen.queryByText("已嘗試")).not.toBeInTheDocument();
     expect(screen.getByText("已作答")).toBeInTheDocument();
     expect(screen.getByText("未作答")).toBeInTheDocument();
+    expect(screen.getByText("draft answer")).toBeInTheDocument();
     expect(getMyExamAnswers).toHaveBeenCalledWith("contest-1");
     expect(getExamResults).not.toHaveBeenCalled();
   });
 
-  it("renders post-exam answer report without extra score panels", () => {
+  it("renders post-exam answer report and score distribution", async () => {
     renderDashboard(
       createContest({
+        contestType: "paper_exam",
         startTime: "2000-05-05T10:00:00.000Z",
         endTime: "2000-05-05T12:00:00.000Z",
         examStatus: "submitted",
         resultsPublished: true,
+        problems: [],
       }),
     );
 
-    expect(screen.getByText("考試後")).toBeInTheDocument();
-    expect(screen.queryByText("分數分佈")).not.toBeInTheDocument();
+    expect(screen.getByText("考試成績")).toBeInTheDocument();
     expect(screen.queryByText("成績單與分數分佈")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /下載作答報告/ })).toBeInTheDocument();
+    expect(screen.queryByText("作答狀態")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /下載成績單/ })).toBeInTheDocument();
+    expect(await screen.findByText("成績分布")).toBeInTheDocument();
+    expect(screen.getByText("平均 75.0 / 100")).toBeInTheDocument();
+    expect(screen.getByTestId("score-distribution-chart")).toBeInTheDocument();
+    expect(getExamDashboardSummary).toHaveBeenCalledWith("contest-1");
+  });
+
+  it("shows rejoin action after submission when multiple joins are allowed", () => {
+    renderDashboard(
+      createContest({
+        startTime: "2000-05-05T10:00:00.000Z",
+        endTime: "2099-05-05T12:00:00.000Z",
+        examStatus: "submitted",
+        allowMultipleJoins: true,
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: /下載作答證明/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /重新加入/ })).toBeInTheDocument();
   });
 
   it("renders published paper exam score from answer results", async () => {
@@ -370,8 +417,7 @@ describe("StudentContestDashboard", () => {
 
     expect(await screen.findAllByText("8 / 10")).not.toHaveLength(0);
     expect(screen.getByText("考試成績")).toBeInTheDocument();
-    expect(screen.getByText("8")).toBeInTheDocument();
-    expect(screen.queryByText("Good")).not.toBeInTheDocument();
+    expect(screen.getByText("Good")).toBeInTheDocument();
     expect(screen.getByText("作答紀錄與成績")).toBeInTheDocument();
     expect(screen.queryByText("相關頁面")).not.toBeInTheDocument();
   });

@@ -27,23 +27,24 @@ export function DashboardTabBar({
   );
   return (
     <div className={styles.root}>
-      <Tabs
-        selectedIndex={selectedIndex}
-        onChange={({ selectedIndex }: { selectedIndex: number }) => {
-          const next = tabs[selectedIndex];
-          if (next) onChange(next.id);
-        }}
-        className={styles.tabs}
-      >
-        <TabList aria-label={ariaLabel}>
-          {tabs.map((t) => (
-            <Tab key={t.id}>
-              {t.label}
-              {t.badge !== undefined && <> ({t.badge})</>}
-            </Tab>
-          ))}
-        </TabList>
-      </Tabs>
+      <div className={styles.tabs}>
+        <Tabs
+          selectedIndex={selectedIndex}
+          onChange={({ selectedIndex }: { selectedIndex: number }) => {
+            const next = tabs[selectedIndex];
+            if (next) onChange(next.id);
+          }}
+        >
+          <TabList aria-label={ariaLabel}>
+            {tabs.map((t) => (
+              <Tab key={t.id}>
+                {t.label}
+                {t.badge !== undefined && <> ({t.badge})</>}
+              </Tab>
+            ))}
+          </TabList>
+        </Tabs>
+      </div>
       {toolbar && <div className={styles.toolbar}>{toolbar}</div>}
     </div>
   );
