@@ -9,11 +9,6 @@ import {
   Select,
   SelectItem,
   SkeletonPlaceholder,
-  Tab,
-  TabList,
-  TabPanel,
-  TabPanels,
-  Tabs,
   Tag,
 } from "@carbon/react";
 import {
@@ -63,6 +58,9 @@ import {
   DashboardBlock,
   DashboardContainer,
   DashboardPage,
+  DashboardTabBar,
+  DashboardTabPanel,
+  DashboardTabs,
   KPIBlock,
   MetricBlock,
 } from "@/shared/components/dashboard";
@@ -183,6 +181,7 @@ export default function StudentContestDashboard({
   const { t: tc } = useTranslation("common");
   const { theme } = useTheme();
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [infoTab, setInfoTab] = useState<"rules" | "records">("rules");
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -774,72 +773,76 @@ export default function StudentContestDashboard({
           </DashboardBlock>
 
           <DashboardBlock padding="flush">
-            <Tabs>
-              <TabList aria-label="競賽資訊切換">
-                <Tab>規則說明</Tab>
-                <Tab>作答紀錄</Tab>
-              </TabList>
-              <TabPanels>
-                <TabPanel className={styles.tabPanel}>
-                  <div className={styles.tabContent}>
-                    <BlockHeader
-                      titleAs="h3"
-                      title="規則說明"
-                      description={
-                        requiresPassword
-                          ? "此競賽需要密碼。"
-                          : "此競賽不需要密碼。"
-                      }
-                      actions={
-                        contest.cheatDetectionEnabled ? (
-                          <WarningAlt size={20} className={styles.warningIcon} />
-                        ) : (
-                          <Checkmark size={20} className={styles.successIcon} />
-                        )
-                      }
+            <DashboardTabs
+              activeId={infoTab}
+              onChange={(id) => setInfoTab(id as "rules" | "records")}
+            >
+              <DashboardTabBar
+                ariaLabel="競賽資訊切換"
+                tabs={[
+                  { id: "rules", label: "規則說明" },
+                  { id: "records", label: "作答紀錄" },
+                ]}
+              />
+              <DashboardTabPanel tabId="rules">
+                <div className={styles.tabContent}>
+                  <BlockHeader
+                    titleAs="h3"
+                    title="規則說明"
+                    description={
+                      requiresPassword
+                        ? "此競賽需要密碼。"
+                        : "此競賽不需要密碼。"
+                    }
+                    actions={
+                      contest.cheatDetectionEnabled ? (
+                        <WarningAlt size={20} className={styles.warningIcon} />
+                      ) : (
+                        <Checkmark size={20} className={styles.successIcon} />
+                      )
+                    }
+                  />
+                  {contest.cheatDetectionEnabled ? (
+                    <InlineNotification
+                      kind="warning"
+                      lowContrast
+                      hideCloseButton
+                      title="已啟用監控"
+                      subtitle="進入作答後會啟用全螢幕、分頁切換與裝置監控。"
                     />
-                    {contest.cheatDetectionEnabled ? (
-                      <InlineNotification
-                        kind="warning"
-                        lowContrast
-                        hideCloseButton
-                        title="已啟用監控"
-                        subtitle="進入作答後會啟用全螢幕、分頁切換與裝置監控。"
-                      />
-                    ) : null}
-                    {contest.description ? (
-                      <div className={styles.rulesContent}>
-                        <MarkdownRenderer>{contest.description}</MarkdownRenderer>
-                      </div>
-                    ) : null}
-                    {contest.rules ? (
-                      <div className={styles.rulesContent}>
-                        <MarkdownRenderer>{contest.rules}</MarkdownRenderer>
-                      </div>
-                    ) : (
-                      <p className={styles.emptyText}>沒有額外規則。</p>
-                    )}
-                  </div>
-                </TabPanel>
-                <TabPanel className={styles.tabPanel}>
-                  <div className={styles.tabContent}>
-                    <BlockHeader
-                      titleAs="h3"
-                      title={
-                        phase === "during"
-                          ? "目前作答狀況"
-                          : phase === "after" && contest.resultsPublished
-                            ? "作答紀錄與成績"
-                            : "作答紀錄"
-                      }
-                    />
-                    {contest.contestType === "paper_exam"
-                      ? renderPaperRecords()
-                      : renderCodingRecords()}
-                  </div>
-                </TabPanel>
-              </TabPanels>
-            </Tabs>
+                  ) : null}
+                  {contest.description ? (
+                    <div className={styles.rulesContent}>
+                      <MarkdownRenderer>{contest.description}</MarkdownRenderer>
+                    </div>
+                  ) : null}
+                  {contest.rules ? (
+                    <div className={styles.rulesContent}>
+                      <MarkdownRenderer>{contest.rules}</MarkdownRenderer>
+                    </div>
+                  ) : (
+                    <p className={styles.emptyText}>沒有額外規則。</p>
+                  )}
+                </div>
+              </DashboardTabPanel>
+              <DashboardTabPanel tabId="records">
+                <div className={styles.tabContent}>
+                  <BlockHeader
+                    titleAs="h3"
+                    title={
+                      phase === "during"
+                        ? "目前作答狀況"
+                        : phase === "after" && contest.resultsPublished
+                          ? "作答紀錄與成績"
+                          : "作答紀錄"
+                    }
+                  />
+                  {contest.contestType === "paper_exam"
+                    ? renderPaperRecords()
+                    : renderCodingRecords()}
+                </div>
+              </DashboardTabPanel>
+            </DashboardTabs>
           </DashboardBlock>
         </DashboardContainer>
 
