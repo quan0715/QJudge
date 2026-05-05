@@ -21,6 +21,8 @@ export const RuntimeRouteWrapper = ({ children }: Props) => {
   const {
     contestId,
     contest,
+    contestLoading,
+    contestNotFound,
     hasEnded,
     refreshContest,
     navigate,
@@ -64,6 +66,12 @@ export const RuntimeRouteWrapper = ({ children }: Props) => {
     examStatus: contest?.examStatus,
     onRefresh: refreshContest,
   };
+
+  // Guard: don't render ExamModeWrapper until contest is loaded.
+  // Otherwise ExamModeWrapper renders with cheatDetectionEnabled=false,
+  // triggering its cleanup effect which destroys the precheck screen-share handoff stream.
+  if (contestLoading || (!contest && !contestNotFound)) return null;
+  if (contestNotFound) return null;
 
   return (
     <ContestRuntimeProvider value={{ isRuntime: true, openMonitor: () => setMonitoringOpen(true) }}>
