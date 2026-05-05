@@ -64,6 +64,16 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             user__role='student',
         ).select_related('user')
 
+    def _can_view_dashboard_summary(self, user, contest):
+        if can_manage_contest(user, contest):
+            return True
+        if not contest.results_published:
+            return False
+        return ContestParticipant.objects.filter(
+            contest=contest,
+            user=user,
+        ).exists()
+
     @staticmethod
     def _participant_display_name(participant):
         profile = getattr(participant.user, 'profile', None)
@@ -359,16 +369,17 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=['get'], url_path='dashboard-summary')
     def dashboard_summary(self, request, contest_pk=None):
-        """Contest result dashboard summary (teacher/admin only).
+        """Contest result dashboard summary.
 
         Supports ``?kind=<alias|csv of enums>`` to filter the per-question
         ``questions`` array (e.g. ``?kind=subjective``). Contest-level summary
         (average, median, score distribution) is always computed over all
-        questions so numbers stay consistent across callers.
+        questions so numbers stay consistent across callers. Contest staff can
+        view it anytime; participants can view it after results are published.
         """
         contest = self._get_contest(contest_pk)
-        if not can_manage_contest(request.user, contest):
-            raise PermissionDenied('Only contest staff can view dashboard summary.')
+        if not self._can_view_dashboard_summary(request.user, contest):
+            raise PermissionDenied('Results dashboard summary is not available.')
 
         kind_filter = self._parse_dashboard_kind(request.query_params.get('kind'))
 

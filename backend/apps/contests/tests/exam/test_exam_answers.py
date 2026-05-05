@@ -441,6 +441,38 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         self.assertEqual(essay_summary['subjective_stats']['graded_count'], 1)
         self.assertEqual(essay_summary['subjective_stats']['pending_count'], 1)
 
+    def test_participant_can_view_dashboard_summary_after_results_published(self):
+        self.contest.results_published = True
+        self.contest.save(update_fields=['results_published'])
+        ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_single,
+            answer={'selected': 'B'},
+            is_correct=True,
+            score=5,
+        )
+
+        self.client.force_authenticate(user=self.student)
+        url = reverse(
+            'contests:contest-exam-answers-dashboard-summary',
+            kwargs={'contest_pk': self.contest.id},
+        )
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data['contest']['participant_count'], 1)
+        self.assertEqual(resp.data['score_distribution'][-1]['range_label'], '90-100%')
+
+    def test_participant_cannot_view_dashboard_summary_before_results_published(self):
+        self.client.force_authenticate(user=self.student)
+        url = reverse(
+            'contests:contest-exam-answers-dashboard-summary',
+            kwargs={'contest_pk': self.contest.id},
+        )
+        resp = self.client.get(url)
+
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_dashboard_summary_cache_invalidates_on_submission(self):
         self.client.force_authenticate(user=self.teacher)
         summary_url = reverse(
