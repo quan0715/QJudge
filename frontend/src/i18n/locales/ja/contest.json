@@ -62,6 +62,70 @@
       "strictModeEnableSuccess": "不正対策監視を有効にしました",
       "updateFailed": "更新に失敗しました"
     },
+    "command": {
+      "ariaLabel": "教師管理概要",
+      "connection": {
+        "offline": "オフライン",
+        "online": "オンライン"
+      },
+      "drawer": {
+        "ariaLabel": "学生詳細",
+        "close": "学生詳細を閉じる",
+        "closeBackdrop": "学生詳細背景を閉じる",
+        "title": "学生詳細"
+      },
+      "drilldown": {
+        "ariaLabel": "概要データ切替",
+        "participants": "参加者",
+        "questionStats": "回答分布"
+      },
+      "eventLog": "イベント記録",
+      "examStatusSummary": "試験状態サマリー",
+      "examTime": "試験時間",
+      "filters": {
+        "allQuestionTypes": "すべての問題形式",
+        "allStatuses": "すべての状態",
+        "needsAttention": "対応が必要"
+      },
+      "metric": {
+        "answerProgress": "回答進捗",
+        "eventUnit": "件",
+        "gradingProgress": "採点進捗",
+        "inProgress": "進行中",
+        "interrupted": "中断",
+        "notSubmitted": "未提出",
+        "pausedDetail": "一時停止中",
+        "pointUnit": "点",
+        "score": "点数",
+        "scoreUnit": "{{score}} 点",
+        "scored": "採点済み",
+        "violations": "異常イベント"
+      },
+      "metricSwitcher": "学生カード指標切替",
+      "metrics": {
+        "endTime": "終了時間",
+        "examParticipants": "受験者数",
+        "onlineParticipants": "オンライン人数",
+        "startTime": "開始時間"
+      },
+      "participants": {
+        "empty": "学生はいません",
+        "filterStatus": "状態で絞り込み",
+        "filterStatusAria": "学生状態で絞り込み",
+        "loading": "学生一覧を読み込み中",
+        "search": "学生を検索",
+        "searchPlaceholder": "表示名またはユーザー名を検索...",
+        "title": "学生一覧"
+      },
+      "questionStats": {
+        "empty": "回答分布データはまだありません",
+        "filterQuestionType": "問題形式で絞り込み",
+        "filterQuestionTypeAria": "問題形式で絞り込み",
+        "search": "問題を検索",
+        "searchPlaceholder": "問題番号または内容を検索..."
+      },
+      "tabsAriaLabel": "教師管理概要タブ"
+    },
     "events": {
       "critical": "高リスクイベント",
       "empty": "現在イベントはありません",
@@ -90,6 +154,127 @@
       "personUnit": "人",
       "problemUnit": "問",
       "time": "時間進捗"
+    },
+    "model": {
+      "attention": {
+        "anomalyCount": "{{count}} 件の異常",
+        "connectionInterrupted": "接続が中断されました",
+        "examLocked": "試験がロックされています",
+        "notEntered": "まだ試験に入っていません"
+      },
+      "common": {
+        "disabled": "無効",
+        "enabled": "有効",
+        "noData": "データなし",
+        "unset": "未設定"
+      },
+      "contestStatus": {
+        "archived": "アーカイブ済み",
+        "draft": "下書き",
+        "published": "公開済み"
+      },
+      "grading": {
+        "noAnswers": "回答データはまだありません",
+        "noData": "採点データはまだありません"
+      },
+      "insights": {
+        "examProgress": "試験進捗",
+        "gradingProgress": "採点進捗",
+        "priorityEvents": "異常イベント"
+      },
+      "kpi": {
+        "onlineStudents": "オンライン学生",
+        "pendingEvents": "未対応イベント",
+        "started": "開始済み"
+      },
+      "nextActions": {
+        "attention": {
+          "empty": "未対応の異常はありません",
+          "hasItems": "{{count}} 名の学生を確認してください",
+          "title": "異常を確認"
+        },
+        "grading": {
+          "afterExam": "試験後に採点できます",
+          "progress": "{{percent}}% 採点済み",
+          "title": "採点へ"
+        },
+        "results": {
+          "readyToPublish": "採点確認後に公開",
+          "title": "成績を公開"
+        }
+      },
+      "preparation": {
+        "antiCheat": "不正対策設定",
+        "antiCheatEnabled": "不正対策監視は有効です",
+        "antiCheatOptional": "試験要件に応じて有効化できます",
+        "currentStatus": "現在の状態：{{status}}",
+        "participantCount": "{{count}} 名の参加者",
+        "participantList": "参加者名簿",
+        "participantsMissing": "参加者データがまだありません",
+        "publish": "コンテスト公開",
+        "publishedDescription": "参加者は権限に応じて入れます",
+        "rules": "回答ルール",
+        "rulesMissing": "試験ルールと注意事項を追加できます",
+        "rulesReady": "ルール説明は入力済みです",
+        "schedule": "試験時間帯",
+        "scheduleMissing": "開始・終了時間が未設定です",
+        "workItemsMissing": "回答可能な問題がまだありません",
+        "workItemsReady": "{{count}} 問設定済み"
+      },
+      "progress": {
+        "current": "現在",
+        "label": "進捗",
+        "start": "開始"
+      },
+      "readiness": {
+        "done": "完了",
+        "missing": "不足",
+        "warning": "確認待ち"
+      },
+      "results": {
+        "published": "公開済み",
+        "unpublished": "未公開"
+      },
+      "status": {
+        "anomaly": "異常",
+        "inProgress": "回答中",
+        "locked": "ロック",
+        "lockedOffline": "ロック / オフライン",
+        "notStarted": "未開始",
+        "offline": "オフライン",
+        "online": "オンライン",
+        "submitted": "提出済み"
+      },
+      "summary": {
+        "antiCheat": "不正対策",
+        "gradingAfterExam": "採点データは試験後に生成されます",
+        "gradingCount": "{{graded}} / {{total}} 件",
+        "participants": "参加者",
+        "participantsMissing": "参加者データがまだありません",
+        "participantsReady": "名簿を管理できます",
+        "results": "成績",
+        "resultsVisible": "参加者が閲覧できます",
+        "scheduleMissing": "時間設定の補完が必要です",
+        "scheduleReady": "時間設定は完了しています",
+        "status": "コンテスト状態",
+        "statusClosed": "まだ正式公開されていません",
+        "statusOpen": "参加者に公開済み",
+        "workItemsMissing": "内容はまだ作成されていません",
+        "workItemsReady": "内容は作成済みです"
+      },
+      "timeline": {
+        "ended": "終了",
+        "examEnded": "試験は終了しました",
+        "notStarted": "開始前",
+        "remaining": "残り {{time}}",
+        "running": "進行中",
+        "startsIn": "開始まで {{time}}",
+        "timeUnset": "時間未設定"
+      },
+      "workItems": {
+        "coding": "プログラミング問題",
+        "paperExam": "試験問題"
+      }
     },
     "screen": {
       "actions": {
@@ -144,7 +329,6 @@
       "disabled": "無効",
       "enabled": "有効",
       "examProgress": "試験進捗",
-      "timelineProgress": "時間進捗",
       "goEventPanel": "イベントパネルへ移動",
       "goParticipantList": "参加者リストを開く",
       "goProblemManagement": "問題管理へ移動",
@@ -159,6 +343,7 @@
       "status": "コンテスト状態",
       "strictExamMode": "不正対策監視",
       "subtitle": "設定、問題、状態操作へすばやくアクセス",
+      "timelineProgress": "時間進捗",
       "title": "コマンドセンター",
       "violationCount": "異常イベント数",
       "violationCountAria": "異常イベント数、イベントパネルへ移動"
@@ -197,6 +382,7 @@
       "title": "準備狀態"
     },
     "tabs": {
+      "ariaLabel": "準備と採点タブ",
       "entries": "管理入口",
       "grading": "批改與成績",
       "readiness": "準備狀態"
@@ -1575,6 +1761,124 @@
     "title": "問題統計",
     "ungraded": "未採点",
     "viewSubmissionSamples": "提出サンプルを見る"
+  },
+  "studentDashboard": {
+    "actions": {
+      "adminPanel": "管理ダッシュボード",
+      "backToAnswering": "回答に戻る",
+      "downloadProof": "回答証明をダウンロード",
+      "downloadReport": "成績レポートをダウンロード",
+      "join": "コンテストに参加",
+      "joinUnavailable": "現在参加できません",
+      "refresh": "更新",
+      "rejoin": "再参加",
+      "resume": "回答を再開",
+      "start": "回答を開始",
+      "submit": "提出",
+      "unavailable": "回答できません",
+      "waitingStart": "開始待ち"
+    },
+    "announcements": {
+      "empty": "現在お知らせはありません。",
+      "loading": "お知らせを読み込み中...",
+      "title": "お知らせ"
+    },
+    "answerStatus": {
+      "answered": "回答済み",
+      "correct": "正解",
+      "graded": "採点済み",
+      "marked": "マーク済み",
+      "noScore": "得点なし",
+      "partial": "部分点",
+      "pendingGrading": "採点待ち",
+      "unanswered": "未回答"
+    },
+    "ariaLabel": "学生コンテストホーム",
+    "contestState": {
+      "archived": "アーカイブ済み",
+      "draft": "下書き",
+      "ended": "終了",
+      "running": "進行中",
+      "unknown": "不明",
+      "upcoming": "開始前"
+    },
+    "empty": {
+      "noAnswerRecords": "回答記録はまだありません。",
+      "noQuestions": "問題データはまだありません。",
+      "noScoreDistribution": "得点分布データはまだありません。"
+    },
+    "errors": {
+      "announcementsLoadFailed": "お知らせを一時的に読み込めません",
+      "questionsLoadFailed": "問題データを一時的に読み込めません",
+      "scoreDistributionLoadFailed": "得点分布を一時的に読み込めません"
+    },
+    "infoLabel": "コンテスト情報",
+    "joinStatus": {
+      "joined": "参加済み",
+      "notJoined": "未参加"
+    },
+    "loading": "読み込み中...",
+    "loadingAnswers": "回答データを読み込み中...",
+    "mainContent": "コンテストのメイン内容",
+    "metrics": {
+      "duration": "総時間",
+      "endTime": "終了時間",
+      "startTime": "開始時間"
+    },
+    "monitoring": {
+      "enabled": "監視中",
+      "subtitle": "試験に入ると、全画面・タブ切替・デバイス監視が有効になります。",
+      "title": "監視が有効です"
+    },
+    "records": {
+      "currentStatus": "現在の回答状況",
+      "fullScore": "満点 {{score}}",
+      "notSubmitted": "未提出",
+      "title": "回答記録",
+      "withResults": "回答記録と成績"
+    },
+    "report": {
+      "download": "ダウンロード",
+      "failedTitle": "ダウンロード失敗",
+      "language": "レポート言語",
+      "languages": {
+        "en": "English",
+        "ja": "日本語",
+        "ko": "한국어",
+        "zhTW": "繁體中文"
+      },
+      "preparing": "準備中"
+    },
+    "results": {
+      "pendingPublish": "公開待ち",
+      "published": "成績公開済み",
+      "unpublished": "未公開",
+      "waitingPublish": "成績公開待ち"
+    },
+    "rules": {
+      "empty": "追加ルールはありません。",
+      "noPassword": "このコンテストにはパスワードは不要です。",
+      "requiresPassword": "このコンテストにはパスワードが必要です。",
+      "title": "ルール"
+    },
+    "submitConfirm": {
+      "body": "提出後は回答を変更できません。",
+      "confirm": "提出する",
+      "heading": "提出確認"
+    },
+    "summary": {
+      "ariaLabel": "コンテスト概要",
+      "averageScore": "平均 {{average}} / {{max}}",
+      "completionRate": "完了率",
+      "examResult": "試験成績",
+      "examStatus": "試験状態",
+      "scoreDistribution": "得点分布"
+    },
+    "tabs": {
+      "ariaLabel": "コンテスト情報タブ",
+      "records": "回答記録",
+      "rules": "ルール"
+    }
   },
   "studentStatus": {
     "pausedLocked": "一時停止 / ロック",

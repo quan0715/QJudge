@@ -382,14 +382,14 @@ describe("AdminOverviewCommandCenter", () => {
     const lockedCard = screen.getByRole("button", { name: /王小明/ });
     expect(within(lockedCard).getByText("分數")).toBeInTheDocument();
     expect(within(lockedCard).getByText("82")).toBeInTheDocument();
-    expect(within(lockedCard).queryByText("違規")).not.toBeInTheDocument();
+    expect(within(lockedCard).queryByText("異常事件")).not.toBeInTheDocument();
     expect(within(lockedCard).getByText("@ming")).toBeInTheDocument();
     expect(within(lockedCard).getByText("在線")).toBeInTheDocument();
     const metricSwitch = screen.getByLabelText("考生卡片資料切換");
 
-    await userEvent.click(within(metricSwitch).getByText("違規"));
+    await userEvent.click(within(metricSwitch).getByText("異常事件"));
 
-    expect(within(lockedCard).getByText("違規")).toBeInTheDocument();
+    expect(within(lockedCard).getByText("異常事件")).toBeInTheDocument();
     expect(within(lockedCard).getByText("2")).toBeInTheDocument();
 
     await userEvent.click(within(metricSwitch).getByText("作答進度"));

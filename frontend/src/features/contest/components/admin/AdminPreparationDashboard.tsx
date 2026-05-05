@@ -97,6 +97,10 @@ export default function AdminPreparationDashboard({
   return (
     <AdminSegmentedDashboard
       ariaLabel={t("adminPreparationDashboard.ariaLabel", "準備與成績儀表板")}
+      tabListAriaLabel={t(
+        "adminPreparationDashboard.tabs.ariaLabel",
+        "準備與成績分頁",
+      )}
       primary={primary}
       side={<AdminInsightRail cards={data.insightCards} />}
       tabs={[

@@ -32,7 +32,10 @@ import {
   BlockHeader,
   DashboardBlock,
 } from "@/shared/components/dashboard";
-import { buildAdminOverviewDashboard } from "./adminOverviewDashboard.model";
+import {
+  buildAdminOverviewDashboard,
+  type DashboardText,
+} from "./adminOverviewDashboard.model";
 import styles from "./AdminOverviewScreen.module.scss";
 
 type ContestStatusDisplay = {
@@ -72,6 +75,18 @@ export default function AdminOverviewScreen({
   onOpenSettings,
 }: AdminPanelProps) {
   const { t } = useTranslation("contest");
+  const tr = useCallback<DashboardText>(
+    (key, defaultValue, values) => {
+      const translated = values
+        ? t(key, { defaultValue, ...values })
+        : t(key, defaultValue);
+      if (typeof translated === "string") return translated;
+      return defaultValue.replace(/{{(\w+)}}/g, (_, name) =>
+        String(values?.[name] ?? ""),
+      );
+    },
+    [t],
+  );
   const { showToast } = useToast();
   const contestStatusDisplay = useContestStatusDisplay();
   const { contest, refreshContest } = useContest();
@@ -145,8 +160,9 @@ export default function AdminOverviewScreen({
       examEvents,
       overviewMetrics,
       gradingStats: globalStats,
+      tr,
     });
-  }, [contest, participants, examEvents, overviewMetrics, globalStats]);
+  }, [contest, participants, examEvents, overviewMetrics, globalStats, tr]);
 
   const openPanel = useCallback(
     (panel: AdminPanelId) => {

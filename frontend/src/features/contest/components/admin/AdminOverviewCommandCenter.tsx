@@ -157,11 +157,6 @@ const getParticipantStatusLabel = (participant: ContestParticipant) =>
   EXAM_STATUS_LABELS[participant.examStatus] ||
   participant.examStatus;
 
-const getStatusGroupLabel = (status: string) =>
-  getExamStatusLabel(status as ContestParticipant["examStatus"]) ||
-  EXAM_STATUS_LABELS[status as ContestParticipant["examStatus"]] ||
-  status;
-
 type ParticipantMetricKey =
   | "score"
   | "violations"
@@ -178,12 +173,25 @@ interface ParticipantMetricDisplay {
 
 const PARTICIPANT_METRIC_OPTIONS: Array<{
   key: ParticipantMetricKey;
-  label: string;
+  labelKey: string;
+  defaultLabel: string;
 }> = [
-  { key: "score", label: "分數" },
-  { key: "violations", label: "違規" },
-  { key: "answerProgress", label: "作答進度" },
-  { key: "gradingProgress", label: "批改進度" },
+  { key: "score", labelKey: "adminOverview.command.metric.score", defaultLabel: "分數" },
+  {
+    key: "violations",
+    labelKey: "adminOverview.command.metric.violations",
+    defaultLabel: "異常事件",
+  },
+  {
+    key: "answerProgress",
+    labelKey: "adminOverview.command.metric.answerProgress",
+    defaultLabel: "作答進度",
+  },
+  {
+    key: "gradingProgress",
+    labelKey: "adminOverview.command.metric.gradingProgress",
+    defaultLabel: "批改進度",
+  },
 ];
 
 const DATE_TIME_LABEL_REGEX = /^(\d{4}\/\d{2}\/\d{2})\s+(\d{2}:\d{2})$/;
@@ -217,66 +225,101 @@ type ParticipantStatusFilter =
 
 type FilterOption<TId extends string = string> = {
   id: TId;
-  label: string;
+  labelKey: string;
+  defaultLabel: string;
 };
 
 const PARTICIPANT_STATUS_FILTERS: FilterOption<ParticipantStatusFilter>[] = [
-  { id: "all", label: "全部狀態" },
-  { id: "needs_attention", label: "需要處理" },
-  { id: "in_progress", label: "作答中" },
-  { id: "submitted", label: "已交卷" },
-  { id: "not_started", label: "未開始" },
-  { id: "locked", label: "鎖定" },
-  { id: "paused", label: "暫停" },
+  { id: "all", labelKey: "adminOverview.command.filters.allStatuses", defaultLabel: "全部狀態" },
+  {
+    id: "needs_attention",
+    labelKey: "adminOverview.command.filters.needsAttention",
+    defaultLabel: "需要處理",
+  },
+  { id: "in_progress", labelKey: "examStatus.in_progress", defaultLabel: "作答中" },
+  { id: "submitted", labelKey: "examStatus.submitted", defaultLabel: "已交卷" },
+  { id: "not_started", labelKey: "examStatus.not_started", defaultLabel: "未開始" },
+  { id: "locked", labelKey: "examStatus.locked", defaultLabel: "鎖定" },
+  { id: "paused", labelKey: "examStatus.paused", defaultLabel: "暫停" },
 ];
 
 const QUESTION_KIND_FILTERS: FilterOption[] = [
-  { id: "all", label: "全部題型" },
-  { id: "single_choice", label: "單選題" },
-  { id: "multiple_choice", label: "多選題" },
-  { id: "true_false", label: "是非題" },
-  { id: "short_answer", label: "簡答題" },
-  { id: "essay", label: "申論題" },
+  { id: "all", labelKey: "adminOverview.command.filters.allQuestionTypes", defaultLabel: "全部題型" },
+  { id: "single_choice", labelKey: "common:questionType.label.single_choice", defaultLabel: "單選題" },
+  { id: "multiple_choice", labelKey: "common:questionType.label.multiple_choice", defaultLabel: "多選題" },
+  { id: "true_false", labelKey: "common:questionType.label.true_false", defaultLabel: "是非題" },
+  { id: "short_answer", labelKey: "common:questionType.label.short_answer", defaultLabel: "簡答題" },
+  { id: "essay", labelKey: "common:questionType.label.essay", defaultLabel: "申論題" },
 ];
 
-const getAnswerProgressMetric = (participant: ContestParticipant) => {
+type DashboardTranslate = (
+  key: string,
+  defaultValue: string,
+  values?: Record<string, string | number>,
+) => string;
+
+const getAnswerProgressMetric = (
+  participant: ContestParticipant,
+  tr: DashboardTranslate,
+) => {
   switch (participant.examStatus) {
     case "submitted":
-      return { value: "100%", detail: "已交卷" };
+      return { value: "100%", detail: tr("examStatus.submitted", "已交卷") };
     case "in_progress":
-      return { value: "進行中", detail: "作答中" };
+      return {
+        value: tr("adminOverview.command.metric.inProgress", "進行中"),
+        detail: tr("examStatus.in_progress", "作答中"),
+      };
     case "locked":
-      return { value: "中斷", detail: "已鎖定" };
+      return {
+        value: tr("adminOverview.command.metric.interrupted", "中斷"),
+        detail: tr("examStatus.locked", "已鎖定"),
+      };
     case "paused":
-      return { value: "暫停", detail: "已暫停" };
+      return {
+        value: tr("examStatus.paused", "暫停"),
+        detail: tr("adminOverview.command.metric.pausedDetail", "已暫停"),
+      };
     default:
-      return { value: "0%", detail: "未開始" };
+      return { value: "0%", detail: tr("examStatus.not_started", "未開始") };
   }
 };
 
-const getGradingProgressMetric = (participant: ContestParticipant) => {
+const getGradingProgressMetric = (
+  participant: ContestParticipant,
+  tr: DashboardTranslate,
+) => {
   if (participant.examStatus === "submitted") {
-    return { value: "已計分", detail: `${participant.score ?? 0} 分` };
+    return {
+      value: tr("adminOverview.command.metric.scored", "已計分"),
+      detail: tr("adminOverview.command.metric.scoreUnit", "{{score}} 分", {
+        score: participant.score ?? 0,
+      }),
+    };
   }
-  return { value: "未交卷", detail: getParticipantStatusLabel(participant) };
+  return {
+    value: tr("adminOverview.command.metric.notSubmitted", "未交卷"),
+    detail: getParticipantStatusLabel(participant),
+  };
 };
 
 const getParticipantMetric = (
   participant: ContestParticipant,
   metric: ParticipantMetricKey,
+  tr: DashboardTranslate,
 ): ParticipantMetricDisplay => {
   if (metric === "violations") {
     return {
-      label: "違規",
+      label: tr("adminOverview.command.metric.violations", "異常事件"),
       value: String(participant.violationCount ?? 0),
-      detail: "次",
+      detail: tr("adminOverview.command.metric.eventUnit", "次"),
       tone: (participant.violationCount ?? 0) > 0 ? "danger" : "neutral",
     };
   }
   if (metric === "answerProgress") {
     return {
-      label: "作答進度",
-      ...getAnswerProgressMetric(participant),
+      label: tr("adminOverview.command.metric.answerProgress", "作答進度"),
+      ...getAnswerProgressMetric(participant, tr),
       tone:
         participant.examStatus === "locked" ||
         participant.examStatus === "paused"
@@ -287,15 +330,15 @@ const getParticipantMetric = (
   }
   if (metric === "gradingProgress") {
     return {
-      label: "批改進度",
-      ...getGradingProgressMetric(participant),
+      label: tr("adminOverview.command.metric.gradingProgress", "批改進度"),
+      ...getGradingProgressMetric(participant, tr),
       tone: "neutral",
     };
   }
   return {
-    label: "分數",
+    label: tr("adminOverview.command.metric.score", "分數"),
     value: String(participant.score ?? 0),
-    detail: "分",
+    detail: tr("adminOverview.command.metric.pointUnit", "分"),
     tone: "neutral",
   };
 };
@@ -317,6 +360,22 @@ export default function AdminOverviewCommandCenter({
   gradingAction,
 }: AdminOverviewCommandCenterProps) {
   const { t } = useTranslation("contest");
+  const tr = useCallback(
+    (
+      key: string,
+      defaultValue: string,
+      values?: Record<string, string | number>,
+    ) => {
+      const translated = values
+        ? t(key, { defaultValue, ...values })
+        : t(key, defaultValue);
+      if (typeof translated === "string") return translated;
+      return defaultValue.replace(/{{(\w+)}}/g, (_, name) =>
+        String(values?.[name] ?? ""),
+      );
+    },
+    [t],
+  );
   const { showToast } = useToast();
   const { confirm, modalProps: confirmModalProps } = useConfirmModal();
   const { contest } = useContest();
@@ -617,14 +676,22 @@ export default function AdminOverviewCommandCenter({
       ? [
           {
             id: "needs_attention",
-            title: "需要處理",
+            title: tr(
+              "adminOverview.command.filters.needsAttention",
+              "需要處理",
+            ),
             participants: participantsNeedingAttention,
           },
         ]
       : []),
     ...statusGroupKeys.map((status) => ({
       id: status,
-      title: getStatusGroupLabel(status),
+      title: tr(
+        `examStatus.${status}`,
+        getExamStatusLabel(status as ContestParticipant["examStatus"]) ||
+          EXAM_STATUS_LABELS[status as ContestParticipant["examStatus"]] ||
+          status,
+      ),
       participants: normalParticipantsByStatus[status],
     })),
   ];
@@ -635,12 +702,18 @@ export default function AdminOverviewCommandCenter({
     setParticipantSearch(event.target.value);
   };
   const participantMetricTags = (
-    <div className={styles.metricTagGroup} aria-label="考生卡片資料切換">
+    <div
+      className={styles.metricTagGroup}
+      aria-label={t(
+        "adminOverview.command.metricSwitcher",
+        "考生卡片資料切換",
+      )}
+    >
       {PARTICIPANT_METRIC_OPTIONS.map((option) => (
         <SelectableTag
           key={option.key}
           id={`participant-metric-${option.key}`}
-          text={option.label}
+          text={t(option.labelKey, option.defaultLabel)}
           selected={participantMetric === option.key}
           onChange={() => setParticipantMetric(option.key)}
           size="sm"
@@ -668,35 +741,43 @@ export default function AdminOverviewCommandCenter({
     <DashboardContainer
       layout="stack"
       dividers="auto"
-      ariaLabel="考試狀態摘要"
+      ariaLabel={t("adminOverview.command.examStatusSummary", "考試狀態摘要")}
     >
       <DashboardContainer layout="grid" columns={2} dividers="auto">
         <DashboardBlock>
           <MetricBlock
-            label="考試人數"
+            label={t("adminOverview.command.metrics.examParticipants", "考試人數")}
             value={studentParticipants.length}
             size="lg"
           />
         </DashboardBlock>
         <DashboardBlock>
-          <MetricBlock label="在線人數" value={liveStudentCount} size="lg" />
+          <MetricBlock
+            label={t("adminOverview.command.metrics.onlineParticipants", "在線人數")}
+            value={liveStudentCount}
+            size="lg"
+          />
         </DashboardBlock>
       </DashboardContainer>
       <DashboardContainer
         layout="grid"
         columns={2}
         dividers="auto"
-        ariaLabel="考試時間"
+        ariaLabel={t("adminOverview.command.examTime", "考試時間")}
       >
         <DashboardBlock>
           <MetricBlock
-            label="開始時間"
+            label={t("adminOverview.command.metrics.startTime", "開始時間")}
             value={scheduleLabels.start}
             size="lg"
           />
         </DashboardBlock>
         <DashboardBlock>
-          <MetricBlock label="結束時間" value={scheduleLabels.end} size="lg" />
+          <MetricBlock
+            label={t("adminOverview.command.metrics.endTime", "結束時間")}
+            value={scheduleLabels.end}
+            size="lg"
+          />
         </DashboardBlock>
       </DashboardContainer>
       <DashboardBlock>
@@ -744,7 +825,10 @@ export default function AdminOverviewCommandCenter({
     />
   );
   const participantContent = adminLoading ? (
-    <div className={styles.participantGridSections} aria-label="考生列表載入中">
+    <div
+      className={styles.participantGridSections}
+      aria-label={t("adminOverview.command.participants.loading", "考生列表載入中")}
+    >
       {Array.from({ length: 8 }).map((_, index) => (
         <div className={styles.participantCard} key={index}>
           <SkeletonText heading width="60%" />
@@ -754,7 +838,9 @@ export default function AdminOverviewCommandCenter({
       ))}
     </div>
   ) : filteredStudentParticipants.length === 0 ? (
-    <div className={styles.emptyState}>目前沒有考生</div>
+    <div className={styles.emptyState}>
+      {t("adminOverview.command.participants.empty", "目前沒有考生")}
+    </div>
   ) : (
     <div className={styles.participantGridSections}>
       {participantGroups.map((group) => {
@@ -778,6 +864,7 @@ export default function AdminOverviewCommandCenter({
                 const metric = getParticipantMetric(
                   participant,
                   participantMetric,
+                  tr,
                 );
                 const MetricIcon = metric.icon;
                 return (
@@ -796,9 +883,15 @@ export default function AdminOverviewCommandCenter({
                             className={
                               live ? styles.liveDot : styles.offlineDot
                             }
-                            aria-label={live ? "在線" : "離線"}
+                            aria-label={
+                              live
+                                ? t("adminOverview.command.connection.online", "在線")
+                                : t("adminOverview.command.connection.offline", "離線")
+                            }
                           />
-                          {live ? "在線" : "離線"}
+                          {live
+                            ? t("adminOverview.command.connection.online", "在線")
+                            : t("adminOverview.command.connection.offline", "離線")}
                         </span>
                       </div>
                       <div
@@ -825,7 +918,9 @@ export default function AdminOverviewCommandCenter({
   );
   const participantPanel = (
     <div className={styles.drilldownPanel}>
-      <BlockHeader title="考生列表" />
+      <BlockHeader
+        title={t("adminOverview.command.participants.title", "考生列表")}
+      />
       {participantMetricTags}
       {participantContent}
     </div>
@@ -834,8 +929,11 @@ export default function AdminOverviewCommandCenter({
     <DashboardToolbar>
       <DashboardToolbar.Search
         id="overview-participants-search"
-        ariaLabel="搜尋考生"
-        placeholder="搜尋顯示名稱或使用者名稱..."
+        ariaLabel={t("adminOverview.command.participants.search", "搜尋考生")}
+        placeholder={t(
+          "adminOverview.command.participants.searchPlaceholder",
+          "搜尋顯示名稱或使用者名稱...",
+        )}
         value={participantSearch}
         onChange={(value) =>
           handleParticipantSearchChange({
@@ -847,18 +945,24 @@ export default function AdminOverviewCommandCenter({
       <DashboardToolbar.Filter>
         <OverflowMenu
           renderIcon={Filter}
-          iconDescription="篩選狀態"
+          iconDescription={t(
+            "adminOverview.command.participants.filterStatus",
+            "篩選狀態",
+          )}
           size="md"
           flipped
-          aria-label="篩選考生狀態"
+          aria-label={t(
+            "adminOverview.command.participants.filterStatusAria",
+            "篩選考生狀態",
+          )}
         >
           {PARTICIPANT_STATUS_FILTERS.map((option) => (
             <OverflowMenuItem
               key={option.id}
               itemText={
                 participantStatusFilter === option.id
-                  ? `✓  ${option.label}`
-                  : option.label
+                  ? `✓  ${t(option.labelKey, option.defaultLabel)}`
+                  : t(option.labelKey, option.defaultLabel)
               }
               onClick={() => setParticipantStatusFilter(option.id)}
             />
@@ -887,7 +991,12 @@ export default function AdminOverviewCommandCenter({
             },
           )
         : questionStatsGallery ?? (
-        <div className={styles.emptyState}>目前沒有作答分佈資料</div>
+        <div className={styles.emptyState}>
+          {t(
+            "adminOverview.command.questionStats.empty",
+            "目前沒有作答分佈資料",
+          )}
+        </div>
       )}
     </div>
   );
@@ -895,8 +1004,11 @@ export default function AdminOverviewCommandCenter({
     <DashboardToolbar>
       <DashboardToolbar.Search
         id="overview-question-stats-search"
-        ariaLabel="搜尋題目"
-        placeholder="搜尋題號或題目..."
+        ariaLabel={t("adminOverview.command.questionStats.search", "搜尋題目")}
+        placeholder={t(
+          "adminOverview.command.questionStats.searchPlaceholder",
+          "搜尋題號或題目...",
+        )}
         value={questionStatsSearch}
         onChange={setQuestionStatsSearch}
         onClear={() => setQuestionStatsSearch("")}
@@ -904,18 +1016,24 @@ export default function AdminOverviewCommandCenter({
       <DashboardToolbar.Filter>
         <OverflowMenu
           renderIcon={Filter}
-          iconDescription="篩選題型"
+          iconDescription={t(
+            "adminOverview.command.questionStats.filterQuestionType",
+            "篩選題型",
+          )}
           size="md"
           flipped
-          aria-label="篩選題型"
+          aria-label={t(
+            "adminOverview.command.questionStats.filterQuestionTypeAria",
+            "篩選題型",
+          )}
         >
           {QUESTION_KIND_FILTERS.map((option) => (
             <OverflowMenuItem
               key={option.id}
               itemText={
                 questionStatsKindFilter === option.id
-                  ? `✓  ${option.label}`
-                  : option.label
+                  ? `✓  ${t(option.labelKey, option.defaultLabel)}`
+                  : t(option.labelKey, option.defaultLabel)
               }
               onClick={() => setQuestionStatsKindFilter(option.id)}
             />
@@ -925,7 +1043,10 @@ export default function AdminOverviewCommandCenter({
     </DashboardToolbar>
   );
   const drilldownPanel = (
-    <DashboardBlock padding="flush" ariaLabel="總覽資料切換">
+    <DashboardBlock
+      padding="flush"
+      ariaLabel={t("adminOverview.command.drilldown.ariaLabel", "總覽資料切換")}
+    >
       <DashboardTabs
         activeId={activePanelTab}
         onChange={(id) =>
@@ -933,10 +1054,16 @@ export default function AdminOverviewCommandCenter({
         }
       >
         <DashboardTabBar
-          ariaLabel="總覽資料切換"
+          ariaLabel={t("adminOverview.command.drilldown.ariaLabel", "總覽資料切換")}
           tabs={[
-            { id: "participants", label: "參與者" },
-            { id: "questionStats", label: "作答分佈" },
+            {
+              id: "participants",
+              label: t("adminOverview.command.drilldown.participants", "參與者"),
+            },
+            {
+              id: "questionStats",
+              label: t("adminOverview.command.drilldown.questionStats", "作答分佈"),
+            },
           ]}
           toolbar={
             activePanelTab === "participants"
@@ -956,7 +1083,11 @@ export default function AdminOverviewCommandCenter({
   return (
     <>
       <AdminSegmentedDashboard
-        ariaLabel="教師管理總覽"
+        ariaLabel={t("adminOverview.command.ariaLabel", "教師管理總覽")}
+        tabListAriaLabel={t(
+          "adminOverview.command.tabsAriaLabel",
+          "教師管理總覽分頁",
+        )}
         header={header}
         primary={
           <div className={styles.leftOverviewColumn}>
@@ -987,7 +1118,10 @@ export default function AdminOverviewCommandCenter({
                   : []),
               ]}
             />
-            <section className={styles.eventLogPanel} aria-label="事件紀錄">
+            <section
+              className={styles.eventLogPanel}
+              aria-label={t("adminOverview.command.eventLog", "事件紀錄")}
+            >
               <PriorityEventsInsightCard
                 card={priorityEventsCard}
                 loading={adminLoading || examEventsLoading}
@@ -1009,7 +1143,10 @@ export default function AdminOverviewCommandCenter({
             <motion.button
               type="button"
               className={styles.participantDrawerBackdrop}
-              aria-label="關閉學生詳細資訊背景"
+              aria-label={t(
+                "adminOverview.command.drawer.closeBackdrop",
+                "關閉學生詳細資訊背景",
+              )}
               onClick={() => setSelectedUserId(null)}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1020,19 +1157,25 @@ export default function AdminOverviewCommandCenter({
               className={styles.participantDrawer}
               role="dialog"
               aria-modal="true"
-              aria-label="學生詳細資訊"
+              aria-label={t(
+                "adminOverview.command.drawer.ariaLabel",
+                "學生詳細資訊",
+              )}
               initial={{ x: 24, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 24, opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
               <div className={styles.participantDrawerToolbar}>
-                <h3>學生詳細資訊</h3>
+                <h3>{t("adminOverview.command.drawer.title", "學生詳細資訊")}</h3>
                 <Button
                   kind="ghost"
                   hasIconOnly
                   renderIcon={Close}
-                  iconDescription="關閉學生詳細資訊"
+                  iconDescription={t(
+                    "adminOverview.command.drawer.close",
+                    "關閉學生詳細資訊",
+                  )}
                   onClick={() => setSelectedUserId(null)}
                 />
               </div>

@@ -10,6 +10,7 @@ export interface AdminSegmentedDashboardTab {
 
 interface AdminSegmentedDashboardProps {
   ariaLabel: string;
+  tabListAriaLabel?: string;
   header?: ReactNode;
   primary: ReactNode;
   side: ReactNode;
@@ -18,6 +19,7 @@ interface AdminSegmentedDashboardProps {
 
 export default function AdminSegmentedDashboard({
   ariaLabel,
+  tabListAriaLabel,
   header,
   primary,
   side,
@@ -33,7 +35,7 @@ export default function AdminSegmentedDashboard({
       {tabs && tabs.length > 0 ? (
         <div className={styles.tabsPanel}>
           <Tabs>
-            <TabList aria-label={`${ariaLabel} 分頁`}>
+            <TabList aria-label={tabListAriaLabel ?? ariaLabel}>
               {tabs.map((tab) => (
                 <Tab key={tab.key}>{tab.label}</Tab>
               ))}
