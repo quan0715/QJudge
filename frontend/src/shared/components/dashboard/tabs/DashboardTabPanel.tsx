@@ -8,6 +8,10 @@ export interface DashboardTabPanelProps {
 
 export function DashboardTabPanel({ tabId, children }: DashboardTabPanelProps) {
   const { activeId } = useDashboardTabs();
-  if (activeId !== tabId) return null;
-  return <>{children}</>;
+  const active = activeId === tabId;
+  return (
+    <div role="tabpanel" hidden={!active}>
+      {children}
+    </div>
+  );
 }

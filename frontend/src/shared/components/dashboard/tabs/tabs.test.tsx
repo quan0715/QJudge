@@ -33,10 +33,12 @@ function renderTabs(active: string, onChange = vi.fn()) {
 }
 
 describe("Dashboard tabs", () => {
-  it("only renders active panel", () => {
+  it("hides inactive panel", () => {
     renderTabs("a");
-    expect(screen.getByText("PANEL_A")).toBeInTheDocument();
-    expect(screen.queryByText("PANEL_B")).not.toBeInTheDocument();
+    const panelA = screen.getByText("PANEL_A");
+    const panelB = screen.getByText("PANEL_B");
+    expect(panelA.closest('[role="tabpanel"]')).not.toHaveAttribute("hidden");
+    expect(panelB.closest('[role="tabpanel"]')).toHaveAttribute("hidden");
   });
 
   it("renders toolbar slot", () => {
@@ -50,9 +52,11 @@ describe("Dashboard tabs", () => {
     expect(onChange).toHaveBeenCalledWith("b");
   });
 
-  it("switches panel when active id changes", () => {
+  it("switches active panel when active id changes", () => {
     renderTabs("b");
-    expect(screen.queryByText("PANEL_A")).not.toBeInTheDocument();
-    expect(screen.getByText("PANEL_B")).toBeInTheDocument();
+    const panelA = screen.getByText("PANEL_A");
+    const panelB = screen.getByText("PANEL_B");
+    expect(panelA.closest('[role="tabpanel"]')).toHaveAttribute("hidden");
+    expect(panelB.closest('[role="tabpanel"]')).not.toHaveAttribute("hidden");
   });
 });

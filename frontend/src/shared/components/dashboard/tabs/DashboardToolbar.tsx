@@ -13,24 +13,32 @@ function Root({ children }: DashboardToolbarProps) {
 interface ToolbarSearchProps {
   value: string;
   onChange: (value: string) => void;
+  onClear?: () => void;
   placeholder?: string;
   ariaLabel?: string;
+  id?: string;
+  size?: "sm" | "md" | "lg";
 }
 
 function ToolbarSearch({
   value,
   onChange,
+  onClear,
   placeholder,
   ariaLabel,
+  id,
+  size = "md",
 }: ToolbarSearchProps) {
   return (
     <div className={styles.search}>
       <Search
-        size="lg"
+        id={id}
+        size={size}
         labelText={ariaLabel ?? placeholder ?? "search"}
         placeholder={placeholder}
         value={value}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+        onClear={onClear}
       />
     </div>
   );

@@ -21,14 +21,6 @@
   height: 0.5rem;
 }
 
-.panelGrid {
-  border: 1px solid var(--cds-border-subtle);
-}
-
-.drilldownTabPanel {
-  padding: 0;
-}
-
 .drilldownPanel {
   min-width: 0;
   padding: 1.25rem;
@@ -36,54 +28,6 @@
 
 .drilldownPanelFlush {
   padding: 0;
-}
-
-.tabRow {
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid var(--cds-border-subtle);
-}
-
-.tabRow > :global(.cds--tabs) {
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
-.tabRowToolbar {
-  display: flex;
-  flex: 0 1 auto;
-  align-items: stretch;
-  margin: 0 1rem;
-  max-width: 24rem;
-  width: 100%;
-  align-self: center;
-  border: 0;
-  background: transparent;
-}
-
-.tabRowToolbarActive {
-  border-color: transparent;
-}
-
-.tabRowSearch {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.tabRowSearch :global(.cds--search-input) {
-  border: none;
-  background: transparent;
-}
-
-.tabRowSearch :global(.cds--search-magnifier) {
-  inset-inline-start: 0.75rem;
-}
-
-.tabRowFilterMenu {
-  flex: 0 0 auto;
-  border-left: 0;
 }
 
 .emptyState {
@@ -296,17 +240,6 @@
 }
 
 @media (max-width: 672px) {
-  .tabRow {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-
-  .tabRowToolbar {
-    margin: 0 1rem 0.5rem;
-    max-width: none;
-  }
-
   .participantDrawerBackdrop {
     display: none;
   }

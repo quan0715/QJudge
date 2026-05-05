@@ -2,14 +2,8 @@ import {
   Button,
   OverflowMenu,
   OverflowMenuItem,
-  Search,
   SelectableTag,
   SkeletonText,
-  Tab,
-  TabList,
-  TabPanel,
-  TabPanels,
-  Tabs,
 } from "@carbon/react";
 import {
   CheckmarkFilled,
@@ -74,6 +68,10 @@ import {
   BlockHeader,
   DashboardBlock,
   DashboardContainer,
+  DashboardTabBar,
+  DashboardTabPanel,
+  DashboardTabs,
+  DashboardToolbar,
   MetricBlock,
 } from "@/shared/components/dashboard";
 import styles from "./AdminOverviewCommandCenter.module.scss";
@@ -330,7 +328,8 @@ export default function AdminOverviewCommandCenter({
   const [participantSearch, setParticipantSearch] = useState("");
   const [participantStatusFilter, setParticipantStatusFilter] =
     useState<ParticipantStatusFilter>("all");
-  const [activePanelTab, setActivePanelTab] = useState(0);
+  const [activePanelTab, setActivePanelTab] =
+    useState<"participants" | "questionStats">("participants");
   const [questionStatsSearch, setQuestionStatsSearch] = useState("");
   const [questionStatsKindFilter, setQuestionStatsKindFilter] =
     useState<string>("all");
@@ -635,8 +634,6 @@ export default function AdminOverviewCommandCenter({
   ) => {
     setParticipantSearch(event.target.value);
   };
-  const isFilterActive = participantStatusFilter !== "all";
-  const isQuestionStatsFilterActive = questionStatsKindFilter !== "all";
   const participantMetricTags = (
     <div className={styles.metricTagGroup} aria-label="考生卡片資料切換">
       {PARTICIPANT_METRIC_OPTIONS.map((option) => (
@@ -834,42 +831,41 @@ export default function AdminOverviewCommandCenter({
     </div>
   );
   const participantTabToolbar = (
-    <div
-      className={`${styles.tabRowToolbar} ${
-        isFilterActive ? styles.tabRowToolbarActive : ""
-      }`}
-    >
-      <Search
+    <DashboardToolbar>
+      <DashboardToolbar.Search
         id="overview-participants-search"
-        labelText="搜尋考生"
+        ariaLabel="搜尋考生"
         placeholder="搜尋顯示名稱或使用者名稱..."
         value={participantSearch}
-        onChange={handleParticipantSearchChange}
+        onChange={(value) =>
+          handleParticipantSearchChange({
+            target: { value },
+          } as ChangeEvent<HTMLInputElement>)
+        }
         onClear={() => setParticipantSearch("")}
-        size="md"
-        className={styles.tabRowSearch}
       />
-      <OverflowMenu
-        renderIcon={Filter}
-        iconDescription="篩選狀態"
-        size="md"
-        flipped
-        className={styles.tabRowFilterMenu}
-        aria-label="篩選考生狀態"
-      >
-        {PARTICIPANT_STATUS_FILTERS.map((option) => (
-          <OverflowMenuItem
-            key={option.id}
-            itemText={
-              participantStatusFilter === option.id
-                ? `✓  ${option.label}`
-                : option.label
-            }
-            onClick={() => setParticipantStatusFilter(option.id)}
-          />
-        ))}
-      </OverflowMenu>
-    </div>
+      <DashboardToolbar.Filter>
+        <OverflowMenu
+          renderIcon={Filter}
+          iconDescription="篩選狀態"
+          size="md"
+          flipped
+          aria-label="篩選考生狀態"
+        >
+          {PARTICIPANT_STATUS_FILTERS.map((option) => (
+            <OverflowMenuItem
+              key={option.id}
+              itemText={
+                participantStatusFilter === option.id
+                  ? `✓  ${option.label}`
+                  : option.label
+              }
+              onClick={() => setParticipantStatusFilter(option.id)}
+            />
+          ))}
+        </OverflowMenu>
+      </DashboardToolbar.Filter>
+    </DashboardToolbar>
   );
   const questionStatsPanel = (
     <div className={`${styles.drilldownPanel} ${styles.drilldownPanelFlush}`}>
@@ -896,66 +892,66 @@ export default function AdminOverviewCommandCenter({
     </div>
   );
   const questionStatsTabToolbar = (
-    <div
-      className={`${styles.tabRowToolbar} ${
-        isQuestionStatsFilterActive ? styles.tabRowToolbarActive : ""
-      }`}
-    >
-      <Search
+    <DashboardToolbar>
+      <DashboardToolbar.Search
         id="overview-question-stats-search"
-        labelText="搜尋題目"
+        ariaLabel="搜尋題目"
         placeholder="搜尋題號或題目..."
         value={questionStatsSearch}
-        onChange={(event) => setQuestionStatsSearch(event.target.value)}
+        onChange={setQuestionStatsSearch}
         onClear={() => setQuestionStatsSearch("")}
-        size="md"
-        className={styles.tabRowSearch}
       />
-      <OverflowMenu
-        renderIcon={Filter}
-        iconDescription="篩選題型"
-        size="md"
-        flipped
-        className={styles.tabRowFilterMenu}
-        aria-label="篩選題型"
-      >
-        {QUESTION_KIND_FILTERS.map((option) => (
-          <OverflowMenuItem
-            key={option.id}
-            itemText={
-              questionStatsKindFilter === option.id
-                ? `✓  ${option.label}`
-                : option.label
-            }
-            onClick={() => setQuestionStatsKindFilter(option.id)}
-          />
-        ))}
-      </OverflowMenu>
-    </div>
+      <DashboardToolbar.Filter>
+        <OverflowMenu
+          renderIcon={Filter}
+          iconDescription="篩選題型"
+          size="md"
+          flipped
+          aria-label="篩選題型"
+        >
+          {QUESTION_KIND_FILTERS.map((option) => (
+            <OverflowMenuItem
+              key={option.id}
+              itemText={
+                questionStatsKindFilter === option.id
+                  ? `✓  ${option.label}`
+                  : option.label
+              }
+              onClick={() => setQuestionStatsKindFilter(option.id)}
+            />
+          ))}
+        </OverflowMenu>
+      </DashboardToolbar.Filter>
+    </DashboardToolbar>
   );
   const drilldownPanel = (
-    <section className={styles.panelGrid} aria-label="總覽資料切換">
-      <Tabs
-        selectedIndex={activePanelTab}
-        onChange={({ selectedIndex }) => setActivePanelTab(selectedIndex)}
+    <DashboardBlock padding="flush" ariaLabel="總覽資料切換">
+      <DashboardTabs
+        activeId={activePanelTab}
+        onChange={(id) =>
+          setActivePanelTab(id as "participants" | "questionStats")
+        }
       >
-        <div className={styles.tabRow}>
-          <TabList aria-label="總覽資料切換">
-            <Tab>參與者</Tab>
-            <Tab>作答分佈</Tab>
-          </TabList>
-          {activePanelTab === 0 ? participantTabToolbar : questionStatsTabToolbar}
-        </div>
-        <TabPanels>
-          <TabPanel className={styles.drilldownTabPanel}>
-            {participantPanel}
-          </TabPanel>
-          <TabPanel className={styles.drilldownTabPanel}>
-            {questionStatsPanel}
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-    </section>
+        <DashboardTabBar
+          ariaLabel="總覽資料切換"
+          tabs={[
+            { id: "participants", label: "參與者" },
+            { id: "questionStats", label: "作答分佈" },
+          ]}
+          toolbar={
+            activePanelTab === "participants"
+              ? participantTabToolbar
+              : questionStatsTabToolbar
+          }
+        />
+        <DashboardTabPanel tabId="participants">
+          {participantPanel}
+        </DashboardTabPanel>
+        <DashboardTabPanel tabId="questionStats">
+          {questionStatsPanel}
+        </DashboardTabPanel>
+      </DashboardTabs>
+    </DashboardBlock>
   );
   return (
     <>
