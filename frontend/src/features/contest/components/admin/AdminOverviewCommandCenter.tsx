@@ -842,10 +842,7 @@ export default function AdminOverviewCommandCenter({
   );
   const participantPanel = (
     <div className={styles.drilldownPanel}>
-      <BlockHeader
-        title="考生列表"
-        description="依異常程度排序，快速掃描考生狀態。"
-      />
+      <BlockHeader title="考生列表" />
       {participantMetricTags}
       {participantContent}
     </div>
