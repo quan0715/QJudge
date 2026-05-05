@@ -720,7 +720,6 @@ export default function StudentContestDashboard({
       <DashboardContainer
         layout="split"
         proportions="main-aside"
-        bordered
         dividers="auto"
       >
         <DashboardContainer layout="stack" dividers="auto" ariaLabel="競賽主要內容">
