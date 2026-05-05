@@ -48,15 +48,13 @@
 contest          FK → Contest
 student          FK → User                 # 對話另一端的學生
 problem          FK → Problem (nullable)   # 學生提問可帶題目；老師主動私訊通常為 null
-initiated_by     CharField('student'|'teacher')
-status           CharField('open'|'resolved')
 created_at       DateTimeField
-updated_at       DateTimeField
 last_message_at  DateTimeField             # 用於排序與未讀判斷
 ```
 
 - `(contest, student, problem)` 不設 unique：同一題、同一學生可有多次對話
-- `status` 預設 `'open'`；老師回覆後可手動 mark resolved；學生再 reply 自動回 `'open'`
+- 無 status 欄位：「進行中／待回覆」由 `last_message.sender_role` 表達
+- 無 `initiated_by` 欄位：「誰發起的」由第一則 message 的 `sender_role` 表達；list endpoint 回傳時附 `first_sender_role` 給前端用（避免每次 join messages 表）
 
 #### A.2 新增 `ContestMessage`
 
@@ -111,7 +109,7 @@ useContestUnread(contestId, currentUserId, role): {
 - 內部 polling 兩個 list endpoint：`/announcements/`、`/conversations/`（含每個 conversation 的最新一則 message 預覽）
 - 角色差異：
   - **學生**：可見 conversation = 自己參與的；`unreadCount = unreadAnnouncementIds.length + unreadMessageIds.length`，其中 unreadMessageIds 取每個 conversation 中 `sender_role='teacher'` 且尚未在 localStorage 的訊息 id
-  - **教師 / 管理員**：可見全部 conversation；`unreadCount = pendingConversationCount`，定義為 `status='open' AND last_message.sender_role='student'`（=「等我回的對話」），不計公告
+  - **教師 / 管理員**：可見全部 conversation；`unreadCount = pendingConversationCount`，定義為 `last_message.sender_role='student'`（=「最後一則是學生發的，等我回」），不計公告
 
 ### D. 通知入口：`ContestLayout` 頂部 navbar 鈴鐺
 
@@ -128,7 +126,7 @@ useContestUnread(contestId, currentUserId, role): {
    - 右上角紅色數字 badge：`unreadCount`（>9 顯示 `9+`，=0 不顯示 badge）
    - 角色差異：
      - **學生**：點擊 → 開 `ContestNotificationModal`（見下）
-     - **教師 / 管理員**：點擊 → 直接導向 `AdminClarificationsScreen?status=open&awaiting=teacher`，不開 modal（待回的對話需要的是處理動作而非閱讀）
+     - **教師 / 管理員**：點擊 → 直接導向 `AdminConversationsScreen?awaiting=teacher`，不開 modal（待回的對話需要的是處理動作而非閱讀）
 
 2. **`ContestNotificationModal.tsx`**（學生用）
    - Carbon `Modal`，`passiveModal`
@@ -164,12 +162,11 @@ useContestUnread(contestId, currentUserId, role): {
 
 #### G.1 `AdminClarificationsScreen` 改為 `AdminConversationsScreen`
 
-- 對話列表頂部加 Filter：`全部 / 等我回 / 已回覆 / 已結案 / 依題目`
-  - `等我回 = status=open AND last_message.sender_role='student'`
+- 對話列表頂部加 Filter：`全部 / 等我回 / 我已回 / 依題目`
+  - `等我回 = last_message.sender_role='student'`
+  - `我已回 = last_message.sender_role='teacher'`
 - 預設排序：`等我回` 優先，再依 `last_message_at` 由新到舊
-- 點開單筆 → 同 `ConversationThreadView`，老師可：
-  - 在底部輸入框 append message（隨 sender_role 自動為 teacher）
-  - 點「標記為已結案」→ status='resolved'
+- 點開單筆 → 同 `ConversationThreadView`，老師在底部輸入框 append message（sender_role 自動為 teacher）
 - 公告區「發布公告」按鈕在所有競賽狀態下可用
 
 #### G.2 `AdminProctoringPanel` 新增動作
@@ -179,7 +176,7 @@ useContestUnread(contestId, currentUserId, role): {
   - 標頭顯示「給：{username}」
   - TextArea 輸入第一則訊息內容
   - 不需選題目（problem=null）
-  - Primary：「送出」→ 呼叫 `POST /conversations/`，後端依 sender 自動帶 `initiated_by='teacher'`
+  - Primary：「送出」→ 呼叫 `POST /conversations/`，後端依 sender 寫入第一則 `Message(sender_role='teacher')`
 - 該訊息會出現在學生 navbar bell 與 dashboard「我的對話」中
 
 ### H. 元件拆檔
@@ -221,15 +218,13 @@ frontend/src/features/contest/hooks/
     - 學生 queryset：`Q(student=user)`
     - 教師 queryset：所有 contest 內 conversation
   - filter：
-    - `?status=open|resolved`
-    - `?awaiting=teacher|student`（等對方回的對話；對學生通常等於 unread message 來源）
+    - `?awaiting=teacher|student`（依 `last_message.sender_role` 判斷誰在等對方回）
     - `?problem={uuid}`
-  - create payload：`{ problem_id?, initial_content }`，後端依 user 角色決定 `initiated_by` 與 `student`：
-    - 學生 create：`student=user`、`initiated_by='student'`
-    - 教師 create：payload 須提供 `student_id`（指定收件學生）、`initiated_by='teacher'`、permission 限教師 / 管理員
+  - create payload：`{ problem_id?, initial_content, student_id? }`，後端依 user 角色決定 `student` 與第一則 message 的 `sender_role`：
+    - 學生 create：忽略 `student_id`，`student=user`，第一則 `sender_role='student'`
+    - 教師 create：必須提供 `student_id`，第一則 `sender_role='teacher'`，permission 限教師 / 管理員
   - retrieve：回傳 conversation + 所有 messages
   - 自訂 action `POST /conversations/{id}/messages/`：append message（前端送 `{ content }`，後端依 sender 自動填 `sender_role`、檢查權限）
-  - 自訂 action `PATCH /conversations/{id}/resolve/`：限教師 / 管理員，把 status 設為 resolved
 
 - **`ContestMessageViewSet`** 不另外開 root，僅以 nested action 形式存在
 
@@ -246,7 +241,6 @@ frontend/src/features/contest/hooks/
   - retrieve：僅自己參與的
   - create：限自己作為 student
   - append message：限本人是 conversation.student，且該 contest 未結束（依 §F 表）
-  - resolve：禁止
 - 教師 / 管理員：全部允許
 
 ## 資料流
@@ -273,7 +267,7 @@ useContestAnnouncements(contestId)  ──→  announcements
 
 ## 錯誤處理
 
-- 發布公告 / 開對話 / 回覆訊息 / resolve API 失敗：沿用 `showError(...)` modal
+- 發布公告 / 開對話 / 回覆訊息 API 失敗：沿用 `showError(...)` modal
 - localStorage 寫入失敗（quota / private mode）：catch 後 log warn，不擋 UI
 - polling 失敗：保留 loaded state，不在鈴鐺顯示錯誤訊息
 - thread 中追加訊息送出失敗：保留輸入框內容，顯示 inline 錯誤；不清空使用者打的字
@@ -285,7 +279,7 @@ useContestAnnouncements(contestId)  ──→  announcements
 - `useContestUnread`：學生 / 教師兩種角色下 unreadCount 計算；markRead / markAllRead 寫入 localStorage
 - 鈴鐺 badge：`unreadCount` 變化時出現 / 消失，>9 顯示 `9+`
 - 學生 Modal：未讀置頂、已讀置底、各自時間倒序
-- 教師鈴鐺點擊：導向 `?status=open&awaiting=teacher`
+- 教師鈴鐺點擊：導向 `?awaiting=teacher`
 - ConversationThreadView：開啟時把 thread 內對方訊息標已讀；送訊失敗保留輸入內容；end-state 對話唯讀
 - 權限：未開始 / 進行中 / 已結束三狀態下，學生「新增對話」、「在 thread 中回覆」、教師發公告 / 私訊按鈕的 enabled / disabled
 - AdminProctoringPanel：點「傳送訊息」打開 modal，送出後呼叫 conversation create API 帶 `student_id`
@@ -296,8 +290,7 @@ useContestAnnouncements(contestId)  ──→  announcements
   - 學生 list 只看自己；教師 list 看全部
   - 學生 create 不能指定 `student_id`；教師可指定
   - 學生 append message 限自己參與；教師 append 任意 conversation
-  - resolve 限教師
-  - filter `?status` / `?awaiting` / `?problem` 各自正確
+  - filter `?awaiting` / `?problem` 各自正確
   - 競賽結束後學生 append 被拒（403）
 - Migration：drop `contest_clarifications` table 後相關 import 不留殘骸
 - `ContestAnnouncementViewSet`：教師在三種競賽狀態下都能 create
