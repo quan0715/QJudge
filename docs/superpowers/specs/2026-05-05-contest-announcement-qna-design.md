@@ -47,14 +47,12 @@
 ```
 contest          FK → Contest
 student          FK → User                 # 對話另一端的學生
-problem          FK → Problem (nullable)   # 學生提問可帶題目；老師主動私訊通常為 null
 created_at       DateTimeField
 last_message_at  DateTimeField             # 用於排序與未讀判斷
 ```
 
-- `(contest, student, problem)` 不設 unique：同一題、同一學生可有多次對話
-- 無 status 欄位：「進行中／待回覆」由 `last_message.sender_role` 表達
-- 無 `initiated_by` 欄位：「誰發起的」由第一則 message 的 `sender_role` 表達；list endpoint 回傳時附 `first_sender_role` 給前端用（避免每次 join messages 表）
+- `(contest, student)` **unique**：每個學生在一個 contest 內僅一條對話串（避免無法區分的多條對話）
+- 無 status / initiated_by / problem 欄位；所有「狀態」與「誰發話」都由 message 表表達
 
 #### A.2 新增 `ContestMessage`
 
@@ -140,44 +138,45 @@ useContestUnread(contestId, currentUserId, role): {
 
 ### E. 學生端：Contest Dashboard / Q&A Tab
 
-維持 `ContestQAScreen` 入口，但元件拆檔（見 §H）。包含：
+維持 `ContestQAScreen` 入口，但元件拆檔（見 §H）。佈局：
 
-- 公告完整歷史列表（含已讀與未讀）
-- 「我的對話」列表：每筆顯示 `題號（若有）/ 對方最新訊息預覽 / 時間 / 未讀紅點`
-- 點開單筆 → `ConversationThreadView`：時序顯示所有 message，底部有輸入框可繼續發訊（依下表權限決定 enabled）
-- 「新增對話」按鈕（原「我要提問」）：開 `StartConversationModal`，可選題目 + 第一則訊息內容
-- 公告卡片 / 對話列表項進入 viewport 標已讀；開啟 thread 時 thread 內訊息全部標已讀
+- 上半部：公告完整歷史列表（含已讀與未讀）
+- 下半部：與老師的單一對話 thread —— `ConversationThreadView` 直接展開（不需要列表，每個學生只有一條）
+  - 若尚無對話：顯示空狀態「點下方輸入框開始你的提問」+ 輸入框
+  - 若已有對話：時序顯示所有 message，底部輸入框可繼續發訊（依下表權限決定 enabled）
+  - 第一次送訊時若 conversation 不存在，前端先呼叫 `POST /conversations/` 建立 + 寫第一則 message；之後都呼叫 `POST /conversations/{id}/messages/`
+- 公告卡片進入 viewport 標已讀；開啟頁面時對話 thread 內所有訊息直接標已讀
 
 ### F. 權限狀態表
 
-| 競賽狀態 | 學生看公告/對話 | 學生發起新對話 | 學生在現有對話中回覆 | 教師發公告 | 教師回覆對話 | 教師主動開對話（私訊） |
-|---|---|---|---|---|---|---|
-| 未開始（published, now < startTime） | ✅ | ❌（disabled，hint：「考試開始後可發問」） | ✅ | ✅ | ✅ | ✅ |
-| 進行中 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 已結束（now > endTime） | ✅（只讀） | ❌ | ❌（thread 變唯讀） | ✅ | ✅ | ✅ |
+| 競賽狀態 | 學生看公告/對話 | 學生發訊（含首則） | 教師發公告 | 教師發訊（含首則） |
+|---|---|---|---|---|
+| 未開始（published, now < startTime） | ✅ | ❌（disabled，hint：「考試開始後可發問」） | ✅ | ✅ |
+| 進行中 | ✅ | ✅ | ✅ | ✅ |
+| 已結束（now > endTime） | ✅（只讀） | ❌（輸入框 disabled） | ✅ | ✅ |
 
-需要對應修改現行 `isReadOnly` 邏輯：原本 `contestStatus !== "published" || isEnded` 一律鎖死所有操作；改為**僅鎖學生的「發起／回覆」相關按鈕**，教師永不鎖。
+需要對應修改現行 `isReadOnly` 邏輯：原本 `contestStatus !== "published" || isEnded` 一律鎖死所有操作；改為**僅鎖學生的訊息輸入框**，教師永不鎖。
 
 ### G. 教師端
 
 #### G.1 `AdminClarificationsScreen` 改為 `AdminConversationsScreen`
 
-- 對話列表頂部加 Filter：`全部 / 等我回 / 我已回 / 依題目`
-  - `等我回 = last_message.sender_role='student'`
-  - `我已回 = last_message.sender_role='teacher'`
-- 預設排序：`等我回` 優先，再依 `last_message_at` 由新到舊
-- 點開單筆 → 同 `ConversationThreadView`，老師在底部輸入框 append message（sender_role 自動為 teacher）
+- 對話列表頂部加 Filter：`全部 / 未回 / 已回`
+  - `未回 = last_message.sender_role='student'`
+  - `已回 = last_message.sender_role='teacher'`
+- 預設排序：`未回` 優先，再依 `last_message_at` 由新到舊
+- 每筆顯示：學生 username / 最後一則訊息預覽 / 時間 / `未回` badge（若為未回）
+- 點開單筆 → `ConversationThreadView`，老師在底部輸入框 append message（sender_role 自動為 teacher）
 - 公告區「發布公告」按鈕在所有競賽狀態下可用
 
 #### G.2 `AdminProctoringPanel` 新增動作
 
 - 在每位被監考的學生卡片上新增「📩 傳送訊息」按鈕
-- 點擊 → 開 `StartConversationModal`（變體）：
+- 點擊 → 開 `SendMessageModal`：
   - 標頭顯示「給：{username}」
-  - TextArea 輸入第一則訊息內容
-  - 不需選題目（problem=null）
-  - Primary：「送出」→ 呼叫 `POST /conversations/`，後端依 sender 寫入第一則 `Message(sender_role='teacher')`
-- 該訊息會出現在學生 navbar bell 與 dashboard「我的對話」中
+  - TextArea 輸入訊息內容
+  - Primary：「送出」→ 走 `POST /conversations/{contestId}/messages-to-student/`（見 §I.2 的 ensure-and-append action），後端：若 `(contest, student)` 已有對話則 append；否則 create + 寫入第一則 `Message(sender_role='teacher')`
+- 該訊息會出現在學生 navbar bell 與 dashboard 對話 thread 中
 
 ### H. 元件拆檔
 
@@ -186,11 +185,12 @@ useContestUnread(contestId, currentUserId, role): {
 ```
 frontend/src/features/contest/components/discussion/
   ContestAnnouncementList.tsx        # 公告列表
-  ContestConversationList.tsx        # 對話列表（學生：我的對話；老師：所有對話）
-  ConversationThreadView.tsx         # 點開單筆對話的 thread 顯示 + 回覆輸入框
-  StartConversationModal.tsx         # 學生「新增對話」/ 老師「傳送訊息」共用
+  ContestConversationList.tsx        # 對話列表（僅老師端用）
+  ConversationThreadView.tsx         # thread 顯示 + 訊息輸入框（學生 / 老師通用）
+  SendMessageModal.tsx               # 老師於 proctoring panel「傳送訊息」用
   PostAnnouncementModal.tsx          # 教師發公告 modal
-  ContestDiscussionView.tsx          # 組合給 ContestQAScreen / AdminConversationsScreen 用
+  StudentDiscussionView.tsx          # 學生 ContestQAScreen 用：公告列表 + ConversationThreadView
+  AdminDiscussionView.tsx            # 老師 AdminConversationsScreen 用：公告列表 + ConversationList
   index.ts
 
 frontend/src/features/contest/components/notification/
@@ -217,14 +217,15 @@ frontend/src/features/contest/hooks/
   - list：
     - 學生 queryset：`Q(student=user)`
     - 教師 queryset：所有 contest 內 conversation
-  - filter：
+  - filter（僅教師端有意義）：
     - `?awaiting=teacher|student`（依 `last_message.sender_role` 判斷誰在等對方回）
-    - `?problem={uuid}`
-  - create payload：`{ problem_id?, initial_content, student_id? }`，後端依 user 角色決定 `student` 與第一則 message 的 `sender_role`：
-    - 學生 create：忽略 `student_id`，`student=user`，第一則 `sender_role='student'`
-    - 教師 create：必須提供 `student_id`，第一則 `sender_role='teacher'`，permission 限教師 / 管理員
+  - create payload：`{ initial_content, student_id? }`，後端依 user 角色處理：
+    - 學生 create：忽略 `student_id`，`student=user`；若 `(contest, user)` 已有對話則回傳既存（idempotent），否則建立 + 寫第一則 `sender_role='student'`
+    - 教師 create：必須提供 `student_id`，permission 限教師 / 管理員；同樣 idempotent
   - retrieve：回傳 conversation + 所有 messages
   - 自訂 action `POST /conversations/{id}/messages/`：append message（前端送 `{ content }`，後端依 sender 自動填 `sender_role`、檢查權限）
+  - 學生端「我的對話」可用 `GET /conversations/me/`：直接回傳該學生在此 contest 的唯一 conversation（含 messages）；不存在則回 404，前端據此顯示空狀態
+  - 教師端 proctoring 用 `POST /conversations/messages-to-student/`：body `{ student_id, content }`，後端做 ensure-and-append（有就用，沒就建）
 
 - **`ContestMessageViewSet`** 不另外開 root，僅以 nested action 形式存在
 
@@ -281,16 +282,17 @@ useContestAnnouncements(contestId)  ──→  announcements
 - 學生 Modal：未讀置頂、已讀置底、各自時間倒序
 - 教師鈴鐺點擊：導向 `?awaiting=teacher`
 - ConversationThreadView：開啟時把 thread 內對方訊息標已讀；送訊失敗保留輸入內容；end-state 對話唯讀
-- 權限：未開始 / 進行中 / 已結束三狀態下，學生「新增對話」、「在 thread 中回覆」、教師發公告 / 私訊按鈕的 enabled / disabled
-- AdminProctoringPanel：點「傳送訊息」打開 modal，送出後呼叫 conversation create API 帶 `student_id`
+- 權限：未開始 / 進行中 / 已結束三狀態下，學生訊息輸入框、教師發公告 / 訊息按鈕的 enabled / disabled
+- AdminProctoringPanel：點「傳送訊息」打開 modal，送出後呼叫 ensure-and-append API 帶 `student_id`
 
 **Backend**
 
 - `ContestConversationViewSet`：
-  - 學生 list 只看自己；教師 list 看全部
-  - 學生 create 不能指定 `student_id`；教師可指定
+  - 學生 `GET /me/` 取自己唯一對話（不存在回 404）；教師 list 看全部
+  - 學生 create / messages-to-student 被拒；教師 messages-to-student 可用
+  - `(contest, student)` unique 約束生效：重複呼叫 create 不會建立第二筆，回傳既存
   - 學生 append message 限自己參與；教師 append 任意 conversation
-  - filter `?awaiting` / `?problem` 各自正確
+  - filter `?awaiting` 正確
   - 競賽結束後學生 append 被拒（403）
 - Migration：drop `contest_clarifications` table 後相關 import 不留殘骸
 - `ContestAnnouncementViewSet`：教師在三種競賽狀態下都能 create
@@ -323,7 +325,7 @@ useContestAnnouncements(contestId)  ──→  announcements
 
 **Frontend（修改）**
 - `features/contest/components/layout/ContestLayout.tsx`（在 `HeaderGlobalBar` 掛鈴鐺）
-- `features/contest/screens/ContestQAScreen.tsx`（改用 `ContestDiscussionView`）
+- `features/contest/screens/ContestQAScreen.tsx`（改用 `StudentDiscussionView`）
 - `features/contest/screens/admin/panels/AdminClarificationsScreen.tsx` → 改名為 `AdminConversationsScreen.tsx`
 - `features/contest/screens/admin/panels/AdminProctoringPanel.tsx`（每位學生加「📩 傳送訊息」按鈕）
 - `features/contest/modules/AdminPanelRendererRegistry.tsx`（key 改為 `conversations`）
