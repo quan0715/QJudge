@@ -158,10 +158,6 @@ const DistributionOverview = ({
     "adminOverview.widgets.studentDistribution",
     "考生分佈總覽",
   );
-  const answerProgressLabel = t(
-    "adminOverview.widgets.answerProgress",
-    "作答進度",
-  );
   const visibleDistribution = distribution.filter(
     (item) => item.key !== "offline",
   );
@@ -228,20 +224,6 @@ const DistributionOverview = ({
                     },
                     toolbar: { enabled: false },
                   }}
-                />
-              </div>
-              <div className={styles.answerProgress}>
-                <div className={styles.answerProgressHeader}>
-                  <span>{answerProgressLabel}</span>
-                  <strong>{completionPercent}%</strong>
-                </div>
-                <ProgressBar
-                  label={answerProgressLabel}
-                  hideLabel
-                  size="small"
-                  value={completionPercent}
-                  status={completionPercent >= 100 ? "finished" : "active"}
-                  className={styles.rightPanelProgressBar}
                 />
               </div>
             </>

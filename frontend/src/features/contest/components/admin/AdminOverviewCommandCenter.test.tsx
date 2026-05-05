@@ -266,10 +266,13 @@ describe("AdminOverviewCommandCenter", () => {
     const distributionOverview = screen.getByLabelText("考生分佈總覽");
     expect(distributionOverview).toBeInTheDocument();
     expect(
-      within(distributionOverview).getByRole("progressbar", {
+      within(distributionOverview).getByTestId("proportional-meter-chart"),
+    ).toBeInTheDocument();
+    expect(
+      within(distributionOverview).queryByRole("progressbar", {
         name: "作答進度",
       }),
-    ).toHaveAttribute("aria-valuenow", "17");
+    ).not.toBeInTheDocument();
     expect(
       within(distributionOverview).queryByText("離線"),
     ).not.toBeInTheDocument();
