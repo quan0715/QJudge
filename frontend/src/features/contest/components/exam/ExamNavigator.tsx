@@ -1,12 +1,12 @@
 import { type FC, memo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ExamItem } from "../../types/exam.types";
+import { Home, SidePanelClose, SidePanelOpen } from "@carbon/icons-react";
 import {
   ListPanel,
   ListHeader,
   ListFooter,
   ListItem,
-  ListItemLeading,
   ListItemContent,
   ListItemTitle,
   ListItemMeta,
@@ -19,6 +19,10 @@ interface ExamNavigatorProps {
   answeredIds: Set<string>;
   markedIds?: Set<string>;
   onSelect: (index: number) => void;
+  collapsed?: boolean;
+  overviewLabel?: string;
+  onSelectOverview?: () => void;
+  onToggleCollapse?: () => void;
 }
 
 export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
@@ -27,6 +31,10 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
   answeredIds,
   markedIds,
   onSelect,
+  collapsed = false,
+  overviewLabel,
+  onSelectOverview,
+  onToggleCollapse,
 }) => {
   const { t } = useTranslation("contest");
   const answeredCount = items.filter((item) => {
@@ -38,18 +46,96 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
   const itemRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
+    if (collapsed) return;
     const el = itemRefs.current.get(activeIndex);
     if (el) {
       el.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
-  }, [activeIndex]);
+  }, [activeIndex, collapsed]);
+
+  if (collapsed) {
+    return (
+      <nav className={`${styles.navigator} ${styles.navigatorMini}`}>
+        <ListPanel
+          className={styles.panel}
+          footer={
+            <ListFooter className={styles.panelFooter}>
+              {onToggleCollapse && (
+                <button
+                  type="button"
+                  className={styles.panelToggle}
+                  onClick={onToggleCollapse}
+                  aria-label={t("answering.navigation.showList")}
+                  title={t("answering.navigation.showList")}
+                >
+                  <SidePanelOpen size={20} />
+                </button>
+              )}
+            </ListFooter>
+          }
+        >
+          {onSelectOverview && (
+            <ListItem
+              size="compact"
+              onClick={onSelectOverview}
+              className={styles.miniOverviewItem}
+            >
+              <Home size={18} />
+            </ListItem>
+          )}
+          {items.map((item, index) => {
+            const id = item.kind === "coding" ? item.data.id : item.data.id;
+            const isActive = index === activeIndex;
+            const isAnswered = answeredIds.has(id);
+            const isMarked = markedIds?.has(id) ?? false;
+            const itemClassName = [
+              styles.miniItem,
+              isAnswered ? styles.miniItemAnswered : styles.miniItemUnanswered,
+              isMarked ? styles.miniItemMarked : "",
+              isActive ? styles.miniItemActive : "",
+            ].filter(Boolean).join(" ");
+
+            return (
+              <ListItem
+                key={id}
+                size="compact"
+                onClick={() => onSelect(index)}
+                className={itemClassName}
+              >
+                Q{index + 1}
+              </ListItem>
+            );
+          })}
+        </ListPanel>
+      </nav>
+    );
+  }
 
   return (
     <nav className={styles.navigator}>
       <ListPanel
-        header={<ListHeader title={t("answering.navigation.questionList")} />}
+        className={styles.panel}
+        header={
+          <ListHeader
+            title={t("answering.navigation.questionList")}
+            className={styles.panelHeader}
+            action={
+              onToggleCollapse ? (
+                <button
+                  type="button"
+                  className={styles.panelToggle}
+                  onClick={onToggleCollapse}
+                  aria-label={t("answering.navigation.hideList")}
+                  title={t("answering.navigation.hideList")}
+                >
+                  <SidePanelClose size={20} />
+                </button>
+              ) : null
+            }
+          />
+        }
         footer={
-          <ListFooter>
+          <ListFooter className={styles.panelFooter}>
             <span className={styles.summaryText}>
               {t("answering.navigation.answeredProgress", { answered: answeredCount, total: items.length })}
             </span>
@@ -61,6 +147,16 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
           </ListFooter>
         }
       >
+        {onSelectOverview && (
+          <ListItem onClick={onSelectOverview} className={styles.overviewItem}>
+            <ListItemContent>
+              <ListItemTitle className={styles.overviewTitle}>
+                <Home size={18} />
+                <span>{overviewLabel ?? t("contestShell.home", "總覽")}</span>
+              </ListItemTitle>
+            </ListItemContent>
+          </ListItem>
+        )}
         {items.map((item, index) => {
           const id = item.kind === "coding" ? item.data.id : item.data.id;
           const isActive = index === activeIndex;
@@ -75,33 +171,38 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
           const title =
             item.kind === "coding"
               ? `${item.data.label}. ${item.data.title}`
-              : item.data.prompt.slice(0, 30) + (item.data.prompt.length > 30 ? "…" : "");
+              : item.data.prompt.slice(0, 72) + (item.data.prompt.length > 72 ? "…" : "");
+          const itemClassName = [
+            styles.item,
+            isAnswered ? styles.itemAnswered : styles.itemUnanswered,
+            isMarked ? styles.itemMarked : "",
+            isActive ? styles.itemActive : "",
+          ].filter(Boolean).join(" ");
 
           return (
             <ListItem
               key={id}
-              active={isActive}
               onClick={() => onSelect(index)}
-              className={isMarked ? styles.itemMarked : undefined}
+              className={itemClassName}
             >
-              <ListItemLeading>
-                <span
-                  ref={(el) => {
-                    // Attach ref to parent button via leading span for scroll-into-view
-                    if (el?.parentElement?.parentElement) {
-                      itemRefs.current.set(index, el.parentElement.parentElement as HTMLButtonElement);
-                    } else {
-                      itemRefs.current.delete(index);
-                    }
-                  }}
-                  className={`${styles.itemNumber} ${isAnswered ? styles.itemNumberAnswered : ""}`}
-                >
-                  {index + 1}
-                </span>
-              </ListItemLeading>
               <ListItemContent>
-                <ListItemMeta>{typeLabel}</ListItemMeta>
-                <ListItemTitle>{title}</ListItemTitle>
+                <ListItemMeta className={styles.itemMeta}>
+                  <span
+                    ref={(el) => {
+                      const button = el?.closest("button");
+                      if (button) {
+                        itemRefs.current.set(index, button as HTMLButtonElement);
+                      } else {
+                        itemRefs.current.delete(index);
+                      }
+                    }}
+                  >
+                    Q{index + 1}
+                  </span>
+                  <span className={styles.itemMetaDivider}>·</span>
+                  <span>{typeLabel}</span>
+                </ListItemMeta>
+                <ListItemTitle className={styles.itemPrompt}>{title}</ListItemTitle>
               </ListItemContent>
             </ListItem>
           );

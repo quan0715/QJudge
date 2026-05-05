@@ -24,6 +24,8 @@ import {
   usePaperExamAutoSave,
   usePaperExamQuestions,
   usePaperExamSaveOnLeave,
+  getMarkedQuestionIds,
+  saveMarkedQuestionIds,
   hasExamPrecheckPassed,
   syncExamPrecheckGateByStatus,
 } from "./hooks";
@@ -45,6 +47,7 @@ import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/f
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
+import { useContestLayoutHeaderSlot } from "@/features/contest/components/layout/ContestLayoutHeaderSlotContext";
 import {
   buildExamEntryDeviceMetadata,
   detectAnticheatCapability,
@@ -111,6 +114,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     [monitoringPlan]
   );
   const submitProgress = useExamSubmissionProgress();
+  const contestLayoutHeaderSlot = useContestLayoutHeaderSlot();
 
   const { items, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
@@ -124,7 +128,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
     setAnswers,
   });
 
-  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
+  const [markedIds, setMarkedIds] = useState<Set<string>>(() =>
+    getMarkedQuestionIds(contestId),
+  );
+  useEffect(() => {
+    setMarkedIds(getMarkedQuestionIds(contestId));
+  }, [contestId]);
   const toggleMark = useCallback((id: string) => {
     setMarkedIds((prev) => {
       const next = new Set(prev);
@@ -133,9 +142,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
       } else {
         next.add(id);
       }
+      saveMarkedQuestionIds(contestId, next);
       return next;
     });
-  }, []);
+  }, [contestId]);
 
   const isInProgress = contest?.examStatus === "in_progress";
   const isSubmitted = contest?.examStatus === "submitted";
@@ -349,6 +359,56 @@ const PaperExamAnsweringScreen: React.FC = () => {
     setShowSubmitReview(true);
   }, [flushAll]);
 
+  const shouldUseHeaderActions =
+    !!contestLayoutHeaderSlot &&
+    !autoSubmitted &&
+    !isSubmitted &&
+    !loadingQuestions &&
+    items.length > 0;
+
+  useEffect(() => {
+    if (!contestLayoutHeaderSlot) return;
+    if (!shouldUseHeaderActions) {
+      contestLayoutHeaderSlot.setHeaderActions(null);
+      return;
+    }
+
+    contestLayoutHeaderSlot.setHeaderActions(
+      <div className={styles.headerActions}>
+        {saveStatus !== "idle" && (
+          <span
+            className={`${styles.headerSaveStatus} ${
+              saveStatus === "error" ? styles.saveStatusError : ""
+            }`}
+          >
+            {saveStatusLabel}
+          </span>
+        )}
+        <Button
+          kind="primary"
+          size="md"
+          className={styles.headerSubmitButton}
+          data-testid="paper-exam-open-submit-review-btn"
+          renderIcon={SendFilled}
+          onClick={openSubmitReview}
+        >
+          {t("answering.submit.button")}
+        </Button>
+      </div>,
+    );
+
+    return () => {
+      contestLayoutHeaderSlot.setHeaderActions(null);
+    };
+  }, [
+    contestLayoutHeaderSlot,
+    openSubmitReview,
+    saveStatus,
+    saveStatusLabel,
+    shouldUseHeaderActions,
+    t,
+  ]);
+
   const handleSubmitExam = useCallback(async () => {
     if (!contestId || isSubmittingExam) return;
     setIsSubmittingExam(true);
@@ -411,6 +471,9 @@ const PaperExamAnsweringScreen: React.FC = () => {
         syncIndex={syncIndex}
         renderItem={renderItem}
         onActiveIndexChange={handleActiveIndexChange}
+        showToolbar={!contestLayoutHeaderSlot}
+        overviewLabel={t("contestShell.home", "總覽")}
+        onSelectOverview={() => dashboardPath && navigate(dashboardPath)}
         toolbarLeft={(
           <>
             <Button

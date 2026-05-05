@@ -30,7 +30,14 @@ import {
   UserPreferencesHydrator,
 } from "@/features/auth";
 import { problemDetailRoutes, problemSolveRoutes } from "@/features/problems";
-import { classroomContestDetailRoutes, classroomContestAdminRoute, classroomExamPreviewRoute, classroomExamPrecheckRoute, classroomPracticeRoute } from "@/features/contest";
+import {
+  classroomContestDetailRoutes,
+  classroomContestRuntimeRoutes,
+  classroomContestAdminRoute,
+  classroomExamPreviewRoute,
+  classroomExamPrecheckRoute,
+  classroomPracticeRoute,
+} from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { changelogRoutes } from "@/features/changelog";
@@ -146,6 +153,8 @@ function App() {
                               />
                               {/* Classroom Detail - inside MainLayout for shared sidebar */}
                               {classroomDetailRoute}
+                              {/* Contest dashboard - inside WorkspaceShell until answering starts */}
+                              {classroomContestDetailRoutes}
                             </Route>
 
                             {/* Legacy hidden routes */}
@@ -156,8 +165,8 @@ function App() {
                             {/* Problem Solve - Full-screen IDE-style solver */}
                             {problemSolveRoutes}
 
-                            {/* Classroom-scoped Contest Routes */}
-                            {classroomContestDetailRoutes}
+                            {/* Classroom-scoped Contest Runtime Routes */}
+                            {classroomContestRuntimeRoutes}
 
                             {/* Classroom Exam Precheck - Classroom-scoped */}
                             {classroomExamPrecheckRoute}

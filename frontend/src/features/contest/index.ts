@@ -5,6 +5,7 @@
 
 export {
   classroomContestDetailRoutes,
+  classroomContestRuntimeRoutes,
   classroomContestAdminRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,

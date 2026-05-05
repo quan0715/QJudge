@@ -43,14 +43,13 @@ import type {
   ParticipantDashboardDetail,
   ParticipantDashboardStatus,
 } from "@/core/entities/contest.entity";
-import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
 import PaperQuestionOverviewTable from "@/features/contest/components/exam/PaperQuestionOverviewTable";
+import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
 import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";
 import { OverviewDataCards } from "@/shared/ui/dataCard";
 import ContainerCard from "@/shared/layout/ContainerCard";
-import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 
 import styles from "./ContestParticipantsDashboard.module.scss";
@@ -650,57 +649,28 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                     </h5>
                     <div className={styles.questionList}>
                       {paperReport.questionDetails.map((row) => (
-                        <div
+                        <PaperQuestionReportCard
                           key={row.questionId}
-                          className={styles.questionItem}
-                        >
-                          <div className={styles.questionHeader}>
-                            <div>
-                              <div className={styles.primaryText}>
-                                Q{row.index} ·{" "}
-                                {t(
-                                  `common:questionType.label.${row.questionType}`,
-                                  questionTypeLabel[row.questionType],
-                                )}
-                              </div>
-                              <div className={styles.secondaryText}>
-                                {row.score ?? "-"} / {row.maxScore}
-                                {row.gradedByUsername
-                                  ? ` • ${row.gradedByUsername}`
-                                  : ""}
-                              </div>
-                            </div>
-                            <Tag type={toTagType(row.status)}>
-                              {row.status.label}
-                            </Tag>
-                          </div>
-                          <div className={styles.questionBody}>
-                            <div className={styles.markdownBlock}>
-                              <MarkdownRenderer enableMath enableHighlight>
-                                {row.prompt}
-                              </MarkdownRenderer>
-                            </div>
-                            <AnswerDisplay
-                              questionType={row.questionType}
-                              answerContent={row.answer}
-                              options={row.options}
-                              correctAnswer={row.correctAnswer}
-                              explanation={row.explanation}
-                            />
-                            {row.feedback ? (
-                              <div>
-                                <div className={styles.secondaryText}>
-                                  {t("dashboard.feedback", "批改評語")}
-                                </div>
-                                <div className={styles.markdownBlock}>
-                                  <MarkdownRenderer enableMath enableHighlight>
-                                    {row.feedback}
-                                  </MarkdownRenderer>
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
+                          questionId={row.questionId}
+                          index={row.index}
+                          questionType={row.questionType}
+                          typeLabel={t(
+                            `common:questionType.label.${row.questionType}`,
+                            questionTypeLabel[row.questionType],
+                          )}
+                          prompt={row.prompt}
+                          options={row.options}
+                          answer={row.answer}
+                          statusLabel={row.status.label}
+                          statusTone={toTagType(row.status)}
+                          showGrading
+                          score={row.score}
+                          maxScore={row.maxScore}
+                          gradedByUsername={row.gradedByUsername}
+                          feedback={row.feedback}
+                          correctAnswer={row.correctAnswer}
+                          explanation={row.explanation}
+                        />
                       ))}
                     </div>
                   </div>
