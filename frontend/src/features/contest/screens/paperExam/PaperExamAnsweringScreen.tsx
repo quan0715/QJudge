@@ -14,7 +14,6 @@ import {
   CheckmarkFilled,
   FlagFilled,
 } from "@carbon/icons-react";
-import ExamStatusBadge from "@/features/contest/components/exam/ExamStatusBadge";
 import { usePaperExamFlow } from "./usePaperExamFlow";
 import { useInterval } from "@/shared/hooks/useInterval";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
@@ -494,13 +493,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
                 {saveStatusLabel}
               </span>
             )}
-            <ExamStatusBadge
-              examStatus={contest?.examStatus}
-              cheatDetectionEnabled={contest?.cheatDetectionEnabled}
-              timeLeft={countdown.display}
-              lockReason={contest?.lockReason}
-              autoUnlockAt={contest?.autoUnlockAt}
-            />
             <Button
               kind="primary"
               data-testid="paper-exam-open-submit-review-btn"
