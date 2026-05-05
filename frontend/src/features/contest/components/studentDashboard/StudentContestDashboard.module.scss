@@ -18,53 +18,10 @@
   padding: 1.5rem;
 }
 
-.sectionHeader,
-.inlineRecordsHeader,
-.chartHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.chartHeader {
-  align-items: center;
-}
-
-.inlineRecordsTitle {
-  margin: 0;
-  color: var(--cds-text-primary);
-  font-size: var(--cds-heading-compact-02-font-size, 1rem);
-  font-weight: 600;
-  line-height: var(--cds-heading-compact-02-line-height, 1.375);
-}
-
-.sectionDescription {
-  margin: 0.25rem 0 0;
-  color: var(--cds-text-secondary);
-  font-size: var(--cds-body-01-font-size, 0.875rem);
-  line-height: var(--cds-body-01-line-height, 1.42857);
-}
-
 .actionStack,
 .modalStack {
   display: grid;
   gap: 0.75rem;
-}
-
-.metricLabel {
-  margin: 0;
-  color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  line-height: var(--cds-label-01-line-height, 1.33333);
-}
-
-.metricValue {
-  margin: 0;
-  color: var(--cds-text-primary);
-  font-size: var(--cds-heading-compact-02-font-size, 1rem);
-  font-weight: 600;
-  line-height: var(--cds-heading-compact-02-line-height, 1.375);
 }
 
 .progressTrack {
@@ -198,7 +155,6 @@
     padding: 1rem;
   }
 
-  .inlineRecordsHeader,
   .problemReportItem {
     display: grid;
     grid-template-columns: 1fr;

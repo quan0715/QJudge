@@ -782,21 +782,22 @@ export default function StudentContestDashboard({
               <TabPanels>
                 <TabPanel className={styles.tabPanel}>
                   <div className={styles.tabContent}>
-                    <div className={styles.sectionHeader}>
-                      <div>
-                        <h3 className={styles.inlineRecordsTitle}>規則說明</h3>
-                        <p className={styles.sectionDescription}>
-                          {requiresPassword
-                            ? "此競賽需要密碼。"
-                            : "此競賽不需要密碼。"}
-                        </p>
-                      </div>
-                      {contest.cheatDetectionEnabled ? (
-                        <WarningAlt size={20} className={styles.warningIcon} />
-                      ) : (
-                        <Checkmark size={20} className={styles.successIcon} />
-                      )}
-                    </div>
+                    <BlockHeader
+                      titleAs="h3"
+                      title="規則說明"
+                      description={
+                        requiresPassword
+                          ? "此競賽需要密碼。"
+                          : "此競賽不需要密碼。"
+                      }
+                      actions={
+                        contest.cheatDetectionEnabled ? (
+                          <WarningAlt size={20} className={styles.warningIcon} />
+                        ) : (
+                          <Checkmark size={20} className={styles.successIcon} />
+                        )
+                      }
+                    />
                     {contest.cheatDetectionEnabled ? (
                       <InlineNotification
                         kind="warning"
@@ -822,17 +823,16 @@ export default function StudentContestDashboard({
                 </TabPanel>
                 <TabPanel className={styles.tabPanel}>
                   <div className={styles.tabContent}>
-                    <div className={styles.inlineRecordsHeader}>
-                      <div>
-                        <h3 className={styles.inlineRecordsTitle}>
-                          {phase === "during"
-                            ? "目前作答狀況"
-                            : phase === "after" && contest.resultsPublished
-                              ? "作答紀錄與成績"
-                              : "作答紀錄"}
-                        </h3>
-                      </div>
-                    </div>
+                    <BlockHeader
+                      titleAs="h3"
+                      title={
+                        phase === "during"
+                          ? "目前作答狀況"
+                          : phase === "after" && contest.resultsPublished
+                            ? "作答紀錄與成績"
+                            : "作答紀錄"
+                      }
+                    />
                     {contest.contestType === "paper_exam"
                       ? renderPaperRecords()
                       : renderCodingRecords()}
