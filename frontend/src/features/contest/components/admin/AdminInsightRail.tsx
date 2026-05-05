@@ -13,6 +13,7 @@ import type {
   DistributionItem,
 } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
+import { MetricBlock } from "@/shared/components/dashboard";
 import styles from "./AdminInsightRail.module.scss";
 
 interface AdminInsightRailProps {
@@ -193,10 +194,7 @@ const DistributionOverview = ({
         </div>
       ) : (
         <>
-          <div className={styles.cardHeader}>
-            <span>{title}</span>
-            <strong>{total} 人</strong>
-          </div>
+          <MetricBlock label={title} value={`${total} 人`} size="lg" />
           {hasDistributionData ? (
             <>
               <div className={styles.distributionChartFrame}>
@@ -331,14 +329,17 @@ function InsightCard({
     );
   return (
     <section className={styles.card} aria-busy={loading}>
-      <div className={styles.cardHeader}>
-        <span>{card.title}</span>
-        {loading ? (
-          <SkeletonText heading width="5rem" />
-        ) : (
-          <strong>{card.value}</strong>
-        )}
-      </div>
+      <MetricBlock
+        label={card.title}
+        value={
+          loading ? (
+            <SkeletonText heading width="5rem" />
+          ) : (
+            card.value
+          )
+        }
+        size="lg"
+      />
       {loading ? (
         card.kind === "line" ? (
           <SkeletonPlaceholder className={styles.chartSkeleton} />

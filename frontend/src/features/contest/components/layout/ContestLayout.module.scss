@@ -55,6 +55,139 @@
   flex: 1;
 }
 
+.contestShellBody {
+  --contest-shell-sidebar-expanded-width: 18rem;
+  --contest-shell-sidebar-collapsed-width: 3rem;
+
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.contestShellSidebar {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cds-layer);
+  border-right: 1px solid var(--cds-border-subtle-01);
+  transition: width 160ms cubic-bezier(0.2, 0, 0.38, 0.9);
+}
+
+.contestShellSidebarExpanded {
+  width: var(--contest-shell-sidebar-expanded-width);
+}
+
+.contestShellSidebarCollapsed {
+  width: var(--contest-shell-sidebar-collapsed-width);
+}
+
+.contestShellNav {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-height: 0;
+  padding: 0.75rem 0.5rem;
+  overflow: hidden;
+}
+
+.contestShellNavButton {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--cds-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.contestShellNavButton:hover {
+  background: var(--cds-layer-hover);
+  color: var(--cds-text-primary);
+}
+
+.contestShellNavButton:focus-visible {
+  outline: 2px solid var(--cds-focus);
+  outline-offset: -2px;
+}
+
+.contestShellNavButtonActive {
+  background: var(--cds-layer-selected);
+  color: var(--cds-text-primary);
+}
+
+.contestShellNavButton span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  line-height: 1.25;
+  text-overflow: ellipsis;
+}
+
+.contestShellSidebarCollapsed .contestShellNav {
+  align-items: center;
+  padding: 0.5rem 0.25rem;
+}
+
+.contestShellSidebarCollapsed .contestShellNavButton {
+  justify-content: center;
+  width: 2.5rem;
+  padding: 0;
+  border-radius: 0.375rem;
+}
+
+.contestShellSidebarCollapsed .contestShellNavButton span {
+  display: none;
+}
+
+.contestShellFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  min-height: 3rem;
+  padding: 0.25rem 0.5rem;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+.contestShellSidebarCollapsed .contestShellFooter {
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.contestShellToggle {
+  flex-shrink: 0;
+  color: var(--cds-icon-primary);
+}
+
+.contestShellContent {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.contestShellBody .contestShellContent > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
 .dashboardContent {
   flex: 1 1 auto;
   min-height: 0;
@@ -120,8 +253,6 @@
   height: 100%;
   padding: 0 1rem;
   color: var(--cds-text-primary);
-  font-family: var(--cds-code-font-family, monospace);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
 
 .headerScoreDisplay {
@@ -250,5 +381,35 @@
 
   .headerActions {
     display: none !important;
+  }
+
+  .contestShellBody {
+    flex-direction: column;
+  }
+
+  .contestShellSidebar {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+  }
+
+  .contestShellNav {
+    flex-direction: row;
+    padding: 0.375rem;
+  }
+
+  .contestShellNavButton {
+    min-height: 3rem;
+    width: auto;
+    max-width: 8rem;
+  }
+
+  .contestShellSidebarCollapsed .contestShellNavButton {
+    width: 2.5rem;
+  }
+
+  .contestShellFooter {
+    display: none;
   }
 }

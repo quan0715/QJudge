@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, Outlet, useParams } from "react-router-dom";
 import {
   Breadcrumb,
@@ -6,16 +7,20 @@ import {
   Header,
   HeaderGlobalBar,
   HeaderGlobalAction,
+  IconButton,
   Modal,
   HeaderNavigation,
 } from "@carbon/react";
 import {
   Maximize,
-  Minimize,
   Time,
   Renew,
   Dashboard,
   ChevronLeft,
+  Home,
+  List,
+  SidePanelClose,
+  SidePanelOpen,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import ExamModeWrapper from "@/features/contest/components/ExamModeWrapper";
@@ -27,12 +32,18 @@ import { useContestExamActions } from "@/features/contest/hooks/useContestExamAc
 import { useContestLayoutState } from "@/features/contest/hooks/useContestLayoutState";
 import {
   getClassroomContestDashboardPath,
+  getClassroomContestPrecheckPath,
+  getFirstContestProblemId,
   getClassroomContestSolvePath,
+  shouldRouteToPrecheck,
 } from "@/features/contest/domain/contestRoutePolicy";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
+import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
 import { SideMenu } from "@/features/app/components/SideMenu";
 import { SideMenuToggle } from "@/features/app/components/SideMenuToggle";
 import { UserMenu } from "@/features/app/components/UserMenu";
+import { ContestLayoutHeaderSlotContext } from "./ContestLayoutHeaderSlotContext";
+import { TimeDisplay } from "@/shared/components/dashboard";
 import styles from "./ContestLayout.module.scss";
 
 const ContestLayout = () => {
@@ -62,12 +73,28 @@ const ContestLayout = () => {
     boundClassroomId && contestId
       ? getClassroomContestDashboardPath(boundClassroomId, contestId)
       : "/dashboard";
+  const precheckPath =
+    boundClassroomId && contestId
+      ? getClassroomContestPrecheckPath(boundClassroomId, contestId)
+      : "/dashboard";
+  const firstProblemId =
+    contest?.contestType === "coding"
+      ? getFirstContestProblemId(contest)
+      : undefined;
+  const answeringPath =
+    boundClassroomId && contestId
+      ? getClassroomContestSolvePath(boundClassroomId, contestId, firstProblemId)
+      : "/dashboard";
   const adminPath =
     boundClassroomId && contestId
       ? `${dashboardPath}/admin`
       : "/dashboard";
 
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  const [contestShellExpanded, setContestShellExpanded] = useState(
+    () => typeof window !== "undefined" && window.innerWidth > 900,
+  );
+  const [headerActions, setHeaderActions] = useState<ReactNode>(null);
   const [monitoringModalOpen, setMonitoringModalOpen] = useState(false);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -90,11 +117,17 @@ const ContestLayout = () => {
 
   const handleGoToAnswering = () => {
     if (!contestId || !contest) return;
-    navigate(
-      boundClassroomId
-        ? getClassroomContestSolvePath(boundClassroomId, contestId)
-        : "/dashboard",
-    );
+    if (
+      boundClassroomId &&
+      shouldRouteToPrecheck({
+        contest,
+        precheckPassed: hasExamPrecheckPassed(contest.id),
+      })
+    ) {
+      navigate(precheckPath);
+      return;
+    }
+    navigate(answeringPath);
   };
 
   const {
@@ -117,6 +150,10 @@ const ContestLayout = () => {
     },
     onError: showError,
   });
+  const headerSlotValue = useMemo(
+    () => ({ setHeaderActions }),
+    [setHeaderActions],
+  );
 
   if (contestLoading) {
     return (
@@ -239,138 +276,228 @@ const ContestLayout = () => {
   const showScoreDisplay =
     isSolvePage && contest?.problems && contest.problems.length > 0;
   const hideSolveNavExtras = isSolvePage && contest?.contestType === "coding";
-  const showContestMenuToggle = !hideSolveNavExtras && !lockContestMenu;
+  const isPaperSolvePage = isSolvePage && contest?.contestType === "paper_exam";
+  const showContestShellSidebar =
+    !isPaperSolvePage &&
+    isContestParticipant &&
+    !!contestId &&
+    !!boundClassroomId &&
+    (isSolvePage ||
+      contest?.examStatus === "in_progress" ||
+      contest?.examStatus === "paused" ||
+      contest?.examStatus === "locked");
+  const showContestMenuToggle =
+    !showContestShellSidebar && !hideSolveNavExtras && !lockContestMenu;
   const effectiveSideMenuOpen = showContestMenuToggle && sideMenuOpen;
+  const renderContestShellContent = () => {
+    const mainContent = renderMainContent();
+    if (!showContestShellSidebar) return mainContent;
+
+    const homeLabel = t("contestShell.home", "總覽");
+    const answeringLabel =
+      contest?.contestType === "paper_exam"
+        ? t("contestShell.paperAnswering", "作答")
+        : t("contestShell.codingAnswering", "解題");
+
+    return (
+      <div className={styles.contestShellBody}>
+        <aside
+          className={[
+            styles.contestShellSidebar,
+            contestShellExpanded
+              ? styles.contestShellSidebarExpanded
+              : styles.contestShellSidebarCollapsed,
+          ].join(" ")}
+          aria-label={t("contestShell.sidebarLabel", "考試導覽")}
+        >
+          <div className={styles.contestShellNav}>
+            <button
+              type="button"
+              className={`${styles.contestShellNavButton} ${
+                !isSolvePage ? styles.contestShellNavButtonActive : ""
+              }`}
+              aria-current={!isSolvePage ? "page" : undefined}
+              aria-label={homeLabel}
+              title={homeLabel}
+              onClick={() => navigate(dashboardPath)}
+            >
+              <Home size={20} />
+              <span>{homeLabel}</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.contestShellNavButton} ${
+                isSolvePage ? styles.contestShellNavButtonActive : ""
+              }`}
+              aria-current={isSolvePage ? "page" : undefined}
+              aria-label={answeringLabel}
+              title={answeringLabel}
+              onClick={handleGoToAnswering}
+            >
+              <List size={20} />
+              <span>{answeringLabel}</span>
+            </button>
+          </div>
+          <div className={styles.contestShellFooter}>
+            <IconButton
+              kind="ghost"
+              size="md"
+              align="top"
+              label={
+                contestShellExpanded
+                  ? tc("ui.collapseSidebar", "收合側欄")
+                  : tc("ui.expandSidebar", "展開側欄")
+              }
+              onClick={() => setContestShellExpanded((expanded) => !expanded)}
+              className={styles.contestShellToggle}
+            >
+              {contestShellExpanded ? (
+                <SidePanelClose size={20} />
+              ) : (
+                <SidePanelOpen size={20} />
+              )}
+            </IconButton>
+          </div>
+        </aside>
+        <div className={styles.contestShellContent}>{mainContent}</div>
+      </div>
+    );
+  };
 
   return (
     <ExamModeWrapper {...examModeProps}>
-      {isPaperExamPage ? (
-        renderMainContent()
-      ) : (
-        <div className={styles.root}>
-          <Header aria-label={t("header.contestPlatform")}>
-            {showContestMenuToggle ? (
-              <SideMenuToggle
-                isOpen={effectiveSideMenuOpen}
-                onClick={() => setSideMenuOpen((o) => !o)}
-              />
-            ) : hideSolveNavExtras ? (
-              <button
-                type="button"
-                className={`side-menu-toggle ${styles.solveBackButton}`}
-                aria-label={t("adminLayout.header.backToHome", "返回競賽主頁")}
-                title={t("adminLayout.header.backToHome", "返回競賽主頁")}
-                onClick={() => navigate(dashboardPath)}
-              >
-                <ChevronLeft size={20} />
-              </button>
-            ) : null}
-            <div className={styles.headerBrand}>
-              <Link to="/dashboard" className={styles.headerBrandLink}>
-                {tc("header.prefix")}
-              </Link>
-              {renderContestBreadcrumb()}
-            </div>
+      <ContestLayoutHeaderSlotContext.Provider value={headerSlotValue}>
+      <div className={styles.root}>
+        <Header aria-label={t("header.contestPlatform")}>
+          {showContestMenuToggle ? (
+            <SideMenuToggle
+              isOpen={effectiveSideMenuOpen}
+              onClick={() => setSideMenuOpen((o) => !o)}
+            />
+          ) : hideSolveNavExtras && !showContestShellSidebar ? (
+            <button
+              type="button"
+              className={`side-menu-toggle ${styles.solveBackButton}`}
+              aria-label={t("adminLayout.header.backToHome", "返回競賽主頁")}
+              title={t("adminLayout.header.backToHome", "返回競賽主頁")}
+              onClick={() => navigate(dashboardPath)}
+            >
+              <ChevronLeft size={20} />
+            </button>
+          ) : null}
+          <div className={styles.headerBrand}>
+            <Link to="/dashboard" className={styles.headerBrandLink}>
+              {tc("header.prefix")}
+            </Link>
+            {renderContestBreadcrumb()}
+          </div>
 
-            <HeaderNavigation aria-label={tc("header.contestNavigation")}>
-              {showContestTimer && !boundClassroomId && (
-                <div className={styles.headerTimerDisplay}>
-                  <Time size={16} />
-                  <span>
-                    {isCountdownToStart
+          <HeaderNavigation aria-label={tc("header.contestNavigation")}>
+            {showContestTimer && !boundClassroomId && (
+              <div className={styles.headerTimerDisplay}>
+                <Time size={16} />
+                <TimeDisplay
+                  variant="header"
+                  value={
+                    isCountdownToStart
                       ? t("timeToStart", { time: timeLeft })
-                      : timeLeft}
-                  </span>
-                </div>
-              )}
+                      : timeLeft
+                  }
+                />
+              </div>
+            )}
 
-              {showScoreDisplay && (
-                <div className={styles.headerScoreDisplay}>
-                  <span className={styles.scoreLabel}>{t("overview.scoreLabel")}</span>
-                  <span
-                    className={`${styles.scoreValue} ${userScore > 0 ? styles.hasScore : ""}`}
-                  >
-                    {userScore}
-                  </span>
-                  <span className={styles.scoreDivider}>/</span>
-                  <span className={styles.totalScore}>{totalMaxScore}</span>
-                </div>
-              )}
-            </HeaderNavigation>
-
-            <HeaderGlobalBar>
-              {renderExamStatus()}
-
-              {isAdmin && (
-                <HeaderGlobalAction
-                  aria-label={t("preRegistration.openAdminPanel", "前往管理後台")}
-                  tooltipAlignment="center"
-                  onClick={() => navigate(adminPath)}
+            {showScoreDisplay && (
+              <div className={styles.headerScoreDisplay}>
+                <span className={styles.scoreLabel}>{t("overview.scoreLabel")}</span>
+                <span
+                  className={`${styles.scoreValue} ${userScore > 0 ? styles.hasScore : ""}`}
                 >
-                  <Dashboard size={20} />
-                </HeaderGlobalAction>
-              )}
+                  {userScore}
+                </span>
+                <span className={styles.scoreDivider}>/</span>
+                <span className={styles.totalScore}>{totalMaxScore}</span>
+              </div>
+            )}
+          </HeaderNavigation>
 
+          <HeaderGlobalBar>
+            {renderExamStatus()}
+
+            {headerActions}
+
+            {isAdmin && (
               <HeaderGlobalAction
-                aria-label={isRefreshing ? t('action.refreshing') : t("refresh")}
+                aria-label={t("preRegistration.openAdminPanel", "前往管理後台")}
                 tooltipAlignment="center"
-                onClick={isRefreshing ? undefined : refreshContest}
-                className={styles.headerActions}
+                onClick={() => navigate(adminPath)}
               >
-                <Renew size={20} className={isRefreshing ? styles.refreshing : undefined} />
+                <Dashboard size={20} />
               </HeaderGlobalAction>
+            )}
 
+            <HeaderGlobalAction
+              aria-label={isRefreshing ? t('action.refreshing') : t("refresh")}
+              tooltipAlignment="center"
+              onClick={isRefreshing ? undefined : refreshContest}
+              className={styles.headerActions}
+            >
+              <Renew size={20} className={isRefreshing ? styles.refreshing : undefined} />
+            </HeaderGlobalAction>
+
+            {!isFullscreen && (
               <HeaderGlobalAction
-                aria-label={isFullscreen ? t("exitFullscreen") : t("enterFullscreen")}
+                aria-label={t("enterFullscreen")}
                 tooltipAlignment="center"
                 onClick={toggleFullscreen}
                 className={styles.headerActions}
               >
-                {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                <Maximize size={20} />
               </HeaderGlobalAction>
+            )}
 
-              <UserMenu
-                contestMode
-                contest={contest}
-                onContestRefresh={refreshContest}
-                settingsOnly={lockContestMenu}
-              />
-            </HeaderGlobalBar>
+            <UserMenu
+              contestMode
+              contest={contest}
+              onContestRefresh={refreshContest}
+              settingsOnly={lockContestMenu}
+            />
+          </HeaderGlobalBar>
 
-            {showContestMenuToggle ? (
-              <SideMenu
-                isOpen={effectiveSideMenuOpen}
-                onClose={() => setSideMenuOpen(false)}
-              />
-            ) : null}
-          </Header>
+          {showContestMenuToggle ? (
+            <SideMenu
+              isOpen={effectiveSideMenuOpen}
+              onClose={() => setSideMenuOpen(false)}
+            />
+          ) : null}
+        </Header>
 
-          <ExamModeMonitorModal
-            open={monitoringModalOpen}
-            onRequestClose={() => setMonitoringModalOpen(false)}
-          />
+        <ExamModeMonitorModal
+          open={monitoringModalOpen}
+          onRequestClose={() => setMonitoringModalOpen(false)}
+        />
 
-          <div className={styles.mainContent}>
-            <div className={styles.contentWrapper}>
-              {renderMainContent()}
-            </div>
+        <div className={styles.mainContent}>
+          <div className={styles.contentWrapper}>
+            {renderContestShellContent()}
           </div>
-
-          <ExamSubmissionProgressModal
-            state={submissionProgress.state}
-            onRequestClose={submissionProgress.close}
-          />
-
-          <Modal
-            open={errorModalOpen}
-            modalHeading={tc("message.error")}
-            passiveModal
-            onRequestClose={() => setErrorModalOpen(false)}
-          >
-            <p>{errorMessage}</p>
-          </Modal>
         </div>
-      )}
+
+        <ExamSubmissionProgressModal
+          state={submissionProgress.state}
+          onRequestClose={submissionProgress.close}
+        />
+
+        <Modal
+          open={errorModalOpen}
+          modalHeading={tc("message.error")}
+          passiveModal
+          onRequestClose={() => setErrorModalOpen(false)}
+        >
+          <p>{errorMessage}</p>
+        </Modal>
+      </div>
+      </ContestLayoutHeaderSlotContext.Provider>
     </ExamModeWrapper>
   );
 };
