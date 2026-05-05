@@ -13,6 +13,7 @@
     "cf:landing:deploy:preview": "npm run build:landing && npx wrangler pages deploy dist-landing --project-name=qjudge-landing --branch=preview",
     "check:docs": "node scripts/check-docs-translations.js",
     "check:i18n": "node scripts/check-i18n-sync.js",
+    "check:typography": "node scripts/check-typography-tokens.js",
     "sync:i18n": "node scripts/sync-i18n.js",
     "lint": "eslint . --max-warnings=9999",
     "preview": "vite preview",
