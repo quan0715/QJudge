@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChangeEventHandler, ReactNode } from "react";
 import type {
   ContestDetail,
@@ -242,6 +242,10 @@ const renderDashboard = (
   );
 
 describe("StudentContestDashboard", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -259,7 +263,8 @@ describe("StudentContestDashboard", () => {
     expect(screen.getByRole("button", { name: /加入競賽/ })).toBeInTheDocument();
   });
 
-  it("renders contest announcements above the tabs", async () => {
+  // 公告 block 暫時於 view 中隱藏（SHOW_ANNOUNCEMENTS=false），啟用時恢復此測試
+  it.skip("renders contest announcements above the tabs", async () => {
     vi.mocked(getContestAnnouncements).mockResolvedValueOnce([
       {
         id: "ann-1",

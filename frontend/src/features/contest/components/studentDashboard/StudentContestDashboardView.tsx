@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScaleTypes } from "@carbon/charts";
 import { LollipopChart } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
@@ -115,6 +115,9 @@ const QUESTION_TYPE_LABEL: Record<string, string> = {
 
 const PASSING_SCORE_THRESHOLD_PERCENT = 60;
 
+// 公告 block 暫時隱藏（資料拉取與渲染邏輯保留，flip 為 true 即可恢復）
+const SHOW_ANNOUNCEMENTS = false;
+
 const resolveCarbonChartTheme = (
   theme: string,
 ): "white" | "g10" | "g90" | "g100" => {
@@ -180,6 +183,22 @@ export default function StudentContestDashboard({
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
   const { theme } = useTheme();
+  const tr = useCallback(
+    (
+      key: string,
+      defaultValue: string,
+      values?: Record<string, string | number>,
+    ) => {
+      const translated = values
+        ? t(key, { defaultValue, ...values })
+        : t(key, defaultValue);
+      if (typeof translated === "string") return translated;
+      return defaultValue.replace(/{{(\w+)}}/g, (_, name) =>
+        String(values?.[name] ?? ""),
+      );
+    },
+    [t],
+  );
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [infoTab, setInfoTab] = useState<"rules" | "records">("rules");
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -262,7 +281,13 @@ export default function StudentContestDashboard({
 
       setPaperData({
         loading: false,
-        error: questionsResult.status === "rejected" ? "題目資料暫時無法載入" : null,
+        error:
+          questionsResult.status === "rejected"
+            ? tr(
+                "studentDashboard.errors.questionsLoadFailed",
+                "題目資料暫時無法載入",
+              )
+            : null,
         questions,
         answers,
         results,
@@ -299,7 +324,12 @@ export default function StudentContestDashboard({
         if (cancelled) return;
         setAnnouncements([]);
         setAnnouncementsError(
-          error instanceof Error ? error.message : "公告暫時無法載入",
+          error instanceof Error
+            ? error.message
+            : tr(
+                "studentDashboard.errors.announcementsLoadFailed",
+                "公告暫時無法載入",
+              ),
         );
       } finally {
         if (!cancelled) setAnnouncementsLoading(false);
@@ -335,7 +365,12 @@ export default function StudentContestDashboard({
         if (cancelled) return;
         setScoreSummary(null);
         setScoreSummaryError(
-          error instanceof Error ? error.message : "成績分布暫時無法載入",
+          error instanceof Error
+            ? error.message
+            : tr(
+                "studentDashboard.errors.scoreDistributionLoadFailed",
+                "成績分布暫時無法載入",
+              ),
         );
       } finally {
         if (!cancelled) setScoreSummaryLoading(false);
@@ -388,16 +423,16 @@ export default function StudentContestDashboard({
     contest.allowMultipleJoins;
   const scoreDisplay = contest.resultsPublished
     ? progressSummary.totalScore === null
-      ? "成績已發布"
+      ? t("studentDashboard.results.published", "成績已發布")
       : `${progressSummary.totalScore} / ${progressSummary.maxScore}`
-    : "尚未發布";
+    : t("studentDashboard.results.unpublished", "尚未發布");
   const afterPhaseValue =
     contest.contestType === "paper_exam" && paperData.loading
-      ? "載入中..."
+      ? t("studentDashboard.loading", "載入中...")
       : scoreDisplay;
   const reportDownloadLabel = contest.resultsPublished
-    ? "下載成績單"
-    : "下載作答證明";
+    ? t("studentDashboard.actions.downloadReport", "下載成績單")
+    : t("studentDashboard.actions.downloadProof", "下載作答證明");
   const startMs = Date.parse(contest.startTime);
   const endMs = Date.parse(contest.endTime);
   const durationDisplay =
@@ -481,21 +516,25 @@ export default function StudentContestDashboard({
           disabled={!canRegister}
           onClick={() => setShowRegisterModal(true)}
         >
-          {canRegister ? "加入競賽" : "目前不可加入"}
+          {canRegister
+            ? t("studentDashboard.actions.join", "加入競賽")
+            : t("studentDashboard.actions.joinUnavailable", "目前不可加入")}
         </Button>
       );
     }
     if (canStartExam || canResumeExam) {
       return (
         <Button renderIcon={Play} onClick={onStartExam}>
-          {canResumeExam ? "恢復作答" : "開始作答"}
+          {canResumeExam
+            ? t("studentDashboard.actions.resume", "恢復作答")
+            : t("studentDashboard.actions.start", "開始作答")}
         </Button>
       );
     }
     if (canGoToAnswering) {
       return (
         <Button renderIcon={Launch} onClick={onGoToAnswering}>
-          回到作答
+          {t("studentDashboard.actions.backToAnswering", "回到作答")}
         </Button>
       );
     }
@@ -511,7 +550,7 @@ export default function StudentContestDashboard({
           </Button>
           {canRestartSubmittedExam ? (
             <Button renderIcon={Play} onClick={onStartExam}>
-              重新加入
+              {t("studentDashboard.actions.rejoin", "重新加入")}
             </Button>
           ) : null}
         </>
@@ -519,14 +558,20 @@ export default function StudentContestDashboard({
     }
     return (
       <Button kind="secondary" disabled renderIcon={Time}>
-        {phase === "before" ? "等待開始" : "不可作答"}
+        {phase === "before"
+          ? t("studentDashboard.actions.waitingStart", "等待開始")
+          : t("studentDashboard.actions.unavailable", "不可作答")}
       </Button>
     );
   };
 
   const renderCodingRecords = () => {
     if (!hasAnswerRecord) {
-      return <p className={styles.emptyText}>尚無作答紀錄。</p>;
+      return (
+        <p className={styles.emptyText}>
+          {t("studentDashboard.empty.noAnswerRecords", "尚無作答紀錄。")}
+        </p>
+      );
     }
 
     const problems = contest.problems.map((problem, index) => ({
@@ -540,13 +585,19 @@ export default function StudentContestDashboard({
     }));
 
     if (!problems.length) {
-      return <p className={styles.emptyText}>尚無題目資料。</p>;
+      return (
+        <p className={styles.emptyText}>
+          {t("studentDashboard.empty.noQuestions", "尚無題目資料。")}
+        </p>
+      );
     }
 
     return (
       <div className={styles.problemReportList}>
         {problems.map((problem) => {
-          const statusText = problem.userStatus ?? "尚未提交";
+          const statusText =
+            problem.userStatus ??
+            t("studentDashboard.records.notSubmitted", "尚未提交");
           return (
             <div className={styles.problemReportItem} key={problem.id}>
               <div>
@@ -554,7 +605,9 @@ export default function StudentContestDashboard({
                   {problem.label}. {problem.title || "Untitled"}
                 </div>
                 <div className={styles.recordMeta}>
-                  滿分 {problem.score ?? 0}
+                  {tr("studentDashboard.records.fullScore", "滿分 {{score}}", {
+                    score: problem.score ?? 0,
+                  })}
                 </div>
               </div>
               <div className={styles.problemReportMeta}>
@@ -562,7 +615,9 @@ export default function StudentContestDashboard({
                   {statusText}
                 </Tag>
                 <span className={styles.recordScore}>
-                  {contest.resultsPublished ? "成績已發布" : "待發布"}
+                  {contest.resultsPublished
+                    ? t("studentDashboard.results.published", "成績已發布")
+                    : t("studentDashboard.results.pendingPublish", "待發布")}
                 </span>
               </div>
             </div>
@@ -574,12 +629,26 @@ export default function StudentContestDashboard({
 
   const renderPaperRecords = () => {
     if (!hasAnswerRecord || phase === "before") {
-      return <p className={styles.emptyText}>尚無作答紀錄。</p>;
+      return (
+        <p className={styles.emptyText}>
+          {t("studentDashboard.empty.noAnswerRecords", "尚無作答紀錄。")}
+        </p>
+      );
     }
-    if (paperData.loading) return <p className={styles.emptyText}>載入作答資料中...</p>;
+    if (paperData.loading) {
+      return (
+        <p className={styles.emptyText}>
+          {t("studentDashboard.loadingAnswers", "載入作答資料中...")}
+        </p>
+      );
+    }
     if (paperData.error) return <p className={styles.errorText}>{paperData.error}</p>;
     if (!paperData.questions.length) {
-      return <p className={styles.emptyText}>尚無題目資料。</p>;
+      return (
+        <p className={styles.emptyText}>
+          {t("studentDashboard.empty.noQuestions", "尚無題目資料。")}
+        </p>
+      );
     }
 
     const resultMap = new Map(
@@ -607,25 +676,45 @@ export default function StudentContestDashboard({
           const status =
             marked
               ? {
-                  label: "已標記",
+                  label: t("studentDashboard.answerStatus.marked", "已標記"),
                   tone: "warm-gray" as const,
                   emphasis: "warning" as const,
                 }
               : !answered
-              ? { label: "未作答", tone: "warm-gray" as const }
+              ? {
+                  label: t("studentDashboard.answerStatus.unanswered", "未作答"),
+                  tone: "warm-gray" as const,
+                }
               : !contest.resultsPublished
                 ? {
-                    label: "已作答",
+                    label: t("studentDashboard.answerStatus.answered", "已作答"),
                     tone: "cool-gray" as const,
                   }
                 : result?.isCorrect === true
-                  ? { label: "正確", tone: "green" as const }
+                  ? {
+                      label: t("studentDashboard.answerStatus.correct", "正確"),
+                      tone: "green" as const,
+                    }
                   : result?.isCorrect === false
                     ? (result?.score ?? 0) > 0
-                      ? { label: "部分得分", tone: "cyan" as const }
-                      : { label: "未得分", tone: "red" as const }
+                      ? {
+                          label: t(
+                            "studentDashboard.answerStatus.partial",
+                            "部分得分",
+                          ),
+                          tone: "cyan" as const,
+                        }
+                      : {
+                          label: t(
+                            "studentDashboard.answerStatus.noScore",
+                            "未得分",
+                          ),
+                          tone: "red" as const,
+                        }
                     : {
-                        label: result?.gradedAt ? "已批改" : "待批改",
+                        label: result?.gradedAt
+                          ? t("studentDashboard.answerStatus.graded", "已批改")
+                          : t("studentDashboard.answerStatus.pendingGrading", "待批改"),
                         tone: "warm-gray" as const,
                       };
           const prompt =
@@ -671,13 +760,21 @@ export default function StudentContestDashboard({
 
   const renderAnnouncements = () => {
     if (announcementsLoading) {
-      return <p className={styles.emptyText}>載入公告中...</p>;
+      return (
+        <p className={styles.emptyText}>
+          {t("studentDashboard.announcements.loading", "載入公告中...")}
+        </p>
+      );
     }
     if (announcementsError) {
       return <p className={styles.errorText}>{announcementsError}</p>;
     }
     if (!announcements.length) {
-      return <p className={styles.emptyText}>目前沒有公告。</p>;
+      return (
+        <p className={styles.emptyText}>
+          {t("studentDashboard.announcements.empty", "目前沒有公告。")}
+        </p>
+      );
     }
 
     return (
@@ -706,23 +803,39 @@ export default function StudentContestDashboard({
   const tagRow = (
     <div className={styles.tagRow}>
       <Tag type={getContestStateColor(contestState)}>
-        {getContestStateLabel(contestState)}
+        {t(
+          `studentDashboard.contestState.${contestState}`,
+          getContestStateLabel(contestState),
+        )}
       </Tag>
       <Tag type={participant ? "green" : "gray"}>
-        {participant ? "已加入" : "未加入"}
+        {participant
+          ? t("studentDashboard.joinStatus.joined", "已加入")
+          : t("studentDashboard.joinStatus.notJoined", "未加入")}
       </Tag>
-      {contest.cheatDetectionEnabled ? <Tag type="red">監控中</Tag> : null}
+      {contest.cheatDetectionEnabled ? (
+        <Tag type="red">
+          {t("studentDashboard.monitoring.enabled", "監控中")}
+        </Tag>
+      ) : null}
     </div>
   );
 
   return (
-    <DashboardPage ariaLabel="學生競賽首頁" fullBleed>
+    <DashboardPage
+      ariaLabel={t("studentDashboard.ariaLabel", "學生競賽首頁")}
+      fullBleed
+    >
       <DashboardContainer
         layout="split"
         proportions="main-aside"
         dividers="auto"
       >
-        <DashboardContainer layout="stack" dividers="auto" ariaLabel="競賽主要內容">
+        <DashboardContainer
+          layout="stack"
+          dividers="auto"
+          ariaLabel={t("studentDashboard.mainContent", "競賽主要內容")}
+        >
           <DashboardBlock>
             <BlockHeader
               titleSize="page"
@@ -737,7 +850,7 @@ export default function StudentContestDashboard({
                     void onRefreshContest?.();
                   }}
                 >
-                  重新整理
+                  {t("studentDashboard.actions.refresh", "重新整理")}
                 </Button>
               }
             />
@@ -747,29 +860,36 @@ export default function StudentContestDashboard({
             layout="grid"
             columns={3}
             dividers="auto"
-            ariaLabel="競賽資訊"
+            ariaLabel={t("studentDashboard.infoLabel", "競賽資訊")}
           >
             <DashboardBlock>
               <MetricBlock
-                label="開始時間"
+                label={t("studentDashboard.metrics.startTime", "開始時間")}
                 value={formatDate(contest.startTime, { includeSeconds: false })}
               />
             </DashboardBlock>
             <DashboardBlock>
               <MetricBlock
-                label="截止時間"
+                label={t("studentDashboard.metrics.endTime", "截止時間")}
                 value={formatDate(contest.endTime, { includeSeconds: false })}
               />
             </DashboardBlock>
             <DashboardBlock>
-              <MetricBlock label="總時長" value={durationDisplay} />
+              <MetricBlock
+                label={t("studentDashboard.metrics.duration", "總時長")}
+                value={durationDisplay}
+              />
             </DashboardBlock>
           </DashboardContainer>
 
-          <DashboardBlock>
-            <BlockHeader title="公告" />
-            {renderAnnouncements()}
-          </DashboardBlock>
+          {SHOW_ANNOUNCEMENTS ? (
+            <DashboardBlock>
+              <BlockHeader
+                title={t("studentDashboard.announcements.title", "公告")}
+              />
+              {renderAnnouncements()}
+            </DashboardBlock>
+          ) : null}
 
           <DashboardBlock padding="flush">
             <DashboardTabs
@@ -777,21 +897,33 @@ export default function StudentContestDashboard({
               onChange={(id) => setInfoTab(id as "rules" | "records")}
             >
               <DashboardTabBar
-                ariaLabel="競賽資訊切換"
+                ariaLabel={t("studentDashboard.tabs.ariaLabel", "競賽資訊切換")}
                 tabs={[
-                  { id: "rules", label: "規則說明" },
-                  { id: "records", label: "作答紀錄" },
+                  {
+                    id: "rules",
+                    label: t("studentDashboard.tabs.rules", "規則說明"),
+                  },
+                  {
+                    id: "records",
+                    label: t("studentDashboard.tabs.records", "作答紀錄"),
+                  },
                 ]}
               />
               <DashboardTabPanel tabId="rules">
                 <div className={styles.tabContent}>
                   <BlockHeader
                     titleAs="h3"
-                    title="規則說明"
+                    title={t("studentDashboard.rules.title", "規則說明")}
                     description={
                       requiresPassword
-                        ? "此競賽需要密碼。"
-                        : "此競賽不需要密碼。"
+                        ? t(
+                            "studentDashboard.rules.requiresPassword",
+                            "此競賽需要密碼。",
+                          )
+                        : t(
+                            "studentDashboard.rules.noPassword",
+                            "此競賽不需要密碼。",
+                          )
                     }
                     actions={
                       contest.cheatDetectionEnabled ? (
@@ -806,8 +938,14 @@ export default function StudentContestDashboard({
                       kind="warning"
                       lowContrast
                       hideCloseButton
-                      title="已啟用監控"
-                      subtitle="進入作答後會啟用全螢幕、分頁切換與裝置監控。"
+                      title={t(
+                        "studentDashboard.monitoring.title",
+                        "已啟用監控",
+                      )}
+                      subtitle={t(
+                        "studentDashboard.monitoring.subtitle",
+                        "進入作答後會啟用全螢幕、分頁切換與裝置監控。",
+                      )}
                     />
                   ) : null}
                   {contest.description ? (
@@ -820,7 +958,9 @@ export default function StudentContestDashboard({
                       <MarkdownRenderer>{contest.rules}</MarkdownRenderer>
                     </div>
                   ) : (
-                    <p className={styles.emptyText}>沒有額外規則。</p>
+                    <p className={styles.emptyText}>
+                      {t("studentDashboard.rules.empty", "沒有額外規則。")}
+                    </p>
                   )}
                 </div>
               </DashboardTabPanel>
@@ -830,10 +970,13 @@ export default function StudentContestDashboard({
                     titleAs="h3"
                     title={
                       phase === "during"
-                        ? "目前作答狀況"
+                        ? t("studentDashboard.records.currentStatus", "目前作答狀況")
                         : phase === "after" && contest.resultsPublished
-                          ? "作答紀錄與成績"
-                          : "作答紀錄"
+                          ? t(
+                              "studentDashboard.records.withResults",
+                              "作答紀錄與成績",
+                            )
+                          : t("studentDashboard.records.title", "作答紀錄")
                     }
                   />
                   {contest.contestType === "paper_exam"
@@ -845,20 +988,36 @@ export default function StudentContestDashboard({
           </DashboardBlock>
         </DashboardContainer>
 
-        <DashboardContainer layout="stack" dividers="auto" ariaLabel="競賽摘要">
+        <DashboardContainer
+          layout="stack"
+          dividers="auto"
+          ariaLabel={t("studentDashboard.summary.ariaLabel", "競賽摘要")}
+        >
           <DashboardBlock>
             <CountdownProgress
               startTime={contest.startTime}
               endTime={contest.endTime}
               afterPhase={
                 contest.resultsPublished
-                  ? { label: "考試成績", value: afterPhaseValue }
-                  : { label: "考試狀態", value: "等待成績發布" }
+                  ? {
+                      label: t("studentDashboard.summary.examResult", "考試成績"),
+                      value: afterPhaseValue,
+                    }
+                  : {
+                      label: t("studentDashboard.summary.examStatus", "考試狀態"),
+                      value: t(
+                        "studentDashboard.results.waitingPublish",
+                        "等待成績發布",
+                      ),
+                    }
               }
             />
           </DashboardBlock>
 
-          <KPIBlock title="完成率" value={`${progressPercent}%`}>
+          <KPIBlock
+            title={t("studentDashboard.summary.completionRate", "完成率")}
+            value={`${progressPercent}%`}
+          >
             <div className={styles.progressTrack} aria-hidden="true">
               <div
                 className={styles.progressFill}
@@ -869,10 +1028,17 @@ export default function StudentContestDashboard({
 
           {contest.resultsPublished && contest.contestType === "paper_exam" ? (
             <KPIBlock
-              title="成績分布"
+              title={t("studentDashboard.summary.scoreDistribution", "成績分布")}
               value={
                 scoreSummary
-                  ? `平均 ${scoreSummary.summary.average_score.toFixed(1)} / ${scoreSummary.summary.max_total_score}`
+                  ? tr(
+                      "studentDashboard.summary.averageScore",
+                      "平均 {{average}} / {{max}}",
+                      {
+                        average: scoreSummary.summary.average_score.toFixed(1),
+                        max: scoreSummary.summary.max_total_score,
+                      },
+                    )
                   : "—"
               }
             >
@@ -887,7 +1053,12 @@ export default function StudentContestDashboard({
                     options={scoreDistributionOptions}
                   />
                 ) : (
-                  <p className={styles.emptyText}>尚無成績分布資料。</p>
+                  <p className={styles.emptyText}>
+                    {t(
+                      "studentDashboard.empty.noScoreDistribution",
+                      "尚無成績分布資料。",
+                    )}
+                  </p>
                 )}
               </div>
             </KPIBlock>
@@ -902,12 +1073,12 @@ export default function StudentContestDashboard({
                   renderIcon={Flag}
                   onClick={() => setShowEndConfirm(true)}
                 >
-                  交卷
+                  {t("studentDashboard.actions.submit", "交卷")}
                 </Button>
               ) : null}
               {isAdmin && onOpenAdminPanel ? (
                 <Button kind="ghost" renderIcon={Launch} onClick={onOpenAdminPanel}>
-                  管理後台
+                  {t("studentDashboard.actions.adminPanel", "管理後台")}
                 </Button>
               ) : null}
             </div>
@@ -924,8 +1095,8 @@ export default function StudentContestDashboard({
 
       <Modal
         open={showEndConfirm}
-        modalHeading="確認交卷"
-        primaryButtonText="確認交卷"
+        modalHeading={t("studentDashboard.submitConfirm.heading", "確認交卷")}
+        primaryButtonText={t("studentDashboard.submitConfirm.confirm", "確認交卷")}
         secondaryButtonText={tc("button.cancel")}
         danger
         onRequestSubmit={() => {
@@ -934,13 +1105,22 @@ export default function StudentContestDashboard({
         }}
         onRequestClose={() => setShowEndConfirm(false)}
       >
-        <p>交卷後將無法繼續修改答案。</p>
+        <p>
+          {t(
+            "studentDashboard.submitConfirm.body",
+            "交卷後將無法繼續修改答案。",
+          )}
+        </p>
       </Modal>
 
       <Modal
         open={showReportModal}
         modalHeading={reportDownloadLabel}
-        primaryButtonText={reportDownloading ? "準備中" : "下載"}
+        primaryButtonText={
+          reportDownloading
+            ? t("studentDashboard.report.preparing", "準備中")
+            : t("studentDashboard.report.download", "下載")
+        }
         secondaryButtonText={tc("button.cancel")}
         primaryButtonDisabled={reportDownloading}
         onRequestSubmit={handleDownloadReport}
@@ -952,21 +1132,33 @@ export default function StudentContestDashboard({
         <div className={styles.modalStack}>
           <Select
             id="student-contest-report-language"
-            labelText="報告語言"
+            labelText={t("studentDashboard.report.language", "報告語言")}
             value={reportLanguage}
             onChange={(event) => setReportLanguage(event.target.value)}
           >
-            <SelectItem value="zh-TW" text="繁體中文" />
-            <SelectItem value="en" text="English" />
-            <SelectItem value="ja" text="日本語" />
-            <SelectItem value="ko" text="한국어" />
+            <SelectItem
+              value="zh-TW"
+              text={t("studentDashboard.report.languages.zhTW", "繁體中文")}
+            />
+            <SelectItem
+              value="en"
+              text={t("studentDashboard.report.languages.en", "English")}
+            />
+            <SelectItem
+              value="ja"
+              text={t("studentDashboard.report.languages.ja", "日本語")}
+            />
+            <SelectItem
+              value="ko"
+              text={t("studentDashboard.report.languages.ko", "한국어")}
+            />
           </Select>
           {reportError ? (
             <InlineNotification
               kind="error"
               lowContrast
               hideCloseButton
-              title="下載失敗"
+              title={t("studentDashboard.report.failedTitle", "下載失敗")}
               subtitle={reportError}
             />
           ) : null}
