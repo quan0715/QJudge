@@ -30,6 +30,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type {
+  ContestAnnouncement,
   ContestDetail,
   ExamQuestion,
   ExamQuestionType,
@@ -40,10 +41,12 @@ import {
   getContestStateLabel,
 } from "@/core/entities/contest.entity";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
+import { getContestAnnouncements } from "@/infrastructure/api/repositories/contestAnnouncements.repository";
 import {
   getExamDashboardSummary,
   type ExamDashboardSummaryDto,
 } from "@/infrastructure/api/repositories/exam.repository";
+import { mapContestAnnouncementDto } from "@/infrastructure/mappers/contest.mapper";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import {
   getExamResults,
@@ -220,6 +223,9 @@ export default function StudentContestDashboard({
     useState<ExamDashboardSummaryDto | null>(null);
   const [scoreSummaryLoading, setScoreSummaryLoading] = useState(false);
   const [scoreSummaryError, setScoreSummaryError] = useState<string | null>(null);
+  const [announcements, setAnnouncements] = useState<ContestAnnouncement[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [announcementsError, setAnnouncementsError] = useState<string | null>(null);
   const [paperReloadKey, setPaperReloadKey] = useState(0);
   const [markedQuestionIds, setMarkedQuestionIds] = useState<Set<string>>(
     () => getMarkedQuestionIds(contest.id),
@@ -304,6 +310,36 @@ export default function StudentContestDashboard({
     paperReloadKey,
     shouldLoadPaperData,
   ]);
+
+  useEffect(() => {
+    if (!contest.id) {
+      setAnnouncements([]);
+      return;
+    }
+
+    let cancelled = false;
+    setAnnouncementsLoading(true);
+    setAnnouncementsError(null);
+    void (async () => {
+      try {
+        const data = await getContestAnnouncements(contest.id);
+        if (cancelled) return;
+        setAnnouncements(data.map(mapContestAnnouncementDto));
+      } catch (error) {
+        if (cancelled) return;
+        setAnnouncements([]);
+        setAnnouncementsError(
+          error instanceof Error ? error.message : "公告暫時無法載入",
+        );
+      } finally {
+        if (!cancelled) setAnnouncementsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [contest.id, paperReloadKey]);
 
   useEffect(() => {
     if (
@@ -668,6 +704,38 @@ export default function StudentContestDashboard({
     );
   };
 
+  const renderAnnouncements = () => {
+    if (announcementsLoading) {
+      return <p className={styles.emptyText}>載入公告中...</p>;
+    }
+    if (announcementsError) {
+      return <p className={styles.errorText}>{announcementsError}</p>;
+    }
+    if (!announcements.length) {
+      return <p className={styles.emptyText}>目前沒有公告。</p>;
+    }
+
+    return (
+      <div className={styles.announcementList}>
+        {announcements.map((announcement) => (
+          <article className={styles.announcementItem} key={announcement.id}>
+            <div className={styles.announcementHeader}>
+              <h3 className={styles.announcementTitle}>{announcement.title}</h3>
+              {announcement.createdAt ? (
+                <span className={styles.announcementMeta}>
+                  {formatDate(announcement.createdAt, { includeSeconds: false })}
+                </span>
+              ) : null}
+            </div>
+            <div className={styles.announcementContent}>
+              <MarkdownRenderer>{announcement.content}</MarkdownRenderer>
+            </div>
+          </article>
+        ))}
+      </div>
+    );
+  };
+
   const tagRow = (
     <div className={styles.tagRow}>
       <Tag type={getContestStateColor(contestState)}>
@@ -681,8 +749,13 @@ export default function StudentContestDashboard({
   );
 
   return (
-    <DashboardPage ariaLabel="學生競賽首頁">
-      <DashboardContainer layout="split" bordered dividers="auto">
+    <DashboardPage ariaLabel="學生競賽首頁" fullBleed>
+      <DashboardContainer
+        layout="split"
+        proportions="main-aside"
+        bordered
+        dividers="auto"
+      >
         <DashboardContainer layout="stack" dividers="auto" ariaLabel="競賽主要內容">
           <DashboardBlock>
             <BlockHeader
@@ -726,6 +799,11 @@ export default function StudentContestDashboard({
               <MetricBlock label="總時長" value={durationDisplay} />
             </DashboardBlock>
           </DashboardContainer>
+
+          <DashboardBlock>
+            <BlockHeader title="公告" />
+            {renderAnnouncements()}
+          </DashboardBlock>
 
           <DashboardBlock padding="flush">
             <Tabs>

@@ -25,6 +25,26 @@
   min-width: 0;
 }
 
+// proportions: main-aside (主內容 fluid + 右側 18-22rem 側欄)
+.split.proportionsMainAside > *:first-child {
+  flex: 1 1 0;
+}
+
+.split.proportionsMainAside > *:last-child {
+  flex: 0 0 auto;
+  width: clamp(18rem, 24%, 22rem);
+}
+
+// proportions: aside-main (左側 sidebar + 主內容 fluid)
+.split.proportionsAsideMain > *:first-child {
+  flex: 0 0 auto;
+  width: clamp(18rem, 24%, 22rem);
+}
+
+.split.proportionsAsideMain > *:last-child {
+  flex: 1 1 0;
+}
+
 .split.dividers > *:not(:last-child) {
   border-right: 1px solid var(--cds-border-subtle);
 }
@@ -32,6 +52,13 @@
 @media (max-width: 1056px) {
   .split {
     flex-direction: column;
+  }
+
+  .split > *,
+  .split.proportionsMainAside > *,
+  .split.proportionsAsideMain > * {
+    flex: 1 1 auto;
+    width: auto;
   }
 
   .split.dividers > *:not(:last-child) {
