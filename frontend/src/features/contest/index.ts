@@ -4,9 +4,10 @@
 // (e.g., "@/features/contest/contexts") instead of this barrel.
 
 export {
-  classroomContestDetailRoutes,
+  classroomContestRouteChildren,
   classroomContestAdminRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,
   classroomPracticeRoute,
 } from "./routes";
+export { default as ContestWorkspaceLayout } from "./components/layout/ContestWorkspaceLayout";

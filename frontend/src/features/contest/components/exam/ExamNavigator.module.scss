@@ -5,33 +5,195 @@
 .navigator {
   display: flex;
   flex-direction: column;
-  width: 200px;
-  min-width: 200px;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  border-right: 0;
+  background: var(--cds-background);
+  flex: 1;
+  min-height: 0;
 }
 
-/* Numbered badge for each question */
-.itemNumber {
-  @include type.type-style("label-01");
-  font-weight: 600;
-  color: var(--cds-text-primary);
-  width: 24px;
-  height: 24px;
-  display: flex;
+.navigatorMini {
+  width: 3rem;
+  min-width: 3rem;
+  max-width: 3rem;
+}
+
+.miniScrollArea {
+  position: relative;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+
+  &:hover,
+  &:focus-within {
+    scrollbar-width: thin;
+    scrollbar-color: var(--cds-border-strong-01) transparent;
+  }
+
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  &:hover::-webkit-scrollbar-thumb,
+  &:focus-within::-webkit-scrollbar-thumb {
+    background: var(--cds-border-strong-01);
+  }
+
+  &:hover::-webkit-scrollbar,
+  &:focus-within::-webkit-scrollbar {
+    width: 0.35rem;
+    height: 0;
+  }
+}
+
+.panel {
+  background: var(--cds-background);
+}
+
+.panelHeader,
+.panelFooter {
+  background: var(--cds-background);
+}
+
+.navigatorMini .panelFooter {
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0;
+}
+
+.panelToggle {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background-color: var(--cds-layer-02);
-  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--cds-icon-primary);
+  cursor: pointer;
 }
 
-.itemNumberAnswered {
-  background-color: var(--cds-support-success);
-  color: var(--cds-text-on-color);
+.panelToggle:hover {
+  background: var(--cds-layer-hover);
 }
 
-/* Marked-for-review tint */
+.panelToggle:focus-visible {
+  outline: 2px solid var(--cds-focus);
+  outline-offset: -2px;
+}
+
+.overviewItem {
+  min-height: 3.5rem;
+  border-left: 4px solid transparent;
+  background: var(--cds-background);
+}
+
+.overviewTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  font-weight: 500;
+}
+
+.miniOverviewItem,
+.miniItem {
+  width: 3rem;
+  max-width: 3rem;
+  box-sizing: border-box;
+  height: 3rem;
+  min-height: 3rem;
+  max-height: 3rem;
+  border-left: 4px solid transparent;
+  background: var(--cds-background);
+}
+
+.miniItem {
+  @include type.type-style("label-01");
+
+  font-weight: 600;
+}
+
+.miniItemUnanswered {
+  border-left-color: var(--cds-border-strong-01);
+}
+
+.miniItemAnswered {
+  border-left-color: var(--cds-support-success);
+}
+
+.miniItemMarked {
+  border-left-color: var(--cds-support-warning);
+}
+
+.miniItemActive {
+  background-color: color-mix(in srgb, var(--cds-layer-selected-01, var(--cds-layer-accent-01)) 56%, transparent);
+}
+
+.item {
+  border-left: 4px solid var(--cds-border-subtle-01);
+  min-height: 4.75rem;
+  max-height: 4.75rem;
+  padding-top: layout.$spacing-03;
+  padding-bottom: layout.$spacing-03;
+  background: var(--cds-background);
+}
+
+.itemUnanswered {
+  border-left-color: var(--cds-border-strong-01);
+}
+
+.itemAnswered {
+  border-left-color: var(--cds-support-success);
+}
+
 .itemMarked {
-  background-color: rgba(255, 214, 0, 0.15);
+  border-left-color: var(--cds-support-warning);
+}
+
+.itemActive {
+  background-color: color-mix(in srgb, var(--cds-layer-selected-01, var(--cds-layer-accent-01)) 56%, transparent);
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--cds-layer-selected-hover-01) 68%, transparent);
+  }
+}
+
+.itemMeta {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-01;
+}
+
+.itemMetaDivider {
+  color: var(--cds-text-placeholder);
+}
+
+.itemPrompt {
+  @include type.type-style("body-compact-01");
+
+  display: -webkit-box;
+  overflow: hidden;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.itemActive .itemPrompt {
+  font-weight: 600;
 }
 
 /* Footer text */

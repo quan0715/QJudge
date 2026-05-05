@@ -1,0 +1,37 @@
+.root {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.progressBar :global(.cds--progress-bar__track),
+.progressBar :global(.cds--progress-bar__bar) {
+  height: 0.5rem;
+}
+
+// Running shimmer: when the contest is in progress, the bar gets a
+// subtle moving highlight so the value feels alive even between
+// per-second ticks.
+.running :global(.cds--progress-bar__bar) {
+  position: relative;
+  overflow: hidden;
+}
+
+.running :global(.cds--progress-bar__bar)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

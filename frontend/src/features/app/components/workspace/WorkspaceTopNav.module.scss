@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: space-between;
   min-height: 3rem;
-  padding: 0 0.75rem;
+  padding: 0 0 0 0.75rem;
   border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
   background: var(--cds-layer);
   color: var(--cds-text-primary);
@@ -125,14 +125,101 @@
   justify-content: flex-end;
   flex-shrink: 0;
   height: 3rem;
+  padding-right: 0;
 }
 
 @media (max-width: 672px) {
   .root {
-    padding: 0 0.5rem;
+    padding: 0 0 0 0.5rem;
   }
 
   .context {
     font-size: 0.875rem;
   }
+}
+
+.runtimeTimer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+  min-height: 3rem;
+  padding: 0 0.75rem;
+  border-left: 1px solid var(--cds-border-subtle-01);
+  color: var(--cds-text-primary);
+}
+
+.runtimeMonitoringMini {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 3rem;
+  block-size: 3rem;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--cds-border-subtle-01);
+  background: transparent;
+  color: var(--cds-icon-secondary);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cds-layer-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+}
+
+.runtimeMonitoringNormal {
+  color: var(--cds-support-success);
+
+  svg {
+    animation: workspaceMonitoringPulse 2.8s ease-in-out infinite;
+    filter: drop-shadow(0 0 0 rgba(66, 190, 101, 0));
+  }
+}
+
+.runtimeMonitoringWarning {
+  color: var(--cds-support-warning);
+}
+
+.runtimeMonitoringCritical {
+  color: var(--cds-support-error);
+}
+
+.runtimeMonitoringCountdown {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.25rem;
+  max-inline-size: 2.25rem;
+  overflow: hidden;
+  color: currentColor;
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes workspaceMonitoringPulse {
+  0%,
+  100% {
+    opacity: 0.76;
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(66, 190, 101, 0));
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 6px rgba(66, 190, 101, 0.52));
+  }
+}
+
+.contextLink:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }

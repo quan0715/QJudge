@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Route } from "react-router";
-import ContestLayout from "./components/layout/ContestLayout";
+import RuntimeRouteWrapper from "./components/layout/RuntimeRouteWrapper";
 import { ContestProvider } from "./contexts/ContestContext";
 import ContestDashboardScreen from "./screens/ContestDashboardScreen";
 import ContestSolveScreen from "./screens/ContestSolveScreen";
@@ -13,14 +13,30 @@ const ExamPrecheckScreen = lazy(() => import("./screens/paperExam/ExamPrecheckSc
 // ── Classroom-scoped contest routes (/classrooms/:classroomId/contest/:contestId) ──
 
 /**
- * Classroom Contest Detail 路由（需在 RequireAuth 內使用，有獨立 Layout）
+ * Classroom Contest 主路由 children（dashboard + runtime 共用同一條 layout 軌道）。
+ * App.tsx 會把這段放在 ContestWorkspaceLayout -> MainLayout 之下，讓 WorkspaceShell
+ * 的 top nav / side menu 也能讀到 ContestProvider。
  */
-export const classroomContestDetailRoutes = (
-  <Route path="/classrooms/:classroomId/contest/:contestId" element={<ContestLayout />}>
+export const classroomContestRouteChildren = (
+  <>
     <Route index element={<ContestDashboardScreen />} />
-    <Route path="solve" element={<ContestSolveScreen />} />
-    <Route path="solve/:problemId" element={<ContestSolveScreen />} />
-  </Route>
+    <Route
+      path="solve"
+      element={
+        <RuntimeRouteWrapper>
+          <ContestSolveScreen />
+        </RuntimeRouteWrapper>
+      }
+    />
+    <Route
+      path="solve/:problemId"
+      element={
+        <RuntimeRouteWrapper>
+          <ContestSolveScreen />
+        </RuntimeRouteWrapper>
+      }
+    />
+  </>
 );
 
 /**

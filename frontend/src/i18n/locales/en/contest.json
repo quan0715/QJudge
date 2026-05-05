@@ -62,6 +62,70 @@
       "strictModeEnableSuccess": "Anti-cheat monitoring enabled",
       "updateFailed": "Update failed"
     },
+    "command": {
+      "ariaLabel": "Teacher admin overview",
+      "connection": {
+        "offline": "Offline",
+        "online": "Online"
+      },
+      "drawer": {
+        "ariaLabel": "Student details",
+        "close": "Close student details",
+        "closeBackdrop": "Close student details backdrop",
+        "title": "Student details"
+      },
+      "drilldown": {
+        "ariaLabel": "Overview data tabs",
+        "participants": "Participants",
+        "questionStats": "Answer distribution"
+      },
+      "eventLog": "Event log",
+      "examStatusSummary": "Exam status summary",
+      "examTime": "Exam time",
+      "filters": {
+        "allQuestionTypes": "All question types",
+        "allStatuses": "All statuses",
+        "needsAttention": "Needs attention"
+      },
+      "metric": {
+        "answerProgress": "Answer progress",
+        "eventUnit": "events",
+        "gradingProgress": "Grading progress",
+        "inProgress": "In progress",
+        "interrupted": "Interrupted",
+        "notSubmitted": "Not submitted",
+        "pausedDetail": "Paused",
+        "pointUnit": "pts",
+        "score": "Score",
+        "scoreUnit": "{{score}} pts",
+        "scored": "Scored",
+        "violations": "Anomaly events"
+      },
+      "metricSwitcher": "Student card metric switcher",
+      "metrics": {
+        "endTime": "End time",
+        "examParticipants": "Exam participants",
+        "onlineParticipants": "Online participants",
+        "startTime": "Start time"
+      },
+      "participants": {
+        "empty": "No students yet",
+        "filterStatus": "Filter status",
+        "filterStatusAria": "Filter student status",
+        "loading": "Loading student list",
+        "search": "Search students",
+        "searchPlaceholder": "Search display name or username...",
+        "title": "Student list"
+      },
+      "questionStats": {
+        "empty": "No answer distribution data yet",
+        "filterQuestionType": "Filter question type",
+        "filterQuestionTypeAria": "Filter question type",
+        "search": "Search questions",
+        "searchPlaceholder": "Search question number or prompt..."
+      },
+      "tabsAriaLabel": "Teacher admin overview tabs"
+    },
     "events": {
       "critical": "High-risk events",
       "empty": "No events yet",
@@ -90,6 +154,127 @@
       "personUnit": "people",
       "problemUnit": "problems",
       "time": "Time Progress"
+    },
+    "model": {
+      "attention": {
+        "anomalyCount": "{{count}} anomalies",
+        "connectionInterrupted": "Connection interrupted",
+        "examLocked": "Exam locked",
+        "notEntered": "Has not entered the exam"
+      },
+      "common": {
+        "disabled": "Disabled",
+        "enabled": "Enabled",
+        "noData": "No data yet",
+        "unset": "Not set"
+      },
+      "contestStatus": {
+        "archived": "Archived",
+        "draft": "Draft",
+        "published": "Published"
+      },
+      "grading": {
+        "noAnswers": "No answer data yet",
+        "noData": "No grading data yet"
+      },
+      "insights": {
+        "examProgress": "Exam progress",
+        "gradingProgress": "Grading progress",
+        "priorityEvents": "Anomaly events"
+      },
+      "kpi": {
+        "onlineStudents": "Online students",
+        "pendingEvents": "Pending events",
+        "started": "Started"
+      },
+      "nextActions": {
+        "attention": {
+          "empty": "No pending anomalies",
+          "hasItems": "{{count}} students need review",
+          "title": "Review anomalies"
+        },
+        "grading": {
+          "afterExam": "Grading can start after the exam",
+          "progress": "{{percent}}% graded",
+          "title": "Open grading"
+        },
+        "results": {
+          "readyToPublish": "Publish after reviewing grading",
+          "title": "Publish results"
+        }
+      },
+      "preparation": {
+        "antiCheat": "Anti-cheat settings",
+        "antiCheatEnabled": "Anti-cheat monitoring enabled",
+        "antiCheatOptional": "Enable if required for this exam",
+        "currentStatus": "Current status: {{status}}",
+        "participantCount": "{{count}} participants",
+        "participantList": "Participant roster",
+        "participantsMissing": "No participant data yet",
+        "publish": "Contest publish",
+        "publishedDescription": "Participants can enter according to permissions",
+        "rules": "Answer rules",
+        "rulesMissing": "Add exam rules and notes",
+        "rulesReady": "Rules are filled in",
+        "schedule": "Exam window",
+        "scheduleMissing": "Start and end times are incomplete",
+        "workItemsMissing": "No answerable questions yet",
+        "workItemsReady": "{{count}} questions set"
+      },
+      "progress": {
+        "current": "Now",
+        "label": "Progress",
+        "start": "Start"
+      },
+      "readiness": {
+        "done": "Done",
+        "missing": "Missing",
+        "warning": "Review"
+      },
+      "results": {
+        "published": "Published",
+        "unpublished": "Unpublished"
+      },
+      "status": {
+        "anomaly": "Anomaly",
+        "inProgress": "Answering",
+        "locked": "Locked",
+        "lockedOffline": "Locked / Offline",
+        "notStarted": "Not started",
+        "offline": "Offline",
+        "online": "Online",
+        "submitted": "Submitted"
+      },
+      "summary": {
+        "antiCheat": "Anti-cheat",
+        "gradingAfterExam": "Grading data appears after the exam",
+        "gradingCount": "{{graded}} / {{total}} answers",
+        "participants": "Participants",
+        "participantsMissing": "No participant data yet",
+        "participantsReady": "Roster ready to manage",
+        "results": "Results",
+        "resultsVisible": "Visible to participants",
+        "scheduleMissing": "Schedule needs completion",
+        "scheduleReady": "Schedule is complete",
+        "status": "Contest status",
+        "statusClosed": "Not officially open yet",
+        "statusOpen": "Open to participants",
+        "workItemsMissing": "Content not created yet",
+        "workItemsReady": "Content created"
+      },
+      "timeline": {
+        "ended": "Ended",
+        "examEnded": "Exam ended",
+        "notStarted": "Not started",
+        "remaining": "{{time}} remaining",
+        "running": "In progress",
+        "startsIn": "Starts in {{time}}",
+        "timeUnset": "Time not set"
+      },
+      "workItems": {
+        "coding": "Coding problems",
+        "paperExam": "Paper exam questions"
+      }
     },
     "screen": {
       "actions": {
@@ -144,7 +329,6 @@
       "disabled": "Disabled",
       "enabled": "Enabled",
       "examProgress": "Exam progress",
-      "timelineProgress": "Time progress",
       "goEventPanel": "Go to event panel",
       "goParticipantList": "Open participant list",
       "goProblemManagement": "Go to problem management",
@@ -159,6 +343,7 @@
       "status": "Contest status",
       "strictExamMode": "Anti-cheat monitoring",
       "subtitle": "Quick access to settings, questions, and status actions",
+      "timelineProgress": "Time progress",
       "title": "Command Center",
       "violationCount": "Anomaly events",
       "violationCountAria": "Anomaly events, go to event panel"
@@ -197,6 +382,7 @@
       "title": "Readiness"
     },
     "tabs": {
+      "ariaLabel": "Preparation and grading tabs",
       "entries": "Management entries",
       "grading": "Grading & results",
       "readiness": "Readiness"
@@ -1575,6 +1761,124 @@
     "title": "Question Statistics",
     "ungraded": "Ungraded",
     "viewSubmissionSamples": "View submission samples"
+  },
+  "studentDashboard": {
+    "actions": {
+      "adminPanel": "Admin dashboard",
+      "backToAnswering": "Back to answering",
+      "downloadProof": "Download answer proof",
+      "downloadReport": "Download score report",
+      "join": "Join contest",
+      "joinUnavailable": "Joining unavailable",
+      "refresh": "Refresh",
+      "rejoin": "Join again",
+      "resume": "Resume answering",
+      "start": "Start answering",
+      "submit": "Submit",
+      "unavailable": "Answering unavailable",
+      "waitingStart": "Waiting to start"
+    },
+    "announcements": {
+      "empty": "No announcements yet.",
+      "loading": "Loading announcements...",
+      "title": "Announcements"
+    },
+    "answerStatus": {
+      "answered": "Answered",
+      "correct": "Correct",
+      "graded": "Graded",
+      "marked": "Marked",
+      "noScore": "No credit",
+      "partial": "Partial credit",
+      "pendingGrading": "Pending grading",
+      "unanswered": "Unanswered"
+    },
+    "ariaLabel": "Student contest home",
+    "contestState": {
+      "archived": "Archived",
+      "draft": "Draft",
+      "ended": "Ended",
+      "running": "In progress",
+      "unknown": "Unknown",
+      "upcoming": "Upcoming"
+    },
+    "empty": {
+      "noAnswerRecords": "No answer records yet.",
+      "noQuestions": "No question data yet.",
+      "noScoreDistribution": "No score distribution data yet."
+    },
+    "errors": {
+      "announcementsLoadFailed": "Announcements are temporarily unavailable",
+      "questionsLoadFailed": "Question data is temporarily unavailable",
+      "scoreDistributionLoadFailed": "Score distribution is temporarily unavailable"
+    },
+    "infoLabel": "Contest information",
+    "joinStatus": {
+      "joined": "Joined",
+      "notJoined": "Not joined"
+    },
+    "loading": "Loading...",
+    "loadingAnswers": "Loading answers...",
+    "mainContent": "Contest main content",
+    "metrics": {
+      "duration": "Duration",
+      "endTime": "End time",
+      "startTime": "Start time"
+    },
+    "monitoring": {
+      "enabled": "Monitoring",
+      "subtitle": "Fullscreen, tab switching, and device monitoring will start after entering the exam.",
+      "title": "Monitoring enabled"
+    },
+    "records": {
+      "currentStatus": "Current answer status",
+      "fullScore": "Full score {{score}}",
+      "notSubmitted": "Not submitted",
+      "title": "Answer records",
+      "withResults": "Answer records and results"
+    },
+    "report": {
+      "download": "Download",
+      "failedTitle": "Download failed",
+      "language": "Report language",
+      "languages": {
+        "en": "English",
+        "ja": "日本語",
+        "ko": "한국어",
+        "zhTW": "繁體中文"
+      },
+      "preparing": "Preparing"
+    },
+    "results": {
+      "pendingPublish": "Pending publish",
+      "published": "Results published",
+      "unpublished": "Not published yet",
+      "waitingPublish": "Waiting for results"
+    },
+    "rules": {
+      "empty": "No additional rules.",
+      "noPassword": "This contest does not require a password.",
+      "requiresPassword": "This contest requires a password.",
+      "title": "Rules"
+    },
+    "submitConfirm": {
+      "body": "You will not be able to change answers after submitting.",
+      "confirm": "Submit",
+      "heading": "Confirm submission"
+    },
+    "summary": {
+      "ariaLabel": "Contest summary",
+      "averageScore": "Average {{average}} / {{max}}",
+      "completionRate": "Completion rate",
+      "examResult": "Exam result",
+      "examStatus": "Exam status",
+      "scoreDistribution": "Score distribution"
+    },
+    "tabs": {
+      "ariaLabel": "Contest information tabs",
+      "records": "Answer records",
+      "rules": "Rules"
+    }
   },
   "studentStatus": {
     "pausedLocked": "Paused / Locked",

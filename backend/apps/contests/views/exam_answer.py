@@ -64,6 +64,21 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             user__role='student',
         ).select_related('user')
 
+    def _can_view_dashboard_summary(self, user, contest):
+        if can_manage_contest(user, contest):
+            return True
+        if not contest.results_published:
+            return False
+        return ContestParticipant.objects.filter(
+            contest=contest,
+            user=user,
+        ).exists()
+
+    @staticmethod
+    def _participant_display_name(participant):
+        profile = getattr(participant.user, 'profile', None)
+        return getattr(profile, 'display_name', '') or ''
+
     @staticmethod
     def _build_score_distribution(scores, max_score):
         buckets = [
@@ -151,8 +166,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                         participants.append({
                             'participant_id': participant.id,
                             'username': participant.user.username,
-                            'nickname': participant.nickname or None,
-                            'display_name': participant.nickname or participant.user.username,
+                            'display_name': cls._participant_display_name(participant),
                         })
 
             if isinstance(correct_answer, list):
@@ -355,16 +369,17 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=['get'], url_path='dashboard-summary')
     def dashboard_summary(self, request, contest_pk=None):
-        """Contest result dashboard summary (teacher/admin only).
+        """Contest result dashboard summary.
 
         Supports ``?kind=<alias|csv of enums>`` to filter the per-question
         ``questions`` array (e.g. ``?kind=subjective``). Contest-level summary
         (average, median, score distribution) is always computed over all
-        questions so numbers stay consistent across callers.
+        questions so numbers stay consistent across callers. Contest staff can
+        view it anytime; participants can view it after results are published.
         """
         contest = self._get_contest(contest_pk)
-        if not can_manage_contest(request.user, contest):
-            raise PermissionDenied('Only contest staff can view dashboard summary.')
+        if not self._can_view_dashboard_summary(request.user, contest):
+            raise PermissionDenied('Results dashboard summary is not available.')
 
         kind_filter = self._parse_dashboard_kind(request.query_params.get('kind'))
 
@@ -544,8 +559,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             {
                 'participant_id': participant.id,
                 'username': participant.user.username,
-                'nickname': participant.nickname or None,
-                'display_name': participant.nickname or participant.user.username,
+                'display_name': self._participant_display_name(participant),
             }
             for participant in participants
             if participant.id not in answered_participant_ids
@@ -560,10 +574,8 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                     'exam_answer_id': answer['id'],
                     'participant_id': answer['participant_id'],
                     'username': participants_by_id[answer['participant_id']].user.username,
-                    'nickname': participants_by_id[answer['participant_id']].nickname or None,
-                    'display_name': (
-                        participants_by_id[answer['participant_id']].nickname
-                        or participants_by_id[answer['participant_id']].user.username
+                    'display_name': self._participant_display_name(
+                        participants_by_id[answer['participant_id']],
                     ),
                     'score': float(answer['score']) if answer['score'] is not None else None,
                     'graded_at': answer['graded_at'],

@@ -62,7 +62,6 @@ class ContestParticipantFactory(factory.django.DjangoModelFactory):
     contest = factory.SubFactory(ContestFactory)
     user = factory.SubFactory(UserFactory)
     exam_status = ExamStatus.IN_PROGRESS
-    nickname = ""
 
 
 class ContestProblemBindingFactory(factory.django.DjangoModelFactory):
@@ -221,53 +220,6 @@ def test_standings_shows_problem_titles_for_admins(
     assert response.status_code == 200
     for problem in response.data.get("problems", []):
         assert problem.get("title") is not None
-
-
-@pytest.mark.django_db
-def test_anonymous_mode_uses_nickname_for_students(
-    api_client: APIClient,
-) -> None:
-    teacher = UserFactory(role="teacher")
-    viewer = UserFactory()
-    other = UserFactory()
-    contest, _ = create_contest_with_problem(
-        owner=teacher,
-        scoreboard_visible_during_contest=True,
-        anonymous_mode_enabled=True,
-    )
-    ContestParticipantFactory(contest=contest, user=viewer, nickname="alpha")
-    ContestParticipantFactory(contest=contest, user=other, nickname="beta")
-
-    api_client.force_authenticate(user=viewer)
-    response = api_client.get(f"/api/v1/contests/{contest.id}/standings/")
-
-    assert response.status_code == 200
-    display_names = {entry["display_name"] for entry in response.data.get("standings", [])}
-    assert "alpha" in display_names
-    assert "beta" in display_names
-
-
-@pytest.mark.django_db
-def test_anonymous_mode_admin_sees_real_names(
-    api_client: APIClient,
-) -> None:
-    teacher = UserFactory(role="teacher")
-    admin = UserFactory(role="admin", is_staff=True)
-    participant = UserFactory()
-    contest, _ = create_contest_with_problem(
-        owner=teacher,
-        scoreboard_visible_during_contest=True,
-        anonymous_mode_enabled=True,
-    )
-    ContestParticipantFactory(contest=contest, user=participant, nickname="alias")
-
-    api_client.force_authenticate(user=admin)
-    response = api_client.get(f"/api/v1/contests/{contest.id}/standings/")
-
-    assert response.status_code == 200
-    display_names = {entry["display_name"] for entry in response.data.get("standings", [])}
-    assert participant.username in display_names
-    assert "alias" not in display_names
 
 
 @pytest.mark.django_db

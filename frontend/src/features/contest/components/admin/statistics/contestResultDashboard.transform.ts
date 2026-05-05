@@ -79,8 +79,8 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
       const responses = answers.map((answer) => ({
         participantId: answer.participant_user_id,
         username: answer.participant_username,
-        nickname: answer.participant_nickname || null,
-        displayName: answer.participant_nickname || answer.participant_username,
+        displayName:
+          answer.participant_display_name || answer.participant_username,
         score: answer.score,
         gradedAt: answer.graded_at,
         feedback: answer.feedback || "",

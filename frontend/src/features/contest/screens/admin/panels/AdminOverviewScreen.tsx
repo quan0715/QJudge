@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Tag } from "@carbon/react";
+import { Button } from "@carbon/react";
 import {
   Download,
   Launch,
@@ -25,51 +25,32 @@ import type {
   AdminPanelProps,
 } from "@/features/contest/modules/types";
 import { useGradingData } from "@/features/contest/screens/settings/grading";
-import { addContestParticipant } from "@/infrastructure/api/repositories";
+import { addContestParticipant, updateContest } from "@/infrastructure/api/repositories";
 import { exportContestResults } from "@/infrastructure/api/repositories/contestExports.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
-import { buildAdminOverviewDashboard } from "./adminOverviewDashboard.model";
+import {
+  buildAdminOverviewDashboard,
+  type DashboardText,
+} from "./adminOverviewDashboard.model";
 import styles from "./AdminOverviewScreen.module.scss";
-
-type ContestStatusDisplay = {
-  label: string;
-  type: "gray" | "cool-gray" | "green";
-};
-
-const useContestStatusDisplay = () => {
-  const { t } = useTranslation("contest");
-  return useCallback(
-    (status: string): ContestStatusDisplay => {
-      if (status === "draft")
-        return {
-          label: t("adminOverview.screen.contestStatus.draft", "草稿"),
-          type: "gray",
-        };
-      if (
-        status === "archived" ||
-        status === "ended" ||
-        status === "completed" ||
-        status === "success"
-      )
-        return {
-          label: t("adminOverview.screen.contestStatus.archived", "已封存"),
-          type: "green",
-        };
-      return {
-        label: t("adminOverview.screen.contestStatus.published", "已發布"),
-        type: "green",
-      };
-    },
-    [t],
-  );
-};
 
 export default function AdminOverviewScreen({
   onOpenSettings,
 }: AdminPanelProps) {
   const { t } = useTranslation("contest");
+  const tr = useCallback<DashboardText>(
+    (key, defaultValue, values) => {
+      const translated = values
+        ? t(key, { defaultValue, ...values })
+        : t(key, defaultValue);
+      if (typeof translated === "string") return translated;
+      return defaultValue.replace(/{{(\w+)}}/g, (_, name) =>
+        String(values?.[name] ?? ""),
+      );
+    },
+    [t],
+  );
   const { showToast } = useToast();
-  const contestStatusDisplay = useContestStatusDisplay();
   const { contest, refreshContest } = useContest();
   const {
     participants,
@@ -82,6 +63,7 @@ export default function AdminOverviewScreen({
   const [, setSearchParams] = useSearchParams();
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [publishingResults, setPublishingResults] = useState(false);
   const [resultRefreshKey, setResultRefreshKey] = useState(0);
   const [addParticipantOpen, setAddParticipantOpen] = useState(false);
   const classroomBound = Boolean(contest?.isClassroomBound);
@@ -140,8 +122,9 @@ export default function AdminOverviewScreen({
       examEvents,
       overviewMetrics,
       gradingStats: globalStats,
+      tr,
     });
-  }, [contest, participants, examEvents, overviewMetrics, globalStats]);
+  }, [contest, participants, examEvents, overviewMetrics, globalStats, tr]);
 
   const openPanel = useCallback(
     (panel: AdminPanelId) => {
@@ -197,13 +180,52 @@ export default function AdminOverviewScreen({
     }
   }, [contest?.id, exporting, showToast, t]);
 
+  const handleToggleResultsPublished = useCallback(async () => {
+    if (!contest?.id || publishingResults) return;
+    const nextPublished = !contest.resultsPublished;
+    setPublishingResults(true);
+    try {
+      await updateContest(contest.id, { resultsPublished: nextPublished });
+      await Promise.all([refreshContest(), refreshAllAdminData()]);
+      setResultRefreshKey((current) => current + 1);
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: nextPublished
+          ? t("adminOverview.actions.publishResultsSuccess", "成績已發布")
+          : t("adminOverview.actions.revokeResultsSuccess", "已撤回成績發布"),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : nextPublished
+            ? t("adminOverview.actions.publishResultsFailed", "發布失敗")
+            : t("adminOverview.actions.revokeResultsFailed", "撤回失敗");
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
+    } finally {
+      setPublishingResults(false);
+    }
+  }, [
+    contest?.id,
+    contest?.resultsPublished,
+    publishingResults,
+    refreshAllAdminData,
+    refreshContest,
+    showToast,
+    t,
+  ]);
+
   useEffect(() => {
     return registerPanelRefresh("overview", handleRefresh);
   }, [handleRefresh, registerPanelRefresh]);
 
   if (!contest) return null;
 
-  const status = contestStatusDisplay(contest.status ?? "draft");
   const contestHomePath = contest.boundClassroomId
     ? `/classrooms/${contest.boundClassroomId}/contest/${contest.id}`
     : null;
@@ -213,84 +235,77 @@ export default function AdminOverviewScreen({
       : t("adminOverview.screen.contestType.coding", "Coding Test");
   const renderContestHeader = () => (
     <section
-      className={styles.contestHeader}
+      className={styles.overviewHeader}
       aria-label={t("adminOverview.screen.contestInfoLabel", "競賽資訊")}
     >
-      <div className={styles.dashboardTitleBlock}>
-        <div className={styles.dashboardTitleRow}>
-          <h2>{contest.name}</h2>
-          <Tag type={status.type} size="sm">
-            {status.label}
-          </Tag>
-          <Tag type="cool-gray" size="sm">
-            {contestTypeLabel}
-          </Tag>
-        </div>
-        {contest.description ? (
-          <p className={styles.dashboardDescription}>{contest.description}</p>
-        ) : null}
-      </div>
-      <div className={styles.headerActions}>
-        <Button
-          kind="ghost"
-          hasIconOnly
-          renderIcon={Settings}
-          iconDescription={t(
-            "adminOverview.screen.actions.settings",
-            "競賽設定",
-          )}
-          onClick={openSettings}
-        />
-        <Button
-          kind="ghost"
-          hasIconOnly
-          renderIcon={Launch}
-          iconDescription={t(
-            "adminOverview.screen.actions.contestHome",
-            "競賽主頁",
-          )}
-          disabled={!contestHomePath}
-          onClick={() => {
-            if (!contestHomePath) return;
-            window.open(contestHomePath, "_blank", "noopener,noreferrer");
-          }}
-        />
-        {classroomBound ? null : (
-          <Button
-            kind="ghost"
-            hasIconOnly
-            renderIcon={UserFollow}
-            iconDescription={t(
-              "adminOverview.screen.actions.addParticipant",
-              "新增參賽者",
+      <h2 className={styles.overviewHeaderTitle}>
+        {t("adminOverview.screen.title", "Overview")}
+      </h2>
+      <div className={styles.overviewHeaderActions}>
+        {
+          <>
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Settings}
+              iconDescription={t(
+                "adminOverview.screen.actions.settings",
+                "競賽設定",
+              )}
+              onClick={openSettings}
+            />
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Launch}
+              iconDescription={t(
+                "adminOverview.screen.actions.contestHome",
+                "競賽主頁",
+              )}
+              disabled={!contestHomePath}
+              onClick={() => {
+                if (!contestHomePath) return;
+                window.open(contestHomePath, "_blank", "noopener,noreferrer");
+              }}
+            />
+            {classroomBound ? null : (
+              <Button
+                kind="ghost"
+                hasIconOnly
+                renderIcon={UserFollow}
+                iconDescription={t(
+                  "adminOverview.screen.actions.addParticipant",
+                  "新增參賽者",
+                )}
+                onClick={() => setAddParticipantOpen(true)}
+              />
             )}
-            onClick={() => setAddParticipantOpen(true)}
-          />
-        )}
-        <Button
-          kind="ghost"
-          hasIconOnly
-          renderIcon={Renew}
-          iconDescription={
-            refreshing
-              ? t("adminOverview.screen.actions.refreshing", "重新整理中")
-              : t("adminOverview.screen.actions.refresh", "重新整理")
-          }
-          disabled={refreshing}
-          onClick={() => void handleRefresh()}
-        />
-        <Button
-          kind="ghost"
-          hasIconOnly
-          renderIcon={Download}
-          iconDescription={
-            exporting
-              ? t("adminOverview.screen.actions.exporting", "匯出中")
-              : t("adminOverview.screen.actions.export", "匯出成績")
-          }
-          disabled={exporting || !contest.id}
-          onClick={() => void handleExport()}
-        />
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Renew}
+              iconDescription={
+                refreshing
+                  ? t("adminOverview.screen.actions.refreshing", "重新整理中")
+                  : t("adminOverview.screen.actions.refresh", "重新整理")
+              }
+              disabled={refreshing}
+              onClick={() => void handleRefresh()}
+            />
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Download}
+              iconDescription={
+                exporting
+                  ? t("adminOverview.screen.actions.exporting", "匯出中")
+                  : t("adminOverview.screen.actions.export", "匯出成績")
+              }
+              disabled={exporting || !contest.id}
+              onClick={() => void handleExport()}
+            />
+          </>
+        }
       </div>
     </section>
   );
@@ -311,6 +326,19 @@ export default function AdminOverviewScreen({
             onOpenPanel={openPanel}
             participants={participants}
             primary={null}
+            overviewInfo={{
+              contestTypeLabel,
+            }}
+            gradingAction={{
+              label: contest.resultsPublished
+                ? t("adminOverview.actions.revokeResults", "撤回發布")
+                : t("adminOverview.actions.publishResults", "發布成績"),
+              loadingLabel: t("action.processing", "處理中..."),
+              onClick: () => void handleToggleResultsPublished(),
+              disabled: !contest.id,
+              loading: publishingResults,
+              kind: contest.resultsPublished ? "danger--tertiary" : "primary",
+            }}
             resultOverview={
               <AdminExamResultOverview
                 contest={contest}

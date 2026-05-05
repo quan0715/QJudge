@@ -273,7 +273,7 @@ describe("useScreenShareMonitoring", () => {
     expect(result.current.reauth.inProgress).toBe(false);
   });
 
-  it("unmount clears reauth state", () => {
+  it("keeps reauth state across runtime unmounts", () => {
     const config = makeConfig();
     const { result, unmount } = renderHook(() =>
       useScreenShareMonitoring(config),
@@ -286,12 +286,14 @@ describe("useScreenShareMonitoring", () => {
 
     unmount();
 
-    // After unmount, runtimeReauth entry should be cleared
-    // Verify by mounting a fresh hook and checking initial state is clean
+    // Route changes can unmount the runtime wrapper while the student is still
+    // inside the active contest surface. The re-share countdown must survive so
+    // dashboard/answering remounts can keep prompting recovery.
     const { result: result2 } = renderHook(() =>
       useScreenShareMonitoring(config),
     );
-    expect(result2.current.reauth.active).toBe(false);
+    expect(result2.current.reauth.active).toBe(true);
+    expect(result2.current.reauth.inProgress).toBe(true);
   });
 
   it("reauth.remainingSeconds is non-null while countdown is active", () => {

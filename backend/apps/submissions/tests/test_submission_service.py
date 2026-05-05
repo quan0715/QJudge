@@ -73,7 +73,6 @@ class ContestParticipantFactory(factory.django.DjangoModelFactory):
     contest = factory.SubFactory(ContestFactory)
     user = factory.SubFactory(UserFactory)
     exam_status = ExamStatus.IN_PROGRESS
-    nickname = ""
 
 
 # ---------------------------------------------------------------------------

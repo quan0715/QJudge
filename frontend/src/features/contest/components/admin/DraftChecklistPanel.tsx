@@ -7,6 +7,7 @@ import {
 } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
+import { BlockHeader } from "@/shared/components/dashboard";
 import styles from "./DraftChecklistPanel.module.scss";
 
 type ChecklistStatus = "done" | "suggest" | "missing";
@@ -130,34 +131,32 @@ export default function DraftChecklistPanel({
 
   return (
     <Tile className={styles.panel}>
-      <div className={styles.header}>
-        <h3 className={styles.title}>
-          {t("adminOverview.draftChecklist.title", "發布前 Checklist")}
-        </h3>
-        <p className={styles.subtitle}>
-          {t(
-            "adminOverview.draftChecklist.subtitle",
-            "發布不會被阻擋；以下項目可協助你在發布前把競賽設定更完整",
-          )}
-        </p>
-        <Button
-          kind="primary"
-          size="sm"
-          disabled={publishLoading}
-          onClick={() => {
-            void (async () => {
-              setPublishLoading(true);
-              try {
-                await onPublishContest();
-              } finally {
-                setPublishLoading(false);
-              }
-            })();
-          }}
-        >
-          {t("adminOverview.actions.publishContest", "發布競賽")}
-        </Button>
-      </div>
+      <BlockHeader
+        title={t("adminOverview.draftChecklist.title", "發布前 Checklist")}
+        description={t(
+          "adminOverview.draftChecklist.subtitle",
+          "發布不會被阻擋；以下項目可協助你在發布前把競賽設定更完整",
+        )}
+        actions={
+          <Button
+            kind="primary"
+            size="sm"
+            disabled={publishLoading}
+            onClick={() => {
+              void (async () => {
+                setPublishLoading(true);
+                try {
+                  await onPublishContest();
+                } finally {
+                  setPublishLoading(false);
+                }
+              })();
+            }}
+          >
+            {t("adminOverview.actions.publishContest", "發布競賽")}
+          </Button>
+        }
+      />
 
       {loading && (
         <InlineNotification

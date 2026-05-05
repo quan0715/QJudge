@@ -10,6 +10,7 @@ import {
   formatDuration,
   calculateContestTimeProgressAt,
 } from "./overviewMetrics.utils";
+import { SectionTitle } from "@/shared/components/dashboard";
 import styles from "./OverviewInsightsPanel.module.scss";
 
 interface OverviewInsightsPanelProps {
@@ -130,9 +131,9 @@ export default function OverviewInsightsPanel({
   if (loading) {
     return (
       <aside className={styles.panel}>
-        <h3 className={styles.title}>
+        <SectionTitle as="h3">
           {t("adminOverview.sidebar.title", "狀態與入口")}
-        </h3>
+        </SectionTitle>
         {Array.from({ length: 3 }).map((_, i) => (
           <Tile key={i} className={styles.tile}>
             <SkeletonText width="50%" />
@@ -147,9 +148,9 @@ export default function OverviewInsightsPanel({
 
   return (
     <aside className={styles.panel}>
-      <h3 className={styles.title}>
+      <SectionTitle as="h3">
         {t("adminOverview.sidebar.title", "狀態與入口")}
-      </h3>
+      </SectionTitle>
 
       <Tile className={styles.tile}>
         <div className={styles.tileHeader}>

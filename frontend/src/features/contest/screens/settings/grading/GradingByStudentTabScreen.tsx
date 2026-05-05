@@ -35,7 +35,7 @@ import mini from "./GradingMini.module.scss";
 interface StudentSummary {
   studentId: string;
   username: string;
-  nickname: string;
+  displayName: string;
   totalScore: number;
   maxPossible: number;
   gradedCount: number;
@@ -48,7 +48,6 @@ interface GradingByStudentTabScreenProps {
   students: {
     studentId: string;
     username: string;
-    nickname: string;
     displayName?: string;
   }[];
   onGrade: (answerId: string, score: number, feedback: string) => void;
@@ -91,7 +90,7 @@ export default function GradingByStudentTabScreen({
       return {
         studentId: s.studentId,
         username: s.username,
-        nickname: s.nickname,
+        displayName: s.displayName || s.username,
         totalScore,
         maxPossible,
         gradedCount,
@@ -106,7 +105,7 @@ export default function GradingByStudentTabScreen({
     return studentSummaries.filter(
       (s) =>
         s.username.toLowerCase().includes(q) ||
-        s.nickname.toLowerCase().includes(q)
+        s.displayName.toLowerCase().includes(q)
     );
   }, [studentSummaries, searchQuery]);
   const activeSelectedStudentId = useMemo(() => {
@@ -141,7 +140,7 @@ export default function GradingByStudentTabScreen({
           id: `absent-${activeSelectedStudentId}-${question.questionId}`,
           studentId: activeSelectedStudentId,
           studentUsername: activeStudent?.username ?? "",
-          studentNickname: activeStudent?.nickname ?? "",
+          studentDisplayName: activeStudent?.displayName ?? "",
           questionId: question.questionId,
           questionIndex: question.questionIndex,
           questionPrompt: question.prompt,
@@ -265,8 +264,8 @@ export default function GradingByStudentTabScreen({
             onClick={() => handleStudentSelect(s.studentId)}
           >
             <ListItemContent>
-              <ListItemTitle>{s.nickname || s.username}</ListItemTitle>
-              {s.nickname && s.nickname !== s.username && (
+              <ListItemTitle>{s.displayName || s.username}</ListItemTitle>
+              {s.displayName && s.displayName !== s.username && (
                 <ListItemMeta>{s.username}</ListItemMeta>
               )}
             </ListItemContent>
@@ -448,7 +447,7 @@ export default function GradingByStudentTabScreen({
             hasNextStudent={hasNextStudent}
             contextPath={{
               primary: selectedStudentSummary
-                ? `${selectedStudentSummary.nickname} (${selectedStudentSummary.username})`
+                ? `${selectedStudentSummary.displayName} (${selectedStudentSummary.username})`
                 : t("grading.student", "學生"),
               secondary: currentAnswer
                 ? `Q${currentAnswer.questionIndex}`

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Button, Modal, TextInput, Select, SelectItem } from "@carbon/react";
+import { Button, Modal, Select, SelectItem } from "@carbon/react";
 import {
   PlayFilled,
   Flag,
@@ -20,8 +20,9 @@ import {
 } from "@/core/entities/contest.entity";
 import { HeroBase } from "@/shared/layout/HeroBase";
 import { KpiCard } from "@/shared/ui/dataCard";
-import { updateNickname, downloadMyReport } from "@/infrastructure/api/repositories";
+import { downloadMyReport } from "@/infrastructure/api/repositories";
 import { useInterval } from "@/shared/hooks/useInterval";
+import { MetricBlock } from "@/shared/components/dashboard";
 import styles from "./ContestHero.module.scss";
 
 const MinimalProgressBar = ({
@@ -56,7 +57,6 @@ interface ContestHeroProps {
   onEndExam?: () => void;
   onGoToAnswering?: () => void;
   onTabChange?: (tab: string) => void;
-  onRefreshContest?: () => Promise<void>;
   maxWidth?: string;
 }
 
@@ -66,7 +66,6 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   onStartExam,
   onEndExam,
   onGoToAnswering,
-  onRefreshContest,
   maxWidth,
 }) => {
   const { t } = useTranslation("contest");
@@ -74,11 +73,6 @@ const ContestHero: React.FC<ContestHeroProps> = ({
   const requiresPassword = contest?.requiresPassword ?? contest?.visibility === "private";
   const [progress, setProgress] = useState(0);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
-
-  // Update Nickname States
-  const [showUpdateNicknameModal, setShowUpdateNicknameModal] = useState(false);
-  const [newNickname, setNewNickname] = useState("");
-  const [isUpdatingNickname, setIsUpdatingNickname] = useState(false);
 
   // Report download state
   const [reportDownloading, setReportDownloading] = useState(false);
@@ -183,14 +177,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 
   const metadata = (
     <>
-      <div>
-        <div className={styles.timeLabel}>{t("startTime")}</div>
-        <div className={styles.timeValue}>{formatDate(startTime)}</div>
-      </div>
-      <div>
-        <div className={styles.timeLabel}>{t("endTime")}</div>
-        <div className={styles.timeValue}>{formatDate(endTime)}</div>
-      </div>
+      <MetricBlock label={t("startTime")} value={formatDate(startTime)} />
+      <MetricBlock label={t("endTime")} value={formatDate(endTime)} />
     </>
   );
 
@@ -234,7 +222,7 @@ const ContestHero: React.FC<ContestHeroProps> = ({
     // Check if contest has ended (time-based)
     if (isEnded) {
       const hasSubmitted = contest.examStatus === "submitted" &&
-        (contest.hasJoined || contest.isRegistered);
+        contest.hasJoined;
       if (hasSubmitted) {
         return (
           <Button
@@ -396,50 +384,6 @@ const ContestHero: React.FC<ContestHeroProps> = ({
             {t("hero.confirmSubmitQuestion")}
           </p>
           <p>{t("hero.noMoreAnswer")}</p>
-        </div>
-      </Modal>
-
-      {/* Update Nickname Modal */}
-      <Modal
-        open={showUpdateNicknameModal}
-        modalHeading={t("hero.updateNickname")}
-        primaryButtonText={
-          isUpdatingNickname ? t("hero.updating") : t("hero.confirmUpdate")
-        }
-        secondaryButtonText={tc("button.cancel")}
-        onRequestClose={() => setShowUpdateNicknameModal(false)}
-        onRequestSubmit={async () => {
-          if (!contest) return;
-          setIsUpdatingNickname(true);
-          try {
-            await updateNickname(contest.id, newNickname);
-            setShowUpdateNicknameModal(false);
-            if (onRefreshContest) {
-              await onRefreshContest();
-            } else {
-              // Fallback if no refresh function provided (shouldn't happen in updated layout)
-              console.warn("No refresh function provided");
-            }
-          } catch (error) {
-            console.error("Failed to update nickname", error);
-            const message =
-              error instanceof Error ? error.message : t("hero.updateFailed");
-            showError(message);
-          } finally {
-            setIsUpdatingNickname(false);
-          }
-        }}
-        primaryButtonDisabled={isUpdatingNickname}
-      >
-        <div className={styles.modalSpacing}>
-          <p className={styles.modalSpacing}>{t("hero.nicknameHint")}</p>
-          <TextInput
-            id="update-nickname"
-            labelText={t("hero.nicknameLabel")}
-            placeholder={t("hero.nicknamePlaceholder")}
-            value={newNickname}
-            onChange={(e) => setNewNickname(e.target.value)}
-          />
         </div>
       </Modal>
 

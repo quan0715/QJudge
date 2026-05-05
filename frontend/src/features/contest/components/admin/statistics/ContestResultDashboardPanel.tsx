@@ -930,7 +930,6 @@ function OptionDistributionList({
     participants: Array<{
       participantId: number;
       username: string;
-      nickname: string | null;
       displayName: string;
     }>;
   }>;
@@ -1330,7 +1329,6 @@ function formatAnswerContent(
 type ObjectiveParticipantRow = {
   participantId: number;
   username: string;
-  nickname: string | null;
   displayName: string;
   isOmitted: boolean;
   selectedOptions: string[];

@@ -1,0 +1,170 @@
+// 此 module 只保留 student dashboard 內部 list / chart / tab content 的局部樣式。
+// 頁面層級 layout、title、metric、time 已改用 @/shared/components/dashboard 元件。
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.tabPanel {
+  padding: 0;
+}
+
+.tabContent {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.actionStack,
+.modalStack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.progressTrack {
+  position: relative;
+  block-size: 0.5rem;
+  margin-top: 0.75rem;
+  overflow: hidden;
+  background: var(--cds-layer-accent-01);
+}
+
+.progressFill {
+  block-size: 100%;
+  min-inline-size: 0;
+  background: var(--cds-support-success);
+}
+
+.scoreDistributionChart {
+  min-height: 11.25rem;
+  margin-top: 0.75rem;
+  overflow: hidden;
+}
+
+.chartSkeleton {
+  width: 100%;
+  height: 11.25rem;
+}
+
+.rulesContent {
+  color: var(--cds-text-primary);
+}
+
+.announcementList {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.announcementItem {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.announcementItem:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.announcementMeta {
+  flex: 0 0 auto;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  line-height: var(--cds-label-01-line-height, 1.33333);
+}
+
+.announcementContent {
+  color: var(--cds-text-primary);
+}
+
+.warningIcon {
+  color: var(--cds-support-warning);
+}
+
+.successIcon {
+  color: var(--cds-support-success);
+}
+
+.recordMeta,
+.emptyText {
+  color: var(--cds-text-secondary);
+}
+
+.recordMeta {
+  margin-top: 0.25rem;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
+.recordTitle {
+  color: var(--cds-text-primary);
+  font-size: var(--cds-body-compact-02-font-size, 1rem);
+  font-weight: 600;
+  line-height: var(--cds-body-compact-02-line-height, 1.375);
+}
+
+.recordScore {
+  color: var(--cds-text-primary);
+  font-family: var(--cds-code-font-family, monospace);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.problemReportList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.problemReportItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.problemReportMeta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.questionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.errorText {
+  margin: 1rem 0 0;
+  color: var(--cds-text-error);
+}
+
+.emptyText {
+  margin: 0;
+}
+
+@media (max-width: 672px) {
+  .tabContent {
+    padding: 1rem;
+  }
+
+  .problemReportItem {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .problemReportMeta {
+    justify-content: flex-start;
+  }
+
+  .recordScore {
+    white-space: normal;
+  }
+}

@@ -48,7 +48,7 @@ const ContestExitModal: React.FC<ContestExitModalProps> = ({
     }
 
     // Student - Not joined
-    if (!contest?.hasJoined && !contest?.isRegistered) {
+    if (!contest?.hasJoined) {
       return t("exitModal.studentNotJoined");
     }
 

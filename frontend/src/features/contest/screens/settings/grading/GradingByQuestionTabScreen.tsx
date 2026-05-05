@@ -36,7 +36,6 @@ interface GradingByQuestionTabScreenProps {
   students: {
     studentId: string;
     username: string;
-    nickname: string;
     displayName?: string;
   }[];
   onGrade: (answerId: string, score: number, feedback: string) => void;
@@ -124,7 +123,7 @@ export default function GradingByQuestionTabScreen({
         id: `absent-${s.studentId}-${activeQuestionId}`,
         studentId: s.studentId,
         studentUsername: s.username,
-        studentNickname: s.displayName || s.nickname || s.username,
+        studentDisplayName: s.displayName || s.username,
         questionId: activeQuestionId,
         questionIndex: qInfo?.questionIndex ?? 0,
         questionPrompt: qInfo?.prompt ?? "",
@@ -151,7 +150,7 @@ export default function GradingByQuestionTabScreen({
       rows = rows.filter(
         (r) =>
           r.studentUsername.toLowerCase().includes(q) ||
-          r.studentNickname.toLowerCase().includes(q)
+          r.studentDisplayName.toLowerCase().includes(q)
       );
     }
 
@@ -315,7 +314,7 @@ export default function GradingByQuestionTabScreen({
                 className={isAbsent ? styles.absentItem : undefined}
               >
                 <ListItemContent>
-                  <ListItemTitle>{a.studentNickname}</ListItemTitle>
+                  <ListItemTitle>{a.studentDisplayName}</ListItemTitle>
                   <ListItemMeta>{a.studentUsername}</ListItemMeta>
                 </ListItemContent>
                 <ListItemTrailing>
@@ -383,7 +382,7 @@ export default function GradingByQuestionTabScreen({
           selectedQuestion ? `Q${selectedQuestion.questionIndex}` : "—"
         }
         studentLabel={
-          selectedAnswer?.studentNickname ?? t("grading.noSelection", "未選擇")
+          selectedAnswer?.studentDisplayName ?? t("grading.noSelection", "未選擇")
         }
         questionContent={sidebarContent}
         studentContent={middlePaneContent}
@@ -405,7 +404,7 @@ export default function GradingByQuestionTabScreen({
             ? `Q${selectedQuestion.questionIndex}`
             : t("grading.question", "題目"),
           secondary: selectedAnswer
-            ? `${selectedAnswer.studentNickname} (${selectedAnswer.studentUsername})`
+            ? `${selectedAnswer.studentDisplayName} (${selectedAnswer.studentUsername})`
             : undefined,
         }}
       />

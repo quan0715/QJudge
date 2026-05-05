@@ -1,0 +1,29 @@
+.root {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.label {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: 400;
+  line-height: var(--cds-label-01-line-height, 1.33333);
+}
+
+.value {
+  color: var(--cds-text-primary);
+  font-family: var(--cds-code-font-family, monospace);
+}
+
+.countdown {
+  font-size: var(--cds-heading-03-font-size, 1.25rem);
+  font-weight: 600;
+  line-height: var(--cds-heading-03-line-height, 1.4);
+}
+
+.header {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-weight: 400;
+  line-height: var(--cds-body-compact-01-line-height, 1.28572);
+}

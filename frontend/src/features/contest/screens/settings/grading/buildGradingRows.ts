@@ -13,7 +13,7 @@ import type { GradingAnswerRow, QuestionType } from "./gradingTypes";
 export function buildGradingRows(
   allAnswers: ExamAnswerGrading[],
   questions: ExamQuestion[],
-  participantMap?: Map<string, { username: string; nickname: string }>,
+  participantMap?: Map<string, { username: string; displayName: string }>,
 ): GradingAnswerRow[] {
   const questionsMap = new Map<string, ExamQuestion>();
   questions.forEach((q, i) =>
@@ -32,13 +32,13 @@ export function buildGradingRows(
     const studentId = a.participantUserId;
     const student = participantMap?.get(studentId);
     const studentUsername = student?.username ?? "unknown";
-    const studentNickname = student?.nickname ?? studentUsername;
+    const studentDisplayName = student?.displayName ?? studentUsername;
 
     return {
       id: a.id,
       studentId,
       studentUsername,
-      studentNickname,
+      studentDisplayName,
       questionId: a.questionId,
       questionIndex: qIdx + 1,
       questionPrompt: q?.prompt ?? "",

@@ -11,6 +11,23 @@ import {
   formatDuration,
 } from "@/features/contest/components/admin/overviewMetrics.utils";
 
+export type DashboardText = (
+  key: string,
+  defaultValue: string,
+  values?: Record<string, string | number>,
+) => string;
+
+const interpolateDashboardText = (
+  defaultValue: string,
+  values?: Record<string, string | number>,
+) =>
+  defaultValue.replace(/{{(\w+)}}/g, (_, name) =>
+    String(values?.[name] ?? ""),
+  );
+
+const defaultDashboardText: DashboardText = (_key, defaultValue, values) =>
+  interpolateDashboardText(defaultValue, values);
+
 export type OverviewKpiKey =
   | "online"
   | "started"
@@ -180,9 +197,8 @@ const studentParticipants = (participants: ContestParticipant[]) =>
       !participant.accountRole || participant.accountRole === "student",
   );
 
-const displayName = (participant: ContestParticipant) =>
+const getProfileDisplayName = (participant: ContestParticipant) =>
   participant.displayName ||
-  participant.userDisplayName ||
   participant.username ||
   participant.userId;
 
@@ -244,10 +260,15 @@ const formatScheduleDateTime = (
   return dateTime === "-" ? dateTime : dateTime.replace(" ", "\n");
 };
 
-const formatWindow = (contest: ContestDetail) => {
+const formatWindow = (
+  contest: ContestDetail,
+  tr: DashboardText = defaultDashboardText,
+) => {
   const start = formatTime(contest.startTime);
   const end = formatTime(contest.endTime);
-  if (start === "-" || end === "-") return "未設定";
+  if (start === "-" || end === "-") {
+    return tr("adminOverview.model.common.unset", "未設定");
+  }
   return `${start}-${end}`;
 };
 
@@ -257,15 +278,17 @@ const buildTimelineSummary = ({
   contest,
   now,
   progressPercent,
+  tr = defaultDashboardText,
 }: {
   contest: ContestDetail;
   now: Date;
   progressPercent?: number;
+  tr?: DashboardText;
 }): DashboardTimelineSummary => {
   const start = Date.parse(contest.startTime);
   const end = Date.parse(contest.endTime);
   const nowMs = now.getTime();
-  const timeWindowLabel = formatWindow(contest);
+  const timeWindowLabel = formatWindow(contest, tr);
   const startDateKey = formatDateKey(contest.startTime);
   const endDateKey = formatDateKey(contest.endTime);
   const isCrossDay = Boolean(
@@ -276,8 +299,8 @@ const buildTimelineSummary = ({
 
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
     return {
-      phaseLabel: "時間未設定",
-      primaryTimeLabel: "未設定",
+      phaseLabel: tr("adminOverview.model.timeline.timeUnset", "時間未設定"),
+      primaryTimeLabel: tr("adminOverview.model.common.unset", "未設定"),
       timeWindowLabel,
       startDateTimeLabel,
       endDateTimeLabel,
@@ -287,8 +310,12 @@ const buildTimelineSummary = ({
 
   if (nowMs < start) {
     return {
-      phaseLabel: "尚未開始",
-      primaryTimeLabel: `距離開始 ${formatDuration((start - nowMs) / 1000)}`,
+      phaseLabel: tr("adminOverview.model.timeline.notStarted", "尚未開始"),
+      primaryTimeLabel: tr(
+        "adminOverview.model.timeline.startsIn",
+        "距離開始 {{time}}",
+        { time: formatDuration((start - nowMs) / 1000) },
+      ),
       timeWindowLabel,
       startDateTimeLabel,
       endDateTimeLabel,
@@ -298,8 +325,11 @@ const buildTimelineSummary = ({
 
   if (nowMs >= end) {
     return {
-      phaseLabel: "已結束",
-      primaryTimeLabel: "考試已結束",
+      phaseLabel: tr("adminOverview.model.timeline.ended", "已結束"),
+      primaryTimeLabel: tr(
+        "adminOverview.model.timeline.examEnded",
+        "考試已結束",
+      ),
       timeWindowLabel,
       startDateTimeLabel,
       endDateTimeLabel,
@@ -310,8 +340,10 @@ const buildTimelineSummary = ({
   const resolvedProgress =
     progressPercent ?? ((nowMs - start) / Math.max(1, end - start)) * 100;
   return {
-    phaseLabel: "進行中",
-    primaryTimeLabel: `剩餘 ${formatDuration((end - nowMs) / 1000)}`,
+    phaseLabel: tr("adminOverview.model.timeline.running", "進行中"),
+    primaryTimeLabel: tr("adminOverview.model.timeline.remaining", "剩餘 {{time}}", {
+      time: formatDuration((end - nowMs) / 1000),
+    }),
     timeWindowLabel,
     startDateTimeLabel,
     endDateTimeLabel,
@@ -333,13 +365,19 @@ const getWorkItemCount = (contest: ContestDetail) =>
 const percentage = (value: number, total: number) =>
   total <= 0 ? 0 : Math.round((value / total) * 100);
 
-const buildProgressSeries = (percent: number): DashboardChartSeries[] => [
+const buildProgressSeries = (
+  percent: number,
+  tr: DashboardText = defaultDashboardText,
+): DashboardChartSeries[] => [
   {
     key: "progress",
-    label: "進度",
+    label: tr("adminOverview.model.progress.label", "進度"),
     values: [
-      { label: "開始", value: 0 },
-      { label: "目前", value: clampPercent(percent) },
+      { label: tr("adminOverview.model.progress.start", "開始"), value: 0 },
+      {
+        label: tr("adminOverview.model.progress.current", "目前"),
+        value: clampPercent(percent),
+      },
     ],
   },
 ];
@@ -363,10 +401,12 @@ export const getTeacherAttentionRows = ({
   participants,
   examEvents,
   limit = 5,
+  tr = defaultDashboardText,
 }: {
   participants: ContestParticipant[];
   examEvents: ExamEvent[];
   limit?: number;
+  tr?: DashboardText;
 }): TeacherAttentionRow[] => {
   const latest = latestEventByUser(
     examEvents.filter((event) => event.eventType !== "heartbeat"),
@@ -381,7 +421,7 @@ export const getTeacherAttentionRows = ({
     const common = {
       id: participant.userId,
       userId: participant.userId,
-      studentName: displayName(participant),
+      studentName: getProfileDisplayName(participant),
       timeLabel: formatTime(
         latestEvent?.timestamp ||
           participantTimestamps.lockedAt ||
@@ -393,8 +433,10 @@ export const getTeacherAttentionRows = ({
       rows.push({
         ...common,
         kind: "locked",
-        statusLabel: "鎖定",
-        eventLabel: participant.lockReason || "考試已鎖定",
+        statusLabel: tr("adminOverview.model.status.locked", "鎖定"),
+        eventLabel:
+          participant.lockReason ||
+          tr("adminOverview.model.attention.examLocked", "考試已鎖定"),
         panelTarget: "participants",
       });
       continue;
@@ -404,10 +446,14 @@ export const getTeacherAttentionRows = ({
       rows.push({
         ...common,
         kind: "violation",
-        statusLabel: "違規",
+        statusLabel: tr("adminOverview.model.status.anomaly", "異常"),
         eventLabel: latestEvent
           ? latestEvent.eventType
-          : `${participant.violationCount} 次違規`,
+          : tr(
+              "adminOverview.model.attention.anomalyCount",
+              "{{count}} 次異常",
+              { count: participant.violationCount ?? 0 },
+            ),
         panelTarget: "logs",
       });
       continue;
@@ -417,8 +463,11 @@ export const getTeacherAttentionRows = ({
       rows.push({
         ...common,
         kind: "offline",
-        statusLabel: "離線",
-        eventLabel: "連線中斷",
+        statusLabel: tr("adminOverview.model.status.offline", "離線"),
+        eventLabel: tr(
+          "adminOverview.model.attention.connectionInterrupted",
+          "連線中斷",
+        ),
         panelTarget: "participants",
       });
       continue;
@@ -428,8 +477,11 @@ export const getTeacherAttentionRows = ({
       rows.push({
         ...common,
         kind: "not_started",
-        statusLabel: "未開始",
-        eventLabel: "尚未進入考試",
+        statusLabel: tr("adminOverview.model.status.notStarted", "未開始"),
+        eventLabel: tr(
+          "adminOverview.model.attention.notEntered",
+          "尚未進入考試",
+        ),
         panelTarget: "participants",
       });
     }
@@ -447,6 +499,7 @@ export const getTeacherAttentionRows = ({
 
 const buildDistribution = (
   participants: ContestParticipant[],
+  tr: DashboardText = defaultDashboardText,
 ): DistributionItem[] => {
   const students = studentParticipants(participants);
   const total = students.length;
@@ -456,29 +509,29 @@ const buildDistribution = (
   const items = [
     {
       key: "in_progress" as const,
-      label: "作答中",
+      label: tr("adminOverview.model.status.inProgress", "作答中"),
       value: count((p) => p.examStatus === "in_progress"),
     },
     {
       key: "not_started" as const,
-      label: "未開始",
+      label: tr("adminOverview.model.status.notStarted", "未開始"),
       value: count((p) => p.examStatus === "not_started"),
     },
     {
       key: "submitted" as const,
-      label: "已交卷",
+      label: tr("adminOverview.model.status.submitted", "已交卷"),
       value: count((p) => p.examStatus === "submitted"),
     },
     {
       key: "locked" as const,
-      label: "鎖定",
+      label: tr("adminOverview.model.status.locked", "鎖定"),
       value: count(
         (p) => p.examStatus === "locked" || p.examStatus === "paused",
       ),
     },
     {
       key: "offline" as const,
-      label: "離線",
+      label: tr("adminOverview.model.status.offline", "離線"),
       value: count((p) => p.connectionStatus === "offline"),
     },
   ];
@@ -507,6 +560,7 @@ const buildRecentEvents = (examEvents: ExamEvent[]): RecentExamEventItem[] =>
 
 const buildPriorityEventSeries = (
   examEvents: ExamEvent[],
+  tr: DashboardText = defaultDashboardText,
 ): DashboardChartSeries[] => {
   const priorityEvents = examEvents
     .filter((event) => {
@@ -518,7 +572,10 @@ const buildPriorityEventSeries = (
     new Set(priorityEvents.map((event) => formatTime(event.timestamp))),
   ).slice(-8);
 
-  const safeLabels = bucketLabels.length > 0 ? bucketLabels : ["目前"];
+  const safeLabels =
+    bucketLabels.length > 0
+      ? bucketLabels
+      : [tr("adminOverview.model.progress.current", "目前")];
   const countFor = (priority: number, label: string) =>
     priorityEvents.filter(
       (event) =>
@@ -559,11 +616,13 @@ const buildInsightCards = ({
   gradingLabel,
   examProgressPercent,
   examEvents,
+  tr = defaultDashboardText,
 }: {
   gradingPercent: number;
   gradingLabel: string;
   examProgressPercent: number;
   examEvents: ExamEvent[];
+  tr?: DashboardText;
 }): DashboardInsightCard[] => {
   const priorityTotal = examEvents.filter((event) => {
     const priority = getEventPriority(event.eventType);
@@ -573,26 +632,26 @@ const buildInsightCards = ({
   return [
     {
       key: "grading_progress",
-      title: "批改進度",
+      title: tr("adminOverview.model.insights.gradingProgress", "批改進度"),
       value: gradingLabel,
       kind: "progress",
       progressPercent: gradingPercent,
-      series: buildProgressSeries(gradingPercent),
+      series: buildProgressSeries(gradingPercent, tr),
     },
     {
       key: "exam_progress",
-      title: "考試進度",
+      title: tr("adminOverview.model.insights.examProgress", "考試進度"),
       value: `${Math.round(clampPercent(examProgressPercent))}%`,
       kind: "progress",
       progressPercent: examProgressPercent,
-      series: buildProgressSeries(examProgressPercent),
+      series: buildProgressSeries(examProgressPercent, tr),
     },
     {
       key: "priority_events",
-      title: "違規事件",
+      title: tr("adminOverview.model.insights.priorityEvents", "異常事件"),
       value: String(priorityTotal),
       kind: "line",
-      series: buildPriorityEventSeries(examEvents),
+      series: buildPriorityEventSeries(examEvents, tr),
     },
   ];
 };
@@ -604,6 +663,7 @@ export const buildAdminOverviewDashboard = ({
   overviewMetrics,
   gradingStats,
   now = new Date(),
+  tr = defaultDashboardText,
 }: {
   contest: ContestDetail;
   participants: ContestParticipant[];
@@ -611,6 +671,7 @@ export const buildAdminOverviewDashboard = ({
   overviewMetrics: ContestOverviewMetrics | null;
   gradingStats?: GlobalStats;
   now?: Date;
+  tr?: DashboardText;
 }): AdminOverviewDashboardData => {
   const students = studentParticipants(participants);
   const total = Math.max(students.length, contest.participantCount || 0);
@@ -632,6 +693,7 @@ export const buildAdminOverviewDashboard = ({
     participants,
     examEvents,
     limit: 5,
+    tr,
   });
   const liveTimeProgress =
     overviewMetrics?.timeProgress ||
@@ -640,38 +702,41 @@ export const buildAdminOverviewDashboard = ({
   const totalAnswers = gradingStats?.totalAnswers ?? 0;
   const gradingPercent =
     totalAnswers > 0 ? Math.round((gradedAnswers / totalAnswers) * 100) : 0;
-  const gradingLabel = totalAnswers > 0 ? `${gradingPercent}%` : "尚無批改資料";
+  const gradingLabel =
+    totalAnswers > 0
+      ? `${gradingPercent}%`
+      : tr("adminOverview.model.grading.noData", "尚無批改資料");
   const workItemCount = getWorkItemCount(contest);
 
   return {
     kpis: [
       {
         key: "online",
-        label: "在線考生",
+        label: tr("adminOverview.model.kpi.onlineStudents", "在線考生"),
         value: `${overviewMetrics?.onlineNow ?? 0} / ${total}`,
         tone: "neutral",
       },
       {
         key: "started",
-        label: "已開始",
+        label: tr("adminOverview.model.kpi.started", "已開始"),
         value: String(started),
         tone: "neutral",
       },
       {
         key: "submitted",
-        label: "已交卷",
+        label: tr("adminOverview.model.status.submitted", "已交卷"),
         value: String(submitted),
         tone: "neutral",
       },
       {
         key: "locked",
-        label: "鎖定",
+        label: tr("adminOverview.model.status.locked", "鎖定"),
         value: String(locked),
         tone: locked > 0 ? "danger" : "neutral",
       },
       {
         key: "attention",
-        label: "待處理事件",
+        label: tr("adminOverview.model.kpi.pendingEvents", "待處理事件"),
         value: String(attentionRows.length),
         tone: attentionRows.length > 0 ? "warning" : "neutral",
       },
@@ -680,35 +745,36 @@ export const buildAdminOverviewDashboard = ({
       contest,
       now,
       progressPercent: liveTimeProgress.progressPercent,
+      tr,
     }),
     railItems: [
       {
         key: "online",
-        label: "在線",
+        label: tr("adminOverview.model.status.online", "在線"),
         value: `${overviewMetrics?.onlineNow ?? 0} / ${total}`,
         tone: "neutral",
       },
       {
         key: "in_progress",
-        label: "作答中",
+        label: tr("adminOverview.model.status.inProgress", "作答中"),
         value: String(inProgress),
         tone: "neutral",
       },
       {
         key: "not_started",
-        label: "未開始",
+        label: tr("adminOverview.model.status.notStarted", "未開始"),
         value: String(notStarted),
         tone: notStarted > 0 ? "warning" : "neutral",
       },
       {
         key: "submitted",
-        label: "已交卷",
+        label: tr("adminOverview.model.status.submitted", "已交卷"),
         value: String(submitted),
         tone: "neutral",
       },
       {
         key: "locked_offline",
-        label: "鎖定 / 離線",
+        label: tr("adminOverview.model.status.lockedOffline", "鎖定 / 離線"),
         value: `${locked} / ${offline}`,
         tone: locked > 0 || offline > 0 ? "danger" : "neutral",
       },
@@ -718,44 +784,68 @@ export const buildAdminOverviewDashboard = ({
       gradingLabel,
       examProgressPercent: liveTimeProgress.progressPercent,
       examEvents,
+      tr,
     }),
     attentionRows,
-    distribution: buildDistribution(participants),
+    distribution: buildDistribution(participants, tr),
     examStatus: {
-      timeWindowLabel: formatWindow(contest),
+      timeWindowLabel: formatWindow(contest, tr),
       remainingLabel: liveTimeProgress.isEnded
-        ? "已結束"
+        ? tr("adminOverview.model.timeline.ended", "已結束")
         : formatDuration(liveTimeProgress.remainingSeconds),
       timeProgressPercent: liveTimeProgress.progressPercent,
-      resultsLabel: contest.resultsPublished ? "已發布" : "未發布",
+      resultsLabel: contest.resultsPublished
+        ? tr("adminOverview.model.results.published", "已發布")
+        : tr("adminOverview.model.results.unpublished", "未發布"),
       gradingLabel,
       workItemLabel:
-        contest.contestType === "paper_exam" ? "考卷題目" : "程式題目",
+        contest.contestType === "paper_exam"
+          ? tr("adminOverview.model.workItems.paperExam", "考卷題目")
+          : tr("adminOverview.model.workItems.coding", "程式題目"),
       workItemCount,
     },
     recentEvents: buildRecentEvents(examEvents),
     nextActions: [
       {
         key: "attention",
-        title: "處理異常",
+        title: tr("adminOverview.model.nextActions.attention.title", "處理異常"),
         description:
           attentionRows.length > 0
-            ? `${attentionRows.length} 位考生需要確認`
-            : "目前沒有待處理異常",
+            ? tr(
+                "adminOverview.model.nextActions.attention.hasItems",
+                "{{count}} 位考生需要確認",
+                { count: attentionRows.length },
+              )
+            : tr(
+                "adminOverview.model.nextActions.attention.empty",
+                "目前沒有待處理異常",
+              ),
         panelTarget: "participants",
         disabled: attentionRows.length === 0,
       },
       {
         key: "grading",
-        title: "前往批改",
+        title: tr("adminOverview.model.nextActions.grading.title", "前往批改"),
         description:
-          totalAnswers > 0 ? `已批改 ${gradingPercent}%` : "考後可開始批改",
+          totalAnswers > 0
+            ? tr("adminOverview.model.nextActions.grading.progress", "已批改 {{percent}}%", {
+                percent: gradingPercent,
+              })
+            : tr(
+                "adminOverview.model.nextActions.grading.afterExam",
+                "考後可開始批改",
+              ),
         panelTarget: "grading",
       },
       {
         key: "results",
-        title: "發布成績",
-        description: contest.resultsPublished ? "成績已發布" : "確認批改後發布",
+        title: tr("adminOverview.model.nextActions.results.title", "發布成績"),
+        description: contest.resultsPublished
+          ? tr("adminOverview.model.results.published", "成績已發布")
+          : tr(
+              "adminOverview.model.nextActions.results.readyToPublish",
+              "確認批改後發布",
+            ),
         panelTarget: "grading",
         disabled: contest.resultsPublished,
       },
@@ -763,16 +853,30 @@ export const buildAdminOverviewDashboard = ({
   };
 };
 
-const contestStatusLabel = (status: ContestDetail["status"]) => {
-  if (status === "draft") return "草稿";
-  if (status === "archived") return "已封存";
-  return "已發布";
+const contestStatusLabel = (
+  status: ContestDetail["status"],
+  tr: DashboardText = defaultDashboardText,
+) => {
+  if (status === "draft") {
+    return tr("adminOverview.model.contestStatus.draft", "草稿");
+  }
+  if (status === "archived") {
+    return tr("adminOverview.model.contestStatus.archived", "已封存");
+  }
+  return tr("adminOverview.model.contestStatus.published", "已發布");
 };
 
-const readinessLabel = (status: PreparationReadinessState) => {
-  if (status === "done") return "完成";
-  if (status === "missing") return "缺少";
-  return "待確認";
+const readinessLabel = (
+  status: PreparationReadinessState,
+  tr: DashboardText = defaultDashboardText,
+) => {
+  if (status === "done") {
+    return tr("adminOverview.model.readiness.done", "完成");
+  }
+  if (status === "missing") {
+    return tr("adminOverview.model.readiness.missing", "缺少");
+  }
+  return tr("adminOverview.model.readiness.warning", "待確認");
 };
 
 export const buildAdminPreparationDashboard = ({
@@ -780,11 +884,13 @@ export const buildAdminPreparationDashboard = ({
   participants,
   gradingStats,
   now = new Date(),
+  tr = defaultDashboardText,
 }: {
   contest: ContestDetail;
   participants: ContestParticipant[];
   gradingStats?: GlobalStats;
   now?: Date;
+  tr?: DashboardText;
 }): AdminPreparationDashboardData => {
   const students = studentParticipants(participants);
   const participantTotal = Math.max(
@@ -799,69 +905,108 @@ export const buildAdminPreparationDashboard = ({
   const ungradedAnswers =
     gradingStats?.ungradedAnswers ?? Math.max(totalAnswers - gradedAnswers, 0);
   const gradingPercent = percentage(gradedAnswers, totalAnswers);
-  const gradingLabel = totalAnswers > 0 ? `${gradingPercent}%` : "尚無資料";
+  const gradingLabel =
+    totalAnswers > 0
+      ? `${gradingPercent}%`
+      : tr("adminOverview.model.common.noData", "尚無資料");
   const workItemLabel =
-    contest.contestType === "paper_exam" ? "考卷題目" : "程式題目";
+    contest.contestType === "paper_exam"
+      ? tr("adminOverview.model.workItems.paperExam", "考卷題目")
+      : tr("adminOverview.model.workItems.coding", "程式題目");
   const publishState: PreparationReadinessState =
     contest.status === "published" ? "done" : "warning";
 
   const checklistItems: PreparationChecklistItem[] = [
     {
       key: "publish",
-      label: "競賽發布",
+      label: tr("adminOverview.model.preparation.publish", "競賽發布"),
       status: publishState,
-      statusLabel: readinessLabel(publishState),
+      statusLabel: readinessLabel(publishState, tr),
       description:
         contest.status === "published"
-          ? "參賽者可依權限進入競賽"
-          : `目前狀態：${contestStatusLabel(contest.status)}`,
+          ? tr(
+              "adminOverview.model.preparation.publishedDescription",
+              "參賽者可依權限進入競賽",
+            )
+          : tr(
+              "adminOverview.model.preparation.currentStatus",
+              "目前狀態：{{status}}",
+              { status: contestStatusLabel(contest.status, tr) },
+            ),
     },
     {
       key: "work_items",
       label: workItemLabel,
       status: workItemCount > 0 ? "done" : "missing",
-      statusLabel: readinessLabel(workItemCount > 0 ? "done" : "missing"),
+      statusLabel: readinessLabel(workItemCount > 0 ? "done" : "missing", tr),
       description:
         workItemCount > 0
-          ? `已設定 ${workItemCount} 題`
-          : "尚未建立可作答的題目",
+          ? tr("adminOverview.model.preparation.workItemsReady", "已設定 {{count}} 題", {
+              count: workItemCount,
+            })
+          : tr(
+              "adminOverview.model.preparation.workItemsMissing",
+              "尚未建立可作答的題目",
+            ),
     },
     {
       key: "schedule",
-      label: "考試時段",
+      label: tr("adminOverview.model.preparation.schedule", "考試時段"),
       status: scheduleReady ? "done" : "missing",
-      statusLabel: readinessLabel(scheduleReady ? "done" : "missing"),
+      statusLabel: readinessLabel(scheduleReady ? "done" : "missing", tr),
       description: scheduleReady
-        ? formatWindow(contest)
-        : "開始與結束時間未完整設定",
+        ? formatWindow(contest, tr)
+        : tr(
+            "adminOverview.model.preparation.scheduleMissing",
+            "開始與結束時間未完整設定",
+          ),
     },
     {
       key: "participants",
-      label: "參賽者名單",
+      label: tr("adminOverview.model.preparation.participantList", "參賽者名單"),
       status: participantTotal > 0 ? "done" : "warning",
-      statusLabel: readinessLabel(participantTotal > 0 ? "done" : "warning"),
+      statusLabel: readinessLabel(participantTotal > 0 ? "done" : "warning", tr),
       description:
         participantTotal > 0
-          ? `${participantTotal} 位參賽者`
-          : "尚未看到參賽者資料",
+          ? tr(
+              "adminOverview.model.preparation.participantCount",
+              "{{count}} 位參賽者",
+              { count: participantTotal },
+            )
+          : tr(
+              "adminOverview.model.preparation.participantsMissing",
+              "尚未看到參賽者資料",
+            ),
     },
     {
       key: "rules",
-      label: "作答規則",
+      label: tr("adminOverview.model.preparation.rules", "作答規則"),
       status: hasRules ? "done" : "warning",
-      statusLabel: readinessLabel(hasRules ? "done" : "warning"),
-      description: hasRules ? "已填寫規則說明" : "可補上考試規則與注意事項",
+      statusLabel: readinessLabel(hasRules ? "done" : "warning", tr),
+      description: hasRules
+        ? tr("adminOverview.model.preparation.rulesReady", "已填寫規則說明")
+        : tr(
+            "adminOverview.model.preparation.rulesMissing",
+            "可補上考試規則與注意事項",
+          ),
     },
     {
       key: "anti_cheat",
-      label: "防作弊設定",
+      label: tr("adminOverview.model.preparation.antiCheat", "防作弊設定"),
       status: contest.cheatDetectionEnabled ? "done" : "warning",
       statusLabel: readinessLabel(
         contest.cheatDetectionEnabled ? "done" : "warning",
+        tr,
       ),
       description: contest.cheatDetectionEnabled
-        ? "防作弊監控已啟用"
-        : "可依考試需求啟用",
+        ? tr(
+            "adminOverview.model.preparation.antiCheatEnabled",
+            "防作弊監控已啟用",
+          )
+        : tr(
+            "adminOverview.model.preparation.antiCheatOptional",
+            "可依考試需求啟用",
+          ),
     },
   ];
 
@@ -869,12 +1014,13 @@ export const buildAdminPreparationDashboard = ({
     timeline: buildTimelineSummary({
       contest,
       now,
+      tr,
     }),
     railItems: [
       {
         key: "status",
-        label: "競賽狀態",
-        value: contestStatusLabel(contest.status),
+        label: tr("adminOverview.model.summary.status", "競賽狀態"),
+        value: contestStatusLabel(contest.status, tr),
         tone: contest.status === "published" ? "neutral" : "warning",
       },
       {
@@ -885,77 +1031,106 @@ export const buildAdminPreparationDashboard = ({
       },
       {
         key: "participants",
-        label: "參賽者",
+        label: tr("adminOverview.model.summary.participants", "參賽者"),
         value: String(participantTotal),
         tone: participantTotal > 0 ? "neutral" : "warning",
       },
       {
         key: "anti_cheat",
-        label: "防作弊",
-        value: contest.cheatDetectionEnabled ? "已啟用" : "未啟用",
+        label: tr("adminOverview.model.summary.antiCheat", "防作弊"),
+        value: contest.cheatDetectionEnabled
+          ? tr("adminOverview.model.common.enabled", "已啟用")
+          : tr("adminOverview.model.common.disabled", "未啟用"),
         tone: contest.cheatDetectionEnabled ? "neutral" : "warning",
       },
       {
         key: "results",
-        label: "成績",
-        value: contest.resultsPublished ? "已發布" : "未發布",
+        label: tr("adminOverview.model.summary.results", "成績"),
+        value: contest.resultsPublished
+          ? tr("adminOverview.model.results.published", "已發布")
+          : tr("adminOverview.model.results.unpublished", "未發布"),
         tone: contest.resultsPublished ? "neutral" : "warning",
       },
     ],
     insightCards: buildInsightCards({
       gradingPercent,
       gradingLabel,
-      examProgressPercent: buildTimelineSummary({ contest, now })
+      examProgressPercent: buildTimelineSummary({ contest, now, tr })
         .progressPercent,
       examEvents: [],
+      tr,
     }),
     summaryItems: [
       {
         key: "status",
-        label: "競賽狀態",
-        value: contestStatusLabel(contest.status),
+        label: tr("adminOverview.model.summary.status", "競賽狀態"),
+        value: contestStatusLabel(contest.status, tr),
         description:
-          contest.status === "published" ? "已開放給參賽者" : "尚未正式開放",
+          contest.status === "published"
+            ? tr("adminOverview.model.summary.statusOpen", "已開放給參賽者")
+            : tr("adminOverview.model.summary.statusClosed", "尚未正式開放"),
         tone: contest.status === "published" ? "neutral" : "warning",
       },
       {
         key: "schedule",
-        label: "考試時段",
-        value: formatWindow(contest),
-        description: scheduleReady ? "時間設定完整" : "需要補齊時間",
+        label: tr("adminOverview.model.preparation.schedule", "考試時段"),
+        value: formatWindow(contest, tr),
+        description: scheduleReady
+          ? tr("adminOverview.model.summary.scheduleReady", "時間設定完整")
+          : tr("adminOverview.model.summary.scheduleMissing", "需要補齊時間"),
         tone: scheduleReady ? "neutral" : "danger",
       },
       {
         key: "work_items",
         label: workItemLabel,
         value: String(workItemCount),
-        description: workItemCount > 0 ? "內容已建立" : "尚未建立內容",
+        description:
+          workItemCount > 0
+            ? tr("adminOverview.model.summary.workItemsReady", "內容已建立")
+            : tr("adminOverview.model.summary.workItemsMissing", "尚未建立內容"),
         tone: workItemCount > 0 ? "neutral" : "danger",
       },
       {
         key: "participants",
-        label: "參賽者",
+        label: tr("adminOverview.model.summary.participants", "參賽者"),
         value: String(participantTotal),
-        description: participantTotal > 0 ? "名單可供管理" : "尚無參賽者資料",
+        description:
+          participantTotal > 0
+            ? tr("adminOverview.model.summary.participantsReady", "名單可供管理")
+            : tr(
+                "adminOverview.model.summary.participantsMissing",
+                "尚無參賽者資料",
+              ),
         tone: participantTotal > 0 ? "neutral" : "warning",
       },
       {
         key: "grading",
-        label: "批改進度",
+        label: tr("adminOverview.model.insights.gradingProgress", "批改進度"),
         value: gradingLabel,
         description:
           totalAnswers > 0
-            ? `${gradedAnswers} / ${totalAnswers} 份`
-            : "考後才會產生批改資料",
+            ? tr("adminOverview.model.summary.gradingCount", "{{graded}} / {{total}} 份", {
+                graded: gradedAnswers,
+                total: totalAnswers,
+              })
+            : tr(
+                "adminOverview.model.summary.gradingAfterExam",
+                "考後才會產生批改資料",
+              ),
         tone: ungradedAnswers > 0 ? "warning" : "neutral",
       },
       {
         key: "results",
-        label: "成績",
-        value: contest.resultsPublished ? "已發布" : "未發布",
+        label: tr("adminOverview.model.summary.results", "成績"),
+        value: contest.resultsPublished
+          ? tr("adminOverview.model.results.published", "已發布")
+          : tr("adminOverview.model.results.unpublished", "未發布"),
         description: contest.resultsPublished
-          ? "參賽者可查看"
-          : "確認批改後發布",
+          ? tr("adminOverview.model.summary.resultsVisible", "參賽者可查看")
+          : tr(
+              "adminOverview.model.nextActions.results.readyToPublish",
+              "確認批改後發布",
+            ),
         tone: contest.resultsPublished ? "neutral" : "warning",
       },
     ],
@@ -968,8 +1143,10 @@ export const buildAdminPreparationDashboard = ({
       progressLabel:
         totalAnswers > 0
           ? `${gradedAnswers} / ${totalAnswers}`
-          : "尚無作答資料",
-      resultsLabel: contest.resultsPublished ? "已發布" : "未發布",
+          : tr("adminOverview.model.grading.noAnswers", "尚無作答資料"),
+      resultsLabel: contest.resultsPublished
+        ? tr("adminOverview.model.results.published", "已發布")
+        : tr("adminOverview.model.results.unpublished", "未發布"),
       resultsTone: contest.resultsPublished ? "neutral" : "warning",
     },
   };

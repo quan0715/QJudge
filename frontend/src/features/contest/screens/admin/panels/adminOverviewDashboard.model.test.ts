@@ -63,7 +63,7 @@ const participant = (
   ({
     userId,
     username: `student-${userId}`,
-    userDisplayName: `學生 ${userId}`,
+    displayName: `學生 ${userId}`,
     accountRole: "student",
     connectionStatus: "online",
     score: 0,

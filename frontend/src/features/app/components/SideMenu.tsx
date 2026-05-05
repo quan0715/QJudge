@@ -29,10 +29,14 @@ import { useAiSessionParam } from "@/features/chatbot/lib/aiSessionUrl";
 import { useOptionalChatbotContext } from "@/features/chatbot/contexts/ChatbotProvider";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { ChatHistoryPanel } from "@/features/chatbot/components/chat-ui/ChatHistoryPanel";
+import { useOptionalContest } from "@/features/contest/contexts";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 import type { ClassroomAdminPanelId } from "@/features/classroom/screens/ClassroomAdminLayout";
+import SideMenuContestIdleSection from "./SideMenuContestIdleSection";
+import SideMenuContestRuntimeSection from "./SideMenuContestRuntimeSection";
 import "./SideMenu.scss";
 
 type ContestPanelNavItem = {
@@ -87,7 +91,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [fetched, setFetched] = useState(false);
-  const [contestForAdminNav, setContestForAdminNav] = useState<ContestDetail | null>(null);
+  const [contestForNav, setContestForNav] = useState<ContestDetail | null>(null);
   const [contestFetched, setContestFetched] = useState(false);
   const { sessions, refreshSessions } = useChatSessionContext();
   const chatbot = useOptionalChatbotContext();
@@ -103,6 +107,27 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     );
     if (!match) return null;
     return { classroomId: match[1], contestId: match[2] };
+  }, [location.pathname]);
+
+  const contestMatch = useMemo(() => {
+    const m = location.pathname.match(/^\/classrooms\/([^/]+)\/contest\/([^/]+)/);
+    return m ? { classroomId: m[1], contestId: m[2] } : null;
+  }, [location.pathname]);
+
+  const contestIdToFetch = contestAdminContext?.contestId ?? contestMatch?.contestId ?? null;
+  const contestContext = useOptionalContest();
+  const contextContestForNav =
+    contestContext?.contest?.id === contestIdToFetch ? contestContext.contest : null;
+  const effectiveContestForNav = contextContestForNav ?? contestForNav;
+
+  const { isRuntime } = useContestRuntimeMode();
+
+  const inContestIdle = !!contestMatch && !contestAdminContext && !isRuntime;
+  const inContestRuntime = !!contestMatch && isRuntime;
+
+  const activeProblemId = useMemo(() => {
+    const m = location.pathname.match(/\/solve\/([^/]+)/);
+    return m?.[1];
   }, [location.pathname]);
 
   // Route-aware: show classroom workspace panel when on a classroom route
@@ -139,18 +164,18 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   }, [isPanelMode, isOpen, isChatRoute, isTeacherOrAdmin, refreshSessions]);
 
   useEffect(() => {
-    setContestForAdminNav(null);
+    setContestForNav(null);
     setContestFetched(false);
-  }, [contestAdminContext?.contestId]);
+  }, [contestIdToFetch]);
 
   useEffect(() => {
-    if (!contestAdminContext?.contestId || contestFetched) return;
+    if (!contestIdToFetch || contestFetched || contextContestForNav) return;
     let active = true;
     const loadContest = async () => {
       try {
-        const contest = await getContest(contestAdminContext.contestId);
+        const contest = await getContest(contestIdToFetch);
         if (!active) return;
-        setContestForAdminNav(contest ?? null);
+        setContestForNav(contest ?? null);
       } finally {
         if (active) {
           setContestFetched(true);
@@ -161,7 +186,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     return () => {
       active = false;
     };
-  }, [contestAdminContext?.contestId, contestFetched]);
+  }, [contestIdToFetch, contestFetched, contextContestForNav]);
 
   useEffect(() => {
     if (isPanelMode || !isOpen) return;
@@ -268,10 +293,10 @@ export const SideMenu: React.FC<SideMenuProps> = ({
 
   const contestPanelNavItems = useMemo<ContestPanelNavItem[]>(() => {
     if (!contestAdminContext) return [];
-    const module = getContestTypeModule(contestForAdminNav?.contestType);
+    const module = getContestTypeModule(effectiveContestForNav?.contestType);
     const isExamMode = module.admin.editorKind === "paper_exam";
     const panels = Array.from(new Set<AdminPanelId>([
-      ...module.admin.getAvailablePanels(contestForAdminNav),
+      ...module.admin.getAvailablePanels(effectiveContestForNav),
       "settings",
     ]));
     return panels.flatMap((panel) => {
@@ -284,7 +309,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         Icon: meta.Icon,
       }];
     });
-  }, [contestAdminContext, contestForAdminNav, tContest]);
+  }, [contestAdminContext, effectiveContestForNav, tContest]);
 
   const goToPanel = useCallback((panel: string) => {
     navigate(`/classrooms/${classroomId}?panel=${panel}`);
@@ -319,239 +344,257 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         ].filter(Boolean).join(" ")}
         aria-label={t("header.sideNav", "Side navigation")}
       >
-        {showContestAdminMiniNav && (
-          <div className="side-menu__section">
-            {contestPanelNavItems.map(({ panel, label, Icon }) => (
-              <button
-                key={panel}
-                type="button"
-                title={label}
-                aria-label={label}
-                className={`side-menu__link${contestActivePanel === panel ? " side-menu__link--active" : ""}`}
-                onClick={() => goToContestPanel(panel)}
-              >
-                <Icon size={16} />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {inContestRuntime && contestMatch ? (
+          <SideMenuContestRuntimeSection
+            classroomId={contestMatch.classroomId}
+            contestId={contestMatch.contestId}
+            activeProblemId={activeProblemId}
+            compact={compact}
+            problems={effectiveContestForNav?.problems ?? []}
+          />
+        ) : inContestIdle && contestMatch ? (
+          <SideMenuContestIdleSection
+            classroomId={contestMatch.classroomId}
+            contestId={contestMatch.contestId}
+            compact={compact}
+          />
+        ) : (
+          <>
+            {showContestAdminMiniNav && (
+              <div className="side-menu__section">
+                {contestPanelNavItems.map(({ panel, label, Icon }) => (
+                  <button
+                    key={panel}
+                    type="button"
+                    title={label}
+                    aria-label={label}
+                    className={`side-menu__link${contestActivePanel === panel ? " side-menu__link--active" : ""}`}
+                    onClick={() => goToContestPanel(panel)}
+                  >
+                    <Icon size={16} />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
-        {!showContestAdminMiniNav && (
-          isChatRoute && isTeacherOrAdmin ? (
-            <>
-              <div className="side-menu__section">
-                <button
-                  type="button"
-                  title={homeLabel}
-                  aria-label={homeLabel}
-                  className={`side-menu__link${isActive("/dashboard") ? " side-menu__link--active" : ""}`}
-                  onClick={() => go("/dashboard")}
-                >
-                  <Home size={16} />
-                  <span>{homeLabel}</span>
-                </button>
-                <button
-                  type="button"
-                  title={t("nav.chat", "Chat")}
-                  aria-label={t("nav.chat", "Chat")}
-                  className="side-menu__link side-menu__link--active"
-                  onClick={() => go("/chat")}
-                >
-                  <ChatIcon size={16} />
-                  <span>{t("nav.chat", "Chat")}</span>
-                </button>
-              </div>
-              <div className="side-menu__chat-panel">
-                <ChatHistoryPanel
-                  sessions={sessions}
-                  currentSessionId={currentSessionId}
-                  onSelectSession={handleSelectSession}
-                  onDeleteSession={handleDeleteSession}
-                  onRenameSession={handleRenameSession}
-                  showNewChatButton
-                  onNewChat={handleNewChat}
-                />
-              </div>
-            </>
-          ) : isOnClassroomRoute ? (
-            /* Inside a classroom: global links + panel sub-nav */
-            <>
-              <div className="side-menu__section">
-                <button
-                  type="button"
-                  title={homeLabel}
-                  aria-label={homeLabel}
-                  className={`side-menu__link${isActive("/dashboard") ? " side-menu__link--active" : ""}`}
-                  onClick={() => go("/dashboard")}
-                >
-                  <Home size={16} />
-                  <span>{homeLabel}</span>
-                </button>
-                {isTeacherOrAdmin && (
-                  <button
-                    type="button"
-                    title={t("nav.chat", "Chat")}
-                    aria-label={t("nav.chat", "Chat")}
-                    className={`side-menu__link${isActive("/chat") ? " side-menu__link--active" : ""}`}
-                    onClick={() => go("/chat")}
-                  >
-                    <ChatIcon size={16} />
-                    <span>{t("nav.chat", "Chat")}</span>
-                  </button>
-                )}
-                {isTeacherOrAdmin && (
-                  <button
-                    type="button"
-                    title={t("nav.marketplace", "Marketplace")}
-                    aria-label={t("nav.marketplace", "Marketplace")}
-                    className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
-                    onClick={() => go("/marketplace")}
-                  >
-                    <Globe size={16} />
-                    <span>{t("nav.marketplace", "Marketplace")}</span>
-                  </button>
-                )}
-              </div>
-              <div className="side-menu__divider" />
-              <div className="side-menu__section">
-                {contestAdminContext ? (
-                  contestPanelNavItems.map(({ panel, label, Icon }) => (
-                    <button
-                      key={panel}
-                      type="button"
-                      title={label}
-                      aria-label={label}
-                      className={`side-menu__link${contestActivePanel === panel ? " side-menu__link--active" : ""}`}
-                      onClick={() => goToContestPanel(panel)}
-                    >
-                      <Icon size={16} />
-                      <span>{label}</span>
-                    </button>
-                  ))
-                ) : (
-                  ([
-                    { panel: "overview", label: tClassroom("sideMenu.overview", "概要"), Icon: Dashboard },
-                    { panel: "announcements", label: tClassroom("sideMenu.announcements", "教室公告"), Icon: Bullhorn },
-                    { panel: "contests", label: tClassroom("sideMenu.contests", "競賽列表"), Icon: Trophy },
-                    { panel: "members", label: tClassroom("sideMenu.members", "教室成員"), Icon: UserMultiple },
-                    ...(canOpenClassroomSettings
-                      ? ([
-                          {
-                            panel: "settings" as const,
-                            label: tClassroom("sideMenu.settings", "教室設定"),
-                            Icon: Settings,
-                          },
-                        ] as const)
-                      : []),
-                  ] as { panel: ClassroomAdminPanelId; label: string; Icon: ComponentType<{ size?: number }> }[]).map(({ panel, label, Icon }) => (
-                    <button
-                      key={panel}
-                      type="button"
-                      title={label}
-                      aria-label={label}
-                      className={`side-menu__link${classroomActivePanel === panel ? " side-menu__link--active" : ""}`}
-                      onClick={() => goToPanel(panel)}
-                    >
-                      <Icon size={16} />
-                      <span>{label}</span>
-                    </button>
-                  ))
-                )}
-              </div>
-            </>
-          ) : (
-            /* Default classrooms list */
-            <>
-              <div className="side-menu__section">
-                <button
-                  type="button"
-                  title={homeLabel}
-                  aria-label={homeLabel}
-                  className={`side-menu__link${isActive("/dashboard") ? " side-menu__link--active" : ""}`}
-                  onClick={() => go("/dashboard")}
-                >
-                  <Home size={16} />
-                  <span>{homeLabel}</span>
-                </button>
-                {isTeacherOrAdmin && (
-                  <button
-                    type="button"
-                    title={t("nav.chat", "Chat")}
-                    aria-label={t("nav.chat", "Chat")}
-                    className={`side-menu__link${isActive("/chat") ? " side-menu__link--active" : ""}`}
-                    onClick={() => go("/chat")}
-                  >
-                    <ChatIcon size={16} />
-                    <span>{t("nav.chat", "Chat")}</span>
-                  </button>
-                )}
-                {isTeacherOrAdmin && (
-                  <button
-                    type="button"
-                    title={t("nav.marketplace", "Marketplace")}
-                    aria-label={t("nav.marketplace", "Marketplace")}
-                    className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
-                    onClick={() => go("/marketplace")}
-                  >
-                    <Globe size={16} />
-                    <span>{t("nav.marketplace", "Marketplace")}</span>
-                  </button>
-                )}
-              </div>
-              {classrooms.length > 0 && (
+            {!showContestAdminMiniNav && (
+              isChatRoute && isTeacherOrAdmin ? (
                 <>
-                  <div className="side-menu__divider" />
                   <div className="side-menu__section">
-                    <div className="side-menu__section-header">
-                      <span>{t("nav.classrooms")}</span>
-                    </div>
-                    <div className="side-menu__classroom-list">
-                      {classrooms.map((c) => {
-                        const isCurrent = c.id === classroomId;
-                        const Icon = getClassroomIcon(c.icon);
-                        const avatarInitial = getClassroomAvatarInitial(c.name);
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            title={c.name}
-                            aria-label={c.name}
-                            className={`side-menu__classroom${isCurrent ? " side-menu__classroom--active" : ""}`}
-                            onClick={() => go(`/classrooms/${c.id}`)}
-                          >
-                            {compact ? (
-                              <div className="side-menu__classroom-avatar" aria-hidden="true">
-                                {avatarInitial}
-                              </div>
-                            ) : (
-                              <Icon size={16} />
-                            )}
-                            <span className="side-menu__classroom-name">{c.name}</span>
-                            {isCurrent && <Checkmark size={16} className="side-menu__classroom-check" />}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <button
+                      type="button"
+                      title={homeLabel}
+                      aria-label={homeLabel}
+                      className={`side-menu__link${isActive("/dashboard") ? " side-menu__link--active" : ""}`}
+                      onClick={() => go("/dashboard")}
+                    >
+                      <Home size={16} />
+                      <span>{homeLabel}</span>
+                    </button>
+                    <button
+                      type="button"
+                      title={t("nav.chat", "Chat")}
+                      aria-label={t("nav.chat", "Chat")}
+                      className="side-menu__link side-menu__link--active"
+                      onClick={() => go("/chat")}
+                    >
+                      <ChatIcon size={16} />
+                      <span>{t("nav.chat", "Chat")}</span>
+                    </button>
+                  </div>
+                  <div className="side-menu__chat-panel">
+                    <ChatHistoryPanel
+                      sessions={sessions}
+                      currentSessionId={currentSessionId}
+                      onSelectSession={handleSelectSession}
+                      onDeleteSession={handleDeleteSession}
+                      onRenameSession={handleRenameSession}
+                      showNewChatButton
+                      onNewChat={handleNewChat}
+                    />
                   </div>
                 </>
-              )}
-            </>
-          )
-        )}
-        {contestAdminContext && (
-          <div className="side-menu__bottom">
-            <button
-              type="button"
-              title={contestHomeLabel}
-              aria-label={contestHomeLabel}
-              className="side-menu__link"
-              onClick={goToContestHome}
-            >
-              <Education size={16} />
-              <span>{contestHomeLabel}</span>
-            </button>
-          </div>
+              ) : isOnClassroomRoute ? (
+                /* Inside a classroom: global links + panel sub-nav */
+                <>
+                  <div className="side-menu__section">
+                    <button
+                      type="button"
+                      title={homeLabel}
+                      aria-label={homeLabel}
+                      className={`side-menu__link${isActive("/dashboard") ? " side-menu__link--active" : ""}`}
+                      onClick={() => go("/dashboard")}
+                    >
+                      <Home size={16} />
+                      <span>{homeLabel}</span>
+                    </button>
+                    {isTeacherOrAdmin && (
+                      <button
+                        type="button"
+                        title={t("nav.chat", "Chat")}
+                        aria-label={t("nav.chat", "Chat")}
+                        className={`side-menu__link${isActive("/chat") ? " side-menu__link--active" : ""}`}
+                        onClick={() => go("/chat")}
+                      >
+                        <ChatIcon size={16} />
+                        <span>{t("nav.chat", "Chat")}</span>
+                      </button>
+                    )}
+                    {isTeacherOrAdmin && (
+                      <button
+                        type="button"
+                        title={t("nav.marketplace", "Marketplace")}
+                        aria-label={t("nav.marketplace", "Marketplace")}
+                        className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
+                        onClick={() => go("/marketplace")}
+                      >
+                        <Globe size={16} />
+                        <span>{t("nav.marketplace", "Marketplace")}</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="side-menu__divider" />
+                  <div className="side-menu__section">
+                    {contestAdminContext ? (
+                      contestPanelNavItems.map(({ panel, label, Icon }) => (
+                        <button
+                          key={panel}
+                          type="button"
+                          title={label}
+                          aria-label={label}
+                          className={`side-menu__link${contestActivePanel === panel ? " side-menu__link--active" : ""}`}
+                          onClick={() => goToContestPanel(panel)}
+                        >
+                          <Icon size={16} />
+                          <span>{label}</span>
+                        </button>
+                      ))
+                    ) : (
+                      ([
+                        { panel: "overview", label: tClassroom("sideMenu.overview", "概要"), Icon: Dashboard },
+                        { panel: "announcements", label: tClassroom("sideMenu.announcements", "教室公告"), Icon: Bullhorn },
+                        { panel: "contests", label: tClassroom("sideMenu.contests", "競賽列表"), Icon: Trophy },
+                        { panel: "members", label: tClassroom("sideMenu.members", "教室成員"), Icon: UserMultiple },
+                        ...(canOpenClassroomSettings
+                          ? ([
+                              {
+                                panel: "settings" as const,
+                                label: tClassroom("sideMenu.settings", "教室設定"),
+                                Icon: Settings,
+                              },
+                            ] as const)
+                          : []),
+                      ] as { panel: ClassroomAdminPanelId; label: string; Icon: ComponentType<{ size?: number }> }[]).map(({ panel, label, Icon }) => (
+                        <button
+                          key={panel}
+                          type="button"
+                          title={label}
+                          aria-label={label}
+                          className={`side-menu__link${classroomActivePanel === panel ? " side-menu__link--active" : ""}`}
+                          onClick={() => goToPanel(panel)}
+                        >
+                          <Icon size={16} />
+                          <span>{label}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Default classrooms list */
+                <>
+                  <div className="side-menu__section">
+                    <button
+                      type="button"
+                      title={homeLabel}
+                      aria-label={homeLabel}
+                      className={`side-menu__link${isActive("/dashboard") ? " side-menu__link--active" : ""}`}
+                      onClick={() => go("/dashboard")}
+                    >
+                      <Home size={16} />
+                      <span>{homeLabel}</span>
+                    </button>
+                    {isTeacherOrAdmin && (
+                      <button
+                        type="button"
+                        title={t("nav.chat", "Chat")}
+                        aria-label={t("nav.chat", "Chat")}
+                        className={`side-menu__link${isActive("/chat") ? " side-menu__link--active" : ""}`}
+                        onClick={() => go("/chat")}
+                      >
+                        <ChatIcon size={16} />
+                        <span>{t("nav.chat", "Chat")}</span>
+                      </button>
+                    )}
+                    {isTeacherOrAdmin && (
+                      <button
+                        type="button"
+                        title={t("nav.marketplace", "Marketplace")}
+                        aria-label={t("nav.marketplace", "Marketplace")}
+                        className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
+                        onClick={() => go("/marketplace")}
+                      >
+                        <Globe size={16} />
+                        <span>{t("nav.marketplace", "Marketplace")}</span>
+                      </button>
+                    )}
+                  </div>
+                  {classrooms.length > 0 && (
+                    <>
+                      <div className="side-menu__divider" />
+                      <div className="side-menu__section">
+                        <div className="side-menu__section-header">
+                          <span>{t("nav.classrooms")}</span>
+                        </div>
+                        <div className="side-menu__classroom-list">
+                          {classrooms.map((c) => {
+                            const isCurrent = c.id === classroomId;
+                            const Icon = getClassroomIcon(c.icon);
+                            const avatarInitial = getClassroomAvatarInitial(c.name);
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                title={c.name}
+                                aria-label={c.name}
+                                className={`side-menu__classroom${isCurrent ? " side-menu__classroom--active" : ""}`}
+                                onClick={() => go(`/classrooms/${c.id}`)}
+                              >
+                                {compact ? (
+                                  <div className="side-menu__classroom-avatar" aria-hidden="true">
+                                    {avatarInitial}
+                                  </div>
+                                ) : (
+                                  <Icon size={16} />
+                                )}
+                                <span className="side-menu__classroom-name">{c.name}</span>
+                                {isCurrent && <Checkmark size={16} className="side-menu__classroom-check" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              )
+            )}
+            {contestAdminContext && (
+              <div className="side-menu__bottom">
+                <button
+                  type="button"
+                  title={contestHomeLabel}
+                  aria-label={contestHomeLabel}
+                  className="side-menu__link"
+                  onClick={goToContestHome}
+                >
+                  <Education size={16} />
+                  <span>{contestHomeLabel}</span>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </nav>
     </>

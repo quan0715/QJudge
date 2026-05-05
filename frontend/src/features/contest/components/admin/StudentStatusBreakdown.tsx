@@ -7,6 +7,7 @@ import {
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ParticipantStatusKpi } from "@/features/contest/screens/admin/participantStatusKpi";
+import { SectionTitle } from "@/shared/components/dashboard";
 import styles from "./StudentStatusBreakdown.module.scss";
 
 interface StudentStatusBreakdownProps {
@@ -32,7 +33,7 @@ export default function StudentStatusBreakdown({
   return (
     <div className={styles.section}>
       <div className={styles.header}>
-        <h3 className={styles.title}>{t("studentStatus.title", "學生狀態分佈")}</h3>
+        <SectionTitle as="h3">{t("studentStatus.title", "學生狀態分佈")}</SectionTitle>
       </div>
 
       <div className={styles.grid}>

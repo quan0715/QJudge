@@ -22,6 +22,7 @@ describe("joinContest.usecase", () => {
         endTime: "",
         status: "published",
         visibility: "private",
+        hasJoined: false,
         isRegistered: false,
       },
       undefined
@@ -40,6 +41,7 @@ describe("joinContest.usecase", () => {
         endTime: "",
         status: "published",
         visibility: "public",
+        hasJoined: true,
         isRegistered: true,
       },
       undefined
@@ -58,6 +60,7 @@ describe("joinContest.usecase", () => {
         endTime: "",
         status: "published",
         visibility: "public",
+        hasJoined: false,
         isRegistered: false,
       },
       undefined
@@ -72,12 +75,10 @@ describe("joinContest.usecase", () => {
     const result = await joinContestUseCase({
       contestId: "c1",
       password: "secret",
-      nickname: "neo",
     });
 
     expect(registerContest).toHaveBeenCalledWith("c1", {
       password: "secret",
-      nickname: "neo",
     });
     expect(result).toEqual({ success: true });
   });

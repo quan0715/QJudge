@@ -62,7 +62,7 @@ export interface ExamAnswerDto {
   graded_at: string | null;
   participant_user_id: number;
   participant_username: string;
-  participant_nickname: string;
+  participant_display_name: string;
   created_at: string;
   updated_at: string;
 }
@@ -119,7 +119,6 @@ export interface ExamDashboardQuestionDetailDto {
   responses: Array<{
     participant_id: number;
     username: string;
-    nickname: string | null;
     display_name: string;
     score: number | null;
     graded_at: string | null;
@@ -134,7 +133,6 @@ export interface ExamDashboardQuestionDetailDto {
     participants: Array<{
       participant_id: number;
       username: string;
-      nickname: string | null;
       display_name: string;
     }>;
   }>;
@@ -142,7 +140,6 @@ export interface ExamDashboardQuestionDetailDto {
   omitted_participants?: Array<{
     participant_id: number;
     username: string;
-    nickname: string | null;
     display_name: string;
   }>;
   grading_progress?: {

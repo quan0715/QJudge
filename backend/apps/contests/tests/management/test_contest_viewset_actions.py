@@ -276,7 +276,7 @@ def test_owner_can_list_participants(
     assert response.status_code == status.HTTP_200_OK
     assert len(response.data) == 1
     assert response.data[0]["user"]["id"] == student.id
-    assert response.data[0]["user_display_name"] == "Student Display"
+    assert response.data[0]["display_name"] == "Student Display"
     assert response.data[0]["account_role"] == student.role
     assert response.data[0]["auth_provider"] == student.auth_provider
 
@@ -453,37 +453,6 @@ def test_register_rejects_non_published_contest(
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.data["message"] == "Contest is not published"
-
-
-@pytest.mark.django_db
-def test_update_nickname_handles_not_registered_and_blank_nickname(
-    api_client: APIClient,
-    contest: Contest,
-    student: User,
-) -> None:
-    contest.anonymous_mode_enabled = True
-    contest.save(update_fields=["anonymous_mode_enabled"])
-    api_client.force_authenticate(user=student)
-
-    not_registered = api_client.post(
-        f"/api/v1/contests/{contest.id}/update_nickname/",
-        {"nickname": "newname"},
-        format="json",
-    )
-    assert not_registered.status_code == status.HTTP_400_BAD_REQUEST
-    assert not_registered.data["error"] == "Not registered for this contest"
-
-    participant = ContestParticipant.objects.create(contest=contest, user=student, nickname="old")
-    response = api_client.post(
-        f"/api/v1/contests/{contest.id}/update_nickname/",
-        {"nickname": "   "},
-        format="json",
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-    participant.refresh_from_db()
-    assert participant.nickname == student.username
-    assert response.data["nickname"] == student.username
 
 
 @pytest.mark.django_db

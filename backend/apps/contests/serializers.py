@@ -95,7 +95,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     accepted_at = serializers.SerializerMethodField()
     submitted_at = serializers.SerializerMethodField()
     auto_unlock_at = serializers.SerializerMethodField()
-    my_nickname = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
     admins = serializers.SerializerMethodField()
@@ -139,7 +138,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
             # Computed fields
-            'my_nickname',
             'current_user_role',
             'permissions',
             'has_joined',
@@ -159,7 +157,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'max_cheat_warnings',
             'allow_auto_unlock',
             'auto_unlock_minutes',
-            'anonymous_mode_enabled',
             'participant_count',
             'admins',
             'is_classroom_bound',
@@ -192,11 +189,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         if cache_key not in cache:
             cache[cache_key] = obj.registrations.filter(user=user).first()
         return cache[cache_key]
-
-    def get_my_nickname(self, obj):
-        """Get nickname for current user."""
-        registration = self._get_current_registration(obj)
-        return registration.nickname if registration else None
 
     def get_lock_reason(self, obj):
         """Get lock reason for current user."""
@@ -414,7 +406,6 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'allow_auto_unlock',
             'auto_unlock_minutes',
             'status',
-            'anonymous_mode_enabled',
             'results_published',
         ]
         read_only_fields = ['id']
@@ -864,25 +855,8 @@ class ClarificationSerializer(serializers.ModelSerializer):
         read_only_fields = ['author', 'status', 'answered_at', 'author_username', 'author_display_name', 'problem_title']
 
     def get_author_display_name(self, obj):
-        """根據匿名模式返回適當的作者名稱"""
-        request = self.context.get('request')
-        contest = obj.contest
-        
-        if not contest.anonymous_mode_enabled:
-            return obj.author.username
-        
-        # 管理者可見真實名稱
-        if request and request.user.is_authenticated:
-            from .permissions import get_user_role_in_contest
-            role = get_user_role_in_contest(request.user, contest)
-            if role in ['admin', 'owner', 'teacher']:
-                return obj.author.username
-
-        # 查找該用戶的暱稱
-        participant = ContestParticipant.objects.filter(
-            contest=contest, user=obj.author
-        ).first()
-        return participant.nickname if participant else obj.author.username
+        profile = getattr(obj.author, 'profile', None)
+        return getattr(profile, 'display_name', '') or obj.author.username
 
 
 class ClarificationCreateSerializer(serializers.ModelSerializer):
@@ -1070,9 +1044,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
-    nickname = serializers.CharField(read_only=True)
     display_name = serializers.SerializerMethodField()
-    user_display_name = serializers.SerializerMethodField()
     account_role = serializers.CharField(source='user.role', read_only=True)
     auth_provider = serializers.CharField(source='user.auth_provider', read_only=True)
     total_score = serializers.SerializerMethodField()
@@ -1090,7 +1062,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             'user_id', 'username', 'user', 'score', 'total_score', 'rank', 
             'joined_at', 'exam_status',
             'lock_reason', 'violation_count', 'submit_reason', 'auto_unlock_at', 'remaining_unlock_seconds',
-            'nickname', 'display_name', 'user_display_name', 'account_role', 'auth_provider',
+            'display_name', 'account_role', 'auth_provider',
             'connection_status', 'last_heartbeat_at', 'live_monitoring_online', 'live_monitoring_sources',
         ]
 
@@ -1180,23 +1152,8 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         return total
 
     def get_display_name(self, obj):
-        """根據權限返回適當的顯示名稱"""
-        request = self.context.get('request')
-        contest = obj.contest
-        
-        # 非匿名模式，直接返回真實用戶名
-        if not contest.anonymous_mode_enabled:
-            return obj.user.username
-        
-        # 管理者可見真實名稱
-        if request and request.user.is_authenticated:
-            from .permissions import get_user_role_in_contest
-            role = get_user_role_in_contest(request.user, contest)
-            if role in ['admin', 'owner', 'teacher']:
-                return obj.user.username
-
-        # 其他用戶看暱稱 (nickname 預設為 username)
-        return obj.nickname or obj.user.username
+        profile = getattr(obj.user, 'profile', None)
+        return getattr(profile, 'display_name', '') or ""
 
     def get_auto_unlock_at(self, obj):
         """Calculate auto unlock time if applicable."""
@@ -1217,13 +1174,6 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             return 0
             
         return int((unlock_at - now).total_seconds())
-
-    def get_user_display_name(self, obj):
-        profile = getattr(obj.user, 'profile', None)
-        if not profile:
-            return ""
-        return profile.display_name or ""
-
 
 # ============================================================================
 # Exam Answer Serializers
@@ -1258,7 +1208,7 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
     )
     participant_user_id = serializers.SerializerMethodField()
     participant_username = serializers.SerializerMethodField()
-    participant_nickname = serializers.SerializerMethodField()
+    participant_display_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ExamAnswer
@@ -1268,7 +1218,7 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
             'answer', 'is_correct', 'score', 'feedback',
             'question_snapshot',
             'graded_by_username', 'graded_at',
-            'participant_user_id', 'participant_username', 'participant_nickname',
+            'participant_user_id', 'participant_username', 'participant_display_name',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
@@ -1304,15 +1254,16 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
     def get_participant_username(self, obj):
         return obj.participant.user.username
 
-    def get_participant_nickname(self, obj):
-        return obj.participant.nickname or obj.participant.user.username
+    def get_participant_display_name(self, obj):
+        profile = getattr(obj.participant.user, 'profile', None)
+        return getattr(profile, 'display_name', '') or ""
 
 
 class ExamAnswerGradingSerializer(serializers.ModelSerializer):
     """Slim serializer for grading screens.
 
     Drops redundant per-row duplicates (question_prompt/type/options/explanation/
-    max_score/question_snapshot and participant_username/nickname). Consumers
+    max_score/question_snapshot and participant_username/display_name). Consumers
     should join question info via GET /exam-questions/ and participant info via
     contest participants list — both are O(题数) / O(学生数) rather than
     O(answers)."""

@@ -23,6 +23,7 @@ import {
   calculateContestTimeProgressAt,
   formatDuration,
 } from "./overviewMetrics.utils";
+import { BlockHeader, SectionTitle } from "@/shared/components/dashboard";
 import styles from "./OverviewActionWidgets.module.scss";
 
 interface OverviewActionWidgetsProps {
@@ -208,8 +209,13 @@ export default function OverviewActionWidgets({
     return (
       <section className={styles.section}>
         <div className={styles.header}>
-          <h3 className={styles.title}>{t("adminOverview.widgets.title", "控制台")}</h3>
-          <p className={styles.subtitle}>{t("adminOverview.widgets.subtitle", "快速進入設定、題目與狀態操作")}</p>
+          <BlockHeader
+            title={t("adminOverview.widgets.title", "控制台")}
+            description={t(
+              "adminOverview.widgets.subtitle",
+              "快速進入設定、題目與狀態操作",
+            )}
+          />
         </div>
         <div className={styles.grid}>
           {Array.from({ length: 4 }).map((_, i) => (
@@ -246,8 +252,13 @@ export default function OverviewActionWidgets({
   return (
     <section className={styles.section}>
       <div className={styles.header}>
-        <h3 className={styles.title}>{t("adminOverview.widgets.title", "控制台")}</h3>
-        <p className={styles.subtitle}>{t("adminOverview.widgets.subtitle", "快速進入設定、題目與狀態操作")}</p>
+        <BlockHeader
+          title={t("adminOverview.widgets.title", "控制台")}
+          description={t(
+            "adminOverview.widgets.subtitle",
+            "快速進入設定、題目與狀態操作",
+          )}
+        />
       </div>
 
       <div className={styles.grid}>
@@ -353,7 +364,7 @@ export default function OverviewActionWidgets({
           <div className={styles.progressHeader}>
             <div className={styles.progressTitleRow}>
               <Time size={16} className={styles.widgetIcon} />
-              <h3 className={styles.widgetTitle}>{t("adminOverview.widgets.examProgress", "考試進度")}</h3>
+              <SectionTitle as="h3">{t("adminOverview.widgets.examProgress", "考試進度")}</SectionTitle>
             </div>
             <span className={styles.progressPercent}>
               {!hasSchedule

@@ -11,15 +11,17 @@ export const ListPanel = ({
   header,
   footer,
   className,
+  scrollAreaClassName,
 }: {
   children: ReactNode;
   header?: ReactNode;
   footer?: ReactNode;
   className?: string;
+  scrollAreaClassName?: string;
 }) => (
   <div className={cx(styles.panel, className)}>
     {header}
-    <div className={styles.scrollArea}>{children}</div>
+    <div className={cx(styles.scrollArea, scrollAreaClassName)}>{children}</div>
     {footer}
   </div>
 );

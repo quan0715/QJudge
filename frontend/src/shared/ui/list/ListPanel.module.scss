@@ -15,6 +15,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 // ─── Header ─────────────────────────────────────────────────
@@ -93,10 +94,15 @@
 
 // Compact / mini variant
 .itemCompact {
+  box-sizing: border-box;
   height: 2.5rem;
   min-height: 2.5rem;
   max-height: 2.5rem;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 0;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -17,7 +17,6 @@ import type { ContestDetail } from "@/core/entities/contest.entity";
 export interface JoinContestInput {
   contestId: string;
   password?: string;
-  nickname?: string;
 }
 
 export interface JoinContestOutput {
@@ -43,7 +42,7 @@ export function validateJoinContest(
   }
 
   // Check if already registered
-  if (contest.isRegistered) {
+  if (contest.hasJoined) {
     return {
       valid: false,
       error: "Already registered for this contest",
@@ -60,10 +59,10 @@ export function validateJoinContest(
 export async function joinContestUseCase(
   input: JoinContestInput
 ): Promise<JoinContestOutput> {
-  const { contestId, password, nickname } = input;
+  const { contestId, password } = input;
 
   try {
-    await registerContest(contestId, { password, nickname });
+    await registerContest(contestId, { password });
 
     return {
       success: true,

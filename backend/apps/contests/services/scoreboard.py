@@ -88,7 +88,6 @@ class ScoreboardService:
             stats[participant.user.id] = {
                 "user": UserSerializer(participant.user).data,
                 "display_name": display_name,
-                "nickname": participant.nickname,
                 "solved": 0,
                 "rank": participant.rank,
                 "score": participant.score,
@@ -177,11 +176,5 @@ class ScoreboardService:
         is_privileged: bool,
         use_export_display: bool,
     ) -> str:
-        if use_export_display:
-            return participant.nickname or participant.user.username
-
-        if not contest.anonymous_mode_enabled:
-            return participant.user.username
-        if is_privileged:
-            return participant.user.username
-        return participant.nickname or participant.user.username
+        profile = getattr(participant.user, "profile", None)
+        return getattr(profile, "display_name", "") or participant.user.username

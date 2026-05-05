@@ -175,12 +175,11 @@ export function useScreenShareMonitoring({
     }
   }, [contestId, examSubmitted, monitoringDisabled]);
 
-  // Always clear on unmount
-  useEffect(() => {
-    return () => {
-      clearRuntimeScreenShareReauth(contestIdRef.current);
-    };
-  }, []);
+  // Do not clear on unmount: the monitored contest surface can remount while
+  // the exam is still active (for example solve <-> dashboard). The recovery
+  // countdown must survive that transition so the next mount keeps prompting
+  // the student to re-share. Terminal cleanup is handled by examSubmitted /
+  // monitoringDisabled and by explicit exam action cleanup.
 
   return {
     onStreamLost,

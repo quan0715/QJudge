@@ -33,6 +33,11 @@ import EventIncidentCard from "@/features/contest/components/admin/EventIncident
 import IncidentCard from "@/features/contest/components/admin/IncidentCard";
 import { getIncidentEvidenceFrameCount } from "@/features/contest/components/admin/incidentEvidence";
 import { useContestAnticheatConfig } from "@/features/contest/hooks/useContestAnticheatConfig";
+import {
+  DashboardTabBar,
+  DashboardTabPanel,
+  DashboardTabs,
+} from "@/shared/components/dashboard";
 import styles from "./ContestLogsScreen.module.scss";
 
 const CATEGORY_FILTER_OPTIONS = [
@@ -754,34 +759,35 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 
         <div className={styles.feedSection}>
           {embedded ? (
-            <Tabs
-              selectedIndex={activeTab}
-              onChange={({ selectedIndex }) => setActiveTab(selectedIndex)}
+            <DashboardTabs
+              activeId={activeTab === 0 ? "violations" : "exam"}
+              onChange={(id) => setActiveTab(id === "violations" ? 0 : 1)}
             >
-              <div className={styles.embeddedFeedHeader}>
-                <TabList aria-label="事件紀錄切換">
-                  <Tab>違規事件</Tab>
-                  <Tab>考試事件</Tab>
-                </TabList>
-                <Button
-                  kind="ghost"
-                  renderIcon={Renew}
-                  onClick={() => {
-                    void handleRefresh();
-                  }}
-                  hasIconOnly
-                  iconDescription={t("action.refresh", "重新整理")}
-                  disabled={
-                    isRefreshing || isRefreshPending || antiCheatConfigLoading
-                  }
-                  size="sm"
-                />
-              </div>
-              <TabPanels>
-                <TabPanel>{feedPanel(0)}</TabPanel>
-                <TabPanel>{feedPanel(1)}</TabPanel>
-              </TabPanels>
-            </Tabs>
+              <DashboardTabBar
+                ariaLabel="事件紀錄切換"
+                tabs={[
+                  { id: "violations", label: "違規事件" },
+                  { id: "exam", label: "考試事件" },
+                ]}
+                toolbar={
+                  <Button
+                    kind="ghost"
+                    renderIcon={Renew}
+                    onClick={() => {
+                      void handleRefresh();
+                    }}
+                    hasIconOnly
+                    iconDescription={t("action.refresh", "重新整理")}
+                    disabled={
+                      isRefreshing || isRefreshPending || antiCheatConfigLoading
+                    }
+                    size="sm"
+                  />
+                }
+              />
+              <DashboardTabPanel tabId="violations">{feedPanel(0)}</DashboardTabPanel>
+              <DashboardTabPanel tabId="exam">{feedPanel(1)}</DashboardTabPanel>
+            </DashboardTabs>
           ) : (
             <>
               <div className={styles.feedHeader}>

@@ -3,13 +3,10 @@ import {
   HeaderGlobalAction,
   HeaderPanel,
   Modal,
-  TextInput,
-  InlineLoading,
 } from "@carbon/react";
 import {
   Login,
   Logout,
-  Edit,
   Code,
   Book,
   RecentlyViewed,
@@ -26,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
-import { updateNickname } from "@/infrastructure/api/repositories";
+import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { Avatar } from "@/shared/ui/avatar";
 import "./UserMenu.scss";
 
@@ -44,8 +41,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   onExpandedChange,
   contestMode = false,
   contest,
-  onContestRefresh,
-  settingsOnly = false,
+  settingsOnly,
 }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -55,17 +51,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     useUserPreferences();
   const { open: openSettings } = useSettingsDialog();
 
+  const { isRuntime } = useContestRuntimeMode();
+  const effectiveSettingsOnly = settingsOnly ?? isRuntime;
+
   const [isExpandedInternal, setIsExpandedInternal] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
-  const [nickname, setNickname] = useState(contest?.myNickname || "");
-  const [nicknameLoading, setNicknameLoading] = useState(false);
-
-  useEffect(() => {
-    if (contest?.myNickname) {
-      setNickname(contest.myNickname);
-    }
-  }, [contest?.myNickname]);
 
   const isExpanded = isExpandedInternal && !otherPanelExpanded;
 
@@ -92,7 +82,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   }, [isExpanded, onExpandedChange, t]);
 
   const handleToggle = () => {
-    if (settingsOnly) {
+    if (effectiveSettingsOnly) {
       openSettings();
       return;
     }
@@ -119,27 +109,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     onExpandedChange?.(false);
     window.location.assign("/dev/storybook/");
   };
-
-  const handleNicknameUpdate = async () => {
-    if (!contest) return;
-    setNicknameLoading(true);
-    try {
-      await updateNickname(contest.id, nickname);
-      onContestRefresh?.();
-      setIsNicknameModalOpen(false);
-    } catch (error) {
-      console.error("Failed to update nickname", error);
-      alert(tContest("avatar.updateFailed"));
-    } finally {
-      setNicknameLoading(false);
-    }
-  };
-
-  const canEditNickname =
-    contestMode &&
-    contest?.anonymousModeEnabled &&
-    (contest.examStatus !== "in_progress" ||
-      contest.currentUserRole === "admin");
 
   const getRoleLabel = (role: string | undefined) => {
     if (!role) return t("user.role.student");
@@ -188,18 +157,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             </span>
             <span className="user-menu-role">{getRoleLabel(user.role)}</span>
           </div>
-
-          {/* Contest nickname */}
-          {contestMode && canEditNickname && (
-            <button
-              type="button"
-              className="user-menu-link"
-              onClick={() => setIsNicknameModalOpen(true)}
-            >
-              <Edit size={16} />
-              {tContest("avatar.editNickname")}
-            </button>
-          )}
 
           {contestMode && contest?.boundClassroomId && (
             <button
@@ -358,28 +315,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         onRequestSubmit={handleLogout}
       >
         <p data-testid="user-menu-logout-message">{t("auth.logout.confirmMessage")}</p>
-      </Modal>
-
-      {/* Nickname Modal */}
-      <Modal
-        open={isNicknameModalOpen}
-        modalHeading={tContest("avatar.editNickname")}
-        primaryButtonText={tContest("button.save")}
-        secondaryButtonText={tContest("common:button.cancel")}
-        onRequestClose={() => setIsNicknameModalOpen(false)}
-        onRequestSubmit={handleNicknameUpdate}
-        primaryButtonDisabled={nicknameLoading}
-      >
-        <TextInput
-          id="nickname-input"
-          labelText={tContest("avatar.nickname")}
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          maxLength={20}
-        />
-        {nicknameLoading && (
-          <InlineLoading description={tContest("avatar.saving")} />
-        )}
       </Modal>
 
     </>

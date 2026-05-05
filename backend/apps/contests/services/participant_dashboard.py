@@ -79,9 +79,7 @@ def _serialize_participant(participant: ContestParticipant) -> dict[str, Any]:
     return {
         "user_id": participant.user_id,
         "username": participant.user.username,
-        "nickname": participant.nickname or participant.user.username,
-        "display_name": participant.nickname or participant.user.username,
-        "user_display_name": getattr(profile, "display_name", "") or "",
+        "display_name": getattr(profile, "display_name", "") or "",
         "account_role": getattr(participant.user, "role", "student"),
         "auth_provider": getattr(participant.user, "auth_provider", "email"),
         "email": getattr(participant.user, "email", ""),

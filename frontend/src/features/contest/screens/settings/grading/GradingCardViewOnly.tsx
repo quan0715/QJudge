@@ -50,10 +50,10 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
 
   const user = useMemo(
     () =>
-      row.studentNickname === row.studentUsername
-        ? row.studentNickname
-        : `${row.studentNickname} (${row.studentUsername})`,
-    [row.studentNickname, row.studentUsername],
+      row.studentDisplayName === row.studentUsername
+        ? row.studentDisplayName
+        : `${row.studentDisplayName} (${row.studentUsername})`,
+    [row.studentDisplayName, row.studentUsername],
   );
 
   const answerText = useMemo(() => stringifyAnswer(row.answerContent), [row.answerContent]);

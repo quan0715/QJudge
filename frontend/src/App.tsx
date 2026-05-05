@@ -30,7 +30,14 @@ import {
   UserPreferencesHydrator,
 } from "@/features/auth";
 import { problemDetailRoutes, problemSolveRoutes } from "@/features/problems";
-import { classroomContestDetailRoutes, classroomContestAdminRoute, classroomExamPreviewRoute, classroomExamPrecheckRoute, classroomPracticeRoute } from "@/features/contest";
+import {
+  classroomContestRouteChildren,
+  ContestWorkspaceLayout,
+  classroomContestAdminRoute,
+  classroomExamPreviewRoute,
+  classroomExamPrecheckRoute,
+  classroomPracticeRoute,
+} from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
 import { changelogRoutes } from "@/features/changelog";
@@ -148,6 +155,16 @@ function App() {
                               {classroomDetailRoute}
                             </Route>
 
+                            {/* Classroom Contest - ContestProvider wraps MainLayout/WorkspaceShell */}
+                            <Route
+                              path="/classrooms/:classroomId/contest/:contestId"
+                              element={<ContestWorkspaceLayout />}
+                            >
+                              <Route element={<MainLayout />}>
+                                {classroomContestRouteChildren}
+                              </Route>
+                            </Route>
+
                             {/* Legacy hidden routes */}
                             <Route path="/problems" element={<LegacyProblemListRedirect />} />
                             {/* Problem Detail - Outside MainLayout with Custom ProblemLayout */}
@@ -155,9 +172,6 @@ function App() {
 
                             {/* Problem Solve - Full-screen IDE-style solver */}
                             {problemSolveRoutes}
-
-                            {/* Classroom-scoped Contest Routes */}
-                            {classroomContestDetailRoutes}
 
                             {/* Classroom Exam Precheck - Classroom-scoped */}
                             {classroomExamPrecheckRoute}

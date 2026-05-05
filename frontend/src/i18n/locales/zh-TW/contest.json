@@ -62,6 +62,70 @@
       "strictModeEnableSuccess": "已啟用防作弊監控",
       "updateFailed": "更新失敗"
     },
+    "command": {
+      "ariaLabel": "教師管理總覽",
+      "connection": {
+        "offline": "離線",
+        "online": "在線"
+      },
+      "drawer": {
+        "ariaLabel": "學生詳細資訊",
+        "close": "關閉學生詳細資訊",
+        "closeBackdrop": "關閉學生詳細資訊背景",
+        "title": "學生詳細資訊"
+      },
+      "drilldown": {
+        "ariaLabel": "總覽資料切換",
+        "participants": "參與者",
+        "questionStats": "作答分佈"
+      },
+      "eventLog": "事件紀錄",
+      "examStatusSummary": "考試狀態摘要",
+      "examTime": "考試時間",
+      "filters": {
+        "allQuestionTypes": "全部題型",
+        "allStatuses": "全部狀態",
+        "needsAttention": "需要處理"
+      },
+      "metric": {
+        "answerProgress": "作答進度",
+        "eventUnit": "次",
+        "gradingProgress": "批改進度",
+        "inProgress": "進行中",
+        "interrupted": "中斷",
+        "notSubmitted": "未交卷",
+        "pausedDetail": "已暫停",
+        "pointUnit": "分",
+        "score": "分數",
+        "scoreUnit": "{{score}} 分",
+        "scored": "已計分",
+        "violations": "異常事件"
+      },
+      "metricSwitcher": "考生卡片資料切換",
+      "metrics": {
+        "endTime": "結束時間",
+        "examParticipants": "考試人數",
+        "onlineParticipants": "在線人數",
+        "startTime": "開始時間"
+      },
+      "participants": {
+        "empty": "目前沒有考生",
+        "filterStatus": "篩選狀態",
+        "filterStatusAria": "篩選考生狀態",
+        "loading": "考生列表載入中",
+        "search": "搜尋考生",
+        "searchPlaceholder": "搜尋顯示名稱或使用者名稱...",
+        "title": "考生列表"
+      },
+      "questionStats": {
+        "empty": "目前沒有作答分佈資料",
+        "filterQuestionType": "篩選題型",
+        "filterQuestionTypeAria": "篩選題型",
+        "search": "搜尋題目",
+        "searchPlaceholder": "搜尋題號或題目..."
+      },
+      "tabsAriaLabel": "教師管理總覽分頁"
+    },
     "events": {
       "critical": "高風險事件",
       "empty": "目前沒有事件",
@@ -90,6 +154,127 @@
       "personUnit": "人",
       "problemUnit": "題",
       "time": "時間進度"
+    },
+    "model": {
+      "attention": {
+        "anomalyCount": "{{count}} 次異常",
+        "connectionInterrupted": "連線中斷",
+        "examLocked": "考試已鎖定",
+        "notEntered": "尚未進入考試"
+      },
+      "common": {
+        "disabled": "未啟用",
+        "enabled": "已啟用",
+        "noData": "尚無資料",
+        "unset": "未設定"
+      },
+      "contestStatus": {
+        "archived": "已封存",
+        "draft": "草稿",
+        "published": "已發布"
+      },
+      "grading": {
+        "noAnswers": "尚無作答資料",
+        "noData": "尚無批改資料"
+      },
+      "insights": {
+        "examProgress": "考試進度",
+        "gradingProgress": "批改進度",
+        "priorityEvents": "異常事件"
+      },
+      "kpi": {
+        "onlineStudents": "在線考生",
+        "pendingEvents": "待處理事件",
+        "started": "已開始"
+      },
+      "nextActions": {
+        "attention": {
+          "empty": "目前沒有待處理異常",
+          "hasItems": "{{count}} 位考生需要確認",
+          "title": "處理異常"
+        },
+        "grading": {
+          "afterExam": "考後可開始批改",
+          "progress": "已批改 {{percent}}%",
+          "title": "前往批改"
+        },
+        "results": {
+          "readyToPublish": "確認批改後發布",
+          "title": "發布成績"
+        }
+      },
+      "preparation": {
+        "antiCheat": "防作弊設定",
+        "antiCheatEnabled": "防作弊監控已啟用",
+        "antiCheatOptional": "可依考試需求啟用",
+        "currentStatus": "目前狀態：{{status}}",
+        "participantCount": "{{count}} 位參賽者",
+        "participantList": "參賽者名單",
+        "participantsMissing": "尚未看到參賽者資料",
+        "publish": "競賽發布",
+        "publishedDescription": "參賽者可依權限進入競賽",
+        "rules": "作答規則",
+        "rulesMissing": "可補上考試規則與注意事項",
+        "rulesReady": "已填寫規則說明",
+        "schedule": "考試時段",
+        "scheduleMissing": "開始與結束時間未完整設定",
+        "workItemsMissing": "尚未建立可作答的題目",
+        "workItemsReady": "已設定 {{count}} 題"
+      },
+      "progress": {
+        "current": "目前",
+        "label": "進度",
+        "start": "開始"
+      },
+      "readiness": {
+        "done": "完成",
+        "missing": "缺少",
+        "warning": "待確認"
+      },
+      "results": {
+        "published": "已發布",
+        "unpublished": "未發布"
+      },
+      "status": {
+        "anomaly": "異常",
+        "inProgress": "作答中",
+        "locked": "鎖定",
+        "lockedOffline": "鎖定 / 離線",
+        "notStarted": "未開始",
+        "offline": "離線",
+        "online": "在線",
+        "submitted": "已交卷"
+      },
+      "summary": {
+        "antiCheat": "防作弊",
+        "gradingAfterExam": "考後才會產生批改資料",
+        "gradingCount": "{{graded}} / {{total}} 份",
+        "participants": "參賽者",
+        "participantsMissing": "尚無參賽者資料",
+        "participantsReady": "名單可供管理",
+        "results": "成績",
+        "resultsVisible": "參賽者可查看",
+        "scheduleMissing": "需要補齊時間",
+        "scheduleReady": "時間設定完整",
+        "status": "競賽狀態",
+        "statusClosed": "尚未正式開放",
+        "statusOpen": "已開放給參賽者",
+        "workItemsMissing": "尚未建立內容",
+        "workItemsReady": "內容已建立"
+      },
+      "timeline": {
+        "ended": "已結束",
+        "examEnded": "考試已結束",
+        "notStarted": "尚未開始",
+        "remaining": "剩餘 {{time}}",
+        "running": "進行中",
+        "startsIn": "距離開始 {{time}}",
+        "timeUnset": "時間未設定"
+      },
+      "workItems": {
+        "coding": "程式題目",
+        "paperExam": "考卷題目"
+      }
     },
     "screen": {
       "actions": {
@@ -144,7 +329,6 @@
       "disabled": "未啟用",
       "enabled": "已啟用",
       "examProgress": "考試進度",
-      "timelineProgress": "時間進度",
       "goEventPanel": "前往事件面板",
       "goParticipantList": "進入參賽者列表",
       "goProblemManagement": "前往題目管理",
@@ -159,6 +343,7 @@
       "status": "競賽狀態",
       "strictExamMode": "防作弊監控",
       "subtitle": "快速進入設定、題目與狀態操作",
+      "timelineProgress": "時間進度",
       "title": "控制台",
       "violationCount": "異常事件數",
       "violationCountAria": "異常事件數 前往事件面板"
@@ -197,6 +382,7 @@
       "title": "準備狀態"
     },
     "tabs": {
+      "ariaLabel": "準備與成績分頁",
       "entries": "管理入口",
       "grading": "批改與成績",
       "readiness": "準備狀態"
@@ -1575,6 +1761,124 @@
     "title": "題目統計",
     "ungraded": "未批改",
     "viewSubmissionSamples": "查看提交樣本"
+  },
+  "studentDashboard": {
+    "actions": {
+      "adminPanel": "管理後台",
+      "backToAnswering": "回到作答",
+      "downloadProof": "下載作答證明",
+      "downloadReport": "下載成績單",
+      "join": "加入競賽",
+      "joinUnavailable": "目前不可加入",
+      "refresh": "重新整理",
+      "rejoin": "重新加入",
+      "resume": "恢復作答",
+      "start": "開始作答",
+      "submit": "交卷",
+      "unavailable": "不可作答",
+      "waitingStart": "等待開始"
+    },
+    "announcements": {
+      "empty": "目前沒有公告。",
+      "loading": "載入公告中...",
+      "title": "公告"
+    },
+    "answerStatus": {
+      "answered": "已作答",
+      "correct": "正確",
+      "graded": "已批改",
+      "marked": "已標記",
+      "noScore": "未得分",
+      "partial": "部分得分",
+      "pendingGrading": "待批改",
+      "unanswered": "未作答"
+    },
+    "ariaLabel": "學生競賽首頁",
+    "contestState": {
+      "archived": "已封存",
+      "draft": "草稿",
+      "ended": "已結束",
+      "running": "進行中",
+      "unknown": "未知",
+      "upcoming": "即將開始"
+    },
+    "empty": {
+      "noAnswerRecords": "尚無作答紀錄。",
+      "noQuestions": "尚無題目資料。",
+      "noScoreDistribution": "尚無成績分布資料。"
+    },
+    "errors": {
+      "announcementsLoadFailed": "公告暫時無法載入",
+      "questionsLoadFailed": "題目資料暫時無法載入",
+      "scoreDistributionLoadFailed": "成績分布暫時無法載入"
+    },
+    "infoLabel": "競賽資訊",
+    "joinStatus": {
+      "joined": "已加入",
+      "notJoined": "未加入"
+    },
+    "loading": "載入中...",
+    "loadingAnswers": "載入作答資料中...",
+    "mainContent": "競賽主要內容",
+    "metrics": {
+      "duration": "總時長",
+      "endTime": "截止時間",
+      "startTime": "開始時間"
+    },
+    "monitoring": {
+      "enabled": "監控中",
+      "subtitle": "進入作答後會啟用全螢幕、分頁切換與裝置監控。",
+      "title": "已啟用監控"
+    },
+    "records": {
+      "currentStatus": "目前作答狀況",
+      "fullScore": "滿分 {{score}}",
+      "notSubmitted": "尚未提交",
+      "title": "作答紀錄",
+      "withResults": "作答紀錄與成績"
+    },
+    "report": {
+      "download": "下載",
+      "failedTitle": "下載失敗",
+      "language": "報告語言",
+      "languages": {
+        "en": "English",
+        "ja": "日本語",
+        "ko": "한국어",
+        "zhTW": "繁體中文"
+      },
+      "preparing": "準備中"
+    },
+    "results": {
+      "pendingPublish": "待發布",
+      "published": "成績已發布",
+      "unpublished": "尚未發布",
+      "waitingPublish": "等待成績發布"
+    },
+    "rules": {
+      "empty": "沒有額外規則。",
+      "noPassword": "此競賽不需要密碼。",
+      "requiresPassword": "此競賽需要密碼。",
+      "title": "規則說明"
+    },
+    "submitConfirm": {
+      "body": "交卷後將無法繼續修改答案。",
+      "confirm": "確認交卷",
+      "heading": "確認交卷"
+    },
+    "summary": {
+      "ariaLabel": "競賽摘要",
+      "averageScore": "平均 {{average}} / {{max}}",
+      "completionRate": "完成率",
+      "examResult": "考試成績",
+      "examStatus": "考試狀態",
+      "scoreDistribution": "成績分布"
+    },
+    "tabs": {
+      "ariaLabel": "競賽資訊切換",
+      "records": "作答紀錄",
+      "rules": "規則說明"
+    }
   },
   "studentStatus": {
     "pausedLocked": "已暫停 / 已鎖定",

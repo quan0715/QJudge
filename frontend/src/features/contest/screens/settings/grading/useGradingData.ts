@@ -154,11 +154,11 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
 
   // Build participant map
   const participantMap = useMemo(() => {
-    const map = new Map<string, { username: string; nickname: string }>();
+    const map = new Map<string, { username: string; displayName: string }>();
     for (const p of participants) {
       map.set(String(p.userId), {
         username: p.username,
-        nickname: p.nickname ?? p.displayName ?? p.username,
+        displayName: p.displayName ?? p.username,
       });
     }
     return map;
@@ -222,8 +222,8 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
             id: `coding-${submission.id}`,
             studentId: submission.userId,
             studentUsername: student?.username ?? submission.username ?? "unknown",
-            studentNickname:
-              student?.nickname ??
+            studentDisplayName:
+              student?.displayName ??
               submission.username ??
               "unknown",
             questionId: canonicalProblemId,
@@ -297,9 +297,9 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
               id: `coding-standing-${studentId}-${canonicalProblemId}`,
               studentId,
               studentUsername:
-                student?.username || standingRow.displayName || standingRow.nickname || "unknown",
-              studentNickname:
-                student?.nickname || standingRow.displayName || standingRow.nickname || "unknown",
+                student?.username || standingRow.displayName || "unknown",
+              studentDisplayName:
+                student?.displayName || standingRow.displayName || "unknown",
               questionId: canonicalProblemId,
               questionIndex: problemMeta?.index ?? 0,
               questionPrompt: problemMeta?.title ?? canonicalProblemId,
@@ -498,16 +498,14 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     // Start from all participants
     const map = new Map<
       string,
-      { studentId: string; username: string; nickname: string; displayName?: string; accountRole?: string }
+      { studentId: string; username: string; displayName?: string; accountRole?: string }
     >();
     for (const p of participants) {
       const id = String(p.userId);
       map.set(id, {
         studentId: id,
         username: p.username,
-        nickname: p.nickname ?? p.displayName ?? p.username,
-        displayName:
-          p.userDisplayName ?? p.displayName ?? p.nickname ?? p.username,
+        displayName: p.displayName ?? p.username,
         accountRole: p.accountRole,
       });
     }
@@ -517,8 +515,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         map.set(a.studentId, {
           studentId: a.studentId,
           username: a.studentUsername,
-          nickname: a.studentNickname,
-          displayName: a.studentNickname || a.studentUsername,
+          displayName: a.studentDisplayName || a.studentUsername,
         });
       }
     }

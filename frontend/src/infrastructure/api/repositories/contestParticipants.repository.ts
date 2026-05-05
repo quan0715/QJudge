@@ -35,18 +35,6 @@ export const unlockParticipant = async (
   );
 };
 
-export const updateNickname = async (
-  contestId: string,
-  nickname: string
-): Promise<any> => {
-  return requestJson<any>(
-    httpClient.post(`/api/v1/contests/${contestId}/update_nickname/`, {
-      nickname,
-    }),
-    "Failed to update nickname"
-  );
-};
-
 export const updateParticipant = async (
   contestId: string,
   userId: number,

@@ -6,7 +6,7 @@ const buildRow = (partial: Partial<GradingAnswerRow>): GradingAnswerRow => ({
   id: partial.id ?? "a1",
   studentId: partial.studentId ?? "u1",
   studentUsername: partial.studentUsername ?? "student",
-  studentNickname: partial.studentNickname ?? "student",
+  studentDisplayName: partial.studentDisplayName ?? "student",
   questionId: partial.questionId ?? "q1",
   questionIndex: partial.questionIndex ?? 1,
   questionPrompt: partial.questionPrompt ?? "prompt",

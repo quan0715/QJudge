@@ -1,0 +1,27 @@
+.root {
+  display: inline-flex;
+  align-items: stretch;
+  width: 100%;
+  gap: 0;
+  border: 0;
+  background: transparent;
+}
+
+.search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.search :global(.cds--search-input) {
+  border: none;
+  background: transparent;
+}
+
+.search :global(.cds--search-magnifier) {
+  inset-inline-start: 0.75rem;
+}
+
+.filterMenu {
+  flex: 0 0 auto;
+  border-left: 0;
+}

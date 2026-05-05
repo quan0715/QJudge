@@ -122,7 +122,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
         ? dto.screen_share_recovery_grace_ms
         : 30_000,
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
-    anonymousModeEnabled: !!dto.anonymous_mode_enabled,
 
     allowMultipleJoins: !!dto.allow_multiple_joins,
     maxCheatWarnings: dto.max_cheat_warnings || 0,
@@ -136,7 +135,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
       dto.question_edit_locked ?? dto.is_exam_questions_frozen
     ),
     examQuestionsCount: dto.exam_questions_count ?? 0,
-    myNickname: dto.my_nickname,
 
     hasStarted: !!dto.has_started,
     startedAt: dto.started_at,
@@ -684,8 +682,7 @@ export function mapContestParticipantDto(
     userId: dto.user_id?.toString() || "",
     username: dto.username || "",
     email: dto.user?.email,
-    userDisplayName:
-      dto.user_display_name || dto.user?.profile?.display_name || "",
+    displayName: dto.display_name || dto.user?.profile?.display_name || "",
     accountRole: dto.account_role || dto.user?.role || "",
     authProvider: dto.auth_provider || dto.user?.auth_provider || "",
     connectionStatus:
@@ -706,8 +703,6 @@ export function mapContestParticipantDto(
     lockReason: dto.lock_reason,
     violationCount: dto.violation_count || 0,
     submitReason: dto.submit_reason,
-    nickname: dto.nickname,
-    displayName: dto.display_name,
   };
 }
 
@@ -953,8 +948,7 @@ export function mapScoreboardDto(dto: ScoreboardDto): ScoreboardData {
           rank: s.rank || 0,
           user: s.user || { id: 0, username: "Unknown" },
           userId: s.user?.id?.toString() || "",
-          displayName: s.display_name || s.nickname || s.user?.username || "",
-          nickname: s.nickname,
+          displayName: s.display_name || s.user?.username || "",
           solvedCount: s.solved || s.solved_count || 0,
           totalScore: s.total_score || 0,
           penalty: s.time || 0,
@@ -1159,7 +1153,6 @@ export function mapContestUpdateRequestToDto(
     warning_timeout_seconds: request.warningTimeoutSeconds,
     screen_share_recovery_grace_ms: request.screenShareRecoveryGraceMs,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
-    anonymous_mode_enabled: request.anonymousModeEnabled,
     allow_multiple_joins: request.allowMultipleJoins,
     max_cheat_warnings: request.maxCheatWarnings,
     allow_auto_unlock: request.allowAutoUnlock,

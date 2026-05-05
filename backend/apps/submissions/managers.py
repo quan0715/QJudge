@@ -5,10 +5,7 @@ from typing import Optional
 
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models import OuterRef, Subquery
 from django.utils import timezone
-
-from apps.contests.models import ContestParticipant
 
 User = get_user_model()
 
@@ -35,7 +32,6 @@ class SubmissionQuerySet(models.QuerySet):
             "problem__id",
             "problem__question_asset__title",
             "contest__id",
-            "contest__anonymous_mode_enabled",
         ).select_related("user", "problem", "problem__question_asset", "contest")
 
     def visible_to(
@@ -54,13 +50,6 @@ class SubmissionQuerySet(models.QuerySet):
             and user.is_authenticated
             and (user.is_staff or getattr(user, "role", "") in ["admin", "teacher"])
         )
-
-        if contest_id:
-            nickname_subquery = ContestParticipant.objects.filter(
-                contest_id=contest_id,
-                user_id=OuterRef("user_id"),
-            ).values("nickname")[:1]
-            queryset = queryset.annotate(_contest_nickname=Subquery(nickname_subquery))
 
         if not include_all:
             if created_after:

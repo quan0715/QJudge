@@ -107,7 +107,6 @@ export interface ContestDetailDto extends ContestDto {
   warning_timeout_seconds?: number;
   screen_share_recovery_grace_ms?: number;
   scoreboard_visible_during_contest?: boolean;
-  anonymous_mode_enabled?: boolean;
   allow_multiple_joins?: boolean;
   max_cheat_warnings?: number;
   allow_auto_unlock?: boolean;
@@ -118,7 +117,6 @@ export interface ContestDetailDto extends ContestDto {
   question_edit_lock_trigger?: "coding_submission" | "exam_answer" | null;
   is_exam_questions_frozen?: boolean;
   exam_questions_count?: number;
-  my_nickname?: string;
   has_started?: boolean;
   started_at?: string;
   left_at?: string;
@@ -175,7 +173,6 @@ export interface ContestParticipantDto {
       display_name?: string;
     };
   };
-  user_display_name?: string;
   account_role?: string;
   auth_provider?: string;
   connection_status?: "offline" | "online" | "live";
@@ -190,7 +187,6 @@ export interface ContestParticipantDto {
   lock_reason?: string;
   violation_count?: number;
   submit_reason?: string;
-  nickname?: string;
   display_name?: string;
   started_at?: string;
   left_at?: string;
@@ -297,7 +293,6 @@ export interface ScoreboardRowDto {
   user?: { id?: number | string; username?: string };
   user_id?: number | string;
   display_name?: string;
-  nickname?: string;
   solved?: number;
   solved_count?: number;
   total_score?: number;

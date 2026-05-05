@@ -63,7 +63,6 @@ class ParticipantDashboardApiTests(APITestCase):
             user=self.student,
             exam_status=ExamStatus.IN_PROGRESS,
             started_at=timezone.now() - timedelta(minutes=20),
-            nickname="Stu Dashboard",
             score=12,
             violation_count=2,
         )

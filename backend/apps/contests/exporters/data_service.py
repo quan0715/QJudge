@@ -105,11 +105,12 @@ class ContestDataService:
 
         result = []
         for p in participants:
+            profile = getattr(p.user, 'profile', None)
             result.append(ParticipantDTO(
                 user_id=p.user.id,
                 username=p.user.username,
                 email=getattr(p.user, 'email', ''),
-                nickname=getattr(p, 'nickname', '') or '',
+                display_name=getattr(profile, 'display_name', '') or '',
                 exam_status=getattr(p, 'exam_status', ''),
                 started_at=getattr(p, 'started_at', None),
                 left_at=getattr(p, 'left_at', None),
@@ -178,7 +179,7 @@ class ContestDataService:
             stats[p.user_id] = UserStandingDTO(
                 user_id=p.user_id,
                 username=p.username,
-                display_name=p.nickname or p.username,
+                display_name=p.display_name or p.username,
                 problems=problem_stats,
             )
 

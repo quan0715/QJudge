@@ -8,7 +8,6 @@ interface GradingMatrixViewScreenProps {
   students: {
     studentId: string;
     username: string;
-    nickname: string;
     displayName?: string;
   }[];
   answersByQuestion: Map<string, GradingAnswerRow[]>;
@@ -221,7 +220,6 @@ export default function GradingMatrixViewScreen({
             const username = (student.username && student.username.trim()) || student.studentId;
             const displayNameCandidate =
               (student.displayName && student.displayName.trim()) ||
-              (student.nickname && student.nickname.trim()) ||
               "";
             const displayName =
               displayNameCandidate && displayNameCandidate !== username

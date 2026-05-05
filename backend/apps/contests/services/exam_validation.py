@@ -27,10 +27,10 @@ def validate_exam_operation(contest, user, require_in_progress=False, allow_admi
     if allow_admin_bypass and can_manage_contest(user, contest):
         try:
             participant = ContestParticipant.objects.get(contest=contest, user=user)
-            return participant, None
+            return participant
         except ContestParticipant.DoesNotExist:
             # Managers don't need to be registered
-            return None, None
+            return None
 
     # Layer 1: Contest status
     if contest.status != 'published':

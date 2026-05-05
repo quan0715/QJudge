@@ -14,7 +14,6 @@ import {
   CheckmarkFilled,
   FlagFilled,
 } from "@carbon/icons-react";
-import ExamStatusBadge from "@/features/contest/components/exam/ExamStatusBadge";
 import { usePaperExamFlow } from "./usePaperExamFlow";
 import { useInterval } from "@/shared/hooks/useInterval";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
@@ -24,6 +23,8 @@ import {
   usePaperExamAutoSave,
   usePaperExamQuestions,
   usePaperExamSaveOnLeave,
+  getMarkedQuestionIds,
+  saveMarkedQuestionIds,
   hasExamPrecheckPassed,
   syncExamPrecheckGateByStatus,
 } from "./hooks";
@@ -45,6 +46,8 @@ import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/f
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
+import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";
+import { useContestRuntimeMode } from "@/features/contest/hooks";
 import {
   buildExamEntryDeviceMetadata,
   detectAnticheatCapability,
@@ -111,6 +114,8 @@ const PaperExamAnsweringScreen: React.FC = () => {
     [monitoringPlan]
   );
   const submitProgress = useExamSubmissionProgress();
+  const setPageHeaderActions = usePageHeaderActions();
+  const { isRuntime } = useContestRuntimeMode();
 
   const { items, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
@@ -124,7 +129,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
     setAnswers,
   });
 
-  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
+  const [markedIds, setMarkedIds] = useState<Set<string>>(() =>
+    getMarkedQuestionIds(contestId),
+  );
+  useEffect(() => {
+    setMarkedIds(getMarkedQuestionIds(contestId));
+  }, [contestId]);
   const toggleMark = useCallback((id: string) => {
     setMarkedIds((prev) => {
       const next = new Set(prev);
@@ -133,9 +143,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
       } else {
         next.add(id);
       }
+      saveMarkedQuestionIds(contestId, next);
       return next;
     });
-  }, []);
+  }, [contestId]);
 
   const isInProgress = contest?.examStatus === "in_progress";
   const isSubmitted = contest?.examStatus === "submitted";
@@ -349,6 +360,52 @@ const PaperExamAnsweringScreen: React.FC = () => {
     setShowSubmitReview(true);
   }, [flushAll]);
 
+  const shouldUseHeaderActions =
+    isRuntime && !autoSubmitted && !isSubmitted && !loadingQuestions && items.length > 0;
+
+  useEffect(() => {
+    if (!shouldUseHeaderActions) {
+      setPageHeaderActions(null);
+      return;
+    }
+
+    setPageHeaderActions(
+      <div className={styles.headerActions}>
+        {saveStatus !== "idle" ? (
+          <span
+            className={`${styles.headerSaveStatus} ${
+              saveStatus === "error" ? styles.saveStatusError : ""
+            }`}
+          >
+            {saveStatusLabel}
+          </span>
+        ) : null}
+        <Button
+          kind="primary"
+          className={styles.headerSubmitButton}
+          data-testid="paper-exam-open-submit-review-btn"
+          renderIcon={SendFilled}
+          onClick={openSubmitReview}
+          disabled={!isInProgress}
+        >
+          {t("answering.submit.button")}
+        </Button>
+      </div>,
+    );
+
+    return () => {
+      setPageHeaderActions(null);
+    };
+  }, [
+    saveStatus,
+    saveStatusLabel,
+    isInProgress,
+    openSubmitReview,
+    setPageHeaderActions,
+    shouldUseHeaderActions,
+    t,
+  ]);
+
   const handleSubmitExam = useCallback(async () => {
     if (!contestId || isSubmittingExam) return;
     setIsSubmittingExam(true);
@@ -411,6 +468,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
         syncIndex={syncIndex}
         renderItem={renderItem}
         onActiveIndexChange={handleActiveIndexChange}
+        showToolbar={!isRuntime}
+        externalNavigator={isRuntime}
+        overviewLabel={t("contestShell.backToContestHome", "返回競賽主頁")}
+        onSelectOverview={() => dashboardPath && navigate(dashboardPath)}
         toolbarLeft={(
           <>
             <Button
@@ -431,13 +492,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
                 {saveStatusLabel}
               </span>
             )}
-            <ExamStatusBadge
-              examStatus={contest?.examStatus}
-              cheatDetectionEnabled={contest?.cheatDetectionEnabled}
-              timeLeft={countdown.display}
-              lockReason={contest?.lockReason}
-              autoUnlockAt={contest?.autoUnlockAt}
-            />
             <Button
               kind="primary"
               data-testid="paper-exam-open-submit-review-btn"

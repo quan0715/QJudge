@@ -6,9 +6,9 @@ import {
   ArrowRight,
   CenterToFit,
   ListBulleted,
-  List,
 } from "@carbon/icons-react";
 import { ExamNavigator } from "./ExamNavigator";
+import { useRegisterContestRuntimeNavigator } from "@/features/contest/contexts";
 import type { ExamItem, ExamViewMode } from "../../types/exam.types";
 
 function useScrollDirection(ref: React.RefObject<HTMLElement | null>) {
@@ -42,8 +42,12 @@ interface PaperExamCoreProps {
   items: ExamItem[];
   answeredIds: Set<string>;
   markedIds?: Set<string>;
-  toolbarLeft: React.ReactNode;
+  toolbarLeft?: React.ReactNode;
   toolbarCenter?: React.ReactNode;
+  showToolbar?: boolean;
+  externalNavigator?: boolean;
+  overviewLabel?: string;
+  onSelectOverview?: () => void;
   renderItem: (item: ExamItem, index: number, mode: ExamViewMode) => React.ReactNode;
   styles: Record<string, string>;
   syncIndex?: number | null;
@@ -56,6 +60,10 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   markedIds,
   toolbarLeft,
   toolbarCenter,
+  showToolbar = true,
+  externalNavigator = false,
+  overviewLabel,
+  onSelectOverview,
   renderItem,
   styles,
   syncIndex,
@@ -71,7 +79,7 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   const [viewMode, setViewMode] = useState<ExamViewMode>("single");
   const [activeIndex, setActiveIndex] = useState(0);
   const [allModeActiveIndex, setAllModeActiveIndex] = useState(0);
-  const [navVisible, setNavVisible] = useState(true);
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const [slideDir, setSlideDir] = useState<"left" | "right">("right");
   const [animating, setAnimating] = useState(false);
 
@@ -161,6 +169,41 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
     }
   }, []);
 
+  const navigatorState = useMemo(
+    () =>
+      externalNavigator
+        ? {
+            items,
+            activeIndex:
+              effectiveViewMode === "single"
+                ? effectiveActiveIndex
+                : effectiveAllModeActiveIndex,
+            answeredIds,
+            markedIds,
+            overviewLabel,
+            onSelect:
+              effectiveViewMode === "single"
+                ? handleSetActiveIndex
+                : handleScrollToItem,
+            onSelectOverview,
+          }
+        : null,
+    [
+      answeredIds,
+      effectiveActiveIndex,
+      effectiveAllModeActiveIndex,
+      effectiveViewMode,
+      externalNavigator,
+      handleScrollToItem,
+      handleSetActiveIndex,
+      items,
+      markedIds,
+      onSelectOverview,
+      overviewLabel,
+    ],
+  );
+  useRegisterContestRuntimeNavigator(navigatorState);
+
   const renderSingleMode = () => {
     const item = items[effectiveActiveIndex];
     if (!item) return null;
@@ -228,10 +271,12 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
 
   return (
     <div className={styles.container}>
-      <div className={`${styles.toolbar} ${toolbarVisible ? "" : styles.toolbarHidden}`}>
-        <div className={styles.toolbarLeft}>{toolbarLeft}</div>
-        <div className={styles.toolbarCenter}>{toolbarCenter}</div>
-      </div>
+      {showToolbar && (
+        <div className={`${styles.toolbar} ${toolbarVisible ? "" : styles.toolbarHidden}`}>
+          <div className={styles.toolbarLeft}>{toolbarLeft}</div>
+          <div className={styles.toolbarCenter}>{toolbarCenter}</div>
+        </div>
+      )}
 
       <div className={styles.modeSwitcher}>
         {VIEW_MODES.map((m) => (
@@ -248,24 +293,21 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
       </div>
 
       <div className={styles.body}>
-        <div className={`${styles.navWrapper} ${navVisible ? "" : styles.navWrapperHidden}`}>
-          {navVisible && (
+        {!externalNavigator && (
+          <div className={`${styles.navWrapper} ${navCollapsed ? styles.navWrapperCollapsed : ""}`}>
             <ExamNavigator
               items={items}
               activeIndex={effectiveViewMode === "single" ? effectiveActiveIndex : effectiveAllModeActiveIndex}
               answeredIds={answeredIds}
               markedIds={markedIds}
+              collapsed={navCollapsed}
+              overviewLabel={overviewLabel}
+              onSelectOverview={onSelectOverview}
+              onToggleCollapse={() => setNavCollapsed((collapsed) => !collapsed)}
               onSelect={effectiveViewMode === "single" ? handleSetActiveIndex : handleScrollToItem}
             />
-          )}
-          <button
-            className={styles.navToggle}
-            onClick={() => setNavVisible((v) => !v)}
-            aria-label={navVisible ? t("answering.navigation.hideList") : t("answering.navigation.showList")}
-          >
-            <List size={20} />
-          </button>
-        </div>
+          </div>
+        )}
 
         {effectiveViewMode === "single" ? renderSingleMode() : renderAllMode()}
       </div>

@@ -85,6 +85,7 @@ describe("contestRuntimePolicy", () => {
   it("recognizes contest participation", () => {
     expect(isContestParticipant(createContest({ hasJoined: false, isRegistered: false }))).toBe(false);
     expect(isContestParticipant(createContest({ hasJoined: true, isRegistered: false }))).toBe(true);
+    expect(isContestParticipant(createContest({ hasJoined: false, isRegistered: true }))).toBe(false);
   });
 
   it("treats submitted/locked/paused/in_progress as started exam", () => {

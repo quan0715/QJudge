@@ -1,4 +1,4 @@
-import { Checkmark } from "@carbon/icons-react";
+import { Checkmark, DotMark } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
@@ -13,6 +13,7 @@ export interface AnswerDisplayProps {
   options: string[];
   correctAnswer: unknown;
   explanation?: string | null;
+  showCorrectness?: boolean;
 }
 
 function isSelected(answerContent: Record<string, unknown>, idx: number): boolean {
@@ -60,6 +61,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
   options,
   correctAnswer,
   explanation,
+  showCorrectness = true,
 }) => {
   const { t } = useTranslation("contest");
   const subjective = isSubjectiveType(questionType);
@@ -115,27 +117,35 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
       <div className={styles.optionsList}>
         {effectiveOptions.map((opt, i) => {
           const selected = isSelected(answerContent, i);
-          const correct = isCorrect(correctAnswer, i);
+          const correct = showCorrectness && isCorrect(correctAnswer, i);
           const classNames = [
             styles.optionItem,
-            selected && correct ? styles.optionSelectedCorrect : "",
-            selected && !correct ? styles.optionSelectedWrong : "",
-            !selected && correct ? styles.optionCorrect : "",
+            selected && !showCorrectness ? styles.optionSelected : "",
+            selected && showCorrectness && correct ? styles.optionSelectedCorrect : "",
+            selected && showCorrectness && !correct ? styles.optionSelectedWrong : "",
+            !selected && showCorrectness && correct ? styles.optionCorrect : "",
           ]
             .filter(Boolean)
             .join(" ");
 
           return (
             <div key={i} className={classNames}>
-              <span>
-                {String.fromCharCode(65 + i)}. {opt}
+              <span className={styles.optionLabel}>
+                <span>{String.fromCharCode(65 + i)}. {opt}</span>
+                {selected ? (
+                  <DotMark
+                    size={16}
+                    className={styles.selectedIcon}
+                    aria-label="Your answer"
+                  />
+                ) : null}
               </span>
               {correct && <Checkmark size={16} className={styles.correctIcon} />}
             </div>
           );
         })}
       </div>
-      {correctAnswer != null && (
+      {showCorrectness && correctAnswer != null && (
         <div className={styles.correctSummary}>
           <span className={styles.correctLabel}>
             {t("grading.correctAnswer", "正確答案")}:

@@ -1,46 +1,28 @@
-import { useState, useEffect, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
-import { Modal, SkeletonText, Grid, Column, Tile } from "@carbon/react";
+import { useEffect } from "react";
+import { useSearchParams, useOutletContext } from "react-router-dom";
+import { SkeletonText, Grid, Column, Tile } from "@carbon/react";
 
-import type { ScoreboardRow } from "@/core/entities/contest.entity";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 
-import {
-  type ContestTabKey,
-} from "@/features/contest/tabConfig";
-import { getContestTypeModule } from "@/features/contest/modules/registry";
-import { resolveStudentTabRenderer } from "@/features/contest/modules/StudentTabRendererRegistry";
+import StudentContestDashboard from "@/features/contest/components/studentDashboard/StudentContestDashboardView";
+
+interface ContestDashboardOutletContext {
+  refreshContest?: () => Promise<void>;
+  onJoin?: (data?: { password?: string }) => void;
+  onStartExam?: () => void;
+  onEndExam?: () => void;
+  onGoToAnswering?: () => void;
+  onOpenAdminPanel?: () => void;
+  isAdmin?: boolean;
+}
 
 const ContestDashboard = () => {
-  const { t } = useTranslation('contest');
-  const { t: tc } = useTranslation('common');
   const [searchParams, setSearchParams] = useSearchParams();
+  const outletContext = useOutletContext<ContestDashboardOutletContext | null>();
 
-  // Use contest and standings from context
-  const { contest, loading, scoreboardData } = useContest();
-  const { user: currentUser } = useAuth();
-
-  // Personal stats state
-  const [myRank, setMyRank] = useState<ScoreboardRow | null>(null);
-  const [lockModalOpen, setLockModalOpen] = useState(false);
-
-  // Find my rank from context standings
-  useEffect(() => {
-    const timerId = setTimeout(() => {
-      if (!currentUser) {
-        setMyRank(null);
-        return;
-      }
-      const myEntry = scoreboardData?.rows?.find(
-        (s) => s.displayName === currentUser.username
-      );
-      setMyRank(myEntry || null);
-    }, 0);
-    return () => clearTimeout(timerId);
-  }, [currentUser, scoreboardData]);
+  // Use contest from context; student dashboard intentionally avoids standings.
+  const { contest, loading } = useContest();
 
   const handleSubmissionClose = () => {
     setSearchParams((prev) => {
@@ -50,36 +32,17 @@ const ContestDashboard = () => {
     });
   };
 
-  const selectedTabParam = searchParams.get("tab") || "overview";
   const selectedSubmissionId = searchParams.get("submissionId");
-  const contestModule = useMemo(
-    () => getContestTypeModule(contest?.contestType),
-    [contest?.contestType],
-  );
-  const availableTabs = useMemo(
-    () => contestModule.student.getTabs(contest),
-    [contest, contestModule],
-  );
-
-  const availableTabKeys = useMemo(
-    () => availableTabs.map((tab) => tab.key),
-    [availableTabs]
-  );
-
-  const selectedTabKey = availableTabKeys.includes(selectedTabParam as ContestTabKey)
-    ? selectedTabParam
-    : availableTabKeys[0];
-  const selectedTab = availableTabs.find((tab) => tab.key === selectedTabKey) ?? availableTabs[0];
 
   useEffect(() => {
     if (!contest) return;
-    if (selectedTabParam === selectedTabKey) return;
+    if (!searchParams.has("tab")) return;
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      next.set("tab", selectedTabKey);
+      next.delete("tab");
       return next;
     });
-  }, [contest, selectedTabKey, selectedTabParam, setSearchParams]);
+  }, [contest, searchParams, setSearchParams]);
 
   // Skeleton loading component
   const renderSkeleton = () => (
@@ -118,23 +81,19 @@ const ContestDashboard = () => {
 
   // Guard against null contest
   if (!contest) return renderSkeleton();
-  if (!selectedTab) return null;
-
-  const renderTabContent = () => {
-    const render = resolveStudentTabRenderer(
-      contestModule,
-      selectedTab.contentKind,
-    );
-    return render({
-      contest,
-      myRank,
-      maxWidth: "1056px",
-    });
-  };
 
   return (
     <>
-      {renderTabContent()}
+      <StudentContestDashboard
+        contest={contest}
+        onJoin={outletContext?.onJoin}
+        onStartExam={outletContext?.onStartExam}
+        onEndExam={outletContext?.onEndExam}
+        onGoToAnswering={outletContext?.onGoToAnswering}
+        onOpenAdminPanel={outletContext?.onOpenAdminPanel}
+        onRefreshContest={outletContext?.refreshContest}
+        isAdmin={outletContext?.isAdmin}
+      />
 
       {/* Submission Detail Modal */}
       {selectedSubmissionId && (
@@ -144,18 +103,6 @@ const ContestDashboard = () => {
           onClose={handleSubmissionClose}
         />
       )}
-
-      {/* Lock Modal */}
-      <Modal
-        open={lockModalOpen}
-        modalHeading={t('exam.answerLocked')}
-        primaryButtonText={tc('button.confirm')}
-        onRequestClose={() => setLockModalOpen(false)}
-        onRequestSubmit={() => setLockModalOpen(false)}
-        size="sm"
-      >
-        <p>{t('exam.contactProctorToUnlock')}</p>
-      </Modal>
     </>
   );
 };

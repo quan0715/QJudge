@@ -84,7 +84,7 @@ export const toggleStatus = async (
 
 export const registerContest = async (
   id: string,
-  data?: { password?: string; nickname?: string }
+  data?: { password?: string }
 ): Promise<void> => {
   await requestJson<void>(
     httpClient.post(`/api/v1/contests/${id}/register/`, data),

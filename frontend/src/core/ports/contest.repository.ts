@@ -33,7 +33,7 @@ export interface IContestRepository {
   toggleStatus(id: string): Promise<{ status: string }>;
   registerContest(
     id: string,
-    data?: { password?: string; nickname?: string }
+    data?: { password?: string }
   ): Promise<void>;
   enterContest(id: string, data?: { password?: string }): Promise<void>;
   archiveContest(id: string): Promise<void>;
@@ -199,7 +199,6 @@ export interface ContestUpdatePayload {
   warningTimeoutSeconds?: number;
   screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest?: boolean;
-  anonymousModeEnabled?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;
   allowAutoUnlock?: boolean;

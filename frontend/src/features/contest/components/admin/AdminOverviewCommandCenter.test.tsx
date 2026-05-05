@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ContestParticipant } from "@/core/entities/contest.entity";
 import type { AdminOverviewDashboardData } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
+import type { InsightCardAction } from "./AdminInsightRail";
 import AdminOverviewCommandCenter from "./AdminOverviewCommandCenter";
 
 const participantDashboardState = vi.hoisted(() => ({
@@ -57,7 +58,21 @@ vi.mock("@/shared/contexts/ToastContext", () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }));
 
+// Use a contest window that places "now" roughly in the middle so the
+// CountdownProgress component renders during-phase output deterministically.
+const COUNTDOWN_START = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+const COUNTDOWN_END = new Date(Date.now() + 45 * 60 * 1000).toISOString();
+
 vi.mock("@/features/contest/contexts", () => ({
+  useContest: () => ({
+    contest: {
+      id: "contest-1",
+      name: "Mock Contest",
+      startTime: COUNTDOWN_START,
+      endTime: COUNTDOWN_END,
+    },
+    refreshContest: vi.fn(),
+  }),
   useContestAdmin: () => ({
     refreshAllAdminData: vi.fn(),
     refreshParticipants: vi.fn(),
@@ -186,7 +201,7 @@ const participants: ContestParticipant[] = [
   {
     userId: "1",
     username: "ming",
-    userDisplayName: "王小明",
+    displayName: "王小明",
     connectionStatus: "online",
     liveMonitoringOnline: true,
     score: 82,
@@ -198,7 +213,7 @@ const participants: ContestParticipant[] = [
   {
     userId: "2",
     username: "hua",
-    userDisplayName: "陳小華",
+    displayName: "陳小華",
     connectionStatus: "offline",
     score: 74,
     joinedAt: "2026-05-03T09:00:00+08:00",
@@ -217,12 +232,14 @@ describe("AdminOverviewCommandCenter", () => {
     adminLoading = false,
     gradingLoading = false,
     antiCheatEnabled = true,
+    gradingAction,
   }: {
     onOpenPanel?: (panel: string) => void;
     overrideData?: AdminOverviewDashboardData;
     adminLoading?: boolean;
     gradingLoading?: boolean;
     antiCheatEnabled?: boolean;
+    gradingAction?: InsightCardAction;
   } = {}) =>
     render(
       <AdminOverviewCommandCenter
@@ -234,7 +251,9 @@ describe("AdminOverviewCommandCenter", () => {
         onOpenPanel={onOpenPanel}
         participants={participants}
         primary={primary}
+        overviewInfo={{ contestTypeLabel: "考卷" }}
         questionStatsGallery={questionStatsGallery}
+        gradingAction={gradingAction}
       />,
     );
 
@@ -242,25 +261,40 @@ describe("AdminOverviewCommandCenter", () => {
     renderCommandCenter();
 
     expect(screen.getByText("競賽資訊")).toBeInTheDocument();
+    const contestInfo = screen.getByLabelText("競賽基本資訊");
+    expect(within(contestInfo).getByText("考卷題型")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("考卷")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("題目數量")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("12")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("開始時間")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("09:00")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("結束時間")).toBeInTheDocument();
+    expect(within(contestInfo).getByText("11:00")).toBeInTheDocument();
+    expect(
+      contestInfo.compareDocumentPosition(screen.getByText("考生列表")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     const examSummary = screen.getByLabelText("考試狀態摘要");
     expect(within(examSummary).getByText("考試人數")).toBeInTheDocument();
     expect(within(examSummary).getByText("2")).toBeInTheDocument();
     expect(within(examSummary).getByText("在線人數")).toBeInTheDocument();
     expect(within(examSummary).getByText("1")).toBeInTheDocument();
-    const examSchedule = within(examSummary).getByLabelText("考試時間");
-    expect(within(examSchedule).getByText("開始時間")).toBeInTheDocument();
-    expect(within(examSchedule).getByText("09:00")).toBeInTheDocument();
-    expect(within(examSchedule).getByText("結束時間")).toBeInTheDocument();
-    expect(within(examSchedule).getByText("11:00")).toBeInTheDocument();
-    expect(within(examSummary).getByText("倒數計時")).toBeInTheDocument();
-    expect(within(examSummary).getByText("剩餘 45:00")).toBeInTheDocument();
+    expect(within(examSummary).getByText("剩餘時間")).toBeInTheDocument();
     expect(screen.getAllByText("批改進度").length).toBeGreaterThan(0);
     expect(
       screen.getByRole("progressbar", { name: "時間進度" }),
-    ).toHaveAttribute("aria-valuenow", "62");
+    ).toBeInTheDocument();
     expect(screen.getAllByText("違規事件").length).toBeGreaterThan(0);
-    const distributionOverview = screen.getByLabelText("考試進度");
+    const distributionOverview = screen.getByLabelText("學生作答進度");
     expect(distributionOverview).toBeInTheDocument();
+    expect(
+      within(distributionOverview).getByTestId("proportional-meter-chart"),
+    ).toBeInTheDocument();
+    expect(
+      within(distributionOverview).queryByRole("progressbar", {
+        name: "作答進度",
+      }),
+    ).not.toBeInTheDocument();
     expect(
       within(distributionOverview).queryByText("離線"),
     ).not.toBeInTheDocument();
@@ -320,7 +354,7 @@ describe("AdminOverviewCommandCenter", () => {
   it("keeps only essential drilldown content in the left overview column", () => {
     renderCommandCenter();
 
-    expect(screen.getByLabelText("考試進度")).toBeInTheDocument();
+    expect(screen.getByLabelText("學生作答進度")).toBeInTheDocument();
     expect(screen.queryByText("auto_submit")).not.toBeInTheDocument();
     expect(screen.getByText("陳小華")).toBeInTheDocument();
     expect(screen.queryByText("競賽發布")).not.toBeInTheDocument();
@@ -333,6 +367,21 @@ describe("AdminOverviewCommandCenter", () => {
     expect(screen.queryByText("題目統計")).not.toBeInTheDocument();
   });
 
+  it("shows the publish results action under grading progress", async () => {
+    const onPublishResults = vi.fn();
+
+    renderCommandCenter({
+      gradingAction: {
+        label: "發布成績",
+        onClick: onPublishResults,
+      },
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "發布成績" }));
+
+    expect(onPublishResults).toHaveBeenCalledTimes(1);
+  });
+
   it("groups participants by status and switches the card metric", async () => {
     renderCommandCenter();
 
@@ -342,14 +391,14 @@ describe("AdminOverviewCommandCenter", () => {
     const lockedCard = screen.getByRole("button", { name: /王小明/ });
     expect(within(lockedCard).getByText("分數")).toBeInTheDocument();
     expect(within(lockedCard).getByText("82")).toBeInTheDocument();
-    expect(within(lockedCard).queryByText("違規")).not.toBeInTheDocument();
+    expect(within(lockedCard).queryByText("異常事件")).not.toBeInTheDocument();
     expect(within(lockedCard).getByText("@ming")).toBeInTheDocument();
     expect(within(lockedCard).getByText("在線")).toBeInTheDocument();
     const metricSwitch = screen.getByLabelText("考生卡片資料切換");
 
-    await userEvent.click(within(metricSwitch).getByText("違規"));
+    await userEvent.click(within(metricSwitch).getByText("異常事件"));
 
-    expect(within(lockedCard).getByText("違規")).toBeInTheDocument();
+    expect(within(lockedCard).getByText("異常事件")).toBeInTheDocument();
     expect(within(lockedCard).getByText("2")).toBeInTheDocument();
 
     await userEvent.click(within(metricSwitch).getByText("作答進度"));
@@ -427,7 +476,7 @@ describe("AdminOverviewCommandCenter", () => {
 
     expect(screen.getByLabelText("考生列表載入中")).toBeInTheDocument();
     expect(screen.getByLabelText("批改資料載入中")).toBeInTheDocument();
-    expect(screen.getByLabelText("考試進度")).toBeInTheDocument();
+    expect(screen.getByLabelText("學生作答進度")).toBeInTheDocument();
   });
 
   it("keeps generic panel entries out of the live dashboard", () => {

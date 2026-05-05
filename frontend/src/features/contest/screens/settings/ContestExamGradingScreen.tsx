@@ -433,7 +433,6 @@ const ContestExamGradingScreen: React.FC = () => {
                       username: row.displayName,
                     },
                     displayName: row.displayName,
-                    nickname: row.nickname,
                     solved: row.solvedCount,
                     total_score: row.totalScore,
                     time: row.penalty,

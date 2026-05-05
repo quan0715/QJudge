@@ -1,0 +1,38 @@
+.root {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.inner {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.inner > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.fullBleed {
+  max-width: none;
+  padding: 0;
+}
+
+@media (max-width: 672px) {
+  .inner {
+    padding: 0.75rem;
+  }
+
+  .fullBleed {
+    padding: 0;
+  }
+}

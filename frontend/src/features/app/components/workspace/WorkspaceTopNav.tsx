@@ -1,14 +1,30 @@
 import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { IconButton } from "@carbon/react";
-import { ChevronDown, Education, Home, OpenPanelLeft, Settings } from "@carbon/icons-react";
+import {
+  ChevronDown,
+  Education,
+  Home,
+  Locked,
+  OpenPanelLeft,
+  Settings,
+  View,
+  WarningAltFilled,
+} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { BoundContest, Classroom, ClassroomDetail } from "@/core/entities/classroom.entity";
 import { getClassroom, getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import { getClassroomContestAdminPath, getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import { usePageHeaderActionsSlot } from "@/features/app/contexts/PageHeaderActionsContext";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { UserMenu } from "@/features/app/components/UserMenu";
+import { useContestRuntimeMode } from "@/features/contest/hooks";
+import { useContest } from "@/features/contest/contexts/ContestContext";
+import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
+import { ExamModeMonitorModal } from "@/features/contest/components/modals/ExamModeMonitorModal";
+import { useExamMonitoringStatus } from "@/features/contest/contexts/ExamMonitoringStatusContext";
+import { TimeDisplay } from "@/shared/components/dashboard";
 import styles from "./WorkspaceTopNav.module.scss";
 
 type MenuKind = "classroom" | "contest" | "contestMode" | null;
@@ -37,6 +53,7 @@ interface WorkspaceTopNavProps {
 export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
   const { t } = useTranslation("common");
   const { left } = useWorkspace();
+  const pageHeaderActions = usePageHeaderActionsSlot();
   const location = useLocation();
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -149,6 +166,9 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
     navigate(getClassroomContestAdminPath(classroomId, contestRouteId));
   }, [classroomId, contestRouteId, navigate]);
 
+  const { isRuntime } = useContestRuntimeMode();
+  const effectiveOpenMenu = isRuntime ? null : openMenu;
+
   return (
     <header className={styles.root}>
       <div className={styles.left}>
@@ -177,14 +197,15 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                   type="button"
                   className={styles.contextLink}
                   aria-haspopup="menu"
-                  aria-expanded={openMenu === "classroom"}
+                  aria-expanded={effectiveOpenMenu === "classroom"}
                   onClick={() => setOpenMenu((menu) => menu === "classroom" ? null : "classroom")}
+                  disabled={isRuntime}
                 >
                   {createElement(getClassroomIcon(currentClassroom.icon), { size: 18 })}
                   <span>{currentClassroom.name}</span>
-                  <ChevronDown size={14} />
+                  {!isRuntime ? <ChevronDown size={14} /> : null}
                 </button>
-                {openMenu === "classroom" ? (
+                {effectiveOpenMenu === "classroom" ? (
                   <div className={styles.menu} role="menu">
                     {classrooms.map((classroom) => {
                       return (
@@ -214,16 +235,17 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                   type="button"
                   className={styles.contextLink}
                   aria-haspopup="menu"
-                  aria-expanded={openMenu === "contest"}
+                  aria-expanded={effectiveOpenMenu === "contest"}
                   onClick={() => setOpenMenu((menu) => menu === "contest" ? null : "contest")}
+                  disabled={isRuntime}
                 >
                   <span>
                     {currentContest?.contestName ??
                       t("workspaceTopNav.contestFallback", "Contest")}
                   </span>
-                  <ChevronDown size={14} />
+                  {!isRuntime ? <ChevronDown size={14} /> : null}
                 </button>
-                {openMenu === "contest" ? (
+                {effectiveOpenMenu === "contest" ? (
                   <div className={styles.menu} role="menu">
                     {contests.map((contest) => (
                       <button
@@ -248,13 +270,14 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                       type="button"
                       className={styles.contextLink}
                       aria-haspopup="menu"
-                      aria-expanded={openMenu === "contestMode"}
+                      aria-expanded={effectiveOpenMenu === "contestMode"}
                       onClick={() => setOpenMenu((menu) => menu === "contestMode" ? null : "contestMode")}
+                      disabled={isRuntime}
                     >
                       <span>{t("workspaceTopNav.adminConsole", "管理後台")}</span>
-                      <ChevronDown size={14} />
+                      {!isRuntime ? <ChevronDown size={14} /> : null}
                     </button>
-                    {openMenu === "contestMode" ? (
+                    {effectiveOpenMenu === "contestMode" ? (
                       <div className={styles.menu} role="menu">
                         <button
                           type="button"
@@ -289,8 +312,86 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
       </div>
 
       <div className={styles.actions}>
-        <UserMenu />
+        {isRuntime && <RuntimeNavExtras />}
+        {pageHeaderActions}
+        {!isRuntime ? <UserMenu /> : null}
       </div>
     </header>
+  );
+}
+
+function RuntimeNavExtras() {
+  const { t } = useTranslation("contest");
+  const [monitoringOpen, setMonitoringOpen] = useState(false);
+  const { contest, refreshContest } = useContest();
+  const monitoringReminder = useExamMonitoringStatus();
+  const { timeLeft, isCountdownToStart, unlockTimeLeft } = useContestTimers({
+    contest,
+    contestId: contest?.id,
+    refreshContest,
+  });
+
+  if (!contest) return null;
+
+  const monitoringLabel = monitoringReminder
+    ? t(`exam.monitoringReminder.${monitoringReminder.source}`, {
+        defaultValue: t("exam.monitoringIssueHint", "監控需處理"),
+      })
+    : contest.examStatus === "locked"
+      ? t("exam.locked", "已鎖定")
+      : contest.examStatus === "paused"
+        ? t("exam.paused", "已暫停")
+        : t("exam.monitoring", "監控中");
+  const MonitoringIcon = monitoringReminder || contest.examStatus === "paused"
+    ? WarningAltFilled
+    : contest.examStatus === "locked"
+      ? Locked
+      : View;
+  const monitoringToneClass =
+    monitoringReminder?.tone === "critical" || contest.examStatus === "locked"
+      ? styles.runtimeMonitoringCritical
+      : monitoringReminder || contest.examStatus === "paused"
+        ? styles.runtimeMonitoringWarning
+        : styles.runtimeMonitoringNormal;
+
+  return (
+    <>
+      {contest.cheatDetectionEnabled ? (
+        <button
+          type="button"
+          className={`${styles.runtimeMonitoringMini} ${monitoringToneClass}`}
+          onClick={() => setMonitoringOpen(true)}
+          aria-label={monitoringLabel}
+          title={[
+            monitoringLabel,
+            unlockTimeLeft ? unlockTimeLeft : null,
+            monitoringReminder?.countdownSeconds != null
+              ? `${monitoringReminder.countdownSeconds}s`
+              : null,
+          ].filter(Boolean).join(" ")}
+        >
+          <MonitoringIcon size={20} />
+          {monitoringReminder?.countdownSeconds != null ? (
+            <span className={styles.runtimeMonitoringCountdown}>
+              {monitoringReminder.countdownSeconds}s
+            </span>
+          ) : null}
+        </button>
+      ) : null}
+      <div className={styles.runtimeTimer}>
+        <TimeDisplay
+          variant="header"
+          value={
+            isCountdownToStart
+              ? t("answering.runtimeNav.startsIn", "{{time}} 後開始", { time: timeLeft })
+              : timeLeft
+          }
+        />
+      </div>
+      <ExamModeMonitorModal
+        open={monitoringOpen}
+        onRequestClose={() => setMonitoringOpen(false)}
+      />
+    </>
   );
 }

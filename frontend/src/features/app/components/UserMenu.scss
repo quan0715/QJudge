@@ -6,7 +6,8 @@
   display: flex;
   align-items: center;
   gap: layout.$spacing-03;
-  padding: 0 layout.$spacing-04;
+  padding: 0 layout.$spacing-03;
+  margin-right: 0;
   height: 100%;
   background: none;
   border: none;
@@ -45,7 +46,7 @@
   }
 
   @media (max-width: 672px) {
-    padding: 0 layout.$spacing-03;
+    padding: 0 layout.$spacing-02;
 
     &__text {
       display: none;
