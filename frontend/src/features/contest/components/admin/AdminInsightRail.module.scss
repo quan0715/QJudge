@@ -1,16 +1,8 @@
-.root {
-  display: grid;
-  grid-auto-rows: max-content;
-  align-content: start;
-  min-height: 0;
-}
-
 .card {
   display: grid;
   gap: 1rem;
   align-content: start;
   padding: 1.25rem;
-  border-bottom: 1px solid var(--cds-border-subtle);
 }
 
 .cardActionButton {

@@ -13,7 +13,10 @@ import type {
   DistributionItem,
 } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
-import { MetricBlock } from "@/shared/components/dashboard";
+import {
+  DashboardContainer,
+  MetricBlock,
+} from "@/shared/components/dashboard";
 import styles from "./AdminInsightRail.module.scss";
 
 interface AdminInsightRailProps {
@@ -254,7 +257,7 @@ export default function AdminInsightRail({
   const gradingCards = cards.filter((card) => card.key === "grading_progress");
 
   return (
-    <div className={styles.root}>
+    <DashboardContainer layout="stack" dividers="auto">
       {primaryCards.map((card) => (
         <InsightCard
           key={card.key}
@@ -279,7 +282,7 @@ export default function AdminInsightRail({
           action={gradingAction}
         />
       ))}
-    </div>
+    </DashboardContainer>
   );
 }
 

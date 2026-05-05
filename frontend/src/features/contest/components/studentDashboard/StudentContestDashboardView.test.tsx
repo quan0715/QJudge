@@ -72,6 +72,9 @@ vi.mock("@carbon/react", () => ({
   SelectItem: ({ value, text }: { value: string; text: string }) => (
     <option value={value}>{text}</option>
   ),
+  ProgressBar: ({ value }: { value: number }) => (
+    <div data-testid="progress-bar" data-value={value} />
+  ),
   SkeletonPlaceholder: () => <div data-testid="skeleton-placeholder" />,
   Tab: ({ children }: { children: ReactNode }) => (
     <button type="button">{children}</button>

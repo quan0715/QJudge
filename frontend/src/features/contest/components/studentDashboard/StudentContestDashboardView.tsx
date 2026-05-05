@@ -64,8 +64,8 @@ import {
   DashboardContainer,
   DashboardPage,
   MetricBlock,
-  TimeDisplay,
 } from "@/shared/components/dashboard";
+import { CountdownProgress } from "@/features/contest/components/CountdownProgress";
 import { ContestRegistrationModal } from "@/features/contest/components/modals/ContestRegistrationModal";
 import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
 import { getMarkedQuestionIds } from "@/features/contest/screens/paperExam/hooks";
@@ -73,7 +73,6 @@ import {
   buildCodingProgressSummary,
   formatCompactDuration,
   resolveStudentContestPhase,
-  type StudentContestPhase,
 } from "./studentDashboardState";
 import styles from "./StudentContestDashboard.module.scss";
 
@@ -144,34 +143,6 @@ const isFailingScoreBucket = (label: string) => {
   );
 };
 
-const getRemainingLabel = (
-  phase: StudentContestPhase,
-  contest: ContestDetail,
-  nowMs: number,
-): { label: string; value: string } => {
-  const startMs = Date.parse(contest.startTime);
-  const endMs = Date.parse(contest.endTime);
-
-  if (phase === "before") {
-    return {
-      label: "距離開始",
-      value: Number.isFinite(startMs)
-        ? formatCompactDuration(startMs - nowMs)
-        : "-",
-    };
-  }
-  if (phase === "during") {
-    return {
-      label: "剩餘時間",
-      value: Number.isFinite(endMs) ? formatCompactDuration(endMs - nowMs) : "-",
-    };
-  }
-  return {
-    label: "考試狀態",
-    value: contest.resultsPublished ? "成績已發布" : "等待成績發布",
-  };
-};
-
 const buildPaperProgressSummary = (
   questions: ExamQuestion[],
   answers: Array<Pick<ExamAnswer, "questionId"> & Partial<Pick<ExamAnswerDetail, "score">>>,
@@ -240,7 +211,6 @@ export default function StudentContestDashboard({
     startTime: contest.startTime,
     endTime: contest.endTime,
   });
-  const remaining = getRemainingLabel(phase, contest, nowMs);
   const examStatus = contest.examStatus ?? "not_started";
   const hasAnswerRecord =
     contest.resultsPublished ||
@@ -421,15 +391,10 @@ export default function StudentContestDashboard({
       ? "成績已發布"
       : `${progressSummary.totalScore} / ${progressSummary.maxScore}`
     : "尚未發布";
-  const primaryStatus = contest.resultsPublished
-    ? {
-        label: "考試成績",
-        value:
-          contest.contestType === "paper_exam" && paperData.loading
-            ? "載入中..."
-            : scoreDisplay,
-      }
-    : remaining;
+  const afterPhaseValue =
+    contest.contestType === "paper_exam" && paperData.loading
+      ? "載入中..."
+      : scoreDisplay;
   const reportDownloadLabel = contest.resultsPublished
     ? "下載成績單"
     : "下載作答證明";
@@ -879,10 +844,14 @@ export default function StudentContestDashboard({
 
         <DashboardContainer layout="stack" dividers="auto" ariaLabel="競賽摘要">
           <DashboardBlock>
-            <TimeDisplay
-              variant="countdown"
-              label={primaryStatus.label}
-              value={primaryStatus.value}
+            <CountdownProgress
+              startTime={contest.startTime}
+              endTime={contest.endTime}
+              afterPhase={
+                contest.resultsPublished
+                  ? { label: "考試成績", value: afterPhaseValue }
+                  : { label: "考試狀態", value: "等待成績發布" }
+              }
             />
           </DashboardBlock>
 

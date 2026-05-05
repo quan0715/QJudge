@@ -2,7 +2,6 @@ import {
   Button,
   OverflowMenu,
   OverflowMenuItem,
-  ProgressBar,
   Search,
   SelectableTag,
   SkeletonText,
@@ -54,7 +53,8 @@ import {
   EXAM_STATUS_LABELS,
   getExamStatusLabel,
 } from "@/features/contest/constants/examLabels";
-import { useContestAdmin } from "@/features/contest/contexts";
+import { useContest, useContestAdmin } from "@/features/contest/contexts";
+import { CountdownProgress } from "@/features/contest/components/CountdownProgress";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 import useParticipantDashboard from "@/features/contest/screens/settings/participants/useParticipantDashboard";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
@@ -75,7 +75,6 @@ import {
   DashboardBlock,
   DashboardContainer,
   MetricBlock,
-  TimeDisplay,
 } from "@/shared/components/dashboard";
 import styles from "./AdminOverviewCommandCenter.module.scss";
 
@@ -322,6 +321,7 @@ export default function AdminOverviewCommandCenter({
   const { t } = useTranslation("contest");
   const { showToast } = useToast();
   const { confirm, modalProps: confirmModalProps } = useConfirmModal();
+  const { contest } = useContest();
   const { refreshAllAdminData, refreshParticipants, examEventsLoading } =
     useContestAdmin();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -663,11 +663,6 @@ export default function AdminOverviewCommandCenter({
   const priorityEventsCard = insightCards.find(
     (card) => card.key === "priority_events",
   );
-  const examProgressPercent = Math.round(
-    Math.max(0, Math.min(100, data.timeline.progressPercent)),
-  );
-  const examProgressStatus =
-    examProgressPercent >= 100 ? "finished" : "active";
   const scheduleLabels = normalizeScheduleLabels(
     data.timeline.startDateTimeLabel,
     data.timeline.endDateTimeLabel,
@@ -708,21 +703,12 @@ export default function AdminOverviewCommandCenter({
         </DashboardBlock>
       </DashboardContainer>
       <DashboardBlock>
-        <div className={styles.examProgressHeader}>
-          <TimeDisplay
-            variant="countdown"
-            label="倒數計時"
-            value={data.timeline.primaryTimeLabel}
+        {contest ? (
+          <CountdownProgress
+            startTime={contest.startTime}
+            endTime={contest.endTime}
           />
-        </div>
-        <ProgressBar
-          label={t("adminOverview.widgets.timelineProgress", "時間進度")}
-          hideLabel
-          size="small"
-          value={examProgressPercent}
-          status={examProgressStatus}
-          className={styles.rightPanelProgressBar}
-        />
+        ) : null}
       </DashboardBlock>
     </DashboardContainer>
   );
@@ -983,7 +969,7 @@ export default function AdminOverviewCommandCenter({
           </div>
         }
         side={
-          <div className={styles.rightOverviewColumn}>
+          <DashboardContainer layout="stack" dividers="auto">
             {examStatusSummary}
             <AdminInsightRail
               cards={[]}
@@ -1012,7 +998,7 @@ export default function AdminOverviewCommandCenter({
               />
               <ContestLogsScreen embedded />
             </section>
-          </div>
+          </DashboardContainer>
         }
       />
       <AnimatePresence>

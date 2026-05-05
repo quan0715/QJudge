@@ -1,0 +1,9 @@
+.root {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.progressBar :global(.cds--progress-bar__track),
+.progressBar :global(.cds--progress-bar__bar) {
+  height: 0.5rem;
+}
