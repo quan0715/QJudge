@@ -144,3 +144,8 @@
   font-variant-numeric: tabular-nums;
   margin-right: 0.5rem;
 }
+
+.contextLink:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

@@ -156,13 +156,6 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
   }, [classroomId, contestRouteId, navigate]);
 
   const { isRuntime } = useContestRuntimeMode();
-  const { openMonitor } = useContestRuntimeContext();
-  const { contest, contestId, refreshContest } = useContestLayoutState();
-  const { timeLeft, isCountdownToStart, unlockTimeLeft } = useContestTimers({
-    contest,
-    contestId,
-    refreshContest,
-  });
 
   return (
     <header className={styles.root}>
@@ -307,27 +300,46 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
       </div>
 
       <div className={styles.actions}>
-        {isRuntime && contest && (
-          <>
-            <ExamStatusBadge
-              examStatus={contest.examStatus}
-              cheatDetectionEnabled={contest.cheatDetectionEnabled}
-              timeLeft={timeLeft}
-              unlockTimeLeft={unlockTimeLeft}
-              lockReason={contest.lockReason}
-              autoUnlockAt={contest.autoUnlockAt}
-              onClick={openMonitor}
-            />
-            <div className={styles.runtimeTimer}>
-              <TimeDisplay
-                variant="header"
-                value={isCountdownToStart ? `(待開始) ${timeLeft}` : timeLeft}
-              />
-            </div>
-          </>
-        )}
+        {isRuntime && <RuntimeNavExtras />}
         <UserMenu />
       </div>
     </header>
+  );
+}
+
+function RuntimeNavExtras() {
+  const { t } = useTranslation("common");
+  const { openMonitor } = useContestRuntimeContext();
+  const { contest, contestId, refreshContest } = useContestLayoutState();
+  const { timeLeft, isCountdownToStart, unlockTimeLeft } = useContestTimers({
+    contest,
+    contestId,
+    refreshContest,
+  });
+
+  if (!contest) return null;
+
+  return (
+    <>
+      <ExamStatusBadge
+        examStatus={contest.examStatus}
+        cheatDetectionEnabled={contest.cheatDetectionEnabled}
+        timeLeft={timeLeft}
+        unlockTimeLeft={unlockTimeLeft}
+        lockReason={contest.lockReason}
+        autoUnlockAt={contest.autoUnlockAt}
+        onClick={openMonitor}
+      />
+      <div className={styles.runtimeTimer}>
+        <TimeDisplay
+          variant="header"
+          value={
+            isCountdownToStart
+              ? t("workspaceTopNav.countdownToStart", "(待開始) {{time}}", { time: timeLeft })
+              : timeLeft
+          }
+        />
+      </div>
+    </>
   );
 }
