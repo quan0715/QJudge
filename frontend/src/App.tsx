@@ -31,8 +31,7 @@ import {
 } from "@/features/auth";
 import { problemDetailRoutes, problemSolveRoutes } from "@/features/problems";
 import {
-  classroomContestDetailRoutes,
-  classroomContestRuntimeRoutes,
+  classroomContestRoutes,
   classroomContestAdminRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,
@@ -153,8 +152,8 @@ function App() {
                               />
                               {/* Classroom Detail - inside MainLayout for shared sidebar */}
                               {classroomDetailRoute}
-                              {/* Contest dashboard - inside WorkspaceShell until answering starts */}
-                              {classroomContestDetailRoutes}
+                              {/* Classroom Contest - dashboard + runtime, all under shared MainLayout/WorkspaceShell */}
+                              {classroomContestRoutes}
                             </Route>
 
                             {/* Legacy hidden routes */}
@@ -164,9 +163,6 @@ function App() {
 
                             {/* Problem Solve - Full-screen IDE-style solver */}
                             {problemSolveRoutes}
-
-                            {/* Classroom-scoped Contest Runtime Routes */}
-                            {classroomContestRuntimeRoutes}
 
                             {/* Classroom Exam Precheck - Classroom-scoped */}
                             {classroomExamPrecheckRoute}
