@@ -16,7 +16,10 @@ import type {
   AdminPreparationDashboardData,
   PreparationReadinessState,
 } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
-import { BlockHeader } from "@/shared/components/dashboard";
+import {
+  BlockHeader,
+  DashboardContainer,
+} from "@/shared/components/dashboard";
 import styles from "./AdminPreparationDashboard.module.scss";
 
 interface AdminPreparationDashboardProps {
@@ -211,7 +214,12 @@ export default function AdminPreparationDashboard({
           key: "entries",
           label: t("adminPreparationDashboard.tabs.entries", "管理入口"),
           content: (
-            <div className={styles.entryGrid}>
+            <DashboardContainer
+              layout="grid"
+              columns={2}
+              bordered
+              dividers="auto"
+            >
               {panelEntries.map((entry) => {
                 const Icon = entry.icon;
                 return (
@@ -229,7 +237,7 @@ export default function AdminPreparationDashboard({
                   </Button>
                 );
               })}
-            </div>
+            </DashboardContainer>
           ),
         },
       ]}
