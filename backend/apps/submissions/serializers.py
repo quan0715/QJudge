@@ -99,27 +99,7 @@ class SubmissionListSerializer(serializers.ModelSerializer):
     contest_id = serializers.UUIDField(source='contest.id', read_only=True, allow_null=True)
     
     def get_username(self, obj):
-        """Handle anonymous mode for contests."""
-        # If no contest or anonymous mode not enabled, return real username
-        if not obj.contest or not obj.contest.anonymous_mode_enabled:
-            return obj.user.username
-        
-        request = self.context.get('request')
-        viewer = request.user if request else None
-        
-        # Privileged users or owners see real username
-        is_privileged = viewer and (viewer.is_staff or getattr(viewer, 'role', '') in ['teacher', 'admin'])
-        is_owner = viewer and viewer == obj.user
-        
-        if is_privileged or is_owner:
-            return obj.user.username
-        
-        # For others, return nickname if available
-        # Use annotated field from queryset (added via Subquery in ViewSet)
-        if hasattr(obj, '_contest_nickname') and obj._contest_nickname:
-            return obj._contest_nickname
-        
-        # Fallback to real username
+        """Return submitter username."""
         return obj.user.username
     
     class Meta:

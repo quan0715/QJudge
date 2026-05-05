@@ -65,7 +65,6 @@ class ContestParticipantFactory(factory.django.DjangoModelFactory):
     contest = factory.SubFactory(ContestFactory)
     user = factory.SubFactory(UserFactory)
     exam_status = ExamStatus.NOT_STARTED
-    nickname = ""
 
 
 @pytest.fixture

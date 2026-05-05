@@ -28,7 +28,7 @@ export const resolveStudentContestPhase = (
     status: contest.status,
     startTime: contest.startTime,
     endTime: contest.endTime,
-  });
+  }, nowMs);
   if (contestState === "ended") return "after";
   if (contestState === "running") return "during";
 

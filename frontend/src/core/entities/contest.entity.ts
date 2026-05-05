@@ -678,7 +678,7 @@ export const getContestState = (contest: {
   endTime?: string;
   start_time?: string;
   end_time?: string;
-}): ContestDisplayState => {
+}, nowMs: number = Date.now()): ContestDisplayState => {
   if (contest.status === "draft") {
     return "draft";
   }
@@ -687,7 +687,7 @@ export const getContestState = (contest: {
     return "archived";
   }
 
-  const now = new Date().getTime();
+  const now = nowMs;
   const startTimeValue = contest.startTime || contest.start_time || "";
   const endTimeValue = contest.endTime || contest.end_time || "";
   const startTime = new Date(startTimeValue).getTime();
