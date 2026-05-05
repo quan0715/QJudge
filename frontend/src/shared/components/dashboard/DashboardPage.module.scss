@@ -11,8 +11,17 @@
   padding: 1rem;
 }
 
+.fullBleed {
+  max-width: none;
+  padding: 0;
+}
+
 @media (max-width: 672px) {
   .inner {
     padding: 0.75rem;
+  }
+
+  .fullBleed {
+    padding: 0;
   }
 }

@@ -28,6 +28,10 @@ import { useGradingData } from "@/features/contest/screens/settings/grading";
 import { addContestParticipant, updateContest } from "@/infrastructure/api/repositories";
 import { exportContestResults } from "@/infrastructure/api/repositories/contestExports.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
+import {
+  BlockHeader,
+  DashboardBlock,
+} from "@/shared/components/dashboard";
 import { buildAdminOverviewDashboard } from "./adminOverviewDashboard.model";
 import styles from "./AdminOverviewScreen.module.scss";
 
@@ -253,87 +257,91 @@ export default function AdminOverviewScreen({
       ? t("adminOverview.screen.contestType.paperExam", "考卷")
       : t("adminOverview.screen.contestType.coding", "Coding Test");
   const renderContestHeader = () => (
-    <section
-      className={styles.contestHeader}
-      aria-label={t("adminOverview.screen.contestInfoLabel", "競賽資訊")}
+    <DashboardBlock
+      padding="compact"
+      ariaLabel={t("adminOverview.screen.contestInfoLabel", "競賽資訊")}
     >
-      <div className={styles.dashboardTitleBlock}>
-        <div className={styles.dashboardTitleRow}>
-          <h2>{contest.name}</h2>
-          <Tag type={status.type} size="sm">
-            {status.label}
-          </Tag>
-          <Tag type="cool-gray" size="sm">
-            {contestTypeLabel}
-          </Tag>
-        </div>
-        {contest.description ? (
-          <p className={styles.dashboardDescription}>{contest.description}</p>
-        ) : null}
-      </div>
-      <div className={styles.headerActions}>
-        <Button
-          kind="ghost"
-          hasIconOnly
-          renderIcon={Settings}
-          iconDescription={t(
-            "adminOverview.screen.actions.settings",
-            "競賽設定",
-          )}
-          onClick={openSettings}
-        />
-        <Button
-          kind="ghost"
-          hasIconOnly
-          renderIcon={Launch}
-          iconDescription={t(
-            "adminOverview.screen.actions.contestHome",
-            "競賽主頁",
-          )}
-          disabled={!contestHomePath}
-          onClick={() => {
-            if (!contestHomePath) return;
-            window.open(contestHomePath, "_blank", "noopener,noreferrer");
-          }}
-        />
-        {classroomBound ? null : (
-          <Button
-            kind="ghost"
-            hasIconOnly
-            renderIcon={UserFollow}
-            iconDescription={t(
-              "adminOverview.screen.actions.addParticipant",
-              "新增參賽者",
+      <BlockHeader
+        title={contest.name}
+        description={
+          <div className={styles.headerMeta}>
+            <div className={styles.headerTags}>
+              <Tag type={status.type} size="sm">
+                {status.label}
+              </Tag>
+              <Tag type="cool-gray" size="sm">
+                {contestTypeLabel}
+              </Tag>
+            </div>
+            {contest.description ? <p>{contest.description}</p> : null}
+          </div>
+        }
+        actions={
+          <>
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Settings}
+              iconDescription={t(
+                "adminOverview.screen.actions.settings",
+                "競賽設定",
+              )}
+              onClick={openSettings}
+            />
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Launch}
+              iconDescription={t(
+                "adminOverview.screen.actions.contestHome",
+                "競賽主頁",
+              )}
+              disabled={!contestHomePath}
+              onClick={() => {
+                if (!contestHomePath) return;
+                window.open(contestHomePath, "_blank", "noopener,noreferrer");
+              }}
+            />
+            {classroomBound ? null : (
+              <Button
+                kind="ghost"
+                hasIconOnly
+                renderIcon={UserFollow}
+                iconDescription={t(
+                  "adminOverview.screen.actions.addParticipant",
+                  "新增參賽者",
+                )}
+                onClick={() => setAddParticipantOpen(true)}
+              />
             )}
-            onClick={() => setAddParticipantOpen(true)}
-          />
-        )}
-        <Button
-          kind="ghost"
-          hasIconOnly
-          renderIcon={Renew}
-          iconDescription={
-            refreshing
-              ? t("adminOverview.screen.actions.refreshing", "重新整理中")
-              : t("adminOverview.screen.actions.refresh", "重新整理")
-          }
-          disabled={refreshing}
-          onClick={() => void handleRefresh()}
-        />
-        <Button
-          kind="ghost"
-          hasIconOnly
-          renderIcon={Download}
-          iconDescription={
-            exporting
-              ? t("adminOverview.screen.actions.exporting", "匯出中")
-              : t("adminOverview.screen.actions.export", "匯出成績")
-          }
-          disabled={exporting || !contest.id}
-          onClick={() => void handleExport()}
-        />
-      </div>
-    </section>
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Renew}
+              iconDescription={
+                refreshing
+                  ? t("adminOverview.screen.actions.refreshing", "重新整理中")
+                  : t("adminOverview.screen.actions.refresh", "重新整理")
+              }
+              disabled={refreshing}
+              onClick={() => void handleRefresh()}
+            />
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Download}
+              iconDescription={
+                exporting
+                  ? t("adminOverview.screen.actions.exporting", "匯出中")
+                  : t("adminOverview.screen.actions.export", "匯出成績")
+              }
+              disabled={exporting || !contest.id}
+              onClick={() => void handleExport()}
+            />
+          </>
+        }
+      />
+    </DashboardBlock>
   );
 
   return (

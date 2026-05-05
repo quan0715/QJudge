@@ -70,6 +70,13 @@ import {
 } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
+import {
+  BlockHeader,
+  DashboardBlock,
+  DashboardContainer,
+  MetricBlock,
+  TimeDisplay,
+} from "@/shared/components/dashboard";
 import styles from "./AdminOverviewCommandCenter.module.scss";
 
 interface AdminOverviewCommandCenterProps {
@@ -666,47 +673,58 @@ export default function AdminOverviewCommandCenter({
     data.timeline.endDateTimeLabel,
   );
   const examStatusSummary = (
-    <section className={styles.examStatusPanel} aria-label="考試狀態摘要">
-      <div className={styles.examStatusMatrix}>
-        <div className={styles.examStatusMetric}>
-          <span>考試人數</span>
-          <strong>{studentParticipants.length}</strong>
-        </div>
-        <div className={styles.examStatusMetric}>
-          <span>在線人數</span>
-          <strong>{liveStudentCount}</strong>
-        </div>
-      </div>
-      <div className={styles.examScheduleGrid} aria-label="考試時間">
-        <div className={styles.examScheduleItem}>
-          <span>開始時間</span>
-          <strong>{scheduleLabels.start}</strong>
-        </div>
-        <div className={styles.examScheduleItem}>
-          <span>結束時間</span>
-          <strong>{scheduleLabels.end}</strong>
-        </div>
-      </div>
-      <div className={styles.examProgressBlock}>
+    <DashboardContainer
+      layout="stack"
+      dividers="auto"
+      ariaLabel="考試狀態摘要"
+    >
+      <DashboardContainer layout="grid" columns={2} dividers="auto">
+        <DashboardBlock>
+          <MetricBlock
+            label="考試人數"
+            value={studentParticipants.length}
+            size="lg"
+          />
+        </DashboardBlock>
+        <DashboardBlock>
+          <MetricBlock label="在線人數" value={liveStudentCount} size="lg" />
+        </DashboardBlock>
+      </DashboardContainer>
+      <DashboardContainer
+        layout="grid"
+        columns={2}
+        dividers="auto"
+        ariaLabel="考試時間"
+      >
+        <DashboardBlock>
+          <MetricBlock
+            label="開始時間"
+            value={scheduleLabels.start}
+            size="lg"
+          />
+        </DashboardBlock>
+        <DashboardBlock>
+          <MetricBlock label="結束時間" value={scheduleLabels.end} size="lg" />
+        </DashboardBlock>
+      </DashboardContainer>
+      <DashboardBlock>
         <div className={styles.examProgressHeader}>
-          <span className={styles.examProgressTitle}>倒數計時</span>
-          <strong className={styles.examProgressValue}>
-            {data.timeline.primaryTimeLabel}
-          </strong>
+          <TimeDisplay
+            variant="countdown"
+            label="倒數計時"
+            value={data.timeline.primaryTimeLabel}
+          />
         </div>
         <ProgressBar
-          label={t(
-            "adminOverview.widgets.timelineProgress",
-            "時間進度",
-          )}
+          label={t("adminOverview.widgets.timelineProgress", "時間進度")}
           hideLabel
           size="small"
           value={examProgressPercent}
           status={examProgressStatus}
           className={styles.rightPanelProgressBar}
         />
-      </div>
-    </section>
+      </DashboardBlock>
+    </DashboardContainer>
   );
   const selectedParticipant = selectedUserId
     ? participants.find((participant) => participant.userId === selectedUserId)
@@ -824,12 +842,10 @@ export default function AdminOverviewCommandCenter({
   );
   const participantPanel = (
     <div className={styles.drilldownPanel}>
-      <div className={styles.panelHeader}>
-        <div>
-          <h3>考生列表</h3>
-          <p>依異常程度排序，快速掃描考生狀態。</p>
-        </div>
-      </div>
+      <BlockHeader
+        title="考生列表"
+        description="依異常程度排序，快速掃描考生狀態。"
+      />
       {participantMetricTags}
       {participantContent}
     </div>

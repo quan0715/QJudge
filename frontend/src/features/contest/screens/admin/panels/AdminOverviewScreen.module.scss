@@ -15,60 +15,20 @@
   padding: 0;
 }
 
-.contestHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 4.5rem;
-  padding: 0.875rem 1rem;
-}
-
-.dashboardTitleBlock {
+.headerMeta {
   display: grid;
-  gap: 0.5rem;
-  min-width: 0;
+  gap: 0.375rem;
 }
 
-.dashboardTitleRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.dashboardTitleRow h2 {
-  margin: 0;
-  overflow-wrap: anywhere;
-  color: var(--cds-text-primary);
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.dashboardDescription {
-  max-width: 52rem;
-  margin: 0;
-  color: var(--cds-text-secondary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
-}
-
-.headerActions {
+.headerTags {
   display: inline-flex;
-  align-items: center;
-  gap: 0.125rem;
-  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-@media (max-width: 900px) {
-  .contestHeader {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .headerActions {
-    align-self: flex-end;
-  }
+.headerMeta p {
+  margin: 0;
+  max-width: 52rem;
 }
 
 .publishSummary {
