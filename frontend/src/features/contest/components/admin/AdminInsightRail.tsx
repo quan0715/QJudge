@@ -160,7 +160,7 @@ const DistributionOverview = ({
   const { t } = useTranslation("contest");
   const title = t(
     "adminOverview.widgets.studentDistribution",
-    "考生分佈總覽",
+    "學生作答進度",
   );
   const visibleDistribution = distribution.filter(
     (item) => item.key !== "offline",
@@ -200,7 +200,11 @@ const DistributionOverview = ({
   }
 
   return (
-    <KPIBlock title={title} value={`${total} 人`} ariaLabel={title}>
+    <KPIBlock
+      title={title}
+      value={`${completionPercent}%`}
+      ariaLabel={title}
+    >
       {hasDistributionData ? (
         <div className={styles.distributionChartFrame}>
           <MeterChart
@@ -215,7 +219,7 @@ const DistributionOverview = ({
                 proportional: {
                   unit: "人",
                   breakdownFormatter: () =>
-                    `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
+                    `已交卷 ${submittedCount} / ${total} 人`,
                   totalFormatter: (value) => `考生總數 ${value} 人`,
                 },
               },

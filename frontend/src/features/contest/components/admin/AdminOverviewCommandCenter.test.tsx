@@ -276,7 +276,7 @@ describe("AdminOverviewCommandCenter", () => {
       screen.getByRole("progressbar", { name: "時間進度" }),
     ).toBeInTheDocument();
     expect(screen.getAllByText("違規事件").length).toBeGreaterThan(0);
-    const distributionOverview = screen.getByLabelText("考生分佈總覽");
+    const distributionOverview = screen.getByLabelText("學生作答進度");
     expect(distributionOverview).toBeInTheDocument();
     expect(
       within(distributionOverview).getByTestId("proportional-meter-chart"),
@@ -345,7 +345,7 @@ describe("AdminOverviewCommandCenter", () => {
   it("keeps only essential drilldown content in the left overview column", () => {
     renderCommandCenter();
 
-    expect(screen.getByLabelText("考生分佈總覽")).toBeInTheDocument();
+    expect(screen.getByLabelText("學生作答進度")).toBeInTheDocument();
     expect(screen.queryByText("auto_submit")).not.toBeInTheDocument();
     expect(screen.getByText("陳小華")).toBeInTheDocument();
     expect(screen.queryByText("競賽發布")).not.toBeInTheDocument();
@@ -467,7 +467,7 @@ describe("AdminOverviewCommandCenter", () => {
 
     expect(screen.getByLabelText("考生列表載入中")).toBeInTheDocument();
     expect(screen.getByLabelText("批改資料載入中")).toBeInTheDocument();
-    expect(screen.getByLabelText("考生分佈總覽")).toBeInTheDocument();
+    expect(screen.getByLabelText("學生作答進度")).toBeInTheDocument();
   });
 
   it("keeps generic panel entries out of the live dashboard", () => {
