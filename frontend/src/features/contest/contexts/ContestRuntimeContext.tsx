@@ -3,10 +3,12 @@ import type { ReactNode } from 'react';
 
 interface ContestRuntimeContextValue {
   isRuntime: boolean;
+  openMonitor: () => void;
 }
 
 const ContestRuntimeContext = createContext<ContestRuntimeContextValue>({
   isRuntime: false,
+  openMonitor: () => {},
 });
 
 export const ContestRuntimeProvider = ({

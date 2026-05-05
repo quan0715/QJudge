@@ -66,7 +66,7 @@ export const RuntimeRouteWrapper = ({ children }: Props) => {
   };
 
   return (
-    <ContestRuntimeProvider value={{ isRuntime: true }}>
+    <ContestRuntimeProvider value={{ isRuntime: true, openMonitor: () => setMonitoringOpen(true) }}>
       <ExamModeWrapper {...examModeProps}>
         {children}
       </ExamModeWrapper>
