@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { ContentSwitcher, Switch } from "@carbon/react";
 import { Checkmark, CircleDash, IncompleteCancel } from "@carbon/icons-react";
-import { useContest } from "@/features/contest/contexts/ContestContext";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import type { SubmissionStatus } from "@/core/entities/submission.entity";
 
@@ -13,6 +12,7 @@ interface Props {
   /** 已選的 problemId，用以高亮 */
   activeProblemId?: string;
   compact?: boolean;
+  problems: ContestProblemSummary[];
 }
 
 type ProblemStatusKind = "done" | "partial" | "untouched";
@@ -35,9 +35,9 @@ export const SideMenuContestRuntimeSection = ({
   activeTab,
   activeProblemId,
   compact,
+  problems,
 }: Props) => {
   const navigate = useNavigate();
-  const { contest } = useContest();
 
   const dashboardPath = `/classrooms/${classroomId}/contest/${contestId}`;
   const solvePath = `/classrooms/${classroomId}/contest/${contestId}/solve`;
@@ -46,8 +46,6 @@ export const SideMenuContestRuntimeSection = ({
     if (name === "dashboard") navigate(dashboardPath);
     else navigate(solvePath);
   };
-
-  const problems: ContestProblemSummary[] = contest?.problems ?? [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>

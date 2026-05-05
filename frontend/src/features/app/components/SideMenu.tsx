@@ -90,7 +90,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [fetched, setFetched] = useState(false);
-  const [contestForAdminNav, setContestForAdminNav] = useState<ContestDetail | null>(null);
+  const [contestForNav, setContestForNav] = useState<ContestDetail | null>(null);
   const [contestFetched, setContestFetched] = useState(false);
   const { sessions, refreshSessions } = useChatSessionContext();
   const chatbot = useOptionalChatbotContext();
@@ -112,6 +112,8 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     const m = location.pathname.match(/^\/classrooms\/([^/]+)\/contest\/([^/]+)/);
     return m ? { classroomId: m[1], contestId: m[2] } : null;
   }, [location.pathname]);
+
+  const contestIdToFetch = contestAdminContext?.contestId ?? contestMatch?.contestId ?? null;
 
   const { isRuntime } = useContestRuntimeMode();
 
@@ -157,18 +159,18 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   }, [isPanelMode, isOpen, isChatRoute, isTeacherOrAdmin, refreshSessions]);
 
   useEffect(() => {
-    setContestForAdminNav(null);
+    setContestForNav(null);
     setContestFetched(false);
-  }, [contestAdminContext?.contestId]);
+  }, [contestIdToFetch]);
 
   useEffect(() => {
-    if (!contestAdminContext?.contestId || contestFetched) return;
+    if (!contestIdToFetch || contestFetched) return;
     let active = true;
     const loadContest = async () => {
       try {
-        const contest = await getContest(contestAdminContext.contestId);
+        const contest = await getContest(contestIdToFetch);
         if (!active) return;
-        setContestForAdminNav(contest ?? null);
+        setContestForNav(contest ?? null);
       } finally {
         if (active) {
           setContestFetched(true);
@@ -179,7 +181,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     return () => {
       active = false;
     };
-  }, [contestAdminContext?.contestId, contestFetched]);
+  }, [contestIdToFetch, contestFetched]);
 
   useEffect(() => {
     if (isPanelMode || !isOpen) return;
@@ -286,10 +288,10 @@ export const SideMenu: React.FC<SideMenuProps> = ({
 
   const contestPanelNavItems = useMemo<ContestPanelNavItem[]>(() => {
     if (!contestAdminContext) return [];
-    const module = getContestTypeModule(contestForAdminNav?.contestType);
+    const module = getContestTypeModule(contestForNav?.contestType);
     const isExamMode = module.admin.editorKind === "paper_exam";
     const panels = Array.from(new Set<AdminPanelId>([
-      ...module.admin.getAvailablePanels(contestForAdminNav),
+      ...module.admin.getAvailablePanels(contestForNav),
       "settings",
     ]));
     return panels.flatMap((panel) => {
@@ -302,7 +304,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         Icon: meta.Icon,
       }];
     });
-  }, [contestAdminContext, contestForAdminNav, tContest]);
+  }, [contestAdminContext, contestForNav, tContest]);
 
   const goToPanel = useCallback((panel: string) => {
     navigate(`/classrooms/${classroomId}?panel=${panel}`);
@@ -344,6 +346,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
             activeTab="solve"
             activeProblemId={activeProblemId}
             compact={compact}
+            problems={contestForNav?.problems ?? []}
           />
         ) : inContestIdle && contestMatch ? (
           <SideMenuContestIdleSection
