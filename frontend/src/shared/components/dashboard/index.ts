@@ -7,3 +7,4 @@ export {
 } from "./DashboardContainer";
 export { DashboardBlock, type DashboardBlockProps } from "./DashboardBlock";
 export { BlockHeader, type BlockHeaderProps } from "./BlockHeader";
+export { KPIBlock, type KPIBlockProps } from "./KPIBlock";

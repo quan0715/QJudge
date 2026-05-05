@@ -6,6 +6,7 @@ import {
   DashboardBlock,
   DashboardContainer,
   DashboardPage,
+  KPIBlock,
   MetricBlock,
 } from "./index";
 
@@ -53,6 +54,50 @@ export const SplitWithStackInside: Story = {
         </DashboardContainer>
       </DashboardContainer>
     </DashboardPage>
+  ),
+};
+
+export const KPIBlocks: Story = {
+  render: () => (
+    <DashboardContainer layout="stack" bordered dividers="auto">
+      <KPIBlock title="考生分佈總覽" value="126 人">
+        <div
+          style={{
+            height: 8,
+            background: "var(--cds-layer-accent-01)",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: "36%",
+              height: "100%",
+              background: "var(--cds-support-success)",
+            }}
+          />
+        </div>
+      </KPIBlock>
+      <KPIBlock title="完成率" value="78%">
+        <div
+          style={{
+            height: 8,
+            background: "var(--cds-layer-accent-01)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: "78%",
+              height: "100%",
+              background: "var(--cds-interactive)",
+            }}
+          />
+        </div>
+      </KPIBlock>
+      <KPIBlock title="分數分布" value="0.0 / 103" />
+      <KPIBlock title="違規事件" value={3} />
+    </DashboardContainer>
   ),
 };
 

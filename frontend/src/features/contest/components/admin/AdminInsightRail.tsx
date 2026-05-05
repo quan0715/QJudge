@@ -15,7 +15,7 @@ import type {
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import {
   DashboardContainer,
-  MetricBlock,
+  KPIBlock,
 } from "@/shared/components/dashboard";
 import styles from "./AdminInsightRail.module.scss";
 
@@ -180,13 +180,13 @@ const DistributionOverview = ({
     scale[item.label] = DISTRIBUTION_TONE_COLOR[item.key];
     return scale;
   }, {});
-  return (
-    <section
-      className={`${styles.card} ${styles.distributionCard}`}
-      aria-busy={loading}
-      aria-label={title}
-    >
-      {loading ? (
+  if (loading) {
+    return (
+      <section
+        className={`${styles.card} ${styles.distributionCard}`}
+        aria-busy
+        aria-label={title}
+      >
         <div className={styles.distributionList}>
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className={styles.distributionItem}>
@@ -195,45 +195,44 @@ const DistributionOverview = ({
             </div>
           ))}
         </div>
+      </section>
+    );
+  }
+
+  return (
+    <KPIBlock title={title} value={`${total} 人`} ariaLabel={title}>
+      {hasDistributionData ? (
+        <div className={styles.distributionChartFrame}>
+          <MeterChart
+            data={distributionChartData}
+            options={{
+              title: "",
+              height: "108px",
+              resizable: true,
+              theme,
+              meter: {
+                height: 8,
+                proportional: {
+                  unit: "人",
+                  breakdownFormatter: () =>
+                    `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
+                  totalFormatter: (value) => `考生總數 ${value} 人`,
+                },
+              },
+              color: {
+                scale: chartColorScale,
+              },
+              legend: {
+                enabled: false,
+              },
+              toolbar: { enabled: false },
+            }}
+          />
+        </div>
       ) : (
-        <>
-          <MetricBlock label={title} value={`${total} 人`} size="lg" />
-          {hasDistributionData ? (
-            <>
-              <div className={styles.distributionChartFrame}>
-                <MeterChart
-                  data={distributionChartData}
-                  options={{
-                    title: "",
-                    height: "108px",
-                    resizable: true,
-                    theme,
-                    meter: {
-                      height: 8,
-                      proportional: {
-                        unit: "人",
-                        breakdownFormatter: () =>
-                          `已交卷 ${submittedCount} / ${total} 人（完成率 ${completionPercent}%）`,
-                        totalFormatter: (value) => `考生總數 ${value} 人`,
-                      },
-                    },
-                    color: {
-                      scale: chartColorScale,
-                    },
-                    legend: {
-                      enabled: false,
-                    },
-                    toolbar: { enabled: false },
-                  }}
-                />
-              </div>
-            </>
-          ) : (
-            <div className={styles.emptyState}>尚無考生分佈資料</div>
-          )}
-        </>
+        <div className={styles.emptyState}>尚無考生分佈資料</div>
       )}
-    </section>
+    </KPIBlock>
   );
 };
 
@@ -331,18 +330,13 @@ function InsightCard({
       group.values.some((point) => point.value > 0),
     );
   return (
-    <section className={styles.card} aria-busy={loading}>
-      <MetricBlock
-        label={card.title}
-        value={
-          loading ? (
-            <SkeletonText heading width="5rem" />
-          ) : (
-            card.value
-          )
-        }
-        size="lg"
-      />
+    <KPIBlock
+      title={card.title}
+      value={
+        loading ? <SkeletonText heading width="5rem" /> : card.value
+      }
+      ariaLabel={card.title}
+    >
       {loading ? (
         card.kind === "line" ? (
           <SkeletonPlaceholder className={styles.chartSkeleton} />
@@ -374,6 +368,6 @@ function InsightCard({
           {action.loading ? action.loadingLabel ?? action.label : action.label}
         </Button>
       ) : null}
-    </section>
+    </KPIBlock>
   );
 }

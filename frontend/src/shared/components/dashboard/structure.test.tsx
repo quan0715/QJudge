@@ -5,6 +5,7 @@ import {
   DashboardBlock,
   DashboardContainer,
   DashboardPage,
+  KPIBlock,
 } from "./index";
 
 describe("DashboardPage", () => {
@@ -81,5 +82,38 @@ describe("BlockHeader", () => {
   it("uses h2 by default", () => {
     render(<BlockHeader title="X" />);
     expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
+  });
+});
+
+describe("KPIBlock", () => {
+  it("renders title and value", () => {
+    render(<KPIBlock title="考生分佈總覽" value="126 人" />);
+    expect(screen.getByText("考生分佈總覽")).toBeInTheDocument();
+    expect(screen.getByText("126 人")).toBeInTheDocument();
+  });
+
+  it("renders visualization child", () => {
+    render(
+      <KPIBlock title="完成率" value="78%">
+        <div data-testid="chart">chart</div>
+      </KPIBlock>,
+    );
+    expect(screen.getByTestId("chart")).toBeInTheDocument();
+  });
+
+  it("derives aria-label from string title", () => {
+    render(<KPIBlock title="違規事件" value={3} />);
+    expect(
+      screen.getByRole("region", { name: "違規事件" }),
+    ).toBeInTheDocument();
+  });
+
+  it("respects explicit aria-label", () => {
+    render(
+      <KPIBlock title="x" value="y" ariaLabel="custom">
+        body
+      </KPIBlock>,
+    );
+    expect(screen.getByRole("region", { name: "custom" })).toBeInTheDocument();
   });
 });

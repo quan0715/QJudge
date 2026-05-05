@@ -63,6 +63,7 @@ import {
   DashboardBlock,
   DashboardContainer,
   DashboardPage,
+  KPIBlock,
   MetricBlock,
 } from "@/shared/components/dashboard";
 import { CountdownProgress } from "@/features/contest/components/CountdownProgress";
@@ -855,30 +856,24 @@ export default function StudentContestDashboard({
             />
           </DashboardBlock>
 
-          <DashboardBlock>
-            <div className={styles.chartHeader}>
-              <span className={styles.metricLabel}>完成率</span>
-              <strong className={styles.metricValue}>{progressPercent}%</strong>
-            </div>
+          <KPIBlock title="完成率" value={`${progressPercent}%`}>
             <div className={styles.progressTrack} aria-hidden="true">
               <div
                 className={styles.progressFill}
                 style={{ inlineSize: `${progressPercent}%` }}
               />
             </div>
-          </DashboardBlock>
+          </KPIBlock>
 
           {contest.resultsPublished && contest.contestType === "paper_exam" ? (
-            <DashboardBlock ariaLabel="成績分布">
-              <div className={styles.chartHeader}>
-                <span className={styles.metricLabel}>成績分布</span>
-                {scoreSummary ? (
-                  <strong className={styles.metricValue}>
-                    平均 {scoreSummary.summary.average_score.toFixed(1)} /{" "}
-                    {scoreSummary.summary.max_total_score}
-                  </strong>
-                ) : null}
-              </div>
+            <KPIBlock
+              title="成績分布"
+              value={
+                scoreSummary
+                  ? `平均 ${scoreSummary.summary.average_score.toFixed(1)} / ${scoreSummary.summary.max_total_score}`
+                  : "—"
+              }
+            >
               <div className={styles.scoreDistributionChart}>
                 {scoreSummaryLoading ? (
                   <SkeletonPlaceholder className={styles.chartSkeleton} />
@@ -893,7 +888,7 @@ export default function StudentContestDashboard({
                   <p className={styles.emptyText}>尚無成績分布資料。</p>
                 )}
               </div>
-            </DashboardBlock>
+            </KPIBlock>
           ) : null}
 
           <DashboardBlock>
