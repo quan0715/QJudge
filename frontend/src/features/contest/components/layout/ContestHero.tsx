@@ -22,6 +22,7 @@ import { HeroBase } from "@/shared/layout/HeroBase";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
 import { useInterval } from "@/shared/hooks/useInterval";
+import { MetricBlock } from "@/shared/components/dashboard";
 import styles from "./ContestHero.module.scss";
 
 const MinimalProgressBar = ({
@@ -176,14 +177,8 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 
   const metadata = (
     <>
-      <div>
-        <div className={styles.timeLabel}>{t("startTime")}</div>
-        <div className={styles.timeValue}>{formatDate(startTime)}</div>
-      </div>
-      <div>
-        <div className={styles.timeLabel}>{t("endTime")}</div>
-        <div className={styles.timeValue}>{formatDate(endTime)}</div>
-      </div>
+      <MetricBlock label={t("startTime")} value={formatDate(startTime)} />
+      <MetricBlock label={t("endTime")} value={formatDate(endTime)} />
     </>
   );
 

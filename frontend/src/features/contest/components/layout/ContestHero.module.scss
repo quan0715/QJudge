@@ -14,16 +14,6 @@
   color: var(--cds-text-secondary);
 }
 
-// ─── Metadata ───────────────────────────────────────────────
-.timeLabel {
-  margin-bottom: layout.$spacing-02;
-}
-
-.timeValue {
-  color: var(--cds-text-primary);
-  font-weight: 600;
-}
-
 // ─── Action rows ────────────────────────────────────────────
 .actionRow {
   display: flex;
