@@ -6,6 +6,7 @@ import {
   isContestParticipant,
   isExamMonitoringActive,
   isStrictSubmittedBeforeEnd,
+  shouldLockContestWorkspaceNavigation,
   shouldForceEndExamOnExit,
   shouldWarnOnExit,
 } from "./contestRuntimePolicy";
@@ -115,6 +116,34 @@ describe("contestRuntimePolicy", () => {
     expect(
       canAccessExamContent(
         createContest({ hasJoined: true, isRegistered: true, examStatus: "locked" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("locks workspace navigation only while a joined exam is actively running", () => {
+    expect(
+      shouldLockContestWorkspaceNavigation(
+        createContest({ hasJoined: true, examStatus: "in_progress" }),
+      ),
+    ).toBe(true);
+    expect(
+      shouldLockContestWorkspaceNavigation(
+        createContest({ hasJoined: true, examStatus: "paused" }),
+      ),
+    ).toBe(true);
+    expect(
+      shouldLockContestWorkspaceNavigation(
+        createContest({ hasJoined: true, examStatus: "locked" }),
+      ),
+    ).toBe(true);
+    expect(
+      shouldLockContestWorkspaceNavigation(
+        createContest({ hasJoined: false, examStatus: "in_progress" }),
+      ),
+    ).toBe(false);
+    expect(
+      shouldLockContestWorkspaceNavigation(
+        createContest({ hasJoined: true, examStatus: "submitted" }),
       ),
     ).toBe(false);
   });

@@ -16,11 +16,13 @@ import type { BoundContest, Classroom, ClassroomDetail } from "@/core/entities/c
 import { getClassroom, getClassrooms } from "@/infrastructure/api/repositories/classroom.repository";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import { getClassroomContestAdminPath, getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import { shouldLockContestWorkspaceNavigation } from "@/features/contest/domain/contestRuntimePolicy";
 import { usePageHeaderActionsSlot } from "@/features/app/contexts/PageHeaderActionsContext";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { UserMenu } from "@/features/app/components/UserMenu";
 import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { useContest } from "@/features/contest/contexts/ContestContext";
+import { useOptionalContest } from "@/features/contest/contexts";
 import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { ExamModeMonitorModal } from "@/features/contest/components/modals/ExamModeMonitorModal";
 import { useExamMonitoringStatus } from "@/features/contest/contexts/ExamMonitoringStatusContext";
@@ -167,7 +169,14 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
   }, [classroomId, contestRouteId, navigate]);
 
   const { isRuntime } = useContestRuntimeMode();
-  const effectiveOpenMenu = isRuntime ? null : openMenu;
+  const contestData = useOptionalContest();
+  const contestNavigationReadOnly =
+    isRuntime || shouldLockContestWorkspaceNavigation(contestData?.contest);
+  const effectiveOpenMenu = contestNavigationReadOnly ? null : openMenu;
+  const toggleMenu = useCallback((kind: Exclude<MenuKind, null>) => {
+    if (contestNavigationReadOnly) return;
+    setOpenMenu((menu) => menu === kind ? null : kind);
+  }, [contestNavigationReadOnly]);
 
   return (
     <header className={styles.root}>
@@ -195,15 +204,15 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
               <div className={styles.menuAnchor}>
                 <button
                   type="button"
-                  className={styles.contextLink}
-                  aria-haspopup="menu"
+                  className={`${styles.contextLink}${contestNavigationReadOnly ? ` ${styles.contextLinkReadOnly}` : ""}`}
+                  aria-haspopup={contestNavigationReadOnly ? undefined : "menu"}
                   aria-expanded={effectiveOpenMenu === "classroom"}
-                  onClick={() => setOpenMenu((menu) => menu === "classroom" ? null : "classroom")}
-                  disabled={isRuntime}
+                  aria-disabled={contestNavigationReadOnly ? "true" : undefined}
+                  onClick={() => toggleMenu("classroom")}
                 >
                   {createElement(getClassroomIcon(currentClassroom.icon), { size: 18 })}
                   <span>{currentClassroom.name}</span>
-                  {!isRuntime ? <ChevronDown size={14} /> : null}
+                  {!contestNavigationReadOnly ? <ChevronDown size={14} /> : null}
                 </button>
                 {effectiveOpenMenu === "classroom" ? (
                   <div className={styles.menu} role="menu">
@@ -233,17 +242,17 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
               <div className={styles.menuAnchor}>
                 <button
                   type="button"
-                  className={styles.contextLink}
-                  aria-haspopup="menu"
+                  className={`${styles.contextLink}${contestNavigationReadOnly ? ` ${styles.contextLinkReadOnly}` : ""}`}
+                  aria-haspopup={contestNavigationReadOnly ? undefined : "menu"}
                   aria-expanded={effectiveOpenMenu === "contest"}
-                  onClick={() => setOpenMenu((menu) => menu === "contest" ? null : "contest")}
-                  disabled={isRuntime}
+                  aria-disabled={contestNavigationReadOnly ? "true" : undefined}
+                  onClick={() => toggleMenu("contest")}
                 >
                   <span>
                     {currentContest?.contestName ??
                       t("workspaceTopNav.contestFallback", "Contest")}
                   </span>
-                  {!isRuntime ? <ChevronDown size={14} /> : null}
+                  {!contestNavigationReadOnly ? <ChevronDown size={14} /> : null}
                 </button>
                 {effectiveOpenMenu === "contest" ? (
                   <div className={styles.menu} role="menu">
@@ -268,14 +277,14 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                   <div className={styles.menuAnchor}>
                     <button
                       type="button"
-                      className={styles.contextLink}
-                      aria-haspopup="menu"
+                      className={`${styles.contextLink}${contestNavigationReadOnly ? ` ${styles.contextLinkReadOnly}` : ""}`}
+                      aria-haspopup={contestNavigationReadOnly ? undefined : "menu"}
                       aria-expanded={effectiveOpenMenu === "contestMode"}
-                      onClick={() => setOpenMenu((menu) => menu === "contestMode" ? null : "contestMode")}
-                      disabled={isRuntime}
+                      aria-disabled={contestNavigationReadOnly ? "true" : undefined}
+                      onClick={() => toggleMenu("contestMode")}
                     >
                       <span>{t("workspaceTopNav.adminConsole", "管理後台")}</span>
-                      {!isRuntime ? <ChevronDown size={14} /> : null}
+                      {!contestNavigationReadOnly ? <ChevronDown size={14} /> : null}
                     </button>
                     {effectiveOpenMenu === "contestMode" ? (
                       <div className={styles.menu} role="menu">

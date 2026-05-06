@@ -20,6 +20,20 @@
     outline: 2px solid var(--cds-focus);
     outline-offset: -2px;
   }
+
+  &:disabled,
+  &[aria-disabled="true"] {
+    color: var(--cds-text-disabled);
+    cursor: not-allowed;
+
+    svg {
+      color: var(--cds-icon-disabled);
+    }
+
+    &:hover {
+      background: transparent;
+    }
+  }
 }
 
 // ── Backdrop overlay ──
