@@ -1,5 +1,4 @@
 import {
-  TextInput,
   Select,
   SelectItem,
   Toggle,
@@ -11,7 +10,6 @@ import {
   DESC_STYLE,
   Section,
   ActionRow,
-  FieldRow,
 } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
 import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
 import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
@@ -110,39 +108,22 @@ export default function AccessSettingsPanel({
         </ActionRow>
 
         <ActionRow
-          label={t("settings.requiresPassword")}
-          description={t("settings.requiresPasswordHelp")}
-          saveState={getState("requiresPassword")}
-          onRetry={() => onRetry("requiresPassword")}
+          label="QR 簽到簽退"
+          description="啟用後學生需先在競賽主頁掃描 QR Code 並提交現場照片，完成簽到後才能開始考試。"
+          saveState={getState("attendanceCheckEnabled")}
+          onRetry={() => onRetry("attendanceCheckEnabled")}
         >
           <Toggle
-            id="settings-requires-password"
+            id="settings-attendance-check"
             labelText=""
             hideLabel
-            labelA={t("settings.noPassword")}
-            labelB={t("settings.requiresPasswordShort")}
-            toggled={!!form.requiresPassword}
-            onToggle={(checked) => onChange("requiresPassword", checked)}
+            labelA={tc("toggle.off")}
+            labelB={tc("toggle.on")}
+            toggled={!!form.attendanceCheckEnabled}
+            onToggle={(checked) => onChange("attendanceCheckEnabled", checked)}
           />
         </ActionRow>
 
-        {form.requiresPassword === true && (
-          <FieldRow
-            label={t("settings.joinPassword")}
-            description="學生加入時需輸入此密碼"
-            saveState={getState("password")}
-            onRetry={() => onRetry("password")}
-          >
-            <TextInput
-              id="settings-password"
-              labelText=""
-              hideLabel
-              type="password"
-              value={(form.password as string) || ""}
-              onChange={(e) => onChange("password", e.target.value)}
-            />
-          </FieldRow>
-        )}
         <ActionRow
           label={t("settings.allowMultipleJoins")}
           description="允許同一學生多次加入考試（例如斷線重連）"

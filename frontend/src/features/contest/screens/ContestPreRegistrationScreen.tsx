@@ -20,7 +20,7 @@ import styles from "./ContestPreRegistrationScreen.module.scss";
 interface ContestPreRegistrationScreenProps {
   contest: ContestDetail;
   loading?: boolean;
-  onJoin?: (data?: { password?: string }) => void;
+  onJoin?: () => void;
   isAdmin?: boolean;
   onOpenAdminPanel?: () => void;
 }
@@ -40,7 +40,6 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
   // Registration Modal State
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const requiresPassword = contest?.requiresPassword ?? contest?.visibility === "private";
   const contestState = contest
     ? getContestState({
         status: contest.status,
@@ -89,9 +88,7 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
       <Tag type={getContestStateColor(contestState)}>
         {t(`preRegistration.state.${contestState}`, getContestStateLabel(contestState))}
       </Tag>
-      <Tag type={requiresPassword ? "purple" : "green"}>
-        {requiresPassword ? t("access.requiresPassword", "需要密碼") : t("access.open", "免密碼")}
-      </Tag>
+      {contest.attendanceCheckEnabled && <Tag type="blue">QR 簽到</Tag>}
       {contest.cheatDetectionEnabled && <Tag type="red">{t("examMode", "作弊檢查")}</Tag>}
       {contest.hasJoined && (
         <Tag type="teal" renderIcon={Checkmark}>
@@ -136,9 +133,9 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
     setShowRegisterModal(true);
   };
 
-  const handleRegisterSubmit = (data: { password?: string }) => {
+  const handleRegisterSubmit = () => {
     setShowRegisterModal(false);
-    onJoin?.(data);
+    onJoin?.();
   };
 
   const renderActions = () => {
@@ -213,16 +210,6 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
                 "overview.examModeDesc",
                 "此競賽已啟用作弊檢查。進入競賽後將啟動監控機制，包括全螢幕鎖定、分頁切換偵測等。違規行為將被記錄並可能導致作答被鎖定。"
               )}
-              lowContrast
-              hideCloseButton
-            />
-          )}
-
-          {requiresPassword && !contest.hasJoined && (
-            <InlineNotification
-              kind="info"
-              title={t("access.requiresPassword", "需要密碼")}
-              subtitle={t("hero.requiresPasswordHint", "此競賽需要輸入密碼才能加入。")}
               lowContrast
               hideCloseButton
             />

@@ -45,12 +45,12 @@ export const usePaperExamFlow = () => {
 
   const clearError = () => setError(null);
 
-  const register = async (data?: { password?: string }) => {
+  const register = async () => {
     const id = guardContestId();
     setLoading(true);
     setError(null);
     try {
-      await registerContest(id, data);
+      await registerContest(id);
       await refreshContest();
       return true;
     } catch (err: unknown) {

@@ -8,7 +8,6 @@ interface ClassroomContestCardProps {
 }
 
 export const ClassroomContestCard: React.FC<ClassroomContestCardProps> = ({ contest, onNavigate }) => {
-  const requiresPassword = contest.requiresPassword ?? contest.contestVisibility === "private";
   const contestCardData: Contest = {
     id: contest.contestId,
     name: contest.contestName,
@@ -17,7 +16,7 @@ export const ClassroomContestCard: React.FC<ClassroomContestCardProps> = ({ cont
     endTime: contest.contestEndTime || contest.boundAt,
     status: contest.contestStatus,
     visibility: contest.contestVisibility,
-    requiresPassword,
+    attendanceCheckEnabled: contest.attendanceCheckEnabled,
     deliveryMode: contest.deliveryMode,
     resultsPublished: contest.resultsPublished,
     organizer: undefined,

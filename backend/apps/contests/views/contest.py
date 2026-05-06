@@ -52,6 +52,7 @@ from ..services.anticheat_config import build_contest_anticheat_config
 from ..services.anticheat_storage import build_raw_object_key, build_upload_session_id, generate_put_url, get_s3_client
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from .activity import ContestActivityViewSet
+from .attendance import AttendanceMixin
 from apps.classrooms.permissions import get_user_role_in_classroom
 
 logger = logging.getLogger(__name__)
@@ -78,7 +79,7 @@ def _parse_required_user_id(value):
     return user_id
 
 
-class ContestViewSet(viewsets.ModelViewSet):
+class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
     """
     ViewSet for contests.
     """
@@ -150,18 +151,6 @@ class ContestViewSet(viewsets.ModelViewSet):
         if not self._is_classroom_managed_contest(contest):
             return self._contest_requires_classroom_binding_response()
         return self._classroom_managed_response()
-
-    @staticmethod
-    def _verify_contest_join_password(contest: Contest, request_data: dict):
-        if not contest.requires_password:
-            return None
-        password = request_data.get("password")
-        if not contest.verify_contest_password(password):
-            return Response(
-                {"message": "Invalid password"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return None
 
     @classmethod
     def _assert_user_in_bound_classroom(cls, contest: Contest, user):
@@ -845,10 +834,6 @@ class ContestViewSet(viewsets.ModelViewSet):
         if err is not None:
             return err
 
-        err = self._verify_contest_join_password(contest, request.data)
-        if err is not None:
-            return err
-
         participant, created, error_response = self._ensure_classroom_bound_participant(
             contest, user,
         )
@@ -883,10 +868,6 @@ class ContestViewSet(viewsets.ModelViewSet):
             return self._contest_requires_classroom_binding_response()
 
         err = self._assert_user_in_bound_classroom(contest, user)
-        if err is not None:
-            return err
-
-        err = self._verify_contest_join_password(contest, request.data)
         if err is not None:
             return err
 

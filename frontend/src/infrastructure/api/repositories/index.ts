@@ -5,6 +5,7 @@
 export * from "./problem.repository";
 export * from "./submission.repository";
 export * from "./contest.repository";
+export * from "./attendance.repository";
 export * from "./discussion.repository";
 export * from "./auth.repository";
 export * from "./announcement.repository";

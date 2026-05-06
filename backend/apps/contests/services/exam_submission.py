@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from apps.contests.models import ContestParticipant
     from apps.users.models import User
 
-VALID_SOURCE_MODULES = ("screen_share", "webcam")
+VALID_SOURCE_MODULES = ("screen_share", "webcam", "attendance")
 
 
 def normalize_upload_session_id(upload_session_id: str | None) -> str:

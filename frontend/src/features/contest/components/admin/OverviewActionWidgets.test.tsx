@@ -45,7 +45,7 @@ const buildContest = (
     isExamMonitored: false,
     requiresFullscreen: false,
     canSubmitExam: true,
-    requiresPassword: false,
+    attendanceCheckEnabled: false,
     permissions: {
       canSwitchView: true,
       canEditContest: true,
@@ -69,7 +69,7 @@ describe("OverviewActionWidgets", () => {
     const onPublishContest = vi.fn().mockResolvedValue(undefined);
     const onToggleStrictMode = vi.fn().mockResolvedValue(undefined);
     const onRequestToggleAllowMultipleJoins = vi.fn().mockResolvedValue(undefined);
-    const onRequestTogglePassword = vi.fn().mockResolvedValue(undefined);
+    const onRequestToggleAttendanceCheck = vi.fn().mockResolvedValue(undefined);
     const onOpenChecklist = vi.fn();
     const onOpenScheduleSettings = vi.fn();
 
@@ -103,14 +103,14 @@ describe("OverviewActionWidgets", () => {
         onRevokeResults={vi.fn().mockResolvedValue(undefined)}
         onToggleStrictMode={onToggleStrictMode}
         onRequestToggleAllowMultipleJoins={onRequestToggleAllowMultipleJoins}
-        onRequestTogglePassword={onRequestTogglePassword}
+        onRequestToggleAttendanceCheck={onRequestToggleAttendanceCheck}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "競賽狀態 發布競賽" }));
     fireEvent.click(screen.getByRole("button", { name: "題目數量 前往題目管理" }));
     fireEvent.click(screen.getByRole("button", { name: "允許重新加入 啟用重進" }));
-    fireEvent.click(screen.getByRole("button", { name: "密碼保護 啟用密碼" }));
+    fireEvent.click(screen.getByRole("button", { name: "QR 簽到簽退 啟用簽到" }));
     fireEvent.click(screen.getByRole("button", { name: "發佈代辦事件數量 檢視代辦" }));
     fireEvent.click(screen.getByRole("button", { name: "防作弊監控 啟用模式" }));
     fireEvent.click(screen.getByRole("button", { name: "考試進度 編輯時間" }));
@@ -118,7 +118,7 @@ describe("OverviewActionWidgets", () => {
     expect(onPublishContest).toHaveBeenCalledTimes(1);
     expect(onOpenPanel).toHaveBeenCalledWith("problem_editor");
     expect(onRequestToggleAllowMultipleJoins).toHaveBeenCalledTimes(1);
-    expect(onRequestTogglePassword).toHaveBeenCalledTimes(1);
+    expect(onRequestToggleAttendanceCheck).toHaveBeenCalledTimes(1);
     expect(onOpenChecklist).toHaveBeenCalledTimes(1);
     expect(onToggleStrictMode).toHaveBeenCalledTimes(1);
     expect(onOpenScheduleSettings).toHaveBeenCalledTimes(1);

@@ -23,6 +23,7 @@ import {
   WarningAlt,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router";
 
 import type {
   ContestAnnouncement,
@@ -77,7 +78,7 @@ import styles from "./StudentContestDashboard.module.scss";
 
 interface StudentContestDashboardProps {
   contest: ContestDetail;
-  onJoin?: (data?: { password?: string }) => void;
+  onJoin?: () => void;
   onStartExam?: () => void;
   onEndExam?: () => void;
   onGoToAnswering?: () => void;
@@ -182,6 +183,8 @@ export default function StudentContestDashboard({
 }: StudentContestDashboardProps) {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
+  const navigate = useNavigate();
+  const { classroomId } = useParams();
   const { theme } = useTheme();
   const tr = useCallback(
     (
@@ -223,8 +226,6 @@ export default function StudentContestDashboard({
 
   const phase = resolveStudentContestPhase(contest, nowMs);
   const participant = isParticipant(contest);
-  const requiresPassword =
-    contest.requiresPassword ?? contest.visibility === "private";
   const contestState = getContestState({
     status: contest.status,
     startTime: contest.startTime,
@@ -411,7 +412,8 @@ export default function StudentContestDashboard({
     participant &&
     contest.status === "published" &&
     phase === "during" &&
-    examStatus === "not_started";
+    examStatus === "not_started" &&
+    (contest.attendanceStatus?.canStartExam ?? true);
   const canResumeExam = participant && examStatus === "paused";
   const canGoToAnswering = participant && examStatus === "in_progress";
   const canSubmitExam = participant && examStatus === "in_progress";
@@ -421,6 +423,9 @@ export default function StudentContestDashboard({
     contestState !== "ended" &&
     examStatus === "submitted" &&
     contest.allowMultipleJoins;
+  const canOpenAttendanceScanner = !!(
+    contest.attendanceStatus?.canCheckIn || contest.attendanceStatus?.canCheckOut
+  );
   const scoreDisplay = contest.resultsPublished
     ? progressSummary.totalScore === null
       ? t("studentDashboard.results.published", "成績已發布")
@@ -490,9 +495,9 @@ export default function StudentContestDashboard({
     [chartTheme, scoreSummary?.score_distribution],
   );
 
-  const handleRegisterSubmit = (data: { password?: string }) => {
+  const handleRegisterSubmit = () => {
     setShowRegisterModal(false);
-    onJoin?.(data);
+    onJoin?.();
   };
 
   const handleDownloadReport = async () => {
@@ -519,6 +524,16 @@ export default function StudentContestDashboard({
           {canRegister
             ? t("studentDashboard.actions.join", "加入競賽")
             : t("studentDashboard.actions.joinUnavailable", "目前不可加入")}
+        </Button>
+      );
+    }
+    if (canOpenAttendanceScanner && classroomId) {
+      return (
+        <Button
+          renderIcon={Login}
+          onClick={() => navigate(`/classrooms/${classroomId}/contest/${contest.id}/attendance/scan`)}
+        >
+          {contest.attendanceStatus?.canCheckOut ? "前往簽退" : "前往簽到"}
         </Button>
       );
     }
@@ -915,15 +930,9 @@ export default function StudentContestDashboard({
                     titleAs="h3"
                     title={t("studentDashboard.rules.title", "規則說明")}
                     description={
-                      requiresPassword
-                        ? t(
-                            "studentDashboard.rules.requiresPassword",
-                            "此競賽需要密碼。",
-                          )
-                        : t(
-                            "studentDashboard.rules.noPassword",
-                            "此競賽不需要密碼。",
-                          )
+                      contest.attendanceCheckEnabled
+                        ? "本考試需要完成 QR 簽到後才能開始作答。"
+                        : "請依照教師公告與考試規則完成作答。"
                     }
                     actions={
                       contest.cheatDetectionEnabled ? (

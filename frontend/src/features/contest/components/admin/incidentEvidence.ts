@@ -6,6 +6,7 @@ export type IncidentEvidenceSource = EvidenceSourceModule;
 export const INCIDENT_EVIDENCE_SOURCE_LABELS: Record<IncidentEvidenceSource, string> = {
   screen_share: "Screen",
   webcam: "Webcam",
+  attendance: "Attendance",
 };
 
 const DEFAULT_WINDOW_MS = 20_000;
@@ -13,7 +14,7 @@ const DEFAULT_PREVIEW_LIMIT = 12;
 const MAX_PREVIEW_LIMIT = 50;
 
 export const isIncidentEvidenceSource = (value: unknown): value is IncidentEvidenceSource =>
-  value === "screen_share" || value === "webcam";
+  value === "screen_share" || value === "webcam" || value === "attendance";
 
 export const getIncidentEvidenceModuleResults = (
   meta: Record<string, unknown>,
@@ -71,6 +72,7 @@ export const getIncidentEvidenceModules = (
   objectKeys.forEach((key) => {
     if (key.includes("/screen_share/")) modules.add("screen_share");
     if (key.includes("/webcam/")) modules.add("webcam");
+    if (key.includes("/attendance/")) modules.add("attendance");
   });
   if (isIncidentEvidenceSource(meta.evidence_source_module))
     modules.add(meta.evidence_source_module);

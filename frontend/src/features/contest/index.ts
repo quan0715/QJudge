@@ -6,6 +6,8 @@
 export {
   classroomContestRouteChildren,
   classroomContestAdminRoute,
+  classroomContestAttendanceProjectionRoute,
+  classroomContestAttendanceScanRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,
   classroomPracticeRoute,

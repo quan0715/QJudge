@@ -3,6 +3,7 @@ import { Button } from "@carbon/react";
 import {
   Download,
   Launch,
+  QrCode,
   Renew,
   Settings,
   UserFollow,
@@ -229,6 +230,9 @@ export default function AdminOverviewScreen({
   const contestHomePath = contest.boundClassroomId
     ? `/classrooms/${contest.boundClassroomId}/contest/${contest.id}`
     : null;
+  const attendanceProjectionPath = contest.boundClassroomId
+    ? `/classrooms/${contest.boundClassroomId}/contest/${contest.id}/admin/attendance/projection`
+    : null;
   const contestTypeLabel =
     contest.contestType === "paper_exam"
       ? t("adminOverview.screen.contestType.paperExam", "考卷")
@@ -266,6 +270,20 @@ export default function AdminOverviewScreen({
               onClick={() => {
                 if (!contestHomePath) return;
                 window.open(contestHomePath, "_blank", "noopener,noreferrer");
+              }}
+            />
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={QrCode}
+              iconDescription={t(
+                "adminOverview.screen.actions.attendanceProjection",
+                "開啟簽到投屏",
+              )}
+              disabled={!attendanceProjectionPath || !contest.attendanceCheckEnabled}
+              onClick={() => {
+                if (!attendanceProjectionPath || !contest.attendanceCheckEnabled) return;
+                window.open(attendanceProjectionPath, "_blank", "noopener,noreferrer");
               }}
             />
             {classroomBound ? null : (

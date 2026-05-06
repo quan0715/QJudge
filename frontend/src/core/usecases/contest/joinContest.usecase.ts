@@ -2,7 +2,7 @@
  * Join Contest Use Case
  *
  * Handles registering for a contest:
- * 1. Validate password if required
+ * 1. Validate registration state
  * 2. Call registerContest API
  * 3. Return success/error
  */
@@ -16,7 +16,6 @@ import type { ContestDetail } from "@/core/entities/contest.entity";
 
 export interface JoinContestInput {
   contestId: string;
-  password?: string;
 }
 
 export interface JoinContestOutput {
@@ -30,17 +29,7 @@ export interface JoinContestOutput {
 
 export function validateJoinContest(
   contest: ContestDetail,
-  password?: string
 ): { valid: boolean; error?: string } {
-  const requiresPassword = contest.requiresPassword ?? contest.visibility === "private";
-  // Check if contest requires password
-  if (requiresPassword && !password) {
-    return {
-      valid: false,
-      error: "This contest requires a password",
-    };
-  }
-
   // Check if already registered
   if (contest.hasJoined) {
     return {
@@ -59,10 +48,10 @@ export function validateJoinContest(
 export async function joinContestUseCase(
   input: JoinContestInput
 ): Promise<JoinContestOutput> {
-  const { contestId, password } = input;
+  const { contestId } = input;
 
   try {
-    await registerContest(contestId, { password });
+    await registerContest(contestId);
 
     return {
       success: true,

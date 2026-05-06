@@ -8,7 +8,6 @@ import {
   Security,
   Edit,
   Send,
-  Locked,
   Login,
   CheckmarkOutline,
   Calendar,
@@ -39,7 +38,7 @@ interface OverviewActionWidgetsProps {
   onRevokeResults: () => Promise<void>;
   onToggleStrictMode: () => Promise<void>;
   onRequestToggleAllowMultipleJoins?: () => Promise<void>;
-  onRequestTogglePassword?: () => Promise<void>;
+  onRequestToggleAttendanceCheck?: () => Promise<void>;
   onOpenScheduleSettings?: () => void;
 }
 
@@ -56,7 +55,7 @@ export default function OverviewActionWidgets({
   onRevokeResults,
   onToggleStrictMode,
   onRequestToggleAllowMultipleJoins,
-  onRequestTogglePassword,
+  onRequestToggleAttendanceCheck,
   onOpenScheduleSettings,
 }: OverviewActionWidgetsProps) {
   const { t } = useTranslation("contest");
@@ -443,22 +442,22 @@ export default function OverviewActionWidgets({
 
         {isDraftMode && (
           <ActionWidgetCard
-            title={t("adminOverview.widgets.passwordRequired", "密碼保護")}
-            icon={Locked}
+            title={t("adminOverview.widgets.attendanceCheck", "QR 簽到簽退")}
+            icon={Login}
             actionIcon={Security}
             actionIntent="toggle"
-            active={contest.requiresPassword}
-            value={contest.requiresPassword
+            active={!!contest.attendanceCheckEnabled}
+            value={contest.attendanceCheckEnabled
               ? t("adminOverview.widgets.enabled", "已啟用")
               : t("adminOverview.widgets.disabled", "未啟用")}
-            valueColor={contest.requiresPassword ? enabledColor : disabledColor}
-            dangerBorder={!contest.requiresPassword}
-            cta={contest.requiresPassword
-              ? t("adminOverview.actions.disablePassword", "停用密碼")
-              : t("adminOverview.actions.enablePassword", "啟用密碼")}
+            valueColor={contest.attendanceCheckEnabled ? enabledColor : disabledColor}
+            dangerBorder={!contest.attendanceCheckEnabled}
+            cta={contest.attendanceCheckEnabled
+              ? t("adminOverview.actions.disableAttendanceCheck", "停用簽到")
+              : t("adminOverview.actions.enableAttendanceCheck", "啟用簽到")}
             onClick={() => {
-              if (!canEditContest || !onRequestTogglePassword) return;
-              void onRequestTogglePassword();
+              if (!canEditContest || !onRequestToggleAttendanceCheck) return;
+              void onRequestToggleAttendanceCheck();
             }}
           />
         )}
