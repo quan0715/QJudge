@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Checkmark, CircleDash, IncompleteCancel } from "@carbon/icons-react";
+import { ArrowLeft, Checkmark, CircleDash, IncompleteCancel } from "@carbon/icons-react";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import type { SubmissionStatus } from "@/core/entities/submission.entity";
 import { ExamNavigator } from "@/features/contest/components/exam/ExamNavigator";
@@ -50,6 +50,7 @@ export const SideMenuContestRuntimeSection = ({
           markedIds={runtimeNavigator.markedIds}
           collapsed={compact}
           overviewLabel={runtimeNavigator.overviewLabel}
+          overviewIcon={ArrowLeft}
           onSelectOverview={runtimeNavigator.onSelectOverview}
           onSelect={runtimeNavigator.onSelect}
           hideHeader

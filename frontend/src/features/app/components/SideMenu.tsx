@@ -31,6 +31,7 @@ import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { ChatHistoryPanel } from "@/features/chatbot/components/chat-ui/ChatHistoryPanel";
 import { useOptionalContest } from "@/features/contest/contexts";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import { shouldLockContestWorkspaceNavigation } from "@/features/contest/domain/contestRuntimePolicy";
 import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import type { AdminPanelId } from "@/features/contest/modules/types";
@@ -121,6 +122,8 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   const effectiveContestForNav = contextContestForNav ?? contestForNav;
 
   const { isRuntime } = useContestRuntimeMode();
+  const hideClassroomBack =
+    isRuntime || shouldLockContestWorkspaceNavigation(effectiveContestForNav);
 
   const inContestIdle = !!contestMatch && !contestAdminContext && !isRuntime;
   const inContestRuntime = !!contestMatch && isRuntime;
@@ -357,6 +360,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
             classroomId={contestMatch.classroomId}
             contestId={contestMatch.contestId}
             compact={compact}
+            hideClassroomBack={hideClassroomBack}
           />
         ) : (
           <>

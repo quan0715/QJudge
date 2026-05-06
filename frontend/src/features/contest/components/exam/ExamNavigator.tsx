@@ -1,4 +1,4 @@
-import { type FC, memo, useEffect, useRef } from "react";
+import { type ComponentType, type FC, memo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ExamItem } from "../../types/exam.types";
 import { Home, SidePanelClose, SidePanelOpen } from "@carbon/icons-react";
@@ -21,6 +21,7 @@ interface ExamNavigatorProps {
   onSelect: (index: number) => void;
   collapsed?: boolean;
   overviewLabel?: string;
+  overviewIcon?: ComponentType<{ size?: number }>;
   onSelectOverview?: () => void;
   onToggleCollapse?: () => void;
   hideHeader?: boolean;
@@ -34,6 +35,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
   onSelect,
   collapsed = false,
   overviewLabel,
+  overviewIcon: OverviewIcon = Home,
   onSelectOverview,
   onToggleCollapse,
   hideHeader = false,
@@ -83,7 +85,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
               onClick={onSelectOverview}
               className={styles.miniOverviewItem}
             >
-              <Home size={18} />
+              <OverviewIcon size={18} />
             </ListItem>
           )}
           {items.map((item, index) => {
@@ -154,7 +156,7 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
           <ListItem onClick={onSelectOverview} className={styles.overviewItem}>
             <ListItemContent>
               <ListItemTitle className={styles.overviewTitle}>
-                <Home size={18} />
+                <OverviewIcon size={18} />
                 <span>
                   {overviewLabel ??
                     t("contestShell.backToContestHome", "返回競賽主頁")}

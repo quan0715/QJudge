@@ -1,14 +1,19 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, ArrowLeft } from "@carbon/icons-react";
+import { ArrowLeft, Home } from "@carbon/icons-react";
 
 interface Props {
   classroomId: string;
   contestId: string;
   /** kept for API parity with the runtime section; styling is driven by the parent .side-menu--mini class */
   compact?: boolean;
+  hideClassroomBack?: boolean;
 }
 
-export const SideMenuContestIdleSection = ({ classroomId, contestId }: Props) => {
+export const SideMenuContestIdleSection = ({
+  classroomId,
+  contestId,
+  hideClassroomBack = false,
+}: Props) => {
   const { pathname } = useLocation();
   const dashboardPath = `/classrooms/${classroomId}/contest/${contestId}`;
   const isDashboard = pathname === dashboardPath;
@@ -16,10 +21,12 @@ export const SideMenuContestIdleSection = ({ classroomId, contestId }: Props) =>
 
   return (
     <div className="side-menu__section">
-      <Link to={classroomPath} className="side-menu__link">
-        <ArrowLeft size={20} />
-        <span>返回教室</span>
-      </Link>
+      {!hideClassroomBack && (
+        <Link to={classroomPath} className="side-menu__link">
+          <ArrowLeft size={20} />
+          <span>返回教室</span>
+        </Link>
+      )}
       <Link
         to={dashboardPath}
         className={`side-menu__link${isDashboard ? " side-menu__link--active" : ""}`}

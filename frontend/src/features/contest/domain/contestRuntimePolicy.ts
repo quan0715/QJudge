@@ -3,6 +3,10 @@ import type { ContestDetail, ContestStatus, ContestType, ExamStatusType } from "
 type ContestTypeTarget = Pick<ContestDetail, "contestType"> | null | undefined;
 type ParticipantTarget = Pick<ContestDetail, "hasJoined"> | null | undefined;
 type ExamStatusTarget = Pick<ContestDetail, "examStatus"> | null | undefined;
+type WorkspaceNavigationTarget =
+  | Pick<ContestDetail, "examStatus" | "hasJoined">
+  | null
+  | undefined;
 type TabTarget =
   | Pick<
       ContestDetail,
@@ -47,6 +51,12 @@ const EXIT_WARNING_STATUSES = new Set<ExamStatusType>([
   "locked",
 ]);
 
+const WORKSPACE_NAVIGATION_LOCK_STATUSES = new Set<ExamStatusType>([
+  "in_progress",
+  "paused",
+  "locked",
+]);
+
 const isExamStatusIn = (
   status: ExamStatusType | undefined,
   allowed: Set<ExamStatusType>,
@@ -57,6 +67,12 @@ export const isContestParticipant = (contest: ParticipantTarget): boolean =>
 
 export const hasStartedExam = (contest: ExamStatusTarget): boolean =>
   !!contest && isExamStatusIn(contest.examStatus, EXAM_STARTED_STATUSES);
+
+export const shouldLockContestWorkspaceNavigation = (
+  contest: WorkspaceNavigationTarget,
+): boolean =>
+  !!contest?.hasJoined &&
+  isExamStatusIn(contest.examStatus, WORKSPACE_NAVIGATION_LOCK_STATUSES);
 
 const parseEndTimeMs = (endTime: string | undefined): number | null => {
   if (!endTime) return null;
