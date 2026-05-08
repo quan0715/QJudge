@@ -1,9 +1,8 @@
 .page {
   --projection-label-size: 0.875rem;
   --projection-body-size: 0.9375rem;
-  --projection-heading-size: clamp(2.75rem, 4.2vw, 4.75rem);
-  --projection-countdown-size: clamp(5rem, 7vw, 7.25rem);
-  --projection-code-size: clamp(2.5rem, 3.5vw, 3.25rem);
+  --projection-countdown-size: clamp(4.25rem, 5.4vw, 6rem);
+  --projection-code-size: clamp(2rem, 2.6vw, 2.625rem);
 
   height: 100vh;
   background: var(--cds-background);
@@ -67,7 +66,7 @@
 
 .body {
   display: grid;
-  grid-template-columns: minmax(24rem, 0.9fr) minmax(38rem, 1.1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 0;
   min-height: 0;
   overflow: hidden;
@@ -77,14 +76,14 @@
   display: grid;
   align-content: center;
   justify-items: start;
-  padding: 2rem;
+  padding: clamp(2rem, 4vw, 5rem);
   border-right: 1px solid var(--cds-border-subtle);
   min-height: 0;
   overflow: hidden;
 }
 
 .statusBlock {
-  width: min(100%, 42rem);
+  width: min(100%, 54rem);
   display: grid;
   align-content: center;
   justify-items: start;
@@ -162,16 +161,15 @@
 
 .qrGrid {
   display: grid;
-  grid-template-columns: minmax(24rem, 54rem);
-  justify-content: center;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
 }
 
 .qrPanel {
-  padding: 2rem clamp(2rem, 4vw, 4rem);
+  padding: clamp(2rem, 4vw, 4rem);
   display: grid;
   align-content: center;
-  justify-items: start;
+  justify-items: center;
   gap: 1.25rem;
   min-width: 0;
 }
@@ -181,21 +179,21 @@
 }
 
 .qrBox {
-  padding: 1.25rem;
+  padding: 0.75rem;
   border: 1px solid var(--cds-border-subtle);
-  width: min(100%, 31rem);
+  width: min(100%, 28rem);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
 }
 
 .qrBox svg {
-  width: min(100%, 26.25rem);
+  width: min(100%, 25rem);
   height: auto;
 }
 
 .manualCodeBlock {
-  width: min(100%, 31rem);
+  width: min(100%, 28rem);
   display: grid;
   justify-items: center;
   gap: 0.5rem;
@@ -219,7 +217,7 @@
 }
 
 .qrGuide {
-  width: min(100%, 31rem);
+  width: min(100%, 28rem);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid var(--cds-border-subtle);
@@ -257,12 +255,6 @@
 }
 
 .purpose {
-  font-size: 1.5rem;
-  font-weight: 400;
-}
-
-.qrHint,
-.timer {
   color: var(--cds-text-secondary);
   font-size: var(--projection-label-size);
   font-weight: 300;
@@ -323,7 +315,6 @@
   }
 
   .page {
-    --projection-heading-size: 2.25rem;
     --projection-countdown-size: 3.5rem;
     --projection-code-size: 2.25rem;
   }

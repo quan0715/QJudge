@@ -232,9 +232,6 @@ export default function AttendanceProjectionScreen() {
       <section className={styles.qrPanel}>
         <div className={styles.qrHeader}>
           <div className={styles.purpose}>{PURPOSE_LABEL[purpose]}</div>
-          <div className={styles.qrHint}>
-            {purpose === "check_in" ? "考試前掃描" : "交卷後掃描"}
-          </div>
         </div>
         <div className={styles.qrBox}>
           {token ? (
@@ -254,7 +251,6 @@ export default function AttendanceProjectionScreen() {
           <strong>{token?.manualCode || "---- ----"}</strong>
         </div>
         <CheckInGuideBlock />
-        <div className={styles.timer}>每 {token?.refreshAfterSeconds || 30} 秒自動刷新</div>
         {error ? <div className={styles.panelError}>正在重新載入 QR code</div> : null}
       </section>
     );
