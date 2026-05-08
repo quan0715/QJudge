@@ -38,6 +38,7 @@ vi.mock("@carbon/react", () => ({
       {children}
     </button>
   ),
+  ButtonSet: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   InlineNotification: ({
     title,
     subtitle,
@@ -122,6 +123,10 @@ vi.mock("@carbon/icons-react", () => {
     WarningAlt: Icon,
   };
 });
+
+vi.mock("@/shared/ui/MobileActionFooter", () => ({
+  MobileActionFooter: () => null,
+}));
 
 vi.mock("@/shared/ui/markdown/MarkdownRenderer", () => ({
   default: ({ children }: { children: string }) => <div>{children}</div>,
