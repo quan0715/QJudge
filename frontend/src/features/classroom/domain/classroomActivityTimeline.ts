@@ -1,19 +1,9 @@
 import {
   getBoundContestTimeRange,
   type BoundContest,
-  type ClassroomAnnouncement,
 } from "@/core/entities/classroom.entity";
 
 export { getBoundContestTimeRange } from "@/core/entities/classroom.entity";
-
-// ── Calendar day row (consecutive, including empty days) ──────────────────────
-
-export interface CalendarDayRow {
-  dateKey: string;
-  date: Date;
-  isToday: boolean;
-  events: TimelineEvent[];
-}
 
 // ── Month schedule (overview calendar) ───────────────────────────────────────
 
@@ -129,74 +119,6 @@ export function getUpcomingContestTasks(
     .slice(0, limit);
 }
 
-/**
- * Returns one entry per consecutive calendar day from startMs to endMs (inclusive).
- * Each entry contains all events (contests + announcements) that fall on that day.
- * Days with no events still appear (empty events array).
- */
-export function buildCalendarDayRows(
-  contests: BoundContest[],
-  announcements: ClassroomAnnouncement[],
-  startMs: number,
-  endMs: number,
-  nowMs: number,
-): CalendarDayRow[] {
-  const todayKey = localDateKeyFromMs(nowMs);
-
-  // Build event map keyed by date string
-  const eventsByDay = new Map<string, TimelineEvent[]>();
-
-  function addEvent(key: string, event: TimelineEvent) {
-    const list = eventsByDay.get(key) ?? [];
-    list.push(event);
-    eventsByDay.set(key, list);
-  }
-
-  for (const c of contests) {
-    if (c.contestStatus === "draft") continue;
-    const { startMs: cStart } = getBoundContestTimeRange(c);
-    if (Number.isNaN(cStart)) continue;
-    addEvent(localDateKeyFromMs(cStart), {
-      type: "contest",
-      contest: c,
-      sortMs: cStart,
-    });
-  }
-
-  for (const a of announcements) {
-    const sortMs = new Date(a.createdAt).getTime();
-    if (Number.isNaN(sortMs)) continue;
-    addEvent(localDateKeyFromMs(sortMs), {
-      type: "announcement",
-      announcement: a,
-      sortMs,
-    });
-  }
-
-  // Normalise to start-of-local-day
-  const startDate = new Date(startMs);
-  startDate.setHours(0, 0, 0, 0);
-  const endDate = new Date(endMs);
-  endDate.setHours(23, 59, 59, 999);
-
-  const rows: CalendarDayRow[] = [];
-  const cursor = new Date(startDate);
-
-  while (cursor <= endDate) {
-    const key = localDateKeyFromMs(cursor.getTime());
-    const rawEvents = eventsByDay.get(key) ?? [];
-    rows.push({
-      dateKey: key,
-      date: new Date(cursor),
-      isToday: key === todayKey,
-      events: [...rawEvents].sort((a, b) => a.sortMs - b.sortMs),
-    });
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  return rows;
-}
-
 // ── Time helpers ──────────────────────────────────────────────────────────────
 
 export function localDateKeyFromMs(ms: number): string {
@@ -205,75 +127,4 @@ export function localDateKeyFromMs(ms: number): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-// ── Timeline event union ──────────────────────────────────────────────────────
-
-export type TimelineEvent =
-  | { type: "contest"; contest: BoundContest; sortMs: number }
-  | {
-      type: "announcement";
-      announcement: ClassroomAnnouncement;
-      sortMs: number;
-    };
-
-// ── Day group ─────────────────────────────────────────────────────────────────
-
-export interface TimelineDayGroup {
-  dateKey: string;
-  isToday: boolean;
-  events: TimelineEvent[];
-}
-
-// ── All-time builder (contests + announcements, no date filter) ───────────────
-
-export function buildAllTimelineDayGroups(
-  contests: BoundContest[],
-  announcements: ClassroomAnnouncement[],
-  nowMs: number,
-): TimelineDayGroup[] {
-  const byDay = new Map<string, TimelineEvent[]>();
-  const todayKey = localDateKeyFromMs(nowMs);
-
-  function addEvent(key: string, event: TimelineEvent) {
-    const list = byDay.get(key) ?? [];
-    list.push(event);
-    byDay.set(key, list);
-  }
-
-  for (const c of contests) {
-    const { startMs } = getBoundContestTimeRange(c);
-    if (Number.isNaN(startMs)) continue;
-    addEvent(localDateKeyFromMs(startMs), {
-      type: "contest",
-      contest: c,
-      sortMs: startMs,
-    });
-  }
-
-  for (const a of announcements) {
-    const sortMs = new Date(a.createdAt).getTime();
-    if (Number.isNaN(sortMs)) continue;
-    addEvent(localDateKeyFromMs(sortMs), {
-      type: "announcement",
-      announcement: a,
-      sortMs,
-    });
-  }
-
-  const groups: TimelineDayGroup[] = Array.from(byDay.entries()).map(
-    ([dateKey, events]) => ({
-      dateKey,
-      isToday: dateKey === todayKey,
-      events: [...events].sort((a, b) => a.sortMs - b.sortMs),
-    }),
-  );
-
-  groups.sort((a, b) => {
-    const aMin = Math.min(...a.events.map((e) => e.sortMs));
-    const bMin = Math.min(...b.events.map((e) => e.sortMs));
-    return aMin - bMin;
-  });
-
-  return groups;
 }
