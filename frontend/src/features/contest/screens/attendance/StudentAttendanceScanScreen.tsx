@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, CheckmarkFilled, ChevronLeft, Renew, SendAlt } from "@carbon/icons-react";
+import { Camera, CheckmarkFilled, ChevronLeft, QrCode, Renew, SendAlt } from "@carbon/icons-react";
 import { Button, InlineNotification, TextInput } from "@carbon/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import jsQR from "jsqr";
@@ -278,6 +278,22 @@ export default function StudentAttendanceScanScreen() {
               ? `請確認照片清楚。下一步：${nextPhoto.title}。`
               : "請確認照片清楚。下一步：確認簽到資訊並上傳。"
           : "確認照片清楚後再提交。";
+  const navigationTitle =
+    state === "done"
+      ? `${purposeLabel}完成`
+      : activeStep === "scan"
+        ? `${purposeLabel}認證`
+        : activeStep === "photo" || activeStep === "photoReview"
+          ? `拍照${purposeLabel}`
+          : `確認${purposeLabel}`;
+  const statusLabel =
+    cameraState === "requesting"
+      ? "等待相機授權"
+      : cameraState === "unavailable"
+        ? "相機無法使用"
+        : activeStep === "scan"
+          ? scanValidating ? "驗證中" : scannerMode === "waiting" ? "準備掃描" : "正在掃描"
+          : `${completedPhotoCount}/${photoRequirements.length}`;
 
   useEffect(() => {
     if (!contestId) return;
@@ -630,109 +646,120 @@ export default function StudentAttendanceScanScreen() {
             onClick={() => navigate(returnPath)}
           />
           <div className={styles.topTitle}>
-            <strong>{purposeLabel}</strong>
-            <span>QJudge 考試簽到簽退</span>
+            <strong>{navigationTitle}</strong>
           </div>
         </div>
 
-        {cameraActive ? (
-          <video
-            key={`${cameraFacingMode}-${photoIndex}`}
-            ref={videoRef}
-            className={styles.video}
-            autoPlay
-            playsInline
-            muted
-          />
-        ) : scanValidating && frozenScanUrl ? (
-          <img className={styles.video} src={frozenScanUrl} alt="" />
-        ) : (
-          <div className={styles.reviewBackdrop} />
-        )}
-
-        <div className={styles.stepBadge} aria-label={`目前步驟 ${currentFlowStep} / ${totalFlowSteps}`}>
-          步驟 {currentFlowStep} / {totalFlowSteps}
-        </div>
-
-        {activeStep === "scan" ? (
-          <div className={styles.scanFrame} data-status={scanValidating ? "validating" : "scanning"} aria-hidden="true">
-            {scanValidating ? <span /> : null}
-          </div>
-        ) : null}
-
-        {(activeStep === "scan" || activeStep === "photo") &&
-        !(activeStep === "scan" && (manualMode || cameraState === "unavailable")) ? (
-          <div className={styles.stageCaption}>
-            <h1>{stageTitle}</h1>
-            <p>{stageDescription}</p>
-            <span>
-              {cameraState === "requesting"
-                ? "等待相機授權"
-                : cameraState === "unavailable"
-                  ? "相機無法使用"
-                  : activeStep === "scan"
-                    ? scanValidating ? "驗證中" : scannerMode === "waiting" ? "準備掃描" : "正在掃描"
-                    : `${completedPhotoCount}/${photoRequirements.length}`}
-            </span>
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className={styles.notificationLayer}>
-            <InlineNotification kind="error" title="無法完成簽到簽退" subtitle={error} lowContrast />
-          </div>
-        ) : null}
-
-        {activeStep === "scan" && !scanValidating && !(manualMode || cameraState === "unavailable") ? (
-          <Button
-            kind="ghost"
-            className={styles.manualToggle}
-            onClick={handleUseManualCode}
-          >
-            相機無法使用？輸入代碼
-          </Button>
-        ) : null}
-
-        {activeStep === "scan" && (manualMode || cameraState === "unavailable") ? (
-          <form
-            className={styles.manualPanel}
-            onSubmit={(event) => {
-              event.preventDefault();
-              handleManualCodeSubmit();
-            }}
-          >
-            <div>
-              <h1>輸入{purposeLabel}代碼</h1>
-              <p>請輸入教師投影畫面上 QR Code 下方的 8 碼代碼。</p>
+        {activeStep === "scan" || activeStep === "photo" ? (
+          <div className={styles.captureFlow}>
+            <div className={styles.stepBadge} aria-label={`目前步驟 ${currentFlowStep} / ${totalFlowSteps}`}>
+              步驟 {currentFlowStep} / {totalFlowSteps}
             </div>
-            <TextInput
-              id="attendance-manual-code"
-              labelText="手動代碼"
-              value={manualCode}
-              placeholder="ABCD-2345"
-              onChange={(event) => handleManualCodeChange(event.target.value)}
-            />
-            <div className={styles.manualActions}>
-              <Button type="submit">下一步</Button>
-              {cameraState !== "unavailable" ? (
-                <Button kind="ghost" type="button" onClick={handleRescan}>
-                  返回掃描
+
+            <div className={styles.stageCaption}>
+              <h1>{stageTitle}</h1>
+              <p>{stageDescription}</p>
+            </div>
+
+            {error ? (
+              <div className={styles.notificationLayer}>
+                <InlineNotification kind="error" title="無法完成簽到簽退" subtitle={error} lowContrast />
+              </div>
+            ) : null}
+
+            {!(activeStep === "scan" && (manualMode || cameraState === "unavailable")) ? (
+              <div className={styles.cameraPreview} data-step={activeStep}>
+                {cameraActive ? (
+                  <video
+                    key={`${cameraFacingMode}-${photoIndex}`}
+                    ref={videoRef}
+                    className={styles.video}
+                    autoPlay
+                    playsInline
+                    muted
+                  />
+                ) : scanValidating && frozenScanUrl ? (
+                  <img className={styles.video} src={frozenScanUrl} alt="" />
+                ) : (
+                  <div className={styles.reviewBackdrop} />
+                )}
+                {activeStep === "scan" ? (
+                  <div className={styles.scanFrame} data-status={scanValidating ? "validating" : "scanning"} aria-hidden="true">
+                    {scanValidating ? <span /> : null}
+                  </div>
+                ) : (
+                  <div className={styles.photoFrame} aria-hidden="true" />
+                )}
+              </div>
+            ) : null}
+
+            {activeStep === "scan" && !scanValidating && !(manualMode || cameraState === "unavailable") ? (
+              <div className={styles.scanActions}>
+                <span className={styles.statusChip}>{statusLabel}</span>
+                <Button kind="primary" renderIcon={QrCode} disabled>
+                  正在掃描
                 </Button>
-              ) : null}
-            </div>
-          </form>
-        ) : null}
+                <Button
+                  kind="ghost"
+                  className={styles.manualToggle}
+                  onClick={handleUseManualCode}
+                >
+                  手動輸入代碼
+                </Button>
+              </div>
+            ) : null}
 
-        {activeStep === "photo" && state !== "submitting" ? (
-          <button
-            type="button"
-            className={styles.shutterButton}
-            disabled={!scan || cameraState !== "ready"}
-            aria-label={`拍攝${currentPhoto.label}`}
-            onClick={handleCapture}
-          >
-            <span />
-          </button>
+            {activeStep === "scan" && scanValidating ? (
+              <div className={styles.scanActions}>
+                <span className={styles.statusChip}>{statusLabel}</span>
+              </div>
+            ) : null}
+
+            {activeStep === "scan" && (manualMode || cameraState === "unavailable") ? (
+              <form
+                className={styles.manualPanel}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  handleManualCodeSubmit();
+                }}
+              >
+                <div>
+                  <h1>輸入{purposeLabel}代碼</h1>
+                  <p>請輸入教師投影畫面上 QR Code 下方的 8 碼代碼。</p>
+                </div>
+                <TextInput
+                  id="attendance-manual-code"
+                  labelText="手動代碼"
+                  value={manualCode}
+                  placeholder="ABCD-2345"
+                  onChange={(event) => handleManualCodeChange(event.target.value)}
+                />
+                <div className={styles.manualActions}>
+                  <Button type="submit">下一步</Button>
+                  {cameraState !== "unavailable" ? (
+                    <Button kind="ghost" type="button" onClick={handleRescan}>
+                      返回掃描
+                    </Button>
+                  ) : null}
+                </div>
+              </form>
+            ) : null}
+
+            {activeStep === "photo" && state !== "submitting" ? (
+              <div className={styles.photoControls}>
+                <span className={styles.statusChip}>{statusLabel}</span>
+                <button
+                  type="button"
+                  className={styles.shutterButton}
+                  disabled={!scan || cameraState !== "ready"}
+                  aria-label={`拍攝${currentPhoto.label}`}
+                  onClick={handleCapture}
+                >
+                  <span />
+                </button>
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         {activeStep === "photoReview" && reviewPhotoRequirement && reviewPhotoUrl ? (

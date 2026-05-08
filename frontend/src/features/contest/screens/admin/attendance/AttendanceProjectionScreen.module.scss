@@ -126,6 +126,15 @@
 }
 
 .countdownBlock {
+  display: grid;
+}
+
+.countdownMain {
+  display: grid;
+  gap: 1rem;
+}
+
+.countdownRow {
   display: flex;
   justify-content: space-between;
   gap: 2rem;
@@ -145,19 +154,33 @@
   padding-bottom: 0.5rem;
 }
 
+.progressTrack {
+  width: 100%;
+  height: 0.5rem;
+  overflow: hidden;
+  background: var(--cds-layer-accent);
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+  background: var(--cds-link-primary);
+  transition: width 320ms ease;
+}
+
 .qrGrid {
   display: grid;
-  grid-template-columns: minmax(24rem, 42rem);
+  grid-template-columns: minmax(24rem, 54rem);
   justify-content: center;
   min-height: 0;
 }
 
 .qrPanel {
-  padding: 2rem;
+  padding: 2rem clamp(2rem, 4vw, 4rem);
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
   min-width: 0;
 }
 
@@ -166,23 +189,27 @@
 }
 
 .qrBox {
-  background: var(--cds-layer);
-  padding: 1rem;
+  padding: 1.25rem;
   border: 1px solid var(--cds-border-subtle);
-  min-width: 18.25rem;
-  min-height: 18.25rem;
+  width: min(100%, 31rem);
+  aspect-ratio: 1;
   display: grid;
   place-items: center;
 }
 
+.qrBox svg {
+  width: min(100%, 26.25rem);
+  height: auto;
+}
+
 .manualCodeBlock {
-  width: min(100%, 28rem);
+  width: min(100%, 31rem);
   display: grid;
   justify-items: center;
   gap: 0.5rem;
-  padding: 1rem;
-  background: var(--cds-layer);
-  border: 1px solid var(--cds-border-subtle);
+  padding: 1rem 0;
+  border-top: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--cds-border-subtle);
 }
 
 .manualCodeBlock span {
@@ -199,11 +226,11 @@
 }
 
 .qrGuide {
-  width: min(100%, 28rem);
+  width: min(100%, 31rem);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer);
+  border-top: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--cds-border-subtle);
 }
 
 .qrGuideItem {
@@ -302,6 +329,10 @@
   }
 
   .countdownBlock {
+    display: grid;
+  }
+
+  .countdownRow {
     display: grid;
   }
 

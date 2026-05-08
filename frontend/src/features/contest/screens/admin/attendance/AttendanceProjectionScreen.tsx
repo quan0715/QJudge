@@ -72,6 +72,14 @@ function getCountdown(
   return { label: "考試已結束", value: "00:00:00", tone: "已結束" };
 }
 
+function getCountdownProgress(contest: ContestDetail | null | undefined, now: number): number {
+  const { start, end } = getExamWindow(contest);
+  if (start == null || end == null || end <= start) return 0;
+  if (now <= start) return 0;
+  if (now >= end) return 100;
+  return Math.round(((now - start) / (end - start)) * 100);
+}
+
 function getTotalDuration(contest: ContestDetail | null | undefined): string {
   const { start, end } = getExamWindow(contest);
   if (start == null || end == null || end <= start) return "--";
@@ -159,13 +167,21 @@ function ContestInfoBlock({ contest }: { contest: ContestDetail | null | undefin
 function CountdownBlock({ contest }: { contest: ContestDetail | null | undefined }) {
   const now = useNow();
   const countdown = getCountdown(contest, now);
+  const progress = getCountdownProgress(contest, now);
   return (
     <section className={styles.countdownBlock}>
-      <div>
-        <div className={styles.blockLabel}>{countdown.label}</div>
-        <div className={styles.countdown}>{countdown.value}</div>
+      <div className={styles.countdownMain}>
+        <div className={styles.countdownRow}>
+          <div>
+            <div className={styles.blockLabel}>{countdown.label}</div>
+            <div className={styles.countdown}>{countdown.value}</div>
+          </div>
+          <div className={styles.countdownTone}>{countdown.tone}</div>
+        </div>
+        <div className={styles.progressTrack} aria-label={`考試進度 ${progress}%`}>
+          <span style={{ width: `${progress}%` }} />
+        </div>
       </div>
-      <div className={styles.countdownTone}>{countdown.tone}</div>
     </section>
   );
 }
@@ -241,7 +257,7 @@ export default function AttendanceProjectionScreen() {
           </div>
         </div>
         <div className={styles.qrBox}>
-          {token ? <QRCodeSVG value={token.qrValue} size={260} /> : <div className={styles.qrPlaceholder}>Loading</div>}
+          {token ? <QRCodeSVG value={token.qrValue} size={420} /> : <div className={styles.qrPlaceholder}>Loading</div>}
         </div>
         <div className={styles.manualCodeBlock}>
           <span>相機無法使用時輸入代碼</span>

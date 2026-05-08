@@ -3,23 +3,107 @@
 @use "@carbon/type";
 
 .page {
-  height: 100dvh;
   min-height: 100dvh;
-  overflow: hidden;
-  background: var(--cds-background-inverse);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 50% -10%, color-mix(in srgb, var(--cds-link-primary) 18%, transparent), transparent 34rem),
+    var(--cds-background-inverse);
   color: var(--cds-text-inverse);
 }
 
 .cameraStage {
-  position: relative;
-  height: 100%;
+  width: min(100%, 31rem);
+  min-height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+.topBar {
+  min-height: 4rem;
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) 3rem;
+  align-items: center;
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.backButton {
+  color: var(--cds-text-inverse);
+}
+
+.topTitle {
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.topTitle strong {
+  color: var(--cds-text-inverse);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.captureFlow {
+  flex: 1 1 auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-05 layout.$spacing-05 calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px));
+}
+
+.stepBadge {
+  width: fit-content;
+  margin: 0 auto;
+  padding: layout.$spacing-02 layout.$spacing-04;
+  background: color-mix(in srgb, var(--cds-layer-inverse) 72%, transparent);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.stageCaption {
+  display: grid;
+  gap: layout.$spacing-03;
+}
+
+.stageCaption h1 {
+  @include type.type-style("heading-05");
+  margin: 0;
+  color: var(--cds-text-inverse);
+  letter-spacing: 0;
+}
+
+.stageCaption p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.cameraPreview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: var(--cds-background-inverse);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%),
+    color-mix(in srgb, var(--cds-background-inverse) 88%, white);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.cameraPreview[data-step="photo"] {
+  aspect-ratio: 4 / 3;
 }
 
 .video,
-.photo {
+.photo,
+.reviewBackdrop {
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -29,235 +113,140 @@
 }
 
 .reviewBackdrop {
-  width: 100%;
-  height: 100%;
   background:
-    radial-gradient(ellipse at 50% 28%, rgba(255, 255, 255, 0.12) 0%, transparent 42%),
+    radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.12) 0%, transparent 44%),
     var(--cds-background-inverse);
-}
-
-.topBar {
-  position: absolute;
-  z-index: 6;
-  inset: 0 0 auto;
-  min-height: 3rem;
-  display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr);
-  align-items: center;
-  background: rgba(18, 18, 18, 0.38);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(18px) saturate(140%);
-}
-
-.cameraStage[data-step="photoReview"] .topBar,
-.cameraStage[data-step="confirm"] .topBar {
-  background: var(--cds-background);
-  border-bottom: 1px solid var(--cds-border-subtle);
-}
-
-.backButton {
-  color: var(--cds-text-inverse);
-}
-
-.cameraStage[data-step="photoReview"] .backButton,
-.cameraStage[data-step="confirm"] .backButton {
-  color: var(--cds-text-secondary);
-}
-
-.topTitle {
-  min-width: 0;
-  display: flex;
-  align-items: baseline;
-  gap: layout.$spacing-03;
-  padding-right: layout.$spacing-05;
-}
-
-.topTitle strong {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--cds-text-inverse);
-  letter-spacing: 0;
-}
-
-.cameraStage[data-step="photoReview"] .topTitle strong,
-.cameraStage[data-step="confirm"] .topTitle strong {
-  color: var(--cds-text-primary);
-}
-
-.topTitle span {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.8125rem;
-}
-
-.stepBadge {
-  position: absolute;
-  z-index: 4;
-  top: 3.75rem;
-  left: 50%;
-  padding: layout.$spacing-02 layout.$spacing-04;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.42);
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  transform: translateX(-50%);
-}
-
-.cameraStage[data-step="photoReview"] .stepBadge,
-.cameraStage[data-step="confirm"] .stepBadge {
-  display: none;
-}
-
-.cameraStage[data-step="photoReview"] .topTitle span,
-.cameraStage[data-step="confirm"] .topTitle span {
-  color: var(--cds-text-secondary);
 }
 
 .scanFrame {
   position: absolute;
-  z-index: 2;
-  top: 47%;
-  left: 50%;
-  width: min(72vw, 24rem);
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  border: 2px solid rgba(255, 255, 255, 0.94);
-  box-shadow:
-    0 0 0 999px rgba(0, 0, 0, 0.36),
-    0 0 36px rgba(255, 255, 255, 0.16);
+  inset: layout.$spacing-05;
+  display: grid;
+  place-items: center;
   pointer-events: none;
 }
 
-.scanFrame[data-status="validating"] {
-  border-color: var(--cds-link-primary);
-  box-shadow:
-    0 0 0 999px rgba(0, 0, 0, 0.42),
-    0 0 42px rgba(15, 98, 254, 0.42);
+.scanFrame::before,
+.photoFrame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+}
+
+.scanFrame::after,
+.photoFrame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(var(--cds-link-primary), var(--cds-link-primary)) left top / 1.5rem 2px no-repeat,
+    linear-gradient(var(--cds-link-primary), var(--cds-link-primary)) left top / 2px 1.5rem no-repeat,
+    linear-gradient(var(--cds-link-primary), var(--cds-link-primary)) right top / 1.5rem 2px no-repeat,
+    linear-gradient(var(--cds-link-primary), var(--cds-link-primary)) right top / 2px 1.5rem no-repeat,
+    linear-gradient(var(--cds-link-primary), var(--cds-link-primary)) left bottom / 1.5rem 2px no-repeat,
+    linear-gradient(var(--cds-link-primary), var(--cds-link-primary)) left bottom / 2px 1.5rem no-repeat,
+    linear-gradient(var(--cds-link-primary), var(--cds-link-primary)) right bottom / 1.5rem 2px no-repeat,
+    linear-gradient(var(--cds-link-primary), var(--cds-link-primary)) right bottom / 2px 1.5rem no-repeat;
+}
+
+.scanFrame[data-status="validating"]::after {
+  background:
+    linear-gradient(var(--cds-support-info), var(--cds-support-info)) left top / 1.5rem 2px no-repeat,
+    linear-gradient(var(--cds-support-info), var(--cds-support-info)) left top / 2px 1.5rem no-repeat,
+    linear-gradient(var(--cds-support-info), var(--cds-support-info)) right top / 1.5rem 2px no-repeat,
+    linear-gradient(var(--cds-support-info), var(--cds-support-info)) right top / 2px 1.5rem no-repeat,
+    linear-gradient(var(--cds-support-info), var(--cds-support-info)) left bottom / 1.5rem 2px no-repeat,
+    linear-gradient(var(--cds-support-info), var(--cds-support-info)) left bottom / 2px 1.5rem no-repeat,
+    linear-gradient(var(--cds-support-info), var(--cds-support-info)) right bottom / 1.5rem 2px no-repeat,
+    linear-gradient(var(--cds-support-info), var(--cds-support-info)) right bottom / 2px 1.5rem no-repeat;
 }
 
 .scanFrame[data-status="validating"] span {
-  position: absolute;
-  top: 50%;
-  left: 50%;
   width: 3rem;
   height: 3rem;
   border: 3px solid rgba(255, 255, 255, 0.25);
-  border-top-color: var(--cds-link-primary);
+  border-top-color: var(--cds-support-info);
   border-radius: 999px;
-  transform: translate(-50%, -50%);
   animation: scanSpinner 900ms linear infinite;
 }
 
-.scanFrame::before,
-.scanFrame::after {
-  content: "";
+.photoFrame {
   position: absolute;
   inset: layout.$spacing-05;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)) 0 33.333% / 100% 1px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)) 0 66.666% / 100% 1px no-repeat,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)) 33.333% 0 / 1px 100% no-repeat,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)) 66.666% 0 / 1px 100% no-repeat;
 }
 
 @keyframes scanSpinner {
   from {
-    transform: translate(-50%, -50%) rotate(0deg);
+    transform: rotate(0deg);
   }
 
   to {
-    transform: translate(-50%, -50%) rotate(360deg);
+    transform: rotate(360deg);
   }
 }
 
-.stageCaption {
-  position: absolute;
-  z-index: 3;
-  left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-06});
-  width: min(calc(100% - 2rem), 34rem);
+.notificationLayer {
+  display: grid;
+  gap: layout.$spacing-03;
+}
+
+.scanActions,
+.photoControls {
   display: grid;
   justify-items: center;
+  gap: layout.$spacing-04;
+}
+
+.statusChip {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
   gap: layout.$spacing-02;
-  padding: layout.$spacing-04 layout.$spacing-05;
-  text-align: center;
-  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.55);
-  background: rgba(18, 18, 18, 0.38);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(18px) saturate(140%);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.cameraStage[data-step="photo"] .stageCaption {
-  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-08} + 4.75rem);
-}
-
-.stageCaption h1 {
-  @include type.type-style("heading-02");
-  margin: 0;
-  color: var(--cds-text-inverse);
-  letter-spacing: 0;
-}
-
-.stageCaption p {
-  max-width: 34rem;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 0.9375rem;
-  line-height: 1.45;
-}
-
-.stageCaption span {
-  margin-top: layout.$spacing-02;
   padding: layout.$spacing-02 layout.$spacing-04;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.22);
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.82);
+  background: color-mix(in srgb, var(--cds-layer-inverse) 72%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
   font-size: 0.8125rem;
 }
 
-.notificationLayer {
-  position: absolute;
-  z-index: 4;
-  top: 3.75rem;
-  left: layout.$spacing-05;
-  right: layout.$spacing-05;
+.statusChip::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--cds-link-primary);
+  border-radius: 999px;
 }
 
 .manualToggle {
-  position: absolute;
-  z-index: 4;
-  left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-09} + 8.5rem);
-  color: var(--cds-text-inverse);
-  background: rgba(18, 18, 18, 0.38);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(18px) saturate(140%);
-  transform: translateX(-50%);
+  color: var(--cds-link-inverse);
 }
 
 .manualPanel {
-  position: absolute;
-  z-index: 5;
-  left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-06});
-  width: min(calc(100% - 2rem), 32rem);
   display: grid;
   gap: layout.$spacing-05;
   padding: layout.$spacing-05;
   color: var(--cds-text-inverse);
-  background: rgba(18, 18, 18, 0.52);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(20px) saturate(140%);
-  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 .manualPanel h1 {
-  @include type.type-style("heading-02");
+  @include type.type-style("heading-03");
   margin: 0 0 layout.$spacing-02;
   color: var(--cds-text-inverse);
 }
 
 .manualPanel p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.72);
   line-height: 1.5;
 }
 
@@ -268,19 +257,14 @@
 }
 
 .shutterButton {
-  position: absolute;
-  z-index: 4;
-  left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-05});
   width: 4.5rem;
   height: 4.5rem;
   display: grid;
   place-items: center;
   padding: 0;
-  border: 3px solid rgba(255, 255, 255, 0.88);
+  border: 3px solid rgba(255, 255, 255, 0.86);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.12);
   transition:
     transform 120ms motion.motion(standard, productive),
     opacity 120ms motion.motion(standard, productive);
@@ -292,7 +276,7 @@
   height: 3.25rem;
   display: block;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .shutterButton:disabled {
@@ -301,76 +285,61 @@
 }
 
 .shutterButton:not(:disabled):active {
-  transform: translateX(-50%) scale(0.96);
-}
-
-.bottomSheet {
-  position: absolute;
-  z-index: 5;
-  left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-05});
-  width: min(calc(100% - 2rem), 44rem);
-  max-height: calc(100vh - 4.5rem);
-  display: grid;
-  gap: layout.$spacing-05;
-  padding: layout.$spacing-05;
-  padding-bottom: calc(#{layout.$spacing-05} + env(safe-area-inset-bottom, 0px));
-  overflow-y: auto;
-  background: var(--cds-layer);
-  color: var(--cds-text-primary);
-  border: 1px solid var(--cds-border-subtle);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
-  transform: translateX(-50%);
+  transform: scale(0.96);
 }
 
 .reviewPage {
-  position: absolute;
-  z-index: 5;
-  inset: 3rem 0 0;
+  flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   gap: layout.$spacing-06;
-  padding: layout.$spacing-07 max(layout.$spacing-07, calc((100vw - 48rem) / 2)) calc(#{layout.$spacing-07} + env(safe-area-inset-bottom, 0px));
-  overflow-y: auto;
-  background: var(--cds-background);
-  color: var(--cds-text-primary);
+  padding: layout.$spacing-05 layout.$spacing-05 calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px));
+  color: var(--cds-text-inverse);
 }
 
 .reviewHeader {
   display: grid;
+  justify-items: start;
   gap: layout.$spacing-03;
+}
+
+.reviewHeader:has(.successMark) {
+  justify-items: center;
+  text-align: center;
+  padding-top: layout.$spacing-07;
 }
 
 .inlineStepBadge {
   width: fit-content;
   padding: layout.$spacing-02 layout.$spacing-04;
-  background: var(--cds-layer-selected);
-  color: var(--cds-text-secondary);
+  background: color-mix(in srgb, var(--cds-layer-inverse) 72%, transparent);
+  color: rgba(255, 255, 255, 0.82);
   font-size: 0.8125rem;
   font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .reviewHeader h1 {
-  @include type.type-style("heading-04");
+  @include type.type-style("heading-05");
   margin: 0;
+  color: var(--cds-text-inverse);
   letter-spacing: 0;
 }
 
 .reviewHeader p {
   margin: 0;
-  color: var(--cds-text-secondary);
+  color: rgba(255, 255, 255, 0.72);
   line-height: 1.5;
 }
 
 .successMark {
-  width: 4.5rem;
-  height: 4.5rem;
+  width: 6rem;
+  height: 6rem;
   display: grid;
   place-items: center;
   color: var(--cds-support-success);
-  background: color-mix(in srgb, var(--cds-support-success) 12%, transparent);
+  border: 3px solid var(--cds-support-success);
   border-radius: 999px;
   animation: successPop 420ms motion.motion(entrance, expressive) both;
 }
@@ -396,48 +365,46 @@
   min-height: 0;
   margin: 0;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
   gap: layout.$spacing-04;
 }
 
 .primaryPreview img {
   width: 100%;
-  height: min(58vh, 34rem);
-  min-height: 16rem;
+  max-height: 48vh;
   display: block;
   object-fit: contain;
-  background: var(--cds-layer);
-  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-background-inverse);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .primaryPreview figcaption {
-  color: var(--cds-text-secondary);
+  color: rgba(255, 255, 255, 0.68);
   font-size: 0.875rem;
 }
 
 .summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border: 1px solid var(--cds-border-subtle);
-  border-right: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 .summary > div {
   min-width: 0;
   display: grid;
-  gap: layout.$spacing-02;
-  padding: layout.$spacing-04;
-  border-right: 1px solid var(--cds-border-subtle);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 .summary span {
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.875rem;
 }
 
 .summary strong {
-  font-size: 0.9375rem;
-  font-weight: 600;
+  color: var(--cds-text-inverse);
+  font-size: 1rem;
+  font-weight: 500;
   line-height: 1.25;
 }
 
@@ -459,105 +426,56 @@
   aspect-ratio: 4 / 3;
   object-fit: cover;
   display: block;
-  border: 1px solid var(--cds-border-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .photoReview figcaption {
-  color: var(--cds-text-secondary);
+  color: rgba(255, 255, 255, 0.68);
   font-size: 0.75rem;
 }
 
-.navRowEnd {
-  display: flex;
-  justify-content: flex-end;
-  gap: layout.$spacing-04;
-  flex-wrap: wrap;
-}
-
 .reviewActions {
-  display: flex;
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: layout.$spacing-04;
-  flex-wrap: wrap;
+  margin-top: auto;
 }
 
-@media (max-width: 640px) {
-  .stageCaption {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-05});
-    width: min(calc(100% - 2rem), 30rem);
+@media (min-width: 760px) {
+  .cameraStage {
+    width: min(100%, 44rem);
   }
 
-  .cameraStage[data-step="photo"] .stageCaption {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-08} + 4.5rem);
-  }
-
-  .stageCaption h1 {
-    font-size: 1rem;
-    line-height: 1.25;
-  }
-
-  .stageCaption p {
-    font-size: 0.875rem;
-  }
-
-  .manualToggle {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-09} + 8rem);
-  }
-
-  .manualPanel {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-05});
-    width: min(calc(100% - 2rem), 30rem);
-  }
-
-  .manualActions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .bottomSheet {
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    max-height: 58vh;
-    padding-bottom: calc(#{layout.$spacing-05} + env(safe-area-inset-bottom, 0px));
-    border-right: 0;
-    border-bottom: 0;
-    border-left: 0;
-    transform: none;
-  }
-
-  .summary {
-    grid-template-columns: 1fr;
-    border-bottom: 0;
-  }
-
-  .summary > div {
-    border-bottom: 1px solid var(--cds-border-subtle);
-  }
-
-  .navRowEnd {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
+  .captureFlow,
   .reviewPage {
-    gap: layout.$spacing-05;
-    padding: layout.$spacing-05 layout.$spacing-05 calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px));
+    padding-inline: layout.$spacing-07;
   }
 
-  .reviewHeader h1 {
-    @include type.type-style("heading-03");
+  .cameraPreview {
+    aspect-ratio: 16 / 9;
   }
 
-  .primaryPreview img {
-    height: auto;
-    min-height: 18rem;
-    max-height: 52vh;
+  .scanActions {
+    grid-template-columns: auto auto;
+    justify-content: center;
+  }
+
+  .scanActions .statusChip {
+    grid-column: 1 / -1;
   }
 
   .reviewActions {
-    display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, max-content);
+  }
+}
+
+@media (max-width: 420px) {
+  .stageCaption h1,
+  .reviewHeader h1 {
+    @include type.type-style("heading-04");
+  }
+
+  .cameraPreview {
+    aspect-ratio: 1 / 1;
   }
 }
