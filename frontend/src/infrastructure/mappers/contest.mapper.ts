@@ -45,6 +45,8 @@ import type {
   EventFeedItemDto,
 } from "@/infrastructure/api/dto/contest.dto";
 
+const FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS = 30_000;
+
 export function mapContestProblemSummaryDto(
   dto: ContestProblemSummaryDto,
 ): ContestProblemSummary {
@@ -113,10 +115,7 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
       typeof dto.warning_timeout_seconds === "number"
         ? dto.warning_timeout_seconds
         : 20,
-    screenShareRecoveryGraceMs:
-      typeof dto.screen_share_recovery_grace_ms === "number"
-        ? dto.screen_share_recovery_grace_ms
-        : 30_000,
+    screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
 
     allowMultipleJoins: !!dto.allow_multiple_joins,
@@ -484,11 +483,7 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
         "mouse_leave_cooldown_ms",
         "global_defaults",
       ),
-      screenShareRecoveryGraceMs: ensureNumber(
-        globalDefaults,
-        "screen_share_recovery_grace_ms",
-        "global_defaults",
-      ),
+      screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
       webcamRecoveryGraceMs: ensureNumber(
         globalDefaults,
         "webcam_recovery_grace_ms",
@@ -551,11 +546,7 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
         "warning_timeout_seconds",
         "contest_settings",
       ),
-      screenShareRecoveryGraceMs: ensureNumber(
-        contestSettings,
-        "screen_share_recovery_grace_ms",
-        "contest_settings",
-      ),
+      screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
       anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
         contestSettings["anticheat_device_policy"] as any,
       ),
@@ -616,11 +607,7 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
         "mouse_leave_cooldown_ms",
         "effective",
       ),
-      screenShareRecoveryGraceMs: ensureNumber(
-        effective,
-        "screen_share_recovery_grace_ms",
-        "effective",
-      ),
+      screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
       webcamRecoveryGraceMs: ensureNumber(
         effective,
         "webcam_recovery_grace_ms",
@@ -1158,7 +1145,10 @@ export function mapContestUpdateRequestToDto(
     cheat_detection_enabled: request.cheatDetectionEnabled,
     anticheat_device_policy: anticheatDevicePolicy,
     warning_timeout_seconds: request.warningTimeoutSeconds,
-    screen_share_recovery_grace_ms: request.screenShareRecoveryGraceMs,
+    screen_share_recovery_grace_ms:
+      request.screenShareRecoveryGraceMs === undefined
+        ? undefined
+        : FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     allow_multiple_joins: request.allowMultipleJoins,
     max_cheat_warnings: request.maxCheatWarnings,

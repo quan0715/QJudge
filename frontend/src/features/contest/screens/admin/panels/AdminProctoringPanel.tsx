@@ -1,4 +1,4 @@
-import { createElement, forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, Modal, TableToolbarSearch, Tag, TextArea, TextInput } from "@carbon/react";
 import {
@@ -16,15 +16,13 @@ import {
   WarningFilled,
 } from "@carbon/icons-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 
 import type { ContestDetail, ContestParticipant, EventFeedItem, ParticipantDashboard } from "@/core/entities/contest.entity";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
 import { createSfuLiveSubscriber } from "@/features/contest/anticheat/sfuLiveSubscriber";
 import EventIncidentCard from "@/features/contest/components/admin/EventIncidentCard";
-import { buildIncidentScreenshotQuery } from "@/features/contest/components/admin/incidentEvidence";
-import { getEventTypeIcon } from "@/features/contest/constants/eventTaxonomy";
+import IncidentDetail from "@/features/contest/components/admin/IncidentDetail";
 import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
 import {
   createManualProctorEvent,
@@ -35,9 +33,7 @@ import {
   updateParticipant,
 } from "@/infrastructure/api/repositories";
 import {
-  fetchScreenshots,
   getRealtimeSfuPublisher,
-  type ScreenshotFrame,
   type RealtimeSfuPublisherDto,
   type RealtimeSfuSourceModule,
 } from "@/infrastructure/api/repositories/exam.repository";
@@ -61,7 +57,6 @@ const EMPTY_EVENT_FEED: EventFeedItem[] = [];
 const AUTO_REFRESH_MS = 30000;
 const LIVE_STATUS_REFRESH_MS = 10000;
 const MANUAL_EVIDENCE_CAPTURE_INTERVAL_MS = 5000;
-const MANUAL_PROCTOR_EVENT_TYPE = "manual_proctor_note";
 const PANEL_TRANSITION = {
   duration: 0.22,
   ease: [0.2, 0, 0.38, 0.9] as const,
@@ -134,33 +129,6 @@ const formatEventTime = (value: string | number) => {
   return Number.isNaN(time.getTime()) ? "" : time.toLocaleTimeString();
 };
 
-const getEventLabel = (t: TFunction<"contest">, eventType: string) =>
-  eventType === MANUAL_PROCTOR_EVENT_TYPE
-    ? t("proctoringPanel.manualEvidenceEvent", "助教手動採證")
-    : t(`logs.eventTypes.${eventType}`, eventType);
-
-const getClipboardContentItems = (metadata?: Record<string, unknown>) => {
-  const meta = metadata || {};
-  const rawItems = Array.isArray(meta.clipboard_actions)
-    ? meta.clipboard_actions
-    : typeof meta.content === "string" || typeof meta.action === "string"
-      ? [meta]
-      : [];
-
-  return rawItems
-    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item))
-    .map((item, index) => ({
-      id: `${String(item.action || "clipboard")}-${index}`,
-      action: typeof item.action === "string" ? item.action : "clipboard",
-      content: typeof item.content === "string" ? item.content : "",
-      textLength: typeof item.text_length === "number" ? item.text_length : null,
-      lineCount: typeof item.line_count === "number" ? item.line_count : null,
-      truncated: item.content_truncated === true,
-      originalLength: typeof item.original_text_length === "number" ? item.original_text_length : null,
-      capturedLength: typeof item.captured_text_length === "number" ? item.captured_text_length : null,
-    }));
-};
-
 interface ManualEvidenceFrame {
   id: number;
   createdAt: number;
@@ -210,6 +178,7 @@ interface MinimalLiveStageProps {
   participant: ContestParticipant | null;
   discoveryRefreshKey: number;
   lockActionBusy: boolean;
+  monitoringAvailable: boolean;
   manualEvidenceActive: boolean;
   onToggleManualEvidence?: () => void;
   onToggleLock?: () => void;
@@ -221,6 +190,7 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
   participant,
   discoveryRefreshKey,
   lockActionBusy,
+  monitoringAvailable,
   manualEvidenceActive,
   onToggleManualEvidence,
   onToggleLock,
@@ -282,8 +252,11 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
   }, []);
 
   const refreshSessions = useCallback(async () => {
-    if (!contestId || !userId) {
+    if (!contestId || !userId || !monitoringAvailable) {
+      stopAll();
       setPublishers([]);
+      setDiscovering(false);
+      setPanelError("");
       return;
     }
     setDiscovering(true);
@@ -308,7 +281,7 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
     } finally {
       setDiscovering(false);
     }
-  }, [contestId, normalizePublishers, t, userId]);
+  }, [contestId, monitoringAvailable, normalizePublishers, stopAll, t, userId]);
 
   useEffect(() => {
     const nextTargetKey = `${contestId}:${userId ?? ""}`;
@@ -373,13 +346,13 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
   }, [contestId, publishers, t, userId]);
 
   useEffect(() => {
-    if (!participant || discovering) return;
+    if (!participant || discovering || !monitoringAvailable) return;
     availableSources.forEach((source) => {
       const sourceState = sourceStates[source];
       if (sourceState.busy || sourceState.isStreaming || sourceState.errorMessage) return;
       void startSource(source);
     });
-  }, [availableSources, discovering, participant, sourceStates, startSource]);
+  }, [availableSources, discovering, monitoringAvailable, participant, sourceStates, startSource]);
 
   const connectedCount = SOURCE_ORDER.filter((source) => sourceStates[source].isStreaming).length;
   const visibleSources = availableSources;
@@ -451,7 +424,7 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
               ? t("action.loading", "連線中...")
               : connected
                 ? t("liveView.connected", "已連線")
-                : t("action.loading", "連線中...")}
+                : t("proctoringPanel.noSignal", "No signal")}
           </span>
         </div>
         <video
@@ -465,7 +438,7 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
         />
         {!connected ? (
           <div className={styles.blankVideo}>
-            <span>{t("action.loading", "連線中...")}</span>
+            <span>{sourceState.busy ? t("action.loading", "連線中...") : t("proctoringPanel.noSignal", "No signal")}</span>
           </div>
         ) : null}
       </div>
@@ -553,225 +526,18 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
   );
 });
 
-interface EvidenceStripProps {
-  contestId: string;
-  participant: ContestParticipant | null;
-  incident: EventFeedItem | null;
-}
-
-const EvidenceStrip = ({ contestId, participant, incident }: EvidenceStripProps) => {
-  const { t } = useTranslation("contest");
-  const [frames, setFrames] = useState<ScreenshotFrame[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [lightboxUrl, setLightboxUrl] = useState("");
-
-  const incidentKey = incident?.incidentKey ?? "";
-  const eventIcon = useMemo(() => {
-    if (!incident) return null;
-    const Icon = getEventTypeIcon(incident.eventType, incident.priority);
-    return createElement(Icon, { size: 18 });
-  }, [incident]);
-  const clipboardContentItems = useMemo(
-    () => getClipboardContentItems(incident?.metadata),
-    [incident?.metadata],
-  );
-  const incidentSummary = useMemo(() => {
-    if (!incident) return "";
-    const reason = incident.metadata?.reason;
-    const description = incident.metadata?.description;
-    const module = incident.metadata?.module;
-    return [
-      incident.summary,
-      typeof reason === "string" ? reason : "",
-      typeof description === "string" ? description : "",
-      typeof module === "string" ? module : "",
-    ]
-      .filter(Boolean)
-      .join(" · ");
-  }, [incident]);
-
-  useEffect(() => {
-    if (!incident || !participant) {
-      setFrames([]);
-      setError("");
-      return;
-    }
-
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const result = await fetchScreenshots(
-          contestId,
-          buildIncidentScreenshotQuery(incident, {
-            userId: participant.userId,
-          }),
-        );
-        if (!cancelled) setFrames(result.items);
-      } catch (err) {
-        if (!cancelled) {
-          setFrames([]);
-          setError(err instanceof Error ? err.message : t("logs.detail.screenshotError", "截圖載入失敗"));
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [contestId, incident, incidentKey, participant, t]);
-
-  const framesByModule = useMemo(() => {
-    return frames.reduce<Partial<Record<LiveSource, ScreenshotFrame[]>>>((acc, frame) => {
-      const module = frame.source_module === "webcam" ? "webcam" : "screen_share";
-      acc[module] = [...(acc[module] ?? []), frame];
-      return acc;
-    }, {});
-  }, [frames]);
-
-  const renderClipboardContent = () => {
-    if (clipboardContentItems.length === 0) return null;
-    return (
-      <div className={styles.eventContentSection}>
-        <div className={styles.eventContentHeader}>
-          <span>{t("logs.detail.eventContent", "事件內容")}</span>
-          <span>{t("logs.detail.clipboardActionLabel", {
-            defaultValue: "{{count}} 筆剪貼簿操作",
-            count: clipboardContentItems.length,
-          })}</span>
-        </div>
-        <div className={styles.eventContentList}>
-          {clipboardContentItems.map((item) => (
-            <div key={item.id} className={styles.eventContentItem}>
-              <div className={styles.eventContentItemHeader}>
-                <Tag type={item.action === "paste" ? "teal" : "cool-gray"} size="sm">
-                  {item.action}
-                </Tag>
-                <span className={styles.eventContentMeta}>
-                  {item.textLength != null
-                    ? t("logs.detail.clipboardTextLength", {
-                        defaultValue: "{{count}} 字",
-                        count: item.textLength,
-                      })
-                    : null}
-                  {item.lineCount != null
-                    ? t("logs.detail.clipboardLineCount", {
-                        defaultValue: "{{count}} 行",
-                        count: item.lineCount,
-                      })
-                    : null}
-                  {item.truncated && item.originalLength != null && item.capturedLength != null
-                    ? t("logs.detail.contentTruncated", {
-                        defaultValue: "已截斷：{{captured}} / {{original}} 字",
-                        captured: item.capturedLength,
-                        original: item.originalLength,
-                      })
-                    : null}
-                </span>
-              </div>
-              {item.content ? (
-                <pre className={styles.eventContentValue}>{item.content}</pre>
-              ) : (
-                <span className={styles.eventContentEmpty}>
-                  {t("logs.detail.noClipboardContent", "此操作未保存內容")}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  if (!incident) {
-    return (
-      <div className={styles.evidenceStrip}>
-        <div className={styles.evidenceEmpty}>{t("proctoringPanel.noEventSelected", "選擇事件查看截圖證據")}</div>
-      </div>
-    );
-  }
-
-  const hasClipboardContent = clipboardContentItems.length > 0;
-
-  return (
-    <div className={styles.evidenceStrip}>
-      <div className={styles.evidenceHeader}>
-        <div className={styles.evidenceTitle}>
-          {eventIcon}
-          <span>{getEventLabel(t, incident.eventType)}</span>
-        </div>
-        <span className={styles.evidenceMeta}>{formatEventTime(incident.lastAt)}</span>
-      </div>
-      <div className={styles.evidenceBody}>
-        {incidentSummary ? <div className={styles.evidenceSummary}>{incidentSummary}</div> : null}
-        {loading ? <div className={styles.evidenceEmpty}>{t("action.loading", "連線中...")}</div> : null}
-        {error ? <div className={styles.evidenceError}>{error}</div> : null}
-        {!loading && !error && frames.length === 0 ? renderClipboardContent() : null}
-        {frames.length > 0 ? (
-          <div className={styles.evidenceGroups}>
-            {SOURCE_ORDER.map((source) => {
-              const sourceFrames = framesByModule[source] ?? [];
-              if (sourceFrames.length === 0) return null;
-              return (
-                <div className={styles.evidenceGroup} key={source}>
-                  <div className={styles.evidenceGroupHeader}>
-                    {source === "webcam"
-                      ? t("proctoringPanel.sourceWebcam", "Webcam")
-                      : t("proctoringPanel.sourceScreen", "Screen")}
-                  </div>
-                  <div className={styles.evidenceFrames}>
-                    {sourceFrames.map((frame) => (
-                      <button
-                        type="button"
-                        key={`${source}-${frame.ts_ms}-${frame.seq}`}
-                        className={styles.evidenceFrame}
-                        onClick={() => setLightboxUrl(frame.url)}
-                      >
-                        <img src={frame.url} alt={`${source} ${frame.seq}`} loading="lazy" />
-                        <span>{formatEventTime(String(frame.ts_ms))}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : null}
-        {frames.length > 0 ? renderClipboardContent() : null}
-        {!loading && !error && frames.length === 0 && !hasClipboardContent ? (
-          <div className={styles.evidenceEmpty}>{t("logs.detail.noScreenshots", "此事件前後時段無可用原始截圖，建議改看即時監看")}</div>
-        ) : null}
-      </div>
-      {lightboxUrl ? (
-        <div className={styles.lightbox} role="presentation" onClick={() => setLightboxUrl("")}>
-          <button
-            type="button"
-            className={styles.lightboxClose}
-            onClick={(event) => {
-              event.stopPropagation();
-              setLightboxUrl("");
-            }}
-          >
-            x
-          </button>
-          <img src={lightboxUrl} alt="Evidence" />
-        </div>
-      ) : null}
-    </div>
-  );
-};
-
 interface EventTimelinePaneProps {
   events: EventFeedItem[];
   loading: boolean;
   error: string;
   selectedKey: string;
+  selectedIncident: EventFeedItem | null;
+  contestId: string;
+  participant: ContestParticipant | null;
+  detailOpen: boolean;
+  reducedMotion: boolean;
   onSelect: (event: EventFeedItem) => void;
+  onCloseDetail: () => void;
 }
 
 const EventTimelinePane = ({
@@ -779,7 +545,13 @@ const EventTimelinePane = ({
   loading,
   error,
   selectedKey,
+  selectedIncident,
+  contestId,
+  participant,
+  detailOpen,
+  reducedMotion,
   onSelect,
+  onCloseDetail,
 }: EventTimelinePaneProps) => {
   const { t } = useTranslation("contest");
 
@@ -806,6 +578,28 @@ const EventTimelinePane = ({
           );
         })}
       </div>
+      <AnimatePresence initial={false}>
+        {detailOpen && selectedIncident ? (
+          <motion.div
+            key={selectedIncident.incidentKey}
+            className={styles.eventDetailDrawer}
+            initial={reducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 32 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={reducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 32 }}
+            transition={reducedMotion ? { duration: 0 } : PANEL_TRANSITION}
+          >
+            <IncidentDetail
+              contestId={contestId}
+              userId={participant?.userId}
+              incident={selectedIncident}
+              evidenceLayout="list"
+              showHeader
+              showMetadata={false}
+              onClose={onCloseDetail}
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </aside>
   );
 };
@@ -954,6 +748,7 @@ export default function AdminProctoringPanel({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [rosterPaneOpen, setRosterPaneOpen] = useState(true);
   const [eventsPaneOpen, setEventsPaneOpen] = useState(true);
+  const [eventDetailOpen, setEventDetailOpen] = useState(false);
   const [lastSeenEventAt, setLastSeenEventAt] = useState(0);
   const [dashboard, setDashboard] = useState<ParticipantDashboard | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
@@ -1300,6 +1095,7 @@ export default function AdminProctoringPanel({
 
   useEffect(() => {
     setLastSeenEventAt(Date.now());
+    setEventDetailOpen(false);
   }, [selectedUserId]);
 
   useEffect(() => {
@@ -1360,7 +1156,6 @@ export default function AdminProctoringPanel({
           attentionLevel === "medium" && styles.rosterItemMedium,
           attentionLevel === "high" && styles.rosterItemHigh,
         ].filter(Boolean).join(" ")}
-        disabled={!inExamWindow}
         onClick={() => updateParams({ user: participant.userId })}
       >
         <span className={styles.rosterStatusIcon}>
@@ -1483,7 +1278,7 @@ export default function AdminProctoringPanel({
           {showRosterPane ? (
             <motion.aside
               key="roster"
-              className={`${styles.rosterPane} ${!inExamWindow ? styles.rosterPaneDisabled : ""}`}
+              className={styles.rosterPane}
               initial={prefersReducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: -24 }}
               animate={{ opacity: 1, x: 0 }}
               exit={prefersReducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: -24 }}
@@ -1515,53 +1310,49 @@ export default function AdminProctoringPanel({
             }}
             transition={panelTransition}
           >
-            {inExamWindow ? (
-              <>
-                <div className={styles.monitorColumn}>
-                  <MinimalLiveStage
-                    ref={liveStageRef}
+            <div className={styles.monitorColumn}>
+              <MinimalLiveStage
+                ref={liveStageRef}
+                contestId={contestId}
+                participant={selectedParticipant}
+                discoveryRefreshKey={liveDiscoveryRefreshKey}
+                lockActionBusy={lockActionBusy}
+                monitoringAvailable={inExamWindow}
+                manualEvidenceActive={manualEvidenceStartedAt !== null}
+                onToggleManualEvidence={selectedParticipant && inExamWindow ? handleToggleManualEvidence : undefined}
+                onToggleLock={selectedParticipant ? handleToggleSelectedParticipantLock : undefined}
+                onBackToRoster={isMobile ? () => updateParams({ user: null }) : undefined}
+              />
+            </div>
+            <AnimatePresence initial={false}>
+              {showEventsPane ? (
+                <motion.div
+                  key="events"
+                  className={styles.eventsMotionSlot}
+                  initial={prefersReducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={prefersReducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 24 }}
+                  transition={panelTransition}
+                >
+                  <EventTimelinePane
+                    events={eventFeed}
+                    loading={dashboardLoading}
+                    error={dashboardError}
+                    selectedKey={selectedIncident?.incidentKey ?? ""}
+                    selectedIncident={selectedIncident}
                     contestId={contestId}
                     participant={selectedParticipant}
-                    discoveryRefreshKey={liveDiscoveryRefreshKey}
-                    lockActionBusy={lockActionBusy}
-                    manualEvidenceActive={manualEvidenceStartedAt !== null}
-                    onToggleManualEvidence={selectedParticipant ? handleToggleManualEvidence : undefined}
-                    onToggleLock={selectedParticipant ? handleToggleSelectedParticipantLock : undefined}
-                    onBackToRoster={isMobile ? () => updateParams({ user: null }) : undefined}
+                    detailOpen={eventDetailOpen}
+                    reducedMotion={!!prefersReducedMotion}
+                    onCloseDetail={() => setEventDetailOpen(false)}
+                    onSelect={(event) => {
+                      setSelectedIncidentKey(event.incidentKey);
+                      setEventDetailOpen(true);
+                    }}
                   />
-                  <EvidenceStrip
-                    contestId={contestId}
-                    participant={selectedParticipant}
-                    incident={selectedIncident}
-                  />
-                </div>
-                <AnimatePresence initial={false}>
-                  {showEventsPane ? (
-                    <motion.div
-                      key="events"
-                      className={styles.eventsMotionSlot}
-                      initial={prefersReducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 24 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={prefersReducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 24 }}
-                      transition={panelTransition}
-                    >
-                      <EventTimelinePane
-                        events={eventFeed}
-                        loading={dashboardLoading}
-                        error={dashboardError}
-                        selectedKey={selectedIncident?.incidentKey ?? ""}
-                        onSelect={(event) => setSelectedIncidentKey(event.incidentKey)}
-                      />
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
-              </>
-            ) : (
-              <div className={styles.unavailableState}>
-                <h3>{t("proctoringPanel.outOfWindowTitle", "目前非考試時段")}</h3>
-                <p>{t("proctoringPanel.outOfWindowBody", "監控功能無法使用。")}</p>
-              </div>
-            )}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </motion.section>
         ) : null}
       </motion.div>

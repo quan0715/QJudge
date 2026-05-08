@@ -3,6 +3,7 @@ import type { EventFeedItem } from "@/core/entities/contest.entity";
 import {
   buildIncidentScreenshotQuery,
   getIncidentEvidenceFrameCount,
+  shouldFetchIncidentScreenshots,
 } from "./incidentEvidence";
 
 const baseIncident: EventFeedItem = {
@@ -104,5 +105,48 @@ describe("incidentEvidence", () => {
     ).toBe(9);
 
     expect(getIncidentEvidenceFrameCount({ forced_capture_uploaded: true })).toBe(1);
+  });
+
+  it("fetches attendance evidence without applying screenshot time windows", () => {
+    const params = buildIncidentScreenshotQuery(
+      {
+        ...baseIncident,
+        eventType: "attendance_check_in",
+        metadata: {
+          evidence_cluster_id: "attendance-62190",
+          module: "attendance",
+        },
+      },
+      { userId: "7" },
+    );
+
+    expect(params).toMatchObject({
+      user_id: "7",
+      event_id: "event-1",
+      evidence_cluster_id: "attendance-62190",
+      source_module: "attendance",
+    });
+    expect(params.ts_from).toBeUndefined();
+    expect(params.ts_to).toBeUndefined();
+    expect(
+      shouldFetchIncidentScreenshots({
+        ...baseIncident,
+        eventType: "attendance_check_in",
+        metadata: {
+          evidence_cluster_id: "attendance-62190",
+          module: "attendance",
+        },
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldFetchIncidentScreenshots({
+        ...baseIncident,
+        metadata: {
+          evidence_cluster_id: "attendance-62190",
+          module: "screen_share",
+        },
+      }),
+    ).toBe(true);
   });
 });
