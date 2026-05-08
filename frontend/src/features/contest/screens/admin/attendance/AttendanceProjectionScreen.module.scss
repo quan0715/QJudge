@@ -68,24 +68,19 @@
 
 .leftPanel {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  align-content: stretch;
+  place-items: center;
+  padding: 2rem;
   border-right: 1px solid var(--cds-border-subtle);
   min-height: 0;
   overflow: hidden;
 }
 
-.block,
-.countdownBlock {
-  min-height: 0;
-  padding: 2rem;
-  overflow: hidden;
-  border-bottom: 1px solid var(--cds-border-subtle);
-}
-
-.block {
-  display: flex;
-  flex-direction: column;
+.statusBlock {
+  width: min(100%, 42rem);
+  display: grid;
+  justify-items: center;
+  gap: clamp(3rem, 8vh, 6rem);
+  text-align: center;
 }
 
 .blockLabel {
@@ -95,75 +90,26 @@
 }
 
 .title {
-  font-size: 3rem;
-  line-height: 1.12;
-  margin: 0 0 1rem;
-}
-
-.description {
-  color: var(--cds-text-secondary);
-  font-size: 1rem;
-  line-height: 1.5;
-  margin: 0 0 1.5rem;
-}
-
-.infoGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: auto;
-  border-top: 1px solid var(--cds-border-subtle);
-  border-left: 1px solid var(--cds-border-subtle);
-}
-
-.infoItem {
-  display: grid;
-  gap: 0.5rem;
-  padding: 1rem;
-  border-right: 1px solid var(--cds-border-subtle);
-  border-bottom: 1px solid var(--cds-border-subtle);
-}
-
-.infoItem span {
-  color: var(--cds-text-secondary);
-  font-size: 0.875rem;
-}
-
-.infoItem strong {
-  font-size: 1.125rem;
+  font-size: clamp(3rem, 5vw, 5.25rem);
+  line-height: 1.05;
+  margin: 0;
   font-weight: 600;
 }
 
-.countdownBlock {
+.examTitleGroup,
+.countdownGroup,
+.progressGroup {
   display: grid;
-  border-bottom: 0;
-}
-
-.countdownMain {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
   gap: 1rem;
-  min-height: 0;
-}
-
-.countdownRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 2rem;
-  align-items: flex-end;
-  align-self: center;
+  width: 100%;
+  justify-items: center;
 }
 
 .countdown {
   font-variant-numeric: tabular-nums;
-  font-size: 4.5rem;
+  font-size: clamp(5rem, 8vw, 8.5rem);
   line-height: 1;
   font-weight: 600;
-}
-
-.countdownTone {
-  color: var(--cds-text-secondary);
-  font-size: 1rem;
-  padding-bottom: 0.5rem;
 }
 
 .progressTrack {
@@ -178,6 +124,29 @@
   height: 100%;
   background: var(--cds-link-primary);
   transition: width 320ms ease;
+}
+
+.progressEndpoints {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.9375rem;
+}
+
+.progressEndpoints span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progressEndpoints i {
+  width: 0.5rem;
+  height: 0.5rem;
+  display: block;
+  background: var(--cds-text-secondary);
+  border-radius: 999px;
 }
 
 .qrGrid {
@@ -323,7 +292,7 @@
   }
 
   .leftPanel {
-    grid-template-rows: auto auto;
+    padding: 2rem;
     border-right: 0;
     overflow: visible;
   }
@@ -339,14 +308,6 @@
 
   .title {
     font-size: 2.25rem;
-  }
-
-  .countdownBlock {
-    display: grid;
-  }
-
-  .countdownRow {
-    display: grid;
   }
 
   .countdown {

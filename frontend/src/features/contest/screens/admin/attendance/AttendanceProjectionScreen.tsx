@@ -80,12 +80,6 @@ function getCountdownProgress(contest: ContestDetail | null | undefined, now: nu
   return Math.round(((now - start) / (end - start)) * 100);
 }
 
-function getTotalDuration(contest: ContestDetail | null | undefined): string {
-  const { start, end } = getExamWindow(contest);
-  if (start == null || end == null || end <= start) return "--";
-  return formatDuration(end - start);
-}
-
 function useNow() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -139,47 +133,33 @@ function useProjectionTokens(contestId: string | undefined) {
   return { tokens, errors };
 }
 
-function ContestInfoBlock({ contest }: { contest: ContestDetail | null | undefined }) {
-  const rows = [
-    ["開始時間", formatDateTime(contest?.startTime) || "--"],
-    ["截止時間", formatDateTime(contest?.endTime) || "--"],
-    ["總時長", getTotalDuration(contest)],
-    ["考試類型", contest?.contestType === "paper_exam" ? "考卷" : "程式競賽"],
-  ];
-
-  return (
-    <section className={styles.block}>
-      <div className={styles.blockLabel}>競賽資訊</div>
-      <h1 className={styles.title}>{contest?.name || "Exam"}</h1>
-      {contest?.description ? <p className={styles.description}>{contest.description}</p> : null}
-      <div className={styles.infoGrid}>
-        {rows.map(([label, value]) => (
-          <div className={styles.infoItem} key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function CountdownBlock({ contest }: { contest: ContestDetail | null | undefined }) {
+function ExamStatusBlock({ contest }: { contest: ContestDetail | null | undefined }) {
   const now = useNow();
   const countdown = getCountdown(contest, now);
   const progress = getCountdownProgress(contest, now);
   return (
-    <section className={styles.countdownBlock}>
-      <div className={styles.countdownMain}>
-        <div className={styles.countdownRow}>
-          <div>
-            <div className={styles.blockLabel}>{countdown.label}</div>
-            <div className={styles.countdown}>{countdown.value}</div>
-          </div>
-          <div className={styles.countdownTone}>{countdown.tone}</div>
-        </div>
+    <section className={styles.statusBlock}>
+      <div className={styles.examTitleGroup}>
+        <div className={styles.blockLabel}>考試</div>
+        <h1 className={styles.title}>{contest?.name || "Exam"}</h1>
+      </div>
+      <div className={styles.countdownGroup}>
+        <div className={styles.blockLabel}>{countdown.label}</div>
+        <div className={styles.countdown}>{countdown.value}</div>
+      </div>
+      <div className={styles.progressGroup}>
         <div className={styles.progressTrack} aria-label={`考試進度 ${progress}%`}>
           <span style={{ width: `${progress}%` }} />
+        </div>
+        <div className={styles.progressEndpoints}>
+          <span>
+            <i aria-hidden="true" />
+            {formatDateTime(contest?.startTime) || "--"}
+          </span>
+          <span>
+            {formatDateTime(contest?.endTime) || "--"}
+            <i aria-hidden="true" />
+          </span>
         </div>
       </div>
     </section>
@@ -334,8 +314,7 @@ export default function AttendanceProjectionScreen() {
       ) : null}
       <div className={styles.body}>
         <div className={styles.leftPanel}>
-          <ContestInfoBlock contest={contest} />
-          <CountdownBlock contest={contest} />
+          <ExamStatusBlock contest={contest} />
         </div>
         <div className={styles.qrGrid} data-mode={displayMode}>
           {renderQr(displayMode)}
