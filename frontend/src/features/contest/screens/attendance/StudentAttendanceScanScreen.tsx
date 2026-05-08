@@ -54,12 +54,12 @@ async function captureBlob(video: HTMLVideoElement): Promise<Blob> {
   canvas.width = video.videoWidth || 1280;
   canvas.height = video.videoHeight || 720;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Camera capture is not available");
+  if (!ctx) throw new Error("camera_capture_unavailable");
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);
-      else reject(new Error("Failed to capture photo"));
+      else reject(new Error("photo_capture_failed"));
     }, "image/webp", 0.9);
   });
 }
@@ -109,9 +109,7 @@ function getAttendanceSubmitErrorMessage(
       "此考試尚未開啟 QR Code 簽到簽退。",
     );
   }
-  return error instanceof Error
-    ? error.message
-    : tr("attendance.errors.submitFailed", "Attendance submit failed");
+  return tr("attendance.errors.submitFailed", "簽到資料送出失敗，請稍後再試。");
 }
 
 function getPurposeLabel(
@@ -235,7 +233,7 @@ export default function StudentAttendanceScanScreen() {
         "attendance.errors.cameraUnsupported",
         "此瀏覽器不支援相機存取，請改由教師協助簽到。",
       ),
-      unavailable: t("attendance.errors.cameraUnavailable", "Camera is not available"),
+      unavailable: t("attendance.errors.cameraUnavailable", "相機無法使用"),
     },
   });
   const { videoRef, setVideoElement, streamRef, cameraState, cameraError } = camera;
@@ -296,7 +294,7 @@ export default function StudentAttendanceScanScreen() {
     void getContest(contestId).then((contest) => {
       if (cancelled || !contest) return;
       setPhotoPolicy(contest.attendancePhotoPolicy || "room");
-      setContestTitle(contest.title || "");
+      setContestTitle(contest.name || "");
       if (!requestedPurpose) {
         if (contest.attendanceStatus?.canCheckOut) setExpectedPurpose("check_out");
         else if (contest.attendanceStatus?.canCheckIn) setExpectedPurpose("check_in");
@@ -353,11 +351,7 @@ export default function StudentAttendanceScanScreen() {
       setPhotoUrls((prev) => ({ ...prev, [currentPhoto.id]: URL.createObjectURL(blob) }));
       setReviewPhotoKind(currentPhoto.id);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t("attendance.errors.capturePhotoFailed", "Failed to capture photo"),
-      );
+      setError(t("attendance.errors.capturePhotoFailed", "照片擷取失敗，請重新拍攝。"));
     }
   }, [currentPhoto.id, haptics, photoUrls, t, videoRef]);
 
@@ -440,8 +434,8 @@ export default function StudentAttendanceScanScreen() {
       setError(t("attendance.errors.missingPurpose", "請先從競賽主頁選擇簽到或簽退。"));
       return;
     }
-    if (normalized.length !== 8) {
-      setError(t("attendance.errors.manualCodeLength", "請輸入投影畫面上的 8 碼代碼。"));
+    if (normalized.length !== 6) {
+      setError(t("attendance.errors.manualCodeLength", "請輸入投影畫面上的 6 碼代碼。"));
       return;
     }
     setPendingScan({ purpose: expectedPurpose, manualCode: normalized });
@@ -489,7 +483,7 @@ export default function StudentAttendanceScanScreen() {
         throw new Error(
           t(
             "attendance.errors.uploadIntentIncomplete",
-            "Upload intent did not include all required photos",
+            "上傳工作未包含所有必要照片，請重新送出。",
           ),
         );
       }
@@ -504,7 +498,7 @@ export default function StudentAttendanceScanScreen() {
           body: photo.blob,
         });
         if (!response.ok) {
-          throw new Error(t("attendance.errors.photoUploadFailed", "Photo upload failed"));
+          throw new Error(t("attendance.errors.photoUploadFailed", "照片上傳失敗，請重新送出。"));
         }
         confirmed.push({
           evidence_frame_id: item.evidence_frame_id,

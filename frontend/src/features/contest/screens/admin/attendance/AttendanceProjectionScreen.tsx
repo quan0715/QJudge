@@ -265,7 +265,7 @@ export default function AttendanceProjectionScreen() {
   const { contest } = useContest();
   const { tokens, errors } = useProjectionTokens(
     contestId,
-    t("attendance.projection.refreshFailed", "Failed to refresh QR code"),
+    t("attendance.projection.refreshFailed", "QR Code 重新載入失敗"),
   );
   const [displayMode, setDisplayMode] = useState<ProjectionDisplayMode>("check_in");
   const [fullscreenActive, setFullscreenActive] = useState(() => isFullscreen());
@@ -330,7 +330,7 @@ export default function AttendanceProjectionScreen() {
               includeMargin
             />
           ) : (
-            <div className={styles.qrPlaceholder}>{t("attendance.projection.loading", "Loading")}</div>
+            <div className={styles.qrPlaceholder}>{t("attendance.projection.loading", "載入中")}</div>
           )}
         </div>
         <div className={styles.manualCodeBlock}>

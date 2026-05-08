@@ -60,7 +60,9 @@
       "strictModeEnableBody": "This will apply pre-checks, monitoring sources, and anomaly event logging.",
       "strictModeEnableConfirm": "Enable anti-cheat monitoring?",
       "strictModeEnableSuccess": "Anti-cheat monitoring enabled",
-      "updateFailed": "Update failed"
+      "updateFailed": "Update failed",
+      "disableAttendanceCheck": "Disable check-in",
+      "enableAttendanceCheck": "Enable check-in"
     },
     "command": {
       "ariaLabel": "Teacher admin overview",
@@ -284,7 +286,8 @@
         "exporting": "Exporting",
         "refresh": "Refresh",
         "refreshing": "Refreshing",
-        "settings": "Contest settings"
+        "settings": "Contest settings",
+        "attendanceProjection": "Open attendance projection"
       },
       "contestInfoLabel": "Contest info",
       "contestStatus": {
@@ -346,7 +349,8 @@
       "timelineProgress": "Time progress",
       "title": "Command Center",
       "violationCount": "Anomaly events",
-      "violationCountAria": "Anomaly events, go to event panel"
+      "violationCountAria": "Anomaly events, go to event panel",
+      "attendanceCheck": "QR check-in/out"
     }
   },
   "adminPreparationDashboard": {
@@ -544,7 +548,9 @@
       "cannotComputeEndTime": "Cannot compute end time, please check start time and duration",
       "durationPositive": "Duration must be greater than 0 minutes",
       "passwordRequired": "A join password is required when password protection is enabled"
-    }
+    },
+    "attendanceTitle": "QR check-in/out",
+    "attendanceHint": "When enabled, students must complete QR check-in on the contest home page before starting the exam."
   },
   "dashboard": {
     "acceptedRate": "AC Rate",
@@ -1286,7 +1292,8 @@
       "edit": "Edit Status",
       "remove": "Remove Participant",
       "reopen": "Reopen Exam",
-      "unlock": "Unlock"
+      "unlock": "Unlock",
+      "resetAttendance": "Reset attendance records"
     },
     "add": "Add",
     "addFailed": "Failed to add participant",
@@ -1357,7 +1364,10 @@
     "unlocked": "Unlocked",
     "updateFailed": "Update failed",
     "viewModeLabel": "Participant view mode",
-    "viewTitle": "View Participants"
+    "viewTitle": "View Participants",
+    "confirmResetAttendance": "Reset this student’s attendance test records? This only clears check-in/check-out events and evidence; answer records are not affected.",
+    "attendanceReset": "Attendance records reset",
+    "attendanceResetFailed": "Failed to reset attendance records"
   },
   "participantsAdmin": {
     "add": "Add",
@@ -1704,7 +1714,17 @@
     "title": "Contest Settings",
     "updateFailed": "Update failed, please check fields",
     "updated": "Settings updated",
-    "warningCooldown": "Warning Cooldown (sec)"
+    "warningCooldown": "Warning Cooldown (sec)",
+    "attendanceCheck": {
+      "label": "QR check-in/out",
+      "description": "When enabled, students must scan a QR Code on the contest home page and submit room photos before starting the exam."
+    },
+    "attendancePhotoPolicy": {
+      "label": "Attendance evidence photos",
+      "description": "Require either a room photo, or both a room photo and an attendance selfie.",
+      "room": "Rear-camera room photo",
+      "roomAndSelfie": "Front-camera selfie + rear-camera room photo"
+    }
   },
   "standings": {
     "icpcRules": "Ranking Rules: Rankings are based on total score first, then number of problems solved, finally penalty time (solve time + 20 min per wrong attempt).",
@@ -1859,7 +1879,9 @@
       "empty": "No additional rules.",
       "noPassword": "This contest does not require a password.",
       "requiresPassword": "This contest requires a password.",
-      "title": "Rules"
+      "title": "Rules",
+      "attendanceRequired": "This exam requires QR check-in before you can start answering.",
+      "defaultDescription": "No additional rules."
     },
     "submitConfirm": {
       "body": "You will not be able to change answers after submitting.",
@@ -1878,6 +1900,12 @@
       "ariaLabel": "Contest information tabs",
       "records": "Answer records",
       "rules": "Rules"
+    },
+    "attendance": {
+      "checkIn": "Go to check-in",
+      "recheckIn": "Check in again",
+      "checkOut": "Go to check-out",
+      "recheckOut": "Check out again"
     }
   },
   "studentStatus": {
@@ -1944,5 +1972,157 @@
   "validation": {
     "endBeforeStart": "End time must be after start time",
     "invalidDateTime": "Please select valid start and end times"
+  },
+  "attendance": {
+    "badge": "QR Attendance",
+    "purpose": {
+      "checkIn": "Check-in",
+      "checkOut": "Check-out"
+    },
+    "shell": {
+      "back": "Back"
+    },
+    "scan": {
+      "title": "Scan QR Code",
+      "description": "Point your camera at the {{purpose}} QR Code on the projection screen.",
+      "cannotComplete": "Unable to complete attendance",
+      "validating": "Validating…",
+      "waitingCamera": "Waiting for camera permission",
+      "alignQr": "Align with the projected QR Code"
+    },
+    "manual": {
+      "title": "Enter {{purpose}} code",
+      "description": "Enter the 6-digit code shown below the QR Code on the teacher projection.",
+      "cannotContinue": "Cannot continue",
+      "codeAriaLabel": "{{purpose}} code",
+      "digitAriaLabel": "Digit {{index}}"
+    },
+    "photo": {
+      "cannotComplete": "Unable to complete photo capture",
+      "cameraUnavailable": "Camera is not available",
+      "alignTarget": "Align {{label}}",
+      "qrVerifiedChip": "QR verified · {{contest}}",
+      "readyChip": "Photos ready · {{contest}}",
+      "nextStepPhoto": "Next: {{title}}",
+      "nextStepConfirm": "Next: confirm attendance details and upload",
+      "captureLabel": "Capture {{label}}",
+      "room": {
+        "label": "Room photo",
+        "title": "Capture room photo",
+        "description": "Capture the classroom environment and exam device screen.",
+        "rearDescription": "Use the rear camera to capture the classroom environment and exam device screen."
+      },
+      "selfie": {
+        "label": "Selfie",
+        "title": "Capture attendance selfie",
+        "description": "Use the front camera to capture your attendance selfie."
+      }
+    },
+    "confirm": {
+      "title": "Confirm {{purpose}} details",
+      "description": "Upload after confirming the details and photos are clear.",
+      "uploadFailed": "Upload failed",
+      "infoLabel": "Attendance details",
+      "type": "Type",
+      "scannedAt": "Scanned at",
+      "photoStatus": "Photo status",
+      "photosLabel": "Evidence photos",
+      "photoPreviewAlt": "{{label}} preview"
+    },
+    "done": {
+      "title": "{{purpose}} verified",
+      "description": "The system has recorded your {{purpose}} event.",
+      "resultLabel": "Attendance result",
+      "contest": "Contest",
+      "time": "Time",
+      "status": "Status",
+      "uploaded": "Uploaded",
+      "photosLabel": "Evidence photos"
+    },
+    "header": {
+      "done": "{{purpose}} complete",
+      "manual": "Enter {{purpose}} code",
+      "photo": "Capture {{purpose}} photos",
+      "confirm": "Confirm {{purpose}}",
+      "auth": "{{purpose}} verification"
+    },
+    "cta": {
+      "waitingCamera": "Waiting for camera…",
+      "retryCamera": "Retry camera",
+      "validating": "Validating…",
+      "realignment": "Realign",
+      "scanning": "Scanning…",
+      "next": "Next",
+      "capturePurposePhoto": "Capture {{purpose}} photo",
+      "nextPhoto": "Next photo",
+      "confirmInfo": "Confirm details",
+      "retryUpload": "Retry upload",
+      "uploading": "Uploading…",
+      "confirmUpload": "Confirm and upload",
+      "backToExam": "Back to exam",
+      "manualCode": "Enter code manually",
+      "backToScan": "Back to scan",
+      "retake": "Retake",
+      "retakePhotos": "Retake photos"
+    },
+    "errors": {
+      "checkoutAfterSubmit": "You can check out only after submitting the exam.",
+      "checkInOnlyBeforeStart": "You have started or completed the exam and can no longer check in. Scan the check-out QR Code if you need to leave.",
+      "notCheckInTime": "Check-in is not available right now.",
+      "tokenExpired": "The QR Code has expired. Scan the latest QR Code on the projection screen.",
+      "invalidToken": "The QR Code is invalid. Scan the latest QR Code on the projection screen.",
+      "invalidManualCode": "The code is invalid or expired. Enter the latest code from the projection screen.",
+      "notEnabled": "QR attendance is not enabled for this exam.",
+      "submitFailed": "Failed to submit attendance. Please try again later.",
+      "cameraUnsupported": "This browser does not support camera access. Ask the teacher for attendance assistance.",
+      "cameraUnavailable": "Camera is not available",
+      "wrongPurposeQr": "This is a {{actual}} QR Code. Scan the {{expected}} QR Code.",
+      "capturePhotoFailed": "Failed to capture the photo. Please retake it.",
+      "missingPurpose": "Choose check-in or check-out from the contest home page first.",
+      "manualCodeLength": "Enter the 6-digit code shown on the projection screen.",
+      "photoMissing": "{{label}} has not been captured yet",
+      "uploadIntentIncomplete": "The upload task did not include all required photos. Please submit again.",
+      "photoUploadFailed": "Photo upload failed. Please submit again."
+    },
+    "projection": {
+      "title": "Exam check-in/out",
+      "examLabel": "Exam",
+      "examFallback": "Exam",
+      "progress": "Exam progress",
+      "progressAria": "Exam progress {{progress}}%",
+      "loading": "Loading",
+      "manualCodeLabel": "Enter this code if the camera is unavailable",
+      "reloadQr": "Reloading QR Code",
+      "backToAdmin": "Back to admin",
+      "enterFullscreen": "Enter fullscreen",
+      "exitFullscreen": "Exit fullscreen",
+      "refreshFailed": "Failed to refresh QR Code",
+      "unstableTitle": "QR loading is unstable",
+      "unstableSubtitle": "The system keeps the last usable QR Code and continues reloading.",
+      "mode": {
+        "ariaLabel": "Switch check-in/check-out QR Code"
+      },
+      "countdown": {
+        "exam": "Exam countdown",
+        "unset": "Time not set",
+        "startsIn": "Starts in",
+        "openCheckIn": "Check-in open",
+        "endsIn": "Ends in",
+        "running": "Exam in progress",
+        "ended": "Exam ended",
+        "endedTone": "Ended"
+      },
+      "marker": {
+        "start": "Start",
+        "now": "Now",
+        "end": "End"
+      },
+      "guide": {
+        "scan": "Scan QR Code",
+        "photo": "Capture room photo",
+        "upload": "Confirm and upload",
+        "ariaLabel": "Attendance guide"
+      }
+    }
   }
 }

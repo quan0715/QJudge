@@ -60,7 +60,9 @@
       "strictModeEnableBody": "啟用後會套用考前檢查、監考來源與異常事件記錄。",
       "strictModeEnableConfirm": "確定要啟用防作弊監控嗎？",
       "strictModeEnableSuccess": "已啟用防作弊監控",
-      "updateFailed": "更新失敗"
+      "updateFailed": "更新失敗",
+      "disableAttendanceCheck": "停用簽到",
+      "enableAttendanceCheck": "啟用簽到"
     },
     "command": {
       "ariaLabel": "教師管理總覽",
@@ -284,7 +286,8 @@
         "exporting": "匯出中",
         "refresh": "重新整理",
         "refreshing": "重新整理中",
-        "settings": "競賽設定"
+        "settings": "競賽設定",
+        "attendanceProjection": "開啟簽到投屏"
       },
       "contestInfoLabel": "競賽資訊",
       "contestStatus": {
@@ -346,7 +349,8 @@
       "timelineProgress": "時間進度",
       "title": "控制台",
       "violationCount": "異常事件數",
-      "violationCountAria": "異常事件數 前往事件面板"
+      "violationCountAria": "異常事件數 前往事件面板",
+      "attendanceCheck": "QR 簽到簽退"
     }
   },
   "adminPreparationDashboard": {
@@ -544,7 +548,9 @@
       "cannotComputeEndTime": "無法計算結束時間，請檢查開始時間與比賽長度",
       "durationPositive": "比賽長度必須是大於 0 的分鐘數",
       "passwordRequired": "需要密碼時必須設定加入密碼"
-    }
+    },
+    "attendanceTitle": "QR 簽到簽退",
+    "attendanceHint": "啟用後，學生需在競賽主頁完成 QR 簽到後才能開始考試。"
   },
   "dashboard": {
     "acceptedRate": "通過率",
@@ -1286,7 +1292,8 @@
       "edit": "編輯狀態",
       "remove": "移除參賽者",
       "reopen": "重新開放考試",
-      "unlock": "解除鎖定"
+      "unlock": "解除鎖定",
+      "resetAttendance": "重置簽到測試紀錄"
     },
     "add": "新增",
     "addFailed": "新增參賽者失敗",
@@ -1357,7 +1364,10 @@
     "unlocked": "已解除鎖定",
     "updateFailed": "更新失敗",
     "viewModeLabel": "參賽者檢視模式",
-    "viewTitle": "檢視參與者"
+    "viewTitle": "檢視參與者",
+    "confirmResetAttendance": "確定要重置此學生的簽到測試紀錄嗎？這只會清除簽到/簽退事件與佐證，不會影響作答紀錄。",
+    "attendanceReset": "已重置簽到測試紀錄",
+    "attendanceResetFailed": "重置簽到測試紀錄失敗"
   },
   "participantsAdmin": {
     "add": "新增",
@@ -1704,7 +1714,17 @@
     "title": "競賽設定",
     "updateFailed": "更新失敗，請檢查欄位",
     "updated": "設定已更新",
-    "warningCooldown": "警告訊息停留時長 (秒)"
+    "warningCooldown": "警告訊息停留時長 (秒)",
+    "attendanceCheck": {
+      "label": "QR 簽到簽退",
+      "description": "啟用後學生需先在競賽主頁掃描 QR Code 並提交現場照片，完成簽到後才能開始考試。"
+    },
+    "attendancePhotoPolicy": {
+      "label": "簽到佐證照片",
+      "description": "可要求學生拍攝現場環境，或現場環境與本人到場照片各一張。",
+      "room": "後鏡頭現場照片",
+      "roomAndSelfie": "前鏡頭本人 + 後鏡頭現場"
+    }
   },
   "standings": {
     "icpcRules": "排名規則：優先依據總分，其次為解題數，最後為總罰時（解題時間 + 20分鐘/錯誤嘗試）。",
@@ -1859,7 +1879,9 @@
       "empty": "沒有額外規則。",
       "noPassword": "此競賽不需要密碼。",
       "requiresPassword": "此競賽需要密碼。",
-      "title": "規則說明"
+      "title": "規則說明",
+      "attendanceRequired": "本考試需要完成 QR 簽到後才能開始作答。",
+      "defaultDescription": "沒有額外規則。"
     },
     "submitConfirm": {
       "body": "交卷後將無法繼續修改答案。",
@@ -1878,6 +1900,12 @@
       "ariaLabel": "競賽資訊切換",
       "records": "作答紀錄",
       "rules": "規則說明"
+    },
+    "attendance": {
+      "checkIn": "前往簽到",
+      "recheckIn": "重新簽到",
+      "checkOut": "前往簽退",
+      "recheckOut": "重新簽退"
     }
   },
   "studentStatus": {
@@ -1944,5 +1972,157 @@
   "validation": {
     "endBeforeStart": "結束時間必須晚於開始時間",
     "invalidDateTime": "請選擇有效的開始和結束時間"
+  },
+  "attendance": {
+    "badge": "QR 簽到",
+    "purpose": {
+      "checkIn": "簽到",
+      "checkOut": "簽退"
+    },
+    "shell": {
+      "back": "返回"
+    },
+    "scan": {
+      "title": "掃描 QR Code",
+      "description": "請對準投影畫面上的{{purpose}} QR Code。",
+      "cannotComplete": "無法完成簽到",
+      "validating": "驗證中…",
+      "waitingCamera": "等待相機授權",
+      "alignQr": "對準投影上的 QR Code"
+    },
+    "manual": {
+      "title": "輸入{{purpose}}代碼",
+      "description": "請輸入教師投影畫面上 QR Code 下方的 6 碼數字代碼。",
+      "cannotContinue": "無法繼續",
+      "codeAriaLabel": "{{purpose}}代碼",
+      "digitAriaLabel": "第 {{index}} 碼"
+    },
+    "photo": {
+      "cannotComplete": "無法完成拍照",
+      "cameraUnavailable": "相機無法使用",
+      "alignTarget": "對準{{label}}",
+      "qrVerifiedChip": "QR 已認證 · {{contest}}",
+      "readyChip": "照片已就緒 · {{contest}}",
+      "nextStepPhoto": "下一步：{{title}}",
+      "nextStepConfirm": "下一步：確認簽到資訊並上傳",
+      "captureLabel": "拍攝{{label}}",
+      "room": {
+        "label": "現場照片",
+        "title": "拍攝現場照片",
+        "description": "請拍攝教室環境與考試裝置畫面。",
+        "rearDescription": "請使用後鏡頭拍攝教室環境與考試裝置畫面。"
+      },
+      "selfie": {
+        "label": "本人照片",
+        "title": "拍攝本人到場照片",
+        "description": "請使用前鏡頭拍攝本人到場照片。"
+      }
+    },
+    "confirm": {
+      "title": "確認{{purpose}}資訊",
+      "description": "確認資訊與照片清楚後即可上傳。",
+      "uploadFailed": "上傳失敗",
+      "infoLabel": "簽到資訊",
+      "type": "類型",
+      "scannedAt": "掃描時間",
+      "photoStatus": "照片狀態",
+      "photosLabel": "佐證照片",
+      "photoPreviewAlt": "{{label}}預覽"
+    },
+    "done": {
+      "title": "已完成{{purpose}}認證",
+      "description": "系統已記錄您的{{purpose}}事件。",
+      "resultLabel": "簽到結果",
+      "contest": "競賽",
+      "time": "時間",
+      "status": "狀態",
+      "uploaded": "已上傳",
+      "photosLabel": "佐證照片"
+    },
+    "header": {
+      "done": "{{purpose}}完成",
+      "manual": "輸入{{purpose}}代碼",
+      "photo": "拍照{{purpose}}",
+      "confirm": "確認{{purpose}}",
+      "auth": "{{purpose}}認證"
+    },
+    "cta": {
+      "waitingCamera": "等待相機授權…",
+      "retryCamera": "重新嘗試相機",
+      "validating": "驗證中…",
+      "realignment": "重新對準",
+      "scanning": "正在掃描…",
+      "next": "下一步",
+      "capturePurposePhoto": "拍攝{{purpose}}照片",
+      "nextPhoto": "下一張",
+      "confirmInfo": "確認資訊",
+      "retryUpload": "重試上傳",
+      "uploading": "上傳中…",
+      "confirmUpload": "確認並上傳",
+      "backToExam": "返回考試",
+      "manualCode": "手動輸入代碼",
+      "backToScan": "返回掃描",
+      "retake": "重拍",
+      "retakePhotos": "重新拍攝"
+    },
+    "errors": {
+      "checkoutAfterSubmit": "交卷後才可以簽退。",
+      "checkInOnlyBeforeStart": "您已開始或完成考試，不能再補簽到；若要離場請掃描簽退 QR Code。",
+      "notCheckInTime": "目前不在可簽到時間。",
+      "tokenExpired": "QR Code 已過期，請重新掃描投影畫面上的 QR Code。",
+      "invalidToken": "QR Code 無效，請重新掃描投影畫面上的 QR Code。",
+      "invalidManualCode": "代碼無效或已過期，請重新輸入投影畫面上的最新代碼。",
+      "notEnabled": "此考試尚未開啟 QR Code 簽到簽退。",
+      "submitFailed": "簽到資料送出失敗，請稍後再試。",
+      "cameraUnsupported": "此瀏覽器不支援相機存取，請改由教師協助簽到。",
+      "cameraUnavailable": "相機無法使用",
+      "wrongPurposeQr": "這是{{actual}} QR Code，請掃描{{expected}} QR Code。",
+      "capturePhotoFailed": "照片擷取失敗，請重新拍攝。",
+      "missingPurpose": "請先從競賽主頁選擇簽到或簽退。",
+      "manualCodeLength": "請輸入投影畫面上的 6 碼代碼。",
+      "photoMissing": "{{label}}尚未拍攝完成",
+      "uploadIntentIncomplete": "上傳工作未包含所有必要照片，請重新送出。",
+      "photoUploadFailed": "照片上傳失敗，請重新送出。"
+    },
+    "projection": {
+      "title": "考試簽到簽退",
+      "examLabel": "考試",
+      "examFallback": "考試",
+      "progress": "考試進度",
+      "progressAria": "考試進度 {{progress}}%",
+      "loading": "載入中",
+      "manualCodeLabel": "相機無法使用時輸入代碼",
+      "reloadQr": "正在重新載入 QR Code",
+      "backToAdmin": "回管理介面",
+      "enterFullscreen": "進入全螢幕",
+      "exitFullscreen": "退出全螢幕",
+      "refreshFailed": "QR Code 重新載入失敗",
+      "unstableTitle": "QR 載入不穩定",
+      "unstableSubtitle": "系統會自動保留上一組可用 QR Code 並持續重新載入。",
+      "mode": {
+        "ariaLabel": "切換簽到簽退 QR Code"
+      },
+      "countdown": {
+        "exam": "考試倒數",
+        "unset": "未設定時間",
+        "startsIn": "距離開始",
+        "openCheckIn": "開放簽到",
+        "endsIn": "距離截止",
+        "running": "考試進行中",
+        "ended": "考試已結束",
+        "endedTone": "已結束"
+      },
+      "marker": {
+        "start": "開始",
+        "now": "現在",
+        "end": "截止"
+      },
+      "guide": {
+        "scan": "掃描 QR Code",
+        "photo": "拍攝現場照片",
+        "upload": "確認並上傳",
+        "ariaLabel": "簽到說明"
+      }
+    }
   }
 }

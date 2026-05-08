@@ -44,7 +44,7 @@ async function requestCameraStream(facingMode: VideoFacingModeEnum): Promise<Med
       lastError = err;
     }
   }
-  throw lastError instanceof Error ? lastError : new Error("Camera unavailable");
+  throw lastError instanceof Error ? lastError : new Error("camera_unavailable");
 }
 
 function stopMediaStream(stream: MediaStream | null) {
@@ -60,6 +60,9 @@ export function useCameraStream({ active, facingMode, messages }: Options): UseC
   useEffect(() => {
     let cancelled = false;
     let ownedStream: MediaStream | null = null;
+    const unsupportedMessage =
+      messages?.unsupported ??
+      "此瀏覽器不支援相機存取，請改由教師協助簽到。";
 
     const start = async () => {
       if (!active) {
@@ -71,10 +74,7 @@ export function useCameraStream({ active, facingMode, messages }: Options): UseC
       try {
         setCameraState("requesting");
         if (typeof navigator.mediaDevices?.getUserMedia !== "function") {
-          throw new Error(
-            messages?.unsupported ??
-              "此瀏覽器不支援相機存取，請改由教師協助簽到。",
-          );
+          throw new Error(unsupportedMessage);
         }
         stopMediaStream(streamRef.current);
         streamRef.current = null;
@@ -91,9 +91,9 @@ export function useCameraStream({ active, facingMode, messages }: Options): UseC
       } catch (err) {
         setCameraState("unavailable");
         setCameraError(
-          err instanceof Error
+          err instanceof Error && err.message === unsupportedMessage
             ? err.message
-            : messages?.unavailable ?? "Camera is not available",
+            : messages?.unavailable ?? "camera_unavailable",
         );
       }
     };
