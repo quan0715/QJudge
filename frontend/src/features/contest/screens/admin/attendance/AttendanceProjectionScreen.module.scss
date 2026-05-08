@@ -68,8 +68,8 @@
 
 .leftPanel {
   display: grid;
-  grid-template-rows: auto auto;
-  align-content: start;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  align-content: stretch;
   border-right: 1px solid var(--cds-border-subtle);
   min-height: 0;
   overflow: hidden;
@@ -77,8 +77,15 @@
 
 .block,
 .countdownBlock {
+  min-height: 0;
   padding: 2rem;
+  overflow: hidden;
   border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
 }
 
 .blockLabel {
@@ -103,6 +110,7 @@
 .infoGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: auto;
   border-top: 1px solid var(--cds-border-subtle);
   border-left: 1px solid var(--cds-border-subtle);
 }
@@ -127,11 +135,14 @@
 
 .countdownBlock {
   display: grid;
+  border-bottom: 0;
 }
 
 .countdownMain {
   display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 1rem;
+  min-height: 0;
 }
 
 .countdownRow {
@@ -139,6 +150,7 @@
   justify-content: space-between;
   gap: 2rem;
   align-items: flex-end;
+  align-self: center;
 }
 
 .countdown {
@@ -311,6 +323,7 @@
   }
 
   .leftPanel {
+    grid-template-rows: auto auto;
     border-right: 0;
     overflow: visible;
   }
