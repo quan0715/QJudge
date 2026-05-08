@@ -409,7 +409,13 @@ export default function StudentContestDashboard({
         )
       : 0;
 
-  const canRegister = contest.status === "published" && contestState !== "ended";
+  const attendanceRequired = !!(
+    contest.attendanceStatus?.attendanceRequired || contest.attendanceCheckEnabled
+  );
+  const canRegister =
+    !attendanceRequired &&
+    contest.status === "published" &&
+    contestState !== "ended";
   const canStartExam =
     participant &&
     contest.status === "published" &&
@@ -427,7 +433,7 @@ export default function StudentContestDashboard({
     contest.allowMultipleJoins;
   const canOpenAttendanceScanner = !!(
     contest.attendanceStatus?.canCheckOut ||
-    (contest.attendanceStatus?.canCheckIn && !canStartExam)
+    contest.attendanceStatus?.canCheckIn
   );
   const checkInCompleted = ATTENDANCE_READY_STATUSES.has(
     contest.attendanceStatus?.checkInStatus ?? "",
@@ -535,10 +541,17 @@ export default function StudentContestDashboard({
       : checkInCompleted
         ? t("studentDashboard.attendance.recheckIn", "重新簽到")
         : t("studentDashboard.attendance.checkIn", "前往簽到");
+    const attendanceCompleted = contest.attendanceStatus?.canCheckOut
+      ? checkOutCompleted
+      : checkInCompleted;
 
     return (
       <Button
-        kind={examStatus === "submitted" ? "secondary" : "primary"}
+        kind={
+          attendanceCompleted || examStatus === "submitted"
+            ? "secondary"
+            : "primary"
+        }
         renderIcon={Login}
         onClick={() => navigate(
           `/classrooms/${classroomId}/contest/${contest.id}/attendance/scan?purpose=${attendancePurpose}`,
@@ -551,6 +564,9 @@ export default function StudentContestDashboard({
 
   const renderPrimaryAction = () => {
     if (!participant && phase !== "after") {
+      if (attendanceRequired) {
+        return null;
+      }
       return (
         <Button
           renderIcon={Login}
@@ -562,12 +578,6 @@ export default function StudentContestDashboard({
             : t("studentDashboard.actions.joinUnavailable", "目前不可加入")}
         </Button>
       );
-    }
-    if (examStatus !== "submitted") {
-      const attendanceAction = renderAttendanceAction();
-      if (attendanceAction) {
-        return attendanceAction;
-      }
     }
     if (canStartExam || canResumeExam) {
       return (
@@ -1114,7 +1124,7 @@ export default function StudentContestDashboard({
           <DashboardBlock>
             <div className={styles.actionStack}>
               {renderPrimaryAction()}
-              {examStatus === "submitted" ? renderAttendanceAction() : null}
+              {renderAttendanceAction()}
               {canSubmitExam ? (
                 <Button
                   kind="danger--tertiary"

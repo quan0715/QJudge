@@ -335,8 +335,8 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByText("已嘗試")).not.toBeInTheDocument();
   });
 
-  it("prioritizes start action after attendance check-in is confirmed", () => {
-    renderDashboard(
+  it("keeps repeat check-in available after attendance is confirmed before exam start", () => {
+    renderDashboardAtContestRoute(
       createContest({
         startTime: "2000-05-05T10:00:00.000Z",
         endTime: "2099-05-05T12:00:00.000Z",
@@ -354,7 +354,29 @@ describe("StudentContestDashboard", () => {
     );
 
     expect(screen.getByRole("button", { name: /開始作答/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /重新簽到/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /前往簽到/ })).not.toBeInTheDocument();
+  });
+
+  it("uses attendance check-in instead of manual join when attendance is required", () => {
+    renderDashboardAtContestRoute(
+      createContest({
+        hasJoined: false,
+        isRegistered: false,
+        attendanceCheckEnabled: true,
+        attendanceStatus: {
+          attendanceRequired: true,
+          checkInStatus: "missing",
+          checkOutStatus: "unavailable",
+          canCheckIn: true,
+          canStartExam: false,
+          canCheckOut: false,
+        },
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: /前往簽到/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
   });
 
   it("shows repeat check-out label after check-out is confirmed", () => {
