@@ -9,7 +9,7 @@ import type {
   AttendancePurpose,
 } from "@/core/entities/contest.entity";
 import { parseAttendanceQrValue } from "@/features/contest/attendance/attendanceQr";
-import { createAttendanceEvent } from "@/infrastructure/api/repositories/attendance.repository";
+import { createAttendanceEvent, validateAttendanceManualCode } from "@/infrastructure/api/repositories/attendance.repository";
 import { getContest } from "@/infrastructure/api/repositories/contest.repository";
 import {
   confirmEvidenceUpload,
@@ -322,13 +322,43 @@ export default function StudentAttendanceScanScreen() {
 
   useEffect(() => {
     if (state !== "validating" || !pendingScan) return undefined;
-    const timer = window.setTimeout(() => {
-      setScan(pendingScan);
-      setPendingScan(null);
-      setState("capturing");
-    }, 650);
-    return () => window.clearTimeout(timer);
-  }, [pendingScan, state]);
+
+    // QR token scans: proceed after a short delay (token validated at submission)
+    if (!pendingScan.manualCode) {
+      const timer = window.setTimeout(() => {
+        setScan(pendingScan);
+        setPendingScan(null);
+        setState("capturing");
+      }, 650);
+      return () => window.clearTimeout(timer);
+    }
+
+    // Manual code: validate against the backend before proceeding
+    let cancelled = false;
+    (async () => {
+      try {
+        await validateAttendanceManualCode(
+          contestId!,
+          pendingScan.purpose,
+          pendingScan.manualCode!,
+        );
+        if (cancelled) return;
+        setScan(pendingScan);
+        setPendingScan(null);
+        setState("capturing");
+      } catch (err) {
+        if (cancelled) return;
+        const errorMessage = getAttendanceSubmitErrorMessage(err, tr, pendingScan.purpose);
+        setError(errorMessage);
+        setManualMode(true);
+        setPendingScan(null);
+        setState("scanning");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [contestId, pendingScan, state, tr]);
 
   useEffect(() => {
     return () => {

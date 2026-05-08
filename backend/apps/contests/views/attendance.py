@@ -18,6 +18,7 @@ from ..services.attendance import (
     create_attendance_event,
     normalize_attendance_error_code,
     reset_participant_attendance_records,
+    validate_attendance_manual_code,
 )
 
 
@@ -52,6 +53,11 @@ class AttendanceEventSerializer(serializers.Serializer):
             if not str(attrs.get("reason") or "").strip():
                 raise serializers.ValidationError({"reason": "Reason is required."})
         return attrs
+
+
+class AttendanceValidateCodeSerializer(serializers.Serializer):
+    purpose = serializers.ChoiceField(choices=("check_in", "check_out"))
+    manual_code = serializers.CharField(max_length=16)
 
 
 class AttendanceResetSerializer(serializers.Serializer):
@@ -98,6 +104,36 @@ class AttendanceMixin:
                 ).isoformat(),
             }
         )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[permissions.IsAuthenticated],
+        url_path="attendance/validate-code",
+    )
+    def attendance_validate_code(self, request, pk=None):
+        contest: Contest = self.get_object()
+        if not contest.attendance_check_enabled:
+            return Response(
+                build_attendance_error_payload("attendance_not_enabled"),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = AttendanceValidateCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        purpose = serializer.validated_data["purpose"]
+        manual_code = serializer.validated_data["manual_code"]
+
+        try:
+            validate_attendance_manual_code(contest, purpose, manual_code)
+        except ValueError as exc:
+            code = normalize_attendance_error_code(exc)
+            return Response(
+                build_attendance_error_payload(code),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({"valid": True, "purpose": purpose})
 
     @action(
         detail=True,
