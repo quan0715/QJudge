@@ -102,3 +102,22 @@ export const resetParticipantAttendance = async (
     "Failed to reset participant attendance records",
   );
 };
+
+export interface ValidateManualCodeResponse {
+  valid: boolean;
+  purpose: AttendancePurpose;
+}
+
+export const validateAttendanceManualCode = async (
+  contestId: string,
+  purpose: AttendancePurpose,
+  manualCode: string,
+): Promise<ValidateManualCodeResponse> => {
+  return requestJson<ValidateManualCodeResponse>(
+    httpClient.post(`/api/v1/contests/${contestId}/attendance/validate-code/`, {
+      purpose,
+      manual_code: manualCode,
+    }),
+    "Failed to validate attendance code",
+  );
+};

@@ -156,6 +156,48 @@ def test_student_self_scan_rejects_wrong_manual_code_purpose() -> None:
 
 
 @pytest.mark.django_db
+def test_validate_code_endpoint_accepts_valid_code() -> None:
+    api_client = APIClient()
+    teacher = make_user("validate_code_teacher", role="teacher")
+    student = make_user("validate_code_student")
+    contest = make_contest(owner=teacher)
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
+    api_client.force_authenticate(user=teacher)
+    token_response = api_client.get(f"/api/v1/contests/{contest.id}/attendance/qr-token/?purpose=check_in")
+    manual_code = token_response.data["manual_code"]
+
+    api_client.force_authenticate(user=student)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/validate-code/",
+        {"purpose": "check_in", "manual_code": manual_code},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["valid"] is True
+    assert response.data["purpose"] == "check_in"
+
+
+@pytest.mark.django_db
+def test_validate_code_endpoint_rejects_invalid_code() -> None:
+    api_client = APIClient()
+    teacher = make_user("validate_code_reject_teacher", role="teacher")
+    student = make_user("validate_code_reject_student")
+    contest = make_contest(owner=teacher)
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
+    api_client.force_authenticate(user=student)
+
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/validate-code/",
+        {"purpose": "check_in", "manual_code": "000000"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.data["code"] == "invalid_attendance_manual_code"
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("exam_status", [ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED])
 def test_student_self_scan_rejected_during_exam_runtime(exam_status: str) -> None:
     api_client = APIClient()
