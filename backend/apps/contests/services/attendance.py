@@ -18,8 +18,8 @@ ATTENDANCE_TOKEN_MAX_AGE_SECONDS = 45
 ATTENDANCE_QR_PREFIX = "qj-att:v1"
 ATTENDANCE_CACHE_PREFIX = "contest-attendance-token"
 ATTENDANCE_MANUAL_CODE_CACHE_PREFIX = "contest-attendance-manual-code"
-ATTENDANCE_MANUAL_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
-ATTENDANCE_MANUAL_CODE_LENGTH = 8
+ATTENDANCE_MANUAL_CODE_ALPHABET = "0123456789"
+ATTENDANCE_MANUAL_CODE_LENGTH = 6
 ATTENDANCE_EVENT_TYPES = {
     "check_in": "attendance_check_in",
     "check_out": "attendance_check_out",
@@ -41,13 +41,11 @@ def _manual_code_cache_key(code: str) -> str:
 
 
 def normalize_attendance_manual_code(value: str) -> str:
-    allowed = set(string.ascii_uppercase + string.digits)
-    return "".join(char for char in value.upper() if char in allowed)
+    return "".join(char for char in value if char in string.digits)
 
 
 def format_attendance_manual_code(value: str) -> str:
-    normalized = normalize_attendance_manual_code(value)
-    return "-".join(normalized[index:index + 4] for index in range(0, len(normalized), 4))
+    return normalize_attendance_manual_code(value)
 
 
 def _generate_attendance_manual_code() -> str:

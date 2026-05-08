@@ -232,170 +232,13 @@
       ]
     },
     {
-      "title": "MinIO S3 Requests/s (by API)",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 24
-      },
-      "targets": [
-        {
-          "expr": "rate(minio_s3_requests_total[1m])",
-          "legendFormat": "{{api}}",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "title": "MinIO S3 Errors/s + Traffic",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 24
-      },
-      "targets": [
-        {
-          "expr": "rate(minio_s3_requests_errors_total[1m])",
-          "legendFormat": "{{api}} errors/s",
-          "refId": "A"
-        },
-        {
-          "expr": "rate(minio_s3_traffic_received_bytes[1m])",
-          "legendFormat": "received bytes/s",
-          "refId": "B"
-        },
-        {
-          "expr": "rate(minio_s3_traffic_sent_bytes[1m])",
-          "legendFormat": "sent bytes/s",
-          "refId": "C"
-        }
-      ]
-    },
-    {
-      "title": "MinIO Total Objects",
-      "type": "stat",
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 0,
-        "y": 32
-      },
-      "targets": [
-        {
-          "expr": "minio_cluster_usage_object_total",
-          "legendFormat": "objects",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "title": "MinIO Disk Usage",
-      "type": "gauge",
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 6,
-        "y": 32
-      },
-      "targets": [
-        {
-          "expr": "1 - (minio_cluster_capacity_raw_free_bytes / minio_cluster_capacity_raw_total_bytes)",
-          "legendFormat": "usage",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "min": 0,
-          "max": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.8
-              },
-              {
-                "color": "red",
-                "value": 0.9
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "title": "MinIO Process CPU & Memory",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 32
-      },
-      "targets": [
-        {
-          "expr": "rate(minio_node_process_cpu_total_seconds[1m]) * 100",
-          "legendFormat": "CPU %",
-          "refId": "A"
-        },
-        {
-          "expr": "minio_node_process_resident_memory_bytes",
-          "legendFormat": "RSS memory",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "RSS memory"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "bytes"
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "CPU %"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "percent"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
       "title": "PostgreSQL DB Size & Connections",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 40
+        "y": 24
       },
       "targets": [
         {
@@ -434,7 +277,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 40
+        "y": 24
       },
       "targets": [
         {
@@ -462,7 +305,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 48
+        "y": 32
       },
       "targets": [
         {
@@ -507,7 +350,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 48
+        "y": 32
       },
       "targets": [
         {

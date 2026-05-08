@@ -277,17 +277,17 @@ class PaperExamUser(HttpUser):
             elapsed_ms = (time.time() - start_ts) * 1000
             events.request.fire(
                 request_type="PUT",
-                name="MinIO PUT screenshot",
+                name="Object storage PUT screenshot",
                 response_time=elapsed_ms,
                 response_length=0,
                 response=r,
                 context={},
-                exception=None if r.status_code in (200, 201) else Exception(f"MinIO PUT {r.status_code}"),
+                exception=None if r.status_code in (200, 201) else Exception(f"Object storage PUT {r.status_code}"),
             )
         except Exception as e:
             events.request.fire(
                 request_type="PUT",
-                name="MinIO PUT screenshot",
+                name="Object storage PUT screenshot",
                 response_time=0,
                 response_length=0,
                 response=None,

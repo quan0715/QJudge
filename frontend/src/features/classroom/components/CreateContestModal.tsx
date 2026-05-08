@@ -311,10 +311,13 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
               <div className={styles.questionHeader}>
                 <div className={styles.questionCopy}>
                   <div className={styles.questionTitle} id="contest-attendance-toggle-label">
-                    QR 簽到簽退
+                    {t("createModal.attendanceTitle", "QR 簽到簽退")}
                   </div>
                   <div className={styles.questionHint}>
-                    啟用後，學生需在競賽主頁完成 QR 簽到後才能開始考試。
+                    {t(
+                      "createModal.attendanceHint",
+                      "啟用後，學生需在競賽主頁完成 QR 簽到後才能開始考試。",
+                    )}
                   </div>
                 </div>
                 <Toggle

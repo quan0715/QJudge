@@ -317,12 +317,12 @@ class ArtifactUserEndpointTests(TestCase):
 
     @patch("apps.ai.artifact_views.artifact_storage.build_presigned_download_url")
     def test_download_returns_presigned_url(self, mock_presign):
-        mock_presign.return_value = "https://minio/signed"
+        mock_presign.return_value = "https://object-storage.example/signed"
         self.client.force_authenticate(user=self.user1)
         own = AIArtifact.objects.get(session=self.session1)
         resp = self.client.get(f"/api/v1/ai/artifacts/{own.id}/download/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data["url"], "https://minio/signed")
+        self.assertEqual(resp.data["url"], "https://object-storage.example/signed")
 
     @patch("apps.ai.artifact_views.artifact_storage.store_artifact")
     def test_upload_csv_creates_user_upload_artifact(self, mock_store):

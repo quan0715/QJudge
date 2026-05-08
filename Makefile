@@ -8,7 +8,7 @@ help:
 	@echo "  make <target>"
 	@echo ""
 	@echo "Development Environment:"
-	@echo "  dev             Start the development stack (frontend, backend, db, redis, minio, ai-service)"
+	@echo "  dev             Start the development stack (frontend, backend, db, redis, ai-service)"
 	@echo "  dev-build       Build and start the development stack"
 	@echo "  dev-down        Stop and remove development containers"
 	@echo ""

@@ -108,8 +108,11 @@ export default function AccessSettingsPanel({
         </ActionRow>
 
         <ActionRow
-          label="QR 簽到簽退"
-          description="啟用後學生需先在競賽主頁掃描 QR Code 並提交現場照片，完成簽到後才能開始考試。"
+          label={t("settings.attendanceCheck.label", "QR 簽到簽退")}
+          description={t(
+            "settings.attendanceCheck.description",
+            "啟用後學生需先在競賽主頁掃描 QR Code 並提交現場照片，完成簽到後才能開始考試。",
+          )}
           saveState={getState("attendanceCheckEnabled")}
           onRetry={() => onRetry("attendanceCheckEnabled")}
         >
@@ -125,8 +128,11 @@ export default function AccessSettingsPanel({
         </ActionRow>
 
         <ActionRow
-          label="簽到佐證照片"
-          description="可要求學生拍攝現場環境，或現場環境與本人到場照片各一張。"
+          label={t("settings.attendancePhotoPolicy.label", "簽到佐證照片")}
+          description={t(
+            "settings.attendancePhotoPolicy.description",
+            "可要求學生拍攝現場環境，或現場環境與本人到場照片各一張。",
+          )}
           saveState={getState("attendancePhotoPolicy")}
           onRetry={() => onRetry("attendancePhotoPolicy")}
         >
@@ -139,8 +145,17 @@ export default function AccessSettingsPanel({
             style={{ minWidth: 220 }}
             onChange={(event) => onChange("attendancePhotoPolicy", event.target.value)}
           >
-            <SelectItem value="room" text="後鏡頭現場照片" />
-            <SelectItem value="room_and_selfie" text="前鏡頭本人 + 後鏡頭現場" />
+            <SelectItem
+              value="room"
+              text={t("settings.attendancePhotoPolicy.room", "後鏡頭現場照片")}
+            />
+            <SelectItem
+              value="room_and_selfie"
+              text={t(
+                "settings.attendancePhotoPolicy.roomAndSelfie",
+                "前鏡頭本人 + 後鏡頭現場",
+              )}
+            />
           </Select>
         </ActionRow>
 

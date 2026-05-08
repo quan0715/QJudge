@@ -48,8 +48,8 @@ def test_teacher_can_get_qr_token() -> None:
     assert response.status_code == 200
     assert response.data["purpose"] == "check_in"
     assert response.data["qr_value"].startswith("qj-att:v1:check_in:")
-    assert len(response.data["manual_code"]) == 9
-    assert response.data["manual_code"][4] == "-"
+    assert len(response.data["manual_code"]) == 6
+    assert response.data["manual_code"].isdigit()
     assert response.data["refresh_after_seconds"] == 30
     assert response.data["expires_in_seconds"] == 45
 

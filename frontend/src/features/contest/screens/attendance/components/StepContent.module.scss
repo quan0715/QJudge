@@ -1,0 +1,217 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: layout.$spacing-04;
+  width: 100%;
+  max-width: 32rem;
+  margin: 0 auto;
+}
+
+.heading {
+  display: grid;
+  gap: layout.$spacing-02;
+}
+
+.heading h1 {
+  @include type.type-style("heading-04");
+  margin: 0;
+  color: var(--cds-text-primary);
+  letter-spacing: 0;
+}
+
+.heading p {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.notification {
+  margin-bottom: layout.$spacing-03;
+}
+
+.frameWrapper {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.manualForm {
+  display: grid;
+  gap: layout.$spacing-05;
+  align-content: start;
+}
+
+.otpRow {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: layout.$spacing-03;
+  width: 100%;
+  max-width: 24rem;
+  margin: 0 auto;
+}
+
+.otpBox {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 4.5rem;
+  padding: 0;
+  font-size: 1.75rem;
+  font-weight: 500;
+  text-align: center;
+  color: var(--cds-text-primary);
+  background: var(--cds-field-01);
+  border: 1px solid var(--cds-border-strong-01);
+  border-radius: 4px;
+  outline-offset: -2px;
+  -webkit-appearance: none;
+  appearance: none;
+
+  &:focus {
+    outline: 2px solid var(--cds-focus);
+    border-color: transparent;
+  }
+}
+
+.summary {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+.summary > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04 0;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.summary span {
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.summary strong {
+  color: var(--cds-text-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.thumbnails {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: layout.$spacing-03;
+}
+
+.thumbnails figure {
+  margin: 0;
+  display: grid;
+  gap: layout.$spacing-02;
+}
+
+.thumbnails img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  border: 1px solid var(--cds-border-subtle-01);
+}
+
+.thumbnails figcaption {
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.successWrap {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: layout.$spacing-04;
+  padding-top: layout.$spacing-05;
+}
+
+.successMark {
+  width: 5rem;
+  height: 5rem;
+  display: grid;
+  place-items: center;
+  color: var(--cds-support-success);
+  border: 3px solid var(--cds-support-success);
+  border-radius: 999px;
+  animation: successPop 420ms cubic-bezier(0.2, 0.9, 0.4, 1.05) both;
+}
+
+.successHeading {
+  display: grid;
+  gap: layout.$spacing-02;
+  text-align: center;
+}
+
+.successHeading h1 {
+  @include type.type-style("heading-04");
+  margin: 0;
+  color: var(--cds-text-primary);
+}
+
+.successHeading p {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.9375rem;
+}
+
+@keyframes successPop {
+  0% { opacity: 0; transform: scale(0.7); }
+  70% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.contestChip {
+  width: fit-content;
+  padding: layout.$spacing-02 layout.$spacing-04;
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cds-support-success) 14%, transparent);
+  color: var(--cds-support-success);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.preview {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 3 / 4;
+  max-height: 100%;
+}
+
+.preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.guideHint {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  color: var(--cds-text-secondary);
+  font-size: 0.8125rem;
+}

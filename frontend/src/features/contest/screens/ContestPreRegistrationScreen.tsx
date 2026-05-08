@@ -88,7 +88,9 @@ const ContestPreRegistrationScreen: React.FC<ContestPreRegistrationScreenProps> 
       <Tag type={getContestStateColor(contestState)}>
         {t(`preRegistration.state.${contestState}`, getContestStateLabel(contestState))}
       </Tag>
-      {contest.attendanceCheckEnabled && <Tag type="blue">QR 簽到</Tag>}
+      {contest.attendanceCheckEnabled && (
+        <Tag type="blue">{t("attendance.badge", "QR 簽到")}</Tag>
+      )}
       {contest.cheatDetectionEnabled && <Tag type="red">{t("examMode", "作弊檢查")}</Tag>}
       {contest.hasJoined && (
         <Tag type="teal" renderIcon={Checkmark}>

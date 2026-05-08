@@ -167,7 +167,9 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       <Tag type={getContestStateColor(contestState)}>
         {getContestStateLabel(contestState)}
       </Tag>
-      {contest.attendanceCheckEnabled && <Tag type="blue">QR 簽到</Tag>}
+      {contest.attendanceCheckEnabled && (
+        <Tag type="blue">{t("attendance.badge", "QR 簽到")}</Tag>
+      )}
       {contest.cheatDetectionEnabled && <Tag type="red">{t("examMode")}</Tag>}
     </>
   );

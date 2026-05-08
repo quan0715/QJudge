@@ -530,11 +530,11 @@ export default function StudentContestDashboard({
     const attendancePurpose = contest.attendanceStatus?.canCheckOut ? "check_out" : "check_in";
     const attendanceActionLabel = contest.attendanceStatus?.canCheckOut
       ? checkOutCompleted
-        ? "重新簽退"
-        : "前往簽退"
+        ? t("studentDashboard.attendance.recheckOut", "重新簽退")
+        : t("studentDashboard.attendance.checkOut", "前往簽退")
       : checkInCompleted
-        ? "重新簽到"
-        : "前往簽到";
+        ? t("studentDashboard.attendance.recheckIn", "重新簽到")
+        : t("studentDashboard.attendance.checkIn", "前往簽到");
 
     return (
       <Button
@@ -963,8 +963,14 @@ export default function StudentContestDashboard({
                     title={t("studentDashboard.rules.title", "規則說明")}
                     description={
                       contest.attendanceCheckEnabled
-                        ? "本考試需要完成 QR 簽到後才能開始作答。"
-                        : "請依照教師公告與考試規則完成作答。"
+                        ? t(
+                            "studentDashboard.rules.attendanceRequired",
+                            "本考試需要完成 QR 簽到後才能開始作答。",
+                          )
+                        : t(
+                            "studentDashboard.rules.defaultDescription",
+                            "請依照教師公告與考試規則完成作答。",
+                          )
                     }
                     actions={
                       contest.cheatDetectionEnabled ? (

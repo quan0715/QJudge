@@ -11,11 +11,6 @@ scrape_configs:
     static_configs:
       - targets: ['redis_exporter:9121']
 
-  - job_name: minio
-    metrics_path: /minio/v2/metrics/cluster
-    static_configs:
-      - targets: ['minio:9000']
-
   - job_name: cadvisor
     static_configs:
       - targets: ['cadvisor:8080']

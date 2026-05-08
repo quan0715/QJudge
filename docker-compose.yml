@@ -96,24 +96,6 @@ services:
       timeout: 5s
       retries: 5
 
-  minio:
-    image: minio/minio:latest
-    container_name: oj_minio
-    restart: always
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-https://q-judge-dev.quan.wtf}
-      MINIO_PROMETHEUS_AUTH_TYPE: ${MINIO_PROMETHEUS_AUTH_TYPE:-public}
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
-    networks:
-      - oj_network
-
   # AI Service (LangChain DeepAgent)
   ai-service:
     build:
@@ -180,11 +162,11 @@ services:
       - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:?AI_SERVICE_INTERNAL_TOKEN is required}
       - FRONTEND_URL=${FRONTEND_URL:-https://q-judge.com}
       - JUDGE_TMP_DIR=/judge_tmp
-      - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:-http://minio:9000}
-      - OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:-}
+      - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
+      - OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
       - OBJECT_STORAGE_REGION=${OBJECT_STORAGE_REGION:-us-east-1}
-      - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:-minioadmin}
-      - OBJECT_STORAGE_SECRET_KEY=${OBJECT_STORAGE_SECRET_KEY:-minioadmin}
+      - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
+      - OBJECT_STORAGE_SECRET_KEY=${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
       - OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS=${OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS:-300}
       - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
       - MARKDOWN_IMAGE_S3_BUCKET=${MARKDOWN_IMAGE_S3_BUCKET:-markdown-images}
@@ -230,10 +212,10 @@ services:
       - DB_PORT=5432
       - DB_SSLMODE=${DB_SSLMODE:-disable}
       - REDIS_URL=redis://redis:6379/0
-      - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:-http://minio:9000}
+      - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
       - OBJECT_STORAGE_REGION=${OBJECT_STORAGE_REGION:-us-east-1}
-      - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:-minioadmin}
-      - OBJECT_STORAGE_SECRET_KEY=${OBJECT_STORAGE_SECRET_KEY:-minioadmin}
+      - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
+      - OBJECT_STORAGE_SECRET_KEY=${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
       - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
     depends_on:
       postgres:
@@ -275,10 +257,10 @@ services:
       - DB_PORT=5432
       - DB_SSLMODE=${DB_SSLMODE:-disable}
       - REDIS_URL=redis://redis:6379/0
-      - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:-http://minio:9000}
+      - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
       - OBJECT_STORAGE_REGION=${OBJECT_STORAGE_REGION:-us-east-1}
-      - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:-minioadmin}
-      - OBJECT_STORAGE_SECRET_KEY=${OBJECT_STORAGE_SECRET_KEY:-minioadmin}
+      - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
+      - OBJECT_STORAGE_SECRET_KEY=${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
       - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
     depends_on:
       postgres:
@@ -419,7 +401,6 @@ volumes:
   static_volume:
   media_volume:
   judge_tmp:
-  minio_data:
 
 networks:
   oj_network:

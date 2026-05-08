@@ -1,0 +1,43 @@
+@use "@carbon/layout";
+
+.row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: layout.$spacing-03 0;
+}
+
+.shutter {
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 3px solid var(--cds-text-primary);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 120ms ease-out, opacity 120ms ease-out;
+}
+
+.shutter span {
+  width: 3.25rem;
+  height: 3.25rem;
+  display: block;
+  border-radius: 999px;
+  background: var(--cds-text-primary);
+  transition: transform 120ms ease-out;
+}
+
+.shutter:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.shutter:not(:disabled):active {
+  transform: scale(0.94);
+}
+
+.shutter:not(:disabled):active span {
+  transform: scale(0.88);
+}

@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
                 (
                     "object_key",
                     models.CharField(
-                        help_text="MinIO 物件 key：ai-artifacts/{session_id}/{step}/{filename}",
+                        help_text="Object storage 物件 key：ai-artifacts/{session_id}/{step}/{filename}",
                         max_length=512,
                     ),
                 ),

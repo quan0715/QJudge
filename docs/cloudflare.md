@@ -2,13 +2,13 @@
 
 ## Current Recommendation
 
-QJudge should keep the production application on Cloudflare Tunnel in front of the Docker Compose host. The app is not a good fit for a single Cloudflare Worker or Pages-only deployment because it depends on Django, Daphne, PostgreSQL, PgBouncer, Redis, Celery workers, Docker-based judging, MinIO-compatible storage, and the MCP service.
+QJudge should keep the production application on Cloudflare Tunnel in front of the Docker Compose host. The app is not a good fit for a single Cloudflare Worker or Pages-only deployment because it depends on Django, Daphne, PostgreSQL, PgBouncer, Redis, Celery workers, Docker-based judging, S3-compatible object storage, and the MCP service.
 
 Use Cloudflare this way:
 
 - **Cloudflare Tunnel**: public ingress for the Compose services.
 - **Cloudflare DNS / proxy**: managed hostnames for `q-judge.com` and service subdomains.
-- **Cloudflare Access**: recommended for private operational surfaces such as Grafana, GlitchTip, and MinIO console/API endpoints when they should not be public.
+- **Cloudflare Access**: recommended for private operational surfaces such as Grafana and GlitchTip when they should not be public.
 - **Cloudflare R2**: canonical object storage target for anti-cheat event evidence screenshots, markdown images, and AI artifacts. The old anti-cheat compiled-video bucket is no longer part of the active pipeline.
 - **Cloudflare Pages**: useful for standalone static surfaces such as `www.q-judge.com` landing and later `docs.q-judge.com`, but not a drop-in production replacement unless `/api`, auth cookies, CSRF, uploads, SSE, and service routing are deliberately handled.
 - **Workers / D1 / KV**: not the primary fit for the current Django + Compose application.
@@ -21,10 +21,9 @@ Inspected on 2026-04-24 through the Cloudflare MCP API for account `5c4436c7b498
 - `q-judge.com` plan: Free Website.
 - Production tunnel: `QJudge_Production`, tunnel id `71730ffe-e9d4-4c7d-87c7-11c06ab5a85a`, healthy, remotely configured.
 - Dev tunnel: `QJudge-Dev`, tunnel id `6180bcd2-1559-4ff4-b09b-5248feed9e3a`, healthy, remotely configured.
-- DNS for `q-judge.com` points `q-judge.com`, `minio.q-judge.com`, `grafana.q-judge.com`, `monitor.q-judge.com`, and `mcp.q-judge.com` to the production tunnel CNAME.
+- DNS for `q-judge.com` points `q-judge.com`, `grafana.q-judge.com`, `monitor.q-judge.com`, and `mcp.q-judge.com` to the production tunnel CNAME.
 - Production tunnel ingress routes:
   - `q-judge.com` -> `http://frontend:80`
-  - `minio.q-judge.com` -> `http://minio:9000`
   - `grafana.q-judge.com` -> `http://grafana:3000`
   - `monitor.q-judge.com` -> `http://glitchtip:8000`
   - `mcp.q-judge.com` -> `http://qjudge-mcp:9000`
@@ -113,8 +112,7 @@ The remote tunnel config lives in Cloudflare, so route changes should be made th
 ## R2 Object Storage
 
 Use `OBJECT_STORAGE_*` as the only object storage connection settings for the
-app. Local MinIO environment values only configure the MinIO service and its
-initialization scripts.
+app.
 
 Current production R2 buckets:
 
@@ -186,25 +184,3 @@ When changing object storage settings:
 3. Decide lifecycle policies for anti-cheat event evidence screenshots.
 4. Update `.env` with `OBJECT_STORAGE_*`.
 5. Restart backend and Celery, then smoke-test presigned uploads/downloads.
-6. Keep local MinIO only as a dev/migration source, not as the production critical path.
-
-## Dev MinIO to R2 Migration
-
-Local dev objects can be copied from the self-hosted MinIO service into the dev
-R2 buckets with:
-
-```bash
-scripts/r2/migrate-dev-minio-to-r2.sh --dry-run
-scripts/r2/migrate-dev-minio-to-r2.sh --apply
-```
-
-The script runs inside the dev backend container so it can read MinIO through the
-Docker network at `http://minio:9000`, while writing to the currently configured
-`OBJECT_STORAGE_*` target. It never deletes source or target objects.
-
-Useful scoped runs:
-
-```bash
-scripts/r2/migrate-dev-minio-to-r2.sh --dry-run --only raw
-scripts/r2/migrate-dev-minio-to-r2.sh --apply --only markdown --prefix markdown/2026/04/
-```
