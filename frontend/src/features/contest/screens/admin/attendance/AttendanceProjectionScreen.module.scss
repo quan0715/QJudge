@@ -75,8 +75,8 @@
 
 .leftPanel {
   display: grid;
-  align-content: start;
-  justify-items: center;
+  align-content: center;
+  justify-items: start;
   padding: 2rem;
   border-right: 1px solid var(--cds-border-subtle);
   min-height: 0;
@@ -86,10 +86,10 @@
 .statusBlock {
   width: min(100%, 42rem);
   display: grid;
-  align-content: start;
-  justify-items: center;
+  align-content: center;
+  justify-items: start;
   gap: clamp(2.5rem, 7vh, 5rem);
-  text-align: center;
+  text-align: left;
 }
 
 .blockLabel {
@@ -100,7 +100,7 @@
 }
 
 .title {
-  font-size: var(--projection-heading-size);
+  font-size: var(--projection-countdown-size);
   line-height: 1.05;
   margin: 0;
   font-weight: 300;
@@ -112,7 +112,7 @@
   display: grid;
   gap: 1rem;
   width: 100%;
-  justify-items: center;
+  justify-items: start;
 }
 
 .countdown {
@@ -170,8 +170,8 @@
 .qrPanel {
   padding: 2rem clamp(2rem, 4vw, 4rem);
   display: grid;
-  align-content: start;
-  justify-items: center;
+  align-content: center;
+  justify-items: start;
   gap: 1.25rem;
   min-width: 0;
 }
