@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
+import { Camera, ChevronLeft, FitToScreen, QrCode, SendAlt, ShrinkScreen } from "@carbon/icons-react";
 import { QRCodeSVG } from "@rc-component/qrcode";
-import { InlineNotification } from "@carbon/react";
-import { useParams } from "react-router";
+import { Button, ContentSwitcher, InlineNotification, Switch } from "@carbon/react";
+import { Link, useParams } from "react-router";
 
 import type { AttendancePurpose, ContestDetail } from "@/core/entities/contest.entity";
+import { exitFullscreen, isFullscreen, requestFullscreen } from "@/core/usecases/exam";
 import { getAttendanceQrToken, type AttendanceQrToken } from "@/infrastructure/api/repositories/attendance.repository";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import styles from "./AttendanceProjectionScreen.module.scss";
 
 type TokenState = Partial<Record<AttendancePurpose, AttendanceQrToken>>;
 type ErrorState = Partial<Record<AttendancePurpose, string>>;
+type ProjectionDisplayMode = AttendancePurpose;
 
 const ATTENDANCE_PURPOSES: AttendancePurpose[] = ["check_in", "check_out"];
 
@@ -17,6 +20,11 @@ const PURPOSE_LABEL: Record<AttendancePurpose, string> = {
   check_in: "簽到 QR",
   check_out: "簽退 QR",
 };
+
+const DISPLAY_MODES: Array<{ value: ProjectionDisplayMode; label: string }> = [
+  { value: "check_in", label: "簽到" },
+  { value: "check_out", label: "簽退" },
+];
 
 function formatDateTime(value: string | undefined): string {
   if (!value) return "";
@@ -162,21 +170,64 @@ function CountdownBlock({ contest }: { contest: ContestDetail | null | undefined
   );
 }
 
-function RulesBlock({ contest }: { contest: ContestDetail | null | undefined }) {
-  const rules = (contest?.rules || "").trim();
+const GUIDE_STEPS = [
+  {
+    icon: QrCode,
+    action: "掃描 QR Code",
+  },
+  {
+    icon: Camera,
+    action: "拍攝現場照片",
+  },
+  {
+    icon: SendAlt,
+    action: "確認並上傳",
+  },
+];
+
+function CheckInGuideBlock() {
   return (
-    <section className={styles.rulesBlock}>
-      <div className={styles.blockLabel}>規則說明</div>
-      <div className={styles.rulesText}>{rules || "尚未設定規則。"}</div>
-    </section>
+    <div className={styles.qrGuide} aria-label="簽到說明">
+      {GUIDE_STEPS.map((step) => {
+        const Icon = step.icon;
+        return (
+          <div className={styles.qrGuideItem} key={step.action}>
+            <Icon size={16} />
+            <span>{step.action}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
 export default function AttendanceProjectionScreen() {
-  const { contestId } = useParams();
+  const { classroomId, contestId } = useParams();
   const { contest } = useContest();
   const { tokens, errors } = useProjectionTokens(contestId);
+  const [displayMode, setDisplayMode] = useState<ProjectionDisplayMode>("check_in");
+  const [fullscreenActive, setFullscreenActive] = useState(() => isFullscreen());
   const errorMessages = Object.values(errors).filter(Boolean);
+  const adminPath = `/classrooms/${classroomId}/contest/${contestId}/admin`;
+
+  useEffect(() => {
+    const syncFullscreen = () => setFullscreenActive(isFullscreen());
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    document.addEventListener("webkitfullscreenchange", syncFullscreen);
+    document.addEventListener("msfullscreenchange", syncFullscreen);
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreen);
+      document.removeEventListener("webkitfullscreenchange", syncFullscreen);
+      document.removeEventListener("msfullscreenchange", syncFullscreen);
+    };
+  }, []);
+
+  const handleFullscreenToggle = useCallback(async () => {
+    const nextActive = fullscreenActive
+      ? !(await exitFullscreen())
+      : await requestFullscreen();
+    setFullscreenActive(nextActive);
+  }, [fullscreenActive]);
 
   const renderQr = (purpose: AttendancePurpose) => {
     const token = tokens[purpose];
@@ -192,6 +243,7 @@ export default function AttendanceProjectionScreen() {
         <div className={styles.qrBox}>
           {token ? <QRCodeSVG value={token.qrValue} size={260} /> : <div className={styles.qrPlaceholder}>Loading</div>}
         </div>
+        <CheckInGuideBlock />
         <div className={styles.timer}>每 {token?.refreshAfterSeconds || 30} 秒自動刷新</div>
         {error ? <div className={styles.panelError}>正在重新載入 QR code</div> : null}
       </section>
@@ -201,8 +253,46 @@ export default function AttendanceProjectionScreen() {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <div className={styles.brand}>QJudge</div>
-        <div className={styles.status}>考試簽到簽退</div>
+        <div className={styles.headerLeft}>
+          <Button
+            as={Link}
+            to={adminPath}
+            kind="ghost"
+            hasIconOnly
+            className={styles.backButton}
+            iconDescription="回管理介面"
+            renderIcon={ChevronLeft}
+          />
+          <Button
+            kind="ghost"
+            hasIconOnly
+            className={styles.backButton}
+            iconDescription={fullscreenActive ? "退出全螢幕" : "進入全螢幕"}
+            renderIcon={fullscreenActive ? ShrinkScreen : FitToScreen}
+            onClick={handleFullscreenToggle}
+          />
+          <div className={styles.navTitle}>
+            <span>{contest?.name || "Exam"}</span>
+            <span>/</span>
+            <strong>考試簽到簽退</strong>
+          </div>
+        </div>
+        <div className={styles.headerRight}>
+          <ContentSwitcher
+            selectedIndex={DISPLAY_MODES.findIndex((mode) => mode.value === displayMode)}
+            size="md"
+            onChange={(event) => {
+              const nextMode = typeof event.index === "number"
+                ? DISPLAY_MODES[event.index]?.value
+                : undefined;
+              if (nextMode) setDisplayMode(nextMode);
+            }}
+          >
+            {DISPLAY_MODES.map((mode) => (
+              <Switch key={mode.value} name={mode.value} text={mode.label} />
+            ))}
+          </ContentSwitcher>
+        </div>
       </header>
       {errorMessages.length > 0 ? (
         <InlineNotification
@@ -216,11 +306,9 @@ export default function AttendanceProjectionScreen() {
         <div className={styles.leftPanel}>
           <ContestInfoBlock contest={contest} />
           <CountdownBlock contest={contest} />
-          <RulesBlock contest={contest} />
         </div>
-        <div className={styles.qrGrid}>
-          {renderQr("check_in")}
-          {renderQr("check_out")}
+        <div className={styles.qrGrid} data-mode={displayMode}>
+          {renderQr(displayMode)}
         </div>
       </div>
     </main>

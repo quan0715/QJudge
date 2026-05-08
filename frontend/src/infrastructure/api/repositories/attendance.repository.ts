@@ -72,3 +72,21 @@ export const createAttendanceEvent = async (
     "Failed to create attendance event",
   );
 };
+
+export interface AttendanceResetResponse {
+  deleted_events: number;
+  deleted_records: number;
+  attendance_status: ContestAttendanceStatus;
+}
+
+export const resetParticipantAttendance = async (
+  contestId: string,
+  userId: string | number,
+): Promise<AttendanceResetResponse> => {
+  return requestJson<AttendanceResetResponse>(
+    httpClient.post(`/api/v1/contests/${contestId}/attendance/reset/`, {
+      user_id: userId,
+    }),
+    "Failed to reset participant attendance records",
+  );
+};

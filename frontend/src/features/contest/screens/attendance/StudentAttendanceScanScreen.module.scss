@@ -1,56 +1,485 @@
+@use "@carbon/layout";
+@use "@carbon/motion";
+@use "@carbon/type";
+
 .page {
+  height: 100vh;
   min-height: 100vh;
-  background: var(--cds-background);
-  color: var(--cds-text-primary);
-  display: grid;
-  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  background: var(--cds-background-inverse);
+  color: var(--cds-text-inverse);
 }
 
-.header {
-  display: flex;
+.cameraStage {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--cds-background-inverse);
+}
+
+.video,
+.photo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  background: var(--cds-background-inverse);
+}
+
+.reviewBackdrop {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 50% 28%, rgba(255, 255, 255, 0.12) 0%, transparent 42%),
+    var(--cds-background-inverse);
+}
+
+.topBar {
+  position: absolute;
+  z-index: 6;
+  inset: 0 0 auto;
+  min-height: 3rem;
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  padding: 1rem;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.68), transparent);
+}
+
+.cameraStage[data-step="photoReview"] .topBar,
+.cameraStage[data-step="confirm"] .topBar {
+  background: var(--cds-background);
   border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.backButton {
+  color: var(--cds-text-inverse);
+}
+
+.cameraStage[data-step="photoReview"] .backButton,
+.cameraStage[data-step="confirm"] .backButton {
+  color: var(--cds-text-secondary);
+}
+
+.topTitle {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: layout.$spacing-03;
+  padding-right: layout.$spacing-05;
+}
+
+.topTitle strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.cameraStage[data-step="photoReview"] .topTitle strong,
+.cameraStage[data-step="confirm"] .topTitle strong {
+  color: var(--cds-text-primary);
+}
+
+.topTitle span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.8125rem;
+}
+
+.stepBadge {
+  position: absolute;
+  z-index: 4;
+  top: 3.75rem;
+  left: 50%;
+  padding: layout.$spacing-02 layout.$spacing-04;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.42);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transform: translateX(-50%);
+}
+
+.cameraStage[data-step="photoReview"] .stepBadge,
+.cameraStage[data-step="confirm"] .stepBadge {
+  display: none;
+}
+
+.cameraStage[data-step="photoReview"] .topTitle span,
+.cameraStage[data-step="confirm"] .topTitle span {
+  color: var(--cds-text-secondary);
+}
+
+.scanFrame {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: min(72vw, 24rem);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 0 0 999px rgba(0, 0, 0, 0.36),
+    0 0 36px rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+}
+
+.scanFrame[data-status="validating"] {
+  border-color: var(--cds-link-primary);
+  box-shadow:
+    0 0 0 999px rgba(0, 0, 0, 0.42),
+    0 0 42px rgba(15, 98, 254, 0.42);
+}
+
+.scanFrame[data-status="validating"] span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: var(--cds-link-primary);
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  animation: scanSpinner 900ms linear infinite;
+}
+
+.scanFrame::before,
+.scanFrame::after {
+  content: "";
+  position: absolute;
+  inset: layout.$spacing-05;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+@keyframes scanSpinner {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.stageCaption {
+  position: absolute;
+  z-index: 3;
+  left: layout.$spacing-06;
+  right: layout.$spacing-06;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-08} + 3.25rem);
+  display: grid;
+  justify-items: center;
+  gap: layout.$spacing-02;
+  text-align: center;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+.stageCaption h1 {
+  @include type.type-style("heading-03");
+  margin: 0;
+  color: var(--cds-text-inverse);
+  letter-spacing: 0;
+}
+
+.stageCaption p {
+  max-width: 34rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.stageCaption span {
+  margin-top: layout.$spacing-02;
+  padding: layout.$spacing-02 layout.$spacing-04;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.36);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.8125rem;
+}
+
+.notificationLayer {
+  position: absolute;
+  z-index: 4;
+  top: 3.75rem;
+  left: layout.$spacing-05;
+  right: layout.$spacing-05;
+}
+
+.shutterButton {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-08});
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 3px solid rgba(255, 255, 255, 0.88);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateX(-50%);
+  transition:
+    transform 120ms motion.motion(standard, productive),
+    opacity 120ms motion.motion(standard, productive);
+  cursor: pointer;
+}
+
+.shutterButton span {
+  width: 3.25rem;
+  height: 3.25rem;
+  display: block;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.shutterButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.shutterButton:not(:disabled):active {
+  transform: translateX(-50%) scale(0.96);
+}
+
+.bottomSheet {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-05});
+  width: min(calc(100% - 2rem), 44rem);
+  max-height: calc(100vh - 4.5rem);
+  display: grid;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-05;
+  padding-bottom: calc(#{layout.$spacing-05} + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  background: var(--cds-layer);
+  color: var(--cds-text-primary);
+  border: 1px solid var(--cds-border-subtle);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
+  transform: translateX(-50%);
+}
+
+.reviewPage {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: layout.$spacing-06;
+  padding: 5rem layout.$spacing-07 calc(#{layout.$spacing-07} + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
+}
+
+.reviewHeader {
+  display: grid;
+  gap: layout.$spacing-03;
+}
+
+.inlineStepBadge {
+  width: fit-content;
+  padding: layout.$spacing-02 layout.$spacing-04;
+  background: var(--cds-layer-selected);
+  color: var(--cds-text-secondary);
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
-.content {
-  padding: 1rem;
-  display: grid;
-  gap: 1rem;
-  align-content: start;
+.reviewHeader h1 {
+  @include type.type-style("heading-04");
+  margin: 0;
+  letter-spacing: 0;
 }
 
-.panel {
-  border: 1px solid var(--cds-border-subtle);
-  background: var(--cds-layer);
-  padding: 1rem;
-  display: grid;
-  gap: 1rem;
+.reviewHeader p {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  line-height: 1.5;
 }
 
-.video {
+.successMark {
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+  color: var(--cds-support-success);
+  background: color-mix(in srgb, var(--cds-support-success) 12%, transparent);
+  border-radius: 999px;
+  animation: successPop 420ms motion.motion(entrance, expressive) both;
+}
+
+@keyframes successPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  70% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.primaryPreview {
+  min-height: 0;
+  margin: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: layout.$spacing-04;
+}
+
+.primaryPreview img {
   width: 100%;
-  aspect-ratio: 4 / 3;
-  background: var(--cds-background);
-  object-fit: cover;
+  height: 100%;
+  min-height: 16rem;
+  max-height: 58vh;
+  display: block;
+  object-fit: contain;
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
 }
 
-.status {
+.primaryPreview figcaption {
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
 }
 
-.photo {
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--cds-border-subtle);
+  border-right: 0;
+}
+
+.summary > div {
+  min-width: 0;
+  display: grid;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-04;
+  border-right: 1px solid var(--cds-border-subtle);
+}
+
+.summary span {
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.summary strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.photoReview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: layout.$spacing-04;
+}
+
+.photoReview figure {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  gap: layout.$spacing-03;
+}
+
+.photoReview img {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
+  display: block;
   border: 1px solid var(--cds-border-subtle);
 }
 
-.actions {
+.photoReview figcaption {
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.navRowEnd {
   display: flex;
-  gap: 0.75rem;
+  justify-content: flex-end;
+  gap: layout.$spacing-04;
   flex-wrap: wrap;
+}
+
+.reviewActions {
+  display: flex;
+  justify-content: flex-start;
+  gap: layout.$spacing-04;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .stageCaption {
+    left: layout.$spacing-05;
+    right: layout.$spacing-05;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-09} + 4.5rem);
+  }
+
+  .stageCaption h1 {
+    @include type.type-style("heading-02");
+  }
+
+  .stageCaption p {
+    font-size: 0.875rem;
+  }
+
+  .bottomSheet {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 58vh;
+    padding-bottom: calc(#{layout.$spacing-05} + env(safe-area-inset-bottom, 0px));
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    transform: none;
+  }
+
+  .summary {
+    grid-template-columns: 1fr;
+    border-bottom: 0;
+  }
+
+  .summary > div {
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+
+  .navRowEnd {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .reviewPage {
+    gap: layout.$spacing-05;
+    padding: 4.5rem layout.$spacing-05 calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px));
+  }
+
+  .reviewHeader h1 {
+    @include type.type-style("heading-03");
+  }
+
+  .primaryPreview img {
+    min-height: 18rem;
+    max-height: 52vh;
+  }
+
+  .reviewActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
 }

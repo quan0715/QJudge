@@ -55,6 +55,7 @@ export interface ContestDto {
   status?: ContestStatus;
   visibility?: ContestVisibility;
   attendance_check_enabled?: boolean;
+  attendance_photo_policy?: "room" | "room_and_selfie";
   delivery_mode?: ContestDeliveryMode;
   counts_toward_grade?: boolean;
   has_joined?: boolean;
@@ -132,6 +133,8 @@ export interface ContestDetailDto extends ContestDto {
   can_submit_exam?: boolean;
   attendance_status?: {
     attendanceRequired?: boolean;
+    photoPolicy?: "room" | "room_and_selfie";
+    requiredPhotoKinds?: Array<"room" | "selfie">;
     checkInStatus?: string;
     checkOutStatus?: string;
     canCheckIn?: boolean;

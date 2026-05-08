@@ -15,6 +15,7 @@ import {
   Locked,
   Login,
   ArrowRight,
+  Renew,
   SendAlt,
   TrashCan,
   UserMultiple,
@@ -40,6 +41,7 @@ interface ParticipantOperationsPaneProps {
   onEditStatus: () => void;
   onUnlock: () => void;
   onReopenExam: () => void;
+  onResetAttendance?: () => void;
   onRemoveParticipant?: () => void;
   onOpenDetail: (detail: ParticipantDashboardDetail) => void;
   onOpenGrading: () => void;
@@ -70,6 +72,7 @@ const ParticipantOperationsPane = ({
   onEditStatus,
   onUnlock,
   onReopenExam,
+  onResetAttendance,
   onRemoveParticipant,
   onOpenDetail,
   onOpenGrading,
@@ -282,6 +285,16 @@ const ParticipantOperationsPane = ({
                 renderIcon={Launch}
                 onClick={onOpenGrading}
               />
+            ) : null}
+            {onResetAttendance ? (
+              <>
+                <MenuItemDivider />
+                <MenuItem
+                  label={t("participants.actions.resetAttendance", "重置簽到測試紀錄")}
+                  renderIcon={Renew}
+                  onClick={onResetAttendance}
+                />
+              </>
             ) : null}
             {onRemoveParticipant ? (
               <>

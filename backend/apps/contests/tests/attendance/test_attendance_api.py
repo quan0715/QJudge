@@ -6,8 +6,8 @@ import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ExamEvent, ExamStatus
-from apps.contests.services.attendance import create_attendance_token
+from apps.contests.models import Contest, ContestParticipant, ExamEvent, ExamEvidenceFrame, ExamStatus
+from apps.contests.services.attendance import build_attendance_status, create_attendance_token
 from apps.users.models import User
 
 
@@ -131,6 +131,312 @@ def test_check_out_requires_submitted_status() -> None:
 
     assert response.status_code == 409
     assert response.data["code"] == "checkout_not_available_until_submitted"
+
+
+@pytest.mark.django_db
+def test_completed_check_out_still_allows_repeat_check_out_action() -> None:
+    student = make_user("attendance_checkout_done")
+    contest = make_contest()
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.SUBMITTED,
+    )
+    event = ExamEvent.objects.create(
+        contest=contest,
+        user=student,
+        event_type="attendance_check_out",
+        metadata={
+            "attendance_purpose": "check_out",
+            "attendance_mode": "student_self_scan",
+            "source_module": "attendance",
+        },
+    )
+    ExamEvidenceFrame.objects.create(
+        contest=contest,
+        user=student,
+        exam_event=event,
+        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        status=ExamEvidenceFrame.Status.UPLOADED,
+        object_key="attendance-checkout-done.webp",
+        client_captured_at_ms=1,
+    )
+
+    status = build_attendance_status(contest, participant)
+
+    assert status["checkOutStatus"] == "photo_confirmed"
+    assert status["canCheckOut"] is True
+
+
+@pytest.mark.django_db
+def test_completed_check_in_still_allows_repeat_check_in_action_before_start() -> None:
+    student = make_user("attendance_checkin_done")
+    contest = make_contest()
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.NOT_STARTED,
+    )
+    event = ExamEvent.objects.create(
+        contest=contest,
+        user=student,
+        event_type="attendance_check_in",
+        metadata={
+            "attendance_purpose": "check_in",
+            "attendance_mode": "student_self_scan",
+            "source_module": "attendance",
+        },
+    )
+    ExamEvidenceFrame.objects.create(
+        contest=contest,
+        user=student,
+        exam_event=event,
+        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        status=ExamEvidenceFrame.Status.UPLOADED,
+        object_key="attendance-checkin-done.webp",
+        client_captured_at_ms=1,
+    )
+
+    status = build_attendance_status(contest, participant)
+
+    assert status["checkInStatus"] == "photo_confirmed"
+    assert status["canCheckIn"] is True
+
+
+@pytest.mark.django_db
+def test_incomplete_repeat_check_in_does_not_downgrade_ready_status() -> None:
+    student = make_user("attendance_repeat_incomplete_ready")
+    contest = make_contest()
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.NOT_STARTED,
+    )
+    completed_event = ExamEvent.objects.create(
+        contest=contest,
+        user=student,
+        event_type="attendance_check_in",
+        metadata={
+            "attendance_purpose": "check_in",
+            "attendance_mode": "student_self_scan",
+            "source_module": "attendance",
+        },
+    )
+    ExamEvidenceFrame.objects.create(
+        contest=contest,
+        user=student,
+        exam_event=completed_event,
+        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        status=ExamEvidenceFrame.Status.UPLOADED,
+        object_key="attendance-completed-before-repeat.webp",
+        client_captured_at_ms=1,
+    )
+    ExamEvent.objects.create(
+        contest=contest,
+        user=student,
+        event_type="attendance_check_in",
+        metadata={
+            "attendance_purpose": "check_in",
+            "attendance_mode": "student_self_scan",
+            "source_module": "attendance",
+        },
+    )
+
+    status = build_attendance_status(contest, participant)
+
+    assert status["checkInStatus"] == "photo_confirmed"
+    assert status["canStartExam"] is True
+
+
+@pytest.mark.django_db
+def test_student_self_scan_records_repeat_check_in_before_start() -> None:
+    api_client = APIClient()
+    student = make_user("attendance_repeat_checkin_student")
+    contest = make_contest()
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.NOT_STARTED,
+    )
+    event = ExamEvent.objects.create(
+        contest=contest,
+        user=student,
+        event_type="attendance_check_in",
+        metadata={
+            "attendance_purpose": "check_in",
+            "attendance_mode": "student_self_scan",
+            "source_module": "attendance",
+        },
+    )
+    ExamEvidenceFrame.objects.create(
+        contest=contest,
+        user=student,
+        exam_event=event,
+        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        status=ExamEvidenceFrame.Status.UPLOADED,
+        object_key="attendance-repeat-checkin.webp",
+        client_captured_at_ms=1,
+    )
+    token = create_attendance_token(contest, "check_in")
+    api_client.force_authenticate(user=student)
+
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/events/",
+        {"mode": "student_self_scan", "purpose": "check_in", "token": token},
+        format="json",
+    )
+
+    participant.refresh_from_db()
+    assert response.status_code == 201
+    repeat_event = ExamEvent.objects.get(id=response.data["event_id"])
+    assert repeat_event.event_type == "attendance_check_in"
+    assert repeat_event.metadata["attendance_repeat"] is True
+    assert repeat_event.metadata["attendance_attempt"] == 2
+    assert repeat_event.metadata["attendance_action"] == "re_check_in"
+    assert participant.exam_status == ExamStatus.NOT_STARTED
+
+
+@pytest.mark.django_db
+def test_student_self_scan_check_in_after_submission_still_rejected() -> None:
+    api_client = APIClient()
+    student = make_user("attendance_repeat_checkin_submitted_student")
+    contest = make_contest()
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.SUBMITTED,
+    )
+    event = ExamEvent.objects.create(
+        contest=contest,
+        user=student,
+        event_type="attendance_check_in",
+        metadata={
+            "attendance_purpose": "check_in",
+            "attendance_mode": "student_self_scan",
+            "source_module": "attendance",
+        },
+    )
+    ExamEvidenceFrame.objects.create(
+        contest=contest,
+        user=student,
+        exam_event=event,
+        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        status=ExamEvidenceFrame.Status.UPLOADED,
+        object_key="attendance-repeat-checkin-after-submit.webp",
+        client_captured_at_ms=1,
+    )
+    token = create_attendance_token(contest, "check_in")
+    api_client.force_authenticate(user=student)
+
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/events/",
+        {"mode": "student_self_scan", "purpose": "check_in", "token": token},
+        format="json",
+    )
+
+    participant.refresh_from_db()
+    assert response.status_code == 409
+    assert response.data["code"] == "check_in_only_before_personal_start"
+    assert participant.exam_status == ExamStatus.SUBMITTED
+
+
+@pytest.mark.django_db
+def test_room_and_selfie_policy_requires_two_attendance_photos() -> None:
+    student = make_user("attendance_two_photo_student")
+    contest = make_contest(attendance_photo_policy="room_and_selfie")
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.NOT_STARTED,
+    )
+    event = ExamEvent.objects.create(
+        contest=contest,
+        user=student,
+        event_type="attendance_check_in",
+        metadata={
+            "attendance_purpose": "check_in",
+            "attendance_mode": "student_self_scan",
+            "source_module": "attendance",
+        },
+    )
+    ExamEvidenceFrame.objects.create(
+        contest=contest,
+        user=student,
+        exam_event=event,
+        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        status=ExamEvidenceFrame.Status.UPLOADED,
+        seq=1,
+        object_key="attendance-room.webp",
+        client_captured_at_ms=1,
+    )
+
+    status = build_attendance_status(contest, participant)
+
+    assert status["checkInStatus"] == "event_created"
+    assert status["canStartExam"] is False
+
+    ExamEvidenceFrame.objects.create(
+        contest=contest,
+        user=student,
+        exam_event=event,
+        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        status=ExamEvidenceFrame.Status.UPLOADED,
+        seq=2,
+        object_key="attendance-selfie.webp",
+        client_captured_at_ms=2,
+    )
+
+    status = build_attendance_status(contest, participant)
+
+    assert status["checkInStatus"] == "photo_confirmed"
+    assert status["canStartExam"] is True
+
+
+@pytest.mark.django_db
+def test_teacher_can_reset_participant_attendance_records() -> None:
+    api_client = APIClient()
+    teacher = make_user("attendance_reset_teacher", role="teacher")
+    student = make_user("attendance_reset_student")
+    contest = make_contest(owner=teacher)
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        exam_status=ExamStatus.NOT_STARTED,
+    )
+    event = ExamEvent.objects.create(
+        contest=contest,
+        user=student,
+        event_type="attendance_check_in",
+        metadata={
+            "attendance_purpose": "check_in",
+            "attendance_mode": "student_self_scan",
+            "source_module": "attendance",
+        },
+    )
+    ExamEvidenceFrame.objects.create(
+        contest=contest,
+        user=student,
+        exam_event=event,
+        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        status=ExamEvidenceFrame.Status.UPLOADED,
+        object_key="attendance-reset.webp",
+        client_captured_at_ms=1,
+    )
+    api_client.force_authenticate(user=teacher)
+
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/reset/",
+        {"user_id": student.id},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["deleted_events"] == 1
+    assert response.data["attendance_status"]["checkInStatus"] == "missing"
+    assert ExamEvent.objects.filter(contest=contest, user=student).count() == 0
+    assert ExamEvidenceFrame.objects.filter(contest=contest, user=student).count() == 0
+    participant.refresh_from_db()
+    assert participant.exam_status == ExamStatus.NOT_STARTED
 
 
 @pytest.mark.django_db

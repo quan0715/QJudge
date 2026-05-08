@@ -243,6 +243,7 @@ const ContestSettingsOverlay = ({ open, onClose }: ContestSettingsOverlayProps) 
       status: contest.status || "draft",
       visibility: contest.visibility || "public",
       attendanceCheckEnabled: contest.attendanceCheckEnabled ?? false,
+      attendancePhotoPolicy: contest.attendancePhotoPolicy ?? "room",
       cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
       anticheatDevicePolicy: sanitizeAnticheatPolicy(contest.anticheatDevicePolicy),
       warningTimeoutSeconds: contest.warningTimeoutSeconds ?? 20,

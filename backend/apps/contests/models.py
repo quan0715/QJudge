@@ -103,6 +103,17 @@ class Contest(models.Model):
         verbose_name='啟用 QR 簽到簽退',
         help_text='啟用後學生需先完成 QR 簽到與現場照片佐證才可開始考試',
     )
+    ATTENDANCE_PHOTO_POLICY_CHOICES = [
+        ('room', 'Room photo'),
+        ('room_and_selfie', 'Room and selfie photos'),
+    ]
+    attendance_photo_policy = models.CharField(
+        max_length=24,
+        choices=ATTENDANCE_PHOTO_POLICY_CHOICES,
+        default='room',
+        verbose_name='簽到佐證照片策略',
+        help_text='room: 後鏡頭拍攝現場; room_and_selfie: 後鏡頭現場與前鏡頭本人各一張',
+    )
     
     # Contest status - draft/published/archived
     STATUS_CHOICES = [

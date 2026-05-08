@@ -125,6 +125,26 @@ export default function AccessSettingsPanel({
         </ActionRow>
 
         <ActionRow
+          label="簽到佐證照片"
+          description="可要求學生拍攝現場環境，或現場環境與本人到場照片各一張。"
+          saveState={getState("attendancePhotoPolicy")}
+          onRetry={() => onRetry("attendancePhotoPolicy")}
+        >
+          <Select
+            id="settings-attendance-photo-policy"
+            labelText=""
+            hideLabel
+            value={(form.attendancePhotoPolicy as string) || "room"}
+            disabled={!form.attendanceCheckEnabled}
+            style={{ minWidth: 220 }}
+            onChange={(event) => onChange("attendancePhotoPolicy", event.target.value)}
+          >
+            <SelectItem value="room" text="後鏡頭現場照片" />
+            <SelectItem value="room_and_selfie" text="前鏡頭本人 + 後鏡頭現場" />
+          </Select>
+        </ActionRow>
+
+        <ActionRow
           label={t("settings.allowMultipleJoins")}
           description="允許同一學生多次加入考試（例如斷線重連）"
           saveState={getState("allowMultipleJoins")}

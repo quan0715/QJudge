@@ -4,6 +4,7 @@ import type {
   ContestAnticheatConfig,
   ContestDetail,
   ContestOverviewMetrics,
+  AttendancePhotoPolicy,
   ContestStatus,
   ContestVisibility,
   ScoreboardData,
@@ -193,6 +194,7 @@ export interface ContestUpdatePayload {
   countsTowardGrade?: boolean;
   visibility?: ContestVisibility;
   attendanceCheckEnabled?: boolean;
+  attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   warningTimeoutSeconds?: number;

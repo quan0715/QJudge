@@ -15,6 +15,7 @@ from ..services.attendance import (
     build_attendance_qr_value,
     create_attendance_event,
     create_attendance_token,
+    reset_participant_attendance_records,
 )
 
 
@@ -42,6 +43,10 @@ class AttendanceEventSerializer(serializers.Serializer):
             if not str(attrs.get("reason") or "").strip():
                 raise serializers.ValidationError({"reason": "Reason is required."})
         return attrs
+
+
+class AttendanceResetSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(min_value=1)
 
 
 class AttendanceMixin:
@@ -108,8 +113,35 @@ class AttendanceMixin:
         if error_response is not None:
             return error_response
         if result.get("error_code") in {
+            "attendance_check_in_already_completed",
+            "attendance_check_out_already_completed",
             "check_in_only_before_personal_start",
             "checkout_not_available_until_submitted",
         }:
             return Response({"code": result["error_code"]}, status=status.HTTP_409_CONFLICT)
         return Response(result["payload"], status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[permissions.IsAuthenticated],
+        url_path="attendance/reset",
+    )
+    def attendance_reset(self, request, pk=None):
+        contest: Contest = self.get_object()
+        if not can_manage_contest(request.user, contest):
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = AttendanceResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            result = reset_participant_attendance_records(
+                contest,
+                serializer.validated_data["user_id"],
+            )
+        except ValueError as exc:
+            return Response({"code": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(result)

@@ -81,6 +81,7 @@ export function mapContestDto(dto: ContestDto): Contest {
     status: dto.status || "draft",
     visibility: dto.visibility || "public",
     attendanceCheckEnabled: !!dto.attendance_check_enabled,
+    attendancePhotoPolicy: dto.attendance_photo_policy || "room",
     deliveryMode: dto.delivery_mode || "exam",
     countsTowardGrade: dto.counts_toward_grade ?? true,
 
@@ -150,6 +151,12 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     attendanceStatus: dto.attendance_status
       ? {
           attendanceRequired: !!dto.attendance_status.attendanceRequired,
+          photoPolicy: dto.attendance_status.photoPolicy || "room",
+          requiredPhotoKinds: Array.isArray(dto.attendance_status.requiredPhotoKinds)
+            ? dto.attendance_status.requiredPhotoKinds.filter(
+                (kind) => kind === "room" || kind === "selfie",
+              )
+            : ["room"],
           checkInStatus: (dto.attendance_status.checkInStatus || "not_required") as any,
           checkOutStatus: (dto.attendance_status.checkOutStatus || "unavailable") as any,
           canCheckIn: !!dto.attendance_status.canCheckIn,
@@ -1147,6 +1154,7 @@ export function mapContestUpdateRequestToDto(
     status: request.status,
     visibility: request.visibility,
     attendance_check_enabled: request.attendanceCheckEnabled,
+    attendance_photo_policy: request.attendancePhotoPolicy,
     cheat_detection_enabled: request.cheatDetectionEnabled,
     anticheat_device_policy: anticheatDevicePolicy,
     warning_timeout_seconds: request.warningTimeoutSeconds,

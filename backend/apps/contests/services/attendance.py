@@ -5,6 +5,7 @@ import secrets
 from typing import Any, Callable
 
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 
@@ -21,6 +22,10 @@ ATTENDANCE_EVENT_TYPES = {
 }
 ATTENDANCE_EVENT_PURPOSES = {value: key for key, value in ATTENDANCE_EVENT_TYPES.items()}
 ATTENDANCE_READY_STATUSES = {"photo_confirmed", "teacher_assisted"}
+ATTENDANCE_PHOTO_KIND_BY_POLICY = {
+    "room": ["room"],
+    "room_and_selfie": ["room", "selfie"],
+}
 
 
 def _token_cache_key(token: str) -> str:
@@ -58,12 +63,8 @@ def validate_attendance_token(contest: Contest, purpose: str, token: str) -> dic
     return value
 
 
-def _latest_attendance_event(contest: Contest, participant: ContestParticipant, event_type: str) -> ExamEvent | None:
-    return (
-        ExamEvent.objects.filter(contest=contest, user=participant.user, event_type=event_type)
-        .order_by("-created_at", "-id")
-        .first()
-    )
+def get_attendance_required_photo_kinds(contest: Contest) -> list[str]:
+    return ATTENDANCE_PHOTO_KIND_BY_POLICY.get(contest.attendance_photo_policy or "room", ["room"])
 
 
 def _uploaded_evidence_count(event: ExamEvent | None) -> int:
@@ -76,21 +77,40 @@ def _uploaded_evidence_count(event: ExamEvent | None) -> int:
     ).count()
 
 
-def _status_for_event(event: ExamEvent | None) -> str:
+def _status_for_event(contest: Contest, event: ExamEvent | None) -> str:
     if event is None:
         return "missing"
     metadata = event.metadata if isinstance(event.metadata, dict) else {}
     if metadata.get("attendance_mode") == "teacher_assisted":
         return "teacher_assisted"
-    if _uploaded_evidence_count(event) > 0:
+    if _uploaded_evidence_count(event) >= len(get_attendance_required_photo_kinds(contest)):
         return "photo_confirmed"
     return "event_created"
+
+
+def _status_for_attendance_purpose(contest: Contest, participant: ContestParticipant, event_type: str) -> str:
+    events = list(
+        ExamEvent.objects.filter(contest=contest, user=participant.user, event_type=event_type)
+        .order_by("-created_at", "-id")
+    )
+    if not events:
+        return "missing"
+    latest_status = _status_for_event(contest, events[0])
+    if latest_status in ATTENDANCE_READY_STATUSES:
+        return latest_status
+    for event in events[1:]:
+        status = _status_for_event(contest, event)
+        if status in ATTENDANCE_READY_STATUSES:
+            return status
+    return latest_status
 
 
 def build_attendance_status(contest: Contest, participant: ContestParticipant | None) -> dict[str, Any]:
     if not contest.attendance_check_enabled:
         return {
             "attendanceRequired": False,
+            "photoPolicy": contest.attendance_photo_policy,
+            "requiredPhotoKinds": get_attendance_required_photo_kinds(contest),
             "checkInStatus": "not_required",
             "checkOutStatus": "unavailable",
             "canCheckIn": False,
@@ -100,6 +120,8 @@ def build_attendance_status(contest: Contest, participant: ContestParticipant | 
     if participant is None:
         return {
             "attendanceRequired": True,
+            "photoPolicy": contest.attendance_photo_policy,
+            "requiredPhotoKinds": get_attendance_required_photo_kinds(contest),
             "checkInStatus": "missing",
             "checkOutStatus": "unavailable",
             "canCheckIn": True,
@@ -107,18 +129,18 @@ def build_attendance_status(contest: Contest, participant: ContestParticipant | 
             "canCheckOut": False,
         }
 
-    check_in_event = _latest_attendance_event(contest, participant, ATTENDANCE_EVENT_TYPES["check_in"])
-    check_out_event = _latest_attendance_event(contest, participant, ATTENDANCE_EVENT_TYPES["check_out"])
-    check_in_status = _status_for_event(check_in_event)
+    check_in_status = _status_for_attendance_purpose(contest, participant, ATTENDANCE_EVENT_TYPES["check_in"])
     check_out_status = "unavailable"
     if participant.exam_status == ExamStatus.SUBMITTED:
-        check_out_status = _status_for_event(check_out_event)
+        check_out_status = _status_for_attendance_purpose(contest, participant, ATTENDANCE_EVENT_TYPES["check_out"])
 
     now = timezone.now()
     global_start_ready = contest.start_time is None or now >= contest.start_time
     attendance_ready = check_in_status in ATTENDANCE_READY_STATUSES
     return {
         "attendanceRequired": True,
+        "photoPolicy": contest.attendance_photo_policy,
+        "requiredPhotoKinds": get_attendance_required_photo_kinds(contest),
         "checkInStatus": check_in_status,
         "checkOutStatus": check_out_status,
         "canCheckIn": participant.exam_status == ExamStatus.NOT_STARTED,
@@ -161,14 +183,24 @@ def create_attendance_event(
             return {"error_code": "check_in_only_before_personal_start"}
         if purpose == "check_out" and participant.exam_status != ExamStatus.SUBMITTED:
             return {"error_code": "checkout_not_available_until_submitted"}
+        previous_attempt_count = ExamEvent.objects.filter(
+            contest=contest,
+            user=actor,
+            event_type=ATTENDANCE_EVENT_TYPES[purpose],
+        ).count()
         target_user = actor
         metadata = {
             "attendance_purpose": purpose,
             "attendance_mode": "student_self_scan",
+            "attendance_attempt": previous_attempt_count + 1,
+            "attendance_repeat": previous_attempt_count > 0,
+            "attendance_action": f"re_{purpose}" if previous_attempt_count > 0 else purpose,
             "source_module": ExamEvidenceFrame.SourceModule.ATTENDANCE,
             "device_kind": str(data.get("device_kind") or ""),
             "client_observed_at_ms": data.get("client_observed_at_ms"),
             "photo_required": True,
+            "photo_policy": contest.attendance_photo_policy,
+            "required_photo_kinds": get_attendance_required_photo_kinds(contest),
         }
     elif mode == "teacher_assisted":
         if not can_manage_contest(actor, contest):
@@ -196,6 +228,8 @@ def create_attendance_event(
             "reason": reason,
             "source_module": ExamEvidenceFrame.SourceModule.ATTENDANCE,
             "photo_required": True,
+            "photo_policy": contest.attendance_photo_policy,
+            "required_photo_kinds": get_attendance_required_photo_kinds(contest),
         }
     else:
         raise ValueError("invalid_attendance_mode")
@@ -219,6 +253,32 @@ def create_attendance_event(
             "recorded_at": event.created_at.isoformat(),
             "attendance_status": build_attendance_status(contest, participant),
         }
+    }
+
+
+def reset_participant_attendance_records(contest: Contest, user_id: int) -> dict[str, Any]:
+    try:
+        participant = ContestParticipant.objects.select_related("user").get(
+            contest=contest,
+            user_id=user_id,
+        )
+    except ContestParticipant.DoesNotExist:
+        raise ValueError("participant_not_found") from None
+
+    with transaction.atomic():
+        events = ExamEvent.objects.filter(
+            contest=contest,
+            user=participant.user,
+            event_type__in=ATTENDANCE_EVENT_PURPOSES.keys(),
+        )
+        deleted_events = events.count()
+        deleted, deleted_by_model = events.delete()
+
+    return {
+        "deleted_events": deleted_events,
+        "deleted_records": deleted,
+        "deleted_by_model": deleted_by_model,
+        "attendance_status": build_attendance_status(contest, participant),
     }
 
 

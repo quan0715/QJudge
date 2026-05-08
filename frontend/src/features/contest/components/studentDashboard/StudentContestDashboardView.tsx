@@ -76,6 +76,8 @@ import {
 } from "./studentDashboardState";
 import styles from "./StudentContestDashboard.module.scss";
 
+const ATTENDANCE_READY_STATUSES = new Set(["photo_confirmed", "teacher_assisted"]);
+
 interface StudentContestDashboardProps {
   contest: ContestDetail;
   onJoin?: () => void;
@@ -424,7 +426,14 @@ export default function StudentContestDashboard({
     examStatus === "submitted" &&
     contest.allowMultipleJoins;
   const canOpenAttendanceScanner = !!(
-    contest.attendanceStatus?.canCheckIn || contest.attendanceStatus?.canCheckOut
+    contest.attendanceStatus?.canCheckOut ||
+    (contest.attendanceStatus?.canCheckIn && !canStartExam)
+  );
+  const checkInCompleted = ATTENDANCE_READY_STATUSES.has(
+    contest.attendanceStatus?.checkInStatus ?? "",
+  );
+  const checkOutCompleted = ATTENDANCE_READY_STATUSES.has(
+    contest.attendanceStatus?.checkOutStatus ?? "",
   );
   const scoreDisplay = contest.resultsPublished
     ? progressSummary.totalScore === null
@@ -513,6 +522,30 @@ export default function StudentContestDashboard({
     }
   };
 
+  const renderAttendanceAction = () => {
+    if (!canOpenAttendanceScanner || !classroomId) {
+      return null;
+    }
+
+    const attendanceActionLabel = contest.attendanceStatus?.canCheckOut
+      ? checkOutCompleted
+        ? "重新簽退"
+        : "前往簽退"
+      : checkInCompleted
+        ? "重新簽到"
+        : "前往簽到";
+
+    return (
+      <Button
+        kind={examStatus === "submitted" ? "secondary" : "primary"}
+        renderIcon={Login}
+        onClick={() => navigate(`/classrooms/${classroomId}/contest/${contest.id}/attendance/scan`)}
+      >
+        {attendanceActionLabel}
+      </Button>
+    );
+  };
+
   const renderPrimaryAction = () => {
     if (!participant && phase !== "after") {
       return (
@@ -527,15 +560,11 @@ export default function StudentContestDashboard({
         </Button>
       );
     }
-    if (canOpenAttendanceScanner && classroomId) {
-      return (
-        <Button
-          renderIcon={Login}
-          onClick={() => navigate(`/classrooms/${classroomId}/contest/${contest.id}/attendance/scan`)}
-        >
-          {contest.attendanceStatus?.canCheckOut ? "前往簽退" : "前往簽到"}
-        </Button>
-      );
+    if (examStatus !== "submitted") {
+      const attendanceAction = renderAttendanceAction();
+      if (attendanceAction) {
+        return attendanceAction;
+      }
     }
     if (canStartExam || canResumeExam) {
       return (
@@ -1076,6 +1105,7 @@ export default function StudentContestDashboard({
           <DashboardBlock>
             <div className={styles.actionStack}>
               {renderPrimaryAction()}
+              {examStatus === "submitted" ? renderAttendanceAction() : null}
               {canSubmitExam ? (
                 <Button
                   kind="danger--tertiary"

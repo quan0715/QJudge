@@ -1,25 +1,46 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Camera, CheckmarkFilled, ChevronLeft, Renew, SendAlt } from "@carbon/icons-react";
 import { Button, InlineNotification } from "@carbon/react";
 import { useNavigate, useParams } from "react-router";
 import jsQR from "jsqr";
 
+import type { AttendancePhotoKind, AttendancePhotoPolicy } from "@/core/entities/contest.entity";
 import { parseAttendanceQrValue, type ParsedAttendanceQr } from "@/features/contest/attendance/attendanceQr";
 import { createAttendanceEvent } from "@/infrastructure/api/repositories/attendance.repository";
+import { getContest } from "@/infrastructure/api/repositories/contest.repository";
 import {
   confirmEvidenceUpload,
   createEvidenceUploadIntent,
 } from "@/infrastructure/api/repositories/exam.repository";
 import styles from "./StudentAttendanceScanScreen.module.scss";
 
-type ScanState = "scanning" | "capturing" | "submitting" | "done";
+type ScanState = "scanning" | "validating" | "capturing" | "submitting" | "done";
 type CameraState = "requesting" | "ready" | "unavailable";
 type ScannerMode = "waiting" | "native" | "js";
+type StepId = "scan" | "photo" | "photoReview" | "confirm";
+type AttendancePhotoRequirement = {
+  id: AttendancePhotoKind;
+  label: string;
+  title: string;
+  description: string;
+  facingMode: VideoFacingModeEnum;
+};
 type BarcodeDetectorLike = {
   detect(source: CanvasImageSource): Promise<Array<{ rawValue?: string }>>;
 };
 type BarcodeDetectorConstructor = {
   new (options?: { formats?: string[] }): BarcodeDetectorLike;
   getSupportedFormats?: () => Promise<string[]>;
+};
+type ApiError = Error & {
+  status?: number;
+  response?: {
+    status: number;
+    data?: {
+      code?: string;
+      detail?: string;
+    };
+  };
 };
 
 async function captureBlob(video: HTMLVideoElement): Promise<Blob> {
@@ -35,6 +56,42 @@ async function captureBlob(video: HTMLVideoElement): Promise<Blob> {
       else reject(new Error("Failed to capture photo"));
     }, "image/webp", 0.9);
   });
+}
+
+async function requestCameraStream(facingMode: VideoFacingModeEnum): Promise<MediaStream> {
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: facingMode } },
+      audio: false,
+    });
+  } catch {
+    return navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false,
+    });
+  }
+}
+
+function stopMediaStream(stream: MediaStream | null) {
+  stream?.getTracks().forEach((track) => track.stop());
+}
+
+function getApiErrorCode(error: unknown): string {
+  return (error as ApiError).response?.data?.code || "";
+}
+
+function getAttendanceSubmitErrorMessage(error: unknown, purpose?: string): string {
+  const code = getApiErrorCode(error);
+  if (code === "checkout_not_available_until_submitted") return "交卷後才可以簽退。";
+  if (code === "check_in_only_before_personal_start") {
+    return purpose === "check_in"
+      ? "您已開始或完成考試，不能再補簽到；若要離場請掃描簽退 QR Code。"
+      : "目前不在可簽到時間。";
+  }
+  if (code === "attendance_token_expired") return "QR Code 已過期，請重新掃描投影畫面上的 QR Code。";
+  if (code === "invalid_attendance_token") return "QR Code 無效，請重新掃描投影畫面上的 QR Code。";
+  if (code === "attendance_not_enabled") return "此考試尚未開啟 QR Code 簽到簽退。";
+  return error instanceof Error ? error.message : "Attendance submit failed";
 }
 
 async function createNativeQrDetector(): Promise<BarcodeDetectorLike | null> {
@@ -70,6 +127,43 @@ function decodeQrFromVideoFrame(video: HTMLVideoElement): string {
   return jsQR(imageData.data, width, height)?.data || "";
 }
 
+const PHOTO_REQUIREMENTS_BY_POLICY: Record<AttendancePhotoPolicy, AttendancePhotoRequirement[]> = {
+  room: [
+    {
+      id: "room",
+      label: "現場照片",
+      title: "拍攝現場照片",
+      description: "請拍攝教室環境與考試裝置畫面。",
+      facingMode: "environment",
+    },
+  ],
+  room_and_selfie: [
+    {
+      id: "room",
+      label: "現場照片",
+      title: "拍攝現場照片",
+      description: "請使用後鏡頭拍攝教室環境與考試裝置畫面。",
+      facingMode: "environment",
+    },
+    {
+      id: "selfie",
+      label: "本人照片",
+      title: "拍攝本人到場照片",
+      description: "請使用前鏡頭拍攝本人到場照片。",
+      facingMode: "user",
+    },
+  ],
+};
+
+function formatTime(value: number | null): string {
+  if (!value) return "--";
+  return new Intl.DateTimeFormat("zh-TW", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(value));
+}
+
 export default function StudentAttendanceScanScreen() {
   const { classroomId, contestId } = useParams();
   const navigate = useNavigate();
@@ -77,27 +171,112 @@ export default function StudentAttendanceScanScreen() {
   const streamRef = useRef<MediaStream | null>(null);
   const [state, setState] = useState<ScanState>("scanning");
   const [scan, setScan] = useState<ParsedAttendanceQr | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string>("");
-  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
+  const [pendingScan, setPendingScan] = useState<ParsedAttendanceQr | null>(null);
+  const [photoPolicy, setPhotoPolicy] = useState<AttendancePhotoPolicy>("room");
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [photoUrls, setPhotoUrls] = useState<Partial<Record<AttendancePhotoKind, string>>>({});
+  const [photoBlobs, setPhotoBlobs] = useState<Partial<Record<AttendancePhotoKind, Blob>>>({});
+  const [frozenScanUrl, setFrozenScanUrl] = useState("");
+  const [reviewPhotoKind, setReviewPhotoKind] = useState<AttendancePhotoKind | null>(null);
+  const photoUrlsRef = useRef<Partial<Record<AttendancePhotoKind, string>>>({});
+  const frozenScanUrlRef = useRef("");
   const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [scannedAt, setScannedAt] = useState<number | null>(null);
   const [cameraState, setCameraState] = useState<CameraState>("requesting");
   const [scannerMode, setScannerMode] = useState<ScannerMode>("waiting");
+  const photoRequirements = PHOTO_REQUIREMENTS_BY_POLICY[photoPolicy];
+  const currentPhoto = photoRequirements[Math.min(photoIndex, photoRequirements.length - 1)];
+  const reviewPhotoRequirement =
+    photoRequirements.find((requirement) => requirement.id === reviewPhotoKind) || null;
+  const allPhotosCaptured = photoRequirements.every((requirement) => !!photoBlobs[requirement.id]);
+  const reviewPhotoUrl = reviewPhotoRequirement ? photoUrls[reviewPhotoRequirement.id] : "";
+  const activeStep: StepId =
+    state === "done" || (allPhotosCaptured && !reviewPhotoRequirement)
+      ? "confirm"
+      : !scan
+        ? "scan"
+        : reviewPhotoRequirement
+            ? "photoReview"
+            : "photo";
+  const activePurpose = scan?.purpose || pendingScan?.purpose;
+  const purposeLabel = activePurpose === "check_out" ? "簽退" : "簽到";
+  const returnPath = `/classrooms/${classroomId}/contest/${contestId}`;
+  const cameraFacingMode = activeStep === "photo" ? currentPhoto.facingMode : "environment";
+  const completedPhotoCount = photoRequirements.filter((requirement) => !!photoBlobs[requirement.id]).length;
+  const scanValidating = activeStep === "scan" && state === "validating";
+  const cameraActive = (activeStep === "scan" && !scanValidating) || activeStep === "photo";
+  const nextPhotoIndex = reviewPhotoRequirement
+    ? photoRequirements.findIndex((requirement) => requirement.id === reviewPhotoRequirement.id) + 1
+    : -1;
+  const nextPhoto = nextPhotoIndex > 0 ? photoRequirements[nextPhotoIndex] : null;
+  const totalFlowSteps = photoRequirements.length + 2;
+  const currentFlowStep =
+    activeStep === "scan"
+      ? 1
+      : activeStep === "confirm"
+        ? totalFlowSteps
+        : Math.min(totalFlowSteps - 1, photoIndex + 2);
+  const stageTitle =
+    state === "done"
+      ? "佐證已提交"
+      : activeStep === "scan"
+        ? scanValidating ? "正在驗證 QR Code" : "掃描 QR Code"
+        : activeStep === "photo"
+          ? currentPhoto.title
+          : activeStep === "photoReview"
+            ? reviewPhotoRequirement?.title || "確認照片"
+          : `確認${purposeLabel}資訊`;
+  const stageDescription =
+    state === "done"
+      ? "系統已記錄您的簽到簽退事件。"
+      : activeStep === "scan"
+        ? scanValidating ? "請稍候，系統正在讀取並驗證 QR Code。" : "請對準教師投屏上的簽到或簽退 QR Code。"
+        : activeStep === "photo"
+          ? currentPhoto.description
+          : activeStep === "photoReview"
+            ? nextPhoto
+              ? `請確認照片清楚。下一步：${nextPhoto.title}。`
+              : "請確認照片清楚。下一步：確認簽到資訊並上傳。"
+          : "確認照片清楚後再提交。";
+
+  useEffect(() => {
+    if (!contestId) return;
+    let cancelled = false;
+    void getContest(contestId).then((contest) => {
+      if (cancelled || !contest) return;
+      setPhotoPolicy(contest.attendancePhotoPolicy || "room");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [contestId]);
 
   useEffect(() => {
     let cancelled = false;
+    let ownedStream: MediaStream | null = null;
     const start = async () => {
+      if (!cameraActive) {
+        stopMediaStream(streamRef.current);
+        streamRef.current = null;
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+        }
+        setScannerMode("waiting");
+        return;
+      }
       try {
         setCameraState("requesting");
         setScannerMode("waiting");
         if (typeof navigator.mediaDevices?.getUserMedia !== "function") {
           throw new Error("此瀏覽器不支援相機存取，請改由教師協助簽到。");
         }
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
+        stopMediaStream(streamRef.current);
+        streamRef.current = null;
+        const stream = await requestCameraStream(cameraFacingMode);
+        ownedStream = stream;
         if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
+          stopMediaStream(stream);
           return;
         }
         streamRef.current = stream;
@@ -115,14 +294,53 @@ export default function StudentAttendanceScanScreen() {
     void start();
     return () => {
       cancelled = true;
-      streamRef.current?.getTracks().forEach((track) => track.stop());
+      stopMediaStream(ownedStream);
+      if (videoRef.current?.srcObject === ownedStream) {
+        videoRef.current.srcObject = null;
+      }
+      if (streamRef.current === ownedStream) {
+        streamRef.current = null;
+      }
+    };
+  }, [cameraActive, cameraFacingMode]);
+
+  useEffect(() => {
+    photoUrlsRef.current = photoUrls;
+  }, [photoUrls]);
+
+  useEffect(() => {
+    frozenScanUrlRef.current = frozenScanUrl;
+  }, [frozenScanUrl]);
+
+  useEffect(() => {
+    if (!scan || allPhotosCaptured) return;
+    if (reviewPhotoRequirement) return;
+    const nextMissingIndex = photoRequirements.findIndex((requirement) => !photoBlobs[requirement.id]);
+    if (nextMissingIndex >= 0 && nextMissingIndex !== photoIndex) {
+      setPhotoIndex(nextMissingIndex);
+    }
+  }, [allPhotosCaptured, photoBlobs, photoIndex, photoRequirements, reviewPhotoRequirement, scan]);
+
+  useEffect(() => {
+    if (state !== "done") return undefined;
+    const timer = window.setTimeout(() => navigate(returnPath), 2600);
+    return () => window.clearTimeout(timer);
+  }, [navigate, returnPath, state]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(photoUrlsRef.current).forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+      if (frozenScanUrlRef.current) URL.revokeObjectURL(frozenScanUrlRef.current);
     };
   }, []);
 
   useEffect(() => {
-    if (cameraState !== "ready" || state !== "scanning" || scan) return;
+    if (activeStep !== "scan" || cameraState !== "ready" || state !== "scanning" || scan) return;
     let detector: BarcodeDetectorLike | null = null;
     let stopped = false;
+    let timer = 0;
     void createNativeQrDetector().then((nextDetector) => {
       if (stopped) return;
       detector = nextDetector;
@@ -136,35 +354,131 @@ export default function StudentAttendanceScanScreen() {
         : decodeQrFromVideoFrame(video);
       const parsed = raw ? parseAttendanceQrValue(raw) : null;
       if (parsed) {
-        setScan(parsed);
-        setState("capturing");
+        stopped = true;
+        window.clearInterval(timer);
+        setScannerMode("waiting");
+        setPendingScan(parsed);
+        setState("validating");
+        setScannedAt(Date.now());
         setError(null);
+        void captureBlob(video).then((blob) => {
+          const url = URL.createObjectURL(blob);
+          setFrozenScanUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return url;
+          });
+        }).catch(() => undefined);
+        stopMediaStream(streamRef.current);
+        streamRef.current = null;
       }
     };
-    const timer = window.setInterval(() => {
+    timer = window.setInterval(() => {
       if (!stopped) void tick();
     }, 500);
     return () => {
       stopped = true;
       window.clearInterval(timer);
     };
-  }, [cameraState, scan, state]);
+  }, [activeStep, cameraState, scan, state]);
+
+  useEffect(() => {
+    if (state !== "validating" || !pendingScan) return undefined;
+    const timer = window.setTimeout(() => {
+      setScan(pendingScan);
+      setPendingScan(null);
+      setState("capturing");
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [pendingScan, state]);
 
   const handleCapture = useCallback(async () => {
     if (!videoRef.current) return;
     try {
+      setSubmitError(null);
       const blob = await captureBlob(videoRef.current);
-      setPhotoBlob(blob);
-      setPhotoUrl(URL.createObjectURL(blob));
+      const existingUrl = photoUrls[currentPhoto.id];
+      if (existingUrl) URL.revokeObjectURL(existingUrl);
+      setPhotoBlobs((prev) => ({ ...prev, [currentPhoto.id]: blob }));
+      setPhotoUrls((prev) => ({ ...prev, [currentPhoto.id]: URL.createObjectURL(blob) }));
+      setReviewPhotoKind(currentPhoto.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to capture photo");
     }
-  }, []);
+  }, [currentPhoto.id, photoUrls]);
+
+  const handleAcceptPhoto = useCallback(() => {
+    if (!reviewPhotoRequirement) return;
+    setSubmitError(null);
+    const acceptedIndex = photoRequirements.findIndex((requirement) => requirement.id === reviewPhotoRequirement.id);
+    setReviewPhotoKind(null);
+    if (acceptedIndex >= 0 && acceptedIndex < photoRequirements.length - 1) {
+      setPhotoIndex(acceptedIndex + 1);
+      setState("capturing");
+    }
+  }, [photoRequirements, reviewPhotoRequirement]);
+
+  const handleRetake = useCallback(() => {
+    let lastCapturedIndex = reviewPhotoRequirement
+      ? photoRequirements.findIndex((requirement) => requirement.id === reviewPhotoRequirement.id)
+      : 0;
+    if (lastCapturedIndex < 0) lastCapturedIndex = 0;
+    if (!reviewPhotoRequirement) {
+      photoRequirements.forEach((requirement, index) => {
+        if (photoBlobs[requirement.id]) lastCapturedIndex = index;
+      });
+    }
+    const requirement = photoRequirements[lastCapturedIndex];
+    const existingUrl = photoUrls[requirement.id];
+    if (existingUrl) URL.revokeObjectURL(existingUrl);
+    setPhotoBlobs((prev) => {
+      const next = { ...prev };
+      delete next[requirement.id];
+      return next;
+    });
+    setPhotoUrls((prev) => {
+      const next = { ...prev };
+      delete next[requirement.id];
+      return next;
+    });
+    setPhotoIndex(lastCapturedIndex);
+    setReviewPhotoKind(null);
+    setState("capturing");
+  }, [photoBlobs, photoRequirements, photoUrls, reviewPhotoRequirement]);
+
+  const handleRescan = useCallback(() => {
+    Object.values(photoUrls).forEach((url) => {
+      if (url) URL.revokeObjectURL(url);
+    });
+    setScan(null);
+    setPendingScan(null);
+    setScannedAt(null);
+    setPhotoBlobs({});
+    setPhotoUrls({});
+    setPhotoIndex(0);
+    setReviewPhotoKind(null);
+    setFrozenScanUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return "";
+    });
+    setState("scanning");
+    setError(null);
+    setSubmitError(null);
+  }, [photoUrls]);
 
   const handleSubmit = useCallback(async () => {
-    if (!contestId || !scan || !photoBlob) return;
+    if (!contestId || !scan || !allPhotosCaptured) return;
     setState("submitting");
+    setSubmitError(null);
     try {
+      const capturedPhotos = photoRequirements.map((requirement, index) => ({
+        requirement,
+        blob: photoBlobs[requirement.id],
+        seq: index + 1,
+      }));
+      const missingPhoto = capturedPhotos.find((photo) => !photo.blob);
+      if (missingPhoto) {
+        throw new Error(`${missingPhoto.requirement.label}尚未拍攝完成`);
+      }
       const event = await createAttendanceEvent(contestId, {
         mode: "student_self_scan",
         purpose: scan.purpose,
@@ -178,68 +492,220 @@ export default function StudentAttendanceScanScreen() {
         evidence_cluster_id: event.evidence_cluster_id,
         source_module: "attendance",
         evidence_mode: "audit",
-        frames: [{ client_captured_at_ms: capturedAt, seq: 1 }],
+        frames: capturedPhotos.map((photo) => ({
+          client_captured_at_ms: capturedAt,
+          seq: photo.seq,
+        })),
       });
-      const item = intent.items[0];
-      if (item) {
+      const confirmedFrames = [];
+      if (intent.items.length !== capturedPhotos.length) {
+        throw new Error("Upload intent did not include all required photos");
+      }
+      for (let index = 0; index < intent.items.length; index += 1) {
+        const item = intent.items[index];
+        const photo = capturedPhotos[index];
+        if (!item || !photo?.blob) continue;
         const response = await fetch(item.put_url, {
           method: "PUT",
           headers: item.required_headers || { "Content-Type": "image/webp" },
-          body: photoBlob,
+          body: photo.blob,
         });
         if (!response.ok) throw new Error("Photo upload failed");
-        await confirmEvidenceUpload(contestId, {
-          event_id: event.event_id,
-          upload_session_id: intent.upload_session_id,
-          frames: [{
-            evidence_frame_id: item.evidence_frame_id,
-            object_key: item.object_key,
-            byte_size: photoBlob.size,
-          }],
+        confirmedFrames.push({
+          evidence_frame_id: item.evidence_frame_id,
+          object_key: item.object_key,
+          byte_size: photo.blob.size,
         });
       }
+      await confirmEvidenceUpload(contestId, {
+        event_id: event.event_id,
+        upload_session_id: intent.upload_session_id,
+        frames: confirmedFrames,
+      });
+      stopMediaStream(streamRef.current);
+      streamRef.current = null;
       setState("done");
     } catch (err) {
       setState("capturing");
-      setError(err instanceof Error ? err.message : "Attendance submit failed");
+      setSubmitError(getAttendanceSubmitErrorMessage(err, scan?.purpose));
     }
-  }, [contestId, photoBlob, scan]);
+  }, [allPhotosCaptured, contestId, photoBlobs, photoRequirements, scan]);
 
   return (
     <main className={styles.page}>
-      <header className={styles.header}>QJudge</header>
-      <section className={styles.content}>
-        {error ? <InlineNotification kind="error" title="無法完成簽到簽退" subtitle={error} lowContrast /> : null}
-        <div className={styles.panel}>
-          <div className={styles.status}>
-            {cameraState === "requesting"
-              ? "等待相機授權"
-              : scannerMode === "waiting"
-                ? "準備掃描"
-                : "掃描 QR code"}
+      <section className={styles.cameraStage} data-step={activeStep}>
+        {cameraActive ? (
+          <video
+            key={`${cameraFacingMode}-${photoIndex}`}
+            ref={videoRef}
+            className={styles.video}
+            autoPlay
+            playsInline
+            muted
+          />
+        ) : scanValidating && frozenScanUrl ? (
+          <img className={styles.video} src={frozenScanUrl} alt="" />
+        ) : (
+          <div className={styles.reviewBackdrop} />
+        )}
+
+        <div className={styles.topBar}>
+          <Button
+            kind="ghost"
+            className={styles.backButton}
+            hasIconOnly
+            renderIcon={ChevronLeft}
+            iconDescription="返回"
+            onClick={() => navigate(returnPath)}
+          />
+          <div className={styles.topTitle}>
+            <strong>QJudge</strong>
+            <span>{purposeLabel}</span>
           </div>
-          <video ref={videoRef} className={styles.video} autoPlay playsInline muted />
-          {scan ? (
-            <InlineNotification
-              kind="success"
-              title={scan.purpose === "check_in" ? "已掃描簽到 QR" : "已掃描簽退 QR"}
-              subtitle="請拍攝現場環境照片作為佐證。"
-              lowContrast
-              hideCloseButton
-            />
-          ) : null}
-          {photoUrl ? <img className={styles.photo} src={photoUrl} alt="" /> : null}
-          <div className={styles.actions}>
-            <Button disabled={!scan || state === "submitting"} onClick={handleCapture}>拍攝照片</Button>
-            <Button kind="primary" disabled={!photoBlob || state === "submitting"} onClick={handleSubmit}>提交佐證</Button>
-            <Button kind="ghost" onClick={() => navigate(`/classrooms/${classroomId}/contest/${contestId}`)}>
-              返回
-            </Button>
-          </div>
-          {state === "done" ? (
-            <InlineNotification kind="success" title="提交成功" subtitle="已記錄您的簽到簽退事件。" lowContrast />
-          ) : null}
         </div>
+        <div className={styles.stepBadge} aria-label={`目前步驟 ${currentFlowStep} / ${totalFlowSteps}`}>
+          步驟 {currentFlowStep} / {totalFlowSteps}
+        </div>
+
+        {activeStep === "scan" ? (
+          <div className={styles.scanFrame} data-status={scanValidating ? "validating" : "scanning"} aria-hidden="true">
+            {scanValidating ? <span /> : null}
+          </div>
+        ) : null}
+
+        {activeStep === "scan" || activeStep === "photo" ? (
+          <div className={styles.stageCaption}>
+            <h1>{stageTitle}</h1>
+            <p>{stageDescription}</p>
+            <span>
+              {cameraState === "requesting"
+                ? "等待相機授權"
+                : cameraState === "unavailable"
+                  ? "相機無法使用"
+                  : activeStep === "scan"
+                    ? scanValidating ? "驗證中" : scannerMode === "waiting" ? "準備掃描" : "正在掃描"
+                    : `${completedPhotoCount}/${photoRequirements.length}`}
+            </span>
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className={styles.notificationLayer}>
+            <InlineNotification kind="error" title="無法完成簽到簽退" subtitle={error} lowContrast />
+          </div>
+        ) : null}
+
+        {activeStep === "photo" && state !== "submitting" ? (
+          <button
+            type="button"
+            className={styles.shutterButton}
+            disabled={!scan || cameraState !== "ready"}
+            aria-label={`拍攝${currentPhoto.label}`}
+            onClick={handleCapture}
+          >
+            <span />
+          </button>
+        ) : null}
+
+        {activeStep === "photoReview" && reviewPhotoRequirement && reviewPhotoUrl ? (
+          <div className={styles.reviewPage}>
+            <header className={styles.reviewHeader}>
+              <span className={styles.inlineStepBadge}>步驟 {currentFlowStep} / {totalFlowSteps}</span>
+              <h1>{reviewPhotoRequirement.title}</h1>
+              <p>{nextPhoto ? `下一步：${nextPhoto.title}` : "下一步：確認簽到資訊並上傳"}</p>
+            </header>
+            <figure className={styles.primaryPreview}>
+              <img src={reviewPhotoUrl} alt={`${reviewPhotoRequirement.label}預覽`} />
+              <figcaption>{reviewPhotoRequirement.label}</figcaption>
+            </figure>
+            <div className={styles.reviewActions}>
+              <Button kind="primary" onClick={handleAcceptPhoto}>
+                {nextPhoto ? "下一步" : "確認資訊"}
+              </Button>
+              <Button kind="secondary" renderIcon={Camera} onClick={handleRetake}>
+                重新拍攝
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {activeStep === "confirm" || state === "done" ? (
+          <div className={styles.reviewPage}>
+            <header className={styles.reviewHeader}>
+              <span className={styles.inlineStepBadge}>步驟 {currentFlowStep} / {totalFlowSteps}</span>
+              {state === "done" ? (
+                <div className={styles.successMark} aria-hidden="true">
+                  <CheckmarkFilled size={42} />
+                </div>
+              ) : null}
+              <h1>{state === "done" ? "提交成功" : `確認${purposeLabel}資訊`}</h1>
+              <p>
+                {state === "done"
+                  ? "已記錄您的簽到簽退事件。請回到電腦上準備開始考試。"
+                  : "確認資訊與照片清楚後即可上傳。"}
+              </p>
+            </header>
+            {submitError ? (
+              <InlineNotification
+                kind="error"
+                title="上傳失敗"
+                subtitle={submitError}
+                lowContrast
+              />
+            ) : null}
+            {scan ? (
+              <section className={styles.summary} aria-label="確認資訊">
+                <div>
+                  <span>類型</span>
+                  <strong>{purposeLabel}</strong>
+                </div>
+                <div>
+                  <span>掃描時間</span>
+                  <strong>{formatTime(scannedAt)}</strong>
+                </div>
+                <div>
+                  <span>照片狀態</span>
+                  <strong>{completedPhotoCount}/{photoRequirements.length}</strong>
+                </div>
+              </section>
+            ) : null}
+            <section className={styles.photoReview} aria-label="佐證照片">
+              {photoRequirements.map((requirement) => {
+                const url = photoUrls[requirement.id];
+                return url ? (
+                  <figure key={requirement.id}>
+                    <img src={url} alt={`${requirement.label}預覽`} />
+                    <figcaption>{requirement.label}</figcaption>
+                  </figure>
+                ) : null;
+              })}
+            </section>
+            <div className={styles.reviewActions}>
+              {state === "done" ? (
+                <Button kind="primary" onClick={() => navigate(returnPath)}>
+                  返回競賽主頁
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    kind="primary"
+                    renderIcon={SendAlt}
+                    disabled={!allPhotosCaptured || state === "submitting"}
+                    onClick={handleSubmit}
+                  >
+                    {state === "submitting" ? "上傳中" : "確認並上傳"}
+                  </Button>
+                  <Button kind="secondary" renderIcon={Camera} disabled={state === "submitting"} onClick={handleRetake}>
+                    重新拍攝
+                  </Button>
+                  <Button kind="ghost" renderIcon={Renew} disabled={state === "submitting"} onClick={handleRescan}>
+                    重新掃描
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );

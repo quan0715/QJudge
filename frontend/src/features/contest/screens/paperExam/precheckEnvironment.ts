@@ -82,9 +82,15 @@ const sleep = (ms: number) =>
 
 const displayService = new DisplayCheckService();
 
-export const createEligibilityChecks = (t: TranslateFn): CheckItem[] => [
+export const createEligibilityChecks = (
+  t: TranslateFn,
+  options?: { requireAttendance?: boolean },
+): CheckItem[] => [
   { id: "participation", label: t("precheck.eligibility.participation"), status: "pending" },
   { id: "submitted", label: t("precheck.eligibility.submission"), status: "pending" },
+  ...(options?.requireAttendance
+    ? [{ id: "attendance", label: t("precheck.eligibility.attendance", "考試簽到"), status: "pending" as const }]
+    : []),
 ];
 
 export interface EnvironmentCheckFilter {

@@ -280,6 +280,7 @@ export interface Contest {
   status: ContestStatus;
   visibility: ContestVisibility;
   attendanceCheckEnabled?: boolean;
+  attendancePhotoPolicy?: AttendancePhotoPolicy;
   deliveryMode?: ContestDeliveryMode;
   countsTowardGrade?: boolean;
   organizer?: string;
@@ -649,6 +650,7 @@ export interface ContestUpdateRequest {
   status?: ContestStatus;
   visibility?: ContestVisibility;
   attendanceCheckEnabled?: boolean;
+  attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   warningTimeoutSeconds?: number;
@@ -663,6 +665,8 @@ export interface ContestUpdateRequest {
 }
 
 export type AttendancePurpose = "check_in" | "check_out";
+export type AttendancePhotoPolicy = "room" | "room_and_selfie";
+export type AttendancePhotoKind = "room" | "selfie";
 export type AttendanceCheckInStatus =
   | "not_required"
   | "missing"
@@ -673,6 +677,8 @@ export type AttendanceCheckOutStatus = "unavailable" | AttendanceCheckInStatus;
 
 export interface ContestAttendanceStatus {
   attendanceRequired: boolean;
+  photoPolicy?: AttendancePhotoPolicy;
+  requiredPhotoKinds?: AttendancePhotoKind[];
   checkInStatus: AttendanceCheckInStatus;
   checkOutStatus: AttendanceCheckOutStatus;
   canCheckIn: boolean;
