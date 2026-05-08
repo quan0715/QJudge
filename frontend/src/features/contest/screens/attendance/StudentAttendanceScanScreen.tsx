@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CheckmarkFilled, ChevronLeft, Renew, SendAlt } from "@carbon/icons-react";
 import { Button, InlineNotification } from "@carbon/react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import jsQR from "jsqr";
 
-import type { AttendancePhotoKind, AttendancePhotoPolicy } from "@/core/entities/contest.entity";
+import type {
+  AttendancePhotoKind,
+  AttendancePhotoPolicy,
+  AttendancePurpose,
+} from "@/core/entities/contest.entity";
 import { parseAttendanceQrValue, type ParsedAttendanceQr } from "@/features/contest/attendance/attendanceQr";
 import { createAttendanceEvent } from "@/infrastructure/api/repositories/attendance.repository";
 import { getContest } from "@/infrastructure/api/repositories/contest.repository";
@@ -94,6 +98,17 @@ function getAttendanceSubmitErrorMessage(error: unknown, purpose?: string): stri
   return error instanceof Error ? error.message : "Attendance submit failed";
 }
 
+function getPurposeLabel(purpose?: AttendancePurpose | null): string {
+  if (purpose === "check_in") return "簽到";
+  if (purpose === "check_out") return "簽退";
+  return "簽到簽退";
+}
+
+function parseExpectedPurpose(value: string | null): AttendancePurpose | null {
+  if (value === "check_in" || value === "check_out") return value;
+  return null;
+}
+
 async function createNativeQrDetector(): Promise<BarcodeDetectorLike | null> {
   const detectorCtor = (window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }).BarcodeDetector;
   if (!detectorCtor) return null;
@@ -167,8 +182,11 @@ function formatTime(value: number | null): string {
 export default function StudentAttendanceScanScreen() {
   const { classroomId, contestId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const requestedPurpose = parseExpectedPurpose(searchParams.get("purpose"));
+  const [expectedPurpose, setExpectedPurpose] = useState<AttendancePurpose | null>(requestedPurpose);
   const [state, setState] = useState<ScanState>("scanning");
   const [scan, setScan] = useState<ParsedAttendanceQr | null>(null);
   const [pendingScan, setPendingScan] = useState<ParsedAttendanceQr | null>(null);
@@ -200,7 +218,7 @@ export default function StudentAttendanceScanScreen() {
             ? "photoReview"
             : "photo";
   const activePurpose = scan?.purpose || pendingScan?.purpose;
-  const purposeLabel = activePurpose === "check_out" ? "簽退" : "簽到";
+  const purposeLabel = getPurposeLabel(activePurpose || expectedPurpose);
   const returnPath = `/classrooms/${classroomId}/contest/${contestId}`;
   const cameraFacingMode = activeStep === "photo" ? currentPhoto.facingMode : "environment";
   const completedPhotoCount = photoRequirements.filter((requirement) => !!photoBlobs[requirement.id]).length;
@@ -231,7 +249,9 @@ export default function StudentAttendanceScanScreen() {
     state === "done"
       ? "系統已記錄您的簽到簽退事件。"
       : activeStep === "scan"
-        ? scanValidating ? "請稍候，系統正在讀取並驗證 QR Code。" : "請對準教師投屏上的簽到或簽退 QR Code。"
+        ? scanValidating
+          ? "請稍候，系統正在讀取並驗證 QR Code。"
+          : `請對準教師投屏上的${purposeLabel} QR Code。`
         : activeStep === "photo"
           ? currentPhoto.description
           : activeStep === "photoReview"
@@ -246,11 +266,18 @@ export default function StudentAttendanceScanScreen() {
     void getContest(contestId).then((contest) => {
       if (cancelled || !contest) return;
       setPhotoPolicy(contest.attendancePhotoPolicy || "room");
+      if (!requestedPurpose) {
+        if (contest.attendanceStatus?.canCheckOut) {
+          setExpectedPurpose("check_out");
+        } else if (contest.attendanceStatus?.canCheckIn) {
+          setExpectedPurpose("check_in");
+        }
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [contestId]);
+  }, [contestId, requestedPurpose]);
 
   useEffect(() => {
     let cancelled = false;
@@ -354,9 +381,14 @@ export default function StudentAttendanceScanScreen() {
         : decodeQrFromVideoFrame(video);
       const parsed = raw ? parseAttendanceQrValue(raw) : null;
       if (parsed) {
+        if (expectedPurpose && parsed.purpose !== expectedPurpose) {
+          setError(`這是${getPurposeLabel(parsed.purpose)} QR Code，請掃描${getPurposeLabel(expectedPurpose)} QR Code。`);
+          return;
+        }
         stopped = true;
         window.clearInterval(timer);
         setScannerMode("waiting");
+        setExpectedPurpose((prev) => prev || parsed.purpose);
         setPendingScan(parsed);
         setState("validating");
         setScannedAt(Date.now());
@@ -379,7 +411,7 @@ export default function StudentAttendanceScanScreen() {
       stopped = true;
       window.clearInterval(timer);
     };
-  }, [activeStep, cameraState, scan, state]);
+  }, [activeStep, cameraState, expectedPurpose, scan, state]);
 
   useEffect(() => {
     if (state !== "validating" || !pendingScan) return undefined;
@@ -534,6 +566,21 @@ export default function StudentAttendanceScanScreen() {
   return (
     <main className={styles.page}>
       <section className={styles.cameraStage} data-step={activeStep}>
+        <div className={styles.topBar}>
+          <Button
+            kind="ghost"
+            className={styles.backButton}
+            hasIconOnly
+            renderIcon={ChevronLeft}
+            iconDescription="返回"
+            onClick={() => navigate(returnPath)}
+          />
+          <div className={styles.topTitle}>
+            <strong>{purposeLabel}</strong>
+            <span>QJudge 考試簽到簽退</span>
+          </div>
+        </div>
+
         {cameraActive ? (
           <video
             key={`${cameraFacingMode}-${photoIndex}`}
@@ -549,20 +596,6 @@ export default function StudentAttendanceScanScreen() {
           <div className={styles.reviewBackdrop} />
         )}
 
-        <div className={styles.topBar}>
-          <Button
-            kind="ghost"
-            className={styles.backButton}
-            hasIconOnly
-            renderIcon={ChevronLeft}
-            iconDescription="返回"
-            onClick={() => navigate(returnPath)}
-          />
-          <div className={styles.topTitle}>
-            <strong>QJudge</strong>
-            <span>{purposeLabel}</span>
-          </div>
-        </div>
         <div className={styles.stepBadge} aria-label={`目前步驟 ${currentFlowStep} / ${totalFlowSteps}`}>
           步驟 {currentFlowStep} / {totalFlowSteps}
         </div>

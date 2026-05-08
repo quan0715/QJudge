@@ -3,8 +3,8 @@
 @use "@carbon/type";
 
 .page {
-  height: 100vh;
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
   background: var(--cds-background-inverse);
   color: var(--cds-text-inverse);
@@ -14,20 +14,27 @@
   position: relative;
   height: 100%;
   min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
   background: var(--cds-background-inverse);
 }
 
 .video,
 .photo {
+  grid-row: 2;
+  grid-column: 1;
   width: 100%;
   height: 100%;
+  min-height: 0;
   display: block;
   object-fit: cover;
   background: var(--cds-background-inverse);
 }
 
 .reviewBackdrop {
+  grid-row: 2;
+  grid-column: 1;
   width: 100%;
   height: 100%;
   background:
@@ -36,14 +43,14 @@
 }
 
 .topBar {
-  position: absolute;
+  position: relative;
   z-index: 6;
-  inset: 0 0 auto;
   min-height: 3rem;
   display: grid;
   grid-template-columns: 3rem minmax(0, 1fr);
   align-items: center;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.68), transparent);
+  background: var(--cds-background-inverse);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .cameraStage[data-step="photoReview"] .topBar,
@@ -112,7 +119,7 @@
 .scanFrame {
   position: absolute;
   z-index: 2;
-  top: 50%;
+  top: calc(3rem + (100% - 3rem) / 2);
   left: 50%;
   width: min(72vw, 24rem);
   aspect-ratio: 1;
@@ -267,12 +274,13 @@
 .reviewPage {
   position: absolute;
   z-index: 5;
-  inset: 0;
+  inset: 3rem 0 0;
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: layout.$spacing-06;
-  padding: 5rem layout.$spacing-07 calc(#{layout.$spacing-07} + env(safe-area-inset-bottom, 0px));
+  padding: layout.$spacing-07 max(layout.$spacing-07, calc((100vw - 48rem) / 2)) calc(#{layout.$spacing-07} + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   background: var(--cds-background);
   color: var(--cds-text-primary);
@@ -342,9 +350,8 @@
 
 .primaryPreview img {
   width: 100%;
-  height: 100%;
+  height: min(58vh, 34rem);
   min-height: 16rem;
-  max-height: 58vh;
   display: block;
   object-fit: contain;
   background: var(--cds-layer);
@@ -466,7 +473,7 @@
 
   .reviewPage {
     gap: layout.$spacing-05;
-    padding: 4.5rem layout.$spacing-05 calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px));
+    padding: layout.$spacing-05 layout.$spacing-05 calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px));
   }
 
   .reviewHeader h1 {
@@ -474,6 +481,7 @@
   }
 
   .primaryPreview img {
+    height: auto;
     min-height: 18rem;
     max-height: 52vh;
   }

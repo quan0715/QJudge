@@ -527,6 +527,7 @@ export default function StudentContestDashboard({
       return null;
     }
 
+    const attendancePurpose = contest.attendanceStatus?.canCheckOut ? "check_out" : "check_in";
     const attendanceActionLabel = contest.attendanceStatus?.canCheckOut
       ? checkOutCompleted
         ? "重新簽退"
@@ -539,7 +540,9 @@ export default function StudentContestDashboard({
       <Button
         kind={examStatus === "submitted" ? "secondary" : "primary"}
         renderIcon={Login}
-        onClick={() => navigate(`/classrooms/${classroomId}/contest/${contest.id}/attendance/scan`)}
+        onClick={() => navigate(
+          `/classrooms/${classroomId}/contest/${contest.id}/attendance/scan?purpose=${attendancePurpose}`,
+        )}
       >
         {attendanceActionLabel}
       </Button>
