@@ -75,7 +75,8 @@
 
 .leftPanel {
   display: grid;
-  place-items: center;
+  align-content: start;
+  justify-items: center;
   padding: 2rem;
   border-right: 1px solid var(--cds-border-subtle);
   min-height: 0;
@@ -85,6 +86,7 @@
 .statusBlock {
   width: min(100%, 42rem);
   display: grid;
+  align-content: start;
   justify-items: center;
   gap: clamp(2.5rem, 7vh, 5rem);
   text-align: center;
@@ -168,7 +170,7 @@
 .qrPanel {
   padding: 2rem clamp(2rem, 4vw, 4rem);
   display: grid;
-  align-content: center;
+  align-content: start;
   justify-items: center;
   gap: 1.25rem;
   min-width: 0;
