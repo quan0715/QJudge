@@ -47,7 +47,6 @@ import {
   createStatusMeta,
   runEnvChecks,
   runStartPreflightValidation,
-  updateCheck,
 } from "./precheckEnvironment";
 import { useContestAnticheatConfig } from "@/features/contest/hooks/useContestAnticheatConfig";
 import {
@@ -63,6 +62,7 @@ import { isStreamHealthy } from "@/features/contest/anticheat/mediaStreamHealth"
 import styles from "./ExamPrecheck.module.scss";
 
 const COUNTDOWN_SECONDS = 3;
+const ATTENDANCE_READY_CHECK_IN_STATUSES = new Set(["photo_confirmed", "teacher_assisted"]);
 
 const ExamPrecheckScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);
@@ -270,24 +270,42 @@ const ExamPrecheckScreen: React.FC = () => {
   // Step 1: Participation & submission verification
   useEffect(() => {
     if (currentStep !== 0 || !contest) return;
+    const attendanceRequired = !!contest.attendanceStatus?.attendanceRequired;
+    const attendanceReady = ATTENDANCE_READY_CHECK_IN_STATUSES.has(
+      contest.attendanceStatus?.checkInStatus ?? "",
+    );
 
-    // 參賽狀態檢查
-    if (contest.examStatus) {
-      updateCheck(setChecks, "participation", "pass", t("precheck.eligibility.status.passed"));
-    } else {
-      updateCheck(setChecks, "participation", "fail", t("precheck.eligibility.status.failed"));
-    }
-
-    // 交卷記錄檢查
-    if (contest.examStatus === "submitted") {
-      if (contest.allowMultipleJoins) {
-        updateCheck(setChecks, "submitted", "pass", t("precheck.eligibility.status.submittedAllowed"));
-      } else {
-        updateCheck(setChecks, "submitted", "fail", t("precheck.eligibility.status.submittedDenied"));
-      }
-    } else {
-      updateCheck(setChecks, "submitted", "pass", t("precheck.eligibility.status.noSubmission"));
-    }
+    setChecks(
+      createEligibilityChecks(t, { requireAttendance: attendanceRequired }).map((item) => {
+        if (item.id === "participation") {
+          return contest.examStatus
+            ? { ...item, status: "pass", detail: t("precheck.eligibility.status.passed") }
+            : { ...item, status: "fail", detail: t("precheck.eligibility.status.failed") };
+        }
+        if (item.id === "submitted") {
+          if (contest.examStatus === "submitted") {
+            return contest.allowMultipleJoins
+              ? { ...item, status: "pass", detail: t("precheck.eligibility.status.submittedAllowed") }
+              : { ...item, status: "fail", detail: t("precheck.eligibility.status.submittedDenied") };
+          }
+          return { ...item, status: "pass", detail: t("precheck.eligibility.status.noSubmission") };
+        }
+        if (item.id === "attendance") {
+          return attendanceReady
+            ? {
+                ...item,
+                status: "pass",
+                detail: t("precheck.eligibility.status.attendancePassed", "已完成考試簽到。"),
+              }
+            : {
+                ...item,
+                status: "fail",
+                detail: t("precheck.eligibility.status.attendanceRequired", "請先在競賽主頁完成簽到。"),
+              };
+        }
+        return item;
+      }),
+    );
   }, [currentStep, contest, t]);
 
   const step1AllPass = checks.every((c) => c.status === "pass");
@@ -367,6 +385,14 @@ const ExamPrecheckScreen: React.FC = () => {
 
   const handleStart = useCallback(async () => {
     setStartGuardError(null);
+    if (
+      contest?.attendanceStatus?.attendanceRequired &&
+      !ATTENDANCE_READY_CHECK_IN_STATUSES.has(contest.attendanceStatus.checkInStatus)
+    ) {
+      setStartGuardError(t("precheck.eligibility.status.attendanceRequired", "請先在競賽主頁完成簽到。"));
+      setCurrentStep(0);
+      return;
+    }
     if (!monitoringPlan.allowed) {
       const firstMissing = monitoringPlan.missingEnabledSources[0];
       const detail =
@@ -401,6 +427,7 @@ const ExamPrecheckScreen: React.FC = () => {
     setCountdown(COUNTDOWN_SECONDS);
   }, [
     capability.isPwaMode,
+    contest?.attendanceStatus,
     monitoringPlan.allowed,
     monitoringPlan.missingEnabledSources,
     monitoringPlan.precheck.requireScreenShare,

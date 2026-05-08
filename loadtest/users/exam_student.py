@@ -2,7 +2,7 @@
 ExamStudentUser — simulates a full exam lifecycle for one student.
 
 Flow:
-  login → enter → start → (heartbeat + anticheat-urls + minio PUT + answers + submissions) → end
+  login → enter → start → (heartbeat + anticheat-urls + object storage PUT + answers + submissions) → end
 """
 import random
 import time
@@ -222,7 +222,7 @@ class ExamStudentUser(HttpUser):
 
     @task(10)
     def anticheat_upload(self):
-        """Upload fake screenshot to MinIO with presigned-URL pooling."""
+        """Upload fake screenshot to object storage with presigned-URL pooling."""
         if not self.exam_started:
             return
 
@@ -272,17 +272,17 @@ class ExamStudentUser(HttpUser):
             # Report to Locust stats
             events.request.fire(
                 request_type="PUT",
-                name="MinIO PUT screenshot",
+                name="Object storage PUT screenshot",
                 response_time=elapsed_ms,
                 response_length=0,
                 response=r,
                 context={},
-                exception=None if r.status_code in (200, 201) else Exception(f"MinIO PUT {r.status_code}"),
+                exception=None if r.status_code in (200, 201) else Exception(f"Object storage PUT {r.status_code}"),
             )
         except Exception as e:
             events.request.fire(
                 request_type="PUT",
-                name="MinIO PUT screenshot",
+                name="Object storage PUT screenshot",
                 response_time=0,
                 response_length=0,
                 response=None,

@@ -99,12 +99,11 @@ export const useContestExamActions = ({
   }, []);
 
   const handleJoin = useCallback(
-    async (data?: { password?: string }) => {
+    async () => {
       if (!contest) return;
 
       const result = await joinContestUseCase({
         contestId: contest.id,
-        password: data?.password,
       });
 
       if (result.success) {

@@ -1,5 +1,4 @@
 import {
-  TextInput,
   Select,
   SelectItem,
   Toggle,
@@ -11,7 +10,6 @@ import {
   DESC_STYLE,
   Section,
   ActionRow,
-  FieldRow,
 } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
 import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
 import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
@@ -110,39 +108,57 @@ export default function AccessSettingsPanel({
         </ActionRow>
 
         <ActionRow
-          label={t("settings.requiresPassword")}
-          description={t("settings.requiresPasswordHelp")}
-          saveState={getState("requiresPassword")}
-          onRetry={() => onRetry("requiresPassword")}
+          label={t("settings.attendanceCheck.label", "QR 簽到簽退")}
+          description={t(
+            "settings.attendanceCheck.description",
+            "啟用後學生需先在競賽主頁掃描 QR Code 並提交現場照片，完成簽到後才能開始考試。",
+          )}
+          saveState={getState("attendanceCheckEnabled")}
+          onRetry={() => onRetry("attendanceCheckEnabled")}
         >
           <Toggle
-            id="settings-requires-password"
+            id="settings-attendance-check"
             labelText=""
             hideLabel
-            labelA={t("settings.noPassword")}
-            labelB={t("settings.requiresPasswordShort")}
-            toggled={!!form.requiresPassword}
-            onToggle={(checked) => onChange("requiresPassword", checked)}
+            labelA={tc("toggle.off")}
+            labelB={tc("toggle.on")}
+            toggled={!!form.attendanceCheckEnabled}
+            onToggle={(checked) => onChange("attendanceCheckEnabled", checked)}
           />
         </ActionRow>
 
-        {form.requiresPassword === true && (
-          <FieldRow
-            label={t("settings.joinPassword")}
-            description="學生加入時需輸入此密碼"
-            saveState={getState("password")}
-            onRetry={() => onRetry("password")}
+        <ActionRow
+          label={t("settings.attendancePhotoPolicy.label", "簽到佐證照片")}
+          description={t(
+            "settings.attendancePhotoPolicy.description",
+            "可要求學生拍攝現場環境，或現場環境與本人到場照片各一張。",
+          )}
+          saveState={getState("attendancePhotoPolicy")}
+          onRetry={() => onRetry("attendancePhotoPolicy")}
+        >
+          <Select
+            id="settings-attendance-photo-policy"
+            labelText=""
+            hideLabel
+            value={(form.attendancePhotoPolicy as string) || "room"}
+            disabled={!form.attendanceCheckEnabled}
+            style={{ minWidth: 220 }}
+            onChange={(event) => onChange("attendancePhotoPolicy", event.target.value)}
           >
-            <TextInput
-              id="settings-password"
-              labelText=""
-              hideLabel
-              type="password"
-              value={(form.password as string) || ""}
-              onChange={(e) => onChange("password", e.target.value)}
+            <SelectItem
+              value="room"
+              text={t("settings.attendancePhotoPolicy.room", "後鏡頭現場照片")}
             />
-          </FieldRow>
-        )}
+            <SelectItem
+              value="room_and_selfie"
+              text={t(
+                "settings.attendancePhotoPolicy.roomAndSelfie",
+                "前鏡頭本人 + 後鏡頭現場",
+              )}
+            />
+          </Select>
+        </ActionRow>
+
         <ActionRow
           label={t("settings.allowMultipleJoins")}
           description="允許同一學生多次加入考試（例如斷線重連）"

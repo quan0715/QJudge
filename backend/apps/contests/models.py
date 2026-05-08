@@ -4,7 +4,6 @@ Models for contests and exams.
 import uuid as uuid_lib
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import check_password, identify_hasher, make_password
 from django.utils import timezone
 from apps.problems.models import Problem
 from .managers import ContestQuerySet
@@ -99,7 +98,22 @@ class Contest(models.Model):
         default='public',
         verbose_name='可見性'
     )
-    password = models.CharField(max_length=255, blank=True, null=True, verbose_name='密碼')
+    attendance_check_enabled = models.BooleanField(
+        default=False,
+        verbose_name='啟用 QR 簽到簽退',
+        help_text='啟用後學生需先完成 QR 簽到與現場照片佐證才可開始考試',
+    )
+    ATTENDANCE_PHOTO_POLICY_CHOICES = [
+        ('room', 'Room photo'),
+        ('room_and_selfie', 'Room and selfie photos'),
+    ]
+    attendance_photo_policy = models.CharField(
+        max_length=24,
+        choices=ATTENDANCE_PHOTO_POLICY_CHOICES,
+        default='room',
+        verbose_name='簽到佐證照片策略',
+        help_text='room: 後鏡頭拍攝現場; room_and_selfie: 後鏡頭現場與前鏡頭本人各一張',
+    )
     
     # Contest status - draft/published/archived
     STATUS_CHOICES = [
@@ -256,39 +270,6 @@ class Contest(models.Model):
             ]
         ).exists()
 
-    def set_contest_password(self, raw_password: str | None) -> None:
-        """Hash and store contest password."""
-        if not raw_password:
-            self.password = None
-            return
-        self.password = make_password(raw_password)
-
-    def verify_contest_password(self, raw_password: str | None) -> bool:
-        """Verify contest password using Django hashers."""
-        if not raw_password or not self.password:
-            return False
-
-        stored_password = self.password
-        try:
-            return check_password(raw_password, stored_password)
-        except ValueError:
-            return False
-
-    def has_hashed_password(self) -> bool:
-        """Return True when contest password is stored using Django hashers."""
-        if not self.password:
-            return False
-        try:
-            identify_hasher(self.password)
-            return True
-        except Exception:
-            return False
-
-    @property
-    def requires_password(self) -> bool:
-        """Whether contest entry requires a password."""
-        return self.visibility == 'private'
-    
     @property
     def can_download_my_report(self):
         """Participants can always download their report after submission."""
@@ -667,6 +648,8 @@ class ExamEvent(models.Model):
         ('multi_display_restored', 'Multi Display Restored'),
         ('display_api_degraded', 'Display API Degraded'),
         ('clipboard_action', 'Clipboard Action'),
+        ('attendance_check_in', 'Attendance Check-in'),
+        ('attendance_check_out', 'Attendance Check-out'),
     ]
     event_type = models.CharField(
         max_length=50,
@@ -703,6 +686,7 @@ class ExamEvidenceFrame(models.Model):
     class SourceModule(models.TextChoices):
         SCREEN_SHARE = "screen_share", "Screen Share"
         WEBCAM = "webcam", "Webcam"
+        ATTENDANCE = "attendance", "Attendance"
 
     class CaptureOrigin(models.TextChoices):
         STUDENT_LOCAL = "student_local", "Student Local"

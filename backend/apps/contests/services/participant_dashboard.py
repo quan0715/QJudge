@@ -26,6 +26,7 @@ from apps.contests.constants import (
     EVENT_FEED_AGGREGATION_WINDOW_SECONDS,
     PENALIZED_EVENT_TYPES,
 )
+from apps.contests.services.attendance import build_participant_attendance_summary
 
 
 ACTIVE_SUBMISSION_STATUSES = {"AC", "WA", "TLE", "MLE", "RE", "CE", "SE", "KR", "NS"}
@@ -639,6 +640,7 @@ def build_participant_dashboard(contest: Contest, participant: ContestParticipan
         "actions": actions,
         "overview": {},
         "report": {},
+        "attendance": build_participant_attendance_summary(contest, participant),
     }
 
     if contest.contest_type == "paper_exam":

@@ -37,6 +37,11 @@
       "student-exam-guide": "学生試験ガイド",
       "submission": "コード提出",
       "supported-languages": "対応言語",
+      "teacher-adoption-overview": "授業導入の概要",
+      "teacher-assignment-workflow": "課題と練習の導入フロー",
+      "teacher-exam-workflow": "正式試験の導入フロー",
+      "teacher-first-class-setup": "初回授業前の設定",
+      "teacher-grading-feedback": "採点、分析、フィードバック",
       "teacher-overview": "教師機能概要"
     },
     "lastUpdated": "最終更新日",

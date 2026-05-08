@@ -72,10 +72,6 @@ export function mapContestProblemSummaryDto(
 }
 
 export function mapContestDto(dto: ContestDto): Contest {
-  const requiresPassword =
-    typeof dto.requires_password === "boolean"
-      ? dto.requires_password
-      : dto.visibility === "private";
   return {
     id: dto.id?.toString() || "",
     name: dto.name || "",
@@ -84,10 +80,10 @@ export function mapContestDto(dto: ContestDto): Contest {
     endTime: dto.end_time || "",
     status: dto.status || "draft",
     visibility: dto.visibility || "public",
-    requiresPassword,
+    attendanceCheckEnabled: !!dto.attendance_check_enabled,
+    attendancePhotoPolicy: dto.attendance_photo_policy || "room",
     deliveryMode: dto.delivery_mode || "exam",
     countsTowardGrade: dto.counts_toward_grade ?? true,
-    password: dto.password,
 
     hasJoined: !!dto.has_joined,
     isRegistered: !!dto.is_registered,
@@ -152,6 +148,22 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     isExamMonitored: !!dto.is_exam_monitored,
     requiresFullscreen: !!dto.requires_fullscreen,
     canSubmitExam: !!dto.can_submit_exam,
+    attendanceStatus: dto.attendance_status
+      ? {
+          attendanceRequired: !!dto.attendance_status.attendanceRequired,
+          photoPolicy: dto.attendance_status.photoPolicy || "room",
+          requiredPhotoKinds: Array.isArray(dto.attendance_status.requiredPhotoKinds)
+            ? dto.attendance_status.requiredPhotoKinds.filter(
+                (kind) => kind === "room" || kind === "selfie",
+              )
+            : ["room"],
+          checkInStatus: (dto.attendance_status.checkInStatus || "not_required") as any,
+          checkOutStatus: (dto.attendance_status.checkOutStatus || "unavailable") as any,
+          canCheckIn: !!dto.attendance_status.canCheckIn,
+          canStartExam: !!dto.attendance_status.canStartExam,
+          canCheckOut: !!dto.attendance_status.canCheckOut,
+        }
+      : undefined,
 
     permissions: {
       canSwitchView: !!dto.permissions?.can_switch_view,
@@ -1141,13 +1153,8 @@ export function mapContestUpdateRequestToDto(
     end_time: request.endTime,
     status: request.status,
     visibility: request.visibility,
-    requires_password:
-      typeof request.requiresPassword === "boolean"
-        ? request.requiresPassword
-        : typeof request.visibility === "string"
-          ? request.visibility === "private"
-          : undefined,
-    password: request.password,
+    attendance_check_enabled: request.attendanceCheckEnabled,
+    attendance_photo_policy: request.attendancePhotoPolicy,
     cheat_detection_enabled: request.cheatDetectionEnabled,
     anticheat_device_policy: anticheatDevicePolicy,
     warning_timeout_seconds: request.warningTimeoutSeconds,

@@ -279,10 +279,10 @@ export interface Contest {
   endTime: string;
   status: ContestStatus;
   visibility: ContestVisibility;
-  requiresPassword?: boolean;
+  attendanceCheckEnabled?: boolean;
+  attendancePhotoPolicy?: AttendancePhotoPolicy;
   deliveryMode?: ContestDeliveryMode;
   countsTowardGrade?: boolean;
-  password?: string;
   organizer?: string;
 
   // Results
@@ -356,6 +356,7 @@ export interface ContestDetail extends Contest {
   isExamMonitored: boolean;
   requiresFullscreen: boolean;
   canSubmitExam: boolean;
+  attendanceStatus?: ContestAttendanceStatus;
 
   permissions: ContestPermissions;
   problems: ContestProblemSummary[];
@@ -648,8 +649,8 @@ export interface ContestUpdateRequest {
   endTime?: string;
   status?: ContestStatus;
   visibility?: ContestVisibility;
-  requiresPassword?: boolean;
-  password?: string;
+  attendanceCheckEnabled?: boolean;
+  attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   warningTimeoutSeconds?: number;
@@ -661,6 +662,28 @@ export interface ContestUpdateRequest {
   autoUnlockMinutes?: number;
   resultsPublished?: boolean;
   countsTowardGrade?: boolean;
+}
+
+export type AttendancePurpose = "check_in" | "check_out";
+export type AttendancePhotoPolicy = "room" | "room_and_selfie";
+export type AttendancePhotoKind = "room" | "selfie";
+export type AttendanceCheckInStatus =
+  | "not_required"
+  | "missing"
+  | "event_created"
+  | "photo_confirmed"
+  | "teacher_assisted";
+export type AttendanceCheckOutStatus = "unavailable" | AttendanceCheckInStatus;
+
+export interface ContestAttendanceStatus {
+  attendanceRequired: boolean;
+  photoPolicy?: AttendancePhotoPolicy;
+  requiredPhotoKinds?: AttendancePhotoKind[];
+  checkInStatus: AttendanceCheckInStatus;
+  checkOutStatus: AttendanceCheckOutStatus;
+  canCheckIn: boolean;
+  canStartExam: boolean;
+  canCheckOut: boolean;
 }
 
 // ============ Contest State Utilities ============

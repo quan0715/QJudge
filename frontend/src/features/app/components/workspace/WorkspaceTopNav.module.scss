@@ -138,6 +138,12 @@
   }
 }
 
+@media (max-width: 768px) {
+  .context {
+    display: none;
+  }
+}
+
 .runtimeTimer {
   display: inline-flex;
   align-items: center;

@@ -37,7 +37,7 @@ export interface ExamEventResponse {
 }
 
 export type EvidenceMode = "anchor_window" | "pre_loss" | "audit";
-export type EvidenceSourceModule = "screen_share" | "webcam";
+export type EvidenceSourceModule = "screen_share" | "webcam" | "attendance";
 
 export interface RecordExamEventOptions {
   reason?: string;
@@ -636,7 +636,7 @@ export const fetchScreenshots = async (
     event_id?: string | number;
     evidence_cluster_id?: string;
     upload_session_id?: string;
-    source_module?: "screen_share" | "webcam";
+    source_module?: EvidenceSourceModule;
     object_keys?: string[];
     limit?: number;
   }

@@ -29,6 +29,7 @@ from ..services.anti_cheat_session import (
 )
 from ..models import ExamEvent as _ExamEvent  # noqa: used in lifecycle
 from ..services.exam_submission import finalize_submission
+from ..services.attendance import assert_attendance_allows_start
 from .activity import ContestActivityViewSet
 from .exam_events import ExamEventsMixin
 from .exam_anticheat import ExamAnticheatMixin
@@ -66,6 +67,11 @@ class ExamLifecycleMixin:
         conflict_response = self._ensure_active_device_session(contest, participant, request)
         if conflict_response:
             return conflict_response
+
+        try:
+            assert_attendance_allows_start(contest, participant)
+        except ValueError as exc:
+            return Response({"code": str(exc)}, status=status.HTTP_403_FORBIDDEN)
 
         # Check if already submitted
         if participant.exam_status == ExamStatus.SUBMITTED:

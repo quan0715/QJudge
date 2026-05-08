@@ -42,7 +42,7 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     isExamMonitored: false,
     requiresFullscreen: false,
     canSubmitExam: true,
-    requiresPassword: false,
+    attendanceCheckEnabled: false,
     permissions: {
       canSwitchView: true,
       canEditContest: true,

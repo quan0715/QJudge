@@ -63,7 +63,7 @@ export const GlobalHeader = () => {
           isOpen={sideMenuOpen}
           onClick={() => setSideMenuOpen((o) => !o)}
         />
-        <HeaderName href="/dashboard" prefix="">
+        <HeaderName href="/dashboard" prefix="" className="header-brand">
           <BrandLockup size={20} />
         </HeaderName>
         <HeaderNavigation aria-label={t("header.mainNavigation")}>
@@ -78,7 +78,9 @@ export const GlobalHeader = () => {
           ))}
         </HeaderNavigation>
         <HeaderGlobalBar>
-          {pageHeaderActions}
+          {pageHeaderActions ? (
+            <span className="header-page-actions">{pageHeaderActions}</span>
+          ) : null}
           {isTeacherOrAdmin && (
             <>
               <HeaderGlobalAction
@@ -86,6 +88,7 @@ export const GlobalHeader = () => {
                 tooltipAlignment="end"
                 onClick={() => navigate("/chat")}
                 isActive={location.pathname === "/chat"}
+                className="header-action--desktop-only"
               >
                 <Chat size={20} />
               </HeaderGlobalAction>
@@ -93,6 +96,7 @@ export const GlobalHeader = () => {
                 aria-label={t("nav.marketplace", "Marketplace")}
                 tooltipAlignment="end"
                 onClick={() => navigate("/marketplace")}
+                className="header-action--desktop-only"
               >
                 <Globe size={20} />
               </HeaderGlobalAction>

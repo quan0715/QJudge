@@ -43,8 +43,8 @@ def get_s3_client(*, endpoint_url: str | None = None):
 
 def _rewrite_presigned_url_for_browser(url: str) -> str:
     """
-    Rewrite presigned URL host for browser access when MinIO uses an internal
-    Docker hostname (e.g. http://minio:9000).
+    Rewrite presigned URL host for browser access when the signing endpoint and
+    browser-facing endpoint differ.
     """
     public_endpoint = (settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL or "").strip()
     if not public_endpoint:
@@ -150,7 +150,7 @@ def tag_object_retain(bucket: str, object_key: str) -> None:
 
 
 def tag_objects_retain(bucket: str, object_keys: list[str]) -> int:
-    """Batch-tag objects as retain=true using CopyObject (avoids MinIO PutObjectTagging bug)."""
+    """Batch-tag objects as retain=true using CopyObject for broad provider compatibility."""
     import logging
 
     logger = logging.getLogger(__name__)

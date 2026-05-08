@@ -20,7 +20,10 @@ from .models import (
 )
 from django.db.models import Sum
 from .permissions import can_manage_contest, get_contest_permissions, get_user_role_in_contest
+from .services.attendance import build_attendance_status
 from apps.users.serializers import UserSerializer
+
+LEGACY_CONTEST_ACCESS_FIELDS = {"requires_password", "password"}
 
 
 # ============================================================================
@@ -38,8 +41,8 @@ class ContestListSerializer(serializers.ModelSerializer):
     question_edit_locked = serializers.BooleanField(read_only=True)
     question_edit_locked_at = serializers.DateTimeField(read_only=True)
     question_edit_lock_trigger = serializers.CharField(read_only=True)
+    attendance_status = serializers.SerializerMethodField()
     delivery_mode = serializers.CharField(read_only=True)
-    requires_password = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = Contest
@@ -50,12 +53,14 @@ class ContestListSerializer(serializers.ModelSerializer):
             'end_time',
             'status',
             'visibility',
-            'requires_password',
+            'attendance_check_enabled',
+            'attendance_photo_policy',
             'delivery_mode',
             'counts_toward_grade',
             'owner_username',
             'participant_count',
             'is_registered',
+            'attendance_status',
             'question_edit_locked',
             'question_edit_locked_at',
             'question_edit_lock_trigger',
@@ -73,6 +78,14 @@ class ContestListSerializer(serializers.ModelSerializer):
             return False
         return obj.registrations.filter(user=request.user).exists()
 
+    def get_attendance_status(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return build_attendance_status(obj, None)
+        participant = obj.registrations.filter(user=user).first()
+        return build_attendance_status(obj, participant)
+
 
 class ContestDetailSerializer(serializers.ModelSerializer):
     """
@@ -80,7 +93,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     Includes role-based permissions and full contest information.
     """
     owner_username = serializers.CharField(source='owner.username', read_only=True)
-    requires_password = serializers.BooleanField(read_only=True)
     current_user_role = serializers.SerializerMethodField()
     permissions = serializers.SerializerMethodField()
     has_joined = serializers.SerializerMethodField()
@@ -110,6 +122,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     is_exam_monitored = serializers.SerializerMethodField()
     requires_fullscreen = serializers.SerializerMethodField()
     can_submit_exam = serializers.SerializerMethodField()
+    attendance_status = serializers.SerializerMethodField()
 
     rule = serializers.CharField(source='rules', read_only=True)
     
@@ -125,7 +138,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'end_time',
             'status',
             'visibility',
-            'requires_password',
+            'attendance_check_enabled',
+            'attendance_photo_policy',
             'contest_type',
             'delivery_mode',
             'counts_toward_grade',
@@ -167,6 +181,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'question_edit_locked',
             'question_edit_locked_at',
             'question_edit_lock_trigger',
+            'attendance_status',
             'is_exam_monitored',
             'requires_fullscreen',
             'can_submit_exam',
@@ -324,6 +339,9 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         reg = self._get_current_registration(obj)
         return bool(reg and reg.exam_status in self.SUBMITTABLE_STATUSES)
 
+    def get_attendance_status(self, obj):
+        return build_attendance_status(obj, self._get_current_registration(obj))
+
     def get_problems(self, obj):
         """
         Get contest problems with labels.
@@ -390,9 +408,9 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'rules',
             'start_time',
             'end_time',
-            'requires_password',
             'visibility',
-            'password',
+            'attendance_check_enabled',
+            'attendance_photo_policy',
             'contest_type',
             'delivery_mode',
             'counts_toward_grade',
@@ -409,51 +427,19 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'results_published',
         ]
         read_only_fields = ['id']
-        extra_kwargs = {
-            'password': {
-                'write_only': True,
-                'required': False,
-                'allow_blank': True,
-            }
+
+    def to_internal_value(self, data):
+        legacy_errors = {
+            field: "Contest password access was removed. Use attendance_check_enabled."
+            for field in LEGACY_CONTEST_ACCESS_FIELDS
+            if field in data
         }
-
-    requires_password = serializers.BooleanField(required=False, default=False)
-
-    def _resolve_requires_password(self, data):
-        initial_data = getattr(self, 'initial_data', {}) or {}
-        if 'requires_password' in initial_data:
-            return bool(data.get('requires_password'))
-        if 'visibility' in initial_data:
-            return data.get('visibility') == 'private'
-        if self.instance is not None:
-            return self.instance.requires_password
-        return False
+        if legacy_errors:
+            raise serializers.ValidationError(legacy_errors)
+        return super().to_internal_value(data)
     
     def validate(self, data):
         """Validate contest data."""
-        requires_password = self._resolve_requires_password(data)
-        data['requires_password'] = requires_password
-        if requires_password:
-            password_in_data = 'password' in data
-            password = data.get('password')
-            if password_in_data and not password:
-                raise serializers.ValidationError({
-                    'password': 'Password is required for password-protected contests.'
-                })
-
-            changing_to_password_protected = (
-                'requires_password' in data
-                and bool(data['requires_password'])
-                and (not self.instance or not self.instance.requires_password)
-            )
-            if not password_in_data and changing_to_password_protected:
-                if not self.instance or not self.instance.password:
-                     raise serializers.ValidationError({
-                        'password': 'Password is required for password-protected contests.'
-                     })
-        else:
-            data['password'] = None
-        
         status_in_data = 'status' in data
         target_status = data.get('status') if status_in_data else (self.instance.status if self.instance else None)
 
@@ -485,40 +471,6 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             data['results_published'] = False
         
         return data
-
-    def create(self, validated_data):
-        """Create contest and safely hash password when provided."""
-        raw_password = validated_data.pop("password", None)
-        requires_password = validated_data.pop("requires_password", None)
-        if requires_password is False:
-            validated_data["visibility"] = "public"
-        elif requires_password is True:
-            validated_data["visibility"] = "private"
-        contest = super().create(validated_data)
-        if raw_password is not None:
-            contest.set_contest_password(raw_password)
-            contest.save(update_fields=["password"])
-        elif requires_password is False and contest.password:
-            contest.set_contest_password(None)
-            contest.save(update_fields=["password"])
-        return contest
-    
-    def update(self, instance, validated_data):
-        """Update contest and safely hash password when provided."""
-        raw_password = validated_data.pop("password", None)
-        requires_password = validated_data.pop("requires_password", None)
-        if requires_password is False:
-            validated_data["visibility"] = "public"
-        elif requires_password is True:
-            validated_data["visibility"] = "private"
-        contest = super().update(instance, validated_data)
-        if raw_password is not None:
-            contest.set_contest_password(raw_password)
-            contest.save(update_fields=["password"])
-        elif requires_password is False and contest.password:
-            contest.set_contest_password(None)
-            contest.save(update_fields=["password"])
-        return contest
 
 
 # ============================================================================

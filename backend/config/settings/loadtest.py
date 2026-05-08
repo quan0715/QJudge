@@ -27,18 +27,15 @@ LOADTEST_DISABLE_LOGIN_RATELIMIT = os.getenv(
     "LOADTEST_DISABLE_LOGIN_RATELIMIT", "1"
 ) == "1"
 
-# --- Object storage / Anticheat (pointing to minio-test container by default) ---
-OBJECT_STORAGE_ENDPOINT_URL = os.getenv(
-    "OBJECT_STORAGE_ENDPOINT_URL",
-    "http://minio-test:9000",
-)
-# For Locust / browser direct PUT — local: http://localhost:9002
+# --- Object storage / Anticheat ---
+OBJECT_STORAGE_ENDPOINT_URL = os.getenv("OBJECT_STORAGE_ENDPOINT_URL", "")
+# For Locust / browser direct PUT.
 OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = os.getenv(
     "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
-    "http://localhost:9002",
+    OBJECT_STORAGE_ENDPOINT_URL,
 )
-OBJECT_STORAGE_ACCESS_KEY = os.getenv("OBJECT_STORAGE_ACCESS_KEY", "minioadmin")
-OBJECT_STORAGE_SECRET_KEY = os.getenv("OBJECT_STORAGE_SECRET_KEY", "minioadmin")
-OBJECT_STORAGE_REGION = os.getenv("OBJECT_STORAGE_REGION", "us-east-1")
+OBJECT_STORAGE_ACCESS_KEY = os.getenv("OBJECT_STORAGE_ACCESS_KEY", "")
+OBJECT_STORAGE_SECRET_KEY = os.getenv("OBJECT_STORAGE_SECRET_KEY", "")
+OBJECT_STORAGE_REGION = os.getenv("OBJECT_STORAGE_REGION", "auto")
 
 ANTICHEAT_RAW_BUCKET = os.getenv("ANTICHEAT_RAW_BUCKET", "anticheat-raw")

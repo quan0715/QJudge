@@ -1,6 +1,6 @@
 # QJudge Load Test
 
-200 人考試壓力測試（Locust + MinIO + Prometheus/Grafana）。
+200 人考試壓力測試（Locust + object storage + Prometheus/Grafana）。
 
 詳細文件請看：
 - [壓測流程](../docs/loadtest.md)

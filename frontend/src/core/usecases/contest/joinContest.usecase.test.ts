@@ -13,25 +13,6 @@ describe("joinContest.usecase", () => {
     vi.resetAllMocks();
   });
 
-  it("fails validation for private contest without password", () => {
-    const result = validateJoinContest(
-      {
-        id: "c1",
-        name: "Private Contest",
-        startTime: "",
-        endTime: "",
-        status: "published",
-        visibility: "private",
-        hasJoined: false,
-        isRegistered: false,
-      },
-      undefined
-    );
-
-    expect(result.valid).toBe(false);
-    expect(result.error).toBe("This contest requires a password");
-  });
-
   it("fails validation when already registered", () => {
     const result = validateJoinContest(
       {
@@ -74,12 +55,9 @@ describe("joinContest.usecase", () => {
 
     const result = await joinContestUseCase({
       contestId: "c1",
-      password: "secret",
     });
 
-    expect(registerContest).toHaveBeenCalledWith("c1", {
-      password: "secret",
-    });
+    expect(registerContest).toHaveBeenCalledWith("c1");
     expect(result).toEqual({ success: true });
   });
 

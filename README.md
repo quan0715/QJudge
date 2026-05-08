@@ -53,8 +53,7 @@ GitHub (push to main)
   → CD: Tailscale SSH → remote server
     → git fetch + checkout
     → docker compose build + up
-    → scripts/minio/run-init.sh (MinIO anti-cheat init)
-    → smoke checks (web + anti-cheat)
+    → smoke checks (web + monitoring)
 ```
 
 - 生產環境：`~/deploy/QJudge`（Ubuntu 22.04 + Docker Compose）
@@ -79,8 +78,7 @@ cp .env.example .env
 | `FRONTEND_URL`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | public URL 與 browser security |
 | `REDIS_URL` | Redis 連線位址，production compose 會覆蓋為 `redis://redis:6379/0` |
 | `AI_SERVICE_INTERNAL_TOKEN` | Backend 與 AI service 內部 token |
-| `OBJECT_STORAGE_*`, `ANTICHEAT_RAW_BUCKET`, `MARKDOWN_IMAGE_S3_BUCKET`, `AI_ARTIFACT_S3_BUCKET` | R2 或 S3-compatible object storage |
-| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `MINIO_API_CORS_ALLOW_ORIGIN` | 只在使用 local MinIO fallback 時需要 |
+| `OBJECT_STORAGE_*`, `ANTICHEAT_RAW_BUCKET`, `MARKDOWN_IMAGE_S3_BUCKET`, `AI_ARTIFACT_S3_BUCKET` | R2 object storage |
 | `TUNNEL_TOKEN`, `MCP_PUBLIC_URL`, `OAUTH_ISSUER_URL` | Cloudflare Tunnel 與 MCP OAuth |
 | `GLITCHTIP_SECRET_KEY`, `GRAFANA_PASSWORD` | production operations |
 

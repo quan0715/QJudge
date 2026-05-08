@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Modal, TextInput, InlineNotification } from "@carbon/react";
+import React from "react";
+import { Modal, InlineNotification } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
 import type { ContestDetail } from "@/core/entities/contest.entity";
@@ -8,12 +8,11 @@ export interface ContestRegistrationModalProps {
   open: boolean;
   contest: ContestDetail;
   onClose: () => void;
-  onSubmit: (data: { password?: string }) => void;
+  onSubmit: () => void;
 }
 
 /**
  * 競賽報名確認 Modal
- * 支援私有競賽密碼輸入
  */
 export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> = ({
   open,
@@ -22,19 +21,13 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
   onSubmit,
 }) => {
   const { t } = useTranslation("contest");
-  const requiresPassword = contest.requiresPassword ?? contest.visibility === "private";
-  const [password, setPassword] = useState("");
 
   const handleSubmit = () => {
-    onSubmit({
-      password: password || undefined,
-    });
-    setPassword("");
+    onSubmit();
   };
 
   const handleClose = () => {
     onClose();
-    setPassword("");
   };
 
   return (
@@ -49,23 +42,6 @@ export const ContestRegistrationModal: React.FC<ContestRegistrationModalProps> =
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         {/* Confirmation message */}
         <p>{t("registration.confirmMessage", { name: contest.name, defaultValue: `確定要報名「${contest.name}」嗎？` })}</p>
-
-        {/* Password gate */}
-        {requiresPassword && (
-          <div>
-            <p style={{ marginBottom: "0.5rem", color: "var(--cds-text-secondary)" }}>
-              {t("registration.requiresPasswordHint", "此競賽需要密碼才能加入。")}
-            </p>
-            <TextInput
-              id="registration-password"
-              labelText={t("registration.passwordLabel", "密碼")}
-              type="password"
-              placeholder={t("registration.passwordPlaceholder", "請輸入競賽密碼")}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-        )}
 
         {/* Exam mode warning */}
         {contest.cheatDetectionEnabled && (

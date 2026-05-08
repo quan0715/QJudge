@@ -70,7 +70,6 @@ const ContestHero: React.FC<ContestHeroProps> = ({
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
-  const requiresPassword = contest?.requiresPassword ?? contest?.visibility === "private";
   const [progress, setProgress] = useState(0);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
 
@@ -168,9 +167,9 @@ const ContestHero: React.FC<ContestHeroProps> = ({
       <Tag type={getContestStateColor(contestState)}>
         {getContestStateLabel(contestState)}
       </Tag>
-      <Tag type={requiresPassword ? "purple" : "green"}>
-        {requiresPassword ? t("access.requiresPassword") : t("access.open")}
-      </Tag>
+      {contest.attendanceCheckEnabled && (
+        <Tag type="blue">{t("attendance.badge", "QR 簽到")}</Tag>
+      )}
       {contest.cheatDetectionEnabled && <Tag type="red">{t("examMode")}</Tag>}
     </>
   );

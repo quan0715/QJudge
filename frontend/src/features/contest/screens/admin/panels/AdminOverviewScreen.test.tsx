@@ -102,10 +102,12 @@ const contest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     endTime: "2026-05-03T11:00:00+08:00",
     status: "published",
     visibility: "private",
-    requiresPassword: true,
+    attendanceCheckEnabled: true,
     hasJoined: false,
     isRegistered: false,
     participantCount: 5,
+    isClassroomBound: true,
+    boundClassroomId: "classroom-1",
     contestType: "coding",
     deliveryMode: "exam",
     countsTowardGrade: true,
@@ -171,6 +173,9 @@ describe("AdminOverviewScreen", () => {
       screen.getByRole("button", { name: "競賽主頁" }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("button", { name: "開啟簽到投屏" }),
+    ).toBeEnabled();
+    expect(
       screen.queryByRole("button", { name: "題目編輯與管理" }),
     ).not.toBeInTheDocument();
     expect(
@@ -192,5 +197,15 @@ describe("AdminOverviewScreen", () => {
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "view=live",
     );
+  });
+
+  it("disables attendance projection action before QR attendance is enabled", () => {
+    mockState.contest = contest({ attendanceCheckEnabled: false });
+
+    renderScreen("/contest/contest-1/admin?panel=overview");
+
+    expect(
+      screen.getByRole("button", { name: "開啟簽到投屏" }),
+    ).toBeDisabled();
   });
 });

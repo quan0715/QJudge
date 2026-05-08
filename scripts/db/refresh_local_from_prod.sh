@@ -12,7 +12,7 @@ Description:
   1. SSH into the production host and dump the postgres Docker service.
   2. Replace the local Docker Compose PostgreSQL database.
   3. Run Django migrations in the backend container.
-  4. Purge local anti-cheat evidence metadata and MinIO anti-cheat buckets.
+  4. Leave object storage untouched; refresh only the relational database.
 
 Options:
   --env         Compose environment to refresh. Default: dev
@@ -44,23 +44,6 @@ for dir in /usr/local/bin /opt/homebrew/bin /Applications/Docker.app/Contents/Re
     PATH="$dir:$PATH"
   fi
 done
-
-compose_file_for_env() {
-  case "$1" in
-    main)
-      printf '%s\n' "$ROOT_DIR/docker-compose.yml"
-      ;;
-    dev)
-      printf '%s\n' "$ROOT_DIR/docker-compose.dev.yml"
-      ;;
-    test)
-      printf '%s\n' "$ROOT_DIR/docker-compose.test.yml"
-      ;;
-    *)
-      die "unsupported env: $1"
-      ;;
-  esac
-}
 
 load_env_file() {
   local env_file="$1"
@@ -180,7 +163,6 @@ LOCAL_DB_NAME="${DB_NAME:-online_judge}"
 LOCAL_DB_USER="${DB_USER:-postgres}"
 LOCAL_DB_PASSWORD="${DB_PASSWORD:-postgres}"
 LOCAL_DB_PORT="${DB_PORT:-5432}"
-ANTICHEAT_RAW_BUCKET="${ANTICHEAT_RAW_BUCKET:-anticheat-raw}"
 
 mkdir -p "$BACKUP_DIR"
 if [[ -z "$DUMP_FILE" ]]; then
@@ -194,7 +176,7 @@ This will:
   2. Dump postgres service ${REMOTE_POSTGRES_SERVICE} under ${REMOTE_DEPLOY_PATH}
   2. Replace local ${ENV_NAME} DB ${LOCAL_DB_NAME}
   3. Run Django migrations
-  4. Delete local anti-cheat evidence metadata and MinIO bucket contents
+  4. Leave object storage untouched
 
 Dump file:
   $DUMP_FILE
@@ -212,11 +194,10 @@ if [[ "$SKIP_BUILD" -ne 1 ]]; then
   BUILD_ARGS=( -d --build )
 fi
 
-COMPOSE_FILE="$(compose_file_for_env "$ENV_NAME")"
 REMOTE_DEPLOY_PATH_SHELL="$(remote_path_for_shell "$REMOTE_DEPLOY_PATH")"
 
-log "starting postgres and minio"
-dc up -d postgres minio
+log "starting postgres"
+dc up -d postgres
 wait_for_service_running postgres
 
 log "stopping app services to release database connections"
@@ -269,12 +250,6 @@ wait_for_service_running backend
 
 log "running migrations in backend container"
 dc exec -T backend python manage.py migrate
-
-log "clearing local MinIO anti-cheat bucket"
-dc exec -T minio sh -lc "rm -rf '/data/${ANTICHEAT_RAW_BUCKET}' && mkdir -p '/data/${ANTICHEAT_RAW_BUCKET}'"
-
-log "re-initializing MinIO buckets and policies"
-"$ROOT_DIR/scripts/minio/run-init.sh" "$COMPOSE_FILE"
 
 log "completed"
 log "dump saved at: $DUMP_FILE"

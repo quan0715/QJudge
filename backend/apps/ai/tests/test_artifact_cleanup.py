@@ -1,4 +1,4 @@
-"""Tests for MinIO object cleanup on AIArtifact / AISession delete."""
+"""Tests for object storage cleanup on AIArtifact / AISession delete."""
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -39,7 +39,7 @@ class ArtifactCleanupSignalTests(TestCase):
         return AIArtifact.objects.create(**defaults)
 
     @patch("apps.ai.signals.artifact_storage.delete_artifact")
-    def test_direct_delete_removes_minio_object(self, mock_delete):
+    def test_direct_delete_removes_object_storage_object(self, mock_delete):
         artifact = self._make_artifact()
         object_key = artifact.object_key
 
@@ -48,7 +48,7 @@ class ArtifactCleanupSignalTests(TestCase):
         mock_delete.assert_called_once_with(object_key)
 
     @patch("apps.ai.signals.artifact_storage.delete_artifact")
-    def test_session_cascade_removes_all_artifact_minio_objects(self, mock_delete):
+    def test_session_cascade_removes_all_artifact_objects(self, mock_delete):
         a = self._make_artifact(step="rubric", filename="rubric.json")
         b = self._make_artifact(
             step="calibration",

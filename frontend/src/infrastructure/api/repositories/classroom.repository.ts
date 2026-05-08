@@ -172,8 +172,7 @@ export const createClassroomContest = async (
     start_time?: string;
     end_time?: string;
     contest_type: "coding" | "paper_exam";
-    requires_password?: boolean;
-    password?: string;
+    attendance_check_enabled?: boolean;
     cheat_detection_enabled?: boolean;
     allow_multiple_joins?: boolean;
     results_published?: boolean;

@@ -64,7 +64,7 @@ class BoundContestSerializer(serializers.ModelSerializer):
     contest_description = serializers.CharField(source='contest.description', read_only=True)
     contest_status = serializers.CharField(source='contest.status', read_only=True)
     contest_visibility = serializers.CharField(source='contest.visibility', read_only=True)
-    requires_password = serializers.BooleanField(source='contest.requires_password', read_only=True)
+    attendance_check_enabled = serializers.BooleanField(source='contest.attendance_check_enabled', read_only=True)
     contest_type = serializers.CharField(source='contest.contest_type', read_only=True)
     delivery_mode = serializers.CharField(source='contest.delivery_mode', read_only=True)
     contest_start_time = serializers.DateTimeField(source='contest.start_time', read_only=True)
@@ -81,7 +81,7 @@ class BoundContestSerializer(serializers.ModelSerializer):
             'contest_description',
             'contest_status',
             'contest_visibility',
-            'requires_password',
+            'attendance_check_enabled',
             'contest_type',
             'delivery_mode',
             'contest_start_time',
@@ -102,7 +102,7 @@ class ClassroomLabSummarySerializer(serializers.ModelSerializer):
     description = serializers.CharField(source='contest.description', read_only=True)
     status = serializers.CharField(source='contest.status', read_only=True)
     visibility = serializers.CharField(source='contest.visibility', read_only=True)
-    requires_password = serializers.BooleanField(source='contest.requires_password', read_only=True)
+    attendance_check_enabled = serializers.BooleanField(source='contest.attendance_check_enabled', read_only=True)
     contest_type = serializers.CharField(source='contest.contest_type', read_only=True)
     delivery_mode = serializers.CharField(source='contest.delivery_mode', read_only=True)
     start_time = serializers.DateTimeField(source='contest.start_time', read_only=True)
@@ -122,7 +122,7 @@ class ClassroomLabSummarySerializer(serializers.ModelSerializer):
             'description',
             'status',
             'visibility',
-            'requires_password',
+            'attendance_check_enabled',
             'contest_type',
             'delivery_mode',
             'start_time',
@@ -348,12 +348,21 @@ class CreateClassroomContestSerializer(serializers.Serializer):
     contest_type = serializers.ChoiceField(choices=['coding', 'paper_exam'])
     start_time = serializers.DateTimeField(required=False, allow_null=True)
     end_time = serializers.DateTimeField(required=False, allow_null=True)
-    requires_password = serializers.BooleanField(required=False, default=False)
     visibility = serializers.ChoiceField(choices=['public', 'private'], required=False, default='public')
-    password = serializers.CharField(required=False, allow_blank=True, allow_null=True, default=None)
+    attendance_check_enabled = serializers.BooleanField(required=False, default=False)
     cheat_detection_enabled = serializers.BooleanField(required=False, default=False)
     allow_multiple_joins = serializers.BooleanField(required=False, default=False)
     results_published = serializers.BooleanField(required=False, default=False)
+
+    def to_internal_value(self, data):
+        legacy_errors = {
+            field: "Contest password access was removed. Use attendance_check_enabled."
+            for field in ("requires_password", "password")
+            if field in data
+        }
+        if legacy_errors:
+            raise serializers.ValidationError(legacy_errors)
+        return super().to_internal_value(data)
 
     def validate(self, attrs):
         start_time = attrs.get('start_time')
@@ -361,15 +370,4 @@ class CreateClassroomContestSerializer(serializers.Serializer):
         if start_time and end_time and end_time <= start_time:
             raise serializers.ValidationError({'end_time': 'End time must be after start time.'})
 
-        initial_data = getattr(self, 'initial_data', {}) or {}
-        if 'requires_password' in initial_data:
-            requires_password = bool(attrs.get('requires_password'))
-        else:
-            visibility = attrs.get('visibility', 'public')
-            requires_password = visibility == 'private'
-        attrs['requires_password'] = requires_password
-        if not requires_password:
-            attrs['password'] = None
-        elif attrs.get('password') == '':
-            attrs['password'] = None
         return attrs
