@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import secrets
+import string
 from typing import Any, Callable
 
 from django.core.cache import cache
@@ -16,6 +17,9 @@ ATTENDANCE_REFRESH_SECONDS = 30
 ATTENDANCE_TOKEN_MAX_AGE_SECONDS = 45
 ATTENDANCE_QR_PREFIX = "qj-att:v1"
 ATTENDANCE_CACHE_PREFIX = "contest-attendance-token"
+ATTENDANCE_MANUAL_CODE_CACHE_PREFIX = "contest-attendance-manual-code"
+ATTENDANCE_MANUAL_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+ATTENDANCE_MANUAL_CODE_LENGTH = 8
 ATTENDANCE_EVENT_TYPES = {
     "check_in": "attendance_check_in",
     "check_out": "attendance_check_out",
@@ -32,35 +36,88 @@ def _token_cache_key(token: str) -> str:
     return f"{ATTENDANCE_CACHE_PREFIX}:{token}"
 
 
-def create_attendance_token(contest: Contest, purpose: str) -> str:
+def _manual_code_cache_key(code: str) -> str:
+    return f"{ATTENDANCE_MANUAL_CODE_CACHE_PREFIX}:{code}"
+
+
+def normalize_attendance_manual_code(value: str) -> str:
+    allowed = set(string.ascii_uppercase + string.digits)
+    return "".join(char for char in value.upper() if char in allowed)
+
+
+def format_attendance_manual_code(value: str) -> str:
+    normalized = normalize_attendance_manual_code(value)
+    return "-".join(normalized[index:index + 4] for index in range(0, len(normalized), 4))
+
+
+def _generate_attendance_manual_code() -> str:
+    return "".join(secrets.choice(ATTENDANCE_MANUAL_CODE_ALPHABET) for _ in range(ATTENDANCE_MANUAL_CODE_LENGTH))
+
+
+def create_attendance_credential(contest: Contest, purpose: str) -> dict[str, str]:
     if purpose not in ATTENDANCE_EVENT_TYPES:
         raise ValueError("invalid_attendance_purpose")
     token = secrets.token_urlsafe(32)
-    cache.set(
-        _token_cache_key(token),
-        {
+    for _attempt in range(12):
+        manual_code = _generate_attendance_manual_code()
+        payload = {
             "contest_id": str(contest.id),
             "purpose": purpose,
+            "token": token,
+            "manual_code": manual_code,
             "issued_at": timezone.now().isoformat(),
-        },
-        timeout=ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
-    )
-    return token
+        }
+        if cache.add(
+            _manual_code_cache_key(manual_code),
+            payload,
+            timeout=ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
+        ):
+            cache.set(
+                _token_cache_key(token),
+                payload,
+                timeout=ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
+            )
+            return {
+                "token": token,
+                "manual_code": format_attendance_manual_code(manual_code),
+            }
+    raise ValueError("attendance_manual_code_generation_failed")
 
 
-def build_attendance_qr_value(purpose: str, token: str) -> str:
-    return f"{ATTENDANCE_QR_PREFIX}:{purpose}:{token}"
+def create_attendance_token(contest: Contest, purpose: str) -> str:
+    return create_attendance_credential(contest, purpose)["token"]
+
+
+def validate_attendance_cache_payload(contest: Contest, purpose: str, value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError("invalid_attendance_token")
+    if str(value.get("contest_id")) != str(contest.id) or value.get("purpose") != purpose:
+        raise ValueError("invalid_attendance_token")
+    return value
 
 
 def validate_attendance_token(contest: Contest, purpose: str, token: str) -> dict[str, Any]:
     if purpose not in ATTENDANCE_EVENT_TYPES:
         raise ValueError("invalid_attendance_purpose")
     value = cache.get(_token_cache_key(token))
-    if not isinstance(value, dict):
-        raise ValueError("invalid_attendance_token")
-    if str(value.get("contest_id")) != str(contest.id) or value.get("purpose") != purpose:
-        raise ValueError("invalid_attendance_token")
-    return value
+    return validate_attendance_cache_payload(contest, purpose, value)
+
+
+def validate_attendance_manual_code(contest: Contest, purpose: str, manual_code: str) -> dict[str, Any]:
+    if purpose not in ATTENDANCE_EVENT_TYPES:
+        raise ValueError("invalid_attendance_purpose")
+    normalized = normalize_attendance_manual_code(manual_code)
+    if len(normalized) != ATTENDANCE_MANUAL_CODE_LENGTH:
+        raise ValueError("invalid_attendance_manual_code")
+    value = cache.get(_manual_code_cache_key(normalized))
+    try:
+        return validate_attendance_cache_payload(contest, purpose, value)
+    except ValueError:
+        raise ValueError("invalid_attendance_manual_code") from None
+
+
+def build_attendance_qr_value(purpose: str, token: str) -> str:
+    return f"{ATTENDANCE_QR_PREFIX}:{purpose}:{token}"
 
 
 def get_attendance_required_photo_kinds(contest: Contest) -> list[str]:
@@ -169,9 +226,17 @@ def create_attendance_event(
         if data.get("user_id"):
             raise ValueError("user_id_forbidden_for_self_scan")
         token = str(data.get("token") or "")
-        if not token:
+        manual_code = str(data.get("manual_code") or "")
+        if token and manual_code:
+            raise ValueError("attendance_credential_conflict")
+        if not token and not manual_code:
             raise ValueError("attendance_token_required")
-        validate_attendance_token(contest, purpose, token)
+        if manual_code:
+            validate_attendance_manual_code(contest, purpose, manual_code)
+            credential_source = "manual_code"
+        else:
+            validate_attendance_token(contest, purpose, token)
+            credential_source = "qr_token"
         participant, _created, error_response = ensure_participant(contest, actor)
         if error_response is not None:
             return {"error_response": error_response}
@@ -195,6 +260,7 @@ def create_attendance_event(
             "attendance_attempt": previous_attempt_count + 1,
             "attendance_repeat": previous_attempt_count > 0,
             "attendance_action": f"re_{purpose}" if previous_attempt_count > 0 else purpose,
+            "attendance_credential_source": credential_source,
             "source_module": ExamEvidenceFrame.SourceModule.ATTENDANCE,
             "device_kind": str(data.get("device_kind") or ""),
             "client_observed_at_ms": data.get("client_observed_at_ms"),

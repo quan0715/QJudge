@@ -48,6 +48,8 @@ def test_teacher_can_get_qr_token() -> None:
     assert response.status_code == 200
     assert response.data["purpose"] == "check_in"
     assert response.data["qr_value"].startswith("qj-att:v1:check_in:")
+    assert len(response.data["manual_code"]) == 9
+    assert response.data["manual_code"][4] == "-"
     assert response.data["refresh_after_seconds"] == 30
     assert response.data["expires_in_seconds"] == 45
 
@@ -91,7 +93,62 @@ def test_student_self_scan_check_in_creates_event() -> None:
     event = ExamEvent.objects.get(id=response.data["event_id"])
     assert event.event_type == "attendance_check_in"
     assert event.metadata["attendance_mode"] == "student_self_scan"
+    assert event.metadata["attendance_credential_source"] == "qr_token"
     assert event.metadata["evidence_cluster_id"] == response.data["evidence_cluster_id"]
+
+
+@pytest.mark.django_db
+def test_student_self_scan_manual_code_creates_event() -> None:
+    api_client = APIClient()
+    teacher = make_user("attendance_manual_code_teacher", role="teacher")
+    student = make_user("attendance_manual_code_student")
+    contest = make_contest(owner=teacher)
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
+    api_client.force_authenticate(user=teacher)
+    token_response = api_client.get(f"/api/v1/contests/{contest.id}/attendance/qr-token/?purpose=check_in")
+    manual_code = token_response.data["manual_code"].lower().replace("-", " ")
+
+    api_client.force_authenticate(user=student)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/events/",
+        {
+            "mode": "student_self_scan",
+            "purpose": "check_in",
+            "manual_code": manual_code,
+            "device_kind": "mobile",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    event = ExamEvent.objects.get(id=response.data["event_id"])
+    assert event.event_type == "attendance_check_in"
+    assert event.metadata["attendance_credential_source"] == "manual_code"
+
+
+@pytest.mark.django_db
+def test_student_self_scan_rejects_wrong_manual_code_purpose() -> None:
+    api_client = APIClient()
+    teacher = make_user("attendance_wrong_manual_code_teacher", role="teacher")
+    student = make_user("attendance_wrong_manual_code_student")
+    contest = make_contest(owner=teacher)
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
+    api_client.force_authenticate(user=teacher)
+    token_response = api_client.get(f"/api/v1/contests/{contest.id}/attendance/qr-token/?purpose=check_out")
+
+    api_client.force_authenticate(user=student)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/events/",
+        {
+            "mode": "student_self_scan",
+            "purpose": "check_in",
+            "manual_code": token_response.data["manual_code"],
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.data["code"] == "invalid_attendance_manual_code"
 
 
 @pytest.mark.django_db

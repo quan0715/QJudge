@@ -175,6 +175,29 @@
   place-items: center;
 }
 
+.manualCodeBlock {
+  width: min(100%, 28rem);
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.manualCodeBlock span {
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+.manualCodeBlock strong {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+
 .qrGuide {
   width: min(100%, 28rem);
   display: grid;

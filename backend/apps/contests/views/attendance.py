@@ -13,8 +13,8 @@ from ..services.attendance import (
     ATTENDANCE_REFRESH_SECONDS,
     ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
     build_attendance_qr_value,
+    create_attendance_credential,
     create_attendance_event,
-    create_attendance_token,
     reset_participant_attendance_records,
 )
 
@@ -22,6 +22,7 @@ from ..services.attendance import (
 class AttendanceEventSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=("student_self_scan", "teacher_assisted"))
     purpose = serializers.ChoiceField(choices=("check_in", "check_out"))
+    manual_code = serializers.CharField(required=False, allow_blank=True, max_length=16)
     token = serializers.CharField(required=False, allow_blank=True)
     user_id = serializers.IntegerField(required=False, min_value=1)
     reason = serializers.CharField(required=False, allow_blank=True, max_length=200)
@@ -33,10 +34,16 @@ class AttendanceEventSerializer(serializers.Serializer):
         if mode == "student_self_scan":
             if attrs.get("user_id"):
                 raise serializers.ValidationError({"user_id": "Forbidden for student self scan."})
-            if not attrs.get("token"):
-                raise serializers.ValidationError({"token": "Attendance token is required."})
+            has_token = bool(attrs.get("token"))
+            has_manual_code = bool(str(attrs.get("manual_code") or "").strip())
+            if has_token and has_manual_code:
+                raise serializers.ValidationError({
+                    "manual_code": "Use either QR token or manual code, not both.",
+                })
+            if not has_token and not has_manual_code:
+                raise serializers.ValidationError({"token": "Attendance token or manual code is required."})
         if mode == "teacher_assisted":
-            if attrs.get("token"):
+            if attrs.get("token") or attrs.get("manual_code"):
                 raise serializers.ValidationError({"token": "Forbidden for teacher-assisted attendance."})
             if not attrs.get("user_id"):
                 raise serializers.ValidationError({"user_id": "Participant user id is required."})
@@ -69,12 +76,13 @@ class AttendanceMixin:
         if purpose not in ATTENDANCE_EVENT_TYPES:
             return Response({"code": "invalid_attendance_purpose"}, status=status.HTTP_400_BAD_REQUEST)
 
-        token = create_attendance_token(contest, purpose)
+        credential = create_attendance_credential(contest, purpose)
         return Response(
             {
                 "purpose": purpose,
-                "token": token,
-                "qr_value": build_attendance_qr_value(purpose, token),
+                "token": credential["token"],
+                "manual_code": credential["manual_code"],
+                "qr_value": build_attendance_qr_value(purpose, credential["token"]),
                 "refresh_after_seconds": ATTENDANCE_REFRESH_SECONDS,
                 "expires_in_seconds": ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
                 "expires_at": (

@@ -221,6 +221,52 @@
   right: layout.$spacing-05;
 }
 
+.manualToggle {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-09} + 8.5rem);
+  color: var(--cds-text-inverse);
+  background: rgba(18, 18, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(18px) saturate(140%);
+  transform: translateX(-50%);
+}
+
+.manualPanel {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-06});
+  width: min(calc(100% - 2rem), 32rem);
+  display: grid;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-05;
+  color: var(--cds-text-inverse);
+  background: rgba(18, 18, 18, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(20px) saturate(140%);
+  transform: translateX(-50%);
+}
+
+.manualPanel h1 {
+  @include type.type-style("heading-02");
+  margin: 0 0 layout.$spacing-02;
+  color: var(--cds-text-inverse);
+}
+
+.manualPanel p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.5;
+}
+
+.manualActions {
+  display: flex;
+  gap: layout.$spacing-04;
+  flex-wrap: wrap;
+}
+
 .shutterButton {
   position: absolute;
   z-index: 4;
@@ -452,6 +498,20 @@
 
   .stageCaption p {
     font-size: 0.875rem;
+  }
+
+  .manualToggle {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-09} + 8rem);
+  }
+
+  .manualPanel {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + #{layout.$spacing-05});
+    width: min(calc(100% - 2rem), 30rem);
+  }
+
+  .manualActions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .bottomSheet {

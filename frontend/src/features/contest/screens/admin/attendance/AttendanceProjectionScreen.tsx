@@ -243,6 +243,10 @@ export default function AttendanceProjectionScreen() {
         <div className={styles.qrBox}>
           {token ? <QRCodeSVG value={token.qrValue} size={260} /> : <div className={styles.qrPlaceholder}>Loading</div>}
         </div>
+        <div className={styles.manualCodeBlock}>
+          <span>相機無法使用時輸入代碼</span>
+          <strong>{token?.manualCode || "---- ----"}</strong>
+        </div>
         <CheckInGuideBlock />
         <div className={styles.timer}>每 {token?.refreshAfterSeconds || 30} 秒自動刷新</div>
         {error ? <div className={styles.panelError}>正在重新載入 QR code</div> : null}

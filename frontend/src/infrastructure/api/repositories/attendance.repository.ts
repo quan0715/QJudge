@@ -4,6 +4,7 @@ import type { AttendancePurpose, ContestAttendanceStatus } from "@/core/entities
 export interface AttendanceQrTokenDto {
   purpose: AttendancePurpose;
   token: string;
+  manual_code: string;
   qr_value: string;
   refresh_after_seconds: number;
   expires_in_seconds: number;
@@ -13,6 +14,7 @@ export interface AttendanceQrTokenDto {
 export interface AttendanceQrToken {
   purpose: AttendancePurpose;
   token: string;
+  manualCode: string;
   qrValue: string;
   refreshAfterSeconds: number;
   expiresInSeconds: number;
@@ -23,7 +25,8 @@ export type AttendanceEventPayload =
   | {
       mode: "student_self_scan";
       purpose: AttendancePurpose;
-      token: string;
+      token?: string;
+      manualCode?: string;
       client_observed_at_ms?: number;
       device_kind?: string;
     }
@@ -46,6 +49,7 @@ export interface AttendanceEventResponse {
 const mapQrToken = (dto: AttendanceQrTokenDto): AttendanceQrToken => ({
   purpose: dto.purpose,
   token: dto.token,
+  manualCode: dto.manual_code,
   qrValue: dto.qr_value,
   refreshAfterSeconds: dto.refresh_after_seconds,
   expiresInSeconds: dto.expires_in_seconds,
@@ -67,8 +71,16 @@ export const createAttendanceEvent = async (
   contestId: string,
   payload: AttendanceEventPayload,
 ): Promise<AttendanceEventResponse> => {
+  let requestPayload: object = payload;
+  if (payload.mode === "student_self_scan") {
+    const { manualCode, ...restPayload } = payload;
+    requestPayload = {
+      ...restPayload,
+      manual_code: manualCode,
+    };
+  }
   return requestJson<AttendanceEventResponse>(
-    httpClient.post(`/api/v1/contests/${contestId}/attendance/events/`, payload),
+    httpClient.post(`/api/v1/contests/${contestId}/attendance/events/`, requestPayload),
     "Failed to create attendance event",
   );
 };

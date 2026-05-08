@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CheckmarkFilled, ChevronLeft, Renew, SendAlt } from "@carbon/icons-react";
-import { Button, InlineNotification } from "@carbon/react";
+import { Button, InlineNotification, TextInput } from "@carbon/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import jsQR from "jsqr";
 
@@ -9,7 +9,7 @@ import type {
   AttendancePhotoPolicy,
   AttendancePurpose,
 } from "@/core/entities/contest.entity";
-import { parseAttendanceQrValue, type ParsedAttendanceQr } from "@/features/contest/attendance/attendanceQr";
+import { parseAttendanceQrValue } from "@/features/contest/attendance/attendanceQr";
 import { createAttendanceEvent } from "@/infrastructure/api/repositories/attendance.repository";
 import { getContest } from "@/infrastructure/api/repositories/contest.repository";
 import {
@@ -22,6 +22,11 @@ type ScanState = "scanning" | "validating" | "capturing" | "submitting" | "done"
 type CameraState = "requesting" | "ready" | "unavailable";
 type ScannerMode = "waiting" | "native" | "js";
 type StepId = "scan" | "photo" | "photoReview" | "confirm";
+type AttendanceCredential = {
+  purpose: AttendancePurpose;
+  token?: string;
+  manualCode?: string;
+};
 type AttendancePhotoRequirement = {
   id: AttendancePhotoKind;
   label: string;
@@ -94,6 +99,7 @@ function getAttendanceSubmitErrorMessage(error: unknown, purpose?: string): stri
   }
   if (code === "attendance_token_expired") return "QR Code 已過期，請重新掃描投影畫面上的 QR Code。";
   if (code === "invalid_attendance_token") return "QR Code 無效，請重新掃描投影畫面上的 QR Code。";
+  if (code === "invalid_attendance_manual_code") return "代碼無效或已過期，請重新輸入投影畫面上的最新代碼。";
   if (code === "attendance_not_enabled") return "此考試尚未開啟 QR Code 簽到簽退。";
   return error instanceof Error ? error.message : "Attendance submit failed";
 }
@@ -107,6 +113,17 @@ function getPurposeLabel(purpose?: AttendancePurpose | null): string {
 function parseExpectedPurpose(value: string | null): AttendancePurpose | null {
   if (value === "check_in" || value === "check_out") return value;
   return null;
+}
+
+function normalizeManualCode(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function formatManualCodeInput(value: string): string {
+  const normalized = normalizeManualCode(value).slice(0, 8);
+  return normalized.length > 4
+    ? `${normalized.slice(0, 4)}-${normalized.slice(4)}`
+    : normalized;
 }
 
 async function createNativeQrDetector(): Promise<BarcodeDetectorLike | null> {
@@ -188,8 +205,10 @@ export default function StudentAttendanceScanScreen() {
   const requestedPurpose = parseExpectedPurpose(searchParams.get("purpose"));
   const [expectedPurpose, setExpectedPurpose] = useState<AttendancePurpose | null>(requestedPurpose);
   const [state, setState] = useState<ScanState>("scanning");
-  const [scan, setScan] = useState<ParsedAttendanceQr | null>(null);
-  const [pendingScan, setPendingScan] = useState<ParsedAttendanceQr | null>(null);
+  const [scan, setScan] = useState<AttendanceCredential | null>(null);
+  const [pendingScan, setPendingScan] = useState<AttendanceCredential | null>(null);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualCode, setManualCode] = useState("");
   const [photoPolicy, setPhotoPolicy] = useState<AttendancePhotoPolicy>("room");
   const [photoIndex, setPhotoIndex] = useState(0);
   const [photoUrls, setPhotoUrls] = useState<Partial<Record<AttendancePhotoKind, string>>>({});
@@ -223,7 +242,7 @@ export default function StudentAttendanceScanScreen() {
   const cameraFacingMode = activeStep === "photo" ? currentPhoto.facingMode : "environment";
   const completedPhotoCount = photoRequirements.filter((requirement) => !!photoBlobs[requirement.id]).length;
   const scanValidating = activeStep === "scan" && state === "validating";
-  const cameraActive = (activeStep === "scan" && !scanValidating) || activeStep === "photo";
+  const cameraActive = ((activeStep === "scan" && !scanValidating && !manualMode) || activeStep === "photo");
   const nextPhotoIndex = reviewPhotoRequirement
     ? photoRequirements.findIndex((requirement) => requirement.id === reviewPhotoRequirement.id) + 1
     : -1;
@@ -438,6 +457,38 @@ export default function StudentAttendanceScanScreen() {
     }
   }, [currentPhoto.id, photoUrls]);
 
+  const handleUseManualCode = useCallback(() => {
+    stopMediaStream(streamRef.current);
+    streamRef.current = null;
+    setManualMode(true);
+    setScannerMode("waiting");
+    setError(null);
+  }, []);
+
+  const handleManualCodeChange = useCallback((value: string) => {
+    setManualCode(formatManualCodeInput(value));
+    setError(null);
+  }, []);
+
+  const handleManualCodeSubmit = useCallback(() => {
+    const normalized = normalizeManualCode(manualCode);
+    if (!expectedPurpose) {
+      setError("請先從競賽主頁選擇簽到或簽退。");
+      return;
+    }
+    if (normalized.length !== 8) {
+      setError("請輸入投影畫面上的 8 碼代碼。");
+      return;
+    }
+    setPendingScan({
+      purpose: expectedPurpose,
+      manualCode: normalized,
+    });
+    setState("validating");
+    setScannedAt(Date.now());
+    setError(null);
+  }, [expectedPurpose, manualCode]);
+
   const handleAcceptPhoto = useCallback(() => {
     if (!reviewPhotoRequirement) return;
     setSubmitError(null);
@@ -488,6 +539,8 @@ export default function StudentAttendanceScanScreen() {
     setPhotoUrls({});
     setPhotoIndex(0);
     setReviewPhotoKind(null);
+    setManualMode(false);
+    setManualCode("");
     setFrozenScanUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return "";
@@ -515,6 +568,7 @@ export default function StudentAttendanceScanScreen() {
         mode: "student_self_scan",
         purpose: scan.purpose,
         token: scan.token,
+        manualCode: scan.manualCode,
         client_observed_at_ms: Date.now(),
         device_kind: "mobile",
       });
@@ -606,7 +660,8 @@ export default function StudentAttendanceScanScreen() {
           </div>
         ) : null}
 
-        {activeStep === "scan" || activeStep === "photo" ? (
+        {(activeStep === "scan" || activeStep === "photo") &&
+        !(activeStep === "scan" && (manualMode || cameraState === "unavailable")) ? (
           <div className={styles.stageCaption}>
             <h1>{stageTitle}</h1>
             <p>{stageDescription}</p>
@@ -626,6 +681,46 @@ export default function StudentAttendanceScanScreen() {
           <div className={styles.notificationLayer}>
             <InlineNotification kind="error" title="無法完成簽到簽退" subtitle={error} lowContrast />
           </div>
+        ) : null}
+
+        {activeStep === "scan" && !scanValidating && !(manualMode || cameraState === "unavailable") ? (
+          <Button
+            kind="ghost"
+            className={styles.manualToggle}
+            onClick={handleUseManualCode}
+          >
+            相機無法使用？輸入代碼
+          </Button>
+        ) : null}
+
+        {activeStep === "scan" && (manualMode || cameraState === "unavailable") ? (
+          <form
+            className={styles.manualPanel}
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleManualCodeSubmit();
+            }}
+          >
+            <div>
+              <h1>輸入{purposeLabel}代碼</h1>
+              <p>請輸入教師投影畫面上 QR Code 下方的 8 碼代碼。</p>
+            </div>
+            <TextInput
+              id="attendance-manual-code"
+              labelText="手動代碼"
+              value={manualCode}
+              placeholder="ABCD-2345"
+              onChange={(event) => handleManualCodeChange(event.target.value)}
+            />
+            <div className={styles.manualActions}>
+              <Button type="submit">下一步</Button>
+              {cameraState !== "unavailable" ? (
+                <Button kind="ghost" type="button" onClick={handleRescan}>
+                  返回掃描
+                </Button>
+              ) : null}
+            </div>
+          </form>
         ) : null}
 
         {activeStep === "photo" && state !== "submitting" ? (
