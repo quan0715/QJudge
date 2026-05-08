@@ -335,13 +335,14 @@ export default function StudentAttendanceScanScreen() {
 
     // Manual code: validate against the backend before proceeding
     if (!contestId) return undefined;
+    const manualCode = pendingScan.manualCode;
     let cancelled = false;
     (async () => {
       try {
         await validateAttendanceManualCode(
           contestId,
           pendingScan.purpose,
-          pendingScan.manualCode,
+          manualCode,
         );
         if (cancelled) return;
         setScan(pendingScan);
