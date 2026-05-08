@@ -6,12 +6,12 @@ import string
 from typing import Any, Callable, Literal, get_args
 
 from django.core.cache import cache
-from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 
 from apps.contests.models import Contest, ContestParticipant, ExamEvent, ExamEvidenceFrame, ExamStatus
 from apps.contests.permissions import can_manage_contest
+from apps.contests.services.participant_state import reset_participant_exam_record
 
 ATTENDANCE_REFRESH_SECONDS = 30
 ATTENDANCE_TOKEN_MAX_AGE_SECONDS = 45
@@ -208,9 +208,11 @@ def _status_for_event(contest: Contest, event: ExamEvent | None) -> str:
     if event is None:
         return "missing"
     metadata = event.metadata if isinstance(event.metadata, dict) else {}
+    uploaded_evidence_count = _uploaded_evidence_count(event)
+    required_evidence_count = len(get_attendance_required_photo_kinds(contest))
     if metadata.get("attendance_mode") == "teacher_assisted":
-        return "teacher_assisted"
-    if _uploaded_evidence_count(event) >= len(get_attendance_required_photo_kinds(contest)):
+        return "teacher_assisted" if uploaded_evidence_count >= required_evidence_count else "event_created"
+    if uploaded_evidence_count >= required_evidence_count:
         return "photo_confirmed"
     return "event_created"
 
@@ -282,6 +284,109 @@ def assert_attendance_allows_start(contest: Contest, participant: ContestPartici
         raise ValueError("attendance_check_in_required")
 
 
+def _validate_self_scan_credential(
+    contest: Contest, purpose: str, token: str, manual_code: str
+) -> str:
+    """Validate the QR token or manual code and return the credential source label."""
+    if token and manual_code:
+        raise ValueError("attendance_credential_conflict")
+    if not token and not manual_code:
+        raise ValueError("attendance_token_required")
+    if manual_code:
+        validate_attendance_manual_code(contest, purpose, manual_code)
+        return "manual_code"
+    validate_attendance_token(contest, purpose, token)
+    return "qr_token"
+
+
+def _resolve_self_scan_event(
+    contest: Contest,
+    actor,
+    data: dict[str, Any],
+    ensure_participant: Callable,
+) -> dict[str, Any]:
+    purpose = data["purpose"]
+    if data.get("user_id"):
+        raise ValueError("user_id_forbidden_for_self_scan")
+    credential_source = _validate_self_scan_credential(
+        contest,
+        purpose,
+        str(data.get("token") or ""),
+        str(data.get("manual_code") or ""),
+    )
+
+    participant, _created, error_response = ensure_participant(contest, actor)
+    if error_response is not None:
+        return {"error_response": error_response}
+    if participant is None:
+        participant = ContestParticipant.objects.filter(contest=contest, user=actor).first()
+    if participant is None:
+        raise ValueError("not_registered")
+
+    if purpose == "check_in" and participant.exam_status != ExamStatus.NOT_STARTED:
+        return {"error_code": "check_in_only_before_personal_start"}
+    if purpose == "check_out" and participant.exam_status != ExamStatus.SUBMITTED:
+        return {"error_code": "checkout_not_available_until_submitted"}
+
+    previous_attempt_count = ExamEvent.objects.filter(
+        contest=contest,
+        user=actor,
+        event_type=ATTENDANCE_EVENT_TYPES[purpose],
+    ).count()
+    metadata = {
+        "attendance_purpose": purpose,
+        "attendance_mode": "student_self_scan",
+        "attendance_attempt": previous_attempt_count + 1,
+        "attendance_repeat": previous_attempt_count > 0,
+        "attendance_action": f"re_{purpose}" if previous_attempt_count > 0 else purpose,
+        "attendance_credential_source": credential_source,
+        "source_module": ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        "device_kind": str(data.get("device_kind") or ""),
+        "client_observed_at_ms": data.get("client_observed_at_ms"),
+        "photo_required": True,
+        "photo_policy": contest.attendance_photo_policy,
+        "required_photo_kinds": get_attendance_required_photo_kinds(contest),
+    }
+    return {"target_user": actor, "participant": participant, "metadata": metadata}
+
+
+def _resolve_teacher_assisted_event(
+    contest: Contest,
+    actor,
+    data: dict[str, Any],
+) -> dict[str, Any]:
+    purpose = data["purpose"]
+    if not can_manage_contest(actor, contest):
+        raise ValueError("attendance_teacher_permission_required")
+    if data.get("token"):
+        raise ValueError("token_forbidden_for_teacher_assisted")
+    if not data.get("user_id"):
+        raise ValueError("user_id_required")
+    reason = str(data.get("reason") or "").strip()
+    if not reason:
+        raise ValueError("reason_required")
+    try:
+        participant = ContestParticipant.objects.select_related("user").get(
+            contest=contest,
+            user_id=data["user_id"],
+        )
+    except ContestParticipant.DoesNotExist:
+        raise ValueError("participant_not_found") from None
+
+    metadata = {
+        "attendance_purpose": purpose,
+        "attendance_mode": "teacher_assisted",
+        "assisted_by_user_id": actor.id,
+        "assisted_by_username": actor.username,
+        "reason": reason,
+        "source_module": ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        "photo_required": True,
+        "photo_policy": contest.attendance_photo_policy,
+        "required_photo_kinds": get_attendance_required_photo_kinds(contest),
+    }
+    return {"target_user": participant.user, "participant": participant, "metadata": metadata}
+
+
 def create_attendance_event(
     *,
     contest: Contest,
@@ -293,82 +398,18 @@ def create_attendance_event(
     purpose = data["purpose"]
 
     if mode == "student_self_scan":
-        if data.get("user_id"):
-            raise ValueError("user_id_forbidden_for_self_scan")
-        token = str(data.get("token") or "")
-        manual_code = str(data.get("manual_code") or "")
-        if token and manual_code:
-            raise ValueError("attendance_credential_conflict")
-        if not token and not manual_code:
-            raise ValueError("attendance_token_required")
-        if manual_code:
-            validate_attendance_manual_code(contest, purpose, manual_code)
-            credential_source = "manual_code"
-        else:
-            validate_attendance_token(contest, purpose, token)
-            credential_source = "qr_token"
-        participant, _created, error_response = ensure_participant(contest, actor)
-        if error_response is not None:
-            return {"error_response": error_response}
-        if participant is None:
-            participant = ContestParticipant.objects.filter(contest=contest, user=actor).first()
-        if participant is None:
-            raise ValueError("not_registered")
-        if purpose == "check_in" and participant.exam_status != ExamStatus.NOT_STARTED:
-            return {"error_code": "check_in_only_before_personal_start"}
-        if purpose == "check_out" and participant.exam_status != ExamStatus.SUBMITTED:
-            return {"error_code": "checkout_not_available_until_submitted"}
-        previous_attempt_count = ExamEvent.objects.filter(
-            contest=contest,
-            user=actor,
-            event_type=ATTENDANCE_EVENT_TYPES[purpose],
-        ).count()
-        target_user = actor
-        metadata = {
-            "attendance_purpose": purpose,
-            "attendance_mode": "student_self_scan",
-            "attendance_attempt": previous_attempt_count + 1,
-            "attendance_repeat": previous_attempt_count > 0,
-            "attendance_action": f"re_{purpose}" if previous_attempt_count > 0 else purpose,
-            "attendance_credential_source": credential_source,
-            "source_module": ExamEvidenceFrame.SourceModule.ATTENDANCE,
-            "device_kind": str(data.get("device_kind") or ""),
-            "client_observed_at_ms": data.get("client_observed_at_ms"),
-            "photo_required": True,
-            "photo_policy": contest.attendance_photo_policy,
-            "required_photo_kinds": get_attendance_required_photo_kinds(contest),
-        }
+        resolved = _resolve_self_scan_event(contest, actor, data, ensure_participant)
     elif mode == "teacher_assisted":
-        if not can_manage_contest(actor, contest):
-            raise ValueError("attendance_teacher_permission_required")
-        if data.get("token"):
-            raise ValueError("token_forbidden_for_teacher_assisted")
-        if not data.get("user_id"):
-            raise ValueError("user_id_required")
-        reason = str(data.get("reason") or "").strip()
-        if not reason:
-            raise ValueError("reason_required")
-        try:
-            participant = ContestParticipant.objects.select_related("user").get(
-                contest=contest,
-                user_id=data["user_id"],
-            )
-        except ContestParticipant.DoesNotExist:
-            raise ValueError("participant_not_found") from None
-        target_user = participant.user
-        metadata = {
-            "attendance_purpose": purpose,
-            "attendance_mode": "teacher_assisted",
-            "assisted_by_user_id": actor.id,
-            "assisted_by_username": actor.username,
-            "reason": reason,
-            "source_module": ExamEvidenceFrame.SourceModule.ATTENDANCE,
-            "photo_required": True,
-            "photo_policy": contest.attendance_photo_policy,
-            "required_photo_kinds": get_attendance_required_photo_kinds(contest),
-        }
+        resolved = _resolve_teacher_assisted_event(contest, actor, data)
     else:
         raise ValueError("invalid_attendance_mode")
+
+    if "error_response" in resolved or "error_code" in resolved:
+        return resolved
+
+    target_user = resolved["target_user"]
+    participant = resolved["participant"]
+    metadata = resolved["metadata"]
 
     event = ExamEvent.objects.create(
         contest=contest,
@@ -393,6 +434,15 @@ def create_attendance_event(
 
 
 def reset_participant_attendance_records(contest: Contest, user_id: int) -> dict[str, Any]:
+    return reset_participant_exam_records(contest, user_id)
+
+
+def reset_participant_exam_records(
+    contest: Contest,
+    user_id: int,
+    *,
+    activity_user=None,
+) -> dict[str, Any]:
     try:
         participant = ContestParticipant.objects.select_related("user").get(
             contest=contest,
@@ -401,19 +451,15 @@ def reset_participant_attendance_records(contest: Contest, user_id: int) -> dict
     except ContestParticipant.DoesNotExist:
         raise ValueError("participant_not_found") from None
 
-    with transaction.atomic():
-        events = ExamEvent.objects.filter(
-            contest=contest,
-            user=participant.user,
-            event_type__in=ATTENDANCE_EVENT_PURPOSES.keys(),
-        )
-        deleted_events = events.count()
-        deleted, deleted_by_model = events.delete()
+    reset_summary = reset_participant_exam_record(
+        participant,
+        activity_user=activity_user,
+        activity_details=f"Reset exam record for {participant.user.username}",
+    )
+    participant.refresh_from_db()
 
     return {
-        "deleted_events": deleted_events,
-        "deleted_records": deleted,
-        "deleted_by_model": deleted_by_model,
+        **reset_summary,
         "attendance_status": build_attendance_status(contest, participant),
     }
 
@@ -443,7 +489,7 @@ def build_participant_attendance_summary(contest: Contest, participant: ContestP
         evidence_count = int(getattr(event, "uploaded_evidence_count", 0) or 0)
         mode = str(metadata.get("attendance_mode") or "")
         required_evidence_count = len(get_attendance_required_photo_kinds(contest))
-        if mode == "student_self_scan" and evidence_count < required_evidence_count:
+        if mode in {"student_self_scan", "teacher_assisted"} and evidence_count < required_evidence_count:
             anomalies.add("missing_photo")
         serialized_events.append(
             {
