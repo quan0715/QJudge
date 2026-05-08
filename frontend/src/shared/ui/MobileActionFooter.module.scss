@@ -1,0 +1,40 @@
+.spacer {
+  display: none;
+}
+
+.footer {
+  display: none;
+}
+
+@media (max-width: 672px) {
+  .spacer {
+    display: block;
+    height: 6rem;
+  }
+
+  .footer {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--cds-layer-01);
+  }
+
+  .footer :global(.cds--btn-set) {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0;
+    width: 100%;
+  }
+
+  .footer :global(.cds--btn-set .cds--btn) {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    min-height: 5rem;
+    max-height: 6rem;
+  }
+}

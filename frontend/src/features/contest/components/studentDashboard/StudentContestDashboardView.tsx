@@ -4,7 +4,6 @@ import { LollipopChart } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
 import {
   Button,
-  ButtonSet,
   InlineNotification,
   Modal,
   Select,
@@ -52,6 +51,7 @@ import {
   type ExamAnswerDetail,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import { MobileActionFooter } from "@/shared/ui/MobileActionFooter";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { formatDate } from "@/shared/utils/format";
 import { useInterval } from "@/shared/hooks/useInterval";
@@ -1150,22 +1150,10 @@ export default function StudentContestDashboard({
         </DashboardContainer>
       </DashboardContainer>
 
-      {(() => {
-        const entryNode = renderEntryAction();
-        const attendanceNode = renderAttendanceAction();
-        if (!entryNode && !attendanceNode) return null;
-        return (
-          <>
-            <div className={styles.mobileBottomSpacer} aria-hidden="true" />
-            <div className={styles.mobileActionFooter}>
-              <ButtonSet>
-                {attendanceNode}
-                {entryNode}
-              </ButtonSet>
-            </div>
-          </>
-        );
-      })()}
+      <MobileActionFooter>
+        {renderAttendanceAction()}
+        {renderEntryAction()}
+      </MobileActionFooter>
 
       <ContestRegistrationModal
         open={showRegisterModal}
