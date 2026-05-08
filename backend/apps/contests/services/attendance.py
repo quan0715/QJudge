@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import secrets
 import string
-from typing import Any, Callable
+from typing import Any, Callable, Literal, get_args
 
 from django.core.cache import cache
 from django.db import transaction
@@ -30,7 +30,34 @@ ATTENDANCE_PHOTO_KIND_BY_POLICY = {
     "room": ["room"],
     "room_and_selfie": ["room", "selfie"],
 }
-ATTENDANCE_ERROR_MESSAGES = {
+
+# Single source of truth for attendance error codes. Mirror this list verbatim
+# in frontend/src/features/contest/attendance/attendanceErrorCodes.ts; the
+# parity is asserted by tests on both sides.
+AttendanceErrorCode = Literal[
+    "attendance_check_in_required",
+    "attendance_credential_conflict",
+    "attendance_manual_code_generation_failed",
+    "attendance_not_enabled",
+    "attendance_teacher_permission_required",
+    "attendance_token_required",
+    "check_in_only_before_personal_start",
+    "checkout_not_available_until_submitted",
+    "invalid_attendance_manual_code",
+    "invalid_attendance_mode",
+    "invalid_attendance_purpose",
+    "invalid_attendance_request",
+    "invalid_attendance_token",
+    "not_registered",
+    "participant_not_found",
+    "reason_required",
+    "token_forbidden_for_teacher_assisted",
+    "user_id_forbidden_for_self_scan",
+    "user_id_required",
+]
+ATTENDANCE_ERROR_CODES: tuple[AttendanceErrorCode, ...] = get_args(AttendanceErrorCode)
+
+ATTENDANCE_ERROR_MESSAGES: dict[AttendanceErrorCode, str] = {
     "attendance_check_in_required": (
         "Please complete attendance check-in before starting the exam."
     ),
@@ -42,6 +69,7 @@ ATTENDANCE_ERROR_MESSAGES = {
     "attendance_teacher_permission_required": (
         "You do not have permission to record attendance for this contest."
     ),
+    "attendance_token_required": "Attendance token or manual code is required.",
     "check_in_only_before_personal_start": "Check-in is only available before entering the exam.",
     "checkout_not_available_until_submitted": "Check-out is only available after submitting the exam.",
     "invalid_attendance_manual_code": "The attendance code is invalid or expired.",
@@ -53,10 +81,12 @@ ATTENDANCE_ERROR_MESSAGES = {
     "participant_not_found": "Participant not found.",
     "reason_required": "Reason is required.",
     "token_forbidden_for_teacher_assisted": "QR token is not accepted for teacher-assisted attendance.",
-    "attendance_token_required": "Attendance token or manual code is required.",
     "user_id_forbidden_for_self_scan": "User id is not accepted for student self scan.",
     "user_id_required": "Participant user id is required.",
 }
+assert set(ATTENDANCE_ERROR_MESSAGES.keys()) == set(ATTENDANCE_ERROR_CODES), (
+    "ATTENDANCE_ERROR_MESSAGES must define a message for every AttendanceErrorCode"
+)
 
 
 def _token_cache_key(token: str) -> str:

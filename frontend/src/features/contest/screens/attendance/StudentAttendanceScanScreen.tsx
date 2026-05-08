@@ -9,6 +9,7 @@ import type {
   AttendancePurpose,
 } from "@/core/entities/contest.entity";
 import { parseAttendanceQrValue } from "@/features/contest/attendance/attendanceQr";
+import { getAttendanceErrorMessage } from "@/features/contest/attendance/attendanceErrorMessages";
 import {
   createAttendanceEvent,
   validateAttendanceCredential,
@@ -48,10 +49,6 @@ type AttendanceCredential = {
   token?: string;
   manualCode?: string;
 };
-type ApiError = Error & {
-  response?: { status: number; data?: { code?: string; detail?: string } };
-};
-
 async function captureBlob(video: HTMLVideoElement): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth || 1280;
@@ -65,54 +62,6 @@ async function captureBlob(video: HTMLVideoElement): Promise<Blob> {
       else reject(new Error("photo_capture_failed"));
     }, "image/webp", 0.9);
   });
-}
-
-function getApiErrorCode(error: unknown): string {
-  return (error as ApiError).response?.data?.code || "";
-}
-
-function getAttendanceSubmitErrorMessage(
-  error: unknown,
-  tr: AttendanceTranslate,
-  purpose?: string,
-): string {
-  const code = getApiErrorCode(error);
-  if (code === "checkout_not_available_until_submitted") {
-    return tr("attendance.errors.checkoutAfterSubmit", "交卷後才可以簽退。");
-  }
-  if (code === "check_in_only_before_personal_start") {
-    return purpose === "check_in"
-      ? tr(
-          "attendance.errors.checkInOnlyBeforeStart",
-          "您已開始或完成考試，不能再補簽到；若要離場請掃描簽退 QR Code。",
-        )
-      : tr("attendance.errors.notCheckInTime", "目前不在可簽到時間。");
-  }
-  if (code === "attendance_token_expired") {
-    return tr(
-      "attendance.errors.tokenExpired",
-      "QR Code 已過期，請重新掃描投影畫面上的 QR Code。",
-    );
-  }
-  if (code === "invalid_attendance_token") {
-    return tr(
-      "attendance.errors.invalidToken",
-      "QR Code 無效，請重新掃描投影畫面上的 QR Code。",
-    );
-  }
-  if (code === "invalid_attendance_manual_code") {
-    return tr(
-      "attendance.errors.invalidManualCode",
-      "代碼無效或已過期，請重新輸入投影畫面上的最新代碼。",
-    );
-  }
-  if (code === "attendance_not_enabled") {
-    return tr(
-      "attendance.errors.notEnabled",
-      "此考試尚未開啟 QR Code 簽到簽退。",
-    );
-  }
-  return tr("attendance.errors.submitFailed", "簽到資料送出失敗，請稍後再試。");
 }
 
 function getPurposeLabel(
@@ -343,7 +292,7 @@ export default function StudentAttendanceScanScreen() {
       } catch (err) {
         if (cancelled) return;
         haptics("error");
-        const errorMessage = getAttendanceSubmitErrorMessage(err, tr, credential.purpose);
+        const errorMessage = getAttendanceErrorMessage(err, tr, credential.purpose);
         setError(errorMessage);
         setPendingScan(null);
         setState("scanning");
@@ -543,7 +492,7 @@ export default function StudentAttendanceScanScreen() {
     } catch (err) {
       haptics("error");
       setState("capturing");
-      setSubmitError(getAttendanceSubmitErrorMessage(err, tr, scan?.purpose));
+      setSubmitError(getAttendanceErrorMessage(err, tr, scan?.purpose));
     }
   }, [allPhotosCaptured, camera, contestId, haptics, photoBlobs, photoRequirements, scan, streamRef, t, tr]);
 
