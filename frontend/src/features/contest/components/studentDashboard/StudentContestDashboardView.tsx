@@ -4,6 +4,7 @@ import { LollipopChart } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
 import {
   Button,
+  ButtonSet,
   InlineNotification,
   Modal,
   Select,
@@ -562,7 +563,7 @@ export default function StudentContestDashboard({
     );
   };
 
-  const renderPrimaryAction = () => {
+  const renderEntryAction = () => {
     if (!participant && phase !== "after") {
       if (attendanceRequired) {
         return null;
@@ -596,28 +597,30 @@ export default function StudentContestDashboard({
       );
     }
     if (examStatus === "submitted") {
-      return (
-        <>
-          <Button
-            kind="tertiary"
-            renderIcon={Document}
-            onClick={() => setShowReportModal(true)}
-          >
-            {reportDownloadLabel}
-          </Button>
-          {canRestartSubmittedExam ? (
-            <Button renderIcon={Play} onClick={onStartExam}>
-              {t("studentDashboard.actions.rejoin", "重新加入")}
-            </Button>
-          ) : null}
-        </>
-      );
+      return canRestartSubmittedExam ? (
+        <Button renderIcon={Play} onClick={onStartExam}>
+          {t("studentDashboard.actions.rejoin", "重新加入")}
+        </Button>
+      ) : null;
     }
     return (
       <Button kind="secondary" disabled renderIcon={Time}>
         {phase === "before"
           ? t("studentDashboard.actions.waitingStart", "等待開始")
           : t("studentDashboard.actions.unavailable", "不可作答")}
+      </Button>
+    );
+  };
+
+  const renderReportAction = () => {
+    if (examStatus !== "submitted") return null;
+    return (
+      <Button
+        kind="tertiary"
+        renderIcon={Document}
+        onClick={() => setShowReportModal(true)}
+      >
+        {reportDownloadLabel}
       </Button>
     );
   };
@@ -1123,8 +1126,11 @@ export default function StudentContestDashboard({
 
           <DashboardBlock>
             <div className={styles.actionStack}>
-              {renderPrimaryAction()}
-              {renderAttendanceAction()}
+              <div className={styles.actionStackPrimary}>
+                {renderEntryAction()}
+                {renderAttendanceAction()}
+              </div>
+              {renderReportAction()}
               {canSubmitExam ? (
                 <Button
                   kind="danger--tertiary"
@@ -1143,6 +1149,23 @@ export default function StudentContestDashboard({
           </DashboardBlock>
         </DashboardContainer>
       </DashboardContainer>
+
+      {(() => {
+        const entryNode = renderEntryAction();
+        const attendanceNode = renderAttendanceAction();
+        if (!entryNode && !attendanceNode) return null;
+        return (
+          <>
+            <div className={styles.mobileBottomSpacer} aria-hidden="true" />
+            <div className={styles.mobileActionFooter}>
+              <ButtonSet>
+                {attendanceNode}
+                {entryNode}
+              </ButtonSet>
+            </div>
+          </>
+        );
+      })()}
 
       <ContestRegistrationModal
         open={showRegisterModal}
