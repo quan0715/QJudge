@@ -103,21 +103,27 @@ export const resetParticipantAttendance = async (
   );
 };
 
-export interface ValidateManualCodeResponse {
-  valid: boolean;
+export interface ValidateAttendanceCredentialPayload {
   purpose: AttendancePurpose;
+  token?: string;
+  manualCode?: string;
 }
 
-export const validateAttendanceManualCode = async (
+export interface ValidateAttendanceCredentialResponse {
+  valid: boolean;
+  purpose: AttendancePurpose;
+  credential_source: "qr_token" | "manual_code";
+}
+
+export const validateAttendanceCredential = async (
   contestId: string,
-  purpose: AttendancePurpose,
-  manualCode: string,
-): Promise<ValidateManualCodeResponse> => {
-  return requestJson<ValidateManualCodeResponse>(
-    httpClient.post(`/api/v1/contests/${contestId}/attendance/validate-code/`, {
-      purpose,
-      manual_code: manualCode,
-    }),
-    "Failed to validate attendance code",
+  payload: ValidateAttendanceCredentialPayload,
+): Promise<ValidateAttendanceCredentialResponse> => {
+  const body: Record<string, string> = { purpose: payload.purpose };
+  if (payload.token) body.token = payload.token;
+  if (payload.manualCode) body.manual_code = payload.manualCode;
+  return requestJson<ValidateAttendanceCredentialResponse>(
+    httpClient.post(`/api/v1/contests/${contestId}/attendance/validate/`, body),
+    "Failed to validate attendance credential",
   );
 };

@@ -156,7 +156,7 @@ def test_student_self_scan_rejects_wrong_manual_code_purpose() -> None:
 
 
 @pytest.mark.django_db
-def test_validate_code_endpoint_accepts_valid_code() -> None:
+def test_validate_endpoint_accepts_valid_manual_code() -> None:
     api_client = APIClient()
     teacher = make_user("validate_code_teacher", role="teacher")
     student = make_user("validate_code_student")
@@ -168,7 +168,7 @@ def test_validate_code_endpoint_accepts_valid_code() -> None:
 
     api_client.force_authenticate(user=student)
     response = api_client.post(
-        f"/api/v1/contests/{contest.id}/attendance/validate-code/",
+        f"/api/v1/contests/{contest.id}/attendance/validate/",
         {"purpose": "check_in", "manual_code": manual_code},
         format="json",
     )
@@ -176,10 +176,33 @@ def test_validate_code_endpoint_accepts_valid_code() -> None:
     assert response.status_code == 200
     assert response.data["valid"] is True
     assert response.data["purpose"] == "check_in"
+    assert response.data["credential_source"] == "manual_code"
 
 
 @pytest.mark.django_db
-def test_validate_code_endpoint_rejects_invalid_code() -> None:
+def test_validate_endpoint_accepts_valid_token() -> None:
+    api_client = APIClient()
+    teacher = make_user("validate_token_teacher", role="teacher")
+    student = make_user("validate_token_student")
+    contest = make_contest(owner=teacher)
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
+    token = create_attendance_token(contest, "check_in")
+
+    api_client.force_authenticate(user=student)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/validate/",
+        {"purpose": "check_in", "token": token},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["valid"] is True
+    assert response.data["purpose"] == "check_in"
+    assert response.data["credential_source"] == "qr_token"
+
+
+@pytest.mark.django_db
+def test_validate_endpoint_rejects_invalid_code() -> None:
     api_client = APIClient()
     teacher = make_user("validate_code_reject_teacher", role="teacher")
     student = make_user("validate_code_reject_student")
@@ -188,13 +211,48 @@ def test_validate_code_endpoint_rejects_invalid_code() -> None:
     api_client.force_authenticate(user=student)
 
     response = api_client.post(
-        f"/api/v1/contests/{contest.id}/attendance/validate-code/",
+        f"/api/v1/contests/{contest.id}/attendance/validate/",
         {"purpose": "check_in", "manual_code": "000000"},
         format="json",
     )
 
     assert response.status_code == 400
     assert response.data["code"] == "invalid_attendance_manual_code"
+
+
+@pytest.mark.django_db
+def test_validate_endpoint_rejects_invalid_token() -> None:
+    api_client = APIClient()
+    student = make_user("validate_token_reject_student")
+    contest = make_contest()
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
+    api_client.force_authenticate(user=student)
+
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/validate/",
+        {"purpose": "check_in", "token": "not-a-real-token"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.data["code"] == "invalid_attendance_token"
+
+
+@pytest.mark.django_db
+def test_validate_endpoint_requires_token_or_manual_code() -> None:
+    api_client = APIClient()
+    student = make_user("validate_missing_credential_student")
+    contest = make_contest()
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
+    api_client.force_authenticate(user=student)
+
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/validate/",
+        {"purpose": "check_in"},
+        format="json",
+    )
+
+    assert response.status_code == 400
 
 
 @pytest.mark.django_db

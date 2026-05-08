@@ -9,7 +9,10 @@ import type {
   AttendancePurpose,
 } from "@/core/entities/contest.entity";
 import { parseAttendanceQrValue } from "@/features/contest/attendance/attendanceQr";
-import { createAttendanceEvent, validateAttendanceManualCode } from "@/infrastructure/api/repositories/attendance.repository";
+import {
+  createAttendanceEvent,
+  validateAttendanceCredential,
+} from "@/infrastructure/api/repositories/attendance.repository";
 import { getContest } from "@/infrastructure/api/repositories/contest.repository";
 import {
   confirmEvidenceUpload,
@@ -322,45 +325,35 @@ export default function StudentAttendanceScanScreen() {
 
   useEffect(() => {
     if (state !== "validating" || !pendingScan) return undefined;
-
-    // QR token scans: proceed after a short delay (token validated at submission)
-    if (!pendingScan.manualCode) {
-      const timer = window.setTimeout(() => {
-        setScan(pendingScan);
-        setPendingScan(null);
-        setState("capturing");
-      }, 650);
-      return () => window.clearTimeout(timer);
-    }
-
-    // Manual code: validate against the backend before proceeding
     if (!contestId) return undefined;
-    const manualCode = pendingScan.manualCode;
+    const credential = pendingScan;
+    const wasManual = !!credential.manualCode;
     let cancelled = false;
     (async () => {
       try {
-        await validateAttendanceManualCode(
-          contestId,
-          pendingScan.purpose,
-          manualCode,
-        );
+        await validateAttendanceCredential(contestId, {
+          purpose: credential.purpose,
+          token: credential.token,
+          manualCode: credential.manualCode,
+        });
         if (cancelled) return;
-        setScan(pendingScan);
+        setScan(credential);
         setPendingScan(null);
         setState("capturing");
       } catch (err) {
         if (cancelled) return;
-        const errorMessage = getAttendanceSubmitErrorMessage(err, tr, pendingScan.purpose);
+        haptics("error");
+        const errorMessage = getAttendanceSubmitErrorMessage(err, tr, credential.purpose);
         setError(errorMessage);
-        setManualMode(true);
         setPendingScan(null);
         setState("scanning");
+        if (wasManual) setManualMode(true);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [contestId, pendingScan, state, tr]);
+  }, [contestId, haptics, pendingScan, state, tr]);
 
   useEffect(() => {
     return () => {

@@ -19,6 +19,7 @@ from ..services.attendance import (
     normalize_attendance_error_code,
     reset_participant_attendance_records,
     validate_attendance_manual_code,
+    validate_attendance_token,
 )
 
 
@@ -55,9 +56,21 @@ class AttendanceEventSerializer(serializers.Serializer):
         return attrs
 
 
-class AttendanceValidateCodeSerializer(serializers.Serializer):
+class AttendanceValidateSerializer(serializers.Serializer):
     purpose = serializers.ChoiceField(choices=("check_in", "check_out"))
-    manual_code = serializers.CharField(max_length=16)
+    token = serializers.CharField(required=False, allow_blank=True)
+    manual_code = serializers.CharField(required=False, allow_blank=True, max_length=16)
+
+    def validate(self, attrs):
+        has_token = bool(attrs.get("token"))
+        has_manual_code = bool(str(attrs.get("manual_code") or "").strip())
+        if has_token and has_manual_code:
+            raise serializers.ValidationError({
+                "manual_code": "Use either QR token or manual code, not both.",
+            })
+        if not has_token and not has_manual_code:
+            raise serializers.ValidationError({"token": "Attendance token or manual code is required."})
+        return attrs
 
 
 class AttendanceResetSerializer(serializers.Serializer):
@@ -109,9 +122,9 @@ class AttendanceMixin:
         detail=True,
         methods=["post"],
         permission_classes=[permissions.IsAuthenticated],
-        url_path="attendance/validate-code",
+        url_path="attendance/validate",
     )
-    def attendance_validate_code(self, request, pk=None):
+    def attendance_validate(self, request, pk=None):
         contest: Contest = self.get_object()
         if not contest.attendance_check_enabled:
             return Response(
@@ -119,13 +132,19 @@ class AttendanceMixin:
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = AttendanceValidateCodeSerializer(data=request.data)
+        serializer = AttendanceValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         purpose = serializer.validated_data["purpose"]
-        manual_code = serializer.validated_data["manual_code"]
+        token = serializer.validated_data.get("token") or ""
+        manual_code = str(serializer.validated_data.get("manual_code") or "").strip()
 
         try:
-            validate_attendance_manual_code(contest, purpose, manual_code)
+            if manual_code:
+                validate_attendance_manual_code(contest, purpose, manual_code)
+                credential_source = "manual_code"
+            else:
+                validate_attendance_token(contest, purpose, token)
+                credential_source = "qr_token"
         except ValueError as exc:
             code = normalize_attendance_error_code(exc)
             return Response(
@@ -133,7 +152,11 @@ class AttendanceMixin:
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response({"valid": True, "purpose": purpose})
+        return Response({
+            "valid": True,
+            "purpose": purpose,
+            "credential_source": credential_source,
+        })
 
     @action(
         detail=True,
