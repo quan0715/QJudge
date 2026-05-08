@@ -16,6 +16,11 @@
       "id": "teacher-guide",
       "items": [
         "teacher-overview",
+        "teacher-adoption-overview",
+        "teacher-first-class-setup",
+        "teacher-assignment-workflow",
+        "teacher-exam-workflow",
+        "teacher-grading-feedback",
         "create-exam",
         "exam-grading",
         "exam-statistics",
@@ -26,16 +31,6 @@
     {
       "id": "admin-guide",
       "items": ["admin-overview"]
-    },
-    {
-      "id": "developer-guide",
-      "items": [
-        "contributing",
-        "contest-extension-architecture",
-        "exam-precheck-anticheat",
-        "dev-setup",
-        "e2e-testing"
-      ]
     }
   ],
   "defaultDoc": "overview"

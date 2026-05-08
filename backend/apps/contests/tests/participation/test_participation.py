@@ -48,9 +48,6 @@ class ContestParticipationTests(APITestCase):
             visibility='private',
             status='published'
         )
-        self.private_contest.set_contest_password('secretpassword')
-        self.private_contest.save()
-
         self.client.force_authenticate(user=self.user)
 
     def _bind_user_to_contest(self, contest, user=None):
@@ -73,16 +70,16 @@ class ContestParticipationTests(APITestCase):
     def test_register_private_contest_success(self):
         self._bind_user_to_contest(self.private_contest)
         url = reverse('contests:contest-register', args=[self.private_contest.id])
-        response = self.client.post(url, {'password': 'secretpassword'})
+        response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(ContestParticipant.objects.filter(contest=self.private_contest, user=self.user).exists())
 
-    def test_register_private_contest_fail(self):
+    def test_register_private_contest_ignores_legacy_password_payload(self):
         self._bind_user_to_contest(self.private_contest)
         url = reverse('contests:contest-register', args=[self.private_contest.id])
         response = self.client.post(url, {'password': 'wrongpassword'})
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertFalse(ContestParticipant.objects.filter(contest=self.private_contest, user=self.user).exists())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(ContestParticipant.objects.filter(contest=self.private_contest, user=self.user).exists())
 
     def test_register_blocks_when_ended(self):
         ended_contest = Contest.objects.create(

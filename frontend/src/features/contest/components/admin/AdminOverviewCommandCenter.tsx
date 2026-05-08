@@ -58,6 +58,7 @@ import type {
 import {
   downloadParticipantReport,
   removeParticipant,
+  resetParticipantAttendance,
   reopenExam,
   unlockParticipant,
   updateParticipant,
@@ -624,6 +625,47 @@ export default function AdminOverviewCommandCenter({
     t,
   ]);
 
+  const handleResetAttendance = useCallback(async () => {
+    if (!contestId || !selectedUserId || !participantDashboard.data) return;
+    const confirmed = await confirm({
+      title: t(
+        "participants.confirmResetAttendance",
+        "確定要重置此學生的簽到測試紀錄嗎？這只會清除簽到/簽退事件與佐證，不會影響作答紀錄。",
+      ),
+      confirmLabel: t("participants.actions.resetAttendance", "重置簽到測試紀錄"),
+      cancelLabel: t("button.cancel", "取消"),
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await resetParticipantAttendance(contestId, selectedUserId);
+      await refreshAfterAction();
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t("participants.attendanceReset", "已重置簽到測試紀錄"),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("participants.attendanceResetFailed", "重置簽到測試紀錄失敗");
+      showToast({
+        kind: "error",
+        title: t("common.error", "錯誤"),
+        subtitle: message,
+      });
+    }
+  }, [
+    confirm,
+    contestId,
+    participantDashboard.data,
+    refreshAfterAction,
+    selectedUserId,
+    showToast,
+    t,
+  ]);
+
   const studentParticipants = participants
     .filter(isStudentParticipant)
     .sort(
@@ -831,6 +873,7 @@ export default function AdminOverviewCommandCenter({
       onEditStatus={openEditModal}
       onUnlock={() => void handleUnlock()}
       onReopenExam={() => void handleReopenExam()}
+      onResetAttendance={contest?.attendanceCheckEnabled ? () => void handleResetAttendance() : undefined}
       onRemoveParticipant={
         classroomBound ? undefined : () => void handleRemoveParticipant()
       }

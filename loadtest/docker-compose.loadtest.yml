@@ -1,4 +1,4 @@
-# Override for docker-compose.test.yml — adds MinIO, celery workers, and monitoring
+# Override for docker-compose.test.yml — adds real celery workers and monitoring
 # Usage: docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml up -d --build
 
 services:
@@ -6,64 +6,25 @@ services:
   backend-test:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.loadtest
-      - OBJECT_STORAGE_ENDPOINT_URL=http://minio-test:9000
-      - OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=http://localhost:9002
-      - OBJECT_STORAGE_ACCESS_KEY=minioadmin
-      - OBJECT_STORAGE_SECRET_KEY=minioadmin
-      - OBJECT_STORAGE_REGION=us-east-1
-      - ANTICHEAT_RAW_BUCKET=anticheat-raw
-    depends_on:
-      minio-test:
-        condition: service_started
+      - OBJECT_STORAGE_ENDPOINT_URL=${LOADTEST_OBJECT_STORAGE_ENDPOINT_URL:?LOADTEST_OBJECT_STORAGE_ENDPOINT_URL is required}
+      - OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=${LOADTEST_OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?LOADTEST_OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
+      - OBJECT_STORAGE_ACCESS_KEY=${LOADTEST_OBJECT_STORAGE_ACCESS_KEY:?LOADTEST_OBJECT_STORAGE_ACCESS_KEY is required}
+      - OBJECT_STORAGE_SECRET_KEY=${LOADTEST_OBJECT_STORAGE_SECRET_KEY:?LOADTEST_OBJECT_STORAGE_SECRET_KEY is required}
+      - OBJECT_STORAGE_REGION=${LOADTEST_OBJECT_STORAGE_REGION:-auto}
+      - ANTICHEAT_RAW_BUCKET=${LOADTEST_ANTICHEAT_RAW_BUCKET:?LOADTEST_ANTICHEAT_RAW_BUCKET is required}
 
   # Override celery-test: real async worker with concurrency
   celery-test:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.loadtest
-      - OBJECT_STORAGE_ENDPOINT_URL=http://minio-test:9000
-      - OBJECT_STORAGE_ACCESS_KEY=minioadmin
-      - OBJECT_STORAGE_SECRET_KEY=minioadmin
-      - OBJECT_STORAGE_REGION=us-east-1
-      - ANTICHEAT_RAW_BUCKET=anticheat-raw
+      - OBJECT_STORAGE_ENDPOINT_URL=${LOADTEST_OBJECT_STORAGE_ENDPOINT_URL:?LOADTEST_OBJECT_STORAGE_ENDPOINT_URL is required}
+      - OBJECT_STORAGE_ACCESS_KEY=${LOADTEST_OBJECT_STORAGE_ACCESS_KEY:?LOADTEST_OBJECT_STORAGE_ACCESS_KEY is required}
+      - OBJECT_STORAGE_SECRET_KEY=${LOADTEST_OBJECT_STORAGE_SECRET_KEY:?LOADTEST_OBJECT_STORAGE_SECRET_KEY is required}
+      - OBJECT_STORAGE_REGION=${LOADTEST_OBJECT_STORAGE_REGION:-auto}
+      - ANTICHEAT_RAW_BUCKET=${LOADTEST_ANTICHEAT_RAW_BUCKET:?LOADTEST_ANTICHEAT_RAW_BUCKET is required}
     command: celery -A config worker -l info -Q celery,default,high_priority --concurrency=4
-    depends_on:
-      minio-test:
-        condition: service_started
 
   # ---- New services ----
-
-  minio-test:
-    image: minio/minio:latest
-    container_name: oj_minio_test
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-      MINIO_PROMETHEUS_AUTH_TYPE: public
-    ports:
-      - "9002:9000"   # API (not conflicting with dev MinIO 9000)
-      - "9003:9001"   # Console
-    networks:
-      - test-network
-
-  # Create the anticheat bucket on startup
-  minio-init:
-    image: minio/mc:latest
-    container_name: oj_minio_init
-    depends_on:
-      minio-test:
-        condition: service_started
-    entrypoint: >
-      sh -c "
-        sleep 3 &&
-        mc alias set local http://minio-test:9000 minioadmin minioadmin &&
-        mc mb --ignore-existing local/anticheat-raw &&
-        mc mb --ignore-existing local/markdown-images &&
-        mc anonymous set download local/anticheat-raw &&
-        echo 'MinIO bucket ready'
-      "
-    networks:
-      - test-network
 
   celery-beat-test:
     image: oj_backend_test_img

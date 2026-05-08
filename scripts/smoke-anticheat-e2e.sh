@@ -30,10 +30,6 @@ load_env_file() {
 
 load_env_file "$ENV_FILE"
 
-MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}"
-MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-minioadmin}"
-ANTICHEAT_RAW_BUCKET="${ANTICHEAT_RAW_BUCKET:-anticheat-raw}"
-
 log() {
   printf '[smoke] %s\n' "$1"
 }
@@ -52,49 +48,13 @@ assert_running() {
   fi
 }
 
-log "Running MinIO init script"
-ENV_FILE="$ENV_FILE" "$PROJECT_ROOT/scripts/minio/run-init.sh" "$COMPOSE_FILE"
-
 log "Checking required services"
-for svc in backend minio celery; do
+for svc in backend celery; do
   assert_running "$svc"
 done
 
-minio_cid="$(dc ps -q minio)"
-if [[ -z "$minio_cid" ]]; then
-  log "unable to resolve minio container id"
-  exit 1
-fi
-
-network_name="$(docker inspect "$minio_cid" --format '{{range $k, $_ := .NetworkSettings.Networks}}{{println $k}}{{end}}' | head -n1)"
-if [[ -z "$network_name" ]]; then
-  log "unable to resolve minio docker network"
-  exit 1
-fi
-
-buckets_output="$(mktemp)"
-lifecycle_output="$(mktemp)"
-trap 'rm -f "$buckets_output" "$lifecycle_output"' EXIT
-
-log "Checking MinIO buckets"
-docker run --rm --network "$network_name" \
-  --entrypoint /bin/sh \
-  -e MINIO_ROOT_USER="$MINIO_ROOT_USER" \
-  -e MINIO_ROOT_PASSWORD="$MINIO_ROOT_PASSWORD" \
-  minio/mc -c 'mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && mc ls local' >"$buckets_output"
-
-grep -q "${ANTICHEAT_RAW_BUCKET}/" "$buckets_output"
-
-log "Checking MinIO lifecycle policies"
-docker run --rm --network "$network_name" \
-  --entrypoint /bin/sh \
-  -e MINIO_ROOT_USER="$MINIO_ROOT_USER" \
-  -e MINIO_ROOT_PASSWORD="$MINIO_ROOT_PASSWORD" \
-  -e ANTICHEAT_RAW_BUCKET="$ANTICHEAT_RAW_BUCKET" \
-  minio/mc -c 'mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && mc ilm export "local/$ANTICHEAT_RAW_BUCKET"' >"$lifecycle_output"
-
-grep -q '"Days":3' "$lifecycle_output"
-grep -q '"cleanup"' "$lifecycle_output"
+log "Running Django healthcheck"
+dc exec -T backend python manage.py healthcheck --json
 
 log "Running Django anti-cheat API smoke scenario"
 dc exec -T backend python manage.py shell <<'PY'

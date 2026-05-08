@@ -66,6 +66,8 @@ EVENT_PRIORITY: dict[str, int] = {
     'concurrent_login_detected': 3,
     'heartbeat': 3,
     'manual_proctor_note': 3,
+    'attendance_check_in': 3,
+    'attendance_check_out': 3,
 }
 
 EVENT_CATEGORY: dict[int, str] = {

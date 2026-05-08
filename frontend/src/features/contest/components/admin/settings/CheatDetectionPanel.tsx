@@ -1,4 +1,4 @@
-import { Toggle, NumberInput } from "@carbon/react";
+import { Toggle } from "@carbon/react";
 import {
   Section,
   ActionRow,
@@ -266,35 +266,6 @@ export default function CheatDetectionPanel({
                       : t("common:disabled", "未啟用")}
                   </span>
                 </FieldRow>
-
-                <ActionRow
-                  label={t("settings.anticheat.screenShareRecoveryGrace", "螢幕分享恢復時限")}
-                  description={t(
-                    "settings.anticheat.screenShareRecoveryGraceDesc",
-                    "螢幕分享中斷後，學生可重新分享的寬限秒數；runtime 會依後端儲存值執行。"
-                  )}
-                  saveState={getState("screenShareRecoveryGraceMs")}
-                  onRetry={() => onRetry("screenShareRecoveryGraceMs")}
-                >
-                  <NumberInput
-                    id="settings-screen-share-recovery-grace-seconds"
-                    label=""
-                    hideLabel
-                    min={1}
-                    max={300}
-                    value={Math.max(
-                      1,
-                      Math.round(((form.screenShareRecoveryGraceMs as number) ?? 30_000) / 1000),
-                    )}
-                    onChange={(_event, { value }) =>
-                      onChange(
-                        "screenShareRecoveryGraceMs",
-                        Math.max(1, Number(value || 30)) * 1000,
-                      )
-                    }
-                    style={{ maxWidth: 140 }}
-                  />
-                </ActionRow>
               </div>
             )}
           </div>

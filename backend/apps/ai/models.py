@@ -373,7 +373,7 @@ class AIArtifact(models.Model):
     filename = models.CharField(max_length=255)
     object_key = models.CharField(
         max_length=512,
-        help_text="MinIO 物件 key：ai-artifacts/{session_id}/{step}/{filename}",
+        help_text="Object storage 物件 key：ai-artifacts/{session_id}/{step}/{filename}",
     )
     content_type = models.CharField(max_length=100, default="application/octet-stream")
     size_bytes = models.PositiveIntegerField(default=0)

@@ -9,7 +9,7 @@ import StudentContestDashboard from "@/features/contest/components/studentDashbo
 
 interface ContestDashboardOutletContext {
   refreshContest?: () => Promise<void>;
-  onJoin?: (data?: { password?: string }) => void;
+  onJoin?: () => void;
   onStartExam?: () => void;
   onEndExam?: () => void;
   onGoToAnswering?: () => void;

@@ -68,7 +68,7 @@ reject_env_placeholder() {
   local value
   value="$(get_env_value "$key")"
   case "$value" in
-    change-me*|replace-*|replace_with*|REPLACE_*|example|example-*|dev-*|test-*)
+    change-me*|*change-me*|replace-*|*replace-*|replace_with*|*replace_with*|REPLACE_*|*REPLACE_*|example|example-*|*example*|dev-*|test-*|*"<"*|*">"*)
       echo ".env key ${key} still contains a placeholder value" >&2
       exit 1
       ;;
@@ -117,41 +117,31 @@ reject_env_placeholder "SECRET_KEY"
 reject_env_placeholder "AI_SERVICE_INTERNAL_TOKEN"
 reject_env_placeholder "TUNNEL_TOKEN"
 reject_env_placeholder "GLITCHTIP_SECRET_KEY"
+reject_env_placeholder "OBJECT_STORAGE_ENDPOINT_URL"
 reject_env_values "DB_PASSWORD" "postgres" "password"
 reject_env_values "GRAFANA_PASSWORD" "admin" "password"
 
+for key in \
+  OBJECT_STORAGE_PUBLIC_ENDPOINT_URL \
+  OBJECT_STORAGE_REGION \
+  OBJECT_STORAGE_ACCESS_KEY \
+  OBJECT_STORAGE_SECRET_KEY \
+  ANTICHEAT_RAW_BUCKET \
+  MARKDOWN_IMAGE_S3_BUCKET \
+  MARKDOWN_IMAGE_PUBLIC_BASE_URL \
+  AI_ARTIFACT_S3_BUCKET
+do
+  require_env_key "$key"
+  reject_env_placeholder "$key"
+done
+
 object_storage_endpoint="$(get_env_value "OBJECT_STORAGE_ENDPOINT_URL")"
 case "$object_storage_endpoint" in
-  http://minio:*|http://minio/*)
-    local_object_storage=1
-    ;;
-  *)
-    local_object_storage=0
+  http://*)
+    echo ".env key OBJECT_STORAGE_ENDPOINT_URL must use HTTPS in production" >&2
+    exit 1
     ;;
 esac
-
-if [ "$local_object_storage" = "1" ]; then
-  require_env_key "MINIO_ROOT_USER"
-  require_env_key "MINIO_ROOT_PASSWORD"
-  require_env_key "MINIO_API_CORS_ALLOW_ORIGIN"
-  reject_env_values "MINIO_ROOT_USER" "minioadmin" "admin"
-  reject_env_values "MINIO_ROOT_PASSWORD" "minioadmin" "password"
-else
-  for key in \
-    OBJECT_STORAGE_PUBLIC_ENDPOINT_URL \
-    OBJECT_STORAGE_REGION \
-    OBJECT_STORAGE_ACCESS_KEY \
-    OBJECT_STORAGE_SECRET_KEY \
-    ANTICHEAT_RAW_BUCKET \
-    MARKDOWN_IMAGE_S3_BUCKET \
-    MARKDOWN_IMAGE_PUBLIC_BASE_URL \
-    AI_ARTIFACT_S3_BUCKET
-  do
-    require_env_key "$key"
-  done
-  reject_env_placeholder "OBJECT_STORAGE_ACCESS_KEY"
-  reject_env_placeholder "OBJECT_STORAGE_SECRET_KEY"
-fi
 
 # ── deploy ─────────────────────────────────────────────────────
 
@@ -177,18 +167,6 @@ docker compose "${COMPOSE_FILES[@]}" build
 
 echo "[deploy] start services"
 docker compose "${COMPOSE_FILES[@]}" up -d --remove-orphans
-
-skip_minio_init="$(get_env_value "SKIP_MINIO_INIT" || true)"
-if [[ "$skip_minio_init" == "1" || "$local_object_storage" == "0" ]]; then
-  echo "[deploy] skip MinIO bucket initialization (external object storage configured)"
-else
-  echo "[deploy] initialize local MinIO anti-cheat bucket/policy"
-  if [ ! -x "./scripts/minio/run-init.sh" ]; then
-    echo "[deploy] scripts/minio/run-init.sh not found or not executable" >&2
-    exit 1
-  fi
-  ENV_FILE="${DEPLOY_PATH}/.env" ./scripts/minio/run-init.sh docker-compose.yml
-fi
 
 echo "[deploy] prune old images"
 docker image prune -f

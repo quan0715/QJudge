@@ -23,6 +23,7 @@ import {
   WarningAlt,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router";
 
 import type {
   ContestAnnouncement,
@@ -50,6 +51,7 @@ import {
   type ExamAnswerDetail,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import { MobileActionFooter } from "@/shared/ui/MobileActionFooter";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { formatDate } from "@/shared/utils/format";
 import { useInterval } from "@/shared/hooks/useInterval";
@@ -75,9 +77,11 @@ import {
 } from "./studentDashboardState";
 import styles from "./StudentContestDashboard.module.scss";
 
+const ATTENDANCE_READY_STATUSES = new Set(["photo_confirmed", "teacher_assisted"]);
+
 interface StudentContestDashboardProps {
   contest: ContestDetail;
-  onJoin?: (data?: { password?: string }) => void;
+  onJoin?: () => void;
   onStartExam?: () => void;
   onEndExam?: () => void;
   onGoToAnswering?: () => void;
@@ -182,6 +186,8 @@ export default function StudentContestDashboard({
 }: StudentContestDashboardProps) {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
+  const navigate = useNavigate();
+  const { classroomId } = useParams();
   const { theme } = useTheme();
   const tr = useCallback(
     (
@@ -223,8 +229,6 @@ export default function StudentContestDashboard({
 
   const phase = resolveStudentContestPhase(contest, nowMs);
   const participant = isParticipant(contest);
-  const requiresPassword =
-    contest.requiresPassword ?? contest.visibility === "private";
   const contestState = getContestState({
     status: contest.status,
     startTime: contest.startTime,
@@ -406,12 +410,19 @@ export default function StudentContestDashboard({
         )
       : 0;
 
-  const canRegister = contest.status === "published" && contestState !== "ended";
+  const attendanceRequired = !!(
+    contest.attendanceStatus?.attendanceRequired || contest.attendanceCheckEnabled
+  );
+  const canRegister =
+    !attendanceRequired &&
+    contest.status === "published" &&
+    contestState !== "ended";
   const canStartExam =
     participant &&
     contest.status === "published" &&
     phase === "during" &&
-    examStatus === "not_started";
+    examStatus === "not_started" &&
+    (contest.attendanceStatus?.canStartExam ?? true);
   const canResumeExam = participant && examStatus === "paused";
   const canGoToAnswering = participant && examStatus === "in_progress";
   const canSubmitExam = participant && examStatus === "in_progress";
@@ -421,6 +432,16 @@ export default function StudentContestDashboard({
     contestState !== "ended" &&
     examStatus === "submitted" &&
     contest.allowMultipleJoins;
+  const canOpenAttendanceScanner = !!(
+    contest.attendanceStatus?.canCheckOut ||
+    contest.attendanceStatus?.canCheckIn
+  );
+  const checkInCompleted = ATTENDANCE_READY_STATUSES.has(
+    contest.attendanceStatus?.checkInStatus ?? "",
+  );
+  const checkOutCompleted = ATTENDANCE_READY_STATUSES.has(
+    contest.attendanceStatus?.checkOutStatus ?? "",
+  );
   const scoreDisplay = contest.resultsPublished
     ? progressSummary.totalScore === null
       ? t("studentDashboard.results.published", "成績已發布")
@@ -490,9 +511,9 @@ export default function StudentContestDashboard({
     [chartTheme, scoreSummary?.score_distribution],
   );
 
-  const handleRegisterSubmit = (data: { password?: string }) => {
+  const handleRegisterSubmit = () => {
     setShowRegisterModal(false);
-    onJoin?.(data);
+    onJoin?.();
   };
 
   const handleDownloadReport = async () => {
@@ -508,8 +529,45 @@ export default function StudentContestDashboard({
     }
   };
 
-  const renderPrimaryAction = () => {
+  const renderAttendanceAction = () => {
+    if (!canOpenAttendanceScanner || !classroomId) {
+      return null;
+    }
+
+    const attendancePurpose = contest.attendanceStatus?.canCheckOut ? "check_out" : "check_in";
+    const attendanceActionLabel = contest.attendanceStatus?.canCheckOut
+      ? checkOutCompleted
+        ? t("studentDashboard.attendance.recheckOut", "重新簽退")
+        : t("studentDashboard.attendance.checkOut", "前往簽退")
+      : checkInCompleted
+        ? t("studentDashboard.attendance.recheckIn", "重新簽到")
+        : t("studentDashboard.attendance.checkIn", "前往簽到");
+    const attendanceCompleted = contest.attendanceStatus?.canCheckOut
+      ? checkOutCompleted
+      : checkInCompleted;
+
+    return (
+      <Button
+        kind={
+          attendanceCompleted || examStatus === "submitted"
+            ? "secondary"
+            : "primary"
+        }
+        renderIcon={Login}
+        onClick={() => navigate(
+          `/classrooms/${classroomId}/contest/${contest.id}/attendance/scan?purpose=${attendancePurpose}`,
+        )}
+      >
+        {attendanceActionLabel}
+      </Button>
+    );
+  };
+
+  const renderEntryAction = () => {
     if (!participant && phase !== "after") {
+      if (attendanceRequired) {
+        return null;
+      }
       return (
         <Button
           renderIcon={Login}
@@ -539,28 +597,30 @@ export default function StudentContestDashboard({
       );
     }
     if (examStatus === "submitted") {
-      return (
-        <>
-          <Button
-            kind="tertiary"
-            renderIcon={Document}
-            onClick={() => setShowReportModal(true)}
-          >
-            {reportDownloadLabel}
-          </Button>
-          {canRestartSubmittedExam ? (
-            <Button renderIcon={Play} onClick={onStartExam}>
-              {t("studentDashboard.actions.rejoin", "重新加入")}
-            </Button>
-          ) : null}
-        </>
-      );
+      return canRestartSubmittedExam ? (
+        <Button renderIcon={Play} onClick={onStartExam}>
+          {t("studentDashboard.actions.rejoin", "重新加入")}
+        </Button>
+      ) : null;
     }
     return (
       <Button kind="secondary" disabled renderIcon={Time}>
         {phase === "before"
           ? t("studentDashboard.actions.waitingStart", "等待開始")
           : t("studentDashboard.actions.unavailable", "不可作答")}
+      </Button>
+    );
+  };
+
+  const renderReportAction = () => {
+    if (examStatus !== "submitted") return null;
+    return (
+      <Button
+        kind="tertiary"
+        renderIcon={Document}
+        onClick={() => setShowReportModal(true)}
+      >
+        {reportDownloadLabel}
       </Button>
     );
   };
@@ -915,14 +975,14 @@ export default function StudentContestDashboard({
                     titleAs="h3"
                     title={t("studentDashboard.rules.title", "規則說明")}
                     description={
-                      requiresPassword
+                      contest.attendanceCheckEnabled
                         ? t(
-                            "studentDashboard.rules.requiresPassword",
-                            "此競賽需要密碼。",
+                            "studentDashboard.rules.attendanceRequired",
+                            "本考試需要完成 QR 簽到後才能開始作答。",
                           )
                         : t(
-                            "studentDashboard.rules.noPassword",
-                            "此競賽不需要密碼。",
+                            "studentDashboard.rules.defaultDescription",
+                            "請依照教師公告與考試規則完成作答。",
                           )
                     }
                     actions={
@@ -1066,7 +1126,11 @@ export default function StudentContestDashboard({
 
           <DashboardBlock>
             <div className={styles.actionStack}>
-              {renderPrimaryAction()}
+              <div className={styles.actionStackPrimary}>
+                {renderEntryAction()}
+                {renderAttendanceAction()}
+              </div>
+              {renderReportAction()}
               {canSubmitExam ? (
                 <Button
                   kind="danger--tertiary"
@@ -1085,6 +1149,11 @@ export default function StudentContestDashboard({
           </DashboardBlock>
         </DashboardContainer>
       </DashboardContainer>
+
+      <MobileActionFooter>
+        {renderAttendanceAction()}
+        {renderEntryAction()}
+      </MobileActionFooter>
 
       <ContestRegistrationModal
         open={showRegisterModal}

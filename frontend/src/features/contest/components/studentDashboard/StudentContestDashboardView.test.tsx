@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChangeEventHandler, ReactNode } from "react";
 import type {
@@ -37,6 +38,7 @@ vi.mock("@carbon/react", () => ({
       {children}
     </button>
   ),
+  ButtonSet: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   InlineNotification: ({
     title,
     subtitle,
@@ -121,6 +123,10 @@ vi.mock("@carbon/icons-react", () => {
     WarningAlt: Icon,
   };
 });
+
+vi.mock("@/shared/ui/MobileActionFooter", () => ({
+  MobileActionFooter: () => null,
+}));
 
 vi.mock("@/shared/ui/markdown/MarkdownRenderer", () => ({
   default: ({ children }: { children: string }) => <div>{children}</div>,
@@ -236,9 +242,25 @@ const renderDashboard = (
   contest: ContestDetail,
 ) =>
   render(
-    <StudentContestDashboard
-      contest={contest}
-    />,
+    <MemoryRouter>
+      <StudentContestDashboard
+        contest={contest}
+      />
+    </MemoryRouter>,
+  );
+
+const renderDashboardAtContestRoute = (
+  contest: ContestDetail,
+) =>
+  render(
+    <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1"]}>
+      <Routes>
+        <Route
+          path="/classrooms/:classroomId/contest/:contestId"
+          element={<StudentContestDashboard contest={contest} />}
+        />
+      </Routes>
+    </MemoryRouter>,
   );
 
 describe("StudentContestDashboard", () => {
@@ -316,6 +338,75 @@ describe("StudentContestDashboard", () => {
     expect(screen.getByText("100%")).toBeInTheDocument();
     expect(screen.queryByText("已完成")).not.toBeInTheDocument();
     expect(screen.queryByText("已嘗試")).not.toBeInTheDocument();
+  });
+
+  it("keeps repeat check-in available after attendance is confirmed before exam start", () => {
+    renderDashboardAtContestRoute(
+      createContest({
+        startTime: "2000-05-05T10:00:00.000Z",
+        endTime: "2099-05-05T12:00:00.000Z",
+        examStatus: "not_started",
+        attendanceCheckEnabled: true,
+        attendanceStatus: {
+          attendanceRequired: true,
+          checkInStatus: "photo_confirmed",
+          checkOutStatus: "unavailable",
+          canCheckIn: true,
+          canStartExam: true,
+          canCheckOut: false,
+        },
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: /開始作答/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /重新簽到/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /前往簽到/ })).not.toBeInTheDocument();
+  });
+
+  it("uses attendance check-in instead of manual join when attendance is required", () => {
+    renderDashboardAtContestRoute(
+      createContest({
+        hasJoined: false,
+        isRegistered: false,
+        attendanceCheckEnabled: true,
+        attendanceStatus: {
+          attendanceRequired: true,
+          checkInStatus: "missing",
+          checkOutStatus: "unavailable",
+          canCheckIn: true,
+          canStartExam: false,
+          canCheckOut: false,
+        },
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: /前往簽到/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
+  });
+
+  it("shows repeat check-out label after check-out is confirmed", () => {
+    renderDashboardAtContestRoute(
+      createContest({
+        startTime: "2000-05-05T10:00:00.000Z",
+        endTime: "2099-05-05T12:00:00.000Z",
+        examStatus: "submitted",
+        allowMultipleJoins: true,
+        attendanceCheckEnabled: true,
+        attendanceStatus: {
+          attendanceRequired: true,
+          checkInStatus: "photo_confirmed",
+          checkOutStatus: "photo_confirmed",
+          canCheckIn: false,
+          canStartExam: true,
+          canCheckOut: true,
+        },
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: /重新簽退/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /下載作答證明/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /重新加入/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /前往簽退/ })).not.toBeInTheDocument();
   });
 
   it("renders in-exam paper progress from autosaved answers", async () => {

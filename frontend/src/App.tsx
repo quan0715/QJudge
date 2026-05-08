@@ -34,6 +34,8 @@ import {
   classroomContestRouteChildren,
   ContestWorkspaceLayout,
   classroomContestAdminRoute,
+  classroomContestAttendanceProjectionRoute,
+  classroomContestAttendanceScanRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,
   classroomPracticeRoute,
@@ -175,6 +177,7 @@ function App() {
 
                             {/* Classroom Exam Precheck - Classroom-scoped */}
                             {classroomExamPrecheckRoute}
+                            {classroomContestAttendanceScanRoute}
                           </Route>
 
                         </Route>
@@ -207,6 +210,7 @@ function App() {
                             </Route>
 
                             {/* Classroom Exam Preview - Classroom-scoped */}
+                            {classroomContestAttendanceProjectionRoute}
                             {classroomExamPreviewRoute}
 
                             {/* Classroom Practice - Classroom-scoped */}

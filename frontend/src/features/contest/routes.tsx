@@ -7,6 +7,8 @@ import ContestSolveScreen from "./screens/ContestSolveScreen";
 import ContestPracticeScreen from "./screens/ContestPracticeScreen";
 
 const AdminDashboardScreen = lazy(() => import("./screens/admin/AdminDashboardScreen"));
+const AttendanceProjectionScreen = lazy(() => import("./screens/admin/attendance/AttendanceProjectionScreen"));
+const StudentAttendanceScanScreen = lazy(() => import("./screens/attendance/StudentAttendanceScanScreen"));
 const StudentExamDemoScreen = lazy(() => import("./screens/examDemo/StudentExamDemoScreen"));
 const ExamPrecheckScreen = lazy(() => import("./screens/paperExam/ExamPrecheckScreen"));
 
@@ -46,6 +48,24 @@ export const classroomContestAdminRoute = (
   <Route
     path="/classrooms/:classroomId/contest/:contestId/admin"
     element={<Suspense fallback={null}><AdminDashboardScreen /></Suspense>}
+  />
+);
+
+export const classroomContestAttendanceProjectionRoute = (
+  <Route
+    path="/classrooms/:classroomId/contest/:contestId/admin/attendance/projection"
+    element={
+      <ContestProvider>
+        <Suspense fallback={null}><AttendanceProjectionScreen /></Suspense>
+      </ContestProvider>
+    }
+  />
+);
+
+export const classroomContestAttendanceScanRoute = (
+  <Route
+    path="/classrooms/:classroomId/contest/:contestId/attendance/scan"
+    element={<Suspense fallback={null}><StudentAttendanceScanScreen /></Suspense>}
   />
 );
 

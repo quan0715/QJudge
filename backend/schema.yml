@@ -5920,7 +5920,7 @@ components:
         object_key:
           type: string
           readOnly: true
-          description: MinIO 物件 key：ai-artifacts/{session_id}/{step}/{filename}
+          description: Object storage 物件 key：ai-artifacts/{session_id}/{step}/{filename}
         content_type:
           type: string
           readOnly: true

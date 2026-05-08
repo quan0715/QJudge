@@ -1,0 +1,67 @@
+@use "@carbon/layout";
+
+.shell {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
+  overflow: hidden;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) 3rem;
+  align-items: center;
+  padding: env(safe-area-inset-top, 0) layout.$spacing-04 0;
+  min-height: 3.5rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.backButton {
+  justify-self: start;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--cds-text-primary);
+  letter-spacing: 0;
+}
+
+.headerSpacer {
+  width: 3rem;
+  height: 100%;
+}
+
+.content {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  padding: layout.$spacing-05;
+  overflow: hidden;
+}
+
+.footer {
+  display: block;
+  background: var(--cds-layer-01);
+}
+
+.footer :global(.cds--btn-set) {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0;
+  width: 100%;
+}
+
+.footer :global(.cds--btn-set .cds--btn) {
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  min-height: 5rem;
+  max-height: 6rem;
+}

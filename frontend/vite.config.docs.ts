@@ -3,7 +3,47 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import fs from "fs";
 
-// Plugin to rename docs.html to index.html after build
+const docsPublicUrl = "https://docs.q-judge.com";
+const mainAppUrl = "https://q-judge.com";
+
+function getSitemapLastModified(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function docsSeoFiles(): Plugin {
+  return {
+    name: "docs-seo-files",
+    closeBundle() {
+      const outDir = path.resolve(__dirname, "dist-docs");
+      const lastModified = getSitemapLastModified();
+      fs.writeFileSync(
+        path.join(outDir, "robots.txt"),
+        [
+          "User-agent: *",
+          "Allow: /",
+          `Sitemap: ${docsPublicUrl}/sitemap.xml`,
+          "",
+        ].join("\n"),
+      );
+      fs.writeFileSync(
+        path.join(outDir, "sitemap.xml"),
+        [
+          '<?xml version="1.0" encoding="UTF-8"?>',
+          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+          "  <url>",
+          `    <loc>${docsPublicUrl}/</loc>`,
+          `    <lastmod>${lastModified}</lastmod>`,
+          "    <changefreq>weekly</changefreq>",
+          "    <priority>1.0</priority>",
+          "  </url>",
+          "</urlset>",
+          "",
+        ].join("\n"),
+      );
+    },
+  };
+}
+
 function renameDocsToIndex(): Plugin {
   return {
     name: "rename-docs-to-index",
@@ -18,15 +58,26 @@ function renameDocsToIndex(): Plugin {
   };
 }
 
-// Vite config for standalone documentation build (GitHub Pages)
+function copyDocsWorker(): Plugin {
+  return {
+    name: "copy-docs-worker",
+    closeBundle() {
+      fs.copyFileSync(
+        path.resolve(__dirname, "pages/docs-worker.js"),
+        path.resolve(__dirname, "dist-docs/_worker.js"),
+      );
+      console.log("✓ Copied docs Pages Function");
+    },
+  };
+}
+
+// Vite config for standalone documentation build (Cloudflare Pages)
 export default defineConfig({
-  plugins: [react(), renameDocsToIndex()],
-  base: "/QJudge/", // GitHub repo name for GitHub Pages
+  plugins: [react(), docsSeoFiles(), renameDocsToIndex(), copyDocsWorker()],
+  base: "/",
   define: {
-    // Main app URL for "Go to Dashboard" button
-    "import.meta.env.VITE_MAIN_APP_URL": JSON.stringify(
-      "https://q-judge.quan.wtf"
-    ),
+    "import.meta.env.VITE_DOCS_PUBLIC_URL": JSON.stringify(docsPublicUrl),
+    "import.meta.env.VITE_MAIN_APP_URL": JSON.stringify(mainAppUrl),
   },
   build: {
     outDir: "dist-docs",

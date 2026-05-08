@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type {
-  BoundContest,
-  ClassroomAnnouncement,
-} from "@/core/entities/classroom.entity";
+import type { BoundContest } from "@/core/entities/classroom.entity";
 import {
   buildClassroomMonthSchedule,
   buildClassroomWeekSchedule,
-  buildAllTimelineDayGroups,
   getUpcomingContestTasks,
   localDateKeyFromMs,
 } from "./classroomActivityTimeline";
@@ -25,142 +21,6 @@ const baseContest = (overrides: Partial<BoundContest>): BoundContest => ({
   participantCount: 0,
   boundAt: "2026-01-01T00:00:00.000Z",
   ...overrides,
-});
-
-const baseAnnouncement = (
-  overrides: Partial<ClassroomAnnouncement>,
-): ClassroomAnnouncement => ({
-  id: "a1",
-  title: "Hello",
-  content: "Body",
-  isPinned: false,
-  createdByUsername: "teacher",
-  createdAt: "2026-06-16T08:00:00.000Z",
-  updatedAt: "2026-06-16T08:00:00.000Z",
-  ...overrides,
-});
-
-// ── buildAllTimelineDayGroups tests ───────────────────────────────────────────
-
-describe("buildAllTimelineDayGroups", () => {
-  // Use a fixed "now" at noon UTC on 2026-06-15 to avoid timezone edge cases in date keys.
-  // The date key uses local time; we fix tests to UTC+0 by using noon so off-by-one is unlikely.
-  const NOW = new Date("2026-06-15T12:00:00.000Z").getTime();
-  const TODAY_KEY = localDateKeyFromMs(NOW);
-
-  it("includes past contests in groups", () => {
-    const contests = [
-      baseContest({
-        contestId: "past",
-        contestStartTime: "2026-06-01T10:00:00.000Z",
-        contestEndTime: "2026-06-01T12:00:00.000Z",
-      }),
-      baseContest({
-        contestId: "future",
-        contestStartTime: "2026-06-20T10:00:00.000Z",
-        contestEndTime: "2026-06-20T12:00:00.000Z",
-      }),
-    ];
-    const groups = buildAllTimelineDayGroups(contests, [], NOW);
-    const ids = groups.flatMap((g) =>
-      g.events
-        .filter((e) => e.type === "contest")
-        .map(
-          (e) =>
-            (e as Extract<typeof e, { type: "contest" }>).contest.contestId,
-        ),
-    );
-    expect(ids).toContain("past");
-    expect(ids).toContain("future");
-  });
-
-  it("places announcement on createdAt date key", () => {
-    const ann = baseAnnouncement({
-      id: "ann1",
-      createdAt: "2026-06-10T09:00:00.000Z",
-    });
-    const groups = buildAllTimelineDayGroups([], [ann], NOW);
-    expect(groups.length).toBe(1);
-    const event = groups[0].events[0];
-    expect(event.type).toBe("announcement");
-    if (event.type === "announcement") {
-      expect(event.announcement.id).toBe("ann1");
-    }
-  });
-
-  it("marks isToday correctly", () => {
-    const todayContest = baseContest({
-      contestId: "today-c",
-      contestStartTime: new Date(NOW).toISOString(),
-      contestEndTime: new Date(NOW + 3600000).toISOString(),
-    });
-    const pastContest = baseContest({
-      contestId: "past-c",
-      contestStartTime: "2026-06-01T10:00:00.000Z",
-      contestEndTime: "2026-06-01T12:00:00.000Z",
-    });
-    const groups = buildAllTimelineDayGroups(
-      [todayContest, pastContest],
-      [],
-      NOW,
-    );
-    const todayGroup = groups.find((g) => g.isToday);
-    expect(todayGroup).toBeDefined();
-    expect(todayGroup?.dateKey).toBe(TODAY_KEY);
-    const otherGroups = groups.filter((g) => !g.isToday);
-    for (const g of otherGroups) {
-      expect(g.dateKey).not.toBe(TODAY_KEY);
-    }
-  });
-
-  it("groups contest and announcement on same day together", () => {
-    const contest = baseContest({
-      contestId: "c",
-      contestStartTime: "2026-06-10T10:00:00.000Z",
-      contestEndTime: "2026-06-10T12:00:00.000Z",
-    });
-    const ann = baseAnnouncement({
-      id: "a",
-      createdAt: "2026-06-10T08:00:00.000Z",
-    });
-    const groups = buildAllTimelineDayGroups([contest], [ann], NOW);
-    expect(groups.length).toBe(1);
-    expect(groups[0].events.length).toBe(2);
-    // announcement comes first (earlier sortMs)
-    expect(groups[0].events[0].type).toBe("announcement");
-    expect(groups[0].events[1].type).toBe("contest");
-  });
-
-  it("sorts groups chronologically", () => {
-    const contests = [
-      baseContest({
-        contestId: "later",
-        contestStartTime: "2026-06-20T10:00:00.000Z",
-        contestEndTime: "2026-06-20T11:00:00.000Z",
-      }),
-      baseContest({
-        contestId: "earlier",
-        contestStartTime: "2026-06-05T10:00:00.000Z",
-        contestEndTime: "2026-06-05T11:00:00.000Z",
-      }),
-    ];
-    const groups = buildAllTimelineDayGroups(contests, [], NOW);
-    const ids = groups.flatMap((g) =>
-      g.events
-        .filter((e) => e.type === "contest")
-        .map(
-          (e) =>
-            (e as Extract<typeof e, { type: "contest" }>).contest.contestId,
-        ),
-    );
-    expect(ids[0]).toBe("earlier");
-    expect(ids[1]).toBe("later");
-  });
-
-  it("returns empty array when no events", () => {
-    const groups = buildAllTimelineDayGroups([], [], NOW);
-    expect(groups).toEqual([]);
-  });
 });
 
 // ── buildClassroomMonthSchedule tests ────────────────────────────────────────

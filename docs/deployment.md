@@ -38,7 +38,8 @@ Production runs the application on one Docker Compose host:
 - `redis`: Celery broker, result backend, cache, and channel layer.
 - `celery`, `celery-high`, `celery-beat`: background workers and schedules.
 - `judge-image`: verifies the judge runtime image exists before workers start.
-- `minio`: local S3-compatible fallback, not the preferred production store.
+- External S3-compatible object storage: anti-cheat evidence, markdown images,
+  and AI artifacts.
 - `cloudflared`: Cloudflare Tunnel ingress.
 - `glitchtip` and `glitchtip-worker`: error tracking.
 - `docker-compose.monitoring.yml`: Prometheus, Grafana, and exporters overlay.
@@ -65,7 +66,7 @@ Development uses the same core services with hot reload:
 - `backend` on `http://localhost:8000`
 - `ai-service` on `http://localhost:8001`
 - `qjudge-mcp` on `http://localhost:9002/mcp`
-- `postgres`, `pgbouncer`, `redis`, `minio`, `celery`, `celery-beat`
+- `postgres`, `pgbouncer`, `redis`, `celery`, `celery-beat`
 
 `cloudflared` is behind the optional `tunnel` profile:
 
@@ -111,9 +112,9 @@ placeholder values. Required groups:
 | Frontend billing | `RECUR_PUBLISHABLE_KEY` |
 | Tunnel / MCP | `TUNNEL_TOKEN`, `MCP_PUBLIC_URL`, `OAUTH_ISSUER_URL` |
 | Operations | `GLITCHTIP_SECRET_KEY`, `GRAFANA_PASSWORD` |
-| Object storage | `OBJECT_STORAGE_ENDPOINT_URL` plus either external storage credentials or local MinIO keys |
+| Object storage | `OBJECT_STORAGE_ENDPOINT_URL`, browser-facing endpoint, credentials, and active buckets |
 
-For external S3-compatible storage, including Cloudflare R2, also set:
+For S3-compatible object storage, including Cloudflare R2, also set:
 
 ```bash
 OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=
@@ -126,16 +127,7 @@ MARKDOWN_IMAGE_PUBLIC_BASE_URL=https://q-judge.com
 AI_ARTIFACT_S3_BUCKET=
 ```
 
-For local MinIO production fallback, also set non-default values:
-
-```bash
-MINIO_ROOT_USER=
-MINIO_ROOT_PASSWORD=
-MINIO_API_CORS_ALLOW_ORIGIN=https://q-judge.com
-```
-
-The backend only reads `OBJECT_STORAGE_*` for S3-compatible access. `MINIO_*`
-exists for the local MinIO service and initialization scripts.
+The backend and workers read `OBJECT_STORAGE_*` for all object storage access.
 
 ## Production Deploy Flow
 
@@ -152,8 +144,7 @@ The deploy script:
 2. Checks out the requested git ref.
 3. Pulls or builds the judge image as `oj-judge:latest`.
 4. Builds and starts `docker-compose.yml` plus `docker-compose.monitoring.yml`.
-5. Initializes local MinIO only when `OBJECT_STORAGE_ENDPOINT_URL` points to the compose MinIO service and `SKIP_MINIO_INIT` is not `1`.
-6. Runs web and Grafana smoke checks.
+5. Runs web and Grafana smoke checks.
 
 ## Verification
 

@@ -4,6 +4,7 @@ import type {
   ContestAnticheatConfig,
   ContestDetail,
   ContestOverviewMetrics,
+  AttendancePhotoPolicy,
   ContestStatus,
   ContestVisibility,
   ScoreboardData,
@@ -33,9 +34,9 @@ export interface IContestRepository {
   toggleStatus(id: string): Promise<{ status: string }>;
   registerContest(
     id: string,
-    data?: { password?: string }
+    data?: Record<string, never>
   ): Promise<void>;
-  enterContest(id: string, data?: { password?: string }): Promise<void>;
+  enterContest(id: string, data?: Record<string, never>): Promise<void>;
   archiveContest(id: string): Promise<void>;
 
   // Scoreboard
@@ -192,8 +193,8 @@ export interface ContestUpdatePayload {
   resultsPublished?: boolean;
   countsTowardGrade?: boolean;
   visibility?: ContestVisibility;
-  requiresPassword?: boolean;
-  password?: string;
+  attendanceCheckEnabled?: boolean;
+  attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   warningTimeoutSeconds?: number;

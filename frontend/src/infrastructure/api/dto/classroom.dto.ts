@@ -38,7 +38,7 @@ export interface ClassroomLabSummaryDto {
   description?: string;
   status: "draft" | "published" | "archived";
   visibility: "public" | "private";
-  requires_password?: boolean;
+  attendance_check_enabled?: boolean;
   contest_type: "coding" | "paper_exam";
   delivery_mode: "practice" | "exam";
   start_time: string;
@@ -62,7 +62,7 @@ export interface BoundContestDto {
   contest_description: string;
   contest_status: "draft" | "published" | "archived";
   contest_visibility: "public" | "private";
-  requires_password?: boolean;
+  attendance_check_enabled?: boolean;
   contest_type: "coding" | "paper_exam";
   delivery_mode: "practice" | "exam";
   contest_start_time: string;

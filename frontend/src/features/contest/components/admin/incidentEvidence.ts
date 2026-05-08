@@ -6,6 +6,7 @@ export type IncidentEvidenceSource = EvidenceSourceModule;
 export const INCIDENT_EVIDENCE_SOURCE_LABELS: Record<IncidentEvidenceSource, string> = {
   screen_share: "Screen",
   webcam: "Webcam",
+  attendance: "Attendance",
 };
 
 const DEFAULT_WINDOW_MS = 20_000;
@@ -13,7 +14,7 @@ const DEFAULT_PREVIEW_LIMIT = 12;
 const MAX_PREVIEW_LIMIT = 50;
 
 export const isIncidentEvidenceSource = (value: unknown): value is IncidentEvidenceSource =>
-  value === "screen_share" || value === "webcam";
+  value === "screen_share" || value === "webcam" || value === "attendance";
 
 export const getIncidentEvidenceModuleResults = (
   meta: Record<string, unknown>,
@@ -71,6 +72,7 @@ export const getIncidentEvidenceModules = (
   objectKeys.forEach((key) => {
     if (key.includes("/screen_share/")) modules.add("screen_share");
     if (key.includes("/webcam/")) modules.add("webcam");
+    if (key.includes("/attendance/")) modules.add("attendance");
   });
   if (isIncidentEvidenceSource(meta.evidence_source_module))
     modules.add(meta.evidence_source_module);
@@ -120,6 +122,25 @@ export const getIncidentEvidencePreviewLimit = (
   );
 };
 
+export const shouldFetchIncidentScreenshots = (incident: EventFeedItem): boolean => {
+  return incident.evidenceCount > 0 || isAttendanceEvidenceIncident(incident);
+};
+
+export const isAttendanceEvidenceIncident = (incident: EventFeedItem): boolean => {
+  const metadata = incident.metadata ?? {};
+  const objectKeys = getIncidentEvidenceObjectKeys(metadata);
+  const modules = getIncidentEvidenceModules(metadata, objectKeys);
+  const evidenceClusterId =
+    typeof metadata.evidence_cluster_id === "string"
+      ? metadata.evidence_cluster_id
+      : "";
+  return (
+    incident.eventType.startsWith("attendance_") ||
+    (modules.length > 0 && modules.every((module) => module === "attendance")) ||
+    evidenceClusterId.startsWith("attendance-")
+  );
+};
+
 export interface IncidentScreenshotQueryParams {
   user_id: string;
   ts_from?: number;
@@ -144,6 +165,7 @@ export const buildIncidentScreenshotQuery = (
   const metadata = incident.metadata ?? {};
   const objectKeys = getIncidentEvidenceObjectKeys(metadata);
   const modules = getIncidentEvidenceModules(metadata, objectKeys);
+  const isAttendanceEvidence = isAttendanceEvidenceIncident(incident);
   const sessionId =
     typeof metadata.upload_session_id === "string" ? metadata.upload_session_id : "";
   const evidenceClusterId =
@@ -190,10 +212,13 @@ export const buildIncidentScreenshotQuery = (
   );
   const params: IncidentScreenshotQueryParams = {
     user_id: options.userId,
-    ts_from: tsFrom,
-    ts_to: tsTo,
     limit: previewLimit,
   };
+
+  if (!isAttendanceEvidence) {
+    params.ts_from = tsFrom;
+    params.ts_to = tsTo;
+  }
 
   if (!isAggregatedIncident) {
     params.event_id = evidenceEventId || undefined;
@@ -203,6 +228,8 @@ export const buildIncidentScreenshotQuery = (
       modules.length === 1 && objectKeys.length === 0 ? modules[0] : undefined;
     params.object_keys =
       objectKeys.length > 0 ? objectKeys.slice(0, previewLimit) : undefined;
+  } else if (isAttendanceEvidence) {
+    params.source_module = "attendance";
   }
 
   return params;

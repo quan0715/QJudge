@@ -20,6 +20,8 @@ import { ContestSettingsModal } from "@/features/contest/components/admin/settin
 const isValidDate = (date: Date | null | undefined): date is Date =>
   !!date && !Number.isNaN(date.getTime());
 
+const SCREEN_SHARE_RECOVERY_GRACE_MS = 30_000;
+
 const parseDate = (dateStr: string | null | undefined): Date | null => {
   if (!dateStr) return null;
   const date = new Date(dateStr);
@@ -241,13 +243,13 @@ const ContestSettingsOverlay = ({ open, onClose }: ContestSettingsOverlayProps) 
       startTime: contest.startTime || "",
       endTime: contest.endTime || "",
       status: contest.status || "draft",
-      requiresPassword: contest.requiresPassword ?? (contest.visibility === "private"),
       visibility: contest.visibility || "public",
-      password: contest.password || "",
+      attendanceCheckEnabled: contest.attendanceCheckEnabled ?? false,
+      attendancePhotoPolicy: contest.attendancePhotoPolicy ?? "room",
       cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
       anticheatDevicePolicy: sanitizeAnticheatPolicy(contest.anticheatDevicePolicy),
       warningTimeoutSeconds: contest.warningTimeoutSeconds ?? 20,
-      screenShareRecoveryGraceMs: contest.screenShareRecoveryGraceMs ?? 30_000,
+      screenShareRecoveryGraceMs: SCREEN_SHARE_RECOVERY_GRACE_MS,
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
       maxCheatWarnings: contest.maxCheatWarnings ?? 0,

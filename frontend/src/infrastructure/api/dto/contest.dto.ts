@@ -54,10 +54,10 @@ export interface ContestDto {
   end_time?: string;
   status?: ContestStatus;
   visibility?: ContestVisibility;
-  requires_password?: boolean;
+  attendance_check_enabled?: boolean;
+  attendance_photo_policy?: "room" | "room_and_selfie";
   delivery_mode?: ContestDeliveryMode;
   counts_toward_grade?: boolean;
-  password?: string;
   has_joined?: boolean;
   is_registered?: boolean;
   current_user_role?: UserRole;
@@ -131,6 +131,16 @@ export interface ContestDetailDto extends ContestDto {
   is_exam_monitored?: boolean;
   requires_fullscreen?: boolean;
   can_submit_exam?: boolean;
+  attendance_status?: {
+    attendanceRequired?: boolean;
+    photoPolicy?: "room" | "room_and_selfie";
+    requiredPhotoKinds?: Array<"room" | "selfie">;
+    checkInStatus?: string;
+    checkOutStatus?: string;
+    canCheckIn?: boolean;
+    canStartExam?: boolean;
+    canCheckOut?: boolean;
+  };
   permissions?: {
     can_switch_view?: boolean;
     can_edit_contest?: boolean;

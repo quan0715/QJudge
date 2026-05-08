@@ -1,0 +1,427 @@
+.page {
+  --projection-label-size: 0.875rem;
+  --projection-body-size: 0.9375rem;
+  --projection-countdown-size: clamp(4.25rem, 5.4vw, 6rem);
+  --projection-code-size: clamp(2rem, 2.6vw, 2.625rem);
+
+  height: 100vh;
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
+  display: grid;
+  grid-template-rows: 3rem 1fr;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3rem;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.backButton {
+  color: var(--cds-text-secondary);
+}
+
+.backButton:hover {
+  color: var(--cds-text-primary);
+}
+
+.navTitle {
+  min-width: 0;
+  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--projection-label-size);
+  line-height: 1.25;
+  font-weight: 300;
+}
+
+.navTitle span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navTitle span {
+  color: var(--cds-text-secondary);
+}
+
+.navTitle strong {
+  flex: 0 0 auto;
+  font-weight: 400;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.leftPanel {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  padding: clamp(2rem, 4vw, 5rem);
+  border-right: 1px solid var(--cds-border-subtle);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.statusBlock {
+  width: min(100%, 54rem);
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: clamp(2.5rem, 7vh, 5rem);
+  text-align: left;
+}
+
+.blockLabel {
+  color: var(--cds-text-secondary);
+  font-size: var(--projection-label-size);
+  font-weight: 300;
+  margin-bottom: 0.75rem;
+}
+
+.title {
+  font-size: var(--projection-countdown-size);
+  line-height: 1.05;
+  margin: 0;
+  font-weight: 300;
+}
+
+.examTitleGroup,
+.countdownGroup,
+.progressGroup {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  justify-items: start;
+}
+
+.countdown {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--projection-countdown-size);
+  line-height: 1;
+  font-weight: 300;
+}
+
+.progressHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--cds-text-secondary);
+  font-size: var(--projection-label-size);
+  font-weight: 300;
+}
+
+.progressScale {
+  width: 100%;
+  display: grid;
+  gap: 1rem;
+}
+
+.progressTrack {
+  position: relative;
+  width: 100%;
+  height: 0.125rem;
+  background: var(--cds-layer-accent);
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  background: var(--cds-link-primary);
+  transition: width 320ms ease;
+}
+
+.progressDot {
+  position: absolute;
+  top: 50%;
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+}
+
+.progressDot[data-position="start"] {
+  left: 0;
+  background: var(--cds-link-primary);
+}
+
+.progressDot[data-position="current"] {
+  background: var(--cds-layer);
+  border-color: var(--cds-link-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cds-link-primary) 24%, transparent);
+}
+
+.progressDot[data-position="end"] {
+  left: 100%;
+}
+
+.progressMarkers {
+  position: relative;
+  width: 100%;
+  min-height: 2.5rem;
+  color: var(--cds-text-secondary);
+  font-size: var(--projection-label-size);
+  font-weight: 300;
+}
+
+.progressMarker {
+  position: absolute;
+  top: 0;
+  display: grid;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.progressMarker span {
+  color: var(--cds-text-helper);
+}
+
+.progressMarker strong {
+  color: var(--cds-text-secondary);
+  font-weight: 300;
+}
+
+.progressMarker[data-position="start"] {
+  left: 0;
+}
+
+.progressMarker[data-position="current"] {
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.progressMarker[data-position="current"] span,
+.progressMarker[data-position="current"] strong {
+  color: var(--cds-link-primary);
+}
+
+.progressMarker[data-position="end"] {
+  right: 0;
+  text-align: right;
+}
+
+.qrGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.qrPanel {
+  padding: clamp(2rem, 4vw, 4rem);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.qrPanel + .qrPanel {
+  border-left: 1px solid var(--cds-border-subtle);
+}
+
+.qrBox {
+  padding: 0.75rem;
+  border: 1px solid var(--cds-border-subtle);
+  width: min(100%, 28rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.qrBox svg {
+  width: min(100%, 25rem);
+  height: auto;
+}
+
+.manualCodeBlock {
+  width: min(100%, 28rem);
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.manualCodeBlock span {
+  color: var(--cds-text-secondary);
+  font-size: var(--projection-label-size);
+  font-weight: 300;
+}
+
+.manualCodeBlock strong {
+  font-size: var(--projection-code-size);
+  line-height: 1;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+
+.qrGuide {
+  width: min(100%, 28rem);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--cds-border-subtle);
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.qrGuideItem {
+  min-width: 0;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0 0.75rem;
+  color: var(--cds-text-secondary);
+  border-right: 1px solid var(--cds-border-subtle);
+  font-size: var(--projection-label-size);
+  font-weight: 300;
+}
+
+.qrGuideItem:last-child {
+  border-right: 0;
+}
+
+.qrGuideItem span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qrPlaceholder {
+  color: var(--cds-text-secondary);
+}
+
+.modeSwitch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--cds-text-secondary);
+  font-size: var(--projection-label-size);
+  font-weight: 300;
+}
+
+.modeSwitchItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modeSwitchItem span {
+  color: var(--cds-text-secondary);
+  font-weight: 300;
+}
+
+.modeButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cds-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font: inherit;
+  font-weight: 300;
+  cursor: pointer;
+}
+
+.modeButton:hover {
+  color: var(--cds-text-primary);
+  font-weight: 400;
+}
+
+.modeButton[data-active="true"] {
+  color: var(--cds-text-primary);
+  font-weight: 400;
+}
+
+.modeButton:focus-visible {
+  outline: 2px solid var(--cds-focus);
+  outline-offset: 3px;
+}
+
+.panelError {
+  color: var(--cds-text-helper);
+  font-size: var(--projection-label-size);
+  font-weight: 300;
+}
+
+@media (max-width: 900px) {
+  .page {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .body {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .header {
+    align-items: stretch;
+    display: grid;
+    height: auto;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .headerLeft {
+    min-width: 0;
+  }
+
+  .headerRight {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .leftPanel {
+    padding: 2rem;
+    border-right: 0;
+    overflow: visible;
+  }
+
+  .qrGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .qrGrid,
+  .qrPanel + .qrPanel {
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+
+  .page {
+    --projection-countdown-size: 3.5rem;
+    --projection-code-size: 2.25rem;
+  }
+}

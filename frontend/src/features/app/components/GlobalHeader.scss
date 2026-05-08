@@ -3,9 +3,12 @@
   z-index: 9000;
 }
 
-/* Hide header navigation on mobile */
+/* Hide non-essential header items on mobile — keep menu icon + user avatar only */
 @media screen and (max-width: 768px) {
-  .cds--header__nav {
+  .cds--header__nav,
+  .header-brand,
+  .header-page-actions,
+  .header-action--desktop-only {
     display: none;
   }
 }

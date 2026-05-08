@@ -213,7 +213,7 @@ def _validate_evidence_object_head(client, object_key: str):
 class ExamEvidenceMixin:
     """Mixin for manifest-backed evidence lookup and upload intent APIs."""
 
-    def _validate_evidence_participant(self, request, contest: Contest):
+    def _validate_evidence_participant(self, request, contest: Contest, source_module: str | None = None):
         participant, error_response = validate_exam_operation_for_view(
             contest,
             request.user,
@@ -224,13 +224,19 @@ class ExamEvidenceMixin:
             return None, error_response
         if participant is None:
             return None, Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
-        allowed_statuses = set(self.MONITORED_STATUSES) | {ExamStatus.SUBMITTED}
+        requested_source_module = normalize_source_module(
+            source_module if source_module is not None else request.data.get("source_module")
+        )
+        if requested_source_module == ExamEvidenceFrame.SourceModule.ATTENDANCE:
+            allowed_statuses = {ExamStatus.NOT_STARTED, ExamStatus.SUBMITTED}
+        else:
+            allowed_statuses = set(self.MONITORED_STATUSES) | {ExamStatus.SUBMITTED}
         if participant.exam_status not in allowed_statuses:
             return None, Response(
                 {"error": f"Evidence upload is not accepted in current state: {participant.exam_status}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if participant.exam_status in self.MONITORED_STATUSES:
+        if requested_source_module != ExamEvidenceFrame.SourceModule.ATTENDANCE and participant.exam_status in self.MONITORED_STATUSES:
             conflict_response = self._ensure_active_device_session(contest, participant, request)
             if conflict_response:
                 return None, conflict_response
@@ -391,9 +397,6 @@ class ExamEvidenceMixin:
     )
     def evidence_upload_confirm(self, request, contest_pk=None):
         contest = get_object_or_404(Contest, id=contest_pk)
-        participant, error_response = self._validate_evidence_participant(request, contest)
-        if error_response is not None:
-            return error_response
 
         serializer = EvidenceUploadConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -412,6 +415,18 @@ class ExamEvidenceMixin:
                 status=ExamEvidenceFrame.Status.ISSUED,
             )
         }
+        row_source_modules = {row.source_module for row in rows.values()}
+        if len(row_source_modules) > 1:
+            return Response(
+                {"error": "confirm frames must use one source_module"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        source_module = next(iter(row_source_modules), None)
+
+        participant, error_response = self._validate_evidence_participant(request, contest, source_module=source_module)
+        if error_response is not None:
+            return error_response
+
         if len(rows) != len(set(ids)):
             return Response(
                 {"error": "confirm can only target issued frames for the same contest/user"},

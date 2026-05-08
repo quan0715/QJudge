@@ -3,7 +3,6 @@ import {
   Modal,
   TextInput,
   InlineNotification,
-  PasswordInput,
   Toggle,
 } from "@carbon/react";
 import { Code, Education } from "@carbon/icons-react";
@@ -33,8 +32,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
   const [name, setName] = useState("");
   const [examModeEnabled, setExamModeEnabled] = useState(true);
   const [allowMultipleJoins, setAllowMultipleJoins] = useState(false);
-  const [requiresPassword, setRequiresPassword] = useState(false);
-  const [password, setPassword] = useState("");
+  const [attendanceCheckEnabled, setAttendanceCheckEnabled] = useState(false);
   const [creationType, setCreationType] = useState<ContestCreationType | null>(null);
   const [step, setStep] = useState<CreateContestStep>("select_type");
   const [loading, setLoading] = useState(false);
@@ -44,8 +42,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
     setName("");
     setExamModeEnabled(true);
     setAllowMultipleJoins(false);
-    setRequiresPassword(false);
-    setPassword("");
+    setAttendanceCheckEnabled(false);
     setCreationType(null);
     setStep("select_type");
     setError("");
@@ -56,16 +53,10 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
     onClose();
   };
 
-  const hasValidAdvanced = !requiresPassword || !!password.trim();
-  const canCreate = !!creationType && !!name.trim() && hasValidAdvanced;
+  const canCreate = !!creationType && !!name.trim();
 
   const handleSubmit = async () => {
     if (!creationType || !name.trim()) return;
-
-    if (requiresPassword && !password.trim()) {
-      setError(t("createModal.validation.passwordRequired"));
-      return;
-    }
 
     setLoading(true);
     setError("");
@@ -75,8 +66,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
         name,
         description: "",
         contest_type: creationType === "exam" ? "paper_exam" : "coding",
-        requires_password: requiresPassword,
-        password: requiresPassword ? password : undefined,
+        attendance_check_enabled: attendanceCheckEnabled,
         cheat_detection_enabled: creationType === "exam" ? examModeEnabled : false,
         allow_multiple_joins: allowMultipleJoins,
         results_published: false,
@@ -320,37 +310,27 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
             <div className={styles.questionCard}>
               <div className={styles.questionHeader}>
                 <div className={styles.questionCopy}>
-                  <div className={styles.questionTitle} id="contest-password-toggle-label">
-                    {t("createModal.passwordTitle", "要求競賽密碼")}
+                  <div className={styles.questionTitle} id="contest-attendance-toggle-label">
+                    {t("createModal.attendanceTitle", "QR 簽到簽退")}
                   </div>
                   <div className={styles.questionHint}>
-                    {t("createModal.passwordHint", "啟用後，學生在加入或進入競賽時需輸入密碼。")}
+                    {t(
+                      "createModal.attendanceHint",
+                      "啟用後，學生需在競賽主頁完成 QR 簽到後才能開始考試。",
+                    )}
                   </div>
                 </div>
                 <Toggle
-                  id="contest-requires-password"
-                  aria-labelledby="contest-password-toggle-label"
+                  id="contest-attendance-check"
+                  aria-labelledby="contest-attendance-toggle-label"
                   labelText=""
                   hideLabel
-                  toggled={requiresPassword}
-                  onToggle={(checked: boolean) => setRequiresPassword(checked)}
+                  toggled={attendanceCheckEnabled}
+                  onToggle={(checked: boolean) => setAttendanceCheckEnabled(checked)}
                   labelA=""
                   labelB=""
                 />
               </div>
-              {requiresPassword && (
-                <PasswordInput
-                  id="contest-password"
-                  labelText={t("createModal.passwordInputLabel", "競賽密碼")}
-                  placeholder={t("createModal.passwordInputPlaceholder", "請輸入競賽密碼")}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className={styles.passwordInput}
-                  showPasswordLabel={t("createModal.showPassword", "顯示密碼")}
-                  hidePasswordLabel={t("createModal.hidePassword", "隱藏密碼")}
-                />
-              )}
             </div>
           </div>
         )}

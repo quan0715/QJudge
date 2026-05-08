@@ -73,7 +73,7 @@ describe("contest mapper", () => {
   });
 
   describe("anti-cheat recovery grace mapping", () => {
-    it("maps contest detail screen share recovery grace from backend dto", () => {
+    it("keeps contest detail screen share recovery grace fixed at 30 seconds", () => {
       const result = mapContestDetailDto({
         id: "contest-1",
         name: "Exam",
@@ -88,15 +88,15 @@ describe("contest mapper", () => {
         exam_questions_count: 0,
       });
 
-      expect(result.screenShareRecoveryGraceMs).toBe(45000);
+      expect(result.screenShareRecoveryGraceMs).toBe(30000);
     });
 
-    it("maps contest update payload screen share recovery grace to backend dto", () => {
+    it("coerces contest update screen share recovery grace to 30 seconds", () => {
       const dto = mapContestUpdateRequestToDto({
         screenShareRecoveryGraceMs: 45000,
       });
 
-      expect(dto.screen_share_recovery_grace_ms).toBe(45000);
+      expect(dto.screen_share_recovery_grace_ms).toBe(30000);
     });
 
     it("maps anticheat config contest/effective screen share recovery grace", () => {
@@ -164,8 +164,8 @@ describe("contest mapper", () => {
         },
       });
 
-      expect(result.contestSettings.screenShareRecoveryGraceMs).toBe(45000);
-      expect(result.effective.screenShareRecoveryGraceMs).toBe(45000);
+      expect(result.contestSettings.screenShareRecoveryGraceMs).toBe(30000);
+      expect(result.effective.screenShareRecoveryGraceMs).toBe(30000);
     });
   });
 });
