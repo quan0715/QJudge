@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 
 type BarcodeDetectorLike = {
@@ -16,6 +16,10 @@ type Options = {
   active: boolean;
   onDetected: (raw: string) => void;
 };
+type JsQrDecodeTarget = {
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D | null;
+};
 
 async function createNativeQrDetector(): Promise<BarcodeDetectorLike | null> {
   const ctor = (window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }).BarcodeDetector;
@@ -31,24 +35,26 @@ async function createNativeQrDetector(): Promise<BarcodeDetectorLike | null> {
   }
 }
 
-function decodeFromVideoFrame(video: HTMLVideoElement): string {
+function decodeFromVideoFrame(
+  video: HTMLVideoElement,
+  target: JsQrDecodeTarget,
+): string {
   if (!video.videoWidth || !video.videoHeight) return "";
   const maxWidth = 720;
   const scale = Math.min(1, maxWidth / video.videoWidth);
   const width = Math.max(1, Math.floor(video.videoWidth * scale));
   const height = Math.max(1, Math.floor(video.videoHeight * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return "";
-  ctx.drawImage(video, 0, 0, width, height);
-  const imageData = ctx.getImageData(0, 0, width, height);
+  if (target.canvas.width !== width) target.canvas.width = width;
+  if (target.canvas.height !== height) target.canvas.height = height;
+  if (!target.context) return "";
+  target.context.drawImage(video, 0, 0, width, height);
+  const imageData = target.context.getImageData(0, 0, width, height);
   return jsQR(imageData.data, width, height)?.data || "";
 }
 
 export function useQrScanner({ videoRef, active, onDetected }: Options): ScannerMode {
   const [mode, setMode] = useState<ScannerMode>("waiting");
+  const jsQrTargetRef = useRef<JsQrDecodeTarget | null>(null);
 
   useEffect(() => {
     if (!active) {
@@ -69,9 +75,18 @@ export function useQrScanner({ videoRef, active, onDetected }: Options): Scanner
     const tick = async () => {
       const video = videoRef.current;
       if (!video || video.readyState < 2) return;
+      if (!detector && !jsQrTargetRef.current) {
+        const canvas = document.createElement("canvas");
+        jsQrTargetRef.current = {
+          canvas,
+          context: canvas.getContext("2d", { willReadFrequently: true }),
+        };
+      }
       const raw = detector
         ? (await detector.detect(video).catch(() => []))?.[0]?.rawValue
-        : decodeFromVideoFrame(video);
+        : jsQrTargetRef.current
+          ? decodeFromVideoFrame(video, jsQrTargetRef.current)
+          : "";
       if (raw) {
         stopped = true;
         window.clearInterval(timer);

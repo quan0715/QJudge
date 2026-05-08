@@ -30,6 +30,33 @@ ATTENDANCE_PHOTO_KIND_BY_POLICY = {
     "room": ["room"],
     "room_and_selfie": ["room", "selfie"],
 }
+ATTENDANCE_ERROR_MESSAGES = {
+    "attendance_check_in_required": (
+        "Please complete attendance check-in before starting the exam."
+    ),
+    "attendance_credential_conflict": "Use either QR token or manual code, not both.",
+    "attendance_manual_code_generation_failed": (
+        "Failed to generate an attendance code. Please try again."
+    ),
+    "attendance_not_enabled": "Attendance check-in is not enabled for this contest.",
+    "attendance_teacher_permission_required": (
+        "You do not have permission to record attendance for this contest."
+    ),
+    "check_in_only_before_personal_start": "Check-in is only available before entering the exam.",
+    "checkout_not_available_until_submitted": "Check-out is only available after submitting the exam.",
+    "invalid_attendance_manual_code": "The attendance code is invalid or expired.",
+    "invalid_attendance_mode": "Invalid attendance mode.",
+    "invalid_attendance_purpose": "Invalid attendance purpose.",
+    "invalid_attendance_request": "Invalid attendance request.",
+    "invalid_attendance_token": "The attendance QR code is invalid or expired.",
+    "not_registered": "You are not registered for this contest.",
+    "participant_not_found": "Participant not found.",
+    "reason_required": "Reason is required.",
+    "token_forbidden_for_teacher_assisted": "QR token is not accepted for teacher-assisted attendance.",
+    "attendance_token_required": "Attendance token or manual code is required.",
+    "user_id_forbidden_for_self_scan": "User id is not accepted for student self scan.",
+    "user_id_required": "Participant user id is required.",
+}
 
 
 def _token_cache_key(token: str) -> str:
@@ -38,6 +65,21 @@ def _token_cache_key(token: str) -> str:
 
 def _manual_code_cache_key(code: str) -> str:
     return f"{ATTENDANCE_MANUAL_CODE_CACHE_PREFIX}:{code}"
+
+
+def normalize_attendance_error_code(error: ValueError) -> str:
+    code = str(error)
+    return code if code in ATTENDANCE_ERROR_MESSAGES else "invalid_attendance_request"
+
+
+def build_attendance_error_payload(code: str) -> dict[str, Any]:
+    safe_code = code if code in ATTENDANCE_ERROR_MESSAGES else "invalid_attendance_request"
+    return {
+        "code": safe_code,
+        "error": {
+            "message": ATTENDANCE_ERROR_MESSAGES[safe_code],
+        },
+    }
 
 
 def normalize_attendance_manual_code(value: str) -> str:
@@ -370,7 +412,8 @@ def build_participant_attendance_summary(contest: Contest, participant: ContestP
         metadata = event.metadata if isinstance(event.metadata, dict) else {}
         evidence_count = int(getattr(event, "uploaded_evidence_count", 0) or 0)
         mode = str(metadata.get("attendance_mode") or "")
-        if mode == "student_self_scan" and evidence_count == 0:
+        required_evidence_count = len(get_attendance_required_photo_kinds(contest))
+        if mode == "student_self_scan" and evidence_count < required_evidence_count:
             anomalies.add("missing_photo")
         serialized_events.append(
             {

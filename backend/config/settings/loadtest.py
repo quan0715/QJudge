@@ -4,8 +4,11 @@ Load test settings - inherits from test.py with key differences:
 - Rate limiting enabled
 - S3-compatible anticheat storage configured
 """
-from .test import *  # noqa: F401, F403
 import os
+
+from django.core.exceptions import ImproperlyConfigured
+
+from .test import *  # noqa: F401, F403
 
 # --- Celery: real async workers (test.py defaults to ALWAYS_EAGER) ---
 CELERY_TASK_ALWAYS_EAGER = False
@@ -37,5 +40,19 @@ OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = os.getenv(
 OBJECT_STORAGE_ACCESS_KEY = os.getenv("OBJECT_STORAGE_ACCESS_KEY", "")
 OBJECT_STORAGE_SECRET_KEY = os.getenv("OBJECT_STORAGE_SECRET_KEY", "")
 OBJECT_STORAGE_REGION = os.getenv("OBJECT_STORAGE_REGION", "auto")
+
+_REQUIRED_OBJECT_STORAGE_SETTINGS = {
+    "OBJECT_STORAGE_ENDPOINT_URL": OBJECT_STORAGE_ENDPOINT_URL,
+    "OBJECT_STORAGE_ACCESS_KEY": OBJECT_STORAGE_ACCESS_KEY,
+    "OBJECT_STORAGE_SECRET_KEY": OBJECT_STORAGE_SECRET_KEY,
+}
+_missing_object_storage_settings = [
+    name for name, value in _REQUIRED_OBJECT_STORAGE_SETTINGS.items() if not value
+]
+if _missing_object_storage_settings:
+    raise ImproperlyConfigured(
+        "Loadtest object storage settings are required: "
+        + ", ".join(_missing_object_storage_settings)
+    )
 
 ANTICHEAT_RAW_BUCKET = os.getenv("ANTICHEAT_RAW_BUCKET", "anticheat-raw")

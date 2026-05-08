@@ -48,6 +48,7 @@ export function ManualCodeContent({ purposeLabel, value, onChange, error }: Prop
     event: React.KeyboardEvent<HTMLInputElement>
   ) => {
     if (event.key === "Backspace") {
+      event.preventDefault();
       const current = sanitizeDigits(value);
       if (current[index]) {
         const next = current.slice(0, index) + current.slice(index + 1);
@@ -59,7 +60,6 @@ export function ManualCodeContent({ purposeLabel, value, onChange, error }: Prop
         onChange(next);
         inputsRef.current[index - 1]?.focus();
       }
-      event.preventDefault();
     } else if (event.key === "ArrowLeft" && index > 0) {
       inputsRef.current[index - 1]?.focus();
       event.preventDefault();

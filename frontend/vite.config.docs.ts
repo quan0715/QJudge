@@ -6,11 +6,16 @@ import fs from "fs";
 const docsPublicUrl = "https://docs.q-judge.com";
 const mainAppUrl = "https://q-judge.com";
 
+function getSitemapLastModified(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function docsSeoFiles(): Plugin {
   return {
     name: "docs-seo-files",
     closeBundle() {
       const outDir = path.resolve(__dirname, "dist-docs");
+      const lastModified = getSitemapLastModified();
       fs.writeFileSync(
         path.join(outDir, "robots.txt"),
         [
@@ -27,7 +32,7 @@ function docsSeoFiles(): Plugin {
           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
           "  <url>",
           `    <loc>${docsPublicUrl}/</loc>`,
-          "    <lastmod>2026-05-08</lastmod>",
+          `    <lastmod>${lastModified}</lastmod>`,
           "    <changefreq>weekly</changefreq>",
           "    <priority>1.0</priority>",
           "  </url>",

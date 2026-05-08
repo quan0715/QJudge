@@ -12,9 +12,11 @@ from ..services.attendance import (
     ATTENDANCE_EVENT_TYPES,
     ATTENDANCE_REFRESH_SECONDS,
     ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
+    build_attendance_error_payload,
     build_attendance_qr_value,
     create_attendance_credential,
     create_attendance_event,
+    normalize_attendance_error_code,
     reset_participant_attendance_records,
 )
 
@@ -71,10 +73,16 @@ class AttendanceMixin:
                 status=status.HTTP_403_FORBIDDEN,
             )
         if not contest.attendance_check_enabled:
-            return Response({"code": "attendance_not_enabled"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                build_attendance_error_payload("attendance_not_enabled"),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         purpose = request.query_params.get("purpose")
         if purpose not in ATTENDANCE_EVENT_TYPES:
-            return Response({"code": "invalid_attendance_purpose"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                build_attendance_error_payload("invalid_attendance_purpose"),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         credential = create_attendance_credential(contest, purpose)
         return Response(
@@ -100,7 +108,10 @@ class AttendanceMixin:
     def attendance_events(self, request, pk=None):
         contest: Contest = self.get_object()
         if not contest.attendance_check_enabled:
-            return Response({"code": "attendance_not_enabled"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                build_attendance_error_payload("attendance_not_enabled"),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         serializer = AttendanceEventSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -112,10 +123,16 @@ class AttendanceMixin:
                 ensure_participant=self._ensure_classroom_bound_participant,
             )
         except ValueError as exc:
-            code = str(exc)
+            code = normalize_attendance_error_code(exc)
             if code == "attendance_teacher_permission_required":
-                return Response({"code": code}, status=status.HTTP_403_FORBIDDEN)
-            return Response({"code": code}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    build_attendance_error_payload(code),
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            return Response(
+                build_attendance_error_payload(code),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         error_response = result.get("error_response")
         if error_response is not None:
@@ -126,7 +143,10 @@ class AttendanceMixin:
             "check_in_only_before_personal_start",
             "checkout_not_available_until_submitted",
         }:
-            return Response({"code": result["error_code"]}, status=status.HTTP_409_CONFLICT)
+            return Response(
+                build_attendance_error_payload(result["error_code"]),
+                status=status.HTTP_409_CONFLICT,
+            )
         return Response(result["payload"], status=status.HTTP_201_CREATED)
 
     @action(
@@ -151,5 +171,8 @@ class AttendanceMixin:
                 serializer.validated_data["user_id"],
             )
         except ValueError as exc:
-            return Response({"code": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                build_attendance_error_payload(normalize_attendance_error_code(exc)),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(result)

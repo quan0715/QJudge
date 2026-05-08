@@ -135,12 +135,13 @@ function useProjectionTokens(contestId: string | undefined, errorFallback: strin
           : errorFallback;
     });
 
-    setTokens((current) => ({ ...current, ...nextTokens }));
+    setTokens(nextTokens);
     setErrors(nextErrors);
   }, [contestId, errorFallback]);
 
   useEffect(() => {
-    void refresh();
+    const timer = window.setTimeout(() => void refresh(), 0);
+    return () => window.clearTimeout(timer);
   }, [refresh]);
 
   useEffect(() => {
@@ -387,7 +388,7 @@ export default function AttendanceProjectionScreen() {
           title={t("attendance.projection.unstableTitle", "QR 載入不穩定")}
           subtitle={t(
             "attendance.projection.unstableSubtitle",
-            "系統會自動保留上一組可用 QR code 並持續重新載入。",
+            "系統已暫停顯示失效 QR code，並會持續重新載入。",
           )}
           lowContrast
         />

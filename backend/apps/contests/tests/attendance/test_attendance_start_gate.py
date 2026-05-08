@@ -46,6 +46,10 @@ def test_start_exam_requires_confirmed_attendance_check_in() -> None:
 
     assert response.status_code == 403
     assert response.data["code"] == "attendance_check_in_required"
+    assert (
+        response.data["error"]["message"]
+        == "Please complete attendance check-in before starting the exam."
+    )
 
 
 @pytest.mark.django_db

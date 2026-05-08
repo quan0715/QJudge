@@ -7,7 +7,11 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamEvent, ExamEvidenceFrame, ExamStatus
-from apps.contests.services.attendance import build_attendance_status, create_attendance_token
+from apps.contests.services.attendance import (
+    build_attendance_status,
+    build_participant_attendance_summary,
+    create_attendance_token,
+)
 from apps.users.models import User
 
 
@@ -428,9 +432,11 @@ def test_room_and_selfie_policy_requires_two_attendance_photos() -> None:
     )
 
     status = build_attendance_status(contest, participant)
+    summary = build_participant_attendance_summary(contest, participant)
 
     assert status["checkInStatus"] == "event_created"
     assert status["canStartExam"] is False
+    assert "missing_photo" in summary["anomalies"]
 
     ExamEvidenceFrame.objects.create(
         contest=contest,
@@ -444,9 +450,11 @@ def test_room_and_selfie_policy_requires_two_attendance_photos() -> None:
     )
 
     status = build_attendance_status(contest, participant)
+    summary = build_participant_attendance_summary(contest, participant)
 
     assert status["checkInStatus"] == "photo_confirmed"
     assert status["canStartExam"] is True
+    assert "missing_photo" not in summary["anomalies"]
 
 
 @pytest.mark.django_db
