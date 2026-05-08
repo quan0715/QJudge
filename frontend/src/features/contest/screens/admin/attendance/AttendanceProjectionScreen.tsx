@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { Camera, ChevronLeft, FitToScreen, QrCode, SendAlt, ShrinkScreen } from "@carbon/icons-react";
+import {
+  Camera,
+  ChevronLeft,
+  FitToScreen,
+  Login,
+  Logout,
+  QrCode,
+  SendAlt,
+  ShrinkScreen,
+} from "@carbon/icons-react";
 import { QRCodeSVG } from "@rc-component/qrcode";
-import { Button, ContentSwitcher, InlineNotification, Switch } from "@carbon/react";
+import { Button, InlineNotification } from "@carbon/react";
 import { Link, useParams } from "react-router";
 
 import type { AttendancePurpose, ContestDetail } from "@/core/entities/contest.entity";
@@ -16,24 +25,20 @@ type ProjectionDisplayMode = AttendancePurpose;
 
 const ATTENDANCE_PURPOSES: AttendancePurpose[] = ["check_in", "check_out"];
 
-const PURPOSE_LABEL: Record<AttendancePurpose, string> = {
-  check_in: "簽到 QR",
-  check_out: "簽退 QR",
-};
+const DISPLAY_MODES = [
+  { value: "check_in", label: "簽到", icon: Login },
+  { value: "check_out", label: "簽退", icon: Logout },
+] satisfies Array<{ value: ProjectionDisplayMode; label: string; icon: typeof Login }>;
 
-const DISPLAY_MODES: Array<{ value: ProjectionDisplayMode; label: string }> = [
-  { value: "check_in", label: "簽到" },
-  { value: "check_out", label: "簽退" },
-];
-
-function formatDateTime(value: string | undefined): string {
+function formatDateTime(value: Date | number | string | undefined): string {
   if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
   return new Intl.DateTimeFormat("zh-TW", {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function formatDuration(milliseconds: number): string {
@@ -137,6 +142,7 @@ function ExamStatusBlock({ contest }: { contest: ContestDetail | null | undefine
   const now = useNow();
   const countdown = getCountdown(contest, now);
   const progress = getCountdownProgress(contest, now);
+  const shouldShowCurrentMarkerLabel = progress > 18 && progress < 82;
   return (
     <section className={styles.statusBlock}>
       <div className={styles.examTitleGroup}>
@@ -148,18 +154,42 @@ function ExamStatusBlock({ contest }: { contest: ContestDetail | null | undefine
         <div className={styles.countdown}>{countdown.value}</div>
       </div>
       <div className={styles.progressGroup}>
-        <div className={styles.progressTrack} aria-label={`考試進度 ${progress}%`}>
-          <span style={{ width: `${progress}%` }} />
+        <div className={styles.progressHeader}>
+          <span>考試進度</span>
+          <span>{countdown.tone}</span>
         </div>
-        <div className={styles.progressEndpoints}>
-          <span>
-            <i aria-hidden="true" />
-            {formatDateTime(contest?.startTime) || "--"}
-          </span>
-          <span>
-            {formatDateTime(contest?.endTime) || "--"}
-            <i aria-hidden="true" />
-          </span>
+        <div className={styles.progressScale} aria-label={`考試進度 ${progress}%`}>
+          <div className={styles.progressTrack}>
+            <span className={styles.progressFill} style={{ width: `${progress}%` }} />
+            <span className={styles.progressDot} data-position="start" aria-hidden="true" />
+            <span
+              className={styles.progressDot}
+              data-position="current"
+              style={{ left: `${progress}%` }}
+              aria-hidden="true"
+            />
+            <span className={styles.progressDot} data-position="end" aria-hidden="true" />
+          </div>
+          <div className={styles.progressMarkers}>
+            <span className={styles.progressMarker} data-position="start">
+              <span>開始</span>
+              <strong>{formatDateTime(contest?.startTime) || "--"}</strong>
+            </span>
+            {shouldShowCurrentMarkerLabel ? (
+              <span
+                className={styles.progressMarker}
+                data-position="current"
+                style={{ left: `${progress}%` }}
+              >
+                <span>現在</span>
+                <strong>{formatDateTime(now)}</strong>
+              </span>
+            ) : null}
+            <span className={styles.progressMarker} data-position="end">
+              <span>截止</span>
+              <strong>{formatDateTime(contest?.endTime) || "--"}</strong>
+            </span>
+          </div>
         </div>
       </div>
     </section>
@@ -230,8 +260,25 @@ export default function AttendanceProjectionScreen() {
     const error = errors[purpose];
     return (
       <section className={styles.qrPanel}>
-        <div className={styles.qrHeader}>
-          <div className={styles.purpose}>{PURPOSE_LABEL[purpose]}</div>
+        <div className={styles.modeSwitch} aria-label="切換簽到簽退 QR Code">
+          {DISPLAY_MODES.map((mode, index) => {
+            const Icon = mode.icon;
+            return (
+              <div className={styles.modeSwitchItem} key={mode.value}>
+                <button
+                  type="button"
+                  className={styles.modeButton}
+                  data-active={mode.value === displayMode}
+                  aria-pressed={mode.value === displayMode}
+                  onClick={() => setDisplayMode(mode.value)}
+                >
+                  <Icon size={16} />
+                  {mode.label}
+                </button>
+                {index < DISPLAY_MODES.length - 1 ? <span aria-hidden="true">/</span> : null}
+              </div>
+            );
+          })}
         </div>
         <div className={styles.qrBox}>
           {token ? (
@@ -248,7 +295,7 @@ export default function AttendanceProjectionScreen() {
         </div>
         <div className={styles.manualCodeBlock}>
           <span>相機無法使用時輸入代碼</span>
-          <strong>{token?.manualCode || "---- ----"}</strong>
+          <strong>{token?.manualCode || "------"}</strong>
         </div>
         <CheckInGuideBlock />
         {error ? <div className={styles.panelError}>正在重新載入 QR code</div> : null}
@@ -269,6 +316,13 @@ export default function AttendanceProjectionScreen() {
             iconDescription="回管理介面"
             renderIcon={ChevronLeft}
           />
+          <div className={styles.navTitle}>
+            <span>{contest?.name || "Exam"}</span>
+            <span>/</span>
+            <strong>考試簽到簽退</strong>
+          </div>
+        </div>
+        <div className={styles.headerRight}>
           <Button
             kind="ghost"
             hasIconOnly
@@ -277,27 +331,6 @@ export default function AttendanceProjectionScreen() {
             renderIcon={fullscreenActive ? ShrinkScreen : FitToScreen}
             onClick={handleFullscreenToggle}
           />
-          <div className={styles.navTitle}>
-            <span>{contest?.name || "Exam"}</span>
-            <span>/</span>
-            <strong>考試簽到簽退</strong>
-          </div>
-        </div>
-        <div className={styles.headerRight}>
-          <ContentSwitcher
-            selectedIndex={DISPLAY_MODES.findIndex((mode) => mode.value === displayMode)}
-            size="md"
-            onChange={(event) => {
-              const nextMode = typeof event.index === "number"
-                ? DISPLAY_MODES[event.index]?.value
-                : undefined;
-              if (nextMode) setDisplayMode(nextMode);
-            }}
-          >
-            {DISPLAY_MODES.map((mode) => (
-              <Switch key={mode.value} name={mode.value} text={mode.label} />
-            ))}
-          </ContentSwitcher>
         </div>
       </header>
       {errorMessages.length > 0 ? (
