@@ -634,7 +634,7 @@ export default function StudentAttendanceScanScreen() {
   }, [allPhotosCaptured, contestId, photoBlobs, photoRequirements, scan]);
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-carbon-theme="g100">
       <section className={styles.cameraStage} data-step={activeStep}>
         <div className={styles.topBar}>
           <Button
@@ -694,23 +694,28 @@ export default function StudentAttendanceScanScreen() {
             ) : null}
 
             {activeStep === "scan" && !scanValidating && !(manualMode || cameraState === "unavailable") ? (
-              <div className={styles.scanActions}>
-                <span className={styles.statusChip}>{statusLabel}</span>
-                <Button kind="primary" renderIcon={QrCode} disabled>
-                  正在掃描
-                </Button>
-                <Button
-                  kind="ghost"
-                  className={styles.manualToggle}
-                  onClick={handleUseManualCode}
-                >
-                  手動輸入代碼
-                </Button>
+              <div className={styles.actionFooter}>
+                <div className={styles.secondaryActions}>
+                  <Button
+                    kind="ghost"
+                    className={styles.manualToggle}
+                    onClick={handleUseManualCode}
+                  >
+                    手動輸入代碼
+                  </Button>
+                </div>
+                <div className={styles.primaryActions}>
+                  <span className={styles.statusChip}>{statusLabel}</span>
+                  <Button kind="primary" renderIcon={QrCode} disabled>
+                    正在掃描
+                  </Button>
+                </div>
               </div>
             ) : null}
 
             {activeStep === "scan" && scanValidating ? (
-              <div className={styles.scanActions}>
+              <div className={styles.actionFooter}>
+                <div />
                 <span className={styles.statusChip}>{statusLabel}</span>
               </div>
             ) : null}
@@ -734,19 +739,23 @@ export default function StudentAttendanceScanScreen() {
                   placeholder="ABCD-2345"
                   onChange={(event) => handleManualCodeChange(event.target.value)}
                 />
-                <div className={styles.manualActions}>
-                  <Button type="submit">下一步</Button>
-                  {cameraState !== "unavailable" ? (
-                    <Button kind="ghost" type="button" onClick={handleRescan}>
-                      返回掃描
-                    </Button>
-                  ) : null}
+                <div className={styles.actionFooter}>
+                  <div className={styles.secondaryActions}>
+                    {cameraState !== "unavailable" ? (
+                      <Button kind="ghost" type="button" onClick={handleRescan}>
+                        返回掃描
+                      </Button>
+                    ) : null}
+                  </div>
+                  <div className={styles.primaryActions}>
+                    <Button type="submit">下一步</Button>
+                  </div>
                 </div>
               </form>
             ) : null}
 
             {activeStep === "photo" && state !== "submitting" ? (
-              <div className={styles.photoControls}>
+              <div className={styles.actionFooter}>
                 <span className={styles.statusChip}>{statusLabel}</span>
                 <button
                   type="button"
@@ -774,12 +783,16 @@ export default function StudentAttendanceScanScreen() {
               <figcaption>{reviewPhotoRequirement.label}</figcaption>
             </figure>
             <div className={styles.reviewActions}>
-              <Button kind="primary" onClick={handleAcceptPhoto}>
-                {nextPhoto ? "下一步" : "確認資訊"}
-              </Button>
-              <Button kind="secondary" renderIcon={Camera} onClick={handleRetake}>
-                重新拍攝
-              </Button>
+              <div className={styles.secondaryActions}>
+                <Button kind="secondary" renderIcon={Camera} onClick={handleRetake}>
+                  重新拍攝
+                </Button>
+              </div>
+              <div className={styles.primaryActions}>
+                <Button kind="primary" onClick={handleAcceptPhoto}>
+                  {nextPhoto ? "下一步" : "確認資訊"}
+                </Button>
+              </div>
             </div>
           </div>
         ) : null}
@@ -837,25 +850,34 @@ export default function StudentAttendanceScanScreen() {
             </section>
             <div className={styles.reviewActions}>
               {state === "done" ? (
-                <Button kind="primary" onClick={() => navigate(returnPath)}>
-                  返回競賽主頁
-                </Button>
+                <>
+                  <div />
+                  <div className={styles.primaryActions}>
+                    <Button kind="primary" onClick={() => navigate(returnPath)}>
+                      返回競賽主頁
+                    </Button>
+                  </div>
+                </>
               ) : (
                 <>
-                  <Button
-                    kind="primary"
-                    renderIcon={SendAlt}
-                    disabled={!allPhotosCaptured || state === "submitting"}
-                    onClick={handleSubmit}
-                  >
-                    {state === "submitting" ? "上傳中" : "確認並上傳"}
-                  </Button>
-                  <Button kind="secondary" renderIcon={Camera} disabled={state === "submitting"} onClick={handleRetake}>
-                    重新拍攝
-                  </Button>
-                  <Button kind="ghost" renderIcon={Renew} disabled={state === "submitting"} onClick={handleRescan}>
-                    重新掃描
-                  </Button>
+                  <div className={styles.secondaryActions}>
+                    <Button kind="secondary" renderIcon={Camera} disabled={state === "submitting"} onClick={handleRetake}>
+                      重新拍攝
+                    </Button>
+                    <Button kind="ghost" renderIcon={Renew} disabled={state === "submitting"} onClick={handleRescan}>
+                      重新掃描
+                    </Button>
+                  </div>
+                  <div className={styles.primaryActions}>
+                    <Button
+                      kind="primary"
+                      renderIcon={SendAlt}
+                      disabled={!allPhotosCaptured || state === "submitting"}
+                      onClick={handleSubmit}
+                    >
+                      {state === "submitting" ? "上傳中" : "確認並上傳"}
+                    </Button>
+                  </div>
                 </>
               )}
             </div>

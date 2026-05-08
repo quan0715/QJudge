@@ -257,7 +257,17 @@ export default function AttendanceProjectionScreen() {
           </div>
         </div>
         <div className={styles.qrBox}>
-          {token ? <QRCodeSVG value={token.qrValue} size={420} /> : <div className={styles.qrPlaceholder}>Loading</div>}
+          {token ? (
+            <QRCodeSVG
+              value={token.qrValue}
+              size={420}
+              bgColor="#ffffff"
+              fgColor="#000000"
+              includeMargin
+            />
+          ) : (
+            <div className={styles.qrPlaceholder}>Loading</div>
+          )}
         </div>
         <div className={styles.manualCodeBlock}>
           <span>相機無法使用時輸入代碼</span>

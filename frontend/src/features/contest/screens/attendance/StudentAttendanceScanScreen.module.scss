@@ -3,7 +3,10 @@
 @use "@carbon/type";
 
 .page {
+  height: 100%;
   min-height: 100dvh;
+  display: grid;
+  padding: layout.$spacing-05;
   overflow-y: auto;
   overflow-x: hidden;
   background:
@@ -13,8 +16,8 @@
 }
 
 .cameraStage {
-  width: min(100%, 31rem);
-  min-height: 100dvh;
+  width: min(100%, 56rem);
+  min-height: calc(100dvh - #{layout.$spacing-05 * 2});
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -50,10 +53,10 @@
 .captureFlow {
   flex: 1 1 auto;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(14rem, 1fr) auto;
   gap: layout.$spacing-05;
-  padding: layout.$spacing-05 layout.$spacing-05 calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px));
+  padding: layout.$spacing-05 0 calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px));
 }
 
 .stepBadge {
@@ -89,7 +92,8 @@
 .cameraPreview {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%),
@@ -98,7 +102,7 @@
 }
 
 .cameraPreview[data-step="photo"] {
-  aspect-ratio: 4 / 3;
+  min-height: 0;
 }
 
 .video,
@@ -197,13 +201,6 @@
   gap: layout.$spacing-03;
 }
 
-.scanActions,
-.photoControls {
-  display: grid;
-  justify-items: center;
-  gap: layout.$spacing-04;
-}
-
 .statusChip {
   width: fit-content;
   display: inline-flex;
@@ -250,10 +247,30 @@
   line-height: 1.5;
 }
 
-.manualActions {
+.actionFooter,
+.reviewActions {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: layout.$spacing-04;
   flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: layout.$spacing-04;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.secondaryActions,
+.primaryActions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+  flex-wrap: wrap;
+}
+
+.primaryActions {
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .shutterButton {
@@ -294,7 +311,7 @@
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-06;
-  padding: layout.$spacing-05 layout.$spacing-05 calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px));
+  padding: layout.$spacing-05 0 calc(#{layout.$spacing-06} + env(safe-area-inset-bottom, 0px));
   color: var(--cds-text-inverse);
 }
 
@@ -362,14 +379,17 @@
 }
 
 .primaryPreview {
-  min-height: 0;
+  flex: 1 1 auto;
+  min-height: 12rem;
   margin: 0;
   display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: layout.$spacing-04;
 }
 
 .primaryPreview img {
   width: 100%;
+  height: 100%;
   max-height: 48vh;
   display: block;
   object-fit: contain;
@@ -434,48 +454,57 @@
   font-size: 0.75rem;
 }
 
-.reviewActions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: layout.$spacing-04;
-  margin-top: auto;
-}
-
 @media (min-width: 760px) {
   .cameraStage {
-    width: min(100%, 44rem);
+    width: min(100%, 56rem);
   }
 
   .captureFlow,
   .reviewPage {
-    padding-inline: layout.$spacing-07;
-  }
-
-  .cameraPreview {
-    aspect-ratio: 16 / 9;
-  }
-
-  .scanActions {
-    grid-template-columns: auto auto;
-    justify-content: center;
-  }
-
-  .scanActions .statusChip {
-    grid-column: 1 / -1;
-  }
-
-  .reviewActions {
-    grid-template-columns: repeat(3, max-content);
+    padding-inline: 0;
   }
 }
 
 @media (max-width: 420px) {
+  .page {
+    padding: layout.$spacing-04;
+  }
+
+  .cameraStage {
+    min-height: calc(100dvh - #{layout.$spacing-04 * 2});
+  }
+
+  .topBar {
+    min-height: 3.5rem;
+  }
+
+  .captureFlow {
+    grid-template-rows: auto auto auto minmax(12rem, 1fr) auto;
+    gap: layout.$spacing-04;
+  }
+
   .stageCaption h1,
   .reviewHeader h1 {
     @include type.type-style("heading-04");
   }
 
-  .cameraPreview {
-    aspect-ratio: 1 / 1;
+  .actionFooter,
+  .reviewActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .secondaryActions,
+  .primaryActions {
+    width: 100%;
+  }
+
+  .primaryActions {
+    margin-left: 0;
+  }
+
+  .primaryActions > *,
+  .secondaryActions > * {
+    width: 100%;
   }
 }
