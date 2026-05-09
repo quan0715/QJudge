@@ -33,11 +33,6 @@ import EventIncidentCard from "@/features/contest/components/admin/EventIncident
 import IncidentCard from "@/features/contest/components/admin/IncidentCard";
 import { getIncidentEvidenceFrameCount } from "@/features/contest/components/admin/incidentEvidence";
 import { useContestAnticheatConfig } from "@/features/contest/hooks/useContestAnticheatConfig";
-import {
-  DashboardTabBar,
-  DashboardTabPanel,
-  DashboardTabs,
-} from "@/shared/components/dashboard";
 import styles from "./ContestLogsScreen.module.scss";
 
 const CATEGORY_FILTER_OPTIONS = [
@@ -426,9 +421,11 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 
   // --- Filter ---
   const getFilteredFeedForPanel = useCallback(
-    (panelIndex: number) => {
+    (panelIndex: number | "all") => {
       let result =
-        panelIndex === 0
+        panelIndex === "all"
+          ? eventFeed
+          : panelIndex === 0
           ? eventFeed.filter((inc) => inc.priority <= 2)
           : eventFeed.filter((inc) => inc.priority >= 3);
       if (selectedCategories.length > 0) {
@@ -451,8 +448,8 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   );
 
   const filteredFeed = useMemo(
-    () => getFilteredFeedForPanel(activeTab),
-    [activeTab, getFilteredFeedForPanel],
+    () => getFilteredFeedForPanel(embedded ? "all" : activeTab),
+    [activeTab, embedded, getFilteredFeedForPanel],
   );
 
   useEffect(() => {
@@ -646,7 +643,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     );
   };
 
-  const feedPanel = (panelIndex: number) => {
+  const feedPanel = (panelIndex: number | "all") => {
     const panelFilteredFeed = getFilteredFeedForPanel(panelIndex);
     const panelVisibleFeed = panelFilteredFeed.slice(0, visibleCount);
     const panelDateGroups = groupByDate(panelVisibleFeed);
@@ -759,35 +756,27 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
 
         <div className={styles.feedSection}>
           {embedded ? (
-            <DashboardTabs
-              activeId={activeTab === 0 ? "violations" : "exam"}
-              onChange={(id) => setActiveTab(id === "violations" ? 0 : 1)}
-            >
-              <DashboardTabBar
-                ariaLabel="事件紀錄切換"
-                tabs={[
-                  { id: "violations", label: "違規事件" },
-                  { id: "exam", label: "考試事件" },
-                ]}
-                toolbar={
-                  <Button
-                    kind="ghost"
-                    renderIcon={Renew}
-                    onClick={() => {
-                      void handleRefresh();
-                    }}
-                    hasIconOnly
-                    iconDescription={t("action.refresh", "重新整理")}
-                    disabled={
-                      isRefreshing || isRefreshPending || antiCheatConfigLoading
-                    }
-                    size="sm"
-                  />
-                }
-              />
-              <DashboardTabPanel tabId="violations">{feedPanel(0)}</DashboardTabPanel>
-              <DashboardTabPanel tabId="exam">{feedPanel(1)}</DashboardTabPanel>
-            </DashboardTabs>
+            <>
+              <div className={styles.embeddedFeedHeader}>
+                <h4 className={styles.feedTitle}>
+                  {t("logs.eventRecords", "事件紀錄")}
+                </h4>
+                <Button
+                  kind="ghost"
+                  renderIcon={Renew}
+                  onClick={() => {
+                    void handleRefresh();
+                  }}
+                  hasIconOnly
+                  iconDescription={t("action.refresh", "重新整理")}
+                  disabled={
+                    isRefreshing || isRefreshPending || antiCheatConfigLoading
+                  }
+                  size="sm"
+                />
+              </div>
+              {feedPanel("all")}
+            </>
           ) : (
             <>
               <div className={styles.feedHeader}>

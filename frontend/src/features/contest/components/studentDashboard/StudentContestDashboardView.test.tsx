@@ -351,7 +351,7 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByText("已嘗試")).not.toBeInTheDocument();
   });
 
-  it("keeps repeat check-in available after attendance is confirmed before exam start", () => {
+  it("hides check-in action after attendance is confirmed before exam start", () => {
     renderDashboardAtContestRoute(
       createContest({
         startTime: "2000-05-05T10:00:00.000Z",
@@ -370,7 +370,7 @@ describe("StudentContestDashboard", () => {
     );
 
     expect(screen.getByRole("button", { name: /開始作答/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /重新簽到/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /重新簽到/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /前往簽到/ })).not.toBeInTheDocument();
   });
 
@@ -395,7 +395,7 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
   });
 
-  it("shows repeat check-out label after check-out is confirmed", () => {
+  it("hides check-out action after check-out is confirmed", () => {
     renderDashboardAtContestRoute(
       createContest({
         startTime: "2000-05-05T10:00:00.000Z",
@@ -414,10 +414,10 @@ describe("StudentContestDashboard", () => {
       }),
     );
 
-    expect(screen.getByRole("button", { name: /重新簽退/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /重新簽退/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /前往簽退/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /下載作答證明/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /重新加入/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /前往簽退/ })).not.toBeInTheDocument();
   });
 
   it("renders in-exam paper progress from autosaved answers", async () => {

@@ -1913,9 +1913,7 @@
     },
     "attendance": {
       "checkIn": "Go to check-in",
-      "recheckIn": "Check in again",
-      "checkOut": "Go to check-out",
-      "recheckOut": "Check out again"
+      "checkOut": "Go to check-out"
     }
   },
   "studentStatus": {
@@ -2076,6 +2074,8 @@
       "retakePhotos": "Retake photos"
     },
     "errors": {
+      "checkInAlreadyCompleted": "You have already checked in.",
+      "checkOutAlreadyCompleted": "You have already checked out.",
       "checkoutAfterSubmit": "You can check out only after submitting the exam.",
       "checkInOnlyBeforeStart": "You have started or completed the exam and can no longer check in. Scan the check-out QR Code if you need to leave.",
       "notCheckInTime": "Check-in is not available right now.",

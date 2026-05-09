@@ -440,20 +440,20 @@ export default function StudentContestDashboard({
     contestState !== "ended" &&
     examStatus === "submitted" &&
     contest.allowMultipleJoins;
-  const canOpenAttendanceScanner = !!(
-    contest.attendanceStatus?.canCheckOut ||
-    contest.attendanceStatus?.canCheckIn
-  );
-  const studentLocatorQrValue =
-    participant && contest.attendanceCheckEnabled && user?.id
-      ? buildStudentLocatorQrValue(contest.id, user.id)
-      : "";
   const checkInCompleted = ATTENDANCE_READY_STATUSES.has(
     contest.attendanceStatus?.checkInStatus ?? "",
   );
   const checkOutCompleted = ATTENDANCE_READY_STATUSES.has(
     contest.attendanceStatus?.checkOutStatus ?? "",
   );
+  const canOpenAttendanceScanner = !!(
+    (contest.attendanceStatus?.canCheckOut && !checkOutCompleted) ||
+    (contest.attendanceStatus?.canCheckIn && !checkInCompleted)
+  );
+  const studentLocatorQrValue =
+    participant && contest.attendanceCheckEnabled && user?.id
+      ? buildStudentLocatorQrValue(contest.id, user.id)
+      : "";
   const scoreDisplay = contest.resultsPublished
     ? progressSummary.totalScore === null
       ? t("studentDashboard.results.published", "成績已發布")
@@ -548,23 +548,16 @@ export default function StudentContestDashboard({
 
     const attendancePurpose = contest.attendanceStatus?.canCheckOut ? "check_out" : "check_in";
     const attendanceActionLabel = contest.attendanceStatus?.canCheckOut
-      ? checkOutCompleted
-        ? t("studentDashboard.attendance.recheckOut", "重新簽退")
-        : t("studentDashboard.attendance.checkOut", "前往簽退")
-      : checkInCompleted
-        ? t("studentDashboard.attendance.recheckIn", "重新簽到")
-        : t("studentDashboard.attendance.checkIn", "前往簽到");
-    const attendanceCompleted = contest.attendanceStatus?.canCheckOut
-      ? checkOutCompleted
-      : checkInCompleted;
+      ? t("studentDashboard.attendance.checkOut", "前往簽退")
+      : t("studentDashboard.attendance.checkIn", "前往簽到");
+    const attendanceActionKind =
+      contest.attendanceStatus?.canCheckOut || examStatus !== "submitted"
+        ? "primary"
+        : "secondary";
 
     return (
       <Button
-        kind={
-          attendanceCompleted || examStatus === "submitted"
-            ? "secondary"
-            : "primary"
-        }
+        kind={attendanceActionKind}
         renderIcon={Login}
         onClick={() => navigate(
           `/classrooms/${classroomId}/contest/${contest.id}/attendance/scan?purpose=${attendancePurpose}`,
@@ -628,7 +621,7 @@ export default function StudentContestDashboard({
     if (examStatus !== "submitted") return null;
     return (
       <Button
-        kind="tertiary"
+        kind="ghost"
         renderIcon={Document}
         onClick={() => setShowReportModal(true)}
       >
@@ -654,7 +647,7 @@ export default function StudentContestDashboard({
     if (!canSubmitExam) return null;
     return (
       <Button
-        kind="danger--tertiary"
+        kind="danger"
         renderIcon={Flag}
         onClick={() => setShowEndConfirm(true)}
       >
@@ -686,8 +679,8 @@ export default function StudentContestDashboard({
         ]
       : examStatus === "submitted"
         ? [
-            { key: "attendance", node: attendanceAction },
             { key: "report", node: reportAction },
+            { key: "attendance", node: attendanceAction },
             { key: "entry", node: entryAction },
             { key: "admin", node: adminAction },
           ]

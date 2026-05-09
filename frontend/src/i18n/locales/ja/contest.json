@@ -1913,9 +1913,7 @@
     },
     "attendance": {
       "checkIn": "入室する",
-      "recheckIn": "再入室",
-      "checkOut": "退室する",
-      "recheckOut": "再退室"
+      "checkOut": "退室する"
     }
   },
   "studentStatus": {
@@ -2076,6 +2074,8 @@
       "retakePhotos": "撮り直す"
     },
     "errors": {
+      "checkInAlreadyCompleted": "すでに入室済みです。",
+      "checkOutAlreadyCompleted": "すでに退室済みです。",
       "checkoutAfterSubmit": "提出後に退室できます。",
       "checkInOnlyBeforeStart": "開始後は入室できません。退室 QR を使ってください。",
       "notCheckInTime": "入室時間外です。",

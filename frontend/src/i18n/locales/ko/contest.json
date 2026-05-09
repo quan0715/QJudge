@@ -1913,9 +1913,7 @@
     },
     "attendance": {
       "checkIn": "입실하기",
-      "recheckIn": "다시 입실",
-      "checkOut": "퇴실하기",
-      "recheckOut": "다시 퇴실"
+      "checkOut": "퇴실하기"
     }
   },
   "studentStatus": {
@@ -2076,6 +2074,8 @@
       "retakePhotos": "다시 촬영"
     },
     "errors": {
+      "checkInAlreadyCompleted": "이미 입실했습니다.",
+      "checkOutAlreadyCompleted": "이미 퇴실했습니다.",
       "checkoutAfterSubmit": "제출 후 퇴실할 수 있습니다.",
       "checkInOnlyBeforeStart": "시작 후에는 입실할 수 없습니다. 퇴실 QR 을 사용하세요.",
       "notCheckInTime": "입실 시간이 아닙니다.",
