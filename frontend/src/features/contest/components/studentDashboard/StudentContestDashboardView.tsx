@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ScaleTypes } from "@carbon/charts";
 import { LollipopChart } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
@@ -57,6 +57,7 @@ import { MobileActionFooter } from "@/shared/ui/MobileActionFooter";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { formatDate } from "@/shared/utils/format";
 import { useInterval } from "@/shared/hooks/useInterval";
+import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
   BlockHeader,
@@ -232,6 +233,7 @@ export default function StudentContestDashboard({
   const [markedQuestionIds, setMarkedQuestionIds] = useState<Set<string>>(
     () => getMarkedQuestionIds(contest.id),
   );
+  const showMobileActionFooter = useMediaQuery("(max-width: 672px)");
 
   const phase = resolveStudentContestPhase(contest, nowMs);
   const participant = isParticipant(contest);
@@ -635,17 +637,74 @@ export default function StudentContestDashboard({
     );
   };
 
-  const renderStudentQrAction = () => {
+  const renderStudentQrNavbarAction = () => {
     if (!studentLocatorQrValue) return null;
     return (
       <Button
-        kind="tertiary"
+        kind="ghost"
+        hasIconOnly
         renderIcon={QrCode}
+        iconDescription={t("studentDashboard.studentQr.heading", "我的考生 QR")}
         onClick={() => setShowStudentQrModal(true)}
+      />
+    );
+  };
+
+  const renderSubmitAction = () => {
+    if (!canSubmitExam) return null;
+    return (
+      <Button
+        kind="danger--tertiary"
+        renderIcon={Flag}
+        onClick={() => setShowEndConfirm(true)}
       >
-        {t("studentDashboard.actions.showStudentQr", "顯示我的 QR")}
+        {t("studentDashboard.actions.submit", "交卷")}
       </Button>
     );
+  };
+
+  const renderAdminPanelAction = () => {
+    if (!isAdmin || !onOpenAdminPanel) return null;
+    return (
+      <Button kind="ghost" renderIcon={Launch} onClick={onOpenAdminPanel}>
+        {t("studentDashboard.actions.adminPanel", "管理後台")}
+      </Button>
+    );
+  };
+
+  const buildActionSetItems = (): Array<{ key: string; node: ReactNode }> => {
+    const entryAction = renderEntryAction();
+    const attendanceAction = renderAttendanceAction();
+    const reportAction = renderReportAction();
+    const submitAction = renderSubmitAction();
+    const adminAction = renderAdminPanelAction();
+
+    const candidates: Array<{ key: string; node: ReactNode }> = canSubmitExam
+      ? [
+          { key: "entry", node: entryAction },
+          { key: "submit", node: submitAction },
+        ]
+      : examStatus === "submitted"
+        ? [
+            { key: "attendance", node: attendanceAction },
+            { key: "report", node: reportAction },
+            { key: "entry", node: entryAction },
+            { key: "admin", node: adminAction },
+          ]
+        : [
+            { key: "entry", node: entryAction },
+            { key: "attendance", node: attendanceAction },
+            { key: "report", node: reportAction },
+            { key: "admin", node: adminAction },
+          ];
+
+    const actions: Array<{ key: string; node: ReactNode }> = [];
+    for (const item of candidates) {
+      if (item.node === null) continue;
+      actions.push(item);
+      if (actions.length === 2) break;
+    }
+    return actions;
   };
 
   const renderCodingRecords = () => {
@@ -925,16 +984,19 @@ export default function StudentContestDashboard({
               title={contest.name}
               description={tagRow}
               actions={
-                <Button
-                  kind="ghost"
-                  renderIcon={Renew}
-                  onClick={() => {
-                    setPaperReloadKey((value) => value + 1);
-                    void onRefreshContest?.();
-                  }}
-                >
-                  {t("studentDashboard.actions.refresh", "重新整理")}
-                </Button>
+                <div className={styles.headerActions}>
+                  {renderStudentQrNavbarAction()}
+                  <Button
+                    kind="ghost"
+                    renderIcon={Renew}
+                    onClick={() => {
+                      setPaperReloadKey((value) => value + 1);
+                      void onRefreshContest?.();
+                    }}
+                  >
+                    {t("studentDashboard.actions.refresh", "重新整理")}
+                  </Button>
+                </div>
               }
             />
           </DashboardBlock>
@@ -1147,37 +1209,26 @@ export default function StudentContestDashboard({
             </KPIBlock>
           ) : null}
 
-          <DashboardBlock>
-            <div className={styles.actionStack}>
-              <div className={styles.actionStackPrimary}>
-                {renderEntryAction()}
-                {renderAttendanceAction()}
+          {!showMobileActionFooter ? (
+            <DashboardBlock>
+              <div className={styles.actionStack}>
+                {buildActionSetItems().map((item) => (
+                  <div key={item.key} className={styles.actionStackItem}>
+                    {item.node}
+                  </div>
+                ))}
               </div>
-              {renderStudentQrAction()}
-              {renderReportAction()}
-              {canSubmitExam ? (
-                <Button
-                  kind="danger--tertiary"
-                  renderIcon={Flag}
-                  onClick={() => setShowEndConfirm(true)}
-                >
-                  {t("studentDashboard.actions.submit", "交卷")}
-                </Button>
-              ) : null}
-              {isAdmin && onOpenAdminPanel ? (
-                <Button kind="ghost" renderIcon={Launch} onClick={onOpenAdminPanel}>
-                  {t("studentDashboard.actions.adminPanel", "管理後台")}
-                </Button>
-              ) : null}
-            </div>
-          </DashboardBlock>
+            </DashboardBlock>
+          ) : null}
         </DashboardContainer>
       </DashboardContainer>
 
       <MobileActionFooter>
-        {renderAttendanceAction()}
-        {renderEntryAction()}
-        {renderStudentQrAction()}
+        {buildActionSetItems().map((item) => (
+          <div key={item.key} className={styles.actionStackItem}>
+            {item.node}
+          </div>
+        ))}
       </MobileActionFooter>
 
       <ContestRegistrationModal

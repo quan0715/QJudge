@@ -14,7 +14,7 @@ import {
   InProgress,
   Locked,
   PauseFilled,
-  QrCode,
+  Scan,
   Time,
   WarningFilled,
 } from "@carbon/icons-react";
@@ -1100,11 +1100,11 @@ export default function AdminOverviewCommandCenter({
         <Button
           kind="ghost"
           size="md"
-          renderIcon={QrCode}
+          hasIconOnly
+          renderIcon={Scan}
+          iconDescription={t("adminOverview.command.participants.studentQr.scan", "掃學生 QR")}
           onClick={() => setStudentQrScannerOpen(true)}
-        >
-          {t("adminOverview.command.participants.studentQr.scan", "掃學生 QR")}
-        </Button>
+        />
       </DashboardToolbar.Filter>
       <DashboardToolbar.Filter>
         <OverflowMenu

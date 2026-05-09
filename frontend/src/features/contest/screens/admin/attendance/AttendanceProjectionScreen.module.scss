@@ -185,7 +185,7 @@
 .progressMarkers {
   position: relative;
   width: 100%;
-  min-height: 2.5rem;
+  min-height: 5.25rem;
   color: var(--cds-text-secondary);
   font-size: var(--projection-label-size);
   font-weight: 300;
@@ -214,6 +214,7 @@
 }
 
 .progressMarker[data-position="current"] {
+  top: 3rem;
   transform: translateX(-50%);
   text-align: center;
 }
