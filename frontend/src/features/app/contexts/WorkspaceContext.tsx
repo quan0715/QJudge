@@ -11,9 +11,6 @@ import { useAuth } from "@/features/auth/contexts/AuthContext";
 
 const LEFT_STORAGE_KEY = "workspace_left_open";
 const RIGHT_STORAGE_KEY = "workspace_right_open";
-// Legacy keys – migrate once so existing users keep their preference.
-const LEGACY_LEFT_KEY = "app_sidebar_open";
-const LEGACY_RIGHT_KEY = "workspace_chat_open";
 const MOBILE_BREAKPOINT_PX = 768;
 
 export interface PanelControl {
@@ -56,20 +53,10 @@ function writeStored(key: string, value: boolean) {
   try { localStorage.setItem(key, String(value)); } catch { /* ignore */ }
 }
 
-/**
- * Read a panel preference with one-time migration from a legacy key.
- * If the new key is missing but the legacy key exists, copy the value into the new key.
- */
-function readStoredWithMigration(newKey: string, legacyKey: string, fallback: boolean): boolean {
+function readStored(key: string, fallback: boolean): boolean {
   try {
-    const v = localStorage.getItem(newKey);
+    const v = localStorage.getItem(key);
     if (v !== null) return v === "true";
-    const legacy = localStorage.getItem(legacyKey);
-    if (legacy !== null) {
-      const parsed = legacy === "true";
-      writeStored(newKey, parsed);
-      return parsed;
-    }
     return fallback;
   } catch {
     return fallback;
@@ -99,10 +86,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // Default: open on desktop, closed on mobile (mobile drawer is overlay,
   // so auto-open would cover the user's first impression of the page).
   const [leftPref, setLeftPref] = useState(
-    () => readStoredWithMigration(LEFT_STORAGE_KEY, LEGACY_LEFT_KEY, !detectInitialIsMobile()),
+    () => readStored(LEFT_STORAGE_KEY, !detectInitialIsMobile()),
   );
   const [rightPref, setRightPref] = useState(
-    () => readStoredWithMigration(RIGHT_STORAGE_KEY, LEGACY_RIGHT_KEY, false),
+    () => readStored(RIGHT_STORAGE_KEY, false),
   );
   const [leftDisablers, setLeftDisablers] = useState<ReadonlySet<string>>(() => new Set());
   const [rightDisablers, setRightDisablers] = useState<ReadonlySet<string>>(() => new Set());

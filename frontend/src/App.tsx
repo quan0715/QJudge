@@ -50,7 +50,6 @@ import { questionBankMarketplaceRoute, questionBankDetailRoute } from "@/feature
 import { lazy, Suspense } from "react";
 
 const ChatStandalonePage = lazy(() => import("@/features/chatbot/components/ChatStandalonePage"));
-const ChatSessionRedirect = lazy(() => import("@/features/chatbot/components/ChatSessionRedirect"));
 
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
@@ -187,14 +186,6 @@ function App() {
                                 element={
                                   <Suspense fallback={null}>
                                     <ChatStandalonePage />
-                                  </Suspense>
-                                }
-                              />
-                              <Route
-                                path="/chat/:sessionId"
-                                element={
-                                  <Suspense fallback={null}>
-                                    <ChatSessionRedirect />
                                   </Suspense>
                                 }
                               />

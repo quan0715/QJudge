@@ -32,13 +32,9 @@ export const resolveExamQuestionTypeFromBankQuestion = (question: BankQuestion):
     question.metadata && typeof question.metadata === "object"
       ? (question.metadata as Record<string, unknown>)
       : {};
-  const direct = metadata.exam_question_type;
-  if (typeof direct === "string" && EXAM_QUESTION_TYPE_SET.has(direct as ExamQuestionType)) {
-    return direct as ExamQuestionType;
-  }
-  const legacy = metadata.legacy_question_type;
-  if (typeof legacy === "string" && EXAM_QUESTION_TYPE_SET.has(legacy as ExamQuestionType)) {
-    return legacy as ExamQuestionType;
+  const rawType = metadata.legacy_question_type;
+  if (typeof rawType === "string" && EXAM_QUESTION_TYPE_SET.has(rawType as ExamQuestionType)) {
+    return rawType as ExamQuestionType;
   }
   if (Array.isArray(question.correctAnswer)) return "multiple_choice";
   if (typeof question.correctAnswer === "string" && question.options.length === 0) {

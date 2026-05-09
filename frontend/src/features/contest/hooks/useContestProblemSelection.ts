@@ -71,8 +71,8 @@ export function useContestProblemSelection({
       const byContestProblemId = contest.problems.find((p) => p.id === lookupId);
       if (byContestProblemId) return byContestProblemId.id;
 
-      const byLegacyProblemId = contest.problems.find((p) => p.problemId === lookupId);
-      return byLegacyProblemId?.id || null;
+      const byCodingProblemId = contest.problems.find((p) => p.problemId === lookupId);
+      return byCodingProblemId?.id || null;
     },
     [contest?.problems]
   );

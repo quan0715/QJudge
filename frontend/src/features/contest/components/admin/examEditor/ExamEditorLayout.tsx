@@ -39,7 +39,7 @@ import QuestionSourcePanel from "./QuestionSourcePanel";
 import type { QuestionSourceDragItem } from "./questionSource.types";
 import useToolbarSaveStatus from "./hooks/useToolbarSaveStatus";
 import { useEditorPaneScrollSelection } from "./hooks/useEditorPaneScrollSelection";
-import { useWorkspace } from "@/features/chatbot";
+import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import styles from "./ExamEditorLayout.module.scss";
 
 const QUESTION_TYPE_ORDER: ExamQuestionType[] = [
