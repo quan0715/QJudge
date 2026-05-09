@@ -594,7 +594,10 @@ def test_teacher_can_reset_participant_exam_record() -> None:
         answer={"selected": "A"},
         score=1,
     )
-    problem = Problem.objects.create(created_by=teacher)
+    problem = Problem.objects.create(
+        created_by=teacher,
+        slug=f"reset-exam-record-problem-{contest.id}",
+    )
     Submission.objects.create(
         contest=contest,
         user=student,

@@ -185,8 +185,11 @@ describe("StudentAttendanceScanScreen happy path", () => {
       upload_session_id: "session-1",
       items: [
         {
-          evidence_frame_id: "frame-1",
+          evidence_frame_id: 7001,
+          seq: 1,
           object_key: "object-1",
+          source_module: "attendance",
+          client_captured_at_ms: 0,
           put_url: "https://upload.example/frame-1",
           required_headers: { "Content-Type": "image/webp" },
         },
@@ -273,7 +276,7 @@ describe("StudentAttendanceScanScreen happy path", () => {
           upload_session_id: "session-1",
           frames: [
             expect.objectContaining({
-              evidence_frame_id: "frame-1",
+              evidence_frame_id: 7001,
               object_key: "object-1",
             }),
           ],
@@ -288,7 +291,13 @@ describe("StudentAttendanceScanScreen happy path", () => {
   it("surfaces validation errors when the QR token is rejected", async () => {
     mockValidateAttendanceCredential.mockRejectedValueOnce(
       Object.assign(new Error("invalid_attendance_token"), {
-        body: { error: { code: "invalid_attendance_token" } },
+        response: {
+          status: 400,
+          data: {
+            code: "invalid_attendance_token",
+            error: { message: "invalid_attendance_token" },
+          },
+        },
       }),
     );
 
@@ -299,6 +308,8 @@ describe("StudentAttendanceScanScreen happy path", () => {
       capturedOnDetected!("qj-att:v1:check_in:expired-token");
     });
 
+    // The mapped invalid_attendance_token message lands on the scan screen.
+    await screen.findByText(/QR Code 無效/);
     await screen.findByRole("button", { name: "重新對準" });
     expect(mockCreateAttendanceEvent).not.toHaveBeenCalled();
   });

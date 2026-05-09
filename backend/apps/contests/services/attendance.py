@@ -290,7 +290,7 @@ def assert_attendance_allows_start(contest: Contest, participant: ContestPartici
         raise ValueError("attendance_check_in_required")
 
 
-def _validate_self_scan_credential(
+def validate_self_scan_credential(
     contest: Contest, purpose: str, token: str, manual_code: str
 ) -> str:
     """Validate the QR token or manual code and return the credential source label."""
@@ -314,7 +314,7 @@ def _resolve_self_scan_event(
     purpose = data["purpose"]
     if data.get("user_id"):
         raise ValueError("user_id_forbidden_for_self_scan")
-    credential_source = _validate_self_scan_credential(
+    credential_source = validate_self_scan_credential(
         contest,
         purpose,
         str(data.get("token") or ""),

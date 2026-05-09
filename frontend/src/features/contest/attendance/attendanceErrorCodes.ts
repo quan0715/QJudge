@@ -1,5 +1,5 @@
 // Mirror of backend ATTENDANCE_ERROR_CODES (see backend/apps/contests/services/attendance.py).
-// Keep this list in sync; the contract test test_attendance_error_codes_parity locks the order.
+// Keep this list in sync; the parity test compares the two as sets (order does not matter).
 export const ATTENDANCE_ERROR_CODES = [
   "attendance_check_in_required",
   "attendance_credential_conflict",

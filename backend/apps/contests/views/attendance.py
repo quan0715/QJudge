@@ -12,14 +12,13 @@ from ..services.attendance import (
     ATTENDANCE_EVENT_TYPES,
     ATTENDANCE_REFRESH_SECONDS,
     ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
+    validate_self_scan_credential,
     build_attendance_error_payload,
     build_attendance_qr_value,
     create_attendance_credential,
     create_attendance_event,
     normalize_attendance_error_code,
     reset_participant_exam_records,
-    validate_attendance_manual_code,
-    validate_attendance_token,
 )
 
 
@@ -60,17 +59,6 @@ class AttendanceValidateSerializer(serializers.Serializer):
     purpose = serializers.ChoiceField(choices=("check_in", "check_out"))
     token = serializers.CharField(required=False, allow_blank=True)
     manual_code = serializers.CharField(required=False, allow_blank=True, max_length=16)
-
-    def validate(self, attrs):
-        has_token = bool(attrs.get("token"))
-        has_manual_code = bool(str(attrs.get("manual_code") or "").strip())
-        if has_token and has_manual_code:
-            raise serializers.ValidationError({
-                "manual_code": "Use either QR token or manual code, not both.",
-            })
-        if not has_token and not has_manual_code:
-            raise serializers.ValidationError({"token": "Attendance token or manual code is required."})
-        return attrs
 
 
 class ParticipantExamRecordResetSerializer(serializers.Serializer):
@@ -151,12 +139,9 @@ class AttendanceMixin:
         manual_code = str(serializer.validated_data.get("manual_code") or "").strip()
 
         try:
-            if manual_code:
-                validate_attendance_manual_code(contest, purpose, manual_code)
-                credential_source = "manual_code"
-            else:
-                validate_attendance_token(contest, purpose, token)
-                credential_source = "qr_token"
+            credential_source = validate_self_scan_credential(
+                contest, purpose, token, manual_code
+            )
         except ValueError as exc:
             return _value_error_response(exc)
 
