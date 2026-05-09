@@ -147,8 +147,6 @@ def build_contest_anticheat_config(contest) -> dict:
         "cheat_detection_enabled": bool(contest.cheat_detection_enabled),
         "allow_multiple_joins": bool(contest.allow_multiple_joins),
         "max_cheat_warnings": int(contest.max_cheat_warnings or 0),
-        "allow_auto_unlock": bool(contest.allow_auto_unlock),
-        "auto_unlock_minutes": int(contest.auto_unlock_minutes or 0),
         "contest_type": str(contest.contest_type or "coding"),
         "warning_timeout_seconds": max(1, int(contest.warning_timeout_seconds or 20)),
         "screen_share_recovery_grace_ms": max(
@@ -237,14 +235,6 @@ def build_contest_anticheat_config(contest) -> dict:
             {
                 "key": "max_cheat_warnings",
                 "description": "Violation threshold before lock/escalation",
-            },
-            {
-                "key": "allow_auto_unlock",
-                "description": "Enable timed unlock after lock",
-            },
-            {
-                "key": "auto_unlock_minutes",
-                "description": "Minutes before locked participant auto-unlocks",
             },
             {
                 "key": "warning_timeout_seconds",

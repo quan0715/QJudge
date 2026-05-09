@@ -45,20 +45,6 @@ const formatDate = (
   return date.toLocaleString("zh-TW", formatOptions);
 };
 
-/**
- * Format a date string to relative time (e.g., "3 分鐘前")
- * @param dateString The ISO date string to format
- * @returns Relative time string
- */
-const formatRelativeTime = (dateString: string): string => {
-  try {
-    const date = new Date(dateString);
-    return formatDistanceToNow(date, { addSuffix: true, locale: zhTW });
-  } catch {
-    return dateString;
-  }
-};
-
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -128,7 +114,6 @@ const getDifficultyLabel = (diff: Difficulty): string => {
 
 export {
   formatDate,
-  formatRelativeTime,
   formatSmartTime,
   getLanguageLabel,
   getDifficultyLabel,

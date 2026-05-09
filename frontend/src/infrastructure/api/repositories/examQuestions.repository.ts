@@ -1,5 +1,6 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
+import type { ExamQuestionDto } from "@/infrastructure/api/dto/contest.dto";
 import { mapExamQuestionDto } from "@/infrastructure/mappers/contest.mapper";
 
 export interface ExamQuestionUpsertPayload {
@@ -40,7 +41,7 @@ export const getExamQuestions = async (
   if (opts.kind) search.set("kind", serializeKindFilter(opts.kind));
   const query = search.toString();
   const url = `/api/v1/contests/${contestId}/exam-questions/${query ? `?${query}` : ""}`;
-  const data = await requestJson<unknown>(
+  const data = await requestJson<ExamQuestionDto[]>(
     httpClient.get(url),
     "Failed to fetch exam questions",
   );
@@ -52,7 +53,7 @@ export const createExamQuestion = async (
   contestId: string,
   payload: ExamQuestionUpsertPayload
 ): Promise<ExamQuestion> => {
-  const data = await requestJson<unknown>(
+  const data = await requestJson<ExamQuestionDto>(
     httpClient.post(`/api/v1/contests/${contestId}/exam-questions/`, payload),
     "Failed to create exam question"
   );
@@ -64,7 +65,7 @@ export const updateExamQuestion = async (
   questionId: string,
   payload: Partial<ExamQuestionUpsertPayload>
 ): Promise<ExamQuestion> => {
-  const data = await requestJson<unknown>(
+  const data = await requestJson<ExamQuestionDto>(
     httpClient.patch(
       `/api/v1/contests/${contestId}/exam-questions/${questionId}/`,
       payload
@@ -88,7 +89,7 @@ export const reorderExamQuestions = async (
   contestId: string,
   orders: Array<{ id: string; order: number }>
 ): Promise<ExamQuestion[]> => {
-  const data = await requestJson<unknown>(
+  const data = await requestJson<ExamQuestionDto[]>(
     httpClient.post(`/api/v1/contests/${contestId}/exam-questions/reorder/`, {
       orders,
     }),
@@ -105,7 +106,7 @@ export const importExamQuestionsFromBank = async (
     import_mode?: "copy" | "reference";
   }
 ): Promise<ExamQuestion[]> => {
-  const data = await requestJson<unknown>(
+  const data = await requestJson<ExamQuestionDto[]>(
     httpClient.post(`/api/v1/contests/${contestId}/exam-questions/import-from-bank/`, payload),
     "Failed to import exam questions from bank"
   );

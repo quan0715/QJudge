@@ -32,11 +32,6 @@ const AdminPanelSlot = ({
   /* eslint-enable react-hooks/static-components */
 };
 
-const LEGACY_PANEL_ALIAS: Record<string, AdminPanelId> = {
-  exam: "problem_editor",
-  settings: "overview",
-};
-
 const AdminDashboardInner = () => {
   const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
@@ -80,7 +75,6 @@ const AdminDashboardInner = () => {
     param: "panel",
     keys: availablePanels,
     defaultKey: "overview",
-    aliases: LEGACY_PANEL_ALIAS,
   });
 
   const panelParam = searchParams.get("panel");

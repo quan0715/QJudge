@@ -133,10 +133,6 @@ class Contest(models.Model):
     allow_multiple_joins = models.BooleanField(default=False, verbose_name='允許多次加入')
     max_cheat_warnings = models.IntegerField(default=3)
     
-    # Auto-unlock settings
-    allow_auto_unlock = models.BooleanField(default=False, verbose_name='允許自動解鎖')
-    auto_unlock_minutes = models.IntegerField(default=0, null=True, blank=True, verbose_name='自動解鎖時間 (分鐘)')
-    
     # Contest type
     CONTEST_TYPE_CHOICES = [
         ('coding', 'Coding Test'),
@@ -438,7 +434,7 @@ class ContestParticipant(models.Model):
     started_at = models.DateTimeField(null=True, blank=True, verbose_name='開始時間')
     left_at = models.DateTimeField(null=True, blank=True, verbose_name='離開時間')
     
-    # Locking metadata (needed for auto-unlock and audit)
+    # Locking metadata (needed for manual proctor action and audit)
     locked_at = models.DateTimeField(
         null=True,
         blank=True,

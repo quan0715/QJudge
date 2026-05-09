@@ -17,8 +17,6 @@ const createProps = (
       warningTimeoutSeconds: contest.warningTimeoutSeconds,
       screenShareRecoveryGraceMs: contest.screenShareRecoveryGraceMs,
       maxCheatWarnings: contest.maxCheatWarnings,
-      allowAutoUnlock: contest.allowAutoUnlock,
-      autoUnlockMinutes: contest.autoUnlockMinutes,
     },
     getState: () => undefined,
     onRetry: () => {},

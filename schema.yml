@@ -2686,15 +2686,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
         status:
           allOf:
           - $ref: '#/components/schemas/StatusDc4Enum'
@@ -2759,15 +2750,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
         status:
           allOf:
           - $ref: '#/components/schemas/StatusDc4Enum'
@@ -2890,15 +2872,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
       required:
       - created_at
       - current_user_role
@@ -2974,15 +2947,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
     ContestList:
       type: object
       description: |-
@@ -3569,15 +3533,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
         status:
           allOf:
           - $ref: '#/components/schemas/StatusDc4Enum'
@@ -3645,15 +3600,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
     PatchedNotificationRequest:
       type: object
       description: Serializer for notifications.

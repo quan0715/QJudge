@@ -37,8 +37,6 @@ const buildContest = (
     scoreboardVisibleDuringContest: false,
     allowMultipleJoins: false,
     maxCheatWarnings: 3,
-    allowAutoUnlock: false,
-    autoUnlockMinutes: 0,
     resultsPublished: false,
     examQuestionsCount: 0,
     participantCount: 20,

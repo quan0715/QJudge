@@ -13,6 +13,7 @@ import {
   Tag,
 } from "@carbon/react";
 import {
+  ArrowRight,
   Checkmark,
   Document,
   Flag,
@@ -558,7 +559,7 @@ export default function StudentContestDashboard({
     return (
       <Button
         kind={attendanceActionKind}
-        renderIcon={Login}
+        renderIcon={ArrowRight}
         onClick={() => navigate(
           `/classrooms/${classroomId}/contest/${contest.id}/attendance/scan?purpose=${attendancePurpose}`,
         )}

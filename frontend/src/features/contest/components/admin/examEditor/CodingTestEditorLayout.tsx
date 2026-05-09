@@ -29,7 +29,7 @@ import type { QuestionSourceDragItem } from "./questionSource.types";
 import useToolbarSaveStatus from "./hooks/useToolbarSaveStatus";
 import { useEditorPaneScrollSelection } from "./hooks/useEditorPaneScrollSelection";
 import { labelForContestProblemOrder } from "@/features/contest/domain/contestProblemOrderLabel";
-import { useWorkspace } from "@/features/chatbot";
+import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import styles from "./ExamEditorLayout.module.scss";
 
 interface CodingTestEditorLayoutProps {

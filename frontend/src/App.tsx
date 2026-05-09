@@ -1,7 +1,4 @@
-import {
-  BrowserRouter,
-  Navigate,
-} from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
@@ -53,7 +50,6 @@ import { questionBankMarketplaceRoute, questionBankDetailRoute } from "@/feature
 import { lazy, Suspense } from "react";
 
 const ChatStandalonePage = lazy(() => import("@/features/chatbot/components/ChatStandalonePage"));
-const ChatSessionRedirect = lazy(() => import("@/features/chatbot/components/ChatSessionRedirect"));
 
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
@@ -78,10 +74,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-function LegacyProblemListRedirect() {
-  return <Navigate to="/dashboard" replace />;
-}
 
 function App() {
   const markdownImageUploader = async (file: File) => {
@@ -167,8 +159,6 @@ function App() {
                               </Route>
                             </Route>
 
-                            {/* Legacy hidden routes */}
-                            <Route path="/problems" element={<LegacyProblemListRedirect />} />
                             {/* Problem Detail - Outside MainLayout with Custom ProblemLayout */}
                             {problemDetailRoutes}
 
@@ -196,14 +186,6 @@ function App() {
                                 element={
                                   <Suspense fallback={null}>
                                     <ChatStandalonePage />
-                                  </Suspense>
-                                }
-                              />
-                              <Route
-                                path="/chat/:sessionId"
-                                element={
-                                  <Suspense fallback={null}>
-                                    <ChatSessionRedirect />
                                   </Suspense>
                                 }
                               />

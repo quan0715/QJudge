@@ -82,15 +82,3 @@ export const formatDate = (
   return formatDateTime(date, { ...DATE_FORMATS.DATE_ONLY, locale });
 };
 
-/**
- * Custom formatter for specific business needs
- * e.g., "Starts in 2 hours" or specific countdown logic
- */
-export const formatRelativeTime = (
-  date: string | number | Date,
-  _baseDate: Date = new Date()
-): string => {
-  // This could be expanded with Intl.RelativeTimeFormat if needed
-  // For now we keep it simple or integrate with existing countdown logic
-  return formatDateTime(date);
-};

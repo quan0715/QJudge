@@ -674,7 +674,6 @@
     "autoSubmittedHeading": "試験が自動的に提出されました",
     "autoSubmittedHint": "エラーだと思われる場合は、試験監督にお問い合わせください。",
     "autoSubmittedTitle": "試験が自動提出されました",
-    "autoUnlockCountdown": "自動解除カウントダウン",
     "backToDashboard": "コンテストダッシュボードに戻る",
     "canViewButNoAnswer": "順位表や提出履歴は確認できますが、解答は続行できません",
     "cannotUndo": "この操作は取り消せません！",
@@ -1402,26 +1401,6 @@
   "placeholder": {
     "contestName": "コンテスト名を入力"
   },
-  "preRegistration": {
-    "anonymousTitle": "匿名モード",
-    "countdownLabel": "開始まで",
-    "countdownValue": "{{days}}日 {{hours}}時間 {{minutes}}分 {{seconds}}秒",
-    "ended": "コンテストは終了しました",
-    "noDescription": "説明はまだありません",
-    "open": "パスワード不要",
-    "openAdminPanel": "管理画面へ",
-    "registerNow": "今すぐ参加登録",
-    "registeredHint": "登録済みです。開始をお待ちください。",
-    "registrationClosed": "現在は登録できません",
-    "requiresPassword": "パスワード必須",
-    "state": {
-      "archived": "アーカイブ済み",
-      "draft": "下書き",
-      "ended": "終了",
-      "running": "開催中",
-      "upcoming": "開始前"
-    }
-  },
   "precheck": {
     "backToDashboard": "ダッシュボードに戻る",
     "countdown": {
@@ -1608,7 +1587,6 @@
   },
   "settings": {
     "accessControl": "アクセス制御",
-    "allowAutoUnlock": "自動ロック解除を許可",
     "allowMultipleJoins": "複数回の参加を許可",
     "allowMultipleJoinsDesc": "学生が退出後に試験へ再入場し、既存の解答進捗を引き継げるようにします。",
     "alreadyArchived": "既にアーカイブ済み",
@@ -1669,8 +1647,6 @@
     "archiveDesc": "アーカイブすると、コンテストは読み取り専用になり、再び有効にすることはできません。",
     "archiveFailed": "アーカイブに失敗しました",
     "archived": "コンテストがアーカイブされました",
-    "autoUnlockHelperText": "ロック後、自動的にロック解除されるまでの分数",
-    "autoUnlockMinutes": "自動ロック解除時間 (分)",
     "basicInfo": "基本情報",
     "confirmArchive": "このコンテストをアーカイブしてもよろしいですか？",
     "confirmDelete": "このコンテストを削除してもよろしいですか？この操作は元に戻せません！",

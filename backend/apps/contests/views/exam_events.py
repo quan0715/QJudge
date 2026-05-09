@@ -269,18 +269,12 @@ class ExamEventsMixin:
         }
 
     def _build_event_response(self, participant, contest):
-        auto_unlock_at = None
-        if participant.exam_status == ExamStatus.LOCKED and participant.locked_at and contest.allow_auto_unlock:
-            minutes = contest.auto_unlock_minutes or 0
-            auto_unlock_at = participant.locked_at + timezone.timedelta(minutes=minutes)
-
         return {
             'exam_status': participant.exam_status,
             'violation_count': participant.violation_count,
             'max_cheat_warnings': contest.max_cheat_warnings,
             'locked': participant.exam_status == ExamStatus.LOCKED,
             'submit_reason': participant.submit_reason or "",
-            'auto_unlock_at': auto_unlock_at,
         }
 
     def _auto_submit_participant(

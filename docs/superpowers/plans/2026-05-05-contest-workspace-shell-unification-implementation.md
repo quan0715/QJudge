@@ -281,7 +281,7 @@ import { TimeDisplay } from '@/shared/components/dashboard';
 ```tsx
 const { isRuntime } = useContestRuntimeMode();
 const { contest, contestId, refreshContest } = useContestLayoutState();
-const { timeLeft, isCountdownToStart, unlockTimeLeft } = useContestTimers({
+const { timeLeft, isCountdownToStart } = useContestTimers({
   contest,
   contestId,
   refreshContest,
@@ -322,9 +322,7 @@ const handleContextClick = (next: () => void) =>
       examStatus={contest.examStatus}
       cheatDetectionEnabled={contest.cheatDetectionEnabled}
       timeLeft={timeLeft}
-      unlockTimeLeft={unlockTimeLeft}
       lockReason={contest.lockReason}
-      autoUnlockAt={contest.autoUnlockAt}
     />
     <div className={styles.runtimeTimer}>
       <TimeDisplay

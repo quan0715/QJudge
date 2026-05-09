@@ -109,8 +109,6 @@ export interface ContestDetailDto extends ContestDto {
   scoreboard_visible_during_contest?: boolean;
   allow_multiple_joins?: boolean;
   max_cheat_warnings?: number;
-  allow_auto_unlock?: boolean;
-  auto_unlock_minutes?: number;
   results_published?: boolean;
   question_edit_locked?: boolean;
   question_edit_locked_at?: string | null;
@@ -127,7 +125,6 @@ export interface ContestDetailDto extends ContestDto {
   assignment_state?: string | null;
   accepted_at?: string | null;
   submitted_at?: string | null;
-  auto_unlock_at?: string;
   is_exam_monitored?: boolean;
   requires_fullscreen?: boolean;
   can_submit_exam?: boolean;

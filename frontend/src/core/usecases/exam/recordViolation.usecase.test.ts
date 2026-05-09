@@ -17,7 +17,6 @@ describe("recordViolation.usecase", () => {
     vi.mocked(recordExamEvent).mockResolvedValue({
       violation_count: 2,
       max_cheat_warnings: 3,
-      auto_unlock_at: "2026-02-24T10:00:00Z",
       bypass: true,
       locked: true,
     } as ExamEventResponse);
@@ -39,7 +38,6 @@ describe("recordViolation.usecase", () => {
       success: true,
       violationCount: 2,
       maxWarnings: 3,
-      autoUnlockAt: "2026-02-24T10:00:00Z",
       isLocked: true,
       bypass: true,
     });

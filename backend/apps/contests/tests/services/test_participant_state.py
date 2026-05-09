@@ -14,7 +14,6 @@ from apps.contests.services.anti_cheat_session import (
 )
 from apps.contests.services.participant_state import (
     admin_update_participant,
-    get_auto_unlock_at,
     reconcile_participant_on_contest_access,
     reopen_participant_exam,
 )
@@ -51,42 +50,8 @@ def contest(teacher: User) -> Contest:
         visibility="public",
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=1),
-        allow_auto_unlock=True,
-        auto_unlock_minutes=1,
         cheat_detection_enabled=True,
     )
-
-
-@pytest.mark.django_db
-def test_reconcile_participant_auto_unlocks_when_timeout_elapsed(
-    contest: Contest,
-    student: User,
-) -> None:
-    participant = ContestParticipant.objects.create(
-        contest=contest,
-        user=student,
-        exam_status=ExamStatus.LOCKED,
-        locked_at=timezone.now() - timedelta(minutes=3),
-        violation_count=2,
-        lock_reason="focus lost",
-    )
-
-    unlock_at = get_auto_unlock_at(participant)
-    assert unlock_at is not None
-
-    reconcile_participant_on_contest_access(participant, activity_user=student)
-
-    participant.refresh_from_db()
-    assert participant.exam_status == ExamStatus.PAUSED
-    assert participant.locked_at is None
-    assert participant.violation_count == 2
-    assert participant.lock_reason == ""
-    assert ContestActivity.objects.filter(
-        contest=contest,
-        user=student,
-        action_type="unlock_user",
-        details="Auto-unlocked by system",
-    ).exists()
 
 
 @pytest.mark.django_db

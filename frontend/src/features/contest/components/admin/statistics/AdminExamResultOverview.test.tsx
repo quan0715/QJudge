@@ -61,8 +61,6 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     scoreboardVisibleDuringContest: false,
     allowMultipleJoins: false,
     maxCheatWarnings: 3,
-    allowAutoUnlock: false,
-    autoUnlockMinutes: 0,
     resultsPublished: false,
     examQuestionsCount: 0,
     isExamMonitored: false,

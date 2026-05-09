@@ -122,6 +122,7 @@ vi.mock("@/features/auth/contexts/AuthContext", () => ({
 vi.mock("@carbon/icons-react", () => {
   const Icon = () => <span aria-hidden="true" />;
   return {
+    ArrowRight: Icon,
     Checkmark: Icon,
     Document: Icon,
     Flag: Icon,
@@ -217,8 +218,6 @@ const createContest = (
     scoreboardVisibleDuringContest: false,
     allowMultipleJoins: false,
     maxCheatWarnings: 3,
-    allowAutoUnlock: false,
-    autoUnlockMinutes: 0,
     resultsPublished: false,
     examQuestionsCount: 0,
     isExamMonitored: false,

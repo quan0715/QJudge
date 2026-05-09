@@ -1,53 +1,36 @@
 import {
-  DEFAULT_DEVICE_POLICY,
   type Contest,
   type ContestDetail,
   type ContestProblemSummary,
   type ScoreboardData,
-  type ScoreboardRow,
   type ExamEvent,
-  type ExamEventStats,
   type ExamQuestion,
-  type ContestParticipant,
-  type EventFeedItem,
-  type ParticipantCodingProblemDetail,
-  type ParticipantCodingProblemRow,
-  type ParticipantCodingTrendPoint,
-  type ParticipantDashboard,
-  type ParticipantDashboardStatus,
-  type ParticipantDashboardTimelineItem,
-  type ParticipantOverviewSummary,
-  type ParticipantPaperQuestionDetail,
-  type ParticipantPaperReportOverviewRow,
+  type ExamQuestionType,
   type Clarification,
   type ContestAnnouncement,
-  type ContestAnticheatDevicePolicy,
-  type ContestAnticheatConfig,
   type ContestOverviewMetrics,
   type ContestUpdateRequest,
-  type ContestType,
-  type ExamQuestionType,
 } from "@/core/entities/contest.entity";
 import type {
   ContestProblemSummaryDto,
   ContestDto,
   ContestDetailDto,
   ContestOverviewMetricsDto,
-  ContestParticipantDto,
-  ParticipantDashboardDto,
-  ScoreboardRowDto,
+  ExamQuestionDto,
   ScoreboardDto,
-  AnticheatDevicePolicyDto,
-  ParticipantDashboardStatusDto,
-  ParticipantTimelineItemDto,
-  ParticipantPaperReportRowDto,
-  ParticipantCodingProblemRowDto,
-  EventFeedItemDto,
 } from "@/infrastructure/api/dto/contest.dto";
+import {
+  FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
+  mapAnticheatDevicePolicyDto,
+} from "./contest.anticheat.mapper";
 
-const FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS = 30_000;
+export { mapContestAnticheatConfigDto } from "./contest.anticheat.mapper";
+export {
+  mapContestParticipantDto,
+  mapParticipantDashboardDto,
+} from "./contest.participant.mapper";
 
-export function mapContestProblemSummaryDto(
+function mapContestProblemSummaryDto(
   dto: ContestProblemSummaryDto,
 ): ContestProblemSummary {
   const resolvedMaxScore = dto.max_score ?? dto.score;
@@ -120,15 +103,10 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
 
     allowMultipleJoins: !!dto.allow_multiple_joins,
     maxCheatWarnings: dto.max_cheat_warnings || 0,
-    allowAutoUnlock: !!dto.allow_auto_unlock,
-    autoUnlockMinutes: dto.auto_unlock_minutes || 0,
     resultsPublished: !!dto.results_published,
     questionEditLocked: !!dto.question_edit_locked,
     questionEditLockedAt: dto.question_edit_locked_at ?? null,
     questionEditLockTrigger: dto.question_edit_lock_trigger ?? null,
-    isExamQuestionsFrozen: !!(
-      dto.question_edit_locked ?? dto.is_exam_questions_frozen
-    ),
     examQuestionsCount: dto.exam_questions_count ?? 0,
 
     hasStarted: !!dto.has_started,
@@ -141,7 +119,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     assignmentState: (dto.assignment_state as any) ?? null,
     acceptedAt: dto.accepted_at ?? null,
     submittedAt: dto.submitted_at ?? null,
-    autoUnlockAt: dto.auto_unlock_at,
 
     // SSoT computed flags
     isExamMonitored: !!dto.is_exam_monitored,
@@ -189,91 +166,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
   };
 }
 
-export function mapAnticheatDevicePolicyDto(
-  value: AnticheatDevicePolicyDto | undefined,
-): ContestAnticheatDevicePolicy {
-  const root = value || {};
-
-  const parseSource = (
-    sourceValue: any,
-    fallback: { enabled: boolean; captureIntervalSeconds: number },
-  ) => {
-    const source = sourceValue || {};
-    return {
-      enabled:
-        typeof source.enabled === "boolean" ? source.enabled : fallback.enabled,
-      captureIntervalSeconds:
-        typeof source.capture_interval_seconds === "number"
-          ? source.capture_interval_seconds
-          : typeof source.captureIntervalSeconds === "number"
-            ? source.captureIntervalSeconds
-            : fallback.captureIntervalSeconds,
-    };
-  };
-
-  const parseDetectors = (
-    detectorValue: any,
-    fallback: ContestAnticheatDevicePolicy["desktop"]["detectors"],
-  ) => {
-    const detectors = detectorValue || {};
-    return {
-      pwaMode:
-        typeof detectors.pwa_mode === "boolean"
-          ? detectors.pwa_mode
-          : typeof detectors.pwaMode === "boolean"
-            ? detectors.pwaMode
-            : fallback.pwaMode,
-      fullscreen:
-        typeof detectors.fullscreen === "boolean"
-          ? detectors.fullscreen
-          : fallback.fullscreen,
-      multiDisplay:
-        typeof detectors.multi_display === "boolean"
-          ? detectors.multi_display
-          : typeof detectors.multiDisplay === "boolean"
-            ? detectors.multiDisplay
-            : fallback.multiDisplay,
-      mouseLeave:
-        typeof detectors.mouse_leave === "boolean"
-          ? detectors.mouse_leave
-          : typeof detectors.mouseLeave === "boolean"
-            ? detectors.mouseLeave
-            : fallback.mouseLeave,
-      viewportIntegrity:
-        typeof detectors.viewport_integrity === "boolean"
-          ? detectors.viewport_integrity
-          : typeof detectors.viewportIntegrity === "boolean"
-            ? detectors.viewportIntegrity
-            : fallback.viewportIntegrity,
-    };
-  };
-
-  const parseDevice = (
-    key: "desktop" | "tablet",
-    fallback: ContestAnticheatDevicePolicy["desktop"],
-  ) => {
-    const item = root[key] || {};
-    const sources = item.sources || {};
-    return {
-      enabled:
-        typeof item.enabled === "boolean" ? item.enabled : fallback.enabled,
-      sources: {
-        screenShare: parseSource(
-          sources.screen_share ?? (sources as any).screenShare,
-          fallback.sources.screenShare,
-        ),
-        webcam: parseSource(sources.webcam, fallback.sources.webcam),
-      },
-      detectors: parseDetectors(item.detectors, fallback.detectors),
-    };
-  };
-
-  return {
-    desktop: parseDevice("desktop", DEFAULT_DEVICE_POLICY.desktop),
-    tablet: parseDevice("tablet", DEFAULT_DEVICE_POLICY.tablet),
-  };
-}
-
 export function mapContestOverviewMetricsDto(
   dto: ContestOverviewMetricsDto,
 ): ContestOverviewMetrics {
@@ -302,627 +194,6 @@ export function mapContestOverviewMetricsDto(
       isStarted: !!dto?.time_progress?.is_started,
       isEnded: !!dto?.time_progress?.is_ended,
     },
-  };
-}
-
-export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
-  const ensureObject = (
-    value: unknown,
-    path: string,
-  ): Record<string, unknown> => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new Error(
-        `Invalid anti-cheat config payload: ${path} must be an object`,
-      );
-    }
-    return value as Record<string, unknown>;
-  };
-
-  const ensureNumber = (
-    obj: Record<string, unknown>,
-    key: string,
-    path: string,
-  ): number => {
-    const value = obj[key];
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      throw new Error(
-        `Invalid anti-cheat config payload: ${path}.${key} must be a number`,
-      );
-    }
-    return value;
-  };
-
-  const ensureBoolean = (
-    obj: Record<string, unknown>,
-    key: string,
-    path: string,
-  ): boolean => {
-    const value = obj[key];
-    if (typeof value !== "boolean") {
-      throw new Error(
-        `Invalid anti-cheat config payload: ${path}.${key} must be a boolean`,
-      );
-    }
-    return value;
-  };
-
-  const ensureString = (
-    obj: Record<string, unknown>,
-    key: string,
-    path: string,
-  ): string => {
-    const value = obj[key];
-    if (typeof value !== "string") {
-      throw new Error(
-        `Invalid anti-cheat config payload: ${path}.${key} must be a string`,
-      );
-    }
-    return value;
-  };
-
-  const ensureStringArray = (
-    obj: Record<string, unknown>,
-    key: string,
-    path: string,
-  ): string[] => {
-    const value = obj[key];
-    if (
-      !Array.isArray(value) ||
-      value.some((item) => typeof item !== "string")
-    ) {
-      throw new Error(
-        `Invalid anti-cheat config payload: ${path}.${key} must be string[]`,
-      );
-    }
-    return value;
-  };
-
-  const mapSetting = (item: unknown) => {
-    const parsed = ensureObject(item, "frontend_controlled_settings item");
-    return {
-      key: ensureString(parsed, "key", "frontend_controlled_settings item"),
-      description: ensureString(
-        parsed,
-        "description",
-        "frontend_controlled_settings item",
-      ),
-    };
-  };
-
-  const root = ensureObject(dto, "root");
-  const globalDefaults = ensureObject(
-    root["global_defaults"],
-    "global_defaults",
-  );
-  const contestSettings = ensureObject(
-    root["contest_settings"],
-    "contest_settings",
-  );
-  const effective = ensureObject(root["effective"], "effective");
-  const frontendControlledSettings = ensureObject(
-    root["frontend_controlled_settings"],
-    "frontend_controlled_settings",
-  );
-
-  const rawGlobalSettings = frontendControlledSettings["global"];
-  const rawContestSettings = frontendControlledSettings["contest"];
-  if (!Array.isArray(rawGlobalSettings) || !Array.isArray(rawContestSettings)) {
-    throw new Error(
-      "Invalid anti-cheat config payload: frontend_controlled_settings.global/contest must be arrays",
-    );
-  }
-
-  const version = root["version"];
-  if (typeof version !== "number" || !Number.isFinite(version)) {
-    throw new Error(
-      "Invalid anti-cheat config payload: version must be a number",
-    );
-  }
-
-  const rawDevicePolicy =
-    root["device_policy"] ?? contestSettings["anticheat_device_policy"];
-  const parsedDevicePolicy = mapAnticheatDevicePolicyDto(
-    rawDevicePolicy as any,
-  );
-
-  return {
-    version,
-    globalDefaults: {
-      captureIntervalSeconds: ensureNumber(
-        globalDefaults,
-        "capture_interval_seconds",
-        "global_defaults",
-      ),
-      warningTimeoutSeconds: ensureNumber(
-        effective,
-        "warning_timeout_seconds",
-        "effective",
-      ),
-      forcedCaptureCooldownMs: ensureNumber(
-        globalDefaults,
-        "forced_capture_cooldown_ms",
-        "global_defaults",
-      ),
-      forcedCaptureP1CooldownMs: ensureNumber(
-        globalDefaults,
-        "forced_capture_p1_cooldown_ms",
-        "global_defaults",
-      ),
-      eventFeedAggregationWindowSeconds: ensureNumber(
-        globalDefaults,
-        "event_feed_aggregation_window_seconds",
-        "global_defaults",
-      ),
-      incidentScreenshotWindowBeforeMs: ensureNumber(
-        globalDefaults,
-        "incident_screenshot_window_before_ms",
-        "global_defaults",
-      ),
-      incidentScreenshotWindowAfterMs: ensureNumber(
-        globalDefaults,
-        "incident_screenshot_window_after_ms",
-        "global_defaults",
-      ),
-      incidentScreenshotPreviewLimit: ensureNumber(
-        globalDefaults,
-        "incident_screenshot_preview_limit",
-        "global_defaults",
-      ),
-      incidentScreenshotCategories: ensureStringArray(
-        globalDefaults,
-        "incident_screenshot_categories",
-        "global_defaults",
-      ),
-      monitoringRecoveryGraceMs: ensureNumber(
-        globalDefaults,
-        "monitoring_recovery_grace_ms",
-        "global_defaults",
-      ),
-      mouseLeaveCooldownMs: ensureNumber(
-        globalDefaults,
-        "mouse_leave_cooldown_ms",
-        "global_defaults",
-      ),
-      screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
-      webcamRecoveryGraceMs: ensureNumber(
-        globalDefaults,
-        "webcam_recovery_grace_ms",
-        "global_defaults",
-      ),
-      webcamCaptureIntervalSeconds: ensureNumber(
-        globalDefaults,
-        "webcam_capture_interval_seconds",
-        "global_defaults",
-      ),
-      multiDisplayCheckIntervalMs: ensureNumber(
-        globalDefaults,
-        "multi_display_check_interval_ms",
-        "global_defaults",
-      ),
-      multiDisplayReportCooldownMs: ensureNumber(
-        globalDefaults,
-        "multi_display_report_cooldown_ms",
-        "global_defaults",
-      ),
-      presignedUrlTtlSeconds: ensureNumber(
-        globalDefaults,
-        "presigned_url_ttl_seconds",
-        "global_defaults",
-      ),
-    },
-    contestSettings: {
-      cheatDetectionEnabled: ensureBoolean(
-        contestSettings,
-        "cheat_detection_enabled",
-        "contest_settings",
-      ),
-      allowMultipleJoins: ensureBoolean(
-        contestSettings,
-        "allow_multiple_joins",
-        "contest_settings",
-      ),
-      maxCheatWarnings: ensureNumber(
-        contestSettings,
-        "max_cheat_warnings",
-        "contest_settings",
-      ),
-      allowAutoUnlock: ensureBoolean(
-        contestSettings,
-        "allow_auto_unlock",
-        "contest_settings",
-      ),
-      autoUnlockMinutes: ensureNumber(
-        contestSettings,
-        "auto_unlock_minutes",
-        "contest_settings",
-      ),
-      contestType:
-        ensureString(contestSettings, "contest_type", "contest_settings") ===
-        "paper_exam"
-          ? "paper_exam"
-          : "coding",
-      warningTimeoutSeconds: ensureNumber(
-        contestSettings,
-        "warning_timeout_seconds",
-        "contest_settings",
-      ),
-      screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
-      anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
-        contestSettings["anticheat_device_policy"] as any,
-      ),
-    },
-    effective: {
-      captureIntervalSeconds: ensureNumber(
-        effective,
-        "capture_interval_seconds",
-        "effective",
-      ),
-      warningTimeoutSeconds: ensureNumber(
-        effective,
-        "warning_timeout_seconds",
-        "effective",
-      ),
-      forcedCaptureCooldownMs: ensureNumber(
-        effective,
-        "forced_capture_cooldown_ms",
-        "effective",
-      ),
-      forcedCaptureP1CooldownMs: ensureNumber(
-        effective,
-        "forced_capture_p1_cooldown_ms",
-        "effective",
-      ),
-      eventFeedAggregationWindowSeconds: ensureNumber(
-        effective,
-        "event_feed_aggregation_window_seconds",
-        "effective",
-      ),
-      incidentScreenshotWindowBeforeMs: ensureNumber(
-        effective,
-        "incident_screenshot_window_before_ms",
-        "effective",
-      ),
-      incidentScreenshotWindowAfterMs: ensureNumber(
-        effective,
-        "incident_screenshot_window_after_ms",
-        "effective",
-      ),
-      incidentScreenshotPreviewLimit: ensureNumber(
-        effective,
-        "incident_screenshot_preview_limit",
-        "effective",
-      ),
-      incidentScreenshotCategories: ensureStringArray(
-        effective,
-        "incident_screenshot_categories",
-        "effective",
-      ),
-      monitoringRecoveryGraceMs: ensureNumber(
-        effective,
-        "monitoring_recovery_grace_ms",
-        "effective",
-      ),
-      mouseLeaveCooldownMs: ensureNumber(
-        effective,
-        "mouse_leave_cooldown_ms",
-        "effective",
-      ),
-      screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
-      webcamRecoveryGraceMs: ensureNumber(
-        effective,
-        "webcam_recovery_grace_ms",
-        "effective",
-      ),
-      webcamCaptureIntervalSeconds: ensureNumber(
-        effective,
-        "webcam_capture_interval_seconds",
-        "effective",
-      ),
-      multiDisplayCheckIntervalMs: ensureNumber(
-        effective,
-        "multi_display_check_interval_ms",
-        "effective",
-      ),
-      multiDisplayReportCooldownMs: ensureNumber(
-        effective,
-        "multi_display_report_cooldown_ms",
-        "effective",
-      ),
-      presignedUrlTtlSeconds: ensureNumber(
-        effective,
-        "presigned_url_ttl_seconds",
-        "effective",
-      ),
-      cheatDetectionEnabled: ensureBoolean(
-        effective,
-        "cheat_detection_enabled",
-        "effective",
-      ),
-      allowMultipleJoins: ensureBoolean(
-        effective,
-        "allow_multiple_joins",
-        "effective",
-      ),
-      maxCheatWarnings: ensureNumber(
-        effective,
-        "max_cheat_warnings",
-        "effective",
-      ),
-      allowAutoUnlock: ensureBoolean(
-        effective,
-        "allow_auto_unlock",
-        "effective",
-      ),
-      autoUnlockMinutes: ensureNumber(
-        effective,
-        "auto_unlock_minutes",
-        "effective",
-      ),
-      contestType:
-        ensureString(effective, "contest_type", "effective") === "paper_exam"
-          ? "paper_exam"
-          : "coding",
-      anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
-        effective["anticheat_device_policy"] as any,
-      ),
-    },
-    devicePolicy: parsedDevicePolicy,
-    frontendControlledSettings: {
-      global: rawGlobalSettings.map(mapSetting),
-      contest: rawContestSettings.map(mapSetting),
-    },
-  };
-}
-
-export function mapContestParticipantDto(
-  dto: ContestParticipantDto,
-): ContestParticipant {
-  return {
-    userId: dto.user_id?.toString() || "",
-    username: dto.username || "",
-    email: dto.user?.email,
-    displayName: dto.display_name || dto.user?.profile?.display_name || "",
-    accountRole: dto.account_role || dto.user?.role || "",
-    authProvider: dto.auth_provider || dto.user?.auth_provider || "",
-    connectionStatus:
-      dto.connection_status === "live" || dto.connection_status === "online"
-        ? dto.connection_status
-        : "offline",
-    lastHeartbeatAt: dto.last_heartbeat_at ?? null,
-    liveMonitoringOnline: !!dto.live_monitoring_online,
-    liveMonitoringSources: Array.isArray(dto.live_monitoring_sources)
-      ? dto.live_monitoring_sources.filter(
-          (source) => source === "screen_share" || source === "webcam",
-        )
-      : [],
-    score: dto.total_score ?? dto.score ?? 0,
-    rank: dto.rank,
-    joinedAt: dto.joined_at || "",
-    examStatus: dto.exam_status || "not_started",
-    lockReason: dto.lock_reason,
-    violationCount: dto.violation_count || 0,
-    submitReason: dto.submit_reason,
-  };
-}
-
-const mapParticipantDashboardStatusDto = (
-  dto: ParticipantDashboardStatusDto,
-): ParticipantDashboardStatus => ({
-  code: dto?.code || "",
-  label: dto?.label || "",
-  color: dto?.color || "gray",
-});
-
-const mapParticipantTimelineDto = (
-  dto: ParticipantTimelineItemDto,
-): ParticipantDashboardTimelineItem => ({
-  id: dto?.id?.toString() || "",
-  source: dto?.source === "exam_event" ? "exam_event" : "activity",
-  eventType: dto?.event_type || "",
-  timestamp: dto?.timestamp || "",
-  message: dto?.message || "",
-  metadata: dto?.metadata || {},
-});
-
-const mapParticipantOverviewDto = (dto: any): ParticipantOverviewSummary => ({
-  totalScore: Number(dto?.total_score ?? 0),
-  maxScore: Number(dto?.max_score ?? 0),
-  solved: dto?.solved != null ? Number(dto.solved) : undefined,
-  totalProblems:
-    dto?.total_problems != null ? Number(dto.total_problems) : undefined,
-  rank: dto?.rank != null ? Number(dto.rank) : null,
-  totalParticipants:
-    dto?.total_participants != null
-      ? Number(dto.total_participants)
-      : undefined,
-  effectiveSubmissions:
-    dto?.effective_submissions != null
-      ? Number(dto.effective_submissions)
-      : undefined,
-  acceptedSubmissions:
-    dto?.accepted_submissions != null
-      ? Number(dto.accepted_submissions)
-      : undefined,
-  acceptedRate:
-    dto?.accepted_rate != null ? Number(dto.accepted_rate) : undefined,
-  correctRate: dto?.correct_rate != null ? Number(dto.correct_rate) : undefined,
-  gradedCount: dto?.graded_count != null ? Number(dto.graded_count) : undefined,
-  totalQuestions:
-    dto?.total_questions != null ? Number(dto.total_questions) : undefined,
-});
-
-const mapPaperOverviewRowDto = (
-  dto: ParticipantPaperReportRowDto,
-): ParticipantPaperReportOverviewRow => ({
-  questionId: dto?.question_id?.toString() || "",
-  index: Number(dto?.index ?? 0),
-  questionType: (dto?.question_type || "essay") as ExamQuestionType,
-  status: mapParticipantDashboardStatusDto(dto?.status || {}),
-  score: dto?.score != null ? Number(dto.score) : null,
-  maxScore: Number(dto?.max_score ?? 0),
-});
-
-const mapPaperQuestionDetailDto = (
-  dto: any,
-): ParticipantPaperQuestionDetail => ({
-  questionId: dto?.question_id?.toString() || "",
-  index: Number(dto?.index ?? 0),
-  questionType: (dto?.question_type || "essay") as ExamQuestionType,
-  prompt: dto?.prompt || "",
-  options: Array.isArray(dto?.options)
-    ? dto.options.map((item: unknown) => String(item))
-    : [],
-  correctAnswer: dto?.correct_answer,
-  explanation: dto?.explanation || "",
-  answer: dto?.answer || {},
-  score: dto?.score != null ? Number(dto.score) : null,
-  maxScore: Number(dto?.max_score ?? 0),
-  feedback: dto?.feedback || "",
-  gradedByUsername: dto?.graded_by_username || null,
-  gradedAt: dto?.graded_at || null,
-  isCorrect: dto?.is_correct ?? null,
-  status: mapParticipantDashboardStatusDto(dto?.status || {}),
-});
-
-const mapCodingProblemRowDto = (
-  dto: ParticipantCodingProblemRowDto,
-): ParticipantCodingProblemRow => ({
-  problemId: dto?.problem_id?.toString() || "",
-  label: dto?.label || "",
-  title: dto?.title || "",
-  difficulty: dto?.difficulty || null,
-  status: dto?.status || null,
-  score: Number(dto?.score ?? 0),
-  maxScore: Number(dto?.max_score ?? 0),
-  tries: Number(dto?.tries ?? 0),
-  time: dto?.time != null ? Number(dto.time) : null,
-});
-
-const mapCodingProblemDetailDto = (
-  dto: any,
-): ParticipantCodingProblemDetail => ({
-  ...mapCodingProblemRowDto(dto),
-  bestSubmission: dto?.best_submission
-    ? {
-        id: dto.best_submission.id?.toString() || "",
-        status: dto.best_submission.status,
-        score: Number(dto.best_submission.score ?? 0),
-        language: dto.best_submission.language || "",
-        createdAt: dto.best_submission.created_at || "",
-      }
-    : null,
-});
-
-const mapCodingTrendPointDto = (dto: any): ParticipantCodingTrendPoint => ({
-  submissionId:
-    dto?.submission_id != null ? dto.submission_id.toString() : undefined,
-  createdAt: dto?.created_at || "",
-  minutesFromStart: Number(dto?.minutes_from_start ?? 0),
-  score: Number(dto?.score ?? 0),
-  solved: dto?.solved != null ? Number(dto.solved) : undefined,
-  status: dto?.status,
-  language: dto?.language,
-  problemId: dto?.problem_id != null ? dto.problem_id.toString() : undefined,
-  problemLabel: dto?.problem_label,
-  problemTitle: dto?.problem_title,
-});
-
-const mapEventFeedItemDto = (dto: EventFeedItemDto): EventFeedItem => ({
-  incidentKey: dto?.incident_key || "",
-  eventId: dto?.event_id != null ? String(dto.event_id) : "",
-  eventType: dto?.event_type || "",
-  priority: Number(dto?.priority ?? 3),
-  category: dto?.category || "system",
-  penalized: !!dto?.penalized,
-  firstAt: dto?.first_at || "",
-  lastAt: dto?.last_at || "",
-  count: Number(dto?.count ?? 1),
-  evidenceCount: Number(dto?.evidence_count ?? 0),
-  summary: dto?.summary || "",
-  source: (dto?.source === "exam_event" ? "exam_event" : "activity") as any,
-  userName: dto?.user_name || "",
-  userId: dto?.user_id?.toString() || "",
-  metadata: dto?.metadata || {},
-});
-
-export function mapParticipantDashboardDto(
-  dto: ParticipantDashboardDto,
-): ParticipantDashboard {
-  const participant = mapContestParticipantDto(dto?.participant || {});
-  const baseParticipant = {
-    ...participant,
-    startedAt: dto?.participant?.started_at,
-    leftAt: dto?.participant?.left_at,
-    lockedAt: dto?.participant?.locked_at,
-  };
-
-  const contestType = (
-    dto?.contest_type === "paper_exam" ? "paper_exam" : "coding"
-  ) as ContestType;
-  const report =
-    contestType === "paper_exam"
-      ? {
-          overviewRows: Array.isArray(dto?.report?.overview_rows)
-            ? dto.report.overview_rows.map(mapPaperOverviewRowDto)
-            : [],
-          questionDetails: Array.isArray(dto?.report?.question_details)
-            ? dto.report.question_details.map(mapPaperQuestionDetailDto)
-            : [],
-        }
-      : {
-          problemGrid: Array.isArray(dto?.report?.problem_grid)
-            ? dto.report.problem_grid.map(mapCodingProblemRowDto)
-            : [],
-          problemDetails: Array.isArray(dto?.report?.problem_details)
-            ? dto.report.problem_details.map(mapCodingProblemDetailDto)
-            : [],
-          trend: {
-            submissionTimeline: Array.isArray(
-              dto?.report?.trend?.submission_timeline,
-            )
-              ? dto.report.trend.submission_timeline.map(mapCodingTrendPointDto)
-              : [],
-            cumulativeProgress: Array.isArray(
-              dto?.report?.trend?.cumulative_progress,
-            )
-              ? dto.report.trend.cumulative_progress.map(mapCodingTrendPointDto)
-              : [],
-            statusCounts: dto?.report?.trend?.status_counts || {},
-          },
-        };
-
-  return {
-    contestType,
-    participant: baseParticipant,
-    overview: mapParticipantOverviewDto(dto?.overview || {}),
-    report,
-    timeline: Array.isArray(dto?.timeline)
-      ? dto.timeline.map(mapParticipantTimelineDto)
-      : [],
-    eventFeed: Array.isArray(dto?.event_feed)
-      ? dto.event_feed.map(mapEventFeedItemDto)
-      : [],
-    actions: {
-      canDownloadReport: !!dto?.actions?.can_download_report,
-      canEditStatus: !!dto?.actions?.can_edit_status,
-      canRemoveParticipant: !!dto?.actions?.can_remove_participant,
-      canUnlock: !!dto?.actions?.can_unlock,
-      canReopenExam: !!dto?.actions?.can_reopen_exam,
-      canViewEvidence: !!dto?.actions?.can_view_evidence,
-      canOpenGrading: !!dto?.actions?.can_open_grading,
-    },
-  };
-}
-
-export function mapScoreboardRowDto(dto: ScoreboardRowDto): ScoreboardRow {
-  return {
-    userId: dto.user_id?.toString() || "",
-    displayName: dto.display_name || "",
-    solvedCount: dto.solved_count || 0,
-    totalScore: dto.total_score || 0,
-    penalty: dto.penalty || 0,
-    rank: dto.rank || 0,
-    problems: dto.problems || {},
   };
 }
 
@@ -1015,23 +286,11 @@ export function mapContestAnnouncementDto(dto: {
   };
 }
 
-export function mapExamEventStatsDto(dto: any): ExamEventStats {
-  return {
-    userId: dto.user_id?.toString() || "",
-    userName: dto.user_name || "",
-    tabHiddenCount: dto.tab_hidden_count || 0,
-    windowBlurCount: dto.window_blur_count || 0,
-    exitFullscreenCount: dto.exit_fullscreen_count || 0,
-    forbiddenFocusEventCount: dto.forbidden_focus_event_count || 0,
-    totalViolations: dto.total_violations || 0,
-  };
-}
-
-export function mapExamQuestionDto(dto: any): ExamQuestion {
+export function mapExamQuestionDto(dto: ExamQuestionDto): ExamQuestion {
   return {
     id: dto.id?.toString() || "",
     contestId: dto.contest?.toString() || "",
-    questionType: dto.question_type || "essay",
+    questionType: (dto.question_type || "essay") as ExamQuestionType,
     prompt: dto.prompt || "",
     options: Array.isArray(dto.options)
       ? dto.options.map((item: unknown) => String(item))
@@ -1152,8 +411,6 @@ export function mapContestUpdateRequestToDto(
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     allow_multiple_joins: request.allowMultipleJoins,
     max_cheat_warnings: request.maxCheatWarnings,
-    allow_auto_unlock: request.allowAutoUnlock,
-    auto_unlock_minutes: request.autoUnlockMinutes,
     results_published: request.resultsPublished,
     counts_toward_grade: request.countsTowardGrade,
   };

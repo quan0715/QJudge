@@ -66,32 +66,4 @@ describe("useContestTimers", () => {
     expect(result.current.timeLeft).toBe("00:00:00");
   });
 
-  it("counts down unlock timer and refreshes once when unlocked", async () => {
-    const contest = {
-      ...baseContest,
-      cheatDetectionEnabled: true,
-      examStatus: "locked",
-      autoUnlockAt: "2024-01-01T00:00:03Z",
-    };
-    const refreshContest = vi.fn();
-
-    const { result } = renderHook(() =>
-      useContestTimers({ contest, contestId: contest.id, refreshContest })
-    );
-
-    // Flush the setTimeout(0) used for initial computation
-    await act(async () => {
-      vi.advanceTimersByTime(0);
-    });
-
-    expect(result.current.unlockTimeLeft).toBe("00:00:03");
-
-    await act(async () => {
-      vi.advanceTimersByTime(3000);
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    expect(refreshContest).toHaveBeenCalledTimes(1);
-    expect(result.current.unlockTimeLeft).toBe("00:00:00");
-  });
 });

@@ -189,7 +189,6 @@ class Command(BaseCommand):
                 "contest_type": "paper_exam",
                 "cheat_detection_enabled": True,
                 "max_cheat_warnings": 10,
-                "allow_auto_unlock": False,
                 "scoreboard_visible_during_contest": True,
             },
         )
@@ -206,7 +205,6 @@ class Command(BaseCommand):
                 "contest_type": "coding",
                 "cheat_detection_enabled": False,
                 "max_cheat_warnings": 10,
-                "allow_auto_unlock": False,
                 "scoreboard_visible_during_contest": True,
             },
         )
