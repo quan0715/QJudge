@@ -6,7 +6,6 @@ import {
   type ExamEvent,
   type ExamQuestion,
   type ExamQuestionType,
-  type ContestParticipant,
   type Clarification,
   type ContestAnnouncement,
   type ContestOverviewMetrics,
@@ -17,7 +16,6 @@ import type {
   ContestDto,
   ContestDetailDto,
   ContestOverviewMetricsDto,
-  ContestParticipantDto,
   ExamQuestionDto,
   ScoreboardDto,
 } from "@/infrastructure/api/dto/contest.dto";
@@ -27,7 +25,10 @@ import {
 } from "./contest.anticheat.mapper";
 
 export { mapContestAnticheatConfigDto } from "./contest.anticheat.mapper";
-export { mapParticipantDashboardDto } from "./contest.participant.mapper";
+export {
+  mapContestParticipantDto,
+  mapParticipantDashboardDto,
+} from "./contest.participant.mapper";
 
 function mapContestProblemSummaryDto(
   dto: ContestProblemSummaryDto,
@@ -193,37 +194,6 @@ export function mapContestOverviewMetricsDto(
       isStarted: !!dto?.time_progress?.is_started,
       isEnded: !!dto?.time_progress?.is_ended,
     },
-  };
-}
-
-export function mapContestParticipantDto(
-  dto: ContestParticipantDto,
-): ContestParticipant {
-  return {
-    userId: dto.user_id?.toString() || "",
-    username: dto.username || "",
-    email: dto.user?.email,
-    displayName: dto.display_name || dto.user?.profile?.display_name || "",
-    accountRole: dto.account_role || dto.user?.role || "",
-    authProvider: dto.auth_provider || dto.user?.auth_provider || "",
-    connectionStatus:
-      dto.connection_status === "live" || dto.connection_status === "online"
-        ? dto.connection_status
-        : "offline",
-    lastHeartbeatAt: dto.last_heartbeat_at ?? null,
-    liveMonitoringOnline: !!dto.live_monitoring_online,
-    liveMonitoringSources: Array.isArray(dto.live_monitoring_sources)
-      ? dto.live_monitoring_sources.filter(
-          (source) => source === "screen_share" || source === "webcam",
-        )
-      : [],
-    score: dto.total_score ?? dto.score ?? 0,
-    rank: dto.rank,
-    joinedAt: dto.joined_at || "",
-    examStatus: dto.exam_status || "not_started",
-    lockReason: dto.lock_reason,
-    violationCount: dto.violation_count || 0,
-    submitReason: dto.submit_reason,
   };
 }
 

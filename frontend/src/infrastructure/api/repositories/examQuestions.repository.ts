@@ -41,7 +41,7 @@ export const getExamQuestions = async (
   if (opts.kind) search.set("kind", serializeKindFilter(opts.kind));
   const query = search.toString();
   const url = `/api/v1/contests/${contestId}/exam-questions/${query ? `?${query}` : ""}`;
-  const data = await requestJson<ExamQuestionDto>(
+  const data = await requestJson<ExamQuestionDto[]>(
     httpClient.get(url),
     "Failed to fetch exam questions",
   );
@@ -89,7 +89,7 @@ export const reorderExamQuestions = async (
   contestId: string,
   orders: Array<{ id: string; order: number }>
 ): Promise<ExamQuestion[]> => {
-  const data = await requestJson<unknown>(
+  const data = await requestJson<ExamQuestionDto[]>(
     httpClient.post(`/api/v1/contests/${contestId}/exam-questions/reorder/`, {
       orders,
     }),
@@ -106,7 +106,7 @@ export const importExamQuestionsFromBank = async (
     import_mode?: "copy" | "reference";
   }
 ): Promise<ExamQuestion[]> => {
-  const data = await requestJson<unknown>(
+  const data = await requestJson<ExamQuestionDto[]>(
     httpClient.post(`/api/v1/contests/${contestId}/exam-questions/import-from-bank/`, payload),
     "Failed to import exam questions from bank"
   );

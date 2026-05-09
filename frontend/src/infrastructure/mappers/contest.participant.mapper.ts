@@ -1,4 +1,6 @@
 import type {
+  ContestParticipant,
+  ContestType,
   EventFeedItem,
   ExamQuestionType,
   ParticipantCodingProblemDetail,
@@ -10,9 +12,9 @@ import type {
   ParticipantOverviewSummary,
   ParticipantPaperQuestionDetail,
   ParticipantPaperReportOverviewRow,
-  ContestType,
 } from "@/core/entities/contest.entity";
 import type {
+  ContestParticipantDto,
   EventFeedItemDto,
   ParticipantCodingProblemRowDto,
   ParticipantDashboardDto,
@@ -20,7 +22,37 @@ import type {
   ParticipantPaperReportRowDto,
   ParticipantTimelineItemDto,
 } from "@/infrastructure/api/dto/contest.dto";
-import { mapContestParticipantDto } from "./contest.mapper";
+
+export function mapContestParticipantDto(
+  dto: ContestParticipantDto,
+): ContestParticipant {
+  return {
+    userId: dto.user_id?.toString() || "",
+    username: dto.username || "",
+    email: dto.user?.email,
+    displayName: dto.display_name || dto.user?.profile?.display_name || "",
+    accountRole: dto.account_role || dto.user?.role || "",
+    authProvider: dto.auth_provider || dto.user?.auth_provider || "",
+    connectionStatus:
+      dto.connection_status === "live" || dto.connection_status === "online"
+        ? dto.connection_status
+        : "offline",
+    lastHeartbeatAt: dto.last_heartbeat_at ?? null,
+    liveMonitoringOnline: !!dto.live_monitoring_online,
+    liveMonitoringSources: Array.isArray(dto.live_monitoring_sources)
+      ? dto.live_monitoring_sources.filter(
+          (source) => source === "screen_share" || source === "webcam",
+        )
+      : [],
+    score: dto.total_score ?? dto.score ?? 0,
+    rank: dto.rank,
+    joinedAt: dto.joined_at || "",
+    examStatus: dto.exam_status || "not_started",
+    lockReason: dto.lock_reason,
+    violationCount: dto.violation_count || 0,
+    submitReason: dto.submit_reason,
+  };
+}
 
 const mapParticipantDashboardStatusDto = (
   dto: ParticipantDashboardStatusDto,
