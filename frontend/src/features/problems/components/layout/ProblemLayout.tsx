@@ -40,7 +40,7 @@ const ProblemLayout = () => {
           <BrandLockup size={20} />
         </HeaderName>
         <HeaderNavigation aria-label="Problem Navigation">
-          <HeaderMenuItem onClick={() => navigate("/problems")}>
+          <HeaderMenuItem onClick={() => navigate("/dashboard")}>
             {t("nav.backToProblemList")}
           </HeaderMenuItem>
         </HeaderNavigation>

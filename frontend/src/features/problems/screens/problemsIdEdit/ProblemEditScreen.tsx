@@ -184,7 +184,7 @@ const ProblemEditPageInner: React.FC = () => {
         title: t("edit.messages.deleteSuccess"),
         subtitle: t("edit.messages.deleteSuccessDetail"),
       });
-      setTimeout(() => navigate("/problems"), 1000);
+      setTimeout(() => navigate("/dashboard"), 1000);
     } catch (err) {
       showToast({
         kind: "error",
