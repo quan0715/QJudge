@@ -8,9 +8,7 @@ interface ExamStatusBadgeProps {
   examStatus?: ExamStatusType;
   cheatDetectionEnabled?: boolean;
   timeLeft?: string | null;
-  unlockTimeLeft?: string | null;
   lockReason?: string;
-  autoUnlockAt?: string | null;
   onClick?: () => void;
   hideWhenNormal?: boolean;
 }
@@ -19,9 +17,7 @@ const ExamStatusBadge: React.FC<ExamStatusBadgeProps> = ({
   examStatus,
   cheatDetectionEnabled,
   timeLeft,
-  unlockTimeLeft,
   lockReason,
-  autoUnlockAt,
   onClick,
   hideWhenNormal = false,
 }) => {
@@ -49,18 +45,11 @@ const ExamStatusBadge: React.FC<ExamStatusBadgeProps> = ({
   if (!cheatDetectionEnabled) return null;
 
   if (examStatus === "locked") {
-    const title = `${lockReason || t("exam.lockedReason")}${
-      autoUnlockAt
-        ? `\n${t("exam.expectedUnlock")}: ${new Date(autoUnlockAt).toLocaleTimeString()}`
-        : `\n${t("exam.contactProctor")}`
-    }`;
+    const title = `${lockReason || t("exam.lockedReason")}\n${t("exam.contactProctor")}`;
     return (
       <div title={title} className={styles.examStatusLocked}>
         <Locked size={16} />
         <span>{t("exam.locked")}</span>
-        {unlockTimeLeft && (
-          <span className={styles.examTimeDisplay}>{unlockTimeLeft}</span>
-        )}
       </div>
     );
   }

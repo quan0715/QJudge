@@ -1,6 +1,6 @@
 """
 Celery tasks for contest scheduled operations.
-Auto-submit participants when contest ends and auto-unlock locked participants.
+Auto-submit participants when contest ends and enforce locked-attempt handling.
 """
 
 from celery import shared_task
@@ -30,7 +30,7 @@ def _apply_penalty_from_event(participant: ContestParticipant, event_type: str):
     """
     Unified server-side anti-cheat escalation.
     - in_progress: critical monitoring failure => pause for pre-check
-    - locked: manual TA lock remains terminal until TA action / configured unlock
+    - locked: manual TA lock remains terminal until TA action or force-submit
     - submitted: no-op (already finished)
 
     Uses transaction.atomic + select_for_update to ensure atomicity.
@@ -167,65 +167,11 @@ def auto_submit_participants(contest_id):
 
 
 @shared_task
-def check_auto_unlock():
-    """
-    Periodic task: Check for locked participants who should be auto-unlocked.
-    
-    Runs every 30 seconds via Celery Beat. Finds all locked participants
-    whose lock timeout has passed and triggers unlock for each.
-    """
-    now = timezone.now()
-    
-    locked_participants = ContestParticipant.objects.filter(
-        exam_status=ExamStatus.LOCKED,
-        locked_at__isnull=False,
-        contest__allow_auto_unlock=True,
-        contest__end_time__gt=now  # Only if contest hasn't ended
-    ).select_related('contest')
-    
-    for participant in locked_participants:
-        minutes = participant.contest.auto_unlock_minutes or 0
-        unlock_time = participant.locked_at + timezone.timedelta(minutes=minutes)
-        
-        if now >= unlock_time:
-            auto_unlock_participant.delay(participant.id)
-
-
-@shared_task
-def auto_unlock_participant(participant_id):
-    """
-    Unlock a specific participant.
-    
-    Transitions from LOCKED to PAUSED state and resets lock metadata.
-    """
-    try:
-        participant = ContestParticipant.objects.select_related('contest').get(id=participant_id)
-        
-        # Validate: Don't unlock if contest has ended
-        if participant.contest.end_time <= timezone.now():
-            return f"Contest ended, not unlocking participant {participant_id}"
-        
-        if participant.exam_status == ExamStatus.LOCKED:
-            participant.exam_status = ExamStatus.PAUSED
-            participant.locked_at = None
-            participant.lock_reason = ""
-            participant.save(update_fields=['exam_status', 'locked_at', 'lock_reason'])
-            return f"Unlocked participant {participant_id}"
-            
-        return f"Participant {participant_id} not locked"
-        
-    except ContestParticipant.DoesNotExist:
-        return f"Participant {participant_id} not found"
-
-
-@shared_task
 def check_force_submit_locked():
     """
     Periodic task: Force-submit participants locked for more than 3 minutes.
 
-    Runs every 30 seconds via Celery Beat. If auto-unlock triggers first
-    (auto_unlock_minutes < 3), the participant will already be unlocked and
-    this task correctly skips them.
+    Runs every 30 seconds via Celery Beat.
     """
     now = timezone.now()
     threshold = now - timedelta(seconds=FORCE_SUBMIT_LOCKED_SECONDS)
@@ -241,12 +187,6 @@ def check_force_submit_locked():
 
     count = 0
     for participant in locked_participants:
-        # Skip if auto-unlock would have triggered before 3 minutes
-        if participant.contest.allow_auto_unlock:
-            unlock_minutes = participant.contest.auto_unlock_minutes or 0
-            if unlock_minutes > 0 and unlock_minutes * 60 < FORCE_SUBMIT_LOCKED_SECONDS:
-                continue
-
         # Execute directly inside periodic task context to avoid queue lag/race.
         force_submit_locked_participant(participant.id)
         count += 1

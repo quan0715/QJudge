@@ -344,10 +344,6 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.contests.tasks.check_contest_end",
         "schedule": 60.0,  # Every 60 seconds
     },
-    "check-auto-unlock-every-30-seconds": {
-        "task": "apps.contests.tasks.check_auto_unlock",
-        "schedule": 30.0,  # Every 30 seconds
-    },
     "check-force-submit-locked-every-30-seconds": {
         "task": "apps.contests.tasks.check_force_submit_locked",
         "schedule": 30.0,  # Every 30 seconds

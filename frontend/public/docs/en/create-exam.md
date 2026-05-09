@@ -25,7 +25,6 @@ In the contest edit page's **Settings** section, you can enable cheat detection.
    ![Enable Cheat Detection](/docs/images/enable_exam_mode.png)
 3. You can configure:
    - **Maximum violation warnings**: If set to 0, students are immediately locked on violation; if greater than 0 (e.g. 3), students receive warnings before being locked.
-   - **Allow auto-unlock**: If enabled, set how many minutes after being locked the system will automatically unlock the student.
 
 > **Tip:** It is strongly recommended to set a **join password** for actual exams and disable "show scoreboard during contest" to prevent students from seeing others' progress.
 

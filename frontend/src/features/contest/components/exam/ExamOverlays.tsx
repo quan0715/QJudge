@@ -10,7 +10,6 @@ interface ExamOverlaysProps {
   gracePeriodCountdown: number;
   showLockScreen: boolean;
   lockReason?: string;
-  timeLeft: string | null;
   onBackToContest: () => void;
 }
 
@@ -19,7 +18,6 @@ export const ExamOverlays: React.FC<ExamOverlaysProps> = ({
   gracePeriodCountdown,
   showLockScreen,
   lockReason,
-  timeLeft,
   onBackToContest,
 }) => {
   const { t } = useTranslation("contest");
@@ -50,16 +48,9 @@ export const ExamOverlays: React.FC<ExamOverlaysProps> = ({
               </div>
             </div>
 
-            {timeLeft ? (
-              <section className={styles.countdownSection}>
-                <p className={styles.countdownLabel}>{t("exam.autoUnlockCountdown")}</p>
-                <p className={styles.countdownValue}>{timeLeft}</p>
-              </section>
-            ) : (
-              <section className={styles.noticeSection}>
-                <p className={styles.noticeText}>{t("exam.contactProctorToUnlock")}</p>
-              </section>
-            )}
+            <section className={styles.noticeSection}>
+              <p className={styles.noticeText}>{t("exam.contactProctorToUnlock")}</p>
+            </section>
 
             <p className={styles.violationText}>{t("exam.violationRecorded")}</p>
 

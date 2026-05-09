@@ -34,8 +34,6 @@ class ContestAntiCheatConfigApiTests(APITestCase):
             cheat_detection_enabled=True,
             allow_multiple_joins=True,
             max_cheat_warnings=4,
-            allow_auto_unlock=True,
-            auto_unlock_minutes=7,
             contest_type="paper_exam",
             screen_share_recovery_grace_ms=30_000,
         )
@@ -58,8 +56,6 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertTrue(contest_settings["cheat_detection_enabled"])
         self.assertTrue(contest_settings["allow_multiple_joins"])
         self.assertEqual(contest_settings["max_cheat_warnings"], 4)
-        self.assertTrue(contest_settings["allow_auto_unlock"])
-        self.assertEqual(contest_settings["auto_unlock_minutes"], 7)
         self.assertEqual(contest_settings["contest_type"], "paper_exam")
         self.assertIn("warning_timeout_seconds", contest_settings)
         self.assertEqual(contest_settings["warning_timeout_seconds"], 20)

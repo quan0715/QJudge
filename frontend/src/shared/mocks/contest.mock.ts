@@ -55,8 +55,6 @@ export const createMockContest = (
   scoreboardVisibleDuringContest: false,
   allowMultipleJoins: false,
   maxCheatWarnings: 3,
-  allowAutoUnlock: true,
-  autoUnlockMinutes: 5,
   resultsPublished: false,
   examQuestionsCount: 10,
   isExamMonitored: true,

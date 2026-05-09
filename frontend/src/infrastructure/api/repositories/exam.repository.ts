@@ -33,7 +33,6 @@ export interface ExamEventResponse {
   submit_reason?: string;
   locked?: boolean;
   bypass?: boolean;
-  auto_unlock_at?: string;
 }
 
 export type EvidenceMode = "anchor_window" | "pre_loss" | "audit";

@@ -334,7 +334,7 @@ function RuntimeNavExtras() {
   const [monitoringOpen, setMonitoringOpen] = useState(false);
   const { contest, refreshContest } = useContest();
   const monitoringReminder = useExamMonitoringStatus();
-  const { timeLeft, isCountdownToStart, unlockTimeLeft } = useContestTimers({
+  const { timeLeft, isCountdownToStart } = useContestTimers({
     contest,
     contestId: contest?.id,
     refreshContest,
@@ -373,7 +373,6 @@ function RuntimeNavExtras() {
           aria-label={monitoringLabel}
           title={[
             monitoringLabel,
-            unlockTimeLeft ? unlockTimeLeft : null,
             monitoringReminder?.countdownSeconds != null
               ? `${monitoringReminder.countdownSeconds}s`
               : null,

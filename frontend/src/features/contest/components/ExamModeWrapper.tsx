@@ -9,7 +9,6 @@ import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore"
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { ExamOverlays } from "@/features/contest/components/exam/ExamOverlays";
 import { ExamModals } from "@/features/contest/components/exam/ExamModals";
-import { useContestTimers } from "@/features/contest/hooks/useContestTimers";
 import { useExamState } from "@/features/contest/hooks/useExamState";
 import { useExamMonitoring } from "@/features/contest/hooks/useExamMonitoring";
 import { useExamHeartbeat } from "@/features/contest/hooks/useExamHeartbeat";
@@ -925,17 +924,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           "iPad 監考必須以主畫面啟動的 PWA 模式作答，請返回儀表板重新開啟。",
         )
       : examState.lockReason;
-  const { unlockTimeLeft } = useContestTimers({
-    contest: null,
-    contestId,
-    refreshContest: onRefresh,
-    enableMainCountdown: false,
-    autoUnlockAt: shouldShowLockScreen
-      ? (examState.autoUnlockAt ?? null)
-      : null,
-    examStatus: examStatus ?? null,
-  });
-
   const monitoringReminder = useMemo<ExamMonitoringReminder | null>(() => {
     if (shouldShowPolicyUnavailableScreen) {
       return {
@@ -999,7 +987,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
             gracePeriodCountdown={0}
             showLockScreen={shouldShowLockScreen}
             lockReason={lockReasonText}
-            timeLeft={unlockTimeLeft}
             onBackToContest={handleBackToContest}
           />
           <ExamModals

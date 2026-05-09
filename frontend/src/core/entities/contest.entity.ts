@@ -324,8 +324,6 @@ export interface ContestDetail extends Contest {
   // Advanced settings
   allowMultipleJoins: boolean;
   maxCheatWarnings: number;
-  allowAutoUnlock: boolean;
-  autoUnlockMinutes: number;
 
   // Results
   resultsPublished: boolean;
@@ -335,8 +333,6 @@ export interface ContestDetail extends Contest {
   questionEditLockedAt?: string | null;
   questionEditLockTrigger?: "coding_submission" | "exam_answer" | null;
 
-  // Legacy alias (kept for backward compatibility)
-  isExamQuestionsFrozen?: boolean;
   examQuestionsCount: number;
 
   // User specific extended state
@@ -350,7 +346,6 @@ export interface ContestDetail extends Contest {
   assignmentState?: AssignmentState | null;
   acceptedAt?: string | null;
   submittedAt?: string | null;
-  autoUnlockAt?: string; // Auto-unlock time when locked
 
   // SSoT computed flags from backend
   isExamMonitored: boolean;
@@ -489,8 +484,6 @@ export interface ContestAnticheatEffectiveConfig {
   cheatDetectionEnabled: boolean;
   allowMultipleJoins: boolean;
   maxCheatWarnings: number;
-  allowAutoUnlock: boolean;
-  autoUnlockMinutes: number;
   contestType: ContestType;
   anticheatDevicePolicy: ContestAnticheatDevicePolicy;
 }
@@ -502,8 +495,6 @@ export interface ContestAnticheatConfig {
     | "cheatDetectionEnabled"
     | "allowMultipleJoins"
     | "maxCheatWarnings"
-    | "allowAutoUnlock"
-    | "autoUnlockMinutes"
     | "contestType"
     | "anticheatDevicePolicy"
   >;
@@ -512,8 +503,6 @@ export interface ContestAnticheatConfig {
     | "cheatDetectionEnabled"
     | "allowMultipleJoins"
     | "maxCheatWarnings"
-    | "allowAutoUnlock"
-    | "autoUnlockMinutes"
     | "contestType"
     | "warningTimeoutSeconds"
     | "screenShareRecoveryGraceMs"
@@ -572,16 +561,6 @@ export interface ExamEvent {
   metadata?: Record<string, unknown>;
 }
 
-export interface ExamEventStats {
-  userId: string;
-  userName: string;
-  tabHiddenCount: number;
-  windowBlurCount: number;
-  exitFullscreenCount: number;
-  forbiddenFocusEventCount: number;
-  totalViolations: number;
-}
-
 export type ExamQuestionType =
   | "true_false"
   | "single_choice"
@@ -638,7 +617,6 @@ export interface ExamModeState {
   startTime?: Date;
   violationCount?: number;
   maxWarnings?: number;
-  autoUnlockAt?: string;
 }
 
 export interface ContestUpdateRequest {
@@ -658,8 +636,6 @@ export interface ContestUpdateRequest {
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;
-  allowAutoUnlock?: boolean;
-  autoUnlockMinutes?: number;
   resultsPublished?: boolean;
   countsTowardGrade?: boolean;
 }

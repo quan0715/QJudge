@@ -29,20 +29,6 @@ ACTIVE_EXAM_STATUSES = {
 }
 
 
-def get_auto_unlock_at(participant: ContestParticipant):
-    """Return the scheduled unlock time for a locked participant."""
-    contest = participant.contest
-    if (
-        participant.exam_status != ExamStatus.LOCKED
-        or not participant.locked_at
-        or not contest.allow_auto_unlock
-    ):
-        return None
-
-    minutes = contest.auto_unlock_minutes or 0
-    return participant.locked_at + timezone.timedelta(minutes=minutes)
-
-
 def unlock_participant(
     participant: ContestParticipant,
     *,
@@ -262,15 +248,6 @@ def reconcile_participant_on_contest_access(
     one service boundary.
     """
     now = now or timezone.now()
-    auto_unlock_at = get_auto_unlock_at(participant)
-
-    if auto_unlock_at and now >= auto_unlock_at:
-        participant = unlock_participant(
-            participant,
-            activity_user=activity_user,
-            activity_details="Auto-unlocked by system",
-        )
-
     contest = participant.contest
     if (
         contest.status == "published"

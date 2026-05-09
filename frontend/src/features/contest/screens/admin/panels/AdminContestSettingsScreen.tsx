@@ -253,8 +253,6 @@ const ContestSettingsOverlay = ({ open, onClose }: ContestSettingsOverlayProps) 
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
       maxCheatWarnings: contest.maxCheatWarnings ?? 0,
-      allowAutoUnlock: contest.allowAutoUnlock ?? false,
-      autoUnlockMinutes: contest.autoUnlockMinutes ?? 5,
     });
     if (contest.startTime) {
       const startDate = parseDate(contest.startTime);

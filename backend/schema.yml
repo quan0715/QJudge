@@ -6861,15 +6861,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
         status:
           allOf:
           - $ref: '#/components/schemas/StatusDaeEnum'
@@ -6981,15 +6972,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
         status:
           allOf:
           - $ref: '#/components/schemas/StatusDaeEnum'
@@ -7158,9 +7140,6 @@ components:
         submitted_at:
           type: string
           readOnly: true
-        auto_unlock_at:
-          type: string
-          readOnly: true
         problems:
           type: string
           readOnly: true
@@ -7171,15 +7150,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
         anonymous_mode_enabled:
           type: boolean
           title: 啟用匿名模式
@@ -7229,7 +7199,6 @@ components:
       - accepted_at
       - admins
       - assignment_state
-      - auto_unlock_at
       - bound_classroom_id
       - can_submit_exam
       - created_at
@@ -7352,15 +7321,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
         anonymous_mode_enabled:
           type: boolean
           title: 啟用匿名模式
@@ -8431,15 +8391,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
         status:
           allOf:
           - $ref: '#/components/schemas/StatusDaeEnum'
@@ -8550,15 +8501,6 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
-        allow_auto_unlock:
-          type: boolean
-          title: 允許自動解鎖
-        auto_unlock_minutes:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: 自動解鎖時間 (分鐘)
         anonymous_mode_enabled:
           type: boolean
           title: 啟用匿名模式

@@ -2,7 +2,7 @@
 Tests for exam anti-cheat API logic.
 
 Covers violation counting, auto-lock, warning timeout, force-submit,
-event logging for all participant roles, and auto-unlock eligibility checks.
+and event logging for all participant roles.
 """
 from datetime import datetime, timedelta
 from unittest.mock import patch
@@ -77,7 +77,6 @@ class ExamAntiCheatTests(APITestCase):
             status="published",
             cheat_detection_enabled=True,
             max_cheat_warnings=3,
-            allow_auto_unlock=False,
         )
         self.contest.admins.add(self.co_owner)
 
@@ -613,18 +612,13 @@ class ExamAntiCheatTests(APITestCase):
     # ------------------------------------------------------------------
     # 6. Critical monitoring failures pause for pre-check instead of locking
     # ------------------------------------------------------------------
-    def test_heartbeat_timeout_pauses_for_precheck_without_auto_unlock(self):
-        self.contest.allow_auto_unlock = True
-        self.contest.auto_unlock_minutes = 5
-        self.contest.save()
-
+    def test_heartbeat_timeout_pauses_for_precheck(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self.events_url, {"event_type": "heartbeat_timeout"})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertFalse(resp.data["locked"])
         self.assertEqual(resp.data["exam_status"], ExamStatus.PAUSED)
-        self.assertIsNone(resp.data.get("auto_unlock_at"))
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
         self.assertIn("pre-check", self.participant.lock_reason)
@@ -749,30 +743,9 @@ class ExamAntiCheatTests(APITestCase):
         )
 
     # ------------------------------------------------------------------
-    # 8. check_force_submit skips auto-unlock-eligible participants
-    # ------------------------------------------------------------------
-    def test_check_force_submit_skips_auto_unlock_eligible(self):
-        self.contest.allow_auto_unlock = True
-        self.contest.auto_unlock_minutes = 1  # 60s < 180s threshold
-        self.contest.save()
-
-        self.participant.exam_status = ExamStatus.LOCKED
-        self.participant.locked_at = timezone.now() - timedelta(minutes=4)
-        self.participant.save()
-
-        result = check_force_submit_locked()
-
-        # Participant should still be locked (skipped by force-submit)
-        self.participant.refresh_from_db()
-        self.assertEqual(self.participant.exam_status, ExamStatus.LOCKED)
-
-    # ------------------------------------------------------------------
-    # 9. check_force_submit processes eligible participant
+    # 8. check_force_submit processes eligible participant
     # ------------------------------------------------------------------
     def test_check_force_submit_processes_eligible(self):
-        self.contest.allow_auto_unlock = False
-        self.contest.save()
-
         self.participant.exam_status = ExamStatus.LOCKED
         self.participant.locked_at = timezone.now() - timedelta(minutes=4)
         self.participant.save()

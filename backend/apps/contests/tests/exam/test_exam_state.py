@@ -23,8 +23,6 @@ class ExamStateTests(APITestCase):
             visibility='public',
             status='published',
             cheat_detection_enabled=True,
-            allow_auto_unlock=True,
-            auto_unlock_minutes=10
         )
         
         # Register user
@@ -153,23 +151,5 @@ class ExamStateTests(APITestCase):
         
         p.refresh_from_db()
         self.assertFalse(p.exam_status == ExamStatus.SUBMITTED)
-        self.assertTrue(p.exam_status == ExamStatus.PAUSED)
-        self.assertEqual(p.exam_status, ExamStatus.PAUSED)
-
-    def test_auto_unlock_retrieve(self):
-        # Lock user with past timestamp
-        p = ContestParticipant.objects.get(user=self.user, contest=self.contest)
-        p.exam_status = ExamStatus.LOCKED
-        p.locked_at = timezone.now() - timedelta(minutes=20) # 20 mins ago, auto unlock is 10 mins
-        p.save()
-        
-        # User checks contest details (retrieve)
-        self.client.force_authenticate(user=self.user)
-        url = reverse('contests:contest-detail', args=[self.contest.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
-        p.refresh_from_db()
-        self.assertFalse(p.exam_status == ExamStatus.LOCKED)
         self.assertTrue(p.exam_status == ExamStatus.PAUSED)
         self.assertEqual(p.exam_status, ExamStatus.PAUSED)

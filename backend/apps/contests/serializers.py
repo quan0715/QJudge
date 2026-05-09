@@ -106,7 +106,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     assignment_state = serializers.SerializerMethodField()
     accepted_at = serializers.SerializerMethodField()
     submitted_at = serializers.SerializerMethodField()
-    auto_unlock_at = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
     admins = serializers.SerializerMethodField()
@@ -165,12 +164,9 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'assignment_state',
             'accepted_at',
             'submitted_at',
-            'auto_unlock_at',
             'problems',
             'allow_multiple_joins',
             'max_cheat_warnings',
-            'allow_auto_unlock',
-            'auto_unlock_minutes',
             'participant_count',
             'admins',
             'is_classroom_bound',
@@ -240,17 +236,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     def get_submitted_at(self, obj):
         registration = self._get_current_registration(obj)
         return registration.submitted_at if registration else None
-    
-    def get_auto_unlock_at(self, obj):
-        """Calculate auto unlock time for current user if locked."""
-        registration = self._get_current_registration(obj)
-        if not registration or registration.exam_status != ExamStatus.LOCKED:
-            return None
-        if not registration.locked_at or not obj.allow_auto_unlock:
-            return None
-        
-        minutes = obj.auto_unlock_minutes or 0
-        return registration.locked_at + timezone.timedelta(minutes=minutes)
     
     def get_current_user_role(self, obj):
         """Get user's role in this contest."""
@@ -421,8 +406,6 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'scoreboard_visible_during_contest',
             'allow_multiple_joins',
             'max_cheat_warnings',
-            'allow_auto_unlock',
-            'auto_unlock_minutes',
             'status',
             'results_published',
         ]
@@ -1005,15 +988,12 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     live_monitoring_online = serializers.SerializerMethodField()
     live_monitoring_sources = serializers.SerializerMethodField()
     
-    auto_unlock_at = serializers.SerializerMethodField()
-    remaining_unlock_seconds = serializers.SerializerMethodField()
-    
     class Meta:
         model = ContestParticipant
         fields = [
             'user_id', 'username', 'user', 'score', 'total_score', 'rank', 
             'joined_at', 'exam_status',
-            'lock_reason', 'violation_count', 'submit_reason', 'auto_unlock_at', 'remaining_unlock_seconds',
+            'lock_reason', 'violation_count', 'submit_reason',
             'display_name', 'account_role', 'auth_provider',
             'connection_status', 'last_heartbeat_at', 'live_monitoring_online', 'live_monitoring_sources',
         ]
@@ -1106,26 +1086,6 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     def get_display_name(self, obj):
         profile = getattr(obj.user, 'profile', None)
         return getattr(profile, 'display_name', '') or ""
-
-    def get_auto_unlock_at(self, obj):
-        """Calculate auto unlock time if applicable."""
-        if obj.exam_status != ExamStatus.LOCKED or not obj.locked_at or not obj.contest.allow_auto_unlock:
-            return None
-        
-        minutes = obj.contest.auto_unlock_minutes or 0
-        return obj.locked_at + timezone.timedelta(minutes=minutes)
-
-    def get_remaining_unlock_seconds(self, obj):
-        """Calculate remaining seconds until auto unlock."""
-        unlock_at = self.get_auto_unlock_at(obj)
-        if not unlock_at:
-            return None
-            
-        now = timezone.now()
-        if now >= unlock_at:
-            return 0
-            
-        return int((unlock_at - now).total_seconds())
 
 # ============================================================================
 # Exam Answer Serializers

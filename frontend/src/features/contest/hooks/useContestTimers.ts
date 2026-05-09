@@ -8,10 +8,6 @@ interface UseContestTimersParams {
   refreshContest?: () => Promise<void> | void;
   /** Disable main contest countdown computation (e.g., non-layout consumers) */
   enableMainCountdown?: boolean;
-  /** Optional override for autoUnlockAt when contest data is unavailable */
-  autoUnlockAt?: string | null;
-  /** Optional override for exam status (for non-contest consumers) */
-  examStatus?: string | null;
 }
 
 const DEFAULT_TIME = "00:00:00";
@@ -36,14 +32,10 @@ export const useContestTimers = ({
   contestId,
   refreshContest,
   enableMainCountdown = true,
-  autoUnlockAt,
-  examStatus,
 }: UseContestTimersParams) => {
   const [timeLeft, setTimeLeft] = useState(DEFAULT_TIME);
   const [isCountdownToStart, setIsCountdownToStart] = useState(false);
-  const [unlockTimeLeft, setUnlockTimeLeft] = useState<string | null>(null);
   const hasRefreshedForTimerExpiration = useRef(false);
-  const hasRefreshedForUnlock = useRef(false);
 
   const updateContestCountdown = useCallback(() => {
     if (!enableMainCountdown || !contest?.startTime || !contest?.endTime) {
@@ -75,42 +67,8 @@ export const useContestTimers = ({
     setTimeLeft(formatTime(diff));
   }, [contest, enableMainCountdown, refreshContest]);
 
-  const updateUnlockCountdown = useCallback(() => {
-    const effectiveStatus = examStatus ?? contest?.examStatus;
-    const effectiveAutoUnlockAt =
-      autoUnlockAt !== undefined ? autoUnlockAt : contest?.autoUnlockAt;
-
-    if (
-      !effectiveStatus ||
-      effectiveStatus !== "locked" ||
-      !effectiveAutoUnlockAt
-    ) {
-      setUnlockTimeLeft(null);
-      hasRefreshedForUnlock.current = false;
-      return;
-    }
-
-    const now = Date.now();
-    const unlockTime = new Date(effectiveAutoUnlockAt).getTime();
-    const diff = unlockTime - now;
-
-    if (diff <= 0) {
-      setUnlockTimeLeft(DEFAULT_TIME);
-      if (!hasRefreshedForUnlock.current) {
-        hasRefreshedForUnlock.current = true;
-        if (refreshContest) {
-          void refreshContest();
-        }
-      }
-      return;
-    }
-
-    setUnlockTimeLeft(formatTime(diff));
-  }, [autoUnlockAt, contest, examStatus, refreshContest]);
-
   useEffect(() => {
     hasRefreshedForTimerExpiration.current = false;
-    hasRefreshedForUnlock.current = false;
   }, [contestId]);
 
   useEffect(() => {
@@ -118,22 +76,12 @@ export const useContestTimers = ({
     return () => clearTimeout(timerId);
   }, [updateContestCountdown]);
 
-  useEffect(() => {
-    const timerId = setTimeout(updateUnlockCountdown, 0);
-    return () => clearTimeout(timerId);
-  }, [updateUnlockCountdown]);
-
   useInterval(() => {
     updateContestCountdown();
   }, contest && enableMainCountdown ? 1000 : null);
 
-  useInterval(() => {
-    updateUnlockCountdown();
-  }, contest?.examStatus === "locked" && contest?.autoUnlockAt ? 1000 : null);
-
   return {
     timeLeft,
     isCountdownToStart,
-    unlockTimeLeft,
   };
 };

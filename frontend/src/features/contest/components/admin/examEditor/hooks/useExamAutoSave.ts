@@ -48,8 +48,6 @@ const FIELD_NAME_MAP: Record<string, keyof ContestUpdatePayload> = {
   scoreboardVisibleDuringContest: "scoreboardVisibleDuringContest",
   maxCheatWarnings: "maxCheatWarnings",
   allowMultipleJoins: "allowMultipleJoins",
-  allowAutoUnlock: "allowAutoUnlock",
-  autoUnlockMinutes: "autoUnlockMinutes",
 };
 
 export function useExamAutoSave({

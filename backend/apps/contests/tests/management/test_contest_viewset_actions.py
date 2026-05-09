@@ -100,34 +100,6 @@ def test_partial_update_logs_activity(
     ).exists()
 
 
-@pytest.mark.django_db
-def test_retrieve_auto_unlocks_locked_participant(
-    api_client: APIClient,
-    contest: Contest,
-    student: User,
-) -> None:
-    contest.allow_auto_unlock = True
-    contest.auto_unlock_minutes = 1
-    contest.end_time = timezone.now() + timedelta(hours=2)
-    contest.save(update_fields=["allow_auto_unlock", "auto_unlock_minutes", "end_time"])
-
-    participant = ContestParticipant.objects.create(
-        contest=contest,
-        user=student,
-        exam_status=ExamStatus.LOCKED,
-        locked_at=timezone.now() - timedelta(minutes=3),
-        violation_count=3,
-        lock_reason="focus lost",
-    )
-
-    api_client.force_authenticate(user=student)
-    response = api_client.get(f"/api/v1/contests/{contest.id}/")
-
-    assert response.status_code == status.HTTP_200_OK
-    participant.refresh_from_db()
-    assert participant.exam_status == ExamStatus.PAUSED
-    assert participant.locked_at is None
-    assert participant.violation_count == 3
     assert participant.lock_reason == ""
 
 

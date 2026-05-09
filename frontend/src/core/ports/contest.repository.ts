@@ -202,6 +202,4 @@ export interface ContestUpdatePayload {
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;
-  allowAutoUnlock?: boolean;
-  autoUnlockMinutes?: number;
 }

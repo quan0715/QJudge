@@ -421,7 +421,6 @@ int main() {
                 'contest_type': 'paper_exam',
                 'cheat_detection_enabled': True,
                 'max_cheat_warnings': 2,
-                'allow_auto_unlock': False,
             }
         )
 

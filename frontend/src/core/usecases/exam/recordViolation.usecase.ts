@@ -31,7 +31,6 @@ export interface RecordViolationOutput {
   success: boolean;
   violationCount: number;
   maxWarnings: number;
-  autoUnlockAt?: string;
   isLocked: boolean;
   bypass: boolean;
   error?: string;
@@ -56,7 +55,6 @@ export async function recordViolationUseCase(
       const {
         violation_count = 0,
         max_cheat_warnings = 0,
-        auto_unlock_at,
         bypass = false,
         locked = false,
       } = response;
@@ -65,7 +63,6 @@ export async function recordViolationUseCase(
         success: true,
         violationCount: violation_count,
         maxWarnings: max_cheat_warnings,
-        autoUnlockAt: auto_unlock_at,
         isLocked: locked,
         bypass,
       };

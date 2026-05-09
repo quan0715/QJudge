@@ -4,9 +4,7 @@ import {
   type ContestDetail,
   type ContestProblemSummary,
   type ScoreboardData,
-  type ScoreboardRow,
   type ExamEvent,
-  type ExamEventStats,
   type ExamQuestion,
   type ContestParticipant,
   type EventFeedItem,
@@ -35,7 +33,6 @@ import type {
   ContestOverviewMetricsDto,
   ContestParticipantDto,
   ParticipantDashboardDto,
-  ScoreboardRowDto,
   ScoreboardDto,
   AnticheatDevicePolicyDto,
   ParticipantDashboardStatusDto,
@@ -47,7 +44,78 @@ import type {
 
 const FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS = 30_000;
 
-export function mapContestProblemSummaryDto(
+const ensureObject = (
+  value: unknown,
+  path: string,
+): Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(
+      `Invalid anti-cheat config payload: ${path} must be an object`,
+    );
+  }
+  return value as Record<string, unknown>;
+};
+
+const ensureNumber = (
+  obj: Record<string, unknown>,
+  key: string,
+  path: string,
+): number => {
+  const value = obj[key];
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(
+      `Invalid anti-cheat config payload: ${path}.${key} must be a number`,
+    );
+  }
+  return value;
+};
+
+const ensureBoolean = (
+  obj: Record<string, unknown>,
+  key: string,
+  path: string,
+): boolean => {
+  const value = obj[key];
+  if (typeof value !== "boolean") {
+    throw new Error(
+      `Invalid anti-cheat config payload: ${path}.${key} must be a boolean`,
+    );
+  }
+  return value;
+};
+
+const ensureString = (
+  obj: Record<string, unknown>,
+  key: string,
+  path: string,
+): string => {
+  const value = obj[key];
+  if (typeof value !== "string") {
+    throw new Error(
+      `Invalid anti-cheat config payload: ${path}.${key} must be a string`,
+    );
+  }
+  return value;
+};
+
+const ensureStringArray = (
+  obj: Record<string, unknown>,
+  key: string,
+  path: string,
+): string[] => {
+  const value = obj[key];
+  if (
+    !Array.isArray(value) ||
+    value.some((item) => typeof item !== "string")
+  ) {
+    throw new Error(
+      `Invalid anti-cheat config payload: ${path}.${key} must be string[]`,
+    );
+  }
+  return value;
+};
+
+function mapContestProblemSummaryDto(
   dto: ContestProblemSummaryDto,
 ): ContestProblemSummary {
   const resolvedMaxScore = dto.max_score ?? dto.score;
@@ -120,15 +188,10 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
 
     allowMultipleJoins: !!dto.allow_multiple_joins,
     maxCheatWarnings: dto.max_cheat_warnings || 0,
-    allowAutoUnlock: !!dto.allow_auto_unlock,
-    autoUnlockMinutes: dto.auto_unlock_minutes || 0,
     resultsPublished: !!dto.results_published,
     questionEditLocked: !!dto.question_edit_locked,
     questionEditLockedAt: dto.question_edit_locked_at ?? null,
     questionEditLockTrigger: dto.question_edit_lock_trigger ?? null,
-    isExamQuestionsFrozen: !!(
-      dto.question_edit_locked ?? dto.is_exam_questions_frozen
-    ),
     examQuestionsCount: dto.exam_questions_count ?? 0,
 
     hasStarted: !!dto.has_started,
@@ -141,7 +204,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     assignmentState: (dto.assignment_state as any) ?? null,
     acceptedAt: dto.accepted_at ?? null,
     submittedAt: dto.submitted_at ?? null,
-    autoUnlockAt: dto.auto_unlock_at,
 
     // SSoT computed flags
     isExamMonitored: !!dto.is_exam_monitored,
@@ -189,7 +251,7 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
   };
 }
 
-export function mapAnticheatDevicePolicyDto(
+function mapAnticheatDevicePolicyDto(
   value: AnticheatDevicePolicyDto | undefined,
 ): ContestAnticheatDevicePolicy {
   const root = value || {};
@@ -306,77 +368,6 @@ export function mapContestOverviewMetricsDto(
 }
 
 export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
-  const ensureObject = (
-    value: unknown,
-    path: string,
-  ): Record<string, unknown> => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new Error(
-        `Invalid anti-cheat config payload: ${path} must be an object`,
-      );
-    }
-    return value as Record<string, unknown>;
-  };
-
-  const ensureNumber = (
-    obj: Record<string, unknown>,
-    key: string,
-    path: string,
-  ): number => {
-    const value = obj[key];
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      throw new Error(
-        `Invalid anti-cheat config payload: ${path}.${key} must be a number`,
-      );
-    }
-    return value;
-  };
-
-  const ensureBoolean = (
-    obj: Record<string, unknown>,
-    key: string,
-    path: string,
-  ): boolean => {
-    const value = obj[key];
-    if (typeof value !== "boolean") {
-      throw new Error(
-        `Invalid anti-cheat config payload: ${path}.${key} must be a boolean`,
-      );
-    }
-    return value;
-  };
-
-  const ensureString = (
-    obj: Record<string, unknown>,
-    key: string,
-    path: string,
-  ): string => {
-    const value = obj[key];
-    if (typeof value !== "string") {
-      throw new Error(
-        `Invalid anti-cheat config payload: ${path}.${key} must be a string`,
-      );
-    }
-    return value;
-  };
-
-  const ensureStringArray = (
-    obj: Record<string, unknown>,
-    key: string,
-    path: string,
-  ): string[] => {
-    const value = obj[key];
-    if (
-      !Array.isArray(value) ||
-      value.some((item) => typeof item !== "string")
-    ) {
-      throw new Error(
-        `Invalid anti-cheat config payload: ${path}.${key} must be string[]`,
-      );
-    }
-    return value;
-  };
-
   const mapSetting = (item: unknown) => {
     const parsed = ensureObject(item, "frontend_controlled_settings item");
     return {
@@ -526,16 +517,6 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
         "max_cheat_warnings",
         "contest_settings",
       ),
-      allowAutoUnlock: ensureBoolean(
-        contestSettings,
-        "allow_auto_unlock",
-        "contest_settings",
-      ),
-      autoUnlockMinutes: ensureNumber(
-        contestSettings,
-        "auto_unlock_minutes",
-        "contest_settings",
-      ),
       contestType:
         ensureString(contestSettings, "contest_type", "contest_settings") ===
         "paper_exam"
@@ -646,16 +627,6 @@ export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
       maxCheatWarnings: ensureNumber(
         effective,
         "max_cheat_warnings",
-        "effective",
-      ),
-      allowAutoUnlock: ensureBoolean(
-        effective,
-        "allow_auto_unlock",
-        "effective",
-      ),
-      autoUnlockMinutes: ensureNumber(
-        effective,
-        "auto_unlock_minutes",
         "effective",
       ),
       contestType:
@@ -914,18 +885,6 @@ export function mapParticipantDashboardDto(
   };
 }
 
-export function mapScoreboardRowDto(dto: ScoreboardRowDto): ScoreboardRow {
-  return {
-    userId: dto.user_id?.toString() || "",
-    displayName: dto.display_name || "",
-    solvedCount: dto.solved_count || 0,
-    totalScore: dto.total_score || 0,
-    penalty: dto.penalty || 0,
-    rank: dto.rank || 0,
-    problems: dto.problems || {},
-  };
-}
-
 export function mapScoreboardDto(dto: ScoreboardDto): ScoreboardData {
   const standings = dto.standings || dto.rows || [];
 
@@ -1012,18 +971,6 @@ export function mapContestAnnouncementDto(dto: {
     createdBy: dto.created_by?.username || "Admin",
     createdAt: dto.created_at || "",
     updatedAt: dto.updated_at || "",
-  };
-}
-
-export function mapExamEventStatsDto(dto: any): ExamEventStats {
-  return {
-    userId: dto.user_id?.toString() || "",
-    userName: dto.user_name || "",
-    tabHiddenCount: dto.tab_hidden_count || 0,
-    windowBlurCount: dto.window_blur_count || 0,
-    exitFullscreenCount: dto.exit_fullscreen_count || 0,
-    forbiddenFocusEventCount: dto.forbidden_focus_event_count || 0,
-    totalViolations: dto.total_violations || 0,
   };
 }
 
@@ -1152,8 +1099,6 @@ export function mapContestUpdateRequestToDto(
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     allow_multiple_joins: request.allowMultipleJoins,
     max_cheat_warnings: request.maxCheatWarnings,
-    allow_auto_unlock: request.allowAutoUnlock,
-    auto_unlock_minutes: request.autoUnlockMinutes,
     results_published: request.resultsPublished,
     counts_toward_grade: request.countsTowardGrade,
   };

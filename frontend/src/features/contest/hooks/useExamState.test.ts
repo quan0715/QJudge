@@ -62,7 +62,6 @@ describe("useExamState", () => {
     const mockResponse = {
       violation_count: 1,
       max_cheat_warnings: 3,
-      auto_unlock_at: undefined,
       bypass: false,
     };
     vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue(mockResponse);

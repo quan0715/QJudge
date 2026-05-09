@@ -32,8 +32,6 @@ function useFormState() {
     scoreboardVisibleDuringContest: mockContest.scoreboardVisibleDuringContest,
     allowMultipleJoins: mockContest.allowMultipleJoins,
     maxCheatWarnings: mockContest.maxCheatWarnings,
-    allowAutoUnlock: mockContest.allowAutoUnlock,
-    autoUnlockMinutes: mockContest.autoUnlockMinutes,
   });
 
   const onChange = (field: string, value: unknown) => {
@@ -207,7 +205,7 @@ export const CheatDetection: Story = {
   parameters: {
     docs: {
       description: {
-        story: "作弊檢查 panel：主開關、裝置政策 (Desktop/Tablet)、證據來源與自動解鎖。",
+        story: "作弊檢查 panel：主開關、裝置政策 (Desktop/Tablet)、證據來源與人工介入流程。",
       },
     },
   },

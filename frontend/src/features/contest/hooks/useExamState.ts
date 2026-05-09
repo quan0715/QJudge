@@ -73,7 +73,6 @@ export function useExamState({
         submit_reason?: string;
         violation_count?: number;
         max_cheat_warnings?: number;
-        auto_unlock_at?: string;
         bypass?: boolean;
       }
     | null
@@ -207,7 +206,6 @@ export function useExamState({
               ...prev,
               violationCount: response.violation_count ?? prev.violationCount,
               maxWarnings: response.max_cheat_warnings ?? prev.maxWarnings,
-              autoUnlockAt: response.auto_unlock_at,
               isLocked:
                 response.exam_status === "locked" || !!response.locked || prev.isLocked,
             }));
