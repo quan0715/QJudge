@@ -65,8 +65,8 @@ def test_teacher_can_get_qr_token() -> None:
     assert response.data["qr_value"].startswith("qj-att:v1:check_in:")
     assert len(response.data["manual_code"]) == 6
     assert response.data["manual_code"].isdigit()
-    assert response.data["refresh_after_seconds"] == 30
-    assert response.data["expires_in_seconds"] == 120
+    assert response.data["refresh_after_seconds"] == 60
+    assert response.data["expires_in_seconds"] == 60
 
 
 @pytest.mark.django_db
