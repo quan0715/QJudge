@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ScaleTypes } from "@carbon/charts";
 import { LollipopChart } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
@@ -204,8 +204,8 @@ export default function StudentContestDashboard({
       const translated = values
         ? t(key, { defaultValue, ...values })
         : t(key, defaultValue);
-      if (typeof translated === "string") return translated;
-      return defaultValue.replace(/{{(\w+)}}/g, (_, name) =>
+      const template = typeof translated === "string" ? translated : defaultValue;
+      return template.replace(/{{(\w+)}}/g, (_, name) =>
         String(values?.[name] ?? ""),
       );
     },
@@ -679,16 +679,16 @@ export default function StudentContestDashboard({
         ]
       : examStatus === "submitted"
         ? [
+            { key: "admin", node: adminAction },
             { key: "report", node: reportAction },
             { key: "attendance", node: attendanceAction },
             { key: "entry", node: entryAction },
-            { key: "admin", node: adminAction },
           ]
         : [
+            { key: "admin", node: adminAction },
             { key: "entry", node: entryAction },
             { key: "attendance", node: attendanceAction },
             { key: "report", node: reportAction },
-            { key: "admin", node: adminAction },
           ];
 
     const actions: Array<{ key: string; node: ReactNode }> = [];
@@ -1218,9 +1218,7 @@ export default function StudentContestDashboard({
 
       <MobileActionFooter>
         {buildActionSetItems().map((item) => (
-          <div key={item.key} className={styles.actionStackItem}>
-            {item.node}
-          </div>
+          <Fragment key={item.key}>{item.node}</Fragment>
         ))}
       </MobileActionFooter>
 

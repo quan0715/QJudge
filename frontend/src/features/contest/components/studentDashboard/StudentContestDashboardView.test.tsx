@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ChangeEventHandler, ReactNode } from "react";
+import type { ChangeEventHandler, ComponentProps, ReactNode } from "react";
 import type {
   ContestDetail,
 } from "@/core/entities/contest.entity";
@@ -251,24 +251,27 @@ const createContest = (
 
 const renderDashboard = (
   contest: ContestDetail,
+  props: Partial<ComponentProps<typeof StudentContestDashboard>> = {},
 ) =>
   render(
     <MemoryRouter>
       <StudentContestDashboard
         contest={contest}
+        {...props}
       />
     </MemoryRouter>,
   );
 
 const renderDashboardAtContestRoute = (
   contest: ContestDetail,
+  props: Partial<ComponentProps<typeof StudentContestDashboard>> = {},
 ) =>
   render(
     <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1"]}>
       <Routes>
         <Route
           path="/classrooms/:classroomId/contest/:contestId"
-          element={<StudentContestDashboard contest={contest} />}
+          element={<StudentContestDashboard contest={contest} {...props} />}
         />
       </Routes>
     </MemoryRouter>,
@@ -513,6 +516,25 @@ describe("StudentContestDashboard", () => {
 
     expect(screen.getByRole("button", { name: /下載作答證明/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /重新加入/ })).toBeInTheDocument();
+  });
+
+  it("preserves admin panel action when the action list is capped", () => {
+    renderDashboard(
+      createContest({
+        startTime: "2000-05-05T10:00:00.000Z",
+        endTime: "2099-05-05T12:00:00.000Z",
+        examStatus: "submitted",
+        allowMultipleJoins: true,
+      }),
+      {
+        isAdmin: true,
+        onOpenAdminPanel: vi.fn(),
+      },
+    );
+
+    expect(screen.getByRole("button", { name: /管理後台/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /下載作答證明/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /重新加入/ })).not.toBeInTheDocument();
   });
 
   it("renders published paper exam score from answer results", async () => {
