@@ -5,6 +5,7 @@ import {
   type ScoreboardData,
   type ExamEvent,
   type ExamQuestion,
+  type ExamQuestionType,
   type ContestParticipant,
   type Clarification,
   type ContestAnnouncement,
@@ -17,6 +18,7 @@ import type {
   ContestDetailDto,
   ContestOverviewMetricsDto,
   ContestParticipantDto,
+  ExamQuestionDto,
   ScoreboardDto,
 } from "@/infrastructure/api/dto/contest.dto";
 import {
@@ -314,11 +316,11 @@ export function mapContestAnnouncementDto(dto: {
   };
 }
 
-export function mapExamQuestionDto(dto: any): ExamQuestion {
+export function mapExamQuestionDto(dto: ExamQuestionDto): ExamQuestion {
   return {
     id: dto.id?.toString() || "",
     contestId: dto.contest?.toString() || "",
-    questionType: dto.question_type || "essay",
+    questionType: (dto.question_type || "essay") as ExamQuestionType,
     prompt: dto.prompt || "",
     options: Array.isArray(dto.options)
       ? dto.options.map((item: unknown) => String(item))

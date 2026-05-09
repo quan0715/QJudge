@@ -163,7 +163,9 @@ export function mapAnticheatDevicePolicyDto(
   };
 }
 
-export function mapContestAnticheatConfigDto(dto: any): ContestAnticheatConfig {
+export function mapContestAnticheatConfigDto(
+  dto: unknown,
+): ContestAnticheatConfig {
   const mapSetting = (item: unknown) => {
     const parsed = ensureObject(item, "frontend_controlled_settings item");
     return {
