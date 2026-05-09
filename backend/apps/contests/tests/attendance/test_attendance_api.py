@@ -6,12 +6,23 @@ import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ExamEvent, ExamEvidenceFrame, ExamStatus
+from apps.contests.models import (
+    Contest,
+    ContestActivity,
+    ContestParticipant,
+    ExamAnswer,
+    ExamEvent,
+    ExamEvidenceFrame,
+    ExamQuestion,
+    ExamStatus,
+)
 from apps.contests.services.attendance import (
     build_attendance_status,
     build_participant_attendance_summary,
     create_attendance_token,
 )
+from apps.problems.models import Problem
+from apps.submissions.models import Submission
 from apps.users.models import User
 
 
@@ -156,7 +167,7 @@ def test_student_self_scan_rejects_wrong_manual_code_purpose() -> None:
 
 
 @pytest.mark.django_db
-def test_validate_code_endpoint_accepts_valid_code() -> None:
+def test_validate_endpoint_accepts_valid_manual_code() -> None:
     api_client = APIClient()
     teacher = make_user("validate_code_teacher", role="teacher")
     student = make_user("validate_code_student")
@@ -168,7 +179,7 @@ def test_validate_code_endpoint_accepts_valid_code() -> None:
 
     api_client.force_authenticate(user=student)
     response = api_client.post(
-        f"/api/v1/contests/{contest.id}/attendance/validate-code/",
+        f"/api/v1/contests/{contest.id}/attendance/validate/",
         {"purpose": "check_in", "manual_code": manual_code},
         format="json",
     )
@@ -176,10 +187,33 @@ def test_validate_code_endpoint_accepts_valid_code() -> None:
     assert response.status_code == 200
     assert response.data["valid"] is True
     assert response.data["purpose"] == "check_in"
+    assert response.data["credential_source"] == "manual_code"
 
 
 @pytest.mark.django_db
-def test_validate_code_endpoint_rejects_invalid_code() -> None:
+def test_validate_endpoint_accepts_valid_token() -> None:
+    api_client = APIClient()
+    teacher = make_user("validate_token_teacher", role="teacher")
+    student = make_user("validate_token_student")
+    contest = make_contest(owner=teacher)
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
+    token = create_attendance_token(contest, "check_in")
+
+    api_client.force_authenticate(user=student)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/validate/",
+        {"purpose": "check_in", "token": token},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["valid"] is True
+    assert response.data["purpose"] == "check_in"
+    assert response.data["credential_source"] == "qr_token"
+
+
+@pytest.mark.django_db
+def test_validate_endpoint_rejects_invalid_code() -> None:
     api_client = APIClient()
     teacher = make_user("validate_code_reject_teacher", role="teacher")
     student = make_user("validate_code_reject_student")
@@ -188,13 +222,48 @@ def test_validate_code_endpoint_rejects_invalid_code() -> None:
     api_client.force_authenticate(user=student)
 
     response = api_client.post(
-        f"/api/v1/contests/{contest.id}/attendance/validate-code/",
+        f"/api/v1/contests/{contest.id}/attendance/validate/",
         {"purpose": "check_in", "manual_code": "000000"},
         format="json",
     )
 
     assert response.status_code == 400
     assert response.data["code"] == "invalid_attendance_manual_code"
+
+
+@pytest.mark.django_db
+def test_validate_endpoint_rejects_invalid_token() -> None:
+    api_client = APIClient()
+    student = make_user("validate_token_reject_student")
+    contest = make_contest()
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
+    api_client.force_authenticate(user=student)
+
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/validate/",
+        {"purpose": "check_in", "token": "not-a-real-token"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.data["code"] == "invalid_attendance_token"
+
+
+@pytest.mark.django_db
+def test_validate_endpoint_requires_token_or_manual_code() -> None:
+    api_client = APIClient()
+    student = make_user("validate_missing_credential_student")
+    contest = make_contest()
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
+    api_client.force_authenticate(user=student)
+
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/attendance/validate/",
+        {"purpose": "check_in"},
+        format="json",
+    )
+
+    assert response.status_code == 400
 
 
 @pytest.mark.django_db
@@ -500,7 +569,7 @@ def test_room_and_selfie_policy_requires_two_attendance_photos() -> None:
 
 
 @pytest.mark.django_db
-def test_teacher_can_reset_participant_attendance_records() -> None:
+def test_teacher_can_reset_participant_exam_record() -> None:
     api_client = APIClient()
     teacher = make_user("attendance_reset_teacher", role="teacher")
     student = make_user("attendance_reset_student")
@@ -508,7 +577,36 @@ def test_teacher_can_reset_participant_attendance_records() -> None:
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
-        exam_status=ExamStatus.NOT_STARTED,
+        exam_status=ExamStatus.SUBMITTED,
+        score=88,
+        rank=3,
+        started_at=timezone.now() - timedelta(minutes=30),
+        left_at=timezone.now() - timedelta(minutes=5),
+        locked_at=timezone.now() - timedelta(minutes=20),
+        lock_reason="focus lost",
+        violation_count=4,
+        submit_reason="manual submit",
+    )
+    question = ExamQuestion.objects.create(contest=contest, prompt="Q1")
+    ExamAnswer.objects.create(
+        participant=participant,
+        question=question,
+        answer={"selected": "A"},
+        score=1,
+    )
+    problem = Problem.objects.create(
+        created_by=teacher,
+        slug=f"reset-exam-record-problem-{contest.id}",
+    )
+    Submission.objects.create(
+        contest=contest,
+        user=student,
+        problem=problem,
+        source_type="contest",
+        language="python",
+        code="print(1)",
+        status="AC",
+        score=100,
     )
     event = ExamEvent.objects.create(
         contest=contest,
@@ -532,18 +630,35 @@ def test_teacher_can_reset_participant_attendance_records() -> None:
     api_client.force_authenticate(user=teacher)
 
     response = api_client.post(
-        f"/api/v1/contests/{contest.id}/attendance/reset/",
+        f"/api/v1/contests/{contest.id}/participants/reset_exam_record/",
         {"user_id": student.id},
         format="json",
     )
 
     assert response.status_code == 200
+    assert response.data["deleted_answers"] == 1
+    assert response.data["deleted_submissions"] == 1
     assert response.data["deleted_events"] == 1
     assert response.data["attendance_status"]["checkInStatus"] == "missing"
+    assert ExamAnswer.objects.filter(participant=participant).count() == 0
+    assert Submission.objects.filter(contest=contest, user=student).count() == 0
     assert ExamEvent.objects.filter(contest=contest, user=student).count() == 0
     assert ExamEvidenceFrame.objects.filter(contest=contest, user=student).count() == 0
     participant.refresh_from_db()
     assert participant.exam_status == ExamStatus.NOT_STARTED
+    assert participant.score == 0
+    assert participant.rank is None
+    assert participant.started_at is None
+    assert participant.left_at is None
+    assert participant.locked_at is None
+    assert participant.lock_reason == ""
+    assert participant.violation_count == 0
+    assert participant.submit_reason == ""
+    assert ContestActivity.objects.filter(
+        contest=contest,
+        user=teacher,
+        action_type="reset_exam_record",
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -571,4 +686,40 @@ def test_teacher_assisted_check_in_uses_unified_event_endpoint() -> None:
     assert event.event_type == "attendance_check_in"
     assert event.metadata["attendance_mode"] == "teacher_assisted"
     assert event.metadata["assisted_by_user_id"] == teacher.id
-    assert response.data["attendance_status"]["checkInStatus"] == "teacher_assisted"
+    assert response.data["attendance_status"]["checkInStatus"] == "event_created"
+    assert event.metadata["photo_required"] is True
+
+
+@pytest.mark.django_db
+def test_teacher_assisted_check_in_requires_uploaded_evidence_to_be_ready() -> None:
+    teacher = make_user("attendance_assist_ready_teacher", role="teacher")
+    student = make_user("attendance_assist_ready_student")
+    contest = make_contest(owner=teacher)
+    participant = ContestParticipant.objects.create(contest=contest, user=student)
+    event = ExamEvent.objects.create(
+        contest=contest,
+        user=student,
+        event_type="attendance_check_in",
+        metadata={
+            "attendance_purpose": "check_in",
+            "attendance_mode": "teacher_assisted",
+            "assisted_by_user_id": teacher.id,
+            "source_module": "attendance",
+            "photo_required": True,
+            "required_photo_kinds": ["room"],
+        },
+    )
+
+    assert build_attendance_status(contest, participant)["checkInStatus"] == "event_created"
+
+    ExamEvidenceFrame.objects.create(
+        contest=contest,
+        user=student,
+        exam_event=event,
+        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        status=ExamEvidenceFrame.Status.UPLOADED,
+        object_key="teacher-assisted.webp",
+        client_captured_at_ms=1,
+    )
+
+    assert build_attendance_status(contest, participant)["checkInStatus"] == "teacher_assisted"

@@ -1,6 +1,7 @@
 import type { AttendancePurpose } from "@/core/entities/contest.entity";
 
 const QR_PREFIX = "qj-att:v1";
+const STUDENT_LOCATOR_QR_PREFIX = "qj-student:v1";
 
 export interface ParsedAttendanceQr {
   purpose: AttendancePurpose;
@@ -15,4 +16,22 @@ export function parseAttendanceQrValue(value: string): ParsedAttendanceQr | null
   if (purpose !== "check_in" && purpose !== "check_out") return null;
   if (!token) return null;
   return { purpose, token };
+}
+
+export interface ParsedStudentLocatorQr {
+  contestId: string;
+  userId: string;
+}
+
+export function buildStudentLocatorQrValue(contestId: string, userId: string | number): string {
+  return `${STUDENT_LOCATOR_QR_PREFIX}:${contestId}:${userId}`;
+}
+
+export function parseStudentLocatorQrValue(value: string): ParsedStudentLocatorQr | null {
+  const parts = value.trim().split(":");
+  if (parts.length !== 4) return null;
+  const [app, version, contestId, userId] = parts;
+  if (`${app}:${version}` !== STUDENT_LOCATOR_QR_PREFIX) return null;
+  if (!contestId || !userId) return null;
+  return { contestId, userId };
 }

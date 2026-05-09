@@ -2,9 +2,18 @@
 
 from __future__ import annotations
 
+from django.db import transaction
 from django.utils import timezone
 
-from apps.contests.models import ContestActivity, ContestParticipant, ExamStatus
+from apps.contests.models import (
+    AssignmentState,
+    ContestActivity,
+    ContestParticipant,
+    ExamAnswer,
+    ExamEvent,
+    ExamEvidenceFrame,
+    ExamStatus,
+)
 
 from .exam_submission import finalize_submission
 from .anti_cheat_session import (
@@ -159,6 +168,85 @@ def reopen_participant_exam(
     )
 
     return participant
+
+
+def reset_participant_exam_record(
+    participant: ContestParticipant,
+    *,
+    activity_user,
+    activity_details: str,
+) -> dict:
+    """Reset one participant's attempt data while keeping the participant row."""
+    from apps.submissions.models import Submission
+
+    with transaction.atomic():
+        answer_qs = ExamAnswer.objects.filter(participant=participant)
+        deleted_answers = answer_qs.count()
+        answer_qs.delete()
+
+        submission_qs = Submission.objects.filter(
+            contest=participant.contest,
+            user=participant.user,
+        )
+        deleted_submissions = submission_qs.count()
+        submission_qs.delete()
+
+        event_qs = ExamEvent.objects.filter(
+            contest=participant.contest,
+            user=participant.user,
+        )
+        deleted_events = event_qs.count()
+        deleted_evidence = ExamEvidenceFrame.objects.filter(
+            contest=participant.contest,
+            user=participant.user,
+            exam_event__in=event_qs,
+        ).count()
+        event_qs.delete()
+
+        participant.exam_status = ExamStatus.NOT_STARTED
+        participant.assignment_state = AssignmentState.ACCEPTED
+        participant.score = 0
+        participant.rank = None
+        participant.started_at = None
+        participant.left_at = None
+        participant.locked_at = None
+        participant.lock_reason = ""
+        participant.violation_count = 0
+        participant.submit_reason = ""
+        participant.submitted_at = None
+        participant.save(
+            update_fields=[
+                "exam_status",
+                "assignment_state",
+                "score",
+                "rank",
+                "started_at",
+                "left_at",
+                "locked_at",
+                "lock_reason",
+                "violation_count",
+                "submit_reason",
+                "submitted_at",
+            ]
+        )
+
+        ContestActivity.objects.create(
+            contest=participant.contest,
+            user=activity_user,
+            action_type="reset_exam_record",
+            details=activity_details,
+        )
+
+    clear_active_session(participant.contest_id, participant.user_id)
+    clear_heartbeat(participant.contest_id, participant.user_id)
+    clear_exam_allowed_jti(participant.user_id, contest_id=participant.contest_id)
+
+    return {
+        "deleted_answers": deleted_answers,
+        "deleted_submissions": deleted_submissions,
+        "deleted_events": deleted_events,
+        "deleted_evidence": deleted_evidence,
+    }
 
 
 def reconcile_participant_on_contest_access(

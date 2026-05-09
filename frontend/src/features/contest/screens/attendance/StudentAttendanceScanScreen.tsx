@@ -3,18 +3,11 @@ import { AnimatePresence, motion } from "motion/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 
-import type {
-  AttendancePhotoKind,
-  AttendancePhotoPolicy,
-  AttendancePurpose,
-} from "@/core/entities/contest.entity";
+import type { AttendancePhotoPolicy, AttendancePurpose } from "@/core/entities/contest.entity";
 import { parseAttendanceQrValue } from "@/features/contest/attendance/attendanceQr";
-import { createAttendanceEvent, validateAttendanceManualCode } from "@/infrastructure/api/repositories/attendance.repository";
+import { getAttendanceErrorMessage } from "@/features/contest/attendance/attendanceErrorMessages";
+import { validateAttendanceCredential } from "@/infrastructure/api/repositories/attendance.repository";
 import { getContest } from "@/infrastructure/api/repositories/contest.repository";
-import {
-  confirmEvidenceUpload,
-  createEvidenceUploadIntent,
-} from "@/infrastructure/api/repositories/exam.repository";
 
 import { AttendanceShell } from "./components/AttendanceShell";
 import { ConfirmContent } from "./components/ConfirmContent";
@@ -24,6 +17,8 @@ import { ManualCodeContent } from "./components/ManualCodeContent";
 import { PhotoContent } from "./components/PhotoContent";
 import { ScanContent } from "./components/ScanContent";
 import { ShutterRow } from "./components/ShutterRow";
+import { useAttendancePhotos } from "./hooks/useAttendancePhotos";
+import { useAttendanceSubmit } from "./hooks/useAttendanceSubmit";
 import { useCameraStream } from "./hooks/useCameraStream";
 import { useHaptics } from "./hooks/useHaptics";
 import { useQrScanner } from "./hooks/useQrScanner";
@@ -32,24 +27,20 @@ import {
   getPrimaryCta,
   getSecondaryCta,
 } from "./lib/attendanceCta";
+import { deriveAttendanceStep } from "./lib/deriveAttendanceStep";
 import { type FrameHintStatus } from "./lib/frameHint";
-import {
-  getPhotoRequirementsByPolicy,
-  type AttendanceTranslate,
-} from "./lib/photoRequirements";
+import { type AttendanceTranslate } from "./lib/photoRequirements";
 
-type ScanState = "scanning" | "validating" | "capturing" | "submitting" | "done";
-type StepId = "scan" | "manual" | "photo" | "photoReview" | "confirm" | "done";
 type AttendanceCredential = {
+  mode?: "student_self_scan" | "teacher_assisted";
   purpose: AttendancePurpose;
   token?: string;
   manualCode?: string;
-};
-type ApiError = Error & {
-  response?: { status: number; data?: { code?: string; detail?: string } };
+  userId?: string | number;
+  reason?: string;
 };
 
-async function captureBlob(video: HTMLVideoElement): Promise<Blob> {
+function captureFrameToBlob(video: HTMLVideoElement): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth || 1280;
   canvas.height = video.videoHeight || 720;
@@ -64,61 +55,11 @@ async function captureBlob(video: HTMLVideoElement): Promise<Blob> {
   });
 }
 
-function getApiErrorCode(error: unknown): string {
-  return (error as ApiError).response?.data?.code || "";
-}
-
-function getAttendanceSubmitErrorMessage(
-  error: unknown,
-  tr: AttendanceTranslate,
-  purpose?: string,
-): string {
-  const code = getApiErrorCode(error);
-  if (code === "checkout_not_available_until_submitted") {
-    return tr("attendance.errors.checkoutAfterSubmit", "交卷後才可以簽退。");
-  }
-  if (code === "check_in_only_before_personal_start") {
-    return purpose === "check_in"
-      ? tr(
-          "attendance.errors.checkInOnlyBeforeStart",
-          "您已開始或完成考試，不能再補簽到；若要離場請掃描簽退 QR Code。",
-        )
-      : tr("attendance.errors.notCheckInTime", "目前不在可簽到時間。");
-  }
-  if (code === "attendance_token_expired") {
-    return tr(
-      "attendance.errors.tokenExpired",
-      "QR Code 已過期，請重新掃描投影畫面上的 QR Code。",
-    );
-  }
-  if (code === "invalid_attendance_token") {
-    return tr(
-      "attendance.errors.invalidToken",
-      "QR Code 無效，請重新掃描投影畫面上的 QR Code。",
-    );
-  }
-  if (code === "invalid_attendance_manual_code") {
-    return tr(
-      "attendance.errors.invalidManualCode",
-      "代碼無效或已過期，請重新輸入投影畫面上的最新代碼。",
-    );
-  }
-  if (code === "attendance_not_enabled") {
-    return tr(
-      "attendance.errors.notEnabled",
-      "此考試尚未開啟 QR Code 簽到簽退。",
-    );
-  }
-  return tr("attendance.errors.submitFailed", "簽到資料送出失敗，請稍後再試。");
-}
-
 function getPurposeLabel(
   tr: AttendanceTranslate,
   purpose?: AttendancePurpose | null,
 ): string {
-  if (purpose === "check_out") {
-    return tr("attendance.purpose.checkOut", "簽退");
-  }
+  if (purpose === "check_out") return tr("attendance.purpose.checkOut", "簽退");
   return tr("attendance.purpose.checkIn", "簽到");
 }
 
@@ -129,10 +70,6 @@ function parseExpectedPurpose(value: string | null): AttendancePurpose | null {
 
 function normalizeManualCode(value: string): string {
   return value.replace(/\D/g, "").slice(0, 6);
-}
-
-function formatManualCodeInput(value: string): string {
-  return normalizeManualCode(value);
 }
 
 function formatTime(value: number | null, locale: string): string {
@@ -158,6 +95,10 @@ export default function StudentAttendanceScanScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedPurpose = parseExpectedPurpose(searchParams.get("purpose"));
+  const assistedMode = searchParams.get("mode") === "teacher_assisted";
+  const assistedUserId = searchParams.get("userId");
+  const assistedReason = searchParams.get("reason") || "TA assisted identity verification";
+  const returnTo = searchParams.get("returnTo");
   const tr = useCallback<AttendanceTranslate>(
     (key, defaultValue, values) => {
       const translated = values
@@ -172,58 +113,43 @@ export default function StudentAttendanceScanScreen() {
   );
 
   const [expectedPurpose, setExpectedPurpose] = useState<AttendancePurpose | null>(requestedPurpose);
-  const [state, setState] = useState<ScanState>("scanning");
   const [scan, setScan] = useState<AttendanceCredential | null>(null);
   const [pendingScan, setPendingScan] = useState<AttendanceCredential | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [photoPolicy, setPhotoPolicy] = useState<AttendancePhotoPolicy>("room");
   const [contestTitle, setContestTitle] = useState<string>("");
-  const [photoIndex, setPhotoIndex] = useState(0);
-  const [photoUrls, setPhotoUrls] = useState<Partial<Record<AttendancePhotoKind, string>>>({});
-  const [photoBlobs, setPhotoBlobs] = useState<Partial<Record<AttendancePhotoKind, Blob>>>({});
   const [frozenScanUrl, setFrozenScanUrl] = useState("");
-  const [reviewPhotoKind, setReviewPhotoKind] = useState<AttendancePhotoKind | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [scannedAt, setScannedAt] = useState<number | null>(null);
 
-  const photoUrlsRef = useRef(photoUrls);
   const frozenScanUrlRef = useRef(frozenScanUrl);
+  useEffect(() => {
+    frozenScanUrlRef.current = frozenScanUrl;
+  }, [frozenScanUrl]);
+  useEffect(() => {
+    return () => {
+      if (frozenScanUrlRef.current) URL.revokeObjectURL(frozenScanUrlRef.current);
+    };
+  }, []);
+
   const haptics = useHaptics();
 
-  const photoRequirements = useMemo(
-    () => getPhotoRequirementsByPolicy(tr)[photoPolicy],
-    [photoPolicy, tr],
-  );
-  const currentPhoto = photoRequirements[Math.min(photoIndex, photoRequirements.length - 1)];
-  const reviewPhotoRequirement = photoRequirements.find((r) => r.id === reviewPhotoKind) || null;
-  const allPhotosCaptured = photoRequirements.every((r) => !!photoBlobs[r.id]);
-  const reviewPhotoUrl = reviewPhotoRequirement ? photoUrls[reviewPhotoRequirement.id] : "";
-  const completedPhotoCount = photoRequirements.filter((r) => !!photoBlobs[r.id]).length;
-  const nextPhotoIndex = reviewPhotoRequirement
-    ? photoRequirements.findIndex((r) => r.id === reviewPhotoRequirement.id) + 1
-    : -1;
-  const hasNextPhoto = nextPhotoIndex > 0 && nextPhotoIndex < photoRequirements.length;
+  const photos = useAttendancePhotos({ tr, photoPolicy, hasScan: !!scan });
 
-  const activeStep: StepId = (() => {
-    if (state === "done") return "done";
-    if (manualMode) return "manual";
-    if (!scan) return "scan";
-    if (reviewPhotoRequirement) return "photoReview";
-    if (allPhotosCaptured) return "confirm";
-    return "photo";
-  })();
-
-  const activePurpose = scan?.purpose || pendingScan?.purpose || expectedPurpose;
-  const purposeLabel = getPurposeLabel(tr, activePurpose);
-  const returnPath = `/classrooms/${classroomId}/contest/${contestId}`;
+  const activeStep = deriveAttendanceStep({
+    isDone: false,
+    manualMode,
+    hasScan: !!scan,
+    hasReviewPhoto: !!photos.reviewPhotoRequirement,
+    allPhotosCaptured: photos.allPhotosCaptured,
+  });
 
   const cameraFacingMode: VideoFacingModeEnum =
-    activeStep === "photo" ? currentPhoto.facingMode : "environment";
-  const scanValidating = activeStep === "scan" && state === "validating";
+    activeStep === "photo" ? photos.currentPhoto.facingMode : "environment";
   const cameraActive =
-    (activeStep === "scan" && !scanValidating) || activeStep === "photo";
+    (activeStep === "scan" && !isValidating) || activeStep === "photo";
 
   const camera = useCameraStream({
     active: cameraActive,
@@ -245,7 +171,7 @@ export default function StudentAttendanceScanScreen() {
       const freezeFrame = () => {
         const video = videoRef.current;
         if (!video) return;
-        void captureBlob(video).then((blob) => {
+        void captureFrameToBlob(video).then((blob) => {
           const url = URL.createObjectURL(blob);
           setFrozenScanUrl((prev) => {
             if (prev) URL.revokeObjectURL(prev);
@@ -268,7 +194,7 @@ export default function StudentAttendanceScanScreen() {
       haptics("scan-success");
       setExpectedPurpose((prev) => prev || parsed.purpose);
       setPendingScan(parsed);
-      setState("validating");
+      setIsValidating(true);
       setScannedAt(Date.now());
       setError(null);
       freezeFrame();
@@ -282,7 +208,7 @@ export default function StudentAttendanceScanScreen() {
     active:
       activeStep === "scan" &&
       cameraState === "ready" &&
-      state === "scanning" &&
+      !isValidating &&
       !scan &&
       !error,
     onDetected: handleQrDetected,
@@ -306,147 +232,96 @@ export default function StudentAttendanceScanScreen() {
   }, [contestId, requestedPurpose]);
 
   useEffect(() => {
-    photoUrlsRef.current = photoUrls;
-  }, [photoUrls]);
+    if (!assistedMode || !requestedPurpose || !assistedUserId || scan) return;
+    setExpectedPurpose(requestedPurpose);
+    setScan({
+      mode: "teacher_assisted",
+      purpose: requestedPurpose,
+      userId: assistedUserId,
+      reason: assistedReason,
+    });
+    setScannedAt(Date.now());
+  }, [assistedMode, assistedReason, assistedUserId, requestedPurpose, scan]);
 
   useEffect(() => {
-    frozenScanUrlRef.current = frozenScanUrl;
-  }, [frozenScanUrl]);
-
-  useEffect(() => {
-    if (!scan || allPhotosCaptured) return;
-    if (reviewPhotoRequirement) return;
-    const nextMissing = photoRequirements.findIndex((r) => !photoBlobs[r.id]);
-    if (nextMissing >= 0 && nextMissing !== photoIndex) setPhotoIndex(nextMissing);
-  }, [allPhotosCaptured, photoBlobs, photoIndex, photoRequirements, reviewPhotoRequirement, scan]);
-
-  useEffect(() => {
-    if (state !== "validating" || !pendingScan) return undefined;
-
-    // QR token scans: proceed after a short delay (token validated at submission)
-    if (!pendingScan.manualCode) {
-      const timer = window.setTimeout(() => {
-        setScan(pendingScan);
-        setPendingScan(null);
-        setState("capturing");
-      }, 650);
-      return () => window.clearTimeout(timer);
-    }
-
-    // Manual code: validate against the backend before proceeding
+    if (!isValidating || !pendingScan) return undefined;
     if (!contestId) return undefined;
-    const manualCode = pendingScan.manualCode;
+    const credential = pendingScan;
+    const wasManual = !!credential.manualCode;
     let cancelled = false;
     (async () => {
       try {
-        await validateAttendanceManualCode(
-          contestId,
-          pendingScan.purpose,
-          manualCode,
-        );
+        await validateAttendanceCredential(contestId, {
+          purpose: credential.purpose,
+          token: credential.token,
+          manualCode: credential.manualCode,
+        });
         if (cancelled) return;
-        setScan(pendingScan);
+        setScan(credential);
         setPendingScan(null);
-        setState("capturing");
+        setIsValidating(false);
       } catch (err) {
         if (cancelled) return;
-        const errorMessage = getAttendanceSubmitErrorMessage(err, tr, pendingScan.purpose);
+        haptics("error");
+        const errorMessage = getAttendanceErrorMessage(err, tr, credential.purpose);
         setError(errorMessage);
-        setManualMode(true);
         setPendingScan(null);
-        setState("scanning");
+        setIsValidating(false);
+        if (wasManual) setManualMode(true);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [contestId, pendingScan, state, tr]);
+  }, [contestId, haptics, isValidating, pendingScan, tr]);
 
-  useEffect(() => {
-    return () => {
-      Object.values(photoUrlsRef.current).forEach((url) => {
-        if (url) URL.revokeObjectURL(url);
-      });
-      if (frozenScanUrlRef.current) URL.revokeObjectURL(frozenScanUrlRef.current);
-    };
-  }, []);
+  const submit = useAttendanceSubmit({
+    contestId,
+    tr,
+    haptics,
+    onSuccess: useCallback(() => {
+      camera.stopStream();
+      streamRef.current = null;
+    }, [camera, streamRef]),
+  });
 
   const handleCapture = useCallback(async () => {
     if (!videoRef.current) return;
     try {
-      setSubmitError(null);
-      const blob = await captureBlob(videoRef.current);
+      submit.clearSubmitError();
+      const blob = await captureFrameToBlob(videoRef.current);
       haptics("shutter");
-      const existingUrl = photoUrls[currentPhoto.id];
-      if (existingUrl) URL.revokeObjectURL(existingUrl);
-      setPhotoBlobs((prev) => ({ ...prev, [currentPhoto.id]: blob }));
-      setPhotoUrls((prev) => ({ ...prev, [currentPhoto.id]: URL.createObjectURL(blob) }));
-      setReviewPhotoKind(currentPhoto.id);
-    } catch (err) {
+      photos.applyCapture(blob);
+    } catch {
       setError(t("attendance.errors.capturePhotoFailed", "照片擷取失敗，請重新拍攝。"));
     }
-  }, [currentPhoto.id, haptics, photoUrls, t, videoRef]);
+  }, [haptics, photos, submit, t, videoRef]);
 
   const handleAcceptPhoto = useCallback(() => {
-    if (!reviewPhotoRequirement) return;
-    setSubmitError(null);
-    const acceptedIndex = photoRequirements.findIndex((r) => r.id === reviewPhotoRequirement.id);
-    setReviewPhotoKind(null);
-    if (acceptedIndex >= 0 && acceptedIndex < photoRequirements.length - 1) {
-      setPhotoIndex(acceptedIndex + 1);
-      setState("capturing");
-    }
-  }, [photoRequirements, reviewPhotoRequirement]);
+    submit.clearSubmitError();
+    photos.acceptPhoto();
+  }, [photos, submit]);
 
   const handleRetake = useCallback(() => {
-    let lastCaptured = reviewPhotoRequirement
-      ? photoRequirements.findIndex((r) => r.id === reviewPhotoRequirement.id)
-      : 0;
-    if (lastCaptured < 0) lastCaptured = 0;
-    if (!reviewPhotoRequirement) {
-      photoRequirements.forEach((r, i) => {
-        if (photoBlobs[r.id]) lastCaptured = i;
-      });
-    }
-    const requirement = photoRequirements[lastCaptured];
-    const existingUrl = photoUrls[requirement.id];
-    if (existingUrl) URL.revokeObjectURL(existingUrl);
-    setPhotoBlobs((prev) => {
-      const next = { ...prev };
-      delete next[requirement.id];
-      return next;
-    });
-    setPhotoUrls((prev) => {
-      const next = { ...prev };
-      delete next[requirement.id];
-      return next;
-    });
-    setPhotoIndex(lastCaptured);
-    setReviewPhotoKind(null);
-    setState("capturing");
-  }, [photoBlobs, photoRequirements, photoUrls, reviewPhotoRequirement]);
+    submit.clearSubmitError();
+    photos.retakePhoto();
+  }, [photos, submit]);
 
   const handleRescan = useCallback(() => {
-    Object.values(photoUrls).forEach((url) => {
-      if (url) URL.revokeObjectURL(url);
-    });
+    photos.reset();
     setScan(null);
     setPendingScan(null);
+    setIsValidating(false);
     setScannedAt(null);
-    setPhotoBlobs({});
-    setPhotoUrls({});
-    setPhotoIndex(0);
-    setReviewPhotoKind(null);
     setManualMode(false);
     setManualCode("");
     setFrozenScanUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return "";
     });
-    setState("scanning");
     setError(null);
-    setSubmitError(null);
-  }, [photoUrls]);
+    submit.reset();
+  }, [photos, submit]);
 
   const handleManualToggle = useCallback(() => {
     camera.stopStream();
@@ -471,111 +346,48 @@ export default function StudentAttendanceScanScreen() {
       return;
     }
     setPendingScan({ purpose: expectedPurpose, manualCode: normalized });
-    setState("validating");
+    setIsValidating(true);
     setScannedAt(Date.now());
     setManualMode(false);
     setError(null);
   }, [expectedPurpose, manualCode, t]);
 
-  const handleSubmit = useCallback(async () => {
-    if (!contestId || !scan || !allPhotosCaptured) return;
-    setState("submitting");
-    setSubmitError(null);
-    try {
-      const captured = photoRequirements.map((requirement, index) => ({
-        requirement,
-        blob: photoBlobs[requirement.id],
-        seq: index + 1,
-      }));
-      const missing = captured.find((p) => !p.blob);
-      if (missing) {
-        throw new Error(
-          tr("attendance.errors.photoMissing", "{{label}}尚未拍攝完成", {
-            label: missing.requirement.label,
-          }),
-        );
-      }
-      const event = await createAttendanceEvent(contestId, {
-        mode: "student_self_scan",
-        purpose: scan.purpose,
-        token: scan.token,
-        manualCode: scan.manualCode,
-        client_observed_at_ms: Date.now(),
-        device_kind: "mobile",
-      });
-      const capturedAt = Date.now();
-      const intent = await createEvidenceUploadIntent(contestId, {
-        event_id: event.event_id,
-        evidence_cluster_id: event.evidence_cluster_id,
-        source_module: "attendance",
-        evidence_mode: "audit",
-        frames: captured.map((p) => ({ client_captured_at_ms: capturedAt, seq: p.seq })),
-      });
-      if (intent.items.length !== captured.length) {
-        throw new Error(
-          t(
-            "attendance.errors.uploadIntentIncomplete",
-            "上傳工作未包含所有必要照片，請重新送出。",
-          ),
-        );
-      }
-      const confirmed = [];
-      for (let i = 0; i < intent.items.length; i += 1) {
-        const item = intent.items[i];
-        const photo = captured[i];
-        if (!item || !photo?.blob) continue;
-        const response = await fetch(item.put_url, {
-          method: "PUT",
-          headers: item.required_headers || { "Content-Type": "image/webp" },
-          body: photo.blob,
-        });
-        if (!response.ok) {
-          throw new Error(t("attendance.errors.photoUploadFailed", "照片上傳失敗，請重新送出。"));
-        }
-        confirmed.push({
-          evidence_frame_id: item.evidence_frame_id,
-          object_key: item.object_key,
-          byte_size: photo.blob.size,
-        });
-      }
-      await confirmEvidenceUpload(contestId, {
-        event_id: event.event_id,
-        upload_session_id: intent.upload_session_id,
-        frames: confirmed,
-      });
-      camera.stopStream();
-      streamRef.current = null;
-      haptics("submit-success");
-      setState("done");
-    } catch (err) {
-      haptics("error");
-      setState("capturing");
-      setSubmitError(getAttendanceSubmitErrorMessage(err, tr, scan?.purpose));
-    }
-  }, [allPhotosCaptured, camera, contestId, haptics, photoBlobs, photoRequirements, scan, streamRef, t, tr]);
+  const handleSubmit = useCallback(() => {
+    if (!scan || !photos.allPhotosCaptured) return;
+    void submit.submit({
+      scan,
+      photoRequirements: photos.photoRequirements,
+      photoBlobs: photos.photoBlobs,
+    });
+  }, [photos.allPhotosCaptured, photos.photoBlobs, photos.photoRequirements, scan, submit]);
+
+  const activePurpose = scan?.purpose || pendingScan?.purpose || expectedPurpose;
+  const purposeLabel = getPurposeLabel(tr, activePurpose);
+  const returnPath = returnTo || `/classrooms/${classroomId}/contest/${contestId}`;
+  const displayStep = submit.isDone ? "done" : activeStep;
 
   const scanDisplayError =
-    error || (activeStep === "scan" && cameraState === "unavailable" ? cameraError : null);
+    error ||
+    (activeStep === "scan" && cameraState === "unavailable" ? cameraError : null);
   const photoDisplayError =
-    error || (activeStep === "photo" && cameraState === "unavailable" ? cameraError : null);
+    error ||
+    (activeStep === "photo" && cameraState === "unavailable" ? cameraError : null);
 
-  // Compute frame hint
-  const scanHintStatus: FrameHintStatus = scanValidating
+  const scanHintStatus: FrameHintStatus = isValidating
     ? "validating"
     : scanDisplayError
       ? "error"
       : cameraState === "unavailable"
         ? "photoUnavailable"
-        : cameraState === "requesting"
-          ? "idle"
-          : "idle";
-  const photoHintStatus: FrameHintStatus = cameraState === "unavailable"
-    ? "photoUnavailable"
-    : cameraState === "ready"
-      ? "photoReady"
-      : "idle";
+        : "idle";
+  const photoHintStatus: FrameHintStatus =
+    cameraState === "unavailable"
+      ? "photoUnavailable"
+      : cameraState === "ready"
+        ? "photoReady"
+        : "idle";
 
-  const scanHintText = scanValidating
+  const scanHintText = isValidating
     ? t("attendance.scan.validating", "驗證中…")
     : cameraState === "requesting"
       ? t("attendance.scan.waitingCamera", "等待相機授權")
@@ -583,47 +395,37 @@ export default function StudentAttendanceScanScreen() {
         ? t("attendance.scan.alignQr", "對準投影上的 QR Code")
         : undefined;
 
-  const photoHintText = cameraState === "unavailable"
-    ? t("attendance.photo.cameraUnavailable", "相機無法使用")
-    : cameraState === "requesting"
-      ? t("attendance.scan.waitingCamera", "等待相機授權")
-      : t("attendance.photo.alignTarget", "對準{{label}}", {
-          label: currentPhoto.label,
-        });
+  const photoHintText =
+    cameraState === "unavailable"
+      ? t("attendance.photo.cameraUnavailable", "相機無法使用")
+      : cameraState === "requesting"
+        ? t("attendance.scan.waitingCamera", "等待相機授權")
+        : t("attendance.photo.alignTarget", "對準{{label}}", {
+            label: photos.currentPhoto.label,
+          });
 
-  // Build CTA
   const ctaInput: AttendanceCtaInput = {
-    step: activeStep === "done" ? "done" : activeStep,
+    step: displayStep,
     cameraState,
-    scanState: scanValidating ? "validating" : scanDisplayError ? "error" : "idle",
+    scanState: isValidating ? "validating" : scanDisplayError ? "error" : "idle",
     purpose: activePurpose ?? null,
     manualReady: normalizeManualCode(manualCode).length === 6,
-    hasNextPhoto,
-    uploading: state === "submitting",
-    uploadFailed: !!submitError && state !== "submitting",
+    hasNextPhoto: photos.hasNextPhoto,
+    uploading: submit.isSubmitting,
+    uploadFailed: !!submit.submitError && !submit.isSubmitting,
   };
   const primaryCta = getPrimaryCta(ctaInput, tr);
   const secondaryCta = getSecondaryCta(ctaInput, tr);
 
   const handlePrimary = useCallback(() => {
-    switch (activeStep) {
+    switch (displayStep) {
       case "scan":
-        if (cameraState === "unavailable") {
-          setState("scanning");
+        if (cameraState === "unavailable" || error) {
           setError(null);
           setFrozenScanUrl((prev) => {
             if (prev) URL.revokeObjectURL(prev);
             return "";
           });
-          return;
-        }
-        if (error) {
-          setError(null);
-          setFrozenScanUrl((prev) => {
-            if (prev) URL.revokeObjectURL(prev);
-            return "";
-          });
-          return;
         }
         return;
       case "manual":
@@ -636,15 +438,23 @@ export default function StudentAttendanceScanScreen() {
         handleAcceptPhoto();
         return;
       case "confirm":
-        void handleSubmit();
+        handleSubmit();
         return;
       case "done":
         navigate(returnPath);
         return;
-      default:
-        return;
     }
-  }, [activeStep, cameraState, error, handleAcceptPhoto, handleCapture, handleManualSubmit, handleSubmit, navigate, returnPath]);
+  }, [
+    cameraState,
+    displayStep,
+    error,
+    handleAcceptPhoto,
+    handleCapture,
+    handleManualSubmit,
+    handleSubmit,
+    navigate,
+    returnPath,
+  ]);
 
   const handleSecondary = useCallback(() => {
     if (!secondaryCta) return;
@@ -656,39 +466,34 @@ export default function StudentAttendanceScanScreen() {
         handleManualBack();
         return;
       case "retake":
+      case "retakeFromConfirm":
         handleRetake();
         return;
       case "rescan":
       case "rescanFromConfirm":
         handleRescan();
         return;
-      case "retakeFromConfirm":
-        handleRetake();
-        return;
-      default:
-        return;
     }
   }, [handleManualBack, handleManualToggle, handleRescan, handleRetake, secondaryCta]);
 
   const headerTitle = useMemo(() => {
-    if (activeStep === "done") {
+    if (displayStep === "done") {
       return t("attendance.header.done", "{{purpose}}完成", { purpose: purposeLabel });
     }
-    if (activeStep === "manual") {
+    if (displayStep === "manual") {
       return t("attendance.header.manual", "輸入{{purpose}}代碼", { purpose: purposeLabel });
     }
-    if (activeStep === "photo" || activeStep === "photoReview") {
+    if (displayStep === "photo" || displayStep === "photoReview") {
       return t("attendance.header.photo", "拍照{{purpose}}", { purpose: purposeLabel });
     }
-    if (activeStep === "confirm") {
+    if (displayStep === "confirm") {
       return t("attendance.header.confirm", "確認{{purpose}}", { purpose: purposeLabel });
     }
     return t("attendance.header.auth", "{{purpose}}認證", { purpose: purposeLabel });
-  }, [activeStep, purposeLabel, t]);
+  }, [displayStep, purposeLabel, t]);
 
-  // Render content slot
   const renderContent = () => {
-    if (activeStep === "scan") {
+    if (displayStep === "scan") {
       return (
         <ScanContent
           title={t("attendance.scan.title", "掃描 QR Code")}
@@ -700,27 +505,27 @@ export default function StudentAttendanceScanScreen() {
           hint={scanHintStatus}
           hintText={scanHintText}
           videoRef={setVideoElement}
-          showVideo={cameraActive && !scanValidating && !error}
-          frozenScanUrl={scanValidating || error ? frozenScanUrl : undefined}
+          showVideo={cameraActive && !isValidating && !error}
+          frozenScanUrl={isValidating || error ? frozenScanUrl : undefined}
           error={scanDisplayError}
         />
       );
     }
-    if (activeStep === "manual") {
+    if (displayStep === "manual") {
       return (
         <ManualCodeContent
           purposeLabel={purposeLabel}
           value={manualCode}
-          onChange={(v) => setManualCode(formatManualCodeInput(v))}
+          onChange={(v) => setManualCode(normalizeManualCode(v))}
           error={error}
         />
       );
     }
-    if (activeStep === "photo") {
+    if (displayStep === "photo") {
       return (
         <PhotoContent
-          title={currentPhoto.title}
-          description={currentPhoto.description}
+          title={photos.currentPhoto.title}
+          description={photos.currentPhoto.description}
           hint={photoHintStatus}
           hintText={photoHintText}
           videoRef={setVideoElement}
@@ -736,62 +541,65 @@ export default function StudentAttendanceScanScreen() {
         />
       );
     }
-    if (activeStep === "photoReview" && reviewPhotoRequirement && reviewPhotoUrl) {
+    if (displayStep === "photoReview" && photos.reviewPhotoRequirement && photos.reviewPhotoUrl) {
       return (
         <PhotoContent
-          title={reviewPhotoRequirement.title}
-          description={hasNextPhoto
-            ? t("attendance.photo.nextStepPhoto", "下一步：{{title}}", {
-                title: photoRequirements[nextPhotoIndex].title,
-              })
-            : t("attendance.photo.nextStepConfirm", "下一步：確認簽到資訊並上傳")}
+          title={photos.reviewPhotoRequirement.title}
+          description={
+            photos.hasNextPhoto
+              ? t("attendance.photo.nextStepPhoto", "下一步：{{title}}", {
+                  title: photos.photoRequirements[photos.nextPhotoIndex].title,
+                })
+              : t("attendance.photo.nextStepConfirm", "下一步：確認簽到資訊並上傳")
+          }
           hint="photoReady"
           videoRef={setVideoElement}
           showVideo={false}
-          reviewUrl={reviewPhotoUrl}
-          contestChipLabel={contestTitle
-            ? t("attendance.photo.readyChip", "照片已就緒 · {{contest}}", {
-                contest: contestTitle,
-              })
-            : undefined}
+          reviewUrl={photos.reviewPhotoUrl}
+          contestChipLabel={
+            contestTitle
+              ? t("attendance.photo.readyChip", "照片已就緒 · {{contest}}", {
+                  contest: contestTitle,
+                })
+              : undefined
+          }
         />
       );
     }
-    if (activeStep === "confirm") {
+    if (displayStep === "confirm") {
       return (
         <ConfirmContent
           purposeLabel={purposeLabel}
           scannedAtLabel={formatTime(scannedAt, i18n.language)}
-          photoCountLabel={`${completedPhotoCount}/${photoRequirements.length}`}
-          requirements={photoRequirements}
-          photoUrls={photoUrls}
-          uploadError={submitError}
+          photoCountLabel={`${photos.completedPhotoCount}/${photos.photoRequirements.length}`}
+          requirements={photos.photoRequirements}
+          photoUrls={photos.photoUrls}
+          uploadError={submit.submitError}
         />
       );
     }
-    if (activeStep === "done") {
+    if (displayStep === "done") {
       return (
         <DoneContent
           purposeLabel={purposeLabel}
           contestTitle={contestTitle}
           scannedAtLabel={formatTime(scannedAt, i18n.language)}
-          requirements={photoRequirements}
-          photoUrls={photoUrls}
+          requirements={photos.photoRequirements}
+          photoUrls={photos.photoUrls}
         />
       );
     }
     return null;
   };
 
-  // Render footer slot
   const renderFooter = () => {
-    if (activeStep === "photo") {
+    if (displayStep === "photo") {
       return (
         <ShutterRow
           onShutter={handleCapture}
           shutterDisabled={!scan || cameraState !== "ready"}
           shutterLabel={t("attendance.photo.captureLabel", "拍攝{{label}}", {
-            label: currentPhoto.label,
+            label: photos.currentPhoto.label,
           })}
         />
       );
@@ -813,7 +621,7 @@ export default function StudentAttendanceScanScreen() {
       content={
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={activeStep}
+            key={displayStep}
             initial={STEP_MOTION.initial}
             animate={STEP_MOTION.animate}
             exit={STEP_MOTION.exit}
@@ -827,7 +635,7 @@ export default function StudentAttendanceScanScreen() {
       footer={
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={activeStep === "photo" ? "shutter" : "dynamic"}
+            key={displayStep === "photo" ? "shutter" : "dynamic"}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

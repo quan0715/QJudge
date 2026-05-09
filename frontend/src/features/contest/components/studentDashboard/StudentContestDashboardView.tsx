@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScaleTypes } from "@carbon/charts";
 import { LollipopChart } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
+import { QRCodeSVG } from "@rc-component/qrcode";
 import {
   Button,
   InlineNotification,
@@ -18,6 +19,7 @@ import {
   Launch,
   Login,
   Play,
+  QrCode,
   Renew,
   Time,
   WarningAlt,
@@ -55,6 +57,7 @@ import { MobileActionFooter } from "@/shared/ui/MobileActionFooter";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { formatDate } from "@/shared/utils/format";
 import { useInterval } from "@/shared/hooks/useInterval";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
   BlockHeader,
   DashboardBlock,
@@ -66,6 +69,7 @@ import {
   KPIBlock,
   MetricBlock,
 } from "@/shared/components/dashboard";
+import { buildStudentLocatorQrValue } from "@/features/contest/attendance/attendanceQr";
 import { CountdownProgress } from "@/features/contest/components/CountdownProgress";
 import { ContestRegistrationModal } from "@/features/contest/components/modals/ContestRegistrationModal";
 import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
@@ -189,6 +193,7 @@ export default function StudentContestDashboard({
   const navigate = useNavigate();
   const { classroomId } = useParams();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const tr = useCallback(
     (
       key: string,
@@ -210,6 +215,7 @@ export default function StudentContestDashboard({
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showStudentQrModal, setShowStudentQrModal] = useState(false);
   const [reportLanguage, setReportLanguage] = useState("zh-TW");
   const [reportDownloading, setReportDownloading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
@@ -436,6 +442,10 @@ export default function StudentContestDashboard({
     contest.attendanceStatus?.canCheckOut ||
     contest.attendanceStatus?.canCheckIn
   );
+  const studentLocatorQrValue =
+    participant && contest.attendanceCheckEnabled && user?.id
+      ? buildStudentLocatorQrValue(contest.id, user.id)
+      : "";
   const checkInCompleted = ATTENDANCE_READY_STATUSES.has(
     contest.attendanceStatus?.checkInStatus ?? "",
   );
@@ -621,6 +631,19 @@ export default function StudentContestDashboard({
         onClick={() => setShowReportModal(true)}
       >
         {reportDownloadLabel}
+      </Button>
+    );
+  };
+
+  const renderStudentQrAction = () => {
+    if (!studentLocatorQrValue) return null;
+    return (
+      <Button
+        kind="tertiary"
+        renderIcon={QrCode}
+        onClick={() => setShowStudentQrModal(true)}
+      >
+        {t("studentDashboard.actions.showStudentQr", "顯示我的 QR")}
       </Button>
     );
   };
@@ -1130,6 +1153,7 @@ export default function StudentContestDashboard({
                 {renderEntryAction()}
                 {renderAttendanceAction()}
               </div>
+              {renderStudentQrAction()}
               {renderReportAction()}
               {canSubmitExam ? (
                 <Button
@@ -1153,6 +1177,7 @@ export default function StudentContestDashboard({
       <MobileActionFooter>
         {renderAttendanceAction()}
         {renderEntryAction()}
+        {renderStudentQrAction()}
       </MobileActionFooter>
 
       <ContestRegistrationModal
@@ -1231,6 +1256,28 @@ export default function StudentContestDashboard({
               subtitle={reportError}
             />
           ) : null}
+        </div>
+      </Modal>
+
+      <Modal
+        open={showStudentQrModal}
+        passiveModal
+        modalHeading={t("studentDashboard.studentQr.heading", "我的考生 QR")}
+        onRequestClose={() => setShowStudentQrModal(false)}
+        size="xs"
+      >
+        <div className={styles.studentQrModal}>
+          <div className={styles.studentQrFrame}>
+            {studentLocatorQrValue ? (
+              <QRCodeSVG value={studentLocatorQrValue} size={220} />
+            ) : null}
+          </div>
+          <p>
+            {t(
+              "studentDashboard.studentQr.description",
+              "請讓助教掃描此 QR，以快速找到你的考試資料。",
+            )}
+          </p>
         </div>
       </Modal>
     </DashboardPage>

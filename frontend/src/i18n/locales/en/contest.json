@@ -1293,7 +1293,9 @@
       "remove": "Remove Participant",
       "reopen": "Reopen Exam",
       "unlock": "Unlock",
-      "resetAttendance": "Reset attendance records"
+      "assistedCheckIn": "Assisted check-in",
+      "assistedCheckOut": "Assisted check-out",
+      "resetExamRecord": "Reset exam record"
     },
     "add": "Add",
     "addFailed": "Failed to add participant",
@@ -1301,6 +1303,7 @@
     "confirmExport": "Are you sure you want to export participant data?",
     "confirmRemove": "Are you sure you want to remove participant {{name}}?",
     "confirmReopen": "Are you sure you want to reopen this student's exam?",
+    "confirmResetExamRecord": "Are you sure you want to reset this student's exam record? This clears answers, score, attendance, and proctoring events without removing the participant.",
     "confirmUnlock": "Are you sure you want to unlock this student?",
     "connection": {
       "live": "Live",
@@ -1308,6 +1311,8 @@
       "online": "Online"
     },
     "detailPanel": "Participant details",
+    "examRecordReset": "Exam record reset",
+    "examRecordResetFailed": "Failed to reset exam record",
     "displayCount": "Showing {{shown}} / {{total}} participants",
     "downloadFailed": "Failed to download report",
     "editModal": {
@@ -1793,10 +1798,15 @@
       "refresh": "Refresh",
       "rejoin": "Join again",
       "resume": "Resume answering",
+      "showStudentQr": "Show my QR",
       "start": "Start answering",
       "submit": "Submit",
       "unavailable": "Answering unavailable",
       "waitingStart": "Waiting to start"
+    },
+    "studentQr": {
+      "description": "Let a TA scan this QR to quickly find your exam record.",
+      "heading": "My student QR"
     },
     "announcements": {
       "empty": "No announcements yet.",

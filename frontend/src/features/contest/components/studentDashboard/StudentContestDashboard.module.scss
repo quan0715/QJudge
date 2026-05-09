@@ -154,6 +154,24 @@
   margin: 0;
 }
 
+.studentQrModal {
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  color: var(--cds-text-secondary);
+  text-align: center;
+}
+
+.studentQrFrame {
+  padding: 1rem;
+  border: 1px solid var(--cds-border-subtle);
+  background: #fff;
+}
+
+.studentQrFrame svg {
+  display: block;
+}
+
 @media (max-width: 672px) {
   .tabContent {
     padding: 1rem;

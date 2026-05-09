@@ -85,39 +85,47 @@ export const createAttendanceEvent = async (
   );
 };
 
-export interface AttendanceResetResponse {
+export interface ParticipantExamRecordResetResponse {
+  deleted_answers: number;
+  deleted_submissions: number;
   deleted_events: number;
-  deleted_records: number;
+  deleted_evidence: number;
   attendance_status: ContestAttendanceStatus;
 }
 
-export const resetParticipantAttendance = async (
+export const resetParticipantExamRecord = async (
   contestId: string,
   userId: string | number,
-): Promise<AttendanceResetResponse> => {
-  return requestJson<AttendanceResetResponse>(
-    httpClient.post(`/api/v1/contests/${contestId}/attendance/reset/`, {
+): Promise<ParticipantExamRecordResetResponse> => {
+  return requestJson<ParticipantExamRecordResetResponse>(
+    httpClient.post(`/api/v1/contests/${contestId}/participants/reset_exam_record/`, {
       user_id: userId,
     }),
-    "Failed to reset participant attendance records",
+    "Failed to reset participant exam record",
   );
 };
 
-export interface ValidateManualCodeResponse {
-  valid: boolean;
+export interface ValidateAttendanceCredentialPayload {
   purpose: AttendancePurpose;
+  token?: string;
+  manualCode?: string;
 }
 
-export const validateAttendanceManualCode = async (
+export interface ValidateAttendanceCredentialResponse {
+  valid: boolean;
+  purpose: AttendancePurpose;
+  credential_source: "qr_token" | "manual_code";
+}
+
+export const validateAttendanceCredential = async (
   contestId: string,
-  purpose: AttendancePurpose,
-  manualCode: string,
-): Promise<ValidateManualCodeResponse> => {
-  return requestJson<ValidateManualCodeResponse>(
-    httpClient.post(`/api/v1/contests/${contestId}/attendance/validate-code/`, {
-      purpose,
-      manual_code: manualCode,
-    }),
-    "Failed to validate attendance code",
+  payload: ValidateAttendanceCredentialPayload,
+): Promise<ValidateAttendanceCredentialResponse> => {
+  const body: Record<string, string> = { purpose: payload.purpose };
+  if (payload.token) body.token = payload.token;
+  if (payload.manualCode) body.manual_code = payload.manualCode;
+  return requestJson<ValidateAttendanceCredentialResponse>(
+    httpClient.post(`/api/v1/contests/${contestId}/attendance/validate/`, body),
+    "Failed to validate attendance credential",
   );
 };

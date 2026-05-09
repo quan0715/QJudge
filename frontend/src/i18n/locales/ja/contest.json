@@ -1293,7 +1293,9 @@
       "remove": "参加者削除",
       "reopen": "試験再開",
       "unlock": "ロック解除",
-      "resetAttendance": "出席記録をリセット"
+      "assistedCheckIn": "代理チェックイン",
+      "assistedCheckOut": "代理チェックアウト",
+      "resetExamRecord": "試験記録をリセット"
     },
     "add": "追加",
     "addFailed": "参加者の追加に失敗しました",
@@ -1301,6 +1303,7 @@
     "confirmExport": "参加者のコンテストデータをエクスポートしますか？",
     "confirmRemove": "参加者 {{name}} を削除しますか？",
     "confirmReopen": "この学生の試験を再開しますか？",
+    "confirmResetExamRecord": "この学生の試験記録をリセットしますか？答案、点数、出席、監督イベントは削除されますが、参加者は削除されません。",
     "confirmUnlock": "この学生のロックを解除しますか？",
     "connection": {
       "live": "Live",
@@ -1308,6 +1311,8 @@
       "online": "オンライン"
     },
     "detailPanel": "参加者詳細",
+    "examRecordReset": "試験記録をリセットしました",
+    "examRecordResetFailed": "試験記録のリセットに失敗しました",
     "displayCount": "{{shown}} / {{total}} 名の参加者を表示",
     "downloadFailed": "レポートのダウンロードに失敗しました",
     "editModal": {
@@ -1793,10 +1798,15 @@
       "refresh": "更新",
       "rejoin": "再参加",
       "resume": "回答を再開",
+      "showStudentQr": "自分のQRを表示",
       "start": "回答を開始",
       "submit": "提出",
       "unavailable": "回答できません",
       "waitingStart": "開始待ち"
+    },
+    "studentQr": {
+      "description": "TA にこの QR を読み取ってもらうと、試験記録をすばやく見つけられます。",
+      "heading": "自分の受験者 QR"
     },
     "announcements": {
       "empty": "現在お知らせはありません。",

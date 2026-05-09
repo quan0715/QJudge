@@ -1,4 +1,4 @@
-type HapticPattern = "scan-success" | "shutter" | "submit-success" | "error";
+export type HapticPattern = "scan-success" | "shutter" | "submit-success" | "error";
 
 const PATTERNS: Record<HapticPattern, number | number[]> = {
   "scan-success": 40,

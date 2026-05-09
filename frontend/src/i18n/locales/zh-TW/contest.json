@@ -1293,7 +1293,9 @@
       "remove": "移除參賽者",
       "reopen": "重新開放考試",
       "unlock": "解除鎖定",
-      "resetAttendance": "重置簽到測試紀錄"
+      "assistedCheckIn": "人工簽到",
+      "assistedCheckOut": "人工簽退",
+      "resetExamRecord": "重置考試紀錄"
     },
     "add": "新增",
     "addFailed": "新增參賽者失敗",
@@ -1301,6 +1303,7 @@
     "confirmExport": "確定要匯出參賽者競賽資料？",
     "confirmRemove": "確定要移除參賽者 {{name}} 嗎？",
     "confirmReopen": "確定要重新開放此學生考試嗎？",
+    "confirmResetExamRecord": "確定要重置此學生的考試紀錄嗎？這會清除作答、成績、簽到簽退與監考事件，但不會移除參賽者。",
     "confirmUnlock": "確定要解除此學生的鎖定嗎？",
     "connection": {
       "live": "Live",
@@ -1308,6 +1311,8 @@
       "online": "在線"
     },
     "detailPanel": "參賽者詳細資料",
+    "examRecordReset": "已重置考試紀錄",
+    "examRecordResetFailed": "重置考試紀錄失敗",
     "displayCount": "顯示 {{shown}} / {{total}} 位參賽者",
     "downloadFailed": "下載報告失敗",
     "editModal": {
@@ -1793,10 +1798,15 @@
       "refresh": "重新整理",
       "rejoin": "重新加入",
       "resume": "恢復作答",
+      "showStudentQr": "顯示我的 QR",
       "start": "開始作答",
       "submit": "交卷",
       "unavailable": "不可作答",
       "waitingStart": "等待開始"
+    },
+    "studentQr": {
+      "description": "請讓助教掃描此 QR，以快速找到你的考試資料。",
+      "heading": "我的考生 QR"
     },
     "announcements": {
       "empty": "目前沒有公告。",

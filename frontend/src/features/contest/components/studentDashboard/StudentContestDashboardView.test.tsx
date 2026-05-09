@@ -109,6 +109,16 @@ vi.mock("@/shared/ui/theme/ThemeContext", () => ({
   useTheme: () => ({ theme: "white" }),
 }));
 
+vi.mock("@/features/auth/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: "student-1", username: "student", role: "student" },
+    loading: false,
+    setUser: () => {},
+    checkUser: () => {},
+    logout: async () => {},
+  }),
+}));
+
 vi.mock("@carbon/icons-react", () => {
   const Icon = () => <span aria-hidden="true" />;
   return {
@@ -118,6 +128,7 @@ vi.mock("@carbon/icons-react", () => {
     Launch: Icon,
     Login: Icon,
     Play: Icon,
+    QrCode: Icon,
     Renew: Icon,
     Time: Icon,
     WarningAlt: Icon,

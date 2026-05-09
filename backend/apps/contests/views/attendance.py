@@ -12,13 +12,13 @@ from ..services.attendance import (
     ATTENDANCE_EVENT_TYPES,
     ATTENDANCE_REFRESH_SECONDS,
     ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
+    validate_self_scan_credential,
     build_attendance_error_payload,
     build_attendance_qr_value,
     create_attendance_credential,
     create_attendance_event,
     normalize_attendance_error_code,
-    reset_participant_attendance_records,
-    validate_attendance_manual_code,
+    reset_participant_exam_records,
 )
 
 
@@ -55,13 +55,30 @@ class AttendanceEventSerializer(serializers.Serializer):
         return attrs
 
 
-class AttendanceValidateCodeSerializer(serializers.Serializer):
+class AttendanceValidateSerializer(serializers.Serializer):
     purpose = serializers.ChoiceField(choices=("check_in", "check_out"))
-    manual_code = serializers.CharField(max_length=16)
+    token = serializers.CharField(required=False, allow_blank=True)
+    manual_code = serializers.CharField(required=False, allow_blank=True, max_length=16)
 
 
-class AttendanceResetSerializer(serializers.Serializer):
+class ParticipantExamRecordResetSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(min_value=1)
+
+
+def _attendance_disabled_response(contest: Contest) -> Response | None:
+    if contest.attendance_check_enabled:
+        return None
+    return Response(
+        build_attendance_error_payload("attendance_not_enabled"),
+        status=status.HTTP_400_BAD_REQUEST,
+    )
+
+
+def _value_error_response(exc: ValueError, *, http_status: int = status.HTTP_400_BAD_REQUEST) -> Response:
+    return Response(
+        build_attendance_error_payload(normalize_attendance_error_code(exc)),
+        status=http_status,
+    )
 
 
 class AttendanceMixin:
@@ -78,11 +95,9 @@ class AttendanceMixin:
                 {"detail": "You do not have permission to perform this action."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if not contest.attendance_check_enabled:
-            return Response(
-                build_attendance_error_payload("attendance_not_enabled"),
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        disabled = _attendance_disabled_response(contest)
+        if disabled is not None:
+            return disabled
         purpose = request.query_params.get("purpose")
         if purpose not in ATTENDANCE_EVENT_TYPES:
             return Response(
@@ -109,31 +124,32 @@ class AttendanceMixin:
         detail=True,
         methods=["post"],
         permission_classes=[permissions.IsAuthenticated],
-        url_path="attendance/validate-code",
+        url_path="attendance/validate",
     )
-    def attendance_validate_code(self, request, pk=None):
+    def attendance_validate(self, request, pk=None):
         contest: Contest = self.get_object()
-        if not contest.attendance_check_enabled:
-            return Response(
-                build_attendance_error_payload("attendance_not_enabled"),
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        disabled = _attendance_disabled_response(contest)
+        if disabled is not None:
+            return disabled
 
-        serializer = AttendanceValidateCodeSerializer(data=request.data)
+        serializer = AttendanceValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         purpose = serializer.validated_data["purpose"]
-        manual_code = serializer.validated_data["manual_code"]
+        token = serializer.validated_data.get("token") or ""
+        manual_code = str(serializer.validated_data.get("manual_code") or "").strip()
 
         try:
-            validate_attendance_manual_code(contest, purpose, manual_code)
-        except ValueError as exc:
-            code = normalize_attendance_error_code(exc)
-            return Response(
-                build_attendance_error_payload(code),
-                status=status.HTTP_400_BAD_REQUEST,
+            credential_source = validate_self_scan_credential(
+                contest, purpose, token, manual_code
             )
+        except ValueError as exc:
+            return _value_error_response(exc)
 
-        return Response({"valid": True, "purpose": purpose})
+        return Response({
+            "valid": True,
+            "purpose": purpose,
+            "credential_source": credential_source,
+        })
 
     @action(
         detail=True,
@@ -143,11 +159,9 @@ class AttendanceMixin:
     )
     def attendance_events(self, request, pk=None):
         contest: Contest = self.get_object()
-        if not contest.attendance_check_enabled:
-            return Response(
-                build_attendance_error_payload("attendance_not_enabled"),
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        disabled = _attendance_disabled_response(contest)
+        if disabled is not None:
+            return disabled
 
         serializer = AttendanceEventSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -160,25 +174,17 @@ class AttendanceMixin:
             )
         except ValueError as exc:
             code = normalize_attendance_error_code(exc)
-            if code == "attendance_teacher_permission_required":
-                return Response(
-                    build_attendance_error_payload(code),
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-            return Response(
-                build_attendance_error_payload(code),
-                status=status.HTTP_400_BAD_REQUEST,
+            http_status = (
+                status.HTTP_403_FORBIDDEN
+                if code == "attendance_teacher_permission_required"
+                else status.HTTP_400_BAD_REQUEST
             )
+            return _value_error_response(exc, http_status=http_status)
 
         error_response = result.get("error_response")
         if error_response is not None:
             return error_response
-        if result.get("error_code") in {
-            "attendance_check_in_already_completed",
-            "attendance_check_out_already_completed",
-            "check_in_only_before_personal_start",
-            "checkout_not_available_until_submitted",
-        }:
+        if "error_code" in result:
             return Response(
                 build_attendance_error_payload(result["error_code"]),
                 status=status.HTTP_409_CONFLICT,
@@ -189,9 +195,9 @@ class AttendanceMixin:
         detail=True,
         methods=["post"],
         permission_classes=[permissions.IsAuthenticated],
-        url_path="attendance/reset",
+        url_path="participants/reset_exam_record",
     )
-    def attendance_reset(self, request, pk=None):
+    def reset_exam_record(self, request, pk=None):
         contest: Contest = self.get_object()
         if not can_manage_contest(request.user, contest):
             return Response(
@@ -199,16 +205,14 @@ class AttendanceMixin:
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        serializer = AttendanceResetSerializer(data=request.data)
+        serializer = ParticipantExamRecordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            result = reset_participant_attendance_records(
+            result = reset_participant_exam_records(
                 contest,
                 serializer.validated_data["user_id"],
+                activity_user=request.user,
             )
         except ValueError as exc:
-            return Response(
-                build_attendance_error_payload(normalize_attendance_error_code(exc)),
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return _value_error_response(exc)
         return Response(result)

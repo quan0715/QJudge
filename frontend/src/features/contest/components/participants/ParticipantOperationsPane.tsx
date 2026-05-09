@@ -14,6 +14,7 @@ import {
   Launch,
   Locked,
   Login,
+  Logout,
   ArrowRight,
   Renew,
   SendAlt,
@@ -41,7 +42,8 @@ interface ParticipantOperationsPaneProps {
   onEditStatus: () => void;
   onUnlock: () => void;
   onReopenExam: () => void;
-  onResetAttendance?: () => void;
+  onAssistedAttendance?: (purpose: "check_in" | "check_out") => void;
+  onResetExamRecord?: () => void;
   onRemoveParticipant?: () => void;
   onOpenDetail: (detail: ParticipantDashboardDetail) => void;
   onOpenGrading: () => void;
@@ -72,7 +74,8 @@ const ParticipantOperationsPane = ({
   onEditStatus,
   onUnlock,
   onReopenExam,
-  onResetAttendance,
+  onAssistedAttendance,
+  onResetExamRecord,
   onRemoveParticipant,
   onOpenDetail,
   onOpenGrading,
@@ -286,13 +289,28 @@ const ParticipantOperationsPane = ({
                 onClick={onOpenGrading}
               />
             ) : null}
-            {onResetAttendance ? (
+            {onAssistedAttendance ? (
               <>
                 <MenuItemDivider />
                 <MenuItem
-                  label={t("participants.actions.resetAttendance", "重置簽到測試紀錄")}
+                  label={t("participants.actions.assistedCheckIn", "人工簽到")}
+                  renderIcon={Login}
+                  onClick={() => onAssistedAttendance("check_in")}
+                />
+                <MenuItem
+                  label={t("participants.actions.assistedCheckOut", "人工簽退")}
+                  renderIcon={Logout}
+                  onClick={() => onAssistedAttendance("check_out")}
+                />
+              </>
+            ) : null}
+            {onResetExamRecord ? (
+              <>
+                <MenuItemDivider />
+                <MenuItem
+                  label={t("participants.actions.resetExamRecord", "重置考試紀錄")}
                   renderIcon={Renew}
-                  onClick={onResetAttendance}
+                  onClick={onResetExamRecord}
                 />
               </>
             ) : null}

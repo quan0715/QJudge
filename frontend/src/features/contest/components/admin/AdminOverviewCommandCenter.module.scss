@@ -241,6 +241,34 @@
   overflow: hidden;
 }
 
+.studentQrScanner {
+  display: grid;
+  gap: 1rem;
+}
+
+.studentQrScannerViewport {
+  display: grid;
+  overflow: hidden;
+  min-height: 18rem;
+  place-items: center;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+  color: var(--cds-text-secondary);
+}
+
+.studentQrScannerVideo {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.studentQrScannerHint {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
 @media (max-width: 672px) {
   .participantDrawerBackdrop {
     display: none;

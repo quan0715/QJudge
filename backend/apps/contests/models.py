@@ -908,6 +908,7 @@ class ContestActivity(models.Model):
         ('update_contest', 'Update Contest'),
         ('update_problem', 'Update Problem'),
         ('update_participant', 'Update Participant'),
+        ('reset_exam_record', 'Reset Exam Record'),
         ('concurrent_login_detected', 'Concurrent Login Detected'),
         ('announce', 'Announce'),
         ('other', 'Other'),

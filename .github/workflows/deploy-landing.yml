@@ -30,6 +30,7 @@ on:
 
 permissions:
   contents: read
+  deployments: write
 
 concurrency:
   group: deploy-landing
@@ -62,8 +63,13 @@ jobs:
             echo "Missing required secret: CLOUDFLARE_API_TOKEN" >&2
             exit 1
           fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "Missing required secret: CLOUDFLARE_ACCOUNT_ID" >&2
+            exit 1
+          fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Install dependencies
         run: npm ci
@@ -78,3 +84,4 @@ jobs:
         working-directory: frontend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
