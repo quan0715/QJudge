@@ -24,8 +24,14 @@
   gap: 0.75rem;
 }
 
-.actionStackPrimary {
-  display: contents;
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.actionStackItem {
+  min-width: 0;
 }
 
 .progressTrack {
@@ -190,7 +196,4 @@
     white-space: normal;
   }
 
-  .actionStackPrimary {
-    display: none;
-  }
 }

@@ -61,8 +61,8 @@
       "strictModeEnableConfirm": "不正対策監視を有効にしますか？",
       "strictModeEnableSuccess": "不正対策監視を有効にしました",
       "updateFailed": "更新に失敗しました",
-      "disableAttendanceCheck": "チェックインを無効化",
-      "enableAttendanceCheck": "チェックインを有効化"
+      "disableAttendanceCheck": "入室を無効化",
+      "enableAttendanceCheck": "入室を有効化"
     },
     "command": {
       "ariaLabel": "教師管理概要",
@@ -287,7 +287,7 @@
         "refresh": "重新整理",
         "refreshing": "重新整理中",
         "settings": "競賽設定",
-        "attendanceProjection": "出席確認投影を開く"
+        "attendanceProjection": "入退室 QR を開く"
       },
       "contestInfoLabel": "競賽資訊",
       "contestStatus": {
@@ -350,7 +350,7 @@
       "title": "コマンドセンター",
       "violationCount": "異常イベント数",
       "violationCountAria": "異常イベント数、イベントパネルへ移動",
-      "attendanceCheck": "QR チェックイン / チェックアウト"
+      "attendanceCheck": "QR 入退室"
     }
   },
   "adminPreparationDashboard": {
@@ -549,8 +549,8 @@
       "durationPositive": "Duration must be greater than 0 minutes",
       "passwordRequired": "Password is required for private contests"
     },
-    "attendanceTitle": "QR チェックイン / チェックアウト",
-    "attendanceHint": "有効にすると、学生は試験開始前にコンテストホームで QR チェックインを完了する必要があります。"
+    "attendanceTitle": "QR 入退室",
+    "attendanceHint": "有効時、学生は試験前に QR 入室が必要です。"
   },
   "dashboard": {
     "acceptedRate": "AC 比率",
@@ -1370,9 +1370,9 @@
     "updateFailed": "更新に失敗しました",
     "viewModeLabel": "参加者表示モード",
     "viewTitle": "参加者を表示",
-    "confirmResetAttendance": "この学生の出席テスト記録をリセットしますか？チェックイン / チェックアウトイベントと証跡のみ削除され、解答記録には影響しません。",
-    "attendanceReset": "出席記録をリセットしました",
-    "attendanceResetFailed": "出席記録のリセットに失敗しました"
+    "confirmResetAttendance": "受付記録をリセットしますか？解答記録は残ります。",
+    "attendanceReset": "受付記録をリセットしました",
+    "attendanceResetFailed": "受付記録のリセット失敗"
   },
   "participantsAdmin": {
     "add": "追加",
@@ -1721,14 +1721,14 @@
     "updated": "設定が更新されました",
     "warningCooldown": "警告表示時間 (秒)",
     "attendanceCheck": {
-      "label": "QR チェックイン / チェックアウト",
-      "description": "有効にすると、学生は試験開始前にコンテストホームで QR Code をスキャンし、会場写真を提出する必要があります。"
+      "label": "QR 入退室",
+      "description": "学生は QR スキャンと会場写真送信後に試験を開始できます。"
     },
     "attendancePhotoPolicy": {
-      "label": "出席証跡写真",
-      "description": "会場写真のみ、または会場写真と本人写真の両方を要求できます。",
-      "room": "背面カメラの会場写真",
-      "roomAndSelfie": "前面カメラ本人写真 + 背面カメラ会場写真"
+      "label": "受付写真",
+      "description": "会場写真、または会場写真と本人写真を要求できます。",
+      "room": "背面：会場",
+      "roomAndSelfie": "前面：本人 + 背面：会場"
     }
   },
   "standings": {
@@ -1890,7 +1890,7 @@
       "noPassword": "このコンテストにはパスワードは不要です。",
       "requiresPassword": "このコンテストにはパスワードが必要です。",
       "title": "ルール",
-      "attendanceRequired": "この試験を開始するには QR チェックインが必要です。",
+      "attendanceRequired": "試験開始には QR 入室が必要です。",
       "defaultDescription": "追加ルールはありません。"
     },
     "submitConfirm": {
@@ -1912,10 +1912,8 @@
       "rules": "ルール"
     },
     "attendance": {
-      "checkIn": "チェックインへ",
-      "recheckIn": "再チェックイン",
-      "checkOut": "チェックアウトへ",
-      "recheckOut": "再チェックアウト"
+      "checkIn": "入室する",
+      "checkOut": "退室する"
     }
   },
   "studentStatus": {
@@ -1984,139 +1982,141 @@
     "invalidDateTime": "有効な開始時間と終了時間を選択してください"
   },
   "attendance": {
-    "badge": "QR 出席確認",
+    "badge": "QR 受付",
     "purpose": {
-      "checkIn": "チェックイン",
-      "checkOut": "チェックアウト"
+      "checkIn": "入室",
+      "checkOut": "退室"
     },
     "shell": {
       "back": "戻る"
     },
     "scan": {
-      "title": "QR Code をスキャン",
-      "description": "投影画面の{{purpose}} QR Code にカメラを合わせてください。",
-      "cannotComplete": "出席確認を完了できません",
+      "title": "QR をスキャン",
+      "description": "投影の{{purpose}} QR に合わせてください。",
+      "cannotComplete": "受付できません",
       "validating": "検証中…",
-      "waitingCamera": "カメラ権限を待っています",
-      "alignQr": "投影された QR Code に合わせてください"
+      "waitingCamera": "カメラ許可待ち",
+      "alignQr": "投影 QR に合わせる"
     },
     "manual": {
-      "title": "{{purpose}}コードを入力",
-      "description": "教師の投影画面で QR Code の下に表示されている 6 桁の数字コードを入力してください。",
-      "cannotContinue": "続行できません",
+      "title": "{{purpose}}コード入力",
+      "description": "投影 QR 下の 6 桁コードを入力。",
+      "cannotContinue": "続行不可",
       "codeAriaLabel": "{{purpose}}コード",
-      "digitAriaLabel": "{{index}} 桁目"
+      "digitAriaLabel": "{{index}}桁目"
     },
     "photo": {
-      "cannotComplete": "写真撮影を完了できません",
-      "cameraUnavailable": "カメラを使用できません",
-      "alignTarget": "{{label}}に合わせてください",
-      "qrVerifiedChip": "QR 認証済み · {{contest}}",
-      "readyChip": "写真準備完了 · {{contest}}",
+      "cannotComplete": "撮影できません",
+      "cameraUnavailable": "カメラ不可",
+      "alignTarget": "{{label}}に合わせる",
+      "qrVerifiedChip": "QR 認証済 · {{contest}}",
+      "readyChip": "写真準備済 · {{contest}}",
       "nextStepPhoto": "次：{{title}}",
-      "nextStepConfirm": "次：出席情報を確認してアップロード",
+      "nextStepConfirm": "次：確認して送信",
       "captureLabel": "{{label}}を撮影",
       "room": {
-        "label": "会場写真",
-        "title": "会場写真を撮影",
-        "description": "教室環境と試験端末の画面を撮影してください。",
-        "rearDescription": "背面カメラで教室環境と試験端末の画面を撮影してください。"
+        "label": "会場",
+        "title": "会場を撮影",
+        "description": "教室と端末画面を撮影。",
+        "rearDescription": "背面カメラで教室と端末画面を撮影。"
       },
       "selfie": {
-        "label": "本人写真",
-        "title": "本人の出席写真を撮影",
-        "description": "前面カメラで本人の出席写真を撮影してください。"
+        "label": "本人",
+        "title": "本人を撮影",
+        "description": "前面カメラで本人を撮影。"
       }
     },
     "confirm": {
-      "title": "{{purpose}}情報を確認",
-      "description": "情報と写真が鮮明であることを確認してからアップロードしてください。",
-      "uploadFailed": "アップロードに失敗しました",
-      "infoLabel": "出席情報",
+      "title": "{{purpose}}確認",
+      "description": "内容と写真を確認して送信。",
+      "uploadFailed": "送信失敗",
+      "infoLabel": "受付情報",
       "type": "種類",
-      "scannedAt": "スキャン時刻",
-      "photoStatus": "写真の状態",
-      "photosLabel": "証跡写真",
+      "scannedAt": "読取時刻",
+      "photoStatus": "写真",
+      "photosLabel": "写真",
       "photoPreviewAlt": "{{label}}プレビュー"
     },
     "done": {
-      "title": "{{purpose}}認証が完了しました",
-      "description": "システムが{{purpose}}イベントを記録しました。",
-      "resultLabel": "出席確認結果",
+      "title": "{{purpose}}完了",
+      "description": "{{purpose}}を記録しました。",
+      "resultLabel": "受付結果",
       "contest": "コンテスト",
       "time": "時刻",
       "status": "状態",
-      "uploaded": "アップロード済み",
-      "photosLabel": "証跡写真"
+      "uploaded": "送信済",
+      "photosLabel": "写真"
     },
     "header": {
       "done": "{{purpose}}完了",
-      "manual": "{{purpose}}コードを入力",
-      "photo": "{{purpose}}写真を撮影",
+      "manual": "{{purpose}}コード",
+      "photo": "{{purpose}}撮影",
       "confirm": "{{purpose}}を確認",
       "auth": "{{purpose}}認証"
     },
     "cta": {
-      "waitingCamera": "カメラ権限待ち…",
-      "retryCamera": "カメラを再試行",
+      "waitingCamera": "カメラ待ち…",
+      "retryCamera": "再試行",
       "validating": "検証中…",
       "realignment": "合わせ直す",
       "scanning": "スキャン中…",
       "next": "次へ",
-      "capturePurposePhoto": "{{purpose}}写真を撮影",
+      "capturePurposePhoto": "{{purpose}}写真を撮る",
       "nextPhoto": "次の写真",
-      "confirmInfo": "情報を確認",
-      "retryUpload": "アップロードを再試行",
+      "confirmInfo": "確認",
+      "retryUpload": "再送信",
       "uploading": "アップロード中…",
-      "confirmUpload": "確認してアップロード",
+      "confirmUpload": "確認して送信",
       "backToExam": "試験に戻る",
-      "manualCode": "コードを手入力",
-      "backToScan": "スキャンに戻る",
+      "manualCode": "コード入力",
+      "backToScan": "スキャンへ戻る",
       "retake": "撮り直す",
-      "retakePhotos": "写真を撮り直す"
+      "retakePhotos": "撮り直す"
     },
     "errors": {
-      "checkoutAfterSubmit": "提出後にチェックアウトできます。",
-      "checkInOnlyBeforeStart": "試験を開始または完了しているため、チェックインできません。退出する場合はチェックアウト QR Code をスキャンしてください。",
-      "notCheckInTime": "現在はチェックイン可能時間外です。",
-      "tokenExpired": "QR Code の有効期限が切れています。投影画面の最新 QR Code をスキャンしてください。",
-      "invalidToken": "QR Code が無効です。投影画面の最新 QR Code をスキャンしてください。",
-      "invalidManualCode": "コードが無効または期限切れです。投影画面の最新コードを入力してください。",
-      "notEnabled": "この試験では QR 出席確認が有効になっていません。",
-      "submitFailed": "出席情報の送信に失敗しました。しばらくしてから再試行してください。",
-      "cameraUnsupported": "このブラウザはカメラアクセスに対応していません。教師に出席確認を依頼してください。",
-      "cameraUnavailable": "カメラを使用できません",
-      "wrongPurposeQr": "これは{{actual}} QR Code です。{{expected}} QR Code をスキャンしてください。",
-      "capturePhotoFailed": "写真の取得に失敗しました。撮り直してください。",
-      "missingPurpose": "先にコンテストホームでチェックインまたはチェックアウトを選択してください。",
-      "manualCodeLength": "投影画面に表示されている 6 桁のコードを入力してください。",
-      "photoMissing": "{{label}}はまだ撮影されていません",
-      "uploadIntentIncomplete": "アップロードタスクに必要な写真がすべて含まれていません。再送信してください。",
-      "photoUploadFailed": "写真のアップロードに失敗しました。再送信してください。"
+      "checkInAlreadyCompleted": "すでに入室済みです。",
+      "checkOutAlreadyCompleted": "すでに退室済みです。",
+      "checkoutAfterSubmit": "提出後に退室できます。",
+      "checkInOnlyBeforeStart": "開始後は入室できません。退室 QR を使ってください。",
+      "notCheckInTime": "入室時間外です。",
+      "tokenExpired": "QR が期限切れです。最新 QR をスキャンしてください。",
+      "invalidToken": "QR が無効です。最新 QR をスキャンしてください。",
+      "invalidManualCode": "コードが無効または期限切れです。",
+      "notEnabled": "QR 受付は未有効です。",
+      "submitFailed": "送信に失敗しました。",
+      "cameraUnsupported": "このブラウザはカメラ非対応です。教師に確認してください。",
+      "cameraUnavailable": "カメラ不可",
+      "wrongPurposeQr": "{{actual}} QR です。{{expected}} QR を使ってください。",
+      "capturePhotoFailed": "撮影に失敗しました。",
+      "missingPurpose": "先に入室または退室を選択してください。",
+      "manualCodeLength": "6 桁コードを入力してください。",
+      "photoMissing": "{{label}}未撮影",
+      "uploadIntentIncomplete": "必要な写真が不足しています。",
+      "photoUploadFailed": "写真送信に失敗しました。"
     },
     "projection": {
-      "title": "試験チェックイン / チェックアウト",
+      "title": "入退室 QR",
       "examLabel": "試験",
       "examFallback": "試験",
-      "progress": "試験進行状況",
-      "progressAria": "試験進行状況 {{progress}}%",
+      "progress": "進行状況",
+      "progressAria": "進行状況 {{progress}}%",
       "loading": "読み込み中",
-      "manualCodeLabel": "カメラが使えない場合はこのコードを入力",
-      "reloadQr": "QR Code を再読み込み中",
-      "backToAdmin": "管理画面に戻る",
-      "enterFullscreen": "全画面表示にする",
-      "exitFullscreen": "全画面表示を終了",
-      "refreshFailed": "QR Code の更新に失敗しました",
-      "unstableTitle": "QR の読み込みが不安定です",
-      "unstableSubtitle": "最後に使用できた QR Code を保持し、再読み込みを続けます。",
+      "manualCodeLabel": "カメラ不可時のコード",
+      "reloadQr": "QR 再読み込み中",
+      "backToAdmin": "管理へ戻る",
+      "enterFullscreen": "全画面",
+      "exitFullscreen": "全画面終了",
+      "refreshFailed": "QR 更新失敗",
+      "unstableTitle": "QR 読み込み不安定",
+      "unstableSubtitle": "最後の QR を保持して再読み込みします。",
       "mode": {
-        "ariaLabel": "チェックイン / チェックアウト QR Code を切り替え"
+        "ariaLabel": "入退室 QR 切替"
       },
       "countdown": {
-        "exam": "試験カウントダウン",
+        "exam": "試験タイマー",
         "unset": "時間未設定",
         "startsIn": "開始まで",
-        "openCheckIn": "チェックイン受付中",
+        "openCheckIn": "入室受付中",
         "endsIn": "終了まで",
         "running": "試験中",
         "ended": "試験終了",
@@ -2128,10 +2128,10 @@
         "end": "終了"
       },
       "guide": {
-        "scan": "QR Code をスキャン",
-        "photo": "会場写真を撮影",
-        "upload": "確認してアップロード",
-        "ariaLabel": "出席確認の案内"
+        "scan": "QR スキャン",
+        "photo": "会場撮影",
+        "upload": "確認して送信",
+        "ariaLabel": "受付手順"
       }
     }
   }

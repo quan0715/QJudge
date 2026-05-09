@@ -1913,9 +1913,7 @@
     },
     "attendance": {
       "checkIn": "前往簽到",
-      "recheckIn": "重新簽到",
-      "checkOut": "前往簽退",
-      "recheckOut": "重新簽退"
+      "checkOut": "前往簽退"
     }
   },
   "studentStatus": {
@@ -2076,6 +2074,8 @@
       "retakePhotos": "重新拍攝"
     },
     "errors": {
+      "checkInAlreadyCompleted": "您已完成簽到。",
+      "checkOutAlreadyCompleted": "您已完成簽退。",
       "checkoutAfterSubmit": "交卷後才可以簽退。",
       "checkInOnlyBeforeStart": "您已開始或完成考試，不能再補簽到；若要離場請掃描簽退 QR Code。",
       "notCheckInTime": "目前不在可簽到時間。",
@@ -2125,7 +2125,7 @@
       "marker": {
         "start": "開始",
         "now": "現在",
-        "end": "截止"
+        "end": "結束"
       },
       "guide": {
         "scan": "掃描 QR Code",

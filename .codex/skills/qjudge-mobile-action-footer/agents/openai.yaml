@@ -1,0 +1,4 @@
+interface:
+  display_name: "QJudge Mobile Action Footer"
+  short_description: "Mobile sticky action footer and Carbon ButtonSet usage rules"
+  default_prompt: "Implement or review QJudge mobile button sets using MobileActionFooter, Carbon ButtonSet, and desktop/mobile action deduplication patterns."

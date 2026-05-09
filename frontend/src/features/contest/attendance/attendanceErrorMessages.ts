@@ -17,6 +17,10 @@ type ErrorMessageBuilder = (
 ) => string;
 
 const MESSAGES: Partial<Record<AttendanceErrorCode, ErrorMessageBuilder>> = {
+  attendance_check_in_already_completed: (tr) =>
+    tr("attendance.errors.checkInAlreadyCompleted", "您已完成簽到。"),
+  attendance_check_out_already_completed: (tr) =>
+    tr("attendance.errors.checkOutAlreadyCompleted", "您已完成簽退。"),
   checkout_not_available_until_submitted: (tr) =>
     tr("attendance.errors.checkoutAfterSubmit", "交卷後才可以簽退。"),
   check_in_only_before_personal_start: (tr, purpose) =>

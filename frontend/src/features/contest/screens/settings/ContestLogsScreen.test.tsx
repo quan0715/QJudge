@@ -1,5 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import ContestLogsScreen from "./ContestLogsScreen";
@@ -112,27 +111,21 @@ const eventFeed: EventFeedItem[] = [
 ];
 
 describe("ContestLogsScreen", () => {
-  it("switches embedded event records between violation and exam events", async () => {
+  it("shows a unified embedded event record list", async () => {
     render(<ContestLogsScreen embedded eventFeed={eventFeed} />);
 
-    expect(screen.getByRole("tab", { name: "違規事件" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    expect(screen.getByRole("tab", { name: "考試事件" })).toBeInTheDocument();
-    expect(screen.queryByText("事件紀錄")).not.toBeInTheDocument();
-    const violationPanel = screen.getByRole("tabpanel");
-    expect(within(violationPanel).getByText("tab hidden")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "違規事件" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "考試事件" })).not.toBeInTheDocument();
+    expect(screen.getByText("事件紀錄")).toBeInTheDocument();
+    expect(screen.getByText("tab hidden")).toBeInTheDocument();
     expect(
-      within(violationPanel).getByText("mouse leave triggered"),
+      screen.getByText("mouse leave triggered"),
     ).toBeInTheDocument();
-    expect(
-      within(violationPanel).queryByText("exam entered"),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("exam entered")).toBeInTheDocument();
     expect(screen.queryByTestId("full-incident-card")).not.toBeInTheDocument();
     expect(screen.getByText("王小明 · 09:10")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /tab hidden/ }));
+    fireEvent.click(screen.getByRole("button", { name: /tab hidden/ }));
 
     expect(
       screen.getByRole("dialog", { name: "tab hidden" }),
@@ -144,17 +137,5 @@ describe("ContestLogsScreen", () => {
       "data-collapsible",
       "false",
     );
-
-    await userEvent.click(screen.getByRole("tab", { name: "考試事件" }));
-
-    expect(screen.getByRole("tab", { name: "考試事件" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    const examPanel = screen.getByRole("tabpanel");
-    expect(within(examPanel).getByText("exam entered")).toBeInTheDocument();
-    expect(
-      within(examPanel).queryByText("mouse leave triggered"),
-    ).not.toBeInTheDocument();
   });
 });

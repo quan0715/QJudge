@@ -61,8 +61,8 @@
       "strictModeEnableConfirm": "부정행위 방지 감독을 활성화하시겠습니까?",
       "strictModeEnableSuccess": "부정행위 방지 감독이 활성화되었습니다",
       "updateFailed": "업데이트 실패",
-      "disableAttendanceCheck": "체크인 비활성화",
-      "enableAttendanceCheck": "체크인 활성화"
+      "disableAttendanceCheck": "입실 끄기",
+      "enableAttendanceCheck": "입실 켜기"
     },
     "command": {
       "ariaLabel": "교사 관리 개요",
@@ -287,7 +287,7 @@
         "refresh": "重新整理",
         "refreshing": "重新整理中",
         "settings": "競賽設定",
-        "attendanceProjection": "출석 투영 열기"
+        "attendanceProjection": "입퇴실 QR 열기"
       },
       "contestInfoLabel": "競賽資訊",
       "contestStatus": {
@@ -350,7 +350,7 @@
       "title": "명령 센터",
       "violationCount": "이상 이벤트 수",
       "violationCountAria": "이상 이벤트 수, 이벤트 패널로 이동",
-      "attendanceCheck": "QR 체크인 / 체크아웃"
+      "attendanceCheck": "QR 입퇴실"
     }
   },
   "adminPreparationDashboard": {
@@ -549,8 +549,8 @@
       "durationPositive": "Duration must be greater than 0 minutes",
       "passwordRequired": "Password is required for private contests"
     },
-    "attendanceTitle": "QR 체크인 / 체크아웃",
-    "attendanceHint": "활성화하면 학생은 시험 시작 전에 대회 홈에서 QR 체크인을 완료해야 합니다."
+    "attendanceTitle": "QR 입퇴실",
+    "attendanceHint": "켜면 시험 전 QR 입실이 필요합니다."
   },
   "dashboard": {
     "acceptedRate": "AC 비율",
@@ -1370,9 +1370,9 @@
     "updateFailed": "업데이트에 실패했습니다",
     "viewModeLabel": "참가자 보기 모드",
     "viewTitle": "참가자 보기",
-    "confirmResetAttendance": "이 학생의 출석 테스트 기록을 초기화할까요? 체크인 / 체크아웃 이벤트와 증빙만 삭제되며 답안 기록에는 영향을 주지 않습니다.",
-    "attendanceReset": "출석 기록이 초기화되었습니다",
-    "attendanceResetFailed": "출석 기록 초기화 실패"
+    "confirmResetAttendance": "입퇴실 기록을 초기화할까요? 답안 기록은 유지됩니다.",
+    "attendanceReset": "입퇴실 기록 초기화됨",
+    "attendanceResetFailed": "입퇴실 기록 초기화 실패"
   },
   "participantsAdmin": {
     "add": "추가",
@@ -1721,14 +1721,14 @@
     "updated": "설정이 업데이트되었습니다",
     "warningCooldown": "경고 표시 시간 (초)",
     "attendanceCheck": {
-      "label": "QR 체크인 / 체크아웃",
-      "description": "활성화하면 학생은 시험 시작 전에 대회 홈에서 QR Code 를 스캔하고 현장 사진을 제출해야 합니다."
+      "label": "QR 입퇴실",
+      "description": "QR 스캔과 현장 사진 제출 후 시험을 시작할 수 있습니다."
     },
     "attendancePhotoPolicy": {
-      "label": "출석 증빙 사진",
-      "description": "현장 사진만 요구하거나 현장 사진과 본인 사진을 모두 요구할 수 있습니다.",
-      "room": "후면 카메라 현장 사진",
-      "roomAndSelfie": "전면 카메라 본인 사진 + 후면 카메라 현장 사진"
+      "label": "입실 사진",
+      "description": "현장 사진 또는 현장+본인 사진을 요구합니다.",
+      "room": "후면: 현장",
+      "roomAndSelfie": "전면: 본인 + 후면: 현장"
     }
   },
   "standings": {
@@ -1890,7 +1890,7 @@
       "noPassword": "이 대회는 비밀번호가 필요하지 않습니다.",
       "requiresPassword": "이 대회는 비밀번호가 필요합니다.",
       "title": "규칙 안내",
-      "attendanceRequired": "이 시험은 답안을 시작하기 전에 QR 체크인이 필요합니다.",
+      "attendanceRequired": "시험 시작 전 QR 입실이 필요합니다.",
       "defaultDescription": "추가 규칙이 없습니다."
     },
     "submitConfirm": {
@@ -1912,10 +1912,8 @@
       "rules": "규칙 안내"
     },
     "attendance": {
-      "checkIn": "체크인으로 이동",
-      "recheckIn": "다시 체크인",
-      "checkOut": "체크아웃으로 이동",
-      "recheckOut": "다시 체크아웃"
+      "checkIn": "입실하기",
+      "checkOut": "퇴실하기"
     }
   },
   "studentStatus": {
@@ -1984,141 +1982,143 @@
     "invalidDateTime": "유효한 시작 및 종료 시간을 선택하세요"
   },
   "attendance": {
-    "badge": "QR 출석",
+    "badge": "QR 입실",
     "purpose": {
-      "checkIn": "체크인",
-      "checkOut": "체크아웃"
+      "checkIn": "입실",
+      "checkOut": "퇴실"
     },
     "shell": {
       "back": "뒤로"
     },
     "scan": {
-      "title": "QR Code 스캔",
-      "description": "투영 화면의 {{purpose}} QR Code 에 카메라를 맞추세요.",
-      "cannotComplete": "출석 확인을 완료할 수 없습니다",
+      "title": "QR 스캔",
+      "description": "투영된 {{purpose}} QR 에 맞추세요.",
+      "cannotComplete": "처리할 수 없음",
       "validating": "검증 중…",
-      "waitingCamera": "카메라 권한 대기 중",
-      "alignQr": "투영된 QR Code 에 맞추세요"
+      "waitingCamera": "카메라 권한 대기",
+      "alignQr": "투영 QR 에 맞추기"
     },
     "manual": {
       "title": "{{purpose}} 코드 입력",
-      "description": "교사 투영 화면의 QR Code 아래에 표시된 6자리 숫자 코드를 입력하세요.",
-      "cannotContinue": "계속할 수 없습니다",
+      "description": "투영 QR 아래 6자리 코드를 입력하세요.",
+      "cannotContinue": "계속 불가",
       "codeAriaLabel": "{{purpose}} 코드",
       "digitAriaLabel": "{{index}}번째 자리"
     },
     "photo": {
-      "cannotComplete": "사진 촬영을 완료할 수 없습니다",
-      "cameraUnavailable": "카메라를 사용할 수 없습니다",
-      "alignTarget": "{{label}}에 맞추세요",
-      "qrVerifiedChip": "QR 인증됨 · {{contest}}",
-      "readyChip": "사진 준비됨 · {{contest}}",
+      "cannotComplete": "촬영할 수 없음",
+      "cameraUnavailable": "카메라 사용 불가",
+      "alignTarget": "{{label}}에 맞추기",
+      "qrVerifiedChip": "QR 인증 · {{contest}}",
+      "readyChip": "사진 준비 · {{contest}}",
       "nextStepPhoto": "다음: {{title}}",
-      "nextStepConfirm": "다음: 출석 정보 확인 및 업로드",
+      "nextStepConfirm": "다음: 확인 후 제출",
       "captureLabel": "{{label}} 촬영",
       "room": {
-        "label": "현장 사진",
-        "title": "현장 사진 촬영",
-        "description": "교실 환경과 시험 기기 화면을 촬영하세요.",
-        "rearDescription": "후면 카메라로 교실 환경과 시험 기기 화면을 촬영하세요."
+        "label": "현장",
+        "title": "현장 촬영",
+        "description": "교실과 시험 화면을 촬영하세요.",
+        "rearDescription": "후면 카메라로 교실과 시험 화면을 촬영하세요."
       },
       "selfie": {
-        "label": "본인 사진",
-        "title": "본인 출석 사진 촬영",
-        "description": "전면 카메라로 본인 출석 사진을 촬영하세요."
+        "label": "본인",
+        "title": "본인 촬영",
+        "description": "전면 카메라로 본인을 촬영하세요."
       }
     },
     "confirm": {
-      "title": "{{purpose}} 정보 확인",
-      "description": "정보와 사진이 선명한지 확인한 뒤 업로드하세요.",
+      "title": "{{purpose}} 확인",
+      "description": "정보와 사진을 확인 후 제출하세요.",
       "uploadFailed": "업로드 실패",
-      "infoLabel": "출석 정보",
+      "infoLabel": "입퇴실 정보",
       "type": "유형",
-      "scannedAt": "스캔 시간",
-      "photoStatus": "사진 상태",
-      "photosLabel": "증빙 사진",
+      "scannedAt": "스캔 시각",
+      "photoStatus": "사진",
+      "photosLabel": "사진",
       "photoPreviewAlt": "{{label}} 미리보기"
     },
     "done": {
-      "title": "{{purpose}} 인증 완료",
-      "description": "시스템이 {{purpose}} 이벤트를 기록했습니다.",
-      "resultLabel": "출석 결과",
+      "title": "{{purpose}} 완료",
+      "description": "{{purpose}}이 기록되었습니다.",
+      "resultLabel": "입퇴실 결과",
       "contest": "대회",
       "time": "시간",
       "status": "상태",
-      "uploaded": "업로드됨",
-      "photosLabel": "증빙 사진"
+      "uploaded": "제출됨",
+      "photosLabel": "사진"
     },
     "header": {
       "done": "{{purpose}} 완료",
-      "manual": "{{purpose}} 코드 입력",
-      "photo": "{{purpose}} 사진 촬영",
+      "manual": "{{purpose}} 코드",
+      "photo": "{{purpose}} 촬영",
       "confirm": "{{purpose}} 확인",
       "auth": "{{purpose}} 인증"
     },
     "cta": {
-      "waitingCamera": "카메라 권한 대기 중…",
-      "retryCamera": "카메라 다시 시도",
+      "waitingCamera": "카메라 대기…",
+      "retryCamera": "다시 시도",
       "validating": "검증 중…",
       "realignment": "다시 맞추기",
       "scanning": "스캔 중…",
       "next": "다음",
       "capturePurposePhoto": "{{purpose}} 사진 촬영",
       "nextPhoto": "다음 사진",
-      "confirmInfo": "정보 확인",
+      "confirmInfo": "확인",
       "retryUpload": "업로드 재시도",
       "uploading": "업로드 중…",
-      "confirmUpload": "확인 후 업로드",
-      "backToExam": "시험으로 돌아가기",
-      "manualCode": "코드 직접 입력",
-      "backToScan": "스캔으로 돌아가기",
+      "confirmUpload": "확인 후 제출",
+      "backToExam": "시험으로",
+      "manualCode": "코드 입력",
+      "backToScan": "스캔으로",
       "retake": "다시 촬영",
-      "retakePhotos": "사진 다시 촬영"
+      "retakePhotos": "다시 촬영"
     },
     "errors": {
-      "checkoutAfterSubmit": "시험을 제출한 뒤 체크아웃할 수 있습니다.",
-      "checkInOnlyBeforeStart": "이미 시험을 시작했거나 완료하여 체크인할 수 없습니다. 나가려면 체크아웃 QR Code 를 스캔하세요.",
-      "notCheckInTime": "현재 체크인 가능 시간이 아닙니다.",
-      "tokenExpired": "QR Code 가 만료되었습니다. 투영 화면의 최신 QR Code 를 스캔하세요.",
-      "invalidToken": "QR Code 가 유효하지 않습니다. 투영 화면의 최신 QR Code 를 스캔하세요.",
-      "invalidManualCode": "코드가 유효하지 않거나 만료되었습니다. 투영 화면의 최신 코드를 입력하세요.",
-      "notEnabled": "이 시험에는 QR 출석이 활성화되어 있지 않습니다.",
-      "submitFailed": "출석 정보 제출에 실패했습니다. 잠시 후 다시 시도하세요.",
-      "cameraUnsupported": "이 브라우저는 카메라 접근을 지원하지 않습니다. 교사에게 출석 확인을 요청하세요.",
-      "cameraUnavailable": "카메라를 사용할 수 없습니다",
-      "wrongPurposeQr": "이것은 {{actual}} QR Code 입니다. {{expected}} QR Code 를 스캔하세요.",
-      "capturePhotoFailed": "사진 캡처에 실패했습니다. 다시 촬영하세요.",
-      "missingPurpose": "먼저 대회 홈에서 체크인 또는 체크아웃을 선택하세요.",
-      "manualCodeLength": "투영 화면에 표시된 6자리 코드를 입력하세요.",
-      "photoMissing": "{{label}}이 아직 촬영되지 않았습니다",
-      "uploadIntentIncomplete": "업로드 작업에 필요한 사진이 모두 포함되지 않았습니다. 다시 제출하세요.",
-      "photoUploadFailed": "사진 업로드에 실패했습니다. 다시 제출하세요."
+      "checkInAlreadyCompleted": "이미 입실했습니다.",
+      "checkOutAlreadyCompleted": "이미 퇴실했습니다.",
+      "checkoutAfterSubmit": "제출 후 퇴실할 수 있습니다.",
+      "checkInOnlyBeforeStart": "시작 후에는 입실할 수 없습니다. 퇴실 QR 을 사용하세요.",
+      "notCheckInTime": "입실 시간이 아닙니다.",
+      "tokenExpired": "QR 이 만료되었습니다. 최신 QR 을 스캔하세요.",
+      "invalidToken": "QR 이 유효하지 않습니다. 최신 QR 을 스캔하세요.",
+      "invalidManualCode": "코드가 유효하지 않거나 만료되었습니다.",
+      "notEnabled": "QR 입실이 꺼져 있습니다.",
+      "submitFailed": "제출에 실패했습니다.",
+      "cameraUnsupported": "이 브라우저는 카메라를 지원하지 않습니다. 교사에게 요청하세요.",
+      "cameraUnavailable": "카메라 사용 불가",
+      "wrongPurposeQr": "{{actual}} QR 입니다. {{expected}} QR 을 사용하세요.",
+      "capturePhotoFailed": "촬영에 실패했습니다.",
+      "missingPurpose": "먼저 입실 또는 퇴실을 선택하세요.",
+      "manualCodeLength": "6자리 코드를 입력하세요.",
+      "photoMissing": "{{label}} 미촬영",
+      "uploadIntentIncomplete": "필요한 사진이 부족합니다.",
+      "photoUploadFailed": "사진 제출에 실패했습니다."
     },
     "projection": {
-      "title": "시험 체크인 / 체크아웃",
+      "title": "입퇴실 QR",
       "examLabel": "시험",
       "examFallback": "시험",
-      "progress": "시험 진행률",
-      "progressAria": "시험 진행률 {{progress}}%",
+      "progress": "진행률",
+      "progressAria": "진행률 {{progress}}%",
       "loading": "로딩 중",
-      "manualCodeLabel": "카메라를 사용할 수 없을 때 이 코드를 입력",
-      "reloadQr": "QR Code 다시 불러오는 중",
-      "backToAdmin": "관리 화면으로 돌아가기",
+      "manualCodeLabel": "카메라 불가 시 코드",
+      "reloadQr": "QR 다시 불러오는 중",
+      "backToAdmin": "관리로 돌아가기",
       "enterFullscreen": "전체 화면 시작",
       "exitFullscreen": "전체 화면 종료",
-      "refreshFailed": "QR Code 새로고침 실패",
-      "unstableTitle": "QR 로딩이 불안정합니다",
-      "unstableSubtitle": "시스템은 마지막으로 사용 가능한 QR Code 를 유지하고 계속 다시 불러옵니다.",
+      "refreshFailed": "QR 새로고침 실패",
+      "unstableTitle": "QR 로딩 불안정",
+      "unstableSubtitle": "마지막 QR 을 유지하고 다시 불러옵니다.",
       "mode": {
-        "ariaLabel": "체크인 / 체크아웃 QR Code 전환"
+        "ariaLabel": "입퇴실 QR 전환"
       },
       "countdown": {
-        "exam": "시험 카운트다운",
+        "exam": "시험 타이머",
         "unset": "시간 미설정",
         "startsIn": "시작까지",
-        "openCheckIn": "체크인 가능",
+        "openCheckIn": "입실 가능",
         "endsIn": "종료까지",
-        "running": "시험 진행 중",
+        "running": "시험 중",
         "ended": "시험 종료",
         "endedTone": "종료됨"
       },
@@ -2128,10 +2128,10 @@
         "end": "종료"
       },
       "guide": {
-        "scan": "QR Code 스캔",
-        "photo": "현장 사진 촬영",
-        "upload": "확인 후 업로드",
-        "ariaLabel": "출석 안내"
+        "scan": "QR 스캔",
+        "photo": "현장 촬영",
+        "upload": "확인 후 제출",
+        "ariaLabel": "입실 안내"
       }
     }
   }

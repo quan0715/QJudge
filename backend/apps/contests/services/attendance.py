@@ -20,7 +20,7 @@ from apps.contests.permissions import can_manage_contest
 from apps.contests.services.participant_state import reset_participant_exam_record
 
 ATTENDANCE_REFRESH_SECONDS = 30
-ATTENDANCE_TOKEN_MAX_AGE_SECONDS = 45
+ATTENDANCE_TOKEN_MAX_AGE_SECONDS = 120
 ATTENDANCE_QR_PREFIX = "qj-att:v1"
 ATTENDANCE_CACHE_PREFIX = "contest-attendance-token"
 ATTENDANCE_MANUAL_CODE_CACHE_PREFIX = "contest-attendance-manual-code"
@@ -41,7 +41,9 @@ ATTENDANCE_PHOTO_KIND_BY_POLICY = {
 # in frontend/src/features/contest/attendance/attendanceErrorCodes.ts; the
 # parity is asserted by tests on both sides.
 AttendanceErrorCode = Literal[
+    "attendance_check_in_already_completed",
     "attendance_check_in_required",
+    "attendance_check_out_already_completed",
     "attendance_credential_conflict",
     "attendance_manual_code_generation_failed",
     "attendance_not_enabled",
@@ -64,9 +66,11 @@ AttendanceErrorCode = Literal[
 ATTENDANCE_ERROR_CODES: tuple[AttendanceErrorCode, ...] = get_args(AttendanceErrorCode)
 
 ATTENDANCE_ERROR_MESSAGES: dict[AttendanceErrorCode, str] = {
+    "attendance_check_in_already_completed": "Attendance check-in has already been completed.",
     "attendance_check_in_required": (
         "Please complete attendance check-in before starting the exam."
     ),
+    "attendance_check_out_already_completed": "Attendance check-out has already been completed.",
     "attendance_credential_conflict": "Use either QR token or manual code, not both.",
     "attendance_manual_code_generation_failed": (
         "Failed to generate an attendance code. Please try again."
@@ -240,6 +244,27 @@ def _status_for_attendance_purpose(contest: Contest, participant: ContestPartici
     return latest_status
 
 
+def _is_attendance_purpose_completed(
+    contest: Contest,
+    participant: ContestParticipant,
+    purpose: str,
+) -> bool:
+    return (
+        _status_for_attendance_purpose(
+            contest,
+            participant,
+            ATTENDANCE_EVENT_TYPES[purpose],
+        )
+        in ATTENDANCE_READY_STATUSES
+    )
+
+
+def _attendance_completed_error_code(purpose: str) -> AttendanceErrorCode:
+    if purpose == "check_out":
+        return "attendance_check_out_already_completed"
+    return "attendance_check_in_already_completed"
+
+
 def build_attendance_status(contest: Contest, participant: ContestParticipant | None) -> dict[str, Any]:
     if not contest.attendance_check_enabled:
         return {
@@ -272,15 +297,16 @@ def build_attendance_status(contest: Contest, participant: ContestParticipant | 
     now = timezone.now()
     global_start_ready = contest.start_time is None or now >= contest.start_time
     attendance_ready = check_in_status in ATTENDANCE_READY_STATUSES
+    check_out_ready = check_out_status in ATTENDANCE_READY_STATUSES
     return {
         "attendanceRequired": True,
         "photoPolicy": contest.attendance_photo_policy,
         "requiredPhotoKinds": get_attendance_required_photo_kinds(contest),
         "checkInStatus": check_in_status,
         "checkOutStatus": check_out_status,
-        "canCheckIn": participant.exam_status == ExamStatus.NOT_STARTED,
+        "canCheckIn": participant.exam_status == ExamStatus.NOT_STARTED and not attendance_ready,
         "canStartExam": attendance_ready and global_start_ready,
-        "canCheckOut": participant.exam_status == ExamStatus.SUBMITTED,
+        "canCheckOut": participant.exam_status == ExamStatus.SUBMITTED and not check_out_ready,
     }
 
 
@@ -333,6 +359,8 @@ def _resolve_self_scan_event(
         return {"error_code": "check_in_only_before_personal_start"}
     if purpose == "check_out" and participant.exam_status != ExamStatus.SUBMITTED:
         return {"error_code": "checkout_not_available_until_submitted"}
+    if _is_attendance_purpose_completed(contest, participant, purpose):
+        return {"error_code": _attendance_completed_error_code(purpose)}
 
     previous_attempt_count = ExamEvent.objects.filter(
         contest=contest,
@@ -378,6 +406,9 @@ def _resolve_teacher_assisted_event(
         )
     except ContestParticipant.DoesNotExist:
         raise ValueError("participant_not_found") from None
+
+    if _is_attendance_purpose_completed(contest, participant, purpose):
+        return {"error_code": _attendance_completed_error_code(purpose)}
 
     metadata = {
         "attendance_purpose": purpose,

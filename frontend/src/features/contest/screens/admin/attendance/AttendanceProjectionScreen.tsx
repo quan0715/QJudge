@@ -27,12 +27,19 @@ type ProjectionDisplayMode = AttendancePurpose;
 
 const ATTENDANCE_PURPOSES: AttendancePurpose[] = ["check_in", "check_out"];
 
-function formatDateTime(value: Date | number | string | undefined, locale: string): string {
+function formatDate(value: Date | number | string | undefined, locale: string): string {
   if (!value) return "";
   const date = value instanceof Date ? value : new Date(value);
   return new Intl.DateTimeFormat(locale, {
     month: "2-digit",
     day: "2-digit",
+  }).format(date);
+}
+
+function formatTime(value: Date | number | string | undefined, locale: string): string {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
@@ -171,11 +178,19 @@ function ExamStatusBlock({ contest }: { contest: ContestDetail | null | undefine
   const countdown = getCountdown(contest, now, tr);
   const progress = getCountdownProgress(contest, now);
   const shouldShowCurrentMarkerLabel = progress > 18 && progress < 82;
+  const currentAlign = progress <= 15 ? "left" : progress >= 85 ? "right" : "center";
+  const startDate = formatDate(contest?.startTime, i18n.language);
+  const startTime = formatTime(contest?.startTime, i18n.language);
+  const endDate = formatDate(contest?.endTime, i18n.language);
+  const endTime = formatTime(contest?.endTime, i18n.language);
   return (
     <section className={styles.statusBlock}>
       <div className={styles.examTitleGroup}>
         <div className={styles.blockLabel}>{t("attendance.projection.examLabel", "考試")}</div>
-        <h1 className={styles.title}>{contest?.name || t("attendance.projection.examFallback", "Exam")}</h1>
+        <h1 className={styles.title}>
+          {contest?.name || t("attendance.projection.examFallback", "Exam")}
+          <span className={styles.statusChip}>{countdown.tone}</span>
+        </h1>
       </div>
       <div className={styles.countdownGroup}>
         <div className={styles.blockLabel}>{countdown.label}</div>
@@ -183,8 +198,8 @@ function ExamStatusBlock({ contest }: { contest: ContestDetail | null | undefine
       </div>
       <div className={styles.progressGroup}>
         <div className={styles.progressHeader}>
-          <span>{t("attendance.projection.progress", "考試進度")}</span>
-          <span>{countdown.tone}</span>
+          <span>{t("attendance.projection.marker.start", "開始")}</span>
+          <span>{t("attendance.projection.marker.end", "結束")}</span>
         </div>
         <div
           className={styles.progressScale}
@@ -205,22 +220,24 @@ function ExamStatusBlock({ contest }: { contest: ContestDetail | null | undefine
           </div>
           <div className={styles.progressMarkers}>
             <span className={styles.progressMarker} data-position="start">
-              <span>{t("attendance.projection.marker.start", "開始")}</span>
-              <strong>{formatDateTime(contest?.startTime, i18n.language) || "--"}</strong>
+              <strong>{startDate || "--"}</strong>
+              <strong>{startTime}</strong>
             </span>
             {shouldShowCurrentMarkerLabel ? (
               <span
                 className={styles.progressMarker}
                 data-position="current"
+                data-align={currentAlign}
                 style={{ left: `${progress}%` }}
+                aria-label={t("attendance.projection.marker.now", "現在")}
               >
-                <span>{t("attendance.projection.marker.now", "現在")}</span>
-                <strong>{formatDateTime(now, i18n.language)}</strong>
+                <strong>{formatDate(now, i18n.language)}</strong>
+                <strong>{formatTime(now, i18n.language)}</strong>
               </span>
             ) : null}
             <span className={styles.progressMarker} data-position="end">
-              <span>{t("attendance.projection.marker.end", "截止")}</span>
-              <strong>{formatDateTime(contest?.endTime, i18n.language) || "--"}</strong>
+              <strong>{endDate || "--"}</strong>
+              <strong>{endTime}</strong>
             </span>
           </div>
         </div>

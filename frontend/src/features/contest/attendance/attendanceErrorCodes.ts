@@ -1,7 +1,9 @@
 // Mirror of backend ATTENDANCE_ERROR_CODES (see backend/apps/contests/services/attendance.py).
 // Keep this list in sync; the parity test compares the two as sets (order does not matter).
 export const ATTENDANCE_ERROR_CODES = [
+  "attendance_check_in_already_completed",
   "attendance_check_in_required",
+  "attendance_check_out_already_completed",
   "attendance_credential_conflict",
   "attendance_manual_code_generation_failed",
   "attendance_not_enabled",

@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ChangeEventHandler, ReactNode } from "react";
+import type { ChangeEventHandler, ComponentProps, ReactNode } from "react";
 import type {
   ContestDetail,
 } from "@/core/entities/contest.entity";
@@ -251,24 +251,27 @@ const createContest = (
 
 const renderDashboard = (
   contest: ContestDetail,
+  props: Partial<ComponentProps<typeof StudentContestDashboard>> = {},
 ) =>
   render(
     <MemoryRouter>
       <StudentContestDashboard
         contest={contest}
+        {...props}
       />
     </MemoryRouter>,
   );
 
 const renderDashboardAtContestRoute = (
   contest: ContestDetail,
+  props: Partial<ComponentProps<typeof StudentContestDashboard>> = {},
 ) =>
   render(
     <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1"]}>
       <Routes>
         <Route
           path="/classrooms/:classroomId/contest/:contestId"
-          element={<StudentContestDashboard contest={contest} />}
+          element={<StudentContestDashboard contest={contest} {...props} />}
         />
       </Routes>
     </MemoryRouter>,
@@ -351,7 +354,7 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByText("已嘗試")).not.toBeInTheDocument();
   });
 
-  it("keeps repeat check-in available after attendance is confirmed before exam start", () => {
+  it("hides check-in action after attendance is confirmed before exam start", () => {
     renderDashboardAtContestRoute(
       createContest({
         startTime: "2000-05-05T10:00:00.000Z",
@@ -370,7 +373,7 @@ describe("StudentContestDashboard", () => {
     );
 
     expect(screen.getByRole("button", { name: /開始作答/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /重新簽到/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /重新簽到/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /前往簽到/ })).not.toBeInTheDocument();
   });
 
@@ -395,7 +398,7 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
   });
 
-  it("shows repeat check-out label after check-out is confirmed", () => {
+  it("hides check-out action after check-out is confirmed", () => {
     renderDashboardAtContestRoute(
       createContest({
         startTime: "2000-05-05T10:00:00.000Z",
@@ -414,10 +417,10 @@ describe("StudentContestDashboard", () => {
       }),
     );
 
-    expect(screen.getByRole("button", { name: /重新簽退/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /重新簽退/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /前往簽退/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /下載作答證明/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /重新加入/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /前往簽退/ })).not.toBeInTheDocument();
   });
 
   it("renders in-exam paper progress from autosaved answers", async () => {
@@ -513,6 +516,25 @@ describe("StudentContestDashboard", () => {
 
     expect(screen.getByRole("button", { name: /下載作答證明/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /重新加入/ })).toBeInTheDocument();
+  });
+
+  it("preserves admin panel action when the action list is capped", () => {
+    renderDashboard(
+      createContest({
+        startTime: "2000-05-05T10:00:00.000Z",
+        endTime: "2099-05-05T12:00:00.000Z",
+        examStatus: "submitted",
+        allowMultipleJoins: true,
+      }),
+      {
+        isAdmin: true,
+        onOpenAdminPanel: vi.fn(),
+      },
+    );
+
+    expect(screen.getByRole("button", { name: /管理後台/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /下載作答證明/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /重新加入/ })).not.toBeInTheDocument();
   });
 
   it("renders published paper exam score from answer results", async () => {
