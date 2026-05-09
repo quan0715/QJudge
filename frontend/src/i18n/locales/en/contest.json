@@ -1402,26 +1402,6 @@
   "placeholder": {
     "contestName": "Enter contest name"
   },
-  "preRegistration": {
-    "anonymousTitle": "Anonymous Mode",
-    "countdownLabel": "Starts in",
-    "countdownValue": "{{days}}d {{hours}}h {{minutes}}m {{seconds}}s",
-    "ended": "Contest ended",
-    "noDescription": "No description yet",
-    "open": "No password",
-    "openAdminPanel": "Open Admin Panel",
-    "registerNow": "Register now",
-    "registeredHint": "Registered. Waiting for contest start.",
-    "registrationClosed": "Registration unavailable",
-    "requiresPassword": "Requires Password",
-    "state": {
-      "archived": "Archived",
-      "draft": "Draft",
-      "ended": "Ended",
-      "running": "Running",
-      "upcoming": "Upcoming"
-    }
-  },
   "precheck": {
     "backToDashboard": "Back to Dashboard",
     "countdown": {

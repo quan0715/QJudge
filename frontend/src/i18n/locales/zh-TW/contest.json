@@ -1402,26 +1402,6 @@
   "placeholder": {
     "contestName": "輸入競賽名稱"
   },
-  "preRegistration": {
-    "anonymousTitle": "匿名模式",
-    "countdownLabel": "距離開始",
-    "countdownValue": "{{days}}天 {{hours}}小時 {{minutes}}分 {{seconds}}秒",
-    "ended": "競賽已結束",
-    "noDescription": "暫無描述",
-    "open": "免密碼",
-    "openAdminPanel": "前往管理後台",
-    "registerNow": "報名",
-    "registeredHint": "已報名，等待競賽開始",
-    "registrationClosed": "目前不可報名",
-    "requiresPassword": "需要密碼",
-    "state": {
-      "archived": "已封存",
-      "draft": "草稿",
-      "ended": "已結束",
-      "running": "進行中",
-      "upcoming": "即將開始"
-    }
-  },
   "precheck": {
     "backToDashboard": "返回儀表板",
     "countdown": {

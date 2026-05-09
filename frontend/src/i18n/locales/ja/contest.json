@@ -1402,26 +1402,6 @@
   "placeholder": {
     "contestName": "コンテスト名を入力"
   },
-  "preRegistration": {
-    "anonymousTitle": "匿名モード",
-    "countdownLabel": "開始まで",
-    "countdownValue": "{{days}}日 {{hours}}時間 {{minutes}}分 {{seconds}}秒",
-    "ended": "コンテストは終了しました",
-    "noDescription": "説明はまだありません",
-    "open": "パスワード不要",
-    "openAdminPanel": "管理画面へ",
-    "registerNow": "今すぐ参加登録",
-    "registeredHint": "登録済みです。開始をお待ちください。",
-    "registrationClosed": "現在は登録できません",
-    "requiresPassword": "パスワード必須",
-    "state": {
-      "archived": "アーカイブ済み",
-      "draft": "下書き",
-      "ended": "終了",
-      "running": "開催中",
-      "upcoming": "開始前"
-    }
-  },
   "precheck": {
     "backToDashboard": "ダッシュボードに戻る",
     "countdown": {

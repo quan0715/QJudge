@@ -1402,26 +1402,6 @@
   "placeholder": {
     "contestName": "대회 이름 입력"
   },
-  "preRegistration": {
-    "anonymousTitle": "익명 모드",
-    "countdownLabel": "시작까지",
-    "countdownValue": "{{days}}일 {{hours}}시간 {{minutes}}분 {{seconds}}초",
-    "ended": "대회가 종료되었습니다",
-    "noDescription": "설명이 없습니다",
-    "open": "비밀번호 없음",
-    "openAdminPanel": "관리 화면으로 이동",
-    "registerNow": "지금 등록",
-    "registeredHint": "등록 완료. 대회 시작을 기다려 주세요.",
-    "registrationClosed": "현재 등록할 수 없습니다",
-    "requiresPassword": "비밀번호 필요",
-    "state": {
-      "archived": "보관됨",
-      "draft": "초안",
-      "ended": "종료됨",
-      "running": "진행 중",
-      "upcoming": "시작 예정"
-    }
-  },
   "precheck": {
     "backToDashboard": "대시보드로 돌아가기",
     "countdown": {

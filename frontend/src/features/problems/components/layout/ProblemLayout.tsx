@@ -5,8 +5,6 @@ import {
   HeaderName,
   HeaderGlobalBar,
   HeaderGlobalAction,
-  HeaderNavigation,
-  HeaderMenuItem,
 } from "@carbon/react";
 import { Home } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -39,11 +37,6 @@ const ProblemLayout = () => {
         >
           <BrandLockup size={20} />
         </HeaderName>
-        <HeaderNavigation aria-label="Problem Navigation">
-          <HeaderMenuItem onClick={() => navigate("/dashboard")}>
-            {t("nav.backToProblemList")}
-          </HeaderMenuItem>
-        </HeaderNavigation>
         <HeaderGlobalBar>
           <HeaderGlobalAction
             aria-label={t("nav.dashboard")}
