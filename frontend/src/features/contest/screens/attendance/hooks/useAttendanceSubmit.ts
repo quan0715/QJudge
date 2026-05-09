@@ -112,7 +112,7 @@ export function useAttendanceSubmit({
           );
         }
         const confirmed: Array<{
-          evidence_frame_id: string;
+          evidence_frame_id: number;
           object_key: string;
           byte_size: number;
         }> = [];
