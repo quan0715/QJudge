@@ -99,10 +99,6 @@ def test_partial_update_logs_activity(
         action_type="update_contest",
     ).exists()
 
-
-    assert participant.lock_reason == ""
-
-
 @pytest.mark.django_db
 def test_retrieve_auto_submits_when_contest_ended(
     api_client: APIClient,

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight } from "@carbon/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -608,6 +609,7 @@ export default function StudentAttendanceScanScreen() {
       <DynamicFooter
         primary={primaryCta}
         secondary={secondaryCta}
+        primaryRenderIcon={displayStep === "done" ? ArrowRight : undefined}
         onPrimary={handlePrimary}
         onSecondary={handleSecondary}
       />
