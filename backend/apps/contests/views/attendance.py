@@ -17,7 +17,7 @@ from ..services.attendance import (
     create_attendance_credential,
     create_attendance_event,
     normalize_attendance_error_code,
-    reset_participant_attendance_records,
+    reset_participant_exam_records,
     validate_attendance_manual_code,
     validate_attendance_token,
 )
@@ -73,7 +73,7 @@ class AttendanceValidateSerializer(serializers.Serializer):
         return attrs
 
 
-class AttendanceResetSerializer(serializers.Serializer):
+class ParticipantExamRecordResetSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(min_value=1)
 
 
@@ -210,9 +210,9 @@ class AttendanceMixin:
         detail=True,
         methods=["post"],
         permission_classes=[permissions.IsAuthenticated],
-        url_path="attendance/reset",
+        url_path="participants/reset_exam_record",
     )
-    def attendance_reset(self, request, pk=None):
+    def reset_exam_record(self, request, pk=None):
         contest: Contest = self.get_object()
         if not can_manage_contest(request.user, contest):
             return Response(
@@ -220,12 +220,13 @@ class AttendanceMixin:
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        serializer = AttendanceResetSerializer(data=request.data)
+        serializer = ParticipantExamRecordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            result = reset_participant_attendance_records(
+            result = reset_participant_exam_records(
                 contest,
                 serializer.validated_data["user_id"],
+                activity_user=request.user,
             )
         except ValueError as exc:
             return _value_error_response(exc)

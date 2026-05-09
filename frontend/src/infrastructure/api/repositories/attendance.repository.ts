@@ -85,21 +85,23 @@ export const createAttendanceEvent = async (
   );
 };
 
-export interface AttendanceResetResponse {
+export interface ParticipantExamRecordResetResponse {
+  deleted_answers: number;
+  deleted_submissions: number;
   deleted_events: number;
-  deleted_records: number;
+  deleted_evidence: number;
   attendance_status: ContestAttendanceStatus;
 }
 
-export const resetParticipantAttendance = async (
+export const resetParticipantExamRecord = async (
   contestId: string,
   userId: string | number,
-): Promise<AttendanceResetResponse> => {
-  return requestJson<AttendanceResetResponse>(
-    httpClient.post(`/api/v1/contests/${contestId}/attendance/reset/`, {
+): Promise<ParticipantExamRecordResetResponse> => {
+  return requestJson<ParticipantExamRecordResetResponse>(
+    httpClient.post(`/api/v1/contests/${contestId}/participants/reset_exam_record/`, {
       user_id: userId,
     }),
-    "Failed to reset participant attendance records",
+    "Failed to reset participant exam record",
   );
 };
 

@@ -1,5 +1,6 @@
 import {
   Button,
+  Modal,
   OverflowMenu,
   OverflowMenuItem,
   SelectableTag,
@@ -13,6 +14,7 @@ import {
   InProgress,
   Locked,
   PauseFilled,
+  QrCode,
   Time,
   WarningFilled,
 } from "@carbon/icons-react";
@@ -48,7 +50,10 @@ import {
   getExamStatusLabel,
 } from "@/features/contest/constants/examLabels";
 import { useContest, useContestAdmin } from "@/features/contest/contexts";
+import { parseStudentLocatorQrValue } from "@/features/contest/attendance/attendanceQr";
 import { CountdownProgress } from "@/features/contest/components/CountdownProgress";
+import { useCameraStream } from "@/features/contest/screens/attendance/hooks/useCameraStream";
+import { useQrScanner } from "@/features/contest/screens/attendance/hooks/useQrScanner";
 import type { AdminPanelId } from "@/features/contest/modules/types";
 import useParticipantDashboard from "@/features/contest/screens/settings/participants/useParticipantDashboard";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
@@ -58,7 +63,7 @@ import type {
 import {
   downloadParticipantReport,
   removeParticipant,
-  resetParticipantAttendance,
+  resetParticipantExamRecord,
   reopenExam,
   unlockParticipant,
   updateParticipant,
@@ -394,6 +399,7 @@ export default function AdminOverviewCommandCenter({
     useState<ParticipantStatusFilter>("all");
   const [activePanelTab, setActivePanelTab] =
     useState<"participants" | "questionStats">("participants");
+  const [studentQrScannerOpen, setStudentQrScannerOpen] = useState(false);
   const [questionStatsSearch, setQuestionStatsSearch] = useState("");
   const [questionStatsKindFilter, setQuestionStatsKindFilter] =
     useState<string>("all");
@@ -453,6 +459,79 @@ export default function AdminOverviewCommandCenter({
   const refreshAfterAction = useCallback(async () => {
     await Promise.all([refreshAllAdminData(), participantDashboard.refresh()]);
   }, [refreshAllAdminData, participantDashboard]);
+
+  const studentQrCamera = useCameraStream({
+    active: studentQrScannerOpen,
+    facingMode: "environment",
+    messages: {
+      unavailable: t(
+        "adminOverview.command.participants.studentQr.cameraUnavailable",
+        "無法使用相機，請改用搜尋欄選取學生。",
+      ),
+    },
+  });
+  const handleStudentQrDetected = useCallback(
+    (raw: string) => {
+      const parsed = parseStudentLocatorQrValue(raw);
+      if (!parsed) {
+        setStudentQrScannerOpen(false);
+        showToast({
+          kind: "error",
+          title: t("common.error", "錯誤"),
+          subtitle: t(
+            "adminOverview.command.participants.studentQr.invalid",
+            "這不是 QJudge 考生 QR。",
+          ),
+        });
+        return;
+      }
+      if (parsed.contestId !== contestId) {
+        setStudentQrScannerOpen(false);
+        showToast({
+          kind: "error",
+          title: t("common.error", "錯誤"),
+          subtitle: t(
+            "adminOverview.command.participants.studentQr.wrongContest",
+            "這不是本場考試的考生 QR。",
+          ),
+        });
+        return;
+      }
+      const participant = participants.find(
+        (item) => String(item.userId) === parsed.userId,
+      );
+      if (!participant) {
+        setStudentQrScannerOpen(false);
+        showToast({
+          kind: "error",
+          title: t("common.error", "錯誤"),
+          subtitle: t(
+            "adminOverview.command.participants.studentQr.notFound",
+            "找不到對應的考生。",
+          ),
+        });
+        return;
+      }
+      setSelectedUserId(participant.userId);
+      setParticipantSearch("");
+      setActivePanelTab("participants");
+      setStudentQrScannerOpen(false);
+      showToast({
+        kind: "success",
+        title: t("common.success", "成功"),
+        subtitle: t(
+          "adminOverview.command.participants.studentQr.selected",
+          "已選取考生。",
+        ),
+      });
+    },
+    [contestId, participants, showToast, t],
+  );
+  const studentQrScannerMode = useQrScanner({
+    videoRef: studentQrCamera.videoRef,
+    active: studentQrScannerOpen && studentQrCamera.cameraState === "ready",
+    onDetected: handleStudentQrDetected,
+  });
 
   const handleDownloadParticipantReport = useCallback(async () => {
     if (!contestId || !selectedUserId) return;
@@ -625,31 +704,31 @@ export default function AdminOverviewCommandCenter({
     t,
   ]);
 
-  const handleResetAttendance = useCallback(async () => {
+  const handleResetExamRecord = useCallback(async () => {
     if (!contestId || !selectedUserId || !participantDashboard.data) return;
     const confirmed = await confirm({
       title: t(
-        "participants.confirmResetAttendance",
-        "確定要重置此學生的簽到測試紀錄嗎？這只會清除簽到/簽退事件與佐證，不會影響作答紀錄。",
+        "participants.confirmResetExamRecord",
+        "確定要重置此學生的考試紀錄嗎？這會清除作答、成績、簽到簽退與監考事件，但不會移除參賽者。",
       ),
-      confirmLabel: t("participants.actions.resetAttendance", "重置簽到測試紀錄"),
+      confirmLabel: t("participants.actions.resetExamRecord", "重置考試紀錄"),
       cancelLabel: t("button.cancel", "取消"),
       danger: true,
     });
     if (!confirmed) return;
     try {
-      await resetParticipantAttendance(contestId, selectedUserId);
+      await resetParticipantExamRecord(contestId, selectedUserId);
       await refreshAfterAction();
       showToast({
         kind: "success",
         title: t("common.success", "成功"),
-        subtitle: t("participants.attendanceReset", "已重置簽到測試紀錄"),
+        subtitle: t("participants.examRecordReset", "已重置考試紀錄"),
       });
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : t("participants.attendanceResetFailed", "重置簽到測試紀錄失敗");
+          : t("participants.examRecordResetFailed", "重置考試紀錄失敗");
       showToast({
         kind: "error",
         title: t("common.error", "錯誤"),
@@ -665,6 +744,21 @@ export default function AdminOverviewCommandCenter({
     showToast,
     t,
   ]);
+
+  const handleAssistedAttendance = useCallback((purpose: "check_in" | "check_out") => {
+    if (!contestId || !selectedUserId || !contest?.boundClassroomId) return;
+    const returnTo = `/classrooms/${contest.boundClassroomId}/contest/${contestId}/admin`;
+    const params = new URLSearchParams({
+      mode: "teacher_assisted",
+      purpose,
+      userId: selectedUserId,
+      reason: "TA assisted identity verification",
+      returnTo,
+    });
+    window.location.assign(
+      `/classrooms/${contest.boundClassroomId}/contest/${contestId}/attendance/scan?${params.toString()}`,
+    );
+  }, [contest?.boundClassroomId, contestId, selectedUserId]);
 
   const studentParticipants = participants
     .filter(isStudentParticipant)
@@ -873,7 +967,8 @@ export default function AdminOverviewCommandCenter({
       onEditStatus={openEditModal}
       onUnlock={() => void handleUnlock()}
       onReopenExam={() => void handleReopenExam()}
-      onResetAttendance={contest?.attendanceCheckEnabled ? () => void handleResetAttendance() : undefined}
+      onAssistedAttendance={contest?.attendanceCheckEnabled ? handleAssistedAttendance : undefined}
+      onResetExamRecord={() => void handleResetExamRecord()}
       onRemoveParticipant={
         classroomBound ? undefined : () => void handleRemoveParticipant()
       }
@@ -1001,6 +1096,16 @@ export default function AdminOverviewCommandCenter({
         }
         onClear={() => setParticipantSearch("")}
       />
+      <DashboardToolbar.Filter>
+        <Button
+          kind="ghost"
+          size="md"
+          renderIcon={QrCode}
+          onClick={() => setStudentQrScannerOpen(true)}
+        >
+          {t("adminOverview.command.participants.studentQr.scan", "掃學生 QR")}
+        </Button>
+      </DashboardToolbar.Filter>
       <DashboardToolbar.Filter>
         <OverflowMenu
           renderIcon={Filter}
@@ -1276,6 +1381,46 @@ export default function AdminOverviewCommandCenter({
         onExamStatusChange={setEditExamStatus}
         onLockReasonChange={setEditLockReason}
       />
+      <Modal
+        open={studentQrScannerOpen}
+        modalHeading={t(
+          "adminOverview.command.participants.studentQr.heading",
+          "掃描學生 QR",
+        )}
+        passiveModal
+        onRequestClose={() => setStudentQrScannerOpen(false)}
+        size="sm"
+      >
+        <div className={styles.studentQrScanner}>
+          <div className={styles.studentQrScannerViewport}>
+            {studentQrCamera.cameraState === "unavailable" ? (
+              <p>{studentQrCamera.cameraError}</p>
+            ) : (
+              <video
+                ref={studentQrCamera.setVideoElement}
+                className={styles.studentQrScannerVideo}
+                muted
+                playsInline
+                autoPlay
+              />
+            )}
+          </div>
+          <p className={styles.studentQrScannerHint}>
+            {studentQrCamera.cameraState === "ready"
+              ? t(
+                  "adminOverview.command.participants.studentQr.ready",
+                  "請掃描學生競賽主頁上的考生 QR。",
+                )
+              : t(
+                  "adminOverview.command.participants.studentQr.requesting",
+                  "正在啟用相機...",
+                )}
+            {studentQrScannerMode !== "waiting" ? (
+              <span> {studentQrScannerMode.toUpperCase()}</span>
+            ) : null}
+          </p>
+        </div>
+      </Modal>
       <ConfirmModal {...confirmModalProps} />
     </>
   );

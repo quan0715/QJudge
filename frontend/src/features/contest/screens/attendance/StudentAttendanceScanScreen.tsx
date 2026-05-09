@@ -32,9 +32,12 @@ import { type FrameHintStatus } from "./lib/frameHint";
 import { type AttendanceTranslate } from "./lib/photoRequirements";
 
 type AttendanceCredential = {
+  mode?: "student_self_scan" | "teacher_assisted";
   purpose: AttendancePurpose;
   token?: string;
   manualCode?: string;
+  userId?: string | number;
+  reason?: string;
 };
 
 function captureFrameToBlob(video: HTMLVideoElement): Promise<Blob> {
@@ -92,6 +95,10 @@ export default function StudentAttendanceScanScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedPurpose = parseExpectedPurpose(searchParams.get("purpose"));
+  const assistedMode = searchParams.get("mode") === "teacher_assisted";
+  const assistedUserId = searchParams.get("userId");
+  const assistedReason = searchParams.get("reason") || "TA assisted identity verification";
+  const returnTo = searchParams.get("returnTo");
   const tr = useCallback<AttendanceTranslate>(
     (key, defaultValue, values) => {
       const translated = values
@@ -225,6 +232,18 @@ export default function StudentAttendanceScanScreen() {
   }, [contestId, requestedPurpose]);
 
   useEffect(() => {
+    if (!assistedMode || !requestedPurpose || !assistedUserId || scan) return;
+    setExpectedPurpose(requestedPurpose);
+    setScan({
+      mode: "teacher_assisted",
+      purpose: requestedPurpose,
+      userId: assistedUserId,
+      reason: assistedReason,
+    });
+    setScannedAt(Date.now());
+  }, [assistedMode, assistedReason, assistedUserId, requestedPurpose, scan]);
+
+  useEffect(() => {
     if (!isValidating || !pendingScan) return undefined;
     if (!contestId) return undefined;
     const credential = pendingScan;
@@ -344,7 +363,7 @@ export default function StudentAttendanceScanScreen() {
 
   const activePurpose = scan?.purpose || pendingScan?.purpose || expectedPurpose;
   const purposeLabel = getPurposeLabel(tr, activePurpose);
-  const returnPath = `/classrooms/${classroomId}/contest/${contestId}`;
+  const returnPath = returnTo || `/classrooms/${classroomId}/contest/${contestId}`;
   const displayStep = submit.isDone ? "done" : activeStep;
 
   const scanDisplayError =

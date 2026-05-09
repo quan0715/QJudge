@@ -63,7 +63,7 @@ def test_start_exam_allows_teacher_assisted_check_in() -> None:
         user=student,
         exam_status=ExamStatus.NOT_STARTED,
     )
-    ExamEvent.objects.create(
+    event = ExamEvent.objects.create(
         contest=contest,
         user=student,
         event_type="attendance_check_in",
@@ -72,6 +72,15 @@ def test_start_exam_allows_teacher_assisted_check_in() -> None:
             "attendance_mode": "teacher_assisted",
             "source_module": "attendance",
         },
+    )
+    ExamEvidenceFrame.objects.create(
+        contest=contest,
+        user=student,
+        exam_event=event,
+        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+        status=ExamEvidenceFrame.Status.UPLOADED,
+        object_key="teacher-assisted-start.webp",
+        client_captured_at_ms=1,
     )
     api_client.force_authenticate(user=student)
 

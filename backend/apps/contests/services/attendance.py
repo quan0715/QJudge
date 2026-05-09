@@ -9,7 +9,13 @@ from django.core.cache import cache
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from apps.contests.models import Contest, ContestParticipant, ExamEvent, ExamEvidenceFrame, ExamStatus
+from apps.contests.models import (
+    Contest,
+    ContestParticipant,
+    ExamEvent,
+    ExamEvidenceFrame,
+    ExamStatus,
+)
 from apps.contests.permissions import can_manage_contest
 from apps.contests.services.participant_state import reset_participant_exam_record
 
@@ -431,10 +437,6 @@ def create_attendance_event(
             "attendance_status": build_attendance_status(contest, participant),
         }
     }
-
-
-def reset_participant_attendance_records(contest: Contest, user_id: int) -> dict[str, Any]:
-    return reset_participant_exam_records(contest, user_id)
 
 
 def reset_participant_exam_records(

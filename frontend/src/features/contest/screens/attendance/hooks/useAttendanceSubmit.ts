@@ -15,9 +15,12 @@ import type { AttendancePhotoRequirement, AttendanceTranslate } from "../lib/pho
 import type { HapticPattern } from "./useHaptics";
 
 export interface AttendanceSubmitCredential {
+  mode?: "student_self_scan" | "teacher_assisted";
   purpose: AttendancePurpose;
   token?: string;
   manualCode?: string;
+  userId?: string | number;
+  reason?: string;
 }
 
 export interface SubmitArgs {
@@ -71,14 +74,24 @@ export function useAttendanceSubmit({
             }),
           );
         }
-        const event = await createAttendanceEvent(contestId, {
-          mode: "student_self_scan",
-          purpose: scan.purpose,
-          token: scan.token,
-          manualCode: scan.manualCode,
-          client_observed_at_ms: Date.now(),
-          device_kind: "mobile",
-        });
+        const event = await createAttendanceEvent(
+          contestId,
+          scan.mode === "teacher_assisted"
+            ? {
+                mode: "teacher_assisted",
+                purpose: scan.purpose,
+                user_id: scan.userId ?? "",
+                reason: scan.reason || "TA assisted identity verification",
+              }
+            : {
+                mode: "student_self_scan",
+                purpose: scan.purpose,
+                token: scan.token,
+                manualCode: scan.manualCode,
+                client_observed_at_ms: Date.now(),
+                device_kind: "mobile",
+              },
+        );
         const capturedAt = Date.now();
         const intent = await createEvidenceUploadIntent(contestId, {
           event_id: event.event_id,
