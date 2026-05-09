@@ -3,7 +3,6 @@
 // Format utilities
 export {
   formatDate,
-  formatRelativeTime,
   formatSmartTime,
   getLanguageLabel,
   getDifficultyLabel,
