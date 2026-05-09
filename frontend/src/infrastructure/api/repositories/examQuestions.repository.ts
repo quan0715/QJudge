@@ -65,7 +65,7 @@ export const updateExamQuestion = async (
   questionId: string,
   payload: Partial<ExamQuestionUpsertPayload>
 ): Promise<ExamQuestion> => {
-  const data = await requestJson<unknown>(
+  const data = await requestJson<ExamQuestionDto>(
     httpClient.patch(
       `/api/v1/contests/${contestId}/exam-questions/${questionId}/`,
       payload
