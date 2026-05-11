@@ -9,22 +9,17 @@ from .auth import (
     OAuthCallbackView,
 )
 from .token import TokenRefreshView, LogoutView, ResolveConflictView
-from .profile import (
-    CurrentUserView,
-    UserStatsView,
-    UserPreferencesView,
-    UserAvatarUploadView,
-    ChangePasswordView,
-    ForgotPasswordView,
-    ResetPasswordView,
-)
+from .account import CurrentUserView, UserStatsView
 from .admin import UserSearchView, UserRoleUpdateView
+from .avatar import UserAvatarUploadView
+from .login_records import LoginRecordsView, LogoutOtherDevicesView
+from .password import ChangePasswordView, ForgotPasswordView, ResetPasswordView
+from .preferences import UserPreferencesView
 from .teacher_activation import (
     TeacherActivationInviteConsumeView,
     TeacherActivationInviteIssueView,
     TeacherActivationInvitePreviewView,
 )
-from ._impl import LoginRecordsView, LogoutOtherDevicesView
 
 __all__ = [
     "SchemaAPIView",
