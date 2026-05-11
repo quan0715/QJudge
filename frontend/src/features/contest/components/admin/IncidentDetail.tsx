@@ -18,6 +18,10 @@ import {
   fetchScreenshots,
   type ScreenshotFrame,
 } from "@/infrastructure/api/repositories/exam.repository";
+import {
+  formatContestClockTime,
+  formatContestDateTime,
+} from "@/features/contest/utils/contestTimeFormat";
 import { ImageViewer, type ImageViewerItem } from "@/shared/ui/image";
 import styles from "./IncidentDetail.module.scss";
 
@@ -93,11 +97,6 @@ const getFrameSource = (frame: ScreenshotFrame): IncidentEvidenceSource =>
 const getFrameKey = (source: IncidentEvidenceSource, frame: ScreenshotFrame, index: number) =>
   `${source}-${frame.evidence_frame_id ?? "raw"}-${frame.ts_ms}-${frame.seq}-${index}`;
 
-const formatTime = (value: string | number) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleTimeString();
-};
-
 const isHiddenMetaKey = (key: string) =>
   HIDDEN_META_KEYS.has(key) ||
   key.includes("anchor") ||
@@ -114,8 +113,7 @@ const isDisplayableMetaValue = (value: unknown) =>
 
 const formatMetaValue = (key: string, value: unknown): string => {
   if (key === "locked_at" && typeof value === "string") {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) return date.toLocaleString();
+    return formatContestDateTime(value);
   }
   if (typeof value === "boolean") return value ? "Yes" : "No";
   return String(value);
@@ -266,7 +264,11 @@ export default function IncidentDetail({
     () =>
       frames.map((frame) => {
         const module = getFrameSource(frame);
-        const label = `${INCIDENT_EVIDENCE_SOURCE_LABELS[module]} · ${formatTime(frame.ts_ms)}`;
+        const label = `${INCIDENT_EVIDENCE_SOURCE_LABELS[module]} · ${formatContestClockTime(
+          frame.ts_ms,
+          undefined,
+          { includeSeconds: true },
+        )}`;
         return { url: frame.url, alt: label, label };
       }),
     [frames],
@@ -283,7 +285,9 @@ export default function IncidentDetail({
             <span>{eventLabel}</span>
           </div>
           <div className={styles.headerActions}>
-            <span className={styles.time}>{formatTime(incident.lastAt)}</span>
+            <span className={styles.time}>
+              {formatContestClockTime(incident.lastAt, undefined, { includeSeconds: true })}
+            </span>
             {onClose ? (
               <Button
                 kind="ghost"
@@ -309,7 +313,7 @@ export default function IncidentDetail({
           <div className={styles.row}>
             <span className={styles.label}>{t("logs.detail.timeRange", "時間範圍")}</span>
             <span className={styles.value}>
-              {new Date(incident.firstAt).toLocaleString()} — {new Date(incident.lastAt).toLocaleString()}
+              {formatContestDateTime(incident.firstAt)} — {formatContestDateTime(incident.lastAt)}
             </span>
           </div>
         ) : null}
@@ -362,7 +366,9 @@ export default function IncidentDetail({
                             onClick={() => setImageViewerIndex(Math.max(0, frames.indexOf(frame)))}
                           >
                             <img src={frame.url} alt={`${source} seq ${frame.seq}`} loading="lazy" />
-                            <span>{formatTime(frame.ts_ms)}</span>
+                            <span>
+                              {formatContestClockTime(frame.ts_ms, undefined, { includeSeconds: true })}
+                            </span>
                           </button>
                         ))}
                       </div>

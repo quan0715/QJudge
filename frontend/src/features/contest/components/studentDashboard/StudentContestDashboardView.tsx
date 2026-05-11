@@ -76,9 +76,10 @@ import { CountdownProgress } from "@/features/contest/components/CountdownProgre
 import { ContestRegistrationModal } from "@/features/contest/components/modals/ContestRegistrationModal";
 import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
 import { getMarkedQuestionIds } from "@/features/contest/screens/paperExam/hooks";
+import { formatContestCompactDuration } from "@/features/contest/utils/contestTimeFormat";
 import {
   buildCodingProgressSummary,
-  formatCompactDuration,
+  buildPaperProgressSummary,
   resolveStudentContestPhase,
 } from "./studentDashboardState";
 import styles from "./StudentContestDashboard.module.scss";
@@ -153,31 +154,6 @@ const isFailingScoreBucket = (label: string) => {
   return (
     upperPercent !== null && upperPercent < PASSING_SCORE_THRESHOLD_PERCENT
   );
-};
-
-const buildPaperProgressSummary = (
-  questions: ExamQuestion[],
-  answers: Array<Pick<ExamAnswer, "questionId"> & Partial<Pick<ExamAnswerDetail, "score">>>,
-  resultsPublished: boolean,
-) => {
-  const resultQuestionIds = new Set(answers.map((answer) => answer.questionId));
-  const completedItems = questions.filter((question) =>
-    resultQuestionIds.has(String(question.id)),
-  ).length;
-  const totalScore = resultsPublished
-    ? answers.reduce((sum, answer) => sum + (answer.score ?? 0), 0)
-    : null;
-  const maxScore = questions.reduce(
-    (sum, question) => sum + (question.score ?? 0),
-    0,
-  );
-  return {
-    totalItems: questions.length,
-    completedItems,
-    attemptedItems: completedItems,
-    totalScore,
-    maxScore,
-  };
 };
 
 export default function StudentContestDashboard({
@@ -471,7 +447,7 @@ export default function StudentContestDashboard({
   const endMs = Date.parse(contest.endTime);
   const durationDisplay =
     Number.isFinite(startMs) && Number.isFinite(endMs)
-      ? formatCompactDuration(endMs - startMs)
+      ? formatContestCompactDuration(endMs - startMs)
       : "-";
   const chartTheme = resolveCarbonChartTheme(theme);
   const scoreDistributionData = useMemo(

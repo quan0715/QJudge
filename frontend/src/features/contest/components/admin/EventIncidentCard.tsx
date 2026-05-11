@@ -5,6 +5,7 @@ import {
   getEventTypeIcon,
   getEventTypeLabel,
 } from "@/features/contest/constants/eventTaxonomy";
+import { formatContestClockTime } from "@/features/contest/utils/contestTimeFormat";
 import styles from "./EventIncidentCard.module.scss";
 
 interface EventIncidentCardProps {
@@ -12,17 +13,6 @@ interface EventIncidentCardProps {
   selected?: boolean;
   onSelect?: (incident: EventFeedItem) => void;
 }
-
-const formatIncidentTime = (value: string) => {
-  const time = new Date(value);
-  if (Number.isNaN(time.getTime())) return "";
-  return time.toLocaleTimeString("zh-Hant-TW", {
-    timeZone: "Asia/Taipei",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-};
 
 export default function EventIncidentCard({
   incident,
@@ -32,7 +22,10 @@ export default function EventIncidentCard({
   const { t } = useTranslation("contest");
   const eventIcon = createElement(getEventTypeIcon(incident.eventType, incident.priority), { size: 18 });
   const eventLabel = getEventTypeLabel(t, incident.eventType);
-  const timeLabel = formatIncidentTime(incident.lastAt || incident.firstAt);
+  const timeLabel = formatContestClockTime(incident.lastAt || incident.firstAt, "zh-Hant-TW", {
+    hour12: false,
+    timeZone: "Asia/Taipei",
+  });
   const primaryMeta = [
     incident.userName,
     timeLabel,

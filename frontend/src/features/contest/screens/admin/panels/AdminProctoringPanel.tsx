@@ -24,6 +24,7 @@ import { createSfuLiveSubscriber } from "@/features/contest/anticheat/sfuLiveSub
 import EventIncidentCard from "@/features/contest/components/admin/EventIncidentCard";
 import IncidentDetail from "@/features/contest/components/admin/IncidentDetail";
 import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
+import { formatContestClockTime } from "@/features/contest/utils/contestTimeFormat";
 import {
   createManualProctorEvent,
   getManualProctorEvidenceUrls,
@@ -123,11 +124,6 @@ const getParticipantSearchText = (participant: ContestParticipant) =>
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
-
-const formatEventTime = (value: string | number) => {
-  const time = typeof value === "number" ? new Date(value) : new Date(value);
-  return Number.isNaN(time.getTime()) ? "" : time.toLocaleTimeString();
-};
 
 interface ManualEvidenceFrame {
   id: number;
@@ -630,7 +626,9 @@ const ManualEvidenceModal = ({
   onSubmit,
 }: ManualEvidenceModalProps) => {
   const { t } = useTranslation("contest");
-  const startedAtLabel = startedAt ? formatEventTime(startedAt) : "";
+  const startedAtLabel = startedAt
+    ? formatContestClockTime(startedAt, undefined, { includeSeconds: true })
+    : "";
 
   return (
     <Modal

@@ -1,5 +1,6 @@
 import type {
   ContestDetail,
+  ExamQuestion,
   ExamStatusType,
   ScoreboardData,
   ScoreboardRow,
@@ -97,14 +98,34 @@ export const buildCodingProgressSummary = (
   };
 };
 
-export const formatCompactDuration = (milliseconds: number): string => {
-  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+type PaperProgressAnswer = {
+  questionId: string | number;
+  score?: number | null;
+};
 
-  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
-  return `${minutes}m ${seconds}s`;
+export const buildPaperProgressSummary = (
+  questions: ExamQuestion[],
+  answers: PaperProgressAnswer[],
+  resultsPublished: boolean,
+): StudentProgressSummary => {
+  const resultQuestionIds = new Set(
+    answers.map((answer) => String(answer.questionId)),
+  );
+  const completedItems = questions.filter((question) =>
+    resultQuestionIds.has(String(question.id)),
+  ).length;
+  const totalScore = resultsPublished
+    ? answers.reduce((sum, answer) => sum + (answer.score ?? 0), 0)
+    : null;
+  const maxScore = questions.reduce(
+    (sum, question) => sum + (question.score ?? 0),
+    0,
+  );
+  return {
+    totalItems: questions.length,
+    completedItems,
+    attemptedItems: completedItems,
+    totalScore,
+    maxScore,
+  };
 };

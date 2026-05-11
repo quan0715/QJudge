@@ -9,6 +9,7 @@ import {
   getEventTypeLabel,
 } from "@/features/contest/constants/eventTaxonomy";
 import { shouldFetchIncidentScreenshots } from "@/features/contest/components/admin/incidentEvidence";
+import { formatContestClockTime } from "@/features/contest/utils/contestTimeFormat";
 import IncidentDetail from "./IncidentDetail";
 import styles from "./IncidentCard.module.scss";
 
@@ -43,8 +44,12 @@ export default function IncidentCard({
     () => getEventTypeLabel(t, incident.eventType),
     [incident.eventType, t],
   );
-  const firstTime = new Date(incident.firstAt).toLocaleTimeString();
-  const lastTime = new Date(incident.lastAt).toLocaleTimeString();
+  const firstTime = formatContestClockTime(incident.firstAt, undefined, {
+    includeSeconds: true,
+  });
+  const lastTime = formatContestClockTime(incident.lastAt, undefined, {
+    includeSeconds: true,
+  });
   const timeRange = incident.count > 1 ? `${firstTime} — ${lastTime}` : firstTime;
   const suspiciousCategories = useMemo(
     () => new Set(screenshotCategories.map((value) => value.toLowerCase())),

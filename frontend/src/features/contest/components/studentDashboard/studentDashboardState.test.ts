@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type {
   ContestDetail,
+  ExamQuestion,
   ScoreboardData,
 } from "@/core/entities/contest.entity";
 import {
+  buildPaperProgressSummary,
   findCurrentUserScoreboardRow,
   resolveStudentContestPhase,
 } from "./studentDashboardState";
@@ -108,4 +110,39 @@ describe("studentDashboardState", () => {
     expect(row?.userId).toBe("1");
   });
 
+  it("builds paper progress without publishing scores early", () => {
+    const summary = buildPaperProgressSummary(
+      [
+        { id: 1, score: 10 },
+        { id: 2, score: 15 },
+      ] as ExamQuestion[],
+      [{ questionId: "1", score: 8 }],
+      false,
+    );
+
+    expect(summary).toEqual({
+      totalItems: 2,
+      completedItems: 1,
+      attemptedItems: 1,
+      totalScore: null,
+      maxScore: 25,
+    });
+  });
+
+  it("includes paper scores after results are published", () => {
+    const summary = buildPaperProgressSummary(
+      [
+        { id: 1, score: 10 },
+        { id: 2, score: 15 },
+      ] as ExamQuestion[],
+      [
+        { questionId: "1", score: 8 },
+        { questionId: 2, score: 12 },
+      ],
+      true,
+    );
+
+    expect(summary.totalScore).toBe(20);
+    expect(summary.completedItems).toBe(2);
+  });
 });
