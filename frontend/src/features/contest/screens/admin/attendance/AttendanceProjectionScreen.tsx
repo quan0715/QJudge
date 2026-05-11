@@ -19,6 +19,11 @@ import { exitFullscreen, isFullscreen, requestFullscreen } from "@/core/usecases
 import { getAttendanceQrToken, type AttendanceQrToken } from "@/infrastructure/api/repositories/attendance.repository";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import type { AttendanceTranslate } from "@/features/contest/screens/attendance/lib/photoRequirements";
+import {
+  formatContestClockTime,
+  formatContestCountdownDuration,
+  formatContestMonthDay,
+} from "@/features/contest/utils/contestTimeFormat";
 import styles from "./AttendanceProjectionScreen.module.scss";
 
 type TokenState = Partial<Record<AttendancePurpose, AttendanceQrToken>>;
@@ -26,34 +31,6 @@ type ErrorState = Partial<Record<AttendancePurpose, string>>;
 type ProjectionDisplayMode = AttendancePurpose;
 
 const ATTENDANCE_PURPOSES: AttendancePurpose[] = ["check_in", "check_out"];
-
-function formatDate(value: Date | number | string | undefined, locale: string): string {
-  if (!value) return "";
-  const date = value instanceof Date ? value : new Date(value);
-  return new Intl.DateTimeFormat(locale, {
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
-
-function formatTime(value: Date | number | string | undefined, locale: string): string {
-  if (!value) return "";
-  const date = value instanceof Date ? value : new Date(value);
-  return new Intl.DateTimeFormat(locale, {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function formatDuration(milliseconds: number): string {
-  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return [hours, minutes, seconds]
-    .map((value) => String(value).padStart(2, "0"))
-    .join(":");
-}
 
 function getExamWindow(contest: ContestDetail | null | undefined) {
   const start = contest?.startTime ? new Date(contest.startTime).getTime() : NaN;
@@ -80,14 +57,14 @@ function getCountdown(
   if (now < start) {
     return {
       label: tr("attendance.projection.countdown.startsIn", "距離開始"),
-      value: formatDuration(start - now),
+      value: formatContestCountdownDuration(start - now),
       tone: tr("attendance.projection.countdown.openCheckIn", "開放簽到"),
     };
   }
   if (now < end) {
     return {
       label: tr("attendance.projection.countdown.endsIn", "距離截止"),
-      value: formatDuration(end - now),
+      value: formatContestCountdownDuration(end - now),
       tone: tr("attendance.projection.countdown.running", "考試進行中"),
     };
   }
@@ -179,10 +156,10 @@ function ExamStatusBlock({ contest }: { contest: ContestDetail | null | undefine
   const progress = getCountdownProgress(contest, now);
   const shouldShowCurrentMarkerLabel = progress > 18 && progress < 82;
   const currentAlign = progress <= 15 ? "left" : progress >= 85 ? "right" : "center";
-  const startDate = formatDate(contest?.startTime, i18n.language);
-  const startTime = formatTime(contest?.startTime, i18n.language);
-  const endDate = formatDate(contest?.endTime, i18n.language);
-  const endTime = formatTime(contest?.endTime, i18n.language);
+  const startDate = formatContestMonthDay(contest?.startTime, i18n.language);
+  const startTime = formatContestClockTime(contest?.startTime, i18n.language);
+  const endDate = formatContestMonthDay(contest?.endTime, i18n.language);
+  const endTime = formatContestClockTime(contest?.endTime, i18n.language);
   return (
     <section className={styles.statusBlock}>
       <div className={styles.examTitleGroup}>
@@ -231,8 +208,8 @@ function ExamStatusBlock({ contest }: { contest: ContestDetail | null | undefine
                 style={{ left: `${progress}%` }}
                 aria-label={t("attendance.projection.marker.now", "現在")}
               >
-                <strong>{formatDate(now, i18n.language)}</strong>
-                <strong>{formatTime(now, i18n.language)}</strong>
+                <strong>{formatContestMonthDay(now, i18n.language)}</strong>
+                <strong>{formatContestClockTime(now, i18n.language)}</strong>
               </span>
             ) : null}
             <span className={styles.progressMarker} data-position="end">

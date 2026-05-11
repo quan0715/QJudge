@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { ProgressBar } from "@carbon/react";
 import { TimeDisplay } from "@/shared/components/dashboard";
 import { useInterval } from "@/shared/hooks/useInterval";
-import { formatCompactDuration } from "@/features/contest/components/studentDashboard/studentDashboardState";
+import { formatContestCompactDuration } from "@/features/contest/utils/contestTimeFormat";
 import styles from "./CountdownProgress.module.scss";
 
 export interface CountdownProgressProps {
@@ -46,7 +46,7 @@ export function CountdownProgress({
     if (phase === "before") {
       return {
         label: "距離開始",
-        value: formatCompactDuration(startMs - nowMs),
+        value: formatContestCompactDuration(startMs - nowMs),
         percent: 0,
       };
     }
@@ -55,7 +55,7 @@ export function CountdownProgress({
       const elapsed = nowMs - startMs;
       return {
         label: "剩餘時間",
-        value: formatCompactDuration(endMs - nowMs),
+        value: formatContestCompactDuration(endMs - nowMs),
         percent: Math.round(Math.max(0, Math.min(100, (elapsed / total) * 100))),
       };
     }

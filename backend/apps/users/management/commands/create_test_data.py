@@ -4,7 +4,7 @@ Django management command to create test data for development.
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
-from apps.problems.models import Problem, TestCase, LanguageConfig
+from apps.problems.models import CodingProblem, TestCase, LanguageConfig
 from apps.question_bank.question_assets import write_coding_content_to_asset
 
 User = get_user_model()
@@ -87,7 +87,7 @@ class Command(BaseCommand):
         self.stdout.write('\n📚 建立測試題目...')
         
         # 題目 1: A + B Problem
-        problem1, created = Problem.objects.get_or_create(
+        problem1, created = CodingProblem.objects.get_or_create(
             slug='a-plus-b',
             defaults={
                 'time_limit': 1000,
@@ -161,7 +161,7 @@ print(a + b)''',
             self.stdout.write(self.style.WARNING('  ⚠ 題目已存在: A + B Problem'))
 
         # 題目 2: Fibonacci 數列
-        problem2, created = Problem.objects.get_or_create(
+        problem2, created = CodingProblem.objects.get_or_create(
             slug='fibonacci-sequence',
             defaults={
                 'time_limit': 2000,

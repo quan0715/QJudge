@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button, InlineLoading } from "@carbon/react";
 import { ArrowRight } from "@carbon/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
@@ -9,11 +10,12 @@ import { parseAttendanceQrValue } from "@/features/contest/attendance/attendance
 import { getAttendanceErrorMessage } from "@/features/contest/attendance/attendanceErrorMessages";
 import { validateAttendanceCredential } from "@/infrastructure/api/repositories/attendance.repository";
 import { getContest } from "@/infrastructure/api/repositories/contest.repository";
+import { formatContestClockTime } from "@/features/contest/utils/contestTimeFormat";
+import { MobileButtonSet } from "@/shared/ui/MobileButtonSet";
 
 import { AttendanceShell } from "./components/AttendanceShell";
 import { ConfirmContent } from "./components/ConfirmContent";
 import { DoneContent } from "./components/DoneContent";
-import { DynamicFooter } from "./components/DynamicFooter";
 import { ManualCodeContent } from "./components/ManualCodeContent";
 import { PhotoContent } from "./components/PhotoContent";
 import { ScanContent } from "./components/ScanContent";
@@ -71,16 +73,6 @@ function parseExpectedPurpose(value: string | null): AttendancePurpose | null {
 
 function normalizeManualCode(value: string): string {
   return value.replace(/\D/g, "").slice(0, 6);
-}
-
-function formatTime(value: number | null, locale: string): string {
-  if (!value) return "--";
-  return new Intl.DateTimeFormat(locale, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(new Date(value));
 }
 
 const STEP_MOTION = {
@@ -571,7 +563,11 @@ export default function StudentAttendanceScanScreen() {
       return (
         <ConfirmContent
           purposeLabel={purposeLabel}
-          scannedAtLabel={formatTime(scannedAt, i18n.language)}
+          scannedAtLabel={formatContestClockTime(scannedAt, i18n.language, {
+            fallback: "--",
+            includeSeconds: true,
+            hour12: false,
+          })}
           photoCountLabel={`${photos.completedPhotoCount}/${photos.photoRequirements.length}`}
           requirements={photos.photoRequirements}
           photoUrls={photos.photoUrls}
@@ -584,7 +580,11 @@ export default function StudentAttendanceScanScreen() {
         <DoneContent
           purposeLabel={purposeLabel}
           contestTitle={contestTitle}
-          scannedAtLabel={formatTime(scannedAt, i18n.language)}
+          scannedAtLabel={formatContestClockTime(scannedAt, i18n.language, {
+            fallback: "--",
+            includeSeconds: true,
+            hour12: false,
+          })}
           requirements={photos.photoRequirements}
           photoUrls={photos.photoUrls}
         />
@@ -605,14 +605,30 @@ export default function StudentAttendanceScanScreen() {
         />
       );
     }
+    const primaryButton = (
+      <Button
+        kind="primary"
+        size="2xl"
+        disabled={primaryCta.disabled}
+        renderIcon={displayStep === "done" ? ArrowRight : undefined}
+        onClick={handlePrimary}
+      >
+        {primaryCta.loading ? (
+          <InlineLoading description={primaryCta.label} status="active" />
+        ) : (
+          primaryCta.label
+        )}
+      </Button>
+    );
     return (
-      <DynamicFooter
-        primary={primaryCta}
-        secondary={secondaryCta}
-        primaryRenderIcon={displayStep === "done" ? ArrowRight : undefined}
-        onPrimary={handlePrimary}
-        onSecondary={handleSecondary}
-      />
+      <MobileButtonSet>
+        {secondaryCta && (
+          <Button kind="secondary" size="2xl" onClick={handleSecondary}>
+            {secondaryCta.label}
+          </Button>
+        )}
+        {primaryButton}
+      </MobileButtonSet>
     );
   };
 

@@ -21,7 +21,7 @@ from apps.contests.services.attendance import (
     build_participant_attendance_summary,
     create_attendance_token,
 )
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
 from apps.users.models import User
 
@@ -65,8 +65,8 @@ def test_teacher_can_get_qr_token() -> None:
     assert response.data["qr_value"].startswith("qj-att:v1:check_in:")
     assert len(response.data["manual_code"]) == 6
     assert response.data["manual_code"].isdigit()
-    assert response.data["refresh_after_seconds"] == 30
-    assert response.data["expires_in_seconds"] == 120
+    assert response.data["refresh_after_seconds"] == 60
+    assert response.data["expires_in_seconds"] == 60
 
 
 @pytest.mark.django_db
@@ -651,7 +651,7 @@ def test_teacher_can_reset_participant_exam_record() -> None:
         answer={"selected": "A"},
         score=1,
     )
-    problem = Problem.objects.create(
+    problem = CodingProblem.objects.create(
         created_by=teacher,
         slug=f"reset-exam-record-problem-{contest.id}",
     )

@@ -1,5 +1,4 @@
 import pytest
-from apps.judge.docker_runner import CppJudge
 from apps.judge.io_judge import IOJudge, _CE_SENTINEL
 
 
@@ -12,7 +11,7 @@ from apps.judge.io_judge import IOJudge, _CE_SENTINEL
     ],
 )
 def test_judge_error_status_mapping(monkeypatch, exit_code, output, expected_status):
-    judge = CppJudge()
+    judge = IOJudge("cpp")
     monkeypatch.setattr(judge, "_ensure_docker_client", lambda: None)
 
     def fake_run(command, timeout, mem_limit):
@@ -25,7 +24,7 @@ def test_judge_error_status_mapping(monkeypatch, exit_code, output, expected_sta
 
 
 def test_judge_success_and_wrong_answer(monkeypatch):
-    judge = CppJudge()
+    judge = IOJudge("cpp")
     monkeypatch.setattr(judge, "_ensure_docker_client", lambda: None)
     responses = [
         {"exit_code": 0, "output": "42\n", "time": 8, "memory": 4},

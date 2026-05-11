@@ -16,7 +16,6 @@ import docker.errors
 from django.test import TestCase
 
 from apps.judge.io_judge import IOJudge, _CE_SENTINEL
-from apps.judge.docker_runner import CppJudge
 
 
 # ---------------------------------------------------------------------------
@@ -28,14 +27,14 @@ def _make_judge(language: str) -> IOJudge:
 
 
 # ---------------------------------------------------------------------------
-# C++ integration tests  (real Docker, use CppJudge shim)
+# C++ integration tests  (real Docker)
 # ---------------------------------------------------------------------------
 
 class CppIntegrationTests(TestCase):
     """C++ 整合測試（需要 Docker + oj-judge image）"""
 
     def setUp(self):
-        self.judge = CppJudge()
+        self.judge = IOJudge("cpp")
 
     def test_ac(self):
         code = "#include<iostream>\nusing namespace std;\nint main(){int a,b;cin>>a>>b;cout<<a+b<<endl;}"
@@ -326,12 +325,6 @@ class IOJudgeMockTests(TestCase):
         judge.execute("", "", "ok", 5000, 256)
         self.assertIn("-Xmx256m", captured["cmd"])
         self.assertIn("javac", captured["cmd"])
-
-    def test_backward_compat_cppjudge(self):
-        """CppJudge shim 仍是 IOJudge 子類"""
-        judge = CppJudge()
-        self.assertIsInstance(judge, IOJudge)
-        self.assertEqual(judge.get_language_name(), "C++")
 
     @patch.object(IOJudge, "_ensure_docker_client")
     def test_patch_io_judge_works(self, mock_ensure):

@@ -102,12 +102,6 @@ BASE_ROLE_PERMISSIONS = {
     },
 }
 
-# Backward-compat aliases (legacy role names → scope role names)
-BASE_ROLE_PERMISSIONS['admin'] = BASE_ROLE_PERMISSIONS['platform_admin']
-BASE_ROLE_PERMISSIONS['teacher'] = BASE_ROLE_PERMISSIONS['co_owner']
-BASE_ROLE_PERMISSIONS['student'] = BASE_ROLE_PERMISSIONS['participant']
-BASE_ROLE_PERMISSIONS['manager'] = BASE_ROLE_PERMISSIONS['co_owner']
-
 # Restrictions based on contest status
 STATUS_RESTRICTIONS = {
     'draft': {
@@ -153,8 +147,8 @@ def _get_classroom_scope_role(user, classroom) -> str:
 def get_effective_contest_scope_role(user, contest: Contest) -> str:
     """
     Resolve effective contest scope role.
-    ACL keeps a canonical `manager` role name for classroom-sourced managers,
-    while contests.permissions maps the same scope to legacy `co_owner`.
+    Classroom ACL role names are mapped into contest scope roles before the
+    permission matrix is evaluated.
     """
     if _is_classroom_acl_source_enabled():
         binding = _get_bound_classroom(contest)
@@ -327,7 +321,7 @@ class ContestAccessPolicy(permissions.BasePermission):
         is_ended = bool(contest.end_time and timezone.now() > contest.end_time)
 
         # Scoreboard visibility for participants and outsiders (not managers)
-        if action == 'standings' and role in ('participant', 'outsider', 'student'):
+        if action == 'standings' and role in ('participant', 'outsider'):
             if not contest.scoreboard_visible_during_contest:
                 # Allow viewing after contest ends
                 if not is_ended:

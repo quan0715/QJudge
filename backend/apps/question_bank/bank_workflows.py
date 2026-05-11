@@ -14,7 +14,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Max, Q, Sum
 
 from apps.contests.models import ExamQuestion, ExamQuestionType
-from apps.problems.models import CodingProblem, Problem  # Problem = CodingProblem alias
+from apps.problems.models import CodingProblem
 
 from .models import QuestionBank, Question
 from .question_assets import (
@@ -110,7 +110,7 @@ def get_or_create_personal_bank(
     return _resolve_or_create_active_personal_bank(user=user, category=category)
 
 
-def _get_asset_description(problem: Problem) -> dict[str, str]:
+def _get_asset_description(problem: CodingProblem) -> dict[str, str]:
     """Read flat content fields from QuestionAsset payload with legacy fallback."""
     from .question_assets import extract_content_from_payload
     if not problem.question_asset_id:
@@ -122,7 +122,7 @@ def _get_asset_description(problem: Problem) -> dict[str, str]:
         return {"description": "", "input_description": "", "output_description": "", "hint": ""}
 
 
-def _build_coding_ext_payload(problem: Problem) -> dict[str, Any]:
+def _build_coding_ext_payload(problem: CodingProblem) -> dict[str, Any]:
     content = _get_asset_description(problem)
     return {
         **content,
@@ -150,7 +150,7 @@ def _build_coding_ext_payload(problem: Problem) -> dict[str, Any]:
     }
 
 
-def _resolve_problem_source_context(problem: Problem) -> tuple[str | None, str]:
+def _resolve_problem_source_context(problem: CodingProblem) -> tuple[str | None, str]:
     from apps.question_bank.models import ContestQuestionBinding
     binding = (
         ContestQuestionBinding.objects.select_related("contest")
@@ -163,7 +163,7 @@ def _resolve_problem_source_context(problem: Problem) -> tuple[str | None, str]:
     return str(binding.contest_id), binding.contest.name
 
 
-def _user_may_ingest_coding_problem(*, user, problem: Problem) -> bool:
+def _user_may_ingest_coding_problem(*, user, problem: CodingProblem) -> bool:
     """Allow creator or any contest owner/admin that links this problem in a contest."""
     if getattr(problem, "created_by_id", None) == user.id:
         return True
@@ -173,7 +173,7 @@ def _user_may_ingest_coding_problem(*, user, problem: Problem) -> bool:
     ).exists()
 
 
-def upsert_problem_into_bank(problem: Problem, bank: QuestionBank, created_by=None) -> Question:
+def upsert_problem_into_bank(problem: CodingProblem, bank: QuestionBank, created_by=None) -> Question:
     if bank.category != QuestionBank.Category.CODING:
         raise ValueError(
             f"Cannot add a coding problem to a '{bank.category}' bank "
@@ -483,7 +483,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
             Q(contest__owner=user) | Q(contest__admins=user)
         ).values_list("coding_problem_id", flat=True)
         coding_rows = (
-            Problem.objects.filter(Q(created_by=user) | Q(id__in=managed_problem_ids))
+            CodingProblem.objects.filter(Q(created_by=user) | Q(id__in=managed_problem_ids))
             .exclude(id__in=synced | bank_imported)
             .select_related("question_asset")
             .distinct()
@@ -579,7 +579,7 @@ def ingest_question_bank_inbox_items(
             source_id = item["source_id"]
 
             if source_type == "problem":
-                source = Problem.objects.filter(id=source_id).first()
+                source = CodingProblem.objects.filter(id=source_id).first()
                 if not source or not _user_may_ingest_coding_problem(user=user, problem=source):
                     raise ValueError(f"Problem {source_id} not found")
 

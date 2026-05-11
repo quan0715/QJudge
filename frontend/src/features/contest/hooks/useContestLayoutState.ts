@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getContest, getContestStandings } from "@/infrastructure/api/repositories";
 import type { ContestDetail, ScoreboardData } from "@/core/entities/contest.entity";
-import { isContestEnded, getContestState } from "@/core/entities/contest.entity";
+import {
+  isContestEnded,
+  getContestState,
+  isContestManagerScopeRole,
+} from "@/core/entities/contest.entity";
 import { syncExamPrecheckGateByStatus } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
 import {
   isExamMonitoringActive,
@@ -37,9 +41,7 @@ export function useContestLayoutState() {
   const hasEnded = !!contest && isContestEnded(contest);
   const contestState = contest ? getContestState(contest) : null;
   const isUpcoming = contestState === "upcoming";
-  const hasManagementRole =
-    contest?.currentUserRole !== undefined &&
-    contest.currentUserRole !== "student";
+  const hasManagementRole = isContestManagerScopeRole(contest?.currentUserRole);
   const isAdmin = !!contest?.permissions?.canEditContest || hasManagementRole;
 
   const shouldWarnOnExit = shouldWarnOnExitByPolicy(contest, hasEnded);

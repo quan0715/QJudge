@@ -1,4 +1,3 @@
-import type { UserRole } from "./user.entity";
 import type { SubmissionStatus } from "./submission.entity";
 import type { Difficulty } from "./problem.entity";
 
@@ -7,6 +6,20 @@ export type ContestVisibility = "public" | "private";
 export type ContestType = "coding" | "paper_exam";
 export type ContestDeliveryMode = "exam" | "practice";
 export type AssignmentState = "unaccepted" | "accepted" | "submitted";
+export type ContestScopeRole =
+  | "platform_admin"
+  | "owner"
+  | "co_owner"
+  | "participant"
+  | "outsider"
+  | "anonymous";
+
+export function isContestManagerScopeRole(
+  role?: ContestScopeRole | null,
+): boolean {
+  return role === "platform_admin" || role === "owner" || role === "co_owner";
+}
+
 // Violation events (from ExamEvent model)
 export type ExamViolationType =
   | "tab_hidden"
@@ -291,7 +304,7 @@ export interface Contest {
   // User state
   hasJoined: boolean;
   isRegistered: boolean;
-  currentUserRole?: UserRole;
+  currentUserRole?: ContestScopeRole;
   participantCount?: number;
 }
 

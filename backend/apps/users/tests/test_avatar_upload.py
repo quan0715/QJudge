@@ -38,8 +38,8 @@ class UserAvatarUploadViewTests(TestCase):
         response = self.client.post(self.url, {"file": file_obj}, format="multipart")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    @patch("apps.users.views._impl.store_markdown_image")
-    @patch("apps.users.views._impl.build_markdown_image_object_key")
+    @patch("apps.users.views.avatar.store_markdown_image")
+    @patch("apps.users.views.avatar.build_markdown_image_object_key")
     def test_upload_avatar_success(self, mock_key, mock_store):
         self.client.force_authenticate(user=self.user)
         mock_key.return_value = "markdown/2026/03/0123456789abcdef0123456789abcdef.png"

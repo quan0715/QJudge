@@ -4,14 +4,14 @@ Tests for submissions app - filter functionality.
 import pytest
 from rest_framework import status
 from apps.submissions.models import Submission
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 
 
 @pytest.fixture
 def problem(user_factory):
     """Create a test problem."""
     owner = user_factory(username="problem-owner", email="problem@example.com")
-    return Problem.objects.create(
+    return CodingProblem.objects.create(
         slug="test-problem",
         created_by=owner,
     )

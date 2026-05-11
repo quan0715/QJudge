@@ -1,6 +1,6 @@
-import type { UserRole } from "@/core/entities/user.entity";
 import type { SubmissionStatus } from "@/core/entities/submission.entity";
 import type {
+  ContestScopeRole,
   ContestStatus,
   ContestVisibility,
   ContestType,
@@ -60,7 +60,7 @@ export interface ContestDto {
   counts_toward_grade?: boolean;
   has_joined?: boolean;
   is_registered?: boolean;
-  current_user_role?: UserRole;
+  current_user_role?: ContestScopeRole;
   participant_count?: number;
 }
 
@@ -113,7 +113,6 @@ export interface ContestDetailDto extends ContestDto {
   question_edit_locked?: boolean;
   question_edit_locked_at?: string | null;
   question_edit_lock_trigger?: "coding_submission" | "exam_answer" | null;
-  is_exam_questions_frozen?: boolean;
   exam_questions_count?: number;
   has_started?: boolean;
   started_at?: string;

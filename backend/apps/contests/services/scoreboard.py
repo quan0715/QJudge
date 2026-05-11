@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
-from apps.contests.permissions import get_user_role_in_contest
+from apps.contests.permissions import MANAGER_SCOPE_ROLES, get_contest_scope_role
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
@@ -33,7 +33,7 @@ class ScoreboardService:
     @staticmethod
     def calculate(contest: Contest, user_scope: ScoreboardScope) -> ScoreboardResult:
         role = ScoreboardService._resolve_role(user_scope.viewer, contest)
-        is_privileged = role in ("admin", "owner", "teacher")
+        is_privileged = role in MANAGER_SCOPE_ROLES
         show_problem_details = user_scope.mode == "export" or is_privileged
         use_export_display = user_scope.mode == "export"
         status_default: Optional[str] = "-" if user_scope.mode == "export" else None
@@ -165,8 +165,8 @@ class ScoreboardService:
     @staticmethod
     def _resolve_role(viewer: Optional[User], contest: Contest) -> str:
         if viewer and viewer.is_authenticated:
-            return get_user_role_in_contest(viewer, contest)
-        return "student"
+            return get_contest_scope_role(viewer, contest)
+        return "anonymous"
 
     @staticmethod
     def _build_display_name(

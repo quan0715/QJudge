@@ -4,8 +4,6 @@ Multi-language judge tests
 from django.test import TestCase
 from apps.judge.judge_factory import get_judge, get_supported_languages
 from apps.judge.io_judge import IOJudge
-from apps.judge.docker_runner import CppJudge
-from apps.judge.python_judge import PythonJudge
 
 
 class JudgeFactoryTestCase(TestCase):
@@ -49,7 +47,3 @@ class JudgeFactoryTestCase(TestCase):
         lang_ids = [lang['id'] for lang in languages]
         for expected in ('cpp', 'c', 'python', 'java'):
             self.assertIn(expected, lang_ids)
-
-    def test_backward_compat_subclasses(self):
-        self.assertIsInstance(CppJudge(), IOJudge)
-        self.assertIsInstance(PythonJudge(), IOJudge)

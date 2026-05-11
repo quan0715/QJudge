@@ -19,7 +19,7 @@ from .models import (
     ExamAnswer,
 )
 from django.db.models import Sum
-from .permissions import can_manage_contest, get_contest_permissions, get_user_role_in_contest
+from .permissions import can_manage_contest, get_contest_permissions, get_contest_scope_role
 from .services.attendance import build_attendance_status
 from apps.users.serializers import UserSerializer
 
@@ -111,7 +111,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     admins = serializers.SerializerMethodField()
     is_classroom_bound = serializers.SerializerMethodField()
     bound_classroom_id = serializers.SerializerMethodField()
-    is_exam_questions_frozen = serializers.SerializerMethodField()
     exam_questions_count = serializers.SerializerMethodField()
     question_edit_locked = serializers.BooleanField(read_only=True)
     question_edit_locked_at = serializers.DateTimeField(read_only=True)
@@ -172,7 +171,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'is_classroom_bound',
             'bound_classroom_id',
             'results_published',
-            'is_exam_questions_frozen',
             'exam_questions_count',
             'question_edit_locked',
             'question_edit_locked_at',
@@ -241,8 +239,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         """Get user's role in this contest."""
         user = self._get_request_user()
         if user is None:
-            return 'student'
-        return get_user_role_in_contest(user, obj)
+            return 'anonymous'
+        return get_contest_scope_role(user, obj)
     
     def get_permissions(self, obj):
         """Get all permissions for current user."""
@@ -294,10 +292,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         if binding is None:
             return None
         return str(binding.classroom.uuid)
-
-    def get_is_exam_questions_frozen(self, obj):
-        """Backward-compat alias; use question_edit_locked as single source of truth."""
-        return bool(obj.question_edit_locked)
 
     def get_exam_questions_count(self, obj):
         """紙筆題數量"""
@@ -808,10 +802,10 @@ class ClarificationCreateSerializer(serializers.ModelSerializer):
         problem_id = validated_data.pop('problem_id', None)
         problem = None
         if problem_id:
-            from apps.problems.models import Problem
+            from apps.problems.models import CodingProblem
             try:
-                problem = Problem.objects.get(id=problem_id)
-            except Problem.DoesNotExist:
+                problem = CodingProblem.objects.get(id=problem_id)
+            except CodingProblem.DoesNotExist:
                 pass
         
         validated_data['problem'] = problem
@@ -1219,13 +1213,6 @@ class ExamAnswerGradeSerializer(serializers.Serializer):
         if value < 0:
             raise serializers.ValidationError('score must be >= 0')
         return value
-
-
-# ============================================================================
-# Legacy Serializers (Kept for backward compatibility)
-# ============================================================================
-
-
 
 
 class ContestAnnouncementSerializer(serializers.ModelSerializer):

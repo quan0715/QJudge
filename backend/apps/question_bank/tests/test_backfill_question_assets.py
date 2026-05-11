@@ -8,7 +8,7 @@ import pytest
 
 from apps.contests.models import Contest, ExamQuestion
 from apps.contests.tests import bind_problem_to_contest
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.question_bank.models import (
     ContestQuestionBinding,
     Question,
@@ -82,7 +82,7 @@ def test_backfill_question_assets_dry_run_does_not_mutate():
         password="pass123",
         role="teacher",
     )
-    problem = Problem.objects.create(
+    problem = CodingProblem.objects.create(
         slug="dry-run-problem",
         created_by=teacher,
     )
@@ -110,7 +110,7 @@ def test_backfill_question_assets_resolves_problem_owner_from_contest_binding():
         contest_type="coding",
         status="draft",
     )
-    problem = Problem.objects.create(
+    problem = CodingProblem.objects.create(
         slug="legacy-null-owner-problem",
         created_by=teacher,  # needs a creator so backfill can sync
     )
@@ -132,7 +132,7 @@ def test_backfill_question_assets_skips_unresolvable_problem_but_continues():
         password="pass123",
         role="teacher",
     )
-    unresolved_problem = Problem.objects.create(
+    unresolved_problem = CodingProblem.objects.create(
         slug="unowned-legacy-problem",
         created_by=None,
     )

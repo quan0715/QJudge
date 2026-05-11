@@ -5,7 +5,7 @@ import time
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
 from django.db import connection
 from django.test.utils import override_settings
@@ -35,7 +35,7 @@ class SubmissionAPIPerformanceTestCase(TestCase):
         )
         
         # Create a problem
-        cls.problem = Problem.objects.create(
+        cls.problem = CodingProblem.objects.create(
             time_limit=1000,
             memory_limit=256,
             created_by=cls.admin_user

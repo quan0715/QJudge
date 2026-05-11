@@ -1,6 +1,6 @@
 import pytest
 from rest_framework import status
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 
 
 @pytest.mark.django_db
@@ -25,7 +25,7 @@ def test_teacher_can_create_problem(api_client, user_factory):
     )
 
     assert response.status_code == status.HTTP_201_CREATED
-    problem = Problem.objects.get(slug="two-sum")
+    problem = CodingProblem.objects.get(slug="two-sum")
     assert problem.created_by == teacher
     # difficulty is now in QuestionAsset
     assert (problem.question_asset.payload or {}).get("difficulty") == "easy"
@@ -68,7 +68,7 @@ def test_teacher_can_update_own_problem(api_client, user_factory):
     )
 
     assert update_response.status_code == status.HTTP_200_OK
-    problem = Problem.objects.get(id=problem_id)
+    problem = CodingProblem.objects.get(id=problem_id)
     # title is now in QuestionAsset
     assert problem.question_asset.title == "Updated Title"
     assert problem.created_by == teacher

@@ -52,6 +52,10 @@ def _clear_cache():
 
 @pytest.mark.django_db
 class TestCredentialValidation:
+    def test_refresh_interval_matches_attendance_credential_lifetime(self) -> None:
+        assert svc.ATTENDANCE_REFRESH_SECONDS == 60
+        assert svc.ATTENDANCE_TOKEN_MAX_AGE_SECONDS == 60
+
     def test_token_validates_when_cache_payload_matches(self) -> None:
         owner = _make_user("svc_token_owner", role="teacher")
         contest = _make_contest(owner)
@@ -100,6 +104,22 @@ class TestCredentialValidation:
             contest, "check_in", credential["manual_code"]
         )
         assert payload["purpose"] == "check_in"
+
+    def test_new_credential_invalidates_previous_token_and_manual_code(self) -> None:
+        owner = _make_user("svc_refresh_owner", role="teacher")
+        contest = _make_contest(owner)
+        first = svc.create_attendance_credential(contest, "check_in")
+        second = svc.create_attendance_credential(contest, "check_in")
+
+        with pytest.raises(ValueError, match="invalid_attendance_token"):
+            svc.validate_attendance_token(contest, "check_in", first["token"])
+        with pytest.raises(ValueError, match="invalid_attendance_manual_code"):
+            svc.validate_attendance_manual_code(contest, "check_in", first["manual_code"])
+
+        payload = svc.validate_attendance_token(contest, "check_in", second["token"])
+        assert payload["manual_code"] == second["manual_code"]
+        payload = svc.validate_attendance_manual_code(contest, "check_in", second["manual_code"])
+        assert payload["token"] == second["token"]
 
     def test_manual_code_raises_for_wrong_length(self) -> None:
         owner = _make_user("svc_manual_len_owner", role="teacher")

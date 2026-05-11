@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from apps.problems.models import LanguageConfig, Problem
+from apps.problems.models import LanguageConfig, CodingProblem
 from apps.problems.serializers import ProblemAdminSerializer
 
 
@@ -16,7 +16,7 @@ class ProblemAdminSerializerTests(TestCase):
             password="password123",
             role="teacher",
         )
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug="sample-problem",
             time_limit=1000,
             memory_limit=128,

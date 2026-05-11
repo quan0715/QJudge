@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from apps.contests.models import AssignmentState, Contest, ContestParticipant
 from apps.contests.services.question_edit_lock import maybe_lock_from_coding_submission
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.submissions.access_policy import SubmissionAccessError, SubmissionAccessPolicy
 from apps.submissions.models import Submission
 from apps.users.models import User
@@ -79,7 +79,7 @@ class SubmissionService:
     def cleanup_practice_submissions(
         *,
         user: User,
-        problem: Problem,
+        problem: CodingProblem,
         contest: Contest,
         current_submission: Submission,
     ) -> int:
@@ -122,7 +122,7 @@ class SubmissionService:
         if contest:
             SubmissionAccessPolicy.enforce_contest_submission(user, contest)
 
-        problem: Problem = data["problem"]
+        problem: CodingProblem = data["problem"]
         code: str = data.get("code", "")
 
         forbidden_keywords = problem.forbidden_keywords or []

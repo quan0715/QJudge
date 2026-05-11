@@ -3,7 +3,7 @@ Models for submissions and judging results.
 """
 from django.db import models
 from django.contrib.auth import get_user_model
-from apps.problems.models import Problem, TestCase
+from apps.problems.models import CodingProblem, TestCase
 from .managers import SubmissionQuerySet
 
 User = get_user_model()
@@ -41,7 +41,7 @@ class Submission(models.Model):
         verbose_name='使用者'
     )
     problem = models.ForeignKey(
-        Problem,
+        CodingProblem,
         on_delete=models.CASCADE,
         related_name='submissions',
         verbose_name='題目'

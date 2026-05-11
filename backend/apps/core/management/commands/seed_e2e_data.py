@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 from apps.users.models import UserProfile
-from apps.problems.models import Problem, TestCase, LanguageConfig
+from apps.problems.models import CodingProblem, TestCase, LanguageConfig
 from apps.question_bank.question_assets import write_coding_content_to_asset
 from apps.contests.models import Contest, ContestParticipant, ExamQuestion
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
@@ -148,7 +148,7 @@ class Command(BaseCommand):
         admin = User.objects.filter(is_superuser=True).first()
         
         # Problem 1: A+B Problem
-        prob1, created = Problem.objects.get_or_create(
+        prob1, created = CodingProblem.objects.get_or_create(
             slug='a-plus-b',
             defaults={
                 'time_limit': 1000,
@@ -222,7 +222,7 @@ int main() {
             self.stdout.write('  - 題目已存在: A+B Problem')
 
         # Problem 2: Hello World
-        prob2, created = Problem.objects.get_or_create(
+        prob2, created = CodingProblem.objects.get_or_create(
             slug='hello-world',
             defaults={
                 'time_limit': 1000,
@@ -276,7 +276,7 @@ int main() {
             self.stdout.write('  - 題目已存在: Hello World')
 
         # Problem 3: Factorial
-        prob3, created = Problem.objects.get_or_create(
+        prob3, created = CodingProblem.objects.get_or_create(
             slug='factorial',
             defaults={
                 'time_limit': 1000,
@@ -374,7 +374,7 @@ int main() {
         
         if created:
             # Add problems to contest
-            problems = Problem.objects.filter(question_asset__title__in=['A+B Problem', 'Hello World'])
+            problems = CodingProblem.objects.filter(question_asset__title__in=['A+B Problem', 'Hello World'])
             for idx, problem in enumerate(problems):
                 self._bind_problem(contest1, problem, idx)
             self.stdout.write('  ✓ 建立競賽: E2E Test Contest')
@@ -399,7 +399,7 @@ int main() {
         )
 
         if created:
-            problems = Problem.objects.filter(question_asset__title='Factorial')
+            problems = CodingProblem.objects.filter(question_asset__title='Factorial')
             for idx, problem in enumerate(problems):
                 self._bind_problem(contest2, problem, idx)
             self.stdout.write('  ✓ 建立競賽: Upcoming Contest')
@@ -425,7 +425,7 @@ int main() {
         )
 
         if created:
-            problems = Problem.objects.filter(question_asset__title='A+B Problem')
+            problems = CodingProblem.objects.filter(question_asset__title='A+B Problem')
             for idx, problem in enumerate(problems):
                 self._bind_problem(contest3, problem, idx)
             self.stdout.write('  ✓ 建立競賽: E2E Exam Mode Contest')
@@ -524,7 +524,7 @@ int main() {
             self.stdout.write('  - 題庫已存在: E2E Test Bank')
 
         # At least one coding row for QuestionSourcePanel (coding mode)
-        prob_ab = Problem.objects.filter(question_asset__title="A+B Problem").first()
+        prob_ab = CodingProblem.objects.filter(question_asset__title="A+B Problem").first()
         if prob_ab and teacher:
             upsert_problem_into_bank(problem=prob_ab, bank=bank, created_by=teacher)
             self.stdout.write('  ✓ 題庫題目: A+B Problem → E2E Test Bank')

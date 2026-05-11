@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
-from apps.problems.models import Problem, TestCase as ProblemTestCase
+from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
@@ -36,7 +36,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
 class ProblemFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = Problem
+        model = CodingProblem
 
     slug = factory.Sequence(lambda n: f"problem-{n}")
     created_by = factory.SubFactory(UserFactory, role="teacher")
@@ -124,7 +124,7 @@ def api_client() -> APIClient:
     return APIClient()
 
 
-def create_contest_with_problem(owner: User, **contest_kwargs: object) -> Tuple[Contest, Problem]:
+def create_contest_with_problem(owner: User, **contest_kwargs: object) -> Tuple[Contest, CodingProblem]:
     contest = ContestFactory(owner=owner, **contest_kwargs)
     problem = ProblemFactory(created_by=owner)
     ProblemTestCaseFactory(problem=problem, score=100)

@@ -4,7 +4,6 @@ Unit tests for the contest scope role system.
 Covers:
   - get_contest_scope_role() for all 6 roles
   - can_manage_contest() for manager vs non-manager roles
-  - Backward-compat: get_user_role_in_contest() legacy mapping
   - BASE_ROLE_PERMISSIONS structure with new scope keys
 """
 from __future__ import annotations
@@ -21,7 +20,6 @@ from apps.contests.permissions import (
     LIFECYCLE_OWNER_ROLES,
     can_manage_contest,
     get_contest_scope_role,
-    get_user_role_in_contest,
 )
 from apps.contests.access_policy import BASE_ROLE_PERMISSIONS
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
@@ -201,25 +199,6 @@ def test_lifecycle_owner_roles_contents() -> None:
     assert 'anonymous' not in LIFECYCLE_OWNER_ROLES
 
 
-# ---------------------------------------------------------------------------
-# Legacy backward-compat: get_user_role_in_contest
-# ---------------------------------------------------------------------------
-
-@pytest.mark.django_db
-def test_legacy_role_platform_admin(platform_admin: User, contest: Contest) -> None:
-    assert get_user_role_in_contest(platform_admin, contest) == 'admin'
-
-
-@pytest.mark.django_db
-def test_legacy_role_owner(owner: User, contest: Contest) -> None:
-    assert get_user_role_in_contest(owner, contest) == 'owner'
-
-
-@pytest.mark.django_db
-def test_legacy_role_co_owner(co_owner: User, contest: Contest) -> None:
-    assert get_user_role_in_contest(co_owner, contest) == 'teacher'
-
-
 @pytest.mark.django_db
 def test_classroom_bound_contest_uses_classroom_scope_by_default(owner: User) -> None:
     legacy_contest_owner = User.objects.create_user(
@@ -255,18 +234,6 @@ def test_classroom_bound_contest_uses_classroom_scope_by_default(owner: User) ->
     assert get_contest_scope_role(legacy_contest_owner, contest) == "owner"
     assert can_manage_contest(legacy_contest_owner, contest) is True
     assert can_manage_contest(classroom_ta, contest) is True
-
-
-@pytest.mark.django_db
-def test_legacy_role_participant(
-    participant_user: User, contest: Contest, registered_participant: ContestParticipant
-) -> None:
-    assert get_user_role_in_contest(participant_user, contest) == 'student'
-
-
-@pytest.mark.django_db
-def test_legacy_role_outsider(outsider: User, contest: Contest) -> None:
-    assert get_user_role_in_contest(outsider, contest) == 'student'
 
 
 # ---------------------------------------------------------------------------
@@ -307,10 +274,3 @@ def test_base_permissions_anonymous_minimal() -> None:
     perms = BASE_ROLE_PERMISSIONS['anonymous']
     assert 'view_public_contest' in perms
     assert 'submit' not in perms
-
-
-def test_legacy_aliases_intact() -> None:
-    """Backward-compat aliases must still exist for old code."""
-    assert BASE_ROLE_PERMISSIONS['admin'] is BASE_ROLE_PERMISSIONS['platform_admin']
-    assert BASE_ROLE_PERMISSIONS['teacher'] is BASE_ROLE_PERMISSIONS['co_owner']
-    assert BASE_ROLE_PERMISSIONS['student'] is BASE_ROLE_PERMISSIONS['participant']

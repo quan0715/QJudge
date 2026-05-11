@@ -19,11 +19,12 @@ from apps.contests.models import (
 from apps.contests.permissions import can_manage_contest
 from apps.contests.services.participant_state import reset_participant_exam_record
 
-ATTENDANCE_REFRESH_SECONDS = 30
-ATTENDANCE_TOKEN_MAX_AGE_SECONDS = 120
+ATTENDANCE_REFRESH_SECONDS = 60
+ATTENDANCE_TOKEN_MAX_AGE_SECONDS = 60
 ATTENDANCE_QR_PREFIX = "qj-att:v1"
 ATTENDANCE_CACHE_PREFIX = "contest-attendance-token"
 ATTENDANCE_MANUAL_CODE_CACHE_PREFIX = "contest-attendance-manual-code"
+ATTENDANCE_ACTIVE_CREDENTIAL_CACHE_PREFIX = "contest-attendance-active-credential"
 ATTENDANCE_MANUAL_CODE_ALPHABET = "0123456789"
 ATTENDANCE_MANUAL_CODE_LENGTH = 6
 ATTENDANCE_EVENT_TYPES = {
@@ -107,6 +108,10 @@ def _manual_code_cache_key(code: str) -> str:
     return f"{ATTENDANCE_MANUAL_CODE_CACHE_PREFIX}:{code}"
 
 
+def _active_credential_cache_key(contest: Contest, purpose: str) -> str:
+    return f"{ATTENDANCE_ACTIVE_CREDENTIAL_CACHE_PREFIX}:{contest.id}:{purpose}"
+
+
 def normalize_attendance_error_code(error: ValueError) -> str:
     code = str(error)
     return code if code in ATTENDANCE_ERROR_MESSAGES else "invalid_attendance_request"
@@ -138,6 +143,7 @@ def create_attendance_credential(contest: Contest, purpose: str) -> dict[str, st
     if purpose not in ATTENDANCE_EVENT_TYPES:
         raise ValueError("invalid_attendance_purpose")
     token = secrets.token_urlsafe(32)
+    active_key = _active_credential_cache_key(contest, purpose)
     for _attempt in range(12):
         manual_code = _generate_attendance_manual_code()
         payload = {
@@ -152,11 +158,20 @@ def create_attendance_credential(contest: Contest, purpose: str) -> dict[str, st
             payload,
             timeout=ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
         ):
+            previous = cache.get(active_key)
             cache.set(
                 _token_cache_key(token),
                 payload,
                 timeout=ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
             )
+            cache.set(active_key, payload, timeout=ATTENDANCE_TOKEN_MAX_AGE_SECONDS)
+            if isinstance(previous, dict):
+                previous_token = str(previous.get("token") or "")
+                previous_manual_code = str(previous.get("manual_code") or "")
+                if previous_token and previous_token != token:
+                    cache.delete(_token_cache_key(previous_token))
+                if previous_manual_code and previous_manual_code != manual_code:
+                    cache.delete(_manual_code_cache_key(previous_manual_code))
             return {
                 "token": token,
                 "manual_code": format_attendance_manual_code(manual_code),
@@ -172,6 +187,14 @@ def validate_attendance_cache_payload(contest: Contest, purpose: str, value: Any
     if not isinstance(value, dict):
         raise ValueError("invalid_attendance_token")
     if str(value.get("contest_id")) != str(contest.id) or value.get("purpose") != purpose:
+        raise ValueError("invalid_attendance_token")
+    active = cache.get(_active_credential_cache_key(contest, purpose))
+    if not isinstance(active, dict):
+        raise ValueError("invalid_attendance_token")
+    if (
+        active.get("token") != value.get("token")
+        or active.get("manual_code") != value.get("manual_code")
+    ):
         raise ValueError("invalid_attendance_token")
     return value
 

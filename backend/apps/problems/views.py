@@ -12,7 +12,7 @@ from django_filters import rest_framework as django_filters
 from django.db.models import QuerySet
 
 from .models import (
-    Problem,
+    CodingProblem,
     Tag,
 )
 from .serializers import (
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class ProblemFilter(django_filters.FilterSet):
     """
-    Custom filter for Problem list view.
+    Custom filter for CodingProblem list view.
     Supports multiple difficulty values and tag filtering with OR logic.
     """
     difficulty = django_filters.MultipleChoiceFilter(
@@ -60,7 +60,7 @@ class ProblemFilter(django_filters.FilterSet):
         return queryset.filter(tags__slug__in=slugs).distinct()
 
     class Meta:
-        model = Problem
+        model = CodingProblem
         fields = []
 
 
@@ -102,7 +102,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
     """
     ViewSet for viewing and editing problems.
     """
-    queryset = Problem.objects.all()
+    queryset = CodingProblem.objects.all()
     permission_classes = [IsProblemManager]
     filter_backends = [
         DjangoFilterBackend,
@@ -164,7 +164,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         """
         serializer.save(created_by=self.request.user)
 
-    def _get_locking_contests(self, problem: Problem) -> QuerySet:
+    def _get_locking_contests(self, problem: CodingProblem) -> QuerySet:
         from apps.contests.models import Contest
         from apps.question_bank.models import ContestQuestionBinding
 
@@ -179,7 +179,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
 
         return Contest.objects.filter(id__in=contest_ids, question_edit_locked=True)
 
-    def _ensure_problem_editable_under_contest_lock(self, problem: Problem, action: str) -> None:
+    def _ensure_problem_editable_under_contest_lock(self, problem: CodingProblem, action: str) -> None:
         locked_contest = self._get_locking_contests(problem).order_by("question_edit_locked_at").first()
         if not locked_contest:
             return
@@ -223,7 +223,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         draft_filter = Q(question_asset__isnull=False) & ~Q(question_asset_id__in=banked_asset_ids)
         orphan_filter = Q(question_asset__isnull=True, created_by__isnull=True)
 
-        qs = Problem.objects.filter(
+        qs = CodingProblem.objects.filter(
             draft_filter | orphan_filter if is_admin else draft_filter
         ).select_related(
             'created_by',
@@ -268,7 +268,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         serializer = TestRunSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        problem = get_object_or_404(Problem, id=id)
+        problem = get_object_or_404(CodingProblem, id=id)
 
         contest_id = serializer.validated_data.get("contest_id")
         if contest_id:
@@ -308,7 +308,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         from django.db.models import Count
         from django.db.models.functions import TruncDate
         from apps.submissions.models import Submission
-        from .models import Problem
+        from .models import CodingProblem
         
         contest_id = request.query_params.get('contest')
         limit = int(request.query_params.get('limit', 100))
@@ -321,7 +321,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
 
             # Get the problem directly through the management/contest surface.
-            problem = get_object_or_404(Problem, id=id)
+            problem = get_object_or_404(CodingProblem, id=id)
 
             # Verify the problem is part of this contest
             if not ContestQuestionBinding.objects.filter(
@@ -358,7 +358,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
             submission_count = sum(status_counts.values())
             accepted_count = status_counts.get('AC', 0)
         else:
-            # For practice, use denormalized fields from Problem model
+            # For practice, use denormalized fields from CodingProblem.
             status_counts = {
                 'AC': problem.accepted_count,
                 'WA': problem.wa_count,

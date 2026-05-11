@@ -8,7 +8,7 @@ from django.utils import timezone
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
 from apps.contests.exporters import MarkdownRenderer, PDFRenderer, StudentReportRenderer
-from apps.problems.models import Problem, TestCase as ProblemTestCase
+from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.question_bank.models import QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
@@ -29,7 +29,7 @@ def _create_problem_with_asset(slug, title, difficulty, translations, owner=None
             "hint": t.get("hint", ""),
         },
     )
-    problem = Problem.objects.create(
+    problem = CodingProblem.objects.create(
         slug=slug,
         time_limit=1000,
         memory_limit=128,

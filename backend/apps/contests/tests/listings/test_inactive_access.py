@@ -18,7 +18,7 @@ from rest_framework.test import APITestCase
 from apps.contests.models import Contest, ContestParticipant
 from apps.contests.tests import bind_problem_to_contest
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 
 User = get_user_model()
 
@@ -76,7 +76,7 @@ class DraftContestAccessTests(APITestCase):
         )
 
         # Create a problem and add to both contests
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='test-problem-inactive',
             created_by=self.teacher
         )
@@ -176,7 +176,7 @@ class DraftContestAccessTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     # =========================================================================
-    # Test 4: Problem structure visibility
+    # Test 4: CodingProblem structure visibility
     # =========================================================================
 
     def test_owner_sees_problems_in_draft_contest(self):
@@ -286,7 +286,7 @@ class DraftContestAccessTests(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["current_user_role"], "teacher")
+        self.assertEqual(response.data["current_user_role"], "co_owner")
         self.assertTrue(response.data["permissions"]["can_edit_contest"])
 
 
@@ -319,7 +319,7 @@ class ContestNotStartedAccessTests(APITestCase):
         )
 
         # Create a problem and add to contest
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='future-problem-test',
             created_by=self.teacher
         )
@@ -387,7 +387,7 @@ class ContestEndedAccessTests(APITestCase):
         )
 
         # Create a problem and add to contest
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='ended-problem-test',
             created_by=self.teacher
         )

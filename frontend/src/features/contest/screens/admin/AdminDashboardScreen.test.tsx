@@ -15,7 +15,7 @@ const mockContest = {
   contestType: "coding",
   status: "published",
   permissions: { canEditContest: true },
-  currentUserRole: "teacher",
+  currentUserRole: "co_owner",
   boundClassroomId: "classroom-1",
 };
 
