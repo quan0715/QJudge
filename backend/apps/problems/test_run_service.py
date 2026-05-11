@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from apps.judge import judge_factory
-from apps.problems.models import Problem, TestCase
+from apps.problems.models import CodingProblem, TestCase
 
 HARD_FAILURE_STATUSES = {"CE", "SE"}
 
@@ -16,7 +16,7 @@ class ProblemTestRunService:
     """Runs all stored test cases without creating submissions."""
 
     @staticmethod
-    def _build_test_cases(problem: Problem) -> list[TestCase]:
+    def _build_test_cases(problem: CodingProblem) -> list[TestCase]:
         return list(problem.test_cases.all())
 
     @staticmethod
@@ -42,7 +42,7 @@ class ProblemTestRunService:
     def run(
         cls,
         *,
-        problem: Problem,
+        problem: CodingProblem,
         language: str,
         source_code: str,
     ) -> dict:

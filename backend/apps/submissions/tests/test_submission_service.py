@@ -15,7 +15,7 @@ from django.utils import timezone
 from pytest_mock import MockerFixture
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionVersion
 from apps.submissions.models import Submission
 from apps.submissions.services import SubmissionService
@@ -46,7 +46,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
 class ProblemFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = Problem
+        model = CodingProblem
 
     slug = factory.Sequence(lambda n: f"svc-problem-{n}")
     created_by = factory.SubFactory(UserFactory, role="teacher")

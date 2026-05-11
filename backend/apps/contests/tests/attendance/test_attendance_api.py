@@ -21,7 +21,7 @@ from apps.contests.services.attendance import (
     build_participant_attendance_summary,
     create_attendance_token,
 )
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
 from apps.users.models import User
 
@@ -651,7 +651,7 @@ def test_teacher_can_reset_participant_exam_record() -> None:
         answer={"selected": "A"},
         score=1,
     )
-    problem = Problem.objects.create(
+    problem = CodingProblem.objects.create(
         created_by=teacher,
         slug=f"reset-exam-record-problem-{contest.id}",
     )

@@ -2,7 +2,7 @@
 Admin configuration for problems app.
 """
 from django.contrib import admin
-from .models import Problem, TestCase, LanguageConfig, Tag
+from .models import CodingProblem, TestCase, LanguageConfig, Tag
 
 
 class TestCaseInline(admin.TabularInline):
@@ -18,7 +18,7 @@ class LanguageConfigAdmin(admin.ModelAdmin):
     search_fields = ['problem__question_asset__title']
 
 
-@admin.register(Problem)
+@admin.register(CodingProblem)
 class ProblemAdmin(admin.ModelAdmin):
     list_display = ['id', 'slug', 'submission_count', 'acceptance_rate']
     list_filter = ['created_at']

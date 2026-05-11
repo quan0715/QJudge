@@ -12,7 +12,7 @@ from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
-from apps.problems.models import Problem, TestCase as ProblemTestCase
+from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.question_bank.models import QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
@@ -123,7 +123,7 @@ class TestStudentReportEndpoints:
                 "input_description": "", "output_description": "", "hint": "",
             },
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug='test-problem-sr',
             time_limit=1000,
             memory_limit=128,
@@ -356,7 +356,7 @@ class TestStudentReportEndpoints:
                 "description": "", "input_description": "", "output_description": "", "hint": "",
             },
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug='ended-contest-problem',
             time_limit=1000,
             memory_limit=128,
@@ -583,7 +583,7 @@ class TestStudentReportScoreCalculation:
                 "input_description": "", "output_description": "", "hint": "",
             },
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug='score-test-problem',
             time_limit=1000,
             memory_limit=128,

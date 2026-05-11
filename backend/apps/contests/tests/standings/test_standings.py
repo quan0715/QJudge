@@ -18,7 +18,7 @@ from apps.contests.models import (
     Contest, ContestParticipant, ExamStatus
 )
 from apps.contests.tests import bind_problem_to_contest
-from apps.problems.models import Problem, TestCase as ProblemTestCase
+from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 
 
 class StandingsAPITests(APITestCase):
@@ -61,11 +61,11 @@ class StandingsAPITests(APITestCase):
         )
 
         # Create problems
-        self.problem_a = Problem.objects.create(
+        self.problem_a = CodingProblem.objects.create(
             slug='problem-a',
             created_by=self.teacher
         )
-        self.problem_b = Problem.objects.create(
+        self.problem_b = CodingProblem.objects.create(
             slug='problem-b',
             created_by=self.teacher
         )
@@ -284,7 +284,7 @@ class StandingsDataIntegrityTests(APITestCase):
             scoreboard_visible_during_contest=True
         )
 
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='test-problem',
             created_by=self.teacher
         )
@@ -392,7 +392,7 @@ class StandingsTestSubmissionFilterTests(APITestCase):
         )
 
         # Create problem with 100 points
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='filter-test-problem',
             created_by=self.teacher
         )
@@ -581,11 +581,11 @@ class StandingsRankingOrderTests(APITestCase):
         )
 
         # Create two problems: problem1 worth 100 points, problem2 worth 50 points
-        self.problem1 = Problem.objects.create(
+        self.problem1 = CodingProblem.objects.create(
             slug='ranking-problem-1',
             created_by=self.teacher
         )
-        self.problem2 = Problem.objects.create(
+        self.problem2 = CodingProblem.objects.create(
             slug='ranking-problem-2',
             created_by=self.teacher
         )

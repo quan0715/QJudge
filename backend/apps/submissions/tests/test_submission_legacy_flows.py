@@ -13,7 +13,7 @@ from rest_framework.test import APIClient
 
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
 from apps.users.models import User
 
@@ -38,7 +38,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
 class ProblemFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = Problem
+        model = CodingProblem
 
     slug = factory.Sequence(lambda n: f"problem-{n}")
     created_by = factory.SubFactory(UserFactory, role="teacher")

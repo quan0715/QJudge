@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from apps.contests.models import Contest, ContestParticipant
 from apps.submissions.models import Submission
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -36,7 +36,7 @@ def student(db):
 @pytest.fixture
 def problem(db, owner):
     suffix = uuid.uuid4().hex[:8]
-    return Problem.objects.create(
+    return CodingProblem.objects.create(
         slug=f"sum-ctg-{suffix}",
         created_by=owner,
         time_limit=1000,

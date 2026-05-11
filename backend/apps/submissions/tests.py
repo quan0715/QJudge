@@ -5,7 +5,7 @@ from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
-from apps.problems.models import Problem, TestCase as ProblemTestCase
+from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.submissions.models import Submission, SubmissionResult
 
 User = get_user_model()
@@ -32,7 +32,7 @@ class SubmissionAPITestCase(TestCase):
         )
         
         # Create a test problem
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='test-a-plus-b',
             time_limit=1000,
             memory_limit=128,
@@ -159,7 +159,7 @@ int main() {
     def test_filter_submissions_by_problem(self):
         """Test filtering submissions by problem"""
         # Create another problem
-        problem2 = Problem.objects.create(
+        problem2 = CodingProblem.objects.create(
             slug='test-problem-2',
             created_by=self.teacher
         )
@@ -233,7 +233,7 @@ class SubmissionModelTestCase(TestCase):
             password='testpass123'
         )
         
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='test-problem',
             time_limit=1000,
             memory_limit=128
@@ -302,7 +302,7 @@ class SubmissionExecutionTestCase(TestCase):
             password='testpass123'
         )
         
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='a-plus-b',
             time_limit=1000,
             memory_limit=128,

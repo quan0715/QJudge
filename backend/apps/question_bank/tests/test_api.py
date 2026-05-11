@@ -14,7 +14,7 @@ from PIL import Image
 
 from apps.contests.models import Contest, ExamQuestion
 from apps.contests.tests import bind_problem_to_contest
-from apps.problems.models import Problem, TestCase as ProblemTestCase
+from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.question_bank.bank_workflows import (
     clone_question_to_bank,
     is_publicly_accessible_bank,
@@ -621,7 +621,7 @@ class TestQuestionBankAPI:
             category=QuestionBank.Category.CODING,
             visibility=QuestionBank.Visibility.PRIVATE,
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug="legacy-problem",
             created_by=teacher,
         )
@@ -761,7 +761,7 @@ class TestQuestionBankAPI:
         tmp_path: Path,
         admin_user: User,
     ):
-        Problem.objects.create(
+        CodingProblem.objects.create(
             slug="public-p",
             created_by=admin_user,
         )
@@ -793,7 +793,7 @@ class TestQuestionBankAPI:
                 "output_description": "out", "hint": "",
             },
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug="inbox-coding",
             created_by=teacher,
             question_asset=asset,
@@ -846,7 +846,7 @@ class TestQuestionBankAPI:
             visibility=QuestionBank.Visibility.PRIVATE,
             verified=False,
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug="needs-ingest",
             created_by=teacher,
         )
@@ -893,7 +893,7 @@ class TestQuestionBankAPI:
             visibility=QuestionBank.Visibility.PRIVATE,
             verified=False,
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug="contest-linked-no-creator",
             created_by=None,
         )
@@ -972,7 +972,7 @@ class TestQuestionBankAPI:
                 "output_description": "out", "hint": "",
             },
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug="needs-re-ingest",
             created_by=teacher,
             question_asset=asset,
@@ -1267,14 +1267,14 @@ class TestQuestionCRUDPermissions:
 @pytest.mark.django_db
 class TestCategoryValidation:
     def test_upsert_coding_problem_into_exam_bank_raises(self, teacher: User):
-        from apps.problems.models import Problem
+        from apps.problems.models import CodingProblem
 
         exam_bank = QuestionBank.objects.create(
             owner=teacher,
             name="Exam Bank",
             category=QuestionBank.Category.EXAM,
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             created_by=teacher,
             time_limit=1000,
             memory_limit=128,
@@ -1488,7 +1488,7 @@ class TestUpsertIdempotency:
             owner=teacher, asset_type=QuestionAsset.AssetType.CODING,
             title="Prob", payload={"difficulty": "easy"},
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             created_by=teacher,
             time_limit=1000,
             memory_limit=128,

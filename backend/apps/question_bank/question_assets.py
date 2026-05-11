@@ -18,7 +18,7 @@ def extract_content_from_payload(payload: dict) -> dict[str, str]:
     }
 
 from apps.contests.models import ExamQuestion, ExamQuestionType
-from apps.problems.models import CodingProblem, Problem  # Problem = CodingProblem alias
+from apps.problems.models import CodingProblem
 
 from .models import (
     ContestQuestionBinding,
@@ -465,7 +465,7 @@ def write_coding_content_to_asset(
     )
 
 
-def ensure_problem_question_asset(*, problem: Problem, actor=None) -> tuple[QuestionAsset, QuestionVersion]:
+def ensure_problem_question_asset(*, problem: CodingProblem, actor=None) -> tuple[QuestionAsset, QuestionVersion]:
     """Ensure a CodingProblem has a QuestionAsset.
 
     If the problem already has one, return it.  Otherwise create a new asset
@@ -505,7 +505,7 @@ def ensure_problem_question_asset(*, problem: Problem, actor=None) -> tuple[Ques
         actor=owner,
     )
 
-    Problem.objects.filter(pk=problem.pk).update(
+    CodingProblem.objects.filter(pk=problem.pk).update(
         question_asset=question_asset,
         question_version=question_version,
     )

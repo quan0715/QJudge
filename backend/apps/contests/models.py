@@ -5,7 +5,7 @@ import uuid as uuid_lib
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from .managers import ContestQuerySet
 
 User = get_user_model()
@@ -539,7 +539,7 @@ class Clarification(models.Model):
         verbose_name='考試'
     )
     problem = models.ForeignKey(
-        Problem,
+        CodingProblem,
         on_delete=models.CASCADE,
         null=True,
         blank=True,

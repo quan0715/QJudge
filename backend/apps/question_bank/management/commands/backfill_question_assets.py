@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from apps.contests.models import ExamQuestion
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.question_bank.models import Question
 from apps.question_bank.question_assets import (
     ensure_contest_binding_for_exam_question,
@@ -36,7 +36,7 @@ class Command(BaseCommand):
         }
 
         with transaction.atomic():
-            for problem in Problem.objects.order_by("created_at", "id"):
+            for problem in CodingProblem.objects.order_by("created_at", "id"):
                 try:
                     if not dry_run:
                         ensure_problem_question_asset(problem=problem, actor=problem.created_by)

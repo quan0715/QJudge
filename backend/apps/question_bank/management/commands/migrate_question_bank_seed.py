@@ -17,7 +17,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
 from apps.contests.models import ExamQuestion
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.question_bank.models import QuestionBank
 from apps.question_bank.bank_workflows import (
     upsert_exam_question_into_bank,
@@ -73,7 +73,7 @@ class Command(BaseCommand):
         skipped_exam: list[dict] = []
 
         practice_qs = (
-            Problem.objects.filter(contest_bindings__isnull=True)
+            CodingProblem.objects.filter(contest_bindings__isnull=True)
             .order_by("id")
             .distinct()
         )

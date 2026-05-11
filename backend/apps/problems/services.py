@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.utils.text import slugify
 
-from .models import CodingProblem, Problem, TestCase, LanguageConfig, Tag
+from .models import CodingProblem, TestCase, LanguageConfig, Tag
 import uuid
 
 

@@ -4,7 +4,6 @@ Serializers for problems app.
 from rest_framework import serializers
 from .models import (
     CodingProblem,
-    Problem,  # backward-compat alias for CodingProblem
     TestCase,
     LanguageConfig,
     Tag,
@@ -120,7 +119,7 @@ class ProblemListSerializer(serializers.ModelSerializer):
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
 
     class Meta:
-        model = Problem
+        model = CodingProblem
         fields = [
             'id',
             'title',
@@ -184,7 +183,7 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
 
     class Meta:
-        model = Problem
+        model = CodingProblem
         fields = [
             'id',
             'title',
@@ -271,7 +270,7 @@ class OrphanProblemSerializer(serializers.ModelSerializer):
     difficulty = serializers.SerializerMethodField()
 
     class Meta:
-        model = Problem
+        model = CodingProblem
         fields = [
             'id',
             'title',
@@ -348,7 +347,7 @@ class ProblemAdminSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = Problem
+        model = CodingProblem
         fields = [
             'id',
             'title',

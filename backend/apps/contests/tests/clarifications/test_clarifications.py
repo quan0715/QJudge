@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.contests.models import Clarification, Contest, ContestParticipant, ExamStatus
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.users.models import User
 
 
@@ -69,8 +69,8 @@ def contest(teacher: User) -> Contest:
 
 
 @pytest.fixture
-def problem(teacher: User) -> Problem:
-    return Problem.objects.create(
+def problem(teacher: User) -> CodingProblem:
+    return CodingProblem.objects.create(
         slug="clarification-problem",
         created_by=teacher,
     )
@@ -175,7 +175,7 @@ def test_create_clarification_sets_defaults(
     api_client: APIClient,
     contest: Contest,
     student: User,
-    problem: Problem,
+    problem: CodingProblem,
 ) -> None:
     api_client.force_authenticate(user=student)
 

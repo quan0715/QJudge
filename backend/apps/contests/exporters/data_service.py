@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Any
 from django.utils import timezone
 
 from ..models import Contest, ContestParticipant
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 
@@ -298,7 +298,7 @@ class ContestDataService:
 
         Args:
             user_id: User ID
-            problem_id: Problem ID
+            problem_id: CodingProblem ID
 
         Returns:
             Best SubmissionDTO or None if no submissions
@@ -327,7 +327,7 @@ class ContestDataService:
 
         Args:
             user_id: User ID
-            problem_id: Problem ID
+            problem_id: CodingProblem ID
 
         Returns:
             Last AC SubmissionDTO or None
@@ -344,7 +344,7 @@ class ContestDataService:
         """Return the display label for a contest problem binding (A, B, ...)."""
         return binding.label or chr(65 + binding.order)
 
-    def _format_problem(self, problem: Problem, label: str) -> ProblemDTO:
+    def _format_problem(self, problem: CodingProblem, label: str) -> ProblemDTO:
         """Format a problem's content for export."""
         # Read translations from QuestionAsset (source of truth)
         title = ""

@@ -10,7 +10,7 @@ from apps.contests.models import (
     ContestParticipant,
     ExamStatus,
 )
-from apps.contests.permissions import get_user_role_in_contest
+from apps.contests.permissions import can_manage_contest
 from apps.users.models import User
 
 
@@ -26,8 +26,7 @@ class SubmissionAccessPolicy:
 
     @staticmethod
     def is_privileged(user: User, contest: Contest) -> bool:
-        role = get_user_role_in_contest(user, contest)
-        return role in ('admin', 'owner', 'teacher')
+        return can_manage_contest(user, contest)
 
     @classmethod
     def enforce_contest_submission(cls, user: User, contest: Contest) -> bool:

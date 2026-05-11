@@ -6,13 +6,13 @@ from django.core.management import call_command
 from django.utils import timezone
 
 from apps.contests.models import Contest, ContestParticipant, ExamAnswer, ExamQuestion, ExamStatus
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
 from apps.users.models import User
 
 
-def _create_problem(owner: User, title: str) -> Problem:
-    return Problem.objects.create(
+def _create_problem(owner: User, title: str) -> CodingProblem:
+    return CodingProblem.objects.create(
         slug=f"{title.lower().replace(' ', '-')}-{uuid4().hex[:8]}",
         created_by=owner,
     )

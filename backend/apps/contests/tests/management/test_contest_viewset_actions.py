@@ -14,14 +14,14 @@ from apps.contests.tests import bind_problem_to_contest
 from apps.question_bank.models import ContestQuestionBinding
 from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests.views import contest as contest_view_module
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.question_bank.models import Question, QuestionBank, QuestionCodingExt
 from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
 from apps.users.models import User, UserProfile
 
 
-def _create_problem(title: str, owner: User, **kwargs) -> Problem:
-    return Problem.objects.create(
+def _create_problem(title: str, owner: User, **kwargs) -> CodingProblem:
+    return CodingProblem.objects.create(
         slug=f"{title.lower().replace(' ', '-')}-{uuid4().hex[:8]}",
         created_by=owner,
         **kwargs,
@@ -793,7 +793,7 @@ def test_contest_problem_destroy_cleans_orphan_asset(
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert not ContestQuestionBinding.objects.filter(id=binding.id).exists()
-    assert not Problem.objects.filter(id=problem.id).exists()
+    assert not CodingProblem.objects.filter(id=problem.id).exists()
     assert not QuestionAsset.objects.filter(id=asset.id).exists()
 
 
@@ -836,7 +836,7 @@ def test_contest_problem_destroy_keeps_asset_when_in_bank(
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert not ContestQuestionBinding.objects.filter(id=binding.id).exists()
     # Problem and asset should still exist
-    assert Problem.objects.filter(id=problem.id).exists()
+    assert CodingProblem.objects.filter(id=problem.id).exists()
     assert QuestionAsset.objects.filter(id=asset.id).exists()
 
 

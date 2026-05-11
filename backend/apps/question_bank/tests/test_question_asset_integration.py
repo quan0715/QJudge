@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ExamQuestion
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.question_bank.models import (
     ContestQuestionBinding,
     Question,
@@ -82,7 +82,7 @@ def test_problem_api_create_and_update_dual_write_question_asset(api_client: API
     assert create_resp.data["question_asset_id"] is not None
     assert create_resp.data["question_version_id"] is not None
 
-    problem = Problem.objects.get(id=create_resp.data["id"])
+    problem = CodingProblem.objects.get(id=create_resp.data["id"])
     assert problem.question_asset_id is not None
     assert problem.question_version_id is not None
     assert problem.question_asset.asset_type == QuestionAsset.AssetType.CODING

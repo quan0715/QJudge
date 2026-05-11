@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.test import APIClient
-from apps.problems.models import Problem
+from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
 
 User = get_user_model()
@@ -25,7 +25,7 @@ class DateRangeFilteringTestCase(TestCase):
             role='admin'
         )
         
-        cls.problem = Problem.objects.create(
+        cls.problem = CodingProblem.objects.create(
             time_limit=1000,
             memory_limit=256,
             created_by=cls.admin_user

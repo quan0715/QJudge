@@ -9,7 +9,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from apps.users.models import UserProfile
-from apps.problems.models import Problem, TestCase, LanguageConfig
+from apps.problems.models import CodingProblem, TestCase, LanguageConfig
 from apps.question_bank.question_assets import write_coding_content_to_asset
 from apps.contests.models import (
     Contest, ContestParticipant, ExamQuestion, ExamAnswer, ExamEvent, ExamStatus,
@@ -139,7 +139,7 @@ class Command(BaseCommand):
         ]
 
         for spec in problems_spec:
-            prob, created = Problem.objects.get_or_create(
+            prob, created = CodingProblem.objects.get_or_create(
                 slug=spec["slug"],
                 defaults={
                     "time_limit": 1000,
@@ -217,7 +217,7 @@ class Command(BaseCommand):
 
         # Attach coding problems
         for idx, title in enumerate(["A+B Problem", "Hello World", "Factorial"]):
-            prob = Problem.objects.filter(question_asset__title=title).first()
+            prob = CodingProblem.objects.filter(question_asset__title=title).first()
             if prob:
                 self._bind_problem(paper_contest, prob, idx)
                 self._bind_problem(coding_contest, prob, idx)

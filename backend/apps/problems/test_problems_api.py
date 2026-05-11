@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Problem, Tag, TestCase as ProblemTestCase
+from .models import CodingProblem, Tag, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
@@ -25,11 +25,11 @@ class ProblemPermissionTests(TestCase):
         self.student = User.objects.create_user(username='student', email='student@example.com', password='password', role='student')
         
         # Create problems (title/difficulty now live in QuestionAsset)
-        self.problem1 = Problem.objects.create(
+        self.problem1 = CodingProblem.objects.create(
             slug='p1',
             created_by=self.teacher1,
         )
-        self.problem2 = Problem.objects.create(
+        self.problem2 = CodingProblem.objects.create(
             slug='p2',
             created_by=self.teacher2,
         )
@@ -45,7 +45,7 @@ class ProblemPermissionTests(TestCase):
         }
         response = self.client.post('/api/v1/management/problems/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Problem.objects.get(slug='new-prob').created_by, self.teacher1)
+        self.assertEqual(CodingProblem.objects.get(slug='new-prob').created_by, self.teacher1)
 
     def test_teacher_can_edit_own_problem(self):
         self.client.force_authenticate(user=self.teacher1)
@@ -130,7 +130,7 @@ class ProblemCRUDTests(TestCase):
         self.tag2 = Tag.objects.create(name='Graph', slug='graph')
         
         # Create initial problems (title/difficulty now in QuestionAsset)
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='crud-p1',
             created_by=self.teacher,
         )
@@ -150,7 +150,7 @@ class ProblemCRUDTests(TestCase):
         response = self.client.post('/api/v1/management/problems/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        problem = Problem.objects.get(slug='new-tagged')
+        problem = CodingProblem.objects.get(slug='new-tagged')
         self.assertEqual(problem.created_by, self.teacher)
         # title is now in QuestionAsset
         self.assertEqual(problem.question_asset.title, 'New Tagged Problem')
@@ -168,7 +168,7 @@ class ProblemCRUDTests(TestCase):
         response = self.client.post('/api/v1/management/problems/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        problem = Problem.objects.get(slug='new-tags')
+        problem = CodingProblem.objects.get(slug='new-tags')
         self.assertEqual(problem.tags.count(), 2)
         tag_names = list(problem.tags.values_list('name', flat=True))
         self.assertIn('Greedy', tag_names)
@@ -187,7 +187,7 @@ class ProblemCRUDTests(TestCase):
 
     def test_list_problems_anonymous(self):
         """Anonymous users are blocked from the retired problems management surface."""
-        Problem.objects.create(
+        CodingProblem.objects.create(
             slug='hidden',
             created_by=self.teacher,
         )
@@ -244,14 +244,14 @@ class ProblemCRUDTests(TestCase):
         self.client.force_authenticate(user=self.teacher)
         response = self.client.delete(f'/api/v1/management/problems/{self.problem.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Problem.objects.filter(id=self.problem.id).exists())
+        self.assertFalse(CodingProblem.objects.filter(id=self.problem.id).exists())
 
     def test_delete_problem_teacher_other(self):
         """Test teacher cannot delete other's problem"""
         # Create a problem by another teacher
         User = get_user_model()
         other_teacher = User.objects.create_user(username='other', password='password', role='teacher')
-        other_problem = Problem.objects.create(
+        other_problem = CodingProblem.objects.create(
             slug='other',
             created_by=other_teacher
         )
@@ -259,14 +259,14 @@ class ProblemCRUDTests(TestCase):
         self.client.force_authenticate(user=self.teacher)
         response = self.client.delete(f'/api/v1/management/problems/{other_problem.id}/')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertTrue(Problem.objects.filter(id=other_problem.id).exists())
+        self.assertTrue(CodingProblem.objects.filter(id=other_problem.id).exists())
 
     def test_delete_problem_admin(self):
         """Test admin can delete any problem"""
         self.client.force_authenticate(user=self.admin)
         response = self.client.delete(f'/api/v1/management/problems/{self.problem.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Problem.objects.filter(id=self.problem.id).exists())
+        self.assertFalse(CodingProblem.objects.filter(id=self.problem.id).exists())
 
 
 class ProblemFilterTests(TestCase):
@@ -281,7 +281,7 @@ class ProblemFilterTests(TestCase):
             title=title,
             payload={"difficulty": difficulty},
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug=slug,
             created_by=owner,
             question_asset=asset,
@@ -415,7 +415,7 @@ class ProblemContestLockGuardTests(TestCase):
             question_edit_locked=True,
             question_edit_lock_trigger=Contest.QuestionEditLockTrigger.CODING_SUBMISSION,
         )
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug="locked-contest-problem",
             created_by=self.owner,
         )
@@ -454,7 +454,7 @@ class ProblemTestRunTests(TestCase):
         )
         self.client.force_authenticate(user=self.user)
 
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='a-plus-b',
             time_limit=1000,
             memory_limit=128,
@@ -621,7 +621,7 @@ class ProblemTestRunContestAccessTests(TestCase):
             password='pw', role='student',
         )
 
-        self.problem = Problem.objects.create(
+        self.problem = CodingProblem.objects.create(
             slug='cap', time_limit=1000, memory_limit=128,
             created_by=self.teacher,
         )

@@ -15,7 +15,7 @@ from apps.contests.exporters import (
     PDFRenderer,
     StudentReportRenderer,
 )
-from apps.problems.models import Problem, TestCase as ProblemTestCase
+from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.question_bank.models import QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
@@ -82,7 +82,7 @@ class TestMarkdownRendererSnapshots:
                 "hint": "使用乘法",
             },
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug='snapshot-test-problem',
             time_limit=1000,
             memory_limit=128,
@@ -173,7 +173,7 @@ class TestPDFRendererSnapshots:
                 "hint": "",
             },
         )
-        problem = Problem.objects.create(
+        problem = CodingProblem.objects.create(
             slug='pdf-snapshot-test',
             time_limit=2000,
             memory_limit=256,
@@ -257,7 +257,7 @@ class TestStudentReportSnapshots:
                     "input_description": "", "output_description": "", "hint": "",
                 },
             )
-            problem = Problem.objects.create(
+            problem = CodingProblem.objects.create(
                 slug=f'report-snapshot-{diff}',
                 time_limit=1000,
                 memory_limit=128,

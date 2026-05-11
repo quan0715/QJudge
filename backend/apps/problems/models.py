@@ -117,10 +117,6 @@ class CodingProblem(models.Model):
         return (self.accepted_count / self.submission_count) * 100
 
 
-# Backward-compat alias — allows existing imports to keep working during transition.
-Problem = CodingProblem
-
-
 class LanguageConfig(models.Model):
     """
     Language-specific configuration for each problem.
