@@ -1,7 +1,10 @@
 import { Checkmark, DotMark } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
-import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 import { isSubjectiveType } from "@/features/contest/screens/settings/grading/gradingTypes";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
 
@@ -13,6 +16,7 @@ export interface AnswerDisplayProps {
   options: string[];
   correctAnswer: unknown;
   explanation?: string | null;
+  answerFormat?: ExamQuestionAnswerFormat;
   showCorrectness?: boolean;
 }
 
@@ -61,6 +65,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
   options,
   correctAnswer,
   explanation,
+  answerFormat = "plain_text",
   showCorrectness = true,
 }) => {
   const { t } = useTranslation("contest");
@@ -73,12 +78,16 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
 
   if (subjective) {
     const text = getTextAnswer(answerContent);
+    const Content =
+      answerFormat === "plain_text"
+        ? MarkdownContent.Simple
+        : MarkdownContent.Rich;
     return (
       <div className={styles.root}>
         <div className={styles.group}>
           <span className={styles.label}>{t("grading.answerContent", "作答內容")}</span>
           {text ? (
-            <MarkdownContent.Simple>{text}</MarkdownContent.Simple>
+            <Content>{text}</Content>
           ) : (
             <span className={styles.noAnswer}>{t("dashboard.noAnswer", "未作答")}</span>
           )}
@@ -87,7 +96,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
           <div className={`${styles.group} ${styles.reference}`}>
             <span className={styles.label}>{t("grading.referenceAnswer", "參考答案")}</span>
             <div className={styles.referenceText}>
-              <MarkdownContent.Simple>{correctAnswer}</MarkdownContent.Simple>
+              <Content>{correctAnswer}</Content>
             </div>
           </div>
         )}
@@ -95,7 +104,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
           <div className={`${styles.group} ${styles.reference}`}>
             <span className={styles.label}>{t("grading.explanation", "詳解")}</span>
             <div className={styles.referenceText}>
-              <MarkdownContent.Simple>{explanation}</MarkdownContent.Simple>
+              <Content>{explanation}</Content>
             </div>
           </div>
         ) : null}

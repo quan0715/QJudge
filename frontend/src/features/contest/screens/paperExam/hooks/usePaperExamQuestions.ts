@@ -1,17 +1,28 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
+import { getExamPaper } from "@/infrastructure/api/repositories/examPaper.repository";
 import { getMyExamAnswers } from "@/infrastructure/api/repositories/examAnswers.repository";
-import type { ExamQuestion } from "@/core/entities/contest.entity";
+import type {
+  ExamPaperSection,
+  ExamQuestion,
+  ExamQuestionGroup,
+} from "@/core/entities/contest.entity";
 import type { ExamItem } from "../../../types/exam.types";
 import { useToast } from "@/shared/contexts/ToastContext";
 
 export function usePaperExamQuestions(contestId: string | undefined) {
   const { t } = useTranslation("contest");
+  const tRef = useRef(t);
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
+  const [groups, setGroups] = useState<ExamQuestionGroup[]>([]);
+  const [sections, setSections] = useState<ExamPaperSection[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const { showToast } = useToast();
+
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   const items: ExamItem[] = useMemo(
     () => examQuestions.map((q) => ({ kind: "question" as const, data: q })),
@@ -33,18 +44,24 @@ export function usePaperExamQuestions(contestId: string | undefined) {
   useEffect(() => {
     if (!contestId) return;
     setLoadingQuestions(true);
-    getExamQuestions(contestId)
-      .then(setExamQuestions)
+    getExamPaper(contestId)
+      .then((paper) => {
+        setExamQuestions(paper.questions);
+        setGroups(paper.groups);
+        setSections(paper.sections);
+      })
       .catch(() => {
         setExamQuestions([]);
+        setGroups([]);
+        setSections([]);
         showToast({
           kind: "error",
-          title: t("answering.error.loadQuestionsFailed"),
-          subtitle: t("answering.error.loadQuestionsSubtitle"),
+          title: tRef.current("answering.error.loadQuestionsFailed"),
+          subtitle: tRef.current("answering.error.loadQuestionsSubtitle"),
         });
       })
       .finally(() => setLoadingQuestions(false));
-  }, [contestId, showToast, t]);
+  }, [contestId, showToast]);
 
   // Load existing answers on mount
   useEffect(() => {
@@ -64,12 +81,21 @@ export function usePaperExamQuestions(contestId: string | undefined) {
         if (error?.response?.status !== 404) {
           showToast({
             kind: "error",
-            title: t("answering.error.loadAnswersFailed"),
-            subtitle: t("answering.error.loadAnswersSubtitle"),
+            title: tRef.current("answering.error.loadAnswersFailed"),
+            subtitle: tRef.current("answering.error.loadAnswersSubtitle"),
           });
         }
       });
-  }, [contestId, showToast, t]);
+  }, [contestId, showToast]);
 
-  return { examQuestions, items, answers, setAnswers, answeredIds, loadingQuestions };
+  return {
+    examQuestions,
+    groups,
+    sections,
+    items,
+    answers,
+    setAnswers,
+    answeredIds,
+    loadingQuestions,
+  };
 }

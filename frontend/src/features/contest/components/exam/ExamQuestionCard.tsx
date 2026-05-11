@@ -8,7 +8,13 @@ import {
   Tag,
 } from "@carbon/react";
 import { Flag, FlagFilled } from "@carbon/icons-react";
-import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestion,
+  ExamQuestionGroup,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
+import { MathMarkdownEditor } from "@/shared/ui/editor";
+import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import ExamQuestionPrompt from "./ExamQuestionPrompt";
 import styles from "./ExamQuestionCard.module.scss";
 
@@ -56,6 +62,8 @@ const AutoResizeTextArea: FC<React.ComponentProps<typeof TextArea> & { minHeight
 
 interface ExamQuestionCardProps {
   question: ExamQuestion;
+  group?: ExamQuestionGroup;
+  showGroupStem?: boolean;
   index: number;
   answer?: unknown;
   onAnswerChange?: (
@@ -71,6 +79,8 @@ interface ExamQuestionCardProps {
 
 export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   question,
+  group,
+  showGroupStem = false,
   index,
   answer,
   onAnswerChange,
@@ -87,6 +97,45 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
 
   const handleBlur = () => {
     onBlur?.(question.id);
+  };
+
+  const renderSubjectiveInput = (minRows: number, placeholder: string) => {
+    const value = typeof answer === "string" ? answer : "";
+
+    if (question.answerFormat === "markdown_math") {
+      return (
+        <MathMarkdownEditor
+          id={`q-${question.id}`}
+          data-testid={`exam-answer-input-${question.id}`}
+          ariaLabel={t("answering.mathEditor.ariaLabel", "數學解答編輯器")}
+          placeholder={t(
+            "answering.mathEditor.placeholder",
+            "輸入計算過程，可用上方按鈕插入常用公式",
+          )}
+          value={value}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          readOnly={readOnly}
+          minRows={minRows}
+        />
+      );
+    }
+
+    return (
+      <AutoResizeTextArea
+        id={`q-${question.id}`}
+        data-testid={`exam-answer-input-${question.id}`}
+        labelText=""
+        placeholder={placeholder}
+        value={value}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+          handleChange(e.target.value)
+        }
+        onBlur={handleBlur}
+        disabled={readOnly}
+        minHeight={minRows <= 4 ? 48 : 120}
+      />
+    );
   };
 
   const renderAnswerInput = () => {
@@ -175,36 +224,15 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
       }
 
       case "short_answer":
-        return (
-          <AutoResizeTextArea
-            id={`q-${question.id}`}
-            data-testid={`exam-answer-input-${question.id}`}
-            labelText=""
-            placeholder={t("answering.question.shortAnswerPlaceholder")}
-            value={(answer as string) || ""}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-              handleChange(e.target.value)
-            }
-            onBlur={handleBlur}
-            disabled={readOnly}
-            minHeight={48}
-          />
+        return renderSubjectiveInput(
+          4,
+          t("answering.question.shortAnswerPlaceholder"),
         );
 
       case "essay":
-        return (
-          <AutoResizeTextArea
-            id={`q-${question.id}`}
-            data-testid={`exam-answer-input-${question.id}`}
-            labelText=""
-            placeholder={t("answering.question.essayPlaceholder")}
-            value={(answer as string) || ""}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-              handleChange(e.target.value)
-            }
-            onBlur={handleBlur}
-            disabled={readOnly}
-          />
+        return renderSubjectiveInput(
+          8,
+          t("answering.question.essayPlaceholder"),
         );
 
       default:
@@ -214,6 +242,25 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
 
   return (
     <div className={styles.card} data-testid={`exam-question-card-${question.id}`}>
+      {group && showGroupStem && (
+        <section className={styles.groupStem} aria-label={t("answering.group.sharedStem")}>
+          <div className={styles.groupStemHeader}>
+            <span className={styles.groupStemTitle}>
+              {group.title || t("answering.group.sharedStem")}
+            </span>
+            <span className={styles.groupStemScore}>
+              {t("answering.group.totalScore", {
+                score: group.totalScore,
+                defaultValue: "小計 {{score}} 分",
+              })}
+            </span>
+          </div>
+          <MarkdownRenderer enableMath enableHighlight>
+            {group.sharedStemMarkdown}
+          </MarkdownRenderer>
+        </section>
+      )}
+
       <div className={styles.header}>
         <span className={styles.label}>
           {t("answering.submit.questionPreview", { index: index + 1 })}

@@ -21,7 +21,11 @@ import {
   Draggable,
   Copy,
 } from "@carbon/icons-react";
-import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestion,
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
 import {
@@ -58,6 +62,7 @@ interface QuestionFormState {
   multiAnswerIndexes: string[];
   essayReferenceAnswer: string;
   shortAnswer: string;
+  answerFormat: ExamQuestionAnswerFormat;
 }
 
 const getDefaultOptions = (type: ExamQuestionType): string[] => {
@@ -116,6 +121,7 @@ const toFormState = (question: ExamQuestion): QuestionFormState => {
     multiAnswerIndexes: [],
     essayReferenceAnswer: "",
     shortAnswer: "",
+    answerFormat: question.answerFormat ?? "plain_text",
   };
 
   if (question.questionType === "multiple_choice") {
@@ -165,6 +171,7 @@ const buildPayload = (
     prompt: form.prompt.trim(),
     explanation: form.explanation.trim(),
     score: includeScore ? Number(form.score || 0) : 1,
+    answer_format: isChoiceType(form.questionType) ? "plain_text" : form.answerFormat,
   };
   if (form.questionType === "essay") {
     if (form.essayReferenceAnswer.trim()) {
@@ -210,6 +217,7 @@ const isFormDirty = (
   if (a.singleAnswerIndex !== b.singleAnswerIndex) return true;
   if (a.essayReferenceAnswer !== b.essayReferenceAnswer) return true;
   if (a.shortAnswer !== b.shortAnswer) return true;
+  if (a.answerFormat !== b.answerFormat) return true;
   if (a.options.length !== b.options.length) return true;
   if (a.options.some((o, i) => o !== b.options[i])) return true;
   if (a.multiAnswerIndexes.length !== b.multiAnswerIndexes.length) return true;
@@ -444,7 +452,14 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         return { ...prev, questionType: nextType, options: [], singleAnswerIndex: "", multiAnswerIndexes: [] };
       }
       if (nextType === "true_false") {
-        return { ...prev, questionType: nextType, options: [...TRUE_FALSE_OPTIONS], multiAnswerIndexes: [], singleAnswerIndex: "" };
+        return {
+          ...prev,
+          questionType: nextType,
+          options: [...TRUE_FALSE_OPTIONS],
+          multiAnswerIndexes: [],
+          singleAnswerIndex: "",
+          answerFormat: "plain_text",
+        };
       }
       return {
         ...prev,
@@ -452,6 +467,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         options: prev.options.length > 0 ? prev.options : getDefaultOptions(nextType),
         singleAnswerIndex: "",
         multiAnswerIndexes: [],
+        answerFormat: "plain_text",
       };
     });
   };
@@ -539,6 +555,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     <DataBase size={12} />
                     {t("examEditor.saveToBank", { defaultValue: "收錄到題庫" })}
                   </button>
+                ) : null}
+                {!isChoiceType(question.questionType) && question.answerFormat === "markdown_math" ? (
+                  <Tag size="sm" type="cyan">
+                    {t("examEditor.answerFormats.markdownMath", "數學作答")}
+                  </Tag>
                 ) : null}
               </span>
               <div className={styles.headerRight}>
@@ -724,6 +745,38 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                   }
                   disabled={frozen}
                 />
+              </div>
+            ) : null}
+            {!isChoiceType(form.questionType) ? (
+              <div className={styles.answerFormatSelector}>
+                <Select
+                  id={`eqc-answer-format-${question.id}`}
+                  labelText={t("examEditor.answerFormat", "作答格式")}
+                  hideLabel
+                  size="sm"
+                  value={form.answerFormat}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      answerFormat: e.target.value as ExamQuestionAnswerFormat,
+                    }))
+                  }
+                  disabled={frozen}
+                  inline
+                >
+                  <SelectItem
+                    value="plain_text"
+                    text={t("examEditor.answerFormats.plainText", "純文字")}
+                  />
+                  <SelectItem
+                    value="markdown"
+                    text={t("examEditor.answerFormats.markdown", "Markdown")}
+                  />
+                  <SelectItem
+                    value="markdown_math"
+                    text={t("examEditor.answerFormats.markdownMath", "數學作答")}
+                  />
+                </Select>
               </div>
             ) : null}
           </div>

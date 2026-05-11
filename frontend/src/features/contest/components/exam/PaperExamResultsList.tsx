@@ -276,6 +276,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                           </div>
                           <AnswerDisplay
                             questionType={question.questionType}
+                            answerFormat={question.answerFormat}
                             answerContent={result.answer}
                             options={question.options}
                             correctAnswer={result.questionSnapshot?.correctAnswer ?? question.correctAnswer}

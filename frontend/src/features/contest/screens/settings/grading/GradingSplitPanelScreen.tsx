@@ -366,6 +366,7 @@ export default function GradingSplitPanelScreen({
 
           <AnswerDisplay
             questionType={answer.questionType}
+            answerFormat={answer.answerFormat}
             answerContent={answer.answerContent}
             options={answer.questionOptions}
             correctAnswer={answer.correctAnswer}

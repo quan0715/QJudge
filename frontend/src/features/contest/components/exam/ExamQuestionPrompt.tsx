@@ -17,7 +17,7 @@ export default function ExamQuestionPrompt({
       <div
         className={`${styles.prompt} ${compact ? styles.promptNoMargin : ""}`.trim()}
       >
-        <MarkdownRenderer enableHighlight enableCopy>{content}</MarkdownRenderer>
+        <MarkdownRenderer enableMath enableHighlight enableCopy>{content}</MarkdownRenderer>
       </div>
     );
   }

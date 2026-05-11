@@ -581,6 +581,22 @@ export type ExamQuestionType =
   | "short_answer"
   | "essay";
 
+export type ExamQuestionAnswerFormat =
+  | "plain_text"
+  | "markdown"
+  | "markdown_math";
+
+export interface ExamQuestionGroup {
+  id: string;
+  contestId: string;
+  title: string;
+  sharedStemMarkdown: string;
+  order: number;
+  totalScore: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ExamQuestion {
   id: string;
   contestId: string;
@@ -591,6 +607,9 @@ export interface ExamQuestion {
   explanation: string;
   score: number;
   order: number;
+  groupId?: string | null;
+  orderInGroup?: number | null;
+  answerFormat?: ExamQuestionAnswerFormat;
   sourceBank?: {
     id: string;
     name: string;
@@ -599,6 +618,16 @@ export interface ExamQuestion {
   sourceMode?: "manual" | "json" | "copy" | "reference";
   createdAt: string;
   updatedAt: string;
+}
+
+export type ExamPaperSection =
+  | { kind: "group"; group: ExamQuestionGroup; items: ExamQuestion[] }
+  | { kind: "flat"; item: ExamQuestion };
+
+export interface ExamPaper {
+  questions: ExamQuestion[];
+  groups: ExamQuestionGroup[];
+  sections: ExamPaperSection[];
 }
 
 export interface Clarification {

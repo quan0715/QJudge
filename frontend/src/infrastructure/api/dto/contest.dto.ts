@@ -6,6 +6,7 @@ import type {
   ContestType,
   ContestDeliveryMode,
   ExamStatusType,
+  ExamQuestionAnswerFormat,
 } from "@/core/entities/contest.entity";
 
 export interface ContestProblemSummaryDto {
@@ -36,6 +37,9 @@ export interface ExamQuestionDto {
   explanation?: string;
   score?: number;
   order?: number;
+  group_id?: number | string | null;
+  order_in_group?: number | null;
+  answer_format?: ExamQuestionAnswerFormat | string;
   source_bank?: {
     id?: number | string;
     name?: string;
@@ -44,6 +48,22 @@ export interface ExamQuestionDto {
   source_mode?: "manual" | "json" | "copy" | "reference";
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ExamQuestionGroupDto {
+  id?: number | string;
+  contest?: number | string;
+  title?: string;
+  shared_stem_markdown?: string;
+  order?: number;
+  total_score?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ExamPaperDto {
+  questions?: ExamQuestionDto[];
+  groups?: ExamQuestionGroupDto[];
 }
 
 export interface ContestDto {

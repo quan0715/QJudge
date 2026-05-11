@@ -117,12 +117,26 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const setPageHeaderActions = usePageHeaderActions();
   const { isRuntime } = useContestRuntimeMode();
 
-  const { items, answers, setAnswers, answeredIds, loadingQuestions } =
+  const { items, groups, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
   const questionIds = useMemo(
     () => items.filter((item) => item.kind === "question").map((item) => item.data.id),
     [items]
   );
+  const groupsById = useMemo(
+    () => new Map(groups.map((group) => [group.id, group])),
+    [groups],
+  );
+  const firstQuestionIdByGroupId = useMemo(() => {
+    const firstIds = new Map<string, string>();
+    for (const item of items) {
+      if (item.kind !== "question" || !item.data.groupId) continue;
+      if (!firstIds.has(item.data.groupId)) {
+        firstIds.set(item.data.groupId, item.data.id);
+      }
+    }
+    return firstIds;
+  }, [items]);
   const autoSave = usePaperExamAutoSave({
     contestId,
     questionIds,
@@ -333,11 +347,19 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }, [requestedQuestionId, items]);
 
   const renderItem = useCallback(
-    (item: ExamItem, index: number) => {
+    (item: ExamItem, index: number, mode: "single" | "all") => {
       if (item.kind !== "question") return null;
+      const group = item.data.groupId ? groupsById.get(item.data.groupId) : undefined;
+      const showGroupStem = Boolean(
+        group &&
+          (mode === "single" ||
+            firstQuestionIdByGroupId.get(group.id) === item.data.id),
+      );
       return (
         <ExamQuestionCard
           question={item.data}
+          group={group}
+          showGroupStem={showGroupStem}
           index={index}
           answer={answers[item.data.id]}
           onAnswerChange={handleAnswerChange}
@@ -347,7 +369,15 @@ const PaperExamAnsweringScreen: React.FC = () => {
         />
       );
     },
-    [answers, handleAnswerChange, handleBlur, markedIds, toggleMark]
+    [
+      answers,
+      firstQuestionIdByGroupId,
+      groupsById,
+      handleAnswerChange,
+      handleBlur,
+      markedIds,
+      toggleMark,
+    ],
   );
 
   const totalCount = items.length;

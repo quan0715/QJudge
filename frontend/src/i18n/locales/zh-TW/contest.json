@@ -430,6 +430,26 @@
       "shortAnswerPlaceholder": "輸入你的答案...",
       "trueOption": "是 (True)"
     },
+    "group": {
+      "sharedStem": "題組題幹",
+      "totalScore": "小計 {{score}} 分"
+    },
+    "mathEditor": {
+      "ariaLabel": "數學解答編輯器",
+      "emptyPreview": "尚未輸入",
+      "placeholder": "輸入計算過程，可用上方按鈕插入常用公式",
+      "previewLabel": "預覽",
+      "toolbar": {
+        "aligned": "多行等式",
+        "fraction": "分式",
+        "label": "數學工具列",
+        "pi": "圓周率",
+        "power": "次方",
+        "sqrt": "根號",
+        "subscript": "下標",
+        "theta": "角度 theta"
+      }
+    },
     "questionTypes": {
       "coding": "程式題",
       "essay": "問答題",
@@ -780,6 +800,12 @@
     "addOption": "新增選項",
     "addQuestion": "建立題目",
     "aiAssistant": "AI 助教",
+    "answerFormat": "作答格式",
+    "answerFormats": {
+      "markdown": "Markdown",
+      "markdownMath": "數學作答",
+      "plainText": "純文字"
+    },
     "answerNotSet": "（未設定答案）",
     "autoSaveEnabled": "自動儲存中",
     "codingPreviewPlaceholder": "待編輯",

@@ -430,6 +430,26 @@
       "shortAnswerPlaceholder": "答えを入力してください...",
       "trueOption": "はい (True)"
     },
+    "group": {
+      "sharedStem": "共通問題文",
+      "totalScore": "小計 {{score}} 点"
+    },
+    "mathEditor": {
+      "ariaLabel": "数学解答エディター",
+      "emptyPreview": "まだ入力されていません",
+      "placeholder": "計算過程を入力してください。上のボタンでよく使う数式を挿入できます。",
+      "previewLabel": "プレビュー",
+      "toolbar": {
+        "aligned": "複数行の等式",
+        "fraction": "分数",
+        "label": "数学ツールバー",
+        "pi": "円周率",
+        "power": "累乗",
+        "sqrt": "平方根",
+        "subscript": "下付き",
+        "theta": "シータ"
+      }
+    },
     "questionTypes": {
       "coding": "プログラミング",
       "essay": "論述式",
@@ -780,6 +800,12 @@
     "addOption": "選択肢を追加",
     "addQuestion": "問題を追加",
     "aiAssistant": "AI アシスタント",
+    "answerFormat": "解答形式",
+    "answerFormats": {
+      "markdown": "Markdown",
+      "markdownMath": "数学解答",
+      "plainText": "プレーンテキスト"
+    },
     "answerNotSet": "（未設定）",
     "autoSaveEnabled": "自動保存中",
     "codingPreviewPlaceholder": "未編集",

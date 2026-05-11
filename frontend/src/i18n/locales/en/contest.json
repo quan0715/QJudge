@@ -430,6 +430,26 @@
       "shortAnswerPlaceholder": "Enter your answer...",
       "trueOption": "True"
     },
+    "group": {
+      "sharedStem": "Question group stem",
+      "totalScore": "Subtotal {{score}} pts"
+    },
+    "mathEditor": {
+      "ariaLabel": "Math answer editor",
+      "emptyPreview": "No input yet",
+      "placeholder": "Write your calculation steps. Use the toolbar to insert common formulas.",
+      "previewLabel": "Preview",
+      "toolbar": {
+        "aligned": "Aligned equations",
+        "fraction": "Fraction",
+        "label": "Math toolbar",
+        "pi": "Pi",
+        "power": "Power",
+        "sqrt": "Square root",
+        "subscript": "Subscript",
+        "theta": "Theta"
+      }
+    },
     "questionTypes": {
       "coding": "Coding",
       "essay": "Essay",
@@ -780,6 +800,12 @@
     "addOption": "Add option",
     "addQuestion": "Add Question",
     "aiAssistant": "AI assistant",
+    "answerFormat": "Answer format",
+    "answerFormats": {
+      "markdown": "Markdown",
+      "markdownMath": "Math answer",
+      "plainText": "Plain text"
+    },
     "answerNotSet": "(Answer not set)",
     "autoSaveEnabled": "Auto-saving",
     "codingPreviewPlaceholder": "Not edited yet",

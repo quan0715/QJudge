@@ -44,6 +44,7 @@ export * from "./contestProblems.repository";
 export * from "./contestParticipants.repository";
 export * from "./exam.repository";
 export * from "./examQuestions.repository";
+export * from "./examPaper.repository";
 export * from "./clarification.repository";
 export * from "./contestAnnouncements.repository";
 export * from "./contestExports.repository";

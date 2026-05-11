@@ -1,5 +1,9 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
-import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestion,
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 import type { ExamQuestionDto } from "@/infrastructure/api/dto/contest.dto";
 import { mapExamQuestionDto } from "@/infrastructure/mappers/contest.mapper";
 
@@ -11,6 +15,9 @@ export interface ExamQuestionUpsertPayload {
   explanation?: string;
   score: number;
   order?: number;
+  group_id?: string | null;
+  order_in_group?: number | null;
+  answer_format?: ExamQuestionAnswerFormat;
 }
 
 export interface ExamQuestionBankImportItem {

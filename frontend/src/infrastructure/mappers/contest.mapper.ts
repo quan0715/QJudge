@@ -4,7 +4,11 @@ import {
   type ContestProblemSummary,
   type ScoreboardData,
   type ExamEvent,
+  type ExamPaper,
+  type ExamPaperSection,
   type ExamQuestion,
+  type ExamQuestionAnswerFormat,
+  type ExamQuestionGroup,
   type ExamQuestionType,
   type Clarification,
   type ContestAnnouncement,
@@ -16,6 +20,8 @@ import type {
   ContestDto,
   ContestDetailDto,
   ContestOverviewMetricsDto,
+  ExamPaperDto,
+  ExamQuestionGroupDto,
   ExamQuestionDto,
   ScoreboardDto,
 } from "@/infrastructure/api/dto/contest.dto";
@@ -286,6 +292,33 @@ export function mapContestAnnouncementDto(dto: {
   };
 }
 
+const ANSWER_FORMATS = new Set<ExamQuestionAnswerFormat>([
+  "plain_text",
+  "markdown",
+  "markdown_math",
+]);
+
+function mapAnswerFormat(value?: string): ExamQuestionAnswerFormat {
+  return value && ANSWER_FORMATS.has(value as ExamQuestionAnswerFormat)
+    ? (value as ExamQuestionAnswerFormat)
+    : "plain_text";
+}
+
+export function mapExamQuestionGroupDto(
+  dto: ExamQuestionGroupDto,
+): ExamQuestionGroup {
+  return {
+    id: dto.id?.toString() || "",
+    contestId: dto.contest?.toString() || "",
+    title: dto.title || "",
+    sharedStemMarkdown: dto.shared_stem_markdown || "",
+    order: Number(dto.order || 0),
+    totalScore: Number(dto.total_score || 0),
+    createdAt: dto.created_at || "",
+    updatedAt: dto.updated_at || "",
+  };
+}
+
 export function mapExamQuestionDto(dto: ExamQuestionDto): ExamQuestion {
   return {
     id: dto.id?.toString() || "",
@@ -299,6 +332,10 @@ export function mapExamQuestionDto(dto: ExamQuestionDto): ExamQuestion {
     explanation: dto.explanation || "",
     score: Number(dto.score || 0),
     order: Number(dto.order || 0),
+    groupId: dto.group_id != null ? dto.group_id.toString() : null,
+    orderInGroup:
+      typeof dto.order_in_group === "number" ? dto.order_in_group : null,
+    answerFormat: mapAnswerFormat(dto.answer_format),
     sourceBank: dto.source_bank
       ? {
           id: dto.source_bank.id?.toString() || "",
@@ -310,6 +347,47 @@ export function mapExamQuestionDto(dto: ExamQuestionDto): ExamQuestion {
     sourceMode: dto.source_mode || "manual",
     createdAt: dto.created_at || "",
     updatedAt: dto.updated_at || "",
+  };
+}
+
+export function buildExamPaperSections(
+  questions: ExamQuestion[],
+  groups: ExamQuestionGroup[],
+): ExamPaperSection[] {
+  const groupsById = new Map(groups.map((group) => [group.id, group]));
+  const sortedQuestions = [...questions].sort((a, b) => a.order - b.order);
+  const sections: ExamPaperSection[] = [];
+
+  for (const question of sortedQuestions) {
+    const group = question.groupId ? groupsById.get(question.groupId) : null;
+    if (!group) {
+      sections.push({ kind: "flat", item: question });
+      continue;
+    }
+
+    const previous = sections[sections.length - 1];
+    if (previous?.kind === "group" && previous.group.id === group.id) {
+      previous.items.push(question);
+    } else {
+      sections.push({ kind: "group", group, items: [question] });
+    }
+  }
+
+  return sections;
+}
+
+export function mapExamPaperDto(dto: ExamPaperDto): ExamPaper {
+  const groups = Array.isArray(dto.groups)
+    ? dto.groups.map(mapExamQuestionGroupDto)
+    : [];
+  const questions = Array.isArray(dto.questions)
+    ? dto.questions.map(mapExamQuestionDto)
+    : [];
+
+  return {
+    questions,
+    groups,
+    sections: buildExamPaperSections(questions, groups),
   };
 }
 

@@ -44,6 +44,7 @@ export function buildGradingRows(
       questionPrompt: q?.prompt ?? "",
       questionExplanation: q?.explanation ?? "",
       questionType: qType,
+      answerFormat: q?.answerFormat,
       questionOptions: q?.options ?? [],
       maxScore: q?.score ?? 0,
       answerContent: a.answer,

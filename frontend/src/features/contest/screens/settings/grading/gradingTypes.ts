@@ -1,6 +1,9 @@
 /** Shared types for the exam grading system. */
 
-import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 import type { SubmissionStatus } from "@/core/entities/submission.entity";
 import i18n from "i18next";
 
@@ -29,6 +32,7 @@ export interface GradingAnswerRow {
   questionPrompt: string;
   questionExplanation?: string;
   questionType: QuestionType;
+  answerFormat?: ExamQuestionAnswerFormat;
   questionOptions: string[];
   maxScore: number;
   answerContent: Record<string, unknown>;
