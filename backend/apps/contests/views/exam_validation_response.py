@@ -1,4 +1,4 @@
-"""View-layer adapters for legacy exam endpoint responses."""
+"""View-layer adapters for exam endpoint response shapes."""
 
 from rest_framework import status
 from rest_framework.exceptions import APIException
@@ -23,7 +23,7 @@ def _error_detail_to_message(detail) -> str:
 
 
 def validate_exam_operation_for_view(*args, **kwargs):
-    """Return ``(participant, error_response)`` for legacy exam endpoints."""
+    """Return ``(participant, error_response)`` for view actions."""
     try:
         return validate_exam_operation(*args, **kwargs), None
     except APIException as exc:
@@ -35,7 +35,7 @@ def validate_exam_operation_for_view(*args, **kwargs):
 
 
 def build_device_conflict_response_for_view(contest, participant, request) -> Response | None:
-    """Return a legacy 409 response for active-device conflicts."""
+    """Return a 409 response for active-device conflicts."""
     conflict_payload = build_device_conflict_payload(contest, participant, request)
     if conflict_payload is None:
         return None

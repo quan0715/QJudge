@@ -16,6 +16,7 @@ import { ContestSettingsOverlay } from "@/features/contest/screens/admin/panels/
 // import { useWorkspacePanelMode } from "@/features/app/contexts/useWorkspacePanelMode";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
+import { isContestManagerScopeRole } from "@/core/entities/contest.entity";
 import { useTabWithUrlParam } from "@/shared/hooks";
 import styles from "./AdminDashboardScreen.module.scss";
 
@@ -39,9 +40,7 @@ const AdminDashboardInner = () => {
 
   const { contest, loading } = useContest();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
-  const hasManagementRole =
-    contest?.currentUserRole !== undefined &&
-    contest.currentUserRole !== "student";
+  const hasManagementRole = isContestManagerScopeRole(contest?.currentUserRole);
   const canAccessAdminPanel =
     !!contest?.permissions?.canEditContest || hasManagementRole;
 

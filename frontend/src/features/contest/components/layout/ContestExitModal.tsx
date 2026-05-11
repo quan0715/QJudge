@@ -3,7 +3,10 @@ import { Modal } from "@carbon/react";
 import { WarningAlt } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
-import { isContestEnded } from "@/core/entities/contest.entity";
+import {
+  isContestEnded,
+  isContestManagerScopeRole,
+} from "@/core/entities/contest.entity";
 
 interface ContestExitModalProps {
   open: boolean;
@@ -39,11 +42,8 @@ const ContestExitModal: React.FC<ContestExitModalProps> = ({
   };
 
   const getExitMessage = () => {
-    // Teacher/Admin
-    if (
-      contest?.currentUserRole === "teacher" ||
-      contest?.currentUserRole === "admin"
-    ) {
+    // Managers
+    if (isContestManagerScopeRole(contest?.currentUserRole)) {
       return t("exitModal.teacherAdminExit");
     }
 

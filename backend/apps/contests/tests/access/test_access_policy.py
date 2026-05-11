@@ -21,7 +21,7 @@ from apps.contests.access_policy import (
     get_all_permissions,
     get_effective_contest_scope_role,
 )
-from apps.contests.permissions import get_user_role_in_contest
+from apps.contests.permissions import get_contest_scope_role
 
 User = get_user_model()
 
@@ -56,9 +56,9 @@ class TestPermissionError:
 class TestBaseRolePermissions:
     """Test BASE_ROLE_PERMISSIONS configuration."""
 
-    def test_admin_has_all_permissions(self):
-        """Admin should have maximum permissions."""
-        admin_perms = BASE_ROLE_PERMISSIONS['admin']
+    def test_platform_admin_has_all_permissions(self):
+        """Platform admin should have maximum permissions."""
+        admin_perms = BASE_ROLE_PERMISSIONS['platform_admin']
 
         assert 'manage_contest_settings' in admin_perms
         assert 'manage_contest_lifecycle' in admin_perms
@@ -80,23 +80,23 @@ class TestBaseRolePermissions:
         assert 'view_draft' in owner_perms
         assert 'view_archived' in owner_perms
 
-    def test_teacher_permissions(self):
-        """Teacher (co-admin) should have settings but not lifecycle permissions."""
-        teacher_perms = BASE_ROLE_PERMISSIONS['teacher']
+    def test_co_owner_permissions(self):
+        """Co-owner should have settings but not lifecycle permissions."""
+        role_perms = BASE_ROLE_PERMISSIONS['co_owner']
 
-        assert 'manage_contest_settings' in teacher_perms
-        assert 'manage_contest_lifecycle' not in teacher_perms
-        assert 'view_draft' in teacher_perms
-        assert 'view_archived' in teacher_perms
+        assert 'manage_contest_settings' in role_perms
+        assert 'manage_contest_lifecycle' not in role_perms
+        assert 'view_draft' in role_perms
+        assert 'view_archived' in role_perms
 
-    def test_student_permissions(self):
-        """Student should have limited permissions."""
-        student_perms = BASE_ROLE_PERMISSIONS['student']
+    def test_participant_permissions(self):
+        """Participant should have limited permissions."""
+        role_perms = BASE_ROLE_PERMISSIONS['participant']
 
-        assert 'manage_contest_settings' not in student_perms
-        assert 'manage_contest_lifecycle' not in student_perms
-        assert 'view_scoreboard_limited' in student_perms
-        assert 'view_own_report' in student_perms
+        assert 'manage_contest_settings' not in role_perms
+        assert 'manage_contest_lifecycle' not in role_perms
+        assert 'view_scoreboard_limited' in role_perms
+        assert 'view_own_report' in role_perms
 
     def test_anonymous_permissions(self):
         """Anonymous should have minimal permissions."""
@@ -179,26 +179,26 @@ class TestContestAccessPolicy:
 
     # ==================== Role Detection Tests ====================
 
-    def test_admin_role_detection(self, admin_user, contest):
-        """Admin user should be detected as admin role."""
-        role = get_user_role_in_contest(admin_user, contest)
-        assert role == 'admin'
+    def test_platform_admin_role_detection(self, admin_user, contest):
+        """Admin user should be detected as platform_admin scope."""
+        role = get_contest_scope_role(admin_user, contest)
+        assert role == 'platform_admin'
 
     def test_owner_role_detection(self, teacher_user, contest):
-        """Contest owner should be detected as owner role."""
-        role = get_user_role_in_contest(teacher_user, contest)
+        """Contest owner should be detected as owner scope."""
+        role = get_contest_scope_role(teacher_user, contest)
         assert role == 'owner'
 
-    def test_student_role_detection(self, student_user, contest):
-        """Regular user should be detected as student role."""
-        role = get_user_role_in_contest(student_user, contest)
-        assert role == 'student'
+    def test_outsider_role_detection(self, student_user, contest):
+        """Regular unregistered user should be detected as outsider scope."""
+        role = get_contest_scope_role(student_user, contest)
+        assert role == 'outsider'
 
     def test_anonymous_role_detection(self, contest):
-        """Unauthenticated user should be detected as student role."""
+        """Unauthenticated user should be detected as anonymous scope."""
         anon_user = Mock(is_authenticated=False)
-        role = get_user_role_in_contest(anon_user, contest)
-        assert role == 'student'
+        role = get_contest_scope_role(anon_user, contest)
+        assert role == 'anonymous'
 
     # ==================== Status Restriction Tests ====================
 

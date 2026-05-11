@@ -17,17 +17,6 @@ MANAGER_SCOPE_ROLES = frozenset(('platform_admin', 'owner', 'co_owner'))
 #: co_owner is intentionally excluded.
 LIFECYCLE_OWNER_ROLES = frozenset(('platform_admin', 'owner'))
 
-#: Maps scope role → legacy role name (for backward-compat callers).
-_SCOPE_TO_LEGACY = {
-    'platform_admin': 'admin',
-    'owner': 'owner',
-    'co_owner': 'teacher',
-    'participant': 'student',
-    'outsider': 'student',
-    'anonymous': 'student',
-}
-
-
 CLASSROOM_SCOPE_TO_CONTEST_SCOPE = {
     'platform_admin': 'platform_admin',
     'owner': 'owner',
@@ -126,26 +115,16 @@ def can_manage_contest(user, contest) -> bool:
     return get_contest_scope_role(user, contest) in MANAGER_SCOPE_ROLES
 
 
-def get_user_role_in_contest(user, contest) -> str:
-    """
-    Legacy helper – maps scope role to old role strings.
-
-    Returns: 'admin' | 'owner' | 'teacher' | 'student'
-    Prefer get_contest_scope_role() for new code.
-    """
-    return _SCOPE_TO_LEGACY[get_contest_scope_role(user, contest)]
-
-
 def get_contest_permissions(user, contest):
     """
     Calculate all permissions for a user in a contest.
     
     Returns a dict with boolean flags for various permissions.
     """
-    role = get_user_role_in_contest(user, contest)
+    role = get_contest_scope_role(user, contest)
     
-    # Admin has all permissions
-    if role == 'admin':
+    # Platform admin and owner have full permissions.
+    if role in ('platform_admin', 'owner'):
         return {
             'can_switch_view': True,
             'can_edit_contest': True,
@@ -157,21 +136,8 @@ def get_contest_permissions(user, contest):
             'can_manage_clarifications': True,
         }
 
-    # Owner has full permissions
-    if role == 'owner':
-        return {
-            'can_switch_view': True,
-            'can_edit_contest': True,
-            'can_toggle_status': True,
-            'can_delete_contest': True,
-            'can_publish_problems': True,
-            'can_view_all_submissions': True,
-            'can_view_full_scoreboard': True,
-            'can_manage_clarifications': True,
-        }
-
-    # Co-admin (teacher) can manage content but not lifecycle
-    if role == 'teacher':
+    # Co-owner can manage content but not lifecycle.
+    if role == 'co_owner':
         return {
             'can_switch_view': True,
             'can_edit_contest': True,
@@ -183,7 +149,7 @@ def get_contest_permissions(user, contest):
             'can_manage_clarifications': True,
         }
 
-    # Student permissions are more restricted
+    # Participant, outsider, and anonymous permissions are more restricted.
     # Scoreboard visibility depends on contest settings and status
     has_ended = bool(contest.end_time and timezone.now() > contest.end_time)
     can_view_scoreboard = (
