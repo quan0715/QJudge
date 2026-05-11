@@ -122,6 +122,17 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.assertIsNone(ans.is_correct)
         self.assertIsNone(ans.score)
 
+    def test_submit_subjective_answer_rejects_text_over_32kb(self):
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post(self._url(), {
+            'question_id': self.q_essay.id,
+            'answer': {'text': 'x' * (32 * 1024 + 1)},
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            ExamAnswer.objects.filter(participant=self.participant, question=self.q_essay).exists()
+        )
+
     def test_upsert_answer(self):
         """Submitting again updates the existing answer."""
         self.client.force_authenticate(user=self.student)

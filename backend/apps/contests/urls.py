@@ -8,6 +8,8 @@ from .views import (
     ExamViewSet,
     ContestProblemViewSet,
     ContestExamQuestionViewSet,
+    ContestExamQuestionGroupViewSet,
+    ContestExamPaperViewSet,
     ContestActivityViewSet,
     ExamAnswerViewSet,
 )
@@ -25,6 +27,8 @@ contest_router.register(r'clarifications', ClarificationViewSet, basename='conte
 contest_router.register(r'exam', ExamViewSet, basename='contest-exam')
 contest_router.register(r'problems', ContestProblemViewSet, basename='contest-problems')
 contest_router.register(r'exam-questions', ContestExamQuestionViewSet, basename='contest-exam-questions')
+contest_router.register(r'exam-question-groups', ContestExamQuestionGroupViewSet, basename='contest-exam-question-groups')
+contest_router.register(r'exam-paper', ContestExamPaperViewSet, basename='contest-exam-paper')
 contest_router.register(r'submissions', SubmissionViewSet, basename='contest-submissions')
 contest_router.register(r'activities', ContestActivityViewSet, basename='contest-activities')
 contest_router.register(r'exam-answers', ExamAnswerViewSet, basename='contest-exam-answers')

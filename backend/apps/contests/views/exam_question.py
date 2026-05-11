@@ -91,6 +91,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             return ExamQuestionSerializer
         return ExamQuestionStudentSerializer
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['contest'] = self._get_contest()
+        return context
+
     def _check_student_device_guard(self):
         """Run device guard for student read actions (list/retrieve).
 
