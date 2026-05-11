@@ -25,6 +25,7 @@ P0 therefore focuses on question grouping and a low-learning-cost Markdown/LaTeX
 - Store answers in portable Markdown with LaTeX math syntax.
 - Render the same Markdown answer consistently in answering, grading, result review, and AI grading flows.
 - Preserve compatibility with existing flat `ExamQuestion` and `ExamAnswer` records.
+- Keep the question type enum unchanged in P0.
 
 ## Non-Goals
 
@@ -47,14 +48,17 @@ Add an answer format/configuration:
 
 ```json
 {
-  "answer_format": "markdown",
-  "answer_capabilities": {
-    "math": true
-  }
+  "answer_format": "markdown_math"
 }
 ```
 
-This avoids a growing set of narrow question types such as `math_work`, `physics_work`, or `chemistry_work`. Math, physics, and chemistry subjective questions can all use the same Markdown answer model with different toolbar presets later.
+P0 uses a single enum field:
+
+- `plain_text`: existing textarea behavior.
+- `markdown`: Markdown rendering without the math editor.
+- `markdown_math`: Markdown rendering plus the low-learning-cost math editor.
+
+This avoids a growing set of narrow question types such as `math_work`, `physics_work`, or `chemistry_work`. It also avoids a drifting capabilities JSON before the product actually needs multiple independent answer capabilities. Drawing, chemistry structure editing, and other future capabilities can revisit a versioned capability schema later.
 
 ## Backend Model
 
@@ -71,6 +75,14 @@ ExamQuestionGroup
 - updated_at
 ```
 
+P0 scope decision: `ExamQuestionGroup` is contest-local only.
+
+- It does not have `source_bank_id`.
+- It does not point to `QuestionAsset` or `QuestionVersion`.
+- `shared_stem_markdown` is stored directly on `ExamQuestionGroup`.
+
+This intentionally postpones題庫 integration. Existing `ExamQuestion` already has `source_bank_id`, `question_asset`, and `question_version`; forcing group stems into the question-bank asset model in P0 would expand the migration and authoring scope. A later題庫 phase should decide whether a題組 becomes its own `QuestionAsset` type or a container over multiple assets.
+
 Extend `ExamQuestion`.
 
 ```text
@@ -78,41 +90,76 @@ ExamQuestion
 - group nullable FK -> ExamQuestionGroup
 - order_in_group nullable integer
 - answer_format default "plain_text"
-- answer_capabilities JSON default {}
 ```
 
 Existing flat questions keep `group = null` and continue to sort by `order`.
 
+Existing `essay` and `short_answer` questions are not batch-upgraded. They remain `answer_format = "plain_text"` unless a teacher explicitly enables Markdown or Markdown math in the editor. This avoids changing rendering behavior for existing exams.
+
 Child questions in a group still use the existing `ExamAnswer` model. A student's answer to a group is not stored as one large group-level answer. This keeps autosave, grading, regrading, and statistics aligned with the current per-question model.
+
+Question groups do not store cached scores in P0. Group total score is computed as the sum of child question scores in backend serializers and frontend view models. There is no persisted group subtotal field.
 
 ## API Shape
 
-Student question list should support grouped output while preserving compatibility.
+Student question lists remain flat to preserve existing runtime behavior.
 
-Recommended response shape:
+`GET /api/v1/contests/{contest_id}/exam-questions/` continues returning a flat `ExamQuestionDto[]`. Each question may include nullable group metadata:
 
 ```json
 [
   {
-    "kind": "group",
-    "id": "group-12-14",
-    "title": "12-14 題為題組",
-    "shared_stem_markdown": "...",
+    "id": "q12",
+    "question_type": "single_choice",
+    "prompt": "...",
     "order": 12,
-    "questions": [
-      { "id": "q12", "question_type": "single_choice", "prompt": "...", "order_in_group": 1 },
-      { "id": "q13", "question_type": "essay", "answer_format": "markdown", "answer_capabilities": { "math": true } },
-      { "id": "q14", "question_type": "essay", "answer_format": "markdown", "answer_capabilities": { "math": true } }
-    ]
+    "group_id": "group-12-14",
+    "order_in_group": 1,
+    "answer_format": "plain_text"
   },
   {
-    "kind": "question",
-    "question": { "id": "q1", "question_type": "single_choice", "prompt": "..." }
+    "id": "q13",
+    "question_type": "essay",
+    "prompt": "...",
+    "order": 13,
+    "group_id": "group-12-14",
+    "order_in_group": 2,
+    "answer_format": "markdown_math"
   }
 ]
 ```
 
-If the existing UI needs a flat list temporarily, the repository mapper can flatten groups into render sections without changing the backend contract again.
+Group definitions are returned through a separate group index endpoint:
+
+```json
+[
+  {
+    "id": "group-12-14",
+    "title": "12-14 題為題組",
+    "shared_stem_markdown": "...",
+    "order": 12,
+    "total_score": 12
+  }
+]
+```
+
+Recommended endpoint:
+
+```text
+GET /api/v1/contests/{contest_id}/exam-question-groups/
+```
+
+The frontend repository can join the flat question list with the group index to render grouped sections. Existing components that consume `ExamQuestion[]`, autosave by question id, question navigation, and anti-cheat snapshots can continue to operate on the flat list.
+
+## Navigation and Anti-Cheat
+
+Question groups are a presentation and authoring structure in P0. They do not introduce group-level exam events.
+
+- Focus loss and visibility events remain exam/session-level anti-cheat events.
+- Question navigation remains question-based.
+- Moving between child questions in the same group is not a special anti-cheat event.
+- Leaving the last child of a group for another group is normal question navigation, not focus loss.
+- Existing anti-cheat snapshots can continue referencing question ids. Group context can be derived later by joining with the group index.
 
 ## Student Answer Format
 
@@ -128,16 +175,17 @@ The `text` field remains the SSoT for subjective answers. This keeps compatibili
 
 ## Student UI
 
-Create a shared `MathMarkdownEditor` used by essay/short-answer inputs when `answer_capabilities.math === true`.
+Create a shared `MathMarkdownEditor` used by essay/short-answer inputs when `answer_format === "markdown_math"`.
 
 Required student behavior:
 
 - Students can type normal Chinese text directly.
 - Students can insert formulas through buttons and templates, without knowing LaTeX.
 - The editor stores Markdown with LaTeX.
-- The editor shows a live rendered preview or inline rendered math so students can verify formulas before submission.
+- The editor renders math inline, similar to Notion-style editing, so students do not need to compare a separate preview pane during an exam.
 - Keyboard-only operation must remain possible.
 - Autosave behavior remains per question.
+- Paste from Word, PDF, or external web pages is sanitized to plain text in P0. P0 does not attempt to convert pasted equation objects into LaTeX. Math formulas should be created through the editor controls or typed directly by advanced users.
 
 P0 toolbar presets:
 
@@ -155,6 +203,8 @@ P0 toolbar presets:
 
 The UI should hide LaTeX complexity. Raw LaTeX can still be supported for advanced users, but it must not be required.
 
+All toolbar labels, aria labels, and tooltips must use i18n keys. The implementation acceptance gate includes `npm run check:i18n`.
+
 ## Teacher Authoring
 
 Add authoring support for:
@@ -162,8 +212,8 @@ Add authoring support for:
 - creating a question group;
 - editing shared stem Markdown;
 - adding/removing/reordering child questions;
-- setting `answer_format = markdown`;
-- toggling math capability for subjective questions.
+- setting `answer_format` to `plain_text`, `markdown`, or `markdown_math`;
+- enabling the math editor for subjective questions by selecting `markdown_math`.
 
 Teachers should not be required to write JSON. The UI should expose "Enable math editor" as a normal setting for short-answer and essay questions.
 
@@ -175,18 +225,22 @@ Grading screens must render grouped context:
 - current child question prompt;
 - student answer rendered as Markdown/KaTeX;
 - raw answer text available when needed for debugging or AI review.
+- computed group total score and per-child score breakdown.
 
 AI grading prompts must state:
 
 - the student answer may contain Markdown and LaTeX;
 - formulas should be interpreted semantically;
+- Markdown decoration such as headings, lists, and emphasis should be ignored unless the rubric explicitly cares about formatting;
+- if math rendering fails, the raw answer text and original LaTeX should still be used for evaluation;
 - the rubric should evaluate reasoning and final conclusion from the answer text, not from a separate final-answer field.
 
 P0 does not require automatic extraction of final answers. That can be added later as an AI assist or grading-side derived field.
 
 ## Error Handling
 
-- If a grouped question references a missing group, fall back to rendering it as a flat question and log the anomaly.
+- If a student runtime sees a question with a missing group reference, fall back to rendering it as a flat question and emit a backend/frontend anomaly log without interrupting the exam.
+- If admin or teacher authoring sees a question with a missing group reference, show a visible "question group binding error" state and block saving until the binding is repaired or removed.
 - If Markdown math rendering fails, show the original text and a non-blocking rendering warning.
 - If a math editor component fails to load, fall back to a normal textarea with Markdown help hidden behind a small disclosure.
 - Autosave failures continue using the existing local draft backup pattern.
@@ -197,7 +251,8 @@ Backend:
 
 - `backend/apps/contests/models.py`: `ExamQuestionGroup`, `ExamQuestion` fields.
 - `backend/apps/contests/serializers.py`: grouped serializers and answer format fields.
-- `backend/apps/contests/views/exam_question.py`: group-aware list/create/update endpoints.
+- `backend/apps/contests/views/exam_question.py`: flat question list with nullable group fields.
+- `backend/apps/contests/views/exam_question_group.py`: group index and authoring endpoints.
 - migrations under `backend/apps/contests/migrations/`.
 
 Frontend:
@@ -207,12 +262,13 @@ Frontend:
 - `frontend/src/infrastructure/mappers/contest.mapper.ts`: group mapping.
 - `frontend/src/infrastructure/api/repositories/examQuestions.repository.ts`: group-aware fetch and authoring calls.
 - `frontend/src/shared/ui/markdown/`: reuse renderer behavior for display.
+- `frontend/src/shared/ui/editor/MathMarkdownEditor/`: domain-neutral Markdown math editor.
 - `frontend/src/features/contest/components/exam/`: grouped runtime rendering.
-- `frontend/src/features/contest/components/admin/examEditor/`: group authoring and math capability setting.
+- `frontend/src/features/contest/components/admin/examEditor/`: group authoring and answer format setting.
 
 Shared UI:
 
-- `MathMarkdownEditor` should live in `shared` only if it remains domain-neutral.
+- `MathMarkdownEditor` should live under `shared/ui/editor/MathMarkdownEditor/` only if it remains domain-neutral.
 - It should not call APIs directly.
 - Contest-specific answer wiring stays in `features/contest`.
 
@@ -225,20 +281,25 @@ Backend tests:
 - flat question compatibility;
 - student serializer hides correct answers while including group context;
 - answer submission still works per child question.
+- answer format validation accepts only `plain_text`, `markdown`, and `markdown_math`.
+- migration keeps existing `essay` and `short_answer` rows as `plain_text`.
+- guard test confirms `ExamQuestionType.choices` remains the existing five values in P0.
 
 Frontend tests:
 
-- mapper handles mixed grouped and flat response;
+- mapper joins flat question list with group index;
 - grouped runtime renders shared stem once and child questions in order;
 - autosave submits the correct child question answer;
 - math-enabled subjective questions use `MathMarkdownEditor`;
 - non-math subjective questions keep the current textarea behavior.
+- paste into `MathMarkdownEditor` degrades to sanitized plain text.
+- toolbar labels are i18n-backed and `npm run check:i18n` passes.
 
 Visual/Storybook:
 
 - `MathMarkdownEditor` playground.
-- grouped question runtime story with CEEC-like 12-14 and 15-17 examples.
-- all states: empty, editing, preview, render error fallback, disabled/read-only.
+- grouped question runtime story with CEEC-like 12-14 and 15-17 examples using flat questions plus group index fixtures.
+- all states: empty, editing with inline math rendering, render error fallback, disabled/read-only.
 
 ## Acceptance Criteria
 
@@ -247,5 +308,9 @@ Visual/Storybook:
 - A student can enter common math formulas through UI controls without knowing LaTeX syntax.
 - The stored answer is Markdown/LaTeX text.
 - Grading and result pages render the same answer correctly.
+- Student runtime and result pages show computed group total score consistently.
+- Teacher grading can navigate grouped child questions without losing group context.
 - Existing non-grouped paper exams continue to work.
 - No P0 implementation requires canvas or graph annotation.
+- No P0 implementation adds a new `ExamQuestionType`.
+- i18n checks pass for editor toolbar labels and tooltips.
