@@ -113,7 +113,7 @@ const isDisplayableMetaValue = (value: unknown) =>
 
 const formatMetaValue = (key: string, value: unknown): string => {
   if (key === "locked_at" && typeof value === "string") {
-    return formatContestDateTime(value);
+    return formatContestDateTime(value) || value;
   }
   if (typeof value === "boolean") return value ? "Yes" : "No";
   return String(value);

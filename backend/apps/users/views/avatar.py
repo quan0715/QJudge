@@ -35,6 +35,8 @@ class UserAvatarUploadView(SchemaAPIView):
         "GIF": ("gif", "image/gif"),
     }
 
+    MAX_IMAGE_PIXELS = 24_000_000
+
     def _build_image_url(self, request, object_key: str) -> str:
         path = reverse("markdown-image-read", kwargs={"object_key": object_key})
         base_url = (settings.MARKDOWN_IMAGE_PUBLIC_BASE_URL or "").strip()
@@ -88,11 +90,24 @@ class UserAvatarUploadView(SchemaAPIView):
                 image.verify()
             with Image.open(BytesIO(payload)) as image:
                 image_format = (image.format or "").upper()
-        except (UnidentifiedImageError, OSError):
+                width, height = image.size
+        except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
             return Response(
                 {
                     "success": False,
                     "error": {"code": "UNSUPPORTED_IMAGE", "message": "Unsupported image file"},
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if width * height > self.MAX_IMAGE_PIXELS:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "IMAGE_TOO_LARGE",
+                        "message": "Image dimensions exceed allowed pixel count",
+                    },
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
