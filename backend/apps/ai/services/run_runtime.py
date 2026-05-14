@@ -371,6 +371,7 @@ def execute_run(run_id: str) -> None:
         payload = {
             "thread_id": run.thread_id or run.session.session_id,
             "run_id": str(run.id),
+            "model_id": run.model_id,
             "answer": run.question_answer,
         }
     elif run.kind == AIChatRun.Kind.RESUME:
@@ -378,6 +379,7 @@ def execute_run(run_id: str) -> None:
         payload = {
             "thread_id": run.thread_id or run.session.session_id,
             "run_id": str(run.id),
+            "model_id": run.model_id,
             "decision": run.resume_decision,
         }
     else:
