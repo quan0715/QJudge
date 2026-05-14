@@ -77,24 +77,49 @@ class Command(BaseCommand):
     def _check_object_storage_connection(self):
         from apps.contests.services.anticheat_storage import get_s3_client
 
+        buckets = self._configured_object_storage_buckets()
+        if not buckets:
+            return False, "no object storage buckets configured"
+
         client = get_s3_client()
-        client.list_buckets()
+        label, bucket = buckets[0]
+        client.list_objects_v2(Bucket=bucket, MaxKeys=0)
         endpoint = settings.OBJECT_STORAGE_ENDPOINT_URL
-        return True, f"connected to {endpoint}"
+        return True, f"connected to {endpoint}; probed {label} bucket '{bucket}'"
 
     def _check_object_storage_buckets(self):
         from apps.contests.services.anticheat_storage import get_s3_client
 
         client = get_s3_client()
-        existing = {b["Name"] for b in client.list_buckets()["Buckets"]}
-        required = {settings.ANTICHEAT_RAW_BUCKET}
-        missing = required - existing
-        if missing:
-            return False, f"missing buckets: {', '.join(sorted(missing))}"
-        return True, f"buckets present: {', '.join(sorted(required))}"
+        required = self._configured_object_storage_buckets()
+        if not required:
+            return False, "no object storage buckets configured"
+
+        for _label, bucket in required:
+            client.head_bucket(Bucket=bucket)
+
+        bucket_names = ", ".join(bucket for _label, bucket in required)
+        return True, f"buckets reachable: {bucket_names}"
+
+    def _configured_object_storage_buckets(self):
+        raw_buckets = [
+            ("anticheat_raw", getattr(settings, "ANTICHEAT_RAW_BUCKET", "")),
+            ("markdown_images", getattr(settings, "MARKDOWN_IMAGE_S3_BUCKET", "")),
+            ("ai_artifacts", getattr(settings, "AI_ARTIFACT_S3_BUCKET", "")),
+        ]
+        buckets = []
+        seen = set()
+        for label, bucket in raw_buckets:
+            bucket_name = (bucket or "").strip()
+            if not bucket_name or bucket_name in seen:
+                continue
+            buckets.append((label, bucket_name))
+            seen.add(bucket_name)
+        return buckets
 
     def _check_celery_default(self):
-        return self._ping_celery_queue("celery")
+        queue_name = getattr(settings, "CELERY_TASK_DEFAULT_QUEUE", "celery")
+        return self._ping_celery_queue(queue_name)
 
     def _ping_celery_queue(self, queue_name):
         from config.celery import app as celery_app
@@ -107,7 +132,16 @@ class Command(BaseCommand):
                 if q.get("name") == queue_name:
                     return True, f"worker={worker_name}"
 
-        return False, f"no worker consuming '{queue_name}'"
+        active_queue_names = sorted(
+            {
+                q.get("name")
+                for queues in active_queues.values()
+                for q in queues
+                if q.get("name")
+            }
+        )
+        active_detail = ", ".join(active_queue_names) if active_queue_names else "none"
+        return False, f"no worker consuming '{queue_name}' (active: {active_detail})"
 
     def _check_celery_beat(self):
         """Check beat scheduler — best-effort, non-fatal if unreachable."""
