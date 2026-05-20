@@ -22,6 +22,13 @@ from rest_framework_simplejwt.tokens import AccessToken
 User = get_user_model()
 
 
+def _supported_oauth_scopes() -> list[str]:
+    scopes = getattr(settings, "OAUTH2_PROVIDER", {}).get("SCOPES", {})
+    if isinstance(scopes, dict):
+        return list(scopes.keys())
+    return ["mcp"]
+
+
 @require_GET
 def oauth_authorization_server_metadata(request):
     """RFC 8414 — OAuth 2.0 Authorization Server Metadata."""
@@ -36,7 +43,7 @@ def oauth_authorization_server_metadata(request):
             "response_types_supported": ["code"],
             "grant_types_supported": ["authorization_code"],
             "code_challenge_methods_supported": ["S256"],
-            "scopes_supported": ["mcp"],
+            "scopes_supported": _supported_oauth_scopes(),
             "token_endpoint_auth_methods_supported": ["none"],
         }
     )
@@ -101,7 +108,7 @@ def dynamic_client_registration(request):
     grant_types = body.get("grant_types", ["authorization_code"])
     auth_method = body.get("token_endpoint_auth_method", "none")
     redirect_uris = body.get("redirect_uris", [])
-    client_name = body.get("client_name", "MCP Client")
+    client_name = body.get("client_name", "QJudge OAuth Client")
 
     if "authorization_code" not in grant_types:
         return JsonResponse(
@@ -220,6 +227,8 @@ class ApproveAuthorizationView(APIView):
                 "redirect_uri": drf_serializers.CharField(),
                 "response_type": drf_serializers.CharField(required=False),
                 "state": drf_serializers.CharField(required=False),
+                "scope": drf_serializers.CharField(required=False),
+                "deny": drf_serializers.BooleanField(required=False),
                 "code_challenge": drf_serializers.CharField(required=False),
                 "code_challenge_method": drf_serializers.CharField(required=False),
             },
@@ -254,9 +263,16 @@ class ApproveAuthorizationView(APIView):
                 status=400,
             )
 
-        if scope != "mcp":
+        supported_scopes = set(_supported_oauth_scopes())
+        if scope not in supported_scopes:
             return Response(
-                {"error": "invalid_scope", "error_description": "Only scope=mcp is supported"},
+                {
+                    "error": "invalid_scope",
+                    "error_description": (
+                        "Supported scopes: "
+                        + ", ".join(sorted(supported_scopes))
+                    ),
+                },
                 status=400,
             )
 

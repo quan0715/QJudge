@@ -214,9 +214,12 @@ JWT_AUTH_COOKIE_SAMESITE = "Lax"  # CSRF protection
 JWT_AUTH_COOKIE_PATH = "/"
 JWT_AUTH_COOKIE_DOMAIN = None  # Use default domain
 
-# OAuth 2.1 Provider settings (for MCP Server)
+# OAuth 2.1 Provider settings (for MCP Server and QJudge first-party CLI)
 OAUTH2_PROVIDER = {
-    "SCOPES": {"mcp": "Access QJudge via MCP"},
+    "SCOPES": {
+        "mcp": "Access QJudge via MCP",
+        "qjudge.paper": "Access QJudge paper exam workflows from QJudge Paper CLI",
+    },
     "DEFAULT_SCOPES": ["mcp"],
     "ACCESS_TOKEN_EXPIRE_SECONDS": 3600,       # 1 hour
     "REFRESH_TOKEN_EXPIRE_SECONDS": 2592000,    # 30 days
@@ -242,7 +245,10 @@ SPECTACULAR_SETTINGS = {
         "authorizationCode": {
             "authorizationUrl": "/api/oauth/authorize/",
             "tokenUrl": "/api/oauth/token/",
-            "scopes": {"mcp": "MCP server access"},
+            "scopes": {
+                "mcp": "MCP server access",
+                "qjudge.paper": "QJudge Paper CLI access",
+            },
         }
     },
 }

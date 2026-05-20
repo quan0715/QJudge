@@ -12,7 +12,7 @@ export default function OAuthAuthorizePage() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [clientName, setClientName] = useState<string>("MCP Client");
+  const [clientName, setClientName] = useState<string>("QJudge OAuth Client");
 
   const clientId = searchParams.get("client_id");
   const redirectUri = searchParams.get("redirect_uri");
