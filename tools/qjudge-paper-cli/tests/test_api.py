@@ -59,3 +59,22 @@ def test_list_classroom_exams_uses_classroom_identifier_in_path():
         {"contest_id": "contest-uuid", "contest_name": "Midterm"}
     ]
     assert seen_url == "https://qjudge.example/api/v1/classrooms/classroom-uuid/contests/"
+
+
+def test_iter_run_events_uses_frontend_compatible_headers():
+    seen_headers = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_headers.update(request.headers)
+        return httpx.Response(200, content=b'data: {"type": "run_completed"}\n\n')
+
+    client = QJudgeApiClient(
+        base_url="https://qjudge.example",
+        access_token="token-123",
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    assert list(client.iter_run_events("run-123")) == [{"type": "run_completed"}]
+    assert seen_headers["authorization"] == "Bearer token-123"
+    assert seen_headers["x-qjudge-agent-contract"] == "v2"
+    assert seen_headers["accept"] == "*/*"

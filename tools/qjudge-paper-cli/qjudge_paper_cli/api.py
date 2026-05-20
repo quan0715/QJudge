@@ -147,7 +147,6 @@ class QJudgeApiClient:
             f"{self.base_url}/api/v1/ai/runs/{run_id}/events/?after=0",
             headers={
                 "Authorization": f"Bearer {self.access_token}",
-                "Accept": "text/event-stream",
                 "X-QJudge-Agent-Contract": "v2",
             },
             timeout=httpx.Timeout(10.0, read=None),
