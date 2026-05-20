@@ -2,6 +2,12 @@
 
 Date: 2026-05-20
 
+Note: QJudge Paper CLI V1 is now defined separately as an OAuth-first
+product-like CLI frontend in
+`docs/superpowers/specs/2026-05-20-qjudge-paper-cli-oauth-first-design.md`.
+This document remains the experiment design for multi-model grading,
+cross-review, and aggregation after the V1 product flow is stable.
+
 ## Purpose
 
 This design defines a low-engineering-cost experiment workflow for evaluating AI-assisted grading inside QJudge. The thesis scope remains the end-to-end online exam system: exam setup, student answering, anti-cheat monitoring, submission, grading, review, and result publication. AI grading is the final output of that system and needs experimental validation for accuracy, reliability, cost, and review workload reduction.
