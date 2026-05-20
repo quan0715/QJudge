@@ -31,3 +31,31 @@ def test_list_classrooms_accepts_paginated_response():
     )
 
     assert client.list_classrooms() == [{"id": "c1", "name": "Class"}]
+
+
+def test_list_classroom_exams_uses_classroom_identifier_in_path():
+    seen_url = None
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal seen_url
+        seen_url = str(request.url)
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "contest_id": "contest-uuid",
+                    "contest_name": "Midterm",
+                }
+            ],
+        )
+
+    client = QJudgeApiClient(
+        base_url="https://qjudge.example",
+        access_token="token-123",
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    assert client.list_classroom_exams("classroom-uuid") == [
+        {"contest_id": "contest-uuid", "contest_name": "Midterm"}
+    ]
+    assert seen_url == "https://qjudge.example/api/v1/classrooms/classroom-uuid/contests/"

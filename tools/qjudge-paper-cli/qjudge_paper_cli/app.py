@@ -32,8 +32,11 @@ DEFAULT_BACKEND_URL = os.environ.get("QJUDGE_BACKEND_URL", "http://localhost:800
 DEFAULT_MODEL_ID = "deepseek-v4-thinking"
 
 console = Console()
-app = typer.Typer(help="QJudge Paper CLI")
-auth_app = typer.Typer(help="Authentication commands")
+app = typer.Typer(help="QJudge Paper CLI", pretty_exceptions_show_locals=False)
+auth_app = typer.Typer(
+    help="Authentication commands",
+    pretty_exceptions_show_locals=False,
+)
 app.add_typer(auth_app, name="auth")
 
 
@@ -142,7 +145,17 @@ def auth_logout() -> None:
 
 
 def _item_label(item: dict[str, Any]) -> str:
-    for key in ("name", "title", "display_name", "username", "id"):
+    for key in (
+        "name",
+        "title",
+        "contest_name",
+        "prompt",
+        "display_name",
+        "username",
+        "uuid",
+        "contest_id",
+        "id",
+    ):
         value = item.get(key)
         if value:
             return str(value)
@@ -184,6 +197,28 @@ def _contest_id(bound_contest: dict[str, Any]) -> str:
     raise RuntimeError("Could not resolve contest id")
 
 
+def _classroom_api_id(classroom: dict[str, Any]) -> str:
+    for key in ("uuid", "id"):
+        value = classroom.get(key)
+        if value:
+            return str(value)
+    raise RuntimeError("Could not resolve classroom id")
+
+
+def _resolve_classroom_api_id(
+    client: QJudgeApiClient,
+    classroom_id: str,
+) -> str:
+    classrooms = client.list_classrooms()
+    for classroom in classrooms:
+        if (
+            str(classroom.get("uuid")) == classroom_id
+            or str(classroom.get("id")) == classroom_id
+        ):
+            return _classroom_api_id(classroom)
+    return classroom_id
+
+
 def _user_id(payload: Any) -> str | None:
     if isinstance(payload, dict):
         data = payload.get("data")
@@ -216,7 +251,12 @@ def grade(
 
         if not resolved_classroom_id:
             classroom = _select("Select classroom", client.list_classrooms())
-            resolved_classroom_id = str(classroom["id"])
+            resolved_classroom_id = _classroom_api_id(classroom)
+        else:
+            resolved_classroom_id = _resolve_classroom_api_id(
+                client,
+                resolved_classroom_id,
+            )
         if not resolved_contest_id:
             exam = _select(
                 "Select exam",
