@@ -78,3 +78,21 @@ def test_iter_run_events_uses_frontend_compatible_headers():
     assert seen_headers["authorization"] == "Bearer token-123"
     assert seen_headers["x-qjudge-agent-contract"] == "v2"
     assert seen_headers["accept"] == "*/*"
+
+
+def test_artifact_content_uses_frontend_compatible_headers():
+    seen_headers = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_headers.update(request.headers)
+        return httpx.Response(200, text="rubric")
+
+    client = QJudgeApiClient(
+        base_url="https://qjudge.example",
+        access_token="token-123",
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    assert client.artifact_content("artifact-123") == "rubric"
+    assert seen_headers["authorization"] == "Bearer token-123"
+    assert seen_headers["accept"] == "*/*"

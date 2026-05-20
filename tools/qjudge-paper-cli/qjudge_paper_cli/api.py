@@ -138,7 +138,7 @@ class QJudgeApiClient:
         return self.request(
             "GET",
             f"/api/v1/ai/artifacts/{artifact_id}/content/",
-            headers={"Accept": "text/plain"},
+            headers={"Accept": "*/*"},
         ).text
 
     def iter_run_events(self, run_id: str) -> Iterable[dict[str, Any]]:
