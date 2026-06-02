@@ -141,7 +141,7 @@ export default function RedistributeTargetModal({
         />
 
         <Checkbox
-          id="redistribute-all"
+          id={`redistribute-all-${questionIndex}`}
           labelText={t("grading.scorePolicy.redistributeToAll", {
             defaultValue: "分配到所有正常計分題目（等比例）",
           })}
@@ -211,7 +211,7 @@ export default function RedistributeTargetModal({
               {filteredTargets.map((q) => (
                 <Checkbox
                   key={q.id}
-                  id={`target-${q.id}`}
+                  id={`target-${questionIndex}-${q.id}`}
                   labelText={`第 ${q.order + 1} 題 (${q.score}分) — ${q.prompt?.slice(0, 40) || "..."}`}
                   checked={selectedIds.has(q.id)}
                   onChange={(_, { checked }) => handleToggle(q.id, checked)}
