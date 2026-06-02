@@ -1,4 +1,4 @@
-import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
 import styles from "./ExamQuestionPrompt.module.scss";
 
 interface ExamQuestionPromptProps {
@@ -17,7 +17,7 @@ export default function ExamQuestionPrompt({
       <div
         className={`${styles.prompt} ${compact ? styles.promptNoMargin : ""}`.trim()}
       >
-        <MarkdownRenderer enableMath enableHighlight enableCopy>{content}</MarkdownRenderer>
+        <MarkdownContent.Problem>{content}</MarkdownContent.Problem>
       </div>
     );
   }

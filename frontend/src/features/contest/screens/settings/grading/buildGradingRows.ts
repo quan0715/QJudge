@@ -43,6 +43,7 @@ export function buildGradingRows(
       questionIndex: qIdx + 1,
       questionPrompt: q?.prompt ?? "",
       questionExplanation: q?.explanation ?? "",
+      questionExplanationDocument: q?.explanationDocument ?? null,
       questionType: qType,
       answerFormat: q?.answerFormat,
       questionOptions: q?.options ?? [],
@@ -54,6 +55,7 @@ export function buildGradingRows(
       gradedAt: a.gradedAt,
       isAutoGraded: isAuto && a.score !== null,
       correctAnswer: q?.correctAnswer ?? null,
+      referenceAnswerDocument: q?.referenceAnswerDocument ?? null,
     };
   });
 }

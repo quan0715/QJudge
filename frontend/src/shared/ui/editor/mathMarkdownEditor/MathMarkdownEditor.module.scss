@@ -47,6 +47,205 @@
   }
 }
 
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  background: var(--cds-layer-01);
+}
+
+.formulaSegment {
+  display: inline-flex;
+  gap: layout.$spacing-03;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: layout.$spacing-03 layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  background: var(--cds-background);
+}
+
+.formulaToken {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 2.25rem;
+  padding: layout.$spacing-02 layout.$spacing-03;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--cds-text-primary);
+  background: var(--cds-layer-02);
+  cursor: pointer;
+  text-align: left;
+
+  &:hover:not(:disabled) {
+    border-color: var(--cds-border-subtle-01);
+    background: var(--cds-layer-hover-01);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  :global(.markdown-body) {
+    width: 100%;
+    background: transparent;
+  }
+
+  :global(.markdown-body p) {
+    margin: 0;
+  }
+}
+
+.formulaSegmentBlock {
+  display: flex;
+  width: 100%;
+}
+
+.formulaPreview {
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+
+  :global(.markdown-body) {
+    width: 100%;
+  }
+
+  :global(.markdown-body p) {
+    margin: 0;
+  }
+}
+
+.mathInput {
+  @include type.type-style("body-compact-01");
+  min-width: 2.5rem;
+  height: 2rem;
+  padding: 0 layout.$spacing-02;
+  border: 0;
+  border-bottom: 1px solid var(--cds-border-strong-01);
+  color: var(--cds-text-primary);
+  background: var(--cds-field-01);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  letter-spacing: 0;
+
+  &:focus {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: 1px;
+  }
+
+  &:disabled,
+  &:read-only {
+    color: var(--cds-text-secondary);
+    background: var(--cds-layer-01);
+  }
+}
+
+.fractionControl,
+.sqrtControl,
+.powerControl,
+.subscriptControl {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  min-width: 0;
+  font-family: "KaTeX_Main", "Times New Roman", serif;
+}
+
+.fractionControl {
+  flex-direction: column;
+  gap: layout.$spacing-01;
+}
+
+.fractionInput {
+  width: 4.5rem;
+  text-align: center;
+}
+
+.fractionRule {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--cds-text-primary);
+}
+
+.sqrtSymbol,
+.symbolFormula {
+  font-family: "KaTeX_Main", "Times New Roman", serif;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--cds-text-primary);
+}
+
+.sqrtControl {
+  gap: 0;
+}
+
+.radicandInput {
+  width: min(12rem, 52vw);
+  border-top: 1px solid var(--cds-text-primary);
+}
+
+.baseInput {
+  width: 4rem;
+}
+
+.exponentInput,
+.subscriptInput {
+  width: 3.5rem;
+  height: 1.75rem;
+  font-size: 0.75rem;
+}
+
+.exponentInput {
+  align-self: flex-start;
+}
+
+.subscriptInput {
+  align-self: flex-end;
+}
+
+.alignedInput {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.removeFormulaButton {
+  @include type.type-style("body-compact-01");
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--cds-text-secondary);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--cds-text-primary);
+    background: var(--cds-layer-hover-01);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: 2px;
+  }
+}
+
 .preview {
   padding: layout.$spacing-04;
   border: 1px solid var(--cds-border-subtle-01);
@@ -63,4 +262,14 @@
 .emptyPreview {
   @include type.type-style("body-compact-01");
   color: var(--cds-text-placeholder);
+}
+
+@media (max-width: 672px) {
+  .formulaSegment {
+    width: 100%;
+  }
+
+  .removeFormulaButton {
+    flex: 0 0 auto;
+  }
 }

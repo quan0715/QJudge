@@ -1,0 +1,90 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-03;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+  align-items: center;
+}
+
+.sheet {
+  @include type.type-style("body-01");
+
+  min-height: 12rem;
+  padding: layout.$spacing-05;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
+  line-height: 2;
+  cursor: text;
+}
+
+.editorSurface {
+  min-height: 100%;
+  outline: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.editorSurface p {
+  margin: 0;
+  min-height: 1.75rem;
+}
+
+.editorSurface p + p {
+  margin-top: layout.$spacing-02;
+}
+
+.editorSurface p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--cds-text-placeholder);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+.mathToken {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0.125rem;
+  padding: 0 0.125rem;
+  border-radius: 4px;
+  vertical-align: baseline;
+  cursor: pointer;
+  transition: box-shadow 80ms ease;
+}
+
+.mathToken:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cds-focus) 35%, transparent);
+}
+
+.mathTokenSelected {
+  box-shadow: 0 0 0 2px var(--cds-focus);
+}
+
+.mathRender {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 1em;
+  line-height: 1.2;
+}
+
+.mathToken[data-empty="true"] .mathRender {
+  padding: 0 layout.$spacing-02;
+  border: 1px dashed var(--cds-border-subtle-01);
+  border-radius: 4px;
+  color: var(--cds-text-secondary);
+  font-style: italic;
+}
+
+.mathToken .katex {
+  font-size: 1.05em;
+}

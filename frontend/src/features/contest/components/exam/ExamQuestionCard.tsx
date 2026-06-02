@@ -10,10 +10,16 @@ import {
 import { Flag, FlagFilled } from "@carbon/icons-react";
 import type {
   ExamQuestion,
+  ExamQuestionAnswerFormat,
   ExamQuestionGroup,
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
-import { MathMarkdownEditor } from "@/shared/ui/editor";
+import {
+  MathMarkdownEditor,
+  OpenAnswerDocumentEditor,
+  createEmptyOpenAnswerDocument,
+  isOpenAnswerDocument,
+} from "@/shared/ui/editor";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import ExamQuestionPrompt from "./ExamQuestionPrompt";
 import styles from "./ExamQuestionCard.module.scss";
@@ -60,6 +66,18 @@ const AutoResizeTextArea: FC<React.ComponentProps<typeof TextArea> & { minHeight
   );
 };
 
+const OptionMarkdownLabel: FC<{ letter: string; children: string }> = ({
+  letter,
+  children,
+}) => (
+  <span className={styles.optionMarkdownLabel}>
+    <span className={styles.optionLetter}>{letter}.</span>
+    <MarkdownRenderer enableMath enableHighlight className={styles.optionMarkdownContent}>
+      {children}
+    </MarkdownRenderer>
+  </span>
+);
+
 interface ExamQuestionCardProps {
   question: ExamQuestion;
   group?: ExamQuestionGroup;
@@ -70,6 +88,7 @@ interface ExamQuestionCardProps {
     questionId: string,
     value: unknown,
     questionType?: ExamQuestionType,
+    answerFormat?: ExamQuestionAnswerFormat,
   ) => void;
   onBlur?: (questionId: string) => void;
   readOnly?: boolean;
@@ -92,7 +111,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   const { t } = useTranslation(["contest", "common"]);
 
   const handleChange = (value: unknown) => {
-    onAnswerChange?.(question.id, value, question.questionType);
+    onAnswerChange?.(question.id, value, question.questionType, question.answerFormat);
   };
 
   const handleBlur = () => {
@@ -102,16 +121,50 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
   const renderSubjectiveInput = (minRows: number, placeholder: string) => {
     const value = typeof answer === "string" ? answer : "";
 
-    if (question.answerFormat === "markdown_math") {
+    if (question.answerFormat === "open_document") {
+      return (
+        <OpenAnswerDocumentEditor
+          data-testid={`exam-answer-input-${question.id}`}
+          value={isOpenAnswerDocument(answer) ? answer : createEmptyOpenAnswerDocument()}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          readOnly={readOnly}
+          ariaLabel={t("answering.openAnswer.ariaLabel", "開放題作答紙")}
+          placeholder={t(
+            "answering.openAnswer.placeholder",
+            "輸入解題過程，可用工具列或 / 插入公式",
+          )}
+        />
+      );
+    }
+
+    if (
+      question.answerFormat === "markdown" ||
+      question.answerFormat === "markdown_math"
+    ) {
+      const enableMath = question.answerFormat === "markdown_math";
       return (
         <MathMarkdownEditor
           id={`q-${question.id}`}
           data-testid={`exam-answer-input-${question.id}`}
-          ariaLabel={t("answering.mathEditor.ariaLabel", "數學解答編輯器")}
-          placeholder={t(
-            "answering.mathEditor.placeholder",
-            "輸入計算過程，可用上方按鈕插入常用公式",
-          )}
+          enableMath={enableMath}
+          showMathToolbar={enableMath}
+          ariaLabel={
+            enableMath
+              ? t("answering.mathEditor.ariaLabel", "數學解答編輯器")
+              : t("answering.markdownEditor.ariaLabel", "Markdown 解答編輯器")
+          }
+          placeholder={
+            enableMath
+              ? t(
+                  "answering.mathEditor.placeholder",
+                  "輸入計算過程，可用上方按鈕插入常用公式",
+                )
+              : t(
+                  "answering.markdownEditor.placeholder",
+                  "輸入解答，可使用 Markdown 排版",
+                )
+          }
           value={value}
           onChange={handleChange}
           onBlur={handleBlur}
@@ -189,7 +242,11 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
               {question.options.map((opt, i) => (
                 <RadioButton
                   key={i}
-                  labelText={`${String.fromCharCode(65 + i)}. ${opt}`}
+                  labelText={
+                    <OptionMarkdownLabel letter={String.fromCharCode(65 + i)}>
+                      {opt}
+                    </OptionMarkdownLabel>
+                  }
                   value={String(i)}
                   id={`${question.id}-opt-${i}`}
                   data-testid={`exam-answer-option-${question.id}-${i}`}
@@ -208,7 +265,11 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
                 key={i}
                 id={`${question.id}-opt-${i}`}
                 data-testid={`exam-answer-option-${question.id}-${i}`}
-                labelText={`${String.fromCharCode(65 + i)}. ${opt}`}
+                labelText={
+                  <OptionMarkdownLabel letter={String.fromCharCode(65 + i)}>
+                    {opt}
+                  </OptionMarkdownLabel>
+                }
                 checked={selected.includes(i)}
                 disabled={readOnly}
                 onChange={(_: unknown, { checked }: { checked: boolean }) => {

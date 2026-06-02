@@ -2,7 +2,9 @@
 
 import type {
   ExamQuestionAnswerFormat,
+  ExamQuestionScorePolicy,
   ExamQuestionType,
+  OpenAnswerDocument,
 } from "@/core/entities/contest.entity";
 import type { SubmissionStatus } from "@/core/entities/submission.entity";
 import i18n from "i18next";
@@ -31,6 +33,7 @@ export interface GradingAnswerRow {
   questionIndex: number; // 1-based
   questionPrompt: string;
   questionExplanation?: string;
+  questionExplanationDocument?: OpenAnswerDocument | null;
   questionType: QuestionType;
   answerFormat?: ExamQuestionAnswerFormat;
   questionOptions: string[];
@@ -44,6 +47,7 @@ export interface GradingAnswerRow {
   isAutoGraded: boolean;
   /** Correct answer for objective questions; null for subjective. */
   correctAnswer: unknown;
+  referenceAnswerDocument?: OpenAnswerDocument | null;
   /** True if this is a placeholder row for a student who didn't submit. */
   isAbsent?: boolean;
   /** Coding contest: latest submission summary for this student/problem. */
@@ -70,6 +74,8 @@ export interface QuestionProgress {
   /** 0–100 */
   progressPercent: number;
   isObjective: boolean;
+  /** Score policy: normal | excluded | full_marks */
+  scorePolicy?: ExamQuestionScorePolicy;
 }
 
 /** Global stats for the overview. */

@@ -18,6 +18,7 @@ import { usePaperExamFlow } from "./usePaperExamFlow";
 import { useInterval } from "@/shared/hooks/useInterval";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
+import ProblemPromptPreview from "../../components/exam/ProblemPromptPreview";
 import {
   useCountdownTo,
   usePaperExamAutoSave,
@@ -30,6 +31,7 @@ import {
 } from "./hooks";
 import { useExamCapture } from "@/features/contest/contexts/ExamCaptureContext";
 import type { ExamItem } from "../../types/exam.types";
+import { buildQuestionPresentationById } from "./paperExamSectionView";
 import styles from "./PaperExamAnswering.module.scss";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
@@ -54,7 +56,10 @@ import {
   resolveEvidenceCaptureStrategy,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
-import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 
 const PaperExamAnsweringScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);
@@ -117,26 +122,20 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const setPageHeaderActions = usePageHeaderActions();
   const { isRuntime } = useContestRuntimeMode();
 
-  const { items, groups, answers, setAnswers, answeredIds, loadingQuestions } =
+  const { items, sections, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
   const questionIds = useMemo(
     () => items.filter((item) => item.kind === "question").map((item) => item.data.id),
     [items]
   );
-  const groupsById = useMemo(
-    () => new Map(groups.map((group) => [group.id, group])),
-    [groups],
+  const singleModePresentationById = useMemo(
+    () => buildQuestionPresentationById(sections, "single"),
+    [sections],
   );
-  const firstQuestionIdByGroupId = useMemo(() => {
-    const firstIds = new Map<string, string>();
-    for (const item of items) {
-      if (item.kind !== "question" || !item.data.groupId) continue;
-      if (!firstIds.has(item.data.groupId)) {
-        firstIds.set(item.data.groupId, item.data.id);
-      }
-    }
-    return firstIds;
-  }, [items]);
+  const allModePresentationById = useMemo(
+    () => buildQuestionPresentationById(sections, "all"),
+    [sections],
+  );
   const autoSave = usePaperExamAutoSave({
     contestId,
     questionIds,
@@ -188,8 +187,13 @@ const PaperExamAnsweringScreen: React.FC = () => {
   );
 
   const handleAnswerChange = useCallback(
-    (questionId: string, value: unknown, questionType?: ExamQuestionType) => {
-      autoSave.handleAnswerChange(questionId, value, questionType);
+    (
+      questionId: string,
+      value: unknown,
+      questionType?: ExamQuestionType,
+      answerFormat?: ExamQuestionAnswerFormat,
+    ) => {
+      autoSave.handleAnswerChange(questionId, value, questionType, answerFormat);
       markDirty(questionId);
     },
     [autoSave, markDirty],
@@ -347,20 +351,18 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }, [requestedQuestionId, items]);
 
   const renderItem = useCallback(
-    (item: ExamItem, index: number, mode: "single" | "all") => {
+    (item: ExamItem, _index: number, mode: "single" | "all") => {
       if (item.kind !== "question") return null;
-      const group = item.data.groupId ? groupsById.get(item.data.groupId) : undefined;
-      const showGroupStem = Boolean(
-        group &&
-          (mode === "single" ||
-            firstQuestionIdByGroupId.get(group.id) === item.data.id),
-      );
+      const presentation =
+        mode === "single"
+          ? singleModePresentationById.get(item.data.id)
+          : allModePresentationById.get(item.data.id);
       return (
         <ExamQuestionCard
           question={item.data}
-          group={group}
-          showGroupStem={showGroupStem}
-          index={index}
+          group={presentation?.group}
+          showGroupStem={presentation?.showGroupStem ?? false}
+          index={item.data.order}
           answer={answers[item.data.id]}
           onAnswerChange={handleAnswerChange}
           onBlur={handleBlur}
@@ -371,11 +373,11 @@ const PaperExamAnsweringScreen: React.FC = () => {
     },
     [
       answers,
-      firstQuestionIdByGroupId,
-      groupsById,
+      allModePresentationById,
       handleAnswerChange,
       handleBlur,
       markedIds,
+      singleModePresentationById,
       toggleMark,
     ],
   );
@@ -589,12 +591,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
               borderRadius: "4px",
             }}
           >
-            {items.map((item, index) => {
+            {items.map((item) => {
               if (item.kind !== "question") return null;
               const done = answeredIds.has(item.data.id);
               const marked = markedIds.has(item.data.id);
-              const prompt = item.data.prompt || "";
-              const preview = prompt.length > 60 ? `${prompt.slice(0, 60)}...` : prompt;
               return (
                 <div
                   key={item.data.id}
@@ -608,7 +608,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
                   }}
                 >
                   {marked && <FlagFilled size={14} style={{ color: "var(--cds-support-warning)", flexShrink: 0 }} />}
-                  <span>{t("answering.submit.questionPreview", { index: index + 1 })} {preview ? `— ${preview}` : ""}</span>
+                  <span style={{ flexShrink: 0 }}>
+                    {t("answering.submit.questionPreview", { index: item.data.order + 1 })}
+                  </span>
+                  <ProblemPromptPreview
+                    content={item.data.prompt}
+                    maxLines={1}
+                    className={styles.submitQuestionPreview}
+                  />
                 </div>
               );
             })}

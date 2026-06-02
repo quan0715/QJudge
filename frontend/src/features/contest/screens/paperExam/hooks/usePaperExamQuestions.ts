@@ -9,6 +9,14 @@ import type {
 } from "@/core/entities/contest.entity";
 import type { ExamItem } from "../../../types/exam.types";
 import { useToast } from "@/shared/contexts/ToastContext";
+import { isOpenAnswerDocument } from "@/shared/ui/editor";
+
+function unwrapExamAnswerValue(answer: Record<string, unknown>): unknown {
+  if ("selected" in answer) return answer.selected;
+  if ("text" in answer) return answer.text;
+  if ("document" in answer && isOpenAnswerDocument(answer.document)) return answer.document;
+  return answer;
+}
 
 export function usePaperExamQuestions(contestId: string | undefined) {
   const { t } = useTranslation("contest");
@@ -16,7 +24,7 @@ export function usePaperExamQuestions(contestId: string | undefined) {
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [groups, setGroups] = useState<ExamQuestionGroup[]>([]);
   const [sections, setSections] = useState<ExamPaperSection[]>([]);
-  const [loadingQuestions, setLoadingQuestions] = useState(true);
+  const [loadingQuestions, setLoadingQuestions] = useState(() => Boolean(contestId));
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const { showToast } = useToast();
 
@@ -42,15 +50,26 @@ export function usePaperExamQuestions(contestId: string | undefined) {
 
   // Fetch exam questions
   useEffect(() => {
-    if (!contestId) return;
-    setLoadingQuestions(true);
+    let isCurrent = true;
+
+    if (!contestId) {
+      return () => {
+        isCurrent = false;
+      };
+    }
+
+    queueMicrotask(() => {
+      if (isCurrent) setLoadingQuestions(true);
+    });
     getExamPaper(contestId)
       .then((paper) => {
+        if (!isCurrent) return;
         setExamQuestions(paper.questions);
         setGroups(paper.groups);
         setSections(paper.sections);
       })
       .catch(() => {
+        if (!isCurrent) return;
         setExamQuestions([]);
         setGroups([]);
         setSections([]);
@@ -60,25 +79,40 @@ export function usePaperExamQuestions(contestId: string | undefined) {
           subtitle: tRef.current("answering.error.loadQuestionsSubtitle"),
         });
       })
-      .finally(() => setLoadingQuestions(false));
+      .finally(() => {
+        if (isCurrent) setLoadingQuestions(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
   }, [contestId, showToast]);
 
   // Load existing answers on mount
   useEffect(() => {
-    if (!contestId) return;
+    let isCurrent = true;
+
+    if (!contestId) {
+      return () => {
+        isCurrent = false;
+      };
+    }
+
     getMyExamAnswers(contestId)
       .then((savedAnswers) => {
+        if (!isCurrent) return;
         const map: Record<string, unknown> = {};
         for (const a of savedAnswers) {
-          const val = a.answer;
-          if ("selected" in val) map[a.questionId] = val.selected;
-          else if ("text" in val) map[a.questionId] = val.text;
-          else map[a.questionId] = val;
+          map[a.questionId] = unwrapExamAnswerValue(a.answer);
         }
         setAnswers(map);
       })
-      .catch((error: any) => {
-        if (error?.response?.status !== 404) {
+      .catch((error: unknown) => {
+        if (!isCurrent) return;
+        const status = typeof error === "object" && error !== null
+          ? (error as { response?: { status?: number } }).response?.status
+          : undefined;
+        if (status !== 404) {
           showToast({
             kind: "error",
             title: tRef.current("answering.error.loadAnswersFailed"),
@@ -86,6 +120,10 @@ export function usePaperExamQuestions(contestId: string | undefined) {
           });
         }
       });
+
+    return () => {
+      isCurrent = false;
+    };
   }, [contestId, showToast]);
 
   return {

@@ -73,6 +73,27 @@
   max-width: 720px;
 }
 
+.groupBlock {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+}
+
+.groupChildren {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  padding: 0 layout.$spacing-05 layout.$spacing-05;
+}
+
+.groupChild {
+  background: var(--cds-layer);
+}
+
 .addQuestionRow {
   width: 100%;
   max-width: 720px;

@@ -436,9 +436,21 @@
     },
     "mathEditor": {
       "ariaLabel": "수학 답안 편집기",
+      "editFormula": "수식 편집",
       "emptyPreview": "아직 입력하지 않음",
+      "fields": {
+        "base": "밑",
+        "denominator": "분모",
+        "exponent": "지수",
+        "lines": "등식 줄",
+        "numerator": "분자",
+        "radicand": "루트 안",
+        "subscript": "아래 첨자"
+      },
       "placeholder": "풀이 과정을 입력하세요. 위 버튼으로 자주 쓰는 수식을 삽입할 수 있습니다.",
       "previewLabel": "미리보기",
+      "removeFormula": "수식 제거",
+      "textSegmentLabel": "텍스트 단락",
       "toolbar": {
         "aligned": "여러 줄 등식",
         "fraction": "분수",
@@ -449,6 +461,14 @@
         "subscript": "아래 첨자",
         "theta": "세타"
       }
+    },
+    "markdownEditor": {
+      "ariaLabel": "Markdown 답안 편집기",
+      "placeholder": "답안을 입력하세요. Markdown 서식을 사용할 수 있습니다."
+    },
+    "openAnswer": {
+      "ariaLabel": "서술형 답안지",
+      "placeholder": "풀이 과정을 입력하세요. 도구 모음 또는 / 로 수식을 삽입할 수 있습니다."
     },
     "questionTypes": {
       "coding": "프로그래밍",
@@ -804,6 +824,7 @@
     "answerFormats": {
       "markdown": "Markdown",
       "markdownMath": "수학 답안",
+      "openDocument": "서술형 답안지",
       "plainText": "일반 텍스트"
     },
     "answerNotSet": "(미설정)",
@@ -822,7 +843,7 @@
     "deleteOption": "선택지 삭제",
     "explanation": "해설",
     "explanationNotSet": "(해설 미설정)",
-    "explanationPlaceholder": "풀이, 채점 포인트, 개념 설명을 입력하세요 (Markdown 지원)",
+    "explanationPlaceholder": "전체 풀이 과정, 유도, 개념 설명을 입력하세요. 채점용 최종 답안만 여기에 넣지 마세요",
     "falseOption": "아니오 (False)",
     "hideQuestionList": "문제 목록 숨기기",
     "importFromBank": "문제 은행에서 가져오기",
@@ -853,6 +874,8 @@
     "questionLockedReason": "학생이 시험을 시작하여 문항 편집이 잠겼습니다.",
     "questionNumber": "제{{num}}문",
     "questionUpdated": "문제가 업데이트되었습니다",
+    "gradingReferenceAnswer": "채점 참고 답안",
+    "gradingReferencePlaceholder": "채점용 답안 요점 또는 최종 결론을 입력하세요. 전체 유도 과정은 해설에 넣으세요",
     "referenceAnswer": "참고 답안",
     "referenceNotSet": "(참고 답안 미설정)",
     "referencePlaceholder": "참고 답안 (선택, Markdown 지원)",
@@ -863,8 +886,9 @@
     "scoreLabel": "점",
     "scoreUnit": "{{score}}점",
     "selectQuestionType": "문제 유형 선택",
-    "shortAnswerPlaceholder": "단답형 표준 답안 입력 (숫자, 키워드 등)",
+    "shortAnswerPlaceholder": "채점용 답안 요점 또는 최종 결론을 입력하세요. 전체 유도 과정은 해설에 넣으세요",
     "showQuestionList": "문제 목록 표시",
+    "solutionExplanation": "해설(풀이 과정)",
     "sortUpdateFailed": "정렬 업데이트에 실패했습니다",
     "sourceBankLabel": "문항 은행",
     "sourceInsert": "삽입",
@@ -1004,6 +1028,18 @@
     "saveAndNextStudent": "저장 및 다음 학생",
     "saved": "저장됨",
     "score": "점수",
+    "scorePolicy": {
+      "confirmExcluded": "{{index}}번 문제를 채점 제외하시겠습니까? 모든 학생의 이 문제 점수가 총점에 반영되지 않습니다.",
+      "confirmFullMarks": "{{index}}번 문제를 전원 만점 처리하시겠습니까? 모든 학생이 이 문제의 만점을 받게 됩니다.",
+      "confirmNormal": "{{index}}번 문제를 정상 채점으로 복원하시겠습니까?",
+      "excluded": "채점 제외",
+      "fullMarks": "전원 만점",
+      "menuTitle": "점수 정책",
+      "normal": "정상",
+      "setExcluded": "채점 제외 처리",
+      "setFullMarks": "전원 만점 처리",
+      "setNormal": "정상 채점 복원"
+    },
     "searchStudent": "학생 검색",
     "selectAnswerToGrade": "학생의 답안을 선택하여 채점 시작",
     "selectQuestion": "문제 선택",
