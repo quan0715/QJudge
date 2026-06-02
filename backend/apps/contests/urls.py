@@ -12,6 +12,7 @@ from .views import (
     ContestActivityViewSet,
     ExamAnswerViewSet,
 )
+from .views.exam_question_group import ContestExamQuestionGroupViewSet
 from apps.submissions.views import SubmissionViewSet
 
 app_name = 'contests'
@@ -29,6 +30,7 @@ contest_router.register(r'exam-questions', ContestExamQuestionViewSet, basename=
 contest_router.register(r'submissions', SubmissionViewSet, basename='contest-submissions')
 contest_router.register(r'activities', ContestActivityViewSet, basename='contest-activities')
 contest_router.register(r'exam-answers', ExamAnswerViewSet, basename='contest-exam-answers')
+contest_router.register(r'exam-question-groups', ContestExamQuestionGroupViewSet, basename='contest-exam-question-groups')
 
 urlpatterns = [
     path('', include(router.urls)),
