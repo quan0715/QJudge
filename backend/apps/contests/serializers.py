@@ -23,6 +23,7 @@ from .models import (
 from django.db.models import Sum
 from .permissions import can_manage_contest, get_contest_permissions, get_contest_scope_role
 from .services.attendance import build_attendance_status
+from .services.open_answer_document import validate_open_answer_document
 from apps.users.serializers import UserSerializer
 
 LEGACY_CONTEST_ACCESS_FIELDS = {"requires_password", "password"}
@@ -634,6 +635,7 @@ class ExamQuestionStudentSerializer(serializers.ModelSerializer):
             'prompt',
             'options',
             'score',
+            'score_policy',
             'order',
             'group_id',
             'order_in_group',
@@ -670,8 +672,11 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'prompt',
             'options',
             'correct_answer',
+            'reference_answer_document',
             'explanation',
+            'explanation_document',
             'score',
+            'score_policy',
             'order',
             'group_id',
             'order_in_group',
@@ -718,12 +723,27 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('invalid answer_format')
         return value
 
+    def validate_reference_answer_document(self, value):
+        if value is None:
+            return None
+        return validate_open_answer_document(value)
+
+    def validate_explanation_document(self, value):
+        if value is None:
+            return None
+        return validate_open_answer_document(value)
+
     def validate(self, attrs):
         question_type = attrs.get('question_type') or getattr(self.instance, 'question_type', None)
         options = attrs.get('options')
         correct_answer = attrs.get('correct_answer')
         group_id = attrs.get('group_id') if 'group_id' in attrs else getattr(self.instance, 'group_id', None)
         contest = self.context.get('contest') or getattr(self.instance, 'contest', None)
+        answer_format = attrs.get('answer_format') or getattr(
+            self.instance,
+            'answer_format',
+            ExamQuestionAnswerFormat.PLAIN_TEXT,
+        )
 
         if group_id is not None and contest is not None:
             if not ExamQuestionGroup.objects.filter(id=group_id, contest=contest).exists():
@@ -741,6 +761,14 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
 
         if question_type in {ExamQuestionType.ESSAY, ExamQuestionType.SHORT_ANSWER} and options is not None and len(options) > 0:
             raise serializers.ValidationError({'options': f'{question_type} question should not define options'})
+
+        if (
+            answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT
+            and question_type not in {ExamQuestionType.ESSAY, ExamQuestionType.SHORT_ANSWER}
+        ):
+            raise serializers.ValidationError({
+                'answer_format': 'open_document is only supported for subjective questions'
+            })
 
         if question_type in {ExamQuestionType.TRUE_FALSE, ExamQuestionType.SINGLE_CHOICE, ExamQuestionType.MULTIPLE_CHOICE}:
             merged_answer = correct_answer if 'correct_answer' in attrs else getattr(self.instance, 'correct_answer', None)
@@ -785,7 +813,10 @@ class ExamQuestionGroupSerializer(serializers.ModelSerializer):
     def get_total_score(self, obj):
         if hasattr(obj, 'total_score_annotated') and obj.total_score_annotated is not None:
             return obj.total_score_annotated
-        return obj.questions.aggregate(total=Sum('score'))['total'] or 0
+        from .models import ExamQuestionScorePolicy
+        return obj.questions.exclude(
+            score_policy=ExamQuestionScorePolicy.EXCLUDED
+        ).aggregate(total=Sum('score'))['total'] or 0
 
 
 # ============================================================================
