@@ -360,6 +360,64 @@ class DurableRunWorkerTestCase(TestCase):
         self.assertIn("filename=OS-2025-Midterm-2-QA.pdf", payload["content"])
         self.assertIn("artifact_read_pdf", payload["content"])
 
+    def test_execute_resume_run_preserves_model_id_for_ai_service(self):
+        assistant_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.ASSISTANT,
+            content="",
+            metadata={"run_status": "running"},
+        )
+        run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.RUNNING,
+            kind=AIChatRun.Kind.RESUME,
+            content="needs approval",
+            assistant_message=assistant_message,
+            thread_id=self.session.session_id,
+            model_id="openai-mini-medium",
+            resume_decision="approve",
+        )
+
+        with patch(
+            "apps.ai.services.run_runtime.build_ai_service_headers",
+            return_value={"X-AI-Internal-Token": "test"},
+        ), patch("apps.ai.services.run_runtime.httpx.Client", _MockHttpClient):
+            execute_run(str(run.id))
+
+        call = _MockHttpClient.calls[0]
+        self.assertEqual(call["args"][1], "http://ai-service:8001/api/chat/resume")
+        self.assertEqual(call["kwargs"]["json"]["model_id"], "openai-mini-medium")
+
+    def test_execute_answer_run_preserves_model_id_for_ai_service(self):
+        assistant_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.ASSISTANT,
+            content="",
+            metadata={"run_status": "running"},
+        )
+        run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.RUNNING,
+            kind=AIChatRun.Kind.RESUME,
+            content="needs answer",
+            assistant_message=assistant_message,
+            thread_id=self.session.session_id,
+            model_id="deepseek-v4-thinking",
+            question_answer="use the uploaded rubric",
+        )
+
+        with patch(
+            "apps.ai.services.run_runtime.build_ai_service_headers",
+            return_value={"X-AI-Internal-Token": "test"},
+        ), patch("apps.ai.services.run_runtime.httpx.Client", _MockHttpClient):
+            execute_run(str(run.id))
+
+        call = _MockHttpClient.calls[0]
+        self.assertEqual(call["args"][1], "http://ai-service:8001/api/chat/answer")
+        self.assertEqual(call["kwargs"]["json"]["model_id"], "deepseek-v4-thinking")
+
     def test_execute_run_dispatches_next_queued_run_after_terminal_event(self):
         user_message = AIMessage.objects.create(
             session=self.session,
