@@ -18,6 +18,7 @@ import layoutStyles from "@/features/contest/components/admin/layout/AdminSplitL
 import QuestionSidebarScreen from "./QuestionSidebarScreen";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import GradingMobileNav from "./GradingMobileNav";
+import ScorePolicyMenu from "./components/ScorePolicyMenu";
 import {
   GRADING_COLLAPSED_LIST_WIDTH,
   GRADING_PRIMARY_LIST_WIDTH,
@@ -54,6 +55,7 @@ interface GradingByQuestionTabScreenProps {
     nonce: number;
   } | null;
   readOnly?: boolean;
+  onRefreshData?: () => void;
 }
 
 export default function GradingByQuestionTabScreen({
@@ -72,6 +74,7 @@ export default function GradingByQuestionTabScreen({
   onSelectedStudentIdChange,
   selectionRequest = null,
   readOnly = false,
+  onRefreshData,
 }: GradingByQuestionTabScreenProps) {
   const { t } = useTranslation("contest");
   const [isQuestionPaneCollapsed, setIsQuestionPaneCollapsed] = useState(false);
@@ -277,7 +280,27 @@ export default function GradingByQuestionTabScreen({
 
   const middlePaneContent = (
     <ListPanel
-      header={<ListHeader title={t("grading.answerList", "作答列表")} />}
+      header={
+        <ListHeader
+          title={t("grading.answerList", "作答列表")}
+          action={
+            selectedQuestion && !readOnly ? (
+              <ScorePolicyMenu
+                questionId={selectedQuestion.questionId}
+                questionIndex={selectedQuestion.questionIndex}
+                currentPolicy={selectedQuestion.scorePolicy ?? "normal"}
+                allQuestions={questionProgress.map((q) => ({
+                  id: q.questionId,
+                  order: q.questionIndex - 1,
+                  prompt: q.prompt,
+                  score: q.maxScore,
+                }))}
+                onPolicyChanged={onRefreshData}
+              />
+            ) : undefined
+          }
+        />
+      }
       footer={
         <ListFooter>
           {t("grading.answersDisplayCount", "顯示 {{shown}} / {{total}} 位", {

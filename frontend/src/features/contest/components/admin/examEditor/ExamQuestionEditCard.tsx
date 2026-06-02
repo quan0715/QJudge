@@ -25,6 +25,7 @@ import type {
   ExamQuestion,
   ExamQuestionAnswerFormat,
   ExamQuestionType,
+  OpenAnswerDocument,
 } from "@/core/entities/contest.entity";
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
@@ -33,8 +34,14 @@ import {
   EXAM_QUESTION_TYPE_TAG_COLOR as TYPE_TAG_COLOR,
 } from "@/shared/ui/examQuestionTypeVisual";
 import ExamQuestionPrompt from "@/features/contest/components/exam/ExamQuestionPrompt";
+import {
+  OpenAnswerDocumentEditor,
+  OpenAnswerDocumentRenderer,
+  createEmptyOpenAnswerDocument,
+} from "@/shared/ui/editor";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
+import ScorePolicyMenu, { ScorePolicyTag } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
 import styles from "./ExamQuestionEditCard.module.scss";
 
 // --- Constants ---
@@ -63,6 +70,8 @@ interface QuestionFormState {
   essayReferenceAnswer: string;
   shortAnswer: string;
   answerFormat: ExamQuestionAnswerFormat;
+  referenceAnswerDocument: OpenAnswerDocument | null;
+  explanationDocument: OpenAnswerDocument | null;
 }
 
 const getDefaultOptions = (type: ExamQuestionType): string[] => {
@@ -73,6 +82,9 @@ const getDefaultOptions = (type: ExamQuestionType): string[] => {
 
 const isChoiceType = (type: ExamQuestionType) =>
   type === "true_false" || type === "single_choice" || type === "multiple_choice";
+
+const isSubjectiveType = (type: ExamQuestionType) =>
+  type === "short_answer" || type === "essay";
 
 const toSingleAnswerIndex = (
   value: unknown,
@@ -122,6 +134,8 @@ const toFormState = (question: ExamQuestion): QuestionFormState => {
     essayReferenceAnswer: "",
     shortAnswer: "",
     answerFormat: question.answerFormat ?? "plain_text",
+    referenceAnswerDocument: question.referenceAnswerDocument ?? null,
+    explanationDocument: question.explanationDocument ?? null,
   };
 
   if (question.questionType === "multiple_choice") {
@@ -169,10 +183,16 @@ const buildPayload = (
   const payload: ExamQuestionUpsertPayload = {
     question_type: form.questionType,
     prompt: form.prompt.trim(),
-    explanation: form.explanation.trim(),
+    explanation: form.answerFormat === "open_document" ? "" : form.explanation.trim(),
     score: includeScore ? Number(form.score || 0) : 1,
     answer_format: isChoiceType(form.questionType) ? "plain_text" : form.answerFormat,
   };
+  if (isSubjectiveType(form.questionType) && form.answerFormat === "open_document") {
+    payload.correct_answer = null;
+    payload.reference_answer_document = form.referenceAnswerDocument;
+    payload.explanation_document = form.explanationDocument;
+    return payload;
+  }
   if (form.questionType === "essay") {
     if (form.essayReferenceAnswer.trim()) {
       payload.correct_answer = form.essayReferenceAnswer.trim();
@@ -218,6 +238,8 @@ const isFormDirty = (
   if (a.essayReferenceAnswer !== b.essayReferenceAnswer) return true;
   if (a.shortAnswer !== b.shortAnswer) return true;
   if (a.answerFormat !== b.answerFormat) return true;
+  if (JSON.stringify(a.referenceAnswerDocument) !== JSON.stringify(b.referenceAnswerDocument)) return true;
+  if (JSON.stringify(a.explanationDocument) !== JSON.stringify(b.explanationDocument)) return true;
   if (a.options.length !== b.options.length) return true;
   if (a.options.some((o, i) => o !== b.options[i])) return true;
   if (a.multiAnswerIndexes.length !== b.multiAnswerIndexes.length) return true;
@@ -248,6 +270,21 @@ const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> => {
   );
 };
 
+const OptionMarkdownLabel = ({
+  letter,
+  children,
+}: {
+  letter: string;
+  children: string;
+}) => (
+  <span className={styles.optionMarkdownLabel}>
+    <span className={styles.optionLetterPreview}>{letter}.</span>
+    <MarkdownRenderer enableMath enableHighlight className={styles.optionMarkdownContent}>
+      {children}
+    </MarkdownRenderer>
+  </span>
+);
+
 const toNumberInputValue = (value: string | number): string => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return "1";
@@ -262,11 +299,14 @@ interface ExamQuestionEditCardProps {
   showScoreField?: boolean;
   frozen?: boolean;
   startEditingSignal?: number;
+  /** All questions for redistribute target selection */
+  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number }>;
   onAutoSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
   onSaveToBank?: (question: ExamQuestion) => void;
   onPointerDownDrag?: (e: React.PointerEvent) => void;
+  onScorePolicyChanged?: () => void;
 }
 
 const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
@@ -275,11 +315,13 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   showScoreField = true,
   frozen,
   startEditingSignal,
+  allQuestions,
   onAutoSave,
   onDelete,
   onDuplicate,
   onSaveToBank,
   onPointerDownDrag,
+  onScorePolicyChanged,
 }) => {
   const { showToast } = useToast();
   const { t } = useTranslation("contest");
@@ -561,11 +603,29 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     {t("examEditor.answerFormats.markdownMath", "數學作答")}
                   </Tag>
                 ) : null}
+                {!isChoiceType(question.questionType) && question.answerFormat === "open_document" ? (
+                  <Tag size="sm" type="cyan">
+                    {t("examEditor.answerFormats.openDocument", "開放作答紙")}
+                  </Tag>
+                ) : null}
+                {question.scorePolicy && question.scorePolicy !== "normal" && (
+                  <ScorePolicyTag policy={question.scorePolicy} />
+                )}
               </span>
               <div className={styles.headerRight}>
                 {showScoreField ? (
                   <span className={styles.score}>{t("examEditor.scoreUnit", { score: question.score })}</span>
                 ) : null}
+                {/* Score policy menu — always available, even when frozen */}
+                <div onClick={(e) => e.stopPropagation()}>
+                  <ScorePolicyMenu
+                    questionId={question.id}
+                    questionIndex={index + 1}
+                    currentPolicy={question.scorePolicy ?? "normal"}
+                    allQuestions={allQuestions}
+                    onPolicyChanged={onScorePolicyChanged}
+                  />
+                </div>
                 {!frozen && (
                   <>
                     <IconButton
@@ -603,7 +663,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             />
 
             <div className={styles.answerArea}>
-              <div className={styles.answerLabel}>{t("examEditor.correctAnswer", "正確答案")}</div>
+              <div className={styles.answerLabel}>
+                {isSubjectiveType(question.questionType)
+                  ? t("examEditor.gradingReferenceAnswer", "評分參考答案")
+                  : t("examEditor.correctAnswer", "正確答案")}
+              </div>
 
               {/* Non-interactive answer display */}
               <div className={styles.previewAnswers}>
@@ -612,8 +676,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                   <div className={styles.optionList}>
                     {tfOptions.map((label, i) => (
                       <div key={i} className={styles.answerText}>
-                        <strong>{String.fromCharCode(65 + i)}.</strong>{" "}
-                        <MarkdownRenderer>{label}</MarkdownRenderer>
+                        <OptionMarkdownLabel letter={String.fromCharCode(65 + i)}>
+                          {label}
+                        </OptionMarkdownLabel>
                         {correctSingle === i ? (
                           <Tag type="green" size="sm">
                             {t("examEditor.correctAnswer", "正確答案")}
@@ -636,7 +701,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     {question.options.map((opt, i) => (
                       <RadioButton
                         key={i}
-                        labelText={`${String.fromCharCode(65 + i)}. ${opt}`}
+                        labelText={
+                          <OptionMarkdownLabel letter={String.fromCharCode(65 + i)}>
+                            {opt}
+                          </OptionMarkdownLabel>
+                        }
                         value={String(i)}
                         id={`pv-${question.id}-opt-${i}`}
                       />
@@ -651,7 +720,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                       <Checkbox
                         key={i}
                         id={`pv-${question.id}-mc-${i}`}
-                        labelText={`${String.fromCharCode(65 + i)}. ${opt}`}
+                        labelText={
+                          <OptionMarkdownLabel letter={String.fromCharCode(65 + i)}>
+                            {opt}
+                          </OptionMarkdownLabel>
+                        }
                         checked={correctMulti.has(i)}
                         onChange={() => {}}
                       />
@@ -662,17 +735,21 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 {/* Short answer */}
                 {question.questionType === "short_answer" && (
                   <div className={styles.answerText}>
-                    {question.correctAnswer != null
-                      ? <MarkdownRenderer>{String(question.correctAnswer)}</MarkdownRenderer>
-                      : <span className={styles.answerEmpty}>{t("examEditor.answerNotSet", "（未設定答案）")}</span>}
+                    {question.answerFormat === "open_document" && question.referenceAnswerDocument ? (
+                      <OpenAnswerDocumentRenderer document={question.referenceAnswerDocument} />
+                    ) : question.correctAnswer != null
+                      ? <MarkdownRenderer enableMath enableHighlight>{String(question.correctAnswer)}</MarkdownRenderer>
+                      : <span className={styles.answerEmpty}>{t("examEditor.referenceNotSet", "（未設定參考答案）")}</span>}
                   </div>
                 )}
 
                 {/* Essay */}
                 {question.questionType === "essay" && (
                   <div className={styles.answerText}>
-                    {question.correctAnswer
-                      ? <MarkdownRenderer>{String(question.correctAnswer)}</MarkdownRenderer>
+                    {question.answerFormat === "open_document" && question.referenceAnswerDocument ? (
+                      <OpenAnswerDocumentRenderer document={question.referenceAnswerDocument} />
+                    ) : question.correctAnswer
+                      ? <MarkdownRenderer enableMath enableHighlight>{String(question.correctAnswer)}</MarkdownRenderer>
                       : <span className={styles.answerEmpty}>{t("examEditor.referenceNotSet", "（未設定參考答案）")}</span>}
                   </div>
                 )}
@@ -680,11 +757,13 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             </div>
 
             <div className={styles.answerArea}>
-              <div className={styles.answerLabel}>{t("examEditor.explanation", "詳解")}</div>
+              <div className={styles.answerLabel}>{t("examEditor.solutionExplanation", "詳解（解題過程）")}</div>
               <div className={styles.previewAnswers}>
                 <div className={styles.answerText}>
-                  {question.explanation
-                    ? <MarkdownRenderer>{question.explanation}</MarkdownRenderer>
+                  {question.answerFormat === "open_document" && question.explanationDocument ? (
+                    <OpenAnswerDocumentRenderer document={question.explanationDocument} />
+                  ) : question.explanation
+                    ? <MarkdownRenderer enableMath enableHighlight>{question.explanation}</MarkdownRenderer>
                     : <span className={styles.answerEmpty}>{t("examEditor.explanationNotSet", "（未設定詳解）")}</span>}
                 </div>
               </div>
@@ -776,6 +855,10 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     value="markdown_math"
                     text={t("examEditor.answerFormats.markdownMath", "數學作答")}
                   />
+                  <SelectItem
+                    value="open_document"
+                    text={t("examEditor.answerFormats.openDocument", "開放作答紙")}
+                  />
                 </Select>
               </div>
             ) : null}
@@ -813,7 +896,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
 
           {/* Answer area with inline correct-answer selection */}
           <div className={styles.answerArea}>
-            <div className={styles.answerLabel}>{t("examEditor.optionsAndAnswer", "選項與正確答案")}</div>
+            <div className={styles.answerLabel}>
+              {isChoiceType(form.questionType)
+                ? t("examEditor.optionsAndAnswer", "選項與正確答案")
+                : t("examEditor.gradingReferenceAnswer", "評分參考答案")}
+            </div>
 
             {/* True/False: radio to pick correct answer */}
             {form.questionType === "true_false" && (
@@ -958,46 +1045,88 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             {/* Short answer */}
             {form.questionType === "short_answer" && (
               <div className={styles.shortInput}>
-                <MarkdownField
-                  id={`eqc-short-answer-${question.id}`}
-                  labelText={t("examEditor.standardAnswer", "標準答案")}
-                  placeholder={t("examEditor.shortAnswerPlaceholder", "輸入簡答標準答案（如數字、關鍵字）")}
-                  value={form.shortAnswer}
-                  onChange={(val) => setForm((p) => ({ ...p, shortAnswer: val }))}
-                  minHeight="96px"
-                  disabled={!!frozen}
-                />
+                {form.answerFormat === "open_document" ? (
+                  <OpenAnswerDocumentEditor
+                    value={form.referenceAnswerDocument ?? createEmptyOpenAnswerDocument()}
+                    onChange={(document) =>
+                      setForm((p) => ({ ...p, referenceAnswerDocument: document }))
+                    }
+                    readOnly={!!frozen}
+                    ariaLabel={t("examEditor.gradingReferenceAnswer", "評分參考答案")}
+                  />
+                ) : (
+                  <MarkdownField
+                    id={`eqc-short-answer-${question.id}`}
+                    labelText={t("examEditor.gradingReferenceAnswer", "評分參考答案")}
+                    placeholder={t(
+                      "examEditor.gradingReferencePlaceholder",
+                      "輸入評分用答案要點或最終結論；完整推導請放在詳解",
+                    )}
+                    value={form.shortAnswer}
+                    onChange={(val) => setForm((p) => ({ ...p, shortAnswer: val }))}
+                    minHeight="96px"
+                    disabled={!!frozen}
+                  />
+                )}
               </div>
             )}
 
             {/* Essay */}
             {form.questionType === "essay" && (
               <div className={styles.essayArea}>
-                <MarkdownField
-                  id={`eqc-essay-answer-${question.id}`}
-                  labelText={t("examEditor.referenceAnswer", "參考答案")}
-                  value={form.essayReferenceAnswer}
-                  onChange={(val) => setForm((p) => ({ ...p, essayReferenceAnswer: val }))}
-                  placeholder={t("examEditor.referencePlaceholder", "參考答案（可選，支援 Markdown）")}
-                  minHeight="112px"
-                  disabled={!!frozen}
-                />
+                {form.answerFormat === "open_document" ? (
+                  <OpenAnswerDocumentEditor
+                    value={form.referenceAnswerDocument ?? createEmptyOpenAnswerDocument()}
+                    onChange={(document) =>
+                      setForm((p) => ({ ...p, referenceAnswerDocument: document }))
+                    }
+                    readOnly={!!frozen}
+                    ariaLabel={t("examEditor.gradingReferenceAnswer", "評分參考答案")}
+                  />
+                ) : (
+                  <MarkdownField
+                    id={`eqc-essay-answer-${question.id}`}
+                    labelText={t("examEditor.gradingReferenceAnswer", "評分參考答案")}
+                    value={form.essayReferenceAnswer}
+                    onChange={(val) => setForm((p) => ({ ...p, essayReferenceAnswer: val }))}
+                    placeholder={t(
+                      "examEditor.gradingReferencePlaceholder",
+                      "輸入評分用答案要點或最終結論；完整推導請放在詳解",
+                    )}
+                    minHeight="112px"
+                    disabled={!!frozen}
+                  />
+                )}
               </div>
             )}
           </div>
 
           <div className={styles.answerArea}>
-            <div className={styles.answerLabel}>{t("examEditor.explanation", "詳解")}</div>
+            <div className={styles.answerLabel}>{t("examEditor.solutionExplanation", "詳解（解題過程）")}</div>
             <div className={styles.essayArea}>
-              <MarkdownField
-                id={`eqc-explanation-${question.id}`}
-                labelText={t("examEditor.explanation", "詳解")}
-                value={form.explanation}
-                onChange={(val) => setForm((p) => ({ ...p, explanation: val }))}
-                placeholder={t("examEditor.explanationPlaceholder", "補充解題思路、評分重點或觀念解析（支援 Markdown）")}
-                minHeight="112px"
-                disabled={!!frozen}
-              />
+              {isSubjectiveType(form.questionType) && form.answerFormat === "open_document" ? (
+                <OpenAnswerDocumentEditor
+                  value={form.explanationDocument ?? createEmptyOpenAnswerDocument()}
+                  onChange={(document) =>
+                    setForm((p) => ({ ...p, explanationDocument: document }))
+                  }
+                  readOnly={!!frozen}
+                  ariaLabel={t("examEditor.solutionExplanation", "詳解（解題過程）")}
+                />
+              ) : (
+                <MarkdownField
+                  id={`eqc-explanation-${question.id}`}
+                  labelText={t("examEditor.solutionExplanation", "詳解（解題過程）")}
+                  value={form.explanation}
+                  onChange={(val) => setForm((p) => ({ ...p, explanation: val }))}
+                  placeholder={t(
+                    "examEditor.explanationPlaceholder",
+                    "輸入完整解題過程、推導或觀念解析；不要把評分用最終答案只放在這裡",
+                  )}
+                  minHeight="112px"
+                  disabled={!!frozen}
+                />
+              )}
             </div>
           </div>
         </div>
