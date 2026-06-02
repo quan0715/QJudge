@@ -173,6 +173,9 @@ def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) 
         if policy == ExamQuestionScorePolicy.EXCLUDED:
             earned_score = None
             status = {"code": "excluded", "label": "不計分", "color": "gray"}
+        elif policy == ExamQuestionScorePolicy.REDISTRIBUTE:
+            earned_score = None
+            status = {"code": "redistribute", "label": "配分重分配", "color": "blue"}
         elif policy == ExamQuestionScorePolicy.FULL_MARKS:
             earned_score = question_score
             status = {"code": "full_marks", "label": "送分", "color": "green"}

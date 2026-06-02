@@ -583,7 +583,7 @@ export type ExamQuestionType =
   | "short_answer"
   | "essay";
 
-export type ExamQuestionScorePolicy = "normal" | "excluded" | "full_marks";
+export type ExamQuestionScorePolicy = "normal" | "excluded" | "full_marks" | "redistribute";
 
 export type ExamQuestionAnswerFormat =
   | "plain_text"

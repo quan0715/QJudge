@@ -35,6 +35,7 @@ class QuestionScoreInfo:
     score_policy: str
     question_type: str
     prompt: str = ''  # question title/prompt for display
+    score_policy_config: dict = field(default_factory=dict)
 
     @property
     def is_excluded(self) -> bool:
@@ -47,6 +48,10 @@ class QuestionScoreInfo:
     @property
     def is_normal(self) -> bool:
         return self.score_policy == ExamQuestionScorePolicy.NORMAL
+
+    @property
+    def is_redistribute(self) -> bool:
+        return self.score_policy == ExamQuestionScorePolicy.REDISTRIBUTE
 
 
 @dataclass
@@ -116,16 +121,24 @@ class ExamScoringService:
                     score_policy=q.score_policy,
                     question_type=q.question_type,
                     prompt=q.prompt or '',
+                    score_policy_config=q.score_policy_config or {},
                 )
                 for q in qs
             ]
         return self._questions_cache
 
     def get_max_total_score(self) -> float:
-        """Maximum achievable score (excludes EXCLUDED questions)."""
+        """
+        Maximum achievable score.
+        Excludes EXCLUDED questions. REDISTRIBUTE questions' points are moved to
+        their targets, so total achievable remains sum(non-excluded).
+        """
         return sum(
             q.score for q in self.get_questions()
-            if not q.is_excluded
+            if not q.is_excluded and not q.is_redistribute
+        ) + sum(
+            q.score for q in self.get_questions()
+            if q.is_redistribute
         )
 
     def get_full_marks_total(self) -> float:
@@ -139,6 +152,52 @@ class ExamScoringService:
         """IDs of questions with NORMAL policy."""
         return [q.id for q in self.get_questions() if q.is_normal]
 
+    def _compute_effective_max(self) -> dict:
+        """
+        Compute effective max score per question after redistribution.
+
+        REDISTRIBUTE questions transfer their points proportionally to targets.
+        If targets list is empty, distribute to ALL normal-policy questions.
+
+        Returns:
+            {question_id: effective_max_score}
+        """
+        questions = self.get_questions()
+        q_map = {q.id: q for q in questions}
+        effective = {q.id: q.score for q in questions}
+
+        for q in questions:
+            if not q.is_redistribute:
+                continue
+            # Determine targets
+            target_ids = q.score_policy_config.get('redistribute_to', [])
+            if not target_ids:
+                # Default: all normal-policy questions
+                target_ids = [t.id for t in questions if t.is_normal]
+            else:
+                # Convert string UUIDs to match question id types
+                from uuid import UUID
+                target_ids = [UUID(tid) if isinstance(tid, str) else tid for tid in target_ids]
+
+            # Filter to valid, non-excluded, non-redistribute targets
+            valid_targets = [
+                tid for tid in target_ids
+                if tid in q_map and not q_map[tid].is_excluded and not q_map[tid].is_redistribute
+            ]
+            if not valid_targets:
+                continue
+
+            # Proportional distribution based on target scores
+            total_target_score = sum(q_map[tid].score for tid in valid_targets)
+            if total_target_score <= 0:
+                continue
+
+            for tid in valid_targets:
+                bonus = q.score * (q_map[tid].score / total_target_score)
+                effective[tid] += bonus
+
+        return effective
+
     # ──────────────────────────────────────────────────────────────────
     # Single participant scoring
     # ──────────────────────────────────────────────────────────────────
@@ -147,22 +206,41 @@ class ExamScoringService:
         """
         Compute a single participant's total score respecting all policies.
 
-        - normal: use the answer's actual score
+        - normal: use the answer's actual score (scaled if receiving redistribution)
         - excluded: contributes 0
-        - full_marks: contribute the question's max score
+        - full_marks: contribute the question's max score (scaled if receiving redistribution)
+        - redistribute: contributes 0 (its points go to targets)
 
         Returns the computed total (also persisted to participant.score).
         """
-        normal_ids = self.get_normal_question_ids()
-        normal_total = (
-            ExamAnswer.objects.filter(
-                participant=participant,
-                score__isnull=False,
-                question_id__in=normal_ids,
-            ).aggregate(total=Sum('score'))['total']
-        ) or 0
+        questions = self.get_questions()
+        effective_max = self._compute_effective_max()
+        has_redistribute = any(q.is_redistribute for q in questions)
 
-        total = Decimal(str(normal_total)) + Decimal(str(self.get_full_marks_total()))
+        answers = ExamAnswer.objects.filter(
+            participant=participant,
+            score__isnull=False,
+        ).values_list('question_id', 'score')
+        answer_scores = {qid: float(s) for qid, s in answers}
+
+        total = Decimal('0')
+        for q in questions:
+            if q.is_excluded or q.is_redistribute:
+                continue
+            if q.is_full_marks:
+                # Full marks uses effective max (includes any redistribution bonus)
+                total += Decimal(str(effective_max[q.id]))
+                continue
+            # Normal: scale if redistribution applies
+            actual = answer_scores.get(q.id)
+            if actual is None:
+                continue
+            if has_redistribute and q.score > 0 and effective_max[q.id] != q.score:
+                scaled = actual * (effective_max[q.id] / q.score)
+                total += Decimal(str(scaled))
+            else:
+                total += Decimal(str(actual))
+
         rounded = total.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         participant.score = int(rounded)
         participant.save(update_fields=['score'])
@@ -173,25 +251,38 @@ class ExamScoringService:
         Recalculate scores for all participants.
         Returns the number of participants updated.
         """
-        normal_ids = self.get_normal_question_ids()
-        full_marks_total = self.get_full_marks_total()
+        questions = self.get_questions()
+        effective_max = self._compute_effective_max()
+        has_redistribute = any(q.is_redistribute for q in questions)
+        full_marks_total = sum(effective_max[q.id] for q in questions if q.is_full_marks)
 
         participants = ContestParticipant.objects.filter(contest=self.contest)
         count = 0
         for participant in participants:
-            normal_total = (
-                ExamAnswer.objects.filter(
-                    participant=participant,
-                    score__isnull=False,
-                    question_id__in=normal_ids,
-                ).aggregate(total=Sum('score'))['total']
-            ) or 0
+            answers = ExamAnswer.objects.filter(
+                participant=participant,
+                score__isnull=False,
+            ).values_list('question_id', 'score')
+            answer_scores = {qid: float(s) for qid, s in answers}
 
-            total = Decimal(str(normal_total)) + Decimal(str(full_marks_total))
+            total = Decimal(str(full_marks_total))
+            for q in questions:
+                if q.is_excluded or q.is_redistribute or q.is_full_marks:
+                    continue
+                actual = answer_scores.get(q.id)
+                if actual is None:
+                    continue
+                if has_redistribute and q.score > 0 and effective_max[q.id] != q.score:
+                    scaled = actual * (effective_max[q.id] / q.score)
+                    total += Decimal(str(scaled))
+                else:
+                    total += Decimal(str(actual))
+
             rounded = total.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
             participant.score = int(rounded)
             participant.save(update_fields=['score'])
             count += 1
+        return count
         return count
 
     # ──────────────────────────────────────────────────────────────────
@@ -214,6 +305,8 @@ class ExamScoringService:
             answers_map = {a.question_id: a for a in answers}
 
         questions = self.get_questions()
+        effective_max = self._compute_effective_max()
+        has_redistribute = any(q.is_redistribute for q in questions)
         max_total = self.get_max_total_score()
         total_score = 0.0
         graded_count = 0
@@ -224,20 +317,28 @@ class ExamScoringService:
             if q.is_excluded:
                 items.append({'question_id': q.id, 'score': None, 'policy': q.score_policy})
                 continue
+            if q.is_redistribute:
+                items.append({'question_id': q.id, 'score': None, 'policy': q.score_policy})
+                continue
             if q.is_full_marks:
-                total_score += q.score
+                eff = effective_max[q.id]
+                total_score += eff
                 graded_count += 1
                 correct_count += 1
-                items.append({'question_id': q.id, 'score': q.score, 'policy': q.score_policy})
+                items.append({'question_id': q.id, 'score': eff, 'policy': q.score_policy})
                 continue
-            # normal
+            # normal (possibly receiving redistribution)
             ans = answers_map.get(q.id)
             score_val = None
             if ans and ans.score is not None:
-                score_val = float(ans.score)
+                actual = float(ans.score)
+                if has_redistribute and q.score > 0 and effective_max[q.id] != q.score:
+                    score_val = actual * (effective_max[q.id] / q.score)
+                else:
+                    score_val = actual
                 total_score += score_val
                 graded_count += 1
-                if score_val >= q.score:
+                if score_val >= effective_max[q.id]:
                     correct_count += 1
             items.append({'question_id': q.id, 'score': score_val, 'policy': q.score_policy})
 
@@ -265,8 +366,10 @@ class ExamScoringService:
             {participant_id: total_score_float}
         """
         questions = self.get_questions()
-        question_policy = {q.id: q.score_policy for q in questions}
-        full_marks_total = self.get_full_marks_total()
+        effective_max = self._compute_effective_max()
+        has_redistribute = any(q.is_redistribute for q in questions)
+        question_map = {q.id: q for q in questions}
+        full_marks_total = sum(effective_max[q.id] for q in questions if q.is_full_marks)
 
         scores = {pid: full_marks_total for pid in participant_ids}
 
@@ -275,9 +378,13 @@ class ExamScoringService:
             if score is None:
                 continue
             qid = answer['question_id']
-            policy = question_policy.get(qid, ExamQuestionScorePolicy.NORMAL)
-            if policy == ExamQuestionScorePolicy.NORMAL:
-                scores[answer['participant_id']] += float(score)
+            q = question_map.get(qid)
+            if q is None or q.is_excluded or q.is_redistribute or q.is_full_marks:
+                continue
+            actual = float(score)
+            if has_redistribute and q.score > 0 and effective_max[q.id] != q.score:
+                actual = actual * (effective_max[q.id] / q.score)
+            scores[answer['participant_id']] += actual
 
         return scores
 

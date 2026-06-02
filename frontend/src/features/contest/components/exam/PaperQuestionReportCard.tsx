@@ -72,6 +72,7 @@ export default function PaperQuestionReportCard({
 }: PaperQuestionReportCardProps) {
   const isExcluded = scorePolicy === "excluded";
   const isFullMarks = scorePolicy === "full_marks";
+  const isRedistribute = scorePolicy === "redistribute";
   return (
     <article className={styles.root}>
       <div className={styles.header}>
@@ -80,10 +81,11 @@ export default function PaperQuestionReportCard({
             Q{index} · {typeLabel}
             {isExcluded && <span className={styles.policyExcluded}> (不計分)</span>}
             {isFullMarks && <span className={styles.policyFullMarks}> (送分)</span>}
+            {isRedistribute && <span className={styles.policyExcluded}> (配分重分配)</span>}
           </div>
           {showGrading ? (
             <div className={styles.meta}>
-              {isExcluded ? "—" : (score ?? "-")} / {maxScore}
+              {isExcluded || isRedistribute ? "—" : (score ?? "-")} / {maxScore}
               {gradedByUsername ? ` · ${gradedByUsername}` : ""}
             </div>
           ) : null}

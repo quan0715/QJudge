@@ -195,9 +195,10 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
                       if (h === "score") {
                         const isExcluded = src?.scorePolicy === "excluded";
                         const isFullMarks = src?.scorePolicy === "full_marks";
+                        const isRedistribute = src?.scorePolicy === "redistribute";
                         return (
                           <TableCell key={cell.id} className={styles.colScore}>
-                            {isExcluded ? (
+                            {isExcluded || isRedistribute ? (
                               <span className={styles.cellScoreExcluded}>
                                 — / {src?.maxScore ?? "?"}
                               </span>

@@ -339,3 +339,169 @@ class ExamScoringServiceTests(TestCase):
         self.assertEqual(q1_stats.graded_count, 1)
         self.assertEqual(q1_stats.score_sum, 10.0)
         self.assertEqual(q1_stats.full_count, 1)
+
+
+class ExamScoringRedistributeTests(TestCase):
+    """Tests for REDISTRIBUTE score policy."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="owner-redist",
+            email="owner-redist@example.com",
+            password="password",
+            role="teacher",
+        )
+        self.contest = Contest.objects.create(
+            name="Redistribute Test",
+            start_time=timezone.now() - timedelta(hours=1),
+            end_time=timezone.now() + timedelta(hours=1),
+            owner=self.owner,
+            visibility="public",
+            status="published",
+            contest_type="paper_exam",
+        )
+        # 5 questions: Q1=10, Q2=10, Q3=10, Q4=10, Q5=10 (total=50)
+        self.questions = []
+        for i in range(5):
+            q = ExamQuestion.objects.create(
+                contest=self.contest,
+                question_type=ExamQuestionType.SINGLE_CHOICE,
+                prompt=f"Q{i + 1}",
+                options=["A", "B", "C", "D"],
+                correct_answer="A",
+                score=10,
+                order=i,
+            )
+            self.questions.append(q)
+
+        self.student = User.objects.create_user(
+            username="student-redist", email="sr@example.com", password="password"
+        )
+        self.participant = ContestParticipant.objects.create(
+            contest=self.contest,
+            user=self.student,
+            exam_status=ExamStatus.SUBMITTED,
+        )
+        # Student gets Q1=10, Q2=5, Q3=0, Q4=10, Q5=5
+        scores = [10, 5, 0, 10, 5]
+        for i, q in enumerate(self.questions):
+            ExamAnswer.objects.create(
+                participant=self.participant,
+                question=q,
+                answer={"selected": "A"},
+                score=scores[i],
+                is_correct=(scores[i] == 10),
+            )
+
+    def _service(self):
+        return ExamScoringService(self.contest)
+
+    def test_redistribute_to_all_normal(self):
+        """Redistribute with empty targets → distribute to all normal questions."""
+        # Set Q1 to redistribute (empty targets = all normal)
+        self.questions[0].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.questions[0].score_policy_config = {'redistribute_to': []}
+        self.questions[0].save()
+
+        svc = self._service()
+        # Max total stays 50 (10 redistributed to Q2-Q5 evenly)
+        self.assertEqual(svc.get_max_total_score(), 50)
+
+        # Each of Q2-Q5 gets bonus = 10 * (10/40) = 2.5 → effective_max=12.5
+        # Student scores: Q2: 5*(12.5/10)=6.25, Q3: 0, Q4: 10*(12.5/10)=12.5, Q5: 5*(12.5/10)=6.25
+        # Total = 6.25 + 0 + 12.5 + 6.25 = 25 → rounds to 25
+        score = svc.calculate_participant_score(self.participant)
+        self.assertEqual(score, 25)
+
+    def test_redistribute_to_specific_targets(self):
+        """Redistribute to specific questions only."""
+        # Set Q1 to redistribute to Q2 and Q3
+        self.questions[0].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.questions[0].score_policy_config = {
+            'redistribute_to': [str(self.questions[1].id), str(self.questions[2].id)]
+        }
+        self.questions[0].save()
+
+        svc = self._service()
+        self.assertEqual(svc.get_max_total_score(), 50)
+
+        # Q2 gets bonus = 10 * (10/20) = 5 → effective_max=15
+        # Q3 gets bonus = 10 * (10/20) = 5 → effective_max=15
+        # Q4, Q5 unchanged
+        # Student: Q2: 5*(15/10)=7.5, Q3: 0*(15/10)=0, Q4: 10, Q5: 5
+        # Total = 7.5 + 0 + 10 + 5 = 22.5 → rounds to 23
+        score = svc.calculate_participant_score(self.participant)
+        self.assertEqual(score, 23)
+
+    def test_redistribute_multiple_sources(self):
+        """Multiple questions redistributing to same targets."""
+        # Q1 and Q2 both redistribute to Q3
+        self.questions[0].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.questions[0].score_policy_config = {'redistribute_to': [str(self.questions[2].id)]}
+        self.questions[0].save()
+
+        self.questions[1].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.questions[1].score_policy_config = {'redistribute_to': [str(self.questions[2].id)]}
+        self.questions[1].save()
+
+        svc = self._service()
+        # Q3 effective_max = 10 + 10 + 10 = 30
+        # Student: Q3: 0*(30/10)=0, Q4: 10, Q5: 5
+        # Total = 0 + 10 + 5 = 15
+        score = svc.calculate_participant_score(self.participant)
+        self.assertEqual(score, 15)
+
+    def test_redistribute_preserves_zero_score(self):
+        """If student got 0 on target, redistribution doesn't give free points."""
+        # Q4 redistributes to Q3 (student got 0 on Q3)
+        self.questions[3].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.questions[3].score_policy_config = {'redistribute_to': [str(self.questions[2].id)]}
+        self.questions[3].save()
+
+        svc = self._service()
+        # Q3 effective_max = 10 + 10 = 20
+        # Student: Q1: 10, Q2: 5, Q3: 0*(20/10)=0, Q5: 5
+        # Total = 10 + 5 + 0 + 5 = 20
+        score = svc.calculate_participant_score(self.participant)
+        self.assertEqual(score, 20)
+
+    def test_redistribute_recalculate_all(self):
+        """recalculate_all handles redistribute correctly."""
+        self.questions[0].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.questions[0].score_policy_config = {'redistribute_to': []}
+        self.questions[0].save()
+
+        svc = self._service()
+        count = svc.recalculate_all()
+        self.assertEqual(count, 1)
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.score, 25)
+
+    def test_redistribute_breakdown(self):
+        """get_participant_breakdown shows redistribute question as None."""
+        self.questions[0].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.questions[0].score_policy_config = {'redistribute_to': []}
+        self.questions[0].save()
+
+        svc = self._service()
+        breakdown = svc.get_participant_breakdown(self.participant)
+        # Q1 (redistribute) should have score=None
+        q1_item = next(i for i in breakdown.items if i['question_id'] == self.questions[0].id)
+        self.assertIsNone(q1_item['score'])
+        self.assertEqual(q1_item['policy'], ExamQuestionScorePolicy.REDISTRIBUTE)
+        # Total should be 25
+        self.assertAlmostEqual(breakdown.total_score, 25.0, places=1)
+
+    def test_redistribute_compute_participant_scores_bulk(self):
+        """compute_participant_scores handles redistribute in bulk."""
+        self.questions[0].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.questions[0].score_policy_config = {'redistribute_to': []}
+        self.questions[0].save()
+
+        svc = self._service()
+        answers = list(
+            ExamAnswer.objects.filter(participant=self.participant)
+            .values('participant_id', 'question_id', 'score')
+        )
+        scores = svc.compute_participant_scores([self.participant.id], answers)
+        self.assertAlmostEqual(scores[self.participant.id], 25.0, places=1)

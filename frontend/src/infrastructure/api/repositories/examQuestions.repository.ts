@@ -2,7 +2,9 @@ import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.cli
 import type {
   ExamQuestion,
   ExamQuestionAnswerFormat,
+  ExamQuestionScorePolicy,
   ExamQuestionType,
+  OpenAnswerDocument,
 } from "@/core/entities/contest.entity";
 import type { ExamQuestionDto } from "@/infrastructure/api/dto/contest.dto";
 import { mapExamQuestionDto } from "@/infrastructure/mappers/contest.mapper";
@@ -12,8 +14,11 @@ export interface ExamQuestionUpsertPayload {
   prompt: string;
   options?: string[];
   correct_answer?: unknown;
+  reference_answer_document?: OpenAnswerDocument | null;
   explanation?: string;
+  explanation_document?: OpenAnswerDocument | null;
   score: number;
+  score_policy?: ExamQuestionScorePolicy;
   order?: number;
   group_id?: string | null;
   order_in_group?: number | null;
@@ -119,4 +124,21 @@ export const importExamQuestionsFromBank = async (
   );
 
   return Array.isArray(data) ? data.map(mapExamQuestionDto) : [];
+};
+
+/**
+ * Update the score policy of an exam question.
+ * "excluded" removes from scoring, "full_marks" gives everyone max points.
+ */
+export const setExamQuestionScorePolicy = async (
+  contestId: string,
+  questionId: string,
+  policy: ExamQuestionScorePolicy,
+  config?: { redistribute_to?: string[] },
+): Promise<ExamQuestion> => {
+  const data: Record<string, unknown> = { score_policy: policy };
+  if (config) {
+    data.score_policy_config = config;
+  }
+  return updateExamQuestion(contestId, questionId, data);
 };
