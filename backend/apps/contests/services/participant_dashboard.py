@@ -144,6 +144,8 @@ def _serialize_timeline(contest: Contest, participant: ContestParticipant) -> li
 
 
 def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) -> tuple[dict[str, Any], dict[str, Any]]:
+    from .exam_scoring import ExamScoringService, ExamQuestionScorePolicy
+
     questions = list(
         ExamQuestion.objects.filter(contest=contest).order_by("order", "id")
     )
@@ -152,24 +154,31 @@ def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) 
         for answer in ExamAnswer.objects.filter(participant=participant).select_related("question", "graded_by")
     }
 
-    max_score = sum(float(question.score) for question in questions)
-    total_score = 0.0
-    graded_count = 0
-    correct_count = 0
+    scoring = ExamScoringService(contest)
+    breakdown = scoring.get_participant_breakdown(participant, answers)
+    max_score = breakdown.max_total_score
+    total_score = breakdown.total_score
+    graded_count = breakdown.graded_count
+    correct_count = breakdown.correct_count
+
     overview_rows: list[dict[str, Any]] = []
     details: list[dict[str, Any]] = []
 
     for index, question in enumerate(questions, start=1):
         answer = answers.get(question.id)
-        status = _question_status(question, answer)
         question_score = float(question.score)
-        earned_score = float(answer.score) if answer and answer.score is not None else None
+        policy = question.score_policy
 
-        if earned_score is not None:
-            total_score += earned_score
-            graded_count += 1
-            if earned_score >= question_score:
-                correct_count += 1
+        # Determine displayed score based on policy
+        if policy == ExamQuestionScorePolicy.EXCLUDED:
+            earned_score = None
+            status = "excluded"
+        elif policy == ExamQuestionScorePolicy.FULL_MARKS:
+            earned_score = question_score
+            status = "full_marks"
+        else:
+            status = _question_status(question, answer)
+            earned_score = float(answer.score) if answer and answer.score is not None else None
 
         overview_rows.append(
             {
@@ -179,6 +188,7 @@ def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) 
                 "status": status,
                 "score": earned_score,
                 "max_score": question_score,
+                "score_policy": policy,
             }
         )
 
@@ -203,6 +213,7 @@ def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) 
                 "graded_at": answer.graded_at.isoformat() if answer and answer.graded_at else None,
                 "is_correct": answer.is_correct if answer else None,
                 "status": status,
+                "score_policy": policy,
             }
         )
 
