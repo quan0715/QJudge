@@ -300,7 +300,7 @@ interface ExamQuestionEditCardProps {
   frozen?: boolean;
   startEditingSignal?: number;
   /** All questions for redistribute target selection */
-  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number }>;
+  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string }>;
   onAutoSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;

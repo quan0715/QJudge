@@ -17,7 +17,7 @@ interface ScorePolicyMenuProps {
   questionIndex: number;
   currentPolicy: ExamQuestionScorePolicy;
   /** All questions in the exam for redistribute target selection */
-  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number }>;
+  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string }>;
   onPolicyChanged?: () => void;
 }
 
