@@ -38,7 +38,7 @@ import {
 } from "./grading/components/GradingModals";
 import styles from "./ContestAiGradingScreen.module.scss";
 
-const EXCLUDED_MODEL_IDS = new Set(["openai-nano", "deepseek-v4"]);
+const EXCLUDED_MODEL_IDS = new Set(["openai-nano"]);
 const AI_GRADING_QUESTION_PARAM = "ai_grading_question";
 
 function toSingleLineLabel(value: string | undefined): string {

@@ -639,6 +639,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                             row.score != null ? String(row.score) : "-",
                           statusLabel: row.status.label,
                           statusTone: toTagType(row.status),
+                          scorePolicy: row.scorePolicy,
                         };
                       })}
                       showScore
@@ -670,6 +671,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                           feedback={row.feedback}
                           correctAnswer={row.correctAnswer}
                           explanation={row.explanation}
+                          scorePolicy={row.scorePolicy}
                         />
                       ))}
                     </div>

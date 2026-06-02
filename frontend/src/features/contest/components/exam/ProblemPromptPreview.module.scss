@@ -1,0 +1,62 @@
+@use "@carbon/type";
+
+.preview {
+  @include type.type-style("body-compact-01");
+
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-weight: inherit;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--problem-prompt-preview-lines, 2);
+
+  :global(p),
+  :global(li),
+  :global(td),
+  :global(th) {
+    font: inherit;
+    line-height: inherit;
+  }
+
+  :global(p) {
+    display: inline;
+    margin: 0;
+  }
+
+  :global(ul),
+  :global(ol) {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    list-style-position: inside;
+  }
+
+  :global(li) {
+    display: inline;
+  }
+
+  :global(.katex) {
+    font-size: 1em;
+  }
+
+  :global(.katex-display) {
+    display: inline-block;
+    margin: 0;
+  }
+
+  :global(pre),
+  :global(table),
+  :global(blockquote) {
+    display: inline;
+    margin: 0;
+  }
+}
+
+.empty {
+  color: var(--cds-text-placeholder);
+  font-style: italic;
+}

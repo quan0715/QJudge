@@ -98,11 +98,70 @@ Existing `essay` and `short_answer` questions are not batch-upgraded. They remai
 
 Child questions in a group still use the existing `ExamAnswer` model. A student's answer to a group is not stored as one large group-level answer. This keeps autosave, grading, regrading, and statistics aligned with the current per-question model.
 
-Question groups do not store cached scores in P0. Group total score is computed as the sum of child question scores in backend serializers and frontend view models. There is no persisted group subtotal field.
+Question groups do not store cached scores in P0. Group total score is computed as the sum of child question scores by backend serializers. There is no persisted group subtotal field.
+
+## Ordering Semantics
+
+P0 uses `ExamQuestion.order` as the whole-paper canonical ordering key.
+
+- `ExamQuestion.order` remains unique within a contest and drives navigation index, autosave ordering, anti-cheat snapshots, and student progress.
+- Questions inside a group must occupy a contiguous `ExamQuestion.order` range.
+- `ExamQuestionGroup.order` points to the group's placement in the whole paper and must equal the first child question's `order` for publishable groups.
+- `order_in_group` is a display and authoring convenience for child ordering within the group. It does not replace `ExamQuestion.order`.
+- Reordering a group updates `ExamQuestionGroup.order` and all child `ExamQuestion.order` values in one transaction.
+- Reordering children within a group updates `order_in_group` and the affected contiguous `ExamQuestion.order` values in one transaction.
+
+This keeps existing flat-question consumers simple: code that only knows about `ExamQuestion.order` still sees the same paper order.
 
 ## API Shape
 
-Student question lists remain flat to preserve existing runtime behavior.
+Student exam start/runtime should fetch a complete paper snapshot through one composite endpoint:
+
+```text
+GET /api/v1/contests/{contest_id}/exam-paper/
+```
+
+Response shape:
+
+```json
+{
+  "questions": [
+    {
+      "id": "q12",
+      "question_type": "single_choice",
+      "prompt": "...",
+      "order": 12,
+      "group_id": "group-12-14",
+      "order_in_group": 1,
+      "answer_format": "plain_text"
+    },
+    {
+      "id": "q13",
+      "question_type": "essay",
+      "prompt": "...",
+      "order": 13,
+      "group_id": "group-12-14",
+      "order_in_group": 2,
+      "answer_format": "markdown_math"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group-12-14",
+      "title": "12-14 題為題組",
+      "shared_stem_markdown": "...",
+      "order": 12,
+      "total_score": 12
+    }
+  ]
+}
+```
+
+This avoids races where student runtime fetches questions and groups from different edit states. It also matches the product model: starting an exam loads one paper snapshot.
+
+`total_score` is computed by the backend serializer as the immediate sum of child `ExamQuestion.score` values. Frontend view models display this value; they do not recompute group totals.
+
+Teacher/admin editing endpoints remain split for targeted CRUD and incremental editing.
 
 `GET /api/v1/contests/{contest_id}/exam-questions/` continues returning a flat `ExamQuestionDto[]`. Each question may include nullable group metadata:
 
@@ -149,7 +208,7 @@ Recommended endpoint:
 GET /api/v1/contests/{contest_id}/exam-question-groups/
 ```
 
-The frontend repository can join the flat question list with the group index to render grouped sections. Existing components that consume `ExamQuestion[]`, autosave by question id, question navigation, and anti-cheat snapshots can continue to operate on the flat list.
+The frontend repository can join the flat question list with the group index to render grouped sections for admin/editor screens. Existing components that consume `ExamQuestion[]`, autosave by question id, question navigation, and anti-cheat snapshots can continue to operate on the flat list.
 
 ## Navigation and Anti-Cheat
 
@@ -172,6 +231,10 @@ Subjective Markdown math answers store as:
 ```
 
 The `text` field remains the SSoT for subjective answers. This keeps compatibility with existing `essay` and `short_answer` handling while allowing math rendering.
+
+Subjective `text` is capped at 32 KB in P0. Backend rejects oversized answers with a validation error. Student runtime keeps the local draft so the student can trim the answer and retry instead of losing work.
+
+`shared_stem_markdown` always renders with Markdown + KaTeX support, using the same renderer pipeline as `markdown_math` answers. A grouped math stem must not render differently from a math-enabled answer.
 
 ## Student UI
 
@@ -214,6 +277,7 @@ Add authoring support for:
 - adding/removing/reordering child questions;
 - setting `answer_format` to `plain_text`, `markdown`, or `markdown_math`;
 - enabling the math editor for subjective questions by selecting `markdown_math`.
+- moving a whole question group within the paper. The backend updates `ExamQuestionGroup.order` and every child `ExamQuestion.order` in a single transaction.
 
 Teachers should not be required to write JSON. The UI should expose "Enable math editor" as a normal setting for short-answer and essay questions.
 
@@ -253,6 +317,7 @@ Backend:
 - `backend/apps/contests/serializers.py`: grouped serializers and answer format fields.
 - `backend/apps/contests/views/exam_question.py`: flat question list with nullable group fields.
 - `backend/apps/contests/views/exam_question_group.py`: group index and authoring endpoints.
+- `backend/apps/contests/views/exam_paper.py`: composite student paper endpoint returning `{ questions, groups }`.
 - migrations under `backend/apps/contests/migrations/`.
 
 Frontend:
@@ -260,16 +325,29 @@ Frontend:
 - `frontend/src/core/entities/contest.entity.ts`: group and answer format entities.
 - `frontend/src/infrastructure/api/dto/contest.dto.ts`: DTOs.
 - `frontend/src/infrastructure/mappers/contest.mapper.ts`: group mapping.
-- `frontend/src/infrastructure/api/repositories/examQuestions.repository.ts`: group-aware fetch and authoring calls.
+- `frontend/src/infrastructure/api/repositories/examPaper.repository.ts`: composite student paper fetch.
+- `frontend/src/infrastructure/api/repositories/examQuestions.repository.ts`: flat question fetch and authoring calls.
+- `frontend/src/infrastructure/api/repositories/examQuestionGroups.repository.ts`: group index and authoring calls.
 - `frontend/src/shared/ui/markdown/`: reuse renderer behavior for display.
 - `frontend/src/shared/ui/editor/MathMarkdownEditor/`: domain-neutral Markdown math editor.
 - `frontend/src/features/contest/components/exam/`: grouped runtime rendering.
 - `frontend/src/features/contest/components/admin/examEditor/`: group authoring and answer format setting.
 
+Frontend grouped runtime view model:
+
+```ts
+type ExamPaperSection =
+  | { kind: "group"; group: ExamQuestionGroup; items: ExamQuestion[] }
+  | { kind: "flat"; item: ExamQuestion };
+```
+
+`ExamPaperSection` is produced in the contest feature layer after infrastructure mappers return core `ExamQuestion` and `ExamQuestionGroup` entities. Storybook fixtures and runtime components should use this same contract.
+
 Shared UI:
 
 - `MathMarkdownEditor` should live under `shared/ui/editor/MathMarkdownEditor/` only if it remains domain-neutral.
-- It should not call APIs directly.
+- It should not call APIs directly and should only expose `value`, `onChange`, disabled/read-only state, paste behavior, and editor UI events.
+- Debounce, local draft backup, and autosave remain in `features/contest` hooks that wrap the editor.
 - Contest-specific answer wiring stays in `features/contest`.
 
 ## Testing
@@ -278,22 +356,29 @@ Backend tests:
 
 - create/list/update/delete question groups;
 - group ordering and child ordering;
+- group reorder updates `ExamQuestionGroup.order` and contiguous child `ExamQuestion.order` in one transaction;
 - flat question compatibility;
 - student serializer hides correct answers while including group context;
 - answer submission still works per child question.
 - answer format validation accepts only `plain_text`, `markdown`, and `markdown_math`.
 - migration keeps existing `essay` and `short_answer` rows as `plain_text`.
+- oversize subjective answers over 32 KB are rejected without corrupting existing answers.
+- composite `exam-paper` endpoint returns questions and groups from one consistent snapshot.
 - guard test confirms `ExamQuestionType.choices` remains the existing five values in P0.
 
 Frontend tests:
 
+- student runtime consumes the composite `{ questions, groups }` paper response;
 - mapper joins flat question list with group index;
+- mapper produces the `ExamPaperSection` contract;
 - grouped runtime renders shared stem once and child questions in order;
+- grouped runtime renders shared stems with Markdown + KaTeX;
 - autosave submits the correct child question answer;
 - math-enabled subjective questions use `MathMarkdownEditor`;
 - non-math subjective questions keep the current textarea behavior.
 - paste into `MathMarkdownEditor` degrades to sanitized plain text.
 - toolbar labels are i18n-backed and `npm run check:i18n` passes.
+- a grouped paper produces the same anti-cheat event count as a flat paper with the same number of questions under equivalent navigation/focus behavior.
 
 Visual/Storybook:
 
@@ -311,6 +396,7 @@ Visual/Storybook:
 - Student runtime and result pages show computed group total score consistently.
 - Teacher grading can navigate grouped child questions without losing group context.
 - Existing non-grouped paper exams continue to work.
+- A grouped paper does not produce extra anti-cheat events compared with a flat paper of the same question count under equivalent navigation/focus behavior.
 - No P0 implementation requires canvas or graph annotation.
 - No P0 implementation adds a new `ExamQuestionType`.
 - i18n checks pass for editor toolbar labels and tooltips.

@@ -10,7 +10,7 @@ import {
   Tabs,
   Tile,
 } from "@carbon/react";
-import { Draggable } from "@carbon/icons-react";
+import { Add, Draggable } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
@@ -40,6 +40,7 @@ interface QuestionSourcePanelProps {
   onDragStart?: (item: QuestionSourceDragItem) => void;
   onDragEnd?: () => void;
   onAddType?: (questionType: ExamQuestionType) => void;
+  onAddGroup?: () => void;
   onAddBankQuestion?: (item: QuestionSourceBankQuestion) => void;
   /** Click callback for coding template (adds a new blank problem) */
   onAddTemplate?: () => void;
@@ -51,6 +52,7 @@ const QuestionSourcePanel = ({
   onDragStart,
   onDragEnd,
   onAddType,
+  onAddGroup,
   onAddBankQuestion,
   onAddTemplate,
 }: QuestionSourcePanelProps) => {
@@ -347,6 +349,48 @@ const QuestionSourcePanel = ({
                 <div className={styles.tabPanelFill}>
                   <div className={styles.section}>
                     <div className={styles.listArea}>
+                      {(() => {
+                        const item: QuestionSourceDragItem = {
+                          kind: "exam_group",
+                          title: t("examEditor.groupBlock", "題組"),
+                        };
+                        return (
+                          <div data-testid="question-source-exam-group">
+                            <Tile
+                              className={styles.typeItem}
+                              draggable
+                              onDragStart={(event) => handleDragStart(event, item)}
+                              onDragEnd={handleDragEnd}
+                              onClick={() => onAddGroup?.()}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  onAddGroup?.();
+                                }
+                              }}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className={styles.typeItemMain}>
+                                <span className={styles.typeIcon}>
+                                  <Add size={18} />
+                                </span>
+                                <div className={styles.typeInfo}>
+                                  <div className={styles.sourceItemTitle}>
+                                    {t("examEditor.groupBlock", "題組")}
+                                  </div>
+                                  <div className={styles.typeDesc}>
+                                    {t("examEditor.groupBlockDesc", "共同題幹加多個子題")}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className={styles.sourceItemActions}>
+                                <Draggable size={14} />
+                              </div>
+                            </Tile>
+                          </div>
+                        );
+                      })()}
                       {QUESTION_TYPE_ORDER.map((type) => {
                         const Icon = EXAM_QUESTION_TYPE_ICON[type];
                         const handleClick = () => {

@@ -7,7 +7,7 @@
   flex-direction: column;
   width: 100%;
   min-width: 0;
-  max-width: none;
+  max-width: 100%;
   border-right: 0;
   background: var(--cds-background);
   flex: 1;
@@ -183,13 +183,11 @@
 .itemPrompt {
   @include type.type-style("body-compact-01");
 
-  display: -webkit-box;
+  display: block;
   overflow: hidden;
   font-weight: 400;
   line-height: 1.4;
   white-space: normal;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 .itemActive .itemPrompt {

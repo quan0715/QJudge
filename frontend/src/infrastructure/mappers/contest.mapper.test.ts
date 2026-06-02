@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildExamPaperSections,
   mapContestAnticheatConfigDto,
   mapContestDetailDto,
   mapContestOverviewMetricsDto,
   mapContestParticipantDto,
   mapContestUpdateRequestToDto,
+  mapExamPaperDto,
+  mapExamQuestionDto,
 } from "./contest.mapper";
 
 describe("contest mapper", () => {
@@ -162,6 +165,102 @@ describe("contest mapper", () => {
 
       expect(result.contestSettings.screenShareRecoveryGraceMs).toBe(30000);
       expect(result.effective.screenShareRecoveryGraceMs).toBe(30000);
+    });
+  });
+
+  describe("mapExamPaperDto", () => {
+    it("maps groups, answer format, group membership, and frontend sections", () => {
+      const result = mapExamPaperDto({
+        groups: [
+          {
+            id: 7,
+            contest: 3,
+            title: "題組一",
+            shared_stem_markdown: "已知 $f(x)=x^2$",
+            order: 1,
+            total_score: 12,
+            created_at: "2026-05-12T09:00:00+08:00",
+            updated_at: "2026-05-12T09:00:00+08:00",
+          },
+        ],
+        questions: [
+          {
+            id: 11,
+            contest: 3,
+            question_type: "essay",
+            prompt: "求極值",
+            score: 6,
+            order: 1,
+            group_id: 7,
+            order_in_group: 1,
+            answer_format: "markdown_math",
+          },
+          {
+            id: 12,
+            contest: 3,
+            question_type: "short_answer",
+            prompt: "寫出答案",
+            score: 6,
+            order: 2,
+            group_id: 7,
+            order_in_group: 2,
+            answer_format: "plain_text",
+          },
+          {
+            id: 13,
+            contest: 3,
+            question_type: "single_choice",
+            prompt: "獨立題",
+            score: 2,
+            order: 3,
+          },
+        ],
+      });
+
+      expect(result.groups[0]).toMatchObject({
+        id: "7",
+        contestId: "3",
+        sharedStemMarkdown: "已知 $f(x)=x^2$",
+        totalScore: 12,
+      });
+      expect(result.questions[0]).toMatchObject({
+        id: "11",
+        groupId: "7",
+        orderInGroup: 1,
+        answerFormat: "markdown_math",
+      });
+      expect(result.questions[2].answerFormat).toBe("plain_text");
+      expect(result.sections).toEqual([
+        {
+          kind: "group",
+          group: result.groups[0],
+          items: [result.questions[0], result.questions[1]],
+        },
+        {
+          kind: "flat",
+          item: result.questions[2],
+        },
+      ]);
+    });
+
+    it("falls back to a flat section when a question references a missing group", () => {
+      const question = mapExamQuestionDto({
+        id: 11,
+        contest: 3,
+        question_type: "essay",
+        prompt: "缺失題組",
+        score: 6,
+        order: 1,
+        group_id: 99,
+        answer_format: "markdown_math",
+      });
+
+      expect(buildExamPaperSections([question], [])).toEqual([
+        {
+          kind: "flat",
+          item: question,
+        },
+      ]);
     });
   });
 });

@@ -1,8 +1,16 @@
 import { Checkmark, DotMark } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 
-import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+  OpenAnswerDocument,
+} from "@/core/entities/contest.entity";
 import { isSubjectiveType } from "@/features/contest/screens/settings/grading/gradingTypes";
+import {
+  isOpenAnswerDocument,
+  OpenAnswerDocumentRenderer,
+} from "@/shared/ui/editor";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
 
 import styles from "./AnswerDisplay.module.scss";
@@ -13,6 +21,9 @@ export interface AnswerDisplayProps {
   options: string[];
   correctAnswer: unknown;
   explanation?: string | null;
+  referenceAnswerDocument?: OpenAnswerDocument | null;
+  explanationDocument?: OpenAnswerDocument | null;
+  answerFormat?: ExamQuestionAnswerFormat;
   showCorrectness?: boolean;
 }
 
@@ -37,15 +48,10 @@ function isCorrect(correctAnswer: unknown, idx: number): boolean {
   return resolved === idx;
 }
 
-function formatCorrectLabel(correctAnswer: unknown, options: string[]): string {
+function getCorrectIndexes(correctAnswer: unknown): number[] {
   const resolved = resolveCorrectIndex(correctAnswer);
-  if (resolved == null) return "";
-  if (Array.isArray(resolved)) {
-    return resolved
-      .map((i) => `${String.fromCharCode(65 + i)}. ${options[i] ?? ""}`)
-      .join(", ");
-  }
-  return `${String.fromCharCode(65 + resolved)}. ${options[resolved] ?? ""}`;
+  if (resolved == null) return [];
+  return Array.isArray(resolved) ? resolved : [resolved];
 }
 
 function getTextAnswer(answerContent: Record<string, unknown>): string {
@@ -61,6 +67,9 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
   options,
   correctAnswer,
   explanation,
+  referenceAnswerDocument,
+  explanationDocument,
+  answerFormat = "plain_text",
   showCorrectness = true,
 }) => {
   const { t } = useTranslation("contest");
@@ -73,29 +82,50 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
 
   if (subjective) {
     const text = getTextAnswer(answerContent);
+    const openDocumentAnswer = isOpenAnswerDocument(answerContent.document)
+      ? answerContent.document
+      : null;
+    const Content =
+      answerFormat === "plain_text"
+        ? MarkdownContent.Simple
+        : MarkdownContent.Rich;
     return (
       <div className={styles.root}>
         <div className={styles.group}>
           <span className={styles.label}>{t("grading.answerContent", "作答內容")}</span>
-          {text ? (
-            <MarkdownContent.Simple>{text}</MarkdownContent.Simple>
+          {openDocumentAnswer ? (
+            <OpenAnswerDocumentRenderer document={openDocumentAnswer} />
+          ) : text ? (
+            <Content>{text}</Content>
           ) : (
             <span className={styles.noAnswer}>{t("dashboard.noAnswer", "未作答")}</span>
           )}
         </div>
-        {correctAnswer != null && typeof correctAnswer === "string" && (
+        {referenceAnswerDocument ? (
+          <div className={`${styles.group} ${styles.reference}`}>
+            <span className={styles.label}>{t("grading.referenceAnswer", "參考答案")}</span>
+            <OpenAnswerDocumentRenderer document={referenceAnswerDocument} />
+          </div>
+        ) : null}
+        {!referenceAnswerDocument && correctAnswer != null && typeof correctAnswer === "string" && (
           <div className={`${styles.group} ${styles.reference}`}>
             <span className={styles.label}>{t("grading.referenceAnswer", "參考答案")}</span>
             <div className={styles.referenceText}>
-              <MarkdownContent.Simple>{correctAnswer}</MarkdownContent.Simple>
+              <MarkdownContent.Problem>{correctAnswer}</MarkdownContent.Problem>
             </div>
           </div>
         )}
-        {explanation?.trim() ? (
+        {explanationDocument ? (
+          <div className={`${styles.group} ${styles.reference}`}>
+            <span className={styles.label}>{t("grading.explanation", "詳解")}</span>
+            <OpenAnswerDocumentRenderer document={explanationDocument} />
+          </div>
+        ) : null}
+        {!explanationDocument && explanation?.trim() ? (
           <div className={`${styles.group} ${styles.reference}`}>
             <span className={styles.label}>{t("grading.explanation", "詳解")}</span>
             <div className={styles.referenceText}>
-              <MarkdownContent.Simple>{explanation}</MarkdownContent.Simple>
+              <MarkdownContent.Problem>{explanation}</MarkdownContent.Problem>
             </div>
           </div>
         ) : null}
@@ -131,7 +161,12 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
           return (
             <div key={i} className={classNames}>
               <span className={styles.optionLabel}>
-                <span>{String.fromCharCode(65 + i)}. {opt}</span>
+                <span className={styles.optionText}>
+                  <span className={styles.optionLetter}>{String.fromCharCode(65 + i)}.</span>
+                  <MarkdownContent.Problem className={styles.optionMarkdown}>
+                    {opt}
+                  </MarkdownContent.Problem>
+                </span>
                 {selected ? (
                   <DotMark
                     size={16}
@@ -150,8 +185,15 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
           <span className={styles.correctLabel}>
             {t("grading.correctAnswer", "正確答案")}:
           </span>
-          <span className={styles.correctValue}>
-            {formatCorrectLabel(correctAnswer, effectiveOptions)}
+          <span className={styles.correctValues}>
+            {getCorrectIndexes(correctAnswer).map((index) => (
+              <span key={index} className={styles.correctValue}>
+                <span className={styles.optionLetter}>{String.fromCharCode(65 + index)}.</span>
+                <MarkdownContent.Problem className={styles.optionMarkdown}>
+                  {effectiveOptions[index] ?? ""}
+                </MarkdownContent.Problem>
+              </span>
+            ))}
           </span>
         </div>
       )}
@@ -159,7 +201,7 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
         <div className={`${styles.group} ${styles.reference}`}>
           <span className={styles.label}>{t("grading.explanation", "詳解")}</span>
           <div className={styles.referenceText}>
-            <MarkdownContent.Simple>{explanation}</MarkdownContent.Simple>
+            <MarkdownContent.Problem>{explanation}</MarkdownContent.Problem>
           </div>
         </div>
       ) : null}

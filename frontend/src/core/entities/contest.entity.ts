@@ -184,6 +184,7 @@ export interface ParticipantPaperReportOverviewRow {
   status: ParticipantDashboardStatus;
   score: number | null;
   maxScore: number;
+  scorePolicy?: string;
 }
 
 export interface ParticipantPaperQuestionDetail {
@@ -202,6 +203,7 @@ export interface ParticipantPaperQuestionDetail {
   gradedAt: string | null;
   isCorrect: boolean | null;
   status: ParticipantDashboardStatus;
+  scorePolicy?: string;
 }
 
 export interface ParticipantCodingProblemRow {
@@ -581,6 +583,36 @@ export type ExamQuestionType =
   | "short_answer"
   | "essay";
 
+export type ExamQuestionScorePolicy = "normal" | "excluded" | "full_marks" | "redistribute";
+
+export type ExamQuestionAnswerFormat =
+  | "plain_text"
+  | "markdown"
+  | "markdown_math"
+  | "open_document";
+
+export type OpenInlineNode =
+  | { type: "text"; text: string }
+  | { type: "math"; latex: string };
+
+export type OpenAnswerNode = { type: "paragraph"; children: OpenInlineNode[] };
+
+export interface OpenAnswerDocument {
+  version: 1;
+  nodes: OpenAnswerNode[];
+}
+
+export interface ExamQuestionGroup {
+  id: string;
+  contestId: string;
+  title: string;
+  sharedStemMarkdown: string;
+  order: number;
+  totalScore: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ExamQuestion {
   id: string;
   contestId: string;
@@ -588,9 +620,15 @@ export interface ExamQuestion {
   prompt: string;
   options: string[];
   correctAnswer?: unknown;
+  referenceAnswerDocument?: OpenAnswerDocument | null;
   explanation: string;
+  explanationDocument?: OpenAnswerDocument | null;
   score: number;
+  scorePolicy?: ExamQuestionScorePolicy;
   order: number;
+  groupId?: string | null;
+  orderInGroup?: number | null;
+  answerFormat?: ExamQuestionAnswerFormat;
   sourceBank?: {
     id: string;
     name: string;
@@ -599,6 +637,26 @@ export interface ExamQuestion {
   sourceMode?: "manual" | "json" | "copy" | "reference";
   createdAt: string;
   updatedAt: string;
+}
+
+export type ExamPaperSection =
+  | { kind: "group"; group: ExamQuestionGroup; items: ExamQuestion[] }
+  | { kind: "flat"; item: ExamQuestion };
+
+export type ExamPaperBlock =
+  | { kind: "question"; id: string; question: ExamQuestion }
+  | {
+      kind: "group";
+      id: string;
+      group: ExamQuestionGroup;
+      children: ExamQuestion[];
+    };
+
+export interface ExamPaper {
+  questions: ExamQuestion[];
+  groups: ExamQuestionGroup[];
+  sections: ExamPaperSection[];
+  blocks: ExamPaperBlock[];
 }
 
 export interface Clarification {

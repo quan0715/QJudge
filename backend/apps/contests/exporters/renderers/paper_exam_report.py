@@ -138,23 +138,16 @@ class PaperExamReportRenderer(BaseRenderer):
 
     def _render_score_line(self, questions, answers_map) -> str:
         """Render score as a single line inside the report header."""
-        max_score = sum(q.score for q in questions)
+        from apps.contests.services.exam_scoring import ExamScoringService
 
-        total_score = 0.0
-        graded_count = 0
-        correct_count = 0
+        scoring = ExamScoringService(self.contest)
+        participant = self._get_participant()
+        breakdown = scoring.get_participant_breakdown(participant, answers_map)
 
-        for q in questions:
-            ans = answers_map.get(q.id)
-            if ans and ans.score is not None:
-                graded_count += 1
-                score_val = float(ans.score)
-                total_score += score_val
-                if score_val >= q.score:
-                    correct_count += 1
-
-        correct_rate = (correct_count / graded_count * 100) if graded_count > 0 else 0
-        score_display = int(total_score) if total_score == int(total_score) else f"{total_score:.1f}"
+        correct_rate = (breakdown.correct_count / breakdown.graded_count * 100) if breakdown.graded_count > 0 else 0
+        total = breakdown.total_score
+        score_display = int(total) if total == int(total) else f"{total:.1f}"
+        max_score = int(breakdown.max_total_score) if breakdown.max_total_score == int(breakdown.max_total_score) else f"{breakdown.max_total_score:.1f}"
 
         score_label = self.get_label('total_score')
         rate_label = self.get_label('correct_rate')
@@ -169,12 +162,16 @@ class PaperExamReportRenderer(BaseRenderer):
 
     def _render_overview_table(self, questions, answers_map) -> str:
         """Render a compact per-question overview table."""
+        from apps.contests.models import ExamQuestionScorePolicy
         col_q = self.get_label('question_no')
         col_type = self.get_label('type_label', 'Type') # Fallback if missing
         if col_type == 'Type': col_type = '題型' if self.is_chinese else 'Type'
         col_status = self.get_label('status_label')
         col_score = self.get_label('score')
         table_title = self.get_label('question_overview')
+
+        excluded_label = '不計分' if self.is_chinese else 'Excluded'
+        full_marks_label = '送分' if self.is_chinese else 'Full Marks'
 
         rows = []
         for idx, q in enumerate(questions, 1):
@@ -184,14 +181,28 @@ class PaperExamReportRenderer(BaseRenderer):
 
             type_label = self.get_label(q.question_type, q.question_type)
 
+            # Score policy badge
+            policy_badge = ''
+            if q.score_policy == ExamQuestionScorePolicy.EXCLUDED:
+                policy_badge = f' <span style="color:#da1e28;font-size:0.75em;">({excluded_label})</span>'
+            elif q.score_policy == ExamQuestionScorePolicy.FULL_MARKS:
+                policy_badge = f' <span style="color:#198038;font-size:0.75em;">({full_marks_label})</span>'
+
             if self.include_grading:
-                status = self._get_question_status(q, ans, has_answer, is_graded)
-                if is_graded:
-                    score_val = float(ans.score)
-                    score_str = int(score_val) if score_val == int(score_val) else f"{score_val:.1f}"
-                    score_display = f'{score_str} / {q.score}'
+                if q.score_policy == ExamQuestionScorePolicy.EXCLUDED:
+                    score_display = f'<span style="text-decoration:line-through;color:#6f6f6f;">- / {q.score}</span>'
+                    status = {"icon": "—", "status_class": "status-excluded", "color": "#6f6f6f"}
+                elif q.score_policy == ExamQuestionScorePolicy.FULL_MARKS:
+                    score_display = f'{q.score} / {q.score}'
+                    status = {"icon": "★", "status_class": "status-full-marks", "color": "#198038"}
                 else:
-                    score_display = f'- / {q.score}'
+                    status = self._get_question_status(q, ans, has_answer, is_graded)
+                    if is_graded:
+                        score_val = float(ans.score)
+                        score_str = int(score_val) if score_val == int(score_val) else f"{score_val:.1f}"
+                        score_display = f'{score_str} / {q.score}'
+                    else:
+                        score_display = f'- / {q.score}'
                 status_cell = (
                     f'<td class="overview-cell overview-cell-status">'
                     f'<span class="status-text {status["status_class"]}">{status["icon"]}</span></td>'
@@ -208,7 +219,7 @@ class PaperExamReportRenderer(BaseRenderer):
 
             rows.append(
                 f'<tr class="overview-row">'
-                f'<td class="overview-cell overview-cell-q">Q{idx}</td>'
+                f'<td class="overview-cell overview-cell-q">Q{idx}{policy_badge}</td>'
                 f'<td class="overview-cell overview-cell-type">{type_label}</td>'
                 f'{status_cell}'
                 f'</tr>'

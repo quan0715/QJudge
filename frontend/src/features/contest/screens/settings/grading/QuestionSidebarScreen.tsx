@@ -16,6 +16,7 @@ import {
   ListItemTrailing,
 } from "@/shared/ui/list/ListPanel";
 import type { QuestionProgress } from "./gradingTypes";
+import { ScorePolicyTag } from "./components/ScorePolicyMenu";
 import styles from "./GradingByQuestion.module.scss";
 import mini from "./GradingMini.module.scss";
 
@@ -135,7 +136,12 @@ export default function QuestionSidebarScreen({
                 <TypeIcon size={14} className={styles.sidebarTypeIcon} />
               </ListItemLeading>
               <ListItemContent>
-                <ListItemTitle>Q{q.questionIndex}</ListItemTitle>
+                <ListItemTitle>
+                  Q{q.questionIndex}
+                  {q.scorePolicy && q.scorePolicy !== "normal" && (
+                    <ScorePolicyTag policy={q.scorePolicy} />
+                  )}
+                </ListItemTitle>
               </ListItemContent>
               <ListItemTrailing>
                 <span

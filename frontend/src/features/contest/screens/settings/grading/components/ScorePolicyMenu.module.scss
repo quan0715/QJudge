@@ -1,0 +1,14 @@
+.menu {
+  /* Shrink the overflow menu trigger to fit inside list items */
+  min-height: unset;
+}
+
+.menu :global(.cds--overflow-menu__wrapper) {
+  width: auto;
+}
+
+.tag {
+  margin-inline-start: 0.25rem;
+  font-size: 0.6875rem;
+  vertical-align: middle;
+}

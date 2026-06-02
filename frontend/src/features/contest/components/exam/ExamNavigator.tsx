@@ -11,6 +11,7 @@ import {
   ListItemTitle,
   ListItemMeta,
 } from "@/shared/ui/list/ListPanel";
+import ProblemPromptPreview from "./ProblemPromptPreview";
 import styles from "./ExamNavigator.module.scss";
 
 interface ExamNavigatorProps {
@@ -176,10 +177,6 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
               ? t("answering.questionTypes.coding")
               : t(`answering.questionTypes.${item.data.questionType}`);
 
-          const title =
-            item.kind === "coding"
-              ? `${item.data.label}. ${item.data.title}`
-              : item.data.prompt.slice(0, 72) + (item.data.prompt.length > 72 ? "…" : "");
           const itemClassName = [
             styles.item,
             isAnswered ? styles.itemAnswered : styles.itemUnanswered,
@@ -210,7 +207,13 @@ export const ExamNavigator: FC<ExamNavigatorProps> = memo(({
                   <span className={styles.itemMetaDivider}>·</span>
                   <span>{typeLabel}</span>
                 </ListItemMeta>
-                <ListItemTitle className={styles.itemPrompt}>{title}</ListItemTitle>
+                <ListItemTitle className={styles.itemPrompt}>
+                  {item.kind === "coding" ? (
+                    `${item.data.label}. ${item.data.title}`
+                  ) : (
+                    <ProblemPromptPreview content={item.data.prompt} />
+                  )}
+                </ListItemTitle>
               </ListItemContent>
             </ListItem>
           );
