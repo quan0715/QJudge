@@ -17,7 +17,7 @@ interface ScorePolicyMenuProps {
   questionIndex: number;
   currentPolicy: ExamQuestionScorePolicy;
   /** All questions in the exam for redistribute target selection */
-  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string }>;
+  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string; scorePolicy?: string }>;
   onPolicyChanged?: () => void;
 }
 
@@ -75,9 +75,9 @@ export default function ScorePolicyMenu({
     }
   }, [contestId, questionId, onPolicyChanged]);
 
-  // Available target questions: exclude current question and any already-excluded/redistribute ones
+  // Available target questions: exclude current question and any already excluded/redistribute ones
   const availableTargets = allQuestions.filter(
-    (q) => q.id !== questionId
+    (q) => q.id !== questionId && (!q.scorePolicy || q.scorePolicy === "normal" || q.scorePolicy === "full_marks")
   );
 
   return (

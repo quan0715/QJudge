@@ -295,6 +295,7 @@ export default function GradingByQuestionTabScreen({
                   prompt: q.prompt,
                   score: q.maxScore,
                   questionType: q.questionType,
+                  scorePolicy: q.scorePolicy,
                 }))}
                 onPolicyChanged={onRefreshData}
               />

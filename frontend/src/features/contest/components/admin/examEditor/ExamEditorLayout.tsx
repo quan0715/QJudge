@@ -216,7 +216,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
 
   const questions = useMemo(() => flattenQuestions(blocks), [blocks]);
   const allQuestionsForPolicy = useMemo(
-    () => questions.map((q) => ({ id: q.id, order: q.order, prompt: q.prompt, score: q.score, questionType: q.questionType })),
+    () => questions.map((q) => ({ id: q.id, order: q.order, prompt: q.prompt, score: q.score, questionType: q.questionType, scorePolicy: q.scorePolicy })),
     [questions],
   );
   const blocksKey = useMemo(() => blocks.map((block) => block.id).join(","), [blocks]);
