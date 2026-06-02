@@ -18,7 +18,7 @@ import {
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
-import type { ContestParticipant, ExamQuestion } from "@/core/entities/contest.entity";
+import type { ContestParticipant, ExamQuestion, ExamQuestionScorePolicy } from "@/core/entities/contest.entity";
 import ContestAdminContext from "@/features/contest/contexts/ContestAdminContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { isSubjectiveType } from "./gradingTypes";
@@ -379,6 +379,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         questionType: QuestionType;
         prompt: string;
         maxScore: number;
+        scorePolicy?: ExamQuestionScorePolicy;
       }
     >();
 
@@ -402,6 +403,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
           questionType: q.questionType,
           prompt: q.prompt ?? "",
           maxScore: q.score ?? 0,
+          scorePolicy: q.scorePolicy ?? "normal",
         });
       }
     }
@@ -464,6 +466,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
               ? Math.round((gradedCount / totalAnswers) * 100)
               : 0,
           isObjective: objective,
+          scorePolicy: q.scorePolicy,
         };
       });
   }, [questionInfoMap, answersByQuestion]);
