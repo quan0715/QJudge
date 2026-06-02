@@ -7,6 +7,8 @@ import type {
   ContestDeliveryMode,
   ExamStatusType,
   ExamQuestionAnswerFormat,
+  ExamQuestionScorePolicy,
+  OpenAnswerDocument,
 } from "@/core/entities/contest.entity";
 
 export interface ContestProblemSummaryDto {
@@ -34,8 +36,11 @@ export interface ExamQuestionDto {
   prompt?: string;
   options?: unknown[];
   correct_answer?: unknown;
+  reference_answer_document?: OpenAnswerDocument | null;
   explanation?: string;
+  explanation_document?: OpenAnswerDocument | null;
   score?: number;
+  score_policy?: ExamQuestionScorePolicy;
   order?: number;
   group_id?: number | string | null;
   order_in_group?: number | null;
@@ -64,7 +69,21 @@ export interface ExamQuestionGroupDto {
 export interface ExamPaperDto {
   questions?: ExamQuestionDto[];
   groups?: ExamQuestionGroupDto[];
+  blocks?: ExamPaperBlockDto[];
 }
+
+export type ExamPaperBlockDto =
+  | {
+      kind?: "question";
+      id?: number | string;
+      question?: ExamQuestionDto;
+    }
+  | {
+      kind?: "group";
+      id?: number | string;
+      group?: ExamQuestionGroupDto;
+      children?: ExamQuestionDto[];
+    };
 
 export interface ContestDto {
   id: number | string;
@@ -241,6 +260,7 @@ export interface ParticipantPaperReportRowDto {
   status?: ParticipantDashboardStatusDto;
   score?: number | null;
   max_score?: number;
+  score_policy?: string;
 }
 
 export interface ParticipantCodingProblemRowDto {

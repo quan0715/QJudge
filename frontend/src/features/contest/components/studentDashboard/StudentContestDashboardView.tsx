@@ -840,6 +840,7 @@ export default function StudentContestDashboard({
               questionId={String(question.id)}
               index={index + 1}
               questionType={questionType}
+              answerFormat={question.answerFormat}
               typeLabel={t(
                 `common:questionType.label.${questionType}`,
                 QUESTION_TYPE_LABEL[questionType] ?? questionType,
@@ -858,11 +859,20 @@ export default function StudentContestDashboard({
               correctAnswer={
                 result?.questionSnapshot?.correctAnswer ?? question.correctAnswer
               }
+              referenceAnswerDocument={
+                result?.questionSnapshot?.referenceAnswerDocument ??
+                question.referenceAnswerDocument
+              }
               explanation={
                 result?.questionExplanation ??
                 result?.questionSnapshot?.explanation ??
                 question.explanation
               }
+              explanationDocument={
+                result?.questionSnapshot?.explanationDocument ??
+                question.explanationDocument
+              }
+              scorePolicy={question.scorePolicy}
             />
           );
         })}

@@ -172,10 +172,10 @@ def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) 
         # Determine displayed score based on policy
         if policy == ExamQuestionScorePolicy.EXCLUDED:
             earned_score = None
-            status = "excluded"
+            status = {"code": "excluded", "label": "不計分", "color": "gray"}
         elif policy == ExamQuestionScorePolicy.FULL_MARKS:
             earned_score = question_score
-            status = "full_marks"
+            status = {"code": "full_marks", "label": "送分", "color": "green"}
         else:
             status = _question_status(question, answer)
             earned_score = float(answer.score) if answer and answer.score is not None else None

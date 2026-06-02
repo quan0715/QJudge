@@ -119,6 +119,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
             (result?.questionType || question.questionType || "-").toString()
           ),
           maxScore: question.score ?? 0,
+          scorePolicy: question.scorePolicy,
           score:
             resultsPublished && result
               ? `${result.score ?? 0}`
@@ -219,6 +220,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                     maxScore: row.maxScore,
                     scoreDisplay: row.score,
                     feedbackDisplay: row.feedback,
+                    scorePolicy: row.scorePolicy,
                   }))}
                   showScore={resultsPublished}
                   showFeedback={resultsPublished}
@@ -280,10 +282,18 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                             answerContent={result.answer}
                             options={question.options}
                             correctAnswer={result.questionSnapshot?.correctAnswer ?? question.correctAnswer}
+                            referenceAnswerDocument={
+                              result.questionSnapshot?.referenceAnswerDocument ??
+                              question.referenceAnswerDocument
+                            }
                             explanation={
                               result.questionExplanation ??
                               result.questionSnapshot?.explanation ??
                               question.explanation
+                            }
+                            explanationDocument={
+                              result.questionSnapshot?.explanationDocument ??
+                              question.explanationDocument
                             }
                           />
                           {result.feedback ? (
