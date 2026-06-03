@@ -443,17 +443,12 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         )
 
         if contest.contest_type == 'paper_exam':
-            # Paper exam: sum ExamAnswer scores per participant
-            from apps.contests.models import ExamAnswer
-            answer_totals = (
-                ExamAnswer.objects
-                .filter(participant__contest=contest, score__isnull=False)
-                .values('participant__user_id')
-                .annotate(total=Sum('score'))
-            )
+            # Paper exam: use persisted participant.score which is maintained
+            # by ExamScoringService and correctly respects score_policy
+            # (excluded, full_marks, redistribute).
             user_totals: dict = {
-                row['participant__user_id']: float(row['total'] or 0)
-                for row in answer_totals
+                p.user_id: float(p.score or 0)
+                for p in participants
             }
         else:
             # Coding contest: best submission score per (user, problem)

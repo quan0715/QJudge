@@ -152,6 +152,14 @@ class ExamScoringService:
         """IDs of questions with NORMAL policy."""
         return [q.id for q in self.get_questions() if q.is_normal]
 
+    def get_effective_max_scores(self) -> dict:
+        """Public accessor for per-question effective max scores after redistribution.
+
+        Returns:
+            {question_id: effective_max_score} for all questions.
+        """
+        return self._compute_effective_max()
+
     def _compute_effective_max(self) -> dict:
         """
         Compute effective max score per question after redistribution.

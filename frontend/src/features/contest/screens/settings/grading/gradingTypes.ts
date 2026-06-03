@@ -38,6 +38,10 @@ export interface GradingAnswerRow {
   answerFormat?: ExamQuestionAnswerFormat;
   questionOptions: string[];
   maxScore: number;
+  /** Effective max score after redistribution (may differ from maxScore). */
+  effectiveMaxScore?: number;
+  /** Score policy for this question. */
+  scorePolicy?: ExamQuestionScorePolicy;
   answerContent: Record<string, unknown>;
   /** null = not graded */
   score: number | null;
@@ -69,12 +73,14 @@ export interface QuestionProgress {
   correctAnswer?: unknown;
   averageScore?: number;
   maxScore: number;
+  /** Effective max score after redistribution (may differ from maxScore). */
+  effectiveMaxScore?: number;
   totalAnswers: number;
   gradedCount: number;
   /** 0–100 */
   progressPercent: number;
   isObjective: boolean;
-  /** Score policy: normal | excluded | full_marks */
+  /** Score policy: normal | excluded | full_marks | redistribute */
   scorePolicy?: ExamQuestionScorePolicy;
 }
 

@@ -336,6 +336,9 @@ export function mapExamQuestionDto(dto: ExamQuestionDto): ExamQuestion {
     explanation: dto.explanation || "",
     explanationDocument: dto.explanation_document ?? null,
     score: Number(dto.score || 0),
+    effectiveMaxScore: dto.effective_max_score != null
+      ? Number(dto.effective_max_score)
+      : undefined,
     scorePolicy: dto.score_policy || "normal",
     order: Number(dto.order || 0),
     groupId: dto.group_id != null ? dto.group_id.toString() : null,

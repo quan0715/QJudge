@@ -624,6 +624,7 @@ export interface ExamQuestion {
   explanation: string;
   explanationDocument?: OpenAnswerDocument | null;
   score: number;
+  effectiveMaxScore?: number;
   scorePolicy?: ExamQuestionScorePolicy;
   order: number;
   groupId?: string | null;

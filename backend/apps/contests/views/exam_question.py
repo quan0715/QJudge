@@ -95,7 +95,13 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['contest'] = self._get_contest()
+        contest = self._get_contest()
+        context['contest'] = contest
+        # Inject effective_max_scores for admin serializer (computed once, avoids N+1)
+        if self._is_admin(contest):
+            from ..services.exam_scoring import ExamScoringService
+            scoring = ExamScoringService(contest)
+            context['effective_max_scores'] = scoring.get_effective_max_scores()
         return context
 
     def _check_student_device_guard(self):

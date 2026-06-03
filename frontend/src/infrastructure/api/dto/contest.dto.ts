@@ -40,6 +40,7 @@ export interface ExamQuestionDto {
   explanation?: string;
   explanation_document?: OpenAnswerDocument | null;
   score?: number;
+  effective_max_score?: number;
   score_policy?: ExamQuestionScorePolicy;
   order?: number;
   group_id?: number | string | null;
