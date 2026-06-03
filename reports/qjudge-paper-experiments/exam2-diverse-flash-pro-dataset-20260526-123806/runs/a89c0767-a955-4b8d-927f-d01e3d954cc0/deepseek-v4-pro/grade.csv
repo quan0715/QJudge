@@ -1,0 +1,265 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","11920","S109","當 cpu 想要寫 one word 並發現他在不只一個 cache 中的時候，他需要告知每個cache 他要做寫入的動作
+(1)when it's a clean copy, 就直接把他捨棄掉就好
+(2)when it's a dirty copy, 就需要把她寫回去記憶體
+以上規則就是所謂的 cache coherence protocol
+","1.5","Part A 說明不足，未清楚點出資料不一致的問題本質",""
+"2","12832","S015","Cache coherence problem: A cache line may exist in multiple caches. If the cache line is modified (i.e. dirty), we must ensure all the caches has the same copies. If a CPU wants to write a cached word, it has 2 choice:
+1. Invalid all other cache lines. Those which own this cache line need to refill the cache line again when they need it.
+2. Broadcast the modification to all the caches, and modify the cache line in the cache.","1.5","Part B 未完整對應 clean→discard / dirty→write back or transfer 的標準規則描述",""
+"3","14988","S054","當寫入新的 cached word時，其他CPU的Cached word也要變動
+規則是：如果cached word is 未修改過的，可以直接discard;如果是dirty，可以在修改前傳回給CPU或傳給writer
+","1.5","Part A 對 cache coherence problem 的解釋過於簡略",""
+"4","13596","S117","需要保持cache資料的一致性以及被修改的順序。如果需要write a cache line, 需要先去檢查有沒有其他processor存了這個cache line，如果別的processor存的是乾淨未修改過的cache line,直接標為invalid, 如果是有修改過的cache line(dirty), 需要先寫回memory, 然後更新到目前要執行寫入的cpu的cache，才能執行write。","1.5","Part A 說明過於簡略，未清楚點出多 cache 環境下資料不一致的問題",""
+"5","13138","S093","在multiprocessor中如果在不同processor的相同cache block中，如果所持有的資料理論上要相同，但是因為其中有一個已經write了，導致資料的不一致，這就是cache coherence。
+basic rules 就是當一個word要被寫時，會先把其他processor中的相同位置改成無效後，再改目前的processor中的資料，並將改完的資料標記為dirty","1.5","Part B 未區分 clean copy（直接丟棄）與 dirty copy（需先寫回或傳送）的處理方式",""
+"6","12657","S012","when a core want to write a word that there are more than one core has a cache line of it, it has to notify those cores to maintain the coherence. it is the cache coherence problem. Then the cores being notified, if the cache line is not dirty, the core should just drop the cache line. If the cache line is dirty, it should either write the modify cache line back into memory firstly before the core who wants to write a word to maintance coherence or directly send the modified cache line to the core who wants to write a word.","1.5","Part A 未明確說明為何需要 maintain coherence（資料不一致問題），僅描述情境",""
+"7","12818","S108","當一個資料被儲存在多個處理器的 cache 中，此資料被修改時，需要所有的 cache 皆被修改，若只有改到某部分的 cache 而非全部，會導致不同的處理器之間資料不對齊。
+當 cache word 被修改時，一個系統需要廣播給所有處理器，使得擁有此 cache word 的處理器同樣修改 (或直接使他失效) 此 cache word。","1.5","Part B 未區分 clean/dirty 的處理差異，僅統稱廣播修改或失效",""
+"8","12589","S099","在 MP 系統中要修改某資料，且該資料存在於多台機器的 cache，會遵循以下的方式：
+1. 若該機器上的 cache 是 clean 的，則可以直接丟棄
+2. 若該機器上的 cache 是 dirty 的，則須先將其 write-back 回主記憶體，或是傳送給要寫入他的 CPU．","1","未說明 Cache Coherence problem 的本質（何謂問題），僅描述情境與規則",""
+"9","12638","S070","不同cpu他們cache的相同data因有人寫入不同步
+寫了就要作廢其他CPU 的那個cached word，之後看要直接寫回memory或是發送給其他CPU","1","Part A 過於簡略；Part B 未明確區分 clean copy 與 dirty copy 的情境",""
+"10","13788","S080","when the write resquest happen on the data which is accessd by one more cache.
+if the copy is clean which means it hasn't been modify, then the old copy can be disgarded and change to the new version.
+if the copy has been modify, then it need to be sent to the memory before the write request continue to processed, or it can directly send to the writer.","1","未說明 Cache Coherence problem 的本質",""
+"11","11705","S003","When a CPU wants to write a word that is in more than one cache, the system needs to inform all caches of the writing request. Like when its clean can just throw it or when its dirty we have to take other steps. These rules for dealing cache consistency are cache coherence protocol.","1","Part A 解釋不足；Part B 對於 dirty copy 處理方式僅說 take other steps 過於模糊",""
+"12","13204","S035","Cache Coherence problem : when a CPU wants to write a cached word that has many copied in other caches, then the writing operation must inform all the other copies. If the copy is clean, just discard it, if the copy is dirty, it should be written back to memory or update the information to the cache that will be written. This prevent the data inconsistency. ","1.5","Part A 對 problem 的解釋較偏情境描述而非問題本質",""
+"13","14811","S037","The cpu desired to write must broadcast other cpu who has the cache copy. If one cpu has the clean copy, just discard it. If cpu has dirty copy, it must write back the word before the desired cpu write.","0.5","未說明 Cache Coherence problem；Part B 缺少 dirty copy 可直接傳送給 writer 的選項",""
+"14","13024","S097","There are several levels of cache (l1, l2, ...), some of them can be accessed by several cpus. This introduces cache coherence problem, because some cache may have stale data which other cpu may need to access.
+
+when CPU wants to write a word to the cache, it has to check the data located in the address the CPU wants to write to.
+If that data is clean (nothing was written to the address), then CPU can directly write to it without additional work.
+If that data is dirty (it was written and not saved to the memory yet), then CPU should write this data to the higher level cache or memory and mark the same data on other lower level caches as invalid.
+","1.5","Part B 對 clean copy 的處理與標準答案有落差，缺少通知其他 cache 丟棄 clean copy 的步驟",""
+"15","11912","S013","When CPU want a word that many caches have, the ""read"" and ""write"" should be considered because of the consistency of the cache. When CPU uses ""read"", each cache for the word should be ""read-only""; When CPU uses ""write"", the dirty bit should be noticed. If the bit in other caches is clean, CPU directly writes, and then discard the word in other caches. If not, the cache in the CPU takes the copy from the cache's word with the dirty bit, and then CPU use ""write"".","1","Part A 解釋含混；Part B 對 clean/dirty 處理順序有誤，dirty 處理方式不完整",""
+"16","13493","S040","Cache Coherence: a data may cached by multiple processor, how to make sure the cache always be the same with real data.
+If a CPU wants to write a cached work, it should notify all other CPU who has the same cache. and mark it as faild.","1","Part B 未區分 clean/dirty 處理方式，僅說 mark as failed",""
+"17","11571","S124","If CPU A wants to write a cached word, it notifies all other CPUs 
+- if CPU B has a clean copy, it discards it
+- if CPU B has a dirty copy, either it sends the dirty copy to all other CPUs before CPU A's write instruction is executed, or it sends the dirty copy to CPU A before it sends the write instruction 
+
+When a CPU wants to write a cached word, it needs to invalidate all other copies of this word that other CPUs may hold ","1","未說明 Cache Coherence problem 的本質",""
+"18","13796","S121","Cache coherence problem : When a cpu wants to write on a data which is located on several sites.
+Cache coherence protocol : When a cpu wants to write on a data, it informs all the caches of this actions.
+- if the data is not stored elsewhere, the cpu write on the data.
+- if the date is stored on another cache : 
+----- if the data is not dirty then it is discard
+----- if the data is dirty then it is sent to the memory or directly to the writer.
+- after the cpu has written, it send the new version to the other caches.","1","未說明 Cache Coherence problem 的本質，僅描述寫入情境",""
+"19","15150","S068","Problem: 一段資料區間被複製成好幾份存放於不同 cpu 的快取，當一個或是多個 cpu 嘗試寫入快取時造成這些快取之間資料不同步
+Rules: 在寫入之前必須通知其他 cache 標示該資料區間無效化，寫入後可以用某種方式同步，比方說 boardcase","1.5","Part B 僅提及 invalidation，未區分 clean/dirty 的不同處理方式",""
+"20","12595","S102","Cache coherence是指如果同時有多個cache存有相同資料，那其中一個修改的話，其他cache裡的資料就會沒有被改到。
+Cache coherence portocol是如果現在有人要讀寫了，那其他的cache中，如果沒有更改過的話，會直接丟掉，如果有更改過了，會寫入memory","2","",""
+"21","12823","S034","當CPU在各自的cache中有相同的記憶體資料時，某個CPU想要write，system會通知其他人:
+1. 如果手中資料是clean copy，就直接丟掉。
+2. 如果手中資料是dirty copy，就要回傳給memory或直接傳給想要write的人。
+","1.5","Part A 未清楚說明不一致問題的本質",""
+"22","11809","S084","當一個CPU想要write一個資料，而這個資料在很多cache上都有副本，系統會廣播這個write request，如果cache手上的資料是乾淨的，會直接丟掉；如果是髒的(修改過沒寫回記憶體)，就要馬上寫回記憶體或把這份資料傳給下一個有寫入需求的人，這樣的機制為cache coherence protocol，為了維持cache consistence。","1.5","Part A 對 problem 的解釋偏情境描述",""
+"23","13111","S079","cache coherence problem happens when a cache is shared among multiple CPU. When writing a cached word, we need to make sure that there is no other CPU have access to this cache, or otherwise problems will happen.
+
+If the CPU has clean cache, then it can just discard this. If the CPU has dirty cache, it can either save this to memory or pass this to other cache before the writing request, This procedure to deal with cache coherence problem is called cache coherence procedure.","1.5","Part A 將問題曲解為需獨佔存取權，與 cache coherence 本質有落差",""
+"24","14460","S122","可以降低快取容量","0","答案與題目無關",""
+"25","12840","S086","Cache Coherence problem is when multiple CPUs caching shared data, if a CPU modify the data, then other CPU's cache data become old data. So it need Cache Coherence protocol to maintain consistency.","1","未說明 write 時的 basic rules（clean/dirty 處理方式）",""
+"26","13661","S052","Cache coherence problem occurs when 需要改一個cache中cache line的內容時，但這個cache line同時存在在其他cache中，這些cache中內容的一致性就會出現問題。
+根據Cache coherence protocol，如果其他cache的該內容是clean copy，就直接捨棄掉該copy；而如果其他cache的該內容是已被修改過的dirty copy，那就需要把修改過的內容先寫回memory，或者是直接把修改過的內容轉送給下一個想修改內容的writer。","2","",""
+"27","15949","S123","If the shared resources changes in a cache, the shared resources in the whole system needs to be changed.","0.5","僅模糊提及共享資源同步，未說明具體規則",""
+"28","12437","S027","同一份資料存在多個cpu,某一個cpu修改後，其他cpu可能看到舊資料，所以需要協定讓所有cpu cache 保持一致","1","未說明 write 時的具體規則",""
+"29","12049","S081","in cache coherence problem when all the cpus has a value of cache and only one of the cpu rewrites the cache data making the same cache inconsistent everywhere. to fix this we have to clear out the updated cache and write the old cache
+for example
+cpu A has X=10
+but cpu B still has X=5 ","1","Part B 的規則描述錯誤（應為 discard clean / write back dirty，非 clear updated and write old）",""
+"30","13330","S008","Cache Coherence problem means when there are multiple copies appears in different caches, it is necessary to maintain the consistency among different caches.
+The basic rules for maintaining the cache coherence is when a cache line appears in many caches, when a CPU want to write to that specific cache line, it will inform all the caches that have that specific cache. For each processor that has the specific cache line:
+  1. If the cache line is clean, just discard that cache line.
+  2. If the cache line is dirty, the cache line need to be written back to the memory first or send to the processor that want to write the cache line.","2","",""
+"31","13055","S078","When CPU write cache, the cache from other CPU will not modify. when a cache been modify, other CPU cache have to remove.","1","Part A 過於簡略；Part B 僅提及 remove，未區分 clean/dirty",""
+"32","12553","S087","當cpu想要寫入一個存在多個cache的資料時，系統會通知這些cache:如果這個cache存放的是""乾淨""的副本，則直接丟棄，如果存放的是""髒""的副本，則直接write back或是傳給要寫入的cpu","1","未說明 Cache Coherence problem",""
+"33","11970","S022","If a processor want to write a cache word to a block that more than 1 cache has, we must inform all the caches that has the block. If the block has a clean bit, we just discard it. If the block has a ""dirty""(modified) bit, we must write it to the memory before the processor which want to write to the block access it from the memory.","1","未說明 Cache Coherence problem",""
+"34","13522","S110","when process wants to write a memory in more than one cache, need to maintain cache with right data
+if the cache is clean, write and discard other cache copied
+if the cache is dirty, save to the memory before write operation","1.5","Part A 未清楚說明問題本質",""
+"35","13624","S082","Cache Coherence problem: the same data in the caches of different processors may have different value at some timesteps which violates the coherence.
+To avoid the issue, a system must follow cache coherence protocal. Everytime a CPU wants to write a cached word, it need to check all the processors which have the same cached word whether the data is clean or dirty(modified). If clean, drop it directly. If dirty, write back to the memory and then executing the writing.","2","",""
+"36","13265","S105","Wait until the other copies are released. Lock the word to prevent copies until write back to disk/main memory.","0","答案描述的是 lock-based 同步而非 cache coherence protocol，與題目要求不符",""
+"37","11890","S111","當一個processor想要使用一個資源時，若這個資源同時存在於其他cache當中，則會有幾種情形。
+1. 若未修改則可以直接丟棄
+2. 若以修改則可以選擇將其傳回memory或是直接傳給要使用的processor","1","未說明 Cache Coherence problem",""
+"38","12687","S085","當CPU wants to write a cached word且存在多筆副本時，會有快取一致性問題，
+需通知所有副本，若有乾淨副本，直接捨棄；若有髒副本，需先同步回系統。","1","Part A 僅點名問題未解釋；Part B dirty 處理方式過於模糊",""
+"39","12762","S004","當某個CPU要write一個同時存在多個cache的word時，系統需要通知大家這write request。若某個cache他持有的是clean copy，則直接丟棄副本即可，若某個cache他持有的是dirty copy，需要先把這被修改過的copy寫回memory，才能繼續執行請求或直接把被修改的copy傳給要寫入的CPU","1","未說明 Cache Coherence problem",""
+"40","12509","S046","當多個cache存取同一資源時，它會通知所有cache，
+當clean copy時，他會直接丟掉；
+而當 dirty (modify) copy時，它會覆寫或轉交。","0.5","未說明 problem；Part B dirty 處理用「覆寫」表述不清",""
+"41","11759","S005","When one cpu want write, the other check if the caches are dirty(been written), if clean just discard them, if dirty then need to write back to memory and tell the cpu","1","未說明 Cache Coherence problem",""
+"42","15172","S014","CPU wants to write a cached word:通知其他cache要寫
+如果有data 1.clean:直接消除 2.dirty:寫之前先寫回memory或直接傳給要寫的cache","1","未說明 Cache Coherence problem",""
+"43","12569","S107","If cpu wants to write a word which is in more than one cache, it should inform all other caches .
+If the cache is clear, cpu can discard it.
+If the cache is dirty(modified),  cpu should send it back to memory before the write proceed or send it to the writer directly.","1","未說明 Cache Coherence problem",""
+"44","13562","S126","Cache Coherence 就是其中一個cache有改值的話所有cache都要修改
+clean cache 可以直接刪除
+dirty cache 要先複製在進行刪除","1","Part B dirty 處理方式未明確說明需寫回 memory 或傳送給 writer",""
+"45","15640","S017","當一個CPU想要寫一個在多個cache裡存在的cache word時，他必須通知所有持有該cache word的cache。
+
+對於其他持有該cache word的人，如果你有一個clean copy，那直接discard就可以了
+如果你有的是一個modified copy，那在write operation實施以前，你必須先把該modified copy傳回memory，或是直接把它回傳給writer","1","未說明 Cache Coherence problem",""
+"46","13062","S115","Cache coherence occurs when a CPU wants to write a word that is already stored in other caches, where the data can be either clean or dirty
+Clean: Issues the data to be removed
+Dirty: Before writing this dirty data needs to be stored and accessed again, or directly forwarded to the CPU that will write the data ","1","未說明 Cache Coherence problem，僅描述情境",""
+"47","12381","S089","Cache Coherence problem是指不同Process的不同變數存在同個CPU導致變動其中幾個變數時也動到另外幾個，而CPU如果要write cached word的話，Clean Copy(沒有變動)可以直接Discard，Dirty copy(有變動)的話要回去Memory裡","0.5","Part A 對 Cache Coherence problem 的描述錯誤",""
+"48","12710","S009","Cache coherence is a system wants to copy a message to a cache and it will have to check the cache space.
+If the cache is clean, just discard the copy
+If the cache is dirty, it should copy the message and send to other cache","0.5","Part A 描述錯誤；Part B dirty 處理與標準答案有出入",""
+"49","13346","S094","當多個CPU都有同一個memory cache copies，如果有某個CPU要使用該cache，那必須要通知其他CPU，以免在更新時拿到未更新的檔案
+如果該cache是clean ->discard
+如果該cache是dirty -> transfer to writer 、write back memory
+","2","",""
+"50","13467","S066","當CPU要讀取在cache裡有副本的內容時，會向所有持有該副本的cache詢問:
+1. 若持有的副本未修改，直接丟棄
+2. 若持有的副本已修改，將已修改副本交出","0.5","未說明 problem；Part B dirty 處理僅說「交出」過於模糊",""
+"51","12630","S041","當多個cache存有同一塊memory block，若有一個CPU要對cache做寫入的話，系統要確保其他cache所看到的資料是一致的","0.5","未說明具體的 write rules",""
+"52","15623","S031","當CPU想要寫入cached word，需要通知所有快取，若有多個快取，則要看其他快取是否被修改過，若沒被修改過，則可以直接丟棄副本；若有修改過(dirty)，則需傳回，或直接給CPU的快取，再做進一步的寫入操作，以保持快取一致性。","1.5","Part A 對 problem 解釋不足",""
+"53","12446","S116","這個問題指的是當CPU想要更改cache中的資料時 其他使用相同資料的CPU也必須也要更改資料來維持一致性
+RULE:
+如果其他CPU的資料是clean未被修改過的 就直接只要直接DISCARD他們自己那一份就好
+而若資料是DIRTY的修改過的 就需要先把修改過的寫回CACHE 再讓要更改資料的CPU做修改","1.5","Part A 描述偏向解決方案而非問題本質",""
+"54","13374","S059","1. Cache Coherence problem: 不同cache 會存取相同資料, 所以當要修改某個cache中的資料時 剩下的cache 內的資料會變成舊資料, 最終會形成資料不同步的情形
+2. Cache Coherence protocol: 
+當我要改cache 內的資料之前,先通知其他有這些資料的cache
+去檢查:
+ 1. clean copy: 可以直接discard
+ 2. dirty copy: 需要先將舊的data copy 丟回去back memory 或者回傳給當初寫這個data copy的writer.完成後才可以修改資料
+以上是cache coherence protocol","2","",""
+"55","12523","S064","當多個CPU擁有相同的副本時，其中一個CPU要使用時須通知其他CPU
+if copy clean,可直接捨棄
+if copy dirty,需先回傳給寫入者","0.5","未說明 problem；Part B dirty 處理缺少 write back to memory 選項",""
+"56","13498","S101","當多的 CPU caches 中有同樣資料時， 可能發生快取不一致的問題。
+系統在CPU寫入前要確認其他 CPU caches 的 word 是 clean or dirty ， clean 可直接刪除， dirty 要先寫入或把資料交給現在要寫入的 CPU，來確保 Cache consistency。","1.5","Part A 對 problem 著墨過少",""
+"57","12738","S103","當要改資料的時候要通知每個cache，如果是乾淨的就不用處理，髒的要先寫回","0.5","未說明 problem；Part B clean copy 處理錯誤（應 discard 而非不處理）",""
+"58","12213","S104","在multiprocessor系統中，多個CPU在各自的local cache會存有相同的資料副本，當某個CPU修改了資料，那其他CPU的快取持有的副本就會變過時的，如何讓所有CPU持有的都是最新且一致的副本，這就是cache coherence problem。
+當某個快取要修改資料，
+如果其他快取持有的是乾淨的副本，那直接將其設為失效或捨棄就好。
+如果其他快取持有的是修改過(dirty/modified)的版本，那麼該快取需要先將資料寫回主記憶體，或是直接傳給發出寫入請求的CPU","2","",""
+"59","13521","S023","當多個 CPU 的快取擁有同一分資料的複本時，若其中一個 CPU 進行寫入，系統必須要求其他 CPU 丟棄(Clean) 或更新(Dirty)該資料，以維持資料一致性。
+","1","Part A 不足；Part B dirty 處理僅說「更新」不夠具體",""
+"60","12430","S113","當想要write時，系統會先去檢查其他node所保有的copy，若copy是clean，就直接丟棄即可，但若copy是dirty，要在write之前先把dirty copy write back回去。","1","未說明 Cache Coherence problem",""
+"61","12767","S055","1.當有一個processor有更改其cache中的某個內容 則其他processor若cache也有相關的內容 就會造成同步上的問題
+2.若被更改的內容 在其他cache上是clean(即未被更動過)的 就直接丟掉，若為dirty 則需先寫回memory 才能再交給原先processor去做更改","2","",""
+"62","13130","S119","當CPU要寫入的一筆資料同時存在於多個cache的時候，系統必須對這些cache發出寫入請求
+如果這筆資料沒有被修改過，那麼可以直接丟棄這筆資料
+如果這筆資料有被修改過，那必須先存回主記憶體或者直接傳給現在要寫入資料的那個CPU","1","未說明 Cache Coherence problem",""
+"63","12953","S067","當我要寫入資料時,會通知其餘持有此data的node 如果他們持有的是clean data則直接丟棄,如果他們有做修改,則需傳回memory或是將修改後的data傳給要寫入的node","1","未說明 Cache Coherence problem",""
+"64","13927","S076","The CPU must see consistent values with shared data. When a single cache line exists in multiple caches and one CPU writes, the file must be invalidated or updated.
+Clean copies can be discarded.
+Dirty (modified) copies must be written back or transferred. This set of rules is referred to as Cache Coherence Protocol to deal with the Cache Coherence problem.","1.5","Part A 對 problem 的解釋不夠明確",""
+"65","11693","S074","Cache coherent problem is when there is more than one copy of a word cashe in different CPU. For a CPU to write a cached word, it has to invalidate other cached word and update the old cache to new value of that particular cache.","1","Part A 不足；Part B 未區分 clean/dirty 處理",""
+"66","13443","S063","Cache Coherence happens when a writer wants to write more than the size of the cache 
+The rule should follow:
+the system notifies all the caches.
+If the cache is clean, discard it.
+If the cache is dirty, write it back to the memory or transfer it to the cache that the writer is going to write.","1","Part A 對 Cache Coherence problem 的定義錯誤（非 cache size 問題）",""
+"67","13338","S090","When write the data which has multiple caches, the system needs to notify all caches of the write request. If the cache has clean copy, it can discard the copy. If the cache has dirty copy, it needs to write the modified copy back into memory before the write operation or transfer the modified copy directly to the writer.","1","未說明 Cache Coherence problem",""
+"68","15432","S100","We should make sure that the data shared by CPUs should be the same. If we want to wirte a cache block, we invalidate or modify the block in other CPUs.   ","1","Part A 解釋不足；Part B 未區分 clean/dirty 處理方式",""
+"69","11939","S114","Cache conherence problem 是指 因為一個cache line 同時存在於多個ＣＰＵ cache 內，因此若是不對此做同步處理，則可能會因爲兩個CPU 於自己的cache 內的同一個 cache line 寫入資料，進而造成的inconsistency 問題。 因此若要解決此問題，則需要ＣＰＵ在寫入某個cache line 前，先去對於該cache line 於其他cache 內的資料 做 invalidation 後，才可以做寫入的動作。","1.5","Part B 僅提及 invalidation，未區分 clean/dirty 的不同處理方式",""
+"70","14506","S038","the cpu want write a data that hold by other cpu's cache it cause Cache Coherence problem  and will make not sync ","0.5","Part B 未說明任何 write rules",""
+"71","15953","S047","cache 有時候會不同步，在不同的cpu會有不同的自己的memory，裡面不同步的時候就需要去同步他，那他就必須在write cache 的時候先寫盡自己的cache裡面要invalidate 之前必須去每一個cache 去做一個同步的狀態，並且要確保cache 與實時資料是全部一起正確的在同一個狀態的","0.5","Part B 未說明 clean/dirty 的具體處理規則",""
+"72","14397","S044","the cpu want to write a cache word, but there are other cache copy holding the same data. Then, we need to ensure the cache coherence.
+rule: if the other cache copy is clean, just discard it. if the cache copy is dirty(modified), it needs to write back to the cache line before it is written or it needs to transfer the cache copy back to the cache.","1.5","Part A 未清楚解釋 problem 本質",""
+"73","12873","S075","CC problem: cache is sometimes modified. 
+if the cache is clean, just remove them and copy the newer.
+if the cache is dirty(modified), send the dirty cache to other memory and notify the CPU","0.5","Part A 過於模糊；Part B dirty 處理表述不精確",""
+"74","12764","S030","cache coherence problem : 一筆資料在多個 cache 裡面，須維持資料的一致性來保證系統的正確性
+最常見的作法是 在寫之前 先通知留有這筆資料的 cache  設定為 invalidate 才開始寫","1.5","Part B 僅提及 invalidate，未區分 clean/dirty 的不同處理方式",""
+"75","12471","S106","Cache Coherence problem means that the data is stored in several copies in each processes , therefore if new write command arrives , there will be mainly two situations . 
+1. If the data is clean , just simply discard it . 
+2. If the data is dirty , it can write back to the memory before the new write executes . ","1.5","Part A 對 problem 解釋不足",""
+"76","12880","S019","Cache Coherence : 當某個 CPU 要修改被多個 cache 共享的 resource 的時候需要去通知其他 cache，確保 cache 之間的資料一致性
+當一個 CPU wants to write a cached word 時，會去通知其他 cache
+若是其他 cache 是 clean copy 則直接捨棄
+若是 dirty copy 則必須先寫入 memory 或是直接傳送給要 write word 的 CPU
+這樣維護 cache 間一致性的規則即 cache coherency protocal
+","1.5","Part A 對 problem 本質解釋不足",""
+"77","12219","S020","If the copy is clean, it can just discard the copy.
+If the copy is dirty, the cache must either write it back to memory of transfer the copy directly to the writer.","1","未說明 Cache Coherence problem",""
+"78","13420","S010","When one wants to write, it must inform all CPU with that cahce.
+If one has a clean copy, discard it.
+If one has dirty copy, it must write back before other could write.","0.5","未說明 problem；Part B dirty 缺少 transfer to writer 選項",""
+"79","13106","S091","catching 
+replication","0","答案無意義",""
+"80","12558","S051","there are multiple caches have same copies and CPU takes one of copy to use.
+If copy is not modified then nothing happend
+If copy is modified(dirty) then all of copies in different cache need to be rewrite.","0","答案整體與 cache coherence protocol 不符",""
+"81","14866","S039","當一個CPU想write cached word時
+檢查cache是否dirty
+若不是則可直接write
+若dirty則先將cache寫回storage","0.5","未說明 problem；Part B clean 處理未提及通知/丟棄其他 cache 副本",""
+"82","12759","S018","CPU 想寫入時，需要檢查其他的cache是否擁有，如果cache有無修改的可以直接丟棄，如果有修改過的就需要寫回memory或是直接傳到該CPU的writer，用來維持cache的一致性。","1.5","Part A 對 problem 解釋不足",""
+"83","12364","S049","cache coherence:當有一個cpu要對一個存在於多個cache的資料作修改時，需通知所有相關thread做處理，確保快取資料一致性","0.5","Part B 未說明 clean/dirty 的具體處理規則",""
+"84","12968","S053","當有人要寫入word導致其他人的cache不相同時產生的問題
+解法是在寫入前檢查cache是否乾淨，若乾淨，則拋棄原資料直接寫入，若有修改過，則將修改過的寫入記憶體或交給轉移者後再進行寫入","2","",""
+"85","12979","S092","Cache Coherence problem means the same cache line in each cache has to be same when used.
+If a CPU wants to write a cached word, there are two cases:
+1. The cache line in other caches are clean
+In this case, the CPU can just write a cached word, and the cache line in other caches can just discard.
+2. The cache line in some other caches are dirty
+In this case, the CPU cannot just write a cached word.
+It has to update the cache line or receive the modified cached word before it start write a cached word.","1.5","Part A 對 problem 解釋不足",""
+"86","12165","S125","cache需要有一致性，when cache change systems inform all cache，if the cache in it is clean. It discard the copy. If it is dirty,systems modify cache and send it back.","1","Part A 不足；Part B dirty 處理表述模糊",""
+"87","11820","S021","it write the same word with more than one cache,it need a set of rules to updated the cache or let some old data be trash","0","答案過於模糊，未說明具體 problem 與 rules",""
+"88","12913","S050","當想寫的字存在多於一個cache時 要write a word前須通知所有的cache
+當cache是clean的 直接丟掉
+是dirty的話要不是回傳到memory不然就是傳給要更改的人
+","1","未說明 Cache Coherence problem",""
+"89","12843","S036","當每個CPU的快取有同一塊memory的部分，若是其中一個CPU修改了這個快取，就必須透過Cache Coherence Protocol通知其他CPU修改資料。","0.5","Part B 未區分 clean/dirty 處理，僅說通知修改",""
+"90","12692","S048","Cache Coherence problem就是講說在CPU寫入Cache line時，若line同時共享多個cache時，則有dirty data時需要寫回memory或著直接寫入CPU","0.5","未說明 problem；Part B 缺少 clean copy 的處理規則",""
+"91","13016","S112","Cache Coherence problem: 同一份memory的資料，在不同cache可能會有不同版本，在CPU要寫入前需要維持一致性，不然可能會有版本不一的問題
+如果其他cache的資料是clean copy，可以直接刪掉
+如果其他cache的資料是dirty copy，需要先回傳CPU更新至最新版本，或者傳到要寫入的process","2","",""
+"92","12551","S006","Cache Coherence problem,  update cache request has to info other cpu in advance
+if other cpu's cache is clean(untouched), discard the cache
+if other cpu's cache is dirty(modified), ask if i can update cache first or directly send the update to the original request cpu","1","未說明 Cache Coherence problem",""
+"93","13073","S057","Cache conerence :
+指多個 cache 共同傳送資料時，會通知另外的 cache ","0","答案對 Cache Coherence 的理解完全錯誤",""
+"94","15012","S002","inform all caches while overwriting. 
+if the cache is clean, just discard the copy.
+if the cache is dirty, write back to the memory or transfer the modified copy to the writer.","1","未說明 Cache Coherence problem",""
+"95","12771","S007","Cache Coherence describes a MP/Distributed System that many CPUs cache the same data that one wants to write. If their's dirty cache, it must passed the information for other cache machinisms to update memory and caches. After that, the CPU can start to write.","1","Part A 不足；Part B 缺少 clean copy 處理規則",""
+"96","12535","S118","The cache coherence problem is that the cache line in each CPU needs to be the same. 
+When a CPU wants to write a cached word, if the data in the cache is not modified, the cpu simply discard the cache. However, if the data in the cache is already modified, the data in the cache line has to be first saved in to the memory, and then the cpu write data into the cahce.","1.5","Part A 對 problem 解釋不足",""
+"97","16183","S016","當CPU想寫入一個字，系統必須通知所有快取寫入請求，如果快取有乾淨的副本，它可以直接丟取該副本，如果有髒的副本，快取必須先將修改後的複製寫回記憶體，才能繼續寫入請求。","0.5","未說明 problem；Part B dirty 缺少 transfer to writer 選項",""
+"98","16040","S083","在多處理器系統中，當同一筆資料複製到多個CPU的Cache中時，如果某一個CPU修改了該筆資料值時，其他的Cache中副本可能仍是舊值，而導致資料不一致問題，因此系統必須透過一玫性協議來確保所有對應該資料的內容保持一致性。","1","Part B 未說明具體的 clean/dirty 處理規則",""
+"99","13025","S088","word同時存在多個CPUs的cache裡，如果某個CPU要寫入這個word會造成資源不同步的問題，這個write requset要通知所有有這個word的caches，如果是clean copy可以直接discard，如果是dirty copy要把讀寫完的資料更新回server或傳給writer","2","",""
+"100","14038","S058","to solve cache coherence problem , we have to build a set of rules to maintain the consistency of cache.","0","未說明 problem 本質亦未說明具體 rules",""
+"101","12338","S043","若其CPU是乾淨的即可丟棄副本
+若CPU是有被編輯過的副本則需先回傳，再執行寫入
+","0.5","未說明 problem；Part B dirty 處理未明確說明 write back to memory 或 transfer to writer",""
+"102","12102","S060","cpu想要修改一個存在於多個cache的資料，它需要向所有有這份資料的cache拉取這個請求","0","未說明 problem 亦未說明具體處理規則",""
+"103","12501","S024","when a request of writing a word that is in many caches, the system will inform all the caches the request.
+if a cache has a clear copy, it can just discard the copy.
+if a cache has a dirty copy, it may either write the modified copy to the server before the write request proceed or transfer the modified copy to the writer directly","1","未說明 Cache Coherence problem",""
+"104","12824","S095","當write需要對多個cache裡面的資料進行改寫
+如果該資料沒有經過修改過 可以直接discard
+如果該資料有經過修改 必須先把修改過的資料複製回memory 才能對該資料進行要執行的動作","0.5","未說明 problem；Part B dirty 缺少 transfer to writer 選項",""
+"105","13085","S077","when a processor want to write a cached word if the cached word is cached by other processor's cache.
+ 1. if cached is clean then just discard and write the cache with new data.
+ 2. if cached is modified, needs to copy the modified cache to other cache and write the cache with new data.","0","Part B dirty copy 處理方式錯誤",""
+"106","12660","S120","當某個thread需要寫入或讀取某word時，其他thread若有dirty copy需先寫入RAM，若有clean copy需丟棄並複製剛剛寫入RAM的copy以保證所有thread的cache coherence","1","Part A 不足；Part B clean 處理步驟描述有混淆",""
+"107","13372","S073","當CPU要寫入一個存在於多個cache中的word時，要跟相關的CPU發送請求，當某個cache中的是clean copy 那就可以直接丟了，當某個cache中的是dirty copy，就需要先寫回記憶體，或是把這個dirty copy直接傳給發送請求的CPU。","1","未說明 Cache Coherence problem",""
+"108","12936","S069","他是代表一次要寫入很多cache，當其中遇到clean 的就會直接丟棄他的copy，如果遇到dirty 他就會在write request前將修改過的copy寫回到memory 中，或是他直接tranfer modified copy to writer
+","1","未說明 Cache Coherence problem",""
+"109","13412","S072","當想要write的word在多個cache都存在，那麼要寫之前就必須要先告知其他擁有此word的processors,
+接著那些處理器會檢查該word是否在自身的cache有被modify(dirty)過，若是clean 的，則可直接discard，若是有被modify(dirty)過的，則要存回main memory，並告知欲使用此word的處理器去拿取最正確的word.","0.5","未說明 problem；Part B dirty 處理缺少 transfer to writer 選項",""
+"110","12583","S042","當CPU要寫入一個word時，他同時存在於多個cache中，此時需要inform所有的cache request
+如果此時是clean copy, 則直接把copy discard掉
+如果此時是dirty copy, 則either把modified copy寫回memory中 ,or把modified copy直接傳回writer","1","未說明 Cache Coherence problem",""
+"111","13048","S071","當多個CPU的Cache中有同一個data，要修改時要先看是Clean copy還是Dirty copy，如果是Clean copy，其他CPU就直接Discard即可；如果是Dirty copy，就要將修改過的副本先寫回Main Memory，或是直接傳給提出修改請求的CPU","1","未說明 Cache Coherence problem",""
+"112","12567","S062","當某個CPU想要寫入/修改(write)它自己local cache內的word，但同時這個word也存在於其他CPU的local cache，如果此時寫入/修改會造成Cache Coherence problem。若要write a cached word，必須確保word只存在於自己的cache，不會和其他CPU內的local cache重複","1","Part B 未說明 clean/dirty 的具體處理規則",""
+"113","13022","S045","一個資料可能會存在多個cache中所以如果改動其中一個cache裡的資料會導致和其他cache裡的資料內容不一致，解決這個問題通常回要修改這份資料時回發出獨佔這份資料的請求，等更改完再去更新這個資料再還回去每個cache","1.5","Part B 描述的方案與標準 clean/dirty 處理規則有出入",""
+"114","13669","S056","Cache Coherence problem means mutiple cached copies may become inconsistent after a write
+Other caches must invalidate clean copies, and dirty copies mút be written back or transferred before writing","2","",""
+"115","13804","S128","Skip","0","未作答",""
+"116","14496","S029","當某個thread 被很多cpu cache，當其中有cpu對其做改動，那其他cpu內cache所存的data 就是 dirty data, 此時解法為改動cache的那顆cpu要發送通知給其他有cache此thread的cpu, 其他cpu內cache所存的data需要更新自身cache所存的data","1","Part A 對 dirty 概念混淆；Part B 未區分 clean/dirty 處理",""
+"117","12866","S065","當多個CPU想要access記憶體中同一筆資料時，如果有一個CPU想要修改資料，就會造成cache不一致的問題。如果要write cache，要先把舊的cache存到memory，才可以修改cache，完成後要通知所有持有這個cache的CPU丟棄舊的cache。","1.5","Part B 未明確區分 clean/dirty 的兩種情境",""
+"118","12981","S098","當CPU想要write a word in a cache，需要檢查欲寫入的cache block status，若為dirty需將該block內容write back回memory space。","0.5","未說明 problem；Part B 僅提及 dirty 處理，缺少 clean copy 規則",""

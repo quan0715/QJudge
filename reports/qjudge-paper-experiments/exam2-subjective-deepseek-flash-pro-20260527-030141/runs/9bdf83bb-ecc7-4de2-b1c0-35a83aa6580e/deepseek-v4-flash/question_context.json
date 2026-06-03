@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "Identify two major differences between a traditional Multiprocessor (MP) and a Chip-level Multiprocessor (CMP).",
+  "question_id": "9bdf83bb-ecc7-4de2-b1c0-35a83aa6580e",
+  "question_type": "short_answer",
+  "reference_answer": "(1) CMPs share an L2 cache, where a greedy core can negatively impact others.\n(2) Because CMP cores are tightly integrated on one chip, hardware failures are more likely to bring down multiple CPUs simultaneously."
+}

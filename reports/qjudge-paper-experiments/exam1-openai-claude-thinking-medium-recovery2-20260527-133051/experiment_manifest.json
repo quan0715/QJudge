@@ -1,0 +1,226 @@
+{
+  "classroom_id": null,
+  "cli_version": "0.1.0",
+  "concurrency": 1,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "dataset_dir": "/Users/quan/online_judge/paper/data/raw/qjudge-exams/exam1",
+  "ended_at": null,
+  "exam_key": "exam1",
+  "experiment_id": "exam1-openai-claude-thinking-medium-recovery2-20260527-133051",
+  "model_ids": [
+    "claude-sonnet-4-6",
+    "openai-mini-medium"
+  ],
+  "official_grades_modified": false,
+  "preset": "exam1-subjective",
+  "question_ids": [
+    "199417a2-c63c-436e-8a8d-869d348dbbdd",
+    "bc513144-2e7e-4363-8375-56c87bc07ff0",
+    "f2dac513-8733-4f95-8e93-ce1e5e922334",
+    "47cb43c4-ca23-4831-960c-018702c06992",
+    "fe59c063-d7d5-4d1a-8d82-90dd1e67c55b",
+    "1a14a6d1-4d2f-41fd-ac54-cc63a8de7b3c",
+    "979c5847-2933-4887-b7fd-05f878541734",
+    "376de8d7-fb33-4f62-be5a-b9044492c283",
+    "bcfce196-f980-45ec-9dfb-16ca53c1c6bf",
+    "4cec7cc1-8e3e-45e3-866e-d800c15fef66",
+    "90fd763a-b0e8-4296-986b-e2b18af93a4a",
+    "7cc6d0c4-5832-45da-887f-502a70a914bf",
+    "7692d1fe-db5b-4ba5-9e19-21957a3c17d0",
+    "f2b4ceed-f4b7-4acf-bc91-903cc746807f",
+    "16d62b26-dc46-4ebc-94e2-908dc964b6cf",
+    "07975ab9-2b1d-40d4-88f0-9cff7a8c8fb8",
+    "cb495b8c-586a-4245-a4c6-a4e19e5abe38",
+    "5e40582c-f1e1-45b7-be7c-9e9a2da03c95",
+    "ff4ab35b-9b76-41a1-a6ee-36bc56d31462",
+    "a838727e-81c8-4834-af4e-f33b520fd1e1",
+    "517790a5-db10-491c-bb92-6bb654e36795",
+    "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+    "166f2724-ea07-47ba-b33e-15b5365b84b0"
+  ],
+  "run_count": 45,
+  "run_pairs": [
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "199417a2-c63c-436e-8a8d-869d348dbbdd"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "bc513144-2e7e-4363-8375-56c87bc07ff0"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "bc513144-2e7e-4363-8375-56c87bc07ff0"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "f2dac513-8733-4f95-8e93-ce1e5e922334"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "f2dac513-8733-4f95-8e93-ce1e5e922334"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "47cb43c4-ca23-4831-960c-018702c06992"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "47cb43c4-ca23-4831-960c-018702c06992"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "fe59c063-d7d5-4d1a-8d82-90dd1e67c55b"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "fe59c063-d7d5-4d1a-8d82-90dd1e67c55b"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "1a14a6d1-4d2f-41fd-ac54-cc63a8de7b3c"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "1a14a6d1-4d2f-41fd-ac54-cc63a8de7b3c"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "979c5847-2933-4887-b7fd-05f878541734"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "979c5847-2933-4887-b7fd-05f878541734"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "376de8d7-fb33-4f62-be5a-b9044492c283"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "376de8d7-fb33-4f62-be5a-b9044492c283"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "bcfce196-f980-45ec-9dfb-16ca53c1c6bf"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "bcfce196-f980-45ec-9dfb-16ca53c1c6bf"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "4cec7cc1-8e3e-45e3-866e-d800c15fef66"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "4cec7cc1-8e3e-45e3-866e-d800c15fef66"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "90fd763a-b0e8-4296-986b-e2b18af93a4a"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "90fd763a-b0e8-4296-986b-e2b18af93a4a"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "7cc6d0c4-5832-45da-887f-502a70a914bf"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "7cc6d0c4-5832-45da-887f-502a70a914bf"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "7692d1fe-db5b-4ba5-9e19-21957a3c17d0"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "7692d1fe-db5b-4ba5-9e19-21957a3c17d0"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "f2b4ceed-f4b7-4acf-bc91-903cc746807f"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "f2b4ceed-f4b7-4acf-bc91-903cc746807f"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "16d62b26-dc46-4ebc-94e2-908dc964b6cf"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "16d62b26-dc46-4ebc-94e2-908dc964b6cf"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "07975ab9-2b1d-40d4-88f0-9cff7a8c8fb8"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "07975ab9-2b1d-40d4-88f0-9cff7a8c8fb8"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "cb495b8c-586a-4245-a4c6-a4e19e5abe38"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "cb495b8c-586a-4245-a4c6-a4e19e5abe38"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "5e40582c-f1e1-45b7-be7c-9e9a2da03c95"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "5e40582c-f1e1-45b7-be7c-9e9a2da03c95"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "ff4ab35b-9b76-41a1-a6ee-36bc56d31462"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "ff4ab35b-9b76-41a1-a6ee-36bc56d31462"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "a838727e-81c8-4834-af4e-f33b520fd1e1"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "a838727e-81c8-4834-af4e-f33b520fd1e1"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "517790a5-db10-491c-bb92-6bb654e36795"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "517790a5-db10-491c-bb92-6bb654e36795"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed"
+    },
+    {
+      "model_id": "openai-mini-medium",
+      "question_id": "166f2724-ea07-47ba-b33e-15b5365b84b0"
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "166f2724-ea07-47ba-b33e-15b5365b84b0"
+    }
+  ],
+  "started_at": "2026-05-27T05:30:51.637329Z",
+  "user_id": null
+}

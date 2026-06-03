@@ -1,0 +1,851 @@
+{
+  "answer_count": 119,
+  "answers": [
+    {
+      "answer": {
+        "text": "可以節省到memory查詢地址的時間"
+      },
+      "id": "3715",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "TLB is used like a cache of page table. It tries to minimize the translation time by reducing the number of accessing main memory."
+      },
+      "id": "3570",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "can access memory use abstract table, improve efficiency and can use less pointer point to more memory address."
+      },
+      "id": "4908",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "減少因查看page table而增加的memory access 時間成本"
+      },
+      "id": "4649",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "TLB是用來避免每一次找page都要到memory中找page table，可以把常用的page的位置存在TLB中，這樣可以不用一直enter memory"
+      },
+      "id": "3900",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "to cache a used page's frame address. when a page is referenced again, you don't have to check page table again"
+      },
+      "id": "4876",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "避免查詢 page table 需要進入 memory，用來加快 virtual address 和 physical address 的轉換。"
+      },
+      "id": "5575",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "TLB 有較快的 Access 速度，因此在 TLB 中放常用的 Page 可以提高整體 Paging 速度。"
+      },
+      "id": "4347",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "在找memory資料(page)時，如果可以在TLB(速度很快)找到在memory的某個位置，那可以少一次的memory access，否則要先去memory裡的page table找(memory access)"
+      },
+      "id": "4158",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "to lower the effect memory access time by put some commonly used entries into TLB, this way the system can lower the access time."
+      },
+      "id": "5398",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "To save time for accessing the page table. which would need  memory accessing time, but with TLB, it is much faster than the memory accessing, and we can think of it a nearer page table."
+      },
+      "id": "2720",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "Reduce the memory access time : access main memory is time consuming, and page table is stored in main memory. TLB is used to reduce the times to access page table(TLB hit rate higher is better)."
+      },
+      "id": "4493",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "A page access need two memory access, one for page table, one for address. TLB can reduce the memory access to page table."
+      },
+      "id": "5589",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "to increase memory access speed, by caching virtual page addresses and their related physical frame addresses"
+      },
+      "id": "4485",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "Decrease the number of the memory access"
+      },
+      "id": "4896",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "to prevent get data from memory two times"
+      },
+      "id": "4663",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "To accelerate the execution by keeping in memory the address of recently used pages"
+      },
+      "id": "2581",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "It tries to solve the problem of 2 times access memory (1 access for page table + 1 access for data)"
+      },
+      "id": "4172",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "因為存取 memory 的時間很長，所以需要一個 Buffer 用來儲存最近使用的 data / instruction 資訊，減少記憶體與暫存器之間的資訊交換次數以增加整體系統的吞吐量。"
+      },
+      "id": "5451",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "memory access要比較多的時間，透過TLB來減少memory access"
+      },
+      "id": "5622",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "TLB是記載page在memory的哪裡。"
+      },
+      "id": "6292",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "減少memory access time"
+      },
+      "id": "6119",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "It record the recent used page-frame mapping into a buffer and decrease the two step memory access"
+      },
+      "id": "5883",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "減少時間，讓資料流更順暢以及連結"
+      },
+      "id": "4936",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "save memory access time."
+      },
+      "id": "5601",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "查找page對應的frame可以更快速"
+      },
+      "id": "4819",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "TLB避免取的data還要經過memory去取的，這樣會花太多時間，使用TLB可以有效降低獲取data的時間"
+      },
+      "id": "5127",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "可以快速查找page,可以減少memory acccess的時間"
+      },
+      "id": "4167",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "to find the sort the pages in the shortest time possible"
+      },
+      "id": "5921",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "In paging system, one memory read requires two memory references (one for page table, the other for data), TLB reduces the memory access time by caching the frequently used frames' addresses in a much faster memory."
+      },
+      "id": "5174",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "faster the time to paging"
+      },
+      "id": "6104",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "作為page table的快取，減少virtual address轉換為physical address的時間"
+      },
+      "id": "3661",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "To reduce the access time from the page address translation."
+      },
+      "id": "3663",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "to have a  chance by not loading page table to decrease access time, decrease one memory access"
+      },
+      "id": "6440",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "use TLB  can let OS access the data or resource in memory faster."
+      },
+      "id": "4369",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "將常用到的 pages 位置存放在更高速的記憶裝置(TLB)中，提升 paging 的平均速度。"
+      },
+      "id": "5873",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "原本方法會memory access兩次，TLB為的就是減少所花的時間。"
+      },
+      "id": "3897",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "將常(最近)使用的page記錄，減少用於查找(memory access)次數"
+      },
+      "id": "4035",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "把常用的page先存在TLB，可以提升效率"
+      },
+      "id": "5150",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "為了更快載入記憶體分頁。"
+      },
+      "id": "3140",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "為了讓ｐａｇｉｎｇ切換可以緩衝"
+      },
+      "id": "6561",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "To avoid two times of  memory access which takes a long time."
+      },
+      "id": "2370",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "Reduce the memory space."
+      },
+      "id": "4128",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "translate from virtual address to physical address"
+      },
+      "id": "4994",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "花較少時間在查找memory上面"
+      },
+      "id": "3800",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "to connect memory and disk."
+      },
+      "id": "3156",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "TLB可以加速，他會保留常用的page to frame，這樣就不用一直去主記憶體內查資料，只要在TLB內找不到再去就好"
+      },
+      "id": "4269",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "想減少查詢page table的機會，進而提高效率。如果這次的目標TLB有紀錄，就不用去找page table，可以直接去對應的位置搬資料，就少了一次查找memor的時間消耗(假設只是單層的page table，多層的話省更多)"
+      },
+      "id": "4321",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "TLB stores previously used maps, so that it doesnt have to go to the memory to do paging which takes a longer time."
+      },
+      "id": "5130",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "透過省略查表減少memory access time"
+      },
+      "id": "2939",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "TLB can directly access the physical memory by the page table"
+      },
+      "id": "5488",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "TLB主要是要減少CPU平均有效使用時間"
+      },
+      "id": "2967",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "建立一個TLB儲存最近使用過的跟page table對應關係，以增加讀取速度。"
+      },
+      "id": "6722",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "紀錄最近訪問過的 logical 和 physical address，減少查找時間"
+      },
+      "id": "2713",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "加快查找page table時間"
+      },
+      "id": "4974",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "TLB會存process中最常用或剛用的東西，因此當運行Process會再次用到時，就會先在TLB裡去找，找不到的話才會去看page table，這樣就可以大幅減少去讀記憶體的時間。"
+      },
+      "id": "3742",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "減少浪費時間查找資源對總表(page table)的時間,若可以在TLB找到的話就不用再找PAGE TABLE了"
+      },
+      "id": "4738",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "把page過的資料記錄下來，減少下次page的時間"
+      },
+      "id": "4081",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "減少去記憶體找資料的時間"
+      },
+      "id": "5919",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "TLB會存下最近查詢過或時常使用的page，這樣在相同的page來時就不用再額外進行多的memory access，直對照表就可以使用了。"
+      },
+      "id": "4810",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "To decrease the memory size."
+      },
+      "id": "6361",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "傳統方式要存取資料要先access memory一次找到page table再從page table上的給的資訊access memory一次找資料，TLB是一個快取可以存取部分page，在找page時可以先看TLB如果有hit就可以減少一次memory access"
+      },
+      "id": "2867",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "減少memory access的次數 因為TLB 是一個CACHE 很快, 若hit就不用去access page table(其本身是一次memory access)找, 可以加快"
+      },
+      "id": "4558",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "加快paging 的速度，遇到已經遇過的page 可以直接去TLB找來用"
+      },
+      "id": "4179",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "為了減少memory access time"
+      },
+      "id": "5139",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "memory takes time moving from logical address to physical memory. TLB caches logical addresses for fast lookup, so hits can skip page lookups, saving a step."
+      },
+      "id": "6111",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Translation Lookaside Buffer is useful when computing effective memory access time (EAT) in a paging system. "
+      },
+      "id": "2395",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "To decrease the number of times to access memory. Without TLB, it needs to access memory twice to get the data."
+      },
+      "id": "3633",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "Avoid to find page table(in memory), TLB(in cache) is faster to access."
+      },
+      "id": "4501",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "It can prevent us from accessing the main memory times to look up the page table."
+      },
+      "id": "3431",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "降低Memory Access 次數，以此降低EMAT ，提升效率"
+      },
+      "id": "4189",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "virtual memory to physical memory"
+      },
+      "id": "2654",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "加快 paging table lookup 的速度，做一個快取"
+      },
+      "id": "4877",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "it can allow the system not to load every page into memory. it can keep the frequently used pages in memory."
+      },
+      "id": "4290",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "在大部分情況下能大幅節省找到想要資源的時間(但有些時候不行)"
+      },
+      "id": "4195",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "對將logic memory 轉 physical memory 的過程進行快取以達到 更快的轉換地址速度。"
+      },
+      "id": "4006",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "to speed up the process of translating logical addr to physical , don't need to look at the page table if hitt , which is a speed enhancement "
+      },
+      "id": "4925",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "一個關聯式快取, 可以幫助查找常用的 page frame number. 當hit時即可減少 memory access"
+      },
+      "id": "4611",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "Reduce the effective memory access time"
+      },
+      "id": "3365",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "To reduce the time to find the address, since looking up at TLB is much faster than accessing the memeory."
+      },
+      "id": "2504",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "計算paging activity跟CPU utilization"
+      },
+      "id": "4411",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "to decrease memory access times"
+      },
+      "id": "5179",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "turn logical address into physical memory address without compute"
+      },
+      "id": "5934",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "查詢速度更快，通常尋找對應的address都要經過main memory，加入TLB可以減少其次數使得平均時間更少。"
+      },
+      "id": "3739",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "減少memory access次數"
+      },
+      "id": "4003",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "減少需要直接去存取記憶體的次數與時間"
+      },
+      "id": "5171",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "a quicker way for demand paging, it is a hit-or-miss method, if hit, then it only needs one access for finding the page, which can lower the time for memory access."
+      },
+      "id": "4627",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "加快process找對應frame的速度不用每次都重頭找"
+      },
+      "id": "3994",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "for memory management"
+      },
+      "id": "6559",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "lower the memory access time"
+      },
+      "id": "5111",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "良好的分配不同thread的priority"
+      },
+      "id": "3651",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "可以提高paging system效率"
+      },
+      "id": "4343",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "It provides a space for the paging system to store the frequent data instead of searching them again and again. "
+      },
+      "id": "4921",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "快速查找 page 的 physical address"
+      },
+      "id": "3538",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "讓實體記憶體查虛擬記憶體的位置"
+      },
+      "id": "5115",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "Calculate effective memory access time."
+      },
+      "id": "6585",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "The TLB functions as a cached mechenism to reduce the memory access time. It checks if the requested data is cached in the buffer so we don't need to look for the data in the page table or even the main memory."
+      },
+      "id": "5018",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "TLB的功能目的是將邏輯位址空間轉譯為物理記憶體位址"
+      },
+      "id": "6313",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "TLB"
+      },
+      "id": "6316",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "因為page table需要存取兩個暫存器，存取時間會變兩倍，TLB可以跳過PTBR那個步驟，讓存取時間變低，但是TLB不保證成功"
+      },
+      "id": "4126",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "increase the efficiency. if hit, it can save many time, so what we have to do is to increase the probability of hit."
+      },
+      "id": "5441",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "計算（TLB hit 及存取時間）成功時與TLB miss的機率總和時間相加，轉換paging system的使用"
+      },
+      "id": "6539",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "快速查表找地址"
+      },
+      "id": "4162",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "to improve the efficiency, because use TLB is much faster than access memory directly."
+      },
+      "id": "3788",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "降低effective memory access time"
+      },
+      "id": "6372",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "decrease the access of physical memory because page table store in the physical memory."
+      },
+      "id": "3692",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "A cache for CPU, which can save time for finding files."
+      },
+      "id": "3886",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "減少跟memory存取的次數而達到加速的效果 "
+      },
+      "id": "4344",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "減少搜尋的時間，可以較快的找到memory 在哪"
+      },
+      "id": "3834",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Translation from logical  address to  physical address."
+      },
+      "id": "2671",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "給一個TLB，TLB hit則可以減少進memory 查找的時間以提高 virtual memory translation 效率"
+      },
+      "id": "3422",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "有TLB後可大幅減少search的時間，hit rate越高，可節省的時間就越多，"
+      },
+      "id": "5251",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "使用TLB主要可以降低time complexity，這樣一來可以直接在TLB後得到資料，使得access time下降，使EAT效率變高。"
+      },
+      "id": "5958",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "TLB是用來記住常用的thread資訊可以減少memory access的次數"
+      },
+      "id": "4695",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "It provides a space for the paging system to store the frequent data instead of searching  them again and again"
+      },
+      "id": "4929",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "主要目的就是幫忙將虛擬記憶體映射到實體記憶體"
+      },
+      "id": "5437",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "用來減少去page table查找的次數，縮減EAT。"
+      },
+      "id": "4447",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "Increase the speed of searching frame in memory"
+      },
+      "id": "6503",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "紀錄常使用的page方便更快速獲得"
+      },
+      "id": "4859",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "What is the primary purpose of the 'Translation Lookaside Buffer' (TLB) in a paging system?",
+    "question_id": "cb495b8c-586a-4245-a4c6-a4e19e5abe38",
+    "question_type": "short_answer",
+    "reference_answer": "To speed up logical-to-physical address translation by caching frequently used page table entries, reducing the need for multiple memory accesses per reference."
+  },
+  "question_id": "cb495b8c-586a-4245-a4c6-a4e19e5abe38"
+}

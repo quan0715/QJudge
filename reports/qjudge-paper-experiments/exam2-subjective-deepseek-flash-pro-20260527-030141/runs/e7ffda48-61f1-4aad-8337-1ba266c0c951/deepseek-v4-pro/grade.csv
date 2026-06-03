@@ -1,0 +1,151 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","11362","S109","因為不像是blocking 需要等到 receiver 正確收到後才能繼續做事，nonoblocking 不需要等候，就比較不容易發生大家都在等待，沒有人有辦法做事，進而導致死結","","",""
+"2","13479","S015","The blocking operations are executed in order. The situation of two process waiting for each other may happen and lead to a deadlock.
+The non-blocking operations are executed out of order. So the deadlock is less likely to happen.","","",""
+"3","14251","S054"," non-blocking operations採取的機制是，不必確認receiver有無接收，sender就是一直傳送，比較不會deadlock","","",""
+"4","14733","S117","non-blocking 不會等待response, 繼續執行操作，不會因為receiver crash造成sender一直無限等待","","",""
+"5","13035","S093","因為不用互相被block，跟之前學到的deadlock的形成要件有關，因為沒有wait就不會有deadlock的形成，如果是blocking operation的話可能因為不確定對方是否收到而被block，而對方可能也因沒收到而block，這樣就會形成deadlock","","",""
+"6","13765","S012","ther sender continues on the rest of its work after sending the message. So the scenerio that A sends a message to B and waits for B reply, meanwhile B sends a message to A and waits for A reply won't happen. A can reply B's message after sending a message to B and B could also reply A's message after sending a message to A.","","",""
+"7","13312","S108","因為 process 在發出請求後就繼續執行工作，不會進入 waiting state 等待，也因此不會卡在一個無限等待的狀態。","","",""
+"8","13255","S099","{
+  ""text"": """"
+}","","",""
+"9","13107","S070","因為thread不用停下來等，blocking的話如果有兩個thread都要等彼此那就有可能deadlock了","","",""
+"10","15036","S080","because it won't need to wait for the opposite side response.
+for example, in a blocking opreation, if A sent the message to B, and at the same time, B sent a message to A, they both waiting for the response, then deadlock happen.","","",""
+"11","12887","S003","it will continues its current working jobs and finally release the lock instead of being blocked before release it. ","","",""
+"12","14185","S035","because the non-blocking operation won't be blocked and keep executing. If two or more process access some resources want to access another resource, and they are non-blocking operation, this means they are less likely to hold and wait for the resource(or waiting each other),  which is less prone to deadlock.","","",""
+"13","15352","S037","Because non-blocking operations no need to wait other processors. Processor would execute the next instruction directly. So it is more resistance to deadlock. ","","",""
+"14","13894","S097","Because in blocking operations a thread wait for another thread if it's using the needed resource. If system enters a circular wait, a deadlock occurs. If the operations are non-blocking, the system just can't enter such state, because no thread is waiting for other thread and they can continue their work.","","",""
+"15","11108","S013","It can avoid ""hold&wait""","","",""
+"16","14393","S040","non-blocking don't stuck on the send/receive command, process can finish all send/receive command before waiting real message. two process waiting for each other happen less.","","",""
+"17","11653","S124","Because non-blocking operations don't block any CPUs compared to blocking operations ","","",""
+"18","14883","S121","Because the thread continues executing its task. A deadlock appears two threads block for waiting for each other. But in non-blocking operations as there are not blocked, they can block eachother.","","",""
+"19","16157","S068","不會有兩端同時卡在 send() / recive() 造成相互等待的問題","","",""
+"20","12943","S102","因為他會等到執行完後才會讓下一個進行，所以不會有deadlock的問題。","","",""
+"21","15639","S034","因為deadlock是A等B、B等A時發生的，但因為non-blocking是送達時，system才通知sender和receiver，因此比較不會發生deadlock。","","",""
+"22","15584","S084","對比blocking operation，在non-blocking中較不會拿著lock執行到一半被強制打斷，因此發生deadlock的機率也比較小。","","",""
+"23","13739","S079","since non-blocking operation will keep it's execution and won't wait. ex: the receiver won't wait for receive().","","",""
+"24","11578","S122","可以用caching 複製
+server可以執行 
+
+","","",""
+"25","14924","S052","因為sender一送完message就立刻返回去執行其他process，receiver也不需要放下其他process在原地等message送來，如果message沒送達sender和receiver也不需要一直等待，便比較不容易造成deadlock。","","",""
+"26","13446","S033","因為non-blocking operations不會有process中途被中斷去執行其他process，因此可以避免deadlock","","",""
+"27","13076","S027","因為他不需要一直反覆查看訊息是否送達就可以一直繼續執行","","",""
+"28","13483","S081","because they do parallelism ","","",""
+"29","14813","S008","Because in blocking mode, if the two processes are waiting to receive the message from each other, these two process will not continue to do anything but just wait, which will create deadlock. However, when in non-blocking mode, these two processes will continue to perform other actions, perhaps send message to each, etc. Thus, the order of the operation initiated in the non-blocking mode is less likely to be block or turn into a deadlock situation.","","",""
+"30","10926","S078","It not need to wait.","","",""
+"31","11953","S087","deadlock可能會發生在多個程序之間互相等待彼此的共享資源或是結果，而non-blocking的指令不會停下來等待","","",""
+"32","12422","S022","No need to wait for resource.","","",""
+"33","14424","S110","because there is no waiting, sender and receiver do not need to wait for the respond or message ","","",""
+"34","15008","S082","Non-blocking operations will keep on the execution of the following instruction, which will not wait for the response from receiver. So it is less prone to deadlock compared with blocking operation.","","",""
+"35","13676","S105","No wait, no deadlock.","","",""
+"36","12237","S111","因為它不需要等到回覆就可以繼續執行，不會有互相等回覆的狀況。","","",""
+"37","13116","S085","不須互相等待訊息傳送，可繼續進行後續程式，避免因傳送過程的異常導致死鎖","","",""
+"38","13567","S004","non-blocking 的其中一個優點就是系統不容易發生deadlock，因為他可以不讓deadlock的四個必要條件同時成立","","",""
+"39","12632","S011","{
+  ""text"": """"
+}","","",""
+"40","13042","S046","因為它沒有block，不會spin-lock","","",""
+"41","12111","S005","They don't need to wait for others.","","",""
+"42","14861","S014","不用互等對方執行完成並回傳","","",""
+"43","12905","S107","Non-blocking operations don't need to wait for sender's or receiver's response and can execute their process after operation so they are less prone to deadlock.","","",""
+"44","14186","S126","不會有像blocking 同時請求lock","","",""
+"45","16030","S017","如果是blocking，那很容易發生A為了等待B的結果而處於blocking狀態，B也在等待A的結果而處於blocking狀態，這時兩人只能無窮的等待對方，deadlock就產生了
+
+但non-blocking因為不必為了等待對方而block住自己，可以直接去做其他事情，所以自然不容易發生deadlock
+","","",""
+"46","13285","S115","Non block are less prone to deadlocks because the processes are always running, so it will always be in a state to recieve signals which negates deadlocks.","","",""
+"47","12944","S089","non-blocking因為發送/接收時和之後都會持續運行，所以不會Lost掉message以至於deadlock","","",""
+"48","12613","S009","It won't executing until the process receive the message","","",""
+"49","14281","S094","因為non-blocking不需要等待，會不斷檢查lock狀態，導致系統最後無法負荷，造成deadlock","","",""
+"50","14361","S066","因為並不是一直鎖住，接收者和發送者不用互相等待，故不會出現dead lock","","",""
+"51","14110","S041","因為 non-blocking operations 不容易出現兩個 process 互相等待對方的情況，雙方在送出訊息後會回去做自己的事，不會被 block","","",""
+"52","16048","S031","因為不會阻塞，發送端不需要等到訊息被接收端接收後才能做其他動作，所以不太會有死結","","",""
+"53","13091","S116","因為NON-BLOCKING不會強制在確認接收到訊息前要先暫停等待 而是可以持續執行","","",""
+"54","14296","S059","因為sender不用管receiver有沒有收到訊息 會一直持續送不用等 所以沒有deadlock的問題","","",""
+"55","14597","S101","因為 non-blocking 中，sender 不會等待 receiver 接收到訊息才繼續執行，相較 blocking 較不會進入 deadlock。","","",""
+"56","13172","S103","因為non-blocking不用等待就可以繼續傳送與接收訊息","","",""
+"57","11365","S104","因為non-blocking不需要等待對方的ack可以連續執行","","",""
+"58","15622","S023","Non-blocking(非阻塞式): 送出訊息後繼續執行程式，不易 deadlock。
+缺點是不知道對方是否收到，且訊息送達前不能修改 buffer 內容，還需要額外的 Interrupt 或 Polling 來得知狀態。
+Blocking(阻塞式): 送出訊息後暫停執行程式，直到確定對方收到。","","",""
+"59","13575","S113","因為blocking operation若sender傳訊息給receiver但同時receiver又在等sender的訊息會導致deadlock，但non-blocking operation因為等不到會跳回程式，所以會釋放lock，因此比較不會有deadlock的問題。","","",""
+"60","13296","S055","1.因為non blocking可以執行完任務就去做其他事情 並不像blocking operation會需要等人做完才能做 
+進而避免了deadlock","","",""
+"61","15434","S119","The sender and the receiver can continue their execution without waiting each other","","",""
+"62","13385","S067","因為non-blocking不會卡在原地等ack,他會繼續執行其他thread,如果兩個程式之間要等彼此的ack就有機會會造成deadlock","","",""
+"63","15124","S076","Non-blocking operations improve concurrency and reduce deadlock risks, but require notification mechanisms and careful buffer handling.
+Messages can be executed without acknowledgements","","",""
+"64","12182","S074","Because they don't wait for acknowledgement which is the major bottleneck in blocking operations which wait for acknowledgment to allow new message to be sent.","","",""
+"65","13946","S063","Because non-blocking didn't need to wait each other. On the other hand, blocking operation need to wait for each other, so it will happen deadlock when the other party is crash or message lost.","","",""
+"66","16123","S090","It's because if there has no one to wake up the blocking operation, it may cause deadlock. So non-blocking operations less prone to deadlock.","","",""
+"67","11563","S100","Non-blocking operation allows CPU to execute the next instruction without stalling in the current instruction. ","","",""
+"68","12461","S114","因為 non-blocking 不會因為遲遲等不到回應而無法繼續往下執行，而無法等到回應有可能是因為 requester 和replier 因為message 傳遞順序問題，而造成雙方在互相等待，若雙方又皆採blocking 則會出現deadlock 問題，但是這點在non-blocking 上並不會發生。","","",""
+"69","13740","S038","because blocking send and recive by using wrong sequence may deadlock","","",""
+"70","13180","S047","他會一直去 check 狀態，也不會因為要等資源就進到 wait，一直都會有他可以執行的機會，所以比較不會出現他一直等不到他可以執行造成deadlock","","",""
+"71","15293","S044","since the sender or receiver will not block until the message has been sended or received.
+it can do other mission after the sending/receiving","","",""
+"72","13413","S075","because it won't wait the receiver's message
+so when two process send to each other at the same time, there are larger probability to dead lock.","","",""
+"73","13393","S030","因其不像 blocking opertations 若沒收到訊息 或  送出訊息 整個 process 就卡死。 
+也比較不容易發生 hold and wait 的情況 因而比較不容易 deadlock","","",""
+"74","13186","S106","since sender and receivers doesn't have to wait for each other , they can continue their execution . 
+If error occurs during the waiting time for blocking , there is a high chance that it brings to deadlock.","","",""
+"75","14014","S019","因為 non-blocking operations 不必等待 receiver 有正確接收到 message，可以持續執行，直到 buffer 滿，因此比較不會有被 receiver 卡住的問題，較不容易產生 deadlock","","",""
+"76","12755","S020","It breaks the bounded waiting. The sender and receiver can continue execution without waiting each other","","",""
+"77","12960","S010","It can keep executing without the need to wait for previous to succeed.","","",""
+"78","13557","S091","因為不需要接收到才能繼續執行，即便發出訊息也可以繼續執行自己的process","","",""
+"79","13143","S051","since sender don't wait receiver, it won't take resource and stuck there.","","",""
+"80","12113","S039","用non-blocking的話能讓thread持續執行使他更有可能釋放持有的資源而降低deadlock的可能性","","",""
+"81","13388","S018","sender與reciever都不用等待對方傳送或收到訊息就可以繼續工作
+不會導致雙方互等變成deadlock","","",""
+"82","12961","S049","因為non-blocking sender跟receiver在send/receive後不會block，會繼續執行其他任務","","",""
+"83","13584","S053","因為傳輸後雙方都可以正常繼續執行，不需要等待，所以不易有deadlock發生","","",""
+"84","14262","S092","It use buffers, so the sender and receiver dont have to wait for the message moving.","","",""
+"85","12761","S125","因為不用等待對面的回應因此就算對面(reciever or sender )failed也會繼續運行","","",""
+"86","13233","S021",".","","",""
+"87","13602","S050","因為non-blocking operation不會死等回復會回去做自己的事 就比較不會產生deadlock","","",""
+"88","13200","S036","因為他會一直執行下去不需要等待","","",""
+"89","13087","S048","因為non-blocking不像blocking一樣會因為sender 訊息沒有傳送出去或sender, receiver任一方的crash而產生deadlock","","",""
+"90","13638","S112","blocking operations 表示需要等待回復，如果收不到就會卡在那裏；non-blocking operations 對於sender而言可以在把訊息丟出後就去做其他事，receiver也可以在接收前做其他事。
+在blocking operations下，如果有兩方要傳訊息，同時都傳，就會都要等對方收到才能繼續做下一步，這時就會陷入deadlock。相較之下，non-blocking operations東西丟出去就沒事了","","",""
+"91","13199","S006","process a blocking_send(to b) -> wait
+process b blocking_send(to a) -> wait
+no one cant ceceive deadlock
+
+while 
+process a non_blocking_send(to b) -> continue
+process b non_blocking_send(to a) -> continue
+a receiveed msg form b
+b receiveed msg form a
+no deadlock
+","","",""
+"92","13767","S057","non-block 較沒有限制條件
+發送/接收不用等待 , 不容易造成死結 , 去等待未回應的條件。","","",""
+"93","15689","S002"," sender/receiver don't need to wait for each other.","","",""
+"94","13594","S007","They didn't wait for others to complete, so the messages isn't blocked in one place.","","",""
+"95","11391","S118","Because it does not require the receiver or the sender to get a response in order to proceed the executions.","","",""
+"96","16159","S083","發送者與接收者不需互相等待即可繼續執行，提高系統並行度與效能，並且較不容易發生deadlock狀態。","","",""
+"97","14002","S088","因為sender、receiver不用等對方就能繼續後面的任務，如果訊息傳送的過程中出了問題，sender、receiver不用在原地等訊息送達造成deadlock","","",""
+"98","15077","S058","because the sender and receiver do not need to limited by waiting for each other.","","",""
+"99","12800","S043","因其傳送者發出訊號就可以去做其他事了
+但blocking operations則需要等待訊息傳送完畢","","",""
+"100","12537","S060","因爲發送和接收端都不需要等待","","",""
+"101","13036","S024","because the sender and the receiver can continue execute their work without waiting for other to send a reply message.so the situation that the other didn't receive the message and there is no reply from it, and waiting  for a long time will not happen.","","",""
+"102","13445","S095","non blocking的系統不會因為一個錯誤的指令而造成系統不繼續運作","","",""
+"103","14043","S077","if A and B use non-blocking operations they will not wait for receiving the message and continue to execute. This can avoid deadlock. ","","",""
+"104","13079","S120","因為不需要等待reply就可以直接執行。","","",""
+"105","15599","S073","non-blocking operation會不斷檢查直到滿足需求","","",""
+"106","13589","S069","因為他傳送完會直接去做下一個process不會等待不會發生兩個同時發送都在等對方的回應的情況，所以less prone to deadlock","","",""
+"107","14401","S072","他不需要等待另一方，會避免另一方要執行的process需要你的資源時，你卻需要等待對方來了才能做，對方遲遲無法拿到你的資源，你也遲遲無法繼續執行程式。","","",""
+"108","13093","S042","因為sender和receiver不用被block來等待message 的傳遞","","",""
+"109","13762","S071","non-blocking operation不用等對方傳送或接收，Sender跟Receiver各做各的","","",""
+"110","13191","S062","因為non-blocking operations無論在send還是receive都不需要等待，所以比較不會產生等待時間過久產生死結(deadlock)的問題","","",""
+"111","13574","S045","因為non-blocking不會在原地等待而是會讓出cpu去做其他事","","",""
+"112","14780","S056","Processes do not block while waiting, reducing circular waiting conditions","","",""
+"113","14311","S128","Because non-blocking operations do not prohibit requests, allowing them to access the server","","",""
+"114","15578","S029","因為每個cpu都有對應的每條到memory的path,比較不會發生busy waiting","","",""
+"115","14973","S065","因為不會有receiver跟sender同時等待對方傳message造成deadlock的問題","","",""
+"116","14202","S098","因為他不會因為資源被拿走而暫停執行","","",""

@@ -56,6 +56,10 @@ class ChatRequest(BaseModel):
         max_length=50,
         description="Conversation history for context",
     )
+    tool_policy: dict[str, Any] | None = Field(
+        default=None,
+        description="Trusted backend-provided tool policy for this run",
+    )
 
 
 class ResumeRequest(BaseModel):
@@ -132,3 +136,4 @@ class RequestContext(BaseModel):
     user_authorization: str | None = None
     session_id: str | None = None
     run_id: str | None = None
+    tool_policy: dict[str, Any] | None = None

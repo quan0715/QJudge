@@ -1,0 +1,354 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","12129","S109","(1) each has its own operating system
+(2) master-slave multiprocessor
+(3) symmetric multiprocessor","3","",""
+"2","12570","S015","1. Each CPU owns its OS.
+2. 1 OS image with master-slave architecture (MS-MP)
+3. 1 OS image with symmetric CPUs (SMP)","3","",""
+"3","15574","S054","1, 各自為政
+2, Master-Slave architecture 
+3, symmetric architecture ","3","",""
+"4","13302","S117","1. every processor has its own OS.
+2. MS-OS: a master processor to manage slaves, and scheduling processes
+3. SMP: only one copy of OS, every processor use the same OS code.","3","",""
+"5","12125","S093","1. Each CPU has its own operating system
+2. Master-slave multiprocessor
+3. SMP multiprocessor","3","",""
+"6","12516","S012","1. each core has a its own OS
+2. slave-master multiprocessor
+3. symmertric multiprocessor","3","",""
+"7","12568","S108","1. 每個處理器有自己的 OS,
+2. Master-Slave OS: 一個主要的處理器控制所有資源與工作分配給其處理器,
+3. Symmetric OS: 所有處理器平等","3","",""
+"8","12399","S099","1. 所有 Processor 都有獨立的 Operating System
+2. Master-slave Multiprocessor System
+3. Symmetric Multiprocessor System","3","",""
+"9","12453","S070","1.每個CPU都有一個自己OS
+2.master-slave: master 管理 OS
+3.SMP: OS分成各個CR給所有CPU用","3","",""
+"10","13488","S080","each has it own cpu
+master-slave multiprocessor
+symmetric multiprocessor","3","",""
+"11","11534","S003","symmetric MP
+each cpu have its own OS
+master-slave MP","3","",""
+"12","13090","S035","1. Each CPU has its own operating system
+2. Master-Slave multiprocessor
+3. Symmetric multiprocessor","3","",""
+"13","14056","S037","1. Each cpu has own os: each cpu has own resource and not share it with others.
+2. MS-MP: One master cpu for kernel and multiple slave cpu for user process. Slave cpu can share process.
+3. Symmetric MP: Only one kernel code in the whole system, every cpu can access the kernel code but need mutex to handle the kernel structure.","3","",""
+"14","12797","S097","1. Each CPU has its own OS
+2. Master-slave hierarchy. Master CPU assigns tasks for other CPUs
+3. Symmetric approach. All CPU's acting independently on the same OS. They should coordinate on how to schedule tasks among them","3","",""
+"15","12616","S013","1.CPU has its own OS
+2. MS-MP
+3. SMP","3","",""
+"16","13280","S040","1. each processor has it's own OS
+2. Master-Slave: a master processor run the OS code and other processor as some resource
+3. SMP: all processor can run OS code if needed","3","",""
+"17","11409","S124","- Each CPU has its own OS 
+- Master-Slave MP
+- Symmetric MP ","3","",""
+"18","13519","S121","- Each cpu has it own OS
+- Master-Slave Multiprocessors (MS-MP)
+- Symmetric Multiprocessors (SMP)","3","",""
+"19","16201","S068","共享記憶體、共用匯流排、相同作業系統","0","答案為共享記憶體、共用匯流排、相同作業系統，非三種基本架構",""
+"20","12391","S102","each has it's own os
+master-slave MP
+symmetric MP","3","",""
+"21","12664","S034","1. CPU各有自己的OS。
+2. MS-MP
+3. SMP","3","",""
+"22","11646","S084","1. 每個CPU都有自己的OS
+2. Master-slave MP (MS-MP)
+3. Symmetric MP (SMP)","3","",""
+"23","12939","S079","every process has their operating system
+MS-MP (master slave multiprocessor)
+SMP (symmetric multiprocessor)","2","Approach 1 錯誤：寫的是 every process has their OS，應為 each CPU has its own OS",""
+"24","12011","S122","每個 都有自己的os
+symmetric multiprocessor
+master slaver multiprocessor","3","",""
+"25","12594","S086","1. Each CPU has it's own operating system
+2. Master-Slave multiprocessor
+3. Symmetric multiprocessor","3","",""
+"26","13499","S052","1. Each CPU has its own OS.
+2. Master-slave multiprocessor.
+3. Symmetric multiprocessor.","3","",""
+"27","12654","S033","1.每個process有自己的CPU
+2.Master-Slave architecture
+3.","1","只有 Master-Slave 正確；approach 1 寫成 each process has its own CPU 概念錯誤，approach 3 空白",""
+"28","13405","S123","1. Each CPU has its own OS
+2. MS-MP
+3. SMP","3","",""
+"29","12289","S027","separate os per cpu
+master slave MP(MS-MP)
+symmetric MP(SMP)","3","",""
+"30","11610","S081","1. each cpu has its own os
+2. master slave multiprocessor MS-MP
+2. symmetric multiprocessor SMP","3","",""
+"31","13147","S008","1. Each CPU has its own OS.
+2. Master-Slave Mulitprocessor (MS-MP).
+3. Symmetric Multiprocessor (SMP).","3","",""
+"32","13672","S078","Symmetric Multiprocessor
+Master-salve Multiprocessor
+same-os Multiprocessor","2","same-os Multiprocessor 非三種基本架構之一，應為 Each CPU has its own OS",""
+"33","12821","S087","Each cpu has its own os
+Master-slave Multiprocessor
+Symmetric Multiprocessor","3","",""
+"34","12550","S022","1. Every cpu has its own OS.
+2. Master-slave architecture.
+3. Symmetric architecture.","3","",""
+"35","13311","S110","each CPU has it's own OS
+master and slave multiprocessor
+symmetric multiprocessor","3","",""
+"36","13145","S082","1. every processor has their own OS.
+2. Master-slave MP: one master processor have access to the OS, and the other processors tackle the user program.
+3. Symmetric MP: every processors have access to the unique OS.","3","",""
+"37","13056","S105","1. Master-Slave
+2. Symmetric
+3. ","2","缺少第一種架構 (Each CPU has its own OS)，且第三項空白",""
+"38","11735","S111","1. 每個人processor都有自己的OS
+2. master-slave
+3. SMP","3","",""
+"39","12445","S085","各自擁有自己的OS
+MS-SP: 僅一處理器負責OS相關程式碼
+SMP: 處理器皆可運行OS相關程式","3","",""
+"40","12606","S004","1.每個CPU都有自己的OS
+2.master-slave multiprocessors
+3.symmetric multiprocessors","3","",""
+"41","12278","S046","1. Each CPUs has its own OS
+2. MS-MP (Master-Slave Multiprocessor)
+3. SMP (Symmetric Multiprocessor)","3","",""
+"42","11599","S005","1. CPU + Bus + cache
+2. Master-Slave Multiprocessor
+3. Symmetric Multiiprocessor","2","第1項 CPU+Bus+cache 非三種基本架構之一",""
+"43","11547","S014","每個CPU都有自己的OS
+MS-MP
+SMP","3","",""
+"44","15335","S107","1. Each CPU Has Its Own Operating System
+2. Master-Slave Multiprocessor
+3. Symmetric Multiprocessor","3","",""
+"45","13052","S126","1.每個cpu都有自己的os
+2.主從式:有一個master cpu跟其他的隨從cpu
+3.SMP","3","",""
+"46","15392","S017","1.Each CPU has its own operating system
+2.Master-slave MP
+3.Symmetric MP","3","",""
+"47","11648","S115","A OS per processor
+Master-Slave Multiprocessor
+Syymetric Multiprocessor","3","",""
+"48","12222","S089","1. each CPU has it's own operating system
+2. MS(master-slave)-MP
+3. S(symmetric)MP","3","",""
+"49","13013","S009","Multiprocessor has its own operating system
+Master-Slave multiprocessor
+Symmetric multiprocessor","3","",""
+"50","13164","S094","1. 每個CPU都有自己的OS系統
+2. Master-Slave Multiprocessor
+3. Symmetric Multiprocessor","3","",""
+"51","14285","S066","1. 每個CPU有自己的系統
+2. MS-MP 主從式系統
+3. SMP 對稱式系統","3","",""
+"52","12439","S041","每個CPU有自己的作業系統
+MS-MP
+SMP","3","",""
+"53","15439","S031","1. 每個CPU有自己的作業系統
+2. 主從式多處理器(MS-MP)
+3. 對稱式多處理器(SMP)","3","",""
+"54","12322","S116","每一個CPU都有自己的OS
+MASTER-SLAVES mp
+symmetric mp","3","",""
+"55","13206","S059","1. Each CPU has its own operating system
+2. Master-Slave Multiprocessors
+3. Symmetric Multiprocessors","3","",""
+"56","13184","S064","每個CPU都有各自的OS
+MS-MP
+SMP","3","",""
+"57","13178","S101","1. Multiple processors and multiple OS
+2. Master-Slave Multiprocessor
+3. Symmetric Multiprocessor","3","",""
+"58","12491","S103","1. each CPU has its own OS
+2. master-slave system
+3. symmetric system","3","",""
+"59","12952","S104","each CPU has its operating system
+master- slave multiprocessor
+symmetric multiprocessor","3","",""
+"60","13185","S023","1. Each CPU has its own operating system
+2. Master-Slave Multiprocessors(MS-MP)
+3. Symmetric Multiprocessors(SMP)","3","",""
+"61","12303","S113","1.Each node has its OS
+2.MS-MP
+3.SMP","3","",""
+"62","12602","S055","1.each processor has its own OS
+2.Client-Slave OS system
+3.SMP","2","Client-Slave OS 非正確名稱，應為 Master-Slave Multiprocessor",""
+"63","15360","S119","1.Each CPU has its own OS
+2.Master-Slave MP
+3.Symmetric MP","3","",""
+"64","12805","S067","1.each processor has it own O.S.
+2.Symmetric multiprocessor
+3.Master-Slave multiprocessor","3","",""
+"65","13438","S076","1. Each CPU has its own CPU: It's simple, but may cause duplicate states
+2. Master-Slave Multiprocesser: It's simple, but may be bottlenecked by the Master processor.
+2. Symmetric Multiprocesser: It's flexible and scalable, but requires fine-grained locking","3","",""
+"66","11589","S074","i. Each CPU has its own operating system.
+ii. Master-slave multiprocessor
+iii. Symmetric multiprocessor","3","",""
+"67","13161","S063","Every CPU has its own operation system
+MS-MP
+SMP
+","3","",""
+"68","12833","S090","1. Each processors has its own OS.
+2. Master-Slave multiprocessor
+3. Symmetric multiprocessor","3","",""
+"69","13011","S100","1. Each CPU has its own OS.
+2. Master-slave
+3. SMP","3","",""
+"70","11831","S114","1. Each CPU has its own OS
+2. Master-slave 
+3. SMP ","3","",""
+"71","13307","S038","1. all processorhave own os
+2. 1 main processor othe rprocessors are sleeve
+3. all processor have same level
+","3","",""
+"72","15691","S047","Multiprocessor Operating是有多處理器的OS會有多種架構，例如說可能會有多個 socket 可以置放 CPU 在不同的 socket 放不同的 CPU 可以避免單點故障，如果像是 chip level 的 multi proceessor 那就有可能因為 chip 內部的錯誤導致整顆 CPU 壞掉，不同socket 可以豁免，或者是像說 multiprocessor 裡面會用到許多平行化的概念 thread process 都會可以讓程式同時進行，blocking 會有在等資源的時候進入 wait 去等 context switching 之後才會進到真正能執行的狀態、non blocking 會持續輪詢資源狀態這種也是種architectural approaches 第三種就是在架構的時候會遇到 OS mod 的裡面有不同的 mod 可以多元模組在開發時會更加結構化","0","答案談 sockets、blocking/non-blocking 等，完全未列出三種基本架構",""
+"73","14142","S044","1. each cpu has its own os
+2. master-slave architecture multiprocessor
+3. symmetric architecture multiprocessor","3","",""
+"74","12653","S075","all processor has its own OS.
+Master-Slave MOS
+symmetric MOS
+","3","",""
+"75","12420","S030","1. 每個 cpu 都一個 OS : 各自處理各自的 system call
+2. master-slave 架構 : 一個 master 處理 kernel 其餘跑在 user space
+3. SMP : 一個 OS 跑在多個 CPU 上，要謹慎處理 lock 部分","3","",""
+"76","12242","S106","1. each processor has its own OS 
+2. symmetric Multiprocessor  
+3. master slave multi processor ","3","",""
+"77","12637","S019","1. 所有 CPU 都有自己的 OS
+2. Master-Slave multiprocessor
+3. Symmetric multiprocessor","3","",""
+"78","12131","S020","(1) Each CPU has its own operating system.
+(2) Master-Slave multiprocessor
+(3) Symmetric multiprocessor","3","",""
+"79","13595","S010","each cpu has its own os.
+SMP
+master slave","3","",""
+"80","12910","S091","Host + local ID
+Host(原始) + local ID + Host(現在)
+詳細記載","0","答案為 hostname/local ID/naming 相關，完全未列出三種基本架構",""
+"81","12332","S051","each CPU has its own OS
+master-salve multiprocessor
+symmetric multiprocessor","3","",""
+"82","12801","S039","每個CPU有自己的OS
+SMP
+master/slave","3","",""
+"83","12540","S018","每個CPU都有自己的OS
+Master-Slave multiprocessor
+Symmetric multiprocessor","3","",""
+"84","12212","S049","1.each cpu has its own Os
+2.master-slave MP
+3.symmetric MP","3","",""
+"85","12739","S053","每個cpu有自己的os
+master-slave multiprocessor
+symetric multiprocessor","3","",""
+"86","12863","S092","1. each CPU has its own OS
+2. master-slave multiprocessor (MS-MP)
+3. symmetric multiprocessor (SMP)","3","",""
+"87","12007","S125","1.each have it own OS
+2.MS-MP
+3.SMP","3","",""
+"88","11449","S021","each CPU has it own OS. MS-MP one CPU is used for OS,other CPUs are used for User applications .SMP use the same CPU","3","",""
+"89","12599","S050","one CPU one operating system
+主從式 master-slave
+對稱symmetric","3","",""
+"90","12642","S036","1.each CPU has its own OS
+2.master-slave MP
+3.symmetric MP","3","",""
+"91","12419","S048","1. 單一CPU單一OS
+2. Master-Slave的MP
+3. symmetric MP","3","",""
+"92","12593","S112","1. 所有processor共用一個OS
+2. Master-Slave: master負責分配資源，Slave只負責執行
+3. 每個processor有自己的OS，叫做SMP","1","僅 Master-Slave 正確；item 1 描述 SMP 而非 Each CPU own OS，item 3 將 SMP 錯誤描述為 each processor has its own OS",""
+"93","12402","S006","1. os for each cpu
+2. master and slave 
+3. symmetric","3","",""
+"94","12802","S057","多 process , point to point 傳輸資料
+可以共享資源
+複製資料彼此互不影響
+","0","答案談 point-to-point 傳輸、共享資源等，完全未列出三種基本架構",""
+"95","14845","S002","1. each CPU has their own OS.
+2. Master-Slave Multiprocessor 
+3. Symmetric Multiprocessor ","3","",""
+"96","15261","S007","Master-Slave, UMA, NUMA","1","僅 Master-Slave 正確；UMA 與 NUMA 為記憶體架構，非作業系統三種基本架構",""
+"97","13149","S118","1. Each CPU has its own operating system
+2. Master-slave architecture
+3. Symmetric Multiprocessors","3","",""
+"98","16169","S016","1.每個CPU都有自己的作業系統
+2.主從多處理器
+3.對稱多處理器","3","",""
+"99","15697","S083","1.每個CPU各自有各自的作業系統。
+2.主從式多處理器(Master-Slave MP)，由一個Master CPU控制系統，其餘Slave CPU執行任務。
+3.對稱式多處理器(SMP)所有CPU平等，共同執行同一作業系統並共亨資源。","3","",""
+"100","16060","S088","hostname+local ID
+hostname(original)+local ID+hostname(current)
+global name server","0","答案為 hostname/naming server 相關，完全未列出三種基本架構",""
+"101","13733","S058","1.every CPU have it own operating system.
+2.master-slave multiprocessor
+3.symmetric multiprocessor","3","",""
+"102","12272","S043","each CPU has its own OS
+SMP
+MS-MP","3","",""
+"103","11960","S060","1.各有各的os
+2.主從式處理器
+3.對稱式處理器","3","",""
+"104","12378","S024","each CPU has its own operating system
+master slave multiprocessor
+symmetric multiprocessor","3","",""
+"105","15369","S095","1.parallel 
+2.cascade","0","僅列出 parallel 與 cascade，非三種基本架構",""
+"106","12856","S077","1. each processor has its own operating system.
+2. master and slave architectural 
+3. symmetric multiprocessor architectural. ","3","",""
+"107","12374","S120","Each-CPU-OS: 每個CPU有自己的OS，但資源也因此不共享。
+Master-Slave: 有一個CPU運行Master OS，其他CPU都要聽命於Master OS，但Master可能成為Performance bottleneck
+SMP: 所有CPU共用一個OS，但當多個CPU同時進入kernel mode時可能會有race condition，需謹慎處理並設計良好lock。","3","",""
+"108","13175","S073","1.每個CPU都有自己的OS
+2.主從式(MS)processor
+3.對稱式(SMP)processor","3","",""
+"109","12782","S069","1.Each one have own OS
+2.master-slave MP
+3.symmetric MP
+","3","",""
+"110","13004","S072","1. Each CPU has it own OS.
+2. Master-Slave multiprocessor.(MS-MP).
+3. Symmetric multiprocessor.(SMP).","3","",""
+"111","12314","S042","1. each CPU has its own operating system
+2. master-slave multiprocessor (MS-MP)
+3. symmetric multiprocessor (SMP)","3","",""
+"112","12860","S071","1.每個OS都有自己的CPU
+2.Master-Slave MP
+2.Symmetric MP","2","Item 1 寫成「每個OS都有自己的CPU」概念錯誤，應為 each CPU has its own OS",""
+"113","12397","S062","1. Each CPU has its own OS
+2. Master-Slave Multiprocessor (MS-MP)
+3. Symmetric Multiprocessor (SMP)","3","",""
+"114","12855","S045","1.每一個CPU都有自己獨立的OS
+2.master-slave MP
+3.SMP","3","",""
+"115","13448","S056","1 Each CPU has its own OS
+2 Master-slave MP
+3 Symmetric multiprocessor","3","",""
+"116","13622","S128","1. Shared memory
+2. Caching
+3. Event-driven Architecture","0","列出 Shared memory、Caching、Event-driven，非三種基本架構",""
+"117","13977","S029","1.每個cpu 都有自己的OS
+2.master-slave: master cpu run OS , slave cpu run processes
+3.只有一個OS，但是每個cpu都可以執行這個OS的function","3","",""
+"118","12627","S065","1. 每個CPU有自己的OS
+2. Master-Slave MP
+3. symmetric MP","3","",""
+"119","15550","S098","SMP
+Each CPU has its own OS
+","2","僅列出 SMP 與 Each CPU has its own OS，缺少 Master-Slave",""

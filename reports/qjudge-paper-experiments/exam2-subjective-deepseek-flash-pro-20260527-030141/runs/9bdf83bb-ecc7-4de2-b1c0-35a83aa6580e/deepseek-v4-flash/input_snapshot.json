@@ -1,0 +1,844 @@
+{
+  "answer_count": 118,
+  "answers": [
+    {
+      "answer": {
+        "text": "(1) cmp 中的 cpu 通常都會緊密相連，只要有其中一個 cpu 掛掉的話，就可能會導致數個 cpu 也掛掉；而mp就是沒有這個問題\n(2) mp 比較好做擴充，不像是後者會有物理上、散熱上的限制"
+      },
+      "id": "13125",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "1. On CMPs, an L2 cache could be added to improve the overall performance. But traditional MP can't take advantage of this strategy.\n2. On CMPs, all components are close to each other. Thus, a failure of single shared component may bring down multiple processors. But this problem won't occur to traditional MP."
+      },
+      "id": "11168",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "1, efficiency\n2, architecture"
+      },
+      "id": "14179",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "1. CMP共用L2 cache可能影響performance: 當一個core佔據太多entries of cache, 其他core無法存太多data 到cache, 整體效率下降\n2. processors is closely connected in CMP, if one component failure, may broken several processor once."
+      },
+      "id": "11121",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "1. MP的scalability比CMP好，因為CMP受限於物理上的晶片位置不足，要再擴充有難度；而MP只需額外的材料即可，例如: bus controller\n2. 因為CMP的每個CPU靠得很近，所以如果一個shared component壞掉了，可能會有很多的CPU壞掉"
+      },
+      "id": "11080",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "1. processors in MP are connected with bus, while processors in CMP are attached on a single chip\n2. CMP shares L2 cache, if there is a greedy core, it could occupy too much cachem and slows down other cores"
+      },
+      "id": "10978",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "CMP 在不同的 processor 之間有共用的 L2/L3 cache\nCMP 的可擴充性較 MP 差，MP 只需要增加 bus component，但是 CMP 需要在晶片上增加新的 processor 有散熱以及排線等等問題不易解決。"
+      },
+      "id": "11028",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. Chip-level 是共用 L2 Cache 的，因此若有某個 processor 去佔據大量的 L2 Cache 空間，會嚴重影響其他 processor 的效能。\n2. Chip-level 的所有元件都在一片晶片上，且排列得非常緊密，因此若有某共享元件壞掉，很容易造成多個 processors 故障。"
+      },
+      "id": "11106",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "1.cmp是都做在同一個chip，他們共享L2 cache\n2.cmp的擴展性比較低，要考慮散熱跟空間等，而mp直接接上bus就好"
+      },
+      "id": "11207",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "the L2 shared cache may affect performance. the greedy core may had lots of cache to effect others' performance\nthe MP has multiple processors via a shared system bus, while the CMP's multiple processors is intergrated  in a single chip."
+      },
+      "id": "11125",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "CMP's L2 cache can share and would affect performance\nCMP's cpu are allocated more closely, and would bring down others due to failure of one cpu"
+      },
+      "id": "11004",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. the shared L2 cache may influence the performance, since the greedy core may occupy the cache resource, and hurt other cores.\n2. the cores in Chip-level Multiprocessor is close, when the component or resources crash, it may influence multiple cores."
+      },
+      "id": "11225",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "1. CMP shared the L2 cache, a greedy process may affect other process\n2. In CMP, one component fail in memory may affect other process"
+      },
+      "id": "11454",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "1. On CMP CPU's are located on the same chip and they share some resources (e.g. cache). On the other hand MP system is when where several CPU's are located on different chips, but connected via a bus.\n\n2. These systems differ in their scalability. On MP it's simpler to add more chips, because just need to add more buses. On CMP it's harder to place more CPU\"s on the same cheap, because of spatial and heat constraints."
+      },
+      "id": "11170",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "1. CMP is worse on scalability  than MP\n2. CMP has the problem that single point of failure"
+      },
+      "id": "14863",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "1. CMP share the cache on chip, which may cause some problem like one process took all L2 cache\n2. CMP is more weak. if some component fault, all processor may fault"
+      },
+      "id": "11275",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "- CMP shares the L2 cache between processors, which can affect the performance of the system if a processor is greedy and keeps using it (while no cache is shared in MP)\n- In CMP, processors are tightly connected together as they are in the same chip, therefore, in case of a processor failure, other processors may fail as well (which doesn't happen in MP)"
+      },
+      "id": "11034",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "- Scalability : to scale a MP, it only requires to add a processor and a bus with its controller while for CMP, it is not easy to add a new processor to the chip because of the physical limits (e.g. overheat)\n- A MP is multiple processors connected by a bus while a CMP is multiple processors only one chip. "
+      },
+      "id": "11254",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "1. CMP 上面的 processor 可以共享 L2 cache 使溝通成本比 MP 低\n2. 共用元件故障可能影響多核心"
+      },
+      "id": "11074",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "CMP的core彼此之間比較近，所以shared component壞掉的時候，有可能會有很多個core一起壞掉\n如果有比較greedy的core的話，L2 cache會被它佔滿，導致其他的core效能下降。"
+      },
+      "id": "11164",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1.跟MP相比CMP的L2是共享的，因此如果有greedy core的話，可能會佔掉大數的L2。\n2.CMP是整合在一個晶片上，所以如果有共享的元件壞掉時，可能會有多個CPU失效。"
+      },
+      "id": "11204",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. CMP的設計可以共享L2 cache，可能會有greedy core霸佔這個cache的問題。\n2. CMP內部的元件是tightly connected，一個元件故障就可能讓整個系統死機。"
+      },
+      "id": "10952",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "chip level multiprocessor通常會share L2 cache, 在這個前提下，就會有兩個差異出現\n1. 如果其中一個是greedy core, 因為share cache的關係，會影響其他core 的performance\n2. 如果一個component fail, 則其他core processor也會一起陪葬"
+      },
+      "id": "11136",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "l2 cache的位置\nserver執行位置\n\n\n"
+      },
+      "id": "12957",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "1. The shared L2 cache can affect the performance.\n2. The CPU on the CMP are so closely connected, and the shared component failure may bring down multiple CPUs at once."
+      },
+      "id": "11127",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "1. For CMP, CPUs and shared memory are integrated in a chip, while traditional MP is a bigger system.\n2. For CMP, CPUs of CMP is closely connected in a small chip, so if a shared component fails, the whole system fails."
+      },
+      "id": "11203",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "1.MP比較容易做擴充，CMP則須考慮架構及溫度\n2.CMP容易因為核心放在一起，在出現failure時多個核心會一起出現問題"
+      },
+      "id": "11054",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1. A greedy core may hold a lot of shared cache to hurt the performance of other cores.\n2. All CPUs of CMPs are closed connected, so the shared component failures may bring down multiple CPUs."
+      },
+      "id": "11305",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "structure:MP:separates cpu connected by a bus,CMP:multiple cores on one chip\nshared resource/failure:CMP shared L2 cache and shared component may cause performance interference and multipule-core failure"
+      },
+      "id": "11069",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "1.  traditional MP shared RAM and the CMP has shared memory\n2.  traditional MP uses TSL and CMP uses deadlocks"
+      },
+      "id": "12295",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "1. Since CPUs are closely connected on CMP, a common resource/component failure may lead to the whole system's failure.\n2. MP is more scalable, since it only takes additional bus controller to add a new processor, whereas it is challenging to add more CPUs on the chip due to some physical barriers (chip area cost,散熱問題 etc)."
+      },
+      "id": "11160",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "MP have same cache\nCMP need to run on each chip"
+      },
+      "id": "14403",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "1.因為在CMP中，L2 cache是共享的，可能會因為greedy core霸佔L2 cache而造成效能變差\n2.CMP的各個processor都在同個chip上，如果共享元件壞掉，整個系統都沒辦法順利運行"
+      },
+      "id": "11120",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "1. L1 cache is closer to processor in CMP.\n2. "
+      },
+      "id": "10887",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "1. CMP shared L2 cache may affect performance\n2. CMP gets all CPU in single chip, has single point failure problem"
+      },
+      "id": "12093",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "1. CMP shares the L2 cache.\n2. MP's scalaribility is better than CMP which is limited by the hardware."
+      },
+      "id": "11181",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "1. L2 layer cache is shared in CMP, but is not shared in MP.\n2. More shared resources in CMP would cause the cores in the same chip fail together easier."
+      },
+      "id": "11117",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "1. CMP有L2 cach，有些時候會被特定processor大量佔用。\n2. CMP因為各個component很接近，因此可能會有某些元件crash時，多個元件一起crash的風險"
+      },
+      "id": "10976",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "CMP較集成，不易擴展規模\nCMP共用L2 cache，有發生資源分配不均的可能性\n\n"
+      },
+      "id": "11130",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "共享L2 cache影響效能:某個greedy core占用大量cache，進而傷害其他core效能\nChip-level multiprocessor的CPU連結緊密:一旦部分元件壞掉可能讓多個CPU一起失效"
+      },
+      "id": "11078",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "1. MPs 通常由多個 processors 透過shared bus組成，CMP會將多個processors整合到單一chip上。\n2. MPs is more scalable than CMP。"
+      },
+      "id": "11089",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "1.CMP may shared L2 cache, Mp will not\n2.CMP is on the chip, so its scalability  is poor"
+      },
+      "id": "11046",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "MP擴展性好，CMP共享效能較佳\n"
+      },
+      "id": "11081",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "1. CMP:  the shared component failure may affect multiple cpus.\n2. each CPU in MP has its own memory, while CMP shares a memory pool."
+      },
+      "id": "11131",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "1.cmp多了L2 cache 可能會有greegy core 占用記憶體\n2.CMP core 都集中在同一個晶片上，會有溫度過高等問題"
+      },
+      "id": "11219",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "1.CMP有 shared L2 cache，但greedy one 可能占用shared cache導致其他processors效能低下\n2.MP通常都是好幾個processors由shared bus來連結，但CMP則是所有processors integrated on a single chip.\n3.CMP因為緊密相連在一個CHIP上，shared components壞掉的話可能直接讓所有人一起故障"
+      },
+      "id": "12576",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "A CMP have a shared L2 cache, which might lower performance when a greedy core is present\nWhen traditional MP uses system buses to communicate, a CMP usually are directly integrated to one another\nWhen a processor in CMP dies, it will very likely effect CMPs nearby"
+      },
+      "id": "10931",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "1. MP利用Bus system來連結，CMP將CPU融合進一塊晶片中\n2. MP的Scalability比CMP大得多\n3. CMP因為CPU緊密連接，所以一旦發生錯誤很容易大區域的Error"
+      },
+      "id": "11286",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "MP have great scalability due to only change its bus controller, but CMP is difficult due to its physical space \nCMP is a system on integrated-chip level and MP is not"
+      },
+      "id": "11058",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "1. traditional MP是將多個處理器透過bus連接在一起，CMP是將多個CPU裝在同一個晶片上\n2. traditional MP的可擴充性較高，因為CMP會受限於散熱與晶片面積"
+      },
+      "id": "11369",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. CMP是集成在一個晶片上，傳統MP是透過共享模組連接\n2. CMP若一個處理器出問題，其他可能一起出問題\n3. 傳統MP的擴充性較高"
+      },
+      "id": "11824",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "1.\nCMP通常會共享 L2 cache，可能會造成 shared cache contention\n2.\nCMP的Core在同一個晶片上，可以共享很多硬體資源，但當共享元件故障時可能會同時影響很多CPU"
+      },
+      "id": "11087",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "1.CMP 的L2共用快取，若有貪心的CPU的話，會佔用掉共用快取。\n2.MP的可擴展性較高，增加匯流排即可；CMP因為其硬體限制，增加太多CPU可能會影響到其散熱和效能。"
+      },
+      "id": "12804",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "1.CMP是好幾個PROCESSOP在同一個晶片上 所以擴展性較弱 而且硬體錯誤會影響整個CMP的PERFORMANCE\n2.CMP會共用L2快取 貪婪的CPU會占掉L2快取 影響表現"
+      },
+      "id": "11043",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "1. In CMP, they share L2 cache. If the greedy core hold most of the L2 cache, it would affect the performance of other cores.\nIn CMP, each processor is closely connected. The share component failure might bring down multiples CPUs at once.\n2. In MP, each processors are connected by shared system bus, which is more scalable than CMP as we add more processors only requires more bus controller. While in CMP, processors are integrated in a single chip, adding processors is more challenging due to the physical space and heat consraints."
+      },
+      "id": "11167",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "傳統MP是將多個處理器透過bus連接在一起，CMP是將多個CPU裝在一個晶片上"
+      },
+      "id": "11460",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "1. MP 是多個 processors 由匯流排連接， CMP 是多個 processors 整合在一個 chip 上。\n2. 當 CMP 上單個 processor 故障，可能連帶造成多點的故障。"
+      },
+      "id": "11128",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. CMP的核心靠得很近，如果一個共享元件壞掉會讓整個系統壞掉\n2. MP比CMP更容易擴展"
+      },
+      "id": "11119",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "1.傳統MP : 各個處理器有獨立的快取，較不會發生快取被單一核心給佔用的情形\n    CMP : 處理器通常共享L2快取，如果某個核心過於貪婪(greedy)，佔用大量快取空間，就會造成其他核心效能下降。\n2.傳統MP : 擴充較為容易，只需增加匯流排控制器即可\n    CMP : 受限於單晶片的空間與散熱，要持續在同一晶片上增加核心數量的難度較高"
+      },
+      "id": "15451",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Traditional MP 透過外部 Bus 連接多個處理器，擴展性較佳；CMP(多核心)將處理器整合到單一晶片上，會共享 L2 Cache。如果某個核心佔用太多 Cache ，會拖累其他核心的效能，且因元件緊密，故障可能會導致多核同時停擺。"
+      },
+      "id": "11062",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "1.多個core會共用L2 cache，導致若有core占用很多資源會壓縮其他core能使用的資源。\n2.多個core會共用component，若共用component壞掉會影響多個core。"
+      },
+      "id": "11053",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "1.常見CMP共享的L2 cache 而MP則是共享memory\n2.由於CMP是在同一個CHIP上  緊密相連 因此若CHIP上的共用電路出了問題 則所有processor會停擺 "
+      },
+      "id": "11101",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "1.The shared L2 cache can affect the performance. A greedy core may hold a lot of cache to hurt other core performance.\n2.The CPU of the CMPs are connected closely, the shared component failure may bring down multiple CPU at once. "
+      },
+      "id": "10973",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "1.CMP將多個processor封裝在一起,大家共享L2 chche如果有某個processor很greedy 那會造成其他人的效能下降,傳統的MP則不會有這個問題\n2.CMP因為封裝在一起所以如果想要增加數量會受到溫度的影響太多會造成溫度太高所以不能增加太多數量的processor,MP則沒有這個限制\n"
+      },
+      "id": "11161",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "A traditional multiprocessor(MP) has multiple processors connected via shared bus system, whereas a Chip-Level MPs have multiple processors integrated on a single chip.\nChip-Level MPs share on-chip resources such as L2 cache, so one greedy core can hurt another.\nTraditional MPs are more scalable that Chip-Level MPs because Chip-Level MPs have heat and physical space constraints."
+      },
+      "id": "11674",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Integration; MP separte CPU chips conne cted via motherboard bus while CMP cores are intergrated onto a single silicon die\n\nLatency/Speed; MP are slower due to travel across bus on PCB while CMP are faster due to short on chip interconnects and sgared L3 cache."
+      },
+      "id": "13396",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "In CMP, L2 cache is shared. If a process is greedy that it take a lot of space of cache, the performance of others will be bad.\nThe connection in CMP is very close. One core failure can lead to the crash of the all process. "
+      },
+      "id": "11278",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. Traditional MP has multiple processors connected via share system bus. CMP has multiple processors integrated on a single chip.\n2. The processors of CMP is closely connected, so if the shared component break, it may bring down many processors."
+      },
+      "id": "11175",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1. MP uses bus to connect each core; CMP uses fabrication technique to connect each other.\n2. MP is easy to scale because we can just add one bus controller to the new core,. However, the CMP is hard to scale because of the physical fabrication. "
+      },
+      "id": "12440",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. CMP 的L2 cache 共享 ，因此如果有一core 佔用非常多的資源，其餘core 的效能也會受影響，但是這點在MP 上並不成立。\n2. CMP 的core 相較於MP 的processor 是very closely connected 因此若某個core 的component 壞掉 其餘的core 也會受影響，但是這點在MP上並不成立。"
+      },
+      "id": "11016",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1.cmp might share cache but mp didn't\n2.mp have higher delay than cmp"
+      },
+      "id": "10940",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "1. traditional Multiprocessor 會在不同 socket，但 CMP 會在同一顆晶片，這樣會導致如果 CMP 有什麼共用的組件壞掉（例如L2 cache）的時候整顆 CMP 都會壞掉，不同socket的MP不受這種影響\n2. latency: 因為 MP 會是接到 bus 上去傳輸、但 CMP 會在晶片內傳輸，所以以 latency 來說 CMP 會低很多"
+      },
+      "id": "11185",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1. the cpu in CMP is very close, the cpu break may bring other cpu to fail too. this is unlikely to happen in MP\n2. there may existing greedy cpu in CMP holding most of resources, causing other cpus worse performance"
+      },
+      "id": "11650",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "shared L2 memory\nthe CPUs are close for connected in short time"
+      },
+      "id": "11110",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "1. cmp 會共享 cache 而 mp 不會\n2.  cmp 會因為單獨 CORE 對於 CACHE 過於 GREEDY 導致排擠其他 CORE ,MP 不會"
+      },
+      "id": "11196",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "1. CMP has shared L2 cache memory , therefore there is a chance that greedy core holds most of the resources while MP don't .  \n2. CMP has a chance that when one of the processor turns down (occur error) , it might take down other processors too , while MP don't . "
+      },
+      "id": "11064",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "1. CMPs shared L2 cache，若有 greedy core 會佔用大部分 cache，影響其他 core\n2. CMPs are closely connected，若有 share component 壞掉，可能會影響其他 core"
+      },
+      "id": "11035",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "(1) The L2 cache can affect performance. A greedy core may hold a lot of shared cache to hurt the performance of other cores.\n(2) The CPUs of CPMs are so closely connected, shared component failures may bring down multiple CPUs at once."
+      },
+      "id": "10967",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "Scalability: While scaling traditional MP only needs more bus controller, scaling CMP has more physical space and head constraint.\nIn CMP, failure of one component can cause nearby components to break.\n"
+      },
+      "id": "11221",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "1.CMP共用L2\n2.CMP核心很靠近，出問題容易互相影響"
+      },
+      "id": "11280",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "cache sharing can affect performance\nsince closed connected, some failure may bring down all CPUs "
+      },
+      "id": "10985",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "CMP的scalibility較差\nCMP的一個shared component fail可能會使數個processor同時fail"
+      },
+      "id": "13746",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "CMP的可擴展性較低，效能取決於chip\nCMP中如果共同元件受損，可能導致多個CPU當機，NP則不受影響"
+      },
+      "id": "11092",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "1.shared l2 cache 會影響性能\n2.cpus in cmp are strongly connected: shared compoment fail 可能造成多個cpu損壞"
+      },
+      "id": "11126",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "MP 使用bus連接，CMP直接在一個chip上\nMP擴展容易(增加匯流排)，CMP困難\nCMP距離近傳輸快，但L2 cache可能被單一處理器占用導致效能瓶頸，也有散熱問題，MP不會"
+      },
+      "id": "11109",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "1. L2 cache is shared in CMP, if a greedy CPU use a lot of resource of the cache, it will hurt the performance.\n2. In CMP, CPUs are closely connected, and some component is shared, which means if a component has failure, some CPUs will break down."
+      },
+      "id": "11024",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.一個是晶片層級一個是node 層級\n2.cmp 主要靠類比電路架構"
+      },
+      "id": "10982",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "."
+      },
+      "id": "13173",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "1. MP是很多processor之間用system bus連接 CMP是在同一個chip上\n2. CMP的CPU離很近 如果有一個壞掉其他的很有可能會受影響一起壞掉\n"
+      },
+      "id": "11145",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "1.CMP的CPU全部都在一個晶片上，如果有共用元件損壞，那整個系統都會壞掉。\n2.CMP的CPU共用一顆L2快取，如果其中一個CPU佔用太多空間，就會導致其他CPU效能下降。"
+      },
+      "id": "11152",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1. 在CMP中有L2 cache的共享，如果有較大的工作可能會導致占用空間的問題\n2. 在CMP中一個晶片中有多個CPU，若共享的物件故障，可能造成多個CPU都同時出現問題"
+      },
+      "id": "11002",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "CMP是一個chip 上有多core\nCMP在擴展性可能會受到散熱等硬體限制，scalability沒有MP那麼好\nCMP 的L2 cache 是共用的，如果比較greedy的core霸佔的話會影響其他性能；MP沒有共用 L2 cache"
+      },
+      "id": "11312",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. greedy core issue might occur in CMP.\n2. since the CMP component are closely connectd, CMP might break multiple cpus at once."
+      },
+      "id": "11061",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "CMP : 在同一晶片上有多個 CPU , 共享資源\nMP :  各個 CPU並不在一起  , 而且使用 bus 來連接"
+      },
+      "id": "11257",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "1. the scalability of CMP is limited by the physical space and heat of chip.\n2. the multiprocessors of MP are connected via shared system. the multiprocessors of CMP are integrated in a single chip."
+      },
+      "id": "13430",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "MP is easier to scale that CMP because one envolves chip design.\nCMP is typically faster than MP for IC integration."
+      },
+      "id": "11198",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "1.MP中多個處理器共用系統匯流排，CMP則是將多個處理器整合於單一晶片上。\n2.CMP的所有CPU彼此緊密連接，共享元件故障可能導致多個CPU同時當機。"
+      },
+      "id": "12646",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "1.硬體整合方式：Normal MPs是多個獨立CPU(多晶片)透過匯流排或網路連接，而Chip-level MPs則是多個核心整合在同一顆晶片上。\n2.通訊延遲與效率：Narmal MPs須透過外部的BUS通訊，延遲較高且成本較大，而CMP在晶片內部通訊(on-chip)，則延遲較低，效率較高。"
+      },
+      "id": "11597",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "1. CMPs的多個cores共用一個L2 cache，如果有grddy core會占用大量cache，影響效能\n2. CMPs的多個CPUs緊密排在一起，如果共用元件故障會導致多個CPUs同時停機"
+      },
+      "id": "11149",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "1.MP is that multiple processor connected via the shared system bus , and CMP is integrated on a single chip.\n2.MP is scalable and CMP is not scalable."
+      },
+      "id": "11585",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "1.CMP在多個process會利用組建性連結 ，若其中一個失效則可能全部的CPＵ都失效\n2.MP :多個處理器依靠共享匯流排連結 ，CMP多個處理器在單一晶片上"
+      },
+      "id": "10966",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "MP：通過匯流排連接   CMP：多個核心一顆晶片\ncmp通l2 cache共享，單一核心過度占用會有影響"
+      },
+      "id": "11096",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "1.MP is many processors connected via shared system bus, while Chip-level multiprocessor is many processor integrated on a single chip\n2. scalability: MP has better scalability since it add extra processor only need an extra bus controller, while Chip-level MP has to meet the space and heat problem."
+      },
+      "id": "11052",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "cmp 的 cache 是共享的 如果有一個core占用大部分的cache就會讓系統速度降低 mp 就不會有這個問題\ncmp的擴充性比較差 因為所有的的core是在同一個晶片上 需要考量散熱等等問題 mp 的擴充性就比較好"
+      },
+      "id": "11077",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "1. CMP has shared L2 cache may decrease performance because one greedy core may holds a lots of resources. \n2. MP is more scalable than CMP"
+      },
+      "id": "11310",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "CMP共享L2 cache，但也因此如果某個core佔用大部分共享資源可能會拖慢其他core，traditional MP則因cache各自獨立而無此困擾\nCMP高度整合，因此有可能某硬體元件損壞會拖垮多個core，造成single point of failure，traditional則因各自獨立而無此困擾"
+      },
+      "id": "11009",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "1.在CMP中，若有一個core佔用太多共享資源時，可能導致其他core的效能變差\n2.由於CMP的core連結較緊密，如果有共享元件壞掉，可能影響多個core"
+      },
+      "id": "11259",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "1.L2 cache shared 的情況下如果遇到greedy 的core會造成效能下降\n2.traditional MP是透過system bus來交換訊息，CMP是直接弄成一塊晶片在內部交換訊息"
+      },
+      "id": "11281",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "1. The shared L2 Cache will affect performance. The greedy core may take lot of shared resource, and lead to other cores performance inefficient.\n2. MP is multi processors shared memory bus, and CMP is multi processors in the single chip. "
+      },
+      "id": "11151",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "1. CMP has L2 cache to improve performance\n2. CMP 的processor connected closely, 如果shared resource failure可能bring down整個CMP "
+      },
+      "id": "11083",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "1.CMP中的L2 Cache是共用的，若出現Greedy Core會導致CPU資源長期被Greedy Core占用\n2.CMP的擴充性較差，traditional MP只要增加板子數量就能擴充\n3.CMP中若是共用的硬體資源故障，會導致整個系統癱瘓；traditional MP則不會"
+      },
+      "id": "11296",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1. CPU in CMP has closely connected\n2. MP is more scalability than CMP, when we want to add a new processor, just add on the bus; adding new processor on CMP is challenging due to its space is small"
+      },
+      "id": "11169",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1.CMP和MP不同的地方在於他的L2 cache是共享的\n2.CMP在擴充性方面比較受限，因為要考量到晶片的物理大小問題以及散熱問題"
+      },
+      "id": "11233",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "1. Shared cache efect. \nCMPs share on-chip cache (such as L2 cache), so one core may occupy too much cache and reduce the performance of otherr cores. Traditional MPs usually do not share cache in this way\n2. Failure impact\nIn CMPS, CPUs are closely intergrated on the same chip, so sa shread component failure may affect multiple CPUs at once. In traditional MPs, processors are more independent.."
+      },
+      "id": "11955",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "The differences between a traditional Multiprocessor (MP) and a Chip-level Multiprocessor (CMP) is that a multiprocessor runs on multiple core and independent memory, while Chip-level Multiprocessor runs system on chip with less cost and not shared memory"
+      },
+      "id": "11137",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "1.chip level share L2 cache \n2.chip level share memory in many cores ，部分元件fail，many cores都會受到影響"
+      },
+      "id": "11141",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "1. traditional MP透過shared system bus連接多個processor，CMP將多個processor整合在一個chip\n2.CMP的擴展性較差，MP擴展性佳"
+      },
+      "id": "11114",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "MP 多個獨立的CPU組合在一起；CMP 多個core組合在晶片上\nMP更scalable因為CMP需要考慮physical space與heat constraint而MP只須注意bus controll"
+      },
+      "id": "11324",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "Identify two major differences between a traditional Multiprocessor (MP) and a Chip-level Multiprocessor (CMP).",
+    "question_id": "9bdf83bb-ecc7-4de2-b1c0-35a83aa6580e",
+    "question_type": "short_answer",
+    "reference_answer": "(1) CMPs share an L2 cache, where a greedy core can negatively impact others.\n(2) Because CMP cores are tightly integrated on one chip, hardware failures are more likely to bring down multiple CPUs simultaneously."
+  },
+  "question_id": "9bdf83bb-ecc7-4de2-b1c0-35a83aa6580e"
+}

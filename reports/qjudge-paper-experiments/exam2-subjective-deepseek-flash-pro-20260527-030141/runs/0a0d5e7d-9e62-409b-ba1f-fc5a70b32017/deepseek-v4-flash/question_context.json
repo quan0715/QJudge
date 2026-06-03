@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "In an SMP system, under what conditions is it more appropriate to use a spin lock versus a blocking lock?",
+  "question_id": "0a0d5e7d-9e62-409b-ba1f-fc5a70b32017",
+  "question_type": "short_answer",
+  "reference_answer": "Spin lock: Appropriate when the expected wait time is very short or contention is low.\nBlocking lock: Appropriate when the wait time is long or contention is high, allowing the CPU to be yielded."
+}

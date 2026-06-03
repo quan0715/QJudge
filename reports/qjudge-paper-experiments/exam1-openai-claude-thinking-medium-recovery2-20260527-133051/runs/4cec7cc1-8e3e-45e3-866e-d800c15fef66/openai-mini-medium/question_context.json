@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "Briefly describe the concepts of \"thread,\" \"process,\" and \"program.\" How do they relate?",
+  "question_id": "4cec7cc1-8e3e-45e3-866e-d800c15fef66",
+  "question_type": "essay",
+  "reference_answer": "a. A program is a static file containing code.\nb. A process is an active execution instance of that program.\nc. A thread is a unit of execution within a process. A process can contain multiple threads that share the same resources."
+}

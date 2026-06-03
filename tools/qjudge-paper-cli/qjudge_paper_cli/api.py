@@ -62,6 +62,12 @@ class QJudgeApiClient:
         )
         return data if isinstance(data, list) else []
 
+    def exam_question(self, *, contest_id: str, question_id: str) -> dict[str, Any]:
+        data = self.get_json(
+            f"/api/v1/contests/{contest_id}/exam-questions/{question_id}/"
+        )
+        return data if isinstance(data, dict) else {}
+
     def list_models(self) -> list[dict[str, Any]]:
         data = self.get_json("/api/v1/ai/models/")
         models = data.get("models") if isinstance(data, dict) else None
@@ -139,6 +145,7 @@ class QJudgeApiClient:
             "GET",
             f"/api/v1/ai/artifacts/{artifact_id}/content/",
             headers={"Accept": "*/*"},
+            timeout=httpx.Timeout(120.0, read=120.0),
         ).text
 
     def iter_run_events(self, run_id: str) -> Iterable[dict[str, Any]]:

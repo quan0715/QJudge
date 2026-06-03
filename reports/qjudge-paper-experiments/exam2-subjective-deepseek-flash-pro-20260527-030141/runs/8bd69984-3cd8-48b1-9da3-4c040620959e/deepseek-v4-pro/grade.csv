@@ -1,0 +1,623 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","11444","S109","pros: (1) 比較好設計與管理，只要寫好 master 就好 (2)適合需要高度平行化的工作，因為只有master在分派工作
+cons: (1) master 是效能頻頸，會有擴充上的限制 (2) single point failure could bring down to the whole system, master 掛掉就不能做事、分派任務了 ","","",""
+"2","13320","S015","Advantages:
+1. Easy to implement: Only 1 OS image and 1 master CPU to maintain.
+2. Better load balance: The master CPU may use the slave CPUs equally, preventing unbalance loaded.
+
+Disadvantage:
+1. Limited scalability: The number of CPUs in MS-MP is limited by the ability of the master CPU. And the limited number is usually less than other types of MP.
+2. Single point failure: Once the master CPU crashes, the whole system are broken.","","",""
+"3","14514","S054","pros：
+1, simplicity：簡單的程式執行運作邏輯
+2, efficient：階層明確
+cons：
+1, 工作量大時master 可能會成為瓶頸
+2, slave 無法處理時，需要交給master，產生overhead","","",""
+"4","14377","S117","pros:
+simplicity: only need to modify code and manage one processor (master)
+load balancing: 統一由master分配process，方便平衡各processor的負載量
+cons:
+scalability: performance由master決定，與master的負載量有關
+one point failure: 如果master failure，則slaves也會一起failure","","",""
+"5","12848","S093","pros
+1. 比較好實作跟管理，不用考慮一些比較複雜的情況
+2. resource allocation比較簡單，不用考慮搶資源，因為都由master去做統一的管理
+cons:
+1. scalability不好，因為如果加很多slave的話，效能會卡在master那裏
+2. failure的機會比較高，如果master壞掉了，整個系統就壞了","","",""
+"6","13411","S012","advantages:
+1. easy to implemente: only have to program schedule algorithm on master core
+2. good resource utilization: master core helps allocate resources to each slave cores
+
+disadvantages:
+1. bad scalibility: increase the number of slave cores means the master core should have a job to do when allocate resources. the master core then become the bottleneck of the whole system
+2. once the master core is broken, the whole system will be broken because nobody can lead all slave cores.","","",""
+"7","13207","S108","Pros: 1. 簡單實作 2. 資源分配有效率
+Cons: 1. master 成為瓶頸，可擴充性差 2. 穩定性差，有 single point failure 的問題。","","",""
+"8","13045","S099","Pros:
+1. 架構較簡單，只需維持一份 OS 複本
+2. 負載較平衡，所有工作都由 Master 統一派發
+Cons:
+1. System call、I/O 都由 Master 負責，Master 可能會變成效能瓶頸
+2. 若 Master crash，整個系統都會壞掉","","",""
+"9","12976","S070","pros:1. 簡單易管理 2. 只有一份OS，沒有像檔案格式那類的問題
+cons:1.擴展性低，processor多容易bottleneck 2.master壞了就全部壞了","","",""
+"10","14671","S080","pros:
+1. it is easier to design since there is only one processor need to be monitored.
+2. the deadlock is less likely to happened.
+
+cons:
+1. scalabiltiy: the architecture's performance is depend on the master, temp to have bottleneck.
+2. if the master processor fail, then the whole architecture may all fail.","","",""
+"11","11895","S003","pros:
+easier to design and places, better resource allocation
+cons:
+master may be the bottleneck, and it might brings down whole system if failed","","",""
+"12","13712","S035","advantages :
+(1) it is easy to implement and manage , because only the master processor need to be managed.
+(2) it is efficient for resource using and load balancing, because the master processor will allocate the work and resource to slave processors automatically.
+disadvantages :
+(1) the master processor may become the bottleneck when the number of slave processor increases.
+(2) if the master processor crash, the whole system may fail.","","",""
+"13","15230","S037","Pros: load balance, simple
+Cons: low scalability, master processor become bottleneck","","",""
+"14","13619","S097","Advantages:
+1. Easy to implement
+2. Effective load balancing: master cpu knows the workload of each cpu, so it can distribute tasks effectively between slave cpus.
+Disadvantages:
+1. Single point of failure: if master cpu faults, the whole system goes down
+2. Scalability: it's hard to add a lot of cpu's, because load on master cpu will increase and it can become a bottleneck","","",""
+"15","11142","S013","Pros:
+1. simple to design
+2. easy to control the processors
+Cons:
+1. it only fits on small size
+2. single point of failure","","",""
+"16","14121","S040","Advantage:
+1. better resource allocate: master can control all CPU resources and allocate it in better way
+2. easier to design
+
+Disadvantage:
+1. master may become bottleneck when many IO request
+2. single failure of master will affect whole system","","",""
+"17","11635","S124","Advantages : 
+- it's simple to implement and to use 
+- the workload between slaves is balanced by the master 
+Disadvantages : 
+- the master can quickly become a performance bottleneck  
+- the master is a single point of failure -> if it fails, whole system fails ","","",""
+"18","14732","S121","- The scalability : the master became a bottleneck when the system is too much scaled.
+- Ressources allocation : it is easy to split the ressources among all the processors with MS-MP","","",""
+"19","12037","S068","優點：負載平衡、提高吞吐量
+缺點：單點故障、效能瓶頸","","",""
+"20","12903","S102","優點:容易管理，可以分配平均
+缺點: 瓶頸會在master、如果master crash的話，系統會全部失效","","",""
+"21","13190","S034","優點:
+1. 簡單且好管理，因為只有一個processor在做管理和分配。
+2. 資源分配效率高，因為有專門的processor在做管理和分配。
+缺點:
+1. single point of failure: 因為管理的processor只有一個，如果它故障就麻煩了。
+2. 擴展性差： 因為只有一個管理的processor，所以擴展性會被其限制住。","","",""
+"22","12001","S084","優 : (1)實作與設計簡單。
+       (2)工作分配平衡，都由master統一分配。
+缺 : (1)單點故障，master只要一當機，整個系統就會當機。
+       (2)擴充性限制，master假如忙不過來，可能成為效能瓶頸。","","",""
+"23","13515","S079","advantage: easy to implement, and it can achieve load balance
+disadvantage: the scalability is low and it does not work when there are many nodes. also, the master node will be a performance bottleneck, if master broke.","","",""
+"24","11688","S122","優點:
+效率高
+有效分配資源
+
+
+缺點:
+單點死機
+缺乏靈活應變 
+缺乏擴展性","","",""
+"25","13096","S086","advantage:
+1. Easier to design and manage
+2. No unbalance workload
+disadvantage:
+1. Performance bottleneck: All system calls and OS operation go through the master CPU
+2. Master failure crash the system","","",""
+"26","14553","S052","Advantages:
+1. Single OS copy is easy to implement.
+2. Master CPU使用OS來分配process給各slave CPU，可以確保load balancing。
+
+Disadvantages:
+1. Single point of failure: 只有master CPU可以使用OS function，因此如果master CPU fails，整個系統就會fail
+2. 只有master CPU可以使用OS function，如果增加更多slave CPUs，master CPU會變得太忙，master CPU容易變成performance bottleneck。","","",""
+"27","13182","S033","優點
+1.容易管理以及利用
+2.有效節省資訊
+缺點
+1.scalibilty不佳
+2.one point of failure","","",""
+"28","14117","S123","Pros:
+1. Easy to design and manage: Only master needs to be programmed and monitored.
+2. Efficient resource allocation: The master can allocate tasks to the slaves. Automatic load balancing.
+Cons:
+1. Limited scalability: The performance depends on the master.
+2. Single point of failure: If the master fails, the whole system may fail.","","",""
+"29","12837","S027","Pros:
+Easy to design and manage:only the master controls the system
+better task allocation:the master can assign job to slave CPUs
+Cons:
+Limited scalaility: the master may become a bottleneck
+single point of failure:if the master fail,the whole system may fail","","",""
+"30","11841","S081","Advantages-
+1. only one os file on memory
+2. master runs the os functions
+Disadvantages-
+1. master fails then the whole system is down
+2.  slave runs system processes","","",""
+"31","14472","S008","Pros:
+1. It is easy to implement.
+2. It can achieve load balancing.
+
+Cons:
+1. Less Scalability: The master processor can become the performance overhead, it may not work well for large number of processors.
+2. Single Point Failure: If the master processor is down, the whole MP system is down.","","",""
+"32","11017","S078","advantage:
+1. easy to use
+2. 
+disadvantage:
+1. If master break, all of process were die
+2. master process is the bottleneck","","",""
+"33","12205","S087","advantages:
+1.好實作
+2.負載平衡
+disadvantages:
+1.依靠master，master可能會成為效能的瓶頸
+2.如果master故障，整個系統都會故障","","",""
+"34","12257","S022","Advantages:
+1. Easier for management.
+2. Better resource allocation
+Disadvantages:
+1. If the master cpu fail, the whole system fail.
+2. Master cpu can the system bottleneck.","","",""
+"35","14205","S110","pros:
+1. easy to implement
+2. load balance
+cons:
+1. performance bottleneck of master
+2. single point (master) of failure","","",""
+"36","14778","S082","advantages:
+1. easy to fulfill
+2. good scalaribility
+disadvantages:
+1. bottleneck on the master processor
+2. if master processor died, all the other processors fails","","",""
+"37","13489","S105","advantages:
+1. Easier to design
+2. Easier to manage
+disadvantages:
+1. The master may become bottleneck
+2. The whole system fails if the master fails.","","",""
+"38","12187","S111","pros:
+1. 易於設計
+2. 資源分配管理簡單
+cons:
+1. 單點故障問題
+2. 擴展性不好","","",""
+"39","13061","S085","容易設計、管理
+資源可以統一分配，分配效率佳","","",""
+"40","13212","S004","pros:
+easier design and manage:
+只有master processor需要OS和控制系統，設計管理較簡單
+resource分配得更有效率:
+master processor會把任務分配給slave processor，對平行處理有幫助，也有利load balancing
+cons:
+limited scalability:
+系統高度依賴master processor，master processor容易形成performance bottleneck
+single point of failure:
+master processor一旦壞掉，整個系統會失效","","",""
+"41","12819","S046","Advantages:
+1. easy to design and manage
+2. reduced overhead
+3. concurency  
+
+Disadvantages: 
+1. limited scalability (過於依賴master)
+2. single point of failure (一個點故障就可能導致整個故障)","","",""
+"42","12003","S005","Pros:
+1.Easy to manage and design
+2.Automatic load balancing
+
+Cons:
+1.The performance is depend on Master. The Master maybe the bottleneck.
+2.When the Master fail, all system failed","","",""
+"43","11854","S014","advantages:simple、
+disadvantages:","","",""
+"44","12794","S107","advantages:
+1. efficient resources allocation
+2. easy to implement
+
+disadvantages:
+1.single point of failure(master node)
+2. limited scalability(master may become a performance bottleneck)","","",""
+"45","13889","S126","優點1. os 比較簡單主要是由master操控
+2.負載比較平衡
+缺點
+1.master掛掉就整個都壞了
+2.master 會導致效能上的瓶頸","","",""
+"46","15927","S017","Pros : 
+1.easy to design and manage, 我們要重點照料的是負責規畫和分配任務的master，slave不太需要操心
+2.automatic load balance，因為master負責處理和均勻分派任務給slave，所以自然能輕鬆達成load balance
+
+Cons :
+1.scalability : 很難擴大規模，因為master會成為performance bottleneck，太多slave會處理不過來
+2.single point of failure : 只要掌管全局的master一故障，整個multiprocessor系統就會完蛋","","",""
+"47","11963","S115","Pro: Easy to design , maintain and implement architechture.
+Pro: Can attribute resources to slaves, for processes that require parallel computing can utilize more computing power.
+Con: Have scaling limitaions, The master serves as a bottle neck when scaling.
+Con: If the master fails the entire system may die as well","","",""
+"48","12825","S089","Pros : 
+1.easy to manage and design
+2.good at resource allocation
+Cons :
+1.Single point failure
+2.limited Scalability","","",""
+"49","12226","S009","pros: 
+It's easy to implement because only have master processer to implement
+It have great scalability because it only have to deal with master processer
+cons:
+It heavily depend on Master processer performance so it will reach performance bottleneck.
+If the master processer fail, the whole system may fail","","",""
+"50","14035","S094","advantages：
+1. 設計簡單且方便管理
+2. no unbalanced workload，系統可以統一分配工作
+disadvantages：
+1. 當一個Master CPU故障，整個系統都會掛掉
+2. 需要額外的overhead來通知sender/receiver","","",""
+"51","14094","S066","優點
+1. 系統易架構
+2. 資源使用有效率
+缺點
+1. 擴展性差: 主處理器容易成為系統的效能瓶頸
+2. 主處理器壞掉很有可能整個系統出問題","","",""
+"52","13002","S041","優:
+資源分配容易、系統容易設計
+缺:
+擴充性不足、當Master故障時系統基本上無法正常運行","","",""
+"53","15969","S031","advantages:
+1.較易設計和管理:只需設計Masterz和Slave，較好管理
+2.有效率的資源分配:透過Master做資源和排程分配，較有效率
+
+disadvantages:
+1. 可擴展性受限:效能瓶頸受限於Master
+2. 單點故障 : 若Master發生故障，則整個系統會故障","","",""
+"54","12970","S116","1.容易管理跟設計
+2.有MASTER的排程跟分配能提高效率
+缺
+1.會有單點錯誤的問題 MASTER PROCESSOR掛了會大幅影響其他PROCESSOR
+2.擴展性非常弱","","",""
+"55","14025","S059","pros:
+1. easy to design and manage
+2. efficient resource allocation: no unbalanced workload
+cons:
+1. limited scalability: only in small MPs
+2. single point of failure: one master of CPU failure may bring down the whole system.","","",""
+"56","12118","S064","優：架構簡單、No unbalanced workload
+
+缺：master CPU發生故障會導致整個系統停擺、僅適用小型MPs","","",""
+"57","14246","S101","Pros
+1. 架構簡單，只要操作主處理器來寫程式。
+2. 由主處理器分配工作給從屬，實現load balancing。
+Cons
+1. 效能可能受限於主處理器。
+2. 主處理器故障可能使整體架構故障。","","",""
+"58","13040","S103","advantages : 
+1. 資源分配有效率
+2. 比較容易建立
+disadvantages : 
+1. master壞掉的話整個系統都壞掉
+2. 擴展性較差","","",""
+"59","11439","S104","優點：
+1.只有master需要執行作業系統核心，不需要處理processor間的同步跟鎖定問題
+2.master統一分配任務出去，較容易達到負載平衡
+缺點：
+1.擴充性差，當slave增加時，master可能無法處理大量請求，造成系統效能瓶頸
+2.單點故障，系統高度依賴master，如果master故障，整個系統就會癱瘓","","",""
+"60","14201","S023","Advantages: 1. 設計與管理相對簡單(因為只有一個 Master 負責統籌) 2. 資源分配(如自動負載平衡)更有效率
+Disadvantages: 1. 擴展性受限(Master 容易成為效能瓶頸) 2. 有單點故障風險(Master 當機則全系統癱瘓)","","",""
+"61","12724","S113","pors:
+(1)實作簡單
+(2)有master process維護，比較不會有processor之間loading不平衡的問題
+cons:
+(1)很難大規模，因為規模一大會讓master有bottleneck的問題
+(2)若master單點壞掉會導致系統整體崩潰","","",""
+"62","13127","S055","pros:
+1.可以有效的分配allocation resource
+2.更容易去管理系統
+cons:
+1.擴展受限 其不像publish/sub middleware那麼容易去擴展系統規模
+2.single point failure","","",""
+"63","13577","S119","Advantage:1.single OS copy makes it easy
+                     2.workload is balanced
+Disadvantage: 1.Failure of the master CPU may brings down the whole system.
+                           2.Master can become the performance bottleneck.","","",""
+"64","13243","S067","1.簡單只有一個processor管理不會造成彼此搶奪資源,而且也比較好實現不需要太多複雜的程式去協調processor之間
+2.可以具有load-balance的效果","","",""
+"65","14623","S076","Advantages: 
+It is easy to design and manage as only one processor needs to be programmed and monitored.
+It allows for auto load balancing/distribution through the master as tasks can be allocated to slave processors, so there is no unbalanced workload. 
+
+Disadvantages:
+It has limited scalability. It has heavily dependent on the performance of the master processor, so the master processor may serve as a performance bottleneck.
+While a single OS copy makes it simple, it also creates a single point of failure, where if the Master processor fails, it could make the entire system fail.","","",""
+"66","12075","S074","Advantages
+i. Simplified design
+ii. Resource utilization
+
+Disadvantages
+i. Single point of failure 
+ii. Performance bottleneck","","",""
+"67","13778","S063","advantages:
+Easy to implement, Balanced workload
+disadvantage:
+Limited Scalability, Single point pf failure","","",""
+"68","13822","S090","Advantages:
+1. Easier to design and manage: Only one processor(Master processor) needs to be monitored and programmed.
+2. More efficient resource allocation: Master processor can allocate tasks to the slave processors, which is beneficial to some application which requires high level of parallelism. Automatic load balancing.
+Disadvantages:
+1. Limited scalability: The system performance is highly dependent on the performance of master processor. The master processor can become performance bottleneck.
+2. Single point of failure: The master processor control the activities of the slave processors. When the master processor broken, it may bring down the system.","","",""
+"69","11699","S100","Pros : 
+1. Easy to implement and mantain 
+2. Efficient resource usage.
+Cons:
+1. If the master fails, the whole system fails.
+2. The master may be the bottleneck. ","","",""
+"70","12441","S114","Pros :
+1. 實作較簡單
+2. 管理較方便
+Cons:
+1. Master 很容易成為 bottleneck
+2. Single point failure 問題，因為若Master 掛了 ，整個系統都會掛了","","",""
+"71","13615","S038","advantages 
+1.easier to manage2. main cpu can run os
+disadvantages 
+1. master cpu is bottleneck 2. unfair in some place","","",""
+"72","12958","S047","優點：
+1. 好實作和管理：只需要針對 master 去 program 和管理就好
+2. 效能較好：對於部分平行化的程式效率會更好
+
+缺點：
+1. 單點錯誤：只要 master 壞了就沒有能控制 slave 的了
+2. 難以 scale ： master 很容易成為效能瓶頸","","",""
+"73","15091","S044","1. pros: easy to implement and easy to manage other slave cpus since it only needs master cpu to manage them
+2. cons: single point of failure and performance bottleneck","","",""
+"74","13229","S075","pros
+easy to construct
+easy to allocate because you can just see the master process
+cons
+bottleneck on master process
+if the master process crashed all processes will be disconnected
+","","",""
+"75","13155","S030","優點
+1. 實作容易 可沿用 uni processor 的 os
+2.  auto loading balanced，天生就有負載平衡 的性質
+缺點
+1.  擴展性不好 : 隨著 slave 變多 master 便成為瓶頸
+2. fault tolerance 不好，若 master 掛了 整個系統就掛了","","",""
+"76","12920","S106","advantages : 
+1. easy to implement since the main part is  the Master has to be written .
+2. better resource utilization , since master allocates job to the more endurable processors but not the busier ones . 
+disadvantages :
+1.hard to scale up , the bottleneck is at the master , since it has to deal with all the slave processors . 
+2.If master processor shuts down or error occurs ,the whole system has a high chance to  shut down . ","","",""
+"77","13552","S019","advantages :
+1. Easier to design : 因為只有一個 processor 需要 programmed and monitored
+2. Efficient resource management : Master 可以負責分配 tasks 到 slaves
+disadvantages :
+1. Less Scalibility : Master 負責整個系統的控管，會成為 bottleneck 
+2. single point to failure : 若是 master 壞掉，會導致整個系統不能運作","","",""
+"78","12698","S020","Pros:
+(1) Easy to use and manage
+(2) More efficient resource allocation
+Cons:
+(1) Limited scalability
+(2) Single point of failure","","",""
+"79","13001","S010","Advantage: 1. simplicity, only one processor handle the system. 2. the master distribute the works to other processors, may be more load balance.
+Disadvantage: 1. The master processor may be the bottleneck of performance, so the scalability depends on the master. 2. One failure may cause the whole to fail.","","",""
+"80","13392","S091","優點 : 1.資源分配均勻 2.方便使用
+缺點 : 2.Master負載過大 2.Master壞掉則全部死機","","",""
+"81","12990","S051","advantages:
+simple manage
+effecient for resource allocate
+
+disadvantages:
+single point failure
+not good for scalability","","",""
+"82","12326","S039","pros
+設計較簡單
+能更有效分配資源
+cons
+master的性能可能會變成瓶頸
+master fail可能導致整個system fail","","",""
+"83","13179","S018","advantages :
+方便設計與管理，只需設計master即可
+資源分配更容易簡單
+disadvantages:
+可擴展性低，效能受限於master
+如果master壞了，其他都會跟著當機","","",""
+"84","12753","S049","pros:
+1.實作維護容易:只需要一個os copy
+2.no unbalance workload
+cons:
+1.concurrency degree limited:performace取決於master cpu能力
+2.只要master cpu壞了，全部都壞了","","",""
+"85","13377","S053","優勢:架構簡單，管理方便，只需要處理主處理器的行程
+缺點:主處理器可能成為效能瓶頸，主處理器損壞會導致系統崩潰","","",""
+"86","13826","S092","advantages 
+1. It is more convenient to manage.
+2. It has good scalability.
+
+disadvantages 
+1. The master may be the bottleneck. When the number of slaves increase, the performance is decreasing.
+2. If the master is down, the whole system is down.","","",""
+"87","12603","S125","Pros:1.easier to implement
+          2.較直觀
+cons:1.移植困難
+          2.master died all died","","",""
+"88","12053","S021","pros:
+easy to share memory
+efficient allocation
+cons:
+a point of crash 
+limited scalibity","","",""
+"89","13331","S050","advantages:
+1. easy to manage &操作
+2. 比較不會卡死
+disadvantages:
+1. master壞掉slave也不能獨自運作
+2. limited scalability(擴展性)","","",""
+"90","13104","S036","優點:1.負載均衡2.只需要一個OS
+缺點:1.單點故障2.擴增性弱","","",""
+"91","12909","S048","pros:
+1. 簡單管理維護
+2. 沒有效能附載分配不平均的問題（一般的Bus可能會有）
+cons:
+1. 單點如果出問題可能整體都會被影響到
+2. 會有效能瓶頸的問題","","",""
+"92","13516","S112","pros 1: 容易設計好管理，主要都是master管理
+pros 2: 更能分配資源，因為交給master作主要分配即可，可達成較好的load balancing
+cons 1: 通訊瓶頸: 因為事情多交給master做
+cons 2: 單點故障: master壞掉就整個系統壞掉","","",""
+"93","13117","S006","pros
+1. easier to implement
+2. effective resouce allocation
+cons
+1. suffer from master process's bottleneck
+2. single point of failure","","",""
+"94","13421","S057","Master-Slave
+優點 :
+1)  使用方便
+2)  容易規劃
+缺點
+1) 沒有擴充性
+2) Master 受到條件限制 
+","","",""
+"95","15551","S002","advantages:
+1. easy to design and manage.
+2. efficient resource allocation.
+disadvantages:
+1. Master is overloaded and the scalability is limited.
+2. if Master crash, all of it will be crash as well.","","",""
+"96","13322","S007","Only one CPU it uses. 
+(Pros a) Easier to manage by a single CPU. 
+(Pros b) Efficient without context switch between processors. 
+(Cons a) Single point failure
+(Cons b) Processes are easier to be blocked. (Spinlock)","","",""
+"97","12709","S118","advantages
+1. easy to set up
+2. load balance
+disadvantages
+1. if the master processor failed, the whole system failed.
+2. performance bottleneck with master","","",""
+"98","16200","S016","優點:
+1.設計與管理更簡便
+2.ㄋ","","",""
+"99","16156","S083","優點：1.設計簡單：由master CPU負責排程竄與控制，其餘Slave CPU只執行任務。2.容易管理與同步，所有關鍵操作集中在Master，以避免複雜的同止問題。
+缺點：效能瓶頸，所有請求都需master，容易成為瓶頸。2.單點故障，一旦master故障，則整個系統可能無法操作。","","",""
+"100","13566","S088","advantages :
+設計跟管理簡單 : 只需要一個processor programming、monitored
+資源分配較好 : master processor會分配任務給slave processors，適合high level parallelism的application
+disadvantages :
+系統的效能高度取決於master processor，master processor容易成為系統效能的瓶頸
+master processor負責分配任務，所以當master processor失效時整個系統也會失效","","",""
+"101","14787","S058","advantage:
+1.easy to design and manage.
+2.good resource allocation
+disadvantage:
+1.limited scalibility
+2.if master crash , then the whole system crash.","","",""
+"102","12486","S043","pros:
+有效率：因主處理器會分發從處理器，適合自行負擔
+適合設計：只需仰賴主處理器的能力
+cons :
+若主處理器壞掉，整個系統可能都會隨之壞掉
+從處理器過多時，主處理器負擔會過重","","",""
+"103","12296","S060","優點：方便管理（程式控制）
+             資源分配效率高
+缺點： 主處理的性能很可能成爲瓶頸
+              主處理器出現問題很可能導致整個系統崩潰","","",""
+"104","12878","S024","pros:
+easy to design and manage
+better efficient of resource allocation
+cons:
+scalibility, the master CPU will be the performance bottleneck
+single point failure, when the master CPU crashes, the whole system crashes","","",""
+"105","13288","S095","pros
+1.easy to design and manage
+2.using the resource more efficient
+cons
+1.limited scalbility
+2.if the master processor failed, the whole sysytem crashed","","",""
+"106","13644","S077","advantages: 
+   1. It is easy to manage 
+   2. It is easier to utilize whole resources
+disadvantages: 
+   1.  when the number of core increase the loading of master core will increase significantly.
+   2. when master core crashes the whole system will fail.","","",""
+"107","12874","S120","easy to build and manage但Master可能會成為performance bottleneck
+分工明確規則清晰且不會發生race condition，但Master如果損壞會拖垮整個系統","","",""
+"108","14031","S073","PROs
+1.系統設計較容易
+2.資源分配有效率
+CONs
+1.有單點失效問題
+2.當master processor太忙時可能影響整體效能","","",""
+"109","13298","S069","advantage:1.他很容易監控和管理因為他只用監控master就好   2.他可以平均的分配工作因為是由master在allocate工作的
+disadvantage:1.他的效能會受限於master的效能所以可能會造成bottleneck   2.他可能會因為master故障了就整組壞掉","","",""
+"110","13892","S072","Advantages: 
+1. Easy to design and manage: 只有Master需要被programmed以及monitored.
+2. 透過master分配process, 整體系統可有較高的平行化，有較平衡的負載。
+
+Disadvantages:
+1. 因為process皆需要master協調，因此Master可能成為整體的瓶頸
+2. single point failure: Master的failure會導致整個系統的failure.","","",""
+"111","12949","S042","advantage:
+1. single OS make it simple
+2. no unbalanced workload
+disadvantage:
+1. master may be performance bottleneck
+2. master CPU 如果failure, 則會bring down the whole system","","",""
+"112","13586","S071","advantages:
+1.實作與管理簡單
+2.有效率的資源分配
+disadvantages:
+1.Master會變成bottleneck
+2.有單點故障，Master故障會導致整個系統癱瘓","","",""
+"113","13057","S062","優:1. single OS copy 很簡單 2.不會有workload不均的情況
+缺:1. Master會是performance bottleneck 2.Master如果failure，整個MP系統都會受到影響","","",""
+"114","13400","S045","優點
+1.單一os，實作簡單好管理
+2.balance workload
+缺點
+1.單點故障問題，master cpu故障會導致整個壞掉
+2.因為只有一個os所以很容易造成performance bottleneck","","",""
+"115","14664","S056","Advantages:
+1. Simple OS design and management
+2. Easier sychrnoization and scheduling control
+Disad
+1. Master CPU becomes a bottleneck
+2. Failure of the master CPU can stop the whole system","","",""
+"116","14075","S128","1. Prevent disaster and recover lose data
+2. Synchronous data between master and slave node to prevent overloading and data lossing","","",""
+"117","15365","S029","pro: 1. 低成本 2. 容易實作
+con: 1. master如果failure 會影響全體 2. 可擴展性低 ","","",""
+"118","13252","S065","pros: 
+1. MS-MP較容易管理
+2. 不會有資源分配不均的問題
+cons:
+1. master CPU容易成為效能瓶頸
+2. 如果master CPU當機，整個系統就會癱瘓","","",""
+"119","13727","S098","pros:
+easy to design and manage
+good for high parrellism
+cons:
+limitted performance since master CPU  decide whole performance
+single point failed(if master CPU break down all architecture failed)
+","","",""

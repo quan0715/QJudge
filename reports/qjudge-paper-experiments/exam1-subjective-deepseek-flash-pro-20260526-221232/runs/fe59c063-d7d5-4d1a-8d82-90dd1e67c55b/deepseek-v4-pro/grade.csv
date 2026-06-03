@@ -1,0 +1,197 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","2000","S109","他是反直覺的，增加 frames 卻沒有降低the number of page faults，反而變多了；approximately least recently used、mostly used recently","","",""
+"2","2180","S015","Belady's Anomaly is the situation happens when FIFO policy is used. When we increase the number of frames, the number of page fault is increasing, which is not intuitive.","","",""
+"3","5884","S054","it's a counterinstinct 情形 that increase page frame would bring increase page faults.","","",""
+"4","2620","S117","belady's anomaly指的是載入的page越多，page fault越多。
+該alogorithm會在page fault時替換掉距離上次access時間最久的page。","","",""
+"5","2378","S093","當可以用的frame更多時，page fault的次數也更多，FCFS algorithm會有belady's anomaly","","",""
+"6","2664","S012","Belady's Anomaly是當給予更多frame空間時，frame switch卻更頻繁發生。
+first in first out時會發生，最早加入frame 空間的frame會先被交換出去。","","",""
+"7","3372","S108","在增加頁框數目後，page fault 次數不減反增。
+例如 FIFO 就有此種問題。","","",""
+"8","2542","S099","增加 number of page frames 導致 page fault 比例增加的情況。
+","","",""
+"9","2012","S070","當frame的數量增加 page fault也增加 ，FIFO容易發生","","",""
+"10","2883","S080","a belady's anomaly means that more frames won't have fewer page fault.
+FIFO","","",""
+"11","3443","S003","when the numbers of frames increase ,the page fault rate was even higher
+FCFS","","",""
+"12","2464","S035","q1 : when page number increases, the page fault rate doesn't decrease but increase. This is the allocate frame number n is not the subset of allocate frame number n + 1.
+q2 : FIFO","","",""
+"13","2819","S037","Belay' s anomaly是一個很反常的現象，就是當physical frame增加而page fault不僅沒有相應的減少而是增加。此現象往往發生在FCFS replacement algorithm。","","",""
+"14","2117","S096","Belady's Anomaly is a scenario when giving a process more memory frames results in bigger amount of page faults. This anomaly may happen if FIFO replacement algorithm is used","","",""
+"15","3105","S013","1. increase the pages but increase the page fault
+2.FCFS","","",""
+"16","2462","S040","In FIFO replacement algorithm, more pages are given, more page fault happen. This wired thing call Belady's Anomaly.","","",""
+"17","2070","S124","Belady's Anomaly is a counter-intuitive phenomenon where having more available slots to load pages in a page replacement algorithm actually leads to more page faults. Per example, the same sequence of page requests will lead to more page faults if you have 4 slots to load them than if you have 3. It happens in the FIFO algorithm.","","",""
+"18","2257","S121","Belady's anomaly is the curious behavior when allocating more frames to a process induces a increase a page fault.
+
+The algorithm where the oldest page is replace by the new one, has this anomaly, ","","",""
+"19","6738","S068","形容 page 數量增加卻讓 page fault 的次數也增加的反直覺現象。FCFS 先到先服務的演算法可能會有此現象。","","",""
+"20","2104","S102","FIFO時，給他更多的frames會導致更多的page fault","","",""
+"21","2580","S034","A Belady's anomaly is a situation in the OS memory management where increasing the number of pages frame lead to increase of paging faults.
+EDF has this anomaly.","","",""
+"22","2840","S084","Belady's anomaly通常發生在FCFS(or FIFO)，是當page frame增加時，page fault反而更多。","","",""
+"23","2741","S079","Belady's Anomaly happens when we open more frames trying to map more pages but creates more page fault instead. FCFS algorithm","","",""
+"24","1990","S122","這是一個反直覺的做法，當page 上升時，會導致其他下降
+","","",""
+"25","3411","S086","Belady's Anomaly refers to a counter-intuitive situation that increasing number of page frames result in increasing number of page fault.
+FCFS has this anomaly.","","",""
+"26","2507","S052","Belady's Anomaly is that when there are more frames can be allocated, it results in more page faults. FIFO has this anomaly.","","",""
+"27","2538","S033","Belady's Anomaly負責處理當page frame數量值增加時所造成的page faults。","","",""
+"28","2288","S123","Belady's Anomaly: More page frames may result in more page faults.","","",""
+"29","2329","S027","Belady's Anomaly is a phenomenon in virtual memory management where increase the number of page frames unspectedly causes the number of page fualts to increase instead of decrease.
+PFF replacement has this anomaly.","","",""
+"30","4436","S081","belady's anomaly allows to properly replace the pages in order of its priority and its size order so the the system can be executed in a shorter time. The replacement algorithm that also has this is ESJ","","",""
+"31","2702","S008","The Belady's Anonmaly means sometimes when we increase the page table size, page fault happens more frequently than before. The First Come First Serve has this anomaly.","","",""
+"32","4787","S078","If increase the frame, page fault rate may be increase.
+FCFI(First come first in) ","","",""
+"33","2305","S087","Belady's Anomaly是指os分配給一個process的frame越多，反而讓他page fault的次數更高。
+FIFO","","",""
+"34","2255","S022","The page fault time increases when increasing the amount of the page frame.
+
+FIFO will have this anomaly.","","",""
+"35","4161","S110","increasing the page number can be used but the page fault counts also increase
+least used (choose the victom page which has the longest time from the last time being used)","","",""
+"36","2480","S082","Sometime when we increase the number of page frame, but the page fault increase as well. That is an anomaly. And usually seen in the FIFO algorithm.","","",""
+"37","3231","S105","使用 First In First Out algorithm 時，增加 process 的 frames 數量可能會使 page fault 次數上升。","","",""
+"38","2175","S111","照理來說page提升時，page fault發生的次數也應該降低。但當使用FCFS的時候，在特定情況下可能會發生fage提升，但page fault次數也增加的情況。","","",""
+"39","2215","S085","提升frame數量卻導致page fault增多的反直覺現象，
+例如在LRU時可能發生","","",""
+"40","2337","S004","常發生在FIFO，是一個反常現象，給更多的page frames數量，page fault ratio不降反升。","","",""
+"41","1794","S046","Belady's Anomaly : increase page frames will results in a increase of page faults.
+Global replacement has this anomaly.","","",""
+"42","1743","S005","More page numbers can cause more page fault.
+In First In First Out.","","",""
+"43","5004","S061","increasing the number of page frames that increasing the  number of page faults.
+","","",""
+"44","3923","S014","page fault多，page frame也變多。
+priorty inversion
+","","",""
+"45","2091","S028","1. page replacement 中，在提供更多的page frames的情況下，反而會發生""page fault也增加""的反直覺情況
+
+2. FIFO has this anomaly
+","","",""
+"46","2325","S107","it's a phenomenon which more page frames may leads to more page faults.
+FIFO algorithm(stack algorithm) has this anomaly.","","",""
+"47","2318","S126","FIFO會遇到Belady anomaly這個狀況，就是你給的frame越多page fault 也會越多，不會因為資源比較多就降低錯誤","","",""
+"48","2427","S017","這是一個反直覺的現象，當page frames數量越多，page fault的數量居然不減反增。
+
+這是FIFO演算法常有的問題，因為此演算法沒有重視各個page的重要性，誰先進來誰就先出去，導致它經常把許多使用頻率高的page丟掉，然後又馬上要找回來，導致page fault數量增多","","",""
+"49","2021","S115","Belady's Anomaly happens when the increase in pages actually increases page defaults, this happens in the First come First go algorithm, where we always replace the oldest page.","","",""
+"50","2100","S089","Belady's Anomaly是指在增加number of frame的情況下，page fault不減反增，我們可能會在FCFS等算法中看到","","",""
+"51","6453","S009","SSTF has this anomaly","","",""
+"52","6592","S066","FCFS(先到先處理)會發生Belady's Anomaly，此時增加frames反而會增加Page fault。","","",""
+"53","1996","S041","Belady's Anomaly 是一個當增加 frame 的數量，但 page fault 反而上升的反常現象，主要發生在 FIFO algorithm","","",""
+"54","6230","S031","Belady's Anomaly 是給更多page frame，但反而造成更多分頁錯誤。FCFS has this anomaly。","","",""
+"55","4324","S116","Belady's Anomaly指的是當page frame 增加時，出現page fault的次數反而會更多的反直覺現象，會出現在local replacement的演算法裡","","",""
+"56","2905","S059","當memory frames 增多反而造成page fault 增加。
+
+ESTF","","",""
+"57","1696","S064","frame數量增加但page fault不減反增","","",""
+"58","2237","S101","增加page frames反而增加page fault，發生在FIFO中。","","",""
+"59","3483","S103","1. 更多個frame會有更多page fault
+2. local replacement","","",""
+"60","6506","S104","Belady's anomaly is a counterintuitive situation where increasing the number of page frame results in increasing the number of page fault. 
+先進先出的方法就會有這個問題  ","","",""
+"61","2239","S023","A counterinuitive situation where increasing the number of page frames results in an increase in page faults.","","",""
+"62","2090","S113","當若使用FIFO的page replacement algorithm時，選用更大的frames number可能反而會提升page fault number","","",""
+"63","2212","S055","這個狀況指的是增加memory frames的數量反而導致page fault增加,常見於FIFO演算法","","",""
+"64","2360","S119","1.working set>resident set導致頻繁的進行page swapping 。
+
+2.FIFO
+
+","","",""
+"65","2779","S067","Belady's Anomaly 是正常情況我給予越多的frame 會得到較少的page fault 但是這個情況發生時,給予更多的frame 卻會導致page fault 變多。
+
+FCFS","","",""
+"66","2737","S076","Belady's Anomaly is the counterintuitive situation in memory management where the increase in the number of page frames results in the increase in the number of page faults. ","","",""
+"67","2929","S074","Belady's Anomaly is when an increment in the number of page frames causes an increase in the number of page faults.
+Usually, FCFS has this anomaly.","","",""
+"68","2372","S063","Belay' anomaly is a situation that operating system allocating more pages results in higher number of page fault.
+FIFO. The algorithm that replaces the page which is put in the queue earliest. ","","",""
+"69","3065","S090","Belady's Anomaly is the situation that allocate more frames to the process, however let the times of page fault higher. FCFS(FIFO) has this anomaly.","","",""
+"70","5489","S100","When we increase the frame number, the page fault increases. 
+First-in first-out  replacement.","","",""
+"71","2426","S114","Belady's Anomaly 是指分配給process的frame數越多，page fault ratio 不僅沒有降低，反而增加的現象。FIFO 就會有Belady's Anomaly的問題。","","",""
+"72","1811","S038","belady'a Anomly may occur at FIFO like 1234512512345 in 3 and 4 pages
+","","",""
+"73","2397","S047","(1) 在載入一個 program 後他常用的記憶體就會是某一個區間，直到載入下一個 program
+(2) LRU","","",""
+"74","2211","S044","1. the increase amount of page frames results in the increase amount of page faults, which is counterintuitive.
+2. FCFS","","",""
+"75","2264","S075","Belady's Anomaly: 明明有更多資源(blocks)但page fault反而更多
+FIFO algorithm有這現象","","",""
+"76","2107","S030","Belady's Anomaly 所指的現象是提供 memory page 更多， 反而造成了更多的 page fault。 很常會發生於 FCFS","","",""
+"77","2381","S106","It means that although the allocates page number increased , the Page fault ration did not decrease but increased which means that the page replaced is not optimal  . 
+FIFO has this anomaly ","","",""
+"78","2699","S019","a. Belady's Anomaly: Increasing the amount of page frames results in increasing the amount of page fault.
+b. FCFS","","",""
+"79","2286","S020","It occurs when we increase the number of page frames, the number of page faults increases instead of decreasing.
+FCFS has this anomaly.","","",""
+"80","3551","S010","Belady's anomaly is when increasing the number of pages resulting in higher page fault.
+FIFO has the anomaly.","","",""
+"81","2578","S051","When there are more frames, there will have more page fault. 
+This anomaly will happen in FCFS(first come first serve).","","",""
+"82","2258","S039","the increase of frame cause the number of page fault increase
+
+replace oldest frame","","",""
+"83","2039","S018","when increase the page frame, the number of page faults may be increase.
+first come first serve algorithm has this anomaly.","","",""
+"84","2786","S049","當frame數量變多 page fault也變多 常見於fifo algorithm","","",""
+"85","2775","S053","在page數增加的情況下，page fault的次數卻也增加了，系統才將資料移出table又馬上需要造成的問題
+first come first serve會發生此問題 ","","",""
+"86","2640","S092","FCFS
+Belady's anomaly means if we add more frame for memory, it may not be more efficient.","","",""
+"87","2176","S125","在OS memory 管理中，越多的frames反而會造成越多的page fault，FIFO會造成 。","","",""
+"88","2729","S021","belady anomaly is increase of the page frames that will result in increse of the page faults.","","",""
+"89","1995","S050","belady's anomaly happened when having more page frames but the page fault also increase. ","","",""
+"90","2101","S036","違反常理的page數量增加page fault增加","","",""
+"91","2418","S048","較多的frame數量反而可能導致更多的paging fault。在FIFO的algorithm可能會發生","","",""
+"92","6597","S112","1. It means that if we increase the size of fragmentation, it can cause an increase in page faults. 
+2. FCFS","","",""
+"93","2361","S006","有時候我們把 process 的 page 數量增加，但是 process 實際查找次數還增加了，這就是 Belady's Anomaly。
+replacement algorithm: First come first serve","","",""
+"94","2642","S026","給process更多frame,卻page fault更嚴重,效率更差","","",""
+"95","3694","S002","Belady's Anomaly means that the larger the allocated page frame (memory), the more page faults.
+ Local replacement has this anomaly because it can only find the replacement in the allocated frames while page fault happens.","","",""
+"96","2564","S007","(a) Belady's Anomaly describes an internal fragmentation phenomenon where large page size often left lots entries unused, causing the memory or resource waste.
+(b) One typical replacement algorithm is to always allocate process with small memory requirements to large data blocks.","","",""
+"97","2942","S016","增加記憶體frames,卻導致Page faults數量增加即為Belady' Anomaly","","",""
+"98","3585","S083","所謂貝拉迪異常，是指程式","","",""
+"99","2467","S088","Belady's Anomaly: 在memory management中，frames增加page fault反而跟著增加
+FIFO(first-in,first-out)","","",""
+"100","2809","S058","when the number of page frame increase leads to the increase of page fault , it is belady's anomaly.
+the first in first out algorithm has this anomaly","","",""
+"101","2499","S043","增加了frame 反而導致page fault增加（正常應該是增加frame數，其page fault會下降）
+
+ＦＩＦＯ：先進先出的演算法會導致這種異常 ，增加了frame數卻造成page fault 增加
+","","",""
+"102","2098","S060","increase a number of page frame result increase a number of page fault","","",""
+"103","2159","S024","when use FIFO algorithm, something strange will happen is that when you increase the memory frame, the page fault will increase.","","",""
+"104","2287","S095","Belady's anomaly is that there are more page faults, when the size of the page get bigger.
+First in first out replacement algorithm has this anomaly.","","",""
+"105","2430","S077","it occurs when increasing the number of frame, the page fault even increasing accordingly.
+
+FCFS algorithms might have this anomaly.","","",""
+"106","2326","S120","While using FIFO algorithm, if we increase the number of frames, the page fault might increase, which is not intuitive.","","",""
+"107","5352","S073","Belady's Anomaly:指當frame增加時，page fault反而增加。
+FIFO","","",""
+"108","2302","S069","分配給他更多的page frame 但卻造成更多的page fault, FIFO algorithm has belady's anomaly
+","","",""
+"109","4426","S072","Belady' s Anomaly 說明了一個反直觀的結果，越多的Frames，其實會造成FCFS的Page Falut次數變多。
+FCFS has this anomaly. 
+","","",""
+"110","2154","S042","Belady's Anomaly: when page frames increase, page fault increase
+FCS algorithm","","",""
+"111","2335","S071","Belady's Anomaly是指給更多frame時反而造成更多的page fault，這在FIFO演算法中會出現此問題","","",""
+"112","3036","S062","Belady's Anomaly: use more frames -> more page faults
+FIFO has this anomaly.","","",""
+"113","2403","S045","正常是越多frame會造成越少page fault，但是卻發生了越多frame越多page fault就是Belady's Anomaly ，常發生在FIFO這個演算法","","",""
+"114","2196","S056","Belady's Anomaly is a counterintuitive process that will increase page frames and page faults","","",""
+"115","2740","S029","Belady Anomaly是當給定的page frame越多，反而page fault越多，其中FIFO演算法會發生這種異常","","",""
+"116","2601","S065","當frame越多的時候，page fault反而更多。
+選擇最早進來的page先page out時可能會造成Belady's Anomaly。","","",""
+"117","4294","S025","Usually, the number of page fault should decrease with the number of allocated frame increase. Belady's Anomaly happens when the number of page fault increase with the number of allocated frame increase. FCFS is the algorithm that has this anomaly.","","",""
+"118","2194","S098","當分配到的page frame數變多，但發生的page fault次數不減反增
+FIFO","","",""

@@ -1,0 +1,251 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","12850","S109","crossbar :n^2
+omega:(n/2)*log(n)","2","",""
+"2","11709","S015","Crossbar network needs n^2 switches.
+Omega network needs (n/2)lg(n) switches.","2","",""
+"3","16103","S054","crossbar network：n^2
+Omega network：(n˙ln(n))/2","1","Omega 公式錯誤：使用 ln(n) 自然對數而非 log2(n)",""
+"4","11891","S117","crossbar: n * n crosspoints
+omega: (n/2)log2(n)","2","",""
+"5","11579","S093","crossbar: n^2
+Omega: (n/2)*(logn)其中log的底數是2","2","",""
+"6","11592","S012","crossbar: n^2
+omega network: (n/2)*log2(n)","2","",""
+"7","11573","S108","Crossbar: n^2
+Omega: (n/2)logn","2","",""
+"8","11581","S099","Omega: (n / 2) * log_2n
+Crossbar: n ^ 2","2","",""
+"9","11737","S070","crossbar network:n^2
+omega network:(n/2)*(log2 n)                                        //以2為底","2","",""
+"10","12147","S080","crossbar network: n^2
+omega network: n/2*log2(n)","2","",""
+"11","11197","S003","Omega: n/2 log_2(n)
+Crossbar: n^2","2","",""
+"12","11990","S035","1. crossbar network : n^2
+2. Omega network : n/2 * log_2(n)","2","",""
+"13","12597","S037","cross bar: n^2
+Omega network: n/2(logn)","2","",""
+"14","12204","S097","crossbar - n^2
+Omega - n/2 * log_2 (n)","2","",""
+"15","13996","S013","Crossbar: n ^ 2
+Omega: (n / 2)*log_2(n)","2","",""
+"16","12000","S040","crossbar: N^2
+Omega: (N/2) * log_2(N) (if use 2x2 switch)","2","",""
+"17","11162","S124","For omega network, (n/2) * log2(n)
+For crossbar network, n^2
+Therefore, crossbar networks requires a lot more switches than omega network ","2","",""
+"18","12133","S121","Crossbar Network : n'2
+Omega network : (n/2)log2(n)","2","",""
+"19","14499","S068","Cross bar: n * n
+Omega network: about log(n)","1","Omega 公式錯誤：缺少 n/2 因子，僅寫約 log(n)",""
+"20","11574","S102","crossbar : n平方
+omega: (n/2)*log2(n)  (以2為底)","2","",""
+"21","11662","S034","crossbar network: n^2 crosspoints
+Omega network: (n/2)*log2(n) crosspoints
+","2","",""
+"22","11186","S084","Crossbar network : n^2 switches。
+Omega network : (n/2)*log2n。","2","",""
+"23","11825","S079","crossbar: n^2
+Omega: n/2* log_2(n)","2","",""
+"24","12747","S122"," crossbar network: n^2
+Omega network:(n/2)log2(n)","2","",""
+"25","11704","S086","Crossbar network needs n^2 crosspoints, Omega network only need n/2 log2(n) switches.","2","",""
+"26","12098","S052","Crossbar network: n^2 crosspoints
+Omega network: (n/2)*log2(n) switches","2","",""
+"27","11753","S033","crossbar network:n^2
+Omega network:(n/2)log2(n)","2","",""
+"28","12157","S123","Crossbar network: n^2
+Omega network: (n/2)*log2(n)","2","",""
+"29","11490","S027","omega network is cheaper
+crossbar:n^2 crosspoints
+omega:(n/2)*log2(n) 2*2 switches","2","",""
+"30","11383","S081","for a crossbar nerwork- n^2
+and for omega network- 2log n","1","Omega 公式錯誤：寫成 2log n，應為 (n/2)*log2(n)",""
+"31","12092","S008","cross bar: n^2
+omega: (n/2) log_2 (n)
+
+cross bar > omega","2","",""
+"32","12158","S078","crossbar network: n^2
+Omega network: n/2 log2n","2","",""
+"33","13215","S087","Crossbar:n^2
+Omega:(n/2)log2n","2","",""
+"34","11005","S022","Crossbar network: n^2
+Omega network: (n/2) * (log2 n)","2","",""
+"35","12565","S110","crossbar: n^2
+omega: n/2 * log2n","2","",""
+"36","12028","S082","Crossbar: n^2
+Omega: n/2 * log_2(n)","2","",""
+"37","12080","S105","crossbar: O(n^2)
+Omega: O(log_2 (n) * n/2)","2","",""
+"38","11299","S111","Omega : (n/2) * log n
+crossbar : n ^ 2","2","",""
+"39","11576","S085","Omega: (n/2)*log_2(n)
+crossbar: n^2
+
+omega雖然會發生阻塞但使用較少數量","2","",""
+"40","11672","S004","crossbar需要n^2個crosspoints
+Omega network需要n/2logn個switches(logn的底是2)","2","",""
+"41","11565","S046","Crossbar network: n^2 switches
+Omega network: (n/2)log2n switches","2","",""
+"42","11262","S005","Crossbar: n^2
+
+Omega network : (n/2) * (log2(n))","2","",""
+"43","11247","S014","crossbar:n*n
+Omega:(n/2)log2 n
+","2","",""
+"44","11684","S107","crossbar network: n^2
+Omega network: (n/2) log2 (n)","2","",""
+"45","11700","S126","1.crossbar network  n平方
+2.Omega network  n/2*log2(n) 個switch","2","",""
+"46","13470","S017","crossbar : n^2
+omega : n/2*log_2(n)      也就是n/2乘上底數為二的log(n)","2","",""
+"47","11047","S115","Crossbar: n^2
+Omega: n/2(log2(n))","2","",""
+"48","11636","S089","Crossbar : n*n
+Omega : (n/2) * (log_2 (n))","2","",""
+"49","11730","S009","Crossbar network have n^2 switches
+Omega network have (n/2)*log_2(n/2)","1","Omega 公式錯誤：log_2(n/2) 應為 log_2(n)",""
+"50","11951","S094","1. crossbar：n^2
+2. Omega：(n/2)log2(n)","2","",""
+"51","12324","S066","crossbar network: n^2
+Omega network: (n/2)*log2(n)","2","",""
+"52","11726","S041","Crossbar: n * n
+Omega: (n/2)log(2)n","2","",""
+"53","13781","S031","crossbar network : n^2
+Omega network : n/2 * log_2 n","2","",""
+"54","11557","S116","crossbar n^2
+OMEGA n/2*logn(log的下標為2) 2分之n乘上log2乘n","2","",""
+"55","12122","S059","crossbar network: n^2
+Omega network: n/2*log2(n)","2","",""
+"56","10979","S064","crossbar：n^2
+omega：(n/2)log(2)n","2","",""
+"57","11752","S101","Crossbar: n^2
+Omega: (n/2)log2(n)","2","",""
+"58","11529","S103","1. crossbar : n^2
+2. omega : (n/2)*log2(n)","2","",""
+"59","14471","S104","crossbar : n^2 個
+Omega network : (n/2)log2n (以2為底的n)","2","",""
+"60","11932","S023","Crossbar network 需要 n^2 個交換節點，Omega network 只需要 n/2 log_2 n 個。
+Omega network 可能發生 Blocking ，但因硬體成本低非常多，所以仍被廣泛使用。","2","",""
+"61","11499","S113","Corssbar:n^2
+Omega:(n/2)log(n) <-這個log是以2為底的。","2","",""
+"62","11779","S055","crossbar:只需要一個 但複雜度超大的switch
+Omega:需要log(n)層 每層有n/2個2*2的switches","1","Crossbar 公式錯誤：寫成只需 1 個 switch，應為 n^2",""
+"63","11683","S119","Crossbar network:n平方
+Omega network: (n/2)*log下標2(n)","2","",""
+"64","11849","S067","crossbar: n^2
+Omega: (n / 2) *  log2(n)","2","",""
+"65","12235","S076","Crossbar network: n^2. The crosspoints needed is n^2, so it's more expensive (non-blocking)
+Omega Network: (n/2)log_2n. The switches needed is (n/2)log_2n, so it's cheaper (blocking)","2","",""
+"66","10948","S074","Cross bar requires n switches while omega requires (n/2)log n","1","Crossbar 公式錯誤：寫成 n 個 switch，應為 n^2",""
+"67","11938","S063","Crossbar: n*n
+Omega: n/2* lg(n)","2","",""
+"68","11795","S090","Crossbar: n^2
+Omega: n/2*log2n","2","",""
+"69","14415","S100","Crossbar : n*n
+Omega : (n/2) * log_2 (n)","2","",""
+"70","11303","S114","crossbar : n*n 
+omega network : (n/2) * log(n)","2","",""
+"71","12671","S038","crossbar :n^2
+
+Omega network (n/2) log(2,n)","2","",""
+"72","11750","S047","crossbar network：n^2
+Omega： n/2 ( log_2_n )","2","",""
+"73","12494","S044","1. crossbar: n^2
+2. omega: (n/2)*(log2 n)","2","",""
+"74","11722","S075","crossbar network: n^2
+omega network: (n/2)*log2(n)","2","",""
+"75","11680","S030","crossbar  network : O(n^2) 
+omega network : 1/2 * n lgn","2","",""
+"76","11491","S106","crossbar : n^2 
+Omega : (n/2)logn (以2為底)","2","",""
+"77","11714","S019","Crossbar network : n^2
+Omega network n/2(lgn)
+","2","",""
+"78","11396","S020","Crossbar: n^2
+Omega: (n/2)log2n","2","",""
+"79","11665","S010","for crossbar network: n^2 crossbars.
+for omega network: (n/2)log2(n)","2","",""
+"80","11660","S091","crossbar=o(n平方)
+Omega=n/2log2n(二分之n*log2的n)","2","",""
+"81","11496","S051","crossbar will have n^2 switches.
+omega network will have (n/2)*log(n) switches.","2","",""
+"82","13459","S039","crossbar: n^2
+Omega: (n/2)*lgn","2","",""
+"83","11661","S018","crossbar:n^2 crosspoint
+omega:(n/2)*(log n) switch","2","",""
+"84","11595","S049","crossbar:n^2
+Omega:n/2*log_2 n","2","",""
+"85","11804","S053","crossbar n*n switches
+omega (n/2) * (log2 n) switches","2","",""
+"86","11667","S092","crossbar network: n^2
+Omega network: (n/2)log(n)","2","",""
+"87","11422","S125","crossbar:n^2
+omega:(n/2 )*log2(n)","2","",""
+"88","11133","S021","crossbar n^2 Omega n/2 log2n","2","",""
+"89","11727","S050","crossbar: n^2
+omega: n/2*log以2為底n","2","",""
+"90","11742","S036","crossbar:n平方
+Omega network:(n/2)*log(2下標)n","2","",""
+"91","11494","S048","1. Crossbar : n^2
+2. Omega : (n/2)logn2","2","",""
+"92","11762","S112","crossbar network: n平方 
+Omega network: 1/n(log2(n))   -->(log底是2的意思!)","1","Omega 公式錯誤：寫成 1/n * log2(n)，應為 (n/2) * log2(n)",""
+"93","11627","S006","1. crossbar, n^2
+2. omega, n/2 * log_2 n","2","",""
+"94","11859","S057","Crossbar : n2 ( n 平方 )
+Omega : n/2  log n","2","",""
+"95","13960","S002","crossbar network: n^2
+Omega network: n/2 * log2n","2","",""
+"96","11794","S007","Crossbar: n^2
+Omega: n/2 log_2(n)","2","",""
+"97","12012","S118","Number of switches in an Omega Network is log2(N) * N/2. while crossbar network requires 2N number of switches.","1","Crossbar 公式錯誤：寫成 2N，應為 N^2",""
+"98","13659","S016","crossbar network : N^2
+Omega network : n/2*log_2 n
+","2","",""
+"99","16203","S083","Crossbar：N^2
+Omeage：n/2 log 2 n","2","",""
+"100","11640","S088","crossbar : n^2
+Omega : (n/2)log2(n)","2","",""
+"101","12334","S058","crossbar network : n^2
+omega network : (n/2)log n      (log下標2)
+","2","",""
+"102","11545","S043","crossbar:n^2
+omega:n/2*log_2(n)","2","",""
+"103","11462","S060","Omega：n^2
+crossbar: n/2 ×log n（log use 2 basic）","0","兩者標籤互換：Omega 寫成 n^2，crossbar 寫成 n/2*log n，與正確答案相反",""
+"104","11531","S024","crossbar: n switches
+omega: (n/2)log 2(n)","1","Crossbar 公式錯誤：寫成 n 個 switch，應為 n^2",""
+"105","11833","S095","crossbar:n*n
+omega:(n/2)*log2n","2","",""
+"106","11864","S077","crossbar network: n^2
+Omega network: (n/2)*log2(n) ","2","",""
+"107","11540","S120","crossbar: n^2
+Omega network: \dfrac{n}{2}\log_2{n}
+明顯的，當n夠大時，crossbar所需成本較高，Omega network所需成本較低。","2","",""
+"108","11146","S073","crossbar network:n^2
+omega network:n/2*log2 n","2","",""
+"109","11740","S069","crossbar network:n^2
+Omega network:(n/2)log_2(n)","2","",""
+"110","11959","S072","Crossbar:n^2 
+Omega: n/2* (logn) (log以2為底)","2","",""
+"111","11479","S042","crossbar network: n^2 switches
+omega network: (n/2)*log2(N) switches","2","",""
+"112","11907","S071","Crossbar network: n^2
+Omega network: n/2*log2n(以2為底的log)","2","",""
+"113","11816","S062","Crossbar network: n^2
+Omega network: (n/2) * log_2 (n)","2","",""
+"114","11881","S045","crossbar:n^2
+omega:(n/2)(logn)，以2為底的logn  ","2","",""
+"115","12467","S056","For n CPUs and n memory modules
+Crossbar network requires n^2 switches (crosspoints)
+Omega network requres (n/2)log2n switches","2","",""
+"116","12432","S128","The number of switches of:
++ crossbar network for n CPUs and n memory is 3
++ Omega network for n CPUs and n memory is 4","0","兩者公式皆錯誤：crossbar 寫成 3，Omega 寫成 4，均非 n 的函數",""
+"117","11865","S029","crossbar network: non-blocking network, n個cpu都有到n個memory的路徑, O(n^2) crosspoints.
+Omega network: blocking network, n個cpu藉由數個stage到n個memory的路徑,但不是每個cpu都可以到所有的memory, O(nlogn/2) crosspoints.","2","",""
+"118","11828","S065","crossbar:n^2 個switch
+Omega network:(n/2)log2(n) 個switch","2","",""
+"119","12106","S098","crossbar：n^2
+Omega：n/2*log n(base 2)","2","",""

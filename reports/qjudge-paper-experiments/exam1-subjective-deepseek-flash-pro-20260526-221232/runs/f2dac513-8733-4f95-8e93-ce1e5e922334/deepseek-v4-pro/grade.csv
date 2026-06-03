@@ -1,0 +1,165 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","1831","S109","把memory切成page 的大小去分配；這樣就不用受限於連續分配的問題","0","(a)只描述一般paging而非demand paging的「需要時才載入」概念；(b)所述為paging的好處而非demand paging特有優勢",""
+"2","1880","S015","Demand paging is a technique that only swap the pages when it's necessary. It is commonly used because it saves a lot of resource since it minimize the number of swapping.","2","",""
+"3","2153","S117","透過valid bit檢查access的page是否在memory，如不在從secondory device (disk)中載入到memory，memory access比直接從disk讀資料更快，只載入需要的page到memory可節省memory用量","2","",""
+"4","5037","S093","不用將整個process所需的page一次輸入到memory中，只需輸入目前所需的apge即可，這樣可以有更多的空間做到同時有許多process在執行","2","",""
+"5","2160","S012","demand paging是在有需要的時候（process要reference這個page），才把他從second storage的swapping area交換出來，放到memory。
+使用demand paging可以讓process的logical address規模超過physical address，讓更多process可以同時使用memory","2","",""
+"6","2152","S108","在需要頁面時才將他載入記憶體，而非一開始就將 process 所需的所有頁面都一次載入。
+此作法的好處是使得 process 的啟動速度快；另外也可以讓 process 所需的所有頁面大小大於 memory 的空間，因為可以在工作的途中再替換成需要的頁面。","2","",""
+"7","6029","S099","1. 透過一個 valid/invalid 去看檢查該 page 是否在 memory 裡
+2. More efficient","0.5","(a)僅提及valid/invalid bit但未說明「需要時才載入」核心概念；(b)理由過於空泛",""
+"8","5679","S070","用valid/invalid bit(1/0)來表示那個page的資料是不是有用的，0表示沒用或是不在memory中，方便選擇page去做替換","0.5","(a)僅說明valid/invalid bit機制，未描述「需要時才載入」的核心概念；(b)未說明為何被廣泛使用",""
+"9","2254","S080","separate a process into different page, only load the page which is needed to RAM, so that RAM can have many processes with part of them, it commonly used because it can let process save more time to swap the whole process in and out.","2","",""
+"10","1753","S003","Demand paging means we swap in the frames only when it is requested.
+The virtual memory use a valid bit to show whether the page is valid or not.
+It can make good use of the page table, since the pages usually more than frames.
+And save spaces since some frames are not often required. Only swap in when we need it.
+","2","",""
+"11","2058","S035","q1 : demand paging : The system load in the page when we need it.
+q2 : because we have limit physical memory space, use demand paging can load the page only when we need it, save the memory usage, and more efficient. ","2","",""
+"12","2347","S037","page與frame是分開的，page比frame還要多，因此系統會把用不到的page swap out到storage，在遭遇page fault的時候再swap in，能夠大幅減少physical frame的需求，減少page swap並增加效率","2","",""
+"13","6046","S096","When a process starts instead of loading the complete program into the memory, only the required parts to continue execution are loaded to the memory.","1","(a)正確描述需要時才載入的概念；(b)未說明為何被廣泛使用",""
+"14","2004","S013","By using the concept of virtual paging, it achieves that(Why common use?) no limitation of the contiguous physical address and it's easy to check if the needs is on the memory by viewing the page table; if the needs is not on the memory, then do ""swap in"" from the disk and record it on demand page. ","0.5","(a)提及swap in機制但混淆了demand paging與一般paging概念；(b)所述為一般paging好處非demand paging特有",""
+"15","2142","S040","in virtual memory system, process won't get physical memory for its all logical memory address, only ask for what it need. If a process need more memory, it will demand paging. Use virtual memory system let our computer run more processes even all needed memory of these processes more then physical memory.","2","",""
+"16","1897","S124","Demand paging is when a process needs a page from its logical address space that is not currently loaded in the physical address space to be loaded in one of the frames. ","1","(a)正確描述demand paging機制；(b)未說明為何被廣泛使用",""
+"17","6488","S121","Demand paging is a concept when a process try to access to a data. Instead of accessing to the data thanks to the physical address (seen by the memory unit), it uses the logical address to simplify the memory management by the user, to secure the memory between the different users and by abstraction to allow more logical memory for a process than the actual physical memory. Therefore, when a process try to access to a data, it ask the MMU to translate the logical address to the physical address to get from a page, a frame.","0","(a)描述virtual memory與MMU位址轉換，未觸及demand paging核心機制；(b)所述為virtual memory一般優點",""
+"18","2665","S068","讓執行中的 process 可以不用一次性載入所有需要的 memory frame / page，在有需要用到特定資料實在載入特定的 memory blocks。常被使用的原因有實作簡單，以及這樣的做法可以使比較大的 process 使用相對小的 memory blocks，從而增加整體運行的所需記憶體上限，減少 memory and disk 之間的資訊交換次數，增加效率，吞吐量等等。","2","",""
+"19","1933","S102","demand pageing 是要使用時才把這個page弄到memory裡，他這樣可以讓virtual momory比physcial memory大","2","",""
+"20","2082","S034","Demand paging is that bring a page into memory when it is needed.
+It commonly used because it can reduce memory size.","2","",""
+"21","5587","S084","demand paging的核心概念是需要多少就用多少，相較於其他paging方法，較不會浪費，假如是valid bit，代表這個page在memory裡；假如是invalid bit，代表可能是非法存取或這個page不在memory裡。","2","",""
+"22","2458","S079","Since the logical address space is often larger than the physical memory, we will not keep all the data in memory but often load the required page from physical memory when needed to decrease the CPU usage.","2","",""
+"23","6564","S122","損害頁面，導致資料丟失
+
+因為很簡易","0","完全誤解demand paging概念，答非所問",""
+"24","1964","S086","Because when the process executing, only part of logical address need to be in physical memory, so we only need these logical address in physical memory, this is called demand paging.","1","(a)描述部分載入概念但略顯含糊；(b)未說明為何被廣泛使用",""
+"25","2187","S052","Demand paging is that a part of a process is allocated a block of physical memory only when a process needs to use that part of process. It is commonly used because each process only occupies a part of block in physical memory, then it allows multiple processes to share the physical memory.","2","",""
+"26","2193","S033","paging將memory分成固定大小的空間，使的當多個process要使用memory時可以平行運作。","0","(a)僅描述一般paging而非demand paging「需要時才載入」機制；(b)所述非demand paging特有優勢",""
+"27","6234","S123","If there is an invalid reference, the OS will bring the missing page into the memory; if the page is simply not in the memory, the process will be aborted.","0.5","(a)部分描述載入機制但邏輯有誤（page不在memory應觸發page fault而非abort）；(b)未說明為何被廣泛使用",""
+"28","1986","S027","demand paging是指physical memory要的page,直接跟logical address 要","0","對demand paging機制理解錯誤，未掌握「需要時從disk載入」核心概念",""
+"29","5393","S081","'demand paging' in the virtual memory implementation is allowing the pages to be properly executed so that virtual memory doesnt use physical memory so there is space to run this properly","0","對demand paging與virtual memory概念有根本性誤解，答非所問",""
+"30","2317","S008","Virtual memory separates logical address space and physical memory space. It allows logical address space to be larger than the actual physical address space. The concept of demand paging means we only load the block we need into the memory. It is commonly used because it allows us to have much smaller resident set per process so we can load more processes, and allows us to run load process more conveniently and more efficient by just loaded the pages we need next.","2","",""
+"31","5681","S078","no","0","未作答",""
+"32","4813","S087","demand oaging指的是讓有需要的page再載入physical memory即可。因為virtual memory將logical memory和physical memory分開，且logical可以遠大於physical memory，而logical memory也允許部分載入physical memory。","2","",""
+"33","5806","S022","A technique between logical memory and physical memory and to get faster access time.","0","描述過於空泛，未解釋demand paging的核心機制與使用原因",""
+"34","3218","S110","only put recently used or need page in virtual memory, if needed page not in virtual memory, swap a victom page out and swap in needed page from disk","1","(a)正確描述demand paging的swap in機制；(b)未說明為何被廣泛使用",""
+"35","2123","S082","a data or a resource is loaded to memory only when it is on demand. So the virtual memory can be much larger than physical memory, that is why we can run an 64GB game on a merely 8GB RAM.","2","",""
+"36","2204","S105","只將執行時需要用到的 pages 載入 main memory。
+可以減少每個 process 占用的 memory 大小，讓更多 process 有機會同時運行。","2","",""
+"37","1956","S111","有被實際用到的page才會在實際的記憶體中，而沒有使用到的則會在儲存設備中。這樣可以使得logical memory大於physical memory。","2","",""
+"38","2038","S085","將記憶體分為使用者邏輯位址與實體記憶體空間，在程式需要使用時才從後備空間放入主記憶體，暫時不用的資料可不被放入，大幅提升記憶體利用效率(邏輯位址數量>實體空間)","2","",""
+"39","2059","S004","demand paging是指要用到的page才載入memory。可以更有效的使用memory空間","2","",""
+"40","1562","S011","demand paging指的是CPU要求載入記憶體分頁。因為記憶體可能很大，所以等到有需要的時候再載入會比較方便。","1","(a)「CPU要求載入」說法不夠精確，但大致掌握需要時才載入概念；(b)理由僅說「比較方便」過於空泛",""
+"41","6273","S046","Demand paging 會用 valid bit 跟 invalid bit 去區分，這樣的方法很直觀。","0.5","(a)僅提及valid/invalid bit但未說明「需要時才載入」核心概念；(b)理由「很直觀」過於空泛",""
+"42","1617","S005","1. Only load the memory when needed
+2. so it can have a large virtual memory with small physical memory","2","",""
+"43","6032","S061","because the data is too much, it can be reduce the memory space by demand paging.","0.5","(a)未描述demand paging是什麼；(b)僅簡述減少memory空間但未深入",""
+"44","1916","S028","virtual memory implementation是指logical address space與physical memory 的分離。當要進行execution時，只有部分的logical address space要在physical memory裡面，代表logical address space可以遠大於physical address space,讓一個physical memory可以分配給多個process
+
+demand paging則是以一個bit表示，valid bit代表在尋找的page在memory中， invalid bit代表不在memory中","1","(a)僅以valid/invalid bit描述demand paging，未說明「需要時才載入」核心；(b)所述優勢歸因於virtual memory而非demand paging",""
+"45","5552","S107","demand paging is a mechanism that logical address page to physical memory. it's commonly used because page sizes is usually larger than frame sizes, so it needs to dynamically allocate physical memory resources.","1","(a)描述含糊，未清楚表達「需要時才載入」；(b)部分理由有誤（page與frame大小相同）但點出動態配置概念",""
+"46","1952","S126","當收到需求的時候才從記憶體存取過來，這樣不會浪費記憶體空間","2","",""
+"47","5697","S017","用一個bit來表達目標的page有沒有在memory裡面，如果是valid那就是有，如果是invalid那就可能是一個不合法的reference、或著是不在memory裡面
+
+它受人喜愛的原因是只需要一個bit就能表達上面說的這麼多重要的訊息，非常方便且不怎麼占空間","0.5","(a)僅說明valid/invalid bit機制未描述「需要時才載入」核心；(b)所述為bit的效率而非demand paging被廣泛使用的原因",""
+"48","1868","S115","Demand paging is where we apply info to indicate if it is in memory or not, it is commomly used because pulling data from back store is relatively slow, so we just use it from memory if it is already there.","1.5","(a)概念描述偏重valid/invalid bit，未明確點出「需要時才載入」核心；(b)正確說明減少disk存取的理由",""
+"49","2017","S089","透過invalid和valid來劃分是否有對應的page能用
+efficient，而且不易出錯","0.5","(a)僅提及valid/invalid bit機制未描述「需要時才載入」核心；(b)理由過於空泛",""
+"50","2127","S009","because physical memory has limited size and logical memory doesn't, so we have to  do demand paging with logical memory to ensure physical memory does not over its limit.","1.5","(a)概念描述隱含但未明確說明demand paging的運作機制；(b)正確說明physical memory有限為使用原因",""
+"51","4745","S041","用一個 bit 來表示 page 在不在 memory 內，bit=1 表示 valid， bit=0表示 invalid。
+因為穩定且可以減少查找時間，所以常常被使用","0.5","(a)僅說明valid/invalid bit機制未描述「需要時才載入」核心；(b)理由與demand paging主要優勢關聯薄弱",""
+"52","5973","S031","因為透過demand paging，以valid和invalid標記是否在memory，當需要資源時，可以去看狀態是valid還是invaild，看是否已經在memory，若是invaild，若legal則透過swaping in 到memory，可以請求目前需要的空間配置就好，logical address space 可以大於physical address space。","2","",""
+"53","4173","S116","Demand page指的是讓電腦在運行process時，不用每用到一次資料就要去讀全部的physical memory. 而是透過demand page去紀錄這些資料具體的位置，電腦只需讀取這些page table就可以直接找到資料。可以節省大量讓電腦從頭到尾重讀一次physical momery的時間，大幅增加效率，因此很常被使用。","0","描述的是page table位址轉換而非demand paging「需要時才載入」機制，概念混淆",""
+"54","2561","S059","virtual memory implementation is a technique that separate the logical address space and physical memory. when executing a process, logical adress space only load the frames to physical memory needed by the program. Therefore, logical address space can have more address than physical memory, which increases main memory utilization and improve CPU utilization.
+
+It is commonly used because we can have more space and can utilize more memory, which is quite efficient.","2","",""
+"55","2006","S101","在 virtual memory implementation 使用 logical addresses，分成valid/invalid把位址或真實資料記錄在 page 中，在需要時才去memory中找invalid的資料，可以節省資源和搜尋時間。","1","(a)概念描述略顯混亂但觸及「需要時才處理」；(b)理由過於簡略",""
+"56","2156","S103","1. valid bit表示page在memory裡, 不用去硬碟裡找, invalid bit出現時才需要去找
+2. demand paging可以節省資源","1","(a)以valid/invalid bit描述但未明確說明「需要時才載入」核心；(b)理由過於簡略",""
+"57","2610","S104","Demand paging means that only part of logical address space needs to be in physical memory, it is commonly used because it can reduce memory occupation.","2","",""
+"58","6609","S023","It separates user logical memory from physical memory, allowing programs larger than physical memory to execute by keeping only parts of the memory. ","1.5","(a)描述偏向virtual memory整體概念，demand paging的「需要時才載入」不夠明確；(b)正確說明可執行大於實體記憶體程式的優勢",""
+"59","1805","S113","因為virtual memory可以separate logical memory form physical memory，所以當程式執行時只需要載入會用到的page進入physical memory，這樣可以允許logical address space大於physical address space。","2","",""
+"60","2606","S055","指使用 valid/invalid bit來表示此page是否在memory中 若無則需要去dish swapping 回來","0.5","(a)以valid/invalid bit與swapping描述機制但未點出「需要時才載入」核心；(b)未說明為何被廣泛使用",""
+"61","2048","S119","1.當某一個process被需要使用的時候就把需要的page replace進去memory。
+2.可以節省memory的空間。","2","",""
+"62","6343","S067","我們只要將要執行的程式載入memory中就好,不用把整個程式都載進去,
+這樣可以讓我們的系統執行大小比記憶體還大的程式","2","",""
+"63","6599","S076","Demand paging refers to swapping data between logical address and physical memory when needed. This saves time accessing memory. ","2","",""
+"64","6535","S074","Demand paging is a common phenomenon in virtual memory, as a valid bit means the page requested is in the memory, while an invalid bit may indicate that the requested page is not in memory.","0.5","(a)僅說明valid/invalid bit機制未描述「需要時才載入」核心；(b)未說明為何被廣泛使用",""
+"65","5082","S063","Demanding page uses a bits to record whether the page is valid. Because the process can get the demanding page directly if it is valid, and don't need to access memory for many times.","0.5","(a)僅說明valid bit機制未描述「需要時才載入」核心；(b)理由與demand paging主要優勢關聯薄弱",""
+"66","2236","S090","Virtual memory separate logical address space and physical address space. It allows only part of logical address space in memory when execution. The pages will load into memory only when it was needed. It's called demand paging, and it allows the logical address space can be larger than physical address space, so it's commonly used.","2","",""
+"67","5141","S100","We only bring those we need frame into memory, and it allows us to execute many processes at the same time, which increases the throughput. ","2","",""
+"68","2008","S114","Demand paging 是當某一page被referenced 時，才將此page 從disk swap in memory 。此一做法的最大好處為 ，process大小不再受限於physical memory size . ","2","",""
+"69","1662","S038","because the memory size is not enough for some system and not every program are use all the time","0.5","(a)未描述demand paging是什麼；(b)隱含節省memory的概念但說明不完整",""
+"70","2184","S047","記憶體會管理 valid bit 和 invalid bit 去增加效率、把需要的記憶體的 page 在實際要用到的時候載入相鄰的 page，使得他可以更好的去利用 locality，因為大部分的應用程式用到的記憶體都在相鄰的部分，所以效率更高","2","",""
+"71","2027","S044","partially loading the process's page instead of loading all the pages.
+it's commonly used since it can reduce the amount of loadinng pages while executing the process.","2","",""
+"72","2041","S075","1.把pages標記是否為valid來方便在做swapping時確認 能不能用/有沒有被更換過
+2.因為memory不是每個部分都是時時刻刻都在用的，把沒那麼常用的memory pages暫時擱置在後面(disk)可以讓memory使用時等幾乎等效於有更多位置的virtual memory","1.5","(a)概念描述稍分散但觸及「不常用的擱置disk」核心；(b)正確說明可擴展virtual memory空間",""
+"73","1857","S030","demand paging 的實作方式 是 process 使用的記憶空間 不會一開始全部都放進 memory ， 而是在需要時再換入 MEMORY 當中。 而他之所以廣泛使用是因為記憶體的空間有限且 process 具有 LOCALITY 如果把整個 PROCESS 全部放入反而會造成資源的浪費","2","",""
+"74","5862","S106","it can save time for memory transfering , only when a page is really needed and it is currently in the disk , then it will be read to the main memory . It is commonly used because it saves time to useless tranfer of data . ","2","",""
+"75","2248","S019","Demand paging : 只有在該 page 需要被用到時才會被 load into physical memory.
+It is commonly used because it could reduce memory 消耗量，並且可以使得 logical address space much larger than physical address. 可以執行比 physical memory 容量大的程式 ","2","",""
+"76","1924","S020","當需要page的時候才載入到memory，可以節省memory空間","2","",""
+"77","6027","S051","Divide file to pages. When file is to be used, trans pages from disk to memory let memory look like has a big size.
+When program has bigger size than memory, this technic can let program run in memory.","2","",""
+"78","6294","S039","the physical memory may be small and not continuous for the process' need
+virtual memory make process think it has a big continuous memory to use
+and page is part of the process' virtual memory
+process can demand paging to make the page be put in physical memory to use it
+so there's no need to always keep all page in physical memory","2","",""
+"79","6437","S018","只有需要的page會被載入，減少冗於的空間分配，vitual memory相對於physical memory也可以大得多。","2","",""
+"80","2583","S049","page只在被需要用到的時候寫入physical memory ,因為減少不必要的memory占用，不需要將所有東西一次存入physical memory，所以被廣泛使用","2","",""
+"81","2203","S053","將儲存空間paging成數個frame，需要的process只要記得對應frame的logical address，透過valid-bit判斷是否需要額外行動，因為不需要在記憶體找連續空間以及解決external fragment的問題而被經常使用","0.5","(a)描述偏向一般paging與valid-bit機制，demand paging核心不明確；(b)所述為一般paging好處非demand paging特有",""
+"82","2292","S092","in virtual memory, logical memory can be larger than physical memory, which means it can run a process that the size is larger than the physical memory, but it needs demand paging.
+when a needed page is not in the physical memory, OS will take it from the backing store(which is in the disk).
+it is commonly used because it has many advantage, such as memory sharing, dynamic loading, etc.","2","",""
+"83","1888","S125","記憶體中為了運行一個程式中最少需要擁有的pages，並只會在需要用到時放入frame中，這個方法能夠最省記憶體空間，且使程式能夠進行不會崩潰。","2","",""
+"84","2219","S021","if there is an invald reference,the os will bring the missing  page into memory;if the page is simply not in memory,the process will be abored.","0.5","(a)部分描述機制但後半段邏輯錯誤（不在memory應page fault而非abort）；(b)未說明為何被廣泛使用",""
+"85","6143","S050","it can efficiently know the address, without calling the memory which needs lots of time","0","描述的是位址查詢效率而非demand paging機制，答非所問",""
+"86","5022","S036","透過分離logical address 與physical memory來增加能夠運行的檔案大小。","0","描述的是virtual memory位址分離概念而非demand paging「需要時才載入」機制",""
+"87","2049","S048","當某一個page被referenced時（需要使用時），才將此page從disk去swap到memory，好處是可以不用先佔memory","2","",""
+"88","2833","S112","Demand paging means there exists a bit to control the page. If the bit is valid, it means the page is in the memory. If it is invalid, then it may be an illegal reference or the page is not in the memory. 
+It is commonly used because it's easy to control, and the system does not need to load the whole data into the physical memory. Therefore, the CPU will think the logical memory has a large and clean space.  ","1.5","(a)將demand paging描述為valid/invalid bit而非「需要時才載入」，但(b)中補充了核心概念",""
+"89","1955","S006","demand paging means to request new pages when needed, Instead of allocated bunch of pages at first, it's much more efficient.
+","1.5","(a)正確描述需要時才請求頁面的概念；(b)僅說「更有效率」未具體說明原因",""
+"90","2272","S026","用TLB查demand paging 在virtual memory實際用在哪個實體記憶體","0","混淆TLB與demand paging，未掌握demand paging的核心概念",""
+"91","2696","S057","因為它具有擴展性，可以擴充更更多記憶體容量，因為被廣泛使用。","0.5","(a)未描述demand paging是什麼；(b)僅模糊提及擴展性未具體說明",""
+"92","2223","S002","A valid bit means the page is in memory; an invalid bit may indicate either an illegal reference or the page is not in memory.","0.5","(a)僅說明valid/invalid bit機制未描述「需要時才載入」核心；(b)未說明為何被廣泛使用",""
+"93","2303","S007","(a) The demand paging is a dynamic memory allocation technique where a process needs to access data from memory (hardware) but it is not in the page table. It sets a trap and wait the required data block retrieved from the main memory.
+(b) The technique is commonly used because a process can start running without lots memory management time, which the ""demand paging"" helps easily manage the data to the process when needed.","1.5","(a)描述接近page fault概念但部分細節不精確（應從disk而非main memory載入）；(b)正確說明減少初始載入時間",""
+"94","2410","S016","這是一種將使用者邏輯位址空間與實體位址空間分離的技術，只要部份的邏輯位址空間存在於實體記憶體中，就可以執行程式，可以有效節省記憶體空間。","1.5","(a)描述偏向virtual memory整體概念，demand paging的「需要時才載入」不夠明確；(b)正確說明節省記憶體空間",""
+"95","3061","S083","以虛記憶體為需求分頁導向的概念，避免記憶體頁框","0.5","描述過於簡略且用語不精確，僅隱約觸及概念但未清楚說明",""
+"96","6056","S088","在page table中標示valid代表page在memory中，invalid代表invalid reference或page不在memory中，invalid會直接miss掉，否則會把這個page mapping到memory中
+把logical address space切成多個pages，physical memory切成多個frames，再用page table紀錄可以節省很多記憶體，不用把整塊logical address space放進physical memory","2","",""
+"97","2383","S058","it is used to avoid internal fragmentation(avoid it get a page larger then it need,the unused part can't be used by other either)","0","描述的是paging避免internal fragmentation而非demand paging機制，概念混淆",""
+"98","6304","S043","可根據需求決定用多少分頁，不用利用實體記憶體只需藉由虛擬記憶體執行，提高效率。
+a valid bit means the page is in memory,an invalid bit means the page is not in the memory","0.5","(a)概念描述含糊，僅略微觸及demand paging；(b)理由過於空泛",""
+"99","6314","S060","執行程式的時候，只需要部分virtual memory 在physical memory 中即可，因此virtual memory可以大於physical memory
+可以讓physical memory被多個processor分享
+可以讓messaging更efficient","2","",""
+"100","4699","S024","a valid bit that means the page is in memory, and an invalid bits means either an illegal reference or the page is not in memory.
+it is commonly used because it increase the efficient of process executing, only the data needed will load to the memory.","2","",""
+"101","6551","S095","用一個bit就可以知道這筆資料是不是在memory裡面","0.5","(a)僅說明valid/invalid bit機制未描述「需要時才載入」核心；(b)未說明為何被廣泛使用",""
+"102","1982","S077","moving data from backing store only when the process need it.
+
+because it can decrease unnecessary data transfer between physical memory and backing store. ","2","",""
+"103","5103","S120","It use a valid digit to describe the page is in RAM or not.
+It allows the sum of the working set greater than the space of RAM in the concept of we just need to put the necessary page into RAM at that moment.","2","",""
+"104","5228","S073","在表中valid bit表示page在記憶體中，當表中為invalid bit 時表示illegal reference或是page不在記憶體中。
+","0.5","(a)僅說明valid/invalid bit機制未描述「需要時才載入」核心；(b)未說明為何被廣泛使用",""
+"105","1969","S069","demand paging 是當我們的程式需要用到那個page的是後才load到memory，這樣不用把所有的都load進memory,可以讓virtual memory的大小大於physical的memory能更有效的使用memory","2","",""
+"106","5896","S072","demand paging is that process can just load running part of process  into physical memory, so the process size(logical space) can larger then physical memory space.  
+and it can swap data between physical memory and backing store, and use valid/invalid bit to decide swap flow. ","2","",""
+"107","5233","S042","page table中，valid bit為1代表page在memory中，而為0則可能為illegal 或page不在memory中，需要再去次級memory 中找對應的data
+page table中，使用valid bit可以更快判斷memory中是否有對應的page以提升效率","1","(a)以valid/invalid bit描述載入機制但未明確點出「需要時才載入」核心；(b)理由偏向valid bit的效率而非demand paging整體優勢",""
+"108","2024","S071","demand paging是指當有需要使用某個page時才會將它load到memory，這樣做可以節省很多實體memory的空間，讓系統更有效率","2","",""
+"109","2591","S062","如果有needed page需要存放於memory，可以透過valid-invalid-bit檢查page是否在memory中。
+因為這樣可以節省memory 的空間，避免overhead(不必要的page占用memory)","1","(a)以valid/invalid bit機制為主未明確說明「需要時才載入」核心；(b)理由正確但不夠完整",""
+"110","5781","S045","demand page就是會有一個bit 如果他是valid bit 表示他在memory裡面如果是invalid bit 則表示他沒有在memory裡面需要去搬運或是是illegal reference。因為demanding page運用在paging table上能讓整個搜尋過程比較快速有效率","1","(a)將demand paging等同於valid/invalid bit機制，核心概念表述不夠完整；(b)理由偏重搜尋效率，未完整說明demand paging優勢",""
+"111","2260","S029","demand paging 就是OS依據valid bit 來判斷虛擬記憶體是否有空位，常被用在動態分配記憶體(malloc)","0","混淆demand paging與動態記憶體分配(malloc)，對概念理解有根本性錯誤",""
+"112","2227","S065","page在需要的時候才會載入，大部分都放在virtual memory，可以減少存放在physical memory的大小，讓更多process可以共用memory。並且透過valid bit來得知需要的page有沒有在memory裡。","2","",""
+"113","2550","S025","Demand paging is the technique that load the page only when a page is needed. It can help optimize memory utilization.","2","",""
+"114","1920","S098","執行某process時需要用到該page才把page載入到memory中
+避免消耗太多memory space","2","",""

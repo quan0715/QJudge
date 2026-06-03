@@ -1,0 +1,32 @@
+{
+  "blind_grading": true,
+  "classroom_id": null,
+  "cli_version": "0.1.0",
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "downloaded_artifacts": [
+    {
+      "filename": "grade.csv",
+      "id": "10b32bc7-6bc3-4e7b-a7a8-d091d5983336",
+      "local_path": "reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/199417a2-c63c-436e-8a8d-869d348dbbdd/deepseek-v4-pro/grade.csv",
+      "updated_at": "2026-05-26T22:23:42.100437+08:00"
+    },
+    {
+      "filename": "rubric.md",
+      "id": "b6407ee4-9e31-4b0e-8be8-f7fae813293e",
+      "local_path": "reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/199417a2-c63c-436e-8a8d-869d348dbbdd/deepseek-v4-pro/rubric.md",
+      "updated_at": "2026-05-26T22:20:10.696428+08:00"
+    }
+  ],
+  "ended_at": 1779805443,
+  "human_baseline_path": "reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/199417a2-c63c-436e-8a8d-869d348dbbdd/deepseek-v4-pro/human_baseline.csv",
+  "model_id": "deepseek-v4-pro",
+  "official_grades_modified": false,
+  "question_context_artifact_id": "7b7c2d7d-9ca7-4e7d-b994-d65382384cb7",
+  "question_id": "199417a2-c63c-436e-8a8d-869d348dbbdd",
+  "run_id": "823c6696-f8b5-477e-b20e-4c27105c2d93",
+  "seed_artifact_id": "10b32bc7-6bc3-4e7b-a7a8-d091d5983336",
+  "session_id": "8b7f419a-185b-4ad4-9734-591d86ace97a",
+  "started_at": 1779805164,
+  "terminal_event_type": "run_completed",
+  "user_id": null
+}

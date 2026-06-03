@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "State three major advantages of the Publish/Subscribe middleware model over Point-to-Point communication.",
+  "question_id": "e74dd4e1-7f62-4da6-b965-e65834bf10fc",
+  "question_type": "short_answer",
+  "reference_answer": "(1) Scalability.\n(2) Decoupling of publishers and subscribers (they don't need to know each other).\n(3) Asynchronous communication (handling offline participants)."
+}

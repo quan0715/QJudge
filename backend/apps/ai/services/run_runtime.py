@@ -95,6 +95,15 @@ def _build_user_upload_context(content: str, session: AISession) -> str:
     return "\n".join(lines)
 
 
+def _run_tool_policy(session: AISession) -> dict[str, Any] | None:
+    context = session.context if isinstance(session.context, dict) else {}
+    task_manifest = context.get("task_manifest")
+    if not isinstance(task_manifest, dict):
+        return None
+    tool_policy = task_manifest.get("tool_policy")
+    return tool_policy if isinstance(tool_policy, dict) else None
+
+
 def _normalize_todo_items(raw_todos: Any) -> list[dict[str, str]] | None:
     if not isinstance(raw_todos, list):
         return None
@@ -391,6 +400,9 @@ def execute_run(run_id: str) -> None:
             "run_id": str(run.id),
             "model_id": run.model_id,
         }
+        tool_policy = _run_tool_policy(run.session)
+        if tool_policy:
+            payload["tool_policy"] = tool_policy
 
     try:
         headers = build_ai_service_headers(run.user)

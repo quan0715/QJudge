@@ -1,0 +1,872 @@
+{
+  "answer_count": 122,
+  "answers": [
+    {
+      "answer": {
+        "text": "SCAN: 90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "2503",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2566",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "scan:90 120 130 45 20 10 5\nc-scan:90 120 130 5 10 20 40"
+      },
+      "id": "6358",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3655",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90 120 130 45 20 10 5\nC-SCAN: 90 120 130 5 10 20 45"
+      },
+      "id": "2791",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3172",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3978",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2981",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "scan:90 120 130 45 20 10 5\nc-scan:90 120 130 5 10 20 45"
+      },
+      "id": "2469",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 80->90->120->130->45->20->10->5\nC-SCAN: 80->90->120->130->5->10->20->45"
+      },
+      "id": "3946",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "Scan\n90, 120, 130, 45, 20, 10, 5\nC-SCAN\n90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3301",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90 120 130 45 20 10 5\nC-SCAN : 90 120 130 5 10 20 45"
+      },
+      "id": "3171",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 80, 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 80, 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "4020",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2573",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "1. 80, 90, 120, 130, 149, 0, 5, 10, 20, 45 \n2. 80, 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3937",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3843",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90 120 130 45 20 10 5 \nC-SCAN : 90 120 130 5 10 20 45 "
+      },
+      "id": "2206",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90, 120, 130, 5, 10, 20, 45\nC-SCAN : 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2706",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "6616",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90, 120, 130, 45, 20, 10, 5\nC-SCAN:90, 120, 130, 5,10,20,45\n\n"
+      },
+      "id": "2747",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "4046",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90, 120, 130, 45, 20, 10, 5\nC-SCAN : 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3346",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 80, 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 80, 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "4031",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "scan:90 120 130 45 20 10 5\nc-scan:90 120 130 5 10 20 45"
+      },
+      "id": "2385",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 80, 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 80, 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3210",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90, 120, 130, 45, 20, 10, 5\nC-SCAN : 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3590",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90 120 130 45 20 10 5\nC-SCAN:90 120 130 5 10 20 45"
+      },
+      "id": "3627",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN:90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2827",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "2782",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "scan: 90, 120, 130, 45, 20, 10, 5\nc-scan: 90, 120, 130, 45, 20, 5, 10"
+      },
+      "id": "1926",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, (149), 45, 20, 5\nC-SCAN: 90, 120, 130, (149), (0), 5, 20, 45"
+      },
+      "id": "3112",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "SCAN 90 120 130 5 10 20 45 \nC-scan 90 120 130 45 20 10 5"
+      },
+      "id": "3230",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "3131",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2709",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "4833",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 80 90 120 130 45 20 10 5\nC-SCAN: 80 90 120 130 5 10 20 45"
+      },
+      "id": "3063",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "4059",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 80->90->120->130->45->20->10->5\nC-SCAN: 90->90->120->130->5->10->20"
+      },
+      "id": "2608",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2632",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "先sort:5,10,20,45,90,120,130\nSCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "2879",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5.\nC-SCAN: 90, 120, 130, 5, 10, 20, 45."
+      },
+      "id": "1795",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120,130, 5, 10, 20, 45"
+      },
+      "id": "2660",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "SCAN:  90=>120=>130=>45=>20=>10=>5\n\nC-SCAN: 90=>120=>130=>5=>10=>20=>45"
+      },
+      "id": "4497",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90,120,130,45,20,10,5\nC-SCAN : 90,120,130,5,10,20,45"
+      },
+      "id": "3304",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "scan:80 90 120 130 45 20 10 5\nc-scan:80 90 120 130  5 10 20 45 "
+      },
+      "id": "2624",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90 120 130 45 20 10 5\nC-SCAN: 90 120 130 5 10 20 45"
+      },
+      "id": "2669",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45\n "
+      },
+      "id": "2688",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "scan:90 120 130 45 20 10 5\nc-scan:90 120 130 5 10 20 45"
+      },
+      "id": "2735",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "SCAN     80 90 120 120 45 20 10 5\n\nC-SCAN 80 90 120 130 5 10 20 45"
+      },
+      "id": "2865",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nCSCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "4109",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 80(初始),90,120,130,45,20,10,5\nC-SCAN : 80(初始),90,120,130,5,10,20,45"
+      },
+      "id": "2387",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "2605",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "SCAN：90,120,130,45,20,10,5\nC-SCAN：90,120,130,5,10,20,45"
+      },
+      "id": "3911",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "6602",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90 120 130 45 20 10 5\nC-SCAN: 90 120 130 5 10 20 45"
+      },
+      "id": "2207",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "3654",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "1.90 120 130 45 20 10 5\n2.90 120 130 5 10 20 45"
+      },
+      "id": "4852",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "5 10 20 45 90 120 130\nSCAN: 90 120 130 45 20 10 5\nC-SCAN: 90 120 130 5 10 20 45"
+      },
+      "id": "3807",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90, 120, 130, 45, 20, 10, 5\nC-SCAN:90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2155",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 80, 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 80, 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2625",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90, 120, 130, 45, 20, 10, 5\nC-SCAN : 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "4281",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90 120 130 45 20 10 5 \nC-SCAN: 90 120 130 5 10 20 45 "
+      },
+      "id": "6254",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2722",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90->120->130->45->20->10->5\nC-SCAN:90->120->130->5->10->20->45"
+      },
+      "id": "3548",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90.120,130,5,10,20,45\nC-SCAN:90,120,130,45,20,10,5"
+      },
+      "id": "2894",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "2903",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\n\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "3722",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 149, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 149, 0, 5, 10, 20, 45"
+      },
+      "id": "4276",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 149, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 149, 0, 5, 10, 20, 45"
+      },
+      "id": "4254",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90 120, 130, 5, 10, 20 ,45"
+      },
+      "id": "2774",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3672",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3687",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 80 ,90,  120 ,130 , 45, 20 , 10. 5 \n\nC-SCAN : 80 ,90 , 120 ,130 , 5 , 10 , 20 , 45 "
+      },
+      "id": "4616",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90 120 130 45 20 10 5\nC-SCAN:90 120 130 5 10 20 45"
+      },
+      "id": "2083",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90 120 130 45 20 10 5 \nC-SCAN: 90 120 130 5 10 20 45 "
+      },
+      "id": "2785",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "scan: 90, 120, 130, 45, 20, 10, 5\nc-scan: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2744",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90 120 130 45 20 10 5\nC-SCAN: 90 120 130 5 10 20 45"
+      },
+      "id": "2708",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "SCAN 90 120 130 45 20 10 5\nCSCAN 90 120 130 5 10 20 45"
+      },
+      "id": "2495",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90 120 130 45 20 10 5 \nC-SCAN  : 90 120 130 5 10 20 45 "
+      },
+      "id": "3785",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90, 120, 130, 45, 20, 10, 5\nC-SCAN : 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "6243",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2636",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90->120->130->45->20->10->5\nC-SCAN: 90->120->130->5->10->20->45"
+      },
+      "id": "3970",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90, 120, 130, 45, 20, 10, 5\nC-SCAN:90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "4136",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "4550",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 80,90,120,130,45,20,10,5\nC-SCAN: 80,90,120,130,5,10,20,45"
+      },
+      "id": "2815",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "scan 90 120 130 45 20 10 5\nc-scan 90 120 130 5 10 20 45"
+      },
+      "id": "3100",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "scan:     80 90 120 130 45 20 10 5\nc-scan: 80 90 120 130 5 10 20 45"
+      },
+      "id": "3952",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 80,90,120,130,45,20,10,5\nC-SCAN: 80,90,120,130,5,10,20,45"
+      },
+      "id": "3457",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "scan:90 120 130 45 20 10 5\nc-scan:90 120 130 5 10 20 45"
+      },
+      "id": "2443",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "SCAN-90 120 130 45 20 10 5 \nC-SCAN-90 120 130 5 10 20 45"
+      },
+      "id": "6288",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90 120 130 45 20 10 5\nC-SCAN: 90 120 130 5 10 20 45"
+      },
+      "id": "2546",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90 120 130 45 20 10 5 \nC-SCAN:90 120 130 5 10 20 45"
+      },
+      "id": "2523",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90, 120, 130, 45, 20, 10, 5\nC-SCAN : 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2887",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90 120 130 45 20 10 5 \nC-SCAN: 90 120 130 5 10 20 45"
+      },
+      "id": "6433",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nCSCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2798",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "3450",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 80, 90, 120, 130, 0, 5, 10, 20, 45\nC-SCAN: 80, 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "6072",
+      "participant_username": "S032"
+    },
+    {
+      "answer": {
+        "text": "track 80 先分一半 ; 方向往上增加 \n5 , 10 , 20 , 45\n90 , 120 , 130\n\nSCAN : 90 , 120 , 130 , 45 , 20 , 10 , 5\nC-SCAN : 90 , 120 , 130 , 5 , 10 , 20 , 45"
+      },
+      "id": "4975",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "Head at track 80 moving towards increasing numbers, \nSCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "6019",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "6377",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "4203",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "SCAN=90, 120, 130, 45, 20, 10, 5\nC-SCAN= 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "4629",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "2858",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90, 120, 130, 45, 20, 10, 5.\nC-SCAN:90, 120, 130, 5, 10, 20, 45."
+      },
+      "id": "3602",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90,120,130,45,20,10,5\nc-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "3187",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "scan: 90 120 130 45 20 10 5\nc-scan: 90 120 130 5 10 20 45"
+      },
+      "id": "2560",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "scan: 90, 120, 130, 45, 20, 10, 5\nc-scan:90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2519",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "scan:90,120,130,45,20,10,5\nc-scan:90,120,130,5,10,20,45"
+      },
+      "id": "6202",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90 120 130 45 20 10 5\nC-SCAN: 90 120 130 5 10 20 45"
+      },
+      "id": "2995",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2743",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "2928",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "2754",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "3550",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10, 5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2703",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "SCAN : 90->120->130->45->20->10->5\nC-SCAN : 90->120->130->5->10->20->45"
+      },
+      "id": "2805",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1. SCAN:90, 120, 130, 45, 20, 10, 5\n2. C-SCAN:90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "4407",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90 120 130 45 20 10 5\nC-SCAN:90 120 130 5 10 20 45"
+      },
+      "id": "2742",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10,5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "2629",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90 120 130 45 20 10 5\nC-SCAN: 90 120 130 5 10 20 45"
+      },
+      "id": "3340",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "SCAN：90 120 130 45 20 10 5\nC-SCAN：90 120 130 5 10 20 45"
+      },
+      "id": "3310",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "SCAN: 90, 120, 130, 45, 20, 10,5\nC-SCAN: 90, 120, 130, 5, 10, 20, 45"
+      },
+      "id": "5482",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "SCAN:90,120,130,45,20,10,5\nC-SCAN:90,120,130,5,10,20,45"
+      },
+      "id": "2622",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "Given a disk with 150 tracks (0-149), head at track 80 moving towards increasing numbers. Requests are in tracks of 20, 45, 10, 120, 130, 5, 90. What is the service order using SCAN and C-SCAN algorithms?",
+    "question_id": "376de8d7-fb33-4f62-be5a-b9044492c283",
+    "question_type": "essay",
+    "reference_answer": "a. SCAN: 90, 120, 130, 45, 20, 10, 5. (Moves to the end, then reverses).\nb. C-SCAN: 90, 120, 130, 5, 10, 20, 45. (Moves to the end, jumps to the start, then continues)."
+  },
+  "question_id": "376de8d7-fb33-4f62-be5a-b9044492c283"
+}

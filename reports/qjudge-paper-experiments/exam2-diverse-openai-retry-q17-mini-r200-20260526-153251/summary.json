@@ -1,0 +1,42 @@
+{
+  "completed_count": 1,
+  "experiment_id": "exam2-diverse-openai-retry-q17-mini-r200-20260526-153251",
+  "run_count": 1,
+  "runs": [
+    {
+      "answer_count": "119",
+      "blank_score_count": "0",
+      "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+      "cost_cents": "17",
+      "cost_usd": "0.1700",
+      "elapsed_seconds": "72.163",
+      "ended_at": "2026-05-26T07:34:04.513063Z",
+      "exam_key": "exam2",
+      "experiment_id": "exam2-diverse-openai-retry-q17-mini-r200-20260526-153251",
+      "grade_csv_path": "reports/qjudge-paper-experiments/exam2-diverse-openai-retry-q17-mini-r200-20260526-153251/runs/8bd69984-3cd8-48b1-9da3-4c040620959e/openai-mini/grade.csv",
+      "input_tokens": "196211",
+      "max_score": "4",
+      "model_id": "openai-mini",
+      "output_tokens": "6108",
+      "preset": "exam2-diverse",
+      "prompt_preview": "Provide two advantages and two disadvantages of a Master-Slave architecture for multiprocessors.",
+      "question_id": "8bd69984-3cd8-48b1-9da3-4c040620959e",
+      "question_order": "17",
+      "question_type": "short_answer",
+      "rubric_path": "",
+      "run_dir": "reports/qjudge-paper-experiments/exam2-diverse-openai-retry-q17-mini-r200-20260526-153251/runs/8bd69984-3cd8-48b1-9da3-4c040620959e/openai-mini",
+      "run_id": "5145e83e-4a35-4a52-ac3c-a338434ffcd1",
+      "run_status": "completed",
+      "scored_count": "119",
+      "session_id": "cf598a86-aeee-4c67-8844-ae52a25ddbce",
+      "started_at": "2026-05-26T07:32:52.348526Z",
+      "terminal_event_type": "run_completed"
+    }
+  ],
+  "summary_csv": "reports/qjudge-paper-experiments/exam2-diverse-openai-retry-q17-mini-r200-20260526-153251/summary.csv",
+  "total_cost_cents": 17,
+  "total_cost_usd": 0.17,
+  "total_elapsed_seconds": 72.163,
+  "total_input_tokens": 196211,
+  "total_output_tokens": 6108
+}

@@ -37,3 +37,46 @@ def test_resolve_classroom_api_id_accepts_numeric_database_id():
             return [{"id": 1, "uuid": "classroom-uuid", "name": "OS"}]
 
     assert _resolve_classroom_api_id(FakeClient(), "1") == "classroom-uuid"
+
+
+def test_compare_command_writes_summary_and_metrics(tmp_path: Path):
+    runner = CliRunner()
+    human = tmp_path / "human_baseline.csv"
+    model_a = tmp_path / "model_a.csv"
+    model_b = tmp_path / "model_b.csv"
+    model_c = tmp_path / "model_c.csv"
+    output = tmp_path / "summary.csv"
+
+    human.write_text(
+        "index,exam_answer_id,username,original_score,original_feedback\n"
+        "1,a1,s1,2,ok\n",
+        encoding="utf-8",
+    )
+    for path, score in [(model_a, 2), (model_b, 2), (model_c, 1)]:
+        path.write_text(
+            "index,exam_answer_id,username,answer_text,score,reason,synced\n"
+            f"1,a1,s1,answer,{score},reason,\n",
+            encoding="utf-8",
+        )
+
+    result = runner.invoke(
+        app,
+        [
+            "compare",
+            "--human-baseline",
+            str(human),
+            "-c",
+            f"model_a={model_a}",
+            "-c",
+            f"model_b={model_b}",
+            "-c",
+            f"model_c={model_c}",
+            "--output-csv",
+            str(output),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert output.exists()
+    assert output.with_suffix(".metrics.json").exists()
+    assert "Comparison completed" in result.output

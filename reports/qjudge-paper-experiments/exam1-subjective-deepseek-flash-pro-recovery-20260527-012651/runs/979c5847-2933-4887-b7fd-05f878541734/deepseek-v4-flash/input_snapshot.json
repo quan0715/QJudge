@@ -1,0 +1,872 @@
+{
+  "answer_count": 122,
+  "answers": [
+    {
+      "answer": {
+        "text": "130 ns"
+      },
+      "id": "2408",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2481",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "117.25"
+      },
+      "id": "6326",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "130"
+      },
+      "id": "3533",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "(15 + 100) * 0.85 + (15 + 100 + 100) * 0.15 = 130ns"
+      },
+      "id": "2731",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "30ns"
+      },
+      "id": "3044",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3880",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "127.75"
+      },
+      "id": "2906",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2369",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3853",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3382",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "130 ns"
+      },
+      "id": "3035",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3929",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "0.85 * (15 + 100) + 0.15 * (15 + 100 + 100) = 130"
+      },
+      "id": "2461",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "127.75ns"
+      },
+      "id": "3767",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2871",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "(100+15) * 0.85 + (100+100) * 0.15 = 127.75"
+      },
+      "id": "3111",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "0.85*15ns + 0.15*200ns "
+      },
+      "id": "6347",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "6624",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "0.85*15+0.85*(15+100) = 85+25.5ns = 110.5ns"
+      },
+      "id": "2613",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "EAT=0.85*(15+100)+0.15*(15+100+100)=97.75+32.25=130ns"
+      },
+      "id": "3954",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "0.85*(15+100)+0.15*(15+100+100)=130ns"
+      },
+      "id": "3198",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3822",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "30ns"
+      },
+      "id": "2278",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "0.85*115+0.15*215 =130 ns"
+      },
+      "id": "4570",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3490",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "30"
+      },
+      "id": "3536",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "115*0.85+215*0.15=130ns"
+      },
+      "id": "2701",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "(15+100)*0.85+(15+100+100)*0.15=131.5 ns"
+      },
+      "id": "2698",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "130.00ns"
+      },
+      "id": "1782",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3024",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "200"
+      },
+      "id": "3142",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "4397",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2635",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "4747",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "0.85 * (15 + 100) + 0.15 * (15 + 100 + 100) = 130ns"
+      },
+      "id": "2948",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "147.25ns"
+      },
+      "id": "3778",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "115ns"
+      },
+      "id": "2842",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "15+100+0.15*100=130ns"
+      },
+      "id": "2543",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2755",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "1722",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": " 130ns"
+      },
+      "id": "2439",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "117.25 ns"
+      },
+      "id": "4258",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "1.3"
+      },
+      "id": "3219",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "130 ns"
+      },
+      "id": "2853",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2498",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "117.25"
+      },
+      "id": "2607",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "0.85*(15+100)+0.15*(15+100+100)"
+      },
+      "id": "2637",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "130"
+      },
+      "id": "2855",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3939",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2320",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "20ns"
+      },
+      "id": "4190",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "4005",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "4951",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2133",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3532",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "42.75ns"
+      },
+      "id": "4509",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "0.85*(15+100)+0.15*(15+100+100)=130ns"
+      },
+      "id": "3163",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2057",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "30"
+      },
+      "id": "2509",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "4063",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "0.85(15ns+100ns)+0.15(15ns+2*100ns)=130ns"
+      },
+      "id": "6302",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2619",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3447",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "0.85*(15+100)+0.15*(15+100+100) =130 ns"
+      },
+      "id": "2477",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2748",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "0.85*(15ns + 100ns) + 0.15*(15ns+100ns+100ns)"
+      },
+      "id": "3610",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "EAT = 130"
+      },
+      "id": "3982",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "0.85(15+100) + 0.15(15+ 2*100) = 130.22"
+      },
+      "id": "6319",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2736",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "0.85*(15ns + 100ns) + 0.15*(15ns + 200ns) = 130ns"
+      },
+      "id": "3584",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "205.25ns"
+      },
+      "id": "4737",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "130"
+      },
+      "id": "2910",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2020",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "130"
+      },
+      "id": "2753",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2730",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "100ns"
+      },
+      "id": "2661",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "130"
+      },
+      "id": "2391",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "130ns "
+      },
+      "id": "2792",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "130 ns"
+      },
+      "id": "6189",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2563",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "130"
+      },
+      "id": "3848",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "4583",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "130"
+      },
+      "id": "4062",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "4672",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2689",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3046",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "0.85*115+0.15*215= 130ns"
+      },
+      "id": "3837",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "130 ns"
+      },
+      "id": "3417",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2343",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "6267",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2524",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2416",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "27.75ns"
+      },
+      "id": "2684",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "15*0.85+(15+100)*0.15=30"
+      },
+      "id": "6498",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "0.85*(15+100)+0.15*(15+100+100)  sorry 沒帶筆沒算出來。"
+      },
+      "id": "2724",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "30"
+      },
+      "id": "3321",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "effective memory access time = ( 0.85 x 15ns ) + ( 0.15 x 1000 ns ) "
+      },
+      "id": "4667",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "130 ns"
+      },
+      "id": "5945",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "0.85*(15+100)ns + 0.15*(15+100*2)ns = 130ns"
+      },
+      "id": "6427",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3955",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "有效記憶體存取時間=124"
+      },
+      "id": "4413",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "127.75ns"
+      },
+      "id": "2821",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "(100+15)*0.85+(100+100)*0.15=127.75ns"
+      },
+      "id": "3453",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "130"
+      },
+      "id": "3290",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "0.85*（15+100）+0.15*（15+100+100）= 130 = 1.3 times"
+      },
+      "id": "2478",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2441",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2804",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "130 ns"
+      },
+      "id": "2921",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2681",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "45ns"
+      },
+      "id": "2820",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "0.85*(15+100)+0.15*(15+100+100)=130ns"
+      },
+      "id": "2683",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "3821",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "2691",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "EAT = 0.85*(15+100)+0.15*(15+100+100) = 130ns"
+      },
+      "id": "2695",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "0.85*(15+100) + 0.15*(15+100+100) =130ns"
+      },
+      "id": "4249",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "0.85*(115)+0.15*(215)=130ns"
+      },
+      "id": "2674",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "the effective memory access time = (15 + 100) * 0.85 + (15 + 100 * 2 ) * 0.15 = 130ns"
+      },
+      "id": "2511",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "130 ns"
+      },
+      "id": "3199",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "130n"
+      },
+      "id": "3147",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "130ns"
+      },
+      "id": "5205",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "130"
+      },
+      "id": "2534",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "In a system with a TLB hit ratio of 85%, if TLB access time is 15ns and memory access time is 100ns, calculate the effective memory access time (EAT).",
+    "question_id": "979c5847-2933-4887-b7fd-05f878541734",
+    "question_type": "short_answer",
+    "reference_answer": "EAT = 0.85 * (15 + 100) + 0.15 * (15 + 100 + 100) = 0.85 * 115 + 0.15 * 215 = 97.75 + 32.25 = 130ns."
+  },
+  "question_id": "979c5847-2933-4887-b7fd-05f878541734"
+}

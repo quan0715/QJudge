@@ -1,0 +1,879 @@
+{
+  "answer_count": 123,
+  "answers": [
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1591",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "1597",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "print 兩個 hello (excel後不會執行最後一行的print done)"
+      },
+      "id": "1541",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "1578",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "輸出2個hello"
+      },
+      "id": "1530",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1564",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "two times of hello"
+      },
+      "id": "1498",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "2066",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1568",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1616",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "1539",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "print hello two times"
+      },
+      "id": "1510",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "兩個process分別echo hello"
+      },
+      "id": "1531",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1520",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1554",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "output hello in two line"
+      },
+      "id": "1600",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "It prints \"hello\" 2 times"
+      },
+      "id": "1580",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "It prints 2 times : hello"
+      },
+      "id": "1641",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "hellow hellow done"
+      },
+      "id": "6747",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "print hello 2 times"
+      },
+      "id": "1464",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "fork(): generate child process; excel():transfer function to print \"hello\", and final print \"done\"."
+      },
+      "id": "1787",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "2次hello跟2次的done"
+      },
+      "id": "5435",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "parent 和children的process or function都會被改成echo and terminate, after that the system will print done."
+      },
+      "id": "1779",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "done"
+      },
+      "id": "1445",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "hello hello done done"
+      },
+      "id": "1521",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "print out : hellodone"
+      },
+      "id": "1545",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "done"
+      },
+      "id": "1552",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "none"
+      },
+      "id": "1594",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "1532",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "echo hello done"
+      },
+      "id": "1463",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "1456",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "2423",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "\"hello\"\"hello\""
+      },
+      "id": "1479",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "echo hellodone\\n"
+      },
+      "id": "1473",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "2576",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1537",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1657",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1582",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "hello\\nhello，不會輸出done"
+      },
+      "id": "1556",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1558",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "印兩次hello"
+      },
+      "id": "1470",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "print hello 2 times"
+      },
+      "id": "2205",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "3436",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "hello hello done"
+      },
+      "id": "4688",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "done done"
+      },
+      "id": "4480",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1566",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "hello done"
+      },
+      "id": "1538",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "done"
+      },
+      "id": "5993",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "hellohello    該程式只會輸出兩個hello，因為excel會取代程式碼，所以後面的printf(\"done\\n\")根本不會被執行，parent process和child process都只執行到execl那行，各自輸出一個hello就結束了"
+      },
+      "id": "1744",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "hellohellohellohellodone"
+      },
+      "id": "1709",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "print兩次hello"
+      },
+      "id": "1536",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "hello done"
+      },
+      "id": "1583",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "2"
+      },
+      "id": "1515",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "2"
+      },
+      "id": "2816",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "輸出兩個 hello"
+      },
+      "id": "3567",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "hellodonehellodone"
+      },
+      "id": "2262",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "1593",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1821",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "hello hello done"
+      },
+      "id": "3531",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1547",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1691",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "done"
+      },
+      "id": "1814",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "print 2 times hello and done"
+      },
+      "id": "6442",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1416",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "1610",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "hellodone hellodone"
+      },
+      "id": "1622",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "hello done hello done"
+      },
+      "id": "2174",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Two processes print done. Thus, done is printed twice."
+      },
+      "id": "1733",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "done done"
+      },
+      "id": "6386",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "1596",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1555",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "hello, hello"
+      },
+      "id": "1700",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1523",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1500",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1842",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1667",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "輸出兩個hello"
+      },
+      "id": "1570",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "child 會輸出 hello, 本身會輸出 done"
+      },
+      "id": "1501",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1668",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "\"hello\" \"hello\""
+      },
+      "id": "6125",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1551",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "hellodone"
+      },
+      "id": "1477",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "hellodone"
+      },
+      "id": "2007",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "It will only print 2 \"hello\"."
+      },
+      "id": "1480",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1494",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "兩個程式code都改成/bin/echo的程式，原本printf不會產生。"
+      },
+      "id": "1585",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "輸出 hello 兩次 "
+      },
+      "id": "2144",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "1665",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1816",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1612",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1614",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1603",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "/bin/echo echo hello done"
+      },
+      "id": "1549",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "hello"
+      },
+      "id": "1625",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "0"
+      },
+      "id": "2183",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "hello, hello"
+      },
+      "id": "1497",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "/bin/hello done done"
+      },
+      "id": "1840",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "done"
+      },
+      "id": "4229",
+      "participant_username": "S032"
+    },
+    {
+      "answer": {
+        "text": "印出兩次 hello ,  done"
+      },
+      "id": "1958",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1800",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "hello\\nhello\\n"
+      },
+      "id": "1682",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "done"
+      },
+      "id": "1742",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "hello,done"
+      },
+      "id": "1672",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "hello hello done"
+      },
+      "id": "1638",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "hellohellodone"
+      },
+      "id": "1918",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "excel 抹去fork的內容，執行''/bin/echo'', print: done "
+      },
+      "id": "1590",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "印兩個hello 然後印done"
+      },
+      "id": "1526",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "1505",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "hello done"
+      },
+      "id": "6266",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1573",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "P0: hello, print:done; P1 hello, print: done"
+      },
+      "id": "1655",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "2"
+      },
+      "id": "1572",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1475",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "hello hello"
+      },
+      "id": "5055",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "done\\n done\\n"
+      },
+      "id": "4425",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1518",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "\"hellohello\" (print 2 hello)"
+      },
+      "id": "2042",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "會print出兩個hello"
+      },
+      "id": "1746",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "\"hello\" \"hello\""
+      },
+      "id": "1763",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "hello hello done"
+      },
+      "id": "1575",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "print 2個hello，執行execl()變成echo，print done。"
+      },
+      "id": "5949",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "hellodone"
+      },
+      "id": "1729",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "hellohello"
+      },
+      "id": "1589",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "What is the result of this code?\n\n```c\nmain() {\n fork();\n execl(\"/bin/echo\", \"echo\", \"hello\", 0);\n printf(\"done\\n\");\n}\n```",
+    "question_id": "66ec6c12-2ebb-42e2-8aea-814f9b9a4c49",
+    "question_type": "short_answer",
+    "reference_answer": "\"hello\" is printed twice; \"done\" is never printed. (execl replaces the process image)."
+  },
+  "question_id": "66ec6c12-2ebb-42e2-8aea-814f9b9a4c49"
+}

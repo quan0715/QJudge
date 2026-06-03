@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "What are the three fundamental exceptions that can occur during message exchanges in a client-server model?",
+  "question_id": "8c09a796-304f-491d-910b-126c7178a25d",
+  "question_type": "short_answer",
+  "reference_answer": "(1) LostReq: The request message is lost.\n(2) LostResp: The response message is lost.\n(3) SerCrash: The server crashes during the execution of the request."
+}

@@ -1,0 +1,2 @@
+{"run_id": "59ce1ee9e7074d73bbf3e6bf4e9a3649", "run_status": "running", "seq": 1, "thread_id": "ac585880-dcdf-4cd0-b035-c6643e372898", "type": "run_started"}
+{"error_code": "AGENT_ERROR", "message": "Agent execution failed", "run_id": "59ce1ee9e7074d73bbf3e6bf4e9a3649", "run_status": "running", "seq": 2, "type": "run_failed"}

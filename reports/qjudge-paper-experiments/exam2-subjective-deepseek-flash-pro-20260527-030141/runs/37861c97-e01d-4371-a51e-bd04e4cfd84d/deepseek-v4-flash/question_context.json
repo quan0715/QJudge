@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "In multicasting systems, specify the meaning of 0-reliable and M-out-of-N-reliable semantics.",
+  "question_id": "37861c97-e01d-4371-a51e-bd04e4cfd84d",
+  "question_type": "short_answer",
+  "reference_answer": "0-reliable: The sender expects no response from any receiver.\nM-out-of-N-reliable: The sender expects responses from exactly M receivers out of a group of N."
+}

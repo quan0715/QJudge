@@ -1,0 +1,830 @@
+{
+  "answer_count": 116,
+  "answers": [
+    {
+      "answer": {
+        "text": "因為不像是blocking 需要等到 receiver 正確收到後才能繼續做事，nonoblocking 不需要等候，就比較不容易發生大家都在等待，沒有人有辦法做事，進而導致死結"
+      },
+      "id": "11362",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "The blocking operations are executed in order. The situation of two process waiting for each other may happen and lead to a deadlock.\nThe non-blocking operations are executed out of order. So the deadlock is less likely to happen."
+      },
+      "id": "13479",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": " non-blocking operations採取的機制是，不必確認receiver有無接收，sender就是一直傳送，比較不會deadlock"
+      },
+      "id": "14251",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "non-blocking 不會等待response, 繼續執行操作，不會因為receiver crash造成sender一直無限等待"
+      },
+      "id": "14733",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "因為不用互相被block，跟之前學到的deadlock的形成要件有關，因為沒有wait就不會有deadlock的形成，如果是blocking operation的話可能因為不確定對方是否收到而被block，而對方可能也因沒收到而block，這樣就會形成deadlock"
+      },
+      "id": "13035",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "ther sender continues on the rest of its work after sending the message. So the scenerio that A sends a message to B and waits for B reply, meanwhile B sends a message to A and waits for A reply won't happen. A can reply B's message after sending a message to B and B could also reply A's message after sending a message to A."
+      },
+      "id": "13765",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "因為 process 在發出請求後就繼續執行工作，不會進入 waiting state 等待，也因此不會卡在一個無限等待的狀態。"
+      },
+      "id": "13312",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "{\n  \"text\": \"\"\n}"
+      },
+      "id": "13255",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "因為thread不用停下來等，blocking的話如果有兩個thread都要等彼此那就有可能deadlock了"
+      },
+      "id": "13107",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "because it won't need to wait for the opposite side response.\nfor example, in a blocking opreation, if A sent the message to B, and at the same time, B sent a message to A, they both waiting for the response, then deadlock happen."
+      },
+      "id": "15036",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "it will continues its current working jobs and finally release the lock instead of being blocked before release it. "
+      },
+      "id": "12887",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "because the non-blocking operation won't be blocked and keep executing. If two or more process access some resources want to access another resource, and they are non-blocking operation, this means they are less likely to hold and wait for the resource(or waiting each other),  which is less prone to deadlock."
+      },
+      "id": "14185",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "Because non-blocking operations no need to wait other processors. Processor would execute the next instruction directly. So it is more resistance to deadlock. "
+      },
+      "id": "15352",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "Because in blocking operations a thread wait for another thread if it's using the needed resource. If system enters a circular wait, a deadlock occurs. If the operations are non-blocking, the system just can't enter such state, because no thread is waiting for other thread and they can continue their work."
+      },
+      "id": "13894",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "It can avoid \"hold&wait\""
+      },
+      "id": "11108",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "non-blocking don't stuck on the send/receive command, process can finish all send/receive command before waiting real message. two process waiting for each other happen less."
+      },
+      "id": "14393",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "Because non-blocking operations don't block any CPUs compared to blocking operations "
+      },
+      "id": "11653",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "Because the thread continues executing its task. A deadlock appears two threads block for waiting for each other. But in non-blocking operations as there are not blocked, they can block eachother."
+      },
+      "id": "14883",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "不會有兩端同時卡在 send() / recive() 造成相互等待的問題"
+      },
+      "id": "16157",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "因為他會等到執行完後才會讓下一個進行，所以不會有deadlock的問題。"
+      },
+      "id": "12943",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "因為deadlock是A等B、B等A時發生的，但因為non-blocking是送達時，system才通知sender和receiver，因此比較不會發生deadlock。"
+      },
+      "id": "15639",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "對比blocking operation，在non-blocking中較不會拿著lock執行到一半被強制打斷，因此發生deadlock的機率也比較小。"
+      },
+      "id": "15584",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "since non-blocking operation will keep it's execution and won't wait. ex: the receiver won't wait for receive()."
+      },
+      "id": "13739",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "可以用caching 複製\nserver可以執行 \n\n"
+      },
+      "id": "11578",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "因為sender一送完message就立刻返回去執行其他process，receiver也不需要放下其他process在原地等message送來，如果message沒送達sender和receiver也不需要一直等待，便比較不容易造成deadlock。"
+      },
+      "id": "14924",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "因為non-blocking operations不會有process中途被中斷去執行其他process，因此可以避免deadlock"
+      },
+      "id": "13446",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "因為他不需要一直反覆查看訊息是否送達就可以一直繼續執行"
+      },
+      "id": "13076",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "because they do parallelism "
+      },
+      "id": "13483",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "Because in blocking mode, if the two processes are waiting to receive the message from each other, these two process will not continue to do anything but just wait, which will create deadlock. However, when in non-blocking mode, these two processes will continue to perform other actions, perhaps send message to each, etc. Thus, the order of the operation initiated in the non-blocking mode is less likely to be block or turn into a deadlock situation."
+      },
+      "id": "14813",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "It not need to wait."
+      },
+      "id": "10926",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "deadlock可能會發生在多個程序之間互相等待彼此的共享資源或是結果，而non-blocking的指令不會停下來等待"
+      },
+      "id": "11953",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "No need to wait for resource."
+      },
+      "id": "12422",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "because there is no waiting, sender and receiver do not need to wait for the respond or message "
+      },
+      "id": "14424",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "Non-blocking operations will keep on the execution of the following instruction, which will not wait for the response from receiver. So it is less prone to deadlock compared with blocking operation."
+      },
+      "id": "15008",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "No wait, no deadlock."
+      },
+      "id": "13676",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "因為它不需要等到回覆就可以繼續執行，不會有互相等回覆的狀況。"
+      },
+      "id": "12237",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "不須互相等待訊息傳送，可繼續進行後續程式，避免因傳送過程的異常導致死鎖"
+      },
+      "id": "13116",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "non-blocking 的其中一個優點就是系統不容易發生deadlock，因為他可以不讓deadlock的四個必要條件同時成立"
+      },
+      "id": "13567",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "{\n  \"text\": \"\"\n}"
+      },
+      "id": "12632",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "因為它沒有block，不會spin-lock"
+      },
+      "id": "13042",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "They don't need to wait for others."
+      },
+      "id": "12111",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "不用互等對方執行完成並回傳"
+      },
+      "id": "14861",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "Non-blocking operations don't need to wait for sender's or receiver's response and can execute their process after operation so they are less prone to deadlock."
+      },
+      "id": "12905",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "不會有像blocking 同時請求lock"
+      },
+      "id": "14186",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "如果是blocking，那很容易發生A為了等待B的結果而處於blocking狀態，B也在等待A的結果而處於blocking狀態，這時兩人只能無窮的等待對方，deadlock就產生了\n\n但non-blocking因為不必為了等待對方而block住自己，可以直接去做其他事情，所以自然不容易發生deadlock\n"
+      },
+      "id": "16030",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Non block are less prone to deadlocks because the processes are always running, so it will always be in a state to recieve signals which negates deadlocks."
+      },
+      "id": "13285",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "non-blocking因為發送/接收時和之後都會持續運行，所以不會Lost掉message以至於deadlock"
+      },
+      "id": "12944",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "It won't executing until the process receive the message"
+      },
+      "id": "12613",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "因為non-blocking不需要等待，會不斷檢查lock狀態，導致系統最後無法負荷，造成deadlock"
+      },
+      "id": "14281",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "因為並不是一直鎖住，接收者和發送者不用互相等待，故不會出現dead lock"
+      },
+      "id": "14361",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "因為 non-blocking operations 不容易出現兩個 process 互相等待對方的情況，雙方在送出訊息後會回去做自己的事，不會被 block"
+      },
+      "id": "14110",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "因為不會阻塞，發送端不需要等到訊息被接收端接收後才能做其他動作，所以不太會有死結"
+      },
+      "id": "16048",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "因為NON-BLOCKING不會強制在確認接收到訊息前要先暫停等待 而是可以持續執行"
+      },
+      "id": "13091",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "因為sender不用管receiver有沒有收到訊息 會一直持續送不用等 所以沒有deadlock的問題"
+      },
+      "id": "14296",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "因為 non-blocking 中，sender 不會等待 receiver 接收到訊息才繼續執行，相較 blocking 較不會進入 deadlock。"
+      },
+      "id": "14597",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "因為non-blocking不用等待就可以繼續傳送與接收訊息"
+      },
+      "id": "13172",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "因為non-blocking不需要等待對方的ack可以連續執行"
+      },
+      "id": "11365",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Non-blocking(非阻塞式): 送出訊息後繼續執行程式，不易 deadlock。\n缺點是不知道對方是否收到，且訊息送達前不能修改 buffer 內容，還需要額外的 Interrupt 或 Polling 來得知狀態。\nBlocking(阻塞式): 送出訊息後暫停執行程式，直到確定對方收到。"
+      },
+      "id": "15622",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "因為blocking operation若sender傳訊息給receiver但同時receiver又在等sender的訊息會導致deadlock，但non-blocking operation因為等不到會跳回程式，所以會釋放lock，因此比較不會有deadlock的問題。"
+      },
+      "id": "13575",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "1.因為non blocking可以執行完任務就去做其他事情 並不像blocking operation會需要等人做完才能做 \n進而避免了deadlock"
+      },
+      "id": "13296",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "The sender and the receiver can continue their execution without waiting each other"
+      },
+      "id": "15434",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "因為non-blocking不會卡在原地等ack,他會繼續執行其他thread,如果兩個程式之間要等彼此的ack就有機會會造成deadlock"
+      },
+      "id": "13385",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Non-blocking operations improve concurrency and reduce deadlock risks, but require notification mechanisms and careful buffer handling.\nMessages can be executed without acknowledgements"
+      },
+      "id": "15124",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Because they don't wait for acknowledgement which is the major bottleneck in blocking operations which wait for acknowledgment to allow new message to be sent."
+      },
+      "id": "12182",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Because non-blocking didn't need to wait each other. On the other hand, blocking operation need to wait for each other, so it will happen deadlock when the other party is crash or message lost."
+      },
+      "id": "13946",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "It's because if there has no one to wake up the blocking operation, it may cause deadlock. So non-blocking operations less prone to deadlock."
+      },
+      "id": "16123",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "Non-blocking operation allows CPU to execute the next instruction without stalling in the current instruction. "
+      },
+      "id": "11563",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "因為 non-blocking 不會因為遲遲等不到回應而無法繼續往下執行，而無法等到回應有可能是因為 requester 和replier 因為message 傳遞順序問題，而造成雙方在互相等待，若雙方又皆採blocking 則會出現deadlock 問題，但是這點在non-blocking 上並不會發生。"
+      },
+      "id": "12461",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "because blocking send and recive by using wrong sequence may deadlock"
+      },
+      "id": "13740",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "他會一直去 check 狀態，也不會因為要等資源就進到 wait，一直都會有他可以執行的機會，所以比較不會出現他一直等不到他可以執行造成deadlock"
+      },
+      "id": "13180",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "since the sender or receiver will not block until the message has been sended or received.\nit can do other mission after the sending/receiving"
+      },
+      "id": "15293",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "because it won't wait the receiver's message\nso when two process send to each other at the same time, there are larger probability to dead lock."
+      },
+      "id": "13413",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "因其不像 blocking opertations 若沒收到訊息 或  送出訊息 整個 process 就卡死。 \n也比較不容易發生 hold and wait 的情況 因而比較不容易 deadlock"
+      },
+      "id": "13393",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "since sender and receivers doesn't have to wait for each other , they can continue their execution . \nIf error occurs during the waiting time for blocking , there is a high chance that it brings to deadlock."
+      },
+      "id": "13186",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "因為 non-blocking operations 不必等待 receiver 有正確接收到 message，可以持續執行，直到 buffer 滿，因此比較不會有被 receiver 卡住的問題，較不容易產生 deadlock"
+      },
+      "id": "14014",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "It breaks the bounded waiting. The sender and receiver can continue execution without waiting each other"
+      },
+      "id": "12755",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "It can keep executing without the need to wait for previous to succeed."
+      },
+      "id": "12960",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "因為不需要接收到才能繼續執行，即便發出訊息也可以繼續執行自己的process"
+      },
+      "id": "13557",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "since sender don't wait receiver, it won't take resource and stuck there."
+      },
+      "id": "13143",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "用non-blocking的話能讓thread持續執行使他更有可能釋放持有的資源而降低deadlock的可能性"
+      },
+      "id": "12113",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "sender與reciever都不用等待對方傳送或收到訊息就可以繼續工作\n不會導致雙方互等變成deadlock"
+      },
+      "id": "13388",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "因為non-blocking sender跟receiver在send/receive後不會block，會繼續執行其他任務"
+      },
+      "id": "12961",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "因為傳輸後雙方都可以正常繼續執行，不需要等待，所以不易有deadlock發生"
+      },
+      "id": "13584",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "It use buffers, so the sender and receiver dont have to wait for the message moving."
+      },
+      "id": "14262",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "因為不用等待對面的回應因此就算對面(reciever or sender )failed也會繼續運行"
+      },
+      "id": "12761",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "."
+      },
+      "id": "13233",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "因為non-blocking operation不會死等回復會回去做自己的事 就比較不會產生deadlock"
+      },
+      "id": "13602",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "因為他會一直執行下去不需要等待"
+      },
+      "id": "13200",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "因為non-blocking不像blocking一樣會因為sender 訊息沒有傳送出去或sender, receiver任一方的crash而產生deadlock"
+      },
+      "id": "13087",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "blocking operations 表示需要等待回復，如果收不到就會卡在那裏；non-blocking operations 對於sender而言可以在把訊息丟出後就去做其他事，receiver也可以在接收前做其他事。\n在blocking operations下，如果有兩方要傳訊息，同時都傳，就會都要等對方收到才能繼續做下一步，這時就會陷入deadlock。相較之下，non-blocking operations東西丟出去就沒事了"
+      },
+      "id": "13638",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "process a blocking_send(to b) -> wait\nprocess b blocking_send(to a) -> wait\nno one cant ceceive deadlock\n\nwhile \nprocess a non_blocking_send(to b) -> continue\nprocess b non_blocking_send(to a) -> continue\na receiveed msg form b\nb receiveed msg form a\nno deadlock\n"
+      },
+      "id": "13199",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "non-block 較沒有限制條件\n發送/接收不用等待 , 不容易造成死結 , 去等待未回應的條件。"
+      },
+      "id": "13767",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": " sender/receiver don't need to wait for each other."
+      },
+      "id": "15689",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "They didn't wait for others to complete, so the messages isn't blocked in one place."
+      },
+      "id": "13594",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "Because it does not require the receiver or the sender to get a response in order to proceed the executions."
+      },
+      "id": "11391",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "發送者與接收者不需互相等待即可繼續執行，提高系統並行度與效能，並且較不容易發生deadlock狀態。"
+      },
+      "id": "16159",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "因為sender、receiver不用等對方就能繼續後面的任務，如果訊息傳送的過程中出了問題，sender、receiver不用在原地等訊息送達造成deadlock"
+      },
+      "id": "14002",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "because the sender and receiver do not need to limited by waiting for each other."
+      },
+      "id": "15077",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "因其傳送者發出訊號就可以去做其他事了\n但blocking operations則需要等待訊息傳送完畢"
+      },
+      "id": "12800",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "因爲發送和接收端都不需要等待"
+      },
+      "id": "12537",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "because the sender and the receiver can continue execute their work without waiting for other to send a reply message.so the situation that the other didn't receive the message and there is no reply from it, and waiting  for a long time will not happen."
+      },
+      "id": "13036",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "non blocking的系統不會因為一個錯誤的指令而造成系統不繼續運作"
+      },
+      "id": "13445",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "if A and B use non-blocking operations they will not wait for receiving the message and continue to execute. This can avoid deadlock. "
+      },
+      "id": "14043",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "因為不需要等待reply就可以直接執行。"
+      },
+      "id": "13079",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "non-blocking operation會不斷檢查直到滿足需求"
+      },
+      "id": "15599",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "因為他傳送完會直接去做下一個process不會等待不會發生兩個同時發送都在等對方的回應的情況，所以less prone to deadlock"
+      },
+      "id": "13589",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "他不需要等待另一方，會避免另一方要執行的process需要你的資源時，你卻需要等待對方來了才能做，對方遲遲無法拿到你的資源，你也遲遲無法繼續執行程式。"
+      },
+      "id": "14401",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "因為sender和receiver不用被block來等待message 的傳遞"
+      },
+      "id": "13093",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "non-blocking operation不用等對方傳送或接收，Sender跟Receiver各做各的"
+      },
+      "id": "13762",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "因為non-blocking operations無論在send還是receive都不需要等待，所以比較不會產生等待時間過久產生死結(deadlock)的問題"
+      },
+      "id": "13191",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "因為non-blocking不會在原地等待而是會讓出cpu去做其他事"
+      },
+      "id": "13574",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "Processes do not block while waiting, reducing circular waiting conditions"
+      },
+      "id": "14780",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "Because non-blocking operations do not prohibit requests, allowing them to access the server"
+      },
+      "id": "14311",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "因為每個cpu都有對應的每條到memory的path,比較不會發生busy waiting"
+      },
+      "id": "15578",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "因為不會有receiver跟sender同時等待對方傳message造成deadlock的問題"
+      },
+      "id": "14973",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "因為他不會因為資源被拿走而暫停執行"
+      },
+      "id": "14202",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "Why are non-blocking operations less prone to deadlock?",
+    "question_id": "e7ffda48-61f1-4aad-8337-1ba266c0c951",
+    "question_type": "short_answer",
+    "reference_answer": "They allow processes to continue execution without waiting."
+  },
+  "question_id": "e7ffda48-61f1-4aad-8337-1ba266c0c951"
+}

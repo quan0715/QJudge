@@ -1,0 +1,450 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","12787","S109","(1)call a poll to check the buffer 
+(2)pop-up thread created to handle
+(3)interrupt handler to map and handle
+(4)","3","缺第4項（未作答）；poll/interrupt handler/pop-up thread 正確",""
+"2","11769","S015","1. Interrupt the process.
+2. The process periodically polls the pool and check the message. Needs `poll()` and `get_message()` functions.
+3. Use a pop-up thread to handle the incoming message.
+4. Directly handle the message in trap handler after receiving message.","4","",""
+"3","16179","S054","1, session method (used in AFS)","0","答案無關：僅提 session method (AFS)，四項通知方法皆未作答",""
+"4","11958","S117","1. interrupt the receiver
+2. process active messages into interrupt handler
+3. a pop up thread to handle the message
+4. periodically to poll the buffer, check whether any message arrive or not","4","",""
+"5","11634","S093","1. 當message has arrived就直接interrupt
+2. 當message has arrived就直接create一個new thread，讓該thread去處理message
+3. 一直花時間去做poll，確認message是否已經抵達
+4. 將message傳送這件事在interrupt handler中處理，以此確認是否收到
+","4","",""
+"6","11689","S012","1. signal
+2. interrupt
+3. polling
+4. fork a process to deal with the data","3","signal 與 interrupt 概念重複；缺 active message",""
+"7","11628","S108","interrupt: 當訊息抵達時會發出 interrupt 中斷 processor 並且讓 handler 來處理訊息
+message buffer: 訊息抵達時會修改某處資料，當 processer 去做詢問時便會知道 message 已經抵達。 
+pop up thread: 在訊息抵達時，一個 threads 會被創建來處理此訊息。
+message action: 訊息本身自帶要執行的動作，直接在 handler 內執行，此需要 completly trusted environment.","4","",""
+"8","11685","S099","1. 訊息送達時，系統直接打一個 interrupt 給 receiver。
+2. 接收端定期地去確認 buffer 狀態是否改變。
+3. 訊息送達時，系統動態地建立 pop-up thread 來處理訊息。
+4. 訊息送達時直接在 interrupt handler 裡面處理。","4","",""
+"9","11803","S070","1.interupt直接通知 2.polling 不斷去check收到了沒 3.收到message就直接產生新的thread 4.利用interupt handler 直接處理message","4","",""
+"10","12325","S080","1. interrupt when the message arrived.
+2. the receiver need to poll the status of message buffer, and retrieve the message when the status change. it requires poll( ) and get_message( ).
+3. pop-up thread to cope with the message.
+4. executing the arriving active message in the interrupt handler, this operation can only done in fully trusted environment.","4","",""
+"11","11243","S003","interrupt message
+pop-up thread
+message in receiver's buffer","2.5","缺 active message；message in buffer 僅部分對應 polling",""
+"12","12091","S035","1. interrupt the receiver when the message is arrived.
+2. the caller polls to check whether the message is arrived or not.
+3. a pop-up thread is created to handle the comming message.
+4. let the message be handled at interrupt handler (should be in the trusted environment).","4","",""
+"13","12684","S037","1. poll
+2. Interrupt handler
+3. pop up thread
+4. application message(need  trust source)","3.5","interrupt handler 非 interrupt 通知本身，未明確列出 interrupt",""
+"14","12230","S097","1. Interrupt receiver with a new message
+2. Create a separate thread to notify receive of the message
+3. Receiver should poll for new messages
+4. ","3","缺第4項（未作答）",""
+"15","13692","S013","1. Interrupts
+2. Poll
+3. Establish Pop-up thread to notify  the receiver that a message has arrived
+4. Notify active message","4","",""
+"16","12124","S040","1. receiver process check if message arrive every 1 second (some thing like this)
+2. OS interrupt receiver process to tell it
+3. OS pop up a thread to handle the message
+4. execution the code in received message in interrupt handler of OS","4","",""
+"17","11177","S124","- Interrupt the sender on message reception 
+- Use a handler on message reception 
+- Create a thread to notify 
+- Polling the messages to verify if the sent message's status changed (needs poll() and get_messages())
+ ","3.5","interrupt 方向寫成 sender 而非 receiver",""
+"18","12255","S121","- the receiver is interrupted by the reception
+- The receiver thread polls regularly the flag and the buffer for the reception
+- A pop-up thread is ran when the message is received
+- The reception trigger the Interrupt Handler and execute directly the associated function.","4","",""
+"19","14737","S068","poll, interrupt, ","2","僅列 poll 與 interrupt，缺 pop-up thread 與 active message",""
+"20","11671","S102","interrupt
+polling
+pop-up thread 
+active message","4","",""
+"21","11786","S034","1. interrupt
+2. polling
+3. pop-up thread
+4. 直接在interrupt handler做掉","4","",""
+"22","11255","S084","1. 用軟體中斷(interrupt)通知訊息到了。
+2. 用poll()及get_message()定期檢查訊息到了沒。
+3. 當訊息到達時用pop-up thread去處理。
+4. 在interrupt handler中處理active message(要在完全信任的環境)。","4","",""
+"23","11944","S079","1. Upon message arrived, interrupt the receiver
+2. Constant poll the status of the buffer, and tell receiver if the buffer state change
+3. Upon message arrived, use pop-up thread to manage it
+4. Directly execute the message with the process code in interrupt handler","4","",""
+"24","12648","S122","polling
+回應
+動態式 
+中斷
+","2","僅 polling 與中斷正確；回應與動態式未對應標準答案",""
+"25","11837","S086","1. interrupt receiver when the message is arrived","1","僅列 interrupt，缺 polling/pop-up thread/active message",""
+"26","12167","S052","1. Interrupt the receiver when a message arrives.
+2. Receiver polls the status of the buffer periodically to determine whether a message comes.
+3. A pop-up thread handles the arriving message.
+4. Process the arriving active message inside the interrupt handler. It can only be done in a trust environment.","4","",""
+"27","11869","S033","1.在收到訊息時中斷
+2.使用彈出thread處理接受到的訊息
+3.
+4.","2","僅 interrupt 與 pop-up thread，第3、4項空白",""
+"28","12283","S123","1. interrupt
+2. pop-up thread
+3. polling the status of buffer periodically
+4.","3","缺第4項（active message）",""
+"29","11630","S027","interrupt:自己叫receiver
+polling:一直用poll()看，再用get_message()取出
+pop up thread:開新的thread處理
+active message: interrupt handler 直接處理","4","",""
+"30","14257","S081","1. crossbar
+2. atomic messages
+3. node receives the message
+4.","0","答案無關：crossbar/atomic messages 非通知方法",""
+"31","12128","S008","1. Interrupt the receiver that a message is arrived.
+2. Use a pop up thread to handle the message arrival.
+3. Let the receiver periodically polls the status of the the message buffer to check whether a message is arrived.
+4. Execute certain code received from the message in the interrupt handler, it can only work in a trusted environment.","4","",""
+"32","13168","S087","1.interrupt
+2.用polling的方式去輪巡查看是否完成","2","僅 interrupt 與 polling，缺 pop-up thread 與 active message",""
+"33","13671","S022","1. Check message ID.
+2. Check message sender address.
+3. Check message receiver address.
+4.","0","答案無關：檢查 message ID/address 非通知方法",""
+"34","12610","S110","1. interrupt receiver 
+2. receiver periodly check the buffer if there is message
+3. process the message in interrupt handler","3","缺 pop-up thread",""
+"35","12119","S082","1. interrupt
+2. poll & retrieve
+3. build a additional thread for the message
+4. tackle the message in the exception section","3","第4項 exception section 非 active message",""
+"36","12250","S105","{
+  ""text"": """"
+}","0","未作答（空 JSON）",""
+"37","11373","S111","1. Interrupt to alert
+2. polling to check
+3. pop up thread直接處理
+4. 在interrupt handeler中直接處理","4","",""
+"38","11690","S085","直接中斷
+接收者輪詢訊息傳送狀態
+pop-out thread
+active message","4","",""
+"39","11766","S004","1.當訊息抵達時interrupt通知receiver
+2.The caller週期性poll buffer狀態，狀態改變就取出訊息
+3.建立一個pop-up thread來處理抵達的訊息
+4.直接在interrupt handler處理抵達active message","4","",""
+"40","11651","S046","1. Interrupt: 接收到之後中斷
+2. polling: 時刻關注buffer
+3. pop-up thread: 跳新視窗出來
+4. active message: 在中斷程序中去處理","4","",""
+"41","11331","S005","1.polling
+2.check periodically
+3.interrupt
+","2","polling 與 check periodically 重複，僅 interrupt/polling 正確；缺 pop-up thread/active message",""
+"42","11327","S014","interupt
+polling
+thread","2.5","thread 概念模糊未明確為 pop-up thread；缺 active message",""
+"43","11754","S107","1. Interrupt the receiver
+2. Caller polls the buffer periodically
+3. Pop-up thread
+4. Processing the active message in Interrupt handler","4","",""
+"44","11796","S126","1.建立pop-up-thread
+2.持續poll buffer狀態，再用get message接收訊息
+3.收到message後就中斷reciever
+4.","3","缺第4項（active message）",""
+"45","13556","S017","1.Interrupt the receiver when the message arrives
+2.The caller polls continously and retrive the message when the status change, it requires poll() and get_message()
+3.When the message arrive, a pop-up thread is created to handle it.
+4.processing the message inside the interrupt handler, this requires completely trust environment","4","",""
+"46","11100","S115","Poll a buffer until state changes
+Interrupt handler in a trusted environment
+Interrupt the reciever
+Create a seperate thread to deal with the recieve","4","",""
+"47","11710","S089","1. interrupt the receiver
+2. Polling the statues
+3. pop up thread
+4.arriving active massage","4","",""
+"48","12017","S094","1. 直接發送中斷程序給receiver
+2. 在中斷程序中執行目前的message
+3. 建立一個新的thread來處理message
+4. 透過檢查buffer狀態","4","",""
+"49","12528","S066","1. 當message傳到時，中斷傳輸
+2. 創建一個新的thread處理
+3. 持續關注buffer的狀態
+4. ","3","缺第4項（active message）",""
+"50","11855","S041","Interrupt:
+用中斷提醒receiver訊息已送達
+Polling cache state:
+每個一段時間定期檢查cache狀態，確認有無訊息送達
+Pop-up thread:
+當收到訊息時，系統新增一個process來處理該訊息
+Active message:
+直接執行interrupt handler，執行訊息內的handler code","4","",""
+"51","13905","S031","1. 接收端中斷
+2. 持續poll，直到get_message
+3. 接收到訊息後，彈出執行序pop_up thread
+4. 資源必須在安全的環境操作","3","第4項僅提安全環境，未明確描述 active message",""
+"52","11669","S116","1.打斷 interrupt
+2.poll and get_message()
+3.pop out threads
+4.在interrupt的時候就直接處理資料 只用在絕對確認安全的sender","4","",""
+"53","12159","S059","1. interrupt: 當訊號送達是會interrupt receiver 讓他暫時不要再接收新訊號
+2. polling: caller 會一直去檢查message delivering operation 的狀態(polling the state) 如果有訊息就會retrieve(拿走) 所以會需要polling() and get_message()
+3. pop-up threads: 當訊號到達 會隨機出現pop-up threads處理訊號
+4. active message: 當acitve message 到達 會在interrupt handler內直接處理，只適用在completely trusted environment","4","",""
+"54","12039","S064","passing pointer
+","0","答案無關：passing pointer 非通知方法",""
+"55","11823","S101","1. Interrupt: 收到訊息直接中斷接收者原來的工作。
+2. Pop-up thread: 產生新的執行緒來執行接收到的訊息。
+3. Polling: 定期檢查緩衝區有沒有收到新訊息。
+4. Active message: 動態觀察收到的訊息。","4","",""
+"56","11583","S103","1. interrupt receiver when a message comes
+2. receiver定期去詢問buffer
+3. 用pop-up thread處理
+4. 在handler indicator裡把訊息處理掉","4","",""
+"57","14109","S104","interrupt : 當訊息抵達時，系統會執行硬體或軟體中斷來通知receiver
+polling : receiver會定期輪詢(polling)訊息緩衝區的狀態
+pop-up thread : 當訊息抵達時，系統會自動建立一個執行緒來處理這個訊息
+active message : 由interrupt handler直接處理訊息，適合操作在可靠度高的系統","4","",""
+"58","12135","S023","1. Interrupt
+2. Polling
+3. Pop-up Thread
+4. Active Message","4","",""
+"59","11564","S113","1.interrupt
+2.poll
+3.pop-up thread
+4.active message inside interrupt handler(需要很高信任度)","4","",""
+"60","11916","S055","1.polling
+2.interrupt
+3.interrupt handler 但僅限極度安全的環境
+4.透過pop up thread 處理","4","",""
+"61","11810","S119","1. Interrupt the receiver when the message arrives
+2. The caller polls the status of the message buffer periodically and retrieves the massage when the state change.
+3.On receiving a message, a pop-up thread is created to handle the message.
+4.Process the arriving active message inside the interrupt handler.","4","",""
+"62","11915","S067","1.receiver在收到message後 ,interrupt
+2.使用active message,但只能用在完全信任的訊息,直接在O.S.執行
+3.當receiver收到後使用pop-up 程式
+4.receiver每隔一段時間就去查看訊息到了沒使用poll ","4","",""
+"63","12433","S076","Poll the status of the buffer. It needs poll() and get_message() operations
+Create a pop up thread for arriving messages
+Interrupt/signal the receiver
+Arriving active messages notified in the interrupt handler. This is only possible in a completely trusted environment","4","",""
+"64","16143","S074","i. Polling (Bus waiting)
+ii. Interrupts
+iii. Signals/ Callbacks 
+iv. Condition variables/Events","2.5","signals/callbacks 未完全對應標準答案；condition variables 無關",""
+"65","11984","S063","interrupt the execution of receiver
+poll the status of buffer
+use a pop up thread to handle
+get arrive active message in interrupt handler","4","",""
+"66","11822","S090","1. Interrupt the receiver when the message arrived.
+2. When the message arrives, the pop-up thread is created to handle the message.
+3. The receiver keep polling the status of buffer and retrieve messages when the status changes. It needs poll() and get_message() to support.
+4. Deal with messages in the interrupt handler. It only works on completely trusted environment.","4","",""
+"67","14259","S100","1. Interrupt when message arrives
+2. Pop-up thread when message arrives.
+3. Poll the message buffer periodically.
+4. Process the message in interrupt-handler.","4","",""
+"68","11377","S114","1. pop a thread to handle it 
+2. interrupt 
+3. CPU polling 
+4. 一個專門處理的程式 不斷 listening","3","第4項為 polling 重複，缺 active message",""
+"69","12732","S038","1.mailbox notify
+2. pop-up notify
+3. sound notify
+4. money notify","1","僅 pop-up notify 正確；mailbox/sound/money 皆非標準通知方法",""
+"70","11898","S047","Interrupt：有新訊息的時候發一個 SIGNAL 中斷去讓對方收到訊息
+Polling：用輪詢的方式去看到底有沒有新訊息和去讀他
+Pop-up thread：用一個 thread 專門來收訊息
+Active Message：直接在 interrupt handler 裡面處理 active message 但這個只能在 trusted 的環境做","4","",""
+"71","12562","S044","1. interrupt the receiver when message is coming
+2. use pop-up thread to handle the arriving message
+3. use the insider interruption handler to cope with it
+4.","3","缺第4項（未作答）",""
+"72","11800","S075","directly send message to receiver
+put the message to the cache(mailbox)
+put the reminder to the cache(mailbox) that the receiver can check it.","0","描述 message passing 機制（send/cache/reminder）而非四項通知方法",""
+"73","11782","S030","1. interrupt : 訊息來了透過 Interrupt 通知
+2. polling : 透過 輪詢 的方式看訊息到了嗎?
+3. pop out a thread 來對訊息做處理
+4. 透過 kernel 使用 interrupt handler 來處理","4","",""
+"74","11562","S106","1. sending interrupt when message arrives 
+2.polling periodically to check the status 
+3. pop up a thread to handle the arriving message 
+4. deal with the arriving message in the interrupt handler  ","4","",""
+"75","11826","S019","1. Interrupt : 當 message 抵達時，用 interrupt 通知 receiver 去處理
+2. Polling : Receiver 需要不停去 check message buffer 的 status，當 status 改變時即代表有 message 到了
+3. Pop-up thread : 當 message 到時，就建立一個新的 thread 去處理
+4. Active message : 透過 interrupt handler 去處理","4","",""
+"76","11458","S020","(1) Interrupt the receiver when receives a message.
+(2) The caller polls the status of the message periodically and retrieves the message when a state changes.
+(3) On receiving a message, a pop-up thread is created to handle the message
+(4) Process the arriving active message inside the interrupt handler. It only works in a completely trusted environment.","4","",""
+"77","11763","S010","1. interrupt the receiver when the message comes.
+2. poll the buffer periodically.
+3. ","2","僅 interrupt 與 polling，第3、4項空白",""
+"78","11801","S091","1.Interrupt the receiver when a message arrives.
+2.The caller polls the status of the buffer periodically and retrieves the message when the stage changes.Need poll() and get_message() operations.
+3.On receiving a  message,a pop-up threads is created to handle the message.
+4.process the arriving active message inside the interrupt handler.It only works in a completely trusted environment.","4","",""
+"79","11549","S051","interupte reciver
+polling
+pop-up thread
+interupte handler ","4","",""
+"80","13321","S039","create pop up thread to handle
+interrupt
+定期poll
+在信任環境下由interrupt handler執行收到的message","4","",""
+"81","11743","S018","interrupt receiver
+polling 週期性檢查是否有傳遞訊息的資訊
+創建pop-out thread去處理
+將處理程序放入interrupt handler直接處理","4","",""
+"82","11644","S049","1.interrupt:receiver 產生 interrupt
+2.poll:receiver 會定期檢查buffer poll，若有更新拿出新訊息
+3.pop up thread:彈出新thrad處理
+4.active message:直接在interrupt handler處理","4","",""
+"83","11894","S053","收到後發出interrupt
+持續polling確認是否收到
+收到後用pop-up-thread處理
+在信賴環境下，直接在interrupt handler中處理","4","",""
+"84","11718","S092","1. tell the receiver when the message is arrived
+2. use timer to periodically check","1.5","僅 timer/poll 明確；tell 敘述模糊，缺 interrupt/pop-up thread/active message",""
+"85","11528","S125","1.RARA
+2.RR
+3.RRA
+4.globle ID List
+","0","答案無關：RARA/RR/RRA/global ID List 非通知方法",""
+"86","13169","S021",".","0","未作答",""
+"87","11807","S050","1. 直接interrupt 
+2. receiver不斷poll詢問是否arrived
+3. pop-up thread通知
+4. interrupt handler直接幫忙解決(在完全安全/相信的環境下)","4","",""
+"88","11888","S036","1.interrupt:直接中斷reciver的CPU讓他處理。
+2.Poll:不斷發起poll()檢查buffer狀態。
+3.Pop-up:直接給一個新的thread處理。
+4.直接在interrupt handler處理。","4","",""
+"89","11899","S048","1. 直接interrupt
+2. 透過不停地polling的情況來看是否有message到
+3. 用pop-up thread直接進行處理
+4. 直接在interrupt handler這邊直接處理（但要確保是完全信任的環境）","4","",""
+"90","11874","S112","interrupt: 直接打斷正在運行的process
+polling: 會定時去確認是否有訊息傳來
+pop-up thread: 產生一個新的thread處理此message　
+active message: 直接交由interrupt handler處理，但需要在較可信任的裝置上做","4","",""
+"91","11679","S006","1. interupt the process
+2. poll the buffer
+3. pop up a new process to handle msg
+4. ","3","缺第4項（active message）",""
+"92","12013","S057","1) interrupt 
+2) polling
+3) pop
+4) active message","4","",""
+"93","14015","S002","1. interrupt.
+2. create the pop-up thread.
+3. poll: check the state available or not.
+4. directly process in the interrupt handler.","4","",""
+"94","11838","S007","(a) Trigger a system call
+(b) Manage a pop-up thread
+(c) Modify the shared memory to write the task.
+(d) Use additional resources to manage the message (queues).","1","僅 pop-up thread 正確；system call/shared memory/queues 皆非通知方法",""
+"95","15046","S118","1. Interrupt Receiver
+2. Send Request
+3. Receiver listen to the sender
+4. ","1.5","僅 interrupt 正確；send request/listen 非標準方法",""
+"96","13976","S016","1.0 : 接收方不管有沒有回覆發送者，都視同訊息已傳達
+2.1 : 發送者只要收到接送方1個回應訊息，就視同訊息已傳達
+3.M-out-of-N:發送者只要收到N個回應訊息(0<N<M)，就視同訊息已送達
+4.M-M : 發送者必須收到全部的回應訊息，才能視同訊息已送達","0","答案無關：描述 ACK 可靠性語意模型，非四項通知方法",""
+"97","11731","S088","interrupt : message到達時去叫receiver
+polling : receiver定期檢查buffer state，state改變代表訊息到了可以拿訊息
+pop-up thread : message到達時開新的thread處理
+active message : 在interrupt handler直接處理message","4","",""
+"98","12475","S058","1.interrupt
+2.periodicaly polling
+3.pop-up thread
+4.active message","4","",""
+"99","11626","S043","1.
+2.
+3.
+4.
+","0","完全空白未作答",""
+"100","11591","S060","1.中斷
+2. polling
+3. 跳出一個thread
+4. 中斷中自動處理","3.5","第4項「中斷中自動處理」敘述不夠明確對應 active message",""
+"101","11584","S024","interrupt the receiver when the message arrived
+polls the status of the bus periodically and retrieve the message when the status change
+when a message arrived, a pop-up thread is created to handle it
+process the arrived active message inside the interrupt handler, it only works on a completely trusted environment","4","",""
+"102","11910","S095","1.interrupt when a message arrive
+2.poll periodly of the state of buffer, when the state changes, use get message function
+3.when receiving a message , a pop up thread is created to cope with the message
+4. ","3","缺第4項（active message）",""
+"103","11928","S077","1. interrupt receiver
+2. polling the status of the buffer
+3. using pop-up thread to handle
+4. processing the message in interrupt handler.","4","",""
+"104","11642","S120","Interrupt:收到reply後interrupt以通知sender
+polling:不斷呼叫poll()確認訊息是否被接收到，有訊息時再get_message()
+pop-up threads:收到回覆後建立一個新的thread來處理回覆
+active message:interrupt handler直接處理回覆訊息，但需要再trusted environment","4","",""
+"105","12040","S073","1.直接中斷接收者
+2.透過不斷檢查buffer的狀態，一旦狀態改變，就把訊息取出
+3.建立pop-up thread來處理抵達的訊息
+4.直接在interrupt handler 處理active message
+","4","",""
+"106","11814","S069","1.message 一到就interrupt
+2.會一直去poll buffer state看是否有收到message
+3.收到message他會pop up thread讓他去處理那個message
+4.收到active message他會叫interrupt handler去處理，這只用在極度信任的系統
+","4","",""
+"107","12010","S072","1. Interrupt  the receiver when message receive.
+2. Receiver poll，去定期的查看message是否已經送達。
+3. 當messgae送達時，產生pop-up thread, 由其他負責處理message.
+4. 直接讓Interrupt hanlder去處理message，但此需要在可信任環境下使用。 
+","4","",""
+"108","11566","S042","1. interrupt the receiver when the message has arrived
+2. caller會定期訪問buffer狀態, 如果狀態改變就存取訊息
+3. when message has arrived, 會建立一個pop-up thread來處理訊息
+4. process the arrived active message inside the interrupt handlers","4","",""
+"109","11979","S071","1. Interrupt: 抵達時主動打斷Receiver叫他收
+2. Pop-up Thread: 抵達時生成一個新的Thread，就不影響原本在做的事
+3. Active Message: 抵達時傳給Handler
+4. Polling: Receiver會定期詢問到了沒","4","",""
+"110","15675","S062","1. interrupt
+2.send ACK 
+3. using message buffer
+4.  set a timer","1.5","僅 interrupt 正確；ACK/buffer 無關，timer 僅部分對應 polling",""
+"111","12056","S045","1.inerrupt:發送中斷訊號讓cpu停下手頭工作
+2.poll:定期檢查message傳過去了沒
+3.當message好的時候會自動產生新的thread排隊等處理
+4.直接在interruption handler裡處理，要在信任的環境，因為interruption handler權限高。","4","",""
+"112","12556","S056","1. Intterupt - the communication system generates an interrrupt when a mesage arrives
+2 Signal - a signal is sent to notify the recceiver process
+3. Pooling - the receiver periodically checks wether a message has arrived
+4. Separrate handler/ callback routine - a đeicated handler or thread processses incoming messages asynchronously","2.5","signal 與 interrupt 重複；handler/callback 未明確對應 pop-up thread 或 active message",""
+"113","12346","S128","1. Event-driven Architecture
+2. Caching Redis
+3. Message Queue
+4. Asynchronous, Corontine","0","答案無關：Event-driven/Redis/Message Queue/Coroutine 非本題通知方法",""
+"114","12188","S029","1.interrupt
+2.pop-up thread
+3.active message by interrupt handler
+4.receiver定期檢查buffer state, buffer state改變了就接收message","4","",""
+"115","11934","S065","1.interrupt
+2.用interrupt handler直接處理message
+3.生成pop-up message處理message
+4.caller不斷檢查buffer裝態來得知message是否抵達","4","",""
+"116","12190","S098","interrupt
+create pop-up thread
+polling
+active message in interrupt handler","4","",""

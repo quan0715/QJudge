@@ -1,0 +1,40 @@
+{
+  "completed_count": 1,
+  "experiment_id": "exam2-diverse-flash-pro-20260526-123420",
+  "run_count": 1,
+  "runs": [
+    {
+      "answer_count": "0",
+      "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+      "cost_cents": "2",
+      "cost_usd": "0.0200",
+      "elapsed_seconds": "26.812",
+      "ended_at": "2026-05-26T04:34:47.211447Z",
+      "exam_key": "exam2",
+      "experiment_id": "exam2-diverse-flash-pro-20260526-123420",
+      "grade_csv_path": "reports/qjudge-paper-experiments/exam2-diverse-flash-pro-20260526-123420/runs/5b9d59d3-4c5a-44ff-81ff-932d69c8cf82/deepseek-v4-flash/grade.csv",
+      "input_tokens": "115578",
+      "max_score": "4",
+      "model_id": "deepseek-v4-flash",
+      "output_tokens": "1971",
+      "preset": "exam2-diverse",
+      "prompt_preview": "List four methods to notify a receiver in a non-blocking message passing system that a message has arrived.",
+      "question_id": "5b9d59d3-4c5a-44ff-81ff-932d69c8cf82",
+      "question_order": "6",
+      "question_type": "short_answer",
+      "rubric_path": "reports/qjudge-paper-experiments/exam2-diverse-flash-pro-20260526-123420/runs/5b9d59d3-4c5a-44ff-81ff-932d69c8cf82/deepseek-v4-flash/rubric.md",
+      "run_dir": "reports/qjudge-paper-experiments/exam2-diverse-flash-pro-20260526-123420/runs/5b9d59d3-4c5a-44ff-81ff-932d69c8cf82/deepseek-v4-flash",
+      "run_id": "32ffa291-d1dd-4909-84fd-a7f99394fd1e",
+      "run_status": "running",
+      "session_id": "bca7edc6-75db-432d-9336-6f1b19b1afed",
+      "started_at": "2026-05-26T04:34:20.399314Z",
+      "terminal_event_type": "run_completed"
+    }
+  ],
+  "summary_csv": "reports/qjudge-paper-experiments/exam2-diverse-flash-pro-20260526-123420/summary.csv",
+  "total_cost_cents": 2,
+  "total_cost_usd": 0.02,
+  "total_elapsed_seconds": 26.812,
+  "total_input_tokens": 115578,
+  "total_output_tokens": 1971
+}
