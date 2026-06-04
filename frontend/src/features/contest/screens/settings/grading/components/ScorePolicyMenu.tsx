@@ -1,16 +1,28 @@
 /**
  * ScorePolicyMenu — overflow menu for setting a question's score policy.
  * Renders as a small icon button with options: 不計分 / 送分 / 配分重分配 / 恢復正常計分.
+ *
+ * When `impactContext` is provided, a before/after score distribution preview dialog
+ * is shown before committing any policy change. Otherwise falls back to a simple confirm modal.
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { OverflowMenu, OverflowMenuItem, Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { ExamQuestionScorePolicy } from "@/core/entities/contest.entity";
 import { setExamQuestionScorePolicy } from "@/infrastructure/api/repositories/examQuestions.repository";
+import type { GradingAnswerRow, QuestionProgress } from "../gradingTypes";
+import { simulateScoreImpact, type ScoreImpactResult } from "../scorePolicyImpact.utils";
 import ScorePolicyModal from "./ScorePolicyModal";
 import RedistributeTargetModal from "./RedistributeTargetModal";
+import ScorePolicyImpactDialog from "./ScorePolicyImpactDialog";
 import styles from "./ScorePolicyMenu.module.scss";
+
+export interface ScorePolicyMenuImpactContext {
+  questions: QuestionProgress[];
+  studentIds: string[];
+  answersByStudent: Map<string, GradingAnswerRow[]>;
+}
 
 interface ScorePolicyMenuProps {
   questionId: string;
@@ -19,6 +31,8 @@ interface ScorePolicyMenuProps {
   /** All questions in the exam for redistribute target selection */
   allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string; scorePolicy?: string }>;
   onPolicyChanged?: () => void;
+  /** When provided, show before/after distribution preview before committing */
+  impactContext?: ScorePolicyMenuImpactContext;
 }
 
 export default function ScorePolicyMenu({
@@ -27,58 +41,136 @@ export default function ScorePolicyMenu({
   currentPolicy,
   allQuestions = [],
   onPolicyChanged,
+  impactContext,
 }: ScorePolicyMenuProps) {
   const { t } = useTranslation("contest");
   const { contestId } = useParams<{ contestId: string }>();
+
+  // ── Simple confirm modal (fallback when no impactContext) ──────────────
   const [modalOpen, setModalOpen] = useState(false);
-  const [redistributeModalOpen, setRedistributeModalOpen] = useState(false);
   const [targetPolicy, setTargetPolicy] = useState<ExamQuestionScorePolicy>("normal");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleMenuAction = useCallback((policy: ExamQuestionScorePolicy) => {
-    if (policy === currentPolicy) return;
-    if (policy === "redistribute") {
-      setRedistributeModalOpen(true);
-      return;
-    }
-    setTargetPolicy(policy);
-    setModalOpen(true);
-  }, [currentPolicy]);
+  // ── Redistribute target selection modal ────────────────────────────────
+  const [redistributeModalOpen, setRedistributeModalOpen] = useState(false);
+  const [redistributeModalKey, setRedistributeModalKey] = useState(0);
+  const pendingRedistributeTargetIds = useRef<string[]>([]);
 
-  const handleConfirm = useCallback(async () => {
-    if (!contestId) return;
-    setSubmitting(true);
-    try {
-      await setExamQuestionScorePolicy(contestId, questionId, targetPolicy);
-      onPolicyChanged?.();
-    } catch {
-      // Error is handled by the caller's refresh
-    } finally {
-      setSubmitting(false);
-      setModalOpen(false);
-    }
-  }, [contestId, questionId, targetPolicy, onPolicyChanged]);
+  // ── Impact preview dialog ──────────────────────────────────────────────
+  const [impactOpen, setImpactOpen] = useState(false);
+  const [impactPolicy, setImpactPolicy] = useState<ExamQuestionScorePolicy>("normal");
+  const [impactResult, setImpactResult] = useState<ScoreImpactResult | null>(null);
 
-  const handleRedistributeConfirm = useCallback(async (targetIds: string[]) => {
-    if (!contestId) return;
-    setSubmitting(true);
-    try {
-      await setExamQuestionScorePolicy(contestId, questionId, "redistribute", {
-        redistribute_to: targetIds,
-      });
-      onPolicyChanged?.();
-    } catch {
-      // Error is handled by the caller's refresh
-    } finally {
-      setSubmitting(false);
-      setRedistributeModalOpen(false);
-    }
-  }, [contestId, questionId, onPolicyChanged]);
-
-  // Available target questions: exclude current question and any already excluded/redistribute ones
+  // Available redistribute targets: only normal-policy questions (backend excludes full_marks)
   const availableTargets = allQuestions.filter(
-    (q) => q.id !== questionId && (!q.scorePolicy || q.scorePolicy === "normal" || q.scorePolicy === "full_marks")
+    (q) => q.id !== questionId && (!q.scorePolicy || q.scorePolicy === "normal"),
   );
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+
+  const computeImpact = useCallback(
+    (policy: ExamQuestionScorePolicy, redistributeTargetIds: string[] = []) => {
+      if (!impactContext) return null;
+      return simulateScoreImpact({
+        questions: impactContext.questions,
+        studentIds: impactContext.studentIds,
+        answersByStudent: impactContext.answersByStudent,
+        targetQuestionId: questionId,
+        newPolicy: policy,
+        redistributeTargetIds,
+      });
+    },
+    [impactContext, questionId],
+  );
+
+  const openImpactDialog = useCallback(
+    (policy: ExamQuestionScorePolicy, redistributeTargetIds: string[] = []) => {
+      setImpactPolicy(policy);
+      setImpactResult(computeImpact(policy, redistributeTargetIds));
+      setImpactOpen(true);
+    },
+    [computeImpact],
+  );
+
+  const commitPolicy = useCallback(
+    async (policy: ExamQuestionScorePolicy, redistributeTargetIds?: string[]) => {
+      if (!contestId) return;
+      setSubmitting(true);
+      try {
+        await setExamQuestionScorePolicy(
+          contestId,
+          questionId,
+          policy,
+          policy === "redistribute" ? { redistribute_to: redistributeTargetIds ?? [] } : undefined,
+        );
+        onPolicyChanged?.();
+      } catch {
+        // Error handled by caller's refresh
+      } finally {
+        setSubmitting(false);
+        setModalOpen(false);
+        setImpactOpen(false);
+        setRedistributeModalOpen(false);
+      }
+    },
+    [contestId, questionId, onPolicyChanged],
+  );
+
+  // ── Menu action handler ────────────────────────────────────────────────
+
+  const handleMenuAction = useCallback(
+    (policy: ExamQuestionScorePolicy) => {
+      if (policy === currentPolicy) return;
+
+      if (policy === "redistribute") {
+        // Open target selection first; impact shown after targets chosen
+        pendingRedistributeTargetIds.current = [];
+        setRedistributeModalKey((k) => k + 1);
+        setRedistributeModalOpen(true);
+        return;
+      }
+
+      if (impactContext) {
+        openImpactDialog(policy);
+      } else {
+        setTargetPolicy(policy);
+        setModalOpen(true);
+      }
+    },
+    [currentPolicy, impactContext, openImpactDialog],
+  );
+
+  // ── Redistribute confirm: store targets then show impact ──────────────
+
+  const handleRedistributeTargetsChosen = useCallback(
+    (targetIds: string[]) => {
+      pendingRedistributeTargetIds.current = targetIds;
+      setRedistributeModalOpen(false);
+
+      if (impactContext) {
+        openImpactDialog("redistribute", targetIds);
+      } else {
+        commitPolicy("redistribute", targetIds);
+      }
+    },
+    [impactContext, openImpactDialog, commitPolicy],
+  );
+
+  // ── Impact dialog actions ──────────────────────────────────────────────
+
+  const handleImpactConfirm = useCallback(() => {
+    if (impactPolicy === "redistribute") {
+      commitPolicy("redistribute", pendingRedistributeTargetIds.current);
+    } else {
+      commitPolicy(impactPolicy);
+    }
+  }, [impactPolicy, commitPolicy]);
+
+  const handleBackToTargetSelection = useCallback(() => {
+    setImpactOpen(false);
+    setRedistributeModalKey((k) => k + 1);
+    setRedistributeModalOpen(true);
+  }, []);
 
   return (
     <>
@@ -125,23 +217,42 @@ export default function ScorePolicyMenu({
         )}
       </OverflowMenu>
 
+      {/* Fallback simple confirm — used when impactContext is absent */}
       <ScorePolicyModal
         open={modalOpen}
         targetPolicy={targetPolicy}
         questionIndex={questionIndex}
         onClose={() => setModalOpen(false)}
-        onConfirm={handleConfirm}
+        onConfirm={() => commitPolicy(targetPolicy)}
         submitting={submitting}
       />
 
+      {/* Redistribute target selection */}
       <RedistributeTargetModal
+        key={redistributeModalKey}
         open={redistributeModalOpen}
         questionIndex={questionIndex}
         availableTargets={availableTargets}
+        initialSelectedIds={pendingRedistributeTargetIds.current}
         onClose={() => setRedistributeModalOpen(false)}
-        onConfirm={handleRedistributeConfirm}
+        onConfirm={handleRedistributeTargetsChosen}
         submitting={submitting}
       />
+
+      {/* Before/after impact preview (only when impactContext provided) */}
+      {impactContext && (
+        <ScorePolicyImpactDialog
+          open={impactOpen}
+          newPolicy={impactPolicy}
+          impactResult={impactResult}
+          submitting={submitting}
+          onClose={() => setImpactOpen(false)}
+          onConfirm={handleImpactConfirm}
+          onBackToTargetSelection={
+            impactPolicy === "redistribute" ? handleBackToTargetSelection : undefined
+          }
+        />
+      )}
     </>
   );
 }

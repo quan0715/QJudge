@@ -340,6 +340,9 @@ export function mapExamQuestionDto(dto: ExamQuestionDto): ExamQuestion {
       ? Number(dto.effective_max_score)
       : undefined,
     scorePolicy: dto.score_policy || "normal",
+    scorePolicyConfig: dto.score_policy_config
+      ? { redistributeTo: dto.score_policy_config.redistribute_to ?? [] }
+      : undefined,
     order: Number(dto.order || 0),
     groupId: dto.group_id != null ? dto.group_id.toString() : null,
     orderInGroup:

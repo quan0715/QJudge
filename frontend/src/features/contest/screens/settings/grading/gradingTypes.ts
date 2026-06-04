@@ -75,6 +75,8 @@ export interface QuestionProgress {
   maxScore: number;
   /** Effective max score after redistribution (may differ from maxScore). */
   effectiveMaxScore?: number;
+  /** Score policy config (e.g. redistribute_to target IDs). */
+  scorePolicyConfig?: { redistributeTo?: string[] } | null;
   totalAnswers: number;
   gradedCount: number;
   /** 0–100 */

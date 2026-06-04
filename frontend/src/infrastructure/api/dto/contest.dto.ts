@@ -42,6 +42,7 @@ export interface ExamQuestionDto {
   score?: number;
   effective_max_score?: number;
   score_policy?: ExamQuestionScorePolicy;
+  score_policy_config?: { redistribute_to?: string[] } | null;
   order?: number;
   group_id?: number | string | null;
   order_in_group?: number | null;

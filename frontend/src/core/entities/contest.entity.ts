@@ -626,6 +626,7 @@ export interface ExamQuestion {
   score: number;
   effectiveMaxScore?: number;
   scorePolicy?: ExamQuestionScorePolicy;
+  scorePolicyConfig?: { redistributeTo?: string[] } | null;
   order: number;
   groupId?: string | null;
   orderInGroup?: number | null;
