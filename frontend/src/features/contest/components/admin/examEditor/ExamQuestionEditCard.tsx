@@ -302,7 +302,11 @@ interface ExamQuestionEditCardProps {
   frozen?: boolean;
   startEditingSignal?: number;
   /** All questions for redistribute target selection */
-  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string; scorePolicy?: string }>;
+  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string; scorePolicy?: string; scorePolicyConfig?: { redistributeTo?: string[] } | null }>;
+  /** Grading impact context from the editor layout (lazy-loaded on menu open). */
+  editorImpactContext?: ScorePolicyMenuImpactContext;
+  /** Called when the policy overflow menu is opened — triggers lazy data load. */
+  onMenuOpen?: () => void;
   onAutoSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
@@ -318,6 +322,8 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   frozen,
   startEditingSignal,
   allQuestions,
+  editorImpactContext,
+  onMenuOpen,
   onAutoSave,
   onDelete,
   onDuplicate,
@@ -534,22 +540,26 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   };
 
   // ─── Impact context for score policy preview dialog ───
-  // No student data in editor — dialog shows "no data" message but still allows confirmation.
+  // Use editorImpactContext (with real student data, lazily loaded by ExamEditorLayout)
+  // when available; fall back to an empty context (dialog shows "no data" message).
   const impactContext = useMemo<ScorePolicyMenuImpactContext>(() => {
+    if (editorImpactContext) return editorImpactContext;
+    // Fallback: no student data yet (shows "no data" state in dialog)
     const questions: QuestionProgress[] = (allQuestions ?? []).map((q, idx) => ({
       questionId: q.id,
-      questionIndex: q.order + 1 || idx + 1,
+      questionIndex: (q.order ?? idx) + 1,
       questionType: (q.questionType ?? "single_choice") as QuestionProgress["questionType"],
       prompt: q.prompt ?? "",
       maxScore: q.score,
       scorePolicy: (q.scorePolicy ?? "normal") as QuestionProgress["scorePolicy"],
+      scorePolicyConfig: q.scorePolicyConfig,
       totalAnswers: 0,
       gradedCount: 0,
       progressPercent: 0,
       isObjective: true,
     }));
     return { questions, studentIds: [], answersByStudent: new Map() };
-  }, [allQuestions]);
+  }, [editorImpactContext, allQuestions]);
 
   // ─── PREVIEW MODE ───
   if (!editing) {
@@ -649,6 +659,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     allQuestions={allQuestions}
                     onPolicyChanged={onScorePolicyChanged}
                     impactContext={impactContext}
+                    onMenuOpen={onMenuOpen}
                   />
                 </div>
                 {!frozen && (

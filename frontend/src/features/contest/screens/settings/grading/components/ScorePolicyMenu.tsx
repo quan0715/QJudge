@@ -33,6 +33,8 @@ interface ScorePolicyMenuProps {
   onPolicyChanged?: () => void;
   /** When provided, show before/after distribution preview before committing */
   impactContext?: ScorePolicyMenuImpactContext;
+  /** Called when the overflow menu opens — use to trigger lazy data loading */
+  onMenuOpen?: () => void;
 }
 
 export default function ScorePolicyMenu({
@@ -42,6 +44,7 @@ export default function ScorePolicyMenu({
   allQuestions = [],
   onPolicyChanged,
   impactContext,
+  onMenuOpen,
 }: ScorePolicyMenuProps) {
   const { t } = useTranslation("contest");
   const { contestId } = useParams<{ contestId: string }>();
@@ -180,6 +183,7 @@ export default function ScorePolicyMenu({
         iconDescription={t("grading.scorePolicy.menuTitle", "分數政策")}
         className={styles.menu}
         aria-label={t("grading.scorePolicy.menuTitle", "分數政策")}
+        onClick={onMenuOpen}
       >
         <OverflowMenuItem
           itemText={
