@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Button,
   IconButton,
@@ -42,6 +42,8 @@ import {
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import ScorePolicyMenu, { ScorePolicyTag } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
+import type { ScorePolicyMenuImpactContext } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
+import type { QuestionProgress } from "@/features/contest/screens/settings/grading/gradingTypes";
 import styles from "./ExamQuestionEditCard.module.scss";
 
 // --- Constants ---
@@ -531,6 +533,24 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     });
   };
 
+  // ─── Impact context for score policy preview dialog ───
+  // No student data in editor — dialog shows "no data" message but still allows confirmation.
+  const impactContext = useMemo<ScorePolicyMenuImpactContext>(() => {
+    const questions: QuestionProgress[] = (allQuestions ?? []).map((q, idx) => ({
+      questionId: q.id,
+      questionIndex: q.order + 1 || idx + 1,
+      questionType: (q.questionType ?? "single_choice") as QuestionProgress["questionType"],
+      prompt: q.prompt ?? "",
+      maxScore: q.score,
+      scorePolicy: (q.scorePolicy ?? "normal") as QuestionProgress["scorePolicy"],
+      totalAnswers: 0,
+      gradedCount: 0,
+      progressPercent: 0,
+      isObjective: true,
+    }));
+    return { questions, studentIds: [], answersByStudent: new Map() };
+  }, [allQuestions]);
+
   // ─── PREVIEW MODE ───
   if (!editing) {
     const correctSingle = getCorrectSingleIndex(question);
@@ -628,6 +648,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     currentPolicy={question.scorePolicy ?? "normal"}
                     allQuestions={allQuestions}
                     onPolicyChanged={onScorePolicyChanged}
+                    impactContext={impactContext}
                   />
                 </div>
                 {!frozen && (
