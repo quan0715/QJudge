@@ -614,7 +614,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               </span>
               <div className={styles.headerRight}>
                 {showScoreField ? (
-                  <span className={styles.score}>{t("examEditor.scoreUnit", { score: question.score })}</span>
+                  <span className={styles.score}>
+                    {question.effectiveMaxScore != null && question.effectiveMaxScore !== question.score
+                      ? `${question.score}→${question.effectiveMaxScore}分`
+                      : t("examEditor.scoreUnit", { score: question.score })}
+                  </span>
                 ) : null}
                 {/* Score policy menu — always available, even when frozen */}
                 <div onClick={(e) => e.stopPropagation()}>

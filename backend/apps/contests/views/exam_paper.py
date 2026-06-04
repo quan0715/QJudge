@@ -51,9 +51,17 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
             return ExamQuestionSerializer
         return ExamQuestionStudentSerializer
 
-    def _serialize_question(self, question, request, contest):
+    def _admin_serializer_context(self, contest):
+        """Build serializer context for admin views, including effective_max_scores."""
+        from ..services.exam_scoring import ExamScoringService
+        scoring = ExamScoringService(contest)
+        return {'contest': contest, 'effective_max_scores': scoring.get_effective_max_scores()}
+
+    def _serialize_question(self, question, request, contest, q_ctx=None):
         serializer_class = self._question_serializer_class(request, contest)
-        return serializer_class(question, context={'contest': contest}).data
+        if q_ctx is None:
+            q_ctx = self._admin_serializer_context(contest) if self._is_admin(request.user, contest) else {'contest': contest}
+        return serializer_class(question, context=q_ctx).data
 
     def _serialize_group(self, group):
         annotated = (
@@ -130,9 +138,9 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
 
         return sorted(sections, key=lambda section: (section['first_order'], section['id']))
 
-    def _serialize_block(self, section, request, contest):
+    def _serialize_block(self, section, request, contest, q_ctx=None):
         if section['kind'] == 'question':
-            question_data = self._serialize_question(section['question'], request, contest)
+            question_data = self._serialize_question(section['question'], request, contest, q_ctx)
             return {
                 'kind': 'question',
                 'id': question_data['id'],
@@ -145,7 +153,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
             'id': group_data['id'],
             'group': group_data,
             'children': [
-                self._serialize_question(question, request, contest)
+                self._serialize_question(question, request, contest, q_ctx)
                 for question in section['children']
             ],
         }
@@ -153,17 +161,19 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
     def _build_paper_response(self, request, contest, status_code=status.HTTP_200_OK):
         questions, groups = self._paper_queryset(contest)
         question_serializer_class = self._question_serializer_class(request, contest)
+        is_admin = self._is_admin(request.user, contest)
+        q_ctx = self._admin_serializer_context(contest) if is_admin else {'contest': contest}
         sections = self._build_sections(contest)
         return Response(
             {
                 'questions': question_serializer_class(
                     questions,
                     many=True,
-                    context={'contest': contest},
+                    context=q_ctx,
                 ).data,
                 'groups': ExamQuestionGroupSerializer(groups, many=True).data,
                 'blocks': [
-                    self._serialize_block(section, request, contest)
+                    self._serialize_block(section, request, contest, q_ctx)
                     for section in sections
                 ],
             },
