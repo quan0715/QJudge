@@ -187,10 +187,14 @@ class ExamScoringService:
                 from uuid import UUID
                 target_ids = [UUID(tid) if isinstance(tid, str) else tid for tid in target_ids]
 
-            # Filter to valid, non-excluded, non-redistribute targets
+            # Filter to valid targets: not excluded, not redistribute, not full_marks
+            # (full_marks questions always contribute their original q.score, unaffected by redistribution)
             valid_targets = [
                 tid for tid in target_ids
-                if tid in q_map and not q_map[tid].is_excluded and not q_map[tid].is_redistribute
+                if tid in q_map
+                and not q_map[tid].is_excluded
+                and not q_map[tid].is_redistribute
+                and not q_map[tid].is_full_marks
             ]
             if not valid_targets:
                 continue
@@ -236,8 +240,8 @@ class ExamScoringService:
             if q.is_excluded or q.is_redistribute:
                 continue
             if q.is_full_marks:
-                # Full marks uses effective max (includes any redistribution bonus)
-                total += Decimal(str(effective_max[q.id]))
+                # Full marks always contributes the original question score, regardless of redistribution
+                total += Decimal(str(q.score))
                 continue
             # Normal: scale if redistribution applies
             actual = answer_scores.get(q.id)
@@ -262,7 +266,7 @@ class ExamScoringService:
         questions = self.get_questions()
         effective_max = self._compute_effective_max()
         has_redistribute = any(q.is_redistribute for q in questions)
-        full_marks_total = sum(effective_max[q.id] for q in questions if q.is_full_marks)
+        full_marks_total = sum(q.score for q in questions if q.is_full_marks)
 
         participants = ContestParticipant.objects.filter(contest=self.contest)
         count = 0
@@ -290,7 +294,6 @@ class ExamScoringService:
             participant.score = int(rounded)
             participant.save(update_fields=['score'])
             count += 1
-        return count
         return count
 
     # ──────────────────────────────────────────────────────────────────
@@ -329,11 +332,11 @@ class ExamScoringService:
                 items.append({'question_id': q.id, 'score': None, 'policy': q.score_policy})
                 continue
             if q.is_full_marks:
-                eff = effective_max[q.id]
-                total_score += eff
+                # Full marks always contributes the original question score, regardless of redistribution
+                total_score += q.score
                 graded_count += 1
                 correct_count += 1
-                items.append({'question_id': q.id, 'score': eff, 'policy': q.score_policy})
+                items.append({'question_id': q.id, 'score': float(q.score), 'policy': q.score_policy})
                 continue
             # normal (possibly receiving redistribution)
             ans = answers_map.get(q.id)

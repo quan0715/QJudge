@@ -31,7 +31,8 @@ export function isCountedQuestion(
  *
  * - excluded: 0
  * - redistribute: 0 (points moved to targets)
- * - full_marks / normal: uses effectiveMaxScore (includes redistribution bonus)
+ * - full_marks: uses maxScore (original question score; unaffected by redistribution)
+ * - normal: uses effectiveMaxScore (includes redistribution bonus)
  */
 export function computeEffectiveMaxTotal(
   questions: QuestionScoreInfo[],
@@ -39,7 +40,11 @@ export function computeEffectiveMaxTotal(
   let total = 0;
   for (const q of questions) {
     if (!isCountedQuestion(q.scorePolicy)) continue;
-    total += q.effectiveMaxScore ?? q.maxScore;
+    if (q.scorePolicy === "full_marks") {
+      total += q.maxScore;
+    } else {
+      total += q.effectiveMaxScore ?? q.maxScore;
+    }
   }
   return total;
 }
@@ -49,7 +54,7 @@ export function computeEffectiveMaxTotal(
  * respecting score policies and redistribution scaling.
  *
  * - excluded / redistribute: contributes 0
- * - full_marks: contributes effectiveMaxScore
+ * - full_marks: contributes maxScore (original score, regardless of answer)
  * - normal: if effectiveMaxScore differs from maxScore, scale the raw score
  */
 export function computeStudentDisplayTotal(
@@ -59,16 +64,15 @@ export function computeStudentDisplayTotal(
   for (const q of questions) {
     if (!isCountedQuestion(q.scorePolicy)) continue;
 
-    const effectiveMax = q.effectiveMaxScore ?? q.maxScore;
-
     if (q.scorePolicy === "full_marks") {
-      total += effectiveMax;
+      total += q.maxScore;
       continue;
     }
 
     // normal policy
     if (q.score == null) continue;
 
+    const effectiveMax = q.effectiveMaxScore ?? q.maxScore;
     if (q.maxScore > 0 && effectiveMax !== q.maxScore) {
       // Scale raw score proportionally
       total += q.score * (effectiveMax / q.maxScore);
