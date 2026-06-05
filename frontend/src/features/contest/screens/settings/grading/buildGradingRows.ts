@@ -48,6 +48,8 @@ export function buildGradingRows(
       answerFormat: q?.answerFormat,
       questionOptions: q?.options ?? [],
       maxScore: q?.score ?? 0,
+      effectiveMaxScore: q?.effectiveMaxScore,
+      scorePolicy: q?.scorePolicy ?? "normal",
       answerContent: a.answer,
       score: a.score,
       feedback: a.feedback ?? "",

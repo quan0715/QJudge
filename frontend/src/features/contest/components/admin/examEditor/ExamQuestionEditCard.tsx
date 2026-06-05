@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Button,
   IconButton,
@@ -42,6 +42,8 @@ import {
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import ScorePolicyMenu, { ScorePolicyTag } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
+import type { ScorePolicyMenuImpactContext } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
+import type { QuestionProgress } from "@/features/contest/screens/settings/grading/gradingTypes";
 import styles from "./ExamQuestionEditCard.module.scss";
 
 // --- Constants ---
@@ -300,7 +302,11 @@ interface ExamQuestionEditCardProps {
   frozen?: boolean;
   startEditingSignal?: number;
   /** All questions for redistribute target selection */
-  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string; scorePolicy?: string }>;
+  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string; scorePolicy?: string; scorePolicyConfig?: { redistributeTo?: string[] } | null }>;
+  /** Grading impact context from the editor layout (lazy-loaded on menu open). */
+  editorImpactContext?: ScorePolicyMenuImpactContext;
+  /** Called when the policy overflow menu is opened — triggers lazy data load. */
+  onMenuOpen?: () => void;
   onAutoSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
@@ -316,6 +322,8 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   frozen,
   startEditingSignal,
   allQuestions,
+  editorImpactContext,
+  onMenuOpen,
   onAutoSave,
   onDelete,
   onDuplicate,
@@ -531,6 +539,28 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     });
   };
 
+  // ─── Impact context for score policy preview dialog ───
+  // Use editorImpactContext (with real student data, lazily loaded by ExamEditorLayout)
+  // when available; fall back to an empty context (dialog shows "no data" message).
+  const impactContext = useMemo<ScorePolicyMenuImpactContext>(() => {
+    if (editorImpactContext) return editorImpactContext;
+    // Fallback: no student data yet (shows "no data" state in dialog)
+    const questions: QuestionProgress[] = (allQuestions ?? []).map((q, idx) => ({
+      questionId: q.id,
+      questionIndex: (q.order ?? idx) + 1,
+      questionType: (q.questionType ?? "single_choice") as QuestionProgress["questionType"],
+      prompt: q.prompt ?? "",
+      maxScore: q.score,
+      scorePolicy: (q.scorePolicy ?? "normal") as QuestionProgress["scorePolicy"],
+      scorePolicyConfig: q.scorePolicyConfig,
+      totalAnswers: 0,
+      gradedCount: 0,
+      progressPercent: 0,
+      isObjective: true,
+    }));
+    return { questions, studentIds: [], answersByStudent: new Map() };
+  }, [editorImpactContext, allQuestions]);
+
   // ─── PREVIEW MODE ───
   if (!editing) {
     const correctSingle = getCorrectSingleIndex(question);
@@ -614,7 +644,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               </span>
               <div className={styles.headerRight}>
                 {showScoreField ? (
-                  <span className={styles.score}>{t("examEditor.scoreUnit", { score: question.score })}</span>
+                  <span className={styles.score}>
+                    {question.effectiveMaxScore != null && question.effectiveMaxScore !== question.score
+                      ? `${question.score}→${question.effectiveMaxScore}分`
+                      : t("examEditor.scoreUnit", { score: question.score })}
+                  </span>
                 ) : null}
                 {/* Score policy menu — always available, even when frozen */}
                 <div onClick={(e) => e.stopPropagation()}>
@@ -624,6 +658,8 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     currentPolicy={question.scorePolicy ?? "normal"}
                     allQuestions={allQuestions}
                     onPolicyChanged={onScorePolicyChanged}
+                    impactContext={impactContext}
+                    onMenuOpen={onMenuOpen}
                   />
                 </div>
                 {!frozen && (

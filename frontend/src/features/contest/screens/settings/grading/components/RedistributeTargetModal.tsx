@@ -21,6 +21,8 @@ interface RedistributeTargetModalProps {
   onClose: () => void;
   onConfirm: (targetIds: string[]) => void;
   submitting?: boolean;
+  /** Pre-selected target IDs when re-opening for adjustment. Empty array = distribute to all. */
+  initialSelectedIds?: string[];
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -38,10 +40,15 @@ export default function RedistributeTargetModal({
   onClose,
   onConfirm,
   submitting = false,
+  initialSelectedIds,
 }: RedistributeTargetModalProps) {
   const { t } = useTranslation("contest");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [distributeToAll, setDistributeToAll] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(initialSelectedIds ?? []),
+  );
+  const [distributeToAll, setDistributeToAll] = useState(
+    () => !initialSelectedIds || initialSelectedIds.length === 0,
+  );
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
   // Available question types for filter badges

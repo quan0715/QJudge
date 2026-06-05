@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ExamQuestion } from "@/core/entities/contest.entity";
+import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 
 import ExamQuestionEditCard from "./ExamQuestionEditCard";
 
@@ -42,9 +43,12 @@ const createQuestion = (partial: Partial<ExamQuestion> = {}): ExamQuestion => ({
   ...partial,
 });
 
+const renderWithProviders = (ui: ReactNode) =>
+  render(<ThemeProvider>{ui}</ThemeProvider>);
+
 describe("ExamQuestionEditCard", () => {
   it("renders choice preview options through markdown math renderer", () => {
-    render(
+    renderWithProviders(
       <ExamQuestionEditCard
         question={createQuestion()}
         index={0}
@@ -62,7 +66,7 @@ describe("ExamQuestionEditCard", () => {
   });
 
   it("renders subjective reference answer and explanation through markdown math renderer", () => {
-    render(
+    renderWithProviders(
       <ExamQuestionEditCard
         question={createQuestion({
           questionType: "essay",

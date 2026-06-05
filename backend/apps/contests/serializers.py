@@ -663,6 +663,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
     group_id = serializers.UUIDField(required=False, allow_null=True)
+    effective_max_score = serializers.SerializerMethodField()
 
     class Meta:
         model = ExamQuestion
@@ -679,6 +680,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'score',
             'score_policy',
             'score_policy_config',
+            'effective_max_score',
             'order',
             'group_id',
             'order_in_group',
@@ -693,6 +695,13 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['contest', 'created_at', 'updated_at']
+
+    def get_effective_max_score(self, obj):
+        """Post-redistribution effective max score for this question."""
+        effective_map = self.context.get('effective_max_scores')
+        if effective_map and obj.id in effective_map:
+            return round(effective_map[obj.id], 2)
+        return float(obj.score)
 
     def get_source_bank(self, obj):
         if not obj.source_bank_id:
@@ -1119,18 +1128,23 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         return sources
     
     def get_total_score(self, obj):
-        """計算參賽者的實際總分（從提交記錄中計算，排除測試提交）
+        """計算參賽者的實際總分。
         優先使用 ViewSet 注入的 total_score_annotated 以避免 N+1。
         """
         if hasattr(obj, 'total_score_annotated'):
             return obj.total_score_annotated or 0
 
         # Fallback (Slow path)
+        if obj.contest.contest_type == 'paper_exam':
+            # Paper exam: use persisted score (maintained by ExamScoringService,
+            # respects score_policy: excluded/full_marks/redistribute)
+            return obj.score or 0
+
         from apps.submissions.models import Submission
         from django.db.models import Max
         from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
-        # 取得競賽的所有 coding bindings
+        # Coding contest: best submission score per problem
         bindings = ContestQuestionBinding.objects.filter(
             contest=obj.contest,
             binding_type=QuestionAsset.AssetType.CODING,
@@ -1140,7 +1154,6 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         for binding in bindings:
             if not binding.coding_problem_id:
                 continue
-            # 取得該用戶在此題目的最高分（排除測試提交）
             best_submission = Submission.objects.filter(
                 contest=obj.contest,
                 problem=binding.coding_problem,

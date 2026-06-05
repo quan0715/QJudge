@@ -19,6 +19,7 @@ import QuestionSidebarScreen from "./QuestionSidebarScreen";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import GradingMobileNav from "./GradingMobileNav";
 import ScorePolicyMenu from "./components/ScorePolicyMenu";
+import type { ScorePolicyMenuImpactContext } from "./components/ScorePolicyMenu";
 import {
   GRADING_COLLAPSED_LIST_WIDTH,
   GRADING_PRIMARY_LIST_WIDTH,
@@ -91,6 +92,28 @@ export default function GradingByQuestionTabScreen({
     );
     return exists ? selectedQuestionId : (questionProgress[0]?.questionId ?? "");
   }, [questionProgress, selectedQuestionId]);
+
+  // Derive answers-by-student map for score impact simulation
+  const answersByStudent = useMemo<Map<string, GradingAnswerRow[]>>(() => {
+    const map = new Map<string, GradingAnswerRow[]>();
+    for (const rows of answersByQuestion.values()) {
+      for (const row of rows) {
+        const list = map.get(row.studentId) ?? [];
+        list.push(row);
+        map.set(row.studentId, list);
+      }
+    }
+    return map;
+  }, [answersByQuestion]);
+
+  const impactContext = useMemo<ScorePolicyMenuImpactContext>(
+    () => ({
+      questions: questionProgress,
+      studentIds: students.map((s) => s.studentId),
+      answersByStudent,
+    }),
+    [questionProgress, students, answersByStudent],
+  );
 
   useEffect(() => {
     if (!selectionRequest?.questionId) {
@@ -298,6 +321,7 @@ export default function GradingByQuestionTabScreen({
                   scorePolicy: q.scorePolicy,
                 }))}
                 onPolicyChanged={onRefreshData}
+                impactContext={impactContext}
               />
             ) : undefined
           }

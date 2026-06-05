@@ -16,6 +16,7 @@ import {
   ListItemTrailing,
 } from "@/shared/ui/list/ListPanel";
 import type { QuestionProgress } from "./gradingTypes";
+import { computeEffectiveMaxTotal } from "./scorePolicyUtils";
 import { ScorePolicyTag } from "./components/ScorePolicyMenu";
 import styles from "./GradingByQuestion.module.scss";
 import mini from "./GradingMini.module.scss";
@@ -53,7 +54,13 @@ export default function QuestionSidebarScreen({
     (left, right) => left.questionIndex - right.questionIndex,
   );
   const totalQuestions = questions.length;
-  const totalScore = questions.reduce((sum, question) => sum + (question.maxScore ?? 0), 0);
+  const totalScore = computeEffectiveMaxTotal(
+    questions.map((q) => ({
+      maxScore: q.maxScore,
+      effectiveMaxScore: q.effectiveMaxScore,
+      scorePolicy: q.scorePolicy,
+    })),
+  );
 
   if (collapsed) {
     return (
@@ -140,6 +147,13 @@ export default function QuestionSidebarScreen({
                   Q{q.questionIndex}
                   {q.scorePolicy && q.scorePolicy !== "normal" && (
                     <ScorePolicyTag policy={q.scorePolicy} />
+                  )}
+                  {q.scorePolicy !== "excluded" && q.scorePolicy !== "redistribute" && (
+                    <span className={styles.sidebarScoreLabel}>
+                      {q.effectiveMaxScore != null && q.effectiveMaxScore !== q.maxScore
+                        ? `${q.maxScore}→${Math.round(q.effectiveMaxScore * 10) / 10}`
+                        : q.maxScore}
+                    </span>
                   )}
                 </ListItemTitle>
               </ListItemContent>

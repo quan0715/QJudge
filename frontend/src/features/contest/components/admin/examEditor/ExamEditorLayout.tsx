@@ -45,6 +45,7 @@ import QuestionBankImportModal, { type BankImportSelectionItem } from "./Questio
 import QuestionSourcePanel from "./QuestionSourcePanel";
 import WorkTree from "./WorkTree";
 import { useEditorPaneScrollSelection } from "./hooks/useEditorPaneScrollSelection";
+import { useEditorImpactData } from "./hooks/useEditorImpactData";
 import useToolbarSaveStatus from "./hooks/useToolbarSaveStatus";
 import type { QuestionSourceDragItem } from "./questionSource.types";
 import styles from "./ExamEditorLayout.module.scss";
@@ -216,10 +217,26 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
 
   const questions = useMemo(() => flattenQuestions(blocks), [blocks]);
   const allQuestionsForPolicy = useMemo(
-    () => questions.map((q) => ({ id: q.id, order: q.order, prompt: q.prompt, score: q.score, questionType: q.questionType, scorePolicy: q.scorePolicy })),
+    () => questions.map((q) => ({
+      id: q.id,
+      order: q.order,
+      prompt: q.prompt,
+      score: q.score,
+      questionType: q.questionType,
+      scorePolicy: q.scorePolicy,
+      scorePolicyConfig: q.scorePolicyConfig,
+    })),
     [questions],
   );
   const blocksKey = useMemo(() => blocks.map((block) => block.id).join(","), [blocks]);
+
+  const { impactContext: editorImpactContext, ensureLoaded: ensureImpactLoaded } =
+    useEditorImpactData(contestId, allQuestionsForPolicy);
+
+  // Pre-fetch grading data for impact preview once blocks are loaded.
+  useEffect(() => {
+    if (blocks.length > 0) ensureImpactLoaded();
+  }, [blocks.length, ensureImpactLoaded]);
 
   const {
     editorPaneRef,
@@ -768,6 +785,8 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
                   index={getQuestionDisplayIndex(block.question)}
                   frozen={frozen}
                   allQuestions={allQuestionsForPolicy}
+                  editorImpactContext={editorImpactContext}
+                  onMenuOpen={ensureImpactLoaded}
                   onAutoSave={handleQuestionAutoSave}
                   onDelete={handleDelete}
                   onDuplicate={handleDuplicate}
@@ -799,6 +818,8 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
                         showScoreField
                         frozen={frozen}
                         allQuestions={allQuestionsForPolicy}
+                        editorImpactContext={editorImpactContext}
+                        onMenuOpen={ensureImpactLoaded}
                         onAutoSave={handleQuestionAutoSave}
                         onDelete={handleDelete}
                         onDuplicate={handleDuplicate}

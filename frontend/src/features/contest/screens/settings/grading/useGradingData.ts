@@ -379,7 +379,9 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         questionType: QuestionType;
         prompt: string;
         maxScore: number;
+        effectiveMaxScore?: number;
         scorePolicy?: ExamQuestionScorePolicy;
+        scorePolicyConfig?: { redistributeTo?: string[] } | null;
       }
     >();
 
@@ -403,7 +405,9 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
           questionType: q.questionType,
           prompt: q.prompt ?? "",
           maxScore: q.score ?? 0,
+          effectiveMaxScore: q.effectiveMaxScore,
           scorePolicy: q.scorePolicy ?? "normal",
+          scorePolicyConfig: q.scorePolicyConfig,
         });
       }
     }
@@ -459,6 +463,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
           questionType: q.questionType,
           prompt: q.prompt,
           maxScore: q.maxScore,
+          effectiveMaxScore: q.effectiveMaxScore,
           totalAnswers,
           gradedCount,
           progressPercent:
@@ -467,6 +472,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
               : 0,
           isObjective: objective,
           scorePolicy: q.scorePolicy,
+          scorePolicyConfig: q.scorePolicyConfig,
         };
       });
   }, [questionInfoMap, answersByQuestion]);
