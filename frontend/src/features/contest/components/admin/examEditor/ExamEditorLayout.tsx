@@ -233,6 +233,11 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   const { impactContext: editorImpactContext, ensureLoaded: ensureImpactLoaded } =
     useEditorImpactData(contestId, allQuestionsForPolicy);
 
+  // Pre-fetch grading data for impact preview once blocks are loaded.
+  useEffect(() => {
+    if (blocks.length > 0) ensureImpactLoaded();
+  }, [blocks.length, ensureImpactLoaded]);
+
   const {
     editorPaneRef,
     cardRefs,
