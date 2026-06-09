@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
-import type { ExamQuestion } from "@/core/entities/contest.entity";
+import type { ExamQuestion, ExamPaperBlock } from "@/core/entities/contest.entity";
 import WorkTree from "./WorkTree";
 
 vi.mock("react-i18next", () => ({
@@ -62,22 +62,23 @@ const buildQuestion = (partial: Partial<ExamQuestion>): ExamQuestion => ({
   updatedAt: partial.updatedAt ?? "2026-01-01T00:00:00Z",
 });
 
+const toBlocks = (questions: ExamQuestion[]): ExamPaperBlock[] =>
+  questions.map((q) => ({ kind: "question" as const, id: q.id, question: q }));
+
 describe("WorkTree", () => {
   it("shows empty state and footer together when there are no questions", () => {
     render(
       <WorkTree
-        questions={[]}
+        blocks={[]}
         selectedId={null}
         frozen
         onSelect={vi.fn()}
         onAdd={vi.fn()}
-        onDelete={vi.fn()}
         onReorder={vi.fn()}
       />,
     );
 
     expect(screen.getByText("尚無題目")).toBeInTheDocument();
-    expect(screen.getByText("0 題")).toBeInTheDocument();
     expect(screen.getByText("0 題")).toBeInTheDocument();
     expect(screen.getByText("總分 0")).toBeInTheDocument();
     expect(screen.queryByTestId("reorder-group")).not.toBeInTheDocument();
@@ -86,13 +87,12 @@ describe("WorkTree", () => {
   it("shows skeleton in body and keeps footer visible while loading", () => {
     render(
       <WorkTree
-        questions={[]}
+        blocks={[]}
         selectedId={null}
         loading
         frozen
         onSelect={vi.fn()}
         onAdd={vi.fn()}
-        onDelete={vi.fn()}
         onReorder={vi.fn()}
       />,
     );
@@ -105,21 +105,19 @@ describe("WorkTree", () => {
   it("shows reorder list and computed summary when questions exist", () => {
     render(
       <WorkTree
-        questions={[
+        blocks={toBlocks([
           buildQuestion({ id: "q-1", score: 5, order: 0 }),
           buildQuestion({ id: "q-2", score: 7, order: 1 }),
-        ]}
+        ])}
         selectedId="q-1"
         frozen={false}
         onSelect={vi.fn()}
         onAdd={vi.fn()}
-        onDelete={vi.fn()}
         onReorder={vi.fn()}
       />,
     );
 
     expect(screen.getByTestId("reorder-group")).toBeInTheDocument();
-    expect(screen.getByText("2 題")).toBeInTheDocument();
     expect(screen.getByText("2 題")).toBeInTheDocument();
     expect(screen.getByText("總分 12")).toBeInTheDocument();
   });

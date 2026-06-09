@@ -8,6 +8,7 @@ from .models import (
     Clarification,
     ExamEvent,
     ExamQuestion,
+    ExamQuestionGroup,
     ExamAnswer,
 )
 
@@ -41,10 +42,18 @@ class ExamEventAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'metadata']
 
 
+@admin.register(ExamQuestionGroup)
+class ExamQuestionGroupAdmin(admin.ModelAdmin):
+    list_display = ['id', 'contest', 'title', 'order', 'updated_at']
+    list_filter = ['contest']
+    search_fields = ['title', 'shared_stem_markdown']
+    ordering = ['contest', 'order', 'id']
+
+
 @admin.register(ExamQuestion)
 class ExamQuestionAdmin(admin.ModelAdmin):
-    list_display = ['id', 'contest', 'question_type', 'score', 'order', 'updated_at']
-    list_filter = ['question_type', 'contest']
+    list_display = ['id', 'contest', 'question_type', 'group', 'score', 'order', 'answer_format', 'updated_at']
+    list_filter = ['question_type', 'answer_format', 'contest']
     search_fields = ['prompt']
     ordering = ['contest', 'order', 'id']
 

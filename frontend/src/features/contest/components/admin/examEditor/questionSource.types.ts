@@ -6,6 +6,10 @@ export type QuestionSourceDragItem =
       questionType: ExamQuestionType;
     }
   | {
+      kind: "exam_group";
+      title: string;
+    }
+  | {
       kind: "bank_question";
       category: "exam" | "coding";
       questionBankId: string;

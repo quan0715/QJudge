@@ -35,6 +35,7 @@ export interface PaperQuestionOverviewRow {
     | "warm-gray"
     | "high-contrast"
     | "outline";
+  scorePolicy?: string;
 }
 
 interface PaperQuestionOverviewTableProps {
@@ -192,11 +193,23 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
                       }
 
                       if (h === "score") {
+                        const isExcluded = src?.scorePolicy === "excluded";
+                        const isFullMarks = src?.scorePolicy === "full_marks";
+                        const isRedistribute = src?.scorePolicy === "redistribute";
                         return (
                           <TableCell key={cell.id} className={styles.colScore}>
-                            <span className={styles.cellScoreValue}>
-                              {String(cell.value || "-")} / {src?.maxScore ?? "?"}
-                            </span>
+                            {isExcluded || isRedistribute ? (
+                              <span className={styles.cellScoreExcluded}>
+                                — / {src?.maxScore ?? "?"}
+                              </span>
+                            ) : (
+                              <span className={styles.cellScoreValue}>
+                                {String(cell.value || "-")} / {src?.maxScore ?? "?"}
+                                {isFullMarks && (
+                                  <span className={styles.policyBadgeFullMarks}> ★</span>
+                                )}
+                              </span>
+                            )}
                           </TableCell>
                         );
                       }

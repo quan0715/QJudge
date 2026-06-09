@@ -18,7 +18,7 @@ import {
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
-import type { ContestParticipant, ExamQuestion } from "@/core/entities/contest.entity";
+import type { ContestParticipant, ExamQuestion, ExamQuestionScorePolicy } from "@/core/entities/contest.entity";
 import ContestAdminContext from "@/features/contest/contexts/ContestAdminContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { isSubjectiveType } from "./gradingTypes";
@@ -379,6 +379,9 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         questionType: QuestionType;
         prompt: string;
         maxScore: number;
+        effectiveMaxScore?: number;
+        scorePolicy?: ExamQuestionScorePolicy;
+        scorePolicyConfig?: { redistributeTo?: string[] } | null;
       }
     >();
 
@@ -402,6 +405,9 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
           questionType: q.questionType,
           prompt: q.prompt ?? "",
           maxScore: q.score ?? 0,
+          effectiveMaxScore: q.effectiveMaxScore,
+          scorePolicy: q.scorePolicy ?? "normal",
+          scorePolicyConfig: q.scorePolicyConfig,
         });
       }
     }
@@ -457,6 +463,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
           questionType: q.questionType,
           prompt: q.prompt,
           maxScore: q.maxScore,
+          effectiveMaxScore: q.effectiveMaxScore,
           totalAnswers,
           gradedCount,
           progressPercent:
@@ -464,6 +471,8 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
               ? Math.round((gradedCount / totalAnswers) * 100)
               : 0,
           isObjective: objective,
+          scorePolicy: q.scorePolicy,
+          scorePolicyConfig: q.scorePolicyConfig,
         };
       });
   }, [questionInfoMap, answersByQuestion]);

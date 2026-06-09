@@ -8,9 +8,11 @@ from .views import (
     ExamViewSet,
     ContestProblemViewSet,
     ContestExamQuestionViewSet,
+    ContestExamPaperViewSet,
     ContestActivityViewSet,
     ExamAnswerViewSet,
 )
+from .views.exam_question_group import ContestExamQuestionGroupViewSet
 from apps.submissions.views import SubmissionViewSet
 
 app_name = 'contests'
@@ -28,8 +30,27 @@ contest_router.register(r'exam-questions', ContestExamQuestionViewSet, basename=
 contest_router.register(r'submissions', SubmissionViewSet, basename='contest-submissions')
 contest_router.register(r'activities', ContestActivityViewSet, basename='contest-activities')
 contest_router.register(r'exam-answers', ExamAnswerViewSet, basename='contest-exam-answers')
+contest_router.register(r'exam-question-groups', ContestExamQuestionGroupViewSet, basename='contest-exam-question-groups')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path(
+        '<uuid:contest_pk>/exam-paper/',
+        ContestExamPaperViewSet.as_view({
+            'get': 'list',
+            'post': 'create',
+            'patch': 'partial_update_collection',
+        }),
+        name='contest-exam-paper-list',
+    ),
+    path(
+        '<uuid:contest_pk>/exam-paper/<uuid:pk>/',
+        ContestExamPaperViewSet.as_view({
+            'get': 'retrieve',
+            'patch': 'partial_update',
+            'delete': 'destroy',
+        }),
+        name='contest-exam-paper-detail',
+    ),
     path('', include(contest_router.urls)),
 ]

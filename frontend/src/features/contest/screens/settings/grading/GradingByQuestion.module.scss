@@ -20,6 +20,13 @@
   flex-shrink: 0;
 }
 
+.sidebarScoreLabel {
+  margin-left: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Progress ring in question sidebar */
 .sidebarProgress {
   display: inline-flex;

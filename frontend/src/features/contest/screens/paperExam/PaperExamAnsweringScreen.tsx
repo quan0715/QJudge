@@ -18,6 +18,7 @@ import { usePaperExamFlow } from "./usePaperExamFlow";
 import { useInterval } from "@/shared/hooks/useInterval";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
+import ProblemPromptPreview from "../../components/exam/ProblemPromptPreview";
 import {
   useCountdownTo,
   usePaperExamAutoSave,
@@ -30,6 +31,7 @@ import {
 } from "./hooks";
 import { useExamCapture } from "@/features/contest/contexts/ExamCaptureContext";
 import type { ExamItem } from "../../types/exam.types";
+import { buildQuestionPresentationById } from "./paperExamSectionView";
 import styles from "./PaperExamAnswering.module.scss";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
@@ -54,7 +56,10 @@ import {
   resolveEvidenceCaptureStrategy,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
-import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 
 const PaperExamAnsweringScreen: React.FC = () => {
   const { t } = useTranslation(["contest", "common"]);
@@ -117,11 +122,19 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const setPageHeaderActions = usePageHeaderActions();
   const { isRuntime } = useContestRuntimeMode();
 
-  const { items, answers, setAnswers, answeredIds, loadingQuestions } =
+  const { items, sections, answers, setAnswers, answeredIds, loadingQuestions } =
     usePaperExamQuestions(contestId);
   const questionIds = useMemo(
     () => items.filter((item) => item.kind === "question").map((item) => item.data.id),
     [items]
+  );
+  const singleModePresentationById = useMemo(
+    () => buildQuestionPresentationById(sections, "single"),
+    [sections],
+  );
+  const allModePresentationById = useMemo(
+    () => buildQuestionPresentationById(sections, "all"),
+    [sections],
   );
   const autoSave = usePaperExamAutoSave({
     contestId,
@@ -174,8 +187,13 @@ const PaperExamAnsweringScreen: React.FC = () => {
   );
 
   const handleAnswerChange = useCallback(
-    (questionId: string, value: unknown, questionType?: ExamQuestionType) => {
-      autoSave.handleAnswerChange(questionId, value, questionType);
+    (
+      questionId: string,
+      value: unknown,
+      questionType?: ExamQuestionType,
+      answerFormat?: ExamQuestionAnswerFormat,
+    ) => {
+      autoSave.handleAnswerChange(questionId, value, questionType, answerFormat);
       markDirty(questionId);
     },
     [autoSave, markDirty],
@@ -333,12 +351,18 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }, [requestedQuestionId, items]);
 
   const renderItem = useCallback(
-    (item: ExamItem, index: number) => {
+    (item: ExamItem, _index: number, mode: "single" | "all") => {
       if (item.kind !== "question") return null;
+      const presentation =
+        mode === "single"
+          ? singleModePresentationById.get(item.data.id)
+          : allModePresentationById.get(item.data.id);
       return (
         <ExamQuestionCard
           question={item.data}
-          index={index}
+          group={presentation?.group}
+          showGroupStem={presentation?.showGroupStem ?? false}
+          index={item.data.order}
           answer={answers[item.data.id]}
           onAnswerChange={handleAnswerChange}
           onBlur={handleBlur}
@@ -347,7 +371,15 @@ const PaperExamAnsweringScreen: React.FC = () => {
         />
       );
     },
-    [answers, handleAnswerChange, handleBlur, markedIds, toggleMark]
+    [
+      answers,
+      allModePresentationById,
+      handleAnswerChange,
+      handleBlur,
+      markedIds,
+      singleModePresentationById,
+      toggleMark,
+    ],
   );
 
   const totalCount = items.length;
@@ -559,12 +591,10 @@ const PaperExamAnsweringScreen: React.FC = () => {
               borderRadius: "4px",
             }}
           >
-            {items.map((item, index) => {
+            {items.map((item) => {
               if (item.kind !== "question") return null;
               const done = answeredIds.has(item.data.id);
               const marked = markedIds.has(item.data.id);
-              const prompt = item.data.prompt || "";
-              const preview = prompt.length > 60 ? `${prompt.slice(0, 60)}...` : prompt;
               return (
                 <div
                   key={item.data.id}
@@ -578,7 +608,14 @@ const PaperExamAnsweringScreen: React.FC = () => {
                   }}
                 >
                   {marked && <FlagFilled size={14} style={{ color: "var(--cds-support-warning)", flexShrink: 0 }} />}
-                  <span>{t("answering.submit.questionPreview", { index: index + 1 })} {preview ? `— ${preview}` : ""}</span>
+                  <span style={{ flexShrink: 0 }}>
+                    {t("answering.submit.questionPreview", { index: item.data.order + 1 })}
+                  </span>
+                  <ProblemPromptPreview
+                    content={item.data.prompt}
+                    maxLines={1}
+                    className={styles.submitQuestionPreview}
+                  />
                 </div>
               );
             })}
